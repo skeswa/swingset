@@ -1,0 +1,182 @@
+event_key,name,series_slug,start_date,end_date,city,region,country,country_code,event_type,flags,status,website,first_seen_snapshot,last_seen_snapshot,snapshots_seen
+2025-09-korea-westival,Korea Westival 2025,korea-westival,2025-09-04,2025-09-07,SEOUL,Seoul,South Korea,KOR,Registry Event,,ended,http://koreawestival.com,20250512,20250512,1
+2025-09-trilogy-swing,Trilogy Swing,trilogy-swing,2025-09-04,2025-09-07,Raleigh,North Carolina,United States,USA,Registry Event,,ended,https://www.trilogywcs.com/,20250512,20250512,1
+2025-09-bavarian-open-west-coast-swing-championships,Bavarian Open West Coast Swing Championships,bavarian-open-west-coast-swing-championships,2025-09-11,2025-09-14,Munich,Bavaria,Germany,DEU,Registry Event,,ended,https://bavarianopen.com,20250512,20250512,1
+2025-09-best-of-the-best-wcs,Best of the Best WCS,best-of-the-best-wcs,2025-09-11,2025-09-14,Sydney,NSW,Australia,AUS,Registry Event,,ended,https://www.bestofthebestwcs.com/,20250512,20250512,1
+2025-09-retaliation-swing,Retaliation Swing,retaliation-swing,2025-09-18,2025-09-22,Seattle,WA,USA,USA,Registry Event,,ended,https://www.retaliationswing.com,20250512,20250512,1
+2025-09-austin-rocks,Austin Rocks,austin-rocks,2025-09-19,2025-09-21,Austin,,Tx,USA,Registry Event,,ended,http://www.atxrox.com,20250512,20250512,1
+2025-09-finnfest,Finnfest,finnfest,2025-09-19,2025-09-22,Helsinki,Uusimaa,Finland,FIN,Registry Event,,ended,http://www.finnfest.fi,20250512,20250512,1
+2025-09-philly-swing-dance-classic,Philly Swing Dance Classic,philly-swing-dance-classic,2025-09-19,2025-09-21,WILMINGTON,,Delaware,USA,Registry Event,,ended,https://phillyswing.com/,20250512,20250512,1
+2025-09-wcs-party,WCS Party,wcs-party,2025-09-19,2025-09-21,Vienna,,Austria,AUT,Registry Event,,ended,https://www.wcsparty.com/,20250512,20250512,1
+2025-09-meet-me-in-st-louis-swing-dance-championships,Meet Me in St. Louis Swing Dance Championships,meet-me-in-st-louis-swing-dance-championships,2025-09-25,2025-09-28,St. Louis,,MO,USA,Registry Event,,ended,http://www.mmisl.com,20250512,20250512,1
+2025-09-midland-swing-open,Midland Swing Open,midland-swing-open,2025-09-25,2025-09-29,London,,UK,GBR,Registry Event,,ended,http://www.MidlandSwingOpen.com,20250512,20250512,1
+2025-09-mooseland-swing,Mooseland Swing 2025,mooseland-swing,2025-09-25,2025-09-29,Östersund,Jämtland,Sweden,SWE,Registry Event,,ended,https://mooselandswing.com/,20250512,20250512,1
+2025-10-atlanta-swing-classic,Atlanta Swing Classic,atlanta-swing-classic,2025-10-02,2025-10-05,Atlanta,,GA,USA,Registry Event,,ended,https://atlantaswingclassic.com/,20250512,20250512,1
+2025-10-norwegian-open-wcs,Norwegian Open WCS,norwegian-open-wcs,2025-10-02,2025-10-06,Oslo,Innlandet fylke,Norway,NOR,Trial Event,event-trial,ended,https://norwegianopen.no/,20250512,20250512,1
+2025-10-the-aloha-open,The Aloha Open,the-aloha-open,2025-10-08,2025-10-12,Wailea,"Maui, Hawaii",USA,USA,Registry Event,,ended,http://www.alohaopenwcs.com,20250512,20251006,2
+2025-10-milan-modern-swing,Milan Modern Swing 2025,milan-modern-swing,2025-10-09,2025-10-12,Milan,,Italy,ITA,Registry Event,,ended,https://www.westcoastswingmilan.com/,20250512,20251006,2
+2025-10-paradise-dance-festival,Paradise dance festival,paradise-dance-festival,2025-10-09,2025-10-12,Irvine Orange County,Ca,Usa,USA,Registry Event,,ended,http://www.paradisecountrydancefestival.com,20250512,20251006,2
+2025-10-go-west-swingfest,Go West SwingFest,go-west-swingfest,2025-10-10,2025-10-12,Perth,,Western Australia,AUS,Registry Event,,ended,https://www.gowestswingfest.au,20250512,20251006,2
+2025-10-boogie-by-the-bay,Boogie by the Bay,boogie-by-the-bay,2025-10-16,2025-10-20,Burlingame,,CA,USA,Registry Event,,ended,https://boogiebythebay.com,20250512,20251006,2
+2025-10-the-new-zealand-west-coast-swing-open,The New Zealand West Coast Swing Open,the-new-zealand-west-coast-swing-open,2025-10-16,2025-10-19,Auckland,,New Zealand,NZL,Registry Event,,ended,https://www.streetswing.co.nz/the-new-zealand-open,20250512,20251006,2
+2025-10-montreal-westie-fest,Montreal Westie Fest,montreal-westie-fest,2025-10-17,2025-10-19,Montréal,Québec,Canada,CAN,Registry Event,,ended,http://montrealwestiefest.com,20250512,20251006,2
+2025-10-swustlicious,Swustlicious,swustlicious,2025-10-17,2025-10-19,Philadelphia,,PA,USA,Registry Event,,ended,http://www.swustlicious.com,20250512,20251006,2
+2025-10-augsburg-westie-station,Augsburg Westie Station,augsburg-westie-station,2025-10-22,2025-10-25,Augsburg,Bavaria,Germany,DEU,Registry Event,,ended,https://www.augsburgwestiestation.com/,20250512,20251006,2
+2025-10-halloween-swingthing,Halloween SwingThing,halloween-swingthing,2025-10-23,2025-10-26,Costa Mesa,,CA,USA,Registry Event,,ended,http://HSTswing.com,20250512,20251006,2
+2025-10-swing-city-chicago,Swing City Chicago,swing-city-chicago,2025-10-23,2025-10-26,Chicago,,IL,USA,Registry Event,,ended,https://swingcitychicago.com,20250512,20251006,2
+2025-10-sass-spooky-albany-swing-spectacular,SASS Spooky Albany Swing Spectacular,sass-spooky-albany-swing-spectacular,2025-10-24,2025-10-26,Albany,,New York,USA,Trial Event,event-trial,ended,http://www.spookyalbanyswing.com,20250512,20251006,2
+2025-10-swingside-invitational,Swingside Invitational,swingside-invitational,2025-10-24,2025-10-27,Liège,,Belgium,BEL,Registry Event,,ended,http://www.ssiwcs.com,20250512,20251006,3
+2025-10-wcs-festival,WCS Festival,wcs-festival,2025-10-24,2025-10-26,Duesseldorf,,Germany,DEU,Registry Event,,ended,http://www.wcsfestival.de,20250512,20251006,2
+2025-11-mountain-magic-dance-convention,Mountain Magic Dance Convention,mountain-magic-dance-convention,2025-10-30,2025-11-02,South Lake Tahoe,NV,USA,USA,Registry Event,,ended,https://mountainmagic.dance/,20250512,20251006,2
+2025-11-scandinavian-open-wcs-snow,"Scandinavian Open WCS ""SNOW""",scandinavian-open-wcs-snow,2025-10-30,2025-11-02,Stockholm,Sweden,Sweden,SWE,Registry Event,,ended,http://www.snowcs.se,20250512,20251006,2
+2025-11-warsaw-halloween-swing,Warsaw Halloween Swing,warsaw-halloween-swing,2025-10-30,2025-11-03,Warsaw,Mazowieckie,Poland,POL,Registry Event,,ended,http://www.warsawhalloweenswing.com,20250512,20251006,2
+2025-11-rocket-city-swing,Rocket City Swing,rocket-city-swing,2025-10-31,2025-11-02,Huntsville,AL,USA,USA,Registry Event,,ended,https://rocketcityswing.com/,20250512,20251006,2
+2025-11-spooky-westie-weekend,Spooky Westie Weekend,spooky-westie-weekend,2025-10-31,2025-11-02,Singapore,,Singapore,SGP,Registry Event,,ended,https://spookywestieweekend.com/,20250512,20251006,2
+2025-11-simply-adelaide-west-coast-swing,Simply Adelaide West Coast Swing,simply-adelaide-west-coast-swing,2025-11-06,2025-11-09,Adelaide,South Australia,Australia,AUS,Registry Event,,ended,http://www.simplyadelaidewcs.com.au,20250512,20251006,2
+2025-11-tampa-bay-classic,Tampa Bay Classic,tampa-bay-classic,2025-11-06,2025-11-09,Tampa Bay,FL,USA,USA,Registry Event,,ended,http://www.tbcwcs.com,20251006,20251006,1
+2025-11-autumn-swing-challenge,Autumn Swing Challenge,autumn-swing-challenge,2025-11-07,2025-11-09,Budapest,,Hungary,HUN,Registry Event,,ended,http://asc-budapest.com,20250512,20251006,2
+2025-11-moscow-westie-fest-gala-edition,Moscow Westie Fest Gala Edition,moscow-westie-fest-gala-edition,2025-11-07,2025-11-10,Moscow,,Russia,transparent,Registry Event,,ended,http://westiefest.org/,20251006,20251006,1
+2025-11-westie-s-angels,Westie's Angels,westie-s-angels,2025-11-07,2025-11-10,LYON,,France,FRA,Registry Event,,ended,http://www.frenchywesty.com,20250512,20251006,2
+2025-11-dc-swing-experience-dcsx,DC Swing eXperience (DCSX),dc-swing-experience-dcsx,2025-11-13,2025-11-16,Herndon,,VA,USA,Registry Event,,ended,http://www.dcswingexperience.com,20250512,20251006,2
+2025-11-midnight-madness-wcs,Midnight Madness WCS,midnight-madness-wcs,2025-11-13,2025-11-16,Dallas Ft. Worth,,Texas,USA,Registry Event,,ended,http://www.MidnightMadnessWCS.com,20250512,20251006,2
+2025-11-sea-to-sky-seattle,Sea to Sky Seattle (Hiatus),sea-to-sky-seattle,2025-11-13,2025-11-17,Seattle,WA,USA,USA,Registry Event,,hiatus,http://Seatoskywcs.com,20250512,20251006,2
+2025-11-flowstate-west-coast-swing-zouk-festival,Flowstate | West Coast Swing & Zouk Festival,flowstate-west-coast-swing-zouk-festival,2025-11-14,2025-11-16,London,,UK,GBR,Registry Event,,ended,https://eastonswing.com/west-coast-swing-events/world-swing-dance-council/flowstate-west-coast-swing-zouk-festival-eastonswing/,20250512,20251006,2
+2025-11-westie-pink-city,Westie Pink City,westie-pink-city,2025-11-14,2025-11-16,Toulouse,,France,FRA,Registry Event,,ended,http://www.westiepinkcity.fr,20251006,20251006,1
+2025-11-northeast-swing-classic,Northeast Swing Classic,northeast-swing-classic,2025-11-20,2025-11-23,Providence,RI,USA,USA,Trial Event,event-trial,ended,http://www.northeastswingclassic.com,20250512,20251006,2
+2025-11-the-open-world-swing-dance-championships,The Open World Swing Dance Championships,the-open-world-swing-dance-championships,2025-11-26,2025-11-30,Burbank,,CA,USA,Registry Event,,ended,http://www.theopenswing.com,20250512,20251006,2
+2025-11-cash-bash,CASH Bash,cash-bash,2025-11-27,2025-11-30,Cleveland,,OH,USA,Registry Event,,ended,https://cashdanceclub.org/cash-bash/,20250512,20251006,2
+2025-12-the-after-party-tap,"The After Party ""TAP""",the-after-party-tap,2025-12-04,2025-12-07,Irvine,CA,,USA,Registry Event,,ended,http://www.tapwcs.com,20250512,20251006,2
+2025-12-winter-white-west-coast-swing,Winter White West Coast Swing,winter-white-west-coast-swing,2025-12-04,2025-12-08,Asker,Norway,Norway,NOR,Registry Event,,ended,http://www.winterwhite.no,20251006,20251006,1
+2025-12-shooba-dooba-swing,Shooba Dooba Swing,shooba-dooba-swing,2025-12-05,2025-12-08,Moscow,,Russia,transparent,Registry Event,,ended,https://t.me/ShoobaDoobaSwing,20251006,20251006,1
+2025-12-berlin-swing-revolution,Berlin Swing Revolution,berlin-swing-revolution,2025-12-11,2025-12-14,Berlin,,Germany,DEU,Registry Event,,ended,https://berlinswingrevolution.com/,20251006,20251006,1
+2025-12-santa-swing,Santa Swing,santa-swing,2025-12-11,2025-12-15,Kraków,malopolska,Polska,POL,Trial Event,event-trial,ended,http://santaswing.pl,20250512,20251006,2
+2025-12-global-grand-prix-west-coast-swing-championships,Global Grand Prix - West Coast Swing Championships,global-grand-prix-west-coast-swing-championships,2025-12-12,2025-12-15,Toulouse,Occitanie,France,FRA,Registry Event,,ended,https://www.globalgrandprixwcs.com/,20250512,20251006,2
+2026-01-westie-gala,Westie Gala,westie-gala,2025-12-28,2026-01-01,Stockholm,,Sweden,SWE,Registry Event,,ended,http://www.westiegala.com,20250512,20251219,3
+2026-01-floorplay-swing-vacation,Floorplay Swing Vacation,floorplay-swing-vacation,2025-12-30,2026-01-04,Orlando,Florida,United States,USA,Registry Event,,ended,http://www.floorplayswingvacation.com,20250512,20251219,3
+2026-01-countdown-swing-boston,Countdown Swing Boston,countdown-swing-boston,2025-12-31,2026-01-04,Boston,MA,United States,USA,Registry Event,,ended,https://countdownswingboston.com/,20250512,20251219,3
+2026-01-spotlight-new-year-s-celebration,Spotlight New Year's Celebration,spotlight-new-year-s-celebration,2025-12-31,2026-01-04,Nashville,Tennesse,USA,USA,Registry Event,,ended,http://www.spotlightnewyears.com,20250512,20251219,3
+2026-01-swingcouver,SwingCouver,swingcouver,2025-12-31,2026-01-04,Portland,OR,United States,USA,Registry Event,,ended,http://www.swingcouver.com,20251006,20251219,2
+2026-01-swingvester,SwingVester 2025,swingvester,2025-12-31,2026-01-05,Wels,,Austria,AUT,Registry Event,,ended,http://www.swingvester.com,20250512,20251219,3
+2026-01-ucwdc-country-dance-world-championships,UCWDC Country Dance World Championships,ucwdc-country-dance-world-championships,2026-01-01,2026-01-03,Phoenix,Arizona,United States,USA,Registry Event,,ended,http://www.ucwdcworlds.com,20251006,20251219,2
+2026-01-budafest-open-wcs-championships,BudaFest Open WCS Championships,budafest-open-wcs-championships,2026-01-06,2026-01-11,Budapest,Budapest,Hungary,HUN,Registry Event,,ended,http://wcs-budafest.com,20250512,20260107,4
+2026-01-austin-swing-dance-championships,Austin Swing Dance Championships,austin-swing-dance-championships,2026-01-15,2026-01-19,Austin,TX,USa,USA,Registry Event,,ended,https://austinswingdance.com,20250512,20260107,4
+2026-01-monterey-swing-fest,Monterey Swing Fest,monterey-swing-fest,2026-01-15,2026-01-19,,,,USA,Registry Event,,ended,http://www.montereyswing.com,20250512,20260107,4
+2026-01-avignon-city-swing,Avignon City Swing,avignon-city-swing,2026-01-16,2026-01-18,Nimes,Gard,France,FRA,Registry Event,,ended,https://www.avignoncityswing.com,20251006,20260107,3
+2026-01-the-australian-classic-wcsdc,The Australian Classic WCSDC,the-australian-classic-wcsdc,2026-01-16,2026-01-18,Sydney,NSW,Australia,AUS,,,ended,https://www.dancewcsa.com.au/,20251219,20260107,2
+2026-01-derby-city-swing,Derby City Swing,derby-city-swing,2026-01-22,2026-01-25,Louisville,Kentucky,USA,USA,Registry Event,,ended,https://derbycityswing.com/,20250512,20260107,4
+2026-01-swing-resolution,Swing Resolution,swing-resolution,2026-01-22,2026-01-26,Edinburgh,"Lothian, Scotland",United Kingdom,GBR,Registry Event,,ended,http://www.swingresolution.com,20250512,20260107,4
+2026-01-freedom-swing-dance-challenge,Freedom Swing Dance Challenge,freedom-swing-dance-challenge,2026-01-23,2026-01-25,WILMINGTON,Delaware,United States,USA,Registry Event,,ended,https://freedomswingdance.com/,20250512,20260107,4
+2026-01-paris-swing-classic,Paris Swing Classic,paris-swing-classic,2026-01-23,2026-01-25,Paris,IDF,France,FRA,Registry Event,,ended,https://parisswingclassic.com,20251006,20260107,3
+2026-02-charlotte-westiefest,Charlotte WestieFest,charlotte-westiefest,2026-01-29,2026-02-02,Charlotte,,NC,USA,Registry Event,,ended,https://www.charlottewestiefest.com/,20250512,20260107,4
+2026-02-swing-snow,Swing & Snow,swing-snow,2026-02-05,2026-02-08,St. Petersburg,,Russia,transparent,Registry Event,,ended,https://swingandsnow.ru/,20251006,20260107,3
+2026-02-swingtzerland,Swingtzerland 2026,swingtzerland,2026-02-05,2026-02-08,Zurich,,Swintzerland,CHE,Registry Event,,ended,https://swingtzerland.com/,20250512,20260107,4
+2026-02-waterloo-ontario-open-west-coast-swing-championships,Waterloo Ontario Open West Coast Swing Championships,waterloo-ontario-open-west-coast-swing-championships,2026-02-05,2026-02-08,Waterloo,Ontario,Canada,CAN,Trial Event,event-trial,ended,http://www.waterlooopenwcs.com,20250512,20260107,4
+2026-02-trinity-swing,Trinity Swing,trinity-swing,2026-02-06,2026-02-08,Dundalk,"Co, Louth",Ireland,IRL,Registry Event,,ended,http://Trinityswing.com,20250512,20260107,4
+2026-02-westeroz-swing,WesterOz Swing,westeroz-swing,2026-02-06,2026-02-08,Perth,,Australia,AUS,Registry Event,,ended,https://www.magneticdance.com.au/westeroz,20251006,20260107,3
+2026-02-capital-swing-convention,Capital Swing Convention,capital-swing-convention,2026-02-12,2026-02-15,Sacramento,CA,USA,USA,Registry Event,,ended,https://www.capitalswingconvention.com/,20250512,20260107,4
+2026-02-prague-alchemy-swing,Prague Alchemy Swing,prague-alchemy-swing,2026-02-13,2026-02-15,Prague,,Czech Republic,CZE,Trial Event,event-trial,ended,https://praguealchemyswing.cz/,20250512,20260107,4
+2026-02-valentine-swing,Valentine Swing,valentine-swing,2026-02-13,2026-02-15,Stockholm,Stockholms län,Sweden,SWE,Registry Event,,ended,http://valentineswing.dance,20251219,20260107,2
+2026-02-euro-dance-festival,Euro Dance Festival,euro-dance-festival,2026-02-17,2026-02-21,Rust,Baden-Württemberg,Germany,DEU,Registry Event,,ended,https://www.euro-dance-festival.com,20250512,20260107,4
+2026-02-arousa-westie-fest,Arousa Westie Fest,arousa-westie-fest,2026-02-19,2026-02-22,Sanxenxo,Pontevedra,Spain,ESP,Registry Event,,ended,https://www.arousawestiefest.com,20250512,20260107,4
+2026-02-swing-crush,Swing Crush,swing-crush,2026-02-19,2026-02-23,San Antonio,Texas,United States,USA,Registry Event,,ended,https://swingcrush.com/,20251006,20260107,3
+2026-02-winter-coast,Winter Coast,winter-coast,2026-02-19,2026-02-22,Leppävirta,Northern Savonia,Finland,FIN,Registry Event,,ended,http://www.wintercoastswing.com,20250512,20260107,4
+2026-03-rose-city-swing,Rose City Swing,rose-city-swing,2026-02-26,2026-03-01,Portland,OR,USA,USA,Registry Event,,ended,https://rosecityswing.com,20251006,20260107,3
+2026-03-southern-lights-swing,Southern Lights Swing,southern-lights-swing,2026-02-26,2026-03-02,Hobart,Tasmania,Australia,AUS,Trial Event,event-trial,ended,http://www.southernlightsswing.com.au,20251006,20260107,3
+2026-03-flow-festival-nyc,Flow Festival NYC,flow-festival-nyc,2026-02-27,2026-03-01,New York City,NY,United States,USA,Trial Event,event-trial,ended,https://www.flowfest.nyc,20250512,20260107,4
+2026-03-new-york-flow-festival,New York Flow Festival,new-york-flow-festival,2026-02-27,2026-03-01,New York,NY,US,USA,Trial Event,event-trial,ended,https://www.flowfest.nyc,20260107,20260107,1
+2026-03-madjam-mid-atlantic-dance-jam,MADjam (Mid Atlantic Dance Jam),madjam-mid-atlantic-dance-jam,2026-03-05,2026-03-09,Reston,,VA,USA,Registry Event,,ended,http://www.atlanticdancejam.com,20250512,20260308,5
+2026-03-high-desert-dance-classic,High Desert Dance Classic,high-desert-dance-classic,2026-03-06,2026-03-09,Lancaster,CA,United States,USA,Registry Event,,ended,http://www.highdesertdanceclassic.com,20251006,20260107,3
+2026-03-swingvasion,Swingvasion,swingvasion,2026-03-06,2026-03-08,Wellington,,New Zealand,NZL,Registry Event,,ended,http://Swingvasion.nz,20251006,20260107,3
+2026-03-all-star-swingjam,All Star SwingJam,all-star-swingjam,2026-03-12,2026-03-15,San Francisco,CA,USA,USA,Registry Event,,ended,https://www.allstarswingjam.com/,20251006,20260308,4
+2026-03-dutch-open-west-coast-swing,Dutch Open West Coast Swing,dutch-open-west-coast-swing,2026-03-12,2026-03-15,Venray,Limburg,The Netherlands,NLD,Registry Event,,ended,http://www.dutchopenwcs.com,20251006,20260308,4
+2026-03-west-in-lyon,West In Lyon,west-in-lyon,2026-03-12,2026-03-15,Lyon,Rhône,France,FRA,Registry Event,,ended,http://www.west-in-lyon.fr,20250512,20260308,5
+2026-03-westie-spring-thing,Westie Spring Thing,westie-spring-thing,2026-03-12,2026-03-15,Budapest,Budapest,Hungary,HUN,Registry Event,,ended,https://westiespringthing.com,20260308,20260308,1
+2026-03-king-swing,King Swing,king-swing,2026-03-19,2026-03-23,Kraków,malopolska,Polska,POL,Registry Event,,ended,http://kingswing.pl,20251219,20260308,3
+2026-03-the-chicago-classic,The Chicago Classic,the-chicago-classic,2026-03-19,2026-03-22,Chicago,IL,United States,USA,Registry Event,,ended,https://thechicagoclassic.com/,20251006,20260308,4
+2026-03-5280-westival,5280 Westival,5280-westival,2026-03-26,2026-03-30,Denver,,CO,USA,Registry Event,,ended,https://www.5280westival.com,20250512,20260308,5
+2026-03-h-town-throw-down,H-Town Throw Down,h-town-throw-down,2026-03-26,2026-03-29,Houston,Texas,United States,USA,Registry Event,,ended,http://htownthrowdownwcs.com,20250512,20260308,5
+2026-03-the-boston-tea-party,The Boston Tea Party,the-boston-tea-party,2026-03-26,2026-03-30,Boston,MA,US,USA,Registry Event,,ended,http://teapartyswings.com,20260107,20260308,2
+2026-03-uk-west-coast-swing-championships,UK West Coast Swing Championships,uk-west-coast-swing-championships,2026-03-26,2026-03-30,Sipson,"West Drayton, London",UK,GBR,Registry Event,,ended,https://www.ukwcschamps.com/,20250512,20260308,5
+2026-04-easter-swing,Easter Swing 2026,easter-swing,2026-04-02,2026-04-05,Seattle,WA,United States,USA,Registry Event,,ended,https://www.easterswing.org/,20250512,20260308,5
+2026-04-tulsa-spring-swing,Tulsa Spring Swing,tulsa-spring-swing,2026-04-02,2026-04-05,Tulsa,Ok,USA,USA,Registry Event,,ended,http://www.TulsaSpringSwing.com,20250512,20260308,5
+2026-04-calgary-dance-stampede,Calgary Dance Stampede,calgary-dance-stampede,2026-04-09,2026-04-12,Calgary,Alberta,Canada,CAN,Registry Event,,ended,http://www.calgarydancestampede.com,20250512,20260308,5
+2026-04-city-of-angels-wcs,City of Angels WCS,city-of-angels-wcs,2026-04-09,2026-04-12,Los Angeles,California,USA,USA,Registry Event,,ended,http://cityofangelswcs.com,20250512,20260308,5
+2026-04-korean-open-wcs-championships,KOREAN OPEN WCS CHAMPIONSHIPS,korean-open-wcs-championships,2026-04-09,2026-04-12,Incheon,,South Korea,KOR,Registry Event,,ended,https://www.kopenwcs.com,20250512,20260308,5
+2026-04-swing-in-capital,Swing In Capital,swing-in-capital,2026-04-09,2026-04-12,Rome,Rome,Italy,ITA,Trial Event,event-trial,ended,https://www.westcoastswingroma.it/swing-in-capital/,20251006,20260308,4
+2026-04-westy-nantes,WESTY NANTES,westy-nantes,2026-04-10,2026-04-12,NANTES,Loire-Atlantique,France,FRA,Registry Event,,ended,https://www.westynantes.com/,20250512,20260308,7
+2026-04-asia-wcs-open,Asia WCS Open XIII,asia-wcs-open,2026-04-16,2026-04-19,Singapore,,Singapore,SGP,Registry Event,,ended,https://www.asiawcsopen.com/,20250512,20260308,5
+2026-04-swing-in-bloom,Swing in Bloom,swing-in-bloom,2026-04-16,2026-04-19,Ottawa,Ontario,Canada,CAN,Trial Event,event-trial,ended,http://www.swinginbloom.ca,20251006,20260308,4
+2026-04-detonation-dance,Detonation Dance,detonation-dance,2026-04-23,2026-04-26,Manchester,Greater London,UK,GBR,Registry Event,,ended,http://www.DetonationDance.com,20251006,20260308,4
+2026-04-honey-fest,HONEY FEST,honey-fest,2026-04-23,2026-04-26,Ufa,Bashkortostan Republic,Russia,transparent,Registry Event,,ended,https://t.me/honeyfest,20251006,20260308,4
+2026-04-slovenian-open,Slovenian Open,slovenian-open,2026-04-23,2026-04-27,Ljubljana,,Slovenia,SVN,Registry Event,,ended,https://slovenianopen.dance/en,20251006,20260308,4
+2026-04-swingin-festival,SwingIN Festival,swingin-festival,2026-04-23,2026-04-26,Bonn,NRW,Germany,DEU,Registry Event,,ended,http://www.swinginfestival.de,20250512,20260308,5
+2026-04-swingover,Swingover,swingover,2026-04-23,2026-04-26,Orlando,FL,USA,USA,Registry Event,,ended,http://www.swingoverevent.com,20250512,20260308,5
+2026-05-nordic-wcs-championships,Nordic WCS Championships,nordic-wcs-championships,2026-04-30,2026-05-04,Stockholm,,Sweden,SWE,Registry Event,,ended,http://www.nordicwcschamps.com,20251219,20260308,3
+2026-05-spring-time-swing,Spring Time Swing,spring-time-swing,2026-04-30,2026-05-04,Freiburg,Baden Württemberg,Germany,DEU,Registry Event,,ended,https://springtimeswing.com/,20251006,20260308,4
+2026-05-swingin-into-spring,Swingin' Into Spring,swingin-into-spring,2026-04-30,2026-05-03,Springfield,"Ma / Hartford, CT, ",United States,USA,Registry Event,,ended,http://www.sis.djkenm.com,20251006,20260308,6
+2026-05-beemad,BeeMAD,beemad,2026-05-01,2026-05-03,Madrid,,Spain,ESP,Registry Event,,ended,https://beemadwcs.com/,20251006,20260308,4
+2026-05-med-in-swing,Med in Swing,med-in-swing,2026-05-07,2026-05-11,Toulon,Var,France,FRA,Registry Event,,ended,http://www.medinswing.rocks,20251006,20260308,4
+2026-05-som-swing-of-music,SOM-Swing of Music,som-swing-of-music,2026-05-07,2026-05-11,Wels,OÖ,Austria,AUT,Registry Event,,ended,http://www.swingofmusic.com,20250512,20260308,5
+2026-05-westie-weekend,Westie Weekend,westie-weekend,2026-05-08,2026-05-10,Washington DC,,USA,USA,Registry Event,,ended,https://dancejamproductions.com/westieweekend/,20251006,20260308,4
+2026-05-french-open-wcs,French Open WCS,french-open-wcs,2026-05-13,2026-05-18,PARIS,,France,FRA,Registry Event,,ended,http://www.fowcs.com,20251006,20260513,5
+2026-05-gateway-swing-classic,Gateway Swing Classic,gateway-swing-classic,2026-05-14,2026-05-17,St. Louis,MO,USA,USA,Registry Event,,ended,http://gatewayswing.com,20251006,20260513,5
+2026-05-soswing,SOswing,soswing,2026-05-14,2026-05-17,Ashland,OR,USA,USA,Registry Event,,ended,https://www.soswingdance.com/,20251006,20260513,5
+2026-05-canadian-swing-championships,Canadian Swing Championships,canadian-swing-championships,2026-05-15,2026-05-18,Sherbrooke,Quebec,CANADA,CAN,Registry Event,,ended,https://www.canadianswingchampionships.com,20251006,20260513,5
+2026-05-swingsation,Swingsation 2026,swingsation,2026-05-15,2026-05-18,Gold Coast,Queensland,Australia,AUS,Registry Event,,ended,https://rawconnection.com.au/swingsation/,20251006,20260513,5
+2026-05-texas-classic,Texas Classic,texas-classic,2026-05-15,2026-05-16,Austin,TX,United States,USA,Registry Event,,ended,http://Www.thetexasclassic.com,20260513,20260513,1
+2026-05-usa-grand-national-dance-championships,USA Grand National Dance Championships,usa-grand-national-dance-championships,2026-05-21,2026-05-25,Atlanta,"GA, GA",USA,USA,Registry Event,,ended,http://www.usagrandnationals.com,20251006,20260513,5
+2026-05-hungarian-open,Hungarian Open,hungarian-open,2026-05-22,2026-05-24,Budapest,Pest,Hungary,HUN,Registry Event,,ended,http://wcs-ho.com,20251006,20260513,5
+2026-05-michigan-classic,Michigan Classic,michigan-classic,2026-05-28,2026-05-31,Detroit,Michigan,USA,USA,Registry Event,,ended,http://MichiganClassicSwing.com,20260107,20260513,3
+2026-05-nanaimo-dance-fusion,Nanaimo Dance Fusion,nanaimo-dance-fusion,2026-05-29,2026-05-31,Nanaimo (Vancouver is the major in the province),British Columbia,Canada,CAN,Registry Event,,ended,http://www.nanaimodancefusion.ca,20251006,20260513,5
+2026-06-festival-city-swing,Festival City Swing,festival-city-swing,2026-05-29,2026-06-01,Edinburgh,Scotland,Scotland,GBR,Registry Event,,ended,http://www.fcswing.co.uk,20251006,20260513,5
+2026-06-next-level-swing,Next Level Swing,next-level-swing,2026-05-29,2026-06-01,Gothenburg,Vastra Gotaland,Sweden,SWE,Registry Event,,ended,http://www.next-level.dance,20251006,20260308,4
+2026-06-jack-jill-o-rama,Jack & Jill O'Rama,jack-jill-o-rama,2026-06-04,2026-06-08,Anaheim/Garden Grove,CA,United States,USA,Registry Event,,ended,https://jackandjillorama.com/,20251006,20260513,5
+2026-06-orange-blossom-dance-festival,Orange Blossom Dance Festival,orange-blossom-dance-festival,2026-06-04,2026-06-07,Orlando,"Florida, Florida",United States,USA,Registry Event,,ended,http://www.orangeblossomdance.net,20260308,20260513,2
+2026-06-baltic-swing,Baltic Swing,baltic-swing,2026-06-11,2026-06-15,Gdańsk,Pomorskie,Poland,POL,Registry Event,,ended,http://www.balticswing.com,20251006,20260513,5
+2026-06-dance-n-play,Dance N Play (On Hiatus),dance-n-play,2026-06-18,2026-06-21,Bend,Oregon,United States,USA,Registry Event,event-canceled,hiatus,https://dancenplay.com/,20260513,20260513,1
+2026-06-milan-swing-vibes,Milan Swing Vibes,milan-swing-vibes,2026-06-18,2026-06-21,Milan,,Italy,ITA,Trial Event,event-trial,ended,https://www.westcoastswingmilan.com/milanswingvibes/,20260308,20260513,2
+2026-06-d-townswing,D-Townswing,d-townswing,2026-06-19,2026-06-21,Boston Club,NRW,Germany,DEU,Registry Event,,ended,http://www.d-townswing.com,20251006,20260513,5
+2026-06-swingapalooza,SWINGAPALOOZA,swingapalooza,2026-06-19,2026-06-21,Baton Rouge,,LA,USA,Registry Event,,ended,http://www.swingapaloozaevent.com,20251006,20260513,5
+2026-06-baroqueswing,BaroqueSwing,baroqueswing,2026-06-25,2026-06-28,Ludwigsburg,Baden-Württemberg,Deutschland,DEU,Registry Event,,ended,https://baroqueswing.com,20251006,20260513,5
+2026-06-colorado-country-classic,Colorado Country Classic,colorado-country-classic,2026-06-25,2026-06-28,Denver,"Colorado, Colorado",USA,USA,Registry Event,,ended,https://coloradocountryclassic.net/,20251219,20260513,4
+2026-06-liberty-swing-dance-championships,Liberty Swing Dance Championships,liberty-swing-dance-championships,2026-06-25,2026-06-28,New Brunswick,New Jersey,USA,USA,Registry Event,,ended,http://www.libertyswing.com,20251006,20260513,5
+2026-06-neverlandswing-dutch-swing-championships,NeverlandSwing Dutch Swing Championships 2026,neverlandswing-dutch-swing-championships,2026-06-25,2026-06-29,Amsterdam,Noord Holland,The Netherlands,NLD,Registry Event,,ended,http://www.neverlandswing.com,20260308,20260513,2
+2026-06-swing-fiction,Swing Fiction,swing-fiction,2026-06-26,2026-06-28,Brno,,Czechia,CZE,Registry Event,,ended,https://www.swingfiction.cz/,20251006,20260513,5
+2026-07-americano-dance-camp,Americano Dance Camp,americano-dance-camp,2026-07-02,2026-07-06,Samara,Samara state,Russia,transparent,Registry Event,,ended,https://t.me/americamodancecamp https://vk.com/americano2025,20260513,20260513,1
+2026-07-phoenix-of-july,Phoenix 4th of July,phoenix-of-july,2026-07-02,2026-07-05,Phoenix,AZ,United States,USA,Registry Event,,ended,http://phoenix4thofjuly.com,20251219,20260513,4
+2026-07-saunaswing,SaunaSwing,saunaswing,2026-07-02,2026-07-04,Ikaalinen,Pirkanmaa,Finland,FIN,Registry Event,,ended,https://ekarolas.com/saunaswing/,20260308,20260513,2
+2026-07-wild-wild-westie,Wild Wild Westie,wild-wild-westie,2026-07-02,2026-07-05,Dallas,TX,United States,USA,Registry Event,,ended,https://www.wildwildwestie.com/,20251006,20260513,5
+2026-07-french-connection-wcs,French Connection WCS,french-connection-wcs,2026-07-03,2026-07-06,Annecy,Haute Savoie,FRANCE,FRA,Registry Event,,ended,https://www.frenchconnectionwcs.com/,20251006,20260513,5
+2026-07-carolina-summer-swing,Carolina Summer Swing,carolina-summer-swing,2026-07-09,2026-07-12,Greenville,"South Carolina, SC",USA,USA,Registry Event,,ended,https://carolinasummerswing.com,20251006,20260513,5
+2026-07-mediterranean-open-wcs,Mediterranean Open WCS,mediterranean-open-wcs,2026-07-09,2026-07-13,Barcelona,,Spain,ESP,Registry Event,,ended,https://mediterraneanopenwcs.com/,20251006,20260513,5
+2026-07-my-swing,MY Swing 2026,my-swing,2026-07-09,2026-07-12,Malaysia,,,MYS,Registry Event,,ended,https://www.myswingopen.com/,20251006,20260513,5
+2026-07-toronto-open,Toronto Open (Hiatus),toronto-open,2026-07-09,2026-07-12,Toronto,Ontario,Canada,CAN,Registry Event,,hiatus,http://www.TOSHC.com,20260308,20260513,2
+2026-07-swinglab-berlin,SwingLab Berlin,swinglab-berlin,2026-07-10,2026-07-12,Berlin,,Germany,DEU,Trial Event,event-trial,ended,http://www.swinglab-berlin.com,20250512,20260513,7
+2026-07-midwest-westie-fest,Midwest Westie Fest 2026,midwest-westie-fest,2026-07-16,2026-07-19,Overland Park,KS,United States,USA,Registry Event,,ended,http://Www.midwestwestiefest.com,20251006,20260513,5
+2026-07-revitalise-wcs,Revitalise WCS,revitalise-wcs,2026-07-16,2026-07-19,Melbourne,Victoria,Australia,AUS,Registry Event,,ended,https://revitalisewcs.melbourne/,20251006,20260513,5
+2026-07-rock-the-barn,Rock The Barn,rock-the-barn,2026-07-17,2026-07-19,Umeå,Nordmalings kommun,Sweden,SWE,Registry Event,,ended,https://rockthebarn.se/,20260107,20260513,3
+2026-07-st-petersburg-wcs-nights,St. Petersburg WCS Nights,st-petersburg-wcs-nights,2026-07-22,2026-07-26,St.Petersburg,,Russia,transparent,Registry Event,,ended,http://wcsnights.ru,20251006,20260513,5
+2026-07-florida-dance-magic,Florida Dance Magic,florida-dance-magic,2026-07-23,2026-07-26,Ft. Lauderdale,FL,United States,USA,Registry Event,,ended,https://floridadancemagic.com,20251006,20260513,5
+2026-07-infinite-swing,Infinite Swing,infinite-swing,2026-07-23,2026-07-26,Munich,Bavaria,Deutschland,DEU,Trial Event,event-trial,ended,http://infinite-swing.com,20260308,20260513,2
+2026-08-sea-sun-and-swing,Sea Sun and Swing,sea-sun-and-swing,2026-07-25,2026-08-01,La Grande Motte,Herault,France,FRA,Registry Event,,ended,http://www.seasunswing.fr,20251006,20260513,5
+2026-08-lisbon-westie-fest,Lisbon Westie Fest,lisbon-westie-fest,2026-07-30,2026-08-02,Lisbon,,Portugal,PRT,Registry Event,,ended,https://lisbonwestiefest.com/,20251219,20260513,4
+2026-08-warsaw-summer-nights-westival,Warsaw Summer Nights Westival,warsaw-summer-nights-westival,2026-07-30,2026-08-02,Warsaw,mazowieckie,Poland,POL,Registry Event,,ended,https://www.summernightswestival.com,20251006,20260513,5
+2026-08-german-open-wcs,German Open WCS,german-open-wcs,2026-08-05,2026-08-09,Freiburg,Baden-Württemberg,Germany,DEU,Registry Event,,ended,http://www.go-wcs.com,20251006,20260513,5
+2026-08-new-england-dance-festival,New England Dance Festival,new-england-dance-festival,2026-08-06,2026-08-09,Boston,Massachusetts,USA,USA,Registry Event,,ended,http://www.nedancefestival.com,20260308,20260513,2
+2026-08-swing-fling,Swing Fling,swing-fling,2026-08-06,2026-08-09,Washington,"DC., VA",USA,USA,Registry Event,,ended,http://www.swingfling.com,20251006,20260513,5
+2026-08-swingtacular-the-galactic-open,Swingtacular: The Galactic Open,swingtacular-the-galactic-open,2026-08-06,2026-08-09,San Francisco,CA,USA,USA,Registry Event,,ended,http://www.DanceGeekProductions.Art,20251006,20260513,5
+2026-08-grand-party-sofia-gps,Grand Party Sofia (GPS),grand-party-sofia-gps,2026-08-14,2026-08-17,Sofia,,Bulgaria,BGR,Registry Event,,ended,https://wcs-gps.com/,20251006,20260513,5
+2026-08-uptown-swing,UpTown Swing,uptown-swing,2026-08-14,2026-08-17,Stockholm,Stockholm,Sweden,SWE,Registry Event,,ended,http://www.uptownswing.se,20260308,20260513,2
+2026-08-shakedown-swing,Shakedown Swing,shakedown-swing,2026-08-20,2026-08-23,Christchurch,Canterbury,New Zealand,NZL,Registry Event,,ended,http://www.code03swing.com/shakedown,20251219,20260513,4
+2026-08-summer-hummer,Summer Hummer,summer-hummer,2026-08-20,2026-08-23,Boston,Massachusetts,United States,USA,Registry Event,,ended,http://Summerhummerboston.com,20251006,20260513,5
+2026-08-swing-creation-hamburg,Swing Creation Hamburg,swing-creation-hamburg,2026-08-20,2026-08-23,Hamburg,,Germany,DEU,Trial Event,event-trial,ended,http://hamburgswing.dance,20260308,20260513,2
+2026-08-the-bend-connection,The Bend Connection,the-bend-connection,2026-08-20,2026-08-23,Bend,,OR,USA,Registry Event,,ended,http://thebendconnection.com,20251006,20260513,5
+2026-08-chicagoland-country-and-swing-dance-festival,Chicagoland Country and Swing Dance Festival,chicagoland-country-and-swing-dance-festival,2026-08-21,2026-08-23,Chicago,Illinois,USA,USA,Registry Event,,ended,http://www.chicagolanddancefestival.com,20260308,20260513,2
+2026-08-manneken-swing,Manneken Swing,manneken-swing,2026-08-21,2026-08-23,Bruxelles,Bruxelles,Belgium,BEL,Trial Event,event-trial,ended,https://www.mannekenswing.com,20260308,20260513,2
+2026-08-westie-joy,Westie Joy,westie-joy,2026-08-21,2026-08-23,Bucharest,"Romania, Bucharest",Romania,ROU,Trial Event,event-trial,ended,https://www.westiejoy.com/,20260308,20260513,2
+2026-08-desert-city-swing,Desert City Swing,desert-city-swing,2026-08-27,2026-08-30,Phoenix,AZ,USA,USA,Registry Event,,ended,http://www.desertcityswing.com,20260308,20260513,2
+2026-08-rolling-swing,Rolling Swing,rolling-swing,2026-08-27,2026-08-31,LYON,Rhone,France,FRA,Registry Event,,ended,http://www.frenchywesty.com,20251006,20260513,5
+2026-08-bristol-swing-fiesta,Bristol Swing Fiesta,bristol-swing-fiesta,2026-08-28,2026-08-30,Bristol,"Bristol, City of",United Kingdom,GBR,Registry Event,,ended,https://www.bristolcityswing.com/bsf,20251219,20260513,4
+2026-09-korea-westival,Korea Westival,korea-westival,2026-09-03,2026-09-06,Jeju,Jeju,South Korea,KOR,Registry Event,,in_progress,http://koreawestival.com,20260308,20260904,3
+2026-09-south-bay-dance-fling,South Bay Dance Fling,south-bay-dance-fling,2026-09-03,2026-09-07,San Jose,California,USA,USA,Registry Event,,in_progress,https://sbdf.dance/,20251219,20260904,5
+2026-09-jax-westie-fest,Jax Westie Fest,jax-westie-fest,2026-09-04,2026-09-07,Jacksonville,FL,USA,USA,Registry Event,,in_progress,http://www.jaxwestiefest.com,20251006,20260904,6
