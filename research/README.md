@@ -61,7 +61,13 @@ and heat sheets. Built by the `wcs-results-sources` workflow: one small
 agent per event checked the local aggregator indexes first, then the
 event's own website (at most 6 requests per event), then a follow-up
 agent retried events with nothing found. Joined to `events.csv` on
-`event_key`. See `build_results_sources.py`.
+`event_key`. Workflow return values are kept in `workflow-output/`, and
+`build_results_sources.py` takes them in order, later runs overriding
+earlier ones per event, so the CSV can be rebuilt from the repo:
+
+```
+python3 build_results_sources.py workflow-output/*.json
+```
 
 Treat every row as a lead, not a fact. `confidence` and `evidence` say
 how the agent got there. `passes` is 1 or 2 (a follow-up agent ran).
@@ -72,33 +78,55 @@ in `aggregators/`, `no` when the agent found the URL some other way,
 Manual corrections go in `results-sources.overrides.csv`, one row per
 `event_key`; any non-empty cell replaces the agent's value when the
 build script runs, and the row gets `passes=manual`. Do not edit
-`results-sources.csv` by hand.
+`results-sources.csv` by hand. `source_run` names the workflow output
+file a row came from; `edition_held` (yes/no/unknown) is only filled by
+the retry run and says whether the edition took place at all.
 
-Platform counts on 2026-09-04 (181 events):
+Platform counts after the 2026-09-05 retry (181 events):
 
 | `platform` | Events | Notes |
 |---|---|---|
-| `scoring.dance` | 87 | Prints bibs and WSDC ids. One event (`2026-04-city-of-angels-wcs`, id 315) is in the sitemap but not in the `/enUS/recent` list, so that list is not exhaustive. |
+| `scoring.dance` | 87 | Prints bibs and WSDC ids. The `/enUS/recent` list holds past events only; the sitemap adds upcoming ones and City of Angels 2026 (id 315). |
 | `eepro` | 38 | |
-| `danceconvention.net` | 18 | Names and places on the page; bibs only in per-round PDFs. |
-| `worlddanceregistry` | 14 | `scores.worlddanceregistry.com/<uuid>` ("Pro Score"). Not covered by the design yet. Mostly North American events (Trilogy, Swing City Chicago, Chicago Classic, Montreal Westie Fest, Carolina Summer Swing, Florida Dance Magic, Desert City Swing, and others). Pages are React Static builds with `/awards` (final results) and `/rounds` (round details) routes and a `lastBuilt` timestamp in `window.__routeInfo`. |
+| `danceconvention.net` | 18 | Names and places on the page; bibs only in per-round PDFs. The archive listing is not exhaustive: older editions exist under 7-digit ids (WesterOz 2018 is 1601070) that the listing never shows. |
+| `worlddanceregistry` | 14 | `scores.worlddanceregistry.com/<uuid>` ("Pro Score"). Not covered by the design yet. Mostly North American events (Trilogy, Swing City Chicago, Chicago Classic, Montreal Westie Fest, Carolina Summer Swing, Florida Dance Magic, Desert City Swing, and others). Pages are React Static builds with `/awards` (final results) and `/rounds` (round details) routes and a `lastBuilt` timestamp in `window.__routeInfo`. No public index; the bucket root, robots, and sitemap return 403. |
 | `event_website` | 7 | HTML or PDFs on the event's own site. |
-| `google_drive_or_sheets` | 1 | |
-| `other` | 4 | UCWDC results pages, Florida Classic Series blog, Charlotte WestieFest results page. |
-| `not_found` | 12 | Three hiatus editions, one in progress, the rest unpublished or not discoverable within the request budget. |
+| `google_drive_or_sheets` | 2 | Mountain Magic posts one PDF per division and round in a public Drive folder. |
+| `other` | 6 | UCWDC results PDFs (Texas Classic, Chicagoland), Florida Classic Series blog, Charlotte WestieFest results page, Colorado Country Classic, and Swing Fiction's own JSON API (`api.swingfiction.cz`, see overrides). |
+| `not_held` | 4 | `edition_held=no`: Sea to Sky 2025, The Australian Classic 2026 (cancelled for low ticket sales), Dance N Play 2026, Toronto Open 2026. |
+| `not_found` | 5 | See below. |
 
-Known defect in this run: the session's web-search allowance (200
-searches) ran out about 160 events in. 21 events, mostly with end dates
-in August and September 2026, had every WebSearch refused, and all 12
-`not_found` rows are among them. Those rows mean "not in the three
-aggregator indexes and not linked from the event site", not "not
-published". Events affected: cash-bash, mountain-magic, sea-to-sky,
-australian-classic, westeroz, canadian-swing-championships,
-dance-n-play, next-level-swing, swing-fiction, toronto-open,
-chicagoland, desert-city-swing, grand-party-sofia, manneken-swing,
+Still unresolved after the retry:
+
+| `event_key` | What we know |
+|---|---|
+| `2025-11-cash-bash` | Site links only a World Dance Registry registration page for the 2026 edition. Results for 2025 are probably on WDR under an unknown uuid. |
+| `2026-02-westeroz-swing` | Retry agent matched DCN event 1601070, which turned out to be the 2018 edition. Corrected by override. |
+| `2026-05-canadian-swing-championships` | Site links only two Facebook groups. The danceplace listing's results tab is empty. |
+| `2026-06-next-level-swing` | Site now advertises May 2027; whether the 2026 edition ran is unclear. |
+| `2026-09-korea-westival` | Ended 2026-09-06. DCN event 301273270 exists with results not yet published. |
+
+The retry run used Sonnet agents with WebFetch only, because the
+session's WebSearch allowance was still exhausted. Web search was done
+by fetching Brave's results page; running 12 agents at once got that
+rate-limited (HTTP 429) for about half of them, so the retry is also
+not a clean negative. One retry answer was wrong (WesterOz, above) and
+one was a listing rather than results (Canadian Swing Championships);
+both are corrected in `results-sources.overrides.csv`. Swing Fiction was
+resolved by hand afterwards: its site is a client-rendered app, but the
+bundle names a public JSON API that lists every competition run with
+bibs, heats, partners, and placements.
+
+First-run defect, kept for the record: the session's web-search
+allowance (200 searches) ran out about 160 events in. 21 events, mostly
+with end dates in August and September 2026, had every WebSearch
+refused, and all 12 original `not_found` rows were among them. The
+retry covered those 12. The other 9 (grand-party-sofia, manneken-swing,
 new-england-dance-festival, rolling-swing, swing-creation-hamburg,
-the-bend-connection, jax-westie-fest, korea-westival (2026),
-south-bay-dance-fling.
+the-bend-connection, jax-westie-fest, south-bay-dance-fling, and
+desert-city-swing before its override) were resolved from indexes or
+the event site without search, so their `secondary_platforms` and
+callbacks and heat-sheet fields may be thinner than elsewhere.
 
 Things the agents could not settle without more requests: whether
 callbacks and heat sheets exist for most events (`has_callbacks` is

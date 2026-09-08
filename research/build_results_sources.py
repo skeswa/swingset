@@ -1,10 +1,11 @@
 """Turn the wcs-results-sources workflow output into research/results-sources.csv.
 
-Usage: python3 build_results_sources.py <workflow-result.json>
+Usage: python3 build_results_sources.py <run1.json> [<run2.json> ...]
 
-The JSON is the workflow's return value: {"results": [...], "missing": [...], "counts": {...}}.
-Rows are joined to events.csv on event_key so every event appears once,
-including those the workflow could not answer.
+Each JSON is a workflow's return value: {"results": [...], "missing": [...], "counts": {...}}.
+Later files override earlier ones for the same event_key. Rows are joined to
+events.csv on event_key so every event appears once, including those no
+workflow answered. Then results-sources.overrides.csv is applied on top.
 """
 import csv, json, sys, pathlib, html, re
 
@@ -12,7 +13,7 @@ HERE = pathlib.Path(__file__).parent
 COLS = ['event_key', 'name', 'end_date', 'platform', 'secondary_platforms', 'results_url', 'scores_url',
         'callbacks_url', 'heat_sheets_url', 'has_results', 'has_scores', 'has_callbacks', 'has_heat_sheets',
         'bibs_visible', 'wsdc_ids_visible', 'confidence', 'passes', 'first_pass_platform', 'evidence',
-        'urls_checked', 'notes', 'requests_made', 'results_host', 'url_in_index']
+        'urls_checked', 'notes', 'requests_made', 'results_host', 'url_in_index', 'edition_held', 'source_run']
 
 WDR_HOSTS = {'scores.worlddanceregistry.com', 'www.worlddanceregistry.com', 'worlddanceregistry.com'}
 
@@ -34,9 +35,17 @@ def check_index(platform, url, sd, ee, dcn):
         m = re.search(r'/eventpage/(\d+)', url); return 'yes' if m and m[1] in dcn else 'no'
     return 'n/a'
 
-def main(path):
-    out = json.load(open(path))
-    by_key = {r['event_key']: r for r in out.get('results', [])}
+def main(paths):
+    by_key = {}
+    for path in paths:
+        out = json.load(open(path))
+        for r in out.get('results', []):
+            prev = by_key.get(r['event_key'])
+            r = dict(r, source_run=pathlib.Path(path).stem)
+            if prev is not None:
+                r['first_pass_platform'] = prev.get('platform', '')
+                r['passes'] = str(prev.get('passes', 1)) + '+retry'
+            by_key[r['event_key']] = r
     events = list(csv.DictReader(open(HERE / 'events.csv')))
     unknown = set(by_key) - {e['event_key'] for e in events}
     if unknown:
@@ -58,6 +67,8 @@ def main(path):
             row['results_host'] = m[1].lower() if m else ''
             if row['results_host'] in WDR_HOSTS:
                 row['platform'] = 'worlddanceregistry'
+            if row['edition_held'] == 'no':
+                row['platform'] = 'not_held'   # edition cancelled or on hiatus; nothing to find
             row['url_in_index'] = check_index(row['platform'], row['results_url'], sd, ee, dcn)
         rows.append(row)
     # Manual corrections. Any non-empty cell in the overrides file replaces the agent's value.
@@ -71,6 +82,9 @@ def main(path):
             for c, v in o.items():
                 if c != 'event_key' and v != '' and c in row:
                     row[c] = v
+            if o.get('platform') == 'not_found':
+                for c in ('results_url', 'scores_url', 'callbacks_url', 'heat_sheets_url', 'secondary_platforms'):
+                    row[c] = ''   # an override to not_found retracts the agent's URLs
             row['confidence'] = 'high'
             row['passes'] = 'manual'
             m = re.search(r'https?://([^/\s]+)', row['results_url'])
@@ -86,4 +100,4 @@ def main(path):
     print(len(rows), 'rows;', dict(collections.Counter(r['platform'] for r in rows)))
 
 if __name__ == '__main__':
-    main(sys.argv[1])
+    main(sys.argv[1:])
