@@ -85,6 +85,8 @@ def main(paths):
             if o.get('platform') == 'not_found':
                 for c in ('results_url', 'scores_url', 'callbacks_url', 'heat_sheets_url', 'secondary_platforms'):
                     row[c] = ''   # an override to not_found retracts the agent's URLs
+            if row['secondary_platforms'].strip() == row['platform']:
+                row['secondary_platforms'] = ''   # the agent's guess became the primary platform
             row['confidence'] = 'high'
             row['passes'] = 'manual'
             m = re.search(r'https?://([^/\s]+)', row['results_url'])

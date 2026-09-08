@@ -82,19 +82,19 @@ build script runs, and the row gets `passes=manual`. Do not edit
 file a row came from; `edition_held` (yes/no/unknown) is only filled by
 the retry run and says whether the edition took place at all.
 
-Platform counts after the 2026-09-05 retry (181 events):
+Platform counts as of 2026-09-08 (181 events):
 
 | `platform` | Events | Notes |
 |---|---|---|
 | `scoring.dance` | 87 | Prints bibs and WSDC ids. The `/enUS/recent` list holds past events only; the sitemap adds upcoming ones and City of Angels 2026 (id 315). |
 | `eepro` | 38 | |
-| `danceconvention.net` | 18 | Names and places on the page; bibs only in per-round PDFs. The archive listing is not exhaustive: older editions exist under 7-digit ids (WesterOz 2018 is 1601070) that the listing never shows. |
+| `danceconvention.net` | 19 | Names and places on the page; bibs only in per-round PDFs. Some names are masked as `*******` at source (seen on Korea Westival 2026). The archive listing is not exhaustive: older editions exist under 7-digit ids (WesterOz 2018 is 1601070) that the listing never shows. |
 | `worlddanceregistry` | 14 | `scores.worlddanceregistry.com/<uuid>` ("Pro Score"). Not covered by the design yet. Mostly North American events (Trilogy, Swing City Chicago, Chicago Classic, Montreal Westie Fest, Carolina Summer Swing, Florida Dance Magic, Desert City Swing, and others). Pages are React Static builds with `/awards` (final results) and `/rounds` (round details) routes and a `lastBuilt` timestamp in `window.__routeInfo`. No public index; the bucket root, robots, and sitemap return 403. |
 | `event_website` | 7 | HTML or PDFs on the event's own site. |
 | `google_drive_or_sheets` | 2 | Mountain Magic posts one PDF per division and round in a public Drive folder. |
 | `other` | 6 | UCWDC results PDFs (Texas Classic, Chicagoland), Florida Classic Series blog, Charlotte WestieFest results page, Colorado Country Classic, and Swing Fiction's own JSON API (`api.swingfiction.cz`, see overrides). |
 | `not_held` | 4 | `edition_held=no`: Sea to Sky 2025, The Australian Classic 2026 (cancelled for low ticket sales), Dance N Play 2026, Toronto Open 2026. |
-| `not_found` | 5 | See below. |
+| `not_found` | 4 | See below. |
 
 Still unresolved after the retry:
 
@@ -104,7 +104,6 @@ Still unresolved after the retry:
 | `2026-02-westeroz-swing` | Retry agent matched DCN event 1601070, which turned out to be the 2018 edition. Corrected by override. |
 | `2026-05-canadian-swing-championships` | Site links only two Facebook groups. The danceplace listing's results tab is empty. |
 | `2026-06-next-level-swing` | Site now advertises May 2027; whether the 2026 edition ran is unclear. |
-| `2026-09-korea-westival` | Ended 2026-09-06. DCN event 301273270 exists with results not yet published. |
 
 The retry run used Sonnet agents with WebFetch only, because the
 session's WebSearch allowance was still exhausted. Web search was done
@@ -115,7 +114,9 @@ one was a listing rather than results (Canadian Swing Championships);
 both are corrected in `results-sources.overrides.csv`. Swing Fiction was
 resolved by hand afterwards: its site is a client-rendered app, but the
 bundle names a public JSON API that lists every competition run with
-bibs, heats, partners, and placements.
+bibs, heats, partners, and placements. Korea Westival 2026 was checked
+again on 2026-09-08, two days after it ended, and its results were up
+on danceconvention.net by then.
 
 First-run defect, kept for the record: the session's web-search
 allowance (200 searches) ran out about 160 events in. 21 events, mostly
