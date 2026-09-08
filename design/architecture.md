@@ -1,56 +1,116 @@
 # Architecture
 
-```
-                 ┌──────────────┐
-  WSDC calendar  │   discover   │  finds events and the URLs to watch
-  EEPro index    │              │
-  scoring.dance  └──────┬───────┘
-  DCN lists             │ watches (url, policy, parser)
-                        ▼
-                 ┌──────────────┐
-                 │   schedule   │  decides which watches are due now
-                 └──────┬───────┘
-                        │ due watches
-                        ▼
-                 ┌──────────────┐   conditional GET, robots, per-host
-                 │    fetch     │   delay, backoff, budget
-                 └──────┬───────┘
-                        │ new bodies only
-                        ▼
-                 ┌──────────────┐   content-addressed blobs +
-                 │   archive    │   snapshot rows in SQLite
-                 └──────┬───────┘
-                        │ snapshots
-                        ▼
-                 ┌──────────────┐   pure functions: bytes -> records
-                 │    parse     │   one parser per (source, page kind)
-                 └──────┬───────┘
-                        │ raw records (source vocabulary)
-                        ▼
-                 ┌──────────────┐   canonical ids, enums, name forms,
-                 │  normalize   │   event/contest matching across sources
-                 └──────┬───────┘
-                        │ canonical records
-                        ▼
-                 ┌──────────────┐   bib -> name -> wsdc_id with
-                 │     link     │   confidence; registry confirmation
-                 └──────┬───────┘
-                        │ linked records
-                        ▼
-                 ┌──────────────┐   Parquet tables, changelog, manifest
-                 │    build     │
-                 └──────┬───────┘
-                        │ diff vs last publish
-                        ▼
-                 ┌──────────────┐   one atomic HF commit per change
-                 │   publish    │
-                 └──────────────┘
+The pipeline stores source evidence separately from the current dataset.
+Parsers describe what a source says. Projections decide which canonical
+rows that evidence supports. Linking adds identity assertions. Build
+materializes a consistent view; publish advances the public history.
+
+```text
+due watches -> fetch and archive -> parse -> observations
+                                              |
+calendar + index observations + overrides -> matching map
+                                              |
+                                  project canonical scopes
+                                              |
+                                             link
+                                              |
+                                          build -> publish
 ```
 
-Every stage is a CLI subcommand. Every stage is idempotent. State lives
-in one SQLite file. Raw bodies live in a content-addressed blob store.
-Both live on the local disk of the box that runs the pipeline and are
-backed up to a private Hugging Face dataset repo ([operations](operations.md#backup-and-restore)).
+Fetch is the only stage that reads source sites. Parse, project, link,
+and build run offline. Reconcile and publish read or write the Hub. The cycle reconciles
+existing publication intent before starting the data path shown above.
+Every stage is a CLI subcommand and uses the same work and recovery
+rules as a cycle. [Operations](operations.md#cycle) owns cycle ordering;
+[local state](state.md) owns persistence and invalidation.
 
-The stages after `archive` never touch the network. They can be re-run
-from the archive at any time, for example after a parser fix.
+## Observations and projections
+
+A watch owns its current observation set. An EEPro round yields a
+`RoundSheet`, a calendar page yields `CalendarRow`s, a registry lookup
+one `DancerLookup`, and an index `SourceEventRow`s. Parsers construct
+source-vocabulary observations, never canonical rows or canonical ids.
+The [parse writer](parsing.md#contract) replaces a watch's observations
+transactionally after a successful parse. Failed parses keep the last
+good observations.
+
+Observation scopes are source references: `("source_event",
+"eepro:asc2025")`, `("source_event", "scoringdance:304")`,
+`("dancer", "123")`, `("source_index", "eepro")`, or
+`("calendar", "wsdc")`. The matching map resolves source events to
+canonical events. It is a projection of calendar and index observations,
+`event_aliases.csv`, and `source_urls.csv`.
+
+Each source URL override both seeds a watch and maps its source
+reference to the supplied event id, with `match_method = override`
+(highest precedence). The source extracts a stable platform key from
+the URL, such as `wdr:<uuid>`; generic adapters use `sha256(url)[:16]`.
+The watch and map use that same reference. Canonical contest and entry
+ids are computed only after resolving the map, so moving an alias
+regroups stored evidence without parsing again.
+
+A pure projection consumes all current observations for one canonical
+scope: an event, a dancer, or a source index. Its result contains typed
+canonical rows and conflict findings. `project/writer.py` upserts by
+primary key, preserves `first_seen_at`, and deletes rows the scope no
+longer produces. Scope replacement and downstream work creation are
+one transaction. The map work unit also replaces every affected old
+and new event scope in its transaction; a source event never exists
+under both mappings between commits.
+
+An entry seen in prelims and finals survives while either observation
+mentions it. `rounds_danced`, `best_round`, `entry_count`, and
+`promoted_count` are computed from the union. Judges span contests in
+an event in the same way. Tables need no per-page owner columns.
+
+For conflicting facts, a round page wins over an event page, which
+wins over an index. Among equally specific pages, later `fetched_at`
+wins; snapshot id breaks timestamp ties deterministically. Every
+conflict names both snapshots. Canonical provenance names the winning
+snapshot. Recomputing unchanged evidence does not advance row timestamps
+or revision counters.
+
+## Module boundaries
+
+| Owner | Contract |
+|---|---|
+| `sources/` | Pure extract and parse functions, watch seeds, source polling policy; see [parsing](parsing.md#source-interface) |
+| `project/` | Pure map and scope projections, plus the transactional writer |
+| `link/` | Per-event assignment and identity assertions; writes only link-owned fields and tables |
+| `state/work.py` | Accept changed inputs, enqueue affected units, and commit a unit's output and completion together |
+| `build/` | Read a settled database and captured files; produce immutable publication contents |
+| `publish/` | Own candidate markers, remote commit acknowledgment, and baseline promotion |
+| `backup/` | Copy the complete recoverable state and verify it on restore |
+
+`project_map(index_obs, calendar_obs, aliases, source_urls)` returns a
+`SourceEventMap`. `project(scope, observations, context)` returns a
+`Projection`: canonical rows grouped by table and conflict findings.
+The writer selects observations through the current map. Projection
+context contains captured overrides and vocabularies. Identity policy
+and dancer-dependent matching belong to link, so a registry refresh
+does not silently change a projection's undeclared inputs.
+
+Canonical rows are frozen dataclasses in `model/canonical.py`, one per
+stored canonical table, with a `key()` method. Project owns their source
+facts; link owns identity columns. Both use the transactional writer,
+which preserves the other owner's fields on an upsert. Removing a
+subject removes its links and candidates in the same transaction and
+advances the corresponding revisions. Build owns computed tables such
+as the review queue and changelog.
+
+## Findings and review
+
+`findings` stores durable evidence needing human attention: parser
+warnings, observation conflicts, invalid responses, unknown enums, and
+registry cross-check discrepancies. Evidence names its snapshots or
+archived manual inputs. Parser findings are replaced with the watch's
+observation set; projection conflicts are replaced with the scope's
+projection; a cross-check replaces its own findings. Each owner closes
+findings that no longer apply, including after an override resolves them.
+
+Build derives ambiguous links, unsupported contests, and unmatched
+source events from current state. These are not separate stored queue
+rows. `review_queue` is open findings plus those computed items, as
+specified in [build](build.md#review-queue). A registry dump used for a
+cross-check is archived as a blob; it never directly populates canonical
+tables.

@@ -3,10 +3,14 @@
 ## Watches
 
 A watch is one row: `watch_id`, `source`, `kind` (index, autoindex,
-event, round, pdf, json, site, dancer), `url`, `archive_url` (nullable, for
-backfill via the Wayback Machine), `parser`, `event_id` (nullable), `state`,
+event, round, pdf, json, site, dancer), `method`, `url`, `form` (canonical JSON, nullable), `archive_url` (nullable, for
+backfill via the Wayback Machine), `parser`, `source_ref` (nullable), `state`,
 `next_check_at`, `last_checked_at`, `last_changed_at`, `unchanged_streak`,
 `etag`, `last_modified`, `body_sha256`, `paused_until`, `notes`.
+
+Event context is resolved through `source_event_map`; watches never own
+a second canonical event mapping. Additional persistence fields are in
+[local state](state.md#sqlite-schema).
 
 Watches are created by `discover` and by parsers (a parsed event page
 creates round watches; a parsed round payload creates PDF watches).
@@ -59,12 +63,14 @@ expected to take weeks and that is fine.
 
 `discover` maintains watches from index pages:
 
-1. Parse the WSDC calendar into `events` rows (series slug + month).
-2. Parse each platform's index into `source_events` rows with the
+1. Parse the WSDC calendar into observations and project `events` rows
+   (series slug + month).
+2. Parse each platform's index into observations and project `source_events` rows with the
    platform's own id, name, and dates. Archive indexes (EEPro year
    pages, scoring.dance sitemap, DCN `eventsarchive:loadyear`) are read
    once per year of history and produce `backfill` watches.
-3. Match `source_events` to `events` by normalized name and date overlap.
+3. Project `source_event_map` by matching source observations to calendar
+   events by normalized name and date overlap, then applying overrides.
    Unmatched source events still get an `events` row with
    `wsdc_status = "unknown"`. Ambiguous matches go to a review queue and
    are fixed by adding a row to `overrides/event_aliases.csv`.
@@ -82,3 +88,18 @@ expected to take weeks and that is fine.
    rows in the review queue. Event sites use the default host settings.
 
 Discovery never deletes watches.
+
+
+## Work order
+
+Choose watches by priority, then `next_check_at`: live, cooling, index,
+upcoming, archived, registry, backfill. The sweep sits below archived
+work. Registry lookups use POST form data but otherwise use the same
+watch, gate, archive, and recovery path. Source policy supplies registry
+sweep, probe, trickle, and confirmation schedules.
+
+The cycle drains existing downstream work before fetching another batch,
+as [operations](operations.md#cycle) specifies. This is separate from
+watch priority; pending parse and projection work is not another polling
+state. Manual operator pauses are described in
+[operations](operations.md#locks-and-operator-commands).

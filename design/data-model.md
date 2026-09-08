@@ -289,15 +289,17 @@ re-derive any threshold policy from this table alone.
 | Column | Type | Notes |
 |---|---|---|
 | `item_id` | string | key |
-| `kind` | enum | `ambiguous_link`, `contradicted_link`, `event_alias`, `unsupported_contest`, `registry_diff`, `parse_failure` |
+| `kind` | enum | `ambiguous_link`, `contradicted_link`, `event_alias`, `unsupported_contest`, `registry_diff`, `parse_failure`, `conflict`, `invalid_response`, `unknown_enum` |
 | `subject_id` | string | entry, judge, event, contest, or snapshot id |
 | `summary` | string | one line a human can act on |
 | `suggested_override` | string | a ready-to-paste CSV row for `overrides/` |
 | `opened_at` | timestamp | |
 | `run_id` | string | |
 
-Items disappear from the queue when an override resolves them or the
-condition clears on its own.
+This table is computed at build from open findings and current state;
+it is not stored in SQLite. Items disappear when an override resolves
+them or the condition clears. See [architecture](architecture.md#findings-and-review)
+and [build](build.md#review-queue).
 
 **`changelog`**
 

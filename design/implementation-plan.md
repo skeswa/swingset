@@ -1,10 +1,10 @@
 # Implementation plan for v1
 
-Status: draft v0.1, 2026-09-08. Owner: Sandile Keswa.
+Status: draft v0.2, 2026-09-08. Owner: Sandile Keswa.
 
 This is the order of work for the first version of the pipeline. It
-refines [milestones](milestones.md) and [scraping plan](scraping-plan.md);
-where they disagree, this document wins until they are edited. Facts
+refines [milestones](milestones.md) and [scraping plan](scraping-plan.md).
+The contract owners in section 3 define how the pipeline works. Facts
 about this Mac were checked on 2026-09-08. Facts we could not check are
 marked **unverified**.
 
@@ -32,7 +32,7 @@ Out of v1, with what v1 keeps so nothing has to change later:
 | danceconvention.net (M4) | needs `node` evaluation, PDF parsing, byte budgets; 19 events a year | `daily_byte_budget` in the gate; `derived blob` slot in the archive; `node` in the devshell |
 | Wayback transport and backfill (M6) | weeks of low-priority fetching; nothing else depends on it | `archive_url` and `via` columns; `backfill` watch state; `web.archive.org` in `hosts.toml` |
 | Event-site link scan | discovery nicety; overrides cover the 14 known WDR events | `site` watch kind reserved |
-| Heats, judge linking, generic long-tail adapters, LLM draft tool (M5) | data is thin or manual | `heats` and `judges` tables published, `judges` filled, `heats` empty |
+| Heats, generic long-tail adapters, LLM draft tool (M5) | data is thin or manual | `heats` and `judges` tables published, `judges` filled, `heats` empty |
 | Splink weight fitting | needs scoring.dance data first | hand-set weights in `link/weights.toml`; `link_candidates` keeps every signal so fitting is offline later |
 | Summary webhook | destination undecided | `swingset summary` writes to the journal |
 | Per-source adaptive live floor | decision 13 says later | fixed 15 min floor |
@@ -126,384 +126,29 @@ sudo -u swingset swingset doctor
 Commit with `jj` as [AGENTS.md](../AGENTS.md) says. One work package is
 one or a few commits, each leaving tests green.
 
-## 3. Repository layout for v1
+## 3. Contracts used by the work packages
 
-The layout in [repository layout](repository-layout.md) stands. v1
-creates these files; `dcn/`, `generic/`, and `wayback.py` wait.
+This plan owns v1 scope, environment choices, work order, and acceptance
+criteria. The following documents own the implementation contracts;
+update them in the same change when a package changes a contract.
 
-```
-flake.nix  flake.lock  pyproject.toml  uv.lock  uv.toml
-nix/module.nix                 services.swingset.* options, user, state dir, units, timers
-nix/hosts/orb.nix              OrbStack machine: imports /etc/nixos/orbstack.nix, enables the service
-config/hosts.toml              defaults from fetching.md plus playbook section 6 values
-config/sources.toml            enabled flags, index URLs, index intervals
-overrides/{event_aliases,source_urls,identity_overrides,suppressions,nicknames}.csv
-docs/enums.md  docs/runbook.md
-src/swingset/
-  cli.py  config.py  clock.py  log.py
-  state/{db,stages,findings}.py  state/migrations/0001_init.sql ...
-  model/{schema,enums,ids,observations,canonical}.py
-  fetch/{client,classify,politeness,robots,archive}.py
-  schedule/{watches,policy,discover,cycle}.py
-  sources/base.py              Source and PageKind protocols
-  sources/wsdc_calendar/  sources/wsdc_registry/  sources/eepro/  sources/scoringdance/  sources/wdr/
-  project/{writer,events,registry,contests}.py   observations -> canonical rows
-  normalize/{names,divisions,events}.py
-  link/{candidates,score,assign,confirm,overrides}.py  link/weights.toml
-  build/{materialize,invariants,suppress,review,changelog,manifest}.py
-  publish/{hub,card,candidate}.py  publish/card_template.md
-  backup/{push,restore}.py
-tests/                         mirrors src; fixtures live next to each source
-.github/workflows/ci.yml
-.github/ISSUE_TEMPLATE/{removal-request,site-operator}.md
-```
+| Contract | Owner |
+|---|---|
+| Observation ownership, matching map, projection, findings | [Architecture](architecture.md) |
+| SQLite schema, invalidation, durable work, state directory | [Local state](state.md) |
+| Extract, parse, source interfaces, fixtures | [Parsing](parsing.md) |
+| Response classification and host gate | [Fetching](fetching.md) |
+| Watch policy and discovery | [Scheduling](scheduling.md) |
+| Build inputs, review queue, immutable output | [Build](build.md) |
+| Candidate identity, recovery, baseline promotion | [Publishing](publishing.md) |
+| Cycle, locks, pause, backup and restore | [Operations](operations.md) |
+| Modules and files | [Repository layout](repository-layout.md) |
 
-## 4. Cross-cutting decisions
-
-These are new. They are folded into the other design documents when v1
-ships and indexed in the [decision log](decision-log.md).
-
-1. **Watches own observations; canonical tables are projections.** A
-   parser turns one snapshot into typed *observations* in the
-   source's own vocabulary: an EEPro round page yields one
-   `RoundSheet`, the calendar yields `CalendarRow`s, a registry
-   lookup yields one `DancerLookup`, an index page yields
-   `SourceEventRow`s. Observations are stored in the `observations`
-   table keyed by the watch that produced them. A successful parse of
-   a newer snapshot replaces that watch's whole observation set in
-   one transaction. A parser writes nothing else.
-
-   An observation's scope is a *source reference*, never a canonical
-   id: `("source_event", "eepro:asc2025")`, `("source_event",
-   "scoringdance:304")`, `("dancer", "123")`, `("source_index",
-   "eepro")`, `("calendar", "wsdc")`. Which `event_id` a source event
-   belongs to is decided by the *matching map* (`source_event_map`),
-   itself a projection of index observations, calendar observations,
-   `event_aliases.csv`, and `overrides/source_urls.csv`. The last is
-   how a source without an index (World Dance Registry, the long
-   tail) states its event: each row yields a stable source reference,
-   `<source>:<platform key>` where the source extracts the key from
-   the URL (`wdr:<uuid>`; `sha256(url)[:16]` for generic adapters),
-   and maps it to the row's `event_id` with `match_method =
-   override`, the highest precedence. The same row seeds the watch,
-   so the watch's `source_ref` and the map entry always agree.
-   Canonical ids such as `contest_id` are
-   computed at projection time from the mapped `event_id`, so an
-   alias change regroups already stored observations without
-   re-parsing anything.
-
-   Canonical rows (`events`, `contests`, `entries`, `dancers`, ...) are
-   computed by pure *projection* functions from the current
-   observations whose scopes resolve to one canonical scope (one
-   event, one dancer, one source index) together with overrides and
-   vocabularies. When any observation in a scope changes, or when the
-   matching map moves a source reference between events, every
-   affected canonical scope (both the old and the new event) is
-   re-projected in one transaction:
-   rows are upserted by primary key, keeping `first_seen_at`, and
-   rows the scope no longer produces are deleted. An entry seen in
-   prelims and in finals exists as long as any observation mentions
-   it; `rounds_danced`, `best_round`, `entry_count`, and
-   `promoted_count` fall out of the union. Judges span contests the
-   same way. No table needs an owner column.
-
-   Precedence when two observations state the same fact differently:
-   the more specific page kind wins (round over event over index);
-   among equals the later `fetched_at` wins; every disagreement is a
-   `conflict` finding (decision 5) naming both snapshots. Provenance
-   columns on a canonical row name the snapshot whose observation
-   won. Re-parsing, re-projecting, and restoring are the same
-   operation: recompute from what is stored.
-
-2. **Stages run on input fingerprints, not on "something was
-   fetched".** Each stage after fetch declares its inputs. `parse`:
-   pending snapshot ids and every `EXTRACT_VERSION` and
-   `PARSER_VERSION`. `project`: the observation set version, the
-   vocabulary files, `event_aliases.csv`, `source_urls.csv`. `link`: the canonical set
-   version, the `dancers` version, `weights.toml`, `nicknames.csv`,
-   `identity_overrides.csv`, `LINKER_VERSION`. `build`: the link
-   version, `suppressions.csv`, `schema_version`, the package
-   version. `publish`: the candidate's manifest hash against the
-   baseline's. `stage_state` holds the fingerprint each stage last
-   completed on; a stage runs when the current fingerprint differs.
-   Set versions are `revisions` counters bumped in the same
-   transaction as the write they describe (`observations`,
-   `source_event_map`, `canonical`, `dancers`, `links`, `findings`,
-   `snapshots`), so nothing has to be hashed. `build` additionally
-   depends on `findings` and `snapshots`, because `review_queue` and
-   the published `snapshots` table are built from them: a cross-check
-   that opens findings, or a fetch whose extract failed, changes the
-   dataset without changing a canonical row.
-   This replaces the rule in [operations](operations.md#timers) that
-   skips steps 3 to 6 when nothing was fetched; that document is
-   edited in WP10. An override committed between two unchanged polls
-   reaches the Hub on the next cycle.
-
-3. **Publish goes through an immutable candidate; the baseline moves
-   only after success; at most one candidate is ever pending.**
-   `build` writes `candidates/<run_id>/` with every table, the
-   manifest, the card, the changelog delta against `baseline/`, and a
-   `BUILT` marker naming the baseline commit and the build input
-   fingerprint, and never touches it again. `publish` writes a
-   `PUBLISHING` marker, creates the commit with `parent_commit` set
-   to `baseline/COMMIT` and a message carrying the `run_id` and the
-   manifest hash, writes `PUBLISHED` holding the new commit SHA, then
-   promotes by atomically renaming the `baseline` symlink onto the
-   candidate. A candidate is *pending* from the moment `PUBLISHING`
-   is written until the `baseline` symlink points at it; `PUBLISHED`
-   only records that the remote side is done. There can be only one
-   pending candidate, because publish refuses to start while one
-   exists. The published `changelog` table is the
-   baseline's changelog plus the delta and lives inside the
-   candidate, so history advances only on promotion. A dry run
-   builds a candidate with `BUILT` only, which is disposable. Old
-   candidates are pruned to the last five, never the baseline or a
-   pending one.
-
-   Cycle order is therefore: fetch, parse, project, link,
-   **reconcile**, build, publish. Reconcile runs before build, takes
-   the execution mode, and looks at the pending candidate, if any.
-   With `PUBLISHED` present: the remote is done; finish the promotion
-   locally without any network call, in every mode. Without it, ask
-   the Hub for the head. Head message names the pending `run_id`:
-   write `PUBLISHED`, promote. Head equals `baseline/COMMIT`: the
-   commit never landed; in a real run publish the same candidate
-   again now, then continue; in a dry run, report the pending
-   candidate in the log, the run summary, and `doctor`, skip build
-   and publish, and leave everything as it is, because a dry run
-   never creates a commit. Head is anything else: someone else
-   committed; fail the run and touch nothing.
-   Only after reconcile does build ask whether its inputs changed,
-   and a new candidate is always built against the promoted
-   baseline, so its delta is right even when observations arrived
-   while the acknowledgment was lost. `build` is idempotent by
-   fingerprint: if a `BUILT` candidate for the current fingerprint
-   already exists it is reused, and deleting a candidate deletes its
-   `stage_state` row, so nothing can be left "complete" without a
-   directory behind it. `last_published/` in [build](build.md) and
-   [operations](operations.md) becomes `baseline/`.
-
-4. **Responses are classified before any host state changes.**
-   `classify(response, page_kind, watch) -> Classification`, one of
-   `Ok`, `NotModified`, `ExpectedUnavailable`, `Gone`,
-   `Throttled(retry_after)`, `Blocked`, `ServerError`, `Redirect`,
-   `Invalid`. Host state (`paused_until`, pause streak, run failure)
-   changes only on `Throttled`, `Blocked`, and `ServerError`. A page
-   kind declares which statuses it expects and when: WDR's
-   `routeInfo.json` declares 403 as `ExpectedUnavailable` while the
-   watch has never had a 200, and `Blocked` after it has, which is
-   the playbook's "403 on a known-good URL" rule. EEPro and
-   scoring.dance declare none, so their 403 is `Blocked`. Challenge
-   detection (`cf-chl`, `Just a moment`, a Cloudflare challenge body
-   on any status) runs on every body and is always `Blocked`.
-   `ExpectedUnavailable` and `Gone` change only the watch.
-
-5. **Findings are evidence; the review queue is a view.** Anything a
-   human should look at that cannot be recomputed from state is
-   stored in `findings` with structured evidence: parser warnings
-   (keyed by watch and code, replaced together with that watch's
-   observations), observation conflicts, registry cross-check
-   discrepancies, invalid registry responses, unknown enum values.
-   Items that can be recomputed (ambiguous links, unsupported
-   contests, unmatched source events) are not stored; `build`
-   computes them. `review_queue` is open findings plus computed
-   items. A finding closes when an override resolves it or when the
-   watch that raised it is re-parsed without it. Findings are backed
-   up with the state. The same rule covers one-off inputs: the
-   registry dump used for the cross-check is archived as a blob, so
-   the check can be re-run.
-
-6. **A cycle can be killed anywhere and rerun; the result is the
-   same as an uninterrupted run.** Rules that make this true:
-   - **Every unit of work is one SQLite transaction** and every
-     stage's "what is pending" is a predicate over state, never a
-     list in memory. Fetch: watches with `next_check_at <= now`.
-     Parse: snapshots with `parse_status != ok` or `parser_version`
-     below the page kind's current version. Project and link: rows in
-     `dirty_scopes`, written in the same transaction as the
-     observation, map, or link change that dirtied them and deleted
-     in the same transaction as the scope's re-projection or re-link.
-     Build and publish: the candidate markers of decision 3.
-     `stage_state` is written only after a stage drains its predicate.
-   - **Two stores, one order.** A blob is written to `blobs/` (and an
-     extract to `extracts/`) before the SQLite transaction that
-     references it. A crash in between leaves an orphan, which is
-     content-addressed and harmless; `swingset gc` removes orphans
-     older than a day and is never run by a timer in v1.
-   - **Graceful stop.** On SIGTERM the cycle stops issuing requests,
-     lets the in-flight request finish for up to the request timeout
-     or abandons it (nothing was written either way), commits the
-     current unit, writes `runs/<run_id>.json` with `stopped = true`,
-     releases the lock, and exits 0. The unit sets
-     `KillMode=mixed` and `TimeoutStopSec=45`. A wall-clock budget
-     applies to every stage, not only poll; a stage that runs out
-     stops at a unit boundary and the next cycle continues.
-   - **Operator pause.** `swingset pause --all | --host <h> | --source
-     <s> [--until <time>]` and `swingset resume` write `paused_until`
-     rows (`hosts` for a host, `cursors` for a source or the whole
-     pipeline). A paused cycle runs no fetch, still runs the stages
-     after fetch (so a committed override is published while paused),
-     and reports the pause in the summary and `doctor` without
-     counting it as an error. `systemctl stop swingset-cycle.timer`
-     is the other switch and loses nothing.
-   - **Resume has no catch-up.** After any pause every overdue watch
-     is checked once at its normal priority, bounded by the gates and
-     the daily budgets, and then follows its schedule. Missed polls
-     are not replayed. Live intervals that were doubling reset on
-     the first change as usual.
-   - **Concurrency.** One flock in the state directory is shared by
-     cycle, backup, and every manual command that writes state. The
-     kernel releases it on death. A command that finds it held exits
-     0 with one log line, except `doctor`, which is read-only.
-   - **The test that proves it.** A crash-injection harness runs a
-     cycle against fixtures with a hook that raises at the N-th
-     transaction boundary, for every N, then reruns the cycle to
-     completion and asserts the state (rows, blobs, candidates,
-     `stage_state`) equals an uninterrupted run's. The same harness
-     sends SIGTERM at each boundary. It is a done criterion for WP3
-     and WP5 and runs in CI.
-7. **Publish has a dry run.** `swingset publish --dry-run` builds the
-   candidate and stops before the commit. `swingset cycle --dry-run`
-   passes it through. The machine runs dry until the owner sets
-   `HF_TOKEN`; nothing else changes.
-8. **Every table is published from the first publish**, empty where
-   v1 has no data (`heats`), so the schema, configs YAML, and
-   consumer examples are complete from day one and never reshuffle.
-9. **Fixtures are committed**, as [parsing](parsing.md#fixtures-and-tests)
-   says. They are real bodies from the archive. A suppression request
-   that names a person in a fixture is handled by re-recording the
-   fixture from a different event; that case is listed in the runbook
-   and is expected to be rare. (`research/verification/` kept headers
-   only; that was a research choice, not the rule for fixtures.)
-10. **Requests are described, not just URLs.** A watch has `method`,
-    `url`, and `form` (JSON, nullable) so the registry's POST is a
-    watch like any other. Snapshots record the same three fields.
-11. **Hand-set link weights** in `link/weights.toml`, versioned, with
-    a `LINKER_VERSION` stored on `identity_links` rows. Splink fitting
-    is an offline notebook in v1.1 that proposes a new weights file.
-12. **Overrides are read from the repo checkout on every cycle**,
-    never copied into SQLite, so a `git pull` is the whole deploy
-    step for a correction. Their hashes are stage inputs (decision 2),
-    so a changed override is applied on the next cycle even when no
-    poll changed. The module keeps the checkout path in
-    `services.swingset.overridesDir`.
-13. **The scheduler picks work by priority, then by `next_check_at`.**
-    Priority order: `live`, `cooling`, index, `upcoming`, `archived`,
-    registry, `backfill`. The registry sweep sits below `archived` so
-    a busy weekend is never slowed by it.
-
-## 5. SQLite schema
-
-One file, WAL mode, `foreign_keys = ON`, schema versioned by numbered
-SQL migrations under `state/migrations/`. Names match the published
-tables where a table is published.
-
-Internal tables:
-
-| Table | Key columns | Purpose |
-|---|---|---|
-| `meta` | `key` | `schema_version`, `installed_at` |
-| `runs` | `run_id` | `started_at`, `finished_at`, `dry_run`, `summary_json` |
-| `hosts` | `host` | `next_allowed_at`, `paused_until`, `pause_reason`, `pause_streak`, `robots_sha256`, `robots_fetched_at`, `robots_status` |
-| `host_budget` | `host`, `day` | `requests`, `bytes` |
-| `cursors` | `name` | `value`; `registry_sweep_next`, `registry_probe_max_id`, `registry_probe_misses`, `paused_until:all`, `paused_until:source:<s>` |
-| `watches` | `watch_id` | every column in [scheduling](scheduling.md#watches) plus `method`, `form`, `fingerprint`, `extract_version`, `priority`, `created_by_snapshot_id`, `parent_watch_id`, `ever_ok` (for decision 4) |
-| `snapshots` | `snapshot_id` | every column in [fetching](fetching.md#archive) plus `method`, `form`, `via`, `headers_json`, `classification`, `extract_status`, `extract_sha256`, `parse_status`, `parsed_at`, `parser_version` |
-| `observations` | `observation_id` | `watch_id`, `snapshot_id`, `kind`, `scope_kind` (`source_event`, `dancer`, `source_index`, `calendar`), `scope_id` (a source reference such as `eepro:asc2025`, never a canonical id), `seq`, `parser_version`, `payload_json`; indexed by `watch_id` and by (`scope_kind`, `scope_id`) |
-| `source_event_map` | `source`, `source_ref` | `event_id`, `match_method` (`name_date`, `alias`, `override`), `match_confidence`; the projection that resolves observation scopes to events; rewritten whenever index or calendar observations, `event_aliases.csv`, or `source_urls.csv` change |
-| `revisions` | `name` | monotonically increasing counter per set (`observations`, `source_event_map`, `canonical`, `dancers`, `links`, `findings`, `snapshots`), bumped in the writing transaction |
-| `dirty_scopes` | `stage`, `scope_kind`, `scope_id` | `dirtied_at`, `run_id`; the durable work list for `project` and `link` (decision 6) |
-| `stage_state` | `stage` | `input_fingerprint`, `completed_at`, `run_id`, `candidate_run_id` (build only) |
-| `findings` | `finding_id` | `kind`, `subject_kind`, `subject_id`, `watch_id`, `snapshot_id`, `severity`, `summary`, `evidence_json`, `suggested_override`, `opened_at`, `run_id`, `closed_at`, `closed_by` |
-| `source_events` | `source`, `source_ref` | projection of index observations: `name_raw`, `start_date`, `end_date`, `location_raw`, `url`, plus provenance; joins to `source_event_map` for the `event_id` |
-| `backup_uploads` | `path` | `sha256`, `uploaded_at`; which blobs the archive repo already has |
-
-Canonical tables, one per published table in [data model](data-model.md#tables),
-with the published columns; the `snapshot_id` provenance column names
-the winning observation's snapshot. `review_queue` is not stored
-(decision 5). `changelog` is not stored in SQLite; it lives in the
-candidate and baseline directories (decision 3).
-
-`watch_id` is `sha256(source|kind|method|url|form)[:16]`, so discovery
-is idempotent by construction. `observation_id` is
-`sha256(watch_id|snapshot_id|kind|seq)[:16]`.
-
-State directory layout: `state.sqlite`, `blobs/`, `extracts/`,
-`candidates/<run_id>/{data,README.md,_meta,BUILT,PUBLISHING,PUBLISHED}`,
-`baseline -> candidates/<run_id>`, `runs/`, `venv/`, `uv-cache/`.
-
-## 6. Interfaces
-
-Written down so work packages can be built and tested apart.
-
-```python
-# model/observations.py: source-vocabulary output of parsers
-class Observation(Protocol):
-    kind: str                                   # "eepro.round_sheet", "wsdc_calendar.row"
-    def scope(self) -> tuple[str, str]: ...     # ("source_event", "eepro:asc2025") | ("dancer", "123") | ("source_index", "eepro") | ("calendar", "wsdc")
-
-@dataclass(frozen=True)
-class Warning: code: str; message: str; evidence: dict[str, Any]
-
-# sources/base.py
-class PageKind(Protocol):
-    kind: str
-    EXTRACT_VERSION: int
-    PARSER_VERSION: int
-    change_mode: Literal["validators", "body_hash", "extract"]
-    def expected_statuses(self, watch: Watch) -> frozenset[int]: ...   # decision 4; usually empty
-    def extract(self, body: bytes) -> Extract: ...                     # raises ExtractError
-    def parse(self, ex: Extract, ctx: ParseContext) -> ParseResult: ...
-
-@dataclass(frozen=True)
-class ParseContext: snapshot_id: str; watch_id: str; url: str; source: str; kind: str; source_ref: str | None; fetched_at: datetime
-# no event_id: a parser never sees canonical ids
-
-@dataclass
-class ParseResult: observations: list[Observation]; watches: list[WatchSpec]; warnings: list[Warning]
-
-class Source(Protocol):
-    name: str
-    hosts: tuple[str, ...]
-    page_kinds: Mapping[str, PageKind]
-    def seed_watches(self, cfg: SourceConfig, overrides: Overrides) -> list[WatchSpec]: ...
-    def policy(self, watch: Watch, event: Event | None, host: HostConfig, now: datetime) -> Policy: ...
-
-# project/: pure, deterministic
-def project_map(index_obs: Sequence[Observation], calendar_obs: Sequence[Observation], aliases: Aliases, source_urls: SourceUrls) -> SourceEventMap
-def project(scope: CanonicalScope, observations: Sequence[Observation], ctx: ProjectContext) -> Projection
-# CanonicalScope = ("event", event_id) | ("dancer", wsdc_id) | ("source_index", source) ; the writer selects the
-# observations whose source scopes resolve to it through the current SourceEventMap
-# Projection = canonical rows by table + conflicts (findings) ; ProjectContext = overrides, vocabularies, existing dancers view
-
-# publish/candidate.py
-def reconcile(state_dir: Path, hub: Hub, mode: Literal["real", "dry_run"]) -> Reconciled | PendingReported | NothingPending   # before build; decision 4.3
-def build_candidate(fingerprint: str, ...) -> Candidate                       # reuses a BUILT candidate for the same fingerprint
-
-# fetch/classify.py
-def classify(resp: Response | Exception, kind: PageKind, watch: Watch) -> Classification
-
-# fetch/politeness.py
-class Gate:
-    def acquire(self, host: str, now: datetime) -> Grant | Wait | Paused: ...
-    def release(self, host: str, cls: Classification, now: datetime) -> None: ...   # host state changes only here
-
-# state/stages.py
-def inputs(stage: Stage, db: DB, files: OverrideFiles) -> str        # fingerprint
-def due(stage: Stage, db: DB, files: OverrideFiles) -> bool
-def complete(stage: Stage, fingerprint: str, run_id: str) -> None
-```
-
-Canonical rows are frozen dataclasses in `model/canonical.py`, one per
-published table, with a `key()` method. Parsers never construct them;
-only `project/` does, and `link/` fills the link columns afterward
-through the same writer.
-
-## 7. Work packages
+## 4. Work packages
 
 Sizes: S is a session, M is two or three, L is a weekend or more. Each
-package ends with tests green and a commit. Human tasks that must
-happen alongside are in section 8.
+package ends with tests green and a reviewable change; commit when asked. Human tasks that must
+happen alongside are in section 5.
 
 ### WP0. Skeleton and toolchain (S)
 
@@ -528,17 +173,20 @@ succeeds (this answers the native-wheel question in 2.3);
 ### WP1. State, ids, enums, records (S)
 
 Deliverables: `state/db.py` (open, migrate, `run_id`, lock file,
-transactions); `migrations/0001_init.sql` with every table in section
-5; `model/ids.py` implementing every id in
+transactions); `migrations/0001_init.sql` with the tables in
+[local state](state.md#sqlite-schema); `model/ids.py` implementing every id in
 [data model](data-model.md#identifiers) with tests for slugging,
 `-2` suffixes, and the name-form entry id; `model/enums.py` as
 `StrEnum`s, and `docs/enums.md` generated from them by
 `swingset enums --write`; `model/observations.py` and
-`model/canonical.py` (the two sides of decision 4.1);
-`state/stages.py` and `state/findings.py`.
+`model/canonical.py` (the two sides of the observation boundary);
+`state/work.py` and `state/findings.py`.
 
 Done when: a fresh database migrates, `swingset doctor` shows schema
 version 1, and id tests cover every example in the data model.
+Input-acceptance tests prove that recording a changed digest and
+enqueueing its work cannot commit separately, including a restart
+before any queued unit runs.
 
 ### WP2. Fetch core (M)
 
@@ -547,7 +195,8 @@ Deliverables: `fetch/client.py`, `fetch/politeness.py`,
 [scraping plan](scraping-plan.md#phase-0-fetch-core-milestone-m0)
 and [fetching](fetching.md): one in flight per host, `next_allowed_at`,
 `Crawl-delay`, `Retry-After` (seconds and date), request and byte
-budgets per day, `fetch/classify.py` as in decision 4.4 with the
+budgets per day, `fetch/classify.py` following
+[response classification](fetching.md#response-classification), with the
 pause rules keyed on classification (`Throttled` doubling from 15 min
 to 24 h; `Blocked` 24 h and run failure; `ExpectedUnavailable` and
 `Gone` touch only the watch), 3 retries with full-jitter
@@ -583,15 +232,16 @@ transitions, `gone` after 3 404s over 3 days); `schedule/policy.py`
 implementing the state table in [scheduling](scheduling.md#watch-states-and-intervals)
 with live-window padding, jitter, doubling, per-host overrides from
 `hosts.toml`, index intervals by weekday and weekend, and the
-priority order in 4.13; `schedule/cycle.py` running the steps of decision 4.3 with a
-wall-clock budget checked at every unit boundary in every stage,
-SIGTERM handling as in decision 4.6, `runs/<run_id>.json`, and each
-post-fetch stage gated by `state/stages.py` (decision 4.2) and
-drained from its pending predicate; `swingset pause` and `swingset
-resume`; the observation store, `dirty_scopes`, and
-`project/writer.py` (transactional scope re-projection driven by
-`dirty_scopes`, upsert by key keeping `first_seen_at`, delete of rows
-no longer produced, conflict findings); the first projections: `project/events.py`
+priority order in [scheduling](scheduling.md#work-order);
+`schedule/cycle.py` implementing [cycle order](operations.md#cycle),
+wall-clock budgets, [interruption recovery](operations.md#interruption-and-recovery),
+and run summaries. `state/work.py` accepts captured file changes and
+drains durable work; `swingset pause` and `swingset resume` follow
+[operator command semantics](operations.md#locks-and-operator-commands).
+The observation store, `pending_work`, and
+`project/writer.py` implement transactional scope replacement, preserving
+`first_seen_at`, deleting obsolete rows, and recording conflicts.
+The first projections are `project/events.py`
 (calendar observations to `events`), index observations to
 `source_events`, and `project_map` producing `source_event_map`,
 with the writer re-projecting every event whose membership changed
@@ -601,8 +251,8 @@ watches, `source_urls.csv`), where matching is the map projection,
 ambiguous matches are computed review items, and
 `overrides/event_aliases.csv` (`source, source_ref, event_id, note`)
 and `overrides/source_urls.csv` are map inputs. The cycle runner
-also carries the reconcile step of decision 4.3 as a no-op until WP5
-fills it in.
+also carries [publication reconciliation](publishing.md#candidate-and-baseline)
+as a no-op until WP5 fills it in.
 
 Establishing the parser to observation to projection boundary here,
 on the simplest source, is deliberate: WP6 and WP7a add projections,
@@ -624,11 +274,15 @@ the same snapshot changes no row and no `first_seen_at`; editing
 `event_aliases.csv` alone makes `project` run on the next cycle; the
 fake-clock test walks one event through `dormant`, `upcoming`,
 `live`, `cooling`, `archived`; the crash-injection harness of
-decision 4.6 passes for fetch, parse, and project at every
+[interruption recovery](operations.md#interruption-and-recovery) passes for fetch, parse, and project at every
 transaction boundary and on SIGTERM; a paused cycle
 (`swingset pause --all`) makes no request but still projects a
 changed alias; `swingset resume` after a simulated week checks each
-overdue watch once and then returns to schedule.
+overdue watch once and then returns to schedule. Extractor-only bumps
+re-extract archived bodies; failed parses complete with evidence rather
+than spin; a full fetch batch leaves downstream work that is drained
+before another batch. Pause-under-lock and timeout cases from operations
+also pass.
 
 ### WP4. NixOS module and the machine (S). Ends M0 with WP5's restore.
 
@@ -639,17 +293,19 @@ Deliverables: `nix/module.nix` with options `enable`, `package`,
 `.timer` (every 15 min, `RandomizedDelaySec=120`, `Persistent=true`),
 `swingset-backup.timer` (Mon to Thu 04:00; Fri to Sun 04:00, 12:00,
 20:00), `swingset-summary.timer` (08:00); a flock in the state
-directory shared by cycle and backup; `ExecStartPre` running
-`uv sync --frozen --no-dev` into the state directory; hardening
+directory shared by writers, with the caller-specific waits and backup
+retry policy in [operations](operations.md#locks-and-operator-commands);
+`ExecStartPre` running `uv sync --frozen --no-dev` into the state directory; hardening
 (`DynamicUser=false`, `ProtectSystem=strict`, `ReadWritePaths`
 limited to the state directory, `PrivateTmp`, no new privileges),
 `KillMode=mixed` and `TimeoutStopSec=45` so a stop during a cycle is
-the graceful stop of decision 4.6.
+the graceful stop of [interruption recovery](operations.md#interruption-and-recovery).
 `nix/hosts/orb.nix` and `nixosConfigurations.orb` in the flake.
 `docs/runbook.md` sections: create the machine, rebuild, read logs,
 set the token, rotate the token, pause and resume (the command, the
-timer, and what each loses: nothing), disable a source, stop the
-machine safely mid-cycle, restore.
+timer, and active service), disable a source, stop the machine
+safely mid-cycle, restore verification, and the remote-ahead recovery
+report. Document that timer stop alone leaves an active cycle running.
 
 Done when: on the machine, `systemctl list-timers` shows the three
 timers, four consecutive cycles run against the calendar only,
@@ -659,64 +315,47 @@ timers, four consecutive cycles run against the calendar only,
 
 ### WP5. Build, publish, backup, restore (M). Completes M0.
 
-Deliverables: `model/schema.py` with a PyArrow schema per table from
-[data model](data-model.md#tables); `build/materialize.py` writing
-every table sorted by key with content-defined chunking and page
-index, year partitions for `callback_marks` and `final_marks`;
-`build/invariants.py` with the five checks in [build](build.md);
-`build/suppress.py` from `overrides/suppressions.csv`
-(`wsdc_id, name_raw, event_id, reason, date`); `build/review.py`
-composing `review_queue` from open findings and computed items;
-`build/changelog.py` computing the delta against `baseline/` by key
-with DuckDB; `build/manifest.py`; `publish/candidate.py` implementing
-decision 4.3 (candidate directory, `COMMIT` and `PUBLISHED` markers,
-atomic symlink promotion, pruning, recovery). `publish/hub.py` using
-`create_commit` with `parent_commit = baseline/COMMIT`, the `run_id`
-and manifest hash in the message, one commit per publish, only when
-the candidate differs from the baseline; `publish/card.py` filling
-`card_template.md` with the configs YAML, row counts, coverage, and
-the consumer examples from
-[publishing](publishing.md#consumer-examples-go-in-the-card).
-`backup/push.py` (SQLite backup API copy, new blobs from
-`backup_uploads`, the current baseline candidate, `runs/`, one
-commit, nothing if unchanged); `backup/restore.py`
-(`snapshot_download` into an empty state directory, recreate the
-`baseline` symlink, verify `PRAGMA integrity_check`).
+Deliverables: `model/schema.py` with a PyArrow schema per published
+table; `build/` implementing [build inputs and immutable contents](build.md),
+invariants, suppression, review, changelog, and manifest; `publish/`
+implementing [candidate and baseline](publishing.md#candidate-and-baseline),
+Hub commits, and the dataset card; `backup/` implementing the complete
+checkpoint and activation protocol in
+[backup and restore](operations.md#backup-and-restore). Runtime bootstrap
+must verify empty-repo handling in the Hub adapter.
 
-Tests: build twice from the same state gives byte-identical
-candidates; each invariant has a failing fixture; suppression nulls
-exactly the listed columns; changelog detects add, remove, update;
-the published changelog equals baseline plus delta and a dry run
-leaves the baseline untouched; a failure injected after
-`create_commit` returns and before `PUBLISHED` is reconciled on the
-next run by reading the Hub head (`respx`), both when no inputs
-changed (promote, then nothing) and when new observations arrived in
-between (promote first, then build a second candidate whose delta is
-against the promoted one, then publish it); a failure injected after
-`PUBLISHING` and before `create_commit` is retried with the same
-candidate on the next run, not rebuilt; a failure injected after
-`PUBLISHED` is written and before the symlink rename is finished on
-the next run by promotion alone, with `respx` asserting no request
-was made; a `cycle --dry-run` with a `PUBLISHING` candidate and an
-unadvanced head makes no request, promotes nothing, skips build, and
-reports the pending candidate in the run summary; a third party's commit at
-the head fails the run without promoting or building; a `BUILT`-only
-candidate from a dry run does not block a later build and is reused
-when the fingerprint is unchanged; deleting a candidate directory
-makes build due again; an override-only cycle (no fetch,
-`suppressions.csv` changed) runs build and publish and produces
-exactly one commit; a cycle with nothing fetched and no input changed
-runs no stage and makes no network call; the crash-injection harness
-of decision 4.6 passes across link, reconcile, build, and publish at
-every transaction boundary and marker write, with `respx` counting
-exactly one `create_commit` in every recovery path; `swingset gc`
-removes only orphan blobs older than a day.
+Tests: each invariant has a failing fixture; suppression nulls the
+specified fields; changelog detects add, remove, and update. All
+[build acceptance cases](build.md#acceptance-cases),
+[publication recovery cases](publishing.md#publication-acceptance-cases),
+and restore cases in operations pass offline. In particular:
 
-Done when: the owner creates the two Hub repos, sets `HF_TOKEN` in the
-machine's environment file, flips `dryRun = false`, and the next cycle
-publishes `events` (plus every empty table) with the card; then a
-fresh `swingset-restore` machine runs `swingset restore` and its
-`doctor` matches the first machine. That is M0.
+- A vocabulary-only correction builds and publishes with links and
+  snapshots unchanged; a findings-only cross-check also publishes.
+- Build suppression B in a dry run, publish C, then return to B.
+  Rebuild B against C and preserve C's changelog; reuse is keyed by
+  both build inputs and baseline.
+- Failure before or after each publication marker and remote commit
+  yields one remote commit per candidate. Lost responses and requests
+  that never reach the remote are separate cases.
+- A pending dry run may read head but never writes a commit. A saved
+  publication receipt permits local promotion with no request.
+- Restore a checkpoint containing a pending candidate at each failure
+  boundary; preserve its extracts and captured inputs as well as raw
+  blobs. Missing artifacts fail validation. A public head ahead of the
+  checkpoint keeps publishing disabled and leaves remote history intact.
+- A backup overlapping a cycle waits and eventually checkpoints;
+  interrupted or failed backups are retried and never logged as success.
+- Unchanged semantic content with fresh run metadata causes no extra
+  commit; a fully quiet cycle makes no network call. GC removes only
+  eligible unreferenced artifacts.
+
+Done when: the owner creates the two Hub repos, provisions `HF_TOKEN`,
+sets `dryRun = false`, and the next cycle publishes `events` plus every
+empty table and the card. With the original writer stopped, a fresh
+`swingset-restore` machine restores a checkpoint at the current public
+head, passes artifact and remote verification, and reports the same
+pipeline state in `doctor`. Resume only one writer. That is M0.
 
 ### WP6. Registry mirror (M). Ends M1.
 
@@ -785,7 +424,8 @@ Deliverables: `normalize/names.py` implementing the six steps in
 `combined_from`, with a table-driven vocabulary and tests for every
 EEPro and scoring.dance name seen in `research/`; `normalize/events.py`
 (series slug, name matching used by discovery); `project/contests.py`,
-the event-scope projection of decision 4.1 that turns round, event,
+the [event projection](architecture.md#observations-and-projections)
+that turns round, event,
 and index observations into `contests`, `rounds`, `entries`,
 `judges`, `callback_marks`, `callbacks`, `final_marks`, and
 `placements`, computing `rounds_danced`, `best_round`, `entry_count`,
@@ -819,8 +459,11 @@ moves a source event from event A to event B re-projects both in one
 transaction, leaving A without its contests and B with them under
 recomputed ids, and the changelog delta shows the move.
 Linking: assignment resolves the two same-name case; overrides win;
-determinism (same input, same links); a changed `weights.toml` alone
-makes `link` due.
+determinism (same input, same links); a weights-only edit re-links all
+events. Kill after accepting the weights and after each event commit,
+then resume without another edit. A second weights edit during partial
+work also reaches every event. A registry addition reaches previously
+unmatched entries. These complete the [invalidation cases](state.md#acceptance-cases).
 
 ### WP7b. EEPro (M). Ends M2 with WP7a.
 
@@ -835,7 +478,7 @@ source, the round-page slow clock from the playbook
 (`round_live_interval = 12h`, `round_cooling_interval = 24h`).
 Fixtures: one past event's autoindex, one J&J prelims, one J&J finals,
 one couples finals, taken with `swingset fetch-one` (about six
-requests, made once, after the operator conversation in section 8).
+requests, made once, after the operator conversation in section 5).
 
 Answer the `Count` column question from the first fixture and record
 it in the playbook.
@@ -881,7 +524,7 @@ from the playbook, redacted rows emitted with `name_raw = "***"` and
 null marks, `roundName` split on ` - `, and `expected_statuses`
 returning `{403}` while the watch has never had a 200 so the fetch
 layer classifies it `ExpectedUnavailable` (daily for 30 days, then
-`gone`) instead of pausing the host (decision 4.4). Discovery from
+`gone`) instead of pausing the host ([response classification](fetching.md#response-classification)). Discovery from
 `overrides/source_urls.csv` (`event_id, source, kind, url, parser,
 notes`), seeded by a one-off script from `research/results-sources.csv`
 (14 rows; the script lives in `research/` and is run once).
@@ -904,8 +547,8 @@ almost all polls as 304 in `runs/*.json`. That is M3b.
 
 - `swingset doctor` complete: per-source last success, operator and
   host pauses with their reasons, budget use, watches by state,
-  pending candidate if any, dirty scopes, review queue size, last
-  publish SHA.
+  pending candidate, pending work, restore status, last successful
+  backup, review queue size, and last publish SHA.
 - Parse failure rate above 10 percent for a source fails the run;
   a paused host fails the run and leads the summary.
 - `swingset reparse --kind <kind>` and `--since` after a version bump.
@@ -914,17 +557,11 @@ almost all polls as 304 in `runs/*.json`. That is M3b.
   ask us to slow down, the issue templates.
 - The dataset card's coverage table and gaps list (the four
   `not_found` events and the Facebook-only ones).
-- Fold section 4 into the design documents and the decision log:
-  [architecture](architecture.md) gains the observation and
-  projection stages; [operations](operations.md#timers) drops the
-  "skip 3 to 6" rule for stage fingerprints; [build](build.md) and
-  [publishing](publishing.md) replace `last_published/` with the
-  candidate and baseline protocol; [fetching](fetching.md) gains
-  response classification; [data model](data-model.md) notes that
-  `review_queue` is a view over findings. Move answered open
-  questions into the playbooks.
+- Check that implemented behavior matches the contract owners in
+  section 3. Move answered source questions into the playbooks;
+  architecture and state contracts are already recorded there.
 
-## 8. Human tasks alongside the code
+## 5. Human tasks alongside the code
 
 | Task | Before | Who |
 |---|---|---|
@@ -938,7 +575,7 @@ If the EEPro conversation is pending when WP7a is done, do WP8 before
 WP7b; the two are independent, and scoring.dance needs no permission
 beyond its robots.txt.
 
-## 9. Order and rough calendar
+## 6. Order and rough calendar
 
 Strict order: WP0, WP1, WP2, WP3, WP4, WP5. Then WP6 and WP7a in
 either order or interleaved. Then WP7b, WP8, WP9 in any order (WP8
@@ -959,7 +596,7 @@ A plausible sequence at the project's weekend cadence:
 
 These are estimates, not commitments.
 
-## 10. Definition of done for v1
+## 7. Definition of done for v1
 
 - The machine has run unattended for two consecutive event weekends
   with no paused host and no failed run.
@@ -971,7 +608,9 @@ These are estimates, not commitments.
   clean or its diffs are in the review queue.
 - `confirmed` links exist for a scoring.dance event's finalists via
   both `source_id` and `registry_placement`.
-- `swingset restore` on a fresh machine reproduces `doctor` output.
+- Restore at a matching public head reproduces the checkpoint
+  state. Missing artifacts and a remote-ahead head keep publishing
+  disabled with an actionable report.
 - `pytest` passes offline, including the override-only cycle, the
   crash-injection harness at every boundary, and SIGTERM at every
   boundary; CI is green; `mypy --strict` is clean.
@@ -981,7 +620,7 @@ These are estimates, not commitments.
 - Every load number in `runs/*.json` for a live weekend is at or under
   the playbook's estimate for that host.
 
-## 11. Things to verify during v1
+## 8. Things to verify during v1
 
 | Item | Package |
 |---|---|
@@ -994,7 +633,7 @@ These are estimates, not commitments.
 | WDR `S<n>`, finals bib, `attributeGroup` | WP9 |
 | Timing from scoring to posting per platform, measured from snapshots | WP8, WP9 |
 
-## 12. Risks
+## 9. Risks
 
 - **Native wheels do not load on NixOS.** Caught in WP0's smoke test;
   the fallbacks in 2.3 cost a few hours, not a redesign.

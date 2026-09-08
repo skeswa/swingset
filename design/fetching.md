@@ -50,6 +50,31 @@ A run also has a wall-clock budget ([operations](operations.md)). When time runs
 remaining due watches wait for the next run. Nothing is lost because
 "due" is computed from state, not from a queue.
 
+## Response classification
+
+`classify(response_or_exception, page_kind, watch) -> Classification`
+runs before host pause or failure state changes. Outcomes are `Ok`,
+`NotModified`, `ExpectedUnavailable`, `Gone`, `Throttled(retry_after)`,
+`Blocked`, `ServerError`, `Redirect`, and `Invalid`.
+
+A page kind declares expected statuses in watch context. WDR's
+`routeInfo.json` expects 403 until that watch has had a 200; afterward
+403 is `Blocked`. EEPro and scoring.dance expect no such status.
+Challenge detection (`cf-chl`, `Just a moment`, a Cloudflare challenge
+body on any status) wins over expected statuses and is always `Blocked`.
+`ExpectedUnavailable` and `Gone` affect only the watch. Automatic host
+pause and failure state changes only on throttling, blocking, or server
+errors, using the politeness table above. Operator pauses have their own
+records and are not response classifications.
+
+`Gate.acquire(host, now) -> Grant | Wait | Paused` checks in-flight
+limits, gaps, budgets, robots, and pause state. Request accounting is
+persisted when a request is issued; a crash never refunds a request
+that may have reached the host. `Gate.release(host, classification,
+now)` applies the classified host outcome. Redirect hops each acquire
+the destination host's gate. Source adapters declare policy but do not
+mutate host state.
+
 ## Change detection
 
 Order of preference:
@@ -82,14 +107,17 @@ full fetch of a few KB. The schedule (5.2) keeps those rare.
 - Blob store: `blobs/sha256/<aa>/<bb>/<hash>` holding the raw body,
   gzip-compressed if not already compressed. Identical bodies are stored
   once.
-- `snapshots` table: `snapshot_id`, `watch_id`, `url`, `fetched_at`,
+- `snapshots` table: `snapshot_id`, `watch_id`, `method`, `url`, `form`, `fetched_at`,
   `http_status`, `etag`, `last_modified`, `content_type`, `body_sha256`,
   `body_bytes`, `content_changed`, `run_id`. Response headers stored as
-  JSON.
+  JSON. Request form data uses canonical JSON and is nullable for GET.
+  Classification, parse and extract versions, statuses, and derived
+  artifact references are listed in [local state](state.md#sqlite-schema).
 - We keep every changed snapshot forever. Storage is small: a few MB per
   event weekend after compression and dedup.
 - Derived blobs: an evaluated DCN payload is stored once as JSON next
-  to its raw body so re-parses never re-run `node`.
+  to its raw body in `extracts/` so parser-only changes do not re-run
+  `node`. An extractor upgrade deliberately re-evaluates it.
 - The Wayback Machine is a transport in this layer. A backfill watch
   carries an archive URL (`web.archive.org/web/<ts>id_/<url>`); the
   body is archived under the original URL with `via = wayback` and the

@@ -38,3 +38,19 @@ Decisions from the scraping research on 2026-09-08:
 | 26 | World Dance Registry is a first-class source (M3b); long tail is overrides plus generic adapters, never per-event parsers | [sources](sources.md#world-dance-registry-pro-score-scoresworlddanceregistrycom), `docs/sources/long-tail.md` |
 | 27 | Local LLM extraction is a manual draft tool feeding the review queue, never a pipeline stage | `docs/sources/long-tail.md` |
 | 28 | DCN gets a 10 s gap, 30 min live floor, and a 300 MB/day byte budget until a lighter endpoint is found | `docs/sources/danceconvention.md` |
+
+
+Decisions from the implementation-plan maintainability review on 2026-09-08:
+
+| # | Decision | Why and owner |
+|---|---|---|
+| 29 | Watches own source observations; canonical rows are scope projections | Re-parsing and alias corrections replace evidence coherently; [architecture](architecture.md#observations-and-projections) |
+| 30 | Changed inputs transactionally enqueue durable units; queues alone define unfinished parse, project, and link work | Removes competing stage fingerprints and dirty-scope gates; conservative all-event linking catches new registry candidates; [local state](state.md#invalidation) |
+| 31 | Build depends directly on all published inputs | Canonical corrections must publish even when identity links stay the same; [build](build.md#build-inputs) |
+| 32 | Candidate reuse is keyed by build inputs and baseline; publication markers are the sole journal | Changelog depends on its parent, and a database completion row cannot prove files exist; [publishing](publishing.md#candidate-and-baseline) |
+| 33 | Stable content comparison is separate from exact manifest identity | Retry metadata must not create public versions; [build](build.md#immutable-contents) |
+| 34 | Backup is a verified artifact closure, including extracts, captured inputs, and pending publication intent | SQLite alone cannot recover files or remote acknowledgment; restore holds publication when the remote is ahead of recoverable private state; [operations](operations.md#backup-and-restore) |
+| 35 | Only duplicate scheduled cycles may skip a held lock successfully | Manual commands must apply or report failure; backups must eventually run; [operations](operations.md#locks-and-operator-commands) |
+| 36 | Classify responses before changing automatic host pauses | Expected WDR unavailability must not pause unrelated watches; [fetching](fetching.md#response-classification) |
+| 37 | Store findings as evidence; compute the review queue | Avoid two mutable versions of the same review state; [architecture](architecture.md#findings-and-review) |
+| 38 | Design contracts move to their owners immediately; the work plan owns sequencing and acceptance | Removes conflicting specifications and the deferred WP10 documentation merge; [design index](README.md) |

@@ -1,13 +1,14 @@
 # swingset design
 
-Status: draft v0.2, 2026-09-04. Owner: Sandile Keswa.
+Status: draft v0.3, 2026-09-08. Owner: Sandile Keswa.
 
 These documents are the foundational design for `swingset`, a Hugging
 Face dataset of competitive West Coast Swing data and the code that
-collects it. They are written to be exhaustive. Where a later, more
-specific document (a source playbook, the runbook, the schema reference)
-disagrees with one of these, the later one wins and the design document
-must be updated.
+collects it. They are written to be exhaustive. Each contract has one owner, listed
+below. Work plans and runbooks link to that owner and must update it in
+the same change when behavior changes; document date alone does not
+override a contract. Source playbooks own verified per-site detail and
+the host overrides permitted by [fetching](fetching.md#politeness-rules).
 
 Facts about third-party sites were checked on 2026-09-04 and, for the
 fetch layer, again on 2026-09-08 (`research/verification/`). Facts we
@@ -22,7 +23,8 @@ documents.
 | [overview](overview.md) | Purpose, guiding rules, non-goals |
 | [glossary](glossary.md) | Terms used exactly as defined, in code and data |
 | [sources](sources.md) | Every data source: what it gives, how we read it, URL patterns, registry JSON shape |
-| [architecture](architecture.md) | The pipeline stages and how they connect |
+| [architecture](architecture.md) | Observation ownership, projections, module boundaries, findings |
+| [local state](state.md) | SQLite schema, captured inputs, invalidation, durable work, state directory |
 | [fetching](fetching.md) | Identity, politeness rules, change detection, raw archive |
 | [scheduling](scheduling.md) | Watches, polling states and intervals, discovery, backfill |
 | [parsing](parsing.md) | Parser contract, parsers to build, parsing rules, fixtures |
@@ -36,7 +38,7 @@ documents.
 | [repository layout](repository-layout.md) | Where code, config, overrides, and docs live |
 | [milestones](milestones.md) | M0 through M6 and their done criteria |
 | [scraping plan](scraping-plan.md) | Phase-by-phase plan for the fetch and parse side, per-host budgets, operator conversation |
-| [implementation plan](implementation-plan.md) | v1 scope (M0 to M3b), the OrbStack NixOS VM, toolchain decisions, SQLite schema, work packages, order, and done criteria |
+| [implementation plan](implementation-plan.md) | v1 scope (M0 to M3b), the OrbStack NixOS VM, toolchain decisions, work packages, order, and done criteria |
 | [open questions](open-questions.md) | Decisions still open and facts to verify |
 | [decision log](decision-log.md) | Index of decisions from the design review |
 | [WSDC rules](wsdc-rules.md) | Callback legends, points tiers, level thresholds we encode |

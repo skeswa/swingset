@@ -37,7 +37,7 @@ small enough to score everything for every entry per event anyway.
 ## Scoring and methods
 
 Each candidate gets a score in [0, 1] from a weighted combination. The
-weights start hand-set and are later fit with Splink (Fellegi-Sunter with
+weights start hand-set in `link/weights.toml` and are later fit with Splink (Fellegi-Sunter with
 term-frequency adjustment, DuckDB backend) using scoring.dance rows as
 labeled truth, because that source prints WSDC ids next to names.
 
@@ -95,7 +95,8 @@ Links change over time by design:
    is set and links are rewritten to the surviving number.
 5. Parser or linker upgrade: all affected links are recomputed.
 
-Every change writes a `changelog` row. Tables always hold the current
+Build derives each change against the published baseline as a
+`changelog` row. Tables always hold the current
 belief. To ask "what did swingset believe on date X", load the tables at
 the Hub commit from that date. The Hub keeps every version.
 
@@ -112,3 +113,17 @@ next linker run finds the new registry row (weekly probe, [sources](sources.md#w
 and `bib_reuse` plus `registry_placement` confirm the earlier entries.
 This is expected and is the main reason the dataset is "eventually
 correct".
+
+
+## Work ownership
+
+Linking consumes event-scoped work from [local state](state.md#invalidation).
+A change to weights, nicknames, identity overrides, or `LINKER_VERSION`
+enqueues all event scopes transactionally. Registry changes also enqueue
+all events in v1 because new dancers can match formerly unmatched entries.
+The whole event assignment and its output are one transaction. Link owns
+identity columns, `identity_links`, and `link_candidates`; it never
+advances a revision just to make an unrelated canonical change publish.
+`LINKER_VERSION` is recorded on identity assertions. Weight fitting is
+an offline v1.1 step that proposes a new weights file, never a runtime
+mode inside this linker.
