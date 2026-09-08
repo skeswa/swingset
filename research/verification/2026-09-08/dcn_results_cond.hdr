@@ -1,0 +1,21 @@
+HTTP/1.1 200 OK
+Content-Type: text/html; charset=utf-8
+Transfer-Encoding: chunked
+Connection: keep-alive
+Date: Tue, 08 Sep 2026 20:43:24 GMT
+Vary: Accept-Encoding
+Content-Encoding: gzip
+Set-Cookie: AWSALB=MFzdw1YPyX5pHgEilfpR0sQ3586oyRP4VDhMbtS47U7BcNVwvGbnEG9R8FTFiCLv13rQ/s7zvTeF1vfOak8CJrcm9wqzlMMYVp1ELxYesNSoLvkS/hefbMCWQlht; Expires=Tue, 15 Sep 2026 20:43:23 GMT; Path=/
+Set-Cookie: AWSALBCORS=MFzdw1YPyX5pHgEilfpR0sQ3586oyRP4VDhMbtS47U7BcNVwvGbnEG9R8FTFiCLv13rQ/s7zvTeF1vfOak8CJrcm9wqzlMMYVp1ELxYesNSoLvkS/hefbMCWQlht; Expires=Tue, 15 Sep 2026 20:43:23 GMT; Path=/; SameSite=None; Secure
+set-cookie: dclang=en;Path=/eventdirector/;Expires=Thu, 08-Oct-2026 20:43:23 GMT;Max-Age=2592000;Secure
+set-cookie: JSESSIONID=7eec40f5-77cc-3a77-b9eb-e546ffcf07c0~9d80fda471d7;Path=/eventdirector;Secure
+cache-control: no-store, no-cache, must-revalidate, private, post-check=0, pre-check=0, max-age=0
+pragma: no-cache
+expires: 0
+ETag: "2c6f7c-ObirrqTZdrnQLAc3zZ8RJ6gDb0U"
+Accept-Ranges: none
+X-Cache: Miss from cloudfront
+Via: 1.1 e51eb60d8691bfbfd40d0041c283baae.cloudfront.net (CloudFront)
+X-Amz-Cf-Pop: DFW56-P3
+X-Amz-Cf-Id: _IiWJKxf1-VTVruKDNYapdd-_5S2ei3np9p7MY3KZayTEtGDFSCsHA==
+

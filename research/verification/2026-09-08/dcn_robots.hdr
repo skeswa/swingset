@@ -1,0 +1,29 @@
+HTTP/1.1 301 Moved Permanently
+Transfer-Encoding: chunked
+Connection: keep-alive
+Date: Tue, 08 Sep 2026 20:43:31 GMT
+Set-Cookie: AWSALB=G5Dyhey6ULXPrnfhaZezY6d80vlwdIr38PfADEG+Hx5ec56HQokS79SS5QRNgPSFuLCIKQ+6jtKhJDdO+Ci3h7uWOhdu7m+N0x/sZmu9nRmuwgeIQWov/e7mHNAU; Expires=Tue, 15 Sep 2026 20:43:31 GMT; Path=/
+Set-Cookie: AWSALBCORS=G5Dyhey6ULXPrnfhaZezY6d80vlwdIr38PfADEG+Hx5ec56HQokS79SS5QRNgPSFuLCIKQ+6jtKhJDdO+Ci3h7uWOhdu7m+N0x/sZmu9nRmuwgeIQWov/e7mHNAU; Expires=Tue, 15 Sep 2026 20:43:31 GMT; Path=/; SameSite=None; Secure
+Location: /eventdirector/robots.txt
+X-Cache: Miss from cloudfront
+Via: 1.1 8af5dcc6611e54569439ce88e8dc6902.cloudfront.net (CloudFront)
+X-Amz-Cf-Pop: DFW56-P3
+X-Amz-Cf-Id: 6NCGe1Zmdx6MxQM8hMIReb1KNy_3ZJcHMhdtiuZBAod7vgsVZLoiQg==
+
+HTTP/1.1 200 OK
+Content-Type: text/plain
+Transfer-Encoding: chunked
+Connection: keep-alive
+Date: Tue, 08 Sep 2026 20:43:31 GMT
+Vary: Accept-Encoding
+Content-Encoding: gzip
+Set-Cookie: AWSALB=oZU/eJEAom7iYdXXsiIWlmOP0CVXjpBMVExwz5zgCzI+V5ZyeyYFVThfs19vf9yTq1e5QqvW8cBuU/sT46JkPq1vFXAa+qpdm3kQKnwERYYjqLPMptIsGxuqMCce; Expires=Tue, 15 Sep 2026 20:43:31 GMT; Path=/
+Set-Cookie: AWSALBCORS=oZU/eJEAom7iYdXXsiIWlmOP0CVXjpBMVExwz5zgCzI+V5ZyeyYFVThfs19vf9yTq1e5QqvW8cBuU/sT46JkPq1vFXAa+qpdm3kQKnwERYYjqLPMptIsGxuqMCce; Expires=Tue, 15 Sep 2026 20:43:31 GMT; Path=/; SameSite=None; Secure
+last-modified: Tue, 08 Sep 2026 16:57:36 GMT
+accept-ranges: bytes
+server: Jetty(9.4.z-SNAPSHOT)
+X-Cache: Miss from cloudfront
+Via: 1.1 8af5dcc6611e54569439ce88e8dc6902.cloudfront.net (CloudFront)
+X-Amz-Cf-Pop: DFW56-P3
+X-Amz-Cf-Id: rbMGXcZkexJtckSLGX-TdJ86P9EFgNk0WDXsDik9C5H7OiRE-yay8A==
+

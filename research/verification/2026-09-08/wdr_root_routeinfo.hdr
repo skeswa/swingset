@@ -1,0 +1,16 @@
+HTTP/2 200 
+content-type: application/json
+content-length: 138
+last-modified: Sun, 30 Aug 2026 23:08:26 GMT
+x-amz-server-side-encryption: AES256
+accept-ranges: bytes
+server: AmazonS3
+date: Tue, 08 Sep 2026 20:42:35 GMT
+cache-control: no-cache, no-store, must-revalidate
+etag: "e1fe2f13d0315ed33af846695e461fad"
+vary: Accept-Encoding
+x-cache: RefreshHit from cloudfront
+via: 1.1 168ffd34d4cca92672b781da165e7226.cloudfront.net (CloudFront)
+x-amz-cf-pop: DFW57-P6
+x-amz-cf-id: KWGUxETkWDzxz8aMwwaFop1p5NNkWy0OAUlFm8obfERMp7sH62ksyg==
+

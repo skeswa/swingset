@@ -8,14 +8,20 @@ Decisions still open:
 
 Things to verify during M0 to M2:
 
-- WSDC calendar: does it emit `ETag` or `Last-Modified`? Is there a
-  usable WP REST endpoint?
+- WSDC calendar: no `ETag` or `Last-Modified` (checked 2026-09-08);
+  fingerprint the table. Is there a usable WP REST endpoint, or does
+  the Yoast sitemap `lastmod` track calendar edits?
 - Registry: response for a non-existent id; meaning of `adv_sliding` and
   `as_sliding`; whether a merged number is retired or redirected.
 - EEPro: meaning of the prelims "Count" column (heat number or ordinal?).
 - scoring.dance: whether round pages show heats; stability of Cloudflare
   behavior on `/enUS/events/` paths at our rate.
-- DCN: whether the heats WebView is public; whether `ETag` on results
-  pages changes only when content changes.
+- DCN: whether the heats WebView is public. The `ETag` changes on every
+  response (checked 2026-09-08), so it is useless; the open question is
+  now whether the Nuxt client's tab-navigation JSON endpoint is public
+  and allowed, which would cut DCN load about 50×.
+- World Dance Registry: meaning of `S<n>` in the callback column, which
+  partner's bib the finals show, whether the registration `euid` maps
+  to the scores UUID, and whether the operator would publish an index.
 - Timing: how soon after scoring each platform posts a round. Measure it
   from our own snapshots over the first month and tune `live` intervals.

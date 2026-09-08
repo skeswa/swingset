@@ -135,3 +135,15 @@ true for 70, `has_heat_sheets` for 26), and whether bibs or WSDC ids
 are visible on danceconvention.net and worlddanceregistry pages
 (`bibs_visible` and `wsdc_ids_visible` are `unknown` for 54 and 82
 events).
+
+## scraping-techniques.md and verification/
+
+`scraping-techniques.md` (2026-09-08) surveys how to scrape the sources
+above with the least origin load on hardware we own, ranks the
+techniques, lists rejected options, and gives a load budget per source.
+`verification/2026-09-08/` holds the response headers (`*.hdr`) and the
+two curl scripts behind its "what we verified" table; bodies were not
+kept. `verification/README.md` explains why those scripts are a record
+and not a model, and `verification/polite_fetch.py` is the gated helper
+for future checks. The per-site operating guides that came out of it are in
+`../docs/sources/`, and the phase plan is `../design/scraping-plan.md`.

@@ -16,9 +16,15 @@ other path is treated as urgent because that person had no easy channel.
 
 ## Politeness rules
 
-All values are per host unless stated. Defaults live in
-`config/hosts.toml` and may be tightened per host, never loosened below
-the floor.
+All values are per host unless stated. This table is the default for
+any host. A playbook in `docs/sources/` may override a value for its
+host in its section 6, and only there; no other document repeats
+settings. `config/hosts.toml` holds exactly the defaults below plus the
+playbook overrides, and `swingset doctor` prints the effective table so
+review never depends on which document someone read. Overrides may
+tighten a value or, for a host that is built for lookups (the
+registry), loosen the gap with the reason recorded; the 5 s gap is the
+floor everywhere else.
 
 | Rule | Value |
 |---|---|
@@ -26,8 +32,9 @@ the floor.
 | Minimum gap between requests to a host | 5 s (floor). 2 s for the registry sweep only, because responses are tiny and the site is built for this. |
 | `Crawl-delay` in robots.txt | Honored if larger than our gap. |
 | Hosts fetched in parallel | at most 4 |
-| Daily request budget per host | 2,000 (registry: 20,000 during bootstrap, 1,500 after) |
-| Robots.txt | Fetched at most every 24 h. Parsed with Protego. 5xx or unreachable means "disallow all" until next check. |
+| Daily request budget per host | 200 for any host without a playbook; playbooks set their own |
+| Daily byte budget per host | none by default; a playbook may add one |
+| Robots.txt | Fetched at most every 24 h. Parsed with Protego. A `User-agent: swingset` group wins over `*`, so any operator can stop or slow us without contacting us. 4xx (including 403, as on the WDR bucket) means unrestricted per RFC 9309. 5xx or unreachable means "disallow all" until next check. |
 | Request timeout | 30 s connect + read |
 | Retries | 3, full-jitter exponential backoff starting at 10 s |
 | 429 or 503 with `Retry-After` | Honor it exactly, minimum 60 s |
@@ -35,7 +42,7 @@ the floor.
 | 403 or Cloudflare challenge | Pause host 24 h. Log loudly. Never retry with different headers. |
 | 404 on a watched URL | Mark watch `gone` after 3 consecutive 404s over 3 days |
 | Assets | Never fetch images, CSS, JS, fonts |
-| Compression | Send `Accept-Encoding: gzip, br` |
+| Compression | Send `Accept-Encoding: gzip`, always and only. Never brotli: Apache appends `-gzip` to ETags, so a changing encoding looks like a changed file, and not every client we run decodes brotli. |
 | Cookies | Not stored, not sent |
 | Per-source kill switch | `enabled = false` in config stops all fetches for that source |
 
@@ -53,11 +60,17 @@ Order of preference:
 2. **Body hash.** On 200, compute SHA-256 of the raw body. If it equals
    the last stored hash, treat as unchanged. Store nothing new except
    `checked_at`.
-3. **Normalized hash.** Some pages embed nonces, timestamps, or session
-   ids. Each parser may define a `fingerprint(body) -> bytes` that strips
-   volatile parts before hashing. If the normalized hash is unchanged we
-   still store the raw body (cheap, deduplicated) but mark the snapshot
-   `content_changed = false` so downstream skips it.
+3. **Extract fingerprint.** Some pages embed nonces (DCN's Sentry
+   trace id, the calendar's GTranslate id) or render-time validators
+   (scoring.dance). The fingerprint is `sha256(canonical(extract(body)))`
+   where `extract` is the page kind's pure content extractor from
+   [parsing](parsing.md#contract). It covers exactly what the parser
+   consumes, attributes included (WSDC ids, callback flags, links, row
+   classes), so hashing is never written separately from parsing. If
+   the fingerprint is unchanged the body is **discarded** and only
+   `checked_at` is recorded; if `extract` fails the body is archived
+   and flagged; storing 1.67 MB of DCN per poll for a nonce is not worth
+   it. Which sources need this is in each playbook.
 4. **HEAD** is not used. A conditional GET is cheaper than HEAD plus GET
    and the same size as a HEAD when unchanged.
 
@@ -75,6 +88,18 @@ full fetch of a few KB. The schedule (5.2) keeps those rare.
   JSON.
 - We keep every changed snapshot forever. Storage is small: a few MB per
   event weekend after compression and dedup.
+- Derived blobs: an evaluated DCN payload is stored once as JSON next
+  to its raw body so re-parses never re-run `node`.
+- The Wayback Machine is a transport in this layer. A backfill watch
+  carries an archive URL (`web.archive.org/web/<ts>id_/<url>`); the
+  body is archived under the original URL with `via = wayback` and the
+  capture timestamp. `web.archive.org` is a host in `hosts.toml` with
+  its own gate (10 s to start). A capture counts only if it parses
+  into results: a page archived before results were posted, or with
+  fewer rounds than the event page lists, is a gap. Origin backfill
+  happens for every URL whose archived captures are missing or
+  incomplete, taking the latest capture that parses, and prefers
+  captures made at least 30 days after the event's end date.
 - WARC was considered. A plain content-addressed store plus SQLite is
   simpler and deduplicates better. A WARC export command can be added
   later without changing anything else.

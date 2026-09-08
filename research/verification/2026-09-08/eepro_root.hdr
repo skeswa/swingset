@@ -1,0 +1,6 @@
+HTTP/1.1 200 OK
+Date: Tue, 08 Sep 2026 20:44:41 GMT
+Server: Apache/2.4.62 (Amazon Linux) OpenSSL/3.0.8
+Transfer-Encoding: chunked
+Content-Type: text/html; charset=UTF-8
+

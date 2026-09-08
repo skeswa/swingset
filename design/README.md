@@ -9,8 +9,11 @@ specific document (a source playbook, the runbook, the schema reference)
 disagrees with one of these, the later one wins and the design document
 must be updated.
 
-Facts about third-party sites were checked on 2026-09-04. Facts we could
-not check are marked **unverified**.
+Facts about third-party sites were checked on 2026-09-04 and, for the
+fetch layer, again on 2026-09-08 (`research/verification/`). Facts we
+could not check are marked **unverified**. Per-site operating detail
+lives in the playbooks under `docs/sources/`, which win over these
+documents.
 
 ## Read in this order
 
@@ -32,6 +35,8 @@ not check are marked **unverified**.
 | [ethics and legal](ethics-and-legal.md) | Public data, personal data, terms, license of scraped content |
 | [repository layout](repository-layout.md) | Where code, config, overrides, and docs live |
 | [milestones](milestones.md) | M0 through M6 and their done criteria |
+| [scraping plan](scraping-plan.md) | Phase-by-phase plan for the fetch and parse side, per-host budgets, operator conversation |
+| [implementation plan](implementation-plan.md) | v1 scope (M0 to M3b), the OrbStack NixOS VM, toolchain decisions, SQLite schema, work packages, order, and done criteria |
 | [open questions](open-questions.md) | Decisions still open and facts to verify |
 | [decision log](decision-log.md) | Index of decisions from the design review |
 | [WSDC rules](wsdc-rules.md) | Callback legends, points tiers, level thresholds we encode |

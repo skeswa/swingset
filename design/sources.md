@@ -1,8 +1,9 @@
 # Sources
 
 This document records what exists, what each source gives, and how we read
-it. Details such as HTML selectors go in per-source playbooks under
-`docs/sources/` once written. URL patterns are [below](#url-patterns).
+it. Operating detail (selectors, intervals, verified cache behavior)
+lives in the playbooks under `docs/sources/`, which win over this
+document. URL patterns are [below](#url-patterns).
 
 ## Summary table
 
@@ -10,9 +11,10 @@ it. Details such as HTML selectors go in per-source playbooks under
 |---|---|---|---|---|---|---|---|---|
 | WSDC registry | dancers, points, final placements | no | yes | yes | no | no | JSON via POST | none (no ETag) |
 | WSDC event calendar | event list, dates, city, website | - | - | - | - | - | WordPress HTML | likely ETag (unverified) |
-| EEPro | prelim marks, callbacks, final marks, placements | yes | yes | no | yes, named | partial (unverified) | static HTML, some PDF | `ETag` + `Last-Modified` |
-| scoring.dance | prelim marks, callbacks, final marks, placements | yes | yes | **yes** | yes, named | unverified | server-rendered HTML | `Last-Modified`, `max-age=300`, sitemap |
-| danceconvention.net (DCN) | rankings per round; per-round PDF with bibs and marks | PDF only | yes, with city | no | PDF only | app only (unverified) | Nuxt payload in HTML + PDF | `ETag` on HTML, none on PDF |
+| EEPro | prelim marks, callbacks, final marks, placements | yes | yes | no | yes, named | partial (unverified) | static HTML, some PDF | strong `ETag` + `Last-Modified` on files (304 verified); per-event autoindex lists mtimes |
+| scoring.dance | prelim marks, callbacks, final marks, placements | yes | yes | **yes** | yes, named | unverified | server-rendered HTML | `Last-Modified` is render time; Cloudflare edge gives 304 for 600 s; sitemap has no `lastmod` |
+| danceconvention.net (DCN) | rankings per round; per-round PDF with bibs and marks | PDF only | yes, with city | no | PDF only | app only (unverified) | Nuxt payload in HTML + PDF | `ETag` changes every response; `no-store`; 1.67 MB per poll |
+| World Dance Registry (WDR) | every round as JSON: bibs, marks, callbacks, placements | yes | yes (non-callbacks redacted) | no | yes, first names | no | static JSON (`routeInfo.json`) | weak `ETag` + `Last-Modified`, 304 verified |
 | Event-site PDFs | historical results | varies | yes | no | varies | no | PDF | none |
 
 Heat lists are the thinnest data. All three platforms push heats through
@@ -103,8 +105,14 @@ and defines each event's polling window.
 - Finals columns: Place, Competitor ("Leader and Follower"), one column
   per judge (rank), BIB (`255/720` = leader/follower for J&J, single bib
   for couples), Marks Sorted (e.g. `1-1-1-1-2-2-4`).
-- Serves `Last-Modified` and `ETag`. Conditional GET works.
+- Serves `Last-Modified` and a strong `ETag` on static files. Conditional
+  GET returns 304 (verified 2026-09-08). `event.php` has no validators.
+- `results/<slug>/` is an Apache autoindex (1.8 KB) listing every file
+  with its mtime and size. It is the per-event change signal; round
+  pages are fetched only when their listing entry changes. `/results/`
+  itself is an empty stub.
 - Companion "SwingDancer" app pushes callbacks; we do not touch it.
+- The operator plans an API. The adapter is built to be swapped for it.
 
 Heavy US coverage: Summer Hummer, Swingtacular, Arizona Dance Classic,
 Midwest Westie Fest, Big Apple, Wild Wild Westie, Phoenix 4th, Liberty
@@ -113,9 +121,13 @@ Swing, JJ O'Rama, Michigan Classic, GNDC, and more.
 ## scoring.dance
 
 - Server-rendered Bootstrap HTML behind Cloudflare. `robots.txt` allows
-  all. `Cache-Control: public, max-age=300` and `Last-Modified` present.
-  `sitemap.xml` exists. Dominant in Europe, growing in the US (Rose City
-  Swing moved here).
+  all. `Cache-Control: public, max-age=300, s-maxage=600`. `Last-Modified`
+  is present but is the render time, not a content time (verified
+  2026-09-08), so change is decided by a table fingerprint; the edge
+  still answers `If-Modified-Since` with 304 while its 600 s copy is
+  fresh. `sitemap.xml` lists every event id (383 on 2026-09-08) with no
+  `lastmod`. Dominant in Europe, growing in the US (Rose City Swing
+  moved here).
 - Event: `/enUS/events/<eventId>/results/`. Round:
   `/enUS/events/<eventId>/results/<roundId>.html`. Recent list:
   `/enUS/recent`. Dancer profile: `/enUS/wsdc/registry/<wsdcId>.html`.
@@ -135,10 +147,14 @@ Swing, JJ O'Rama, Michigan Classic, GNDC, and more.
 
 ## danceconvention.net (DCN)
 
-- Nuxt 2 SSR + Vuetify front end over legacy Apache Tapestry pages.
-  CloudFront. `Cache-Control: no-store` but an `ETag` is present on HTML.
-  HTML pages are about 2.8 MB because translations are inlined, so
-  conditional GET matters a lot here.
+- Nuxt 2 SSR + Vuetify front end over legacy Apache Tapestry pages
+  (Jetty). CloudFront. `Cache-Control: no-store`. An `ETag` is present
+  on HTML but **changes on every response** (a Sentry trace id is in
+  the head), so conditional GET never yields 304 (verified 2026-09-08).
+  `Accept-Ranges: none`. Pages are 2.9 MB (1.67 MB gzip) because
+  translations are inlined; the `__NUXT__` payload is 124 KB of that.
+  Change is decided by a fingerprint of the evaluated payload, and DCN
+  gets stricter intervals and a byte budget than any other host.
 - Event lists: `/eventdirector/en/upcoming` and `/en/eventsarchive`.
   The SSR payload `window.__NUXT__` contains
   `state.common.currentPageRenderData.upcomingEvents|lastYearEvents[]`
@@ -168,11 +184,28 @@ Swing, JJ O'Rama, Michigan Classic, GNDC, and more.
 - A REST namespace `/eventdirector/rest/v2/...` and a WebSocket exist for
   registration. Not public. Not used.
 
+## World Dance Registry "Pro Score" (`scores.worlddanceregistry.com`)
+
+Found in the 2026-09 research: 14 of the last year's events, US and
+Canada. Verified 2026-09-08.
+
+- React Static v7 site on S3 behind CloudFront. Every route has a
+  `routeInfo.json` beside it holding the page's data as plain JSON;
+  `/<uuid>/rounds/routeInfo.json` (500 KB, 40 KB gzip) has every round
+  of every contest with bibs, names, judge first names, marks,
+  callbacks, and tallies; `/<uuid>/awards/routeInfo.json` has finals
+  names and places. No WSDC ids. Prelim rows for competitors not called
+  back are redacted (name `***`, marks `0.00`, bib kept).
+- Weak `ETag` and `Last-Modified`; `If-None-Match` returns 304.
+  `Cache-Control: no-store`, so CloudFront revalidates against S3 each
+  time.
+- No index: bucket root, `robots.txt`, and sitemap are 403. Discovery is
+  by overrides and by scanning event sites for links. See
+  `docs/sources/world-dance-registry.md`.
+
 ## Other platforms
 
 - Step Right Solutions: server returns empty 200s. Dead. Historical only.
-- World Dance Registry "Pro Score": client-side JS app; data endpoints
-  unverified; rare in WCS. Deferred.
 - Danceplace, Swing Director, SwingWars, Vote4Dance, EventManagement: on
   the WSDC approved list but no public results URLs found. Deferred.
 - Event-site PDFs (e.g. Liberty Swing 2004 to 2022): one-off backfill
@@ -209,6 +242,7 @@ WSDC calendar
 EEPro
   GET  https://eepro.com/results/event.php
   GET  https://eepro.com/results/event.php?event=<slug>
+  GET  https://eepro.com/results/<slug>/                  autoindex, the change signal
   GET  https://eepro.com/results/<slug>/<contest><round>.html
   GET  https://eepro.com/results/<year>/
 
@@ -217,6 +251,10 @@ scoring.dance
   GET  https://scoring.dance/sitemap.xml
   GET  https://scoring.dance/enUS/events/<eventId>/results/
   GET  https://scoring.dance/enUS/events/<eventId>/results/<roundId>.html
+
+World Dance Registry
+  GET  https://scores.worlddanceregistry.com/<uuid>/rounds/routeInfo.json
+  GET  https://scores.worlddanceregistry.com/<uuid>/awards/routeInfo.json
 
 danceconvention.net
   GET  https://danceconvention.net/eventdirector/en/upcoming

@@ -7,7 +7,7 @@
 | HTTP | `httpx` | HTTP/2, timeouts, easy to wrap. Conditional GET handled by us, not a cache library, so behavior is explicit and logged. |
 | robots.txt | `Protego` | Google-compatible, supports `Crawl-delay` |
 | HTML | `selectolax` | fast, lenient |
-| PDF | `pdfplumber` | table extraction |
+| PDF | `pdfplumber` | table extraction; MIT. PyMuPDF is faster but AGPL |
 | JS payloads | `node` from nixpkgs as a sandboxed subprocess | evaluates DCN's `__NUXT__`; reproducible under nix, trivially timed out |
 | State | SQLite via stdlib `sqlite3`, WAL mode, on local disk | one file, transactional, backed up to HF |
 | Analytics inside pipeline | DuckDB | joins over Parquet and SQLite for build and linking |
@@ -19,5 +19,5 @@
 | Hub | `huggingface_hub` | `create_commit`, `hf_hub_download` |
 | Orchestration | systemd timers from a NixOS module | exact cadence, local state, no round-trip. See [operations](operations.md). |
 | CI | GitHub Actions | tests and lint on pull requests only; never runs the pipeline |
-| Tests | `pytest`, fixtures from the archive | |
+| Tests | `pytest`, `respx` for httpx, fixtures from the archive | golden files; no network in tests |
 | Lint and types | `ruff`, `mypy --strict` | |

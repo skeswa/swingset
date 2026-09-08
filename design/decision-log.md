@@ -25,3 +25,16 @@ reflected in the other design documents; this table is the index.
 | 18 | DCN payload evaluated by a sandboxed `node` subprocess | [parsing](parsing.md#parsing-rules) |
 | 19 | Dataset lives at `skeswa/swingset` | [publishing](publishing.md#repos) |
 | 20 | Contact channel is GitHub issues with templates; no email in the User-Agent | [fetching](fetching.md#identity), [ethics and legal](ethics-and-legal.md) |
+
+Decisions from the scraping research on 2026-09-08:
+
+| # | Decision | Where |
+|---|---|---|
+| 21 | Plain httpx with a hand-written per-host gate; no Scrapy, crawlee, or hishel | `research/scraping-techniques.md` |
+| 22 | Backfill reads the Wayback Machine first; the origin only for gaps | [fetching](fetching.md#archive), [scraping plan](scraping-plan.md) |
+| 23 | The cheapest resource per event carries the fast timer (EEPro autoindex, WDR JSON, scoring.dance event page, DCN results tab); children are fetched on parent change plus a slow clock of their own, set per host in the playbook, because no parent signal is exact enough to reveal every correction | [scheduling](scheduling.md#watches) |
+| 24 | Bodies unchanged by fingerprint are discarded, not archived | [fetching](fetching.md#change-detection) |
+| 25 | `Accept-Encoding: gzip` only; per-host byte budgets; `User-agent: swingset` robots group is the operators' switch; defaults live in fetching.md and overrides only in a playbook's section 6 | [fetching](fetching.md#politeness-rules) |
+| 26 | World Dance Registry is a first-class source (M3b); long tail is overrides plus generic adapters, never per-event parsers | [sources](sources.md#world-dance-registry-pro-score-scoresworlddanceregistrycom), `docs/sources/long-tail.md` |
+| 27 | Local LLM extraction is a manual draft tool feeding the review queue, never a pipeline stage | `docs/sources/long-tail.md` |
+| 28 | DCN gets a 10 s gap, 30 min live floor, and a 300 MB/day byte budget until a lighter endpoint is found | `docs/sources/danceconvention.md` |

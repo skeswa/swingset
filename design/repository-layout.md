@@ -15,6 +15,7 @@ swingset/
     sources.toml                  enable flags, index URLs, intervals
   overrides/                      hand-maintained CSVs, versioned in git
     event_aliases.csv
+    source_urls.csv               event_id, source, kind, url, parser: WDR and long-tail watches
     identity_overrides.csv
     suppressions.csv
     nicknames.csv
@@ -25,7 +26,7 @@ swingset/
   src/swingset/
     cli.py
     config.py
-    fetch/     client.py politeness.py robots.py archive.py
+    fetch/     client.py politeness.py robots.py archive.py wayback.py
     schedule/  watches.py policy.py discover.py
     sources/
       wsdc_registry/  parse.py fixtures/
@@ -33,6 +34,8 @@ swingset/
       eepro/          discover.py parse.py fixtures/
       scoringdance/   discover.py parse.py fixtures/
       dcn/            discover.py parse.py nuxt.py nuxt_eval.js pdf.py fixtures/
+      wdr/            discover.py parse.py fixtures/
+      generic/        html_table.py pdf_table.py google_drive.py swingfiction.py fixtures/
     model/     schema.py enums.py ids.py
     normalize/ names.py divisions.py events.py
     link/      candidates.py score.py assign.py confirm.py overrides.py

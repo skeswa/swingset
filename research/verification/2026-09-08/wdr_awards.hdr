@@ -1,0 +1,15 @@
+HTTP/2 200 
+content-type: text/html
+server: AmazonS3
+last-modified: Sun, 30 Aug 2026 23:08:26 GMT
+x-amz-server-side-encryption: AES256
+content-encoding: br
+date: Tue, 08 Sep 2026 20:42:15 GMT
+cache-control: no-cache, no-store, must-revalidate
+etag: W/"9f053fc42e7d26f7f2972b3e8e70c970"
+vary: Accept-Encoding
+x-cache: RefreshHit from cloudfront
+via: 1.1 68c92b6f71490e46e5a698c356e34c20.cloudfront.net (CloudFront)
+x-amz-cf-pop: DFW57-P6
+x-amz-cf-id: ny9k1izdPS1x2zL6mE2gF8EgD_xKIjCKm7OQIPTtmTs2Xy_uJ749sQ==
+

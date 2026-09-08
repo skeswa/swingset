@@ -1,0 +1,17 @@
+HTTP/2 200 
+date: Tue, 08 Sep 2026 20:42:29 GMT
+content-type: text/plain
+content-length: 86
+accept-ranges: bytes
+content-encoding: gzip
+etag: "46-5e1211e0ea580-gzip"
+last-modified: Sat, 11 Jun 2022 00:27:18 GMT
+server: cloudflare
+vary: Accept-Encoding
+cf-cache-status: MISS
+strict-transport-security: max-age=15552000; includeSubDomains; preload
+report-to: {"group":"cf-nel","max_age":604800,"endpoints":[{"url":"https://a.nel.cloudflare.com/report/v4?s=p1PMc1Txtt%2BqfqjMIWvfIb%2BE6TWbPiLw9pEK7thIcb8WBs34mAicQ6wzma1cbJ8Dclnzu5MmqjT7dToSgVccM9UHBnfwdVISXZ0tDOcnsIQ2XuI5ypwrKxr7%2BmxDsvqz"}]}
+nel: {"report_to":"cf-nel","success_fraction":0.0,"max_age":604800}
+cf-ray: a380c7acdc9afb49-MCI
+alt-svc: h3=":443"; ma=86400
+

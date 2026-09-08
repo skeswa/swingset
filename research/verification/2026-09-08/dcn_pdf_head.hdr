@@ -1,0 +1,16 @@
+HTTP/1.1 200 OK
+Content-Type: application/pdf
+Connection: keep-alive
+Date: Tue, 08 Sep 2026 20:42:23 GMT
+server: Jetty(9.4.z-SNAPSHOT)
+Set-Cookie: AWSALB=eWdcA+Pw/7bakTtxefj4bKYtSw7Pf3wcldBR5ZgbBApLMsva3QwRLYRUCdiQ2jeDBFGlMi/b7ia5hCH6yCOH3cUUXoy1BvFXrRr6j0FzYVbHjxf6XdXkAhMsIB61; Expires=Tue, 15 Sep 2026 20:42:22 GMT; Path=/
+Set-Cookie: AWSALBCORS=eWdcA+Pw/7bakTtxefj4bKYtSw7Pf3wcldBR5ZgbBApLMsva3QwRLYRUCdiQ2jeDBFGlMi/b7ia5hCH6yCOH3cUUXoy1BvFXrRr6j0FzYVbHjxf6XdXkAhMsIB61; Expires=Tue, 15 Sep 2026 20:42:22 GMT; Path=/; SameSite=None; Secure
+set-cookie: dclang=en;Path=/eventdirector/;Expires=Thu, 08-Oct-2026 20:42:23 GMT;Max-Age=2592000;Secure
+expires: 0
+cache-control: no-store, no-cache, must-revalidate, private, post-check=0, pre-check=0, max-age=0
+pragma: no-cache
+X-Cache: Miss from cloudfront
+Via: 1.1 77bbaa12f1db74ae58b5588b8dc2ac98.cloudfront.net (CloudFront)
+X-Amz-Cf-Pop: DFW56-P3
+X-Amz-Cf-Id: nhUZ7XhgKriLvUVzUL_gOMT53V7v6EsB7aDoGj9IH7CdjVvJOXmPcQ==
+

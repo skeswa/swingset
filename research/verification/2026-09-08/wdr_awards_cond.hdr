@@ -1,0 +1,12 @@
+HTTP/2 304 
+date: Tue, 08 Sep 2026 20:42:21 GMT
+last-modified: Sun, 30 Aug 2026 23:08:26 GMT
+cache-control: no-cache, no-store, must-revalidate
+server: AmazonS3
+etag: W/"9f053fc42e7d26f7f2972b3e8e70c970"
+vary: Accept-Encoding
+x-cache: RefreshHit from cloudfront
+via: 1.1 a95434276714bb5db91ed4adefba458c.cloudfront.net (CloudFront)
+x-amz-cf-pop: DFW57-P6
+x-amz-cf-id: hz7UlGioWNiLjNDQOyuno3h6TrBFkbrWl7FqmtoLwnERQsSUBYAZLw==
+
