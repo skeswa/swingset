@@ -120,9 +120,16 @@ cooling_interval = "6h"
 - Finals show one `Bib #` per couple row (**which partner's bib is
   unverified**), leader and follower names, and place. The canonical partner
   entries therefore leave `bib` null while the raw table retains the value.
-- `redacted = true` rounds list every competitor with a bib but mask
-  the names and zero the marks of those not called back. Emit those
-  entries with `name_raw = "***"` and `mark` null, not `0`.
+- Masked rows use the name `***` and placeholder marks. The sample includes
+  15 such rows even where the table says `redacted = false`; detect the row
+  marker directly. Retain bib-based entries with `name_raw = null`, and emit
+  no marks or callback outcome for those rows. One bibless masked row is
+  omitted with a finding because its identity is not recoverable. Named rows
+  in the same table retain their real marks.
+- Explicit `Am`/`Pro` columns use the contest's amateur Leaders/Followers
+  label to assign complementary roles. Without that label, role-specific
+  output is withheld with a finding. A single `Couple` cell stays a couple
+  entry; its combined name does not establish each person's role.
 - Judges are first names only; `judges.anonymous = false` but
   `name_raw` is the first name. Judge linking will be weak here.
 
