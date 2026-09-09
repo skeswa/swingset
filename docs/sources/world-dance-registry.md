@@ -160,3 +160,19 @@ reported.
 - Whether registration `euid` values map to scores UUIDs.
 - Whether the operator would publish an index (one JSON file listing
   event UUIDs would remove the discovery problem entirely).
+
+## 14. Implementation fixture check (2026-09-09 UTC)
+
+The gated collector archived rounds and awards for UUID
+`98011277-01cd-11f1-9a29-0aa72bbce9ea`: 32 round observations and
+13 award observations. A repeated conditional rounds request returned 304.
+Fixtures and request metadata are in `src/swingset/sources/wdr/fixtures/`.
+
+The sample does not establish the meaning of `S<n>`, `attributeGroup`, or
+which partner owns the finals bib. Those remain unverified and produce
+parser warnings where encountered. A single conditional request does not
+establish a weekend's load.
+
+The seed script found 12 usable UUID URLs among 14 research mentions.
+Swingapalooza and Jax Westie Fest have only host-root links; their exact
+URLs are still required.

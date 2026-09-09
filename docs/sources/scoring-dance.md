@@ -183,3 +183,16 @@ the owner as an incident, never retried with other headers.
   polling. Measured over the first month from our own snapshots.
 - Whether any part of the page other than the tables changes between
   renders (nonce check).
+
+## 14. Implementation fixture check (2026-09-09 UTC)
+
+The gated collector archived the sitemap, recent index, event 418, and
+rounds 6012 and 6014. Fixtures and metadata are in
+`src/swingset/sources/scoringdance/fixtures/`; the full sitemap is gzip
+compressed there. The recent index yields 27 event records. The event
+page yields 12 round links. The round fixtures cover Advanced Jack & Jill
+prelims and finals, including descendant `data-wsdc`, callback/state
+attributes, and judge titles.
+
+These checks establish current fixture shapes. The month-long nonce and
+Cloudflare observations remain outstanding.

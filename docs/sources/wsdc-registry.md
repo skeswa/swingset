@@ -2,8 +2,8 @@
 
 ## 1. Status
 
-Facts verified 2026-09-04 in `design/sources.md`; nothing re-checked on
-2026-09-08. The registry is the identity source for the whole dataset.
+General facts verified 2026-09-04 in `design/sources.md`; found and missing
+lookup fixtures re-checked on 2026-09-09 UTC. The registry is the identity source for the whole dataset.
 No personal relationship. `robots.txt` allows everything; no terms
 page; no API key.
 
@@ -59,6 +59,12 @@ daily_request_budget = 1500        # 20000 during the one-time bootstrap sweep
 Duplicate numbers are merged by hand by WSDC staff. Results land 1 to 7
 days after an event.
 
+A missing numeric id returns HTTP 404 with an HTML error document. This was
+verified on 2026-09-09 UTC with ids 1000000 and 1000001; both bodies had SHA-256
+`8437bd0ef46a19c9a7c294c53e0429b40e76ebbd5fe9fd73a9025752495ddb1c`.
+Only that exact status-and-body pair is a `NotFound` lookup. Any changed 404
+body is `Invalid`, so a new server error page cannot advance the sweep.
+
 ## 10. Backfill
 
 The bootstrap sweep is the backfill.
@@ -74,6 +80,5 @@ otherwise, each a few KB.
 
 ## 13. Open items
 
-From `design/open-questions.md`: response for a non-existent id,
-meaning of `adv_sliding` and `as_sliding`, whether merged numbers are
+From `design/open-questions.md`: meaning of `adv_sliding` and `as_sliding`, whether merged numbers are
 retired or redirected.

@@ -1,0 +1,13 @@
+event_id,source,kind,url,parser,notes
+2025-09-trilogy-swing,worlddanceregistry,event,https://scores.worlddanceregistry.com/3ac5b6cd-17f3-11f0-9a29-0aa72bbce9ea/rounds/routeInfo.json,wdr.rounds,seeded from research/results-sources.csv; confidence=high
+2025-10-montreal-westie-fest,worlddanceregistry,event,https://scores.worlddanceregistry.com/a5dd75a4-87d2-11ef-9a29-0aa72bbce9ea/rounds/routeInfo.json,wdr.rounds,seeded from research/results-sources.csv; confidence=medium
+2025-10-swustlicious,worlddanceregistry,event,https://scores.worlddanceregistry.com/82889a58-f8bd-11ef-9a29-0aa72bbce9ea/rounds/routeInfo.json,wdr.rounds,seeded from research/results-sources.csv; confidence=high
+2025-10-swing-city-chicago,worlddanceregistry,event,https://scores.worlddanceregistry.com/fe9b06d3-4273-11f0-9a29-0aa72bbce9ea/rounds/routeInfo.json,wdr.rounds,seeded from research/results-sources.csv; confidence=high
+2025-11-rocket-city-swing,worlddanceregistry,event,https://scores.worlddanceregistry.com/163ba964-df59-11ef-9a29-0aa72bbce9ea/rounds/routeInfo.json,wdr.rounds,seeded from research/results-sources.csv; confidence=high
+2026-01-floorplay-swing-vacation,worlddanceregistry,event,https://scores.worlddanceregistry.com/d9163563-3b50-11f0-9a29-0aa72bbce9ea/rounds/routeInfo.json,wdr.rounds,seeded from research/results-sources.csv; confidence=high
+2026-02-waterloo-ontario-open-west-coast-swing-championships,worlddanceregistry,event,https://scores.worlddanceregistry.com/cb9e5ea8-3180-11f0-9a29-0aa72bbce9ea/rounds/routeInfo.json,wdr.rounds,seeded from research/results-sources.csv; confidence=high
+2026-03-the-chicago-classic,worlddanceregistry,event,https://scores.worlddanceregistry.com/82823d87-cacf-11f0-9a29-0aa72bbce9ea/rounds/routeInfo.json,wdr.rounds,seeded from research/results-sources.csv; confidence=high
+2026-04-swing-in-bloom,worlddanceregistry,event,https://scores.worlddanceregistry.com/1bfd3bb1-4262-11f0-9a29-0aa72bbce9ea/rounds/routeInfo.json,wdr.rounds,seeded from research/results-sources.csv; confidence=medium
+2026-07-carolina-summer-swing,worlddanceregistry,event,https://scores.worlddanceregistry.com/b558d0af-1243-11f1-9a29-0aa72bbce9ea/rounds/routeInfo.json,wdr.rounds,seeded from research/results-sources.csv; confidence=high
+2026-07-florida-dance-magic,worlddanceregistry,event,https://scores.worlddanceregistry.com/e9a42d05-efec-11f0-9a29-0aa72bbce9ea/rounds/routeInfo.json,wdr.rounds,seeded from research/results-sources.csv; confidence=high
+2026-08-desert-city-swing,worlddanceregistry,event,https://scores.worlddanceregistry.com/98011277-01cd-11f1-9a29-0aa72bbce9ea/rounds/routeInfo.json,wdr.rounds,seeded from research/results-sources.csv; confidence=high

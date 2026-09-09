@@ -147,3 +147,17 @@ kept. `verification/README.md` explains why those scripts are a record
 and not a model, and `verification/polite_fetch.py` is the gated helper
 for future checks. The per-site operating guides that came out of it are in
 `../docs/sources/`, and the phase plan is `../design/scraping-plan.md`.
+
+## seed_source_urls.py
+
+One-time WDR override seed, run during v1 implementation:
+
+```sh
+python3 research/seed_source_urls.py > /tmp/swingset-source-urls.csv
+```
+
+It reads `results-sources.csv`, validates UUID URLs and writes CSV to stdout.
+Review the output before replacing `overrides/source_urls.csv` or any operator
+edits. Of 14 research mentions, 12 have usable UUIDs; Swingapalooza and Jax
+Westie Fest have only host-root URLs and are reported as skipped. The pipeline
+reads the resulting overrides, not this research CSV.

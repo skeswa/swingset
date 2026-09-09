@@ -1,0 +1,7 @@
+{
+  "url": "https://scoring.dance/enUS/events/",
+  "fetched_at": "2026-09-09T04:09:16.300095+00:00",
+  "body_sha256": "7b97876ce7ea1c5dd3ba4cc99384ca4cd11be7783b5baf37e1f96be893da0a7b",
+  "http_status": 200,
+  "fixture": "full live body; gzip decompress .gz before parsing"
+}

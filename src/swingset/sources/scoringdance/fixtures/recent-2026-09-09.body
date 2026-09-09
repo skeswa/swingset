@@ -1,0 +1,1608 @@
+<!doctype html>
+<html lang="en-US" DIR="LTR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    
+    <meta name="author" content="Andreas Kasper <me@andi.dance>">
+
+
+    <title>scoring.dance - Dance Competition Scoring</title>
+
+    <link rel="icon" href="/skins/grey/images/favicon.png">
+    <link rel="apple-touch-icon" sizes="57x57" href="/skins/grey/images/favicon/apple-icon-57x57.png">
+<link rel="apple-touch-icon" sizes="60x60" href="/skins/grey/images/favicon/apple-icon-60x60.png">
+<link rel="apple-touch-icon" sizes="72x72" href="/skins/grey/images/favicon/apple-icon-72x72.png">
+<link rel="apple-touch-icon" sizes="76x76" href="/skins/grey/images/favicon/apple-icon-76x76.png">
+<link rel="apple-touch-icon" sizes="114x114" href="/skins/grey/images/favicon/apple-icon-114x114.png">
+<link rel="apple-touch-icon" sizes="120x120" href="/skins/grey/images/favicon/apple-icon-120x120.png">
+<link rel="apple-touch-icon" sizes="144x144" href="/skins/grey/images/favicon/apple-icon-144x144.png">
+<link rel="apple-touch-icon" sizes="152x152" href="/skins/grey/images/favicon/apple-icon-152x152.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/skins/grey/images/favicon/apple-icon-180x180.png">
+<link rel="icon" type="image/png" sizes="192x192"  href="/skins/grey/images/favicon/android-icon-192x192.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/skins/grey/images/favicon/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="96x96" href="/skins/grey/images/favicon/favicon-96x96.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/skins/grey/images/favicon/favicon-16x16.png">
+<link rel="manifest" href="/skins/grey/images/favicon/manifest.json">
+<meta name="msapplication-TileColor" content="#dbdbdb">
+<meta name="msapplication-TileImage" content="/skins/grey/images/favicon/ms-icon-144x144.png">
+<meta name="theme-color" content="#dbdbdb">
+<meta name="apple-mobile-web-app-status-bar" content="#FFE1C4">
+<meta name="facebook-domain-verification" content="3cucv1q0ssr7c0tp1me7r1g57uw0ri" />
+<meta property="goo1:node" content="v36186.scoring.dance" />
+<meta property="goo1:load" content="0.759765625,0.72021484375,0.63720703125" />
+<!--<script src="/skins/grey/js/pwa_app.js"></script>-->
+
+
+
+  <!-- CSS and JS -->
+  <link rel="stylesheet" href="/skins/grey/css/bootstrap4.light.min.css">
+  <link id="css-dark" rel="stylesheet" href="/skins/grey/css/bootstrap4.dark.min.css" media="(prefers-color-scheme: dark)">
+  <link href="/skins/grey/css/main.css?v=4" rel="stylesheet">
+  <script>(function(){var t=localStorage.getItem('theme'),d=document.getElementById('css-dark');if(t==='dark'){d.media='all';document.documentElement.setAttribute('data-theme','dark');}else if(t==='light'){d.media='not all';document.documentElement.setAttribute('data-theme','light');}})();</script>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.6.2/js/bootstrap.min.js"></script><script src="/skins/grey/js/main.js?v=3"></script>  	
+	<meta property="og:type" content="website" />
+	
+	<meta property="og:image" content="https://199da4f2687b4e544d67-acbaddbbeef919e7671692497e171c6e.ssl.cf2.rackcdn.com/production/image/13902/listing_IMG_4777.jpg" />
+<link rel="alternate" hreflang="en-US" href="https://scoring.dance/enUS/"/>
+<link rel="alternate" hreflang="af-ZA" href="https://scoring.dance/afZA/"/>
+<link rel="alternate" hreflang="az-AZ" href="https://scoring.dance/azAZ/"/>
+<link rel="alternate" hreflang="id-ID" href="https://scoring.dance/idID/"/>
+<link rel="alternate" hreflang="ms-MY" href="https://scoring.dance/msMY/"/>
+<link rel="alternate" hreflang="by-DE" href="https://scoring.dance/byDE/"/>
+<link rel="alternate" hreflang="bs-BA" href="https://scoring.dance/bsBA/"/>
+<link rel="alternate" hreflang="cs-CZ" href="https://scoring.dance/csCZ/"/>
+<link rel="alternate" hreflang="da-DK" href="https://scoring.dance/daDK/"/>
+<link rel="alternate" hreflang="de-DE" href="https://scoring.dance/deDE/"/>
+<link rel="alternate" hreflang="et-EE" href="https://scoring.dance/etEE/"/>
+<link rel="alternate" hreflang="en-CA" href="https://scoring.dance/enCA/"/>
+<link rel="alternate" hreflang="es-ES" href="https://scoring.dance/esES/"/>
+<link rel="alternate" hreflang="fr-CA" href="https://scoring.dance/frCA/"/>
+<link rel="alternate" hreflang="fr-FR" href="https://scoring.dance/frFR/"/>
+<link rel="alternate" hreflang="ga-IE" href="https://scoring.dance/gaIE/"/>
+<link rel="alternate" hreflang="it-IT" href="https://scoring.dance/itIT/"/>
+<link rel="alternate" hreflang="la-VA" href="https://scoring.dance/laVA/"/>
+<link rel="alternate" hreflang="lv-LV" href="https://scoring.dance/lvLV/"/>
+<link rel="alternate" hreflang="lb-LU" href="https://scoring.dance/lbLU/"/>
+<link rel="alternate" hreflang="hu-HU" href="https://scoring.dance/huHU/"/>
+<link rel="alternate" hreflang="nl-NL" href="https://scoring.dance/nlNL/"/>
+<link rel="alternate" hreflang="no-NO" href="https://scoring.dance/noNO/"/>
+<link rel="alternate" hreflang="pl-PL" href="https://scoring.dance/plPL/"/>
+<link rel="alternate" hreflang="pt-BR" href="https://scoring.dance/ptBR/"/>
+<link rel="alternate" hreflang="pt-PT" href="https://scoring.dance/ptPT/"/>
+<link rel="alternate" hreflang="ru-RU" href="https://scoring.dance/ruRU/"/>
+<link rel="alternate" hreflang="ro-RO" href="https://scoring.dance/roRO/"/>
+<link rel="alternate" hreflang="rm-CH" href="https://scoring.dance/rmCH/"/>
+<link rel="alternate" hreflang="de-CH" href="https://scoring.dance/deCH/"/>
+<link rel="alternate" hreflang="sq-AL" href="https://scoring.dance/sqAL/"/>
+<link rel="alternate" hreflang="sk-SK" href="https://scoring.dance/skSK/"/>
+<link rel="alternate" hreflang="sl-SI" href="https://scoring.dance/slSI/"/>
+<link rel="alternate" hreflang="fi-FI" href="https://scoring.dance/fiFI/"/>
+<link rel="alternate" hreflang="sv-SE" href="https://scoring.dance/svSE/"/>
+<link rel="alternate" hreflang="vi-VN" href="https://scoring.dance/viVN/"/>
+<link rel="alternate" hreflang="tr-TR" href="https://scoring.dance/trTR/"/>
+<link rel="alternate" hreflang="de-AT" href="https://scoring.dance/deAT/"/>
+<link rel="alternate" hreflang="el-GR" href="https://scoring.dance/elGR/"/>
+<link rel="alternate" hreflang="sr-RS" href="https://scoring.dance/srRS/"/>
+<link rel="alternate" hreflang="uk-UA" href="https://scoring.dance/ukUA/"/>
+<link rel="alternate" hreflang="he-IL" href="https://scoring.dance/heIL/"/>
+<link rel="alternate" hreflang="ar-SA" href="https://scoring.dance/arSA/"/>
+<link rel="alternate" hreflang="ar-IL" href="https://scoring.dance/arIL/"/>
+<link rel="alternate" hreflang="hi-IN" href="https://scoring.dance/hiIN/"/>
+<link rel="alternate" hreflang="bn-BD" href="https://scoring.dance/bnBD/"/>
+<link rel="alternate" hreflang="th-TH" href="https://scoring.dance/thTH/"/>
+<link rel="alternate" hreflang="ka-GE" href="https://scoring.dance/kaGE/"/>
+<link rel="alternate" hreflang="am-ET" href="https://scoring.dance/amET/"/>
+<link rel="alternate" hreflang="zh-CN" href="https://scoring.dance/zhCN/"/>
+<link rel="alternate" hreflang="ja-JP" href="https://scoring.dance/jaJP/"/>
+<link rel="alternate" hreflang="ko-KR" href="https://scoring.dance/koKR/"/>
+<link rel="alternate" hreflang="x-default" href="https://scoring.dance/"/>
+  <meta name="google-site-verification" content="-8v-Otv_q3ZFkRCSOWkZVwspbNnrrLkRArNf-7CZ0cE" />
+  </head>
+
+  <body>
+    <section class="d-none">
+      <h1>scoring.dance - Dance Competition Scoring</h1>
+      <p>Get all competition information and competition results at scoring.dance. For all dances like West Coast Swing, Salsa, Bachata, Zouk and Ballroom.</p>
+    </section>
+
+    <nav class="navbar navbar-expand-md navbar-dark fi2xed-top bg-primary sticky-md-first">
+    <a class="navbar-brand" href="/enUS/">scoring.dance</a>      
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarsExampleDefault" aria-controls="navbarsExampleDefault" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+
+      <div class="collapse navbar-collapse" id="navbarsExampleDefault">
+        <ul class="navbar-nav">
+                    <li class="nav-item active">
+            <a class="nav-link" href="/enUS/"><i class="fa-solid fa-home-alt"></i>Home</a>
+          </li>
+          <li class="nav-item ">
+            <a class="nav-link" href="/enUS/recent"><i class="fal fa-trophy"></i> Results</a>
+          </li>
+          <li class="nav-item ">
+            <a class="nav-link" href="/enUS/scorer"><i class="fal fa-abacus"></i> Scorekeeper</a>
+          </li>
+          <li class="nav-item ">
+            <a class="nav-link" href="/enUS/comppass"><i class="fal fa-id-card"></i> CompPass</a>
+          </li>
+          <li class="nav-item ">
+            <a class="nav-link" href="/enUS/wsdc/worldranking.html"><i class="fal fa-ranking-star"></i> Ranking</a>
+          </li>
+          
+		  
+		  		  
+        </ul>
+        <ul class="navbar-nav mr-auto">
+        </ul>
+		<ul class="navbar-nav">
+			<li class="nav-item dropdown">
+            <a id="nav_languages" class="nav-link dropdown-toggle" data-toggle="dropdown" data-target="DropdownLanguage" aria-haspopup="true" aria-expanded="false"><img src="https://library.goo1.de/flags/USA.png" style="height: 1rem;"/><span class="d-inline d-md-none ml-1">Language English</span></a>
+            <div id="DropdownLanguage" class="dropdown-menu" aria-labelledby="dropdown01">
+              <a class="dropdown-item text-left active" href="/enUS/"><img src="https://library.goo1.de/flags/USA.png" style="height: 1rem;"/> English</a><a class="dropdown-item text-left " href="/csCZ/"><img src="https://library.goo1.de/flags/CZE.png" style="height: 1rem;"/> Čeština</a><a class="dropdown-item text-left " href="/daDK/"><img src="https://library.goo1.de/flags/DNK.png" style="height: 1rem;"/> Dansk</a><a class="dropdown-item text-left " href="/deDE/"><img src="https://library.goo1.de/flags/DEU.png" style="height: 1rem;"/> Deutsch</a><a class="dropdown-item text-left " href="/esES/"><img src="https://library.goo1.de/flags/ESP.png" style="height: 1rem;"/> Español</a><a class="dropdown-item text-left " href="/frFR/"><img src="https://library.goo1.de/flags/FRA.png" style="height: 1rem;"/> Français</a><a class="dropdown-item text-left " href="/itIT/"><img src="https://library.goo1.de/flags/ITA.png" style="height: 1rem;"/> Italiano</a><a class="dropdown-item text-left " href="/lvLV/"><img src="https://library.goo1.de/flags/LVA.png" style="height: 1rem;"/> Latviešu</a><a class="dropdown-item text-left " href="/lbLU/"><img src="https://library.goo1.de/flags/LUX.png" style="height: 1rem;"/> Lëtzebuergesch</a><a class="dropdown-item text-left " href="/huHU/"><img src="https://library.goo1.de/flags/HUN.png" style="height: 1rem;"/> Magyar</a><a class="dropdown-item text-left " href="/nlNL/"><img src="https://library.goo1.de/flags/NLD.png" style="height: 1rem;"/> Nederlands</a><a class="dropdown-item text-left " href="/noNO/"><img src="https://library.goo1.de/flags/NOR.png" style="height: 1rem;"/> Norsk</a><a class="dropdown-item text-left " href="/plPL/"><img src="https://library.goo1.de/flags/POL.png" style="height: 1rem;"/> Polski</a><a class="dropdown-item text-left " href="/ptPT/"><img src="https://library.goo1.de/flags/PRT.png" style="height: 1rem;"/> Português</a><a class="dropdown-item text-left " href="/ruRU/"><img src="https://library.goo1.de/flags/RUS.png" style="height: 1rem;"/> Pусский</a><a class="dropdown-item text-left " href="/roRO/"><img src="https://library.goo1.de/flags/ROU.png" style="height: 1rem;"/> Română</a><a class="dropdown-item text-left " href="/skSK/"><img src="https://library.goo1.de/flags/SVK.png" style="height: 1rem;"/> Slovenčina</a><a class="dropdown-item text-left " href="/slSI/"><img src="https://library.goo1.de/flags/SVN.png" style="height: 1rem;"/> Slovenščina</a><a class="dropdown-item text-left " href="/fiFI/"><img src="https://library.goo1.de/flags/FIN.png" style="height: 1rem;"/> Suomi</a><a class="dropdown-item text-left " href="/svSE/"><img src="https://library.goo1.de/flags/SWE.png" style="height: 1rem;"/> Svenska</a><a class="dropdown-item text-left " href="/ukUA/"><img src="https://library.goo1.de/flags/UKR.png" style="height: 1rem;"/> Українська</a><a class="dropdown-item text-left " href="/heIL/"><img src="https://library.goo1.de/flags/ISR.png" style="height: 1rem;"/> ישראל</a><a class="dropdown-item text-left " href="/arSA/"><img src="https://library.goo1.de/flags/SAU.png" style="height: 1rem;"/> العربية</a><a class="dropdown-item text-left " href="/zhCN/"><img src="https://library.goo1.de/flags/CHN.png" style="height: 1rem;"/> 中文</a><a class="dropdown-item text-left " href="/jaJP/"><img src="https://library.goo1.de/flags/JPN.png" style="height: 1rem;"/> 日本語</a><a class="dropdown-item text-left " href="/koKR/"><img src="https://library.goo1.de/flags/KOR.png" style="height: 1rem;"/> 한국어</a>            </div>
+          </li>
+		</ul>
+        <form method="GET" action="/enUS/search" target="_blank" class="form-inline my-2 my-lg-0" rel="nofollow">
+          <span class="input-group w-100 w-md-auto">
+            <input class="form-control" type="text" name="q" placeholder="search" aria-label="search">
+            <div class="input-group-append">
+              <button class="btn btn-outline-success my-0" type="submit">search</button>
+            </div>
+            </span>
+        </form>
+        <button class="darkmode-toggle" type="button" onclick="toggleDarkMode()" title="System">
+          <i class="fa-solid fa-circle-half-stroke"></i>
+        </button>
+        		
+      </div>
+    </nav>
+
+    <main id="main" role="main" class="pb-4">
+<style>/* Modern CSS Variables */
+:root {
+  --primary: #00897B;
+  --primary-dark: #004D40;
+  --primary-light: #80CBC4;
+  --accent: #ec4899;
+  --accent-dark: #db2777;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --text-primary: #1f2937;
+  --text-secondary: #6b7280;
+  --text-light: #9ca3af;
+  --bg-primary: #ffffff;
+  --bg-secondary: #f9fafb;
+  --bg-tertiary: #f3f4f6;
+  --border: #e5e7eb;
+  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  --gradient-primary: linear-gradient(135deg, #00897B 0%, #004D40 100%);
+  --gradient-secondary: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  --gradient-accent: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+}
+
+/* Typography - Using distinctive fonts */
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap');
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  color: var(--text-primary);
+  background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+  min-height: 100vh;
+}
+
+/* Hero Section with modern gradient */
+.hero-section {
+  background: linear-gradient(135deg, #aaa 0%, #888 100%);
+  color: white;
+  padding: 4rem 0 3rem;
+  margin-bottom: 2rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-section::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    radial-gradient(circle at 20% 50%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(255, 255, 255, 0.1) 0%, transparent 50%);
+  pointer-events: none;
+}
+
+.hero-content {
+  position: relative;
+  z-index: 1;
+}
+
+.hero-title {
+  font-family: 'Sora', sans-serif;
+  font-size: 3.5rem;
+  font-weight: 800;
+  margin-bottom: 0.5rem;
+  text-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  animation: fadeInUp 0.8s ease-out;
+}
+
+.hero-subtitle {
+  font-size: 1.25rem;
+  opacity: 0.9;
+  animation: fadeInUp 0.8s ease-out 0.2s backwards;
+}
+
+/* Ad Placeholders */
+.ad-banner-top {
+  background: linear-gradient(135deg, #667eea20 0%, #764ba220 100%);
+  border: 2px dashed var(--border);
+  border-radius: 12px;
+  padding: 2rem;
+  text-align: center;
+  margin-bottom: 2rem;
+  min-height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Sora', sans-serif;
+  color: var(--text-secondary);
+  transition: all 0.3s ease;
+}
+
+.ad-banner-top:hover {
+  border-color: var(--primary);
+  background: linear-gradient(135deg, #667eea30 0%, #764ba230 100%);
+}
+
+.ad-skyscraper {
+  background: linear-gradient(135deg, #f093fb20 0%, #f5576c20 100%);
+  border: 2px dashed var(--border);
+  border-radius: 12px;
+  padding: 1rem;
+  text-align: center;
+  min-height: 600px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  writing-mode: vertical-rl;
+  font-family: 'Sora', sans-serif;
+  color: var(--text-secondary);
+  position: sticky;
+  top: 2rem;
+  transition: all 0.3s ease;
+}
+
+.ad-skyscraper:hover {
+  border-color: var(--accent);
+  background: linear-gradient(135deg, #f093fb30 0%, #f5576c30 100%);
+}
+
+/* Filter Section */
+.filter-section {
+  background: var(--bg-primary);
+  padding: 1.5rem;
+  border-radius: 16px;
+  box-shadow: var(--shadow-md);
+  margin-bottom: 2rem;
+  animation: fadeInUp 0.8s ease-out 0.4s backwards;
+}
+
+.filter-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.filter-pill {
+  padding: 0.5rem 1.25rem;
+  border-radius: 50px;
+  border: 2px solid var(--border);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 0.95rem;
+  font-family: 'Sora', sans-serif;
+}
+
+.filter-pill:hover {
+  border-color: var(--primary);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.filter-pill.active {
+  background: var(--gradient-primary);
+  color: white;
+  border-color: transparent;
+  box-shadow: var(--shadow-md);
+}
+
+/* Timeframe Tabs (upcoming / past events) */
+.timeframe-tabs {
+  display: flex;
+  gap: 0.25rem;
+  padding: 0.25rem;
+  background: var(--bg-tertiary);
+  border-radius: 12px;
+}
+
+.timeframe-tab {
+  flex: 1 1 0;
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.65rem 1rem;
+  border-radius: 9px;
+  font-family: 'Sora', sans-serif;
+  font-weight: 600;
+  font-size: 0.95rem;
+  line-height: 1.2;
+  text-align: center;
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition: all 0.25s ease;
+}
+
+.timeframe-tab:hover {
+  color: var(--primary-dark);
+  text-decoration: none;
+}
+
+.timeframe-tab.active,
+.timeframe-tab.active:hover {
+  background: var(--gradient-primary);
+  color: #fff;
+  box-shadow: var(--shadow-sm);
+}
+
+@media (max-width: 480px) {
+  .timeframe-tab {
+    font-size: 0.85rem;
+    padding: 0.6rem 0.5rem;
+  }
+}
+
+.search-box {
+  position: relative;
+  margin-top: 1rem;
+}
+
+.search-box input {
+  width: 100%;
+  padding: 0.875rem 1.25rem 0.875rem 3rem;
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  background: var(--bg-primary);
+}
+
+.search-box input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+}
+
+.search-box i {
+  position: absolute;
+  left: 1.25rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-secondary);
+}
+
+/* Event Grid */
+.events-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 3rem;
+}
+
+/* Event Card - Modern Design */
+.event-card {
+  background: var(--bg-primary);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: var(--shadow-md);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  animation: fadeInUp 0.6s ease-out backwards;
+}
+
+.event-card:hover {
+  transform: translateY(-8px);
+  box-shadow: var(--shadow-xl);
+}
+
+.event-card-image {
+  position: relative;
+  height: 180px;
+  overflow: hidden;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.event-card-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.4s ease;
+}
+
+.event-card:hover .event-card-image img {
+  transform: scale(1.08);
+}
+
+.event-badge {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  padding: 0.375rem 0.875rem;
+  border-radius: 50px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  backdrop-filter: blur(10px);
+  font-family: 'Sora', sans-serif;
+  z-index: 2;
+  box-shadow: var(--shadow-md);
+}
+
+.event-badge.live {
+  background: rgba(239, 68, 68, 0.9);
+  color: white;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.event-badge.soon {
+  background: rgba(245, 158, 11, 0.9);
+  color: white;
+}
+
+.event-badge.registration {
+  background: rgba(16, 185, 129, 0.9);
+  color: white;
+}
+
+.event-card-header {
+  padding: 1.25rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.event-card-title {
+  font-family: 'Sora', sans-serif;
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0;
+  color: var(--text-primary);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.4;
+}
+
+.event-card-body {
+  padding: 1.25rem;
+  flex-grow: 1;
+}
+
+.event-info-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+}
+
+.event-info-item i {
+  color: var(--primary);
+  width: 20px;
+  text-align: center;
+}
+
+.event-info-item img {
+  width: 20px;
+  height: auto;
+  border-radius: 2px;
+}
+
+.event-card-footer {
+  padding: 1rem 1.25rem;
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.event-btn {
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.875rem;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border: none;
+  cursor: pointer;
+  font-family: 'Sora', sans-serif;
+}
+
+.event-btn:hover { text-decoration: none;}
+
+.event-btn span { text-decoration: none; }
+
+.event-btn-primary {
+  background: var(--gradient-primary);
+  color: white;
+  box-shadow: var(--shadow-sm);
+}
+
+.event-btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  color: white;
+}
+
+.event-btn-success {
+  background: var(--success);
+  color: white;
+  box-shadow: var(--shadow-sm);
+}
+
+.event-btn-success:hover {
+  background: #059669;
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  color: white;
+}
+
+.event-btn-secondary {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  border: 2px solid var(--border);
+}
+
+.event-btn-secondary:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  transform: translateY(-2px);
+}
+
+.event-btn-warning {
+  background: var(--warning);
+  color: white;
+}
+
+.event-btn-warning:hover {
+  background: #d97706;
+  transform: translateY(-2px);
+  color: white;
+}
+
+.event-btn-news {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.event-btn-news:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  color: white;
+}
+
+/* Cancelled Event Styling */
+.event-card.cancelled {
+  opacity: 0.7;
+}
+
+.event-card.cancelled .event-card-title {
+  text-decoration: line-through;
+  color: var(--danger);
+}
+
+.event-card.cancelled .event-info-item {
+  text-decoration: line-through;
+  color: var(--text-light);
+}
+
+.event-card.cancelled-corona {
+  border: 2px solid var(--success);
+  background: rgba(16, 185, 129, 0.05);
+}
+
+.corona-icon {
+  position: absolute;
+  right: 0.5rem;
+  top: 0.5rem;
+  width: 2rem;
+  z-index: 3;
+}
+
+/* Empty State */
+.empty-state {
+  text-align: center;
+  padding: 4rem 2rem;
+  animation: fadeIn 0.6s ease-out;
+}
+
+.empty-state-icon {
+  font-size: 4rem;
+  color: var(--text-light);
+  margin-bottom: 1rem;
+}
+
+.empty-state-title {
+  font-family: 'Sora', sans-serif;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+}
+
+.empty-state-text {
+  color: var(--text-secondary);
+  font-size: 1.1rem;
+}
+
+/* v-cloak: hide Vue template syntax until mounted */
+[v-cloak] { display: none !important; }
+
+/* Skeleton Loader */
+.skeleton-loader .events-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+}
+@media (max-width: 992px) {
+  .skeleton-loader .events-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 768px) {
+  .skeleton-loader .events-grid { grid-template-columns: 1fr; }
+}
+.skeleton-card {
+  background: var(--card-bg, #fff);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 2px 15px rgba(0,0,0,0.08);
+}
+.skeleton-card-image {
+  height: 180px;
+}
+.skeleton-card-body {
+  padding: 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+.skeleton-line {
+  height: 14px;
+  border-radius: 6px;
+}
+.skeleton-line.title {
+  height: 20px;
+  width: 75%;
+}
+.skeleton-line.short {
+  width: 55%;
+}
+.skeleton-line.btn {
+  height: 34px;
+  width: 45%;
+  margin-top: 0.5rem;
+  border-radius: 20px;
+}
+
+/* Loading State */
+.skeleton {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: loading 1.5s ease-in-out infinite;
+  border-radius: 8px;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+@keyframes loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Responsive */
+@media (max-width: 1400px) {
+  .ad-skyscraper {
+    display: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .hero-title {
+    font-size: 2.5rem;
+  }
+  
+  .events-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .filter-pills {
+    justify-content: center;
+  }
+  
+  .ad-banner-top {
+    min-height: 80px;
+    padding: 1rem;
+    font-size: 0.9rem;
+  }
+}
+
+/* CO2 Badge */
+.co2-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--success);
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+/* Stagger animations for event cards */
+.event-card:nth-child(1) { animation-delay: 0.1s; }
+.event-card:nth-child(2) { animation-delay: 0.15s; }
+.event-card:nth-child(3) { animation-delay: 0.2s; }
+.event-card:nth-child(4) { animation-delay: 0.25s; }
+.event-card:nth-child(5) { animation-delay: 0.3s; }
+.event-card:nth-child(6) { animation-delay: 0.35s; }
+.event-card:nth-child(7) { animation-delay: 0.4s; }
+.event-card:nth-child(8) { animation-delay: 0.45s; }
+.event-card:nth-child(9) { animation-delay: 0.5s; }
+
+/* Smooth scroll */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Filter row (search + year select) */
+.filter-row {
+  display: flex;
+  gap: 0.75rem;
+  align-items: stretch;
+  margin-top: 1rem;
+  flex-wrap: wrap;
+}
+
+.filter-row .search-box {
+  flex: 1 1 240px;
+  margin-top: 0;
+}
+
+.year-select {
+  flex: 0 0 auto;
+  padding: 0.875rem 1.25rem;
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  font-size: 1rem;
+  font-family: 'Sora', sans-serif;
+  font-weight: 600;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.year-select:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 4px rgba(0, 137, 123, 0.15);
+}
+</style>
+<!-- Hero Section -->
+<div class="hero-section">
+  <div class="container">
+    <div class="hero-content text-center">
+      <h1 class="hero-title">scoring.dance              </h1>
+    </div>
+  </div>
+</div>
+
+<!-- Skeleton Loader (visible until Vue mounts) -->
+<div id="skeleton-loader" class="skeleton-loader">
+  <div class="container-fluid">
+    <div class="row">
+      <div class="col-xl-2 d-none d-xl-block"></div>
+      <div class="col-xl-8">
+        <div class="container">
+          <div class="timeframe-tabs">
+  <a href="/enUS/" class="timeframe-tab active">
+    <i class="far fa-calendar-alt"></i> Upcoming Events  </a>
+  <a href="/enUS/recent" class="timeframe-tab">
+    <i class="far fa-history"></i> Past Events  </a>
+</div>
+          <div class="search-box">
+            <i class="fas fa-search"></i>
+            <input type="text" disabled placeholder="Search events by name or city...">
+          </div>
+          <div class="events-grid">
+                        <div class="skeleton-card">
+              <div class="skeleton-card-image skeleton"></div>
+              <div class="skeleton-card-body">
+                <div class="skeleton-line title skeleton"></div>
+                <div class="skeleton-line skeleton" style="width:65%"></div>
+                <div class="skeleton-line short skeleton"></div>
+                <div class="skeleton-line btn skeleton"></div>
+              </div>
+            </div>
+                        <div class="skeleton-card">
+              <div class="skeleton-card-image skeleton"></div>
+              <div class="skeleton-card-body">
+                <div class="skeleton-line title skeleton"></div>
+                <div class="skeleton-line skeleton" style="width:65%"></div>
+                <div class="skeleton-line short skeleton"></div>
+                <div class="skeleton-line btn skeleton"></div>
+              </div>
+            </div>
+                        <div class="skeleton-card">
+              <div class="skeleton-card-image skeleton"></div>
+              <div class="skeleton-card-body">
+                <div class="skeleton-line title skeleton"></div>
+                <div class="skeleton-line skeleton" style="width:65%"></div>
+                <div class="skeleton-line short skeleton"></div>
+                <div class="skeleton-line btn skeleton"></div>
+              </div>
+            </div>
+                        <div class="skeleton-card">
+              <div class="skeleton-card-image skeleton"></div>
+              <div class="skeleton-card-body">
+                <div class="skeleton-line title skeleton"></div>
+                <div class="skeleton-line skeleton" style="width:65%"></div>
+                <div class="skeleton-line short skeleton"></div>
+                <div class="skeleton-line btn skeleton"></div>
+              </div>
+            </div>
+                        <div class="skeleton-card">
+              <div class="skeleton-card-image skeleton"></div>
+              <div class="skeleton-card-body">
+                <div class="skeleton-line title skeleton"></div>
+                <div class="skeleton-line skeleton" style="width:65%"></div>
+                <div class="skeleton-line short skeleton"></div>
+                <div class="skeleton-line btn skeleton"></div>
+              </div>
+            </div>
+                        <div class="skeleton-card">
+              <div class="skeleton-card-image skeleton"></div>
+              <div class="skeleton-card-body">
+                <div class="skeleton-line title skeleton"></div>
+                <div class="skeleton-line skeleton" style="width:65%"></div>
+                <div class="skeleton-line short skeleton"></div>
+                <div class="skeleton-line btn skeleton"></div>
+              </div>
+            </div>
+                      </div>
+        </div>
+      </div>
+      <div class="col-xl-2 d-none d-xl-block"></div>
+    </div>
+  </div>
+</div>
+
+<div id="app" v-cloak>
+  <div class="container-fluid">
+    <div class="row">
+      <!-- Left Skyscraper Ad (Desktop only) -->
+      <div class="col-xl-2 d-none d-xl-block d-none">
+        <div class="ad-skyscraper" style=" display: none !important;">
+          <div>📢 Advertisement Space 160x600</div>
+        </div>
+      </div>
+
+      <!-- Main Content -->
+      <div class="col-xl-8">
+        <div class="container">
+          <!-- Top Banner Ad -->
+          <div class="ad-banner-top d-none" style="display: none !important;">
+            <div>
+              <i class="fas fa-ad fa-2x mb-2"></i>
+              <div><strong>Advertisement Space</strong></div>
+              <div class="small">728x90 Leaderboard</div>
+            </div>
+          </div>
+
+          <!-- Filter Section -->
+          <div class="filter-section">
+            <!-- Upcoming / Past switch -->
+            <div class="timeframe-tabs">
+  <a href="/enUS/" class="timeframe-tab active">
+    <i class="far fa-calendar-alt"></i> Upcoming Events  </a>
+  <a href="/enUS/recent" class="timeframe-tab">
+    <i class="far fa-history"></i> Past Events  </a>
+</div>
+            <div class="filter-pills" style="display: none;">
+              <button 
+                class="filter-pill" 
+                :class="{ active: activeFilter === 'all' }"
+                @click="setFilter('all')"
+              >
+                All Dances              </button>
+              <button 
+                class="filter-pill" 
+                :class="{ active: activeFilter === '1' }"
+                @click="setFilter('1')"
+              >
+                West Coast Swing
+              </button>
+              <button 
+                class="filter-pill" 
+                :class="{ active: activeFilter === '4' }"
+                @click="setFilter('4')"
+              >
+                Bachata
+              </button>
+              <button 
+                class="filter-pill" 
+                :class="{ active: activeFilter === '3' }"
+                @click="setFilter('3')"
+              >
+                Zouk
+              </button>
+              <button 
+                class="filter-pill" 
+                :class="{ active: activeFilter === '5' }"
+                @click="setFilter('5')"
+              >
+                Country
+              </button>
+            </div>
+            
+            <div class="search-box">
+              <i class="fas fa-search"></i>
+              <input 
+                type="text" 
+                v-model="searchQuery" 
+                placeholder="Search events by name or city..."
+              >
+            </div>
+          </div>
+
+          <!-- Events Grid -->
+          <div class="events-grid">
+            <div 
+              v-for="event in filteredEvents" 
+              :key="event.id"
+              class="event-card"
+              :class="{ 
+                'cancelled': event.is_cancelled, 
+                'cancelled-corona': event.is_cancelled_corona 
+              }"
+            >
+              <!-- Corona Icon -->
+              <img 
+                v-if="event.is_cancelled_corona" 
+                src="/skins/grey/images/icon/coronav_icon_50x50.png" 
+                class="corona-icon"
+                alt="Corona cancelled"
+              >
+              
+              <!-- Event Image -->
+              <div class="event-card-image">
+                <picture v-if="event.img_header_md5">
+                  <source 
+                    :data-srcset="`/images/header/${event.img_header_md5}.webp?width=350`" 
+                    type="image/webp"
+                  >
+                  <img 
+                    :src="`/images/header/${event.img_header_md5}.jpg?width=350`" 
+                    class="lazyload"
+                    :alt="event.name"
+                  >
+                </picture>
+                
+                <!-- Event Badge -->
+                <div v-if="event.badge" class="event-badge" :class="event.badge.type">
+                  {{ event.badge.text }}
+                </div>
+              </div>
+
+              <!-- Card Header -->
+              <div class="event-card-header">
+                <h2 class="event-card-title" :title="event.name">{{ event.name }}</h2>
+              </div>
+
+              <!-- Card Body -->
+              <div class="event-card-body">
+                <!-- Date -->
+                <div class="event-info-item">
+                  <i class="far fa-calendar-alt"></i>
+                  <span v-html="event.date_formatted"></span>
+                </div>
+
+                <!-- Location -->
+                <div v-if="event.city_name" class="event-info-item">
+                  <i class="far fa-map-marker-alt"></i>
+                  <img 
+                    v-if="event.country_flag" 
+                    :src="event.country_flag" 
+                    :alt="event.country_name"
+                    :title="event.country_name"
+                  >
+                  <span>{{ event.city_name }} ({{ event.country_name }})</span>
+                </div>
+
+                <!-- CO2 Neutral -->
+                <div v-if="event.is_co2_neutral" class="event-info-item co2-badge">
+                  <i class="fa-duotone fa-leaf"></i>
+                  <span>CO² neutral</span>
+                </div>
+              </div>
+
+              <!-- Card Footer with Buttons -->
+              <div class="event-card-footer">
+                <!-- Registration Button -->
+                <a 
+                  v-if="event.btn_register" 
+                  :href="event.btn_register.url" 
+                  class="event-btn event-btn-primary"
+                  :target="event.btn_register.external ? '_blank' : ''"
+                  :rel="event.btn_register.external ? 'nofollow' : ''"
+                >
+                  <img 
+                    v-if="event.btn_register.icon" 
+                    :src="event.btn_register.icon" 
+                    style="height: 1rem;"
+                  >
+                  <span v-html="event.btn_register.text"></span>
+                </a>
+
+                <!-- Wall/Lists Button -->
+                <a 
+                  v-if="event.btn_wall" 
+                  :href="event.btn_wall.url" 
+                  class="event-btn event-btn-warning"
+                >
+                  <span v-html="event.btn_wall.text"></span
+                </a>
+
+                <!-- Mock Judging Button -->
+                <a 
+                  v-if="event.btn_mock" 
+                  :href="event.btn_mock.url" 
+                  class="event-btn event-btn-secondary"
+                >
+                  <i class="fa-solid fa-graduation-cap"></i>
+                  <span v-html="event.btn_mock.text"></span
+                </a>
+
+                <!-- Results Button -->
+                <a 
+                  v-if="event.btn_results" 
+                  :href="event.btn_results.url" 
+                  class="event-btn event-btn-success"
+                >
+                  <span v-html="event.btn_results.text"></span>
+                </a>
+
+                <!-- Tickets Button -->
+                <a 
+                  v-if="event.btn_tickets" 
+                  :href="event.btn_tickets.url" 
+                  class="event-btn event-btn-secondary"
+                  target="_blank"
+                  rel="nofollow"
+                >
+                  <i class="far fa-ticket-alt"></i>
+                  <span v-html="event.btn_tickets.text"></span>
+                </a>
+
+                <!-- Facebook Button -->
+                <a 
+                  v-if="event.btn_facebook" 
+                  :href="event.btn_facebook.url" 
+                  class="event-btn event-btn-secondary"
+                  target="_blank"
+                  rel="nofollow"
+                  style="background: #3b5998; color: white; border: none;"
+                >
+                  <i class="fa-brands fa-facebook"></i>
+                </a>
+
+                <!-- News Button -->
+                <a 
+                  v-if="event.btn_news" 
+                  :href="event.btn_news.url" 
+                  class="event-btn event-btn-news"
+                >
+                  <i class="fal fa-newspaper"></i>
+                  {{ event.btn_news.text }}
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <!-- Empty State -->
+          <div v-if="filteredEvents.length === 0" class="empty-state">
+            <div class="empty-state-icon">
+              <i class="fas fa-search"></i>
+            </div>
+            <h3 class="empty-state-title">No events found</h3>
+            <p class="empty-state-text">Try adjusting your filters or search query</p>
+          </div>
+
+          <!-- Link to Recent Events -->
+          <div class="text-center mb-5">
+            <a href="/enUS/recent" class="event-btn event-btn-secondary" style="display: inline-flex;">
+              <i class="far fa-history"></i>
+              View Past Events            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Skyscraper Ad (Desktop only) -->
+      <div class="col-xl-2 d-none d-xl-block d-none" style=" display: none !important;">
+        <div class="ad-skyscraper">
+          <div>📢 Advertisement Space 160x600</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Vue 3 CDN -->
+<script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+<script src="/skins/grey/js/lazysizes.min.js" async=""></script>
+
+<script>
+const { createApp } = Vue;
+
+createApp({
+  data() {
+    return {
+      events: [],
+      activeFilter: 'all',
+      searchQuery: '',
+      weekdayNames: ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"],
+      translations: {
+        register: "register",
+        results: "Results",
+        lists: "Lists",
+        tickets: "Tickets",
+        news: "News",
+        mockjudging: "mockjudging",
+        live_now: "LIVE NOW",
+        starts_in_day: "starts in %d day",
+        registration_open: "REGISTRATION OPEN"      }
+    }
+  },
+  
+  computed: {
+    filteredEvents() {
+      let filtered = this.events;
+      
+      // Filter by dance type
+      if (this.activeFilter !== 'all') {
+        filtered = filtered.filter(event => {
+          if (this.activeFilter === '1') return event.is_wsdc;
+          if (this.activeFilter === '3') return event.is_bzdc;
+          if (this.activeFilter === '4') return event.is_bachatacouncil;
+          if (this.activeFilter === '5') return event.is_country;
+          return true;
+        });
+      }
+      
+      // Filter by search query
+      if (this.searchQuery.trim()) {
+        const query = this.searchQuery.toLowerCase();
+        filtered = filtered.filter(event => 
+          event.name.toLowerCase().includes(query) || 
+          (event.city_name && event.city_name.toLowerCase().includes(query)) ||
+          (event.country_name && event.country_name.toLowerCase().includes(query))
+        );
+      }
+      
+      return filtered;
+    }
+  },
+  
+  methods: {
+    setFilter(filter) {
+      this.activeFilter = filter;
+      // Update URL without reload
+      const url = new URL(window.location);
+      if (filter === 'all') {
+        url.searchParams.delete('type');
+      } else {
+        url.searchParams.set('type', filter);
+      }
+      window.history.pushState({}, '', url);
+    },
+    
+    formatDate(dateFrom, dateTo) {
+      const from = new Date(dateFrom);
+      const to = new Date(dateTo);
+      
+      // If same day
+      if (dateFrom.substring(0, 10) === dateTo.substring(0, 10)) {
+        return this.weekdayNames[from.getDay()] + ' ' + this.formatDateShort(from);
+      }
+      
+      return this.formatDateShort(from) + ' - ' + this.formatDateShort(to);
+    },
+    
+    formatDateShort(date) {
+      const day = String(date.getDate()).padStart(2, '0');
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const year = date.getFullYear();
+      return `${day}.${month}.${year}`;
+    },
+    
+    getEventBadge(event) {
+      const now = new Date();
+      const eventStart = new Date(event.dt_event_from);
+      const eventEnd = new Date(event.dt_event_to);
+      
+      // Live now
+      if (now >= eventStart && now <= eventEnd) {
+        return { type: 'live', text: this.translations.live_now };
+      }
+
+      // Starting soon (within 7 days)
+      const daysUntil = Math.ceil((eventStart - now) / (1000 * 60 * 60 * 24));
+      if (daysUntil > 0 && daysUntil <= 7) {
+        return { type: 'soon', text: this.translations.starts_in_day.replace('%d', daysUntil) };
+      }
+
+      // Registration open
+      if (event.dt_preregister_bis && now < new Date(event.dt_preregister_bis)) {
+        return { type: 'registration', text: this.translations.registration_open };
+      }
+      
+      return null;
+    },
+    
+    processEvents(rawEvents) {
+      const lang = "enUS";
+      
+      return rawEvents.map(event => {
+        const processed = { ...event };
+        
+        // Use server-side i18n formatted date (falls back to JS formatting if missing)
+        processed.date_formatted = event.date_formatted || this.formatDate(event.dt_event_from, event.dt_event_to);
+        
+        // Get badge
+        processed.badge = this.getEventBadge(event);
+        
+        // Check if cancelled
+        processed.is_cancelled = ['cancelled', 'cancelled_corona'].includes(event.event_status);
+        processed.is_cancelled_corona = event.event_status === 'cancelled_corona';
+        
+        // CO2 neutral for Germany/Austria
+        processed.is_co2_neutral = ['DEU', 'AUT'].includes(event.country);
+        
+        // Process buttons
+        const now = new Date();
+        const eventEnd = new Date(event.dt_event_to);
+        
+        if (!processed.is_cancelled) {
+          // Registration button
+          if (event.danceapp_register_event_id) {
+            processed.btn_register = {
+              url: `https://danceapp.net/events/${event.danceapp_register_event_id}/register`,
+              text: this.translations.register + ' &raquo;',
+              external: true,
+              icon: 'https://danceapp.net/favicon.png'
+            };
+          } else if (event.dt_preregister_bis && now < new Date(event.dt_preregister_bis)) {
+            processed.btn_register = {
+              url: `/${lang}/events/${event.id}/register`,
+              text: this.translations.register + ' &raquo;',
+              external: false
+            };
+          }
+          
+          // Wall/Lists button
+          if (new Date(event.dt_event_from) <= now && eventEnd >= now) {
+            processed.btn_wall = {
+              url: `/${lang}/events/${event.id}/wall`,
+              text: this.translations.lists + ' &raquo;'
+            };
+          }
+          
+          // Mock judging button
+          if (event.is_mockjudge_shownfront == 1 && now < eventEnd) {
+            processed.btn_mock = {
+              url: `/${lang}/events/${event.id}/mock`,
+              text: this.translations.mockjudging + ' &raquo;'
+            };
+          }
+          
+          // Tickets button
+          if (event.url_ticket) {
+            processed.btn_tickets = {
+              url: event.url_ticket,
+              text: this.translations.tickets + ' &raquo;'
+            };
+          }
+          
+          // Facebook button
+          if (event.facebook_event_id) {
+            processed.btn_facebook = {
+              url: `https://www.facebook.com/events/${event.facebook_event_id}/`
+            };
+          }
+        }
+        
+        // Results button (always show if published)
+        if (event.dt_publish && now >= new Date(event.dt_publish)) {
+          processed.btn_results = {
+            url: `/${lang}/events/${event.id}/results/`,
+            text: this.translations.results + ' &raquo;'
+          };
+        }
+        
+        // News button
+        if (event.has_news == 1) {
+          processed.btn_news = {
+            url: `/${lang}/events/${event.id}/news/`,
+            text: this.translations.news
+          };
+        }
+        
+        return processed;
+      });
+    }
+  },
+  
+  mounted() {
+    // Load events from PHP
+    this.events = this.processEvents([{"0":"438","id":"438","1":"Bavarian Open 2026","name":"Bavarian Open 2026","2":"2","festival_id":"2","3":"233","wsdc_event_id":"233","4":"1","event_type":"1","5":"5","calculation_model":"5","6":null,"slug":null,"7":"wsdc","dances":"wsdc","8":"1","is_wsdc":"1","9":"0","is_taf":"0","10":"0","is_bzdc":"0","11":"0","is_bachatacouncil":"0","12":"0","is_country":"0","13":"4496b35be74e3099195c8ef49ffc17e5","img_header_md5":"4496b35be74e3099195c8ef49ffc17e5","14":null,"facebook_event_id":null,"15":"2026-09-10 00:00:00","dt_event_from":"2026-09-10 00:00:00","16":"2026-09-14 23:59:00","dt_event_to":"2026-09-14 23:59:00","17":"München","city":"München","18":"1726","city_wikidata_id":"1726","19":"DEU","country":"DEU","20":"Europe\/Berlin","timezone":"Europe\/Berlin","21":"EUR","currency":"EUR","22":"","currency2":"","23":"","paypal_email":"","24":"0.000","paypal_fee_percent":"0.000","25":null,"stripe_api_private":null,"26":null,"stripe_connect_account_id":null,"27":"customer","stripe_connect_whotakesfees":"customer","28":"0","goo1_paypal_enabled":"0","29":null,"num_couples_floor":null,"30":"https:\/\/bavarianopen.com\/registration","url_ticket":"https:\/\/bavarianopen.com\/registration","31":null,"steprightsolution_sync_url":null,"32":null,"steprightsolution_sync_sleep":null,"33":null,"is_judge_hide_times":null,"34":"1","is_mockjudge_shownfront":"1","35":"0","allow_mockjudge_facebook":"0","36":"1","allow_mockjudge_patreon":"1","37":"1","allow_mockjudging_by_ed":"1","38":"1","allow_mockjudging_by_hj":"1","39":"0","is_mockjudge_free":"0","40":"1","bib2go_enabled":"1","41":null,"bib2go_resbib_start":null,"42":null,"bib2go_resbib_end":null,"43":"{\u0022wsdc\u0022:{\u0022fee\u0022:{\u0022paymethod\u0022:\u0022self\u0022,\u0022cc\u0022:{\u0022month\u0022:\u002201\u0022,\u0022year\u0022:\u00222026\u0022,\u0022type\u0022:\u0022\u0022,\u0022owner\u0022:\u0022\u0022},\u0022dd\u0022:{\u0022owner\u0022:\u0022\u0022,\u0022iban\u0022:\u0022\u0022,\u0022bic\u0022:\u0022\u0022}}},\u0022invoice\u0022:{\u0022company\u0022:\u0022German Swing Dance Club e.V.\u0022,\u0022firstname\u0022:\u0022Dirk\u0022,\u0022lastname\u0022:\u0022Haage\u0022,\u0022street\u0022:\u0022Ro\\u00dfmarkt 6\u0022,\u0022postalcode\u0022:\u002280331\u0022,\u0022city\u0022:\u0022M\\u00fcnchen\u0022,\u0022email\u0022:\u0022hello@germanswingdanceclub.org\u0022},\u0022registration\u0022:{\u0022ask_instagram_id\u0022:false,\u0022ask_picture\u0022:false},\u0022allowed_wifis\u0022:{\u0022judges\u0022:[]}}","data":"{\u0022wsdc\u0022:{\u0022fee\u0022:{\u0022paymethod\u0022:\u0022self\u0022,\u0022cc\u0022:{\u0022month\u0022:\u002201\u0022,\u0022year\u0022:\u00222026\u0022,\u0022type\u0022:\u0022\u0022,\u0022owner\u0022:\u0022\u0022},\u0022dd\u0022:{\u0022owner\u0022:\u0022\u0022,\u0022iban\u0022:\u0022\u0022,\u0022bic\u0022:\u0022\u0022}}},\u0022invoice\u0022:{\u0022company\u0022:\u0022German Swing Dance Club e.V.\u0022,\u0022firstname\u0022:\u0022Dirk\u0022,\u0022lastname\u0022:\u0022Haage\u0022,\u0022street\u0022:\u0022Ro\\u00dfmarkt 6\u0022,\u0022postalcode\u0022:\u002280331\u0022,\u0022city\u0022:\u0022M\\u00fcnchen\u0022,\u0022email\u0022:\u0022hello@germanswingdanceclub.org\u0022},\u0022registration\u0022:{\u0022ask_instagram_id\u0022:false,\u0022ask_picture\u0022:false},\u0022allowed_wifis\u0022:{\u0022judges\u0022:[]}}","44":"1970-01-01 00:00:00","dt_preregister_von":"1970-01-01 00:00:00","45":"2026-09-14 23:59:00","dt_preregister_bis":"2026-09-14 23:59:00","46":null,"dt_aktionspreis_von":null,"47":null,"dt_aktionspreis_bis":null,"48":null,"dt_awardresults":null,"49":null,"dt_publish":null,"50":"1","is_judgesschedule_visible":"1","51":"0","is_showschedule":"0","52":null,"is_emcee_awards_visible":null,"53":"0","is_closed":"0","54":null,"is_vaccinatedonly":null,"55":"scheduled","event_status":"scheduled","56":"1","visible":"1","57":"2026-09-08 20:19:02","stamp":"2026-09-08 20:19:02","58":null,"has_wall":null,"59":null,"danceapp_register_event_id":null,"60":null,"has_news":null,"country_name":"Germany","country_flag":"\/\/library.goo1.de\/flags\/DEU.png","city_name":"Munich","date_formatted":"09\/10 - 09\/14\/2026"},{"0":"441","id":"441","1":"WCSParty 2026","name":"WCSParty 2026","2":null,"festival_id":null,"3":"357","wsdc_event_id":"357","4":"1","event_type":"1","5":"5","calculation_model":"5","6":null,"slug":null,"7":"wsdc","dances":"wsdc","8":"1","is_wsdc":"1","9":"0","is_taf":"0","10":"0","is_bzdc":"0","11":"0","is_bachatacouncil":"0","12":"0","is_country":"0","13":"3efcdfb3f9bed9e3923547fa8f238813","img_header_md5":"3efcdfb3f9bed9e3923547fa8f238813","14":null,"facebook_event_id":null,"15":"2026-09-17 00:00:00","dt_event_from":"2026-09-17 00:00:00","16":"2026-09-20 23:59:00","dt_event_to":"2026-09-20 23:59:00","17":"Wels","city":"Wels","18":"1741","city_wikidata_id":"1741","19":"AUT","country":"AUT","20":"Europe\/Vienna","timezone":"Europe\/Vienna","21":"EUR","currency":"EUR","22":"","currency2":"","23":"roland@hamm.at","paypal_email":"roland@hamm.at","24":null,"paypal_fee_percent":null,"25":null,"stripe_api_private":null,"26":"acct_1S3lgNDm2gATOW3i","stripe_connect_account_id":"acct_1S3lgNDm2gATOW3i","27":"customer","stripe_connect_whotakesfees":"customer","28":"0","goo1_paypal_enabled":"0","29":"30","num_couples_floor":"30","30":"https:\/\/www.wcsparty.com\/tickets\/","url_ticket":"https:\/\/www.wcsparty.com\/tickets\/","31":null,"steprightsolution_sync_url":null,"32":null,"steprightsolution_sync_sleep":null,"33":null,"is_judge_hide_times":null,"34":null,"is_mockjudge_shownfront":null,"35":"0","allow_mockjudge_facebook":"0","36":"1","allow_mockjudge_patreon":"1","37":"1","allow_mockjudging_by_ed":"1","38":"0","allow_mockjudging_by_hj":"0","39":"0","is_mockjudge_free":"0","40":"1","bib2go_enabled":"1","41":null,"bib2go_resbib_start":null,"42":null,"bib2go_resbib_end":null,"43":"{\u0022wsdc\u0022:{\u0022fee\u0022:{\u0022paymethod\u0022:\u0022auto\u0022,\u0022cc\u0022:{\u0022month\u0022:\u002201\u0022,\u0022year\u0022:\u00222026\u0022,\u0022type\u0022:\u0022\u0022,\u0022owner\u0022:\u0022\u0022},\u0022dd\u0022:{\u0022owner\u0022:\u0022\u0022,\u0022iban\u0022:\u0022\u0022,\u0022bic\u0022:\u0022\u0022}}},\u0022invoice\u0022:{\u0022firstname\u0022:\u0022Roland\u0022,\u0022lastname\u0022:\u0022Hamm\u0022,\u0022street\u0022:\u0022Hofstattgasse 4\u0022,\u0022postalcode\u0022:\u00223400\u0022,\u0022city\u0022:\u0022Klosterneuburg\u0022,\u0022email\u0022:\u0022roland@hamm.at\u0022,\u0022company\u0022:\u0022Apire GmbH\u0022,\u0022vatid\u0022:\u0022ATU76706959\u0022,\u0022iban\u0022:\u0022roland@hamm.at\u0022},\u0022num\u0022:{\u0022maxdanceronfloor\u0022:30},\u0022registration\u0022:{\u0022ask_instagram_id\u0022:false,\u0022ask_picture\u0022:false},\u0022allowed_wifis\u0022:{\u0022judges\u0022:[]}}","data":"{\u0022wsdc\u0022:{\u0022fee\u0022:{\u0022paymethod\u0022:\u0022auto\u0022,\u0022cc\u0022:{\u0022month\u0022:\u002201\u0022,\u0022year\u0022:\u00222026\u0022,\u0022type\u0022:\u0022\u0022,\u0022owner\u0022:\u0022\u0022},\u0022dd\u0022:{\u0022owner\u0022:\u0022\u0022,\u0022iban\u0022:\u0022\u0022,\u0022bic\u0022:\u0022\u0022}}},\u0022invoice\u0022:{\u0022firstname\u0022:\u0022Roland\u0022,\u0022lastname\u0022:\u0022Hamm\u0022,\u0022street\u0022:\u0022Hofstattgasse 4\u0022,\u0022postalcode\u0022:\u00223400\u0022,\u0022city\u0022:\u0022Klosterneuburg\u0022,\u0022email\u0022:\u0022roland@hamm.at\u0022,\u0022company\u0022:\u0022Apire GmbH\u0022,\u0022vatid\u0022:\u0022ATU76706959\u0022,\u0022iban\u0022:\u0022roland@hamm.at\u0022},\u0022num\u0022:{\u0022maxdanceronfloor\u0022:30},\u0022registration\u0022:{\u0022ask_instagram_id\u0022:false,\u0022ask_picture\u0022:false},\u0022allowed_wifis\u0022:{\u0022judges\u0022:[]}}","44":"1970-01-01 01:00:00","dt_preregister_von":"1970-01-01 01:00:00","45":"1970-01-01 01:00:00","dt_preregister_bis":"1970-01-01 01:00:00","46":null,"dt_aktionspreis_von":null,"47":null,"dt_aktionspreis_bis":null,"48":null,"dt_awardresults":null,"49":null,"dt_publish":null,"50":"0","is_judgesschedule_visible":"0","51":null,"is_showschedule":null,"52":null,"is_emcee_awards_visible":null,"53":"0","is_closed":"0","54":null,"is_vaccinatedonly":null,"55":"scheduled","event_status":"scheduled","56":"1","visible":"1","57":"2026-09-08 16:30:08","stamp":"2026-09-08 16:30:08","58":null,"has_wall":null,"59":null,"danceapp_register_event_id":null,"60":null,"has_news":null,"country_name":"Austria","country_flag":"\/\/library.goo1.de\/flags\/AUT.png","city_name":"Vienna","date_formatted":"09\/17 - 09\/20\/2026"},{"0":"428","id":"428","1":"Global Grand Prix WCS 2026","name":"Global Grand Prix WCS 2026","2":null,"festival_id":null,"3":"342","wsdc_event_id":"342","4":"1","event_type":"1","5":"5","calculation_model":"5","6":null,"slug":null,"7":"wsdc","dances":"wsdc","8":"1","is_wsdc":"1","9":"0","is_taf":"0","10":"0","is_bzdc":"0","11":"0","is_bachatacouncil":"0","12":"0","is_country":"0","13":"8b9d09502fac2756cb4c47e35326d2b7","img_header_md5":"8b9d09502fac2756cb4c47e35326d2b7","14":null,"facebook_event_id":null,"15":"2026-09-18 00:00:00","dt_event_from":"2026-09-18 00:00:00","16":"2026-09-20 23:59:00","dt_event_to":"2026-09-20 23:59:00","17":"La Grande-Motte","city":"La Grande-Motte","18":"90","city_wikidata_id":"90","19":"FRA","country":"FRA","20":"Europe\/Paris","timezone":"Europe\/Paris","21":"EUR","currency":"EUR","22":"","currency2":"","23":null,"paypal_email":null,"24":null,"paypal_fee_percent":null,"25":null,"stripe_api_private":null,"26":null,"stripe_connect_account_id":null,"27":"customer","stripe_connect_whotakesfees":"customer","28":"0","goo1_paypal_enabled":"0","29":null,"num_couples_floor":null,"30":"https:\/\/www.globalgrandprixwcs.com\/","url_ticket":"https:\/\/www.globalgrandprixwcs.com\/","31":null,"steprightsolution_sync_url":null,"32":null,"steprightsolution_sync_sleep":null,"33":null,"is_judge_hide_times":null,"34":"0","is_mockjudge_shownfront":"0","35":"1","allow_mockjudge_facebook":"1","36":"1","allow_mockjudge_patreon":"1","37":"1","allow_mockjudging_by_ed":"1","38":"1","allow_mockjudging_by_hj":"1","39":"0","is_mockjudge_free":"0","40":"0","bib2go_enabled":"0","41":null,"bib2go_resbib_start":null,"42":null,"bib2go_resbib_end":null,"43":"{\u0022wsdc\u0022:{\u0022fee\u0022:{\u0022paymethod\u0022:\u0022self\u0022,\u0022cc\u0022:{\u0022month\u0022:\u002201\u0022,\u0022year\u0022:\u00222024\u0022}}},\u0022eventdirector\u0022:{\u0022name\u0022:\u0022Pascale Mas\u0022},\u0022num\u0022:{\u0022maxdanceronfloor\u0022:24},\u0022registration\u0022:{\u0022ask_instagram_id\u0022:false,\u0022ask_picture\u0022:false},\u0022allowed_wifis\u0022:{\u0022judges\u0022:[]}}","data":"{\u0022wsdc\u0022:{\u0022fee\u0022:{\u0022paymethod\u0022:\u0022self\u0022,\u0022cc\u0022:{\u0022month\u0022:\u002201\u0022,\u0022year\u0022:\u00222024\u0022}}},\u0022eventdirector\u0022:{\u0022name\u0022:\u0022Pascale Mas\u0022},\u0022num\u0022:{\u0022maxdanceronfloor\u0022:24},\u0022registration\u0022:{\u0022ask_instagram_id\u0022:false,\u0022ask_picture\u0022:false},\u0022allowed_wifis\u0022:{\u0022judges\u0022:[]}}","44":"1970-01-01 00:00:00","dt_preregister_von":"1970-01-01 00:00:00","45":"2026-09-20 23:59:00","dt_preregister_bis":"2026-09-20 23:59:00","46":null,"dt_aktionspreis_von":null,"47":null,"dt_aktionspreis_bis":null,"48":null,"dt_awardresults":null,"49":null,"dt_publish":null,"50":"1","is_judgesschedule_visible":"1","51":"0","is_showschedule":"0","52":"0","is_emcee_awards_visible":"0","53":"0","is_closed":"0","54":null,"is_vaccinatedonly":null,"55":"scheduled","event_status":"scheduled","56":"1","visible":"1","57":"2026-08-27 12:32:22","stamp":"2026-08-27 12:32:22","58":null,"has_wall":null,"59":null,"danceapp_register_event_id":null,"60":null,"has_news":null,"country_name":"France","country_flag":"\/\/library.goo1.de\/flags\/FRA.png","city_name":"Paris","date_formatted":"09\/18 - 09\/20\/2026"},{"0":"375","id":"375","1":"Aloha Open 2026","name":"Aloha Open 2026","2":null,"festival_id":null,"3":null,"wsdc_event_id":null,"4":"1","event_type":"1","5":"5","calculation_model":"5","6":null,"slug":null,"7":"wsdc","dances":"wsdc","8":"1","is_wsdc":"1","9":"0","is_taf":"0","10":"0","is_bzdc":"0","11":"0","is_bachatacouncil":"0","12":null,"is_country":null,"13":"3ab3f388e43115bc94ee09ebcd9b550a","img_header_md5":"3ab3f388e43115bc94ee09ebcd9b550a","14":null,"facebook_event_id":null,"15":"2026-09-23 00:00:00","dt_event_from":"2026-09-23 00:00:00","16":"2026-09-27 23:59:00","dt_event_to":"2026-09-27 23:59:00","17":null,"city":null,"18":null,"city_wikidata_id":null,"19":"USA","country":"USA","20":"Pacific\/Honolulu","timezone":"Pacific\/Honolulu","21":"USD","currency":"USD","22":"","currency2":"","23":null,"paypal_email":null,"24":null,"paypal_fee_percent":null,"25":null,"stripe_api_private":null,"26":null,"stripe_connect_account_id":null,"27":"customer","stripe_connect_whotakesfees":"customer","28":"0","goo1_paypal_enabled":"0","29":null,"num_couples_floor":null,"30":"","url_ticket":"","31":null,"steprightsolution_sync_url":null,"32":null,"steprightsolution_sync_sleep":null,"33":null,"is_judge_hide_times":null,"34":null,"is_mockjudge_shownfront":null,"35":"0","allow_mockjudge_facebook":"0","36":"1","allow_mockjudge_patreon":"1","37":"1","allow_mockjudging_by_ed":"1","38":"1","allow_mockjudging_by_hj":"1","39":"0","is_mockjudge_free":"0","40":"1","bib2go_enabled":"1","41":null,"bib2go_resbib_start":null,"42":null,"bib2go_resbib_end":null,"43":"{\u0022num\u0022:{\u0022maxdanceronfloor\u0022:20},\u0022wsdc\u0022:{\u0022fee\u0022:{\u0022paymethod\u0022:\u0022auto\u0022,\u0022cc\u0022:{\u0022month\u0022:\u002201\u0022,\u0022year\u0022:\u00222026\u0022}}}}","data":"{\u0022num\u0022:{\u0022maxdanceronfloor\u0022:20},\u0022wsdc\u0022:{\u0022fee\u0022:{\u0022paymethod\u0022:\u0022auto\u0022,\u0022cc\u0022:{\u0022month\u0022:\u002201\u0022,\u0022year\u0022:\u00222026\u0022}}}}","44":"1970-01-01 01:00:00","dt_preregister_von":"1970-01-01 01:00:00","45":"1970-01-01 01:00:00","dt_preregister_bis":"1970-01-01 01:00:00","46":null,"dt_aktionspreis_von":null,"47":null,"dt_aktionspreis_bis":null,"48":null,"dt_awardresults":null,"49":null,"dt_publish":null,"50":"1","is_judgesschedule_visible":"1","51":"1","is_showschedule":"1","52":"1","is_emcee_awards_visible":"1","53":"0","is_closed":"0","54":null,"is_vaccinatedonly":null,"55":"scheduled","event_status":"scheduled","56":"1","visible":"1","57":"2026-02-07 22:45:29","stamp":"2026-02-07 22:45:29","58":null,"has_wall":null,"59":"165","danceapp_register_event_id":"165","60":null,"has_news":null,"country_name":"United States of America","country_flag":"\/\/library.goo1.de\/flags\/USA.png","date_formatted":"09\/23 - 09\/27\/2026"},{"0":"414","id":"414","1":"Calgary Town Open 2026","name":"Calgary Town Open 2026","2":null,"festival_id":null,"3":null,"wsdc_event_id":null,"4":null,"event_type":null,"5":"5","calculation_model":"5","6":null,"slug":null,"7":null,"dances":null,"8":"0","is_wsdc":"0","9":"0","is_taf":"0","10":"0","is_bzdc":"0","11":"0","is_bachatacouncil":"0","12":null,"is_country":null,"13":"9d10c999cd81b78584bb618052cd5a7a","img_header_md5":"9d10c999cd81b78584bb618052cd5a7a","14":null,"facebook_event_id":null,"15":"2026-09-24 00:00:00","dt_event_from":"2026-09-24 00:00:00","16":"2026-09-27 23:59:00","dt_event_to":"2026-09-27 23:59:00","17":null,"city":null,"18":"36312","city_wikidata_id":"36312","19":"CAN","country":"CAN","20":"America\/Denver","timezone":"America\/Denver","21":"CAD","currency":"CAD","22":"","currency2":"","23":null,"paypal_email":null,"24":null,"paypal_fee_percent":null,"25":null,"stripe_api_private":null,"26":null,"stripe_connect_account_id":null,"27":"customer","stripe_connect_whotakesfees":"customer","28":"0","goo1_paypal_enabled":"0","29":null,"num_couples_floor":null,"30":"","url_ticket":"","31":null,"steprightsolution_sync_url":null,"32":null,"steprightsolution_sync_sleep":null,"33":null,"is_judge_hide_times":null,"34":null,"is_mockjudge_shownfront":null,"35":"0","allow_mockjudge_facebook":"0","36":"1","allow_mockjudge_patreon":"1","37":"1","allow_mockjudging_by_ed":"1","38":"1","allow_mockjudging_by_hj":"1","39":"0","is_mockjudge_free":"0","40":"1","bib2go_enabled":"1","41":null,"bib2go_resbib_start":null,"42":null,"bib2go_resbib_end":null,"43":"{\u0022registration\u0022:{\u0022ask_instagram_id\u0022:false,\u0022ask_picture\u0022:false},\u0022allowed_wifis\u0022:{\u0022judges\u0022:[]}}","data":"{\u0022registration\u0022:{\u0022ask_instagram_id\u0022:false,\u0022ask_picture\u0022:false},\u0022allowed_wifis\u0022:{\u0022judges\u0022:[]}}","44":"1970-01-01 01:00:00","dt_preregister_von":"1970-01-01 01:00:00","45":"1970-01-01 01:00:00","dt_preregister_bis":"1970-01-01 01:00:00","46":null,"dt_aktionspreis_von":null,"47":null,"dt_aktionspreis_bis":null,"48":null,"dt_awardresults":null,"49":null,"dt_publish":null,"50":null,"is_judgesschedule_visible":null,"51":null,"is_showschedule":null,"52":null,"is_emcee_awards_visible":null,"53":"0","is_closed":"0","54":null,"is_vaccinatedonly":null,"55":"scheduled","event_status":"scheduled","56":"1","visible":"1","57":"2026-05-09 17:50:04","stamp":"2026-05-09 17:50:04","58":null,"has_wall":null,"59":"154","danceapp_register_event_id":"154","60":null,"has_news":null,"country_name":"Canada","country_flag":"\/\/library.goo1.de\/flags\/CAN.png","city_name":"Calgary","date_formatted":"09\/24 - 09\/27\/2026"},{"0":"444","id":"444","1":"Midland Swing Open 2026","name":"Midland Swing Open 2026","2":null,"festival_id":null,"3":"165","wsdc_event_id":"165","4":"1","event_type":"1","5":"5","calculation_model":"5","6":null,"slug":null,"7":"wsdc","dances":"wsdc","8":"1","is_wsdc":"1","9":"0","is_taf":"0","10":"0","is_bzdc":"0","11":"0","is_bachatacouncil":"0","12":null,"is_country":null,"13":"3db9540e4d2ab1711e307cefff7377cd","img_header_md5":"3db9540e4d2ab1711e307cefff7377cd","14":null,"facebook_event_id":null,"15":"2026-09-24 00:00:00","dt_event_from":"2026-09-24 00:00:00","16":"2026-09-28 23:59:00","dt_event_to":"2026-09-28 23:59:00","17":null,"city":null,"18":"84","city_wikidata_id":"84","19":"GBR","country":"GBR","20":"Europe\/London","timezone":"Europe\/London","21":"GBP","currency":"GBP","22":"","currency2":"","23":null,"paypal_email":null,"24":null,"paypal_fee_percent":null,"25":null,"stripe_api_private":null,"26":"acct_1Ryr9ND7zDmedMXq","stripe_connect_account_id":"acct_1Ryr9ND7zDmedMXq","27":"owner","stripe_connect_whotakesfees":"owner","28":"0","goo1_paypal_enabled":"0","29":null,"num_couples_floor":null,"30":"https:\/\/midlandswingopen.com\/","url_ticket":"https:\/\/midlandswingopen.com\/","31":null,"steprightsolution_sync_url":null,"32":null,"steprightsolution_sync_sleep":null,"33":null,"is_judge_hide_times":null,"34":null,"is_mockjudge_shownfront":null,"35":"0","allow_mockjudge_facebook":"0","36":"1","allow_mockjudge_patreon":"1","37":"1","allow_mockjudging_by_ed":"1","38":"1","allow_mockjudging_by_hj":"1","39":"0","is_mockjudge_free":"0","40":"1","bib2go_enabled":"1","41":null,"bib2go_resbib_start":null,"42":null,"bib2go_resbib_end":null,"43":"{\u0022registration\u0022:{\u0022ask_instagram_id\u0022:false,\u0022ask_picture\u0022:false},\u0022allowed_wifis\u0022:{\u0022judges\u0022:[]}}","data":"{\u0022registration\u0022:{\u0022ask_instagram_id\u0022:false,\u0022ask_picture\u0022:false},\u0022allowed_wifis\u0022:{\u0022judges\u0022:[]}}","44":"2026-09-11 10:00:00","dt_preregister_von":"2026-09-11 10:00:00","45":"2026-09-25 10:00:00","dt_preregister_bis":"2026-09-25 10:00:00","46":null,"dt_aktionspreis_von":null,"47":null,"dt_aktionspreis_bis":null,"48":null,"dt_awardresults":null,"49":null,"dt_publish":null,"50":"1","is_judgesschedule_visible":"1","51":"1","is_showschedule":"1","52":"1","is_emcee_awards_visible":"1","53":"0","is_closed":"0","54":null,"is_vaccinatedonly":null,"55":"scheduled","event_status":"scheduled","56":"1","visible":"1","57":"2026-09-07 20:02:34","stamp":"2026-09-07 20:02:34","58":null,"has_wall":null,"59":null,"danceapp_register_event_id":null,"60":null,"has_news":null,"country_name":"United Kingdom","country_flag":"\/\/library.goo1.de\/flags\/GBR.png","city_name":"London","date_formatted":"09\/24 - 09\/28\/2026"},{"0":"423","id":"423","1":"Westie Harbor 2026","name":"Westie Harbor 2026","2":null,"festival_id":null,"3":null,"wsdc_event_id":null,"4":"1","event_type":"1","5":"5","calculation_model":"5","6":null,"slug":null,"7":"wsdc","dances":"wsdc","8":"1","is_wsdc":"1","9":"0","is_taf":"0","10":"0","is_bzdc":"0","11":"0","is_bachatacouncil":"0","12":null,"is_country":null,"13":"e91b4f871dfbc935fe98b0d6d76f23b3","img_header_md5":"e91b4f871dfbc935fe98b0d6d76f23b3","14":"568891179595764","facebook_event_id":"568891179595764","15":"2026-10-01 00:00:00","dt_event_from":"2026-10-01 00:00:00","16":"2026-10-05 23:59:00","dt_event_to":"2026-10-05 23:59:00","17":null,"city":null,"18":null,"city_wikidata_id":null,"19":"SWE","country":"SWE","20":"Europe\/Stockholm","timezone":"Europe\/Stockholm","21":"EUR","currency":"EUR","22":"","currency2":"","23":null,"paypal_email":null,"24":null,"paypal_fee_percent":null,"25":null,"stripe_api_private":null,"26":"acct_1UDKQ9RfryY6rljc","stripe_connect_account_id":"acct_1UDKQ9RfryY6rljc","27":"ed","stripe_connect_whotakesfees":"ed","28":"0","goo1_paypal_enabled":"0","29":"25","num_couples_floor":"25","30":"https:\/\/westieharbor.com\/#register","url_ticket":"https:\/\/westieharbor.com\/#register","31":null,"steprightsolution_sync_url":null,"32":null,"steprightsolution_sync_sleep":null,"33":null,"is_judge_hide_times":null,"34":null,"is_mockjudge_shownfront":null,"35":"0","allow_mockjudge_facebook":"0","36":"1","allow_mockjudge_patreon":"1","37":"1","allow_mockjudging_by_ed":"1","38":"1","allow_mockjudging_by_hj":"1","39":"0","is_mockjudge_free":"0","40":"1","bib2go_enabled":"1","41":null,"bib2go_resbib_start":null,"42":null,"bib2go_resbib_end":null,"43":"{\u0022registration\u0022:{\u0022ask_instagram_id\u0022:false,\u0022ask_picture\u0022:false},\u0022allowed_wifis\u0022:{\u0022judges\u0022:[]},\u0022wsdc\u0022:{\u0022fee\u0022:{\u0022paymethod\u0022:\u0022auto\u0022,\u0022cc\u0022:{\u0022type\u0022:\u0022\u0022,\u0022owner\u0022:\u0022\u0022,\u0022month\u0022:\u002201\u0022,\u0022year\u0022:\u00222026\u0022},\u0022dd\u0022:{\u0022owner\u0022:\u0022\u0022,\u0022iban\u0022:\u0022\u0022,\u0022bic\u0022:\u0022\u0022}}},\u0022invoice\u0022:{\u0022company\u0022:\u0022Ivra kurser AB\u0022,\u0022firstname\u0022:\u0022Lina\u0022,\u0022lastname\u0022:\u0022Karlsson\u0022,\u0022street\u0022:\u0022Nordostapassagen 53\u0022,\u0022postalcode\u0022:\u002241311\u0022,\u0022city\u0022:\u0022G\\u00f6teborg\u0022,\u0022email\u0022:\u0022lina@ivrakurser.se\u0022,\u0022vatid\u0022:\u00225590376579\u0022,\u0022iban\u0022:\u0022SE4950000000050111083443\u0022,\u0022paypal\u0022:\u0022\u0022}}","data":"{\u0022registration\u0022:{\u0022ask_instagram_id\u0022:false,\u0022ask_picture\u0022:false},\u0022allowed_wifis\u0022:{\u0022judges\u0022:[]},\u0022wsdc\u0022:{\u0022fee\u0022:{\u0022paymethod\u0022:\u0022auto\u0022,\u0022cc\u0022:{\u0022type\u0022:\u0022\u0022,\u0022owner\u0022:\u0022\u0022,\u0022month\u0022:\u002201\u0022,\u0022year\u0022:\u00222026\u0022},\u0022dd\u0022:{\u0022owner\u0022:\u0022\u0022,\u0022iban\u0022:\u0022\u0022,\u0022bic\u0022:\u0022\u0022}}},\u0022invoice\u0022:{\u0022company\u0022:\u0022Ivra kurser AB\u0022,\u0022firstname\u0022:\u0022Lina\u0022,\u0022lastname\u0022:\u0022Karlsson\u0022,\u0022street\u0022:\u0022Nordostapassagen 53\u0022,\u0022postalcode\u0022:\u002241311\u0022,\u0022city\u0022:\u0022G\\u00f6teborg\u0022,\u0022email\u0022:\u0022lina@ivrakurser.se\u0022,\u0022vatid\u0022:\u00225590376579\u0022,\u0022iban\u0022:\u0022SE4950000000050111083443\u0022,\u0022paypal\u0022:\u0022\u0022}}","44":"1970-01-01 01:00:00","dt_preregister_von":"1970-01-01 01:00:00","45":"1970-01-01 01:00:00","dt_preregister_bis":"1970-01-01 01:00:00","46":null,"dt_aktionspreis_von":null,"47":null,"dt_aktionspreis_bis":null,"48":null,"dt_awardresults":null,"49":null,"dt_publish":null,"50":null,"is_judgesschedule_visible":null,"51":null,"is_showschedule":null,"52":null,"is_emcee_awards_visible":null,"53":"0","is_closed":"0","54":null,"is_vaccinatedonly":null,"55":"scheduled","event_status":"scheduled","56":"1","visible":"1","57":"2026-09-08 08:34:33","stamp":"2026-09-08 08:34:33","58":null,"has_wall":null,"59":null,"danceapp_register_event_id":null,"60":null,"has_news":null,"country_name":"Sweden","country_flag":"\/\/library.goo1.de\/flags\/SWE.png","date_formatted":"10\/01 - 10\/05\/2026"},{"0":"443","id":"443","1":"Norwegian Open 2026","name":"Norwegian Open 2026","2":null,"festival_id":null,"3":"388","wsdc_event_id":"388","4":"1","event_type":"1","5":"5","calculation_model":"5","6":null,"slug":null,"7":"wsdc","dances":"wsdc","8":"1","is_wsdc":"1","9":"0","is_taf":"0","10":"0","is_bzdc":"0","11":"0","is_bachatacouncil":"0","12":null,"is_country":null,"13":"f88a561eec95625559022c9033007c90","img_header_md5":"f88a561eec95625559022c9033007c90","14":null,"facebook_event_id":null,"15":"2026-10-01 00:00:00","dt_event_from":"2026-10-01 00:00:00","16":"2026-10-05 23:59:00","dt_event_to":"2026-10-05 23:59:00","17":null,"city":null,"18":"585","city_wikidata_id":"585","19":"NOR","country":"NOR","20":"Europe\/Oslo","timezone":"Europe\/Oslo","21":"NOK","currency":"NOK","22":"","currency2":"","23":null,"paypal_email":null,"24":null,"paypal_fee_percent":null,"25":null,"stripe_api_private":null,"26":"acct_1SBe5zDqHLTSH0tF","stripe_connect_account_id":"acct_1SBe5zDqHLTSH0tF","27":"customer","stripe_connect_whotakesfees":"customer","28":"1","goo1_paypal_enabled":"1","29":null,"num_couples_floor":null,"30":"https:\/\/norwegianopen.no\/","url_ticket":"https:\/\/norwegianopen.no\/","31":null,"steprightsolution_sync_url":null,"32":null,"steprightsolution_sync_sleep":null,"33":null,"is_judge_hide_times":null,"34":null,"is_mockjudge_shownfront":null,"35":"0","allow_mockjudge_facebook":"0","36":"1","allow_mockjudge_patreon":"1","37":"1","allow_mockjudging_by_ed":"1","38":"1","allow_mockjudging_by_hj":"1","39":"0","is_mockjudge_free":"0","40":"1","bib2go_enabled":"1","41":null,"bib2go_resbib_start":null,"42":null,"bib2go_resbib_end":null,"43":"{\u0022wsdc\u0022:{\u0022fee\u0022:{\u0022paymethod\u0022:\u0022auto\u0022,\u0022cc\u0022:{\u0022month\u0022:\u002201\u0022,\u0022year\u0022:\u00222025\u0022}}},\u0022registration\u0022:{\u0022ask_instagram_id\u0022:false,\u0022ask_picture\u0022:false},\u0022allowed_wifis\u0022:{\u0022judges\u0022:[]}}","data":"{\u0022wsdc\u0022:{\u0022fee\u0022:{\u0022paymethod\u0022:\u0022auto\u0022,\u0022cc\u0022:{\u0022month\u0022:\u002201\u0022,\u0022year\u0022:\u00222025\u0022}}},\u0022registration\u0022:{\u0022ask_instagram_id\u0022:false,\u0022ask_picture\u0022:false},\u0022allowed_wifis\u0022:{\u0022judges\u0022:[]}}","44":"1970-01-01 01:00:00","dt_preregister_von":"1970-01-01 01:00:00","45":"1970-01-01 01:00:00","dt_preregister_bis":"1970-01-01 01:00:00","46":null,"dt_aktionspreis_von":null,"47":null,"dt_aktionspreis_bis":null,"48":null,"dt_awardresults":null,"49":null,"dt_publish":null,"50":"1","is_judgesschedule_visible":"1","51":null,"is_showschedule":null,"52":null,"is_emcee_awards_visible":null,"53":"0","is_closed":"0","54":null,"is_vaccinatedonly":null,"55":"scheduled","event_status":"scheduled","56":"1","visible":"1","57":"2026-09-07 11:57:06","stamp":"2026-09-07 11:57:06","58":null,"has_wall":null,"59":null,"danceapp_register_event_id":null,"60":null,"has_news":null,"country_name":"Norway","country_flag":"\/\/library.goo1.de\/flags\/NOR.png","city_name":"Oslo","date_formatted":"10\/01 - 10\/05\/2026"},{"0":"408","id":"408","1":"Boogie By the Bay 2026","name":"Boogie By the Bay 2026","2":null,"festival_id":null,"3":"8","wsdc_event_id":"8","4":"1","event_type":"1","5":"5","calculation_model":"5","6":null,"slug":null,"7":"wsdc","dances":"wsdc","8":"1","is_wsdc":"1","9":"0","is_taf":"0","10":"0","is_bzdc":"0","11":"0","is_bachatacouncil":"0","12":null,"is_country":null,"13":null,"img_header_md5":null,"14":null,"facebook_event_id":null,"15":"2026-10-08 00:00:00","dt_event_from":"2026-10-08 00:00:00","16":"2026-10-11 23:59:00","dt_event_to":"2026-10-11 23:59:00","17":null,"city":null,"18":"986867","city_wikidata_id":"986867","19":"USA","country":"USA","20":"America\/Los_Angeles","timezone":"America\/Los_Angeles","21":"USD","currency":"USD","22":"","currency2":"","23":null,"paypal_email":null,"24":null,"paypal_fee_percent":null,"25":null,"stripe_api_private":null,"26":null,"stripe_connect_account_id":null,"27":"customer","stripe_connect_whotakesfees":"customer","28":"0","goo1_paypal_enabled":"0","29":null,"num_couples_floor":null,"30":"","url_ticket":"","31":null,"steprightsolution_sync_url":null,"32":null,"steprightsolution_sync_sleep":null,"33":null,"is_judge_hide_times":null,"34":null,"is_mockjudge_shownfront":null,"35":"0","allow_mockjudge_facebook":"0","36":"1","allow_mockjudge_patreon":"1","37":"1","allow_mockjudging_by_ed":"1","38":"1","allow_mockjudging_by_hj":"1","39":"0","is_mockjudge_free":"0","40":"1","bib2go_enabled":"1","41":null,"bib2go_resbib_start":null,"42":null,"bib2go_resbib_end":null,"43":"{\u0022num\u0022:{\u0022maxdanceronfloor\u0022:30},\u0022allowed_wifis\u0022:{\u0022judges\u0022:[]}}","data":"{\u0022num\u0022:{\u0022maxdanceronfloor\u0022:30},\u0022allowed_wifis\u0022:{\u0022judges\u0022:[]}}","44":"1970-01-01 01:00:00","dt_preregister_von":"1970-01-01 01:00:00","45":"1970-01-01 01:00:00","dt_preregister_bis":"1970-01-01 01:00:00","46":null,"dt_aktionspreis_von":null,"47":null,"dt_aktionspreis_bis":null,"48":null,"dt_awardresults":null,"49":null,"dt_publish":null,"50":null,"is_judgesschedule_visible":null,"51":null,"is_showschedule":null,"52":"1","is_emcee_awards_visible":"1","53":"0","is_closed":"0","54":null,"is_vaccinatedonly":null,"55":"scheduled","event_status":"scheduled","56":"1","visible":"1","57":"2026-04-25 18:10:04","stamp":"2026-04-25 18:10:04","58":null,"has_wall":null,"59":"190","danceapp_register_event_id":"190","60":null,"has_news":null,"country_name":"United States of America","country_flag":"\/\/library.goo1.de\/flags\/USA.png","city_name":"Burlingame","date_formatted":"10\/08 - 10\/11\/2026"},{"0":"379","id":"379","1":"WCS Festival Düsseldorf 2026","name":"WCS Festival Düsseldorf 2026","2":null,"festival_id":null,"3":"286","wsdc_event_id":"286","4":"1","event_type":"1","5":"5","calculation_model":"5","6":null,"slug":null,"7":"wsdc","dances":"wsdc","8":"1","is_wsdc":"1","9":"0","is_taf":"0","10":"0","is_bzdc":"0","11":"0","is_bachatacouncil":"0","12":"0","is_country":"0","13":"5c75d93380eeef9f9af6cfdff88a339a","img_header_md5":"5c75d93380eeef9f9af6cfdff88a339a","14":null,"facebook_event_id":null,"15":"2026-10-15 00:00:00","dt_event_from":"2026-10-15 00:00:00","16":"2026-10-19 23:59:00","dt_event_to":"2026-10-19 23:59:00","17":"Düsseldorf","city":"Düsseldorf","18":"1718","city_wikidata_id":"1718","19":"DEU","country":"DEU","20":"Europe\/Berlin","timezone":"Europe\/Berlin","21":"EUR","currency":"EUR","22":"","currency2":"","23":null,"paypal_email":null,"24":null,"paypal_fee_percent":null,"25":null,"stripe_api_private":null,"26":null,"stripe_connect_account_id":null,"27":"customer","stripe_connect_whotakesfees":"customer","28":"0","goo1_paypal_enabled":"0","29":null,"num_couples_floor":null,"30":"https:\/\/www.wcs-festival.de\/tickets\/","url_ticket":"https:\/\/www.wcs-festival.de\/tickets\/","31":null,"steprightsolution_sync_url":null,"32":null,"steprightsolution_sync_sleep":null,"33":null,"is_judge_hide_times":null,"34":"1","is_mockjudge_shownfront":"1","35":"0","allow_mockjudge_facebook":"0","36":"1","allow_mockjudge_patreon":"1","37":"1","allow_mockjudging_by_ed":"1","38":"1","allow_mockjudging_by_hj":"1","39":"0","is_mockjudge_free":"0","40":"1","bib2go_enabled":"1","41":null,"bib2go_resbib_start":null,"42":null,"bib2go_resbib_end":null,"43":"{\u0022wsdc\u0022:{\u0022fee\u0022:{\u0022paymethod\u0022:\u0022self\u0022,\u0022cc\u0022:{\u0022month\u0022:\u002201\u0022,\u0022year\u0022:\u00222025\u0022}}},\u0022invoice\u0022:{\u0022company\u0022:\u0022Dresen Events GbR\u0022,\u0022firstname\u0022:\u0022Marc und Andrea\u0022,\u0022lastname\u0022:\u0022Heldt\u0022,\u0022street\u0022:\u0022Duisburger Strasse 95\u0022,\u0022postalcode\u0022:\u002240479\u0022,\u0022city\u0022:\u0022D\\u00fcsseldorf\u0022,\u0022email\u0022:\u0022info@dresen.events\u0022},\u0022num\u0022:{\u0022maxdanceronfloor\u0022:26}}","data":"{\u0022wsdc\u0022:{\u0022fee\u0022:{\u0022paymethod\u0022:\u0022self\u0022,\u0022cc\u0022:{\u0022month\u0022:\u002201\u0022,\u0022year\u0022:\u00222025\u0022}}},\u0022invoice\u0022:{\u0022company\u0022:\u0022Dresen Events GbR\u0022,\u0022firstname\u0022:\u0022Marc und Andrea\u0022,\u0022lastname\u0022:\u0022Heldt\u0022,\u0022street\u0022:\u0022Duisburger Strasse 95\u0022,\u0022postalcode\u0022:\u002240479\u0022,\u0022city\u0022:\u0022D\\u00fcsseldorf\u0022,\u0022email\u0022:\u0022info@dresen.events\u0022},\u0022num\u0022:{\u0022maxdanceronfloor\u0022:26}}","44":"1970-01-01 01:00:00","dt_preregister_von":"1970-01-01 01:00:00","45":"1970-01-01 01:00:00","dt_preregister_bis":"1970-01-01 01:00:00","46":null,"dt_aktionspreis_von":null,"47":null,"dt_aktionspreis_bis":null,"48":null,"dt_awardresults":null,"49":null,"dt_publish":null,"50":"1","is_judgesschedule_visible":"1","51":"1","is_showschedule":"1","52":null,"is_emcee_awards_visible":null,"53":"0","is_closed":"0","54":null,"is_vaccinatedonly":null,"55":"scheduled","event_status":"scheduled","56":"1","visible":"1","57":"2026-02-15 12:17:58","stamp":"2026-02-15 12:17:58","58":null,"has_wall":null,"59":null,"danceapp_register_event_id":null,"60":null,"has_news":null,"country_name":"Germany","country_flag":"\/\/library.goo1.de\/flags\/DEU.png","city_name":"Düsseldorf","date_formatted":"10\/15 - 10\/19\/2026"},{"0":"440","id":"440","1":"Swingside Invitational 2026","name":"Swingside Invitational 2026","2":null,"festival_id":null,"3":"346","wsdc_event_id":"346","4":"1","event_type":"1","5":"5","calculation_model":"5","6":null,"slug":null,"7":"wsdc","dances":"wsdc","8":"1","is_wsdc":"1","9":"0","is_taf":"0","10":"0","is_bzdc":"0","11":"0","is_bachatacouncil":"0","12":"0","is_country":"0","13":"f29820f4dbbb7febb17a0264b82669b9","img_header_md5":"f29820f4dbbb7febb17a0264b82669b9","14":null,"facebook_event_id":null,"15":"2026-10-23 00:00:00","dt_event_from":"2026-10-23 00:00:00","16":"2026-10-25 23:59:00","dt_event_to":"2026-10-25 23:59:00","17":"La Grande-Motte","city":"La Grande-Motte","18":"3992","city_wikidata_id":"3992","19":"BEL","country":"BEL","20":"Europe\/Paris","timezone":"Europe\/Paris","21":"EUR","currency":"EUR","22":"","currency2":"","23":null,"paypal_email":null,"24":null,"paypal_fee_percent":null,"25":null,"stripe_api_private":null,"26":null,"stripe_connect_account_id":null,"27":"customer","stripe_connect_whotakesfees":"customer","28":"0","goo1_paypal_enabled":"0","29":null,"num_couples_floor":null,"30":"https:\/\/www.swingside-invitational.com\/","url_ticket":"https:\/\/www.swingside-invitational.com\/","31":null,"steprightsolution_sync_url":null,"32":null,"steprightsolution_sync_sleep":null,"33":null,"is_judge_hide_times":null,"34":"0","is_mockjudge_shownfront":"0","35":"1","allow_mockjudge_facebook":"1","36":"1","allow_mockjudge_patreon":"1","37":"1","allow_mockjudging_by_ed":"1","38":"1","allow_mockjudging_by_hj":"1","39":"0","is_mockjudge_free":"0","40":"0","bib2go_enabled":"0","41":null,"bib2go_resbib_start":null,"42":null,"bib2go_resbib_end":null,"43":"{\u0022wsdc\u0022:{\u0022fee\u0022:{\u0022paymethod\u0022:\u0022self\u0022,\u0022cc\u0022:{\u0022month\u0022:\u002201\u0022,\u0022year\u0022:\u00222024\u0022}}},\u0022eventdirector\u0022:{\u0022name\u0022:\u0022Pascale Mas\u0022},\u0022num\u0022:{\u0022maxdanceronfloor\u0022:24},\u0022registration\u0022:{\u0022ask_instagram_id\u0022:false,\u0022ask_picture\u0022:false},\u0022allowed_wifis\u0022:{\u0022judges\u0022:[]}}","data":"{\u0022wsdc\u0022:{\u0022fee\u0022:{\u0022paymethod\u0022:\u0022self\u0022,\u0022cc\u0022:{\u0022month\u0022:\u002201\u0022,\u0022year\u0022:\u00222024\u0022}}},\u0022eventdirector\u0022:{\u0022name\u0022:\u0022Pascale Mas\u0022},\u0022num\u0022:{\u0022maxdanceronfloor\u0022:24},\u0022registration\u0022:{\u0022ask_instagram_id\u0022:false,\u0022ask_picture\u0022:false},\u0022allowed_wifis\u0022:{\u0022judges\u0022:[]}}","44":"1970-01-01 01:00:00","dt_preregister_von":"1970-01-01 01:00:00","45":"1970-01-01 01:00:00","dt_preregister_bis":"1970-01-01 01:00:00","46":null,"dt_aktionspreis_von":null,"47":null,"dt_aktionspreis_bis":null,"48":null,"dt_awardresults":null,"49":null,"dt_publish":null,"50":"1","is_judgesschedule_visible":"1","51":"0","is_showschedule":"0","52":null,"is_emcee_awards_visible":null,"53":"0","is_closed":"0","54":null,"is_vaccinatedonly":null,"55":"scheduled","event_status":"scheduled","56":"1","visible":"1","57":"2026-08-26 14:08:20","stamp":"2026-08-26 14:08:20","58":null,"has_wall":null,"59":null,"danceapp_register_event_id":null,"60":null,"has_news":null,"country_name":"Belgium","country_flag":"\/\/library.goo1.de\/flags\/BEL.png","city_name":"Liège","date_formatted":"10\/23 - 10\/25\/2026"},{"0":"433","id":"433","1":"Scandinavian Open 2026 [SNOW]","name":"Scandinavian Open 2026 [SNOW]","2":null,"festival_id":null,"3":"229","wsdc_event_id":"229","4":"1","event_type":"1","5":"5","calculation_model":"5","6":null,"slug":null,"7":"wsdc","dances":"wsdc","8":"1","is_wsdc":"1","9":"0","is_taf":"0","10":"0","is_bzdc":"0","11":"0","is_bachatacouncil":"0","12":"0","is_country":"0","13":"5d8865c4a3bb3855d39f91565f2558ea","img_header_md5":"5d8865c4a3bb3855d39f91565f2558ea","14":null,"facebook_event_id":null,"15":"2026-10-28 00:00:00","dt_event_from":"2026-10-28 00:00:00","16":"2026-11-02 23:59:00","dt_event_to":"2026-11-02 23:59:00","17":"Bron","city":"Bron","18":"1754","city_wikidata_id":"1754","19":"SWE","country":"SWE","20":"Europe\/Stockholm","timezone":"Europe\/Stockholm","21":"SEK","currency":"SEK","22":"","currency2":"","23":null,"paypal_email":null,"24":null,"paypal_fee_percent":null,"25":null,"stripe_api_private":null,"26":"acct_1Q9jbdRczxcgNIqZ","stripe_connect_account_id":"acct_1Q9jbdRczxcgNIqZ","27":"customer","stripe_connect_whotakesfees":"customer","28":"0","goo1_paypal_enabled":"0","29":null,"num_couples_floor":null,"30":"https:\/\/snowcs.se\/","url_ticket":"https:\/\/snowcs.se\/","31":null,"steprightsolution_sync_url":null,"32":null,"steprightsolution_sync_sleep":null,"33":null,"is_judge_hide_times":null,"34":"0","is_mockjudge_shownfront":"0","35":"1","allow_mockjudge_facebook":"1","36":"1","allow_mockjudge_patreon":"1","37":"1","allow_mockjudging_by_ed":"1","38":"1","allow_mockjudging_by_hj":"1","39":"0","is_mockjudge_free":"0","40":"1","bib2go_enabled":"1","41":null,"bib2go_resbib_start":null,"42":null,"bib2go_resbib_end":null,"43":"{\u0022eventdirector\u0022:{\u0022name\u0022:\u0022Arnaud Perga\u0022},\u0022num\u0022:{\u0022maxdanceronfloor\u0022:22},\u0022wsdc\u0022:{\u0022fee\u0022:{\u0022paymethod\u0022:\u0022self\u0022,\u0022cc\u0022:{\u0022month\u0022:\u002201\u0022,\u0022year\u0022:\u00222024\u0022}}},\u0022invoice\u0022:{\u0022company\u0022:\u0022West in lyon\u0022,\u0022firstname\u0022:\u0022Arnaud\u0022,\u0022lastname\u0022:\u0022Perga\u0022,\u0022street\u0022:\u002215 rue billon\u0022,\u0022postalcode\u0022:\u002269100\u0022,\u0022city\u0022:\u0022Villeurbanne\u0022,\u0022email\u0022:\u0022contactwestinlyon@gmail.com\u0022},\u0022registration\u0022:{\u0022ask_instagram_id\u0022:false,\u0022ask_picture\u0022:false},\u0022allowed_wifis\u0022:{\u0022judges\u0022:[]}}","data":"{\u0022eventdirector\u0022:{\u0022name\u0022:\u0022Arnaud Perga\u0022},\u0022num\u0022:{\u0022maxdanceronfloor\u0022:22},\u0022wsdc\u0022:{\u0022fee\u0022:{\u0022paymethod\u0022:\u0022self\u0022,\u0022cc\u0022:{\u0022month\u0022:\u002201\u0022,\u0022year\u0022:\u00222024\u0022}}},\u0022invoice\u0022:{\u0022company\u0022:\u0022West in lyon\u0022,\u0022firstname\u0022:\u0022Arnaud\u0022,\u0022lastname\u0022:\u0022Perga\u0022,\u0022street\u0022:\u002215 rue billon\u0022,\u0022postalcode\u0022:\u002269100\u0022,\u0022city\u0022:\u0022Villeurbanne\u0022,\u0022email\u0022:\u0022contactwestinlyon@gmail.com\u0022},\u0022registration\u0022:{\u0022ask_instagram_id\u0022:false,\u0022ask_picture\u0022:false},\u0022allowed_wifis\u0022:{\u0022judges\u0022:[]}}","44":"2026-09-08 19:00:00","dt_preregister_von":"2026-09-08 19:00:00","45":"2016-11-03 01:00:00","dt_preregister_bis":"2016-11-03 01:00:00","46":null,"dt_aktionspreis_von":null,"47":null,"dt_aktionspreis_bis":null,"48":null,"dt_awardresults":null,"49":null,"dt_publish":null,"50":"1","is_judgesschedule_visible":"1","51":"0","is_showschedule":"0","52":"0","is_emcee_awards_visible":"0","53":"0","is_closed":"0","54":null,"is_vaccinatedonly":null,"55":"scheduled","event_status":"scheduled","56":"1","visible":"1","57":"2026-09-07 18:29:21","stamp":"2026-09-07 18:29:21","58":null,"has_wall":null,"59":null,"danceapp_register_event_id":null,"60":null,"has_news":null,"country_name":"Sweden","country_flag":"\/\/library.goo1.de\/flags\/SWE.png","city_name":"Stockholm","date_formatted":"10\/28 - 11\/02\/2026"},{"0":"429","id":"429","1":"Spooky Westie Weekend 2026","name":"Spooky Westie Weekend 2026","2":null,"festival_id":null,"3":"340","wsdc_event_id":"340","4":"1","event_type":"1","5":"5","calculation_model":"5","6":null,"slug":null,"7":"wsdc","dances":"wsdc","8":"1","is_wsdc":"1","9":"0","is_taf":"0","10":"0","is_bzdc":"0","11":"0","is_bachatacouncil":"0","12":null,"is_country":null,"13":null,"img_header_md5":null,"14":null,"facebook_event_id":null,"15":"2026-10-29 00:00:00","dt_event_from":"2026-10-29 00:00:00","16":"2026-11-01 23:59:00","dt_event_to":"2026-11-01 23:59:00","17":null,"city":null,"18":"334","city_wikidata_id":"334","19":"SGP","country":"SGP","20":"Asia\/Singapore","timezone":"Asia\/Singapore","21":"SGD","currency":"SGD","22":"","currency2":"","23":null,"paypal_email":null,"24":null,"paypal_fee_percent":null,"25":null,"stripe_api_private":null,"26":null,"stripe_connect_account_id":null,"27":"customer","stripe_connect_whotakesfees":"customer","28":"0","goo1_paypal_enabled":"0","29":null,"num_couples_floor":null,"30":"","url_ticket":"","31":null,"steprightsolution_sync_url":null,"32":null,"steprightsolution_sync_sleep":null,"33":null,"is_judge_hide_times":null,"34":null,"is_mockjudge_shownfront":null,"35":"0","allow_mockjudge_facebook":"0","36":"1","allow_mockjudge_patreon":"1","37":"0","allow_mockjudging_by_ed":"0","38":"1","allow_mockjudging_by_hj":"1","39":"0","is_mockjudge_free":"0","40":"1","bib2go_enabled":"1","41":null,"bib2go_resbib_start":null,"42":null,"bib2go_resbib_end":null,"43":"{\u0022registration\u0022:{\u0022ask_instagram_id\u0022:false,\u0022ask_picture\u0022:false},\u0022allowed_wifis\u0022:{\u0022judges\u0022:[]}}","data":"{\u0022registration\u0022:{\u0022ask_instagram_id\u0022:false,\u0022ask_picture\u0022:false},\u0022allowed_wifis\u0022:{\u0022judges\u0022:[]}}","44":"1970-01-01 01:00:00","dt_preregister_von":"1970-01-01 01:00:00","45":"1970-01-01 01:00:00","dt_preregister_bis":"1970-01-01 01:00:00","46":null,"dt_aktionspreis_von":null,"47":null,"dt_aktionspreis_bis":null,"48":null,"dt_awardresults":null,"49":null,"dt_publish":null,"50":null,"is_judgesschedule_visible":null,"51":null,"is_showschedule":null,"52":null,"is_emcee_awards_visible":null,"53":"0","is_closed":"0","54":null,"is_vaccinatedonly":null,"55":"scheduled","event_status":"scheduled","56":"1","visible":"1","57":"2026-07-10 15:18:25","stamp":"2026-07-10 15:18:25","58":null,"has_wall":null,"59":"206","danceapp_register_event_id":"206","60":null,"has_news":null,"country_name":"Singapore","country_flag":"\/\/library.goo1.de\/flags\/SGP.png","city_name":"Singapore","date_formatted":"10\/29 - 11\/01\/2026"},{"0":"435","id":"435","1":"Warsaw Halloween Swing 2026","name":"Warsaw Halloween Swing 2026","2":null,"festival_id":null,"3":"236","wsdc_event_id":"236","4":"1","event_type":"1","5":"5","calculation_model":"5","6":null,"slug":null,"7":"wsdc","dances":"wsdc","8":"1","is_wsdc":"1","9":"0","is_taf":"0","10":"0","is_bzdc":"0","11":"0","is_bachatacouncil":"0","12":"0","is_country":"0","13":"10bb3965683bf291d02361db8c2aa593","img_header_md5":"10bb3965683bf291d02361db8c2aa593","14":null,"facebook_event_id":null,"15":"2026-10-29 00:00:00","dt_event_from":"2026-10-29 00:00:00","16":"2026-11-02 23:59:00","dt_event_to":"2026-11-02 23:59:00","17":"Warszawa","city":"Warszawa","18":"270","city_wikidata_id":"270","19":"POL","country":"POL","20":"Europe\/Warsaw","timezone":"Europe\/Warsaw","21":"PLN","currency":"PLN","22":"EUR","currency2":"EUR","23":null,"paypal_email":null,"24":null,"paypal_fee_percent":null,"25":null,"stripe_api_private":null,"26":null,"stripe_connect_account_id":null,"27":"customer","stripe_connect_whotakesfees":"customer","28":"1","goo1_paypal_enabled":"1","29":null,"num_couples_floor":null,"30":"https:\/\/warsawhalloweenswing.com\/booking\/","url_ticket":"https:\/\/warsawhalloweenswing.com\/booking\/","31":null,"steprightsolution_sync_url":null,"32":null,"steprightsolution_sync_sleep":null,"33":null,"is_judge_hide_times":null,"34":"1","is_mockjudge_shownfront":"1","35":"0","allow_mockjudge_facebook":"0","36":"1","allow_mockjudge_patreon":"1","37":"1","allow_mockjudging_by_ed":"1","38":"1","allow_mockjudging_by_hj":"1","39":"0","is_mockjudge_free":"0","40":"1","bib2go_enabled":"1","41":null,"bib2go_resbib_start":null,"42":null,"bib2go_resbib_end":null,"43":"{\u0022currency\u0022:{\u0022PLN\u0022:{\u0022id\u0022:\u0022PLN\u0022},\u0022EUR\u0022:{\u0022id\u0022:\u0022EUR\u0022,\u0022rate\u0022:0.25}},\u0022eventdirector\u0022:{\u0022facebook\u0022:{\u0022messenger\u0022:{\u0022id\u0022:2725414624149504}},\u0022name\u0022:\u0022Wayne and Aggie Powell\u0022},\u0022wsdc\u0022:{\u0022fee\u0022:{\u0022paymethod\u0022:\u0022auto\u0022,\u0022cc\u0022:{\u0022month\u0022:\u002201\u0022,\u0022year\u0022:\u00222025\u0022}}},\u0022invoice\u0022:{\u0022company\u0022:\u0022Wayne \u0026 Aggi Swing Sp. z.o.o\u0022,\u0022firstname\u0022:\u0022WAYNE\u0022,\u0022lastname\u0022:\u0022POWELL\u0022,\u0022street\u0022:\u0022Poleska 25\u0022,\u0022postalcode\u0022:\u002281-321\u0022,\u0022city\u0022:\u0022Gdynia\u0022,\u0022email\u0022:\u0022wayne.aggi.swing@gmail.com\u0022,\u0022vatid\u0022:\u0022PL5862392383\u0022},\u0022registration\u0022:{\u0022ask_instagram_id\u0022:false,\u0022ask_picture\u0022:false},\u0022allowed_wifis\u0022:{\u0022judges\u0022:[]}}","data":"{\u0022currency\u0022:{\u0022PLN\u0022:{\u0022id\u0022:\u0022PLN\u0022},\u0022EUR\u0022:{\u0022id\u0022:\u0022EUR\u0022,\u0022rate\u0022:0.25}},\u0022eventdirector\u0022:{\u0022facebook\u0022:{\u0022messenger\u0022:{\u0022id\u0022:2725414624149504}},\u0022name\u0022:\u0022Wayne and Aggie Powell\u0022},\u0022wsdc\u0022:{\u0022fee\u0022:{\u0022paymethod\u0022:\u0022auto\u0022,\u0022cc\u0022:{\u0022month\u0022:\u002201\u0022,\u0022year\u0022:\u00222025\u0022}}},\u0022invoice\u0022:{\u0022company\u0022:\u0022Wayne \u0026 Aggi Swing Sp. z.o.o\u0022,\u0022firstname\u0022:\u0022WAYNE\u0022,\u0022lastname\u0022:\u0022POWELL\u0022,\u0022street\u0022:\u0022Poleska 25\u0022,\u0022postalcode\u0022:\u002281-321\u0022,\u0022city\u0022:\u0022Gdynia\u0022,\u0022email\u0022:\u0022wayne.aggi.swing@gmail.com\u0022,\u0022vatid\u0022:\u0022PL5862392383\u0022},\u0022registration\u0022:{\u0022ask_instagram_id\u0022:false,\u0022ask_picture\u0022:false},\u0022allowed_wifis\u0022:{\u0022judges\u0022:[]}}","44":"1970-01-01 01:00:00","dt_preregister_von":"1970-01-01 01:00:00","45":"1970-01-01 01:00:00","dt_preregister_bis":"1970-01-01 01:00:00","46":null,"dt_aktionspreis_von":null,"47":null,"dt_aktionspreis_bis":null,"48":null,"dt_awardresults":null,"49":null,"dt_publish":null,"50":"1","is_judgesschedule_visible":"1","51":"1","is_showschedule":"1","52":null,"is_emcee_awards_visible":null,"53":"0","is_closed":"0","54":null,"is_vaccinatedonly":null,"55":"scheduled","event_status":"scheduled","56":"1","visible":"1","57":"2026-08-01 14:46:22","stamp":"2026-08-01 14:46:22","58":null,"has_wall":null,"59":null,"danceapp_register_event_id":null,"60":null,"has_news":null,"country_name":"Poland","country_flag":"\/\/library.goo1.de\/flags\/POL.png","city_name":"Warsaw","date_formatted":"10\/29 - 11\/02\/2026"},{"0":"406","id":"406","1":"Sea to Sky 2026","name":"Sea to Sky 2026","2":null,"festival_id":null,"3":"79","wsdc_event_id":"79","4":"1","event_type":"1","5":"5","calculation_model":"5","6":null,"slug":null,"7":"wsdc","dances":"wsdc","8":"1","is_wsdc":"1","9":"0","is_taf":"0","10":"0","is_bzdc":"0","11":"0","is_bachatacouncil":"0","12":"0","is_country":"0","13":"cc8bd9902d71b1fa487fb79d00341910","img_header_md5":"cc8bd9902d71b1fa487fb79d00341910","14":null,"facebook_event_id":null,"15":"2026-11-05 00:00:00","dt_event_from":"2026-11-05 00:00:00","16":"2026-11-09 23:59:00","dt_event_to":"2026-11-09 23:59:00","17":null,"city":null,"18":"5083","city_wikidata_id":"5083","19":"USA","country":"USA","20":"America\/Los_Angeles","timezone":"America\/Los_Angeles","21":"USD","currency":"USD","22":"","currency2":"","23":null,"paypal_email":null,"24":null,"paypal_fee_percent":null,"25":null,"stripe_api_private":null,"26":null,"stripe_connect_account_id":null,"27":"customer","stripe_connect_whotakesfees":"customer","28":"0","goo1_paypal_enabled":"0","29":"25","num_couples_floor":"25","30":"","url_ticket":"","31":"https:\/\/seatosky-2024.srsdance.com\/export\/comps-json?api_key=cda53814773f4daabbc757c633def44aa34dcc1232391b8cff2b7bde57522754","steprightsolution_sync_url":"https:\/\/seatosky-2024.srsdance.com\/export\/comps-json?api_key=cda53814773f4daabbc757c633def44aa34dcc1232391b8cff2b7bde57522754","32":"5","steprightsolution_sync_sleep":"5","33":null,"is_judge_hide_times":null,"34":null,"is_mockjudge_shownfront":null,"35":"0","allow_mockjudge_facebook":"0","36":"1","allow_mockjudge_patreon":"1","37":"1","allow_mockjudging_by_ed":"1","38":"1","allow_mockjudging_by_hj":"1","39":"0","is_mockjudge_free":"0","40":"1","bib2go_enabled":"1","41":null,"bib2go_resbib_start":null,"42":null,"bib2go_resbib_end":null,"43":"{\u0022num\u0022:{\u0022maxdanceronfloor\u0022:25},\u0022wsdc\u0022:{\u0022fee\u0022:{\u0022paymethod\u0022:\u0022self\u0022,\u0022cc\u0022:{\u0022month\u0022:\u002201\u0022,\u0022year\u0022:\u00222024\u0022}}},\u0022allowed_wifis\u0022:{\u0022judges\u0022:[]}}","data":"{\u0022num\u0022:{\u0022maxdanceronfloor\u0022:25},\u0022wsdc\u0022:{\u0022fee\u0022:{\u0022paymethod\u0022:\u0022self\u0022,\u0022cc\u0022:{\u0022month\u0022:\u002201\u0022,\u0022year\u0022:\u00222024\u0022}}},\u0022allowed_wifis\u0022:{\u0022judges\u0022:[]}}","44":"1970-01-01 01:00:00","dt_preregister_von":"1970-01-01 01:00:00","45":"1970-01-01 01:00:00","dt_preregister_bis":"1970-01-01 01:00:00","46":null,"dt_aktionspreis_von":null,"47":null,"dt_aktionspreis_bis":null,"48":null,"dt_awardresults":null,"49":null,"dt_publish":null,"50":null,"is_judgesschedule_visible":null,"51":null,"is_showschedule":null,"52":null,"is_emcee_awards_visible":null,"53":"0","is_closed":"0","54":null,"is_vaccinatedonly":null,"55":"scheduled","event_status":"scheduled","56":"1","visible":"1","57":"2026-04-21 23:59:06","stamp":"2026-04-21 23:59:06","58":null,"has_wall":null,"59":"188","danceapp_register_event_id":"188","60":null,"has_news":null,"country_name":"United States of America","country_flag":"\/\/library.goo1.de\/flags\/USA.png","city_name":"Seattle","date_formatted":"11\/05 - 11\/09\/2026"},{"0":"439","id":"439","1":"Santa Swing 2026","name":"Santa Swing 2026","2":null,"festival_id":null,"3":null,"wsdc_event_id":null,"4":"1","event_type":"1","5":"5","calculation_model":"5","6":null,"slug":null,"7":"wsdc","dances":"wsdc","8":"1","is_wsdc":"1","9":"0","is_taf":"0","10":"0","is_bzdc":"0","11":"0","is_bachatacouncil":"0","12":null,"is_country":null,"13":"884acf6b5f79779baf51e7710a3b9f74","img_header_md5":"884acf6b5f79779baf51e7710a3b9f74","14":null,"facebook_event_id":null,"15":"2026-12-10 00:00:00","dt_event_from":"2026-12-10 00:00:00","16":"2026-12-14 23:59:00","dt_event_to":"2026-12-14 23:59:00","17":null,"city":null,"18":"31487","city_wikidata_id":"31487","19":"POL","country":"POL","20":"Europe\/Warsaw","timezone":"Europe\/Warsaw","21":"PLN","currency":"PLN","22":"EUR","currency2":"EUR","23":null,"paypal_email":null,"24":null,"paypal_fee_percent":null,"25":null,"stripe_api_private":null,"26":null,"stripe_connect_account_id":null,"27":"customer","stripe_connect_whotakesfees":"customer","28":"0","goo1_paypal_enabled":"0","29":null,"num_couples_floor":null,"30":"https:\/\/www.santaswing.pl\/","url_ticket":"https:\/\/www.santaswing.pl\/","31":null,"steprightsolution_sync_url":null,"32":null,"steprightsolution_sync_sleep":null,"33":null,"is_judge_hide_times":null,"34":null,"is_mockjudge_shownfront":null,"35":"0","allow_mockjudge_facebook":"0","36":"1","allow_mockjudge_patreon":"1","37":"1","allow_mockjudging_by_ed":"1","38":"1","allow_mockjudging_by_hj":"1","39":"0","is_mockjudge_free":"0","40":"1","bib2go_enabled":"1","41":null,"bib2go_resbib_start":null,"42":null,"bib2go_resbib_end":null,"43":"{\u0022num\u0022:{\u0022maxdanceronfloor\u0022:20},\u0022wsdc\u0022:{\u0022fee\u0022:{\u0022paymethod\u0022:\u0022self\u0022,\u0022cc\u0022:{\u0022month\u0022:\u002201\u0022,\u0022year\u0022:\u00222025\u0022}}},\u0022registration\u0022:{\u0022ask_instagram_id\u0022:false,\u0022ask_picture\u0022:false},\u0022allowed_wifis\u0022:{\u0022judges\u0022:[]}}","data":"{\u0022num\u0022:{\u0022maxdanceronfloor\u0022:20},\u0022wsdc\u0022:{\u0022fee\u0022:{\u0022paymethod\u0022:\u0022self\u0022,\u0022cc\u0022:{\u0022month\u0022:\u002201\u0022,\u0022year\u0022:\u00222025\u0022}}},\u0022registration\u0022:{\u0022ask_instagram_id\u0022:false,\u0022ask_picture\u0022:false},\u0022allowed_wifis\u0022:{\u0022judges\u0022:[]}}","44":"1970-01-01 01:00:00","dt_preregister_von":"1970-01-01 01:00:00","45":"1970-01-01 01:00:00","dt_preregister_bis":"1970-01-01 01:00:00","46":null,"dt_aktionspreis_von":null,"47":null,"dt_aktionspreis_bis":null,"48":null,"dt_awardresults":null,"49":null,"dt_publish":null,"50":"1","is_judgesschedule_visible":"1","51":null,"is_showschedule":null,"52":null,"is_emcee_awards_visible":null,"53":"0","is_closed":"0","54":null,"is_vaccinatedonly":null,"55":"scheduled","event_status":"scheduled","56":"1","visible":"1","57":"2026-08-16 18:25:10","stamp":"2026-08-16 18:25:10","58":null,"has_wall":null,"59":null,"danceapp_register_event_id":null,"60":null,"has_news":null,"country_name":"Poland","country_flag":"\/\/library.goo1.de\/flags\/POL.png","city_name":"Kraków","date_formatted":"12\/10 - 12\/14\/2026"},{"0":"426","id":"426","1":"Swiss Open 2026","name":"Swiss Open 2026","2":null,"festival_id":null,"3":null,"wsdc_event_id":null,"4":"1","event_type":"1","5":"5","calculation_model":"5","6":null,"slug":null,"7":"wsdc","dances":"wsdc","8":"1","is_wsdc":"1","9":"0","is_taf":"0","10":"0","is_bzdc":"0","11":"0","is_bachatacouncil":"0","12":null,"is_country":null,"13":"3fc0f5e797d238e0d233a72ea14d67ce","img_header_md5":"3fc0f5e797d238e0d233a72ea14d67ce","14":"2225299854876483","facebook_event_id":"2225299854876483","15":"2026-12-18 00:00:00","dt_event_from":"2026-12-18 00:00:00","16":"2026-12-20 23:59:00","dt_event_to":"2026-12-20 23:59:00","17":"Geneva","city":"Geneva","18":"71","city_wikidata_id":"71","19":"CHE","country":"CHE","20":"Europe\/Zurich","timezone":"Europe\/Zurich","21":"CHF","currency":"CHF","22":"","currency2":"","23":null,"paypal_email":null,"24":null,"paypal_fee_percent":null,"25":null,"stripe_api_private":null,"26":null,"stripe_connect_account_id":null,"27":"customer","stripe_connect_whotakesfees":"customer","28":"0","goo1_paypal_enabled":"0","29":null,"num_couples_floor":null,"30":"https:\/\/danceapp.net\/de-de\/events\/160-Swiss_Open_2026\/","url_ticket":"https:\/\/danceapp.net\/de-de\/events\/160-Swiss_Open_2026\/","31":null,"steprightsolution_sync_url":null,"32":null,"steprightsolution_sync_sleep":null,"33":null,"is_judge_hide_times":null,"34":null,"is_mockjudge_shownfront":null,"35":"0","allow_mockjudge_facebook":"0","36":"1","allow_mockjudge_patreon":"1","37":"1","allow_mockjudging_by_ed":"1","38":"1","allow_mockjudging_by_hj":"1","39":"0","is_mockjudge_free":"0","40":"1","bib2go_enabled":"1","41":null,"bib2go_resbib_start":null,"42":null,"bib2go_resbib_end":null,"43":"{\u0022registration\u0022:{\u0022ask_instagram_id\u0022:false,\u0022ask_picture\u0022:false},\u0022allowed_wifis\u0022:{\u0022judges\u0022:[]}}","data":"{\u0022registration\u0022:{\u0022ask_instagram_id\u0022:false,\u0022ask_picture\u0022:false},\u0022allowed_wifis\u0022:{\u0022judges\u0022:[]}}","44":"1970-01-01 01:00:00","dt_preregister_von":"1970-01-01 01:00:00","45":"1970-01-01 01:00:00","dt_preregister_bis":"1970-01-01 01:00:00","46":null,"dt_aktionspreis_von":null,"47":null,"dt_aktionspreis_bis":null,"48":null,"dt_awardresults":null,"49":null,"dt_publish":null,"50":null,"is_judgesschedule_visible":null,"51":null,"is_showschedule":null,"52":null,"is_emcee_awards_visible":null,"53":"0","is_closed":"0","54":null,"is_vaccinatedonly":null,"55":"scheduled","event_status":"scheduled","56":"1","visible":"1","57":"2026-07-05 14:50:10","stamp":"2026-07-05 14:50:10","58":null,"has_wall":null,"59":null,"danceapp_register_event_id":null,"60":null,"has_news":null,"country_name":"Switzerland","country_flag":"\/\/library.goo1.de\/flags\/CHE.png","city_name":"Geneva","date_formatted":"12\/18 - 12\/20\/2026"},{"0":"350","id":"350","1":"SwingVester 2026\/27 WSDC","name":"SwingVester 2026\/27 WSDC","2":null,"festival_id":null,"3":"289","wsdc_event_id":"289","4":"1","event_type":"1","5":"5","calculation_model":"5","6":null,"slug":null,"7":"wsdc","dances":"wsdc","8":"1","is_wsdc":"1","9":"0","is_taf":"0","10":"0","is_bzdc":"0","11":"0","is_bachatacouncil":"0","12":null,"is_country":null,"13":"16fef866437adadc1822f69937ef7da7","img_header_md5":"16fef866437adadc1822f69937ef7da7","14":null,"facebook_event_id":null,"15":"2026-12-31 00:00:00","dt_event_from":"2026-12-31 00:00:00","16":"2027-01-05 23:59:00","dt_event_to":"2027-01-05 23:59:00","17":null,"city":null,"18":"178582","city_wikidata_id":"178582","19":"AUT","country":"AUT","20":"Europe\/Vienna","timezone":"Europe\/Vienna","21":"EUR","currency":"EUR","22":"","currency2":"","23":null,"paypal_email":null,"24":null,"paypal_fee_percent":null,"25":null,"stripe_api_private":null,"26":"acct_1S3lgNDm2gATOW3i","stripe_connect_account_id":"acct_1S3lgNDm2gATOW3i","27":"customer","stripe_connect_whotakesfees":"customer","28":"0","goo1_paypal_enabled":"0","29":null,"num_couples_floor":null,"30":"","url_ticket":"","31":null,"steprightsolution_sync_url":null,"32":null,"steprightsolution_sync_sleep":null,"33":null,"is_judge_hide_times":null,"34":null,"is_mockjudge_shownfront":null,"35":"0","allow_mockjudge_facebook":"0","36":"1","allow_mockjudge_patreon":"1","37":"1","allow_mockjudging_by_ed":"1","38":"1","allow_mockjudging_by_hj":"1","39":"0","is_mockjudge_free":"0","40":"1","bib2go_enabled":"1","41":null,"bib2go_resbib_start":null,"42":null,"bib2go_resbib_end":null,"43":"{\u0022num\u0022:{\u0022maxdanceronfloor\u0022:30}}","data":"{\u0022num\u0022:{\u0022maxdanceronfloor\u0022:30}}","44":"1970-01-01 01:00:00","dt_preregister_von":"1970-01-01 01:00:00","45":"1970-01-01 01:00:00","dt_preregister_bis":"1970-01-01 01:00:00","46":null,"dt_aktionspreis_von":null,"47":null,"dt_aktionspreis_bis":null,"48":null,"dt_awardresults":null,"49":null,"dt_publish":null,"50":null,"is_judgesschedule_visible":null,"51":null,"is_showschedule":null,"52":null,"is_emcee_awards_visible":null,"53":"0","is_closed":"0","54":null,"is_vaccinatedonly":null,"55":"scheduled","event_status":"scheduled","56":"1","visible":"1","57":"2026-02-08 15:36:47","stamp":"2026-02-08 15:36:47","58":null,"has_wall":null,"59":null,"danceapp_register_event_id":null,"60":null,"has_news":null,"country_name":"Austria","country_flag":"\/\/library.goo1.de\/flags\/AUT.png","city_name":"Wels","date_formatted":"12\/31\/2026-01\/05\/2027"},{"0":"421","id":"421","1":"Monterey Swingfest  2027","name":"Monterey Swingfest  2027","2":null,"festival_id":null,"3":"62","wsdc_event_id":"62","4":"1","event_type":"1","5":"5","calculation_model":"5","6":null,"slug":null,"7":"wsdc","dances":"wsdc","8":"1","is_wsdc":"1","9":"0","is_taf":"0","10":"0","is_bzdc":"0","11":"0","is_bachatacouncil":"0","12":null,"is_country":null,"13":"e0051c27b3b9935018c830fcc122889b","img_header_md5":"e0051c27b3b9935018c830fcc122889b","14":null,"facebook_event_id":null,"15":"2027-01-13 00:00:00","dt_event_from":"2027-01-13 00:00:00","16":"2027-01-18 23:59:00","dt_event_to":"2027-01-18 23:59:00","17":null,"city":null,"18":"487315","city_wikidata_id":"487315","19":"USA","country":"USA","20":"America\/Los_Angeles","timezone":"America\/Los_Angeles","21":"USD","currency":"USD","22":"","currency2":"","23":null,"paypal_email":null,"24":null,"paypal_fee_percent":null,"25":null,"stripe_api_private":null,"26":null,"stripe_connect_account_id":null,"27":"customer","stripe_connect_whotakesfees":"customer","28":"0","goo1_paypal_enabled":"0","29":null,"num_couples_floor":null,"30":"","url_ticket":"","31":null,"steprightsolution_sync_url":null,"32":null,"steprightsolution_sync_sleep":null,"33":null,"is_judge_hide_times":null,"34":null,"is_mockjudge_shownfront":null,"35":"0","allow_mockjudge_facebook":"0","36":"1","allow_mockjudge_patreon":"1","37":"1","allow_mockjudging_by_ed":"1","38":"1","allow_mockjudging_by_hj":"1","39":"0","is_mockjudge_free":"0","40":"1","bib2go_enabled":"1","41":null,"bib2go_resbib_start":null,"42":null,"bib2go_resbib_end":null,"43":"{\u0022registration\u0022:{\u0022ask_instagram_id\u0022:false,\u0022ask_picture\u0022:false},\u0022allowed_wifis\u0022:{\u0022judges\u0022:[]}}","data":"{\u0022registration\u0022:{\u0022ask_instagram_id\u0022:false,\u0022ask_picture\u0022:false},\u0022allowed_wifis\u0022:{\u0022judges\u0022:[]}}","44":"1970-01-01 01:00:00","dt_preregister_von":"1970-01-01 01:00:00","45":"1970-01-01 01:00:00","dt_preregister_bis":"1970-01-01 01:00:00","46":"2026-06-04 19:00:00","dt_aktionspreis_von":"2026-06-04 19:00:00","47":"2026-11-30 23:01:00","dt_aktionspreis_bis":"2026-11-30 23:01:00","48":null,"dt_awardresults":null,"49":null,"dt_publish":null,"50":"1","is_judgesschedule_visible":"1","51":"0","is_showschedule":"0","52":null,"is_emcee_awards_visible":null,"53":"0","is_closed":"0","54":null,"is_vaccinatedonly":null,"55":"scheduled","event_status":"scheduled","56":"1","visible":"1","57":"2026-06-04 02:20:32","stamp":"2026-06-04 02:20:32","58":null,"has_wall":null,"59":"195","danceapp_register_event_id":"195","60":null,"has_news":null,"country_name":"United States of America","country_flag":"\/\/library.goo1.de\/flags\/USA.png","city_name":"Monterey","date_formatted":"01\/13 - 01\/18\/2027"},{"0":"442","id":"442","1":"Rose City Swing 2027","name":"Rose City Swing 2027","2":null,"festival_id":null,"3":"244","wsdc_event_id":"244","4":"1","event_type":"1","5":"5","calculation_model":"5","6":null,"slug":null,"7":"wsdc","dances":"wsdc","8":"1","is_wsdc":"1","9":"0","is_taf":"0","10":"0","is_bzdc":"0","11":"0","is_bachatacouncil":"0","12":"0","is_country":"0","13":"ffaa60ab6c1c1ba33619ef00fea00e2f","img_header_md5":"ffaa60ab6c1c1ba33619ef00fea00e2f","14":null,"facebook_event_id":null,"15":"2027-02-25 00:00:00","dt_event_from":"2027-02-25 00:00:00","16":"2027-03-01 23:59:00","dt_event_to":"2027-03-01 23:59:00","17":null,"city":null,"18":"6106","city_wikidata_id":"6106","19":"USA","country":"USA","20":"America\/Los_Angeles","timezone":"America\/Los_Angeles","21":"USD","currency":"USD","22":"","currency2":"","23":null,"paypal_email":null,"24":null,"paypal_fee_percent":null,"25":null,"stripe_api_private":null,"26":null,"stripe_connect_account_id":null,"27":"customer","stripe_connect_whotakesfees":"customer","28":"0","goo1_paypal_enabled":"0","29":null,"num_couples_floor":null,"30":"","url_ticket":"","31":"https:\/\/rosecity-2025.srsdance.com\/export\/comps-json?api_key=276abd2cb8311c85e6bfe0d0c3e3d7d01971c88e193a1ae8506c6bf3ec8b665a","steprightsolution_sync_url":"https:\/\/rosecity-2025.srsdance.com\/export\/comps-json?api_key=276abd2cb8311c85e6bfe0d0c3e3d7d01971c88e193a1ae8506c6bf3ec8b665a","32":"5","steprightsolution_sync_sleep":"5","33":null,"is_judge_hide_times":null,"34":null,"is_mockjudge_shownfront":null,"35":"0","allow_mockjudge_facebook":"0","36":"1","allow_mockjudge_patreon":"1","37":"1","allow_mockjudging_by_ed":"1","38":"1","allow_mockjudging_by_hj":"1","39":"0","is_mockjudge_free":"0","40":"1","bib2go_enabled":"1","41":null,"bib2go_resbib_start":null,"42":null,"bib2go_resbib_end":null,"43":"{\u0022wsdc\u0022:{\u0022fee\u0022:{\u0022paymethod\u0022:\u0022self\u0022,\u0022cc\u0022:{\u0022month\u0022:\u002201\u0022,\u0022year\u0022:\u00222025\u0022}}},\u0022num\u0022:{\u0022maxdanceronfloor\u0022:25},\u0022registration\u0022:{\u0022ask_instagram_id\u0022:false,\u0022ask_picture\u0022:false},\u0022allowed_wifis\u0022:{\u0022judges\u0022:[]}}","data":"{\u0022wsdc\u0022:{\u0022fee\u0022:{\u0022paymethod\u0022:\u0022self\u0022,\u0022cc\u0022:{\u0022month\u0022:\u002201\u0022,\u0022year\u0022:\u00222025\u0022}}},\u0022num\u0022:{\u0022maxdanceronfloor\u0022:25},\u0022registration\u0022:{\u0022ask_instagram_id\u0022:false,\u0022ask_picture\u0022:false},\u0022allowed_wifis\u0022:{\u0022judges\u0022:[]}}","44":"1970-01-01 00:00:00","dt_preregister_von":"1970-01-01 00:00:00","45":"2027-03-01 23:59:00","dt_preregister_bis":"2027-03-01 23:59:00","46":"2026-01-01 20:07:00","dt_aktionspreis_von":"2026-01-01 20:07:00","47":"2027-02-26 00:00:00","dt_aktionspreis_bis":"2027-02-26 00:00:00","48":null,"dt_awardresults":null,"49":null,"dt_publish":null,"50":"1","is_judgesschedule_visible":"1","51":"0","is_showschedule":"0","52":null,"is_emcee_awards_visible":null,"53":"0","is_closed":"0","54":null,"is_vaccinatedonly":null,"55":"scheduled","event_status":"scheduled","56":"1","visible":"1","57":"2026-09-02 18:07:48","stamp":"2026-09-02 18:07:48","58":null,"has_wall":null,"59":"220","danceapp_register_event_id":"220","60":null,"has_news":null,"country_name":"United States of America","country_flag":"\/\/library.goo1.de\/flags\/USA.png","city_name":"Portland","date_formatted":"02\/25 - 03\/01\/2027"},{"0":"430","id":"430","1":"Asia WCS Open  2027","name":"Asia WCS Open  2027","2":null,"festival_id":null,"3":"218","wsdc_event_id":"218","4":"1","event_type":"1","5":"5","calculation_model":"5","6":null,"slug":null,"7":"wsdc","dances":"wsdc","8":"1","is_wsdc":"1","9":"0","is_taf":"0","10":"0","is_bzdc":"0","11":"0","is_bachatacouncil":"0","12":null,"is_country":null,"13":"ca862a1a86041ed5b368f65aa57c8e0c","img_header_md5":"ca862a1a86041ed5b368f65aa57c8e0c","14":null,"facebook_event_id":null,"15":"2027-04-15 00:00:00","dt_event_from":"2027-04-15 00:00:00","16":"2027-04-18 23:59:00","dt_event_to":"2027-04-18 23:59:00","17":null,"city":null,"18":"334","city_wikidata_id":"334","19":"SGP","country":"SGP","20":"Asia\/Singapore","timezone":"Asia\/Singapore","21":"USD","currency":"USD","22":"","currency2":"","23":null,"paypal_email":null,"24":null,"paypal_fee_percent":null,"25":null,"stripe_api_private":null,"26":null,"stripe_connect_account_id":null,"27":"customer","stripe_connect_whotakesfees":"customer","28":"0","goo1_paypal_enabled":"0","29":null,"num_couples_floor":null,"30":"","url_ticket":"","31":null,"steprightsolution_sync_url":null,"32":null,"steprightsolution_sync_sleep":null,"33":null,"is_judge_hide_times":null,"34":null,"is_mockjudge_shownfront":null,"35":"0","allow_mockjudge_facebook":"0","36":"1","allow_mockjudge_patreon":"1","37":"1","allow_mockjudging_by_ed":"1","38":"1","allow_mockjudging_by_hj":"1","39":"0","is_mockjudge_free":"0","40":"1","bib2go_enabled":"1","41":null,"bib2go_resbib_start":null,"42":null,"bib2go_resbib_end":null,"43":"{\u0022allowed_wifis\u0022:{\u0022judges\u0022:[]},\u0022wsdc\u0022:{\u0022fee\u0022:{\u0022paymethod\u0022:\u0022auto\u0022,\u0022cc\u0022:{\u0022month\u0022:\u002201\u0022,\u0022year\u0022:\u00222026\u0022}}},\u0022registration\u0022:{\u0022ask_instagram_id\u0022:false,\u0022ask_picture\u0022:false}}","data":"{\u0022allowed_wifis\u0022:{\u0022judges\u0022:[]},\u0022wsdc\u0022:{\u0022fee\u0022:{\u0022paymethod\u0022:\u0022auto\u0022,\u0022cc\u0022:{\u0022month\u0022:\u002201\u0022,\u0022year\u0022:\u00222026\u0022}}},\u0022registration\u0022:{\u0022ask_instagram_id\u0022:false,\u0022ask_picture\u0022:false}}","44":"1970-01-01 01:00:00","dt_preregister_von":"1970-01-01 01:00:00","45":"1970-01-01 01:00:00","dt_preregister_bis":"1970-01-01 01:00:00","46":null,"dt_aktionspreis_von":null,"47":null,"dt_aktionspreis_bis":null,"48":null,"dt_awardresults":null,"49":null,"dt_publish":null,"50":"1","is_judgesschedule_visible":"1","51":"1","is_showschedule":"1","52":"1","is_emcee_awards_visible":"1","53":"0","is_closed":"0","54":null,"is_vaccinatedonly":null,"55":"scheduled","event_status":"scheduled","56":"1","visible":"1","57":"2026-07-09 11:14:37","stamp":"2026-07-09 11:14:37","58":null,"has_wall":null,"59":null,"danceapp_register_event_id":null,"60":null,"has_news":null,"country_name":"Singapore","country_flag":"\/\/library.goo1.de\/flags\/SGP.png","city_name":"Singapore","date_formatted":"04\/15 - 04\/18\/2027"},{"0":"315","id":"315","1":"City Of Angels 2026","name":"City Of Angels 2026","2":null,"festival_id":null,"3":"187","wsdc_event_id":"187","4":"1","event_type":"1","5":"5","calculation_model":"5","6":null,"slug":null,"7":"wsdc","dances":"wsdc","8":"1","is_wsdc":"1","9":"0","is_taf":"0","10":"0","is_bzdc":"0","11":"0","is_bachatacouncil":"0","12":null,"is_country":null,"13":"3bcdcbf62ec13fc75a4f05b0e8ac2e7d","img_header_md5":"3bcdcbf62ec13fc75a4f05b0e8ac2e7d","14":null,"facebook_event_id":null,"15":"2027-04-29 00:00:00","dt_event_from":"2027-04-29 00:00:00","16":"2027-05-02 23:59:00","dt_event_to":"2027-05-02 23:59:00","17":null,"city":null,"18":null,"city_wikidata_id":null,"19":"USA","country":"USA","20":"America\/Los_Angeles","timezone":"America\/Los_Angeles","21":"USD","currency":"USD","22":"","currency2":"","23":null,"paypal_email":null,"24":null,"paypal_fee_percent":null,"25":null,"stripe_api_private":null,"26":null,"stripe_connect_account_id":null,"27":"customer","stripe_connect_whotakesfees":"customer","28":"0","goo1_paypal_enabled":"0","29":null,"num_couples_floor":null,"30":"","url_ticket":"","31":null,"steprightsolution_sync_url":null,"32":null,"steprightsolution_sync_sleep":null,"33":null,"is_judge_hide_times":null,"34":null,"is_mockjudge_shownfront":null,"35":"0","allow_mockjudge_facebook":"0","36":"1","allow_mockjudge_patreon":"1","37":"1","allow_mockjudging_by_ed":"1","38":"1","allow_mockjudging_by_hj":"1","39":"0","is_mockjudge_free":"0","40":"1","bib2go_enabled":"1","41":null,"bib2go_resbib_start":null,"42":null,"bib2go_resbib_end":null,"43":"{\u0022registration\u0022:{\u0022ask_instagram_id\u0022:false,\u0022ask_picture\u0022:false},\u0022allowed_wifis\u0022:{\u0022judges\u0022:[]}}","data":"{\u0022registration\u0022:{\u0022ask_instagram_id\u0022:false,\u0022ask_picture\u0022:false},\u0022allowed_wifis\u0022:{\u0022judges\u0022:[]}}","44":"2025-10-01 00:01:00","dt_preregister_von":"2025-10-01 00:01:00","45":"2026-04-12 23:59:00","dt_preregister_bis":"2026-04-12 23:59:00","46":null,"dt_aktionspreis_von":null,"47":null,"dt_aktionspreis_bis":null,"48":null,"dt_awardresults":null,"49":"2026-04-13 03:40:50","dt_publish":"2026-04-13 03:40:50","50":null,"is_judgesschedule_visible":null,"51":null,"is_showschedule":null,"52":"1","is_emcee_awards_visible":"1","53":"0","is_closed":"0","54":null,"is_vaccinatedonly":null,"55":"scheduled","event_status":"scheduled","56":"1","visible":"1","57":"2026-07-30 03:21:52","stamp":"2026-07-30 03:21:52","58":"1","has_wall":"1","59":"135","danceapp_register_event_id":"135","60":null,"has_news":null,"country_name":"United States of America","country_flag":"\/\/library.goo1.de\/flags\/USA.png","date_formatted":"04\/29 - 05\/02\/2027"},{"0":"431","id":"431","1":"Nanaimo Dance Fusion 2027","name":"Nanaimo Dance Fusion 2027","2":null,"festival_id":null,"3":"364","wsdc_event_id":"364","4":"1","event_type":"1","5":"5","calculation_model":"5","6":null,"slug":null,"7":"wsdc,country","dances":"wsdc,country","8":"1","is_wsdc":"1","9":"0","is_taf":"0","10":"0","is_bzdc":"0","11":"0","is_bachatacouncil":"0","12":null,"is_country":null,"13":"4e21409794078a8f7453c9fba24a2052","img_header_md5":"4e21409794078a8f7453c9fba24a2052","14":null,"facebook_event_id":null,"15":"2027-05-21 00:00:00","dt_event_from":"2027-05-21 00:00:00","16":"2027-05-23 23:59:00","dt_event_to":"2027-05-23 23:59:00","17":null,"city":null,"18":"16461","city_wikidata_id":"16461","19":"CAN","country":"CAN","20":"America\/Los_Angeles","timezone":"America\/Los_Angeles","21":"CAD","currency":"CAD","22":"","currency2":"","23":"","paypal_email":"","24":"0.000","paypal_fee_percent":"0.000","25":null,"stripe_api_private":null,"26":null,"stripe_connect_account_id":null,"27":"ed","stripe_connect_whotakesfees":"ed","28":"0","goo1_paypal_enabled":"0","29":"20","num_couples_floor":"20","30":"","url_ticket":"","31":null,"steprightsolution_sync_url":null,"32":null,"steprightsolution_sync_sleep":null,"33":null,"is_judge_hide_times":null,"34":null,"is_mockjudge_shownfront":null,"35":"0","allow_mockjudge_facebook":"0","36":"1","allow_mockjudge_patreon":"1","37":"1","allow_mockjudging_by_ed":"1","38":"1","allow_mockjudging_by_hj":"1","39":"0","is_mockjudge_free":"0","40":"1","bib2go_enabled":"1","41":null,"bib2go_resbib_start":null,"42":null,"bib2go_resbib_end":null,"43":"{\u0022num\u0022:{\u0022maxdanceronfloor\u0022:20},\u0022wsdc\u0022:{\u0022fee\u0022:{\u0022paymethod\u0022:\u0022self\u0022,\u0022cc\u0022:{\u0022month\u0022:\u002201\u0022,\u0022year\u0022:\u00222026\u0022}}},\u0022allowed_wifis\u0022:{\u0022judges\u0022:[]},\u0022registration\u0022:{\u0022ask_instagram_id\u0022:false,\u0022ask_picture\u0022:false}}","data":"{\u0022num\u0022:{\u0022maxdanceronfloor\u0022:20},\u0022wsdc\u0022:{\u0022fee\u0022:{\u0022paymethod\u0022:\u0022self\u0022,\u0022cc\u0022:{\u0022month\u0022:\u002201\u0022,\u0022year\u0022:\u00222026\u0022}}},\u0022allowed_wifis\u0022:{\u0022judges\u0022:[]},\u0022registration\u0022:{\u0022ask_instagram_id\u0022:false,\u0022ask_picture\u0022:false}}","44":"1970-01-01 01:00:00","dt_preregister_von":"1970-01-01 01:00:00","45":"1970-01-01 01:00:00","dt_preregister_bis":"1970-01-01 01:00:00","46":null,"dt_aktionspreis_von":null,"47":null,"dt_aktionspreis_bis":null,"48":null,"dt_awardresults":null,"49":null,"dt_publish":null,"50":null,"is_judgesschedule_visible":null,"51":null,"is_showschedule":null,"52":"1","is_emcee_awards_visible":"1","53":"0","is_closed":"0","54":null,"is_vaccinatedonly":null,"55":"scheduled","event_status":"scheduled","56":"1","visible":"1","57":"2026-07-15 19:25:35","stamp":"2026-07-15 19:25:35","58":null,"has_wall":null,"59":"207","danceapp_register_event_id":"207","60":null,"has_news":null,"country_name":"Canada","country_flag":"\/\/library.goo1.de\/flags\/CAN.png","city_name":"Nanaimo","date_formatted":"05\/21 - 05\/23\/2027"},{"0":"432","id":"432","1":"Revitalise WCS 2027","name":"Revitalise WCS 2027","2":null,"festival_id":null,"3":null,"wsdc_event_id":null,"4":"1","event_type":"1","5":"5","calculation_model":"5","6":null,"slug":null,"7":"wsdc","dances":"wsdc","8":"1","is_wsdc":"1","9":"0","is_taf":"0","10":"0","is_bzdc":"0","11":"0","is_bachatacouncil":"0","12":null,"is_country":null,"13":null,"img_header_md5":null,"14":null,"facebook_event_id":null,"15":"2027-07-15 00:00:00","dt_event_from":"2027-07-15 00:00:00","16":"2027-07-18 23:59:00","dt_event_to":"2027-07-18 23:59:00","17":null,"city":null,"18":"3141","city_wikidata_id":"3141","19":"AUS","country":"AUS","20":"Australia\/Melbourne","timezone":"Australia\/Melbourne","21":"AUD","currency":"AUD","22":"","currency2":"","23":null,"paypal_email":null,"24":null,"paypal_fee_percent":null,"25":null,"stripe_api_private":null,"26":null,"stripe_connect_account_id":null,"27":"customer","stripe_connect_whotakesfees":"customer","28":"0","goo1_paypal_enabled":"0","29":null,"num_couples_floor":null,"30":"","url_ticket":"","31":null,"steprightsolution_sync_url":null,"32":null,"steprightsolution_sync_sleep":null,"33":null,"is_judge_hide_times":null,"34":null,"is_mockjudge_shownfront":null,"35":"0","allow_mockjudge_facebook":"0","36":"1","allow_mockjudge_patreon":"1","37":"1","allow_mockjudging_by_ed":"1","38":"1","allow_mockjudging_by_hj":"1","39":"0","is_mockjudge_free":"0","40":"1","bib2go_enabled":"1","41":null,"bib2go_resbib_start":null,"42":null,"bib2go_resbib_end":null,"43":"{\u0022registration\u0022:{\u0022ask_instagram_id\u0022:false,\u0022ask_picture\u0022:false},\u0022allowed_wifis\u0022:{\u0022judges\u0022:[]}}","data":"{\u0022registration\u0022:{\u0022ask_instagram_id\u0022:false,\u0022ask_picture\u0022:false},\u0022allowed_wifis\u0022:{\u0022judges\u0022:[]}}","44":"1970-01-01 01:00:00","dt_preregister_von":"1970-01-01 01:00:00","45":"1970-01-01 01:00:00","dt_preregister_bis":"1970-01-01 01:00:00","46":null,"dt_aktionspreis_von":null,"47":null,"dt_aktionspreis_bis":null,"48":null,"dt_awardresults":null,"49":null,"dt_publish":null,"50":null,"is_judgesschedule_visible":null,"51":null,"is_showschedule":null,"52":null,"is_emcee_awards_visible":null,"53":"0","is_closed":"0","54":null,"is_vaccinatedonly":null,"55":"scheduled","event_status":"scheduled","56":"1","visible":"1","57":"2026-07-21 13:38:34","stamp":"2026-07-21 13:38:34","58":null,"has_wall":null,"59":"212","danceapp_register_event_id":"212","60":null,"has_news":null,"country_name":"Australia","country_flag":"\/\/library.goo1.de\/flags\/AUS.png","city_name":"Melbourne","date_formatted":"07\/15 - 07\/18\/2027"},{"0":"434","id":"434","1":"City Of Angels 2027","name":"City Of Angels 2027","2":null,"festival_id":null,"3":"187","wsdc_event_id":"187","4":"1","event_type":"1","5":"5","calculation_model":"5","6":null,"slug":null,"7":"wsdc","dances":"wsdc","8":"1","is_wsdc":"1","9":"0","is_taf":"0","10":"0","is_bzdc":"0","11":"0","is_bachatacouncil":"0","12":null,"is_country":null,"13":"3bcdcbf62ec13fc75a4f05b0e8ac2e7d","img_header_md5":"3bcdcbf62ec13fc75a4f05b0e8ac2e7d","14":null,"facebook_event_id":null,"15":"2028-04-28 00:00:00","dt_event_from":"2028-04-28 00:00:00","16":"2028-05-01 23:59:00","dt_event_to":"2028-05-01 23:59:00","17":null,"city":null,"18":null,"city_wikidata_id":null,"19":"USA","country":"USA","20":"America\/Los_Angeles","timezone":"America\/Los_Angeles","21":"USD","currency":"USD","22":"","currency2":"","23":null,"paypal_email":null,"24":null,"paypal_fee_percent":null,"25":null,"stripe_api_private":null,"26":null,"stripe_connect_account_id":null,"27":"customer","stripe_connect_whotakesfees":"customer","28":"0","goo1_paypal_enabled":"0","29":null,"num_couples_floor":null,"30":"","url_ticket":"","31":null,"steprightsolution_sync_url":null,"32":null,"steprightsolution_sync_sleep":null,"33":null,"is_judge_hide_times":null,"34":null,"is_mockjudge_shownfront":null,"35":"0","allow_mockjudge_facebook":"0","36":"1","allow_mockjudge_patreon":"1","37":"1","allow_mockjudging_by_ed":"1","38":"1","allow_mockjudging_by_hj":"1","39":"0","is_mockjudge_free":"0","40":"1","bib2go_enabled":"1","41":null,"bib2go_resbib_start":null,"42":null,"bib2go_resbib_end":null,"43":"{\u0022registration\u0022:{\u0022ask_instagram_id\u0022:false,\u0022ask_picture\u0022:false},\u0022allowed_wifis\u0022:{\u0022judges\u0022:[]}}","data":"{\u0022registration\u0022:{\u0022ask_instagram_id\u0022:false,\u0022ask_picture\u0022:false},\u0022allowed_wifis\u0022:{\u0022judges\u0022:[]}}","44":null,"dt_preregister_von":null,"45":null,"dt_preregister_bis":null,"46":null,"dt_aktionspreis_von":null,"47":null,"dt_aktionspreis_bis":null,"48":null,"dt_awardresults":null,"49":null,"dt_publish":null,"50":null,"is_judgesschedule_visible":null,"51":null,"is_showschedule":null,"52":"1","is_emcee_awards_visible":"1","53":"0","is_closed":"0","54":null,"is_vaccinatedonly":null,"55":"scheduled","event_status":"scheduled","56":"1","visible":"1","57":"2026-07-30 03:22:48","stamp":"2026-07-30 03:22:48","58":null,"has_wall":null,"59":"215","danceapp_register_event_id":"215","60":null,"has_news":null,"country_name":"United States of America","country_flag":"\/\/library.goo1.de\/flags\/USA.png","date_formatted":"04\/28 - 05\/01\/2028"},{"0":"402","id":"402","1":"Glow City Swing 2026","name":"Glow City Swing 2026","2":null,"festival_id":null,"3":null,"wsdc_event_id":null,"4":"1","event_type":"1","5":"5","calculation_model":"5","6":null,"slug":null,"7":"wsdc","dances":"wsdc","8":"1","is_wsdc":"1","9":"0","is_taf":"0","10":"0","is_bzdc":"0","11":"0","is_bachatacouncil":"0","12":null,"is_country":null,"13":"5d5192d328068e1d902e84a6f4db351a","img_header_md5":"5d5192d328068e1d902e84a6f4db351a","14":null,"facebook_event_id":null,"15":"2028-09-18 00:00:00","dt_event_from":"2028-09-18 00:00:00","16":"2028-09-20 23:59:00","dt_event_to":"2028-09-20 23:59:00","17":null,"city":null,"18":null,"city_wikidata_id":null,"19":"NLD","country":"NLD","20":"Europe\/Amsterdam","timezone":"Europe\/Amsterdam","21":"EUR","currency":"EUR","22":"","currency2":"","23":null,"paypal_email":null,"24":null,"paypal_fee_percent":null,"25":null,"stripe_api_private":null,"26":null,"stripe_connect_account_id":null,"27":"customer","stripe_connect_whotakesfees":"customer","28":"0","goo1_paypal_enabled":"0","29":null,"num_couples_floor":null,"30":"https:\/\/www.wcsineindhoven.nl\/glowcityswing","url_ticket":"https:\/\/www.wcsineindhoven.nl\/glowcityswing","31":null,"steprightsolution_sync_url":null,"32":null,"steprightsolution_sync_sleep":null,"33":null,"is_judge_hide_times":null,"34":null,"is_mockjudge_shownfront":null,"35":"0","allow_mockjudge_facebook":"0","36":"1","allow_mockjudge_patreon":"1","37":"1","allow_mockjudging_by_ed":"1","38":"1","allow_mockjudging_by_hj":"1","39":"0","is_mockjudge_free":"0","40":"1","bib2go_enabled":"1","41":null,"bib2go_resbib_start":null,"42":null,"bib2go_resbib_end":null,"43":"{\u0022registration\u0022:{\u0022ask_instagram_id\u0022:false,\u0022ask_picture\u0022:false},\u0022allowed_wifis\u0022:{\u0022judges\u0022:[]}}","data":"{\u0022registration\u0022:{\u0022ask_instagram_id\u0022:false,\u0022ask_picture\u0022:false},\u0022allowed_wifis\u0022:{\u0022judges\u0022:[]}}","44":"1970-01-01 01:00:00","dt_preregister_von":"1970-01-01 01:00:00","45":"1970-01-01 01:00:00","dt_preregister_bis":"1970-01-01 01:00:00","46":null,"dt_aktionspreis_von":null,"47":null,"dt_aktionspreis_bis":null,"48":null,"dt_awardresults":null,"49":null,"dt_publish":null,"50":null,"is_judgesschedule_visible":null,"51":null,"is_showschedule":null,"52":null,"is_emcee_awards_visible":null,"53":"0","is_closed":"0","54":null,"is_vaccinatedonly":null,"55":"scheduled","event_status":"scheduled","56":"1","visible":"1","57":"2026-06-18 10:30:12","stamp":"2026-06-18 10:30:12","58":null,"has_wall":null,"59":null,"danceapp_register_event_id":null,"60":null,"has_news":null,"country_name":"Netherlands","country_flag":"\/\/library.goo1.de\/flags\/NLD.png","date_formatted":"09\/18 - 09\/20\/2028"},{"0":"377","id":"377","1":"*** NEW Event","name":"*** NEW Event","2":null,"festival_id":null,"3":null,"wsdc_event_id":null,"4":"1","event_type":"1","5":"5","calculation_model":"5","6":null,"slug":null,"7":"wsdc","dances":"wsdc","8":"1","is_wsdc":"1","9":"0","is_taf":"0","10":"0","is_bzdc":"0","11":"0","is_bachatacouncil":"0","12":null,"is_country":null,"13":null,"img_header_md5":null,"14":null,"facebook_event_id":null,"15":"2030-02-13 00:00:00","dt_event_from":"2030-02-13 00:00:00","16":"2030-02-13 23:59:00","dt_event_to":"2030-02-13 23:59:00","17":null,"city":null,"18":null,"city_wikidata_id":null,"19":"","country":"","20":"","timezone":"","21":"EUR","currency":"EUR","22":"","currency2":"","23":null,"paypal_email":null,"24":null,"paypal_fee_percent":null,"25":null,"stripe_api_private":null,"26":null,"stripe_connect_account_id":null,"27":"customer","stripe_connect_whotakesfees":"customer","28":"0","goo1_paypal_enabled":"0","29":null,"num_couples_floor":null,"30":"","url_ticket":"","31":null,"steprightsolution_sync_url":null,"32":null,"steprightsolution_sync_sleep":null,"33":null,"is_judge_hide_times":null,"34":null,"is_mockjudge_shownfront":null,"35":"0","allow_mockjudge_facebook":"0","36":"1","allow_mockjudge_patreon":"1","37":"1","allow_mockjudging_by_ed":"1","38":"1","allow_mockjudging_by_hj":"1","39":"0","is_mockjudge_free":"0","40":"1","bib2go_enabled":"1","41":null,"bib2go_resbib_start":null,"42":null,"bib2go_resbib_end":null,"43":"[]","data":"[]","44":"1970-01-01 01:00:00","dt_preregister_von":"1970-01-01 01:00:00","45":"1970-01-01 01:00:00","dt_preregister_bis":"1970-01-01 01:00:00","46":null,"dt_aktionspreis_von":null,"47":null,"dt_aktionspreis_bis":null,"48":null,"dt_awardresults":null,"49":null,"dt_publish":null,"50":null,"is_judgesschedule_visible":null,"51":null,"is_showschedule":null,"52":null,"is_emcee_awards_visible":null,"53":"0","is_closed":"0","54":null,"is_vaccinatedonly":null,"55":"scheduled","event_status":"scheduled","56":"1","visible":"1","57":"2026-02-13 12:44:11","stamp":"2026-02-13 12:44:11","58":null,"has_wall":null,"59":null,"danceapp_register_event_id":null,"60":null,"has_news":null,"date_formatted":"02\/13\/2030"}]);
+    
+    // Remove skeleton loader
+    document.getElementById('skeleton-loader')?.remove();
+
+    // Set initial filter from URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const typeParam = urlParams.get('type');
+    if (typeParam) {
+      this.activeFilter = typeParam;
+    }
+  }
+}).mount('#app');
+</script>
+
+<script type="application/ld+json">[{"@context":"http:\/\/www.schema.org","@type":"Event","name":"Bavarian Open 2026","url":"https:\/\/scoring.dance\/enUS\/events\/438","description":"Dance event","startDate":"2026-09-10T00:00:00+02:00","endDate":"2026-09-14T23:59:00+02:00","location":{"@type":"Place","name":"Bavarian Open 2026","address":{"@type":"PostalAddress","addressLocality":"Munich","addressCountry":"Germany"}},"image":["https:\/\/scoring.dance\/images\/header\/4496b35be74e3099195c8ef49ffc17e5.jpg"],"offers":{"@type":"Offer","availability":"https:\/\/schema.org\/InStock","price":15,"priceCurrency":"EUR","validFrom":"2026-09-08T20:19:02+02:00","url":"https:\/\/scoring.dance\/enUS\/events\/438"},"eventAttendanceMode":"MixedEventAttendanceMode","eventStatus":"EventScheduled","performer":{"@type":"PerformingGroup","name":"Dance Event"},"organizer":{"@type":"Person","name":"Bavarian Open 2026","url":"https:\/\/scoring.dance\/enUS\/events\/438"}},{"@context":"http:\/\/www.schema.org","@type":"Event","name":"WCSParty 2026","url":"https:\/\/scoring.dance\/enUS\/events\/441","description":"Dance event","startDate":"2026-09-17T00:00:00+02:00","endDate":"2026-09-20T23:59:00+02:00","location":{"@type":"Place","name":"WCSParty 2026","address":{"@type":"PostalAddress","addressLocality":"Vienna","addressCountry":"Austria"}},"image":["https:\/\/scoring.dance\/images\/header\/3efcdfb3f9bed9e3923547fa8f238813.jpg"],"offers":{"@type":"Offer","availability":"https:\/\/schema.org\/InStock","price":15,"priceCurrency":"EUR","validFrom":"2026-09-08T16:30:08+02:00","url":"https:\/\/scoring.dance\/enUS\/events\/441"},"eventAttendanceMode":"MixedEventAttendanceMode","eventStatus":"EventScheduled","performer":{"@type":"PerformingGroup","name":"Dance Event"},"organizer":{"@type":"Person","name":"WCSParty 2026","url":"https:\/\/scoring.dance\/enUS\/events\/441"}},{"@context":"http:\/\/www.schema.org","@type":"Event","name":"Global Grand Prix WCS 2026","url":"https:\/\/scoring.dance\/enUS\/events\/428","description":"Dance event","startDate":"2026-09-18T00:00:00+02:00","endDate":"2026-09-20T23:59:00+02:00","location":{"@type":"Place","name":"Global Grand Prix WCS 2026","address":{"@type":"PostalAddress","addressLocality":"Paris","addressCountry":"France"}},"image":["https:\/\/scoring.dance\/images\/header\/8b9d09502fac2756cb4c47e35326d2b7.jpg"],"offers":{"@type":"Offer","availability":"https:\/\/schema.org\/InStock","price":15,"priceCurrency":"EUR","validFrom":"2026-08-27T12:32:22+02:00","url":"https:\/\/scoring.dance\/enUS\/events\/428"},"eventAttendanceMode":"MixedEventAttendanceMode","eventStatus":"EventScheduled","performer":{"@type":"PerformingGroup","name":"Dance Event"},"organizer":{"@type":"Person","name":"Pascale Mas","url":"https:\/\/scoring.dance\/enUS\/events\/428"}},{"@context":"http:\/\/www.schema.org","@type":"Event","name":"Aloha Open 2026","url":"https:\/\/scoring.dance\/enUS\/events\/375","description":"Dance event","startDate":"2026-09-23T00:00:00+02:00","endDate":"2026-09-27T23:59:00+02:00","location":{"@type":"Place","name":"Aloha Open 2026","address":{"@type":"PostalAddress"}},"image":["https:\/\/scoring.dance\/images\/header\/3ab3f388e43115bc94ee09ebcd9b550a.jpg"],"offers":{"@type":"Offer","availability":"https:\/\/schema.org\/InStock","price":15,"priceCurrency":"USD","validFrom":"2026-02-07T22:45:29+01:00","url":"https:\/\/scoring.dance\/enUS\/events\/375"},"eventAttendanceMode":"MixedEventAttendanceMode","eventStatus":"EventScheduled","performer":{"@type":"PerformingGroup","name":"Dance Event"},"organizer":{"@type":"Person","name":"Aloha Open 2026","url":"https:\/\/scoring.dance\/enUS\/events\/375"}},{"@context":"http:\/\/www.schema.org","@type":"Event","name":"Calgary Town Open 2026","url":"https:\/\/scoring.dance\/enUS\/events\/414","description":"Dance event","startDate":"2026-09-24T00:00:00+02:00","endDate":"2026-09-27T23:59:00+02:00","location":{"@type":"Place","name":"Calgary Town Open 2026","address":{"@type":"PostalAddress","addressLocality":"Calgary","addressCountry":"Canada"}},"image":["https:\/\/scoring.dance\/images\/header\/9d10c999cd81b78584bb618052cd5a7a.jpg"],"offers":{"@type":"Offer","availability":"https:\/\/schema.org\/InStock","price":15,"priceCurrency":"CAD","validFrom":"2026-05-09T17:50:04+02:00","url":"https:\/\/scoring.dance\/enUS\/events\/414"},"eventAttendanceMode":"MixedEventAttendanceMode","eventStatus":"EventScheduled","performer":{"@type":"PerformingGroup","name":"Dance Event"},"organizer":{"@type":"Person","name":"Calgary Town Open 2026","url":"https:\/\/scoring.dance\/enUS\/events\/414"}},{"@context":"http:\/\/www.schema.org","@type":"Event","name":"Midland Swing Open 2026","url":"https:\/\/scoring.dance\/enUS\/events\/444","description":"Dance event","startDate":"2026-09-24T00:00:00+02:00","endDate":"2026-09-28T23:59:00+02:00","location":{"@type":"Place","name":"Midland Swing Open 2026","address":{"@type":"PostalAddress","addressLocality":"London","addressCountry":"United Kingdom"}},"image":["https:\/\/scoring.dance\/images\/header\/3db9540e4d2ab1711e307cefff7377cd.jpg"],"offers":{"@type":"Offer","availability":"https:\/\/schema.org\/InStock","price":15,"priceCurrency":"GBP","validFrom":"2026-09-07T20:02:34+02:00","url":"https:\/\/scoring.dance\/enUS\/events\/444"},"eventAttendanceMode":"MixedEventAttendanceMode","eventStatus":"EventScheduled","performer":{"@type":"PerformingGroup","name":"Dance Event"},"organizer":{"@type":"Person","name":"Midland Swing Open 2026","url":"https:\/\/scoring.dance\/enUS\/events\/444"}},{"@context":"http:\/\/www.schema.org","@type":"Event","name":"Westie Harbor 2026","url":"https:\/\/scoring.dance\/enUS\/events\/423","description":"Dance event","startDate":"2026-10-01T00:00:00+02:00","endDate":"2026-10-05T23:59:00+02:00","location":{"@type":"Place","name":"Westie Harbor 2026","address":{"@type":"PostalAddress"}},"image":["https:\/\/scoring.dance\/images\/header\/e91b4f871dfbc935fe98b0d6d76f23b3.jpg"],"offers":{"@type":"Offer","availability":"https:\/\/schema.org\/InStock","price":15,"priceCurrency":"EUR","validFrom":"2026-09-08T08:34:33+02:00","url":"https:\/\/scoring.dance\/enUS\/events\/423"},"eventAttendanceMode":"MixedEventAttendanceMode","eventStatus":"EventScheduled","performer":{"@type":"PerformingGroup","name":"Dance Event"},"organizer":{"@type":"Person","name":"Westie Harbor 2026","url":"https:\/\/scoring.dance\/enUS\/events\/423"}},{"@context":"http:\/\/www.schema.org","@type":"Event","name":"Norwegian Open 2026","url":"https:\/\/scoring.dance\/enUS\/events\/443","description":"Dance event","startDate":"2026-10-01T00:00:00+02:00","endDate":"2026-10-05T23:59:00+02:00","location":{"@type":"Place","name":"Norwegian Open 2026","address":{"@type":"PostalAddress","addressLocality":"Oslo","addressCountry":"Norway"}},"image":["https:\/\/scoring.dance\/images\/header\/f88a561eec95625559022c9033007c90.jpg"],"offers":{"@type":"Offer","availability":"https:\/\/schema.org\/InStock","price":15,"priceCurrency":"NOK","validFrom":"2026-09-07T11:57:06+02:00","url":"https:\/\/scoring.dance\/enUS\/events\/443"},"eventAttendanceMode":"MixedEventAttendanceMode","eventStatus":"EventScheduled","performer":{"@type":"PerformingGroup","name":"Dance Event"},"organizer":{"@type":"Person","name":"Norwegian Open 2026","url":"https:\/\/scoring.dance\/enUS\/events\/443"}},{"@context":"http:\/\/www.schema.org","@type":"Event","name":"Boogie By the Bay 2026","url":"https:\/\/scoring.dance\/enUS\/events\/408","description":"Dance event","startDate":"2026-10-08T00:00:00+02:00","endDate":"2026-10-11T23:59:00+02:00","location":{"@type":"Place","name":"Boogie By the Bay 2026","address":{"@type":"PostalAddress","addressLocality":"Burlingame","addressCountry":"United States of America"}},"offers":{"@type":"Offer","availability":"https:\/\/schema.org\/InStock","price":15,"priceCurrency":"USD","validFrom":"2026-04-25T18:10:04+02:00","url":"https:\/\/scoring.dance\/enUS\/events\/408"},"eventAttendanceMode":"MixedEventAttendanceMode","eventStatus":"EventScheduled","performer":{"@type":"PerformingGroup","name":"Dance Event"},"organizer":{"@type":"Person","name":"Boogie By the Bay 2026","url":"https:\/\/scoring.dance\/enUS\/events\/408"}},{"@context":"http:\/\/www.schema.org","@type":"Event","name":"WCS Festival D\u00fcsseldorf 2026","url":"https:\/\/scoring.dance\/enUS\/events\/379","description":"Dance event","startDate":"2026-10-15T00:00:00+02:00","endDate":"2026-10-19T23:59:00+02:00","location":{"@type":"Place","name":"WCS Festival D\u00fcsseldorf 2026","address":{"@type":"PostalAddress","addressLocality":"D\u00fcsseldorf","addressCountry":"Germany"}},"image":["https:\/\/scoring.dance\/images\/header\/5c75d93380eeef9f9af6cfdff88a339a.jpg"],"offers":{"@type":"Offer","availability":"https:\/\/schema.org\/InStock","price":15,"priceCurrency":"EUR","validFrom":"2026-02-15T12:17:58+01:00","url":"https:\/\/scoring.dance\/enUS\/events\/379"},"eventAttendanceMode":"MixedEventAttendanceMode","eventStatus":"EventScheduled","performer":{"@type":"PerformingGroup","name":"Dance Event"},"organizer":{"@type":"Person","name":"WCS Festival D\u00fcsseldorf 2026","url":"https:\/\/scoring.dance\/enUS\/events\/379"}},{"@context":"http:\/\/www.schema.org","@type":"Event","name":"Swingside Invitational 2026","url":"https:\/\/scoring.dance\/enUS\/events\/440","description":"Dance event","startDate":"2026-10-23T00:00:00+02:00","endDate":"2026-10-25T23:59:00+01:00","location":{"@type":"Place","name":"Swingside Invitational 2026","address":{"@type":"PostalAddress","addressLocality":"Li\u00e8ge","addressCountry":"Belgium"}},"image":["https:\/\/scoring.dance\/images\/header\/f29820f4dbbb7febb17a0264b82669b9.jpg"],"offers":{"@type":"Offer","availability":"https:\/\/schema.org\/InStock","price":15,"priceCurrency":"EUR","validFrom":"2026-08-26T14:08:20+02:00","url":"https:\/\/scoring.dance\/enUS\/events\/440"},"eventAttendanceMode":"MixedEventAttendanceMode","eventStatus":"EventScheduled","performer":{"@type":"PerformingGroup","name":"Dance Event"},"organizer":{"@type":"Person","name":"Pascale Mas","url":"https:\/\/scoring.dance\/enUS\/events\/440"}},{"@context":"http:\/\/www.schema.org","@type":"Event","name":"Scandinavian Open 2026 [SNOW]","url":"https:\/\/scoring.dance\/enUS\/events\/433","description":"Dance event","startDate":"2026-10-28T00:00:00+01:00","endDate":"2026-11-02T23:59:00+01:00","location":{"@type":"Place","name":"Scandinavian Open 2026 [SNOW]","address":{"@type":"PostalAddress","addressLocality":"Stockholm","addressCountry":"Sweden"}},"image":["https:\/\/scoring.dance\/images\/header\/5d8865c4a3bb3855d39f91565f2558ea.jpg"],"offers":{"@type":"Offer","availability":"https:\/\/schema.org\/InStock","price":15,"priceCurrency":"SEK","validFrom":"2026-09-07T18:29:21+02:00","url":"https:\/\/scoring.dance\/enUS\/events\/433"},"eventAttendanceMode":"MixedEventAttendanceMode","eventStatus":"EventScheduled","performer":{"@type":"PerformingGroup","name":"Dance Event"},"organizer":{"@type":"Person","name":"Arnaud Perga","url":"https:\/\/scoring.dance\/enUS\/events\/433"}},{"@context":"http:\/\/www.schema.org","@type":"Event","name":"Spooky Westie Weekend 2026","url":"https:\/\/scoring.dance\/enUS\/events\/429","description":"Dance event","startDate":"2026-10-29T00:00:00+01:00","endDate":"2026-11-01T23:59:00+01:00","location":{"@type":"Place","name":"Spooky Westie Weekend 2026","address":{"@type":"PostalAddress","addressLocality":"Singapore","addressCountry":"Singapore"}},"offers":{"@type":"Offer","availability":"https:\/\/schema.org\/InStock","price":15,"priceCurrency":"SGD","validFrom":"2026-07-10T15:18:25+02:00","url":"https:\/\/scoring.dance\/enUS\/events\/429"},"eventAttendanceMode":"MixedEventAttendanceMode","eventStatus":"EventScheduled","performer":{"@type":"PerformingGroup","name":"Dance Event"},"organizer":{"@type":"Person","name":"Spooky Westie Weekend 2026","url":"https:\/\/scoring.dance\/enUS\/events\/429"}},{"@context":"http:\/\/www.schema.org","@type":"Event","name":"Warsaw Halloween Swing 2026","url":"https:\/\/scoring.dance\/enUS\/events\/435","description":"Dance event","startDate":"2026-10-29T00:00:00+01:00","endDate":"2026-11-02T23:59:00+01:00","location":{"@type":"Place","name":"Warsaw Halloween Swing 2026","address":{"@type":"PostalAddress","addressLocality":"Warsaw","addressCountry":"Poland"}},"image":["https:\/\/scoring.dance\/images\/header\/10bb3965683bf291d02361db8c2aa593.jpg"],"offers":{"@type":"Offer","availability":"https:\/\/schema.org\/InStock","price":15,"priceCurrency":"PLN","validFrom":"2026-08-01T14:46:22+02:00","url":"https:\/\/scoring.dance\/enUS\/events\/435"},"eventAttendanceMode":"MixedEventAttendanceMode","eventStatus":"EventScheduled","performer":{"@type":"PerformingGroup","name":"Dance Event"},"organizer":{"@type":"Person","name":"Wayne and Aggie Powell","url":"https:\/\/scoring.dance\/enUS\/events\/435"}},{"@context":"http:\/\/www.schema.org","@type":"Event","name":"Sea to Sky 2026","url":"https:\/\/scoring.dance\/enUS\/events\/406","description":"Dance event","startDate":"2026-11-05T00:00:00+01:00","endDate":"2026-11-09T23:59:00+01:00","location":{"@type":"Place","name":"Sea to Sky 2026","address":{"@type":"PostalAddress","addressLocality":"Seattle","addressCountry":"United States of America"}},"image":["https:\/\/scoring.dance\/images\/header\/cc8bd9902d71b1fa487fb79d00341910.jpg"],"offers":{"@type":"Offer","availability":"https:\/\/schema.org\/InStock","price":15,"priceCurrency":"USD","validFrom":"2026-04-21T23:59:06+02:00","url":"https:\/\/scoring.dance\/enUS\/events\/406"},"eventAttendanceMode":"MixedEventAttendanceMode","eventStatus":"EventScheduled","performer":{"@type":"PerformingGroup","name":"Dance Event"},"organizer":{"@type":"Person","name":"Sea to Sky 2026","url":"https:\/\/scoring.dance\/enUS\/events\/406"}},{"@context":"http:\/\/www.schema.org","@type":"Event","name":"Santa Swing 2026","url":"https:\/\/scoring.dance\/enUS\/events\/439","description":"Dance event","startDate":"2026-12-10T00:00:00+01:00","endDate":"2026-12-14T23:59:00+01:00","location":{"@type":"Place","name":"Santa Swing 2026","address":{"@type":"PostalAddress","addressLocality":"Krak\u00f3w","addressCountry":"Poland"}},"image":["https:\/\/scoring.dance\/images\/header\/884acf6b5f79779baf51e7710a3b9f74.jpg"],"offers":{"@type":"Offer","availability":"https:\/\/schema.org\/InStock","price":15,"priceCurrency":"PLN","validFrom":"2026-08-16T18:25:10+02:00","url":"https:\/\/scoring.dance\/enUS\/events\/439"},"eventAttendanceMode":"MixedEventAttendanceMode","eventStatus":"EventScheduled","performer":{"@type":"PerformingGroup","name":"Dance Event"},"organizer":{"@type":"Person","name":"Santa Swing 2026","url":"https:\/\/scoring.dance\/enUS\/events\/439"}},{"@context":"http:\/\/www.schema.org","@type":"Event","name":"Swiss Open 2026","url":"https:\/\/scoring.dance\/enUS\/events\/426","description":"Dance event","startDate":"2026-12-18T00:00:00+01:00","endDate":"2026-12-20T23:59:00+01:00","location":{"@type":"Place","name":"Swiss Open 2026","address":{"@type":"PostalAddress","addressLocality":"Geneva","addressCountry":"Switzerland"}},"image":["https:\/\/scoring.dance\/images\/header\/3fc0f5e797d238e0d233a72ea14d67ce.jpg"],"offers":{"@type":"Offer","availability":"https:\/\/schema.org\/InStock","price":15,"priceCurrency":"CHF","validFrom":"2026-07-05T14:50:10+02:00","url":"https:\/\/scoring.dance\/enUS\/events\/426"},"eventAttendanceMode":"MixedEventAttendanceMode","eventStatus":"EventScheduled","performer":{"@type":"PerformingGroup","name":"Dance Event"},"organizer":{"@type":"Person","name":"Swiss Open 2026","url":"https:\/\/scoring.dance\/enUS\/events\/426"}},{"@context":"http:\/\/www.schema.org","@type":"Event","name":"SwingVester 2026\/27 WSDC","url":"https:\/\/scoring.dance\/enUS\/events\/350","description":"Dance event","startDate":"2026-12-31T00:00:00+01:00","endDate":"2027-01-05T23:59:00+01:00","location":{"@type":"Place","name":"SwingVester 2026\/27 WSDC","address":{"@type":"PostalAddress","addressLocality":"Wels","addressCountry":"Austria"}},"image":["https:\/\/scoring.dance\/images\/header\/16fef866437adadc1822f69937ef7da7.jpg"],"offers":{"@type":"Offer","availability":"https:\/\/schema.org\/InStock","price":15,"priceCurrency":"EUR","validFrom":"2026-02-08T15:36:47+01:00","url":"https:\/\/scoring.dance\/enUS\/events\/350"},"eventAttendanceMode":"MixedEventAttendanceMode","eventStatus":"EventScheduled","performer":{"@type":"PerformingGroup","name":"Dance Event"},"organizer":{"@type":"Person","name":"SwingVester 2026\/27 WSDC","url":"https:\/\/scoring.dance\/enUS\/events\/350"}},{"@context":"http:\/\/www.schema.org","@type":"Event","name":"Monterey Swingfest  2027","url":"https:\/\/scoring.dance\/enUS\/events\/421","description":"Dance event","startDate":"2027-01-13T00:00:00+01:00","endDate":"2027-01-18T23:59:00+01:00","location":{"@type":"Place","name":"Monterey Swingfest  2027","address":{"@type":"PostalAddress","addressLocality":"Monterey","addressCountry":"United States of America"}},"image":["https:\/\/scoring.dance\/images\/header\/e0051c27b3b9935018c830fcc122889b.jpg"],"offers":{"@type":"Offer","availability":"https:\/\/schema.org\/InStock","price":15,"priceCurrency":"USD","validFrom":"2026-06-04T02:20:32+02:00","url":"https:\/\/scoring.dance\/enUS\/events\/421"},"eventAttendanceMode":"MixedEventAttendanceMode","eventStatus":"EventScheduled","performer":{"@type":"PerformingGroup","name":"Dance Event"},"organizer":{"@type":"Person","name":"Monterey Swingfest  2027","url":"https:\/\/scoring.dance\/enUS\/events\/421"}},{"@context":"http:\/\/www.schema.org","@type":"Event","name":"Rose City Swing 2027","url":"https:\/\/scoring.dance\/enUS\/events\/442","description":"Dance event","startDate":"2027-02-25T00:00:00+01:00","endDate":"2027-03-01T23:59:00+01:00","location":{"@type":"Place","name":"Rose City Swing 2027","address":{"@type":"PostalAddress","addressLocality":"Portland","addressCountry":"United States of America"}},"image":["https:\/\/scoring.dance\/images\/header\/ffaa60ab6c1c1ba33619ef00fea00e2f.jpg"],"offers":{"@type":"Offer","availability":"https:\/\/schema.org\/InStock","price":15,"priceCurrency":"USD","validFrom":"2026-09-02T18:07:48+02:00","url":"https:\/\/scoring.dance\/enUS\/events\/442"},"eventAttendanceMode":"MixedEventAttendanceMode","eventStatus":"EventScheduled","performer":{"@type":"PerformingGroup","name":"Dance Event"},"organizer":{"@type":"Person","name":"Rose City Swing 2027","url":"https:\/\/scoring.dance\/enUS\/events\/442"}},{"@context":"http:\/\/www.schema.org","@type":"Event","name":"Asia WCS Open  2027","url":"https:\/\/scoring.dance\/enUS\/events\/430","description":"Dance event","startDate":"2027-04-15T00:00:00+02:00","endDate":"2027-04-18T23:59:00+02:00","location":{"@type":"Place","name":"Asia WCS Open  2027","address":{"@type":"PostalAddress","addressLocality":"Singapore","addressCountry":"Singapore"}},"image":["https:\/\/scoring.dance\/images\/header\/ca862a1a86041ed5b368f65aa57c8e0c.jpg"],"offers":{"@type":"Offer","availability":"https:\/\/schema.org\/InStock","price":15,"priceCurrency":"USD","validFrom":"2026-07-09T11:14:37+02:00","url":"https:\/\/scoring.dance\/enUS\/events\/430"},"eventAttendanceMode":"MixedEventAttendanceMode","eventStatus":"EventScheduled","performer":{"@type":"PerformingGroup","name":"Dance Event"},"organizer":{"@type":"Person","name":"Asia WCS Open  2027","url":"https:\/\/scoring.dance\/enUS\/events\/430"}},{"@context":"http:\/\/www.schema.org","@type":"Event","name":"City Of Angels 2026","url":"https:\/\/scoring.dance\/enUS\/events\/315","description":"Dance event","startDate":"2027-04-29T00:00:00+02:00","endDate":"2027-05-02T23:59:00+02:00","location":{"@type":"Place","name":"City Of Angels 2026","address":{"@type":"PostalAddress"}},"image":["https:\/\/scoring.dance\/images\/header\/3bcdcbf62ec13fc75a4f05b0e8ac2e7d.jpg"],"offers":{"@type":"Offer","availability":"https:\/\/schema.org\/InStock","price":15,"priceCurrency":"USD","validFrom":"2026-07-30T03:21:52+02:00","url":"https:\/\/scoring.dance\/enUS\/events\/315"},"eventAttendanceMode":"MixedEventAttendanceMode","eventStatus":"EventScheduled","performer":{"@type":"PerformingGroup","name":"Dance Event"},"organizer":{"@type":"Person","name":"City Of Angels 2026","url":"https:\/\/scoring.dance\/enUS\/events\/315"}},{"@context":"http:\/\/www.schema.org","@type":"Event","name":"Nanaimo Dance Fusion 2027","url":"https:\/\/scoring.dance\/enUS\/events\/431","description":"Dance event","startDate":"2027-05-21T00:00:00+02:00","endDate":"2027-05-23T23:59:00+02:00","location":{"@type":"Place","name":"Nanaimo Dance Fusion 2027","address":{"@type":"PostalAddress","addressLocality":"Nanaimo","addressCountry":"Canada"}},"image":["https:\/\/scoring.dance\/images\/header\/4e21409794078a8f7453c9fba24a2052.jpg"],"offers":{"@type":"Offer","availability":"https:\/\/schema.org\/InStock","price":15,"priceCurrency":"CAD","validFrom":"2026-07-15T19:25:35+02:00","url":"https:\/\/scoring.dance\/enUS\/events\/431"},"eventAttendanceMode":"MixedEventAttendanceMode","eventStatus":"EventScheduled","performer":{"@type":"PerformingGroup","name":"Dance Event"},"organizer":{"@type":"Person","name":"Nanaimo Dance Fusion 2027","url":"https:\/\/scoring.dance\/enUS\/events\/431"}},{"@context":"http:\/\/www.schema.org","@type":"Event","name":"Revitalise WCS 2027","url":"https:\/\/scoring.dance\/enUS\/events\/432","description":"Dance event","startDate":"2027-07-15T00:00:00+02:00","endDate":"2027-07-18T23:59:00+02:00","location":{"@type":"Place","name":"Revitalise WCS 2027","address":{"@type":"PostalAddress","addressLocality":"Melbourne","addressCountry":"Australia"}},"offers":{"@type":"Offer","availability":"https:\/\/schema.org\/InStock","price":15,"priceCurrency":"AUD","validFrom":"2026-07-21T13:38:34+02:00","url":"https:\/\/scoring.dance\/enUS\/events\/432"},"eventAttendanceMode":"MixedEventAttendanceMode","eventStatus":"EventScheduled","performer":{"@type":"PerformingGroup","name":"Dance Event"},"organizer":{"@type":"Person","name":"Revitalise WCS 2027","url":"https:\/\/scoring.dance\/enUS\/events\/432"}},{"@context":"http:\/\/www.schema.org","@type":"Event","name":"City Of Angels 2027","url":"https:\/\/scoring.dance\/enUS\/events\/434","description":"Dance event","startDate":"2028-04-28T00:00:00+02:00","endDate":"2028-05-01T23:59:00+02:00","location":{"@type":"Place","name":"City Of Angels 2027","address":{"@type":"PostalAddress"}},"image":["https:\/\/scoring.dance\/images\/header\/3bcdcbf62ec13fc75a4f05b0e8ac2e7d.jpg"],"offers":{"@type":"Offer","availability":"https:\/\/schema.org\/InStock","price":15,"priceCurrency":"USD","validFrom":"2026-07-30T03:22:48+02:00","url":"https:\/\/scoring.dance\/enUS\/events\/434"},"eventAttendanceMode":"MixedEventAttendanceMode","eventStatus":"EventScheduled","performer":{"@type":"PerformingGroup","name":"Dance Event"},"organizer":{"@type":"Person","name":"City Of Angels 2027","url":"https:\/\/scoring.dance\/enUS\/events\/434"}},{"@context":"http:\/\/www.schema.org","@type":"Event","name":"Glow City Swing 2026","url":"https:\/\/scoring.dance\/enUS\/events\/402","description":"Dance event","startDate":"2028-09-18T00:00:00+02:00","endDate":"2028-09-20T23:59:00+02:00","location":{"@type":"Place","name":"Glow City Swing 2026","address":{"@type":"PostalAddress"}},"image":["https:\/\/scoring.dance\/images\/header\/5d5192d328068e1d902e84a6f4db351a.jpg"],"offers":{"@type":"Offer","availability":"https:\/\/schema.org\/InStock","price":15,"priceCurrency":"EUR","validFrom":"2026-06-18T10:30:12+02:00","url":"https:\/\/scoring.dance\/enUS\/events\/402"},"eventAttendanceMode":"MixedEventAttendanceMode","eventStatus":"EventScheduled","performer":{"@type":"PerformingGroup","name":"Dance Event"},"organizer":{"@type":"Person","name":"Glow City Swing 2026","url":"https:\/\/scoring.dance\/enUS\/events\/402"}},{"@context":"http:\/\/www.schema.org","@type":"Event","name":"*** NEW Event","url":"https:\/\/scoring.dance\/enUS\/events\/377","description":"Dance event","startDate":"2030-02-13T00:00:00+01:00","endDate":"2030-02-13T23:59:00+01:00","location":{"@type":"Place","name":"*** NEW Event","address":{"@type":"PostalAddress"}},"offers":{"@type":"Offer","availability":"https:\/\/schema.org\/InStock","price":15,"priceCurrency":"EUR","validFrom":"2026-02-13T12:44:11+01:00","url":"https:\/\/scoring.dance\/enUS\/events\/377"},"eventAttendanceMode":"MixedEventAttendanceMode","eventStatus":"EventScheduled","performer":{"@type":"PerformingGroup","name":"Dance Event"},"organizer":{"@type":"Person","name":"*** NEW Event","url":"https:\/\/scoring.dance\/enUS\/events\/377"}}]</script>    </main>
+
+    <style>
+#dks-consent{position:fixed;left:0;right:0;bottom:0;z-index:2147483000;background:#1b1b1b;color:#f2f2f2;
+  box-shadow:0 -0.5rem 1.5rem rgba(0,0,0,.4);font-size:.9rem;line-height:1.4;padding:1rem 1rem calc(1rem + env(safe-area-inset-bottom))}
+#dks-consent[hidden]{display:none}
+#dks-consent .dks-wrap{max-width:1100px;margin:0 auto;display:flex;flex-wrap:wrap;gap:1rem;align-items:center;justify-content:space-between}
+#dks-consent h2{font-size:1rem;margin:0 0 .25rem}
+#dks-consent a{color:#8ec5ff;text-decoration:underline}
+#dks-consent .dks-opts{display:flex;flex-wrap:wrap;gap:.75rem 1.25rem;margin:.5rem 0}
+#dks-consent .dks-opts label{display:inline-flex;align-items:center;gap:.4rem;margin:0;font-weight:400}
+#dks-consent .dks-btns{display:flex;flex-wrap:wrap;gap:.5rem}
+#dks-consent button{border:0;border-radius:.35rem;padding:.5rem 1rem;font-size:.9rem;cursor:pointer;font-weight:600}
+#dks-consent .dks-accept{background:#2e7d32;color:#fff}
+#dks-consent .dks-save{background:#495057;color:#fff}
+#dks-consent .dks-reject{background:transparent;color:#ddd;text-decoration:underline;font-weight:400}
+</style>
+
+<div id="dks-consent" role="dialog" aria-live="polite" aria-label="Privacy settings" hidden>
+  <div class="dks-wrap">
+    <div style="flex:1 1 340px;min-width:280px">
+      <h2>We value your privacy</h2>
+      <div>We use cookies and similar technologies. Necessary ones are required for the site to work. Optional ones (statistics, marketing) are only used with your consent.        <a href="/datenschutz" target="_blank" rel="nofollow">data privacy</a> ·
+        <a href="/impressum" target="_blank" rel="nofollow">Imprint</a></div>
+      <div class="dks-opts">
+        <label><input type="checkbox" checked disabled> Necessary</label>
+        <label><input type="checkbox" id="dks-cb-statistics"> Statistics</label>
+        <label><input type="checkbox" id="dks-cb-marketing"> Marketing</label>
+      </div>
+    </div>
+    <div class="dks-btns">
+      <button type="button" class="dks-accept" id="dks-accept">Accept all</button>
+      <button type="button" class="dks-save" id="dks-save">Save selection</button>
+      <button type="button" class="dks-reject" id="dks-reject">Necessary only</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var KEY = "dks_consent";
+  var CATS = ["statistics","marketing"];
+  var queue = { statistics: [], marketing: [] };
+
+  function readCookie(){
+    try {
+      var m = document.cookie.match(/(?:^|;\s*)dks_consent=([^;]+)/);
+      if (!m) return null;
+      return JSON.parse(decodeURIComponent(m[1]));
+    } catch(e){ return null; }
+  }
+  function writeCookie(state){
+    var val = encodeURIComponent(JSON.stringify(state));
+    var secure = (location.protocol === "https:") ? "; Secure" : "";
+    document.cookie = KEY + "=" + val + "; path=/; max-age=" + (60*60*24*180) + "; SameSite=Lax" + secure;
+  }
+
+  var state = readCookie();
+
+  function flush(){
+    CATS.forEach(function(c){
+      if (state && state[c]) {
+        (queue[c] || []).forEach(function(fn){ try { fn(); } catch(e){} });
+        queue[c] = [];
+      }
+    });
+  }
+  function banner(){ return document.getElementById("dks-consent"); }
+  function show(){ var b = banner(); if (b) b.hidden = false; }
+  function hide(){ var b = banner(); if (b) b.hidden = true; }
+
+  function persist(stat, mark){
+    state = { v: 1, necessary: true, statistics: !!stat, marketing: !!mark, ts: Math.floor(Date.now()/1000) };
+    writeCookie(state);
+    hide();
+    flush();
+  }
+
+  window.dksConsent = {
+    get: function(cat){ return !!(state && state[cat]); },
+    // Führt fn sofort aus, wenn die Kategorie erlaubt ist, sonst sobald eingewilligt wird.
+    onGrant: function(cat, fn){
+      if (this.get(cat)) { try { fn(); } catch(e){} }
+      else if (queue[cat]) queue[cat].push(fn);
+    },
+    open: function(){
+      var s = document.getElementById("dks-cb-statistics"), m = document.getElementById("dks-cb-marketing");
+      if (s) s.checked = !!(state && state.statistics);
+      if (m) m.checked = !!(state && state.marketing);
+      show();
+    }
+  };
+
+  document.addEventListener("DOMContentLoaded", function(){
+    var accept = document.getElementById("dks-accept");
+    var save   = document.getElementById("dks-save");
+    var reject = document.getElementById("dks-reject");
+    if (accept) accept.addEventListener("click", function(){ persist(true, true); });
+    if (reject) reject.addEventListener("click", function(){ persist(false, false); });
+    if (save)   save.addEventListener("click", function(){
+      persist(
+        !!(document.getElementById("dks-cb-statistics") || {}).checked,
+        !!(document.getElementById("dks-cb-marketing") || {}).checked
+      );
+    });
+    // Beim ersten Besuch (noch keine Entscheidung) Banner zeigen.
+    if (!state) show();
+  });
+})();
+</script>
+
+    <footer class="pt-4 pb-5 d-print-none ">
+    <div class="container"><div class="row"><div class="col-auto" style="font-size: 8px;">
+      &copy; <a href="https://danceapp.net" target="_blank" rel="nofollow">Danceapp</a> 
+      <!--<a href="https://www.facebook.com/AndiKDance/"  target="_blank" rel="nofollow">Andreas Kasper</a>--> v0.1.260909<script>
+  try {
+    document.writeln(" bs"+bootstrap.Tooltip.VERSION);
+    document.writeln(" vu"+Vue.version);
+  } catch (err) {}
+</script>
+    <div id="webpushr_sid"></div>
+<script>
+  function _webpushrScriptReady(){
+    webpushr('fetch_id',function (sid) { 
+        //save id to database
+        console.log('webpushr subscriber id: ' + sid)
+        $("#webpushr_sid").html("WebPushr-SID: "+sid);
+        $("#webpushr-prompt-wrapper").css("display","none");
+        $(document).trigger("webpushr_sid", sid);
+    });
+  }
+</script>
+    </div>
+      <div class="col-auto" style="font-size:0.8rem;">
+        <!--<a href="https://m.me/dancescoring" target="_blank" class="d-block d-md-inline mb-1 mr-1" rel="nofollow"><i class="fab fa-facebook"></i><i class="far fa-robot"></i><span class="d-inline d-md-none"> Chatbot Facebook Messenger</span></a>-->
+        <a href="https://t.me/DanceScoreBot" target="_blank" class="d-block d-md-inline mb-1 mr-1" rel="nofollow"><i class="fab fa-telegram"></i><i class="far fa-robot"></i><span class="d-inline d-md-none"> Chatbot Telegram</span></a>
+        <a href="https://github.com/andreaskasper/scoringCE/issues" target="_blank" class="d-block d-md-inline mb-1 mr-1" rel="nofollow"><i class="fas fa-bug"></i> bug found</a>
+        <a href="/enUS/translate" class="d-block d-md-inline mb-1 mr-1" TARGET="_blank" rel="nofollow"><i class="far fa-language"></i> please help to translate this page into your language</a>
+                <a href="https://www.patreon.com/AndreasKasper" class="d-block d-md-inline mb-1 mr-1" TARGET="_blank" rel="nofollow"><i class="far fa-donate"></i> support us</a>
+        <a href="https://rapidapi.com/goo1/api/scoring-dance" class="d-block d-md-inline mb-1 mr-1" TARGET="_blank" rel="nofollow"><i class="fa-solid fa-code"></i> API</a>
+        <a href="/datenschutz" class="d-block d-md-inline mb-1 mr-1" TARGET="_blank" rel="nofollow">data privacy</a>
+        <a href="/impressum" class="d-block d-md-inline mb-1 mr-1" TARGET="_blank" rel="nofollow">Imprint</a>
+        <a href="#" onclick="if(window.dksConsent){dksConsent.open();}return false;" class="d-block d-md-inline mb-1 mr-1" rel="nofollow">Cookie settings</a>
+        <a href="https://calcsi.com"><i class="fa-regular fa-calculator"></i></a>
+        
+  </div>
+  <div class="col-auto">
+<div id="fb-root"></div>
+  <script async defer crossorigin="anonymous" src="https://connect.facebook.net/en_US/sdk.js#xfbml=1&version=v3.3&appId=330218967890303&autoLogAppEvents=1"></script><div class="fb-share-button" data-href="https://scoring.dance/" data-layout="button_count" data-size="small"><a target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fscoring.dance%2F&amp;src=sdkpreparse" class="fb-xfbml-parse-ignore">Share with other</a></div>  </div></div>
+      </div></footer>
+
+<!-- start webpushr tracking code (nur mit Marketing-Einwilligung) -->
+<script>
+window.dksConsent && dksConsent.onGrant("marketing", function(){
+(function(w,d, s, id) {if(typeof(w.webpushr)!=='undefined') return;w.webpushr=w.webpushr||function(){(w.webpushr.q=w.webpushr.q||[]).push(arguments)};var js, fjs = d.getElementsByTagName(s)[0];js = d.createElement(s); js.id = id;js.async=1;js.src = "https://cdn.webpushr.com/app.min.js";
+fjs.parentNode.appendChild(js);}(window,document, 'script', 'webpushr-jssdk'));
+webpushr('setup',{'key':'BJANqDvin764ySQNqrsGDR3tJstkuhfRQNJ22gJptkjkHW33MF4gZ-PjiGOutjmAAhDvmI5kfPTokHVr6UGOU7Q' });
+});
+</script>
+<!-- end webpushr tracking code -->
+
+<style>
+#webpushr-prompt-wrapper prompticon3 {
+  bottom: 20px !important;
+  left: 20px !important;
+  right: auto !important;
+  z-index: 99999 !important;
+}
+</style>
+
+
+
+
+
+
+
+<link href="https://cdn.jsdelivr.net/npm/@n8n/chat/dist/style.css" rel="stylesheet" />
+<script type="module">
+	import { createChat } from 'https://cdn.jsdelivr.net/npm/@n8n/chat/dist/chat.bundle.es.js';
+	createChat({"webhookUrl":"https:\/\/n8n.goo1.de\/webhook\/34c7c03f-2390-43dd-9615-78c2c456893b\/chat?lang=enUS","defaultLanguage":"en","initialMessages":["Hi there! \ud83d\udc4b","My name is Anna. How can I assist you today?"],"i18n":{"en":{"title":"scoring.dance Support [beta]","subtitle":"","footer":"abc","getStarted":"New Conversation","inputPlaceholder":"Type your question\u2026"}},"metadata":{"current_url":"scoring.dance\/enUS\/","language":"enUS"},"enableStreaming":false});
+</script>
+<style>
+  #n8n-chat .chat-layout .chat-header h1 { font-size: 1.25rem; font-weight: normal; }
+  #n8n-chat .chat-window-wrapper .chat-window-toggle { background: #444444; width: 1cm; height: 1cm; }
+</style>
+
+  </body>
+</html>
