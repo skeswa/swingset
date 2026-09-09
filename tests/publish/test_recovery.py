@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 from swingset.build.files import canonical_json
-from swingset.publish.service import PublishError, RemoteCommit, expected_parent, publish
+from swingset.publish.service import PublishError, RemoteCommit, expected_parent, publish, reconcile
 
 
 class FakeHub:
@@ -114,6 +114,7 @@ def test_saved_receipt_promotes_without_network(tmp_path: Path) -> None:
     result = publish(tmp_path, proposed, OfflineHub())
     assert result.state == "promoted"
     assert (tmp_path / "baseline").resolve() == proposed.resolve()
+    assert not (proposed / "PUBLISHING").exists()
 
 
 def test_failure_after_receipt_recovers_without_second_commit(
@@ -128,9 +129,11 @@ def test_failure_after_receipt_recovers_without_second_commit(
     with pytest.raises(OSError, match="disk"):
         publish(tmp_path, proposed, hub)
     assert (proposed / "PUBLISHED").exists()
+    assert (proposed / "PUBLISHING").exists()
     monkeypatch.setattr(service, "_promote", real_promote)
     publish(tmp_path, proposed, hub)
     assert hub.calls == 1
+    assert not (proposed / "PUBLISHING").exists()
 
 
 def test_request_that_never_lands_retries_same_candidate(tmp_path: Path) -> None:
@@ -167,3 +170,24 @@ def test_bootstrap_accepts_repository_without_manifest_and_rejects_dataset(tmp_p
     hub.commits["base"] = RemoteCommit("base", None, "existing", "hash", {})
     with pytest.raises(PublishError, match="not empty"):
         expected_parent(tmp_path, hub)
+
+
+def test_two_successful_publications_do_not_leave_historical_intent(tmp_path: Path) -> None:
+    hub = FakeHub()
+    first = candidate(tmp_path, "cand_first")
+    assert publish(tmp_path, first, hub).commit == "commit-1"
+    assert not (first / "PUBLISHING").exists()
+
+    second = candidate(tmp_path, "cand_second")
+    built = json.loads((second / "BUILT").read_text())
+    built.update(baseline_commit="commit-1", expected_parent="commit-1")
+    (second / "BUILT").write_bytes(canonical_json(built))
+    assert publish(tmp_path, second, hub).commit == "commit-2"
+    assert not (second / "PUBLISHING").exists()
+    assert (tmp_path / "baseline").resolve() == second.resolve()
+
+    # A marker retained by an older release is an ancestor receipt, not pending work.
+    (first / "PUBLISHING").write_text("{}")
+    assert reconcile(tmp_path, hub, dry_run=False).state == "none"
+    assert (tmp_path / "baseline").resolve() == second.resolve()
+    assert hub.calls == 2

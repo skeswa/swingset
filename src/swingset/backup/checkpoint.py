@@ -12,7 +12,7 @@ from typing import Any
 
 from swingset.build.files import canonical_json, durable_write, fsync_dir, sha256_file
 from swingset.clock import Clock
-from swingset.publish.service import Hub, RemoteCommit
+from swingset.publish.service import Hub, RemoteCommit, pending_candidates
 
 
 @dataclass(frozen=True)
@@ -108,9 +108,7 @@ def _referenced_candidates(state_dir: Path) -> set[Path]:
         result.add(baseline.resolve())
     candidates = state_dir / "candidates"
     if candidates.exists():
-        result.update(
-            path.resolve() for path in candidates.iterdir() if (path / "PUBLISHING").is_file()
-        )
+        result.update(path.resolve() for path in pending_candidates(state_dir))
     return result
 
 
@@ -342,16 +340,9 @@ def verify_restored_public(state_dir: Path, hub: Hub) -> None:
     marker = state_dir / "RESTORE_PENDING"
     if not marker.is_file():
         raise CheckpointError("restore marker is missing")
-    candidates = state_dir / "candidates"
     baseline_link = state_dir / "baseline"
     baseline_path = baseline_link.resolve() if baseline_link.is_symlink() else None
-    candidate_paths = candidates.iterdir() if candidates.exists() else ()
-    pending = [
-        path
-        for path in candidate_paths
-        if (path / "PUBLISHING").is_file()
-        and (baseline_path is None or path.resolve() != baseline_path)
-    ]
+    pending = pending_candidates(state_dir)
     if len(pending) > 1:
         raise CheckpointError("restored checkpoint has multiple pending candidates")
     baseline = baseline_path
@@ -397,6 +388,11 @@ def _restore_promote(state_dir: Path, candidate: Path) -> None:
     os.symlink(Path("candidates") / candidate.name, temporary)
     os.replace(temporary, state_dir / "baseline")
     fsync_dir(state_dir)
+    try:
+        (candidate / "PUBLISHING").unlink()
+    except FileNotFoundError:
+        pass
+    fsync_dir(candidate)
 
 
 def garbage_collect(state_dir: Path, *, older_than: float, now: float) -> list[Path]:

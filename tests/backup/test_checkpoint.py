@@ -194,6 +194,25 @@ def test_remote_ahead_keeps_restore_disabled(tmp_path: Path) -> None:
     assert (restored / "RESTORE_PENDING").exists()
 
 
+def test_restore_ignores_historical_published_intent_from_old_checkpoint(
+    tmp_path: Path,
+) -> None:
+    restored = tmp_path / "restored"
+    connection = state(restored)
+    connection.close()
+    historical = restored / "candidates" / "cand_historical"
+    historical.mkdir()
+    (historical / "BUILT").write_text('{"expected_parent":"initial"}')
+    (historical / "PUBLISHED").write_text('{"commit":"old"}')
+    (historical / "PUBLISHING").write_text("{}")
+    (restored / "RESTORE_PENDING").write_text("verification pending\n")
+
+    verify_restored_public(restored, StaticHub("abc"))
+
+    assert (restored / "baseline").resolve().name == "cand_base"
+    assert (historical / "PUBLISHING").exists()
+
+
 def test_restore_recovers_landed_pending_candidate_without_publish(tmp_path: Path) -> None:
     source = tmp_path / "source"
     connection = state(source)

@@ -134,15 +134,9 @@ def doctor(args: argparse.Namespace) -> dict[str, Any]:
                     "ON m.source=e.source AND m.source_ref=e.source_ref WHERE m.event_id IS NULL)"
                 ).fetchone()[0]
             )
-    result["pending_candidates"] = [
-        path.name
-        for path in (args.state / "candidates").glob("*")
-        if (path / "PUBLISHING").exists()
-        and (
-            not (args.state / "baseline").is_symlink()
-            or path.resolve() != (args.state / "baseline").resolve()
-        )
-    ]
+    from swingset.publish.service import pending_candidates
+
+    result["pending_candidates"] = [path.name for path in pending_candidates(args.state)]
     from swingset.schedule.cycle import baseline_commit
 
     result["last_publish"] = baseline_commit(args.state)

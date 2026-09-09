@@ -56,15 +56,31 @@ def expected_parent(state_dir: Path, hub: Hub) -> str | None:
     raise PublishError("public repository is not empty; restore it or review its unrelated head")
 
 
-def _pending(state_dir: Path) -> Path | None:
+def pending_candidates(state_dir: Path) -> list[Path]:
+    """Return active intents, ignoring receipts from ancestors of the baseline."""
     candidates = state_dir / "candidates"
     if not candidates.exists():
-        return None
-    found = [
-        path
-        for path in candidates.iterdir()
-        if (path / "PUBLISHING").is_file() and not _is_baseline(state_dir, path)
-    ]
+        return []
+    baseline_link = state_dir / "baseline"
+    baseline = baseline_link.resolve() if baseline_link.is_symlink() else None
+    baseline_commit = None
+    if baseline is not None:
+        baseline_commit = str(json.loads((baseline / "PUBLISHED").read_text())["commit"])
+    found = []
+    for path in candidates.iterdir():
+        if not (path / "PUBLISHING").is_file() or _is_baseline(state_dir, path):
+            continue
+        receipt = path / "PUBLISHED"
+        if receipt.is_file() and baseline_commit is not None:
+            built = json.loads((path / "BUILT").read_text())
+            if built.get("expected_parent") != baseline_commit:
+                continue
+        found.append(path)
+    return found
+
+
+def _pending(state_dir: Path) -> Path | None:
+    found = pending_candidates(state_dir)
     if len(found) > 1:
         raise PublishError("more than one pending publication")
     return found[0] if found else None
@@ -85,6 +101,11 @@ def _promote(state_dir: Path, candidate: Path) -> None:
     os.symlink(relative, temporary)
     os.replace(temporary, state_dir / "baseline")
     fsync_dir(state_dir)
+    try:
+        (candidate / "PUBLISHING").unlink()
+    except FileNotFoundError:
+        pass
+    fsync_dir(candidate)
 
 
 def _verify_remote(candidate: Path, remote: RemoteCommit, built: dict[str, object]) -> None:
