@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import json
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from types import SimpleNamespace
+
+import pytest
 
 from swingset.backup.checkpoint import create_checkpoint, restore_checkpoint
 from swingset.build.input import read_build_input
@@ -214,3 +217,31 @@ def test_crosscheck_finding_is_a_build_input_and_survives_restore(tmp_path: Path
             == 1
         )
         assert Archive(restored).read_body(body_hash) == dump.read_bytes()
+
+
+def test_crosscheck_accepts_mechstack_dancer_ids_only_in_full_dump_shape(tmp_path: Path) -> None:
+    full_dump = {
+        "dancers": [{"id": 7, "first_name": "Ada", "last_name": "Lovelace"}],
+        "divisions": [],
+        "event_occurrences": [],
+        "events": [],
+        "placements": [],
+        "roles": [],
+        "upcoming_events": [],
+    }
+    dump = tmp_path / "data.json"
+    dump.write_text(json.dumps(full_dump))
+    with open_database(tmp_path / "state") as database:
+        run = database.start_run(NOW, dry_run=True)
+        assert crosscheck(database, dump, Archive(database.state_dir), NOW, run) == 1
+        finding = database.connection.execute(
+            "SELECT subject_id,evidence_json FROM findings WHERE kind='registry_diff'"
+        ).fetchone()
+        assert finding[0] == "7"
+        assert '"first_name":"Ada"' in finding[1]
+
+    dump.write_text('[{"id":7,"first_name":"Ada"}]')
+    with open_database(tmp_path / "bare-state") as database:
+        run = database.start_run(NOW, dry_run=True)
+        with pytest.raises(ValueError, match="lacks wscid/wsdc_id"):
+            crosscheck(database, dump, Archive(database.state_dir), NOW, run)

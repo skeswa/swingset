@@ -187,6 +187,11 @@ def replay_crosscheck(
 
 def _crosscheck_body(database: Database, body: bytes, sha: str, now: datetime, run_id: str) -> int:
     data: Any = json.loads(body)
+    comparison_dump = (
+        isinstance(data, dict)
+        and isinstance(data.get("dancers"), list)
+        and {"divisions", "event_occurrences", "events", "placements", "roles"} <= data.keys()
+    )
     if isinstance(data, dict):
         data = data.get("dancers", data)
         if isinstance(data, dict):
@@ -202,6 +207,8 @@ def _crosscheck_body(database: Database, body: bytes, sha: str, now: datetime, r
     seen = set()
     for row in data:
         number = row.get("wscid", row.get("wsdc_id"))
+        if number is None and comparison_dump:
+            number = row.get("id")
         if number is None:
             raise ValueError("dump row lacks wscid/wsdc_id; refusing guessed internal ids")
         number = int(number)
