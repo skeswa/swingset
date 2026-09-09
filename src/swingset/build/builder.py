@@ -6,8 +6,8 @@ import os
 import shutil
 import sqlite3
 import uuid
-from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
+from collections.abc import Callable, Mapping, Sequence
+from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 from enum import StrEnum
 from pathlib import Path
@@ -170,7 +170,7 @@ def _validate(rows: Mapping[str, list[dict[str, Any]]]) -> None:
         if wsdc_id is not None and row.get("link_status") not in allowed:
             raise BuildError(f"linked entry {row.get('entry_id')} has invalid link status")
         if wsdc_id is not None and row.get("bib") is not None:
-            key = row.get("event_id"), row.get("role"), row.get("bib")
+            key = row.get("contest_id"), row.get("role"), row.get("bib")
             previous = bib_links.setdefault(key, wsdc_id)
             if previous != wsdc_id:
                 raise BuildError(f"bib {key!r} maps to multiple WSDC ids")
@@ -310,6 +310,7 @@ def build_candidate(
     meta: BuildMetadata,
     *,
     suppressions: Sequence[Mapping[str, Any]] = (),
+    card_renderer: Callable[[BuildInput], bytes] | None = None,
 ) -> BuildResult:
     state_dir.mkdir(parents=True, exist_ok=True)
     baseline, baseline_commit, baseline_content = _baseline(state_dir)
@@ -379,7 +380,10 @@ def build_candidate(
                 path = table_dir / f"{table_name}.parquet"
                 _write_parquet(table, path)
                 hashes[path.relative_to(temporary).as_posix()] = sha256_file(path)
-        (temporary / "README.md").write_bytes(meta.card)
+        # Counts and coverage must describe the final rows, including the
+        # generated changelog and applied suppressions.
+        card = card_renderer(replace(data, tables=rows)) if card_renderer else meta.card
+        (temporary / "README.md").write_bytes(card)
         hashes["README.md"] = sha256_file(temporary / "README.md")
         (temporary / "LICENSE").write_bytes(DATASET_LICENSE)
         hashes["LICENSE"] = sha256_file(temporary / "LICENSE")

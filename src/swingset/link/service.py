@@ -25,7 +25,7 @@ from .score import Weights, score_candidate
 if TYPE_CHECKING:
     from swingset.state.inputs import InputBundle
 
-LINKER_VERSION = "2"
+LINKER_VERSION = "3"
 
 
 def _source_ids(database: Database, event_id: str) -> dict[str, int]:
@@ -148,7 +148,7 @@ def link_event(
     event_year = int(event[0]) if event else None
     source_ids = _source_ids(database, event_id)
     entry_rows = conn.execute(
-        "SELECT e.entry_id,e.name_raw,e.role,e.wsdc_id,c.division,e.bib FROM entries e JOIN contests c USING(contest_id) WHERE e.event_id=?",
+        "SELECT e.entry_id,e.name_raw,e.role,e.wsdc_id,c.division,e.bib,e.contest_id FROM entries e JOIN contests c USING(contest_id) WHERE e.event_id=?",
         (event_id,),
     ).fetchall()
     judge_rows = conn.execute(
@@ -164,6 +164,7 @@ def link_event(
             event_year,
             source_ids.get(normalize_name(str(row[1] or "")).value),
             str(row[5]) if row[5] is not None else None,
+            str(row[6]),
         )
         for row in entry_rows
     ]
@@ -194,13 +195,15 @@ def link_event(
     surname_counts = Counter(
         d.name_raw.casefold().split()[-1] for d in dancers if d.name_raw.split()
     )
-    bib_counts = Counter((subject.role, subject.bib) for subject in subjects if subject.bib)
-    source_id_groups: dict[tuple[str, int], set[str]] = {}
+    bib_counts = Counter(
+        (subject.contest_id, subject.role, subject.bib) for subject in subjects if subject.bib
+    )
+    source_id_groups: dict[tuple[str | None, str, int], set[str]] = {}
     for subject in subjects:
         if subject.source_wsdc_id is not None:
-            source_id_groups.setdefault((subject.role, subject.source_wsdc_id), set()).add(
-                subject.bib or subject.subject_id
-            )
+            source_id_groups.setdefault(
+                (subject.contest_id, subject.role, subject.source_wsdc_id), set()
+            ).add(subject.bib or subject.subject_id)
     for subject in subjects:
         pool = [
             d
@@ -215,19 +218,23 @@ def link_event(
             for candidate in generate_candidates(subject, pool, nicknames)
         ]
     assignments: dict[str, ScoredPair] = {}
-    for role in {subject.role for subject in subjects}:
+    for contest_id, role in {(subject.contest_id, subject.role) for subject in subjects}:
+        scoped_subjects = [
+            subject
+            for subject in subjects
+            if subject.contest_id == contest_id and subject.role == role
+        ]
         pairs = [
             ScoredPair(
                 f"{subject.role}:{subject.bib or subject.subject_id}",
                 candidate.dancer.wsdc_id,
                 score,
             )
-            for subject in subjects
-            if subject.role == role
+            for subject in scoped_subjects
             for candidate, score in scored[subject.subject_id]
         ]
         group_assignments = assign(pairs)
-        for subject in subjects:
+        for subject in scoped_subjects:
             group = f"{subject.role}:{subject.bib or subject.subject_id}"
             if pair := group_assignments.get(group):
                 assignments[subject.subject_id] = ScoredPair(
@@ -268,7 +275,10 @@ def link_event(
                 method, status, confidence = "manual", "confirmed", 1.0
             elif (
                 subject.source_wsdc_id is not None
-                and len(source_id_groups[(subject.role, subject.source_wsdc_id)]) == 1
+                and len(
+                    source_id_groups[(subject.contest_id, subject.role, subject.source_wsdc_id)]
+                )
+                == 1
             ):
                 wsdc_id, method, status, confidence = (
                     subject.source_wsdc_id,
@@ -300,7 +310,10 @@ def link_event(
                     else "ambiguous"
                 )
                 method = "name_unique" if len(ranked) == 1 else "assignment"
-                if subject.bib is not None and bib_counts[(subject.role, subject.bib)] > 1:
+                if (
+                    subject.bib is not None
+                    and bib_counts[(subject.contest_id, subject.role, subject.bib)] > 1
+                ):
                     method = "bib_reuse"
             db.execute(
                 "INSERT INTO identity_links VALUES (?,?,?,?,?,?,?,?,?,?,?)",
@@ -312,7 +325,7 @@ def link_event(
                     method,
                     status,
                     confidence,
-                    json.dumps(["event_role_unique"]),
+                    json.dumps(["contest_role_unique"]),
                     now,
                     run_id,
                     LINKER_VERSION,
@@ -339,7 +352,7 @@ def link_event(
                         None,
                         int(
                             subject.bib is not None
-                            and bib_counts[(subject.role, subject.bib)] > 1
+                            and bib_counts[(subject.contest_id, subject.role, subject.bib)] > 1
                             and wsdc_id == candidate.dancer.wsdc_id
                         ),
                         int(

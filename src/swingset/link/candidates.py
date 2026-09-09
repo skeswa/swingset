@@ -18,6 +18,7 @@ class Subject:
     event_year: int | None = None
     source_wsdc_id: int | None = None
     bib: str | None = None
+    contest_id: str | None = None
 
 
 @dataclass(frozen=True)

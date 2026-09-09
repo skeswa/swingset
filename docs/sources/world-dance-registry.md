@@ -176,3 +176,15 @@ establish a weekend's load.
 The seed script found 12 usable UUID URLs among 14 research mentions.
 Swingapalooza and Jax Westie Fest have only host-root links; their exact
 URLs are still required.
+
+All 12 exact seed URLs were fetched through the gated collector on 2026-09-09.
+Every rounds and awards URL returned valid JSON and parsed successfully: 436
+round observations and 259 award observations in total. Per-event round counts
+ranged from 18 (Waterloo) to 52 (Chicago Classic); award counts ranged from 10
+to 34. The captures are archived in `tmp/wdr-smoke`; the committed Desert City
+fixtures remain the representative parser fixture.
+
+The broader sample contains `S<n>` callback values in every event and non-null
+`attributeGroup` in two events. It does not establish either meaning. Finals bib
+ownership also remains unverified. Local research contains no event UUID for
+Swingapalooza or Jax Westie Fest, so no IDs were inferred or invented.

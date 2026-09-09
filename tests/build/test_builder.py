@@ -92,6 +92,35 @@ def test_broken_entry_reference_fails_without_complete_candidate(tmp_path: Path)
     assert not (tmp_path / "candidates" / "cand_bad").exists()
 
 
+def test_bib_identity_is_scoped_to_a_contest(tmp_path: Path) -> None:
+    def linked(entry_id: str, contest_id: str, wsdc_id: int) -> dict[str, object]:
+        row = {field.name: None for field in SCHEMAS["entries"]}
+        row.update(
+            {
+                "entry_id": entry_id,
+                "contest_id": contest_id,
+                "event_id": "event",
+                "role": "follower",
+                "bib": "698",
+                "wsdc_id": wsdc_id,
+                "link_status": "confirmed",
+            }
+        )
+        return row
+
+    build_candidate(
+        tmp_path / "valid",
+        inputs(entries=[linked("c1/F-698", "c1", 17340), linked("c2/F-698", "c2", 15865)]),
+        metadata("cand_reused_bib"),
+    )
+    with pytest.raises(BuildError, match="maps to multiple WSDC ids"):
+        build_candidate(
+            tmp_path / "conflict",
+            inputs(entries=[linked("c1/a", "c1", 17340), linked("c1/b", "c1", 15865)]),
+            metadata("cand_conflicting_bib"),
+        )
+
+
 def test_suppression_scrubs_identity_and_removes_candidates(tmp_path: Path) -> None:
     entry = {field.name: None for field in SCHEMAS["entries"]}
     entry.update(

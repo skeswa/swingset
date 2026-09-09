@@ -195,7 +195,21 @@ def test_real_scoringdance_index_and_round_fields() -> None:
     sitemap = SitemapPage()
     sitemap_body = gzip.decompress((root / "sitemap-2026-09-09.body.gz").read_bytes())
     assert "418" in sitemap.extract(sitemap_body)
-    for round_id, expected_round, expected_tables in (("6012", "prelim", 2), ("6014", "final", 1)):
+    expected = {
+        "6011": ("final", 1),
+        "6012": ("prelim", 2),
+        "6014": ("final", 1),
+        "6015": ("prelim", 2),
+        "6017": ("final", 1),
+        "6018": ("prelim", 2),
+        "6020": ("semi", 2),
+        "6021": ("prelim", 2),
+        "6022": ("final", 1),
+        "6023": ("prelim", 2),
+        "6025": ("final", 1),
+        "6583": ("final", 1),
+    }
+    for round_id, (expected_round, expected_tables) in expected.items():
         page = ScoringRound()
         body = (root / f"round-{round_id}-2026-09-09.body").read_bytes()
         ctx = ParseContext(
@@ -210,20 +224,25 @@ def test_real_scoringdance_index_and_round_fields() -> None:
         result = page.parse(page.extract(body), ctx)
         assert len(result.observations) == expected_tables
         sheet = result.observations[0].payload
-        assert sheet.contest_name_raw == "Advanced Jack&Jill"
         assert sheet.round_name_raw == expected_round
         assert sheet.tables[0].headers[0].text == "Bib Number"
         assert sheet.tables[0].headers[1].text == "Leader"
-        if expected_round == "prelim":
+        if expected_tables == 2:
             assert result.observations[1].payload.tables[0].headers[1].text == "Follower"
         else:
             assert sheet.tables[0].headers[2].text == "Follower"
             assert sheet.tables[0].headers[-2].text == "Placement"
         name_cell = sheet.tables[0].rows[0].cells[1]
-        assert ("data-wsdc", "21242") in name_cell.attributes
+        assert any(
+            key == "data-wsdc"
+            for observation in result.observations
+            for row in observation.payload.tables[0].rows
+            for cell in row.cells
+            for key, _value in cell.attributes
+        )
         assert any(
             ("title", "Peter Fradley (Chiefjudge)") in cell.attributes
             for cell in sheet.tables[0].headers
         )
-        if expected_round == "prelim":
+        if expected_tables == 2:
             assert ("row-data-state", "CB") in name_cell.attributes

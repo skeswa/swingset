@@ -38,10 +38,10 @@ def seed(conn: object) -> None:
         )
 
 
-def entry(conn: object, entry_id: str, contest: str, bib: str) -> None:
+def entry(conn: object, entry_id: str, contest: str, bib: str, name: str = "Alex Lee") -> None:
     conn.execute(
-        "INSERT INTO entries(entry_id,contest_id,event_id,role,bib,name_raw,name_norm,link_status,link_confidence,rounds_danced,source,snapshot_id,parser_version,first_seen_at,last_seen_at,run_id) VALUES (?,?,'event','leader',?,'Alex Lee','alex lee','unmatched',0,'[]','test','snap','1','t','t','run')",
-        (entry_id, contest, bib),
+        "INSERT INTO entries(entry_id,contest_id,event_id,role,bib,name_raw,name_norm,link_status,link_confidence,rounds_danced,source,snapshot_id,parser_version,first_seen_at,last_seen_at,run_id) VALUES (?,?,'event','leader',?,?,?,'unmatched',0,'[]','test','snap','1','t','t','run')",
+        (entry_id, contest, bib, name, name.casefold()),
     )
 
 
@@ -51,17 +51,17 @@ def run(db: object, bundle: Bundle) -> None:
     link_event(db, "event", bundle, FakeClock(datetime(2026, 1, 5, tzinfo=UTC)), "run")  # type: ignore[arg-type]
 
 
-def test_same_bib_across_contests_reuses_one_identity(tmp_path) -> None:
+def test_same_bib_across_contests_does_not_merge_identities(tmp_path) -> None:
     with open_database(tmp_path, lock=False) as db:
         seed(db.connection)
         entry(db.connection, "event/c1/L-7", "c1", "7")
-        entry(db.connection, "event/c2/L-7", "c2", "7")
+        entry(db.connection, "event/c2/L-7", "c2", "7", "Different Person")
         run(db, Bundle())
         rows = db.connection.execute(
             "SELECT wsdc_id,method FROM identity_links ORDER BY subject_id"
         ).fetchall()
-        assert rows[0][0] == rows[1][0]
-        assert {row[1] for row in rows} == {"bib_reuse"}
+        assert tuple(rows[0]) == (1, "assignment")
+        assert tuple(rows[1]) == (None, "none")
 
 
 def test_manual_none_and_manual_id_win(tmp_path) -> None:
@@ -105,7 +105,7 @@ def test_registry_addition_reaches_previously_unmatched_entry(tmp_path) -> None:
         assert tuple(row) == (3, "probable")
 
 
-def test_duplicate_source_id_cannot_link_two_distinct_bibs(tmp_path) -> None:
+def test_source_id_can_link_same_dancer_across_contests(tmp_path) -> None:
     with open_database(tmp_path, lock=False) as db:
         seed(db.connection)
         entry(db.connection, "event/c1/L-7", "c1", "7")
@@ -113,7 +113,7 @@ def test_duplicate_source_id_cannot_link_two_distinct_bibs(tmp_path) -> None:
         with patch("swingset.link.service._source_ids", return_value={"alex lee": 1}):
             run(db, Bundle())
         ids = [row[0] for row in db.connection.execute("SELECT wsdc_id FROM identity_links")]
-        assert ids.count(1) == 1
+        assert ids.count(1) == 2
 
 
 def test_manual_override_beats_source_id(tmp_path) -> None:

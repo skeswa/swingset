@@ -1,4 +1,3 @@
-import re
 import shutil
 from pathlib import Path
 
@@ -12,24 +11,14 @@ from swingset.state.db import open_database
 def test_archived_scoringdance_event_runs_end_to_end(tmp_path: Path) -> None:
     fixtures = Path("src/swingset/sources/scoringdance/fixtures")
     event = (fixtures / "event-2026-09-09.body").read_bytes()
-    # This fixture set intentionally archives only these two representative
-    # rounds, so omit the other event links from the mock response.
-    event = re.sub(
-        rb'<a href="/enUS/events/418/results/(?!6012|6014)\d+\.html"[^>]*>.*?</a>',
-        b"",
-        event,
-    )
     bodies = {
         "/sitemap.xml": b"<urlset><url><loc>https://scoring.dance/enUS/events/418/results/</loc></url></urlset>",
         "/enUS/recent": (fixtures / "recent-2026-09-09.body").read_bytes(),
         "/enUS/events/418/results/": event,
-        "/enUS/events/418/results/6012.html": (
-            fixtures / "round-6012-2026-09-09.body"
-        ).read_bytes(),
-        "/enUS/events/418/results/6014.html": (
-            fixtures / "round-6014-2026-09-09.body"
-        ).read_bytes(),
     }
+    for path in fixtures.glob("round-*-2026-09-09.body"):
+        round_id = path.name.split("-")[1]
+        bodies[f"/enUS/events/418/results/{round_id}.html"] = path.read_bytes()
 
     def handler(request: httpx.Request) -> httpx.Response:
         if request.url.path == "/robots.txt":
@@ -47,7 +36,7 @@ def test_archived_scoringdance_event_runs_end_to_end(tmp_path: Path) -> None:
     shutil.copytree("overrides", overrides)
     clock = FakeClock()
     with open_database(tmp_path / "state") as database:
-        for _ in range(12):
+        for _ in range(30):
             result = run_cycle(
                 database,
                 config_dir=config,
@@ -58,15 +47,18 @@ def test_archived_scoringdance_event_runs_end_to_end(tmp_path: Path) -> None:
             if (
                 result.get("candidate_id")
                 and database.connection.execute("SELECT count(*) FROM entries").fetchone()[0]
-                == 16
+                == 202
             ):
                 break
         conn = database.connection
-        assert conn.execute("SELECT count(*) FROM entries").fetchone()[0] == 16
-        assert conn.execute("SELECT count(*) FROM callback_marks").fetchone()[0] == 50
-        assert conn.execute("SELECT count(*) FROM placements").fetchone()[0] == 6
-        assert conn.execute("SELECT count(*) FROM final_marks").fetchone()[0] == 42
+        assert conn.execute("SELECT count(*) FROM contests").fetchone()[0] == 6
+        assert conn.execute("SELECT count(*) FROM rounds").fetchone()[0] == 12
+        assert conn.execute("SELECT count(*) FROM entries").fetchone()[0] == 202
+        assert conn.execute("SELECT count(*) FROM callbacks").fetchone()[0] == 161
+        assert conn.execute("SELECT count(*) FROM callback_marks").fetchone()[0] == 777
+        assert conn.execute("SELECT count(*) FROM placements").fetchone()[0] == 62
+        assert conn.execute("SELECT count(*) FROM final_marks").fetchone()[0] == 420
         assert conn.execute(
             "SELECT count(*) FROM identity_links WHERE method='source_id' AND status='confirmed'"
-        ).fetchone()[0] == 16
+        ).fetchone()[0] == 151
         assert result.get("candidate_id")

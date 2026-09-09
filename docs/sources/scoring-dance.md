@@ -186,13 +186,18 @@ the owner as an incident, never retried with other headers.
 
 ## 14. Implementation fixture check (2026-09-09 UTC)
 
-The gated collector archived the sitemap, recent index, event 418, and
-rounds 6012 and 6014. Fixtures and metadata are in
+The gated collector archived the sitemap, recent index, event 418, and all
+12 rounds listed by the event page. Fixtures and metadata are in
 `src/swingset/sources/scoringdance/fixtures/`; the full sitemap is gzip
-compressed there. The recent index yields 27 event records. The event
-page yields 12 round links. The round fixtures cover Advanced Jack & Jill
-prelims and finals, including descendant `data-wsdc`, callback/state
-attributes, and judge titles.
+compressed there. The recent index yields 27 event records. The round fixtures
+cover six Jack & Jill divisions, including preliminaries, one semifinal, and
+finals, with descendant `data-wsdc`, callback/state attributes, and judge titles.
+The full offline pipeline produces 6 contests, 12 rounds, 202 entries, 161
+callbacks, 777 callback marks, 62 placements, and 420 final marks.
+
+The complete event also proves that bibs are reusable between contests: bib 698
+identifies different followers in All-Stars and Sophisticated. Identity grouping
+and build validation therefore scope a bib to its contest and role.
 
 These checks establish current fixture shapes. The month-long nonce and
 Cloudflare observations remain outstanding.
