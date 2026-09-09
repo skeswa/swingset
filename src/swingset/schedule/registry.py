@@ -111,7 +111,7 @@ def _lookup_outcome(conn: Any, wsdc_id: int) -> str | None:
     return str(outcome) if outcome is not None else None
 
 
-def advance_sweep(database: Database, now: datetime | None = None) -> None:
+def advance_sweep(database: Database, now: datetime | None = None) -> bool:
     """Advance contiguous verified sweep/probe results; invalid gaps stop progress."""
     conn = database.connection
     sweep = conn.execute("SELECT value FROM cursors WHERE name='registry_sweep_next'").fetchone()
@@ -128,20 +128,32 @@ def advance_sweep(database: Database, now: datetime | None = None) -> None:
             misses = misses + 1 if outcome == "not_found" else 0
             current += 1
             if misses >= 20:
+                blob = conn.execute(
+                    "SELECT value FROM meta WHERE key='registry_crosscheck_blob'"
+                ).fetchone()
+                if blob is None:
+                    raise RuntimeError(
+                        "registry sweep completed without an archived comparison dump"
+                    )
                 conn.execute("DELETE FROM cursors WHERE name='registry_sweep_next'")
                 conn.execute("DELETE FROM cursors WHERE name='registry_sweep_misses'")
-                return
+                conn.execute(
+                    "INSERT INTO meta(key,value) VALUES ('registry_crosscheck_due',?) "
+                    "ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+                    (str(blob[0]),),
+                )
+                return True
         conn.execute("UPDATE cursors SET value=? WHERE name='registry_sweep_next'", (str(current),))
         conn.execute(
             "INSERT INTO cursors(name,value) VALUES ('registry_sweep_misses',?) "
             "ON CONFLICT(name) DO UPDATE SET value=excluded.value",
             (str(misses),),
         )
-        return
+        return False
 
     probe = conn.execute("SELECT value FROM cursors WHERE name='registry_probe_cursor'").fetchone()
     if probe is None:
-        return
+        return False
     current = int(probe[0])
     misses_row = conn.execute(
         "SELECT value FROM cursors WHERE name='registry_probe_misses'"
@@ -163,19 +175,51 @@ def advance_sweep(database: Database, now: datetime | None = None) -> None:
                 "ON CONFLICT(name) DO UPDATE SET value=excluded.value",
                 (due.isoformat(),),
             )
-            return
+            return False
     conn.execute("UPDATE cursors SET value=? WHERE name='registry_probe_cursor'", (str(current),))
     conn.execute(
         "INSERT INTO cursors(name,value) VALUES ('registry_probe_misses',?) "
         "ON CONFLICT(name) DO UPDATE SET value=excluded.value",
         (str(misses),),
     )
+    return False
 
 
 def crosscheck(database: Database, dump: Path, archive: Archive, now: datetime, run_id: str) -> int:
     body = dump.read_bytes()
     sha = archive.store_body(body)
     return _crosscheck_body(database, body, sha, now, run_id)
+
+
+def archive_crosscheck_dump(
+    database: Database, dump: Path, archive: Archive, now: datetime, run_id: str
+) -> str:
+    """Validate and durably archive the known comparison dump without comparing it."""
+    body = dump.read_bytes()
+    _dump_rows(body, require_comparison_dump=True)
+    sha = archive.store_body(body)
+    _record_crosscheck_snapshot(database, body, sha, now, run_id)
+    return sha
+
+
+def run_saved_crosscheck_if_due(
+    database: Database, archive: Archive, now: datetime, run_id: str
+) -> int | None:
+    row = database.connection.execute(
+        "SELECT value FROM meta WHERE key='registry_crosscheck_due'"
+    ).fetchone()
+    if row is None:
+        return None
+    sha = str(row[0])
+    result = replay_crosscheck(database, sha, archive, now, run_id)
+    with database.transaction() as conn:
+        conn.execute("DELETE FROM meta WHERE key='registry_crosscheck_due'")
+        conn.execute(
+            "INSERT INTO meta(key,value) VALUES ('registry_crosscheck_completed',?) "
+            "ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+            (sha,),
+        )
+    return result
 
 
 def replay_crosscheck(
@@ -186,22 +230,9 @@ def replay_crosscheck(
 
 
 def _crosscheck_body(database: Database, body: bytes, sha: str, now: datetime, run_id: str) -> int:
-    data: Any = json.loads(body)
-    comparison_dump = (
-        isinstance(data, dict)
-        and isinstance(data.get("dancers"), list)
-        and {"divisions", "event_occurrences", "events", "placements", "roles"} <= data.keys()
-    )
-    if isinstance(data, dict):
-        data = data.get("dancers", data)
-        if isinstance(data, dict):
-            data = list(data.values())
-    if not isinstance(data, list) or not all(isinstance(row, dict) for row in data):
-        raise ValueError("registry dump must contain a dancer list or keyed mapping")
+    data, comparison_dump = _dump_rows(body)
+    _record_crosscheck_snapshot(database, body, sha, now, run_id)
     conn = database.connection
-    url = f"archive://registry-crosscheck/{sha}"
-    watch_id = make_watch_id("crosscheck", "registry_dump", "MANUAL", url)
-    snap_id = make_snapshot_id(now, sha)
     findings = []
     mirror = {int(row["wsdc_id"]): dict(row) for row in conn.execute("SELECT * FROM dancers")}
     seen = set()
@@ -229,11 +260,11 @@ def _crosscheck_body(database: Database, body: bytes, sha: str, now: datetime, r
                     "Registry dump differs from mirror",
                     {
                         "body_sha256": sha,
-                        "snapshot_id": snap_id,
+                        "snapshot_id": make_snapshot_id(now, sha),
                         "dump_row": row,
                         "mirror_row": actual,
                     },
-                    snapshot_id=snap_id,
+                    snapshot_id=make_snapshot_id(now, sha),
                 )
             )
     for number in sorted(mirror.keys() - seen):
@@ -246,13 +277,59 @@ def _crosscheck_body(database: Database, body: bytes, sha: str, now: datetime, r
                 "Mirror dancer absent from registry dump",
                 {
                     "body_sha256": sha,
-                    "snapshot_id": snap_id,
+                    "snapshot_id": make_snapshot_id(now, sha),
                     "dump_row": None,
                     "mirror_row": mirror[number],
                 },
-                snapshot_id=snap_id,
+                snapshot_id=make_snapshot_id(now, sha),
             )
         )
+    with database.transaction():
+        replace_findings(
+            conn,
+            owner_kind="crosscheck",
+            owner_id="registry",
+            findings=tuple(findings),
+            opened_at=now.isoformat(),
+            run_id=run_id,
+        )
+    return len(findings)
+
+
+def _dump_rows(
+    body: bytes, *, require_comparison_dump: bool = False
+) -> tuple[list[dict[str, Any]], bool]:
+    data: Any = json.loads(body)
+    comparison_dump = (
+        isinstance(data, dict)
+        and isinstance(data.get("dancers"), list)
+        and {"divisions", "event_occurrences", "events", "placements", "roles"} <= data.keys()
+    )
+    if isinstance(data, dict):
+        data = data.get("dancers", data)
+        if isinstance(data, dict):
+            data = list(data.values())
+    if not isinstance(data, list) or not all(isinstance(row, dict) for row in data):
+        raise ValueError("registry dump must contain a dancer list or keyed mapping")
+    if require_comparison_dump and not comparison_dump:
+        raise ValueError("archive-only requires the known registry comparison dump shape")
+    if require_comparison_dump:
+        try:
+            identifiers = [int(row["id"]) for row in data]
+        except (KeyError, TypeError, ValueError) as error:
+            raise ValueError("comparison dump has an invalid dancer id") from error
+        if len(identifiers) != len(set(identifiers)):
+            raise ValueError("comparison dump has duplicate dancer ids")
+    return data, comparison_dump
+
+
+def _record_crosscheck_snapshot(
+    database: Database, body: bytes, sha: str, now: datetime, run_id: str
+) -> None:
+    conn = database.connection
+    url = f"archive://registry-crosscheck/{sha}"
+    watch_id = make_watch_id("crosscheck", "registry_dump", "MANUAL", url)
+    snap_id = make_snapshot_id(now, sha)
     with database.transaction():
         conn.execute(
             "INSERT OR IGNORE INTO watches(watch_id,source,kind,method,url,parser,source_ref,state,next_check_at,notes) "
@@ -276,16 +353,7 @@ def _crosscheck_body(database: Database, body: bytes, sha: str, now: datetime, r
         )
         if inserted.rowcount:
             bump_revision(conn, "snapshots")
-        replace_findings(
-            conn,
-            owner_kind="crosscheck",
-            owner_id="registry",
-            findings=tuple(findings),
-            opened_at=now.isoformat(),
-            run_id=run_id,
-        )
         conn.execute(
             "INSERT INTO meta(key,value) VALUES ('registry_crosscheck_blob',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",
             (sha,),
         )
-    return len(findings)

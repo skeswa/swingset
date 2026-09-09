@@ -21,7 +21,11 @@ from swingset.log import log
 from swingset.publish.service import Hub, expected_parent, publish, reconcile
 from swingset.schedule.discover import discover
 from swingset.schedule.parse import parse_snapshot
-from swingset.schedule.registry import advance_sweep, discover_registry
+from swingset.schedule.registry import (
+    advance_sweep,
+    discover_registry,
+    run_saved_crosscheck_if_due,
+)
 from swingset.schedule.watches import due_watches, refresh_policy
 from swingset.sources import get_page_kind, sources
 from swingset.state.db import Database
@@ -209,6 +213,13 @@ def run_cycle(
                     from swingset.link import link_event
 
                     link_event(database, unit.unit_id, bundle, clock, run_id)
+            if (
+                stage == "project"
+                and not stop()
+                and next_work(database.connection, "parse") is None
+                and next_work(database.connection, "project") is None
+            ):
+                run_saved_crosscheck_if_due(database, archive, clock.now(), run_id)
             if next_work(database.connection, stage) is not None:
                 break
         settled = not database.connection.execute("SELECT COUNT(*) FROM pending_work").fetchone()[0]

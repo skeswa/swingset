@@ -74,6 +74,7 @@ def parser() -> argparse.ArgumentParser:
     dump_input = crosscheck.add_mutually_exclusive_group(required=True)
     dump_input.add_argument("dump", type=Path, nargs="?")
     dump_input.add_argument("--blob", help="Replay a dump by its archived SHA-256")
+    crosscheck.add_argument("--archive-only", action="store_true")
     enums = commands.add_parser("enums")
     enums.add_argument("--write", action="store_true")
     backup = commands.add_parser("backup", parents=[shared])
@@ -336,9 +337,17 @@ def _mutate(args: argparse.Namespace, database: Database, stopped: list[bool]) -
             )
         print(json.dumps(asdict(result), default=str))
     elif command == "registry-crosscheck":
-        from swingset.schedule.registry import crosscheck, replay_crosscheck
+        from swingset.schedule.registry import (
+            archive_crosscheck_dump,
+            crosscheck,
+            replay_crosscheck,
+        )
 
-        if args.blob:
+        if args.archive_only:
+            if args.blob:
+                raise ValueError("--archive-only requires a dump path, not --blob")
+            print(archive_crosscheck_dump(database, args.dump, archive, clock.now(), run_id))
+        elif args.blob:
             print(replay_crosscheck(database, args.blob, archive, clock.now(), run_id))
         else:
             print(crosscheck(database, args.dump, archive, clock.now(), run_id))
@@ -371,6 +380,15 @@ def _mutate(args: argparse.Namespace, database: Database, stopped: list[bool]) -
                 from swingset.link import link_event
 
                 link_event(database, unit.unit_id, bundle, clock, run_id)
+        if (
+            command == "project"
+            and not stopped[0]
+            and next_work(database.connection, "parse") is None
+            and next_work(database.connection, "project") is None
+        ):
+            from swingset.schedule.registry import run_saved_crosscheck_if_due
+
+            run_saved_crosscheck_if_due(database, archive, clock.now(), run_id)
         command_failed = any(failures[source] / count > 0.1 for source, count in attempts.items())
     elif command in ("build", "publish"):
         from swingset.publish.service import publish, reconcile

@@ -193,6 +193,44 @@ def test_registry_crosscheck_blob_replay_finishes_run_metadata(
         assert not summary["failed"]
 
 
+def test_registry_crosscheck_archive_only_uses_dump_without_comparison(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    dump = tmp_path / "data.json"
+    dump.write_text("{}")
+    called: list[Path] = []
+
+    def archive_only(
+        _database: object,
+        path: Path,
+        _archive: object,
+        _now: object,
+        _run_id: str,
+    ) -> str:
+        called.append(path)
+        return "digest"
+
+    monkeypatch.setattr("swingset.schedule.registry.archive_crosscheck_dump", archive_only)
+    assert (
+        main(
+            [
+                "registry-crosscheck",
+                str(dump),
+                "--archive-only",
+                "--state",
+                str(tmp_path / "state"),
+                "--config",
+                "config",
+                "--overrides",
+                "overrides",
+            ]
+        )
+        == 0
+    )
+    assert called == [dump]
+    assert capsys.readouterr().out.strip() == "digest"
+
+
 @pytest.mark.parametrize(
     "outcome", [Outcome.BLOCKED, Outcome.INVALID, Outcome.THROTTLED, Outcome.SERVER_ERROR]
 )

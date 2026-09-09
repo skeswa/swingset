@@ -15,9 +15,11 @@ from swingset.model.ids import observation_id, snapshot_id
 from swingset.model.observations import encode_payload
 from swingset.schedule.registry import (
     advance_sweep,
+    archive_crosscheck_dump,
     crosscheck,
     discover_registry,
     replay_crosscheck,
+    run_saved_crosscheck_if_due,
     seed_sweep,
 )
 from swingset.schedule.watches import upsert_watch
@@ -26,6 +28,25 @@ from swingset.sources.wsdc_registry.adapter import SOURCE
 from swingset.state.db import Database, open_database
 
 NOW = datetime(2026, 9, 8, 12, tzinfo=UTC)
+
+
+def comparison_dump(dancers: list[dict[str, object]]) -> dict[str, object]:
+    return {
+        "dancers": dancers,
+        "divisions": [],
+        "event_occurrences": [],
+        "events": [],
+        "placements": [],
+        "roles": [],
+        "upcoming_events": [],
+    }
+
+
+def archive_dump(database: Database, tmp_path: Path) -> str:
+    dump = tmp_path / "comparison.json"
+    dump.write_text(json.dumps(comparison_dump([])))
+    run = database.start_run(NOW, dry_run=True)
+    return archive_crosscheck_dump(database, dump, Archive(database.state_dir), NOW, run)
 
 
 def record(database: Database, wsdc_id: int, outcome: str) -> None:
@@ -94,13 +115,21 @@ def test_sweep_advances_only_contiguous_verified_outcomes_across_restart(tmp_pat
 
 def test_sweep_finishes_only_after_twenty_verified_trailing_misses(tmp_path: Path) -> None:
     with open_database(tmp_path) as database:
+        sha = archive_dump(database, tmp_path)
         seed_sweep(database, 1)
         record(database, 1, "found")
         for wsdc_id in range(2, 22):
             record(database, wsdc_id, "not_found")
         with database.transaction():
-            advance_sweep(database, NOW)
+            assert advance_sweep(database, NOW)
         assert cursor(database, "registry_sweep_next") is None
+        assert cursor(database, "registry_sweep_misses") is None
+        assert (
+            database.connection.execute(
+                "SELECT value FROM meta WHERE key='registry_crosscheck_due'"
+            ).fetchone()[0]
+            == sha
+        )
 
 
 def test_weekly_probe_resets_misses_on_found_and_waits_after_twenty(tmp_path: Path) -> None:
@@ -220,15 +249,9 @@ def test_crosscheck_finding_is_a_build_input_and_survives_restore(tmp_path: Path
 
 
 def test_crosscheck_accepts_mechstack_dancer_ids_only_in_full_dump_shape(tmp_path: Path) -> None:
-    full_dump = {
-        "dancers": [{"id": 7, "first_name": "Ada", "last_name": "Lovelace"}],
-        "divisions": [],
-        "event_occurrences": [],
-        "events": [],
-        "placements": [],
-        "roles": [],
-        "upcoming_events": [],
-    }
+    full_dump = comparison_dump(
+        [{"id": 7, "first_name": "Ada", "last_name": "Lovelace"}]
+    )
     dump = tmp_path / "data.json"
     dump.write_text(json.dumps(full_dump))
     with open_database(tmp_path / "state") as database:
@@ -245,3 +268,78 @@ def test_crosscheck_accepts_mechstack_dancer_ids_only_in_full_dump_shape(tmp_pat
         run = database.start_run(NOW, dry_run=True)
         with pytest.raises(ValueError, match="lacks wscid/wsdc_id"):
             crosscheck(database, dump, Archive(database.state_dir), NOW, run)
+
+
+def test_archive_only_records_dump_without_findings_then_sweep_runs_it_once(
+    tmp_path: Path,
+) -> None:
+    dump = tmp_path / "data.json"
+    dump.write_text(json.dumps(comparison_dump([{"id": 1, "first_name": "Ada"}])))
+    with open_database(tmp_path / "state") as database:
+        run = database.start_run(NOW, dry_run=True)
+        archive = Archive(database.state_dir)
+        sha = archive_crosscheck_dump(database, dump, archive, NOW, run)
+        assert database.connection.execute("SELECT COUNT(*) FROM findings").fetchone()[0] == 0
+        assert (
+            database.connection.execute(
+                "SELECT value FROM meta WHERE key='registry_crosscheck_due'"
+            ).fetchone()
+            is None
+        )
+        assert archive.read_body(sha) == dump.read_bytes()
+        seed_sweep(database, 1)
+        record(database, 1, "found")
+        for wsdc_id in range(2, 22):
+            record(database, wsdc_id, "not_found")
+        with database.transaction():
+            assert advance_sweep(database, NOW)
+        assert run_saved_crosscheck_if_due(database, archive, NOW, run) == 1
+        assert run_saved_crosscheck_if_due(database, archive, NOW, run) is None
+        assert database.connection.execute("SELECT COUNT(*) FROM findings").fetchone()[0] == 1
+        assert (
+            database.connection.execute(
+                "SELECT value FROM meta WHERE key='registry_crosscheck_completed'"
+            ).fetchone()[0]
+            == sha
+        )
+
+
+def test_seeded_sweep_completion_without_archived_dump_fails_closed(tmp_path: Path) -> None:
+    with open_database(tmp_path) as database:
+        seed_sweep(database, 1)
+        for wsdc_id in range(1, 21):
+            record(database, wsdc_id, "not_found")
+        with pytest.raises(RuntimeError, match="without an archived comparison dump"):
+            with database.transaction():
+                advance_sweep(database, NOW)
+        assert cursor(database, "registry_sweep_next") == "1"
+
+
+def test_archive_only_rejects_generic_or_duplicate_id_dumps(tmp_path: Path) -> None:
+    dump = tmp_path / "data.json"
+    with open_database(tmp_path / "state") as database:
+        run = database.start_run(NOW, dry_run=True)
+        archive = Archive(database.state_dir)
+        dump.write_text('[{"wscid":1}]')
+        with pytest.raises(ValueError, match="known registry comparison dump shape"):
+            archive_crosscheck_dump(database, dump, archive, NOW, run)
+        dump.write_text(json.dumps(comparison_dump([{"id": 1}, {"id": 1}])))
+        with pytest.raises(ValueError, match="duplicate dancer ids"):
+            archive_crosscheck_dump(database, dump, archive, NOW, run)
+
+
+def test_due_crosscheck_with_missing_blob_remains_due(tmp_path: Path) -> None:
+    digest = "a" * 64
+    with open_database(tmp_path) as database:
+        run = database.start_run(NOW, dry_run=True)
+        database.connection.execute(
+            "INSERT INTO meta(key,value) VALUES ('registry_crosscheck_due',?)", (digest,)
+        )
+        with pytest.raises(FileNotFoundError):
+            run_saved_crosscheck_if_due(database, Archive(tmp_path), NOW, run)
+        assert (
+            database.connection.execute(
+                "SELECT value FROM meta WHERE key='registry_crosscheck_due'"
+            ).fetchone()[0]
+            == digest
+        )
