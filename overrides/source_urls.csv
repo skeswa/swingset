@@ -11,3 +11,4 @@ event_id,source,kind,url,parser,notes
 2026-07-carolina-summer-swing,worlddanceregistry,event,https://scores.worlddanceregistry.com/b558d0af-1243-11f1-9a29-0aa72bbce9ea/rounds/routeInfo.json,wdr.rounds,seeded from research/results-sources.csv; confidence=high
 2026-07-florida-dance-magic,worlddanceregistry,event,https://scores.worlddanceregistry.com/e9a42d05-efec-11f0-9a29-0aa72bbce9ea/rounds/routeInfo.json,wdr.rounds,seeded from research/results-sources.csv; confidence=high
 2026-08-desert-city-swing,worlddanceregistry,event,https://scores.worlddanceregistry.com/98011277-01cd-11f1-9a29-0aa72bbce9ea/rounds/routeInfo.json,wdr.rounds,seeded from research/results-sources.csv; confidence=high
+2026-06-swingapalooza,worlddanceregistry,event,https://scores.worlddanceregistry.com/00cf1615-fb0d-11f0-9a29-0aa72bbce9ea/rounds/routeInfo.json,wdr.rounds,verified from official 2026 results page and WDR eventName
