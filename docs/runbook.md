@@ -245,6 +245,26 @@ The initial published calendar head is
 from the CLI environment and caches. Always pass the selected target with
 `--state` to restore, doctor, and the verification dry cycle.
 
+The initial results publication used installed revision
+`8fcc0a2564a635ea78ab69c01d9e2055233b4e23`, candidate
+`cand_984c84cc9dd34af8`, and public commit
+`a4abf85ff6e6e0ad4dd2088e130668987856613a`. Candidate review checked all 17
+schemas, file hashes, provenance, unique keys and dataset-card counts. Public
+verification matched the reviewed manifest and a remote DuckDB query returned
+3,368 placement rows. The published surface contains 312 contests, 255 events,
+12,397 entries and 498 rounds. The Hub reports all 17 splits ready, and events, placements, entries, rounds
+and final-marks previews each returned HTTP 200 with 100 rows. The private
+results-state backup completed at 15:37:05 UTC at archive commit
+`c716bf7f7e8eed8369828c26e2a2434f3c08aaf0`.
+
+The production registry comparison dump is archived under SHA-256
+`ae7f2b9d688b69b49d08dfc718f60e5ef6b4b6561054d2503e8c94b8ae5e1d53`, and
+sweep seed 1 is installed. Initial collection fetched eight higher-priority
+finalist refreshes using the normal five-second floor. Their build exposed a
+registry vocabulary mismatch; the repair preserves skill and age categories
+and highest-level fields. The full sweep and saved-dump comparison remain
+tracked in issue #10.
+
 The host now enables publication (`dryRun = false`). Normal collection is
 every 15 minutes with up to 120 seconds of jitter; backup is 04:00 UTC Monday
 through Thursday and 04:00/12:00/20:00 UTC Friday through Sunday. Summary runs

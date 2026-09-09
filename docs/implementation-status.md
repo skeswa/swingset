@@ -14,13 +14,13 @@ Publication and source acceptance fixes are tracked in GitHub issues #1–#14.
 | WP1 | SQLite migration, ids, enums, typed observations and canonical records, writer lock, durable work, atomic input acceptance. |
 | WP2 | Shared host gate, robots cache, request/byte budgets, conditional requests, retries, classification, compressed raw archive and extracts. Mock-transport tests cover failure and pause behavior. |
 | WP3 | Discovery, watch lifecycle, cycle budgets, calendar extraction, mapping, transactional projection, interruption recovery, pause/resume. A quiet calendar cycle does no fetch or stage work. |
-| WP4 | Reusable NixOS module, CLI package, cycle/backup/summary timers, service hardening, graceful stop handling. OrbStack NixOS machine installed and running calendar-only dry cycles. |
+| WP4 | Reusable NixOS module, CLI package, cycle/backup/summary timers, service hardening, graceful stop handling. The OrbStack NixOS writer is installed with publication and scheduled jobs enabled. |
 | WP5 | Explicit Arrow schemas, invariant checks, suppressions, review queue, changelog, immutable candidates, dataset card, Hub adapter, publication reconciliation, complete checkpoints, locked restore and GC. Offline tests exercise publication failure boundaries and artifact closure. |
 | WP6 | Registry parser and projection, verified missing-id classifier, durable sweep/probe cursors, daily trickle, archived dump cross-check and replay. Real found/miss fixtures and fake-clock cursor tests. |
 | WP7a | Name/division normalization, nickname seed, canonical contest projection, event/role assignment, manual overrides, judge restrictions, identity candidates and invalidation. |
 | WP7b | EEPro index, autoindex and round adapters; child invalidation and slow refresh clocks. Real Summer Hummer fixtures, named judges, paired finals bibs, date ranges, and Count ranking verified. |
 | WP8 | scoring.dance sitemap/index/event/round adapters and real fixtures; source-id and registry confirmations, refresh watches, expected-points checks. |
-| WP9 | WDR rounds/awards adapters, validator polling, expected-403 retirement, seed script and 12 usable source overrides. Real rounds/awards fixtures. |
+| WP9 | WDR rounds/awards adapters, validator polling, expected-403 retirement, seed script and 13 usable source overrides. Complete real rounds/awards captures for all 13. |
 | WP10 | Operator commands, diagnosis, summaries, reparse, runbook, collection/removal README, issue templates and generated enum documentation. |
 
 Some file boundaries differ from the plan's suggested layout. Event name
@@ -30,8 +30,10 @@ work and observation boundaries.
 
 ## Checks executed
 
-Release verification: 153 tests passed; Ruff passed; strict mypy passed
-across 76 source files. These checks ran through the Nix development shell.
+Release verification at installed revision
+`8fcc0a2564a635ea78ab69c01d9e2055233b4e23`: 165 tests passed; Ruff
+passed; strict mypy passed across 76 source files. These checks ran through
+the Nix development shell.
 The installed writer completed its version-update cycle, controlled
 publication, private backup, both recovery drills, and the first scheduled
 jobs. Continued unattended-operation windows remain acceptance work.
@@ -58,9 +60,9 @@ Live requests used `swingset fetch-one` or `cycle` through the configured gate:
 | Source | Observed result |
 |---|---|
 | WSDC calendar | Full archived body produces 172 observations and 169 deduplicated events. A second cycle was quiet. |
-| WSDC registry | Dancer 1 produced a found record and three placements. Ids 1,000,000 and 1,000,001 returned the same verified 404 error body. The comparison dump has been archived and verified against isolated state (27,039 IDs). The production sweep is prepared but has not completed. |
+| WSDC registry | Dancer 1 produced a found record and three placements. Ids 1,000,000 and 1,000,001 returned the same verified 404 error body. The production comparison dump was archived with SHA-256 `ae7f2b9d688b69b49d08dfc718f60e5ef6b4b6561054d2503e8c94b8ae5e1d53`, and sweep seed 1 completed. Cursor verification and the full production sweep remain in progress. |
 | scoring.dance | Archived sitemap, recent index, event 418 and all 12 rounds. Full local build: 6 contests, 12 rounds, 202 entries, 62 placements, 777 callback marks and 420 final marks. Bib identity is scoped by contest and role. |
-| WDR | Archived one event's rounds and awards: 32 and 13 observations. Full local build: 13 contests, 32 rounds, 873 entries, 23 judges, 160 placements, 2,793 callback marks and 1,106 final marks. Repeated rounds fetch returned `NotModified`/304. |
+| WDR | Complete rounds and awards captures for all 13 known source URLs. The published build contains 285 contests, 451 rounds, 11,727 entries, 3,144 placements and 3,759 callbacks attributed to WDR. Repeated rounds fetch returned `NotModified`/304. |
 
 Archived parser fixtures live under `src/swingset/sources/*/fixtures/`.
 Synthetic fixtures are labeled under `tests/fixtures/sources/`. Raw source
@@ -82,34 +84,40 @@ cold VM; source fetches retain their separate 30-second timeout.
   observe the scheduled writer, backup, summary, and quiet-cycle behavior under
   issues #9 and #1.
 - The owner reported EEPro permission received on 2026-09-08; see its source
-  playbook. Real Summer Hummer fixtures, `Count` semantics, and a complete local
-  event build passed. Results publication is held for the contest-key collision
-  fix, and the live-weekend measurement remains pending under issue #12.
-- Run the prepared registry bootstrap sweep through normal cycles
+  playbook. Real Summer Hummer fixtures, `Count` semantics, a complete local
+  event build, and initial results publication passed. The live-weekend
+  measurement remains pending under issue #12.
+- Complete the seeded registry bootstrap sweep through normal cycles
   and compare the completed mirror with the already archived 27,039-ID dump.
   It is the next operating step; no production completion or coverage claim
   exists yet.
 - Observe automatic finalist confirmation within seven days and a month of
   scoring.dance snapshots for nonce and Cloudflare stability.
 - Obtain the exact Jax Westie Fest 2026 scores UUID. Swingapalooza is verified;
-  all 13 known event URLs now have complete rounds and awards captures. Measure
-  one live weekend's conditional-response rate.
+  all 13 known event URLs have complete rounds and awards captures. Measure one
+  live weekend's conditional-response rate.
 - Resolve WDR `S<n>` and finals bib ownership from stronger evidence. The NASDE
   attribute-group legend is verified; other groups remain unverified. The
   adapters preserve unknown values and withhold unsupported canonical claims.
+  Fifteen rounds with unlabeled Am/Pro roles and one masked bib remain ambiguous in the captured WDR
+  evidence; their raw observations are retained.
 
 The live systemd stop-during-request check passed on 2026-09-09. Run
 `run_20260909T141539Z` finished its single calendar request and stopped in
 1.35 seconds. The next dry cycle succeeded, SQLite integrity and foreign-key
 checks passed, and no work was left pending. See closed issue #6.
 
-The deployed public dataset remains calendar-only while results publication is
-held for the contest-key collision fix. The selected writer uses `dryRun =
-false`. The current reviewed calendar head is
-`957b9e266b549d729ef978b3d0ddcc738c7d901f`; an unchanged repeat made no commit,
-and both the remote DuckDB query and events viewer passed. Private archive
+The deployed public dataset includes the initial reviewed results candidate
+`cand_984c84cc9dd34af8` at public commit
+`a4abf85ff6e6e0ad4dd2088e130668987856613a`. Its 17 schemas, hashes, provenance,
+unique keys, card counts, and a remote DuckDB query over 3,368 placement rows
+passed. The build contains 312 contests, 255 events, 12,397 entries and 498
+rounds. The Hub reports all 17 splits ready; events, placements, entries, rounds,
+and final-marks previews each returned HTTP 200 with 100 rows. The selected writer uses `dryRun = false`. Private archive
 commits `5ad249109d6dc866b9d9d4432ecac2fea8126708` (legacy flat) and
 `c691a760015698247d157c2c2cf738fc712ea53e` (packed) passed fresh-machine
-restore. Initial scheduled jobs passed, while issue #9 remains open for the
-ongoing operating observation. See the [runbook](runbook.md) for the active
-handoff and restore evidence.
+restore. The results-state private backup completed successfully at 15:37:05
+UTC at private archive commit `c716bf7f7e8eed8369828c26e2a2434f3c08aaf0`. Initial
+scheduled jobs passed, while issue #9 remains open for the ongoing operating
+observation. See the [runbook](runbook.md) for the active handoff and restore
+evidence.
