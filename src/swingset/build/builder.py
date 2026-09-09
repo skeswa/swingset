@@ -271,7 +271,7 @@ def _changelog(
                         "changed_at": changed_at,
                         "run_id": run_id,
                         "table": table,
-                        "record_key": json.dumps(row_key),
+                        "record_key": json.dumps(row_key, default=str),
                         "field": field,
                         "old_value": json.dumps(old_value, sort_keys=True, default=str),
                         "new_value": json.dumps(new_value, sort_keys=True, default=str),
@@ -351,7 +351,9 @@ def build_candidate(
             schema = data.schemas[table_name]
             ordered = sorted(
                 rows[table_name],
-                key=lambda row: tuple(row.get(k) for k in data.primary_keys[table_name]),
+                key=lambda row: json.dumps(
+                    tuple(row.get(k) for k in data.primary_keys[table_name]), default=str
+                ),
             )
             table = pa.Table.from_pylist(ordered, schema=schema)
             if not table.schema.equals(schema, check_metadata=True):

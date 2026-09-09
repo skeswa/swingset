@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from pathlib import Path
 
 import pyarrow.parquet as pq
@@ -82,6 +82,50 @@ def test_fresh_build_metadata_does_not_create_semantic_change(tmp_path: Path) ->
     second = build_candidate(tmp_path, inputs(), later)
     assert second.content_hash == first.content_hash
     assert not second.changed
+
+
+def test_registry_date_key_builds_and_rebuilds_changelog(tmp_path: Path) -> None:
+    placement = {field.name: None for field in SCHEMAS["registry_placements"]}
+    placement.update(
+        {
+            "wsdc_id": 1,
+            "role": "leader",
+            "dance_style": "wcs",
+            "division": "novice",
+            "series_id": "series",
+            "series_name_raw": "Series",
+            "event_month": date(2026, 8, 1),
+            "result": "1",
+            "points": 3,
+        }
+    )
+    first = build_candidate(
+        tmp_path, input_version(1, registry_placements=[placement]), metadata("cand_a")
+    )
+    (first.path / "PUBLISHED").write_text('{"commit":"a"}')
+    (tmp_path / "baseline").symlink_to(Path("candidates/cand_a"))
+
+    changed = {**placement, "points": 6}
+    rebuilt = build_candidate(
+        tmp_path, input_version(2, registry_placements=[changed]), metadata("cand_b")
+    )
+
+    history = pq.read_table(
+        rebuilt.path / "data" / "changelog" / "changelog.parquet"
+    ).to_pylist()
+    point_change = next(row for row in history if row["field"] == "points")
+    assert json.loads(point_change["record_key"]) == [
+        1,
+        "leader",
+        "series",
+        "2026-08-01",
+        "novice",
+        "wcs",
+    ]
+    assert (json.loads(point_change["old_value"]), json.loads(point_change["new_value"])) == (
+        3,
+        6,
+    )
 
 
 def test_broken_entry_reference_fails_without_complete_candidate(tmp_path: Path) -> None:
