@@ -26,14 +26,17 @@ def _coverage(data: BuildInput) -> str:
         year = str(event.get("year") or "unknown")
         sources = event.get("sources") or [event.get("source") or "unknown"]
         for source in sources:
-            label = f"{source} (override placeholder)" if event.get("snapshot_id") == "override" else str(source)
+            label = (
+                f"{source} (override placeholder)"
+                if event.get("snapshot_id") == "override"
+                else str(source)
+            )
             counts[label, year] += 1
     if not counts:
         return "No events are published yet."
     lines = ["| Source | Year | Events |", "|---|---:|---:|"]
     lines.extend(
-        f"| {source} | {year} | {count} |"
-        for (source, year), count in sorted(counts.items())
+        f"| {source} | {year} | {count} |" for (source, year), count in sorted(counts.items())
     )
     return "\n".join(lines)
 
@@ -48,7 +51,9 @@ def _gaps(data: BuildInput) -> str:
     events = _rows(data, "events")
     covered_event_ids = {row.get("event_id") for row in _rows(data, "contests")}
     calendar_only = sum(1 for row in events if row.get("event_id") not in covered_event_ids)
+    unsupported = sum(row.get("parse_status") == "unsupported" for row in _rows(data, "contests"))
     gaps = [
+        f"- {unsupported} contests have unsupported scoring layouts. Their raw evidence is retained privately; see `review_queue` for details.",
         f"- {calendar_only} of {len(events)} events currently have event metadata but no parsed contest results.",
         f"- `heats` has {len(_rows(data, 'heats'))} rows; public heat assignments are rarely available.",
     ]

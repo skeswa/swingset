@@ -108,3 +108,10 @@ def test_real_couples_final_keeps_single_couple_bib_column() -> None:
     assert champions.round_name_raw == "Finals"
     assert len(champions.tables[0].rows) == 12
     assert champions.tables[0].headers[-2].text == "BIB"
+
+
+def test_real_routines_without_round_suffix_use_final_layout_headers() -> None:
+    sheets = _parse_round("routines")
+    assert len(sheets) == 5
+    assert {sheet.round_name_raw for sheet in sheets} == {"Finals"}
+    assert all(sheet.tables[0].headers[0].text == "Place" for sheet in sheets)

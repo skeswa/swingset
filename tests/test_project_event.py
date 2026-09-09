@@ -109,6 +109,41 @@ def test_full_event_projection_and_round_union(tmp_path: Path) -> None:
         assert len(records(projected, FinalMark)) == 1
 
 
+def test_real_eepro_numeric_prelim_is_retained_raw_but_not_projected(tmp_path: Path) -> None:
+    page = EEProRoundPage()
+    body = Path(
+        "src/swingset/sources/eepro/fixtures/round-aa-summerhummer2026-2026-09-09.body"
+    ).read_bytes()
+    parsed = page.parse(
+        page.extract(body),
+        ParseContext(
+            "snap_aa",
+            "watch_aa",
+            "https://eepro.com/results/summerhummer2026/aa.html",
+            "eepro",
+            page.kind,
+            "eepro:hummer",
+            "2026-09-09T14:19:48.391680+00:00",
+        ),
+    )
+    raw = parsed.observations[0].payload
+    assert isinstance(raw, RoundSheet)
+    assert raw.tables[0].rows[0].cells[1].text == "97"
+
+    with open_database(tmp_path, lock=False) as db:
+        seed(db.connection)
+        add(db.connection, "aa", "snap_aa", raw, "2026-09-09T14:19:48.391680+00:00")
+        projected = project_event(db.connection, EVENT, "2026-09-09T15:00:00Z", "run_a")
+        contest = records(projected, Contest)[0]
+        assert isinstance(contest, Contest) and contest.parse_status == "unsupported"
+        assert not records(projected, Round)
+        assert not records(projected, Entry)
+        assert not records(projected, Judge)
+        assert not records(projected, CallbackMark)
+        assert not records(projected, Placement)
+        assert not records(projected, FinalMark)
+
+
 def test_round_page_beats_later_event_page_and_records_conflict(tmp_path: Path) -> None:
     with open_database(tmp_path, lock=False) as db:
         seed(db.connection)

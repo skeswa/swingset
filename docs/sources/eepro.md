@@ -136,6 +136,12 @@ print `1`), later counts skip the tied positions, and entries below the
 promotion cutoff can have a blank count. This was verified in Summer Hummer
 2026 `jjprelims.html` on 2026-09-09.
 
+Summer Hummer 2026 `aa.html` labels its All American 0–100 judge scores as
+`Prelims` and adds `Avg` and `Place` columns. The canonical model has no numeric
+scoring method for that layout. We retain the raw table, publish its contest as
+`unsupported`, and omit derived rounds, marks, and score aggregates rather than
+misrepresenting the numbers as callback marks.
+
 ## 9. Quirks
 
 - Two calendar rows can map to one slug (Flow Festival NYC 2026 was

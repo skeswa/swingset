@@ -1,0 +1,174 @@
+
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Strict//EN">
+<head>
+    <title>Event Express Pro Floor Interface</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <link href="css/judgesscoresheetsyle.css?v=5" rel="stylesheet" type="text/css">
+    <script src="./jquery.js" type="text/javascript"></script>
+    <script src="./jquery.jeditable.js" type="text/javascript" charset="utf-8"></script>
+</head>
+<body>
+
+	<p>&nbsp;</p>
+		<H2><center>Summer Hummer - 2026</center></H2>
+<table border="1" cellspacing="1" cellpadding="10" align="center" width="100%">
+
+</table><p><table border="1" cellspacing="1" cellpadding="2" align="center" width="100%"><tr bgcolor='#ffae5e'><td colspan = '13'>Division: Classic</td></tr><tr>
+			 <td><em><strong>Place</strong></em></td>
+			 <td><em><strong>Competitor</strong></em></td><td><em><strong>Arjay Centeno</strong></em></td><td><em><strong>Jessica McCurdy</strong></em></td><td><em><strong>John Lindo</strong></em></td><td><em><strong>LeAnn Norris</strong></em></td><td><em><strong>Marcus Schwarz</strong></em></td><td><em><strong>BIB</strong></em></td>
+			 <td><em><strong>Marks Sorted</strong></em></td>
+			 </tr><tr>
+				<td>1</td>
+				<td width='400'>KP Rutland and Bryn Anderson</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td><div class='contentblack'></div></td>
+					<td>1-1-1-1-1</td>
+					</tr><tr>
+				<td>2</td>
+				<td width='400'>Melodie Paletta and Kyle FitzGerald</td><td>2</td><td>2</td><td>3</td><td>2</td><td>4</td><td><div class='contentblack'></div></td>
+					<td>2-2-2-3-4</td>
+					</tr><tr>
+				<td>3</td>
+				<td width='400'>Keerigan Rudd and Mia Primavera</td><td>3</td><td>3</td><td>2</td><td>3</td><td>2</td><td><div class='contentblack'></div></td>
+					<td>2-2-3-3-3</td>
+					</tr><tr>
+				<td>4</td>
+				<td width='400'>Derek Leyva and Jennifer Norris</td><td>5</td><td>5</td><td>4</td><td>5</td><td>5</td><td><div class='contentblack'></div></td>
+					<td>4-5-5-5-5</td>
+					</tr><tr>
+				<td>5</td>
+								<td width='400'>R1 - Sam Vaden and Nataliya Kane</td><td>4</td><td>4</td><td>6</td><td>4</td><td>3</td><td><div class='contentblack'></div></td>
+					<td>3-4-4-4-6</td>
+					</tr><tr>
+
+				<td>6</td>
+				<td width='400'>R2 - Ryan Pflumm and Lara Deni</td><td>6</td><td>6</td><td>5</td><td>6</td><td>6</td><td><div class='contentblack'></div></td>
+					<td>5-6-6-6-6</td>
+					</tr></table>
+					<p>
+					R1 - Review Fail - One Placement Drop - Foot off Floor/Lift
+					<p>
+					R2 - Review Fail - One Placement Drop - Foot off Floor/Lift
+					<p>
+					<p><table border="1" cellspacing="1" cellpadding="2" align="center" width="100%"><tr bgcolor='#ffae5e'><td colspan = '13'>Division: Novice/Intermediate Routines</td></tr><tr>
+			 <td><em><strong>Place</strong></em></td>
+			 <td><em><strong>Competitor</strong></em></td><td><em><strong>Alexis Garrish</strong></em></td><td><em><strong>Chris Dumond</strong></em></td><td><em><strong>Emily Huang</strong></em></td><td><em><strong>Keerigan Rudd</strong></em></td><td><em><strong>Mia Primavera</strong></em></td><td><em><strong>BIB</strong></em></td>
+			 <td><em><strong>Marks Sorted</strong></em></td>
+			 </tr><tr>
+				<td>1</td>
+				<td width='400'>Daniel Semac and Rachel Madrigal</td><td>2</td><td>1</td><td>1</td><td>1</td><td>1</td><td><div class='contentblack'></div></td>
+					<td>1-1-1-1-2</td>
+					</tr><tr>
+				<td>2</td>
+				<td width='400'>Thomas Crockett and Tina Lin</td><td>3</td><td>3</td><td>2</td><td>2</td><td>2</td><td><div class='contentblack'></div></td>
+					<td>2-2-2-3-3</td>
+					</tr><tr>
+				<td>3</td>
+				<td width='400'>Jean-Christophe Gagne and Valerie Pamphile</td><td>1</td><td>2</td><td>3</td><td>3</td><td>3</td><td><div class='contentblack'></div></td>
+					<td>1-2-3-3-3</td>
+					</tr></table><p><table border="1" cellspacing="1" cellpadding="2" align="center" width="100%"><tr bgcolor='#ffae5e'><td colspan = '13'>Division: Pro Am Routines</td></tr><tr>
+			 <td><em><strong>Place</strong></em></td>
+			 <td><em><strong>Competitor</strong></em></td><td><em><strong>Alexis Garrish</strong></em></td><td><em><strong>Chris Dumond</strong></em></td><td><em><strong>Emily Huang</strong></em></td><td><em><strong>Keerigan Rudd</strong></em></td><td><em><strong>Mia Primavera</strong></em></td><td><em><strong>BIB</strong></em></td>
+			 <td><em><strong>Marks Sorted</strong></em></td>
+			 </tr><tr>
+				<td>1</td>
+				<td width='400'>Eric Fernandez and Nataliya Kane</td><td>1</td><td>1</td><td>3</td><td>2</td><td>1</td><td><div class='contentblack'></div></td>
+					<td>1-1-1-2-3</td>
+					</tr><tr>
+				<td>2</td>
+				<td width='400'>Jacob Guerin and Alli Reese</td><td>2</td><td>2</td><td>2</td><td>3</td><td>6</td><td><div class='contentblack'></div></td>
+					<td>2-2-2-3-6</td>
+					</tr><tr>
+				<td>3</td>
+				<td width='400'>Melissa Liao and Kevin Kane</td><td>4</td><td>3</td><td>1</td><td>4</td><td>3</td><td><div class='contentblack'></div></td>
+					<td>1-3-3-4-4</td>
+					</tr><tr>
+				<td>4</td>
+				<td width='400'>Cristina Sinn and Matt Davis</td><td>3</td><td>4</td><td>5</td><td>5</td><td>2</td><td><div class='contentblack'></div></td>
+					<td>2-3-4-5-5</td>
+					</tr><tr>
+				<td>5</td>
+				<td width='400'>Daniel Desjardin and Desirae Vasquez</td><td>5</td><td>5</td><td>6</td><td>7</td><td>5</td><td><div class='contentblack'></div></td>
+					<td>5-5-5-6-7</td>
+					</tr><tr>
+				<td>6</td>
+				<td width='400'>Madi Fabber and Joe Miller</td><td>6</td><td>8</td><td>7</td><td>1</td><td>4</td><td><div class='contentblack'></div></td>
+					<td>1-4-6-7-8</td>
+					</tr><tr>
+				<td>7</td>
+				<td width='400'>Shay Culpepper and Joe Miller</td><td>8</td><td>7-SVW</td><td>4</td><td>6</td><td>8</td><td><div class='contentblack'></div></td>
+					<td>4-6-7-8-8</td>
+					</tr><tr>
+				<td>8</td>
+				<td width='400'>Melissa Miller and Matt Davis</td><td>7</td><td>6</td><td>8</td><td>8</td><td>7</td><td><div class='contentblack'></div></td>
+					<td>6-7-7-8-8</td>
+					</tr></table>
+					<p>
+					SVW - Swing Violation Warning, 50% Swing Content Required
+					<p>
+					<p><table border="1" cellspacing="1" cellpadding="2" align="center" width="100%"><tr bgcolor='#ffae5e'><td colspan = '13'>Division: Rising Star</td></tr><tr>
+			 <td><em><strong>Place</strong></em></td>
+			 <td><em><strong>Competitor</strong></em></td><td><em><strong>Arjay Centeno</strong></em></td><td><em><strong>Jessica McCurdy</strong></em></td><td><em><strong>John Lindo</strong></em></td><td><em><strong>LeAnn Norris</strong></em></td><td><em><strong>Marcus Schwarz</strong></em></td><td><em><strong>BIB</strong></em></td>
+			 <td><em><strong>Marks Sorted</strong></em></td>
+			 </tr><tr>
+				<td>1</td>
+				<td width='400'>Ben Dobson and Jillian Carroll</td><td>1</td><td>2</td><td>1</td><td>1</td><td>3</td><td><div class='contentblack'></div></td>
+					<td>1-1-1-2-3</td>
+					</tr><tr>
+				<td>2</td>
+				<td width='400'>Miles Van de Wetering and Elise Renwick</td><td>2</td><td>1</td><td>2</td><td>3</td><td>5</td><td><div class='contentblack'></div></td>
+					<td>1-2-2-3-5</td>
+					</tr><tr>
+				<td>3</td>
+				<td width='400'>Dario Haxhia and Charlotte Ridgway</td><td>4</td><td>3</td><td>4</td><td>2</td><td>1</td><td><div class='contentblack'></div></td>
+					<td>1-2-3-4-4</td>
+					</tr><tr>
+				<td>4</td>
+				<td width='400'>Joe Miller and Sydney Taylor</td><td>3</td><td>4</td><td>3</td><td>4</td><td>4</td><td><div class='contentblack'></div></td>
+					<td>3-3-4-4-4</td>
+					</tr><tr>
+				<td>5</td>
+				<td width='400'>Maxwell Thew and Alli Reese</td><td>5</td><td>5</td><td>5</td><td>6</td><td>6</td><td><div class='contentblack'></div></td>
+					<td>5-5-5-6-6</td>
+					</tr><tr>
+				<td>6</td>
+				<td width='400'>Simon Girard and Isabelle Roy</td><td>6</td><td>6</td><td>7</td><td>5</td><td>7</td><td><div class='contentblack'></div></td>
+					<td>5-6-6-7-7</td>
+					</tr><tr>
+				<td>7</td>
+				<td width='400'>Gaetan Grondin and Melanie Jean</td><td>7</td><td>8</td><td>8</td><td>7</td><td>2</td><td><div class='contentblack'></div></td>
+					<td>2-7-7-8-8</td>
+					</tr><tr>
+				<td>8</td>
+				<td width='400'>Rohit Venugopal and Rae Tardif</td><td>8</td><td>9</td><td>6</td><td>8</td><td>8</td><td><div class='contentblack'></div></td>
+					<td>6-8-8-8-9</td>
+					</tr><tr>
+				<td>9</td>
+				<td width='400'>Daniel Cruz and Jenny Cadieux</td><td>9</td><td>7</td><td>9</td><td>9</td><td>9</td><td><div class='contentblack'></div></td>
+					<td>7-9-9-9-9</td>
+					</tr></table><p><table border="1" cellspacing="1" cellpadding="2" align="center" width="100%"><tr bgcolor='#ffae5e'><td colspan = '13'>Division: Showcase</td></tr><tr>
+			 <td><em><strong>Place</strong></em></td>
+			 <td><em><strong>Competitor</strong></em></td><td><em><strong>Arjay Centeno</strong></em></td><td><em><strong>Jessica McCurdy</strong></em></td><td><em><strong>John Lindo</strong></em></td><td><em><strong>LeAnn Norris</strong></em></td><td><em><strong>Marcus Schwarz</strong></em></td><td><em><strong>BIB</strong></em></td>
+			 <td><em><strong>Marks Sorted</strong></em></td>
+			 </tr><tr>
+				<td>1</td>
+				<td width='400'>PJ Turner and Mia Pastor</td><td>2</td><td>2</td><td>1</td><td>2</td><td>1</td><td><div class='contentblack'></div></td>
+					<td>1-1-2-2-2</td>
+					</tr><tr>
+				<td>2</td>
+				<td width='400'>Jaden Pfeiffer and Mackenzie Keister</td><td>3</td><td>1</td><td>2</td><td>1</td><td>3</td><td><div class='contentblack'></div></td>
+					<td>1-1-2-3-3</td>
+					</tr><tr>
+				<td>3</td>
+				<td width='400'>Kevin Kane and Nataliya Kane</td><td>1</td><td>3</td><td>4</td><td>3</td><td>2</td><td><div class='contentblack'></div></td>
+					<td>1-2-3-3-4</td>
+					</tr><tr>
+				<td>4</td>
+				<td width='400'>Paul Nunez and Shanna Porcari</td><td>4</td><td>4</td><td>3</td><td>4</td><td>4</td><td><div class='contentblack'></div></td>
+					<td>3-4-4-4-4</td>
+					</tr>
+</table>
+<p>
+    Copyright &copy; 2011-2026 Event Express Pro, LLC. All rights reserved.
+</p>
+</div>
+</body>
+</html>

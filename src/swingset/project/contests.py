@@ -105,6 +105,11 @@ def project_event(conn: sqlite3.Connection, event: str, now: str, run_id: str) -
                     )
                 )
         vocabulary = classify_contest(contest_name)
+        unsupported = any(
+            _unsupported_eepro_numeric_prelim(item, table)
+            for item in sheets
+            for table in item.sheet.tables
+        )
         output.append(
             Contest(
                 contest_id=cid,
@@ -118,13 +123,17 @@ def project_event(conn: sqlite3.Connection, event: str, now: str, run_id: str) -
                 wsdc_points_eligible=vocabulary.contest_type == "jack_and_jill"
                 and vocabulary.division not in {"none", "open", "invitational"},
                 combined_from=vocabulary.combined_from,
-                parse_status="parsed"
-                if any(item.sheet.tables for item in sheets)
-                else "unsupported",
+                parse_status=(
+                    "unsupported"
+                    if unsupported or not any(item.sheet.tables for item in sheets)
+                    else "parsed"
+                ),
                 source_contest_ref=winner.sheet.source_round_ref,
                 **_provenance(winner, now, run_id),
             )
         )
+        if unsupported:
+            continue
         round_groups: dict[tuple[str, int], list[Evidence]] = {}
         for item in sheets:
             kind = _round_type(item.sheet.round_name_raw)
@@ -148,9 +157,7 @@ def project_event(conn: sqlite3.Connection, event: str, now: str, run_id: str) -
                     token
                     for item in candidates
                     for table in item.sheet.tables
-                    for token in _judge_columns(
-                        table, infer_named=item.source == "eepro"
-                    ).values()
+                    for token in _judge_columns(table, infer_named=item.source == "eepro").values()
                 }
             )
             danced = max((len(table.rows) for table in selected.sheet.tables), default=0)
@@ -522,7 +529,9 @@ def _judge_columns(
         (
             index
             for index, header in enumerate(headers)
-            if any(word in header for word in ("competitor", "leader", "follower", "couple", "dancer"))
+            if any(
+                word in header for word in ("competitor", "leader", "follower", "couple", "dancer")
+            )
         ),
         None,
     )
@@ -693,6 +702,21 @@ def _known_mark(raw: str) -> bool:
         return float(value) in {0, 1, 2.1, 2.2, 2.3, 3, 4.2, 4.3, 4.5, 10}
     except ValueError:
         return False
+
+
+def _unsupported_eepro_numeric_prelim(evidence: Evidence, table: ResultTable) -> bool:
+    if evidence.source != "eepro" or _round_type(evidence.sheet.round_name_raw) == "final":
+        return False
+    headers = [_text(cell).casefold() for cell in table.headers]
+    if not {"avg", "place"} <= set(headers):
+        return False
+    judges = _judge_columns(table, infer_named=True)
+    return bool(judges) and any(
+        raw is not None and not _known_mark(raw)
+        for row in table.rows
+        for column in judges
+        if (raw := _cell(row.cells, column)) is not None
+    )
 
 
 def _legend(tables: tuple[ResultTable, ...]) -> str:
