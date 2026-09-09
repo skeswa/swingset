@@ -40,6 +40,13 @@ def test_source_contest_vocabulary_goldens() -> None:
         assert (result.division, result.contest_type, result.partner_mode) == expected
 
 
+def test_contest_dance_style_classification() -> None:
+    assert classify_contest("Hustle Strictly Swing").dance_style == "other"
+    assert classify_contest("Country Strictly Swing").dance_style == "country"
+    assert classify_contest("Lindy Strictly").dance_style == "lindy"
+    assert classify_contest("Advanced Jack & Jill").dance_style == "wcs"
+
+
 def test_event_normalization_series_and_date_matching() -> None:
     assert normalize_event_name("Montréal Westie Fest!") == "montreal westie fest"
     assert event_series_slug("The Open 2026 (On Hiatus)") == "the-open"

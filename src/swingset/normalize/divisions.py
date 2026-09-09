@@ -61,7 +61,15 @@ def classify_contest(name: str) -> ContestVocabulary:
         contest_type, partner = "rising_star", "perm_couple"
     else:
         contest_type, partner = "other", "open_couple"
-    style = "lindy" if "lindy" in value else "country" if "country" in value else "wcs"
+    style = (
+        "lindy"
+        if "lindy" in value
+        else "country"
+        if "country" in value
+        else "other"
+        if "hustle" in value
+        else "wcs"
+    )
     combined = tuple(
         item
         for item in ("newcomer", "novice", "intermediate", "advanced", "allstar", "champion")
