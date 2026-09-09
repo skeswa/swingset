@@ -25,5 +25,11 @@
         modules = [ self.nixosModules.default ./nix/hosts/orb.nix
           { services.swingset.package = self.packages.aarch64-linux.default; } ];
       };
+      # Recovery installs the CLI and state owner without collection timers.
+      nixosConfigurations.orb-restore = nixpkgs.lib.nixosSystem {
+        system = "aarch64-linux";
+        modules = [ ./nix/hosts/orb-restore.nix
+          { environment.systemPackages = [ self.packages.aarch64-linux.default ]; } ];
+      };
     };
 }

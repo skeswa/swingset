@@ -8,6 +8,7 @@
   services.swingset = {
     enable = true;
     dryRun = true;
+    environmentFile = "/etc/swingset.env";
     overridesDir = "/Users/skeswa/repos/skeswa/swingset/overrides";
   };
   nix.settings.experimental-features = [ "nix-command" "flakes" ];

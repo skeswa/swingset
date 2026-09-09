@@ -2,8 +2,9 @@
 
 Checked 2026-09-09 UTC. This records evidence against
 [the implementation plan](../design/implementation-plan.md); it does not
-replace its done criteria. The implementation is in the working copy and
-has not been committed or pushed.
+replace its done criteria. The original implementation was split into 12
+described Jujutsu revisions and pushed to `main` (through `2d291571`).
+Publication and source acceptance fixes are tracked in GitHub issues #1–#14.
 
 ## Implemented
 
@@ -17,7 +18,7 @@ has not been committed or pushed.
 | WP5 | Explicit Arrow schemas, invariant checks, suppressions, review queue, changelog, immutable candidates, dataset card, Hub adapter, publication reconciliation, complete checkpoints, locked restore and GC. Offline tests exercise publication failure boundaries and artifact closure. |
 | WP6 | Registry parser and projection, verified missing-id classifier, durable sweep/probe cursors, daily trickle, archived dump cross-check and replay. Real found/miss fixtures and fake-clock cursor tests. |
 | WP7a | Name/division normalization, nickname seed, canonical contest projection, event/role assignment, manual overrides, judge restrictions, identity candidates and invalidation. |
-| WP7b | EEPro index, autoindex and round adapters; child invalidation and slow refresh clocks. Offline synthetic fixtures only. |
+| WP7b | EEPro index, autoindex and round adapters; child invalidation and slow refresh clocks. Real Summer Hummer fixtures, named judges, paired finals bibs, date ranges, and Count ranking verified. |
 | WP8 | scoring.dance sitemap/index/event/round adapters and real fixtures; source-id and registry confirmations, refresh watches, expected-points checks. |
 | WP9 | WDR rounds/awards adapters, validator polling, expected-403 retirement, seed script and 12 usable source overrides. Real rounds/awards fixtures. |
 | WP10 | Operator commands, diagnosis, summaries, reparse, runbook, collection/removal README, issue templates and generated enum documentation. |
@@ -29,7 +30,7 @@ work and observation boundaries.
 
 ## Checks executed
 
-Final local verification: 115 tests passed; Ruff passed; strict mypy passed
+Release verification: 134 tests passed; Ruff passed; strict mypy passed
 across 76 source files. These checks ran through the Nix development shell.
 The final installed service completed its version-update cycle and then a
 quiet cycle with zero requests and no stages.
@@ -56,8 +57,8 @@ Live requests used `swingset fetch-one` or `cycle` through the configured gate:
 | Source | Observed result |
 |---|---|
 | WSDC calendar | Full archived body produces 172 observations and 169 deduplicated events. A second cycle was quiet. |
-| WSDC registry | Dancer 1 produced a found record and three placements. Ids 1,000,000 and 1,000,001 returned the same verified 404 error body. No sweep was started. |
-| scoring.dance | Archived sitemap, recent index, event 418 and rounds 6012/6014. Full local build: 1 contest, 2 rounds, 16 entries, 6 placements, 50 callback marks and 42 final marks; 16 confirmed source-ID links with an empty registry mirror. |
+| WSDC registry | Dancer 1 produced a found record and three placements. Ids 1,000,000 and 1,000,001 returned the same verified 404 error body. No sweep was started. The comparison dump has been archived and verified against isolated state (27,039 IDs). |
+| scoring.dance | Archived sitemap, recent index, event 418 and all 12 rounds. Full local build: 6 contests, 12 rounds, 202 entries, 62 placements, 777 callback marks and 420 final marks. Bib identity is scoped by contest and role. |
 | WDR | Archived one event's rounds and awards: 32 and 13 observations. Full local build: 13 contests, 32 rounds, 873 entries, 23 judges, 160 placements, 2,793 callback marks and 1,106 final marks. Repeated rounds fetch returned `NotModified`/304. |
 
 Archived parser fixtures live under `src/swingset/sources/*/fixtures/`.
@@ -72,13 +73,13 @@ retain their separate 30-second timeout.
 
 ## Acceptance still pending
 
-- The owner must create the public `skeswa/swingset` and private
-  `skeswa/swingset-archive` dataset repositories and provision `HF_TOKEN`.
-  Real empty-repository bootstrap, public publication, private upload and
-  restoration on a fresh machine against the current public head have not run.
-- Record the EEPro operator conversation before fetching its real fixtures.
-  Resolve `Count` from evidence, query a complete historical event in the
-  viewer, and measure one live weekend's load.
+- Both Hugging Face repositories exist with the intended visibility. The
+  service credential is installed outside the checkout and verified for read
+  and write access to both repositories. Public publication, private upload,
+  and fresh-machine restore are tracked in issues #7 and #8.
+- The owner reported EEPro permission received on 2026-09-08; see its source
+  playbook. Real-fixture validation, complete-event publication, and live
+  weekend measurements are tracked in issue #12.
 - Enable the registry deliberately, run the bootstrap sweep through normal
   cycles, obtain the comparison dump and check for missing ids. The estimate
   is about 16 hours of sweep work across cycles.
@@ -89,11 +90,13 @@ retain their separate 30-second timeout.
   one live weekend's conditional-response rate.
 - Resolve WDR `S<n>`, `attributeGroup`, and finals bib ownership from stronger
   evidence. The adapters preserve the values and report uncertainty.
-- Perform the live systemd stop-during-request acceptance check within its
-  45-second limit. Automated subprocess SIGTERM recovery is covered locally.
+The live systemd stop-during-request check passed on 2026-09-09. Run
+`run_20260909T141539Z` finished its single calendar request and stopped in
+1.35 seconds. The next dry cycle succeeded, SQLite integrity and foreign-key
+checks passed, and no work was left pending. See closed issue #6.
 
 Only the calendar is enabled in the source config, and the installed
 service uses `dryRun = true`. No public data or messages to site operators
-were sent. The backup timer is stopped until credentials are provisioned;
+were sent. The backup timer is stopped during controlled publication and restore;
 rebuilding NixOS starts enabled timers again, so stop it again after a rebuild
 until setup is complete. See the [runbook](runbook.md) for activation and restore.

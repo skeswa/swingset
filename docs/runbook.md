@@ -76,7 +76,8 @@ into a state checkpoint.
 Set `services.swingset.environmentFile = "/etc/swingset.env";` and rebuild.
 After reviewing the first dry build, set `services.swingset.dryRun = false;`
 and rebuild again. An existing public dataset requires a matching private
-checkpoint; bootstrapping is only for an empty repository.
+checkpoint; bootstrapping accepts only `.gitattributes` and the generated ODC-By
+license-only README. It refuses arbitrary existing content.
 
 For rotation, stop the cycle and backup services, replace the environment file,
 rebuild if its path changed, then start the timers and run `doctor`. Revoke the
@@ -199,3 +200,21 @@ observations; do not merely hide the fixture from the tests.
 GC is manual (`swingset gc`). It must retain artifacts referenced by snapshots,
 findings, accepted inputs, retained candidates, or checkpoints and remove only
 unreferenced files older than one day.
+
+## Fresh-machine recovery configuration
+
+The `orb-restore` flake configuration installs the CLI and state owner without
+collection, backup, or summary timers. Use it for the recovery drill while the
+original writer is stopped:
+
+```sh
+orb create --cpus 4 --memory 8G nixos:25.11 swingset-restore
+orb -m swingset-restore
+cd /Users/skeswa/repos/skeswa/swingset
+sudo nixos-rebuild switch --flake .#orb-restore --impure
+```
+
+Provision the credential separately, then restore the acknowledged archive
+commit using a transient service with `EnvironmentFile=/etc/swingset.env`.
+Run doctor and a dry cycle before choosing one writer. The recovery machine
+remains without timers unless deliberately configured as the new writer.
