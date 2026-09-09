@@ -31,7 +31,8 @@
   published tables (kept locally in `baseline/`), keyed by primary
   key.
 - `_meta/manifest.json`: candidate id, captured `built_at` and `run_id`,
-  repository commit id, parser/projector/linker versions, row counts,
+  repository commit id (or an explicit source identity for an uncommitted
+  build), parser/projector/linker versions, row counts,
   source snapshot counts, latest event covered, and `schema_version`;
   also the content hash, build fingerprint, expected parent commit,
   input bundle hash, and hashes of all published data and card files.
@@ -48,7 +49,7 @@ Build reads all published inputs directly. Its fingerprint contains:
   items, and the card, including suppressions, source configuration,
   event aliases, and source URL overrides;
 - schema, package, extractor, parser, projector, and linker versions,
-  plus the card template hash.
+  captured repository/source identity, plus the card template hash.
 
 Link output is only one input. Canonical corrections must reach build
 when links do not change. Source-event names and dates can change computed review items even
