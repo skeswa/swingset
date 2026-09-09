@@ -1,6 +1,10 @@
 # Implementation plan for v1
 
-Status: draft v0.2, 2026-09-08. Owner: Sandile Keswa.
+Status: implementation underway, 2026-09-09. Owner: Sandile Keswa.
+
+See [implementation status](../docs/implementation-status.md) for implemented
+code, executed checks, and acceptance work still pending. Done criteria below
+remain acceptance requirements; code coverage alone does not satisfy them.
 
 This is the order of work for the first version of the pipeline. It
 refines [milestones](milestones.md) and [scraping plan](scraping-plan.md).
@@ -31,7 +35,7 @@ Out of v1, with what v1 keeps so nothing has to change later:
 |---|---|---|
 | danceconvention.net (M4) | needs `node` evaluation, PDF parsing, byte budgets; 19 events a year | `daily_byte_budget` in the gate; `derived blob` slot in the archive; `node` in the devshell |
 | Wayback transport and backfill (M6) | weeks of low-priority fetching; nothing else depends on it | `archive_url` and `via` columns; `backfill` watch state; `web.archive.org` in `hosts.toml` |
-| Event-site link scan | discovery nicety; overrides cover the 14 known WDR events | `site` watch kind reserved |
+| Event-site link scan | discovery nicety; overrides cover 12 of 14 known WDR events | `site` watch kind reserved |
 | Heats, generic long-tail adapters, LLM draft tool (M5) | data is thin or manual | `heats` and `judges` tables published, `judges` filled, `heats` empty |
 | Splink weight fitting | needs scoring.dance data first | hand-set weights in `link/weights.toml`; `link_candidates` keeps every signal so fitting is offline later |
 | Summary webhook | destination undecided | `swingset summary` writes to the journal |
@@ -58,9 +62,8 @@ Decision: v1 runs in an OrbStack NixOS 25.11 machine named `swingset`.
 Why: it is already installed; it is real NixOS with systemd, so the
 module and timers run as they will on the box; it builds
 `aarch64-linux` derivations natively, so no remote builder is needed;
-the Mac's home directory is visible inside the machine (**unverified**:
-OrbStack documents the Mac filesystem at `/mnt/mac`, and the home
-directory at the same path as on the Mac; confirm in WP0); it has
+the Mac's home directory is visible inside the machine at the same path
+(verified 2026-09-09); it has
 network access; `orb` gives a shell and `journalctl` in one command.
 
 ```
@@ -70,10 +73,10 @@ sudo nixos-rebuild switch --flake /Users/skeswa/repos/skeswa/swingset#orb --impu
 ```
 
 `--impure` is needed because `nix/hosts/orb.nix` imports the
-machine-generated `/etc/nixos/orbstack.nix`. If that import does not
-work (**unverified**), the fallback is to edit the machine's
-`/etc/nixos/configuration.nix` to import `nix/module.nix` from the
-repo path and set `services.swingset.enable = true`.
+machine-generated `/etc/nixos/configuration.nix`, which imports OrbStack
+integration and also supplies container boot, networking, users, and
+certificates. Importing only `orbstack.nix` omitted required settings. The
+full configuration import and switch were verified on 2026-09-09.
 
 The restore test in M0's done criteria uses a second, fresh machine
 (`orb create nixos:25.11 swingset-restore`), never the first one.
@@ -98,7 +101,7 @@ Decisions the design left open:
 | nixpkgs pin | `nixos-25.11` branch, matching the OrbStack image, so the machine and the flake share a store |
 | Python | `pkgs.python312`; `uv` is told never to download its own Python (`python-downloads = "never"` in `uv.toml`, `UV_PYTHON` set to the nix interpreter) |
 | Where the venv lives in the service | `UV_PROJECT_ENVIRONMENT=/var/lib/swingset/venv`, `UV_CACHE_DIR=/var/lib/swingset/uv-cache`; `ExecStartPre` runs `uv sync --frozen --no-dev` so a rebuild with a new lock refreshes it |
-| Native wheels on NixOS | manylinux wheels (`pyarrow`, `duckdb`, `scipy`, `numpy`, `rapidfuzz`, `selectolax`) need `libstdc++` and `zlib` from the system. The devshell and the unit set `LD_LIBRARY_PATH` to `${stdenv.cc.cc.lib}/lib:${zlib}/lib`. **Unverified** until WP0's import smoke test. Fallback, in order: take those packages from nixpkgs and give uv a venv with `--system-site-packages`; then, if still broken, drop uv and use `python312.withPackages` for everything |
+| Native wheels on NixOS | manylinux wheels (`pyarrow`, `duckdb`, `scipy`, `numpy`, `rapidfuzz`, `selectolax`) need `libstdc++` and `zlib` from the system. The devshell and the unit set `LD_LIBRARY_PATH` to `${stdenv.cc.cc.lib}/lib:${zlib}/lib`. Verified by WP0's native import smoke test on 2026-09-09. Fallback, in order: take those packages from nixpkgs and give uv a venv with `--system-site-packages`; then, if still broken, drop uv and use `python312.withPackages` for everything |
 | Type checking | `mypy --strict` from the first commit, with `ignore_missing_imports` for libraries without stubs (`protego`, `nameparser`, `selectolax`) listed in `pyproject.toml` |
 | Test clock | every module that reads time takes a `Clock` protocol (`now()`, `sleep()`); tests pass a fake. No `freezegun` |
 
@@ -386,13 +389,11 @@ changed schema. Only `NotFound` advances the probe's miss counter and
 marks a sweep id as absent. `Invalid` records the snapshot, leaves
 the cursor and the miss counter where they were, schedules a retry
 with backoff, and opens an `invalid_response` finding; an `Invalid`
-rate above 10 percent in a run fails the run. The miss shape is
-**unverified** today, so the first task of this package is a manual
-`swingset fetch-one` on a few ids expected to be absent (well above
-the current maximum); the response becomes the `NotFound` fixture and
-the rule is written from it. Until that fixture exists, `NotFound`
-matches nothing and every miss is `Invalid`, which is safe: the sweep
-cannot skip a valid dancer and the probe cannot terminate early.
+rate above 10 percent in a run fails the run. The miss shape was verified on 2026-09-09 using ids 1,000,000 and
+1,000,001: HTTP 404 with the exact archived HTML error body. The
+[registry playbook](../docs/sources/wsdc-registry.md#9-quirks)
+records the digest. A changed error body remains `Invalid`; it does not
+advance a cursor. Dancer id 1 supplies the real `Found` fixture.
 
 Division codes: the enum starts with the codes in
 [sources](sources.md#registry-json-shape-lookup2020find-trimmed); an
@@ -527,7 +528,9 @@ layer classifies it `ExpectedUnavailable` (daily for 30 days, then
 `gone`) instead of pausing the host ([response classification](fetching.md#response-classification)). Discovery from
 `overrides/source_urls.csv` (`event_id, source, kind, url, parser,
 notes`), seeded by a one-off script from `research/results-sources.csv`
-(14 rows; the script lives in `research/` and is run once).
+(14 mentions, of which 12 contain usable UUID URLs; the script lives in
+`research/` and is run once). Swingapalooza and Jax Westie Fest have
+only host-root links and still need exact event URLs.
 
 Answer `S<n>`, the finals bib, and `attributeGroup` from the first
 fixtures and record them in the playbook.
@@ -550,7 +553,7 @@ almost all polls as 304 in `runs/*.json`. That is M3b.
   pending candidate, pending work, restore status, last successful
   backup, review queue size, and last publish SHA.
 - Parse failure rate above 10 percent for a source fails the run;
-  a paused host fails the run and leads the summary.
+  a host paused for a block or challenge fails the run and leads the summary.
 - `swingset reparse --kind <kind>` and `--since` after a version bump.
 - `docs/runbook.md` complete; `README.md` rewritten as the page the
   User-Agent points at: what we collect, why, how to opt out, how to

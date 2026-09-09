@@ -58,8 +58,9 @@ separate revision from what was pushed.
 - `research/` holds one-off research artifacts and the scripts that
   rebuild them. Do not edit generated CSVs by hand; see
   `research/README.md`.
-- Source code is not written yet. `design/milestones.md` says what comes
-  first.
+- `src/swingset/` holds the pipeline; `tests/` holds offline tests.
+- `nix/` holds the service module and VM configuration. `docs/runbook.md`
+  covers operation; `docs/implementation-status.md` records acceptance gaps.
 
 ## Scraping etiquette
 
