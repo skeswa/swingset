@@ -2,6 +2,7 @@
 
 import json
 import random
+import re
 import sqlite3
 from datetime import date, datetime, timedelta
 from urllib.parse import urlsplit
@@ -131,12 +132,37 @@ def refresh_policy(
 
 
 def due_watches(conn: sqlite3.Connection, config: Config, now: datetime) -> list[str]:
-    rows = conn.execute("""SELECT watch_id,source,url,state,kind,next_check_at FROM watches
+    rows = conn.execute("""SELECT watch_id,source,url,state,kind,next_check_at,priority,
+        source_ref,notes FROM watches
         WHERE state!='gone' AND next_check_at IS NOT NULL ORDER BY priority,next_check_at,
         CASE kind WHEN 'round' THEN 1 ELSE 0 END,watch_id""").fetchall()
-    return [
-        str(row["watch_id"])
+    due = [
+        row
         for row in rows
         if config.enabled(str(row["source"]))
         and datetime.fromisoformat(row["next_check_at"]) <= now
     ]
+    groups: dict[tuple[object, ...], list[int]] = {}
+    for index, row in enumerate(due):
+        if _registry_sequence(row) is None:
+            continue
+        key = (
+            row["priority"],
+            row["next_check_at"],
+            1 if row["kind"] == "round" else 0,
+        )
+        groups.setdefault(key, []).append(index)
+    for indexes in groups.values():
+        ordered = sorted(
+            (due[index] for index in indexes), key=lambda row: _registry_sequence(row) or 0
+        )
+        for index, row in zip(indexes, ordered, strict=True):
+            due[index] = row
+    return [str(row["watch_id"]) for row in due]
+
+
+def _registry_sequence(row: sqlite3.Row) -> int | None:
+    if row["source"] != "wsdc_registry" or row["notes"] not in {"sweep", "probe"}:
+        return None
+    match = re.fullmatch(r"wsdc:(\d+)", str(row["source_ref"]))
+    return int(match.group(1)) if match else None

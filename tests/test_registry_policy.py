@@ -10,6 +10,7 @@ import pytest
 from swingset.backup.checkpoint import create_checkpoint, restore_checkpoint
 from swingset.build.input import read_build_input
 from swingset.clock import FakeClock
+from swingset.config import Config, HostConfig, SourceConfig
 from swingset.fetch.archive import Archive
 from swingset.model.ids import observation_id, snapshot_id
 from swingset.model.observations import encode_payload
@@ -22,7 +23,8 @@ from swingset.schedule.registry import (
     run_saved_crosscheck_if_due,
     seed_sweep,
 )
-from swingset.schedule.watches import upsert_watch
+from swingset.schedule.watches import due_watches, upsert_watch
+from swingset.sources.base import WatchSpec
 from swingset.sources.records import DancerLookup
 from swingset.sources.wsdc_registry.adapter import SOURCE
 from swingset.state.db import Database, open_database
@@ -91,6 +93,74 @@ def record(database: Database, wsdc_id: int, outcome: str) -> None:
 def cursor(database: Database, name: str) -> str | None:
     row = database.connection.execute("SELECT value FROM cursors WHERE name=?", (name,)).fetchone()
     return str(row[0]) if row else None
+
+
+def registry_config() -> Config:
+    return Config(
+        {"points.worldsdc.com": HostConfig(), "example.test": HostConfig()},
+        {"wsdc_registry": SourceConfig(True), "wdr": SourceConfig(True)},
+    )
+
+
+def due_registry_ids(database: Database) -> list[int]:
+    watch_ids = due_watches(database.connection, registry_config(), NOW)
+    refs = {
+        str(row["watch_id"]): str(row["source_ref"])
+        for row in database.connection.execute(
+            "SELECT watch_id,source_ref FROM watches WHERE source='wsdc_registry'"
+        )
+    }
+    return [int(refs[watch_id].removeprefix("wsdc:")) for watch_id in watch_ids]
+
+
+def test_due_registry_sweep_and_probe_follow_numeric_source_ids(tmp_path: Path) -> None:
+    with open_database(tmp_path / "sweep") as database:
+        seed_sweep(database, 1)
+        assert discover_registry(database, NOW, batch_size=350) == 350
+        assert due_registry_ids(database) == list(range(1, 351))
+
+    with open_database(tmp_path / "probe") as database:
+        assert discover_registry(database, NOW, batch_size=350) == 20
+        assert due_registry_ids(database) == list(range(1, 21))
+
+
+def test_registry_sequence_keeps_other_host_in_its_existing_fairness_slot(tmp_path: Path) -> None:
+    with open_database(tmp_path) as database:
+        seed_sweep(database, 1)
+        discover_registry(database, NOW, batch_size=20)
+        other = WatchSpec(
+            "",
+            "wdr",
+            "event",
+            "GET",
+            "https://example.test/results",
+            "wdr.rounds",
+        )
+        upsert_watch(database.connection, other, NOW)
+        database.connection.execute(
+            "UPDATE watches SET priority=5,next_check_at=? WHERE watch_id=?",
+            (NOW.isoformat(), other.watch_id),
+        )
+        hash_order = [
+            str(row[0])
+            for row in database.connection.execute(
+                "SELECT watch_id FROM watches ORDER BY priority,next_check_at,"
+                "CASE kind WHEN 'round' THEN 1 ELSE 0 END,watch_id"
+            )
+        ]
+        fair_slot = hash_order.index(other.watch_id)
+        ordered = due_watches(database.connection, registry_config(), NOW)
+        assert ordered.index(other.watch_id) == fair_slot
+        registry_ids = [
+            int(
+                database.connection.execute(
+                    "SELECT source_ref FROM watches WHERE watch_id=?", (watch_id,)
+                ).fetchone()[0][5:]
+            )
+            for watch_id in ordered
+            if watch_id != other.watch_id
+        ]
+        assert registry_ids == list(range(1, 21))
 
 
 def test_sweep_advances_only_contiguous_verified_outcomes_across_restart(tmp_path: Path) -> None:
