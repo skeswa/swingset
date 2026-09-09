@@ -2,8 +2,8 @@
 
 swingset collects public competitive West Coast Swing results into a structured
 Hugging Face dataset. It keeps source snapshots so corrections can be checked
-and rebuilt. The first release is under implementation; live coverage and
-identity links are still being verified.
+and rebuilt. The [dataset is published](https://huggingface.co/datasets/skeswa/swingset);
+source coverage and identity links are still being verified.
 
 The dataset includes events, contests, rounds, competitors, judges, marks,
 callbacks, placements, and WSDC registry records. Name matches carry an explicit
@@ -37,9 +37,12 @@ uv run swingset doctor --state ./tmp/state
 uv run swingset cycle --dry-run --state ./tmp/state
 ```
 
-`config/sources.toml` starts with only the calendar enabled. Result-site
-adapters can be tested offline. Publication requires an explicit `--publish`
-(or `swingset publish`) and a provisioned token. The default NixOS service is dry.
+`config/sources.toml` enables the calendar, registry, EEPro, scoring.dance, and
+WDR sources. The registry bootstrap requires an archived comparison dump and an
+explicitly seeded sweep. Adapters can be tested offline. Publication requires
+an explicit `--publish` (or `swingset publish`) and a provisioned token. The
+reusable NixOS module defaults to dry runs; the selected OrbStack writer enables
+publication.
 
 See the [runbook](docs/runbook.md), [implementation status](docs/implementation-status.md),
 and [design index](design/README.md). Code is MIT licensed. Source data has

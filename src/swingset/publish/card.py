@@ -62,6 +62,9 @@ def _gaps(data: BuildInput) -> str:
             "- The registry mirror is incomplete while `dancers` or `registry_placements` is empty."
         )
     gaps.append(
+        "- Unverified callback codes and numeric marks remain in private evidence; they do not become negative callbacks or zero marks. WDR finals bibs stay null where partner ownership is unknown. Couple names remain a single couple entry when the source does not establish individual roles."
+    )
+    gaps.append(
         "- Rows with `snapshot_id = override` are URL-override placeholders, not fetched source evidence. Their dates span the month encoded in the override ID; they are not verified event dates. Do not infer result coverage from these rows."
     )
     return "\n".join(gaps)
@@ -93,13 +96,16 @@ Swingset is an evidence-preserving dataset of competitive West Coast Swing resul
 ## Load it
 
 ```sql
-SELECT e.name AS event, p.place, leader.name_raw AS leader, follower.name_raw AS follower
+SELECT e.name AS event, p.place, leader.name_raw AS leader,
+       follower.name_raw AS follower, couple.name_raw AS couple
 FROM 'hf://datasets/skeswa/swingset/data/placements/*.parquet' p
 JOIN 'hf://datasets/skeswa/swingset/data/events/*.parquet' e USING (event_id)
 LEFT JOIN 'hf://datasets/skeswa/swingset/data/entries/*.parquet' leader
   ON leader.entry_id = p.leader_entry_id
 LEFT JOIN 'hf://datasets/skeswa/swingset/data/entries/*.parquet' follower
-  ON follower.entry_id = p.follower_entry_id;
+  ON follower.entry_id = p.follower_entry_id
+LEFT JOIN 'hf://datasets/skeswa/swingset/data/entries/*.parquet' couple
+  ON couple.entry_id = p.couple_entry_id;
 ```
 
 DuckDB can run this query directly. Polars, pandas, and Hugging Face `datasets` can
@@ -144,7 +150,8 @@ requests at https://github.com/skeswa/swingset/issues.
 ## Collection and personal data
 
 Public calendars, registries, and score sheets are fetched serially per host, respecting
-robots, Retry-After, and a five-second request floor. Results include public competitor
+robots, Retry-After, and a five-second request floor. An explicitly seeded registry
+sweep uses its documented two-second exception. Results include public competitor
 and judge names. Suppressed people keep structural rows with identity fields removed.
 Raw bodies stay private. Source terms continue to apply.
 
