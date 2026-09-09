@@ -30,7 +30,7 @@ work and observation boundaries.
 
 ## Checks executed
 
-Release verification: 134 tests passed; Ruff passed; strict mypy passed
+Release verification: 141 tests passed; Ruff passed; strict mypy passed
 across 76 source files. These checks ran through the Nix development shell.
 The final installed service completed its version-update cycle and then a
 quiet cycle with zero requests and no stages.
@@ -96,7 +96,9 @@ The live systemd stop-during-request check passed on 2026-09-09. Run
 checks passed, and no work was left pending. See closed issue #6.
 
 Only the calendar is enabled in the source config, and the installed
-service uses `dryRun = true`. No public data or messages to site operators
-were sent. The backup timer is stopped during controlled publication and restore;
+service uses `dryRun = true`. The first calendar dataset was published at Hub commit
+`2d3c568ea1cf01e11050ad30a37c3bdc5852c734`; the unchanged repeat made no commit.
+The remote DuckDB query works. Viewer readiness, private backup and restore
+are tracked in issues #7 and #8. No messages were sent to site operators. The backup timer is stopped during controlled publication and restore;
 rebuilding NixOS starts enabled timers again, so stop it again after a rebuild
 until setup is complete. See the [runbook](runbook.md) for activation and restore.
