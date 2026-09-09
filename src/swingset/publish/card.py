@@ -68,9 +68,10 @@ def _gaps(data: BuildInput) -> str:
 
 
 def render_card(data: BuildInput) -> bytes:
+    default_table = "placements" if _rows(data, "placements") else "events"
     configs = []
     for table in PUBLISHED_TABLES:
-        default = "\n  default: true" if table == "placements" else ""
+        default = "\n  default: true" if table == default_table else ""
         configs.append(f'- config_name: {table}{default}\n  data_files: "data/{table}/*.parquet"')
     schemas = "\n".join(
         f"- `{name}`: " + ", ".join(field.name for field in data.schemas[name])
@@ -102,8 +103,9 @@ LEFT JOIN 'hf://datasets/skeswa/swingset/data/entries/*.parquet' follower
 ```
 
 DuckDB can run this query directly. Polars, pandas, and Hugging Face `datasets` can
-read each table from the paths above. `placements` is the default config; for a
-calendar-only snapshot, load `events` explicitly.
+read each table from the paths above. `{default_table}` is the default config in this
+version. Hugging Face cannot stream an empty Parquet config, so calendar-only releases
+default to `events`; after results arrive, the default changes to `placements`.
 
 ## Published coverage
 

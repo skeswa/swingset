@@ -37,7 +37,10 @@ data/changelog/changelog.parquet
 data/snapshots/snapshots.parquet
 ```
 
-One config per table in the README YAML, `placements` as default:
+One config per table appears in the README YAML. `placements` is the default once it
+has rows. A calendar-only bootstrap instead defaults to `events`, because the Hugging
+Face viewer returns an error when it tries to stream an empty default Parquet config.
+The next card switches the default to `placements` when results arrive:
 
 ```yaml
 configs:

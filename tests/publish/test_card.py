@@ -10,6 +10,8 @@ def test_card_lists_every_table_and_one_default() -> None:
     card = render_card(data).decode()
     assert card.count("config_name:") == len(SCHEMAS)
     assert card.count("default: true") == 1
+    assert 'config_name: events\n  default: true' in card
+    assert 'config_name: placements\n  default: true' not in card
     assert "ODC-By 1.0" in card
     assert "five-second" in card
     assert "LEFT JOIN" in card
@@ -35,7 +37,17 @@ def test_card_reports_actual_calendar_only_coverage_and_gaps() -> None:
     assert "2 of 2 events currently have event metadata but no parsed contest results" in card
     assert "`heats` has 0 rows" in card
     assert "registry mirror is incomplete" in card
-    assert "load `events` explicitly" in card
+    assert "calendar-only releases\ndefault to `events`" in card
+
+
+def test_card_defaults_to_placements_once_results_exist() -> None:
+    data = BuildInput({"placements": [{"placement_id": "one"}]}, SCHEMAS, PRIMARY_KEYS, {}, {}, "bundle")
+    card = render_card(data).decode()
+
+    assert card.count("default: true") == 1
+    assert 'config_name: placements\n  default: true' in card
+    assert 'config_name: events\n  default: true' not in card
+    assert "`placements` is the default config in this" in card
 
 
 def test_published_card_counts_match_artifacts_and_repeat_is_unchanged(tmp_path: Path) -> None:
@@ -45,7 +57,7 @@ def test_published_card_counts_match_artifacts_and_repeat_is_unchanged(tmp_path:
 
     from swingset.build.builder import BuildMetadata, build_candidate
 
-    event = {field.name: None for field in SCHEMAS["events"]}
+    event: dict[str, object] = {field.name: None for field in SCHEMAS["events"]}
     event.update(event_id="one", year=2026, sources=["wsdc_calendar"], wsdc_status="registry")
     data = BuildInput({"events": [event]}, SCHEMAS, PRIMARY_KEYS, {}, {}, "bundle")
     meta = BuildMetadata(
