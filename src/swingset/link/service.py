@@ -25,7 +25,7 @@ from .score import Weights, score_candidate
 if TYPE_CHECKING:
     from swingset.state.inputs import InputBundle
 
-LINKER_VERSION = "3"
+LINKER_VERSION = "4"
 
 
 def _source_ids(database: Database, event_id: str) -> dict[str, int]:
@@ -77,7 +77,7 @@ def _weights(bundle: InputBundle) -> Weights:
 
 def _update_registry_points(db: sqlite3.Connection, event_id: str) -> None:
     rows = db.execute(
-        "SELECT p.placement_id,p.place,p.leader_entry_id,p.follower_entry_id,p.couple_entry_id,c.division,c.wsdc_points_eligible,(SELECT max(entry_count) FROM rounds r WHERE r.contest_id=p.contest_id AND r.round_type='prelim') FROM placements p JOIN contests c USING(contest_id) WHERE p.event_id=?",
+        "SELECT p.placement_id,p.place,p.leader_entry_id,p.follower_entry_id,p.couple_entry_id,c.division,c.dance_style,c.wsdc_points_eligible,p.contest_id FROM placements p JOIN contests c USING(contest_id) WHERE p.event_id=?",
         (event_id,),
     ).fetchall()
     event = db.execute(
@@ -86,7 +86,12 @@ def _update_registry_points(db: sqlite3.Connection, event_id: str) -> None:
     if event is None:
         return
     for row in rows:
+        incomplete_prelim = db.execute(
+            "SELECT 1 FROM findings f JOIN rounds r ON r.round_id=f.subject_id WHERE f.kind='missing_identity' AND f.subject_kind='round' AND f.closed_at IS NULL AND r.contest_id=? AND r.round_type='prelim' LIMIT 1",
+            (row[8],),
+        ).fetchone()
         points: list[int | None] = []
+        field_sizes: list[int | None] = []
         for role, entry_id in (("leader", row[2]), ("follower", row[3])):
             linked = (
                 db.execute("SELECT wsdc_id FROM entries WHERE entry_id=?", (entry_id,)).fetchone()
@@ -95,20 +100,33 @@ def _update_registry_points(db: sqlite3.Connection, event_id: str) -> None:
             )
             registry = (
                 db.execute(
-                    "SELECT points FROM registry_placements WHERE wsdc_id=? AND role=? AND series_id=? AND division=? AND substr(event_month,1,7)=substr(?,1,7) AND result=?",
-                    (linked[0], role, event[0], row[5], event[1], str(row[1])),
+                    "SELECT points FROM registry_placements WHERE wsdc_id=? AND role=? AND series_id=? AND division=? AND dance_style=? AND substr(event_month,1,7)=substr(?,1,7) AND result=?",
+                    (linked[0], role, event[0], row[5], row[6], event[1], str(row[1])),
                 ).fetchone()
-                if linked and linked[0] is not None
+                if bool(row[7]) and linked and linked[0] is not None
                 else None
             )
             points.append(int(registry[0]) if registry else None)
+            field = (
+                None
+                if incomplete_prelim
+                else db.execute(
+                    "SELECT max(field_size) FROM (SELECT count(*) AS field_size FROM rounds r JOIN entries e ON e.contest_id=r.contest_id AND e.role=? WHERE r.contest_id=? AND r.round_type='prelim' AND EXISTS (SELECT 1 FROM json_each(e.rounds_danced) WHERE value=r.round_id) GROUP BY r.round_id)",
+                    (role, row[8]),
+                ).fetchone()
+            )
+            field_sizes.append(int(field[0]) if field and field[0] is not None else None)
         confirmed = all(value is not None for value in points)
-        field_size = int(row[7]) if row[7] is not None else 0
-        expected = expected_points(field_size, int(row[1]))
+        available = [index for index, value in enumerate(points) if value is not None]
         matches = (
             None
-            if not any(value is not None for value in points) or not bool(row[6])
-            else all(value is None or value == expected for value in points)
+            if not available
+            or not bool(row[7])
+            or any(field_sizes[index] is None for index in available)
+            else all(
+                points[index] == expected_points(field_sizes[index] or 0, int(row[1]))
+                for index in available
+            )
         )
         db.execute(
             "UPDATE placements SET registry_points_leader=?,registry_points_follower=?,registry_confirmed=?,points_matches_expected=? WHERE placement_id=?",
@@ -187,8 +205,8 @@ def link_event(
         if subject.subject_kind != "entry" or subject.division is None:
             continue
         rows = conn.execute(
-            "SELECT rp.wsdc_id FROM registry_placements rp JOIN events e ON e.series_id=rp.series_id WHERE e.event_id=? AND rp.role=? AND rp.division=? AND substr(rp.event_month,1,7)=substr(e.end_date,1,7)",
-            (event_id, subject.role, subject.division),
+            "SELECT rp.wsdc_id FROM registry_placements rp JOIN events e ON e.series_id=rp.series_id JOIN contests c ON c.contest_id=? WHERE e.event_id=? AND rp.role=? AND rp.division=? AND rp.dance_style=c.dance_style AND substr(rp.event_month,1,7)=substr(e.end_date,1,7)",
+            (subject.contest_id, event_id, subject.role, subject.division),
         )
         registry_confirmations[subject.subject_id] = {int(row[0]) for row in rows}
     scored: dict[str, list[tuple[Candidate, float]]] = {}

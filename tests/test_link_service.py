@@ -4,6 +4,7 @@ from unittest.mock import patch
 
 from swingset.clock import FakeClock
 from swingset.link import link_event
+from swingset.link.service import _update_registry_points
 from swingset.state.db import open_database
 from swingset.state.work import WorkUnit, enqueue
 
@@ -114,6 +115,84 @@ def test_source_id_can_link_same_dancer_across_contests(tmp_path) -> None:
             run(db, Bundle())
         ids = [row[0] for row in db.connection.execute("SELECT wsdc_id FROM identity_links")]
         assert ids.count(1) == 2
+
+
+def test_registry_points_use_each_roles_prelim_field_and_dance_style(tmp_path) -> None:
+    with open_database(tmp_path, lock=False) as db:
+        seed(db.connection)
+        db.connection.execute(
+            "INSERT INTO rounds(round_id,contest_id,round_type,round_index,name_raw,scoring_method,callback_legend,judge_count,entry_count,source_round_ref,source,snapshot_id,parser_version,first_seen_at,last_seen_at,run_id) VALUES ('c1/prelim','c1','prelim',1,'Prelim','relative_placement','{}',5,20,'prelim','test','snap','1','t','t','run'),('c1/final','c1','final',2,'Final','relative_placement','{}',5,10,'final','test','snap','1','t','t','run')"
+        )
+        for role, count in (("leader", 12), ("follower", 20)):
+            for number in range(count):
+                identifier = f"event/c1/{role[0]}-{number}"
+                entry(db.connection, identifier, "c1", str(number))
+                db.connection.execute(
+                    "UPDATE entries SET role=?,rounds_danced='[\"c1/prelim\"]' WHERE entry_id=?",
+                    (role, identifier),
+                )
+        db.connection.execute(
+            "UPDATE entries SET wsdc_id=1 WHERE entry_id='event/c1/l-0'"
+        )
+        db.connection.execute(
+            "UPDATE entries SET wsdc_id=2 WHERE entry_id='event/c1/f-0'"
+        )
+        db.connection.execute(
+            "INSERT INTO placements(placement_id,round_id,contest_id,event_id,place,leader_entry_id,follower_entry_id,tally,source,snapshot_id,parser_version,first_seen_at,last_seen_at,run_id) VALUES ('place','c1/final','c1','event',1,'event/c1/l-0','event/c1/f-0','','test','snap','1','t','t','run')"
+        )
+        for wsdc_id, role, style, points in (
+            (1, "leader", "wcs", 6),
+            (2, "follower", "wcs", 10),
+            (1, "leader", "country", 25),
+        ):
+            db.connection.execute(
+                "INSERT INTO registry_placements(wsdc_id,role,dance_style,division,series_id,series_name_raw,event_month,result,points,source,snapshot_id,parser_version,first_seen_at,last_seen_at,run_id) VALUES (?,?,?,'novice','wsdc-1','Event','2026-01','1',?,'test','snap','1','t','t','run')",
+                (wsdc_id, role, style, points),
+            )
+
+        _update_registry_points(db.connection, "event")
+
+        assert tuple(
+            db.connection.execute(
+                "SELECT registry_points_leader,registry_points_follower,registry_confirmed,points_matches_expected FROM placements WHERE placement_id='place'"
+            ).fetchone()
+        ) == (6, 10, 1, 1)
+
+        db.connection.execute("UPDATE contests SET wsdc_points_eligible=0 WHERE contest_id='c1'")
+        _update_registry_points(db.connection, "event")
+        assert tuple(
+            db.connection.execute(
+                "SELECT registry_points_leader,registry_points_follower,registry_confirmed,points_matches_expected FROM placements WHERE placement_id='place'"
+            ).fetchone()
+        ) == (None, None, 0, None)
+
+        db.connection.execute("UPDATE contests SET wsdc_points_eligible=1 WHERE contest_id='c1'")
+        db.connection.execute(
+            "UPDATE entries SET rounds_danced='[]' WHERE contest_id='c1' AND role='follower'"
+        )
+        _update_registry_points(db.connection, "event")
+        assert tuple(
+            db.connection.execute(
+                "SELECT registry_points_leader,registry_points_follower,registry_confirmed,points_matches_expected FROM placements WHERE placement_id='place'"
+            ).fetchone()
+        ) == (6, 10, 1, None)
+
+        db.connection.execute(
+            "UPDATE entries SET rounds_danced='[\"c1/prelim\"]' WHERE contest_id='c1' AND role='follower'"
+        )
+        db.connection.execute(
+            "INSERT INTO runs(run_id,started_at,dry_run) VALUES ('finding-run','t',0)"
+        )
+        db.connection.execute(
+            "INSERT INTO findings(finding_id,owner_kind,owner_id,kind,subject_kind,subject_id,severity,summary,evidence_json,opened_at,run_id) VALUES ('missing','event','event','missing_identity','round','c1/prelim','warning','Redacted entrant','{}','t','finding-run')"
+        )
+        _update_registry_points(db.connection, "event")
+        assert (
+            db.connection.execute(
+                "SELECT points_matches_expected FROM placements WHERE placement_id='place'"
+            ).fetchone()[0]
+            is None
+        )
 
 
 def test_manual_override_beats_source_id(tmp_path) -> None:
