@@ -7,9 +7,9 @@ from typing import TypedDict
 from swingset.model.canonical import Dancer, RegistryPlacement
 from swingset.model.ids import series_id
 from swingset.model.observations import decode_payload
-from swingset.normalize.divisions import classify_contest
 from swingset.normalize.names import normalize_name
 from swingset.sources.records import DancerLookup
+from swingset.state.findings import Finding
 
 from .writer import Projection
 
@@ -21,6 +21,61 @@ class ProvenanceValues(TypedDict):
     first_seen_at: str
     last_seen_at: str
     run_id: str
+
+
+_LEVELS = {
+    "N/A": "none",
+    "NEW": "newcomer",
+    "NOV": "novice",
+    "INT": "intermediate",
+    "ADV": "advanced",
+    "ALS": "allstar",
+    "CHMP": "champion",
+    "INV": "invitational",
+}
+_LEVELS.update(
+    {
+        value.upper(): value
+        for value in (
+            "newcomer",
+            "novice",
+            "intermediate",
+            "advanced",
+            "allstar",
+            "champion",
+            "open",
+            "invitational",
+            "none",
+        )
+    }
+)
+_LEVELS.update({"ALL STAR": "allstar", "CHAMPIONS": "champion"})
+_PLACEMENT_DIVISIONS = {
+    **_LEVELS,
+    "JRS": "juniors",
+    "JR": "juniors",
+    "JUNIORS": "juniors",
+    "SPH": "sophisticated",
+    "SOPH": "sophisticated",
+    "SOPHISTICATED": "sophisticated",
+    "MSTR": "masters",
+    "MASTERS": "masters",
+}
+_ROLES = {
+    "l": "leader",
+    "leader": "leader",
+    "primary role leader": "leader",
+    "follower": "follower",
+    "primary role follower": "follower",
+    "f": "follower",
+}
+_STYLES = {
+    "west coast swing": "wcs",
+    "wcs": "wcs",
+    "country": "country",
+    "lindy": "lindy",
+    "other": "other",
+}
 
 
 def project_dancer(conn: sqlite3.Connection, scope_id: str, now: str, run_id: str) -> Projection:
@@ -49,17 +104,53 @@ def project_dancer(conn: sqlite3.Connection, scope_id: str, now: str, run_id: st
         "run_id": run_id,
     }
 
-    def level(raw: str | None) -> str:
-        return classify_contest(raw or "").division
+    findings: list[Finding] = []
+    unknown_values: set[tuple[str, str]] = set()
 
-    role_raw = (payload.primary_role_raw or "unknown").casefold()
-    role = (
-        "leader"
-        if role_raw in {"l", "leader"}
-        else "follower"
-        if role_raw in {"f", "follower"}
-        else "unknown"
-    )
+    def unknown(field: str, raw: str) -> None:
+        if (field, raw) in unknown_values:
+            return
+        unknown_values.add((field, raw))
+        findings.append(
+            Finding(
+                kind="unknown_enum",
+                subject_kind="dancer",
+                subject_id=f"{payload.wsdc_id}:{field}:{raw}",
+                severity="warning",
+                summary=f"Unknown registry {field} value {raw!r}",
+                evidence={"snapshot_id": str(row[2]), "field": field, "raw": raw},
+                snapshot_id=str(row[2]),
+            )
+        )
+
+    def level(raw: str | None) -> str:
+        if raw is None or raw.strip().casefold() == "none":
+            return "none"
+        if normalized := _LEVELS.get(raw.strip().upper()):
+            return normalized
+        unknown("division", raw)
+        return "none"
+
+    def role(raw: str | None) -> str:
+        value = (raw or "unknown").strip().casefold()
+        if normalized := _ROLES.get(value):
+            return normalized
+        unknown("role", raw or "")
+        return "unknown"
+
+    def style(raw: str | None) -> str:
+        value = (raw or "").strip().casefold()
+        if normalized := _STYLES.get(value):
+            return normalized
+        unknown("dance_style", raw or "")
+        return "other"
+
+    def placement_division(raw: str) -> str | None:
+        if normalized := _PLACEMENT_DIVISIONS.get(raw.strip().upper()):
+            return normalized
+        unknown("division", raw)
+        return None
+
     rows: list[Dancer | RegistryPlacement] = [
         Dancer(
             wsdc_id=payload.wsdc_id,
@@ -67,15 +158,15 @@ def project_dancer(conn: sqlite3.Connection, scope_id: str, now: str, run_id: st
             last_name=last,
             name_norm=normalize_name(f"{first} {last}").value,
             is_pro=payload.is_pro,
-            primary_role=role,
+            primary_role=role(payload.primary_role_raw),
             leader_required_level=level(payload.leader_required_raw),
             leader_allowed_level=level(payload.leader_allowed_raw),
             follower_required_level=level(payload.follower_required_raw),
             follower_allowed_level=level(payload.follower_allowed_raw),
-            leader_highest_level="none",
-            leader_highest_points=0,
-            follower_highest_level="none",
-            follower_highest_points=0,
+            leader_highest_level=level(payload.leader_highest_raw),
+            leader_highest_points=payload.leader_highest_points or 0,
+            follower_highest_level=level(payload.follower_highest_raw),
+            follower_highest_points=payload.follower_highest_points or 0,
             recent_year=payload.recent_year or 0,
             registry_internal_id=payload.registry_internal_id or 0,
             registry_fetched_at=str(row[5]),
@@ -83,6 +174,9 @@ def project_dancer(conn: sqlite3.Connection, scope_id: str, now: str, run_id: st
         )
     ]
     for placement in payload.placements:
+        division = placement_division(placement.division_raw)
+        if division is None:
+            continue
         try:
             month = (
                 datetime.strptime(placement.event_month_raw, "%B %Y")
@@ -95,9 +189,9 @@ def project_dancer(conn: sqlite3.Connection, scope_id: str, now: str, run_id: st
         rows.append(
             RegistryPlacement(
                 wsdc_id=payload.wsdc_id,
-                role=placement.role_raw.casefold(),
-                dance_style=(placement.dance_style_raw or "wcs").casefold(),
-                division=level(placement.division_raw),
+                role=role(placement.role_raw),
+                dance_style=style(placement.dance_style_raw),
+                division=division,
                 series_id=series_id(
                     placement.event_name_raw,
                     int(placement.event_id_raw)
@@ -112,4 +206,4 @@ def project_dancer(conn: sqlite3.Connection, scope_id: str, now: str, run_id: st
                 **provenance,
             )
         )
-    return Projection(tuple(rows))
+    return Projection(tuple(rows), tuple(findings))

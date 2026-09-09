@@ -73,6 +73,21 @@ class AgeDivision(StrEnum):
     MASTERS = "masters"
 
 
+class RegistryDivision(StrEnum):
+    NEWCOMER = "newcomer"
+    NOVICE = "novice"
+    INTERMEDIATE = "intermediate"
+    ADVANCED = "advanced"
+    ALLSTAR = "allstar"
+    CHAMPION = "champion"
+    OPEN = "open"
+    INVITATIONAL = "invitational"
+    JUNIORS = "juniors"
+    SOPHISTICATED = "sophisticated"
+    MASTERS = "masters"
+    NONE = "none"
+
+
 class ContestType(StrEnum):
     JACK_AND_JILL = "jack_and_jill"
     STRICTLY = "strictly"

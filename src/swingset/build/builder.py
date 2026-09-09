@@ -94,7 +94,7 @@ ENUM_FIELDS: dict[tuple[str, str], type[StrEnum]] = {
     ("callbacks", "outcome"): enums.CallbackOutcome,
     ("registry_placements", "role"): enums.Role,
     ("registry_placements", "dance_style"): enums.DanceStyle,
-    ("registry_placements", "division"): enums.Division,
+    ("registry_placements", "division"): enums.RegistryDivision,
     ("identity_links", "subject_kind"): enums.SubjectKind,
     ("identity_links", "method"): enums.LinkMethod,
     ("identity_links", "status"): enums.LinkStatus,

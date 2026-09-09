@@ -54,6 +54,19 @@ daily_request_budget = 1500        # 20000 during the one-time bootstrap sweep
 `placements` is `{}` or `[]`; `dancer.id` is not the WSDC number
 (`wscid` is); names are transliterated English.
 
+The 2026-09-09 captures use `West Coast Swing` for style,
+`Primary Role Leader` / `Primary Role Follower`, and division codes
+`NEW`, `NOV`, `INT`, `ADV`, `ALS`, `CHMP`, `JRS`, `SPH`, and `MSTR`.
+Projection maps the verified labels to canonical values. Registry age categories
+remain `juniors`, `sophisticated`, and `masters`; mapping all three to `none`
+would collapse distinct placements in the primary key. Unknown division records
+remain raw and open a finding instead of being assigned a guessed category.
+
+Parser version 3 also retains the highest-level and point fields for the
+dominant and non-dominant roles. Projection assigns them to leader/follower
+using the printed primary role. Existing observations are reparsed and rebuilt
+when parser or projector versions change.
+
 ## 9. Quirks
 
 Duplicate numbers are merged by hand by WSDC staff. Results land 1 to 7

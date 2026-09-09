@@ -65,6 +65,10 @@ class DancerLookup:
     follower_allowed_raw: str | None = None
     recent_year: int | None = None
     placements: tuple[RegistryPlacement, ...] = ()
+    leader_highest_raw: str | None = None
+    leader_highest_points: int | None = None
+    follower_highest_raw: str | None = None
+    follower_highest_points: int | None = None
 
 
 @dataclass(frozen=True)

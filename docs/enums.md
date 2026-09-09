@@ -58,6 +58,10 @@ Generated from `swingset.model.enums`.
 
 `random_partner`, `open_couple`, `perm_couple`
 
+## RegistryDivision
+
+`newcomer`, `novice`, `intermediate`, `advanced`, `allstar`, `champion`, `open`, `invitational`, `juniors`, `sophisticated`, `masters`, `none`
+
 ## Role
 
 `leader`, `follower`, `couple`, `unknown`

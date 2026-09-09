@@ -37,7 +37,7 @@ def _integer(value: object, default: int = 0) -> int:
 class DancerPage:
     kind = "wsdc_registry.dancer"
     EXTRACT_VERSION = 2
-    PARSER_VERSION = 2
+    PARSER_VERSION = 3
     change_mode = "body_hash"
 
     def extract(self, body: bytes) -> JsonValue:
@@ -145,26 +145,44 @@ class DancerPage:
             if isinstance(follower.get("level"), dict)
             else {}
         )
+        primary_role = str(extract.get("dominate_role", "unknown"))
+        primary_is_leader = "leader" in primary_role.casefold()
+        primary_highest = extract.get("dominate_role_highest_level")
+        secondary_highest = extract.get("non_dominate_role_highest_level")
+        primary_points = _integer(extract.get("dominate_role_highest_level_points"))
+        secondary_points = _integer(extract.get("non_dominate_role_highest_level_points"))
         payload = DancerLookup(
-            "dancer_lookup",
-            "found",
-            requested,
-            wsdc_id,
-            _integer(dancer.get("id")),
-            str(dancer.get("first_name", "")),
-            str(dancer.get("last_name", "")),
-            str(extract.get("dominate_role", "unknown")),
-            bool(extract.get("is_pro", 0)),
-            str(leader_level.get("required")) if leader_level.get("required") is not None else None,
-            str(leader_level.get("allowed")) if leader_level.get("allowed") is not None else None,
-            str(follower_level.get("required"))
+            kind="dancer_lookup",
+            outcome="found",
+            requested_wsdc_id=requested,
+            wsdc_id=wsdc_id,
+            registry_internal_id=_integer(dancer.get("id")),
+            first_name=str(dancer.get("first_name", "")),
+            last_name=str(dancer.get("last_name", "")),
+            primary_role_raw=primary_role,
+            is_pro=bool(extract.get("is_pro", 0)),
+            leader_required_raw=str(leader_level.get("required"))
+            if leader_level.get("required") is not None
+            else None,
+            leader_allowed_raw=str(leader_level.get("allowed"))
+            if leader_level.get("allowed") is not None
+            else None,
+            follower_required_raw=str(follower_level.get("required"))
             if follower_level.get("required") is not None
             else None,
-            str(follower_level.get("allowed"))
+            follower_allowed_raw=str(follower_level.get("allowed"))
             if follower_level.get("allowed") is not None
             else None,
-            _integer(extract.get("recent_year")),
-            tuple(placements),
+            recent_year=_integer(extract.get("recent_year")),
+            placements=tuple(placements),
+            leader_highest_raw=str(primary_highest if primary_is_leader else secondary_highest)
+            if (primary_highest if primary_is_leader else secondary_highest) is not None
+            else None,
+            leader_highest_points=primary_points if primary_is_leader else secondary_points,
+            follower_highest_raw=str(secondary_highest if primary_is_leader else primary_highest)
+            if (secondary_highest if primary_is_leader else primary_highest) is not None
+            else None,
+            follower_highest_points=secondary_points if primary_is_leader else primary_points,
         )
         return ParseResult(
             (Observation(ObservationScope("dancer", str(requested)), payload.kind, payload),)

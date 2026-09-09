@@ -232,7 +232,7 @@ internally to produce the flag and can be recomputed by anyone from
 | `wsdc_id` | int32 | key with `role`, `series_id`, `event_month`, `division`, `dance_style` |
 | `role` | enum | |
 | `dance_style` | enum | |
-| `division` | enum | |
+| `division` | enum | registry category: skill division or `juniors`, `sophisticated`, `masters`; age categories stay distinct in the key |
 | `series_id` | string | |
 | `series_name_raw` | string | |
 | `event_month` | date32 | first of month; the registry gives only "Month YYYY" |
