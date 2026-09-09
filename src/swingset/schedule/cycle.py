@@ -80,8 +80,7 @@ def build(
     with database.transaction(immediate=False) as conn:
         data = read_build_input(conn, bundle)
     captured_versions = {
-        str(name): str(value)
-        for name, value in json.loads(bundle.files["versions.json"]).items()
+        str(name): str(value) for name, value in json.loads(bundle.files["versions.json"]).items()
     }
     meta = BuildMetadata(
         run_id=run_id,
@@ -95,7 +94,11 @@ def build(
         built_at=clock.now(),
     )
     return build_candidate(
-        database.state_dir, data, meta, suppressions=bundle.csv("suppressions.csv")
+        database.state_dir,
+        data,
+        meta,
+        suppressions=bundle.csv("suppressions.csv"),
+        card_renderer=render_card,
     )
 
 

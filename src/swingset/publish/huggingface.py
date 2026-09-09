@@ -5,9 +5,16 @@ import json
 from pathlib import Path
 from typing import Any
 
-from huggingface_hub import CommitOperationAdd, CommitOperationDelete, HfApi, hf_hub_download
+from huggingface_hub import (
+    CommitOperationAdd,
+    CommitOperationDelete,
+    HfApi,
+    hf_hub_download,
+)
 
 from swingset.publish.service import RemoteCommit
+
+_INITIAL_CARD = b"---\nlicense: odc-by\n---\n"
 
 
 class HuggingFaceHub:
@@ -29,7 +36,9 @@ class HuggingFaceHub:
 
     def is_initial_head(self, commit: str) -> bool:
         files = set(self.api.list_repo_files(self.repo_id, repo_type="dataset", revision=commit))
-        return files <= {".gitattributes"}
+        if not files <= {".gitattributes", "README.md"}:
+            return False
+        return "README.md" not in files or self._download("README.md", commit).read_bytes() == _INITIAL_CARD
 
     def _download(self, name: str, commit: str) -> Path:
         return Path(

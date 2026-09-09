@@ -104,11 +104,12 @@ before any intent record or remote mutation.
 
 Before the first publish, bootstrap explicitly records the repo's
 initial head (or empty-repo state) as the expected parent and uses an
-empty logical dataset as baseline. It rejects an existing published
-dataset; that must be restored. Retry handling also covers the first
-publish with no baseline symlink. The Hub adapter's empty-repo behavior
-must be verified in WP5; it must not silently omit concurrency checks
-for an existing head.
+empty logical dataset as baseline. A Hugging Face head containing only
+`.gitattributes` and its exact generated ODC-By license card is empty for
+this purpose. Any other README, file, manifest, or data rejects bootstrap;
+an existing published dataset must be restored. Retry handling also covers
+the first publish with no baseline symlink. Bootstrap keeps the initial
+head as the commit parent, so it does not omit concurrency checks.
 
 Reconcile runs before any new build, including when no inputs changed:
 
