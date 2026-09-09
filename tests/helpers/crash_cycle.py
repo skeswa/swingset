@@ -16,7 +16,8 @@ from swingset.state.db import Database, open_database
 
 state = Path(sys.argv[1])
 overrides = Path(sys.argv[2])
-fault = sys.argv[3]
+config = Path(sys.argv[3])
+fault = sys.argv[4]
 original = Database.transaction
 count = 0
 stopped = False
@@ -60,7 +61,7 @@ clock = FakeClock()
 with open_database(state) as db:
     result = run_cycle(
         db,
-        config_dir=Path("config"),
+        config_dir=config,
         overrides_dir=overrides,
         clock=clock,
         transport=httpx.MockTransport(handler),

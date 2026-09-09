@@ -20,6 +20,16 @@ def overrides(tmp_path):
     return target
 
 
+@pytest.fixture
+def calendar_config(tmp_path):
+    target = tmp_path / "config"
+    shutil.copytree("config", target)
+    (target / "sources.toml").write_text(
+        '[sources.wsdc_calendar]\nenabled = true\nindex_urls = ["https://worldsdc.com/events/"]\n'
+    )
+    return target
+
+
 def test_repository_identity_hashes_local_python_source(tmp_path, monkeypatch):
     monkeypatch.delenv("SWINGSET_REVISION", raising=False)
     package = tmp_path / "swingset"
@@ -36,7 +46,7 @@ def test_repository_identity_hashes_local_python_source(tmp_path, monkeypatch):
 
 
 def test_repository_revision_invalidates_one_build_then_is_quiet(
-    tmp_path, overrides, monkeypatch
+    tmp_path, overrides, calendar_config, monkeypatch
 ):
     clock = FakeClock()
 
@@ -51,7 +61,7 @@ def test_repository_revision_invalidates_one_build_then_is_quiet(
     with open_database(tmp_path) as db:
         first = run_cycle(
             db,
-            config_dir=Path("config"),
+            config_dir=calendar_config,
             overrides_dir=overrides,
             clock=clock,
             transport=httpx.MockTransport(handler),
@@ -61,7 +71,7 @@ def test_repository_revision_invalidates_one_build_then_is_quiet(
         monkeypatch.setenv("SWINGSET_REVISION", "revision-b")
         changed = run_cycle(
             db,
-            config_dir=Path("config"),
+            config_dir=calendar_config,
             overrides_dir=overrides,
             clock=clock,
             transport=httpx.MockTransport(handler),
@@ -81,7 +91,7 @@ def test_repository_revision_invalidates_one_build_then_is_quiet(
 
         quiet = run_cycle(
             db,
-            config_dir=Path("config"),
+            config_dir=calendar_config,
             overrides_dir=overrides,
             clock=clock,
             transport=httpx.MockTransport(handler),
@@ -90,7 +100,7 @@ def test_repository_revision_invalidates_one_build_then_is_quiet(
         assert quiet["stages"] == []
 
 
-def test_calendar_cycle_then_fully_quiet_cycle(tmp_path, overrides):
+def test_calendar_cycle_then_fully_quiet_cycle(tmp_path, overrides, calendar_config):
     clock = FakeClock()
     calls = []
 
@@ -105,7 +115,7 @@ def test_calendar_cycle_then_fully_quiet_cycle(tmp_path, overrides):
     with open_database(tmp_path) as db:
         first = run_cycle(
             db,
-            config_dir=Path("config"),
+            config_dir=calendar_config,
             overrides_dir=overrides,
             clock=clock,
             transport=httpx.MockTransport(handler),
@@ -118,7 +128,7 @@ def test_calendar_cycle_then_fully_quiet_cycle(tmp_path, overrides):
         clock.sleep(1)
         second = run_cycle(
             db,
-            config_dir=Path("config"),
+            config_dir=calendar_config,
             overrides_dir=overrides,
             clock=clock,
             transport=httpx.MockTransport(handler),
