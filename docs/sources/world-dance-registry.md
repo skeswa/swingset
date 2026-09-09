@@ -132,7 +132,10 @@ Used to cross-check finals places from the rounds file.
   so nothing is cached at the edge; our 304s cost S3 a metadata read.
 - The `rounds` JSON includes every division at once; there is no
   per-round URL.
-- `attributeGroup` was null in the sample; meaning **unverified**.
+- `attributeGroup` is usually null. Three routine finals in the 13-event
+  sample use a group named `NASDE`. Its own labels define `SVW` as a swing
+  violation warning and `SV1`, `SV2`, and `SV3` as 1-, 3-, and 10-placement
+  drops. Preserve the group and labels; do not apply the penalty a second time.
 
 ## 10. Backfill
 
@@ -155,7 +158,7 @@ reported.
 
 ## 13. Open items
 
-- Meaning of `S<n>` in the callback column and of `attributeGroup`.
+- Meaning of `S<n>` in the callback column.
 - Whether the finals `Bib #` is the leader's bib.
 - Whether registration `euid` values map to scores UUIDs.
 - Whether the operator would publish an index (one JSON file listing
@@ -168,23 +171,31 @@ The gated collector archived rounds and awards for UUID
 13 award observations. A repeated conditional rounds request returned 304.
 Fixtures and request metadata are in `src/swingset/sources/wdr/fixtures/`.
 
-The sample does not establish the meaning of `S<n>`, `attributeGroup`, or
-which partner owns the finals bib. Those remain unverified and produce
-parser warnings where encountered. A single conditional request does not
-establish a weekend's load.
+The committed Desert City sample does not establish the meaning of `S<n>` or
+which partner owns the finals bib. Those remain unverified and produce parser
+warnings where encountered. The broader sample establishes the NASDE
+`attributeGroup` described above; other groups remain unverified. A single
+conditional request does not establish a weekend's load.
 
-The seed script found 12 usable UUID URLs among 14 research mentions.
-Swingapalooza and Jax Westie Fest have only host-root links; their exact
-URLs are still required.
+The seed script initially found 12 usable UUID URLs among 14 research mentions.
+The official Swingapalooza 2026 results page now supplies UUID
+`00cf1615-fb0d-11f0-9a29-0aa72bbce9ea`, and its rounds payload names the event
+`Swingapalooza 2026`. The official Jax results page links UUID
+`ed59db24-679d-11ef-9a29-0aa72bbce9ea`, but that payload names the event
+`Jax Westie Fest 2025`; the exact Jax Westie Fest 2026 UUID is still required.
 
-All 12 exact seed URLs were fetched through the gated collector on 2026-09-09.
+All 12 initial exact seed URLs and the verified Swingapalooza URL were fetched
+through the gated collector on 2026-09-09.
 Every rounds and awards URL returned valid JSON and parsed successfully: 436
-round observations and 259 award observations in total. Per-event round counts
-ranged from 18 (Waterloo) to 52 (Chicago Classic); award counts ranged from 10
-to 34. The captures are archived in `tmp/wdr-smoke`; the committed Desert City
-fixtures remain the representative parser fixture.
+round observations and 259 award observations for the initial 12, plus 34
+rounds and 24 awards for Swingapalooza, for totals of 470 and 283. Per-event
+round counts ranged from 18 (Waterloo) to 52 (Chicago Classic); award counts
+ranged from 10 to 34. The captures are archived in `tmp/wdr-smoke`; the committed Desert City
+fixtures remain the representative parser fixture. Swingapalooza and the stale
+Jax 2025 link are archived separately in `tmp/wdr-discovery-results`.
 
-The broader sample contains `S<n>` callback values in every event and non-null
-`attributeGroup` in two events. It does not establish either meaning. Finals bib
-ownership also remains unverified. Local research contains no event UUID for
-Swingapalooza or Jax Westie Fest, so no IDs were inferred or invented.
+The broader sample contains `S<n>` callback values in every event; their meaning
+remains unverified. Non-null `attributeGroup` values in two events establish the
+NASDE routine-penalty legend described above. Finals bib ownership also remains
+unverified. No UUID is inferred from the separate World Dance Registry
+registration `euid`.

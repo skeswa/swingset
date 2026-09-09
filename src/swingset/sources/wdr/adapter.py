@@ -44,7 +44,7 @@ def _json(body: bytes) -> JsonValue:
 class RoundsPage:
     kind = "wdr.rounds"
     EXTRACT_VERSION = 1
-    PARSER_VERSION = 1
+    PARSER_VERSION = 2
     change_mode = "validators"
 
     def extract(self, body: bytes) -> JsonValue:
@@ -71,11 +71,21 @@ class RoundsPage:
             round_label = parts[-1]
             redacted = bool(raw.get("redacted", False))
             attribute_group = raw.get("attributeGroup")
-            if attribute_group is not None:
+            known_nasde = {
+                "id": 1,
+                "name": "NASDE",
+                "attributes": [
+                    {"id": 1, "name": "SVW indicates Swing Violation - Warning"},
+                    {"id": 2, "name": "SV1 indicates Swing Violation - 1 Placement Drop"},
+                    {"id": 3, "name": "SV2 indicates Swing Violation - 3 Placement Drop"},
+                    {"id": 4, "name": "SV3 indicates Swing Violation - 10 Placement Drop"},
+                ],
+            }
+            if attribute_group is not None and attribute_group != known_nasde:
                 warnings.append(
                     ParseWarning(
                         "wdr_attribute_group_unverified",
-                        "WDR attributeGroup is preserved without interpretation",
+                        "Unrecognized WDR attributeGroup is preserved without interpretation",
                         {"round_id": raw.get("id"), "attributeGroup": attribute_group},
                     )
                 )
