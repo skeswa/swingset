@@ -11,6 +11,7 @@ from huggingface_hub import (
     HfApi,
     hf_hub_download,
 )
+from huggingface_hub.errors import EntryNotFoundError
 
 from swingset.publish.service import RemoteCommit
 
@@ -54,10 +55,8 @@ class HuggingFaceHub:
     def inspect(self, commit: str) -> RemoteCommit:
         try:
             manifest_path = self._download("_meta/manifest.json", commit)
-        except Exception as error:
-            if type(error).__name__ == "EntryNotFoundError":
-                raise FileNotFoundError("remote manifest is absent") from error
-            raise
+        except EntryNotFoundError as error:
+            raise FileNotFoundError("remote manifest is absent") from error
         manifest: dict[str, Any] = json.loads(manifest_path.read_text())
         files = {
             name: hashlib.sha256(self._download(name, commit).read_bytes()).hexdigest()

@@ -1,7 +1,9 @@
 from pathlib import Path
 from typing import Any, cast
 
+import httpx
 import pytest
+from huggingface_hub.errors import RemoteEntryNotFoundError
 
 from swingset.publish.huggingface import HuggingFaceHub
 
@@ -63,3 +65,14 @@ def test_initial_head_rejects_non_generated_card(
 @pytest.mark.parametrize("name", ["LICENSE", "data/placements/data.parquet", "_meta/manifest.json"])
 def test_initial_head_rejects_every_other_file(name: str) -> None:
     assert not hub([".gitattributes", name]).is_initial_head("initial")
+
+
+def test_inspect_translates_actual_remote_entry_error(monkeypatch: pytest.MonkeyPatch) -> None:
+    response = httpx.Response(404, request=httpx.Request("GET", "https://huggingface.co/missing"))
+    error = RemoteEntryNotFoundError("missing", response=response)
+    instance = hub([])
+    monkeypatch.setattr(instance, "_download", lambda *_args: (_ for _ in ()).throw(error))
+
+    with pytest.raises(FileNotFoundError, match="remote manifest") as raised:
+        instance.inspect("initial")
+    assert raised.value.__cause__ is error

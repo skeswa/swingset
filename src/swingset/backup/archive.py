@@ -9,14 +9,22 @@ from swingset.backup.checkpoint import Checkpoint
 class Archive(Protocol):
     def head(self) -> str | None: ...
     def manifest_hash(self, commit: str) -> str: ...
+    def is_initial_head(self, commit: str) -> bool: ...
     def create_commit(self, *, parent: str | None, message: str, files: dict[str, Path]) -> str: ...
 
 
 def upload_checkpoint(checkpoint: Checkpoint, archive: Archive) -> str | None:
     """Atomically upload a complete checkpoint; equal closures make no commit."""
     parent = archive.head()
-    if parent is not None and archive.manifest_hash(parent) == checkpoint.manifest_hash:
-        return None
+    if parent is not None:
+        try:
+            if archive.manifest_hash(parent) == checkpoint.manifest_hash:
+                return None
+        except FileNotFoundError as error:
+            if not archive.is_initial_head(parent):
+                raise RuntimeError(
+                    "archive repository has content but no checkpoint manifest"
+                ) from error
     files = {
         path.relative_to(checkpoint.path).as_posix(): path
         for path in checkpoint.path.rglob("*")

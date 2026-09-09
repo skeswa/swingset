@@ -6,6 +6,13 @@ from pathlib import Path, PurePosixPath
 from typing import Any
 
 from huggingface_hub import CommitOperationAdd, HfApi, hf_hub_download
+from huggingface_hub.errors import EntryNotFoundError
+
+_INITIAL_CARD = (
+    b"# swingset private archive\n\n"
+    b"Private pipeline checkpoints and source evidence. No blanket license is granted\n"
+    b"for archive contents; third-party materials retain their respective rights.\n"
+)
 
 
 class HuggingFaceArchive:
@@ -23,16 +30,36 @@ class HuggingFaceArchive:
             ) from error
 
     def manifest_hash(self, commit: str) -> str:
+        try:
+            path = Path(
+                hf_hub_download(
+                    repo_id=self.repo_id,
+                    repo_type="dataset",
+                    filename="checkpoint.json",
+                    revision=commit,
+                    token=self.token,
+                )
+            )
+        except EntryNotFoundError as error:
+            raise FileNotFoundError("remote checkpoint manifest is absent") from error
+        return hashlib.sha256(path.read_bytes()).hexdigest()
+
+    def is_initial_head(self, commit: str) -> bool:
+        files = set(self.api.list_repo_files(self.repo_id, repo_type="dataset", revision=commit))
+        if not files <= {".gitattributes", "README.md"}:
+            return False
+        if "README.md" not in files:
+            return True
         path = Path(
             hf_hub_download(
                 repo_id=self.repo_id,
                 repo_type="dataset",
-                filename="checkpoint.json",
+                filename="README.md",
                 revision=commit,
                 token=self.token,
             )
         )
-        return hashlib.sha256(path.read_bytes()).hexdigest()
+        return path.read_bytes() == _INITIAL_CARD
 
     def create_commit(self, *, parent: str | None, message: str, files: dict[str, Path]) -> str:
         operations: list[Any] = [
