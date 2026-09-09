@@ -2,20 +2,20 @@
 enabled = true
 index_urls = ["https://worldsdc.com/events/"]
 
-# Enable after deliberate bootstrap setup; sweep is explicitly seeded by CLI.
+# Bootstrap uses an archived comparison dump and an explicitly seeded sweep.
 [sources.wsdc_registry]
-enabled = false
+enabled = true
 index_urls = []
 
-# Owner/operator conversation in docs/sources/eepro.md §1 is pending.
+# Owner reported permission received on 2026-09-08; see the source playbook.
 [sources.eepro]
-enabled = false
+enabled = true
 index_urls = ["https://eepro.com/results/event.php"]
 
 [sources.scoringdance]
-enabled = false
+enabled = true
 index_urls = ["https://scoring.dance/sitemap.xml", "https://scoring.dance/enUS/events/"]
 
 [sources.wdr]
-enabled = false
+enabled = true
 index_urls = []
