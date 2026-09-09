@@ -3,9 +3,10 @@
 ## 1. Status
 
 Verified 2026-09-08 (`research/verification/2026-09-08/sd_*.hdr`).
-Operator relationship: for the owner to fill in before phase 3. A paid API exists (RapidAPI and
-`pointstest2.scoring.dance`, **unverified**); if it covers results at a
-fair price it replaces this playbook (open question 1 in the design).
+The operator relationship is unknown, and no special permission has been
+reported. Collection currently uses the public pages under the policy below.
+A paid API exists (RapidAPI and `pointstest2.scoring.dance`, **unverified**);
+evaluating its coverage and price is deferred while the public pages are used.
 `robots.txt` allows everything and names the sitemap. No terms page was
 found (checked 2026-09-04).
 

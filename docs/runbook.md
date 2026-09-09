@@ -139,6 +139,7 @@ uv run swingset parse --state ./tmp/state
 uv run swingset project --state ./tmp/state
 uv run swingset link --state ./tmp/state
 uv run swingset build --state ./tmp/state
+uv run swingset registry-crosscheck dump.json --archive-only --state ./tmp/state
 uv run swingset sweep --start 1 --state ./tmp/state
 uv run swingset registry-crosscheck dump.json --state ./tmp/state
 uv run swingset registry-crosscheck --blob <sha256> --state ./tmp/state
@@ -148,7 +149,11 @@ Manual stage commands capture the same input bundle and use the same durable
 queues as a cycle. A handled parse failure keeps the previous good observations,
 records evidence, and completes the failed attempt. A version bump or `reparse`
 can retry it. A dump cross-check produces findings; it never imports dump rows
-into canonical tables. Enable the registry source before starting a sweep.
+into canonical tables. Before seeding a sweep, archive the known comparison dump
+with `--archive-only`; this validates and saves it without comparing an incomplete
+mirror. Enable the registry source and seed the sweep. Normal cycles compare the
+saved dump after the final batch has been parsed and projected. A durable due
+marker survives interruption and is cleared only after comparison succeeds.
 
 EEPro's operator conversation must be recorded in its playbook before live
 fetching. Do not reinterpret an unknown registry response as a missing dancer.
