@@ -1,0 +1,47 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "swingset"
+version = "0.1.0"
+description = "An evidence-preserving competitive West Coast Swing dataset pipeline"
+requires-python = ">=3.12"
+license = "MIT"
+dependencies = [
+  "httpx>=0.28", "protego>=0.4", "selectolax>=0.3", "pyarrow>=21",
+  "duckdb>=1.3", "rapidfuzz>=3", "scipy>=1.15", "nameparser>=1.1",
+  "huggingface-hub>=0.34",
+]
+
+[project.scripts]
+swingset = "swingset.cli:main"
+
+[dependency-groups]
+dev = ["pytest>=8", "respx>=0.22", "ruff>=0.12", "mypy>=1.17"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/swingset"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+# Existing one-off research scripts predate the runtime lint policy.
+extend-exclude = ["research/build_events.py", "research/build_results_sources.py", "research/verification"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+ignore = ["E501"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+files = ["src/swingset"]
+
+[[tool.mypy.overrides]]
+module = ["protego.*", "nameparser.*", "selectolax.*", "pyarrow.*", "scipy.*"]
+ignore_missing_imports = true
