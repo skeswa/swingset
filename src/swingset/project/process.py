@@ -15,7 +15,7 @@ from .map import project_map
 from .registry import project_dancer
 from .writer import replace_scope
 
-PROJECTOR_VERSION = 9
+PROJECTOR_VERSION = 10
 
 
 class InputBundleLike(Protocol):

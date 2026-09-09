@@ -12,7 +12,8 @@ from swingset.model.canonical import (
     Round,
 )
 from swingset.model.observations import encode_payload
-from swingset.project.contests import project_event
+from swingset.normalize.divisions import classify_contest
+from swingset.project.contests import _contest_slug, _wsdc_points_eligible, project_event
 from swingset.project.writer import replace_scope, replace_source_event_map
 from swingset.sources.base import ParseContext
 from swingset.sources.eepro import RoundPage as EEProRoundPage
@@ -92,6 +93,191 @@ def add(
 
 def records(projection: object, cls: type[object]) -> list[object]:
     return [row for row in projection.rows if isinstance(row, cls)]  # type: ignore[attr-defined]
+
+
+def test_contest_identity_preserves_semantic_qualifiers() -> None:
+    assert _contest_slug("Jack & Jill Leader Advanced") == _contest_slug(
+        "Advanced Jack & Jill"
+    )
+    assert _contest_slug("Jack & Jill Follower All Stars") == _contest_slug(
+        "All Star Jack & Jill"
+    )
+    assert _contest_slug("WSDC Swing Jack & Jill Leader Advanced") == _contest_slug(
+        "Advanced Jack & Jill"
+    )
+    assert _contest_slug("Jack & Jill - Pro Am Intermediate - Leaders") != _contest_slug(
+        "Jack & Jill - Pro Am Intermediate - Followers"
+    )
+    distinct = {
+        _contest_slug("Jack & Jill All American"),
+        _contest_slug("Jack & Jill Switch Role"),
+        _contest_slug("Jack & Jill"),
+        _contest_slug("Pro Am Strictly Swing"),
+        _contest_slug("Strictly Swing"),
+        _contest_slug("Country Strictly Swing"),
+        _contest_slug("Hustle Strictly Swing"),
+        _contest_slug("High Lead Low Follow Jack & Jill"),
+        _contest_slug("High Follow Low Lead Jack & Jill"),
+        _contest_slug("Strictly Swing New/Nov"),
+        _contest_slug("Strictly Swing Novice"),
+    }
+    assert len(distinct) == 11
+
+
+def test_only_standard_wcs_jack_and_jill_is_points_eligible() -> None:
+    eligible = "Novice Jack & Jill"
+    assert _wsdc_points_eligible(eligible, classify_contest(eligible))
+    for name in (
+        "Novice Pro Am Jack & Jill - Leaders",
+        "Novice Switch Role Jack & Jill",
+        "Novice Country Jack & Jill",
+        "Novice Hustle Jack & Jill",
+        "Novice High Lead Low Follow Jack & Jill",
+    ):
+        assert not _wsdc_points_eligible(name, classify_contest(name))
+
+
+def test_wdr_pro_am_roles_and_combined_couple_names(tmp_path: Path) -> None:
+    pro_am = RoundSheet(
+        "round_sheet",
+        "wdr:example",
+        "pro-am",
+        "Pro Am Strictly - Leaders",
+        "Final",
+        (
+            ResultTable(
+                "Placement Order",
+                (Cell("Bib #"), Cell("Am"), Cell("Pro"), Cell("Place")),
+                (ResultRow((Cell("42"), Cell("Alex Amateur"), Cell("Pat Pro"), Cell("1"))),),
+            ),
+        ),
+    )
+    couple = RoundSheet(
+        "round_sheet",
+        "wdr:example",
+        "strictly",
+        "Strictly Swing",
+        "Final",
+        (
+            ResultTable(
+                "Placement Order",
+                (Cell("Bib #"), Cell("Couple"), Cell("Place")),
+                (ResultRow((Cell("81"), Cell("One Dancer and Two Dancer"), Cell("1"))),),
+            ),
+        ),
+    )
+    with open_database(tmp_path, lock=False) as db:
+        seed(db.connection)
+        db.connection.execute("DELETE FROM source_event_map")
+        db.connection.execute(
+            "INSERT INTO source_event_map(source,source_ref,event_id,match_method,match_confidence) VALUES ('wdr','wdr:example',?,'override',1)",
+            (EVENT,),
+        )
+        add(
+            db.connection,
+            "pro-am",
+            "snap-pro-am",
+            pro_am,
+            "2026-09-09T00:00:00Z",
+            source="wdr",
+            source_ref="wdr:example",
+        )
+        add(
+            db.connection,
+            "strictly",
+            "snap-strictly",
+            couple,
+            "2026-09-09T00:01:00Z",
+            source="wdr",
+            source_ref="wdr:example",
+        )
+        projected = project_event(db.connection, EVENT, "2026-09-09T01:00:00Z", "run_a")
+
+    entries = {entry.name_raw: entry for entry in records(projected, Entry)}
+    assert entries["Alex Amateur"].role == "leader"
+    assert entries["Pat Pro"].role == "follower"
+    assert entries["Alex Amateur"].partner_entry_id == entries["Pat Pro"].entry_id
+    assert entries["Pat Pro"].partner_entry_id == entries["Alex Amateur"].entry_id
+    assert entries["One Dancer and Two Dancer"].role == "couple"
+
+
+def test_wdr_ambiguous_am_pro_roles_are_withheld(tmp_path: Path) -> None:
+    payload = RoundSheet(
+        "round_sheet",
+        "wdr:example",
+        "routine",
+        "Pro Am Routine",
+        "Final",
+        (
+            ResultTable(
+                "Placement Order",
+                (Cell("Bib #"), Cell("Am"), Cell("Pro"), Cell("Place")),
+                (ResultRow((Cell("42"), Cell("Alex Amateur"), Cell("Pat Pro"), Cell("1"))),),
+            ),
+        ),
+    )
+    with open_database(tmp_path, lock=False) as db:
+        seed(db.connection)
+        db.connection.execute("DELETE FROM source_event_map")
+        db.connection.execute(
+            "INSERT INTO source_event_map(source,source_ref,event_id,match_method,match_confidence) VALUES ('wdr','wdr:example',?,'override',1)",
+            (EVENT,),
+        )
+        add(
+            db.connection,
+            "routine",
+            "snap-routine",
+            payload,
+            "2026-09-09T00:00:00Z",
+            source="wdr",
+            source_ref="wdr:example",
+        )
+        projected = project_event(db.connection, EVENT, "2026-09-09T01:00:00Z", "run_a")
+    assert not records(projected, Entry)
+    assert not records(projected, Placement)
+    assert {finding.summary for finding in projected.findings} == {
+        "WDR Am/Pro roles omitted pending explicit role labels"
+    }
+
+
+def test_wdr_redacted_bib_only_entry_is_preserved_without_marks(tmp_path: Path) -> None:
+    payload = RoundSheet(
+        "round_sheet",
+        "wdr:example",
+        "redacted",
+        "Novice Jack & Jill",
+        "Prelim",
+        (
+            ResultTable(
+                "Sum of Yes",
+                (Cell("Bib #"), Cell("Leaders"), Cell("Judge", (("t", "9"),))),
+                (ResultRow((Cell("255"), Cell("***"), Cell(None, (("t", "9"),)))),),
+                redacted=True,
+            ),
+        ),
+    )
+    with open_database(tmp_path, lock=False) as db:
+        seed(db.connection)
+        db.connection.execute("DELETE FROM source_event_map")
+        db.connection.execute(
+            "INSERT INTO source_event_map(source,source_ref,event_id,match_method,match_confidence) VALUES ('wdr','wdr:example',?,'override',1)",
+            (EVENT,),
+        )
+        add(
+            db.connection,
+            "redacted",
+            "snap-redacted",
+            payload,
+            "2026-09-09T00:00:00Z",
+            source="wdr",
+            source_ref="wdr:example",
+        )
+        projected = project_event(db.connection, EVENT, "2026-09-09T01:00:00Z", "run_a")
+    entry = records(projected, Entry)[0]
+    assert isinstance(entry, Entry)
+    assert entry.bib == "255" and entry.name_raw is None
+    assert not records(projected, CallbackMark)
+    assert not records(projected, Callback)
 
 
 def test_full_event_projection_and_round_union(tmp_path: Path) -> None:
@@ -423,7 +609,8 @@ def test_real_wdr_rounds_fixture_projects_complete_event_surface(tmp_path: Path)
         entries = records(projection, Entry)
         callbacks = records(projection, Callback)
         placements = records(projection, Placement)
-        assert len(entries) == 1026
+        assert len(entries) == 1229
+        assert sum(entry.name_raw is None for entry in entries) == 203
         assert len(records(projection, Judge)) == 23
         callback_marks = records(projection, CallbackMark)
         assert len(callback_marks) == 2793
@@ -452,6 +639,10 @@ def test_real_wdr_rounds_fixture_projects_complete_event_surface(tmp_path: Path)
         assert unknown_callback_findings
         assert len({finding.subject_id for finding in unknown_callback_findings}) == len(
             unknown_callback_findings
+        )
+        assert any(
+            finding.summary == "Redacted WDR entrant without a bib omitted"
+            for finding in projection.findings
         )
 
 

@@ -19,7 +19,7 @@ from swingset.model.canonical import (
 )
 from swingset.model.ids import entry_id, judge_id, placement_id, round_id, slug, unique_slugs
 from swingset.model.observations import decode_payload
-from swingset.normalize.divisions import classify_contest
+from swingset.normalize.divisions import ContestVocabulary, classify_contest
 from swingset.normalize.names import normalize_name
 from swingset.sources.records import Cell, ResultTable, RoundSheet
 from swingset.state.findings import Finding
@@ -121,8 +121,7 @@ def project_event(conn: sqlite3.Connection, event: str, now: str, run_id: str) -
                 contest_type=vocabulary.contest_type,
                 partner_mode=vocabulary.partner_mode,
                 dance_style=vocabulary.dance_style,
-                wsdc_points_eligible=vocabulary.contest_type == "jack_and_jill"
-                and vocabulary.division not in {"none", "open", "invitational"},
+                wsdc_points_eligible=_wsdc_points_eligible(contest_name, vocabulary),
                 combined_from=vocabulary.combined_from,
                 parse_status=(
                     "unsupported"
@@ -304,6 +303,7 @@ def _project_table(
         index
         for index, header in enumerate(headers)
         if any(word in header for word in ("competitor", "leader", "follower", "couple", "dancer"))
+        or header in {"am", "pro"}
     ]
     competitor_columns = sorted(
         set(competitor_columns)
@@ -314,6 +314,28 @@ def _project_table(
             if "data-wsdc" in _attrs(cell)
         }
     )
+    if (
+        evidence.source == "wdr"
+        and {headers[index] for index in competitor_columns} >= {"am", "pro"}
+        and not any(
+            role in evidence.sheet.contest_name_raw.casefold()
+            for role in ("leader", "follower")
+        )
+    ):
+        findings.append(
+            Finding(
+                kind="unknown_enum",
+                subject_kind="round",
+                subject_id=round_,
+                severity="warning",
+                summary="WDR Am/Pro roles omitted pending explicit role labels",
+                evidence={
+                    "snapshot_id": evidence.snapshot_id,
+                    "round_id": round_,
+                    "headers": [headers[index] for index in competitor_columns],
+                },
+            )
+        )
     bib_columns = [index for index, header in enumerate(headers) if "bib" in header]
     if not bib_columns and competitor_columns and competitor_columns[0] > 0:
         bib_columns = [competitor_columns[0] - 1]
@@ -336,16 +358,18 @@ def _project_table(
         )
     for row_number, result in enumerate(table.rows, 1):
         cells = result.cells
+        redacted_row = evidence.source == "wdr" and any(
+            _cell(cells, column) == "***" for column in competitor_columns
+        )
         row_entries: dict[str, str] = {}
-        row_names: dict[str, str] = {}
         for column in competitor_columns:
             name = _cell(cells, column)
-            if not name or name in {"***", "-"}:
+            if not name or name == "-":
                 continue
             for role, competitor_name in _competitors(
                 name,
                 headers[column],
-                table.heading_raw,
+                evidence.sheet.contest_name_raw,
                 len(competitor_columns),
                 competitor_columns.index(column),
             ):
@@ -358,11 +382,27 @@ def _project_table(
                     and round_type == "final"
                     and len(competitor_columns) > 1,
                 )
-                identifier = entry_id(contest, role, bib, competitor_name)
+                if redacted_row and bib is None:
+                    findings.append(
+                        Finding(
+                            kind="missing_identity",
+                            subject_kind="round",
+                            subject_id=round_,
+                            severity="warning",
+                            summary="Redacted WDR entrant without a bib omitted",
+                            evidence={
+                                "snapshot_id": evidence.snapshot_id,
+                                "round_id": round_,
+                                "row_number": row_number,
+                            },
+                        )
+                    )
+                    continue
+                canonical_name = None if redacted_row else competitor_name
+                identifier = entry_id(contest, role, bib, canonical_name)
                 row_entries[role] = identifier
-                row_names[role] = competitor_name
                 candidate = EntryFacts(
-                    identifier, contest, event, role, bib, competitor_name, evidence, {round_}
+                    identifier, contest, event, role, bib, canonical_name, evidence, {round_}
                 )
                 previous = entries.get(identifier)
                 if previous is None:
@@ -370,7 +410,7 @@ def _project_table(
                 else:
                     previous.rounds.add(round_)
                     if (
-                        previous.name_raw != competitor_name
+                        previous.name_raw != canonical_name
                         and evidence.precedence > previous.evidence.precedence
                     ):
                         findings.append(
@@ -378,18 +418,20 @@ def _project_table(
                                 identifier,
                                 "name_raw",
                                 previous.name_raw,
-                                competitor_name,
+                                canonical_name,
                                 previous.evidence,
                                 evidence,
                             )
                         )
-                        previous.name_raw, previous.evidence = competitor_name, evidence
+                        previous.name_raw, previous.evidence = canonical_name, evidence
         if "leader" in row_entries and "follower" in row_entries:
             leader = entries[row_entries["leader"]]
             follower = entries[row_entries["follower"]]
             _record_partner(leader, follower)
             _record_partner(follower, leader)
         for entry in row_entries.values():
+            if redacted_row:
+                continue
             raw_marks: list[str] = []
             unknown_mark = False
             for column, jid in judge_columns.items():
@@ -488,6 +530,7 @@ def _record_conflicts(
         index
         for index, header in enumerate(headers)
         if any(word in header for word in ("competitor", "leader", "follower", "couple", "dancer"))
+        or header in {"am", "pro"}
     ]
     bib_columns = [index for index, header in enumerate(headers) if "bib" in header]
     for row in table.rows:
@@ -495,16 +538,27 @@ def _record_conflicts(
             name = _cell(row.cells, column)
             if not name:
                 continue
-            role = _role(headers[column], table.heading_raw, len(competitor_columns))
-            bib = _bib_for_role(row.cells, headers, bib_columns, role)
-            identifier = entry_id(contest, role, bib, name)
-            selected = entries.get(identifier)
-            if selected is not None and selected.name_raw != name:
-                findings.append(
-                    _conflict(
-                        identifier, "name_raw", name, selected.name_raw, evidence, selected.evidence
+            for role, competitor_name in _competitors(
+                name,
+                headers[column],
+                evidence.sheet.contest_name_raw,
+                len(competitor_columns),
+                competitor_columns.index(column),
+            ):
+                bib = _bib_for_role(row.cells, headers, bib_columns, role)
+                identifier = entry_id(contest, role, bib, competitor_name)
+                selected = entries.get(identifier)
+                if selected is not None and selected.name_raw != competitor_name:
+                    findings.append(
+                        _conflict(
+                            identifier,
+                            "name_raw",
+                            competitor_name,
+                            selected.name_raw,
+                            evidence,
+                            selected.evidence,
+                        )
                     )
-                )
 
 
 def _record_partner(entry: EntryFacts, partner: EntryFacts) -> None:
@@ -639,19 +693,86 @@ def _contest_slug(name: str) -> str:
         "rising_star": "rising-star",
     }.get(vocabulary.contest_type, slug(name))
     parts = (
+        vocabulary.dance_style if vocabulary.dance_style != "wcs" else "",
         vocabulary.age_division if vocabulary.age_division != "none" else "",
         vocabulary.division if vocabulary.division != "none" else "",
         kind,
+        _contest_qualifier(name, vocabulary),
     )
     return "-".join(value for value in parts if value)
 
 
-def _role(header: str, heading: str, count: int, position: int = 0) -> str:
-    value = f"{header} {heading}".casefold()
+def _contest_qualifier(name: str, vocabulary: ContestVocabulary) -> str:
+    if vocabulary.contest_type == "other":
+        return ""
+    words = re.findall(r"[a-z0-9]+", name.casefold().replace("&", " and "))
+    ignored = {
+        "division",
+        "wcs",
+        "wsdc",
+        "west",
+        "coast",
+    }
+    normalized_name = " ".join(words)
+    if "pro am" not in normalized_name and "proam" not in words:
+        ignored.update({"leader", "leaders", "follower", "followers"})
+    ignored.update(
+        {
+            "jack_and_jill": {"jack", "jill", "and"},
+            "strictly": {"strictly", "swing"},
+            "classic": {"classic", "routine", "routines"},
+            "showcase": {"showcase", "routine", "routines"},
+            "pro_am": {"pro", "am", "proam", "routine", "routines"},
+            "rising_star": {"rising", "star", "routine", "routines"},
+        }.get(vocabulary.contest_type, set())
+    )
+    ignored.update(
+        {
+            "newcomer": {"newcomer"},
+            "novice": {"novice"},
+            "intermediate": {"intermediate"},
+            "advanced": {"advanced"},
+            "allstar": {"all", "star", "stars", "allstar"},
+            "champion": {"champion", "champions"},
+            "invitational": {"invitational", "invit"},
+            "open": {"open"},
+        }.get(vocabulary.division, set())
+    )
+    ignored.update(
+        {
+            "juniors": {"junior", "juniors"},
+            "sophisticated": {"sophisticated", "soph"},
+            "masters": {"master", "masters"},
+        }.get(vocabulary.age_division, set())
+    )
+    ignored.update(
+        {"country"} if vocabulary.dance_style == "country" else {"lindy"}
+        if vocabulary.dance_style == "lindy"
+        else {"swing"}
+    )
+    return "-".join(word for word in words if word not in ignored)
+
+
+def _wsdc_points_eligible(name: str, vocabulary: ContestVocabulary) -> bool:
+    return (
+        vocabulary.dance_style == "wcs"
+        and vocabulary.contest_type == "jack_and_jill"
+        and vocabulary.division not in {"none", "open", "invitational"}
+        and not _contest_qualifier(name, vocabulary)
+    )
+
+
+def _role(header: str, contest_name: str, count: int, position: int = 0) -> str | None:
+    header = header.casefold().strip()
+    value = f"{header} {contest_name}".casefold()
+    if header == "couple":
+        return "couple"
     if "follower" in value:
         return "follower"
     if "leader" in value:
         return "leader"
+    if header in {"am", "pro"}:
+        return None
     if not header and count == 2:
         return "leader" if position == 0 else "follower"
     return (
@@ -662,13 +783,29 @@ def _role(header: str, heading: str, count: int, position: int = 0) -> str:
 
 
 def _competitors(
-    name: str, header: str, heading: str, count: int, position: int
+    name: str, header: str, contest_name: str, count: int, position: int
 ) -> tuple[tuple[str, str], ...]:
-    if count == 1 and "jack" in heading.casefold() and "jill" in heading.casefold():
+    normalized_header = header.casefold().strip()
+    normalized_contest = contest_name.casefold()
+    if normalized_header in {"am", "pro"}:
+        if "follower" in normalized_contest:
+            role = "follower" if normalized_header == "am" else "leader"
+        elif "leader" in normalized_contest:
+            role = "leader" if normalized_header == "am" else "follower"
+        else:
+            return ()
+        return ((role, name),)
+    if (
+        normalized_header != "couple"
+        and count == 1
+        and "jack" in normalized_contest
+        and "jill" in normalized_contest
+    ):
         pair = re.split(r"\s+and\s+", name, maxsplit=1, flags=re.IGNORECASE)
         if len(pair) == 2 and all(part.strip() for part in pair):
             return (("leader", pair[0].strip()), ("follower", pair[1].strip()))
-    return ((_role(header, heading, count, position), name),)
+    resolved_role = _role(header, contest_name, count, position)
+    return ((resolved_role, name),) if resolved_role is not None else ()
 
 
 def _bib_for_role(
