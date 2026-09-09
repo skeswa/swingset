@@ -7,6 +7,7 @@ let
     UV_PYTHON_DOWNLOADS = "never";
     # Wheel installation can exceed uv's 30-second default on a cold VM.
     UV_HTTP_TIMEOUT = "120";
+    HF_HUB_DISABLE_PROGRESS_BARS = "1";
     UV_PROJECT_ENVIRONMENT = "${cfg.stateDir}/venv";
     UV_CACHE_DIR = "${cfg.stateDir}/uv-cache";
     LD_LIBRARY_PATH = lib.makeLibraryPath [ pkgs.stdenv.cc.cc.lib pkgs.zlib ];

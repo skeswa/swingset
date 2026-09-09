@@ -223,3 +223,25 @@ Provision the credential separately, then restore the acknowledged archive
 commit using a transient service with `EnvironmentFile=/etc/swingset.env`.
 Run doctor and a dry cycle before choosing one writer. The recovery machine
 remains without timers unless deliberately configured as the new writer.
+
+## Deployment handoff (2026-09-09 UTC)
+
+The selected writer is the OrbStack machine `swingset`. The
+`swingset-restore` machine passed recovery of both the original flat checkpoint
+and the packed checkpoint, then was stopped. It has no collection timers.
+Keep exactly one writer active. The token stays in `/etc/swingset.env`, owned
+by root with mode 0600, outside the checkout and checkpoint.
+
+The initial published calendar head is
+`957b9e266b549d729ef978b3d0ddcc738c7d901f`. Recovery evidence is in GitHub issue
+#8; the packed archive used was
+`c691a760015698247d157c2c2cf738fc712ea53e`. The recovery targets were
+`/var/lib/swingset/recovered` and `/var/lib/swingset/recovered-packed`, separate
+from the CLI environment and caches. Always pass the selected target with
+`--state` to restore, doctor, and the verification dry cycle.
+
+The host now enables publication (`dryRun = false`). Normal collection is
+every 15 minutes with up to 120 seconds of jitter; backup is 04:00 UTC Monday
+through Thursday and 04:00/12:00/20:00 UTC Friday through Sunday. Summary runs
+at 08:00 UTC. Check GitHub issue #9 for scheduled-run acceptance, and #1 for
+source rollout and the remaining multi-day observations.

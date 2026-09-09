@@ -7,7 +7,7 @@
   time.timeZone = lib.mkForce "UTC";
   services.swingset = {
     enable = true;
-    dryRun = true;
+    dryRun = false;
     environmentFile = "/etc/swingset.env";
     overridesDir = "/Users/skeswa/repos/skeswa/swingset/overrides";
   };
