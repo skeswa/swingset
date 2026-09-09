@@ -192,8 +192,11 @@ The gated collector archived the sitemap, recent index, event 418, and all
 compressed there. The recent index yields 27 event records. The round fixtures
 cover six Jack & Jill divisions, including preliminaries, one semifinal, and
 finals, with descendant `data-wsdc`, callback/state attributes, and judge titles.
-The full offline pipeline produces 6 contests, 12 rounds, 202 entries, 161
-callbacks, 777 callback marks, 62 placements, and 420 final marks.
+The full offline pipeline produces 6 contests, 12 rounds, 202 entries, 153
+callbacks, 769 recognized callback marks, 62 placements, and 420 final marks.
+Eight rows with unrecognized numeric or scratched callback values remain in raw
+observations with findings; they are not converted to `no` marks or callback
+outcomes.
 
 The complete event also proves that bibs are reusable between contests: bib 698
 identifies different followers in All-Stars and Sophisticated. Identity grouping

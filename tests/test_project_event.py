@@ -2,6 +2,7 @@ import sqlite3
 from pathlib import Path
 
 from swingset.model.canonical import (
+    Callback,
     CallbackMark,
     Contest,
     Entry,
@@ -70,19 +71,22 @@ def add(
     payload: RoundSheet,
     fetched: str,
     page_kind: str = "round",
+    source: str = "eepro",
+    source_ref: str = "eepro:hummer",
+    parser: str = "eepro.round",
 ) -> None:
     url = f"https://example/{watch}"
     conn.execute(
-        "INSERT INTO watches(watch_id,source,kind,method,url,parser,source_ref,state) VALUES (?,'eepro',?,'GET',?,'eepro.round','eepro:hummer','live')",
-        (watch, page_kind, url),
+        "INSERT INTO watches(watch_id,source,kind,method,url,parser,source_ref,state) VALUES (?,?,?,'GET',?,?,?,'live')",
+        (watch, source, page_kind, url, parser, source_ref),
     )
     conn.execute(
         "INSERT INTO snapshots(snapshot_id,watch_id,method,url,fetched_at,http_status,body_bytes,content_changed,run_id,classification) VALUES (?,?,'GET',?,?,200,1,1,'run_a','Ok')",
         (snapshot, watch, url, fetched),
     )
     conn.execute(
-        "INSERT INTO observations(observation_id,watch_id,snapshot_id,kind,scope_kind,scope_id,seq,extract_version,parser_version,payload_json) VALUES (?,?,?,'round_sheet','source_event','eepro:hummer',0,'1','1',?)",
-        (f"obs-{snapshot}", watch, snapshot, encode_payload(payload)),
+        "INSERT INTO observations(observation_id,watch_id,snapshot_id,kind,scope_kind,scope_id,seq,extract_version,parser_version,payload_json) VALUES (?,?,?,'round_sheet','source_event',?,0,'1','1',?)",
+        (f"obs-{snapshot}", watch, snapshot, source_ref, encode_payload(payload)),
     )
 
 
@@ -142,6 +146,54 @@ def test_real_eepro_numeric_prelim_is_retained_raw_but_not_projected(tmp_path: P
         assert not records(projected, CallbackMark)
         assert not records(projected, Placement)
         assert not records(projected, FinalMark)
+
+
+def test_wdr_unknown_callback_values_remain_only_in_evidence(tmp_path: Path) -> None:
+    headers = (
+        Cell("Bib #", (("t", "4"),)),
+        Cell("Leaders", (("t", "5"),)),
+        Cell("Judge", (("t", "9"),)),
+        Cell("Callback", (("t", "2"),)),
+    )
+    table = ResultTable(
+        "Scores",
+        headers,
+        (ResultRow((Cell("7"), Cell("A Person"), Cell("76.30"), Cell("S1", (("t", "2"),)))),),
+    )
+    payload = RoundSheet(
+        "round_sheet",
+        "wdr:example",
+        "r1",
+        "Jack & Jill - Novice",
+        "Prelim Round 1",
+        (table,),
+    )
+    with open_database(tmp_path, lock=False) as db:
+        seed(db.connection)
+        db.connection.execute("DELETE FROM source_event_map")
+        db.connection.execute(
+            "INSERT INTO source_event_map(source,source_ref,event_id,match_method,match_confidence) VALUES ('wdr','wdr:example',?,'override',1)",
+            (EVENT,),
+        )
+        add(
+            db.connection,
+            "wdr-unknown",
+            "snap-wdr-unknown",
+            payload,
+            "2026-09-09T00:00:00Z",
+            source="wdr",
+            source_ref="wdr:example",
+            parser="wdr.rounds",
+        )
+        projected = project_event(db.connection, EVENT, "2026-09-09T00:00:00Z", "run_a")
+        assert not records(projected, CallbackMark)
+        assert not records(projected, Callback)
+        round_ = records(projected, Round)[0]
+        assert isinstance(round_, Round) and round_.promoted_count is None
+        assert {finding.summary for finding in projected.findings} == {
+            "Unknown callback mark '76.30'",
+            "WDR S<n> callback outcome omitted pending verified semantics",
+        }
 
 
 def test_round_page_beats_later_event_page_and_records_conflict(tmp_path: Path) -> None:
@@ -368,11 +420,39 @@ def test_real_wdr_rounds_fixture_projects_complete_event_surface(tmp_path: Path)
         projection = project_event(db.connection, EVENT, "2026-09-09T00:00:00Z", "run_a")
         assert len(records(projection, Contest)) == 13
         assert len(records(projection, Round)) == 32
-        assert len(records(projection, Entry)) == 873
+        entries = records(projection, Entry)
+        callbacks = records(projection, Callback)
+        placements = records(projection, Placement)
+        assert len(entries) == 1026
         assert len(records(projection, Judge)) == 23
-        assert len(records(projection, CallbackMark)) == 2793
-        assert len(records(projection, Placement)) == 160
+        callback_marks = records(projection, CallbackMark)
+        assert len(callback_marks) == 2793
+        assert all(mark.mark_raw != "76.30" for mark in callback_marks)
+        assert len(placements) == 160
         assert len(records(projection, FinalMark)) == 1106
+        assert callbacks
+        assert {callback.outcome for callback in callbacks} == {"promoted"}
+        by_id = {entry.entry_id: entry for entry in entries}
+        assert all(
+            by_id[entry_id].bib is None
+            for placement in placements
+            for entry_id in (placement.leader_entry_id, placement.follower_entry_id)
+            if entry_id is not None
+        )
+        assert all(
+            entry.partner_entry_id is None
+            or by_id[entry.partner_entry_id].partner_entry_id == entry.entry_id
+            for entry in entries
+        )
+        unknown_callback_findings = [
+            finding
+            for finding in projection.findings
+            if finding.summary == "WDR S<n> callback outcome omitted pending verified semantics"
+        ]
+        assert unknown_callback_findings
+        assert len({finding.subject_id for finding in unknown_callback_findings}) == len(
+            unknown_callback_findings
+        )
 
 
 def test_real_eepro_finals_project_named_judges_and_entry_roles(tmp_path: Path) -> None:

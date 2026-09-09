@@ -113,8 +113,13 @@ cooling_interval = "6h"
   value is a mark `10.00`/`4.50`/`4.30`/`4.20`/`0.00` in prelims or a
   rank in finals), `12` tally column (`1--1`, `1--2`, ...; values like
   `2 (2)`; `s = true` shades the majority cell).
+- Canonical callbacks use only explicit `Y` as `promoted`. An `S<n>` value stays
+  in the raw observation and opens one finding for its round; no callback outcome
+  or promoted count is emitted because the meaning remains unverified. Likewise,
+  an unrecognized numeric judge value stays raw and is never converted to `no`.
 - Finals show one `Bib #` per couple row (**which partner's bib is
-  unverified**), leader and follower names, and place.
+  unverified**), leader and follower names, and place. The canonical partner
+  entries therefore leave `bib` null while the raw table retains the value.
 - `redacted = true` rounds list every competitor with a bib but mask
   the names and zero the marks of those not called back. Emit those
   entries with `name_raw = "***"` and `mark` null, not `0`.

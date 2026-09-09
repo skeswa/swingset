@@ -54,6 +54,7 @@ class EntryFacts:
     rounds: set[str] = field(default_factory=set)
     partner_name_raw: str | None = None
     partner_entry_id: str | None = None
+    partner_conflicted: bool = False
 
 
 class ProvenanceValues(TypedDict):
@@ -161,7 +162,11 @@ def project_event(conn: sqlite3.Connection, event: str, now: str, run_id: str) -
                 }
             )
             danced = max((len(table.rows) for table in selected.sheet.tables), default=0)
-            promoted = _promoted_count(selected.sheet.tables) if round_type != "final" else None
+            promoted = (
+                _promoted_count(selected.sheet.tables, source=selected.source)
+                if round_type != "final"
+                else None
+            )
             output.append(
                 Round(
                     round_id=rid,
@@ -198,6 +203,17 @@ def project_event(conn: sqlite3.Connection, event: str, now: str, run_id: str) -
                     placements,
                     findings,
                 )
+            if selected.source == "wdr" and _has_unknown_wdr_callback(tables):
+                findings.append(
+                    Finding(
+                        kind="unknown_enum",
+                        subject_kind="round",
+                        subject_id=rid,
+                        severity="warning",
+                        summary="WDR S<n> callback outcome omitted pending verified semantics",
+                        evidence={"snapshot_id": selected.snapshot_id, "round_id": rid},
+                    )
+                )
             for item in candidates:
                 if item is selected:
                     continue
@@ -205,7 +221,16 @@ def project_event(conn: sqlite3.Connection, event: str, now: str, run_id: str) -
                     _record_conflicts(cid, item, table, entries, findings)
 
     order = {"prelim": 1, "quarterfinal": 2, "semifinal": 3, "final": 4}
+    mutual_partners = {
+        (facts.entry_id, facts.partner_entry_id)
+        for facts in entries.values()
+        if facts.partner_entry_id is not None
+        and entries[facts.partner_entry_id].partner_entry_id == facts.entry_id
+    }
     for facts in entries.values():
+        if (facts.entry_id, facts.partner_entry_id) not in mutual_partners:
+            facts.partner_entry_id = None
+            facts.partner_name_raw = None
         rounds = tuple(sorted({round_types[rid] for rid in facts.rounds}, key=order.__getitem__))
         output.append(
             Entry(
@@ -324,7 +349,15 @@ def _project_table(
                 len(competitor_columns),
                 competitor_columns.index(column),
             ):
-                bib = _bib_for_role(cells, headers, bib_columns, role)
+                bib = _bib_for_role(
+                    cells,
+                    headers,
+                    bib_columns,
+                    role,
+                    generic_shared=evidence.source == "wdr"
+                    and round_type == "final"
+                    and len(competitor_columns) > 1,
+                )
                 identifier = entry_id(contest, role, bib, competitor_name)
                 row_entries[role] = identifier
                 row_names[role] = competitor_name
@@ -354,10 +387,11 @@ def _project_table(
         if "leader" in row_entries and "follower" in row_entries:
             leader = entries[row_entries["leader"]]
             follower = entries[row_entries["follower"]]
-            leader.partner_entry_id, leader.partner_name_raw = follower.entry_id, follower.name_raw
-            follower.partner_entry_id, follower.partner_name_raw = leader.entry_id, leader.name_raw
+            _record_partner(leader, follower)
+            _record_partner(follower, leader)
         for entry in row_entries.values():
             raw_marks: list[str] = []
+            unknown_mark = False
             for column, jid in judge_columns.items():
                 raw = _cell(cells, column)
                 if raw is None:
@@ -380,6 +414,7 @@ def _project_table(
                 elif round_type != "final":
                     normalized, value = _mark(raw)
                     if not _known_mark(raw):
+                        unknown_mark = True
                         findings.append(
                             Finding(
                                 kind="unknown_enum",
@@ -390,29 +425,32 @@ def _project_table(
                                 evidence={"snapshot_id": evidence.snapshot_id, "mark_raw": raw},
                             )
                         )
-                    marks[(round_, entry, jid)] = CallbackMark(
+                    else:
+                        marks[(round_, entry, jid)] = CallbackMark(
+                            round_id=round_,
+                            entry_id=entry,
+                            judge_id=jid,
+                            mark=normalized,
+                            mark_raw=raw,
+                            mark_value=value,
+                            **_provenance(evidence, now, run_id),
+                        )
+            if round_type != "final" and raw_marks and not unknown_mark:
+                normalized_marks = [_mark(raw)[0] for raw in raw_marks]
+                outcome = _outcome(cells, headers, source=evidence.source)
+                if outcome is not None:
+                    callbacks[(round_, entry)] = Callback(
                         round_id=round_,
                         entry_id=entry,
-                        judge_id=jid,
-                        mark=normalized,
-                        mark_raw=raw,
-                        mark_value=value,
+                        score_sum=sum(_mark(raw)[1] for raw in raw_marks),
+                        yes_count=normalized_marks.count("yes"),
+                        alt_count=sum(value.startswith("alt") for value in normalized_marks),
+                        no_count=normalized_marks.count("no"),
+                        outcome=outcome,
+                        tie_break_applied=None,
+                        heat_number=None,
                         **_provenance(evidence, now, run_id),
                     )
-            if round_type != "final" and raw_marks:
-                normalized_marks = [_mark(raw)[0] for raw in raw_marks]
-                callbacks[(round_, entry)] = Callback(
-                    round_id=round_,
-                    entry_id=entry,
-                    score_sum=sum(_mark(raw)[1] for raw in raw_marks),
-                    yes_count=normalized_marks.count("yes"),
-                    alt_count=sum(value.startswith("alt") for value in normalized_marks),
-                    no_count=normalized_marks.count("no"),
-                    outcome=_outcome(cells, headers),
-                    tie_break_applied=None,
-                    heat_number=None,
-                    **_provenance(evidence, now, run_id),
-                )
         if round_type == "final" and row_entries:
             place = _place(_cell(cells, place_column)) if place_column is not None else row_number
             pid = placement_id(round_, place or row_number)
@@ -467,6 +505,17 @@ def _record_conflicts(
                         identifier, "name_raw", name, selected.name_raw, evidence, selected.evidence
                     )
                 )
+
+
+def _record_partner(entry: EntryFacts, partner: EntryFacts) -> None:
+    if entry.partner_conflicted:
+        return
+    if entry.partner_entry_id is None or entry.partner_entry_id == partner.entry_id:
+        entry.partner_entry_id, entry.partner_name_raw = partner.entry_id, partner.name_raw
+        return
+    entry.partner_entry_id = None
+    entry.partner_name_raw = None
+    entry.partner_conflicted = True
 
 
 def _evidence(conn: sqlite3.Connection, event: str) -> list[Evidence]:
@@ -623,9 +672,16 @@ def _competitors(
 
 
 def _bib_for_role(
-    cells: tuple[Cell, ...], headers: list[str], columns: list[int], role: str
+    cells: tuple[Cell, ...],
+    headers: list[str],
+    columns: list[int],
+    role: str,
+    *,
+    generic_shared: bool = False,
 ) -> str | None:
     specific = next((index for index in columns if role in headers[index]), None)
+    if generic_shared and specific is None:
+        return None
     value = _cell(cells, specific if specific is not None else (columns[0] if columns else None))
     if value and "/" in value and role in {"leader", "follower"}:
         parts = [part.strip() for part in value.split("/", maxsplit=1)]
@@ -642,12 +698,15 @@ def _mark(raw: str) -> tuple[str, float]:
         "10": ("yes", 10.0),
         "1": ("yes", 10.0),
         "a1": ("alt1", 4.5),
+        "alt1": ("alt1", 4.5),
         "4.5": ("alt1", 4.5),
         "2.1": ("alt1", 4.5),
         "a2": ("alt2", 4.3),
+        "alt2": ("alt2", 4.3),
         "4.3": ("alt2", 4.3),
         "2.2": ("alt2", 4.3),
         "a3": ("alt3", 4.2),
+        "alt3": ("alt3", 4.2),
         "4.2": ("alt3", 4.2),
         "2.3": ("alt3", 4.2),
         "n": ("no", 0.0),
@@ -683,12 +742,15 @@ def _known_mark(raw: str) -> bool:
         "yes",
         "10",
         "a1",
+        "alt1",
         "4.5",
         "2.1",
         "a2",
+        "alt2",
         "4.3",
         "2.2",
         "a3",
+        "alt3",
         "4.2",
         "2.3",
         "n",
@@ -748,7 +810,17 @@ def _place(value: str | None) -> int | None:
     return _integer(value) or _ordinal(value)
 
 
-def _outcome(cells: tuple[Cell, ...], headers: list[str]) -> str:
+def _outcome(cells: tuple[Cell, ...], headers: list[str], *, source: str = "") -> str | None:
+    if source == "wdr":
+        for cell in cells:
+            if _attrs(cell).get("t") != "2":
+                continue
+            value = _text(cell)
+            if value == "Y":
+                return "promoted"
+            if re.fullmatch(r"S\d+", value):
+                return None
+        return None
     for index, header in enumerate(headers):
         value = (_cell(cells, index) or "").casefold()
         if "promot" in header and value not in {"", "0", "no"}:
@@ -758,14 +830,34 @@ def _outcome(cells: tuple[Cell, ...], headers: list[str]) -> str:
     return "eliminated"
 
 
-def _promoted_count(tables: tuple[ResultTable, ...]) -> int:
+def _promoted_count(tables: tuple[ResultTable, ...], *, source: str = "") -> int | None:
+    if source == "wdr":
+        values = [
+            _text(cell)
+            for table in tables
+            for row in table.rows
+            for cell in row.cells
+            if _attrs(cell).get("t") == "2" and _text(cell)
+        ]
+        if any(value != "Y" for value in values):
+            return None
+        return sum(value == "Y" for value in values)
     promoted: set[tuple[int, int]] = set()
     for table_number, table in enumerate(tables):
         headers = [_text(cell).casefold() for cell in table.headers]
         for row_number, row in enumerate(table.rows):
-            if _outcome(row.cells, headers) == "promoted":
+            if _outcome(row.cells, headers, source=source) == "promoted":
                 promoted.add((table_number, row_number))
     return len(promoted)
+
+
+def _has_unknown_wdr_callback(tables: tuple[ResultTable, ...]) -> bool:
+    return any(
+        _attrs(cell).get("t") == "2" and re.fullmatch(r"S\d+", _text(cell))
+        for table in tables
+        for row in table.rows
+        for cell in row.cells
+    )
 
 
 def _tally(cells: tuple[Cell, ...], headers: tuple[Cell, ...]) -> tuple[int, ...]:

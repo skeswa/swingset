@@ -54,8 +54,8 @@ def test_archived_scoringdance_event_runs_end_to_end(tmp_path: Path) -> None:
         assert conn.execute("SELECT count(*) FROM contests").fetchone()[0] == 6
         assert conn.execute("SELECT count(*) FROM rounds").fetchone()[0] == 12
         assert conn.execute("SELECT count(*) FROM entries").fetchone()[0] == 202
-        assert conn.execute("SELECT count(*) FROM callbacks").fetchone()[0] == 161
-        assert conn.execute("SELECT count(*) FROM callback_marks").fetchone()[0] == 777
+        assert conn.execute("SELECT count(*) FROM callbacks").fetchone()[0] == 153
+        assert conn.execute("SELECT count(*) FROM callback_marks").fetchone()[0] == 769
         assert conn.execute("SELECT count(*) FROM placements").fetchone()[0] == 62
         assert conn.execute("SELECT count(*) FROM final_marks").fetchone()[0] == 420
         assert conn.execute(
