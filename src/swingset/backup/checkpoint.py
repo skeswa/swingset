@@ -26,7 +26,7 @@ class CheckpointError(RuntimeError):
     pass
 
 
-EXCLUDED_TOP_LEVEL = {"venv", "uv-cache", "checkpoints"}
+EXCLUDED_TOP_LEVEL = {".cache", "venv", "uv-cache", "checkpoints"}
 EXCLUDED_NAMES = {"state.lock", "state.sqlite-wal", "state.sqlite-shm", "RESTORE_PENDING"}
 
 

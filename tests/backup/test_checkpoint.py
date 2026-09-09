@@ -79,6 +79,29 @@ def test_checkpoint_uses_sqlite_backup_and_restores_pending(tmp_path: Path) -> N
     copy.close()
 
 
+def test_checkpoint_excludes_service_home_tool_caches(tmp_path: Path) -> None:
+    source = tmp_path / "source"
+    connection = state(source)
+    cache = source / ".cache" / "huggingface"
+    cache.mkdir(parents=True)
+    (cache / ".agent_harnesses.json").write_text('{"tool":"metadata"}')
+    (cache / "token").write_text("credential")
+
+    checkpoint = create_checkpoint(
+        source,
+        connection,
+        tmp_path / "checkpoint",
+        schema_version=1,
+        versions={},
+        input_bundle_hash="bundle-a",
+    )
+    connection.close()
+
+    assert not any(name == ".cache" or name.startswith(".cache/") for name in checkpoint.files)
+    assert "inputs/bundle-a/manifest.json" in checkpoint.files
+    verify_checkpoint(checkpoint.path, maximum_schema_version=1)
+
+
 def test_changed_checkpoint_file_is_rejected(tmp_path: Path) -> None:
     source = tmp_path / "source"
     connection = state(source)
