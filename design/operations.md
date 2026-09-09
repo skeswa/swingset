@@ -138,8 +138,13 @@ Include the following closure of referenced artifacts:
   run summaries. Disposable candidates may instead be omitted; there
   is no database build-completion record to repair.
 
-Validate every reference against the manifest. Upload its required files
-and the manifest in one archive commit; reuse already uploaded content
+Validate every reference against the manifest. The Hub transport puts the
+manifest outside a deterministic uncompressed tar containing the checkpoint
+files, with a small transport manifest that records the tar's size and SHA-256.
+This keeps large registry checkpoints to three upload operations and lets Xet
+deduplicate unchanged tar blocks. Upload all three files in one archive commit;
+restore also accepts older commits that stored every checkpoint file separately.
+Reuse already uploaded content
 only after confirming it exists at the archive's selected parent commit.
 `backup_uploads` is an optimization, never evidence that a missing file
 exists remotely. Record success only after acknowledgment. A failed

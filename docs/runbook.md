@@ -92,6 +92,11 @@ testing is explicit:
 uv run swingset backup --local --state ./tmp/state --destination ./tmp/checkpoint
 ```
 
+Remote checkpoints keep `checkpoint.json` outside a deterministic uncompressed
+tar. `_transport/archive.json` authenticates the tar by size and SHA-256. This
+keeps a registry-scale checkpoint to three files in one atomic Hub commit;
+restore also accepts older checkpoints whose files were uploaded separately.
+
 ## Pause, resume, source switches, and stopping
 
 ```sh
