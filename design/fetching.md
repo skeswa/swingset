@@ -40,7 +40,7 @@ floor everywhere else.
 | 429 or 503 with `Retry-After` | Honor it exactly, minimum 60 s |
 | 429 or 503 without `Retry-After` | Pause host for 15 min, doubling per repeat up to 24 h |
 | 403 or Cloudflare challenge | Pause host 24 h. Log loudly. Never retry with different headers. |
-| 404 on a watched URL | Mark watch `gone` after 3 consecutive 404s over 3 days |
+| 404 on a watched URL | Mark watch `gone` after 3 consecutive 404s over 3 days; the registry's exact verified miss is lookup evidence instead (see its playbook) |
 | Assets | Never fetch images, CSS, JS, fonts |
 | Compression | Send `Accept-Encoding: gzip`, always and only. Never brotli: Apache appends `-gzip` to ETags, so a changing encoding looks like a changed file, and not every client we run decodes brotli. |
 | Cookies | Not stored, not sent |
