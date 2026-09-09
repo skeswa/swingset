@@ -1,0 +1,395 @@
+
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Strict//EN">
+<head>
+    <title>Event Express Pro Floor Interface</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <link href="css/judgesscoresheetsyle.css?v=5" rel="stylesheet" type="text/css">
+    <script src="./jquery.js" type="text/javascript"></script>
+    <script src="./jquery.jeditable.js" type="text/javascript" charset="utf-8"></script>
+</head>
+<body>
+
+	<p>&nbsp;</p>
+		<H2><center>Summer Hummer - 2026</center></H2>
+<table border="1" cellspacing="1" cellpadding="10" align="center" width="100%">
+
+</table><p><table border="1" cellspacing="1" cellpadding="2" align="center" width="100%"><tr bgcolor='#ffae5e'><td colspan = '13'>Division: Jack & Jill Advanced Finals</td></tr><tr>
+			 <td><em><strong>Place</strong></em></td>
+			 <td><em><strong>Competitor</strong></em></td><td><em><strong>Arjay Centeno</strong></em></td><td><em><strong>Bryn Anderson</strong></em></td><td><em><strong>Flore Berne</strong></em></td><td><em><strong>KP Rutland</strong></em></td><td><em><strong>Sayaka Suzaki</strong></em></td><td><em><strong>BIB</strong></em></td>
+			 <td><em><strong>Marks Sorted</strong></em></td>
+			 </tr><tr>
+				<td>1</td>
+				<td width='400'>Caio Botelho and Sydney Taylor</td><td>2</td><td>2</td><td>1</td><td>1</td><td>1</td><td><div class='contentblack'>736/768</div></td>
+					<td>1-1-1-2-2</td>
+					</tr><tr>
+				<td>2</td>
+				<td width='400'>Lucas Frassrand and Tegan Wilson</td><td>6</td><td>1</td><td>2</td><td>3</td><td>4</td><td><div class='contentblack'>761/793</div></td>
+					<td>1-2-3-4-6</td>
+					</tr><tr>
+				<td>3</td>
+				<td width='400'>Miles Van de Wetering and Jing Huang</td><td>3</td><td>5</td><td>8</td><td>2</td><td>2</td><td><div class='contentblack'>810/779</div></td>
+					<td>2-2-3-5-8</td>
+					</tr><tr>
+				<td>4</td>
+				<td width='400'>Corrado Mazzarelli and Bekah Breaux</td><td>4</td><td>4</td><td>7</td><td>8</td><td>3</td><td><div class='contentblack'>797/751</div></td>
+					<td>3-4-4-7-8</td>
+					</tr><tr>
+				<td>5</td>
+				<td width='400'>Rohit Venugopal and Annie Ogren</td><td>1</td><td>3</td><td>5</td><td>5</td><td>7</td><td><div class='contentblack'>937/612</div></td>
+					<td>1-3-5-5-7</td>
+					</tr><tr>
+				<td>6</td>
+				<td width='400'>Gabe Ofordu and Megan Souza</td><td>10</td><td>7</td><td>4</td><td>4</td><td>5</td><td><div class='contentblack'>661/504</div></td>
+					<td>4-4-5-7-10</td>
+					</tr><tr>
+				<td>7</td>
+				<td width='400'>John Collini and Lindsey Granger</td><td>5</td><td>6</td><td>6</td><td>6</td><td>6</td><td><div class='contentblack'>719/800</div></td>
+					<td>5-6-6-6-6</td>
+					</tr><tr>
+				<td>8</td>
+				<td width='400'>Ben Dobson and Emily Aukamp</td><td>9</td><td>8</td><td>3</td><td>7</td><td>8</td><td><div class='contentblack'>850/760</div></td>
+					<td>3-7-8-8-9</td>
+					</tr><tr>
+				<td>9</td>
+				<td width='400'>Patrick Thompson and Jillian Carroll</td><td>7</td><td>9</td><td>9</td><td>9</td><td>9</td><td><div class='contentblack'>648/871</div></td>
+					<td>7-9-9-9-9</td>
+					</tr><tr>
+				<td>10</td>
+				<td width='400'>Orian Breaux and Ashley Veal</td><td>8</td><td>10</td><td>10</td><td>10</td><td>10</td><td><div class='contentblack'>624/598</div></td>
+					<td>8-10-10-10-10</td>
+					</tr></table><p><table border="1" cellspacing="1" cellpadding="2" align="center" width="100%"><tr bgcolor='#ffae5e'><td colspan = '13'>Division: Jack & Jill All Star Finals</td></tr><tr>
+			 <td><em><strong>Place</strong></em></td>
+			 <td><em><strong>Competitor</strong></em></td><td><em><strong>Arjay Centeno</strong></em></td><td><em><strong>Bryn Anderson</strong></em></td><td><em><strong>Flore Berne</strong></em></td><td><em><strong>KP Rutland</strong></em></td><td><em><strong>Sayaka Suzaki</strong></em></td><td><em><strong>BIB</strong></em></td>
+			 <td><em><strong>Marks Sorted</strong></em></td>
+			 </tr><tr>
+				<td>1</td>
+				<td width='400'>Dario Haxhia and Lara Deni</td><td>1</td><td>2</td><td>3</td><td>1</td><td>1</td><td><div class='contentblack'>602/696</div></td>
+					<td>1-1-1-2-3</td>
+					</tr><tr>
+				<td>2</td>
+				<td width='400'>Lucky Sipin and Heejung Jung</td><td>4</td><td>1</td><td>2</td><td>4</td><td>2</td><td><div class='contentblack'>590/644</div></td>
+					<td>1-2-2-4-4</td>
+					</tr><tr>
+				<td>3</td>
+				<td width='400'>Paul Nunez and Elise Renwick</td><td>8</td><td>3</td><td>1</td><td>3</td><td>3</td><td><div class='contentblack'>872/858</div></td>
+					<td>1-3-3-3-8</td>
+					</tr><tr>
+				<td>4</td>
+				<td width='400'>Sam Vaden and Shanna Porcari</td><td>2</td><td>4</td><td>4</td><td>2</td><td>4</td><td><div class='contentblack'>777/707</div></td>
+					<td>2-2-4-4-4</td>
+					</tr><tr>
+				<td>5</td>
+				<td width='400'>Aris Demarco and Tatiana Doldonova</td><td>6</td><td>6</td><td>5</td><td>5</td><td>5</td><td><div class='contentblack'>792/857</div></td>
+					<td>5-5-5-6-6</td>
+					</tr><tr>
+				<td>6</td>
+				<td width='400'>Matt Davis and Jen Ferreira</td><td>5</td><td>5</td><td>9</td><td>6</td><td>6</td><td><div class='contentblack'>582/847</div></td>
+					<td>5-5-6-6-9</td>
+					</tr><tr>
+				<td>7</td>
+				<td width='400'>Joseph Tong and Bella Bierezowiec</td><td>9</td><td>7</td><td>6</td><td>8</td><td>9</td><td><div class='contentblack'>741/884</div></td>
+					<td>6-7-8-9-9</td>
+					</tr><tr>
+				<td>8</td>
+				<td width='400'>Ryan Pflumm and Sara Mouchon</td><td>7</td><td>8</td><td>7</td><td>9</td><td>10</td><td><div class='contentblack'>542/536</div></td>
+					<td>7-7-8-9-10</td>
+					</tr><tr>
+				<td>9</td>
+				<td width='400'>Joe Miller and Charlotte Ridgway</td><td>10</td><td>9</td><td>8</td><td>7</td><td>8</td><td><div class='contentblack'>953/548</div></td>
+					<td>7-8-8-9-10</td>
+					</tr><tr>
+				<td>10</td>
+				<td width='400'>Derek Leyva and Jes Ann Nail</td><td>3</td><td>10</td><td>10</td><td>10</td><td>7</td><td><div class='contentblack'>712/763</div></td>
+					<td>3-7-10-10-10</td>
+					</tr></table><p><table border="1" cellspacing="1" cellpadding="2" align="center" width="100%"><tr bgcolor='#ffae5e'><td colspan = '13'>Division: Jack & Jill Champions Finals</td></tr><tr>
+			 <td><em><strong>Place</strong></em></td>
+			 <td><em><strong>Competitor</strong></em></td><td><em><strong>Demery Levya</strong></em></td><td><em><strong>Jessica McCurdy</strong></em></td><td><em><strong>John Lindo</strong></em></td><td><em><strong>LeAnn Norris</strong></em></td><td><em><strong>Michael Norris</strong></em></td><td><em><strong>BIB</strong></em></td>
+			 <td><em><strong>Marks Sorted</strong></em></td>
+			 </tr><tr>
+				<td>1</td>
+				<td width='400'>KP Rutland and Melodie Paletta</td><td>1</td><td>2</td><td>1</td><td>3</td><td>1</td><td><div class='contentblack'>808/563</div></td>
+					<td>1-1-1-2-3</td>
+					</tr><tr>
+				<td>2</td>
+				<td width='400'>Arjay Centeno and Bryn Anderson</td><td>4</td><td>1</td><td>2</td><td>1</td><td>3</td><td><div class='contentblack'>888/855</div></td>
+					<td>1-1-2-3-4</td>
+					</tr><tr>
+				<td>3</td>
+				<td width='400'>Robert Royston and Mia Pastor</td><td>5</td><td>3</td><td>4</td><td>2</td><td>4</td><td><div class='contentblack'>895/832</div></td>
+					<td>2-3-4-4-5</td>
+					</tr><tr>
+				<td>4</td>
+				<td width='400'>Kyle FitzGerald and Alexis Garrish</td><td>2</td><td>4</td><td>3</td><td>4</td><td>5</td><td><div class='contentblack'>687/818</div></td>
+					<td>2-3-4-4-5</td>
+					</tr><tr>
+				<td>5</td>
+				<td width='400'>PJ Turner and Mackenzie Keister</td><td>3</td><td>6</td><td>6</td><td>5</td><td>2</td><td><div class='contentblack'>882/573</div></td>
+					<td>2-3-5-6-6</td>
+					</tr><tr>
+				<td>6</td>
+				<td width='400'>Jaden Pfeiffer and Emily Huang</td><td>6</td><td>7</td><td>7</td><td>6</td><td>6</td><td><div class='contentblack'>547/731</div></td>
+					<td>6-6-6-7-7</td>
+					</tr><tr>
+				<td>7</td>
+				<td width='400'>Christopher Dumond and Mia Primavera</td><td>7</td><td>5</td><td>5</td><td>7</td><td>7</td><td><div class='contentblack'>767/587</div></td>
+					<td>5-5-7-7-7</td>
+					</tr></table><p><table border="1" cellspacing="1" cellpadding="2" align="center" width="100%"><tr bgcolor='#ffae5e'><td colspan = '13'>Division: Jack & Jill Intermediate Finals</td></tr><tr>
+			 <td><em><strong>Place</strong></em></td>
+			 <td><em><strong>Competitor</strong></em></td><td><em><strong>Jaden Pfeiffer</strong></em></td><td><em><strong>John Lindo</strong></em></td><td><em><strong>Mackenzie Keister</strong></em></td><td><em><strong>Nicole Zwerlein</strong></em></td><td><em><strong>PJ Turner</strong></em></td><td><em><strong>BIB</strong></em></td>
+			 <td><em><strong>Marks Sorted</strong></em></td>
+			 </tr><tr>
+				<td>1</td>
+				<td width='400'>Andrew Knops and Alice Stratmann</td><td>6</td><td>1</td><td>5</td><td>1</td><td>1</td><td><div class='contentblack'>559/561</div></td>
+					<td>1-1-1-5-6</td>
+					</tr><tr>
+				<td>2</td>
+				<td width='400'>Adriane Hines and Garrett Maglio</td><td>1</td><td>3</td><td>10</td><td>2</td><td>11</td><td><div class='contentblack'>594/689</div></td>
+					<td>1-2-3-10-11</td>
+					</tr><tr>
+				<td>3</td>
+				<td width='400'>Ajay Phatak and Dario Haxhia</td><td>2</td><td>5</td><td>4</td><td>3</td><td>2</td><td><div class='contentblack'>534/602</div></td>
+					<td>2-2-3-4-5</td>
+					</tr><tr>
+				<td>4</td>
+				<td width='400'>Norman Shipman and Kaitlyn McGuire</td><td>3</td><td>10</td><td>2</td><td>4</td><td>3</td><td><div class='contentblack'>547/790</div></td>
+					<td>2-3-3-4-10</td>
+					</tr><tr>
+				<td>5</td>
+				<td width='400'>Maayan Harispe and Ariane Martel-Theoret</td><td>10</td><td>12</td><td>6</td><td>5</td><td>5</td><td><div class='contentblack'>782/649</div></td>
+					<td>5-5-6-10-12</td>
+					</tr><tr>
+				<td>6</td>
+				<td width='400'>Daniel Ahn and Danielle Considine</td><td>7</td><td>7</td><td>3</td><td>6</td><td>12</td><td><div class='contentblack'>742/756</div></td>
+					<td>3-6-7-7-12</td>
+					</tr><tr>
+				<td>7</td>
+				<td width='400'>Kevin Yuanzhi Chen and Anastasia Vanekhina</td><td>13</td><td>2</td><td>11</td><td>7</td><td>4</td><td><div class='contentblack'>588/570</div></td>
+					<td>2-4-7-11-13</td>
+					</tr><tr>
+				<td>8</td>
+				<td width='400'>Tom Tseng and Makayla Heinle</td><td>14</td><td>6</td><td>8</td><td>8</td><td>8</td><td><div class='contentblack'>730/935</div></td>
+					<td>6-8-8-8-14</td>
+					</tr><tr>
+				<td>9</td>
+				<td width='400'>Jason Math and Madi Fabber</td><td>12</td><td>4</td><td>9</td><td>14</td><td>6</td><td><div class='contentblack'>684/531</div></td>
+					<td>4-6-9-12-14</td>
+					</tr><tr>
+				<td>10</td>
+				<td width='400'>Andrew Adam and Shay Culpepper</td><td>4</td><td>9</td><td>7</td><td>11</td><td>13</td><td><div class='contentblack'>611/540</div></td>
+					<td>4-7-9-11-13</td>
+					</tr><tr>
+				<td>11</td>
+				<td width='400'>Yoshi Tryba and Roxanne Brulé</td><td>11</td><td>8</td><td>14</td><td>9</td><td>7</td><td><div class='contentblack'>627/747</div></td>
+					<td>7-8-9-11-14</td>
+					</tr><tr>
+				<td>12</td>
+				<td width='400'>Matthew Jo and Lucia Huo</td><td>9</td><td>11</td><td>1</td><td>10</td><td>14</td><td><div class='contentblack'>745/762</div></td>
+					<td>1-9-10-11-14</td>
+					</tr><tr>
+				<td>13</td>
+				<td width='400'>Thomas Anthony and Melissa Liao</td><td>5</td><td>14</td><td>12</td><td>13</td><td>9</td><td><div class='contentblack'>785/695</div></td>
+					<td>5-9-12-13-14</td>
+					</tr><tr>
+				<td>14</td>
+				<td width='400'>Tatiana Doldonova and Bella Belarmino</td><td>8</td><td>13</td><td>13</td><td>12</td><td>10</td><td><div class='contentblack'>857/556</div></td>
+					<td>8-10-12-13-13</td>
+					</tr></table><p><table border="1" cellspacing="1" cellpadding="2" align="center" width="100%"><tr bgcolor='#ffae5e'><td colspan = '13'>Division: Jack & Jill Masters Finals</td></tr><tr>
+			 <td><em><strong>Place</strong></em></td>
+			 <td><em><strong>Competitor</strong></em></td><td><em><strong>Jaden Pfeiffer</strong></em></td><td><em><strong>John Lindo</strong></em></td><td><em><strong>Mackenzie Keister</strong></em></td><td><em><strong>Nicole Zwerlein</strong></em></td><td><em><strong>PJ Turner</strong></em></td><td><em><strong>BIB</strong></em></td>
+			 <td><em><strong>Marks Sorted</strong></em></td>
+			 </tr><tr>
+				<td>1</td>
+				<td width='400'>Demery Leyva and Tristan Tariao-Lee</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td><div class='contentblack'>896/674</div></td>
+					<td>1-1-1-1-1</td>
+					</tr><tr>
+				<td>2</td>
+				<td width='400'>Paul Okura and Laura C</td><td>3</td><td>2</td><td>3</td><td>4</td><td>2</td><td><div class='contentblack'>621/673</div></td>
+					<td>2-2-3-3-4</td>
+					</tr><tr>
+				<td>3</td>
+				<td width='400'>Jun Ogata and Catherine Miu</td><td>2</td><td>6</td><td>2</td><td>3</td><td>4</td><td><div class='contentblack'>575/515</div></td>
+					<td>2-2-3-4-6</td>
+					</tr><tr>
+				<td>4</td>
+				<td width='400'>Mark Lee and Micha Hamady</td><td>4</td><td>4</td><td>5</td><td>2</td><td>5</td><td><div class='contentblack'>956/735</div></td>
+					<td>2-4-4-5-5</td>
+					</tr><tr>
+				<td>5</td>
+				<td width='400'>Todd Irzyk and Albana Haxhia</td><td>5</td><td>3</td><td>4</td><td>6</td><td>6</td><td><div class='contentblack'>705/615</div></td>
+					<td>3-4-5-6-6</td>
+					</tr><tr>
+				<td>6</td>
+				<td width='400'>Leigh Yu and Renee Ulbinsky</td><td>6</td><td>5</td><td>6</td><td>5</td><td>3</td><td><div class='contentblack'>658/765</div></td>
+					<td>3-5-5-6-6</td>
+					</tr></table><p><table border="1" cellspacing="1" cellpadding="2" align="center" width="100%"><tr bgcolor='#ffae5e'><td colspan = '13'>Division: Jack & Jill Newcomer Finals</td></tr><tr>
+			 <td><em><strong>Place</strong></em></td>
+			 <td><em><strong>Competitor</strong></em></td><td><em><strong>Jaden Pfeiffer</strong></em></td><td><em><strong>John Lindo</strong></em></td><td><em><strong>Mackenzie Keister</strong></em></td><td><em><strong>Nicole Zwerlein</strong></em></td><td><em><strong>PJ Turner</strong></em></td><td><em><strong>BIB</strong></em></td>
+			 <td><em><strong>Marks Sorted</strong></em></td>
+			 </tr><tr>
+				<td>1</td>
+				<td width='400'>Alex Huynh and Sofia Lee</td><td>1</td><td>1</td><td>1</td><td>4</td><td>2</td><td><div class='contentblack'>635/842</div></td>
+					<td>1-1-1-2-4</td>
+					</tr><tr>
+				<td>2</td>
+				<td width='400'>Chris O'Dwyer and Rachel Sklair</td><td>2</td><td>7</td><td>2</td><td>2</td><td>4</td><td><div class='contentblack'>539/535</div></td>
+					<td>2-2-2-4-7</td>
+					</tr><tr>
+				<td>3</td>
+				<td width='400'>Kieran Persaud and Kayla Oster</td><td>4</td><td>2</td><td>4</td><td>1</td><td>3</td><td><div class='contentblack'>758/904</div></td>
+					<td>1-2-3-4-4</td>
+					</tr><tr>
+				<td>4</td>
+				<td width='400'>Garrett Rappazzo and Emily Harris</td><td>6</td><td>4</td><td>5</td><td>3</td><td>1</td><td><div class='contentblack'>786/525</div></td>
+					<td>1-3-4-5-6</td>
+					</tr><tr>
+				<td>5</td>
+				<td width='400'>Nicholas Wasko and Eliza Duggan</td><td>3</td><td>5</td><td>6</td><td>5</td><td>5</td><td><div class='contentblack'>715/604</div></td>
+					<td>3-5-5-5-6</td>
+					</tr><tr>
+				<td>6</td>
+				<td width='400'>Matt Bisson and Abigail Wahl</td><td>5</td><td>6</td><td>7</td><td>6</td><td>6</td><td><div class='contentblack'>913/651</div></td>
+					<td>5-6-6-6-7</td>
+					</tr><tr>
+				<td>7</td>
+				<td width='400'>Philip Francisco and Ashley J. Mandanas</td><td>7</td><td>3</td><td>3</td><td>7</td><td>7</td><td><div class='contentblack'>796/702</div></td>
+					<td>3-3-7-7-7</td>
+					</tr></table><p><table border="1" cellspacing="1" cellpadding="2" align="center" width="100%"><tr bgcolor='#ffae5e'><td colspan = '13'>Division: Jack & Jill Novice Finals</td></tr><tr>
+			 <td><em><strong>Place</strong></em></td>
+			 <td><em><strong>Competitor</strong></em></td><td><em><strong>Jaden Pfeiffer</strong></em></td><td><em><strong>John Lindo</strong></em></td><td><em><strong>Mackenzie Keister</strong></em></td><td><em><strong>Nicole Zwerlein</strong></em></td><td><em><strong>PJ Turner</strong></em></td><td><em><strong>BIB</strong></em></td>
+			 <td><em><strong>Marks Sorted</strong></em></td>
+			 </tr><tr>
+				<td>1</td>
+				<td width='400'>Daniel Semac and Rachel Madrigal</td><td>1</td><td>1</td><td>2</td><td>1</td><td>3</td><td><div class='contentblack'>519/669</div></td>
+					<td>1-1-1-2-3</td>
+					</tr><tr>
+				<td>2</td>
+				<td width='400'>Cuong Nguyen and Erica Lin</td><td>11</td><td>2</td><td>3</td><td>10</td><td>2</td><td><div class='contentblack'>632/568</div></td>
+					<td>2-2-3-10-11</td>
+					</tr><tr>
+				<td>3</td>
+				<td width='400'>Eric Fernandez and Millicent Jiang</td><td>10</td><td>4</td><td>4</td><td>4</td><td>5</td><td><div class='contentblack'>638/759</div></td>
+					<td>4-4-4-5-10</td>
+					</tr><tr>
+				<td>4</td>
+				<td width='400'>Alice Stratmann and Laura Mellado</td><td>5</td><td>5</td><td>6</td><td>3</td><td>1</td><td><div class='contentblack'>561/552</div></td>
+					<td>1-3-5-5-6</td>
+					</tr><tr>
+				<td>5</td>
+				<td width='400'>Christian Yzaguirre and Isabelle Wolansky</td><td>2</td><td>8</td><td>9</td><td>5</td><td>4</td><td><div class='contentblack'>554/569</div></td>
+					<td>2-4-5-8-9</td>
+					</tr><tr>
+				<td>6</td>
+				<td width='400'>Jing Huang and Elza Duarte</td><td>7</td><td>3</td><td>5</td><td>7</td><td>7</td><td><div class='contentblack'>779/530</div></td>
+					<td>3-5-7-7-7</td>
+					</tr><tr>
+				<td>7</td>
+				<td width='400'>Heather Lombardi and Erin Campagna</td><td>3</td><td>6</td><td>7</td><td>8</td><td>9</td><td><div class='contentblack'>879/610</div></td>
+					<td>3-6-7-8-9</td>
+					</tr><tr>
+				<td>8</td>
+				<td width='400'>Karl-Philippe Télémaque-Hector and Kathryn Noel</td><td>8</td><td>11</td><td>1</td><td>2</td><td>10</td><td><div class='contentblack'>507/798</div></td>
+					<td>1-2-8-10-11</td>
+					</tr><tr>
+				<td>9</td>
+				<td width='400'>Tina Lin and Nancy Vachon</td><td>12</td><td>12</td><td>8</td><td>9</td><td>6</td><td><div class='contentblack'>550/677</div></td>
+					<td>6-8-9-12-12</td>
+					</tr><tr>
+				<td>10</td>
+				<td width='400'>María Aguirre Roquero and Kevin Yuanzhi Chen</td><td>9</td><td>7</td><td>12</td><td>11</td><td>8</td><td><div class='contentblack'>526/588</div></td>
+					<td>7-8-9-11-12</td>
+					</tr><tr>
+				<td>11</td>
+				<td width='400'>Vanessa Zighelboim and Caroline Kruis</td><td>6</td><td>10</td><td>10</td><td>6</td><td>11</td><td><div class='contentblack'>631/650</div></td>
+					<td>6-6-10-10-11</td>
+					</tr><tr>
+				<td>12</td>
+				<td width='400'>Amanda LaVigne and Joelle White</td><td>4</td><td>9</td><td>11</td><td>12</td><td>12</td><td><div class='contentblack'>662/641</div></td>
+					<td>4-9-11-12-12</td>
+					</tr></table><p><table border="1" cellspacing="1" cellpadding="2" align="center" width="100%"><tr bgcolor='#ffae5e'><td colspan = '13'>Division: Jack & Jill Sophisticated Finals</td></tr><tr>
+			 <td><em><strong>Place</strong></em></td>
+			 <td><em><strong>Competitor</strong></em></td><td><em><strong>Jaden Pfeiffer</strong></em></td><td><em><strong>John Lindo</strong></em></td><td><em><strong>Mackenzie Keister</strong></em></td><td><em><strong>Nicole Zwerlein</strong></em></td><td><em><strong>PJ Turner</strong></em></td><td><em><strong>BIB</strong></em></td>
+			 <td><em><strong>Marks Sorted</strong></em></td>
+			 </tr><tr>
+				<td>1</td>
+				<td width='400'>Orian Breaux and Tatiana Doldonova</td><td>3</td><td>5</td><td>1</td><td>1</td><td>3</td><td><div class='contentblack'>624/857</div></td>
+					<td>1-1-3-3-5</td>
+					</tr><tr>
+				<td>2</td>
+				<td width='400'>Frank Moda III and Isabelle Roy</td><td>5</td><td>1</td><td>3</td><td>4</td><td>2</td><td><div class='contentblack'>734/816</div></td>
+					<td>1-2-3-4-5</td>
+					</tr><tr>
+				<td>3</td>
+				<td width='400'>Pascal Emond and Dani Mullin Darasz</td><td>4</td><td>3</td><td>7</td><td>2</td><td>1</td><td><div class='contentblack'>557/703</div></td>
+					<td>1-2-3-4-7</td>
+					</tr><tr>
+				<td>4</td>
+				<td width='400'>Thibaud baron and Abi Jennings</td><td>7</td><td>2</td><td>2</td><td>3</td><td>7</td><td><div class='contentblack'>653/619</div></td>
+					<td>2-2-3-7-7</td>
+					</tr><tr>
+				<td>5</td>
+				<td width='400'>Leo Cook and Desirae Vasquez</td><td>1</td><td>7</td><td>6</td><td>5</td><td>4</td><td><div class='contentblack'>852/845</div></td>
+					<td>1-4-5-6-7</td>
+					</tr><tr>
+				<td>6</td>
+				<td width='400'>Peter Khoo and Jes Ann Nail</td><td>8</td><td>4</td><td>4</td><td>6</td><td>5</td><td><div class='contentblack'>708/763</div></td>
+					<td>4-4-5-6-8</td>
+					</tr><tr>
+				<td>7</td>
+				<td width='400'>Kaiano Levine and Ariane Martel-Theoret</td><td>2</td><td>6</td><td>5</td><td>9</td><td>9</td><td><div class='contentblack'>682/649</div></td>
+					<td>2-5-6-9-9</td>
+					</tr><tr>
+				<td>8</td>
+				<td width='400'>Mandy Fried and Anastasia Vanekhina</td><td>6</td><td>9</td><td>8</td><td>7</td><td>6</td><td><div class='contentblack'>801/570</div></td>
+					<td>6-6-7-8-9</td>
+					</tr><tr>
+				<td>9</td>
+				<td width='400'>Chris Wasko and Emily Shoov</td><td>9</td><td>8</td><td>9</td><td>8</td><td>8</td><td><div class='contentblack'>565/505</div></td>
+					<td>8-8-8-9-9</td>
+					</tr><tr>
+				<td>10</td>
+				<td width='400'>Eric Fernandez and Jessie Rosenberg</td><td>10</td><td>10</td><td>10</td><td>10</td><td>10</td><td><div class='contentblack'>638/844</div></td>
+					<td>10-10-10-10-10</td>
+					</tr></table><p><table border="1" cellspacing="1" cellpadding="2" align="center" width="100%"><tr bgcolor='#ffae5e'><td colspan = '13'>Division: Jack & Jill Switch Role Finals</td></tr><tr>
+			 <td><em><strong>Place</strong></em></td>
+			 <td><em><strong>Competitor</strong></em></td><td><em><strong>Arjay Centeno</strong></em></td><td><em><strong>Kevin Kane</strong></em></td><td><em><strong>Nataliya Kane</strong></em></td><td><em><strong>Philippe Berne</strong></em></td><td><em><strong>Roberto Corporan</strong></em></td><td><em><strong>BIB</strong></em></td>
+			 <td><em><strong>Marks Sorted</strong></em></td>
+			 </tr><tr>
+				<td>1</td>
+				<td width='400'>Heather Lombardi and Derek Leyva</td><td>1</td><td>5</td><td>7</td><td>2</td><td>1</td><td><div class='contentblack'>879/712</div></td>
+					<td>1-1-2-5-7</td>
+					</tr><tr>
+				<td>2</td>
+				<td width='400'>Jing Huang and Melissa Miller</td><td>6</td><td>2</td><td>2</td><td>1</td><td>4</td><td><div class='contentblack'>779/583</div></td>
+					<td>1-2-2-4-6</td>
+					</tr><tr>
+				<td>3</td>
+				<td width='400'>Kristen Wallace and Corrado Mazzarelli</td><td>3</td><td>1</td><td>1</td><td>3</td><td>3</td><td><div class='contentblack'>453/797</div></td>
+					<td>1-1-3-3-3</td>
+					</tr><tr>
+				<td>4</td>
+				<td width='400'>Tom Tseng and Dario Haxhia</td><td>8</td><td>4</td><td>3</td><td>7</td><td>2</td><td><div class='contentblack'>730/602</div></td>
+					<td>2-3-4-7-8</td>
+					</tr><tr>
+				<td>5</td>
+				<td width='400'>Demery leyva and Eliot Heinrich</td><td>4</td><td>7</td><td>5</td><td>5</td><td>5</td><td><div class='contentblack'>896/783</div></td>
+					<td>4-5-5-5-7</td>
+					</tr><tr>
+				<td>6</td>
+				<td width='400'>Tatiana Doldonova and Leah Grodstein</td><td>5</td><td>3</td><td>6</td><td>4</td><td>6</td><td><div class='contentblack'>857/521</div></td>
+					<td>3-4-5-6-6</td>
+					</tr><tr>
+				<td>7</td>
+				<td width='400'>Tegan Wilson and Ajay Phatak</td><td>2</td><td>8</td><td>4</td><td>8</td><td>7</td><td><div class='contentblack'>793/534</div></td>
+					<td>2-4-7-8-8</td>
+					</tr><tr>
+				<td>8</td>
+				<td width='400'>Patrick Thompson and Orian Breaux</td><td>7</td><td>6</td><td>8</td><td>6</td><td>8</td><td><div class='contentblack'>848/624</div></td>
+					<td>6-6-7-8-8</td>
+					</tr>
+</table>
+<p>
+    Copyright &copy; 2011-2026 Event Express Pro, LLC. All rights reserved.
+</p>
+</div>
+</body>
+</html>

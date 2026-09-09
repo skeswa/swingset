@@ -145,10 +145,12 @@ def project_event(conn: sqlite3.Connection, event: str, now: str, run_id: str) -
             tables = tuple(table for item in candidates for table in item.sheet.tables)
             judge_count = len(
                 {
-                    _judge_token(cell, index)
-                    for table in tables
-                    for index, cell in enumerate(table.headers)
-                    if _is_judge(cell)
+                    token
+                    for item in candidates
+                    for table in item.sheet.tables
+                    for token in _judge_columns(
+                        table, infer_named=item.source == "eepro"
+                    ).values()
                 }
             )
             danced = max((len(table.rows) for table in selected.sheet.tables), default=0)
@@ -244,10 +246,10 @@ def _project_table(
 ) -> None:
     headers = [_text(cell).casefold() for cell in table.headers]
     judge_columns: dict[int, str] = {}
-    for index, cell in enumerate(table.headers):
-        if not _is_judge(cell):
-            continue
-        token, name, anonymous = _judge_token(cell, index)
+    for index, (token, name, anonymous) in _judge_columns(
+        table, infer_named=evidence.source == "eepro"
+    ).items():
+        cell = table.headers[index]
         jid = (
             judge_id(event, name=name)
             if not anonymous
@@ -308,34 +310,40 @@ def _project_table(
             name = _cell(cells, column)
             if not name or name in {"***", "-"}:
                 continue
-            role = _role(
+            for role, competitor_name in _competitors(
+                name,
                 headers[column],
                 table.heading_raw,
                 len(competitor_columns),
                 competitor_columns.index(column),
-            )
-            bib = _bib_for_role(cells, headers, bib_columns, role)
-            identifier = entry_id(contest, role, bib, name)
-            row_entries[role] = identifier
-            row_names[role] = name
-            candidate = EntryFacts(identifier, contest, event, role, bib, name, evidence, {round_})
-            previous = entries.get(identifier)
-            if previous is None:
-                entries[identifier] = candidate
-            else:
-                previous.rounds.add(round_)
-                if previous.name_raw != name and evidence.precedence > previous.evidence.precedence:
-                    findings.append(
-                        _conflict(
-                            identifier,
-                            "name_raw",
-                            previous.name_raw,
-                            name,
-                            previous.evidence,
-                            evidence,
+            ):
+                bib = _bib_for_role(cells, headers, bib_columns, role)
+                identifier = entry_id(contest, role, bib, competitor_name)
+                row_entries[role] = identifier
+                row_names[role] = competitor_name
+                candidate = EntryFacts(
+                    identifier, contest, event, role, bib, competitor_name, evidence, {round_}
+                )
+                previous = entries.get(identifier)
+                if previous is None:
+                    entries[identifier] = candidate
+                else:
+                    previous.rounds.add(round_)
+                    if (
+                        previous.name_raw != competitor_name
+                        and evidence.precedence > previous.evidence.precedence
+                    ):
+                        findings.append(
+                            _conflict(
+                                identifier,
+                                "name_raw",
+                                previous.name_raw,
+                                competitor_name,
+                                previous.evidence,
+                                evidence,
+                            )
                         )
-                    )
-                    previous.name_raw, previous.evidence = name, evidence
+                        previous.name_raw, previous.evidence = competitor_name, evidence
         if "leader" in row_entries and "follower" in row_entries:
             leader = entries[row_entries["leader"]]
             follower = entries[row_entries["follower"]]
@@ -506,10 +514,37 @@ def _is_judge(cell: Cell) -> bool:
     )
 
 
-def _judge_token(cell: Cell, index: int) -> tuple[str, str | None, bool]:
+def _judge_columns(
+    table: ResultTable, *, infer_named: bool = False
+) -> dict[int, tuple[str, str | None, bool]]:
+    headers = [_text(cell).casefold() for cell in table.headers]
+    competitor = next(
+        (
+            index
+            for index, header in enumerate(headers)
+            if any(word in header for word in ("competitor", "leader", "follower", "couple", "dancer"))
+        ),
+        None,
+    )
+    bib = next((index for index, header in enumerate(headers) if "bib" in header), None)
+    result: dict[int, tuple[str, str | None, bool]] = {}
+    for index, cell in enumerate(table.headers):
+        inferred_named = (
+            infer_named and competitor is not None and bib is not None and competitor < index < bib
+        )
+        if _is_judge(cell) or inferred_named:
+            result[index] = _judge_token(cell, index, inferred_named=inferred_named)
+    return result
+
+
+def _judge_token(
+    cell: Cell, index: int, *, inferred_named: bool = False
+) -> tuple[str, str | None, bool]:
     attrs, text = _attrs(cell), _text(cell)
     name = attrs.get("title")
     if attrs.get("t") == "9" and text:
+        return slug(text), text, False
+    if inferred_named and text:
         return slug(text), text, False
     if name and not name.casefold().startswith("judge "):
         return slug(name), name, False
@@ -568,11 +603,26 @@ def _role(header: str, heading: str, count: int, position: int = 0) -> str:
     )
 
 
+def _competitors(
+    name: str, header: str, heading: str, count: int, position: int
+) -> tuple[tuple[str, str], ...]:
+    if count == 1 and "jack" in heading.casefold() and "jill" in heading.casefold():
+        pair = re.split(r"\s+and\s+", name, maxsplit=1, flags=re.IGNORECASE)
+        if len(pair) == 2 and all(part.strip() for part in pair):
+            return (("leader", pair[0].strip()), ("follower", pair[1].strip()))
+    return ((_role(header, heading, count, position), name),)
+
+
 def _bib_for_role(
     cells: tuple[Cell, ...], headers: list[str], columns: list[int], role: str
 ) -> str | None:
     specific = next((index for index in columns if role in headers[index]), None)
-    return _cell(cells, specific if specific is not None else (columns[0] if columns else None))
+    value = _cell(cells, specific if specific is not None else (columns[0] if columns else None))
+    if value and "/" in value and role in {"leader", "follower"}:
+        parts = [part.strip() for part in value.split("/", maxsplit=1)]
+        if len(parts) == 2 and all(parts):
+            return parts[0 if role == "leader" else 1]
+    return value
 
 
 def _mark(raw: str) -> tuple[str, float]:

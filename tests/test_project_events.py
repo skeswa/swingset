@@ -5,7 +5,7 @@ from types import MappingProxyType
 
 from swingset.clock import FakeClock
 from swingset.model.observations import encode_payload
-from swingset.project.events import project_source_index
+from swingset.project.events import nullable_date_range, project_source_index
 from swingset.project.process import process_unit
 from swingset.sources.records import SourceEventRow
 from swingset.state.db import Database, open_database
@@ -81,6 +81,11 @@ def test_sparse_sitemap_cannot_erase_richer_event_metadata(tmp_path: Path) -> No
             "SELECT name_raw,start_date FROM source_events"
         ).fetchone()
         assert tuple(row) == (None, None)
+
+
+def test_eepro_printed_date_ranges_preserve_both_event_boundaries() -> None:
+    assert nullable_date_range("August 20-23, 2026") == ("2026-08-20", "2026-08-23")
+    assert nullable_date_range("July 30-Aug 2, 2026") == ("2026-07-30", "2026-08-02")
 
 
 def test_projector_version_bump_repairs_stale_materialized_metadata(tmp_path: Path) -> None:

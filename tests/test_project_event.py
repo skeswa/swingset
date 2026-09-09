@@ -14,6 +14,7 @@ from swingset.model.observations import encode_payload
 from swingset.project.contests import project_event
 from swingset.project.writer import replace_scope, replace_source_event_map
 from swingset.sources.base import ParseContext
+from swingset.sources.eepro import RoundPage as EEProRoundPage
 from swingset.sources.records import Cell, ResultRow, ResultTable, RoundSheet
 from swingset.sources.wdr.adapter import RoundsPage
 from swingset.state.db import open_database
@@ -337,3 +338,65 @@ def test_real_wdr_rounds_fixture_projects_complete_event_surface(tmp_path: Path)
         assert len(records(projection, CallbackMark)) == 2793
         assert len(records(projection, Placement)) == 160
         assert len(records(projection, FinalMark)) == 1106
+
+
+def test_real_eepro_finals_project_named_judges_and_entry_roles(tmp_path: Path) -> None:
+    fixture_dir = Path("src/swingset/sources/eepro/fixtures")
+    page = EEProRoundPage()
+
+    def parsed_sheets(name: str) -> list[RoundSheet]:
+        url = f"https://eepro.com/results/summerhummer2026/{name}.html"
+        context = ParseContext(
+            "snapshot", "watch", url, "eepro", page.kind, "eepro:hummer", "2026-09-09T00:00:00Z"
+        )
+        parsed = page.parse(
+            page.extract(
+                (fixture_dir / f"round-{name}-summerhummer2026-2026-09-09.body").read_bytes()
+            ),
+            context,
+        )
+        return [
+            observation.payload
+            for observation in parsed.observations
+            if isinstance(observation.payload, RoundSheet)
+        ]
+
+    advanced = next(
+        sheet
+        for sheet in parsed_sheets("jjfinals")
+        if sheet.contest_name_raw == "Jack & Jill Advanced"
+    )
+    strictly_advanced = next(
+        sheet
+        for sheet in parsed_sheets("strictly")
+        if sheet.contest_name_raw == "Strictly Swing Advanced"
+    )
+    with open_database(tmp_path, lock=False) as db:
+        seed(db.connection)
+        add(db.connection, "jj-final", "snap-jj", advanced, "2026-09-09T00:00:00Z")
+        add(
+            db.connection,
+            "strictly-final",
+            "snap-strictly",
+            strictly_advanced,
+            "2026-09-09T00:00:01Z",
+        )
+        projection = project_event(db.connection, EVENT, "2026-09-09T00:00:00Z", "run_a")
+
+    entries = [entry for entry in records(projection, Entry) if isinstance(entry, Entry)]
+    advanced_entries = [entry for entry in entries if "advanced-jj" in entry.contest_id]
+    advanced_by_name = {entry.name_raw: entry for entry in advanced_entries}
+    assert (advanced_by_name["Caio Botelho"].role, advanced_by_name["Caio Botelho"].bib) == (
+        "leader",
+        "736",
+    )
+    assert (advanced_by_name["Sydney Taylor"].role, advanced_by_name["Sydney Taylor"].bib) == (
+        "follower",
+        "768",
+    )
+    strictly_entries = [entry for entry in entries if "advanced-strictly" in entry.contest_id]
+    strictly_by_name = {entry.name_raw: entry for entry in strictly_entries}
+    assert strictly_by_name["Gabe Ofordu and Annie Ogren"].role == "couple"
+    assert strictly_by_name["Gabe Ofordu and Annie Ogren"].bib == "661"
+    judges = [judge for judge in records(projection, Judge) if isinstance(judge, Judge)]
+    assert any(judge.name_raw == "Arjay Centeno" and not judge.anonymous for judge in judges)

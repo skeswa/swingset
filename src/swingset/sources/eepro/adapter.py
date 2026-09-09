@@ -40,7 +40,7 @@ def _table(table_html: str, heading: str) -> dict[str, JsonValue]:
 
 class IndexPage:
     kind = "eepro.index"
-    EXTRACT_VERSION = 1
+    EXTRACT_VERSION = 2
     PARSER_VERSION = 1
     change_mode = "extract"
 
@@ -51,19 +51,17 @@ class IndexPage:
             href = attr(attrs, "href") or ""
             slug = query_value(href, "event")
             if slug:
-                parent = source[
-                    max(0, source.find(inner) - 180) : source.find(inner) + len(inner) + 180
-                ]
-                date = re.search(
-                    r"(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2}[^<]{0,30}\d{4}",
-                    parent,
-                    re.I,
-                )
+                fields = {
+                    (attr(div_attrs, "class") or ""): div_visible
+                    for div_attrs, _, div_visible in tags(inner, "div")
+                }
+                name = fields.get("event-title", visible)
+                date = fields.get("event-date")
                 rows.append(
                     {
                         "slug": slug,
-                        "name": visible,
-                        "date": date.group(0).strip() if date else None,
+                        "name": name,
+                        "date": date,
                         "url": href,
                     }
                 )
@@ -112,7 +110,7 @@ class IndexPage:
 
 class AutoIndexPage:
     kind = "eepro.autoindex"
-    EXTRACT_VERSION = 1
+    EXTRACT_VERSION = 2
     PARSER_VERSION = 1
     change_mode = "extract"
 
@@ -132,8 +130,10 @@ class AutoIndexPage:
                 {
                     "name": name,
                     "href": href,
-                    "modified": cells[-2][2] if len(cells) >= 2 else None,
-                    "size": cells[-1][2] if cells else None,
+                    # Standard Apache autoindex cells are icon, name,
+                    # modified, size, and description.
+                    "modified": cells[-3][2] if len(cells) >= 3 else None,
+                    "size": cells[-2][2] if len(cells) >= 2 else None,
                 }
             )
         if not files:
@@ -179,16 +179,20 @@ class AutoIndexPage:
 
 class RoundPage:
     kind = "eepro.round"
-    EXTRACT_VERSION = 1
-    PARSER_VERSION = 1
+    EXTRACT_VERSION = 2
+    PARSER_VERSION = 2
     change_mode = "validators"
 
     def extract(self, body: bytes) -> JsonValue:
         source = body.decode("utf-8", "replace")
         result: list[JsonValue] = []
         for _, inner, visible in tags(source, "table"):
-            heading_match = re.search(r"Division:\s*([^<\r\n]+)", inner, re.I)
-            heading = heading_match.group(1).strip() if heading_match else visible[:150]
+            table_rows = tags(inner, "tr")
+            heading_cells = (
+                tags(table_rows[0][1], "th") + tags(table_rows[0][1], "td") if table_rows else []
+            )
+            heading = heading_cells[0][2] if heading_cells else visible[:150]
+            heading = re.sub(r"^Division:\s*", "", heading, flags=re.I)
             parsed = _table(inner, heading)
             if len(parsed["rows"]) >= 2:
                 result.append(parsed)
@@ -224,11 +228,7 @@ class RoundPage:
             if len(parsed_rows) < 2:
                 continue
             first_text = parsed_rows[0][0].text if parsed_rows[0] else None
-            if (
-                len(parsed_rows[0]) == 1
-                and first_text is not None
-                and first_text.lower().startswith("division:")
-            ):
+            if len(parsed_rows[0]) == 1 and first_text is not None:
                 parsed_rows = parsed_rows[1:]
             if len(parsed_rows) < 2:
                 continue

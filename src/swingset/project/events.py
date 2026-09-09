@@ -1,5 +1,6 @@
 """Calendar and source-index projections."""
 
+import re
 import sqlite3
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
@@ -127,13 +128,13 @@ def project_source_index(conn: sqlite3.Connection, scope_id: str, now: str, run_
             continue
         winner = max(candidates, key=lambda item: item.precedence)
         payload = winner.payload
-        parsed = nullable_date(payload.date_raw)
+        start, end = nullable_date_range(payload.date_raw)
         values = (
             winner.source,
             payload.source_ref,
             payload.name_raw,
-            parsed,
-            parsed,
+            start,
+            end,
             None,
             payload.url,
             winner.snapshot_id,
@@ -196,3 +197,34 @@ def nullable_date(raw: str | None) -> str | None:
         return parse_date(raw).isoformat()
     except ValueError:
         return None
+
+
+def nullable_date_range(raw: str | None) -> tuple[str | None, str | None]:
+    if raw is None or not raw.strip():
+        return None, None
+    value = raw.strip()
+    match = re.fullmatch(
+        r"(?P<start_month>[A-Za-z]+)\s+(?P<start_day>\d{1,2})\s*-\s*"
+        r"(?:(?P<end_month>[A-Za-z]+)\s+)?(?P<end_day>\d{1,2}),\s*(?P<year>\d{4})",
+        value,
+    )
+    if match is None:
+        parsed = nullable_date(value)
+        return parsed, parsed
+    year = match.group("year")
+    start_month = match.group("start_month")
+    end_month = match.group("end_month") or start_month
+    try:
+        start = date(
+            int(year),
+            datetime.strptime(start_month[:3], "%b").month,
+            int(match.group("start_day")),
+        )
+        end = date(
+            int(year),
+            datetime.strptime(end_month[:3], "%b").month,
+            int(match.group("end_day")),
+        )
+    except ValueError:
+        return None, None
+    return start.isoformat(), end.isoformat()

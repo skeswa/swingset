@@ -9,11 +9,10 @@ so the API can replace the fetch step without touching the parsers. No
 terms of use page exists (checked 2026-09-04). `robots.txt` is 404,
 which under RFC 9309 means unrestricted.
 
-Before the first live poll the owner tells the operator: the User-Agent
-string, the intervals below, the load estimate, and the switch in
-section 12. Ask at the same time whether they would rather we not poll
-during the event and only read afterwards. Their answer overrides this
-playbook.
+The owner reported on 2026-09-09 that permission was received on 2026-09-08.
+No extra conditions or details of the conversation were supplied. Whether the
+operator was told the User-Agent string, intervals, load estimate, and switch
+in section 12 remains unverified.
 
 ## 2. What it gives
 
@@ -112,11 +111,11 @@ conditional one. That is why the per-event cost is small.
 
 ## 8. Parsing
 
-`eepro.round` (from `design/parsing.md`, verified 2026-09-04 fixtures):
+`eepro.round` (from `design/parsing.md`, verified 2026-09-09 fixtures):
 
-- One `<table border="1">` per contest. First row reads
-  `Division: <name> <Prelims|Finals>`; the contest name and round come
-  from it, never from the file name.
+- One `<table border="1">` per contest. The first row is one spanning cell
+  ending in `<Prelims|Finals>` (older pages can prefix it with `Division:`);
+  the contest name and round come from it, never from the file name.
 - Prelims columns: `Count`, `Competitor`, one column per judge (header
   is the judge's name; values `Y`, `A1`, `A2`, `A3`, `N`), `BIB`,
   `Counts` (`Y-A-N`), `Sum`, `Promote` (`X` for callback), `Alt`.
@@ -131,8 +130,11 @@ conditional one. That is why the per-event cost is small.
   `Last modified` (`YYYY-MM-DD HH:MM`, server local time, treat as
   opaque text and compare for equality), `Size` (`8.5K`, `142K`).
 
-Open parsing question from the design: the prelims `Count` column
-(heat number or ordinal). Resolve from the first fixture.
+`Count` is the ordinal standing after the callback marks are totaled, not a
+heat number. Equal sums share a count (for example, three perfect scores all
+print `1`), later counts skip the tied positions, and entries below the
+promotion cutoff can have a blank count. This was verified in Summer Hummer
+2026 `jjprelims.html` on 2026-09-09.
 
 ## 9. Quirks
 
@@ -191,4 +193,5 @@ us, though a GitHub issue is welcome.
 - Ask whether an `index.json` or a `Last-Modified` on `event.php` is a
   cheap favor; either removes the last unconditional fetch.
 - Whether `/results/<year>/` still exists.
-- Meaning of `Count` in prelims.
+- Measure a live event weekend; the accepted historical run does not establish
+  live request volume or conditional-response rates.

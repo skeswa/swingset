@@ -1,0 +1,741 @@
+
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Strict//EN">
+<head>
+    <title>Event Express Pro Floor Interface</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <link href="css/judgesscoresheetsyle.css?v=5" rel="stylesheet" type="text/css">
+    <script src="./jquery.js" type="text/javascript"></script>
+    <script src="./jquery.jeditable.js" type="text/javascript" charset="utf-8"></script>
+</head>
+<body>
+
+		<p>&nbsp;</p>
+		<H2><center>Summer Hummer - 2026</center></H2>
+		<table border="1" cellspacing="1" cellpadding="10" align="center" width="100%">
+
+</table><p><table border="1" cellspacing="1" cellpadding="2" align="center" width="100%"><tr bgcolor='#ffae5e'><td colspan = '13'>Division: Strictly Swing Advanced Finals</td></tr><tr>
+			 <td><em><strong>Place</strong></em></td>
+			 <td><em><strong>Competitor</strong></em></td><td><em><strong>Chris Dumond</strong></em></td><td><em><strong>Emily Huang</strong></em></td><td><em><strong>Keerigan Rudd</strong></em></td><td><em><strong>Mia Primavera</strong></em></td><td><em><strong>PJ Turner</strong></em></td><td><em><strong>BIB</strong></em></td>
+			 <td><em><strong>Marks Sorted</strong></em></td>
+			 </tr><tr>
+				<td>1</td>
+				<td width='400'>Gabe Ofordu and Annie Ogren</td><td>6</td><td>2</td><td>2</td><td>2</td><td>1</td><td><div class='contentblack'>661</div></td>
+					<td>1-2-2-2-6</td>
+					</tr><tr>
+				<td>2</td>
+				<td width='400'>John Collini and Dario Haxhia</td><td>3</td><td>3</td><td>1</td><td>4</td><td>3</td><td><div class='contentblack'>719</div></td>
+					<td>1-3-3-3-4</td>
+					</tr><tr>
+				<td>3</td>
+				<td width='400'>Orian Breaux and Gwen Smith</td><td>4</td><td>7</td><td>3</td><td>3</td><td>2</td><td><div class='contentblack'>624</div></td>
+					<td>2-3-3-4-7</td>
+					</tr><tr>
+				<td>4</td>
+				<td width='400'>David Castrejon and Emily Aukamp</td><td>1</td><td>1</td><td>4</td><td>5</td><td>5</td><td><div class='contentblack'>778</div></td>
+					<td>1-1-4-5-5</td>
+					</tr><tr>
+				<td>5</td>
+				<td width='400'>Caio Botelho and Sydney Taylor</td><td>7</td><td>5</td><td>5</td><td>1</td><td>4</td><td><div class='contentblack'>736</div></td>
+					<td>1-4-5-5-7</td>
+					</tr><tr>
+				<td>6</td>
+				<td width='400'>Kieffer Quitayen and Megan Souza</td><td>2</td><td>4</td><td>6</td><td>6</td><td>6</td><td><div class='contentblack'>728</div></td>
+					<td>2-4-6-6-6</td>
+					</tr><tr>
+				<td>7</td>
+				<td width='400'>Keita Sumikawa and Ashley Veal</td><td>5</td><td>6</td><td>7</td><td>7</td><td>7</td><td><div class='contentblack'>620</div></td>
+					<td>5-6-7-7-7</td>
+					</tr></table><p><table border="1" cellspacing="1" cellpadding="2" align="center" width="100%"><tr bgcolor='#ffae5e'><td colspan = '13'>Division: Strictly Swing All Star Finals</td></tr><tr>
+			 <td><em><strong>Place</strong></em></td>
+			 <td><em><strong>Competitor</strong></em></td><td><em><strong>Chris Dumond</strong></em></td><td><em><strong>Jessica McCurdy</strong></em></td><td><em><strong>Keerigan Rudd</strong></em></td><td><em><strong>Marcus Schwarz</strong></em></td><td><em><strong>Mia Primavera</strong></em></td><td><em><strong>BIB</strong></em></td>
+			 <td><em><strong>Marks Sorted</strong></em></td>
+			 </tr><tr>
+				<td>1</td>
+				<td width='400'>Joseph Tong and Nataliya Kane</td><td>1</td><td>3</td><td>1</td><td>2</td><td>1</td><td><div class='contentblack'>741</div></td>
+					<td>1-1-1-2-3</td>
+					</tr><tr>
+				<td>2</td>
+				<td width='400'>Dario Haxhia and Heejung Jung</td><td>2</td><td>1</td><td>2</td><td>1</td><td>2</td><td><div class='contentblack'>602</div></td>
+					<td>1-1-2-2-2</td>
+					</tr><tr>
+				<td>3</td>
+				<td width='400'>Paul Nunez and Elise Renwick</td><td>3</td><td>2</td><td>4</td><td>6</td><td>5</td><td><div class='contentblack'>781</div></td>
+					<td>2-3-4-5-6</td>
+					</tr><tr>
+				<td>4</td>
+				<td width='400'>Aris Demarco and Lara Deni</td><td>4</td><td>5</td><td>3</td><td>7</td><td>3</td><td><div class='contentblack'>792</div></td>
+					<td>3-3-4-5-7</td>
+					</tr><tr>
+				<td>5</td>
+				<td width='400'>Kaiano Levine and Shanna Porcari</td><td>5</td><td>4</td><td>7</td><td>3</td><td>4</td><td><div class='contentblack'>682</div></td>
+					<td>3-4-4-5-7</td>
+					</tr><tr>
+				<td>6</td>
+				<td width='400'>Eliot Heinrich and Elizabeth Lloyd</td><td>6</td><td>6</td><td>6</td><td>5</td><td>7</td><td><div class='contentblack'>783</div></td>
+					<td>5-6-6-6-7</td>
+					</tr><tr>
+				<td>7</td>
+				<td width='400'>Ryan Pflumm and Charlotte Ridgway</td><td>7</td><td>7</td><td>5</td><td>4</td><td>6</td><td><div class='contentblack'>542</div></td>
+					<td>4-5-6-7-7</td>
+					</tr></table><p><table border="1" cellspacing="1" cellpadding="2" align="center" width="100%"><tr bgcolor='#ffae5e'><td colspan = '13'>Division: Strictly Swing Champions Finals</td></tr><tr>
+			 <td><em><strong>Place</strong></em></td>
+			 <td><em><strong>Competitor</strong></em></td><td><em><strong>Demery Levya</strong></em></td><td><em><strong>Jennifer Norris</strong></em></td><td><em><strong>LeAnn Norris</strong></em></td><td><em><strong>Matt Davis</strong></em></td><td><em><strong>Michael Norris</strong></em></td><td><em><strong>BIB</strong></em></td>
+			 <td><em><strong>Marks Sorted</strong></em></td>
+			 </tr><tr>
+				<td>1</td>
+				<td width='400'>KP Rutland and Alexis Garrish</td><td>2</td><td>1</td><td>2</td><td>1</td><td>3</td><td><div class='contentblack'></div></td>
+					<td>1-1-2-2-3</td>
+					</tr><tr>
+				<td>2</td>
+				<td width='400'>Arjay Centeno and Bryn Anderson</td><td>3</td><td>3</td><td>1</td><td>2</td><td>1</td><td><div class='contentblack'></div></td>
+					<td>1-1-2-3-3</td>
+					</tr><tr>
+				<td>3</td>
+				<td width='400'>Christopher Dumond and Mackenzie Keister</td><td>1</td><td>2</td><td>3</td><td>8</td><td>2</td><td><div class='contentblack'></div></td>
+					<td>1-2-2-3-8</td>
+					</tr><tr>
+				<td>4</td>
+				<td width='400'>PJ Turner and Emily Huang</td><td>6</td><td>4</td><td>4</td><td>4</td><td>5</td><td><div class='contentblack'></div></td>
+					<td>4-4-4-5-6</td>
+					</tr><tr>
+				<td>5</td>
+				<td width='400'>Robert Royston and Mia Pastor</td><td>5</td><td>10</td><td>5</td><td>5</td><td>4</td><td><div class='contentblack'></div></td>
+					<td>4-5-5-5-10</td>
+					</tr><tr>
+				<td>6</td>
+				<td width='400'>Keerigan Rudd and Nataliya Kane</td><td>4</td><td>5</td><td>6</td><td>7</td><td>7</td><td><div class='contentblack'></div></td>
+					<td>4-5-6-7-7</td>
+					</tr><tr>
+				<td>7</td>
+				<td width='400'>Kyle FitzGerald and Flore Berne</td><td>7</td><td>8</td><td>9</td><td>3</td><td>9</td><td><div class='contentblack'></div></td>
+					<td>3-7-8-9-9</td>
+					</tr><tr>
+				<td>8</td>
+				<td width='400'>Philippe Berne and Melodie Paletta</td><td>11</td><td>12</td><td>7</td><td>9</td><td>8</td><td><div class='contentblack'></div></td>
+					<td>7-8-9-11-12</td>
+					</tr><tr>
+				<td>9</td>
+				<td width='400'>Jaden Pfeiffer and Sonya Dessureault</td><td>9</td><td>11</td><td>10</td><td>10</td><td>6</td><td><div class='contentblack'></div></td>
+					<td>6-9-10-10-11</td>
+					</tr><tr>
+				<td>10</td>
+				<td width='400'>Sam Vaden and Kristen Wallace</td><td>10</td><td>7</td><td>8</td><td>11</td><td>11</td><td><div class='contentblack'></div></td>
+					<td>7-8-10-11-11</td>
+					</tr><tr>
+				<td>11</td>
+				<td width='400'>Kevin Kane and Mia Primavera</td><td>12</td><td>9</td><td>11</td><td>6</td><td>10</td><td><div class='contentblack'></div></td>
+					<td>6-9-10-11-12</td>
+					</tr><tr>
+				<td>12</td>
+				<td width='400'>Paul Nunez and Nicole Zwerlein</td><td>8</td><td>6</td><td>12</td><td>12</td><td>12</td><td><div class='contentblack'></div></td>
+					<td>6-8-12-12-12</td>
+					</tr></table><p><table border="1" cellspacing="1" cellpadding="2" align="center" width="100%"><tr bgcolor='#ffae5e'><td colspan = '13'>Division: Strictly Swing Intermediate Finals</td></tr><tr>
+			 <td><em><strong>Place</strong></em></td>
+			 <td><em><strong>Competitor</strong></em></td><td><em><strong>Chris Dumond</strong></em></td><td><em><strong>Emily Huang</strong></em></td><td><em><strong>Keerigan Rudd</strong></em></td><td><em><strong>Mia Primavera</strong></em></td><td><em><strong>PJ Turner</strong></em></td><td><em><strong>BIB</strong></em></td>
+			 <td><em><strong>Marks Sorted</strong></em></td>
+			 </tr><tr>
+				<td>1</td>
+				<td width='400'>Ajay Phatak and Shay Culpepper</td><td>6</td><td>1</td><td>3</td><td>1</td><td>2</td><td><div class='contentblack'>534</div></td>
+					<td>1-1-2-3-6</td>
+					</tr><tr>
+				<td>2</td>
+				<td width='400'>Jason Math and Christa Sparks</td><td>8</td><td>3</td><td>1</td><td>7</td><td>3</td><td><div class='contentblack'>684</div></td>
+					<td>1-3-3-7-8</td>
+					</tr><tr>
+				<td>3</td>
+				<td width='400'>Andrew Knops and Dario Haxhia</td><td>3</td><td>5</td><td>5</td><td>4</td><td>1</td><td><div class='contentblack'>559</div></td>
+					<td>1-3-4-5-5</td>
+					</tr><tr>
+				<td>4</td>
+				<td width='400'>Tom Tseng and Victoria Bian</td><td>2</td><td>9</td><td>4</td><td>2</td><td>7</td><td><div class='contentblack'>730</div></td>
+					<td>2-2-4-7-9</td>
+					</tr><tr>
+				<td>5</td>
+				<td width='400'>Adriane Hines and Kareen Rivera</td><td>1</td><td>7</td><td>2</td><td>8</td><td>5</td><td><div class='contentblack'>594</div></td>
+					<td>1-2-5-7-8</td>
+					</tr><tr>
+				<td>6</td>
+				<td width='400'>Nizam Tengku and Betty Quinn</td><td>4</td><td>4</td><td>6</td><td>5</td><td>6</td><td><div class='contentblack'>752</div></td>
+					<td>4-4-5-6-6</td>
+					</tr><tr>
+				<td>7</td>
+				<td width='400'>Joshua Hillis and Bella Belarimino</td><td>7</td><td>6</td><td>7</td><td>3</td><td>4</td><td><div class='contentblack'>503</div></td>
+					<td>3-4-6-7-7</td>
+					</tr><tr>
+				<td>8</td>
+				<td width='400'>Norman Shipman and Alice Stratmann</td><td>9</td><td>2</td><td>8</td><td>6</td><td>8</td><td><div class='contentblack'>547</div></td>
+					<td>2-6-8-8-9</td>
+					</tr><tr>
+				<td>9</td>
+				<td width='400'>Garrett Maglio and Lucia Huo</td><td>5</td><td>8</td><td>9</td><td>9</td><td>9</td><td><div class='contentblack'>689</div></td>
+					<td>5-8-9-9-9</td>
+					</tr></table><p><table border="1" cellspacing="1" cellpadding="2" align="center" width="100%"><tr bgcolor='#ffae5e'><td colspan = '13'>Division: Strictly Swing New/Nov Finals</td></tr><tr>
+			 <td><em><strong>Place</strong></em></td>
+			 <td><em><strong>Competitor</strong></em></td><td><em><strong>Chris Dumond</strong></em></td><td><em><strong>Emily Huang</strong></em></td><td><em><strong>Keerigan Rudd</strong></em></td><td><em><strong>Mia Primavera</strong></em></td><td><em><strong>PJ Turner</strong></em></td><td><em><strong>BIB</strong></em></td>
+			 <td><em><strong>Marks Sorted</strong></em></td>
+			 </tr><tr>
+				<td>1</td>
+				<td width='400'>Karl-Philippe Télémaque-Hector and Joelle White</td><td>1</td><td>7</td><td>5</td><td>1</td><td>2</td><td><div class='contentblack'>507</div></td>
+					<td>1-1-2-5-7</td>
+					</tr><tr>
+				<td>2</td>
+				<td width='400'>Gwen Smith and Erin Campagna</td><td>7</td><td>1</td><td>2</td><td>3</td><td>4</td><td><div class='contentblack'>533</div></td>
+					<td>1-2-3-4-7</td>
+					</tr><tr>
+				<td>3</td>
+				<td width='400'>robby harrison and Lianne Blodgett</td><td>2</td><td>3</td><td>7</td><td>7</td><td>1</td><td><div class='contentblack'>527</div></td>
+					<td>1-2-3-7-7</td>
+					</tr><tr>
+				<td>4</td>
+				<td width='400'>Tina lin and Rohit Venugopal</td><td>6</td><td>2</td><td>3</td><td>8</td><td>3</td><td><div class='contentblack'>550</div></td>
+					<td>2-3-3-6-8</td>
+					</tr><tr>
+				<td>5</td>
+				<td width='400'>Cuong Nguyen and Katherine Ryan</td><td>5</td><td>4</td><td>1</td><td>2</td><td>5</td><td><div class='contentblack'>632</div></td>
+					<td>1-2-4-5-5</td>
+					</tr><tr>
+				<td>6</td>
+				<td width='400'>Brittany Palmer and Casey Brigid</td><td>4</td><td>5</td><td>4</td><td>6</td><td>6</td><td><div class='contentblack'>509</div></td>
+					<td>4-4-5-6-6</td>
+					</tr><tr>
+				<td>7</td>
+				<td width='400'>Anup Sreekumar and Anya Keller</td><td>3</td><td>8</td><td>6</td><td>4</td><td>7</td><td><div class='contentblack'>657</div></td>
+					<td>3-4-6-7-8</td>
+					</tr><tr>
+				<td>8</td>
+				<td width='400'>Sam Greenblatt and Caroline Kruis</td><td>8</td><td>6</td><td>8</td><td>5</td><td>8</td><td><div class='contentblack'>628</div></td>
+					<td>5-6-8-8-8</td>
+					</tr></table><p><table border="1" cellspacing="1" cellpadding="2" align="center" width="100%"><tr bgcolor='#ffae5e'><td colspan = '13'>Division: Strictly Swing Sophisticated Finals</td></tr><tr>
+			 <td><em><strong>Place</strong></em></td>
+			 <td><em><strong>Competitor</strong></em></td><td><em><strong>Chris Dumond</strong></em></td><td><em><strong>Emily Huang</strong></em></td><td><em><strong>Keerigan Rudd</strong></em></td><td><em><strong>Mia Primavera</strong></em></td><td><em><strong>PJ Turner</strong></em></td><td><em><strong>BIB</strong></em></td>
+			 <td><em><strong>Marks Sorted</strong></em></td>
+			 </tr><tr>
+				<td>1</td>
+				<td width='400'>Orian Breaux and Dani Mullin Darasz</td><td>4</td><td>4</td><td>1</td><td>1</td><td>1</td><td><div class='contentblack'>624</div></td>
+					<td>1-1-1-4-4</td>
+					</tr><tr>
+				<td>2</td>
+				<td width='400'>Peter Khoo and Jes Ann Nail</td><td>2</td><td>2</td><td>3</td><td>2</td><td>3</td><td><div class='contentblack'>708</div></td>
+					<td>2-2-2-3-3</td>
+					</tr><tr>
+				<td>3</td>
+				<td width='400'>Igor Laryukhin and Patty Houston</td><td>1</td><td>3</td><td>5</td><td>3</td><td>2</td><td><div class='contentblack'>613</div></td>
+					<td>1-2-3-3-5</td>
+					</tr><tr>
+				<td>4</td>
+				<td width='400'>Nizam Tengku and Shay Culpepper</td><td>3</td><td>1</td><td>2</td><td>4</td><td>5</td><td><div class='contentblack'>752</div></td>
+					<td>1-2-3-4-5</td>
+					</tr><tr>
+				<td>5</td>
+				<td width='400'>Kevin Balcom and Anna Balcom</td><td>5</td><td>5</td><td>4</td><td>5</td><td>4</td><td><div class='contentblack'>813</div></td>
+					<td>4-4-5-5-5</td>
+					</tr>
+</table>
+<p>
+
+<table border="1" cellspacing="1" cellpadding="10" align="center" width="100%">
+
+</table><p><table border="1" cellspacing="1" cellpadding="2" align="center" width="100%"><tr bgcolor='#ffae5e'><td colspan = '13'>Strictly Swing Advanced Prelims - 16 competed<br>When marks are tied, lowest sum used as tiebreaker, Y=10, ALT1=4.5, ALT2=4.3, ALT3=4.2, N=0<br>All ties broken by head judge.</td></tr><tr>
+			 <td><em><strong>Count</strong></em></td>
+			 <td width="400"><em><strong>Competitor</strong></em></td><td><em><strong>Bryn Anderson</strong></em></td><td><em><strong>Emily Huang</strong></em></td><td><em><strong>Heejung Jung</strong></em></td><td><em><strong>KP Rutland</strong></em></td><td><em><strong>Nataliya Kane</strong></em></td><td><em><strong>BIB</strong></em></td>
+			 <td><em><strong>Counts (Y-A-N)</strong></em></td>
+			 <td><em><strong>Sum</strong></em></td>
+			 <td><em><strong>Promote</strong></em></td>
+			 <td><em><strong>Alt</strong></em></td>
+			 </tr><tr>
+	   <td>1</td>
+					<td>Gabe Ofordu and Annie Ogren</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>661</div></td>
+					<td>5-0-0</td>
+					<td>50</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>1</td>
+					<td>John Collini and Dario Haxhia</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>719</div></td>
+					<td>5-0-0</td>
+					<td>50</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>3</td>
+					<td>Orian Breaux and Gwen Smith</td><td>N</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>624</div></td>
+					<td>4-0-1</td>
+					<td>40</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>3</td>
+					<td>Caio Botelho and Kareen Rivera</td><td>N</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>736</div></td>
+					<td>4-0-1</td>
+					<td>40</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>5</td>
+					<td>David Castrejon and Emily Aukamp</td><td>Y</td><td>A1</td><td>Y</td><td>Y</td><td>A1</td><td><div class='contentblack'>778</div></td>
+					<td>3-2-0</td>
+					<td>39</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>6</td>
+					<td>Keita Sumikawa and Ashley Veal</td><td>Y</td><td>A2</td><td>Y</td><td>N</td><td>Y</td><td><div class='contentblack'>620</div></td>
+					<td>3-1-1</td>
+					<td>34.3</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>7</td>
+					<td>Kieffer Quitayen and Megan Souza</td><td>N</td><td>Y</td><td>A3</td><td>Y</td><td>Y</td><td><div class='contentblack'>728</div></td>
+					<td>3-1-1</td>
+					<td>34.2</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Patrick Thompson and Shay Culpepper</td><td>N</td><td>Y</td><td>A1</td><td>N</td><td>Y</td><td><div class='contentblack'>648</div></td>
+					<td>2-1-2</td>
+					<td>24.5</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Jaden Frost and Igor Laryukhin</td><td>Y</td><td>N</td><td>Y</td><td>A2</td><td>N</td><td><div class='contentblack'>502</div></td>
+					<td>2-1-2</td>
+					<td>24.3</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Rish Rastogi and Rae Tardif</td><td>A2</td><td>Y</td><td>N</td><td>Y</td><td>N</td><td><div class='contentblack'>607</div></td>
+					<td>2-1-2</td>
+					<td>24.3</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Rohit Venugopal and Asher Newman</td><td>Y</td><td>N</td><td>N</td><td>A1</td><td>N</td><td><div class='contentblack'>937</div></td>
+					<td>1-1-3</td>
+					<td>14.5</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Daniel Cruz and Domenica Dunnigan</td><td>A3</td><td>A3</td><td>N</td><td>N</td><td>A3</td><td><div class='contentblack'>630</div></td>
+					<td>0-3-2</td>
+					<td>12.6</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Tegan Wilson and Benjamin Yang</td><td>Y</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>793</div></td>
+					<td>1-0-4</td>
+					<td>10</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Maayan Harispe and Vanessa Zighelboim</td><td>A1</td><td>N</td><td>N</td><td>A3</td><td>N</td><td><div class='contentblack'>782</div></td>
+					<td>0-2-3</td>
+					<td>8.7</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Corrado Mazzarelli and Bekah Breaux</td><td>N</td><td>N</td><td>A2</td><td>N</td><td>A2</td><td><div class='contentblack'>797</div></td>
+					<td>0-2-3</td>
+					<td>8.6</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Ken Yie and Maria Flores</td><td>N</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>667</div></td>
+					<td>0-0-5</td>
+					<td>0</td>
+					<td></td>
+					<td></td>
+					</tr></table><p><table border="1" cellspacing="1" cellpadding="2" align="center" width="100%"><tr bgcolor='#ffae5e'><td colspan = '13'>Strictly Swing All Star Prelims - 11 competed<br>When marks are tied, lowest sum used as tiebreaker, Y=10, ALT1=4.5, ALT2=4.3, ALT3=4.2, N=0<br>All ties broken by head judge.</td></tr><tr>
+			 <td><em><strong>Count</strong></em></td>
+			 <td width="400"><em><strong>Competitor</strong></em></td><td><em><strong>Bryn Anderson</strong></em></td><td><em><strong>Chris Dumond</strong></em></td><td><em><strong>Jessica McCurdy</strong></em></td><td><em><strong>KP Rutland</strong></em></td><td><em><strong>Marcus Schwarz</strong></em></td><td><em><strong>BIB</strong></em></td>
+			 <td><em><strong>Counts (Y-A-N)</strong></em></td>
+			 <td><em><strong>Sum</strong></em></td>
+			 <td><em><strong>Promote</strong></em></td>
+			 <td><em><strong>Alt</strong></em></td>
+			 </tr><tr>
+	   <td>1</td>
+					<td>Dario Haxhia and Heejung Jung</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>602</div></td>
+					<td>5-0-0</td>
+					<td>50</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>1</td>
+					<td>Joshes tong  and Natalia kane</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>741</div></td>
+					<td>5-0-0</td>
+					<td>50</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>3</td>
+					<td>Kaiano Levine and Shanna Porcari</td><td>Y</td><td>A1</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>682</div></td>
+					<td>4-1-0</td>
+					<td>44.5</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>4</td>
+					<td>Ryan Pflumm and Charlotte Ridgway</td><td>Y</td><td>Y</td><td>A1</td><td>A1</td><td>Y</td><td><div class='contentblack'>542</div></td>
+					<td>3-2-0</td>
+					<td>39</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>5</td>
+					<td>Aris Demarco and Lara Deni</td><td>Y</td><td>Y</td><td>A2</td><td>Y</td><td>A3</td><td><div class='contentblack'>792</div></td>
+					<td>3-2-0</td>
+					<td>38.5</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>6</td>
+					<td>Paul Nunez and Elise Renwick</td><td>A1</td><td>Y</td><td>Y</td><td>Y</td><td>N</td><td><div class='contentblack'>781</div></td>
+					<td>3-1-1</td>
+					<td>34.5</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>7</td>
+					<td>Eliot Heinrich and Elizabeth Lloyd</td><td>N</td><td>A3</td><td>Y</td><td>A3</td><td>N</td><td><div class='contentblack'>783</div></td>
+					<td>1-2-2</td>
+					<td>18.4</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Chris Wasko and Renee Wasko</td><td>A3</td><td>N</td><td>N</td><td>A2</td><td>A2</td><td><div class='contentblack'>565</div></td>
+					<td>0-3-2</td>
+					<td>12.8</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Joe Miller and Gwen Smith</td><td>N</td><td>N</td><td>N</td><td>N</td><td>Y</td><td><div class='contentblack'>953</div></td>
+					<td>1-0-4</td>
+					<td>10</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Lucky Sipin and Maelys Fillon</td><td>N</td><td>N</td><td>A3</td><td>N</td><td>A1</td><td><div class='contentblack'>590</div></td>
+					<td>0-2-3</td>
+					<td>8.7</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Alex glover and Dani Mullin Darasz</td><td>A2</td><td>A2</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>729</div></td>
+					<td>0-2-3</td>
+					<td>8.6</td>
+					<td></td>
+					<td></td>
+					</tr></table><p><table border="1" cellspacing="1" cellpadding="2" align="center" width="100%"><tr bgcolor='#ffae5e'><td colspan = '13'>Strictly Swing Intermediate Prelims - 18 competed<br>When marks are tied, lowest sum used as tiebreaker, Y=10, ALT1=4.5, ALT2=4.3, ALT3=4.2, N=0<br>All ties broken by head judge.</td></tr><tr>
+			 <td><em><strong>Count</strong></em></td>
+			 <td width="400"><em><strong>Competitor</strong></em></td><td><em><strong>Bryn Anderson</strong></em></td><td><em><strong>Emily Huang</strong></em></td><td><em><strong>Heejung Jung</strong></em></td><td><em><strong>KP Rutland</strong></em></td><td><em><strong>Nataliya Kane</strong></em></td><td><em><strong>BIB</strong></em></td>
+			 <td><em><strong>Counts (Y-A-N)</strong></em></td>
+			 <td><em><strong>Sum</strong></em></td>
+			 <td><em><strong>Promote</strong></em></td>
+			 <td><em><strong>Alt</strong></em></td>
+			 </tr><tr>
+	   <td>1</td>
+					<td>Adriane Hines and Kareen Rivera</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>594</div></td>
+					<td>5-0-0</td>
+					<td>50</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>2</td>
+					<td>Norman Shipman and Alice Stratmann</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td>A1</td><td><div class='contentblack'>547</div></td>
+					<td>4-1-0</td>
+					<td>44.5</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>3</td>
+					<td>Andrew Knops and Dario Haxhia</td><td>Y</td><td>N</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>559</div></td>
+					<td>4-0-1</td>
+					<td>40</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>3</td>
+					<td>Tom Tseng and Victoria Bian</td><td>Y</td><td>Y</td><td>N</td><td>Y</td><td>Y</td><td><div class='contentblack'>730</div></td>
+					<td>4-0-1</td>
+					<td>40</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>5</td>
+					<td>Joshua Hillis and Bella Belarimino</td><td>Y</td><td>A3</td><td>Y</td><td>A3</td><td>Y</td><td><div class='contentblack'>503</div></td>
+					<td>3-2-0</td>
+					<td>38.4</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>6</td>
+					<td>Ajay Phatak and Shay Culpepper</td><td>A1</td><td>Y</td><td>Y</td><td>N</td><td>Y</td><td><div class='contentblack'>534</div></td>
+					<td>3-1-1</td>
+					<td>34.5</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>7</td>
+					<td>Nizam Tengku and Betty Quinn</td><td>Y</td><td>Y</td><td>N</td><td>Y</td><td>N</td><td><div class='contentblack'>752</div></td>
+					<td>3-0-2</td>
+					<td>30</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>8</td>
+					<td>Jason Math and Christa Sparks</td><td>N</td><td>A1</td><td>Y</td><td>A1</td><td>Y</td><td><div class='contentblack'>684</div></td>
+					<td>2-2-1</td>
+					<td>29</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>9</td>
+					<td>Garrett Maglio and Lucia Huo</td><td>A3</td><td>Y</td><td>A3</td><td>Y</td><td>N</td><td><div class='contentblack'>689</div></td>
+					<td>2-2-1</td>
+					<td>28.4</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Kevin YuanZhi Chen and Danielle Considine</td><td>N</td><td>A2</td><td>N</td><td>Y</td><td>Y</td><td><div class='contentblack'>588</div></td>
+					<td>2-1-2</td>
+					<td>24.3</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Megan Souza and Nadege Lebert</td><td>Y</td><td>N</td><td>A1</td><td>N</td><td>A3</td><td><div class='contentblack'>504</div></td>
+					<td>1-2-2</td>
+					<td>18.7</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Daniel Desjardin and Roxanne Brulé</td><td>N</td><td>N</td><td>Y</td><td>N</td><td>A2</td><td><div class='contentblack'>529</div></td>
+					<td>1-1-3</td>
+					<td>14.3</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Micah Harkins and Kaitlyn McGuire</td><td>N</td><td>Y</td><td>A2</td><td>N</td><td>N</td><td><div class='contentblack'>791</div></td>
+					<td>1-1-3</td>
+					<td>14.3</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Andrew Adam and Valerie Pamphile</td><td>A2</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>611</div></td>
+					<td>0-1-4</td>
+					<td>4.3</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Thomas Anthony and Genevieve Barnett</td><td>N</td><td>N</td><td>N</td><td>A2</td><td>N</td><td><div class='contentblack'>785</div></td>
+					<td>0-1-4</td>
+					<td>4.3</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Leah Grodstein and Tina Lin</td><td>N</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>521</div></td>
+					<td>0-0-5</td>
+					<td>0</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Elizabeth Lloyd and Kristina Riccio</td><td>N</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>721</div></td>
+					<td>0-0-5</td>
+					<td>0</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>David Ritter and Kimberly Ritter</td><td>N</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>799</div></td>
+					<td>0-0-5</td>
+					<td>0</td>
+					<td></td>
+					<td></td>
+					</tr></table><p><table border="1" cellspacing="1" cellpadding="2" align="center" width="100%"><tr bgcolor='#ffae5e'><td colspan = '13'>Strictly Swing New/Nov Prelims - 22 competed<br>When marks are tied, lowest sum used as tiebreaker, Y=10, ALT1=4.5, ALT2=4.3, ALT3=4.2, N=0<br>All ties broken by head judge.</td></tr><tr>
+			 <td><em><strong>Count</strong></em></td>
+			 <td width="400"><em><strong>Competitor</strong></em></td><td><em><strong>Bryn Anderson</strong></em></td><td><em><strong>Emily Huang</strong></em></td><td><em><strong>Heejung Jung</strong></em></td><td><em><strong>KP Rutland</strong></em></td><td><em><strong>Nataliya Kane</strong></em></td><td><em><strong>BIB</strong></em></td>
+			 <td><em><strong>Counts (Y-A-N)</strong></em></td>
+			 <td><em><strong>Sum</strong></em></td>
+			 <td><em><strong>Promote</strong></em></td>
+			 <td><em><strong>Alt</strong></em></td>
+			 </tr><tr>
+	   <td>1</td>
+					<td>Tina lin and Rohit Venugopal</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>550</div></td>
+					<td>5-0-0</td>
+					<td>50</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>2</td>
+					<td>Brittany Palmer and Casey Brigid</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td>A2</td><td><div class='contentblack'>509</div></td>
+					<td>4-1-0</td>
+					<td>44.3</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>2</td>
+					<td>Anup Sreekumar and Anya Keller</td><td>Y</td><td>Y</td><td>A2</td><td>Y</td><td>Y</td><td><div class='contentblack'>657</div></td>
+					<td>4-1-0</td>
+					<td>44.3</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>4</td>
+					<td>robby harrison and Lianne Blodgett</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td>N</td><td><div class='contentblack'>527</div></td>
+					<td>4-0-1</td>
+					<td>40</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>4</td>
+					<td>Gwen Smith and Erin Campagna</td><td>Y</td><td>Y</td><td>N</td><td>Y</td><td>Y</td><td><div class='contentblack'>533</div></td>
+					<td>4-0-1</td>
+					<td>40</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>6</td>
+					<td>Cuong Nguyen and Katherine Ryan</td><td>Y</td><td>N</td><td>A1</td><td>Y</td><td>Y</td><td><div class='contentblack'>632</div></td>
+					<td>3-1-1</td>
+					<td>34.5</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>7</td>
+					<td>Karl-Philippe Télémaque-Hector and Joelle White</td><td>Y</td><td>A2</td><td>Y</td><td>Y</td><td>N</td><td><div class='contentblack'>507</div></td>
+					<td>3-1-1</td>
+					<td>34.3</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>8</td>
+					<td>Sam Greenblatt and Caroline Kruis</td><td>N</td><td>Y</td><td>Y</td><td>N</td><td>Y</td><td><div class='contentblack'>628</div></td>
+					<td>3-0-2</td>
+					<td>30</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Alice Stratmann and Kevin yuanzhi chen</td><td>A2</td><td>A3</td><td>A3</td><td>A3</td><td>Y</td><td><div class='contentblack'>561</div></td>
+					<td>1-4-0</td>
+					<td>26.9</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Andrew Nocon and Christina de Bruyn Kops</td><td>A1</td><td>Y</td><td>N</td><td>N</td><td>Y</td><td><div class='contentblack'>676</div></td>
+					<td>2-1-2</td>
+					<td>24.5</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Kaitlyn McGuire and Austin Ganzer</td><td>N</td><td>A1</td><td>Y</td><td>N</td><td>Y</td><td><div class='contentblack'>790</div></td>
+					<td>2-1-2</td>
+					<td>24.5</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Jyotishka Biswas and Jacqueline Cheng</td><td>N</td><td>Y</td><td>Y</td><td>N</td><td>N</td><td><div class='contentblack'>518</div></td>
+					<td>2-0-3</td>
+					<td>20</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Jaylee Dupere and Julia Dupere</td><td>Y</td><td>N</td><td>N</td><td>Y</td><td>N</td><td><div class='contentblack'>549</div></td>
+					<td>2-0-3</td>
+					<td>20</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Dan Nehrbass and Katie Evers</td><td>N</td><td>N</td><td>Y</td><td>N</td><td>N</td><td><div class='contentblack'>681</div></td>
+					<td>1-0-4</td>
+					<td>10</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Connor Redding and Shannon Carey</td><td>N</td><td>N</td><td>N</td><td>A1</td><td>A3</td><td><div class='contentblack'>546</div></td>
+					<td>0-2-3</td>
+					<td>8.7</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Jason B Smith and Tracey Smith</td><td>N</td><td>N</td><td>N</td><td>N</td><td>A1</td><td><div class='contentblack'>605</div></td>
+					<td>0-1-4</td>
+					<td>4.5</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Matthew Fox and Lauren Schechinger</td><td>N</td><td>N</td><td>N</td><td>A2</td><td>N</td><td><div class='contentblack'>727</div></td>
+					<td>0-1-4</td>
+					<td>4.3</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Paul Heising and Kathleen Asher</td><td>A3</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>678</div></td>
+					<td>0-1-4</td>
+					<td>4.2</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Roman Zapata and Rosa Kurtz</td><td>N</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>584</div></td>
+					<td>0-0-5</td>
+					<td>0</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>James Figluizzi-Bingham and Dana Dessereaux</td><td>N</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>629</div></td>
+					<td>0-0-5</td>
+					<td>0</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Jieyu Wu and Casey Raymond</td><td>N</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>663</div></td>
+					<td>0-0-5</td>
+					<td>0</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Luis Toscano and Briana Cologna</td><td>N</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>769</div></td>
+					<td>0-0-5</td>
+					<td>0</td>
+					<td></td>
+					<td></td>
+					</tr>
+</table>
+<p>
+<div align="center">INSTANT SCORING provided by Paul Stoddard</div>
+</p>
+</body>
+</html>
