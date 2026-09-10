@@ -242,7 +242,7 @@ class RoundPage:
                 flags=re.I,
             )[0].strip(" -")
             split = re.search(
-                r"\b(Prelim(?:inar(?:y|ies))?s?|Quarters?|(?:Semi|Quarter)[ -]?final(?:ist)?s?|Semis?|Final(?:ist)?s?)\b",
+                r"\b(Prelim(?:inar(?:y|ies))?s?|(?:Semi|Quarter)[ -]?final(?:ist)?s?|Quarters?|Semis?|Final(?:ist)?s?)\b",
                 heading,
                 re.I,
             )

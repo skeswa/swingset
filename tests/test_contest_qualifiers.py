@@ -43,6 +43,12 @@ def test_country_qualifier_survives_prelim_instructions() -> None:
     assert sheet.contest_name_raw == "Jack & Jill Advanced Follower (CSDC)"
 
 
+def test_compound_quarter_final_heading_keeps_the_whole_round_token() -> None:
+    sheet = _parse("Jack &amp; Jill Advanced Quarter Finals (WSDC)")
+    assert sheet.contest_name_raw == "Jack & Jill Advanced (WSDC)"
+    assert sheet.round_name_raw == "Quarter Finals"
+
+
 def test_quarters_round_is_removed_from_contest_with_instructions() -> None:
     sheet = _parse(
         "Jack &amp; Jill WCS Follower Novice Quarters - 48 competed When marks are tied, lowest sum used as tiebreaker, Y=10",
