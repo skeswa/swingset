@@ -2,7 +2,7 @@
 
 import re
 import sqlite3
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import UTC, date, datetime, timedelta
 
 from swingset.model.canonical import Event
@@ -128,9 +128,25 @@ def project_source_index(conn: sqlite3.Connection, scope_id: str, now: str, run_
                 changed = True
             continue
         winner = max(candidates, key=lambda item: item.precedence)
-        payload = winner.payload
+        named = [item for item in candidates if item.payload.name_raw]
+        dated = [item for item in candidates if nullable_date_range(item.payload.date_raw)[0]]
+        name_evidence = max(named, key=lambda item: item.precedence) if named else winner
+        date_evidence = max(dated, key=lambda item: item.precedence) if dated else winner
+        payload = replace(
+            winner.payload,
+            name_raw=name_evidence.payload.name_raw,
+            date_raw=date_evidence.payload.date_raw,
+        )
         start, end = nullable_date_range(payload.date_raw)
-        _replace_date_contradiction(conn, winner, start, end, now, run_id)
+        merged = replace(
+            winner,
+            payload=payload,
+            snapshot_id=date_evidence.snapshot_id,
+            parser_version=date_evidence.parser_version,
+            fetched_at=date_evidence.fetched_at,
+            parser=date_evidence.parser,
+        )
+        _replace_date_contradiction(conn, merged, start, end, now, run_id)
         values = (
             winner.source,
             payload.source_ref,
@@ -139,8 +155,8 @@ def project_source_index(conn: sqlite3.Connection, scope_id: str, now: str, run_
             end,
             None,
             payload.url,
-            winner.snapshot_id,
-            winner.parser_version,
+            merged.snapshot_id,
+            merged.parser_version,
             now,
             now,
             run_id,
@@ -172,24 +188,32 @@ def _replace_date_contradiction(
 ) -> None:
     name = evidence.payload.name_raw or ""
     edition = re.search(r"\b(20\d{2})\s*$", name)
-    contradiction = edition is not None and end is not None and int(edition.group(1)) != date.fromisoformat(end).year
+    contradiction = (
+        edition is not None
+        and end is not None
+        and int(edition.group(1)) != date.fromisoformat(end).year
+    )
     findings = (
-        Finding(
-            kind="conflict",
-            subject_kind="source_event",
-            subject_id=f"{evidence.source}:{evidence.payload.source_ref}",
-            severity="warning",
-            summary="Source event edition year contradicts its date",
-            evidence={
-                "name_raw": evidence.payload.name_raw,
-                "date_raw": evidence.payload.date_raw,
-                "start_date": start,
-                "end_date": end,
-                "snapshot_id": evidence.snapshot_id,
-            },
-            snapshot_id=evidence.snapshot_id,
-        ),
-    ) if contradiction else ()
+        (
+            Finding(
+                kind="conflict",
+                subject_kind="source_event",
+                subject_id=f"{evidence.source}:{evidence.payload.source_ref}",
+                severity="warning",
+                summary="Source event edition year contradicts its date",
+                evidence={
+                    "name_raw": evidence.payload.name_raw,
+                    "date_raw": evidence.payload.date_raw,
+                    "start_date": start,
+                    "end_date": end,
+                    "snapshot_id": evidence.snapshot_id,
+                },
+                snapshot_id=evidence.snapshot_id,
+            ),
+        )
+        if contradiction
+        else ()
+    )
     replace_findings(
         conn,
         owner_kind="source_event_date",

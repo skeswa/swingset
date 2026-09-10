@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from types import MappingProxyType
 
@@ -83,6 +83,103 @@ def test_sparse_sitemap_cannot_erase_richer_event_metadata(tmp_path: Path) -> No
         assert tuple(row) == (None, None)
 
 
+def test_empty_event_detail_preserves_durable_index_date_on_rebuild(tmp_path: Path) -> None:
+    with open_database(tmp_path, lock=False) as database:
+        database.connection.execute(
+            "INSERT INTO runs(run_id,started_at,dry_run) VALUES ('run_a','2026-09-08T00:00:00Z',0)"
+        )
+        indexed = SourceEventRow(
+            "source_event_row",
+            "scoringdance:2",
+            "Carnival Swing 2018",
+            "02/03/2018",
+            "https://scoring.dance/enUS/events/2/results/",
+        )
+        empty_detail = SourceEventRow(
+            "source_event_row",
+            "scoringdance:2",
+            "Carnival Swing 2018",
+            None,
+            "https://scoring.dance/enUS/events/2/results/",
+        )
+        add(
+            database,
+            "recent",
+            "recent",
+            "scoringdance",
+            "snap_index",
+            indexed,
+            "2026-09-01T00:00:00Z",
+        )
+        add(
+            database,
+            "event",
+            "event",
+            "scoringdance:2",
+            "snap_event",
+            empty_detail,
+            "2026-09-02T00:00:00Z",
+        )
+
+        with database.transaction():
+            project_source_index(database.connection, "scoringdance", "2026-09-08", "run_a")
+            project_source_index(database.connection, "scoringdance:2", "2026-09-08", "run_a")
+        assert tuple(
+            database.connection.execute(
+                "SELECT name_raw,start_date,end_date,snapshot_id FROM source_events"
+            ).fetchone()
+        ) == ("Carnival Swing 2018", "2018-02-03", "2018-02-03", "snap_index")
+
+        database.connection.execute("DELETE FROM source_events")
+        with database.transaction():
+            project_source_index(database.connection, "scoringdance", "2026-09-09", "run_a")
+        assert tuple(
+            database.connection.execute(
+                "SELECT name_raw,start_date,end_date FROM source_events"
+            ).fetchone()
+        ) == ("Carnival Swing 2018", "2018-02-03", "2018-02-03")
+
+
+def test_newer_dated_event_detail_wins_over_index_date(tmp_path: Path) -> None:
+    with open_database(tmp_path, lock=False) as database:
+        database.connection.execute(
+            "INSERT INTO runs(run_id,started_at,dry_run) VALUES ('run_a','2026-09-08T00:00:00Z',0)"
+        )
+        indexed = SourceEventRow(
+            "source_event_row",
+            "scoringdance:2",
+            "Carnival Swing 2018",
+            "02/03/2018",
+            "https://example/2",
+        )
+        detail = replace(indexed, date_raw="02/04/2018")
+        add(
+            database,
+            "recent",
+            "recent",
+            "scoringdance",
+            "snap_index",
+            indexed,
+            "2026-09-01T00:00:00Z",
+        )
+        add(
+            database,
+            "event",
+            "event",
+            "scoringdance:2",
+            "snap_event",
+            detail,
+            "2026-09-02T00:00:00Z",
+        )
+
+        with database.transaction():
+            project_source_index(database.connection, "scoringdance", "2026-09-08", "run_a")
+        assert (
+            database.connection.execute("SELECT start_date FROM source_events").fetchone()[0]
+            == "2018-02-04"
+        )
+
+
 def test_eepro_printed_date_ranges_preserve_both_event_boundaries() -> None:
     assert nullable_date_range("August 20-23, 2026") == ("2026-08-20", "2026-08-23")
     assert nullable_date_range("July 30-Aug 2, 2026") == ("2026-07-30", "2026-08-02")
@@ -112,9 +209,7 @@ def test_source_title_year_date_contradiction_creates_finding(tmp_path: Path) ->
             "2026-09-10T00:00:00Z",
         )
         with database.transaction():
-            project_source_index(
-                database.connection, "scoringdance:315", "2026-09-10", "run_a"
-            )
+            project_source_index(database.connection, "scoringdance:315", "2026-09-10", "run_a")
         finding = database.connection.execute(
             "SELECT summary,evidence_json FROM findings WHERE closed_at IS NULL"
         ).fetchone()
