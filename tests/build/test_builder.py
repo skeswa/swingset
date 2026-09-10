@@ -7,7 +7,13 @@ from pathlib import Path
 import pyarrow.parquet as pq
 import pytest
 
-from swingset.build.builder import BuildError, BuildInput, BuildMetadata, build_candidate
+from swingset.build.builder import (
+    BuildError,
+    BuildInput,
+    BuildMetadata,
+    ParquetRows,
+    build_candidate,
+)
 from swingset.build.schema import PRIMARY_KEYS, SCHEMAS
 
 
@@ -217,3 +223,51 @@ def test_stale_dry_run_candidate_rebuilds_against_new_baseline_history(tmp_path:
     assert rebuilt_b.path != stale_b.path
     changes = pq.read_table(rebuilt_b.path / "data" / "changelog" / "changelog.parquet")
     assert changes.num_rows >= 3  # A->C history plus C->B removal/addition.
+
+
+def test_changelog_stream_merge_preserves_sorted_history_and_nullable_keys(
+    tmp_path: Path,
+) -> None:
+    def entry(identifier: str, name: str) -> dict[str, object]:
+        row = {field.name: None for field in SCHEMAS["entries"]}
+        row.update({"entry_id": identifier, "name_raw": name, "link_status": "unmatched"})
+        return row
+
+    first = build_candidate(
+        tmp_path,
+        input_version(1, entries=[entry("b", "Before")]),
+        metadata("cand_a"),
+    )
+    first.path.joinpath("PUBLISHED").write_text('{"commit":"a"}')
+    (tmp_path / "baseline").symlink_to(Path("candidates/cand_a"))
+    second = build_candidate(
+        tmp_path,
+        input_version(2, entries=[entry("b", "After"), entry("a", "Added")]),
+        metadata("cand_b"),
+    )
+    second.path.joinpath("PUBLISHED").write_text('{"commit":"b"}')
+    (tmp_path / "baseline").unlink()
+    (tmp_path / "baseline").symlink_to(Path("candidates/cand_b"))
+    third = build_candidate(
+        tmp_path,
+        input_version(3, entries=[entry("a", "Added")]),
+        metadata("cand_c"),
+    )
+
+    history = pq.read_table(
+        third.path / "data" / "changelog" / "changelog.parquet"
+    ).to_pylist()
+    keys = [
+        json.dumps(
+            (row["changed_at"], row["table"], row["record_key"], row["field"]),
+            default=str,
+        )
+        for row in history
+    ]
+    assert keys == sorted(keys)
+    assert {row["change_type"] for row in history} >= {"added", "updated", "removed"}
+    assert any(row["field"] is None for row in history)
+    lazy = ParquetRows(third.path / "data" / "changelog" / "changelog.parquet")
+    assert [row["record_key"] for row in lazy[::-1]] == [
+        row["record_key"] for row in reversed(history)
+    ]

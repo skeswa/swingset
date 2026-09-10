@@ -1,17 +1,18 @@
 from __future__ import annotations
 
 import hashlib
+import heapq
 import json
 import os
 import shutil
 import sqlite3
 import uuid
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable, Iterator, Mapping, Sequence
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 from enum import StrEnum
 from pathlib import Path
-from typing import Any
+from typing import Any, overload
 
 import pyarrow as pa
 import pyarrow.parquet as pq
@@ -229,17 +230,15 @@ def _changelog(
     changed_at: datetime,
     run_id: str,
 ) -> list[dict[str, Any]]:
-    prior_history: list[dict[str, Any]] = []
     if baseline is None:
         old: dict[str, list[dict[str, Any]]] = {}
     else:
         old = {}
         for table in current:
+            if table == "changelog":
+                continue
             files = list((baseline / "data" / table).glob("*.parquet"))
             old[table] = pq.read_table(files).to_pylist() if files else []
-        history = list((baseline / "data" / "changelog").glob("*.parquet"))
-        if history:
-            prior_history = pq.read_table(history).to_pylist()
     delta: list[dict[str, Any]] = []
     for table, new_rows in current.items():
         if table == "changelog" or table not in keys:
@@ -283,7 +282,47 @@ def _changelog(
                         "reason": reason,
                     }
                 )
-    return prior_history + delta
+    return delta
+
+
+class ParquetRows(Sequence[Mapping[str, Any]]):
+    """Lazy public rows for consumers that usually need only their count."""
+
+    def __init__(self, path: Path) -> None:
+        self.file = pq.ParquetFile(path)
+
+    def __len__(self) -> int:
+        return int(self.file.metadata.num_rows)
+
+    def __iter__(self) -> Iterator[Mapping[str, Any]]:
+        for batch in self.file.iter_batches(batch_size=8192):
+            yield from batch.to_pylist()
+
+    @overload
+    def __getitem__(self, index: int) -> Mapping[str, Any]: ...
+
+    @overload
+    def __getitem__(self, index: slice) -> Sequence[Mapping[str, Any]]: ...
+
+    def __getitem__(self, index: int | slice) -> Mapping[str, Any] | Sequence[Mapping[str, Any]]:
+        if isinstance(index, slice):
+            start, stop, step = index.indices(len(self))
+            indices = list(range(start, stop, step))
+            wanted = set(indices)
+            selected = {
+                position: row for position, row in enumerate(self) if position in wanted
+            }
+            return [selected[position] for position in indices]
+        if index < 0:
+            index += len(self)
+        if not 0 <= index < len(self):
+            raise IndexError(index)
+        offset = 0
+        for batch in self.file.iter_batches(batch_size=8192):
+            if index < offset + batch.num_rows:
+                return dict(batch.slice(index - offset, 1).to_pylist()[0])
+            offset += batch.num_rows
+        raise IndexError(index)
 
 
 def _write_parquet(table: pa.Table, path: Path) -> None:
@@ -302,6 +341,62 @@ def _write_parquet(table: pa.Table, path: Path) -> None:
         use_content_defined_chunking=True,
         row_group_size=row_group_size,
     )
+
+
+def _sorted_parquet_rows(paths: Sequence[Path]) -> Iterator[dict[str, Any]]:
+    for path in paths:
+        parquet = pq.ParquetFile(path)
+        for batch in parquet.iter_batches(batch_size=8192):
+            yield from batch.to_pylist()
+
+
+def _table_rows(table: pa.Table) -> Iterator[dict[str, Any]]:
+    for batch in table.to_batches(max_chunksize=8192):
+        yield from batch.to_pylist()
+
+
+def _sortable_key(row: Mapping[str, Any], keys: tuple[str, ...]) -> str:
+    # This is the ordering used by every published build. In particular,
+    # record_key is itself JSON, so Arrow's typed string ordering is different.
+    return json.dumps(tuple(row.get(key) for key in keys), default=str)
+
+
+def _write_changelog(
+    history: Sequence[Path], delta: pa.Table, path: Path, schema: pa.Schema, keys: tuple[str, ...]
+) -> int:
+    """Merge sorted changelog runs without materializing history in memory."""
+    sources: list[Iterator[dict[str, Any]]] = []
+    if history:
+        sources.append(_sorted_parquet_rows(history))
+    sources.append(_table_rows(delta))
+    heap: list[tuple[str, int, dict[str, Any], Iterator[dict[str, Any]]]] = []
+    for source_number, source in enumerate(sources):
+        if row := next(source, None):
+            heap.append((_sortable_key(row, keys), source_number, row, source))
+    heapq.heapify(heap)
+    count = 0
+    pending: list[dict[str, Any]] = []
+    with pq.ParquetWriter(
+        path,
+        schema,
+        compression="zstd",
+        write_page_index=True,
+        use_content_defined_chunking=True,
+    ) as writer:
+        while heap:
+            _key, source_number, row, source = heapq.heappop(heap)
+            pending.append(row)
+            count += 1
+            if len(pending) == 8192:
+                writer.write_table(pa.Table.from_pylist(pending, schema=schema))
+                pending.clear()
+            if next_row := next(source, None):
+                heapq.heappush(
+                    heap, (_sortable_key(next_row, keys), source_number, next_row, source)
+                )
+        if pending:
+            writer.write_table(pa.Table.from_pylist(pending, schema=schema))
+    return count
 
 
 def build_candidate(
@@ -347,6 +442,7 @@ def build_candidate(
             rows, baseline, data.primary_keys, changed_at=build_time, run_id=meta.run_id
         )
         hashes: dict[str, str] = {}
+        row_counts = {name: len(value) for name, value in rows.items()}
         for table_name in PUBLISHED_TABLES:
             schema = data.schemas[table_name]
             ordered = sorted(
@@ -356,11 +452,28 @@ def build_candidate(
                 ),
             )
             table = pa.Table.from_pylist(ordered, schema=schema)
+            history: list[Path] = []
+            if table_name == "changelog":
+                history = (
+                    sorted((baseline / "data" / "changelog").glob("*.parquet"))
+                    if baseline
+                    else []
+                )
             if not table.schema.equals(schema, check_metadata=True):
                 raise BuildError(f"schema mismatch for {table_name}")
             table_dir = temporary / "data" / table_name
             table_dir.mkdir(parents=True)
-            if table_name in {"callback_marks", "final_marks"} and ordered:
+            if table_name == "changelog":
+                path = table_dir / "changelog.parquet"
+                row_counts[table_name] = _write_changelog(
+                    history,
+                    table,
+                    path,
+                    schema,
+                    data.primary_keys[table_name],
+                )
+                hashes[path.relative_to(temporary).as_posix()] = sha256_file(path)
+            elif table_name in {"callback_marks", "final_marks"} and ordered:
                 contest_events = {
                     row["contest_id"]: row.get("event_id") for row in rows["contests"]
                 }
@@ -384,7 +497,12 @@ def build_candidate(
                 hashes[path.relative_to(temporary).as_posix()] = sha256_file(path)
         # Counts and coverage must describe the final rows, including the
         # generated changelog and applied suppressions.
-        card = card_renderer(replace(data, tables=rows)) if card_renderer else meta.card
+        card_rows: dict[str, Sequence[Mapping[str, Any]]] = dict(rows)
+        # Card renderers consume row counts and coverage, not the change payloads.
+        # Expose real history through a lazy sequence rather than Python copies.
+        history_path = temporary / "data" / "changelog" / "changelog.parquet"
+        card_rows["changelog"] = ParquetRows(history_path)
+        card = card_renderer(replace(data, tables=card_rows)) if card_renderer else meta.card
         (temporary / "README.md").write_bytes(card)
         hashes["README.md"] = sha256_file(temporary / "README.md")
         (temporary / "LICENSE").write_bytes(DATASET_LICENSE)
@@ -408,15 +526,20 @@ def build_candidate(
             "repository_commit": meta.repository_commit,
             "schema_version": meta.schema_version,
             "versions": meta.versions,
-            "row_counts": {name: len(value) for name, value in rows.items()},
+            "row_counts": row_counts,
             "source_snapshot_counts": {
                 source: sum(1 for row in rows["snapshots"] if row.get("source") == source)
                 for source in sorted(
                     {str(row["source"]) for row in rows["snapshots"] if row.get("source")}
                 )
             },
-            "latest_event_covered": max(
+            "calendar_horizon": max(
                 (str(row["end_date"]) for row in rows["events"] if row.get("end_date")),
+                default=None,
+            ),
+            "latest_event_covered": max(
+                (str(row["end_date"]) for row in rows["events"] if row.get("end_date")
+                 and row["event_id"] in {placement["event_id"] for placement in rows["placements"]}),
                 default=None,
             ),
             "content_hash": content_hash,
