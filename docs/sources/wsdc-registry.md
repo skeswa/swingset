@@ -95,3 +95,15 @@ otherwise, each a few KB.
 
 From `design/open-questions.md`: meaning of `adv_sliding` and `as_sliding`, whether merged numbers are
 retired or redirected.
+
+## First-pass corrections (2026-09-10)
+
+`Advance` is normalized to `advanced`. Unrecognized dancer levels are `unknown`,
+not `none`. `PRO` and `TCH` remain literal registry division values with
+unverified meanings. Conflicting results or points at one registry placement
+key are withheld with a conflict finding; identical duplicates coalesce.
+
+Registry series IDs remain `wsdc-*`. A placement receives an `event_id` only
+when its normalized series name and month select one canonical event. Ambiguous
+matches remain null and appear in review. Points checks use the mapped event,
+role, division, style, and result, with separate preliminary role field sizes.

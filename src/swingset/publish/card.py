@@ -41,6 +41,41 @@ def _coverage(data: BuildInput) -> str:
     return "\n".join(lines)
 
 
+def _results_coverage(data: BuildInput) -> str:
+    placements = _rows(data, "placements")
+    sources = sorted({str(row.get("source", "unknown")) for row in placements})
+    lines = ["| Results source | Events with placements | Placements |", "|---|---:|---:|"]
+    for source in sources:
+        records = [row for row in placements if row.get("source", "unknown") == source]
+        lines.append(
+            f"| {source} | {len({row.get('event_id') for row in records if row.get('event_id')})} | {len(records)} |"
+        )
+    return "\n".join(lines) if sources else "No placements are published yet."
+
+
+def _quality(data: BuildInput) -> str:
+    entries = _rows(data, "entries")
+    statuses = Counter(str(row.get("link_status")) for row in entries)
+    reviews = Counter(str(row.get("kind")) for row in _rows(data, "review_queue"))
+    linked = sum(row.get("wsdc_id") is not None for row in entries)
+    lines = [
+        f"{linked} of {len(entries)} entry records carry a WSDC ID. Entries represent contest participation, sometimes couples, and are not unique people.",
+        "Confirmed source IDs identify what the source asserted; probable matches are inferred. An ID can precede the corresponding registry fetch. Registry coverage does not establish complete dancer histories.",
+        "| Entry link status | Records |",
+        "|---|---:|",
+    ]
+    lines.extend(f"| {status} | {count} |" for status, count in sorted(statuses.items()))
+    lines.extend(["", "| Review kind | Findings |", "|---|---:|"])
+    lines.extend(f"| {kind} | {count} |" for kind, count in sorted(reviews.items()))
+    lines.extend(
+        [
+            "",
+            "Findings are not an error-rate estimate. Unknown callback outcomes are withheld, so callback rows alone are not a promotion-rate denominator. `rounds.judge_count` is the round-wide judge roster, not each entrant's voting-panel size. Registry divisions `PRO` and `TCH` retain literal source codes with unverified meanings; `unknown` levels mean unavailable interpretation, not no points. Conflicting registry claims are withheld with review findings.",
+        ]
+    )
+    return "\n\n".join(lines[:2]) + "\n\n" + "\n".join(lines[2:])
+
+
 def _table_counts(data: BuildInput) -> str:
     lines = ["| Table | Rows |", "|---|---:|"]
     lines.extend(f"| `{name}` | {len(_rows(data, name))} |" for name in PUBLISHED_TABLES)
@@ -62,7 +97,7 @@ def _gaps(data: BuildInput) -> str:
             "- The registry mirror is incomplete while `dancers` or `registry_placements` is empty."
         )
     gaps.append(
-        "- Unverified callback codes and numeric marks remain in private evidence; they do not become negative callbacks or zero marks. WDR finals bibs stay null where partner ownership is unknown. Couple names remain a single couple entry when the source does not establish individual roles."
+        "- Unverified callback codes and numeric marks remain in private evidence; they do not become negative callbacks or zero marks. Shared finals bibs stay null where partner ownership is unknown; a unique same-contest, same-role preliminary identity can supply an independently observed bib. Couple names remain a single couple entry when the source does not establish individual roles."
     )
     gaps.append(
         "- Rows with `snapshot_id = override` are URL-override placeholders, not fetched source evidence. Their dates span the month encoded in the override ID; they are not verified event dates. Do not infer result coverage from these rows."
@@ -119,6 +154,16 @@ This table is computed from the event rows in this exact dataset version. A sour
 an event identifies its evidence source or an explicitly labeled URL-override placeholder; it does not establish complete contest or round coverage.
 
 {_coverage(data)}
+
+### Result coverage
+
+{_results_coverage(data)}
+
+Event metadata includes future schedules and index-only events. Results coverage counts only events with placements. The manifest separates `calendar_horizon` from `latest_event_covered`, the latest dated event with placements; placeholder dates remain approximate.
+
+### Data quality
+
+{_quality(data)}
 
 ### Row counts
 

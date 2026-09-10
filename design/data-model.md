@@ -27,7 +27,10 @@ The month in `event_id` is the month of the event's end date, because
 the registry records an event by series and "Month YYYY" and appears to
 use the month results were reported (**unverified**; checked during the
 bootstrap sweep by comparing registry months to calendar dates). This
-lets `registry_placements` join to `events` on `(series_id, event_month)`
+lets registry placements match event editions by series name and month.
+The implementation preserves registry `wsdc-*` and calendar `slug-*` series
+IDs and stores the reconciled edition in `registry_placements.event_id`;
+consumers join on that nullable event ID
 without tolerance logic. A series that runs twice in one month gets a
 `-2` suffix.
 
@@ -95,7 +98,7 @@ table: `source` (enum), `snapshot_id`, `parser_version`, `first_seen_at`,
 | `name_raw` | string | as printed |
 | `scoring_method` | enum | `callback`, `relative_placement` |
 | `callback_legend` | enum | `wsdc_10`, `legacy_3`, `unknown` |
-| `judge_count` | int8 | |
+| `judge_count` | int8 | round-wide distinct judge roster; not each entrant's voting-panel size |
 | `chief_judge_id` | string | nullable |
 | `entry_count` | int32 | entries that danced |
 | `promoted_count` | int32 | nullable for finals |
@@ -120,7 +123,7 @@ table: `source` (enum), `snapshot_id`, `parser_version`, `first_seen_at`,
 | `link_status` | enum | see 11.4 |
 | `link_confidence` | float32 | 0 to 1 |
 | `partner_entry_id` | string | couples: the other person's entry when split |
-| `rounds_danced` | list<enum> | |
+| `rounds_danced` | list<enum> | round types (`prelim`, `quarterfinal`, `semifinal`, `final`), not round IDs |
 | `best_round` | enum | furthest round reached |
 | (prov) | | |
 
@@ -232,7 +235,7 @@ internally to produce the flag and can be recomputed by anyone from
 | `wsdc_id` | int32 | key with `role`, `series_id`, `event_month`, `division`, `dance_style` |
 | `role` | enum | |
 | `dance_style` | enum | |
-| `division` | enum | registry category: skill division or `juniors`, `sophisticated`, `masters`; age categories stay distinct in the key |
+| `division` | enum | registry category: skill division or `juniors`, `sophisticated`, `masters`; literal `PRO` and `TCH` retain unverified source categories; age categories stay distinct in the key |
 | `series_id` | string | |
 | `series_name_raw` | string | |
 | `event_month` | date32 | first of month; the registry gives only "Month YYYY" |

@@ -16,6 +16,9 @@
   are checked against the vocabulary.
 - Invariants checked at build, failing the run if violated:
   - every `entry_id` in marks exists in `entries`;
+  - callback round and judge references resolve; published callback sums and
+    yes/alternate/no counts agree with retained marks, within float tolerance;
+  - event start dates do not exceed their end dates;
   - every placement has a `place` in 1..N with no gaps per round;
   - `entries.wsdc_id` set only when `link_status` in (`confirmed`, `probable`);
   - a bib per role per event maps to at most one `wsdc_id`;
@@ -123,3 +126,16 @@ changes a row. Resolved items disappear without a separate queue writer.
   content hash and no extra commit.
 - A partial projection or link queue prevents a new build; a handled
   parser failure can publish its finding alongside last-good rows.
+
+## History memory and quality metadata
+
+Prior changelog rows stream through a bounded merge with the current delta.
+The merge preserves the original JSON composite-key ordering, including nullable
+fields; it does not materialize the full history as Python dictionaries.
+The card reads history counts lazily. The initial full-history benchmark covered
+2,673,569 rows with about 347 MiB maximum resident memory.
+
+`calendar_horizon` is the greatest event end date across metadata rows.
+`latest_event_covered` is the greatest end date among events with placements.
+Neither upgrades override month ranges into verified event dates. The card
+reports result coverage, entry link statuses, and review kinds separately.
