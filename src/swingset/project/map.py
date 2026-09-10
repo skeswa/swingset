@@ -80,8 +80,8 @@ def project_map(
                 wsdc_status="unknown",
                 sources=(source,),
                 source=source,
-                snapshot_id=str(source_name[1]) if source_name else "override",
-                parser_version=str(source_name[2]) if source_name else str(projector_version),
+                snapshot_id="override",
+                parser_version=str(projector_version),
                 first_seen_at=now,
                 last_seen_at=now,
                 run_id=run_id,
@@ -136,11 +136,21 @@ def project_map(
                     run_id=run_id,
                 )
             )
-    unknown_changed = replace_scope(
+    desired_unknown_ids = {event.event_id for event in unknown}
+    retained_unknown = list(unknown)
+    for row in conn.execute(
+        """SELECT e.* FROM canonical_scope_rows c JOIN events e
+        ON c.table_name='events' AND c.record_key=json_array(e.event_id)
+        WHERE c.scope_kind='unmatched_source_events' AND c.scope_id='all'"""
+    ):
+        stored = _stored_event(row)
+        if stored.event_id not in desired_unknown_ids:
+            retained_unknown.append(stored)
+    premap_unknown_changed = replace_scope(
         conn,
         scope_kind="unmatched_source_events",
         scope_id="all",
-        projection=Projection(tuple(unknown)),
+        projection=Projection(tuple(retained_unknown)),
         run_id=run_id,
         projected_at=now,
         enqueue_links=False,
@@ -165,7 +175,16 @@ def project_map(
             "DELETE FROM pending_work WHERE stage='project' AND unit_kind='event' AND unit_id=?",
             (event,),
         )
-    return unknown_changed or before != sorted(mapped)
+    unknown_changed = replace_scope(
+        conn,
+        scope_kind="unmatched_source_events",
+        scope_id="all",
+        projection=Projection(tuple(unknown)),
+        run_id=run_id,
+        projected_at=now,
+        enqueue_links=False,
+    )
+    return premap_unknown_changed or unknown_changed or before != sorted(mapped)
 
 
 def _stored_event(row: sqlite3.Row) -> Event:

@@ -74,7 +74,8 @@ def parse_snapshot(
                     legitimate_empty=any(
                         getattr(o.payload, "outcome", "") == "not_found"
                         for o in result.observations
-                    ),
+                    )
+                    or result.legitimate_empty,
                 )
             except ValueError as exc:
                 raise ParseError(str(exc)) from exc

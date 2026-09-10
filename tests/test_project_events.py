@@ -86,6 +86,40 @@ def test_sparse_sitemap_cannot_erase_richer_event_metadata(tmp_path: Path) -> No
 def test_eepro_printed_date_ranges_preserve_both_event_boundaries() -> None:
     assert nullable_date_range("August 20-23, 2026") == ("2026-08-20", "2026-08-23")
     assert nullable_date_range("July 30-Aug 2, 2026") == ("2026-07-30", "2026-08-02")
+    assert nullable_date_range("Dec 31-Jan 4, 2026") == ("2025-12-31", "2026-01-04")
+    assert nullable_date_range("Dec 28-Jan 4, 2026") == ("2025-12-28", "2026-01-04")
+
+
+def test_source_title_year_date_contradiction_creates_finding(tmp_path: Path) -> None:
+    with open_database(tmp_path, lock=False) as database:
+        database.connection.execute(
+            "INSERT INTO runs(run_id,started_at,dry_run) VALUES ('run_a','2026-09-10',0)"
+        )
+        payload = SourceEventRow(
+            "source_event_row",
+            "scoringdance:315",
+            "City Of Angels 2026",
+            "04/29/2027",
+            "https://scoring.dance/enUS/events/315/results/",
+        )
+        add(
+            database,
+            "city",
+            "event",
+            "scoringdance:315",
+            "snap_city",
+            payload,
+            "2026-09-10T00:00:00Z",
+        )
+        with database.transaction():
+            project_source_index(
+                database.connection, "scoringdance:315", "2026-09-10", "run_a"
+            )
+        finding = database.connection.execute(
+            "SELECT summary,evidence_json FROM findings WHERE closed_at IS NULL"
+        ).fetchone()
+    assert finding[0] == "Source event edition year contradicts its date"
+    assert '"date_raw":"04/29/2027"' in finding[1]
 
 
 def test_projector_version_bump_repairs_stale_materialized_metadata(tmp_path: Path) -> None:

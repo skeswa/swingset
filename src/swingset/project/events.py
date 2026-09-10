@@ -9,6 +9,7 @@ from swingset.model.canonical import Event
 from swingset.model.ids import event_id, series_id
 from swingset.model.observations import decode_payload
 from swingset.sources.records import CalendarRow, SourceEventRow
+from swingset.state.findings import Finding, replace_findings
 from swingset.state.work import WorkUnit, bump_revision, enqueue
 
 from .writer import Projection
@@ -129,6 +130,7 @@ def project_source_index(conn: sqlite3.Connection, scope_id: str, now: str, run_
         winner = max(candidates, key=lambda item: item.precedence)
         payload = winner.payload
         start, end = nullable_date_range(payload.date_raw)
+        _replace_date_contradiction(conn, winner, start, end, now, run_id)
         values = (
             winner.source,
             payload.source_ref,
@@ -158,6 +160,44 @@ def project_source_index(conn: sqlite3.Connection, scope_id: str, now: str, run_
         bump_revision(conn, "source_events")
         enqueue(conn, (WorkUnit("project", "map", "all"),), enqueued_at=now)
     return changed
+
+
+def _replace_date_contradiction(
+    conn: sqlite3.Connection,
+    evidence: SourceEventEvidence,
+    start: str | None,
+    end: str | None,
+    now: str,
+    run_id: str,
+) -> None:
+    name = evidence.payload.name_raw or ""
+    edition = re.search(r"\b(20\d{2})\s*$", name)
+    contradiction = edition is not None and end is not None and int(edition.group(1)) != date.fromisoformat(end).year
+    findings = (
+        Finding(
+            kind="conflict",
+            subject_kind="source_event",
+            subject_id=f"{evidence.source}:{evidence.payload.source_ref}",
+            severity="warning",
+            summary="Source event edition year contradicts its date",
+            evidence={
+                "name_raw": evidence.payload.name_raw,
+                "date_raw": evidence.payload.date_raw,
+                "start_date": start,
+                "end_date": end,
+                "snapshot_id": evidence.snapshot_id,
+            },
+            snapshot_id=evidence.snapshot_id,
+        ),
+    ) if contradiction else ()
+    replace_findings(
+        conn,
+        owner_kind="source_event_date",
+        owner_id=f"{evidence.source}:{evidence.payload.source_ref}",
+        findings=findings,
+        opened_at=now,
+        run_id=run_id,
+    )
 
 
 def _source_event_evidence(conn: sqlite3.Connection) -> list[SourceEventEvidence]:
@@ -211,18 +251,20 @@ def nullable_date_range(raw: str | None) -> tuple[str | None, str | None]:
     if match is None:
         parsed = nullable_date(value)
         return parsed, parsed
-    year = match.group("year")
+    year = int(match.group("year"))
     start_month = match.group("start_month")
     end_month = match.group("end_month") or start_month
     try:
+        start_month_number = datetime.strptime(start_month[:3], "%b").month
+        end_month_number = datetime.strptime(end_month[:3], "%b").month
         start = date(
-            int(year),
-            datetime.strptime(start_month[:3], "%b").month,
+            year - 1 if start_month_number > end_month_number else year,
+            start_month_number,
             int(match.group("start_day")),
         )
         end = date(
-            int(year),
-            datetime.strptime(end_month[:3], "%b").month,
+            year,
+            end_month_number,
             int(match.group("end_day")),
         )
     except ValueError:

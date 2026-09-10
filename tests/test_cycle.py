@@ -17,6 +17,7 @@ def overrides(tmp_path):
     target = tmp_path / "overrides"
     shutil.copytree("overrides", target)
     (target / "source_urls.csv").write_text("event_id,source,kind,url,parser,notes\n")
+    (target / "event_aliases.csv").write_text("source,source_ref,event_id,note\n")
     return target
 
 

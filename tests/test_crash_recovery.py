@@ -36,6 +36,7 @@ def setup_inputs(tmp_path):
     overrides = tmp_path / "overrides"
     shutil.copytree("overrides", overrides)
     (overrides / "source_urls.csv").write_text("event_id,source,kind,url,parser,notes\n")
+    (overrides / "event_aliases.csv").write_text("source,source_ref,event_id,note\n")
     config = tmp_path / "config"
     shutil.copytree("config", config)
     (config / "sources.toml").write_text(

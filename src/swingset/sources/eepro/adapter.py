@@ -179,8 +179,8 @@ class AutoIndexPage:
 
 class RoundPage:
     kind = "eepro.round"
-    EXTRACT_VERSION = 2
-    PARSER_VERSION = 3
+    EXTRACT_VERSION = 3
+    PARSER_VERSION = 4
     change_mode = "validators"
 
     def extract(self, body: bytes) -> JsonValue:
@@ -197,6 +197,8 @@ class RoundPage:
             if len(parsed["rows"]) >= 2:
                 result.append(parsed)
         if not result:
+            if re.search(r"<h1[^>]*>\s*Coming soon\s*</h1>", source, re.I):
+                return []
             raise ExtractError("EEPro round has no result table")
         return result
 
@@ -234,7 +236,7 @@ class RoundPage:
                 continue
             heading = str(item.get("heading", ""))
             split = re.search(
-                r"\b(Prelims?|Finals?|Semi(?:final)?s?|Quarterfinals?)\b", heading, re.I
+                r"\b(Prelim(?:inar(?:y|ies))?s?|(?:Semi|Quarter)[ -]?final(?:ist)?s?|Semis?|Final(?:ist)?s?)\b", heading, re.I
             )
             header_names = {cell.text.casefold() for cell in parsed_rows[0] if cell.text}
             final_layout = {"place", "marks sorted"} <= header_names
@@ -252,7 +254,7 @@ class RoundPage:
                 (table,),
             )
             sheets.append(Observation(ObservationScope("source_event", ref), payload.kind, payload))
-        return ParseResult(tuple(sheets))
+        return ParseResult(tuple(sheets), legitimate_empty=not extract)
 
     def expected_statuses(self, watch: object) -> frozenset[int]:
         return frozenset()

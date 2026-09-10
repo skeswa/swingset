@@ -105,8 +105,8 @@ class RecentPage(SitemapPage):
 
 class EventPage(SitemapPage):
     kind = "scoringdance.event"
-    EXTRACT_VERSION = 3
-    PARSER_VERSION = 3
+    EXTRACT_VERSION = 4
+    PARSER_VERSION = 4
 
     def extract(self, body: bytes) -> JsonValue:
         source = body.decode("utf-8", "replace")
@@ -117,10 +117,15 @@ class EventPage(SitemapPage):
         if name:
             name = re.sub(r"\s+results\s*$", "", name, flags=re.I)
         date_match = re.search(r"\bat\s+(\d{2}/\d{2}/\d{4})\s*\.", source, re.I)
+        unpublished = (
+            "Sorry, the results aren't published yet. "
+            "Please wait until the awards are finished."
+        ) in source
         return {
             "name": name,
             "date": date_match.group(1) if date_match else None,
-            "rounds": _links(body, ROUND_RE),
+            "rounds": [] if unpublished else _links(body, ROUND_RE),
+            "unpublished": unpublished,
         }
 
     def parse(self, extract: JsonValue, ctx: ParseContext) -> ParseResult:

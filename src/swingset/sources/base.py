@@ -80,6 +80,7 @@ class ParseResult:
     observations: tuple[Observation, ...] = ()
     watches: tuple[WatchSpec, ...] = ()
     warnings: tuple[ParseWarning, ...] = ()
+    legitimate_empty: bool = False
 
 
 class ExtractError(ValueError):
