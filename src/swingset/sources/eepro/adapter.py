@@ -180,7 +180,7 @@ class AutoIndexPage:
 class RoundPage:
     kind = "eepro.round"
     EXTRACT_VERSION = 3
-    PARSER_VERSION = 5
+    PARSER_VERSION = 6
     change_mode = "validators"
 
     def extract(self, body: bytes) -> JsonValue:
@@ -234,25 +234,28 @@ class RoundPage:
                 parsed_rows = parsed_rows[1:]
             if len(parsed_rows) < 2:
                 continue
-            heading = str(item.get("heading", ""))
+            heading_raw = str(item.get("heading", ""))
+            heading = re.split(
+                r"(?:[-–—]\s*)?\b\d+\s+competed\b|When\s+marks\b|(?:All\s+)?ties\s+broken\b|Y\s*=",
+                heading_raw,
+                maxsplit=1,
+                flags=re.I,
+            )[0].strip(" -")
             split = re.search(
-                r"\b(Prelim(?:inar(?:y|ies))?s?|(?:Semi|Quarter)[ -]?final(?:ist)?s?|Semis?|Final(?:ist)?s?)\b", heading, re.I
+                r"\b(Prelim(?:inar(?:y|ies))?s?|Quarters?|(?:Semi|Quarter)[ -]?final(?:ist)?s?|Semis?|Final(?:ist)?s?)\b",
+                heading,
+                re.I,
             )
             header_names = {cell.text.casefold() for cell in parsed_rows[0] if cell.text}
             final_layout = {"place", "marks sorted"} <= header_names
             round_name = split.group(1) if split else "Finals" if final_layout else heading
             contest = heading[: split.start()].strip(" -") if split else heading
             if split:
-                qualifier = re.split(
-                    r"(?:[-–—]\s*)?\b\d+\s+competed\b|When\s+marks\b|(?:All\s+)?ties\s+broken\b|Y\s*=",
-                    heading[split.end():],
-                    maxsplit=1,
-                    flags=re.I,
-                )[0].strip(" -")
+                qualifier = heading[split.end() :].strip(" -")
                 if qualifier:
                     contest = f"{contest} {qualifier}"
             table = ResultTable(
-                heading, parsed_rows[0], tuple(ResultRow(row) for row in parsed_rows[1:])
+                heading_raw, parsed_rows[0], tuple(ResultRow(row) for row in parsed_rows[1:])
             )
             payload = RoundSheet(
                 "round_sheet",

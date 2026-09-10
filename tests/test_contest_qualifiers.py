@@ -43,6 +43,21 @@ def test_country_qualifier_survives_prelim_instructions() -> None:
     assert sheet.contest_name_raw == "Jack & Jill Advanced Follower (CSDC)"
 
 
+def test_quarters_round_is_removed_from_contest_with_instructions() -> None:
+    sheet = _parse(
+        "Jack &amp; Jill WCS Follower Novice Quarters - 48 competed When marks are tied, lowest sum used as tiebreaker, Y=10",
+        "jjprelims.html",
+    )
+    assert sheet.contest_name_raw == "Jack & Jill WCS Follower Novice"
+    assert sheet.round_name_raw == "Quarters"
+
+
+def test_instruction_suffix_is_removed_without_explicit_round_name() -> None:
+    sheet = _parse("Pro-Am Strictly Swing Intermediate Am Followers All ties broken by head judge.")
+    assert sheet.contest_name_raw == "Pro-Am Strictly Swing Intermediate Am Followers"
+    assert sheet.round_name_raw == "Finals"
+
+
 def test_wsdc_and_csdc_finals_both_survive_projection(tmp_path: Path) -> None:
     with open_database(tmp_path, lock=False) as db:
         seed(db.connection)

@@ -172,6 +172,10 @@ def main() -> int:
     integrity["invalid_event_dates"] = rows(
         "SELECT event_id,name,start_date,end_date FROM events WHERE start_date>end_date"
     )
+    integrity["dirty_contest_headings"] = rows(
+        """SELECT contest_id,name_raw FROM contests WHERE source='eepro' AND
+        regexp_matches(name_raw, '(?i)[0-9]+ competed|when marks|ties broken|lowest sum used as tiebreaker')"""
+    )
     integrity["relationship_errors"] = rows(
         """SELECT 'entry_event_vs_contest' check_name,count(*) n
         FROM entries e JOIN contests c USING(contest_id) WHERE e.event_id!=c.event_id
