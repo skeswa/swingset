@@ -1,6 +1,6 @@
 # v1 implementation status
 
-Checked 2026-09-09 UTC. This records evidence against
+Checked 2026-09-10 UTC. This records evidence against
 [the implementation plan](../design/implementation-plan.md); it does not
 replace its done criteria. The original implementation was split into 12
 described Jujutsu revisions and pushed to `main` (through `2d291571`).
@@ -31,7 +31,7 @@ work and observation boundaries.
 ## Checks executed
 
 Release verification at installed revision
-`8fcc0a2564a635ea78ab69c01d9e2055233b4e23`: 165 tests passed; Ruff
+`9bade45dd5d0c96264aaf463044df4f4aa4700fa`: 169 tests passed; Ruff
 passed; strict mypy passed across 76 source files. These checks ran through
 the Nix development shell.
 The installed writer completed its version-update cycle, controlled
@@ -60,8 +60,8 @@ Live requests used `swingset fetch-one` or `cycle` through the configured gate:
 | Source | Observed result |
 |---|---|
 | WSDC calendar | Full archived body produces 172 observations and 169 deduplicated events. A second cycle was quiet. |
-| WSDC registry | Dancer 1 produced a found record and three placements. Ids 1,000,000 and 1,000,001 returned the same verified 404 error body. The production comparison dump was archived with SHA-256 `ae7f2b9d688b69b49d08dfc718f60e5ef6b4b6561054d2503e8c94b8ae5e1d53`, and sweep seed 1 completed. Cursor verification and the full production sweep remain in progress. |
-| scoring.dance | Archived sitemap, recent index, event 418 and all 12 rounds. Full local build: 6 contests, 12 rounds, 202 entries, 62 placements, 777 callback marks and 420 final marks. Bib identity is scoped by contest and role. |
+| WSDC registry | Dancer 1 produced a found record and three placements. Ids 1,000,000 and 1,000,001 returned the same verified 404 error body. The production comparison dump was archived with SHA-256 `ae7f2b9d688b69b49d08dfc718f60e5ef6b4b6561054d2503e8c94b8ae5e1d53`, and sweep seed 1 completed. A verified ID 1 lookup advanced the cursor to 2. Nine dancers and 202 registry placements are published; the full sweep remains in progress. |
+| scoring.dance | Archived sitemap, recent index, event 418 and all 12 rounds. Full local build: 6 contests, 12 rounds, 202 entries, 62 placements, 769 callback marks and 420 final marks. Bib identity is scoped by contest and role. |
 | WDR | Complete rounds and awards captures for all 13 known source URLs. The published build contains 285 contests, 451 rounds, 11,727 entries, 3,144 placements and 3,759 callbacks attributed to WDR. Repeated rounds fetch returned `NotModified`/304. |
 
 Archived parser fixtures live under `src/swingset/sources/*/fixtures/`.
@@ -80,9 +80,8 @@ cold VM; source fetches retain their separate 30-second timeout.
 
 - The controlled calendar publication, unchanged repeat, private backup, and
   fresh-machine recovery passed; issues #7 and #8 are closed. Both legacy flat
-  and packed archive formats restored against the public head. Continue to
-  observe the scheduled writer, backup, summary, and quiet-cycle behavior under
-  issues #9 and #1.
+  and packed archive formats restored against the public head. Scheduled
+  activation passed and issue #9 is closed; extended observation remains in #13.
 - The owner reported EEPro permission received on 2026-09-08; see its source
   playbook. Real Summer Hummer fixtures, `Count` semantics, a complete local
   event build, and initial results publication passed. The live-weekend
@@ -99,8 +98,8 @@ cold VM; source fetches retain their separate 30-second timeout.
 - Resolve WDR `S<n>` and finals bib ownership from stronger evidence. The NASDE
   attribute-group legend is verified; other groups remain unverified. The
   adapters preserve unknown values and withhold unsupported canonical claims.
-  Fifteen rounds with unlabeled Am/Pro roles and one masked bib remain ambiguous in the captured WDR
-  evidence; their raw observations are retained.
+  Fifteen rounds with unlabeled Am/Pro roles and one masked bib remain ambiguous
+  in the captured WDR evidence; their raw observations are retained.
 
 The live systemd stop-during-request check passed on 2026-09-09. Run
 `run_20260909T141539Z` finished its single calendar request and stopped in
@@ -118,6 +117,20 @@ commits `5ad249109d6dc866b9d9d4432ecac2fea8126708` (legacy flat) and
 `c691a760015698247d157c2c2cf738fc712ea53e` (packed) passed fresh-machine
 restore. The results-state private backup completed successfully at 15:37:05
 UTC at private archive commit `c716bf7f7e8eed8369828c26e2a2434f3c08aaf0`. Initial
-scheduled jobs passed, while issue #9 remains open for the ongoing operating
-observation. See the [runbook](runbook.md) for the active handoff and restore
+scheduled jobs and final activation passed; issue #9 is closed. See the [runbook](runbook.md) for the active handoff and restore
 evidence.
+
+The latest reviewed public commit is
+`c9789bad676e64424aa9ab7fc581b9aefe16868c`, adding nine dancers and 202 registry
+placements. Candidate `cand_b2c68aaa3b7b4f3c` passed the full artifact checks and
+remote DuckDB queries. Its private checkpoint
+`245f6a4f507581254c989ee20aa7529f0f506a5b` was acknowledged on 2026-09-10 at
+02:34:55 UTC. All three normal timers are active on `swingset`; the recovery
+VM remains stopped. Doctor and summary showed no pending work, active pause,
+or restore marker at handoff. The sweep cursor is 2; full bootstrap and the
+saved comparison remain in #10.
+
+The initial rollout hit an EEPro request backoff and two registry build issues.
+The backoff expired; registry normalization and change-history serialization
+were repaired before registry publication. Retain those incidents in the
+operating record; they do not count as a clean unattended observation window.

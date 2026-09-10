@@ -229,7 +229,7 @@ commit using a transient service with `EnvironmentFile=/etc/swingset.env`.
 Run doctor and a dry cycle before choosing one writer. The recovery machine
 remains without timers unless deliberately configured as the new writer.
 
-## Deployment handoff (2026-09-09 UTC)
+## Deployment handoff (2026-09-10 UTC)
 
 The selected writer is the OrbStack machine `swingset`. The
 `swingset-restore` machine passed recovery of both the original flat checkpoint
@@ -270,3 +270,15 @@ every 15 minutes with up to 120 seconds of jitter; backup is 04:00 UTC Monday
 through Thursday and 04:00/12:00/20:00 UTC Friday through Sunday. Summary runs
 at 08:00 UTC. Check GitHub issue #9 for scheduled-run acceptance, and #1 for
 source rollout and the remaining multi-day observations.
+
+The final active release is
+`9bade45dd5d0c96264aaf463044df4f4aa4700fa`. Its public commit is
+`c9789bad676e64424aa9ab7fc581b9aefe16868c`, with nine registry dancers and 202
+registry placements in addition to the reviewed results. Private checkpoint
+`245f6a4f507581254c989ee20aa7529f0f506a5b` was acknowledged at 02:34:55 UTC.
+The ID 1 lookup and following cycle advanced the sweep cursor to 2.
+All normal timers are active; temporary review guards and acceptance schedules
+have been removed. Doctor and summary showed no pending work, active host or
+operator pause, or restore marker. The next collection at handoff was
+02:45:07 UTC. Keep the full sweep and extended source observations open in
+issues #10 and #12–#14.
