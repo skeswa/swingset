@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 import sqlite3
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import TypedDict
 
 from swingset.model.canonical import (
@@ -151,18 +151,27 @@ def project_event(conn: sqlite3.Connection, event: str, now: str, run_id: str) -
             rid = round_id(cid, round_type, occurrence)
             round_types[rid] = round_type
             selected = max(candidates, key=lambda item: item.precedence)
-            tables = tuple(table for item in candidates for table in item.sheet.tables)
+            panel_groups: dict[str, list[Evidence]] = {}
+            for item in candidates:
+                panel_groups.setdefault(item.sheet.source_round_ref, []).append(item)
+            selected_panels = tuple(
+                max(panel, key=lambda item: item.precedence) for panel in panel_groups.values()
+            )
+            tables = tuple(table for item in selected_panels for table in item.sheet.tables)
             judge_count = len(
                 {
                     token
-                    for item in candidates
+                    for item in selected_panels
                     for table in item.sheet.tables
                     for token in _judge_columns(table, infer_named=item.source == "eepro").values()
                 }
             )
-            danced = max((len(table.rows) for table in selected.sheet.tables), default=0)
+            danced = sum(
+                max((len(table.rows) for table in item.sheet.tables), default=0)
+                for item in selected_panels
+            )
             promoted = (
-                _promoted_count(selected.sheet.tables, source=selected.source)
+                _promoted_count(tables, source=selected.source)
                 if round_type != "final"
                 else None
             )
@@ -184,24 +193,25 @@ def project_event(conn: sqlite3.Connection, event: str, now: str, run_id: str) -
                     **_provenance(selected, now, run_id),
                 )
             )
-            for table in selected.sheet.tables:
-                _project_table(
-                    event,
-                    cid,
-                    rid,
-                    round_type,
-                    selected,
-                    table,
-                    now,
-                    run_id,
-                    entries,
-                    judges,
-                    marks,
-                    callbacks,
-                    final_marks,
-                    placements,
-                    findings,
-                )
+            for panel in selected_panels:
+                for table in panel.sheet.tables:
+                    _project_table(
+                        event,
+                        cid,
+                        rid,
+                        round_type,
+                        panel,
+                        table,
+                        now,
+                        run_id,
+                        entries,
+                        judges,
+                        marks,
+                        callbacks,
+                        final_marks,
+                        placements,
+                        findings,
+                    )
             if selected.source == "wdr" and _has_unknown_wdr_callback(tables):
                 findings.append(
                     Finding(
@@ -214,7 +224,7 @@ def project_event(conn: sqlite3.Connection, event: str, now: str, run_id: str) -
                     )
                 )
             for item in candidates:
-                if item is selected:
+                if item in selected_panels:
                     continue
                 for table in item.sheet.tables:
                     _record_conflicts(cid, item, table, entries, findings)
@@ -250,6 +260,7 @@ def project_event(conn: sqlite3.Connection, event: str, now: str, run_id: str) -
                 **_provenance(facts.evidence, now, run_id),
             )
         )
+    callbacks = _reconcile_callback_aggregates(callbacks, marks)
     output.extend(value[0] for value in judges.values())
     output.extend(marks.values())
     output.extend(callbacks.values())
@@ -958,6 +969,18 @@ def _outcome(cells: tuple[Cell, ...], headers: list[str], *, source: str = "") -
             if re.fullmatch(r"S\d+", value):
                 return None
         return None
+    if source == "scoringdance":
+        states = {
+            state.casefold()
+            for cell in cells
+            if (state := _attrs(cell).get("row-data-state", "").strip())
+        }
+        if "cb" in states:
+            return "promoted"
+        if "alt1" in states:
+            return "alternate_1"
+        if "alt2" in states:
+            return "alternate_2"
     for index, header in enumerate(headers):
         value = (_cell(cells, index) or "").casefold()
         if "promot" in header and value not in {"", "0", "no"}:
@@ -965,6 +988,26 @@ def _outcome(cells: tuple[Cell, ...], headers: list[str], *, source: str = "") -
         if "alt" in header and value:
             return "alternate_1"
     return "eliminated"
+
+
+def _reconcile_callback_aggregates(
+    callbacks: dict[tuple[str, str], Callback],
+    marks: dict[tuple[str, str, str], CallbackMark],
+) -> dict[tuple[str, str], Callback]:
+    """Make summaries agree with the retained marks across split source tables."""
+    by_entry: dict[tuple[str, str], list[CallbackMark]] = {}
+    for (round_, entry, _judge), mark in marks.items():
+        by_entry.setdefault((round_, entry), []).append(mark)
+    return {
+        key: replace(
+            callback,
+            score_sum=sum(mark.mark_value for mark in by_entry.get(key, ())),
+            yes_count=sum(mark.mark == "yes" for mark in by_entry.get(key, ())),
+            alt_count=sum(mark.mark.startswith("alt") for mark in by_entry.get(key, ())),
+            no_count=sum(mark.mark == "no" for mark in by_entry.get(key, ())),
+        )
+        for key, callback in callbacks.items()
+    }
 
 
 def _promoted_count(tables: tuple[ResultTable, ...], *, source: str = "") -> int | None:
