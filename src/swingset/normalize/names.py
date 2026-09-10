@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 import unicodedata
 from dataclasses import dataclass
+from functools import lru_cache
 
 SUFFIXES = frozenset({"jr", "sr", "ii", "iii"})
 
@@ -18,6 +19,7 @@ class NormalizedName:
     suffix: str | None
 
 
+@lru_cache(maxsize=65_536)
 def normalize_name(raw: str) -> NormalizedName:
     normalized = unicodedata.normalize("NFKC", raw)
     normalized = "".join(
