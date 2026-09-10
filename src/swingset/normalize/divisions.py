@@ -65,7 +65,7 @@ def classify_contest(name: str) -> ContestVocabulary:
         "lindy"
         if "lindy" in value
         else "country"
-        if "country" in value
+        if "country" in value or "csdc" in value.split()
         else "other"
         if "hustle" in value
         else "wcs"

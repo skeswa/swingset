@@ -180,7 +180,7 @@ class AutoIndexPage:
 class RoundPage:
     kind = "eepro.round"
     EXTRACT_VERSION = 3
-    PARSER_VERSION = 4
+    PARSER_VERSION = 5
     change_mode = "validators"
 
     def extract(self, body: bytes) -> JsonValue:
@@ -242,6 +242,15 @@ class RoundPage:
             final_layout = {"place", "marks sorted"} <= header_names
             round_name = split.group(1) if split else "Finals" if final_layout else heading
             contest = heading[: split.start()].strip(" -") if split else heading
+            if split:
+                qualifier = re.split(
+                    r"(?:[-–—]\s*)?\b\d+\s+competed\b|When\s+marks\b|(?:All\s+)?ties\s+broken\b|Y\s*=",
+                    heading[split.end():],
+                    maxsplit=1,
+                    flags=re.I,
+                )[0].strip(" -")
+                if qualifier:
+                    contest = f"{contest} {qualifier}"
             table = ResultTable(
                 heading, parsed_rows[0], tuple(ResultRow(row) for row in parsed_rows[1:])
             )
