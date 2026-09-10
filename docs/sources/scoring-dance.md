@@ -194,7 +194,7 @@ compressed there. The recent index yields 27 event records. The round fixtures
 cover six Jack & Jill divisions, including preliminaries, one semifinal, and
 finals, with descendant `data-wsdc`, callback/state attributes, and judge titles.
 The full offline pipeline preserves both role panels and produces 6 contests,
-12 rounds, 370 entries, 336 callbacks, 1,684 recognized callback marks,
+12 rounds, 317 entries, 336 callbacks, 1,684 recognized callback marks,
 62 placements, and 420 final marks.
 Rows with unrecognized numeric or scratched callback values remain in raw
 observations with findings; they are not converted to `no` marks or callback
@@ -208,6 +208,11 @@ conflicting marks for the same entrant and judge, and their dependent summary,
 are withheld with findings. The current schema cannot retain a complete
 partner-specific score history. An elimination contradicted by later-round
 participation is also withheld with a finding.
+
+Older finals can print a single generic couple/draw bib beside two names.
+That number is not assigned to both dancers. Explicit role bibs and slash
+pairs are retained; other shared bibs stay null. A unique same-contest,
+same-role preliminary identity can provide an independently observed bib.
 
 The complete event also proves that bibs are reusable between contests: bib 698
 identifies different followers in All-Stars and Sophisticated. Identity grouping

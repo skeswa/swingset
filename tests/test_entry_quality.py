@@ -110,3 +110,85 @@ def test_rotating_partner_prelim_scores_only_named_role(
     entries = [r for r in projection.rows if isinstance(r, Entry)]
     assert [(r.role, r.name_raw, r.bib) for r in entries] == [(role.lower(), expected_name, "42")]
     assert len([r for r in projection.rows if isinstance(r, Callback)]) == 1
+
+
+@pytest.mark.parametrize(
+    "final_bib,expected",
+    [
+        ("99", {("leader", "11"), ("follower", "22")}),
+        ("11/22", {("leader", "11"), ("follower", "22")}),
+    ],
+)
+def test_scoringdance_final_bib_reconciliation(
+    tmp_path: Path, final_bib: str, expected: set[tuple[str, str]]
+) -> None:
+    sheets = (
+        RoundSheet(
+            "round_sheet",
+            "scoringdance:test",
+            "lp",
+            "Novice Jack & Jill Leader",
+            "Prelim",
+            (
+                ResultTable(
+                    "Prelim",
+                    (Cell("Bib"), Cell("Leader"), Cell("J1")),
+                    (ResultRow((Cell("11"), Cell("A Leader"), Cell("Y"))),),
+                ),
+            ),
+        ),
+        RoundSheet(
+            "round_sheet",
+            "scoringdance:test",
+            "fp",
+            "Novice Jack & Jill Follower",
+            "Prelim",
+            (
+                ResultTable(
+                    "Prelim",
+                    (Cell("Bib"), Cell("Follower"), Cell("J1")),
+                    (ResultRow((Cell("22"), Cell("B Follower"), Cell("Y"))),),
+                ),
+            ),
+        ),
+        RoundSheet(
+            "round_sheet",
+            "scoringdance:test",
+            "f",
+            "Novice Jack & Jill",
+            "Final",
+            (
+                ResultTable(
+                    "Final",
+                    (Cell("Bib"), Cell("Leader"), Cell("Follower"), Cell("Place")),
+                    (
+                        ResultRow(
+                            (Cell(final_bib), Cell("A Leader"), Cell("B Follower"), Cell("1"))
+                        ),
+                    ),
+                ),
+            ),
+        ),
+    )
+    with open_database(tmp_path, lock=False) as db:
+        seed(db.connection)
+        db.connection.execute("DELETE FROM source_event_map")
+        db.connection.execute(
+            "INSERT INTO source_event_map(source,source_ref,event_id,match_method,match_confidence) VALUES ('scoringdance','scoringdance:test',?,'override',1)",
+            (EVENT,),
+        )
+        for index, sheet in enumerate(sheets):
+            add(
+                db.connection,
+                f"sd-{index}",
+                f"sd-snap-{index}",
+                sheet,
+                f"2026-09-0{index + 1}",
+                source="scoringdance",
+                source_ref="scoringdance:test",
+            )
+        projection = project_event(db.connection, EVENT, "2026-09-10", "run_a")
+
+    entries = [row for row in projection.rows if isinstance(row, Entry)]
+    assert {(entry.role, entry.bib) for entry in entries} == expected
+    assert all(entry.rounds_danced == ("prelim", "final") for entry in entries)

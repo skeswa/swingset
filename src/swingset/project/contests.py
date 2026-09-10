@@ -547,7 +547,7 @@ def _project_table(
                     bib_columns,
                     role,
                     generic_shared=(
-                        evidence.source == "wdr"
+                        evidence.source in {"wdr", "scoringdance"}
                         and round_type == "final"
                         and len(competitor_columns) > 1
                     )
