@@ -42,26 +42,28 @@ def project(tmp_path: Path, payload: DancerLookup):
                 encode_payload(payload),
             ),
         )
-        return project_dancer(
-            conn, str(payload.requested_wsdc_id), "2026-09-09T00:00:00Z", "run"
-        )
+        return project_dancer(conn, str(payload.requested_wsdc_id), "2026-09-09T00:00:00Z", "run")
 
 
 def test_real_registry_vocabulary_projects_to_closed_enums(tmp_path: Path) -> None:
     page = DancerPage()
     body = Path("src/swingset/sources/wsdc_registry/fixtures/lookup-1.body").read_bytes()
-    parsed = page.parse(
-        page.extract(body),
-        ParseContext(
-            "snap",
-            "registry-1",
-            "https://points.worldsdc.com/lookup2020/find",
-            "wsdc_registry",
-            page.kind,
-            "wsdc:1",
-            "2026-09-09T00:00:00Z",
-        ),
-    ).observations[0].payload
+    parsed = (
+        page.parse(
+            page.extract(body),
+            ParseContext(
+                "snap",
+                "registry-1",
+                "https://points.worldsdc.com/lookup2020/find",
+                "wsdc_registry",
+                page.kind,
+                "wsdc:1",
+                "2026-09-09T00:00:00Z",
+            ),
+        )
+        .observations[0]
+        .payload
+    )
     assert isinstance(parsed, DancerLookup)
     projection = project(tmp_path, parsed)
 
@@ -71,9 +73,7 @@ def test_real_registry_vocabulary_projects_to_closed_enums(tmp_path: Path) -> No
     assert dancer.primary_role == "follower"
     assert dancer.follower_required_level == "intermediate"
     assert dancer.follower_highest_level == "intermediate"
-    assert {row.dance_style for row in placements if isinstance(row, RegistryPlacement)} == {
-        "wcs"
-    }
+    assert {row.dance_style for row in placements if isinstance(row, RegistryPlacement)} == {"wcs"}
     assert {row.division for row in placements if isinstance(row, RegistryPlacement)} == {
         "newcomer",
         "novice",
@@ -115,7 +115,81 @@ def test_registry_age_divisions_remain_distinct_and_unknown_is_omitted(tmp_path:
     ]
     assert rows[-1].dance_style == "other"
     assert len({row.key() for row in rows}) == 4
-    assert {(finding.evidence["field"], finding.evidence["raw"]) for finding in projection.findings} == {
+    assert {
+        (finding.evidence["field"], finding.evidence["raw"]) for finding in projection.findings
+    } == {
         ("division", "UNVERIFIED"),
         ("dance_style", "Unverified Style"),
     }
+
+
+def test_registry_preserves_raw_pro_tch_and_normalizes_advance(tmp_path: Path) -> None:
+    placements = tuple(
+        RawPlacement("leader", code, "7", "Event", "August 2026", "1", 1, "wcs")
+        for code in ("PRO", "TCH")
+    )
+    projection = project(
+        tmp_path,
+        DancerLookup(
+            "dancer_lookup",
+            "found",
+            7,
+            7,
+            first_name="Test",
+            last_name="Dancer",
+            primary_role_raw="leader",
+            leader_required_raw="Advance",
+            placements=placements,
+        ),
+    )
+    dancer = projection.rows[0]
+    assert isinstance(dancer, Dancer)
+    assert dancer.leader_required_level == "advanced"
+    assert {row.division for row in projection.rows if isinstance(row, RegistryPlacement)} == {
+        "PRO",
+        "TCH",
+    }
+    assert projection.findings == ()
+
+
+def test_unknown_dancer_level_is_not_recast_as_none(tmp_path: Path) -> None:
+    projection = project(
+        tmp_path,
+        DancerLookup(
+            "dancer_lookup",
+            "found",
+            7,
+            7,
+            first_name="Test",
+            last_name="Dancer",
+            primary_role_raw="leader",
+            leader_required_raw="Mystery",
+        ),
+    )
+    dancer = projection.rows[0]
+    assert isinstance(dancer, Dancer)
+    assert dancer.leader_required_level == "unknown"
+    assert projection.findings[0].kind == "unknown_enum"
+
+
+def test_conflicting_duplicate_registry_claims_are_withheld(tmp_path: Path) -> None:
+    placements = tuple(
+        RawPlacement("leader", "NOV", "7", "Event", "August 2026", result, points, "wcs")
+        for result, points in (("1", 10), ("2", 6))
+    )
+    projection = project(
+        tmp_path,
+        DancerLookup(
+            "dancer_lookup",
+            "found",
+            7,
+            7,
+            first_name="Test",
+            last_name="Dancer",
+            primary_role_raw="leader",
+            placements=placements,
+        ),
+    )
+    assert not any(isinstance(row, RegistryPlacement) for row in projection.rows)
+    conflict = next(finding for finding in projection.findings if finding.kind == "conflict")
+    assert conflict.evidence["row_count"] == 2

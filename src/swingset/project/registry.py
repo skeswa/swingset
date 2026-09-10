@@ -49,7 +49,7 @@ _LEVELS.update(
         )
     }
 )
-_LEVELS.update({"ALL STAR": "allstar", "CHAMPIONS": "champion"})
+_LEVELS.update({"ALL STAR": "allstar", "CHAMPIONS": "champion", "ADVANCE": "advanced"})
 _PLACEMENT_DIVISIONS = {
     **_LEVELS,
     "JRS": "juniors",
@@ -60,6 +60,10 @@ _PLACEMENT_DIVISIONS = {
     "SOPHISTICATED": "sophisticated",
     "MSTR": "masters",
     "MASTERS": "masters",
+    # These source codes are retained literally because their meaning has not
+    # been verified. They must not be normalized to a points division.
+    "PRO": "PRO",
+    "TCH": "TCH",
 }
 _ROLES = {
     "l": "leader",
@@ -129,7 +133,7 @@ def project_dancer(conn: sqlite3.Connection, scope_id: str, now: str, run_id: st
         if normalized := _LEVELS.get(raw.strip().upper()):
             return normalized
         unknown("division", raw)
-        return "none"
+        return "unknown"
 
     def role(raw: str | None) -> str:
         value = (raw or "unknown").strip().casefold()
@@ -173,6 +177,7 @@ def project_dancer(conn: sqlite3.Connection, scope_id: str, now: str, run_id: st
             **provenance,
         )
     ]
+    placement_rows: dict[tuple[object, ...], list[RegistryPlacement]] = {}
     for placement in payload.placements:
         division = placement_division(placement.division_raw)
         if division is None:
@@ -186,24 +191,45 @@ def project_dancer(conn: sqlite3.Connection, scope_id: str, now: str, run_id: st
             )
         except ValueError:
             month = placement.event_month_raw
-        rows.append(
-            RegistryPlacement(
-                wsdc_id=payload.wsdc_id,
-                role=role(placement.role_raw),
-                dance_style=style(placement.dance_style_raw),
-                division=division,
-                series_id=series_id(
-                    placement.event_name_raw,
-                    int(placement.event_id_raw)
-                    if placement.event_id_raw and placement.event_id_raw.isdigit()
-                    else None,
-                ),
-                series_name_raw=placement.event_name_raw,
-                event_month=month,
-                event_id=None,
-                result=placement.result_raw,
-                points=placement.points,
-                **provenance,
+        canonical = RegistryPlacement(
+            wsdc_id=payload.wsdc_id,
+            role=role(placement.role_raw),
+            dance_style=style(placement.dance_style_raw),
+            division=division,
+            series_id=series_id(
+                placement.event_name_raw,
+                int(placement.event_id_raw)
+                if placement.event_id_raw and placement.event_id_raw.isdigit()
+                else None,
+            ),
+            series_name_raw=placement.event_name_raw,
+            event_month=month,
+            event_id=None,
+            result=placement.result_raw,
+            points=placement.points,
+            **provenance,
+        )
+        placement_rows.setdefault(canonical.key(), []).append(canonical)
+    for key, candidates in placement_rows.items():
+        claims = {(item.result, item.points) for item in candidates}
+        if len(claims) == 1:
+            rows.append(candidates[0])
+            continue
+        findings.append(
+            Finding(
+                kind="conflict",
+                subject_kind="registry_placement",
+                subject_id="|".join(str(value) for value in key),
+                severity="warning",
+                summary="Registry contains conflicting placement claims for one key",
+                evidence={
+                    "claims": [
+                        {"result": result, "points": points} for result, points in sorted(claims)
+                    ],
+                    "row_count": len(candidates),
+                    "snapshot_id": str(row[2]),
+                },
+                snapshot_id=str(row[2]),
             )
         )
     return Projection(tuple(rows), tuple(findings))

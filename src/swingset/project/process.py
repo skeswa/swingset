@@ -13,6 +13,7 @@ from .contests import project_event
 from .events import project_calendar, project_source_index
 from .map import project_map
 from .registry import project_dancer
+from .registry_events import reconcile_registry_events
 from .writer import replace_scope
 
 PROJECTOR_VERSION = 11
@@ -62,7 +63,8 @@ def _dispatch(
                 "DELETE FROM pending_work WHERE stage='project' AND unit_kind=? AND unit_id=?",
                 (kind, identifier),
             )
-        return project_map(conn, bundle, now, run_id, PROJECTOR_VERSION) or changed
+        changed = project_map(conn, bundle, now, run_id, PROJECTOR_VERSION) or changed
+        return reconcile_registry_events(conn, reconciled_at=now, run_id=run_id) or changed
     if unit.unit_kind == "calendar":
         return _replace_calendar(conn, unit.unit_id, now, run_id)
     if unit.unit_kind == "source_index":
@@ -70,7 +72,7 @@ def _dispatch(
     if unit.unit_kind == "event":
         return _replace_event(conn, unit.unit_id, now, run_id)
     if unit.unit_kind == "dancer":
-        return replace_scope(
+        changed = replace_scope(
             conn,
             scope_kind="dancer",
             scope_id=unit.unit_id,
@@ -78,13 +80,19 @@ def _dispatch(
             run_id=run_id,
             projected_at=now,
         )
+        return (
+            reconcile_registry_events(
+                conn, reconciled_at=now, run_id=run_id, wsdc_id=int(unit.unit_id)
+            )
+            or changed
+        )
     if unit.unit_kind == "source_event":
         return _project_source_event(conn, unit.unit_id, bundle, now, run_id)
     raise LookupError(f"no projector for {unit.unit_kind}:{unit.unit_id}")
 
 
 def _replace_calendar(conn: sqlite3.Connection, scope_id: str, now: str, run_id: str) -> bool:
-    return replace_scope(
+    changed = replace_scope(
         conn,
         scope_kind="calendar",
         scope_id=scope_id,
@@ -93,10 +101,11 @@ def _replace_calendar(conn: sqlite3.Connection, scope_id: str, now: str, run_id:
         projected_at=now,
         enqueue_links=False,
     )
+    return reconcile_registry_events(conn, reconciled_at=now, run_id=run_id) or changed
 
 
 def _replace_event(conn: sqlite3.Connection, event_id: str, now: str, run_id: str) -> bool:
-    return replace_scope(
+    changed = replace_scope(
         conn,
         scope_kind="event",
         scope_id=event_id,
@@ -104,6 +113,7 @@ def _replace_event(conn: sqlite3.Connection, event_id: str, now: str, run_id: st
         run_id=run_id,
         projected_at=now,
     )
+    return reconcile_registry_events(conn, reconciled_at=now, run_id=run_id) or changed
 
 
 def _project_source_event(

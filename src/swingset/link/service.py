@@ -100,8 +100,8 @@ def _update_registry_points(db: sqlite3.Connection, event_id: str) -> None:
             )
             registry = (
                 db.execute(
-                    "SELECT points FROM registry_placements WHERE wsdc_id=? AND role=? AND series_id=? AND division=? AND dance_style=? AND substr(event_month,1,7)=substr(?,1,7) AND result=?",
-                    (linked[0], role, event[0], row[5], row[6], event[1], str(row[1])),
+                    "SELECT points FROM registry_placements WHERE wsdc_id=? AND role=? AND event_id=? AND division=? AND dance_style=? AND result=?",
+                    (linked[0], role, event_id, row[5], row[6], str(row[1])),
                 ).fetchone()
                 if bool(row[7]) and linked and linked[0] is not None
                 else None
@@ -111,7 +111,7 @@ def _update_registry_points(db: sqlite3.Connection, event_id: str) -> None:
                 None
                 if incomplete_prelim
                 else db.execute(
-                    "SELECT max(field_size) FROM (SELECT count(*) AS field_size FROM rounds r JOIN entries e ON e.contest_id=r.contest_id AND e.role=? WHERE r.contest_id=? AND r.round_type='prelim' AND EXISTS (SELECT 1 FROM json_each(e.rounds_danced) WHERE value=r.round_id) GROUP BY r.round_id)",
+                    "SELECT max(field_size) FROM (SELECT count(*) AS field_size FROM rounds r JOIN entries e ON e.contest_id=r.contest_id AND e.role=? WHERE r.contest_id=? AND r.round_type='prelim' AND EXISTS (SELECT 1 FROM json_each(e.rounds_danced) WHERE value=r.round_type) GROUP BY r.round_id)",
                     (role, row[8]),
                 ).fetchone()
             )
@@ -205,7 +205,7 @@ def link_event(
         if subject.subject_kind != "entry" or subject.division is None:
             continue
         rows = conn.execute(
-            "SELECT rp.wsdc_id FROM registry_placements rp JOIN events e ON e.series_id=rp.series_id JOIN contests c ON c.contest_id=? WHERE e.event_id=? AND rp.role=? AND rp.division=? AND rp.dance_style=c.dance_style AND substr(rp.event_month,1,7)=substr(e.end_date,1,7)",
+            "SELECT rp.wsdc_id FROM registry_placements rp JOIN contests c ON c.contest_id=? WHERE rp.event_id=? AND rp.role=? AND rp.division=? AND rp.dance_style=c.dance_style",
             (subject.contest_id, event_id, subject.role, subject.division),
         )
         registry_confirmations[subject.subject_id] = {int(row[0]) for row in rows}

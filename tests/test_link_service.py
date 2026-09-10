@@ -128,15 +128,11 @@ def test_registry_points_use_each_roles_prelim_field_and_dance_style(tmp_path) -
                 identifier = f"event/c1/{role[0]}-{number}"
                 entry(db.connection, identifier, "c1", str(number))
                 db.connection.execute(
-                    "UPDATE entries SET role=?,rounds_danced='[\"c1/prelim\"]' WHERE entry_id=?",
+                    "UPDATE entries SET role=?,rounds_danced='[\"prelim\"]' WHERE entry_id=?",
                     (role, identifier),
                 )
-        db.connection.execute(
-            "UPDATE entries SET wsdc_id=1 WHERE entry_id='event/c1/l-0'"
-        )
-        db.connection.execute(
-            "UPDATE entries SET wsdc_id=2 WHERE entry_id='event/c1/f-0'"
-        )
+        db.connection.execute("UPDATE entries SET wsdc_id=1 WHERE entry_id='event/c1/l-0'")
+        db.connection.execute("UPDATE entries SET wsdc_id=2 WHERE entry_id='event/c1/f-0'")
         db.connection.execute(
             "INSERT INTO placements(placement_id,round_id,contest_id,event_id,place,leader_entry_id,follower_entry_id,tally,source,snapshot_id,parser_version,first_seen_at,last_seen_at,run_id) VALUES ('place','c1/final','c1','event',1,'event/c1/l-0','event/c1/f-0','','test','snap','1','t','t','run')"
         )
@@ -146,7 +142,7 @@ def test_registry_points_use_each_roles_prelim_field_and_dance_style(tmp_path) -
             (1, "leader", "country", 25),
         ):
             db.connection.execute(
-                "INSERT INTO registry_placements(wsdc_id,role,dance_style,division,series_id,series_name_raw,event_month,result,points,source,snapshot_id,parser_version,first_seen_at,last_seen_at,run_id) VALUES (?,?,?,'novice','wsdc-1','Event','2026-01','1',?,'test','snap','1','t','t','run')",
+                "INSERT INTO registry_placements(wsdc_id,role,dance_style,division,series_id,series_name_raw,event_month,event_id,result,points,source,snapshot_id,parser_version,first_seen_at,last_seen_at,run_id) VALUES (?,?,?,'novice','wsdc-1','Event','2026-01','event','1',?,'test','snap','1','t','t','run')",
                 (wsdc_id, role, style, points),
             )
 
@@ -178,7 +174,7 @@ def test_registry_points_use_each_roles_prelim_field_and_dance_style(tmp_path) -
         ) == (6, 10, 1, None)
 
         db.connection.execute(
-            "UPDATE entries SET rounds_danced='[\"c1/prelim\"]' WHERE contest_id='c1' AND role='follower'"
+            "UPDATE entries SET rounds_danced='[\"prelim\"]' WHERE contest_id='c1' AND role='follower'"
         )
         db.connection.execute(
             "INSERT INTO runs(run_id,started_at,dry_run) VALUES ('finding-run','t',0)"

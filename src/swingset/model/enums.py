@@ -64,6 +64,7 @@ class Division(StrEnum):
     OPEN = "open"
     INVITATIONAL = "invitational"
     NONE = "none"
+    UNKNOWN = "unknown"
 
 
 class AgeDivision(StrEnum):
@@ -86,6 +87,9 @@ class RegistryDivision(StrEnum):
     SOPHISTICATED = "sophisticated"
     MASTERS = "masters"
     NONE = "none"
+    UNKNOWN = "unknown"
+    RAW_PRO = "PRO"
+    RAW_TCH = "TCH"
 
 
 class ContestType(StrEnum):
