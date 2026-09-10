@@ -16,7 +16,7 @@ from .registry import project_dancer
 from .registry_events import reconcile_registry_events
 from .writer import replace_scope
 
-PROJECTOR_VERSION = 12
+PROJECTOR_VERSION = 13
 
 
 class InputBundleLike(Protocol):
