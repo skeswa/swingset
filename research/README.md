@@ -3,6 +3,23 @@
 One-off research artifacts. Not used by the pipeline. Facts here were
 captured on 2026-09-04 and are not kept up to date.
 
+## Offline candidate audit
+
+`audit_candidate.py` checks a completed candidate without network access. It
+verifies manifest hashes and row counts, Parquet schemas, primary and foreign
+keys, dates, canonical relationships, callback aggregates, and the exact
+registry evidence behind attached placement points. It also reports event,
+source, entry, review, callback, and registry coverage without treating sparse
+coverage as an integrity failure.
+
+```sh
+.venv/bin/python research/audit_candidate.py path/to/candidate
+.venv/bin/python research/audit_candidate.py path/to/candidate audit.json
+```
+
+The command exits nonzero when an integrity check fails. When an output path is
+given, the JSON report is written there instead of standard output.
+
 ## events.csv
 
 Every event on the WSDC calendar (`worldsdc.com/events/`) that started on
