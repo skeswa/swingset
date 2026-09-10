@@ -89,7 +89,9 @@ def project_event(conn: sqlite3.Connection, event: str, now: str, run_id: str) -
         winner = max(sheets, key=lambda item: item.precedence)
         contest_name = winner.sheet.contest_name_raw
         for candidate in sheets:
-            if candidate.sheet.contest_name_raw != contest_name:
+            if candidate.sheet.contest_name_raw != contest_name and _display_contest_name(
+                candidate.sheet.contest_name_raw
+            ) != _display_contest_name(contest_name):
                 findings.append(
                     Finding(
                         kind="conflict",
@@ -171,9 +173,7 @@ def project_event(conn: sqlite3.Connection, event: str, now: str, run_id: str) -
                 for item in selected_panels
             )
             promoted = (
-                _promoted_count(tables, source=selected.source)
-                if round_type != "final"
-                else None
+                _promoted_count(tables, source=selected.source) if round_type != "final" else None
             )
             output.append(
                 Round(
@@ -229,6 +229,31 @@ def project_event(conn: sqlite3.Connection, event: str, now: str, run_id: str) -
                 for table in item.sheet.tables:
                     _record_conflicts(cid, item, table, entries, findings)
 
+    redirects = _entry_redirects(entries, findings)
+    if redirects:
+        marks = {
+            (r, redirects.get(e, e), j): replace(mark, entry_id=redirects.get(e, e))
+            for (r, e, j), mark in marks.items()
+        }
+        callbacks = {
+            (r, redirects.get(e, e)): replace(callback, entry_id=redirects.get(e, e))
+            for (r, e), callback in callbacks.items()
+        }
+        placements = {
+            key: replace(
+                value,
+                leader_entry_id=redirects.get(value.leader_entry_id, value.leader_entry_id)
+                if value.leader_entry_id is not None
+                else None,
+                follower_entry_id=redirects.get(value.follower_entry_id, value.follower_entry_id)
+                if value.follower_entry_id is not None
+                else None,
+                couple_entry_id=redirects.get(value.couple_entry_id, value.couple_entry_id)
+                if value.couple_entry_id is not None
+                else None,
+            )
+            for key, value in placements.items()
+        }
     order = {"prelim": 1, "quarterfinal": 2, "semifinal": 3, "final": 4}
     mutual_partners = {
         (facts.entry_id, facts.partner_entry_id)
@@ -267,6 +292,67 @@ def project_event(conn: sqlite3.Connection, event: str, now: str, run_id: str) -
     output.extend(placements.values())
     output.extend(final_marks.values())
     return Projection(tuple(output), tuple(findings))
+
+
+def _display_contest_name(name: str) -> str:
+    return " ".join(re.sub(r"\b(?:leaders?|followers?)\b", "", name, flags=re.I).casefold().split())
+
+
+def _explicit_role(name: str) -> str | None:
+    roles = {role for role in ("leader", "follower") if re.search(rf"\b{role}s?\b", name, re.I)}
+    return next(iter(roles)) if len(roles) == 1 else None
+
+
+def _entry_redirects(entries: dict[str, EntryFacts], findings: list[Finding]) -> dict[str, str]:
+    """Reconcile unique bib/name identities within one contest and role.
+
+    Only a named final and a single bib-backed earlier-round entry can merge.
+    Multiple bibs, overlapping rounds, redaction, and source disagreement stay
+    separate. This never links people across contests or supplies a WSDC ID.
+    """
+    groups: dict[tuple[str, str, str], list[EntryFacts]] = {}
+    for entry in entries.values():
+        if entry.name_raw and entry.role != "couple":
+            key = entry.contest_id, entry.role, normalize_name(entry.name_raw).value
+            groups.setdefault(key, []).append(entry)
+    redirects: dict[str, str] = {}
+    for group in groups.values():
+        if len(group) < 2:
+            continue
+        bib_entries = [entry for entry in group if entry.bib]
+        named_entries = [entry for entry in group if not entry.bib]
+        if len(group) == 2 and len(bib_entries) == len(named_entries) == 1:
+            numbered, named = bib_entries[0], named_entries[0]
+            if (
+                numbered.evidence.source == named.evidence.source
+                and not numbered.rounds & named.rounds
+                and all("/final" in rid for rid in named.rounds)
+                and all("/final" not in rid for rid in numbered.rounds)
+            ):
+                redirects[named.entry_id] = numbered.entry_id
+                numbered.rounds.update(named.rounds)
+                if named.partner_entry_id:
+                    numbered.partner_entry_id = named.partner_entry_id
+                    numbered.partner_name_raw = named.partner_name_raw
+                del entries[named.entry_id]
+                continue
+        findings.append(
+            Finding(
+                kind="ambiguous_entry",
+                subject_kind="entry",
+                subject_id=min(e.entry_id for e in group),
+                severity="warning",
+                summary="Multiple entries share a contest, role, and normalized name",
+                evidence={
+                    "entry_ids": sorted(e.entry_id for e in group),
+                    "snapshots": sorted({e.evidence.snapshot_id for e in group}),
+                },
+            )
+        )
+    for entry in entries.values():
+        if entry.partner_entry_id:
+            entry.partner_entry_id = redirects.get(entry.partner_entry_id, entry.partner_entry_id)
+    return redirects
 
 
 def _project_table(
@@ -329,8 +415,7 @@ def _project_table(
         evidence.source == "wdr"
         and {headers[index] for index in competitor_columns} >= {"am", "pro"}
         and not any(
-            role in evidence.sheet.contest_name_raw.casefold()
-            for role in ("leader", "follower")
+            role in evidence.sheet.contest_name_raw.casefold() for role in ("leader", "follower")
         )
     ):
         findings.append(
@@ -348,8 +433,6 @@ def _project_table(
             )
         )
     bib_columns = [index for index, header in enumerate(headers) if "bib" in header]
-    if not bib_columns and competitor_columns and competitor_columns[0] > 0:
-        bib_columns = [competitor_columns[0] - 1]
     place_column = next(
         (
             index
@@ -377,21 +460,35 @@ def _project_table(
             name = _cell(cells, column)
             if not name or name == "-":
                 continue
-            for role, competitor_name in _competitors(
+            competitors = _competitors(
                 name,
                 headers[column],
                 evidence.sheet.contest_name_raw,
                 len(competitor_columns),
                 competitor_columns.index(column),
-            ):
+            )
+            scored_role = _explicit_role(evidence.sheet.contest_name_raw)
+            if evidence.source == "eepro" and round_type != "final" and len(competitors) == 2:
+                # Rotating-partner sheets score the role named in the heading.
+                # The other person's name is context, not another scored entrant.
+                competitors = (
+                    tuple(pair for pair in competitors if pair[0] == scored_role)
+                    if scored_role
+                    else (("couple", name),)
+                )
+            split_pair = len(competitors) == 2 and len(competitor_columns) == 1
+            for role, competitor_name in competitors:
                 bib = _bib_for_role(
                     cells,
                     headers,
                     bib_columns,
                     role,
-                    generic_shared=evidence.source == "wdr"
-                    and round_type == "final"
-                    and len(competitor_columns) > 1,
+                    generic_shared=(
+                        evidence.source == "wdr"
+                        and round_type == "final"
+                        and len(competitor_columns) > 1
+                    )
+                    or (split_pair and role != scored_role),
                 )
                 if redacted_row and bib is None:
                     findings.append(
@@ -536,6 +633,7 @@ def _record_conflicts(
     entries: dict[str, EntryFacts],
     findings: list[Finding],
 ) -> None:
+    round_type = _round_type(evidence.sheet.round_name_raw)
     headers = [_text(cell).casefold() for cell in table.headers]
     competitor_columns = [
         index
@@ -549,13 +647,23 @@ def _record_conflicts(
             name = _cell(row.cells, column)
             if not name:
                 continue
-            for role, competitor_name in _competitors(
+            competitors = _competitors(
                 name,
                 headers[column],
                 evidence.sheet.contest_name_raw,
                 len(competitor_columns),
                 competitor_columns.index(column),
-            ):
+            )
+            scored_role = _explicit_role(evidence.sheet.contest_name_raw)
+            if evidence.source == "eepro" and round_type != "final" and len(competitors) == 2:
+                # Rotating-partner sheets score the role named in the heading.
+                # The other person's name is context, not another scored entrant.
+                competitors = (
+                    tuple(pair for pair in competitors if pair[0] == scored_role)
+                    if scored_role
+                    else (("couple", name),)
+                )
+            for role, competitor_name in competitors:
                 bib = _bib_for_role(row.cells, headers, bib_columns, role)
                 identifier = entry_id(contest, role, bib, competitor_name)
                 selected = entries.get(identifier)
@@ -757,7 +865,9 @@ def _contest_qualifier(name: str, vocabulary: ContestVocabulary) -> str:
         }.get(vocabulary.age_division, set())
     )
     ignored.update(
-        {"country"} if vocabulary.dance_style == "country" else {"lindy"}
+        {"country"}
+        if vocabulary.dance_style == "country"
+        else {"lindy"}
         if vocabulary.dance_style == "lindy"
         else {"swing"}
     )
@@ -828,9 +938,9 @@ def _bib_for_role(
     generic_shared: bool = False,
 ) -> str | None:
     specific = next((index for index in columns if role in headers[index]), None)
-    if generic_shared and specific is None:
-        return None
     value = _cell(cells, specific if specific is not None else (columns[0] if columns else None))
+    if generic_shared and specific is None and (not value or "/" not in value):
+        return None
     if value and "/" in value and role in {"leader", "follower"}:
         parts = [part.strip() for part in value.split("/", maxsplit=1)]
         if len(parts) == 2 and all(parts):

@@ -609,7 +609,7 @@ def test_real_wdr_rounds_fixture_projects_complete_event_surface(tmp_path: Path)
         entries = records(projection, Entry)
         callbacks = records(projection, Callback)
         placements = records(projection, Placement)
-        assert len(entries) == 1229
+        assert len(entries) == 1081
         assert sum(entry.name_raw is None for entry in entries) == 203
         assert len(records(projection, Judge)) == 23
         callback_marks = records(projection, CallbackMark)
@@ -621,7 +621,7 @@ def test_real_wdr_rounds_fixture_projects_complete_event_surface(tmp_path: Path)
         assert {callback.outcome for callback in callbacks} == {"promoted"}
         by_id = {entry.entry_id: entry for entry in entries}
         assert all(
-            by_id[entry_id].bib is None
+            by_id[entry_id].bib is None or "prelim" in by_id[entry_id].rounds_danced
             for placement in placements
             for entry_id in (placement.leader_entry_id, placement.follower_entry_id)
             if entry_id is not None
