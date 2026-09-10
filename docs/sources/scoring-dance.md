@@ -185,7 +185,7 @@ the owner as an incident, never retried with other headers.
 - Whether any part of the page other than the tables changes between
   renders (nonce check).
 
-## 14. Implementation fixture check (2026-09-09 UTC)
+## 14. Implementation fixture check (replayed 2026-09-10 UTC)
 
 The gated collector archived the sitemap, recent index, event 418, and all
 12 rounds listed by the event page. Fixtures and metadata are in
@@ -193,11 +193,21 @@ The gated collector archived the sitemap, recent index, event 418, and all
 compressed there. The recent index yields 27 event records. The round fixtures
 cover six Jack & Jill divisions, including preliminaries, one semifinal, and
 finals, with descendant `data-wsdc`, callback/state attributes, and judge titles.
-The full offline pipeline produces 6 contests, 12 rounds, 202 entries, 153
-callbacks, 769 recognized callback marks, 62 placements, and 420 final marks.
-Eight rows with unrecognized numeric or scratched callback values remain in raw
+The full offline pipeline preserves both role panels and produces 6 contests,
+12 rounds, 370 entries, 336 callbacks, 1,684 recognized callback marks,
+62 placements, and 420 final marks.
+Rows with unrecognized numeric or scratched callback values remain in raw
 observations with findings; they are not converted to `no` marks or callback
 outcomes.
+
+Callback states come from the source's row attributes. `CB` means promoted;
+`Alt` remains an unranked alternate. Blank states mean eliminated only where
+the table establishes an outcome convention. Unknown old layouts remain
+withheld. Repeated partner rows contribute entrant-level outcome evidence;
+conflicting marks for the same entrant and judge, and their dependent summary,
+are withheld with findings. The current schema cannot retain a complete
+partner-specific score history. An elimination contradicted by later-round
+participation is also withheld with a finding.
 
 The complete event also proves that bibs are reusable between contests: bib 698
 identifies different followers in All-Stars and Sophisticated. Identity grouping

@@ -16,7 +16,7 @@ Generated from `swingset.model.enums`.
 
 ## CallbackOutcome
 
-`promoted`, `alternate_1`, `alternate_2`, `alternate_3`, `eliminated`
+`promoted`, `alternate`, `alternate_1`, `alternate_2`, `alternate_3`, `eliminated`
 
 ## ContestType
 
@@ -28,7 +28,7 @@ Generated from `swingset.model.enums`.
 
 ## Division
 
-`newcomer`, `novice`, `intermediate`, `advanced`, `allstar`, `champion`, `open`, `invitational`, `none`
+`newcomer`, `novice`, `intermediate`, `advanced`, `allstar`, `champion`, `open`, `invitational`, `none`, `unknown`
 
 ## FindingKind
 
@@ -60,7 +60,7 @@ Generated from `swingset.model.enums`.
 
 ## RegistryDivision
 
-`newcomer`, `novice`, `intermediate`, `advanced`, `allstar`, `champion`, `open`, `invitational`, `juniors`, `sophisticated`, `masters`, `none`
+`newcomer`, `novice`, `intermediate`, `advanced`, `allstar`, `champion`, `open`, `invitational`, `juniors`, `sophisticated`, `masters`, `none`, `unknown`, `PRO`, `TCH`
 
 ## Role
 

@@ -1,7 +1,7 @@
 import sqlite3
 from pathlib import Path
 
-from swingset.model.canonical import Callback, CallbackMark, Round
+from swingset.model.canonical import Callback, CallbackMark, Entry, Round
 from swingset.model.observations import encode_payload
 from swingset.project.contests import project_event
 from swingset.sources.base import ParseContext
@@ -91,10 +91,156 @@ def test_archived_scoringdance_states_drive_outcomes_and_promoted_count(tmp_path
     assert {"promoted", "alternate_1", "alternate_2", "eliminated"} <= outcomes
     round_ = _records(projection, Round)[0]
     assert round_.promoted_count == sum(  # type: ignore[attr-defined]
-        callback.outcome == "promoted" for callback in callbacks  # type: ignore[attr-defined]
+        callback.outcome == "promoted"
+        for callback in callbacks  # type: ignore[attr-defined]
     )
     assert round_.promoted_count > 0  # type: ignore[attr-defined]
-    assert round_.entry_count == sum(len(sheet.tables[0].rows) for sheet in sheets)  # type: ignore[attr-defined]
+    prelim_entries = [
+        entry
+        for entry in _records(projection, Entry)
+        if "prelim" in entry.rounds_danced  # type: ignore[attr-defined]
+    ]
+    assert round_.entry_count == len(prelim_entries)  # type: ignore[attr-defined]
+
+
+def test_repeated_partner_rows_keep_promoted_evidence_and_withhold_conflicting_marks(
+    tmp_path: Path,
+) -> None:
+    state = (("row-data-state", "CB"),)
+    table = ResultTable(
+        "Prelim",
+        (Cell("Bib"), Cell("Leader"), Cell("J1")),
+        (
+            ResultRow((Cell("42", state), Cell("A Dancer", state), Cell("Y", state))),
+            ResultRow((Cell("42"), Cell("A Dancer"), Cell("N"))),
+        ),
+    )
+    sheet = RoundSheet(
+        "round_sheet",
+        "scoringdance:quality",
+        "prelim",
+        "Open Jack & Jill Leader",
+        "prelim",
+        (table,),
+    )
+    with open_database(tmp_path, lock=False) as db:
+        _seed(db.connection, "scoringdance", "scoringdance:quality")
+        _add(db.connection, "scoringdance", "scoringdance:quality", sheet)
+        projection = project_event(db.connection, EVENT, "2026-09-10T00:00:00Z", "run")
+
+    round_ = _records(projection, Round)[0]
+    assert round_.entry_count == 1  # type: ignore[attr-defined]
+    assert round_.promoted_count == 1  # type: ignore[attr-defined]
+    assert _records(projection, CallbackMark) == []
+    assert _records(projection, Callback) == []
+    assert any(
+        finding.summary == "Conflicting callback marks for one entry and judge"
+        for finding in projection.findings
+    )  # type: ignore[attr-defined]
+
+
+def test_scoringdance_unknown_layout_withholds_outcomes(tmp_path: Path) -> None:
+    table = ResultTable(
+        "Prelim",
+        (Cell("Bib"), Cell("Leader"), Cell("J1")),
+        (ResultRow((Cell("42"), Cell("A Dancer"), Cell("Y"))),),
+    )
+    sheet = RoundSheet(
+        "round_sheet",
+        "scoringdance:quality",
+        "prelim",
+        "Novice Jack & Jill Leader",
+        "prelim",
+        (table,),
+    )
+    with open_database(tmp_path, lock=False) as db:
+        _seed(db.connection, "scoringdance", "scoringdance:quality")
+        _add(db.connection, "scoringdance", "scoringdance:quality", sheet)
+        projection = project_event(db.connection, EVENT, "2026-09-10T00:00:00Z", "run")
+
+    assert _records(projection, Callback) == []
+    assert _records(projection, Round)[0].promoted_count is None  # type: ignore[attr-defined]
+
+
+def test_scoringdance_preserves_unranked_and_third_alternates(tmp_path: Path) -> None:
+    def row(bib: str, name: str, state: str) -> ResultRow:
+        attributes = (("row-data-state", state),)
+        return ResultRow((Cell(bib, attributes), Cell(name, attributes), Cell("Alt1", attributes)))
+
+    table = ResultTable(
+        "Prelim",
+        (Cell("Bib"), Cell("Leader"), Cell("J1")),
+        (row("42", "A Dancer", "Alt"), row("43", "B Dancer", "Alt3")),
+    )
+    sheet = RoundSheet(
+        "round_sheet",
+        "scoringdance:quality",
+        "prelim",
+        "Novice Jack & Jill Leader",
+        "prelim",
+        (table,),
+    )
+    with open_database(tmp_path, lock=False) as db:
+        _seed(db.connection, "scoringdance", "scoringdance:quality")
+        _add(db.connection, "scoringdance", "scoringdance:quality", sheet)
+        projection = project_event(db.connection, EVENT, "2026-09-10T00:00:00Z", "run")
+
+    assert {callback.outcome for callback in _records(projection, Callback)} == {
+        "alternate",
+        "alternate_3",
+    }
+
+
+def test_eliminated_outcome_is_withheld_when_same_entry_danced_later_round(
+    tmp_path: Path,
+) -> None:
+    promoted = (("row-data-state", "CB"),)
+    prelim = ResultTable(
+        "Prelim",
+        (Cell("Bib"), Cell("Leader"), Cell("J1")),
+        (
+            ResultRow((Cell("42"), Cell("A Dancer"), Cell("Y"))),
+            ResultRow((Cell("43", promoted), Cell("B Dancer", promoted), Cell("Y", promoted))),
+        ),
+    )
+    final = ResultTable(
+        "Final",
+        (Cell("Bib"), Cell("Leader"), Cell("Place")),
+        (ResultRow((Cell("42"), Cell("A Dancer"), Cell("1"))),),
+    )
+    sheets = (
+        RoundSheet(
+            "round_sheet",
+            "scoringdance:quality",
+            "prelim",
+            "Novice Jack & Jill Leader",
+            "prelim",
+            (prelim,),
+        ),
+        RoundSheet(
+            "round_sheet",
+            "scoringdance:quality",
+            "final",
+            "Novice Jack & Jill Leader",
+            "final",
+            (final,),
+        ),
+    )
+    with open_database(tmp_path, lock=False) as db:
+        _seed(db.connection, "scoringdance", "scoringdance:quality")
+        _add(db.connection, "scoringdance", "scoringdance:quality", sheets)
+        projection = project_event(db.connection, EVENT, "2026-09-10T00:00:00Z", "run")
+
+    callbacks = _records(projection, Callback)
+    assert [(callback.entry_id, callback.outcome) for callback in callbacks] == [
+        (f"{EVENT}/novice-jj/L-43", "promoted")
+    ]
+    contradiction = next(
+        finding
+        for finding in projection.findings  # type: ignore[attr-defined]
+        if finding.summary == "Eliminated callback conflicts with later-round participation"
+    )
+    assert contradiction.evidence["later_round_ids"] == [f"{EVENT}/novice-jj/final"]
 
 
 def test_callback_aggregate_uses_marks_from_all_tables(tmp_path: Path) -> None:
@@ -102,10 +248,16 @@ def test_callback_aggregate_uses_marks_from_all_tables(tmp_path: Path) -> None:
     headers_b = (Cell("Bib"), Cell("Leader"), Cell("J2", (("t", "9"),)))
     outcome = (("t", "2"),)
     tables = (
-        ResultTable("Prelim", headers_a, (ResultRow((Cell("7"), Cell("A"), Cell("Y"), Cell("Y", outcome))),)),
-        ResultTable("Prelim", headers_b, (ResultRow((Cell("7"), Cell("A"), Cell("N"), Cell("Y", outcome))),)),
+        ResultTable(
+            "Prelim", headers_a, (ResultRow((Cell("7"), Cell("A"), Cell("Y"), Cell("Y", outcome))),)
+        ),
+        ResultTable(
+            "Prelim", headers_b, (ResultRow((Cell("7"), Cell("A"), Cell("N"), Cell("Y", outcome))),)
+        ),
     )
-    sheet = RoundSheet("round_sheet", "wdr:quality", "prelim", "Novice Jack & Jill Leader", "prelim", tables)
+    sheet = RoundSheet(
+        "round_sheet", "wdr:quality", "prelim", "Novice Jack & Jill Leader", "prelim", tables
+    )
 
     with open_database(tmp_path, lock=False) as db:
         _seed(db.connection, "wdr", "wdr:quality")
@@ -117,3 +269,4 @@ def test_callback_aggregate_uses_marks_from_all_tables(tmp_path: Path) -> None:
     assert len(marks) == 2
     assert callback.score_sum == sum(mark.mark_value for mark in marks)  # type: ignore[attr-defined]
     assert (callback.yes_count, callback.alt_count, callback.no_count) == (1, 0, 1)  # type: ignore[attr-defined]
+    assert _records(projection, Round)[0].promoted_count == 1  # type: ignore[attr-defined]

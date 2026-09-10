@@ -156,6 +156,7 @@ class CallbackMark(StrEnum):
 
 class CallbackOutcome(StrEnum):
     PROMOTED = "promoted"
+    ALTERNATE = "alternate"
     ALTERNATE_1 = "alternate_1"
     ALTERNATE_2 = "alternate_2"
     ALTERNATE_3 = "alternate_3"

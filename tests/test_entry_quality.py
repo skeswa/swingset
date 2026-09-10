@@ -36,7 +36,12 @@ def _sheet(
     kind: str, name: str, bib: str | None, contest: str = "Novice Jack & Jill Leader"
 ) -> RoundSheet:
     headers = (Cell("Bib"), Cell("Leader"), Cell("Place" if kind == "Final" else "J1"))
-    cells = (Cell(bib), Cell(name), Cell("1" if kind == "Final" else "Y"))
+    state = () if kind == "Final" else (("row-data-state", "CB"),)
+    cells = (
+        Cell(bib, state),
+        Cell(name, state),
+        Cell("1" if kind == "Final" else "Y", state),
+    )
     return RoundSheet(
         "round_sheet",
         "eepro:hummer",

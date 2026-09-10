@@ -79,10 +79,13 @@ def project_event(conn: sqlite3.Connection, event: str, now: str, run_id: str) -
     entries: dict[str, EntryFacts] = {}
     judges: dict[str, tuple[Judge, Evidence]] = {}
     marks: dict[tuple[str, str, str], CallbackMark] = {}
+    ambiguous_marks: set[tuple[str, str, str]] = set()
     final_marks: dict[tuple[str, str, str], FinalMark] = {}
     callbacks: dict[tuple[str, str], Callback] = {}
     placements: dict[str, Placement] = {}
     round_types: dict[str, str] = {}
+    round_sources: dict[str, str] = {}
+    round_outcomes_known: dict[str, bool] = {}
 
     for contest_key, sheets in groups.items():
         cid = f"{event}/{contest_slugs[contest_key]}"
@@ -160,6 +163,12 @@ def project_event(conn: sqlite3.Connection, event: str, now: str, run_id: str) -
                 max(panel, key=lambda item: item.precedence) for panel in panel_groups.values()
             )
             tables = tuple(table for item in selected_panels for table in item.sheet.tables)
+            round_sources[rid] = selected.source
+            round_outcomes_known[rid] = all(
+                _outcome_convention_known(table, item.source)
+                for item in selected_panels
+                for table in item.sheet.tables
+            )
             judge_count = len(
                 {
                     token
@@ -207,6 +216,7 @@ def project_event(conn: sqlite3.Connection, event: str, now: str, run_id: str) -
                         entries,
                         judges,
                         marks,
+                        ambiguous_marks,
                         callbacks,
                         final_marks,
                         placements,
@@ -239,6 +249,7 @@ def project_event(conn: sqlite3.Connection, event: str, now: str, run_id: str) -
             (r, redirects.get(e, e)): replace(callback, entry_id=redirects.get(e, e))
             for (r, e), callback in callbacks.items()
         }
+        ambiguous_marks = {(r, redirects.get(e, e), j) for r, e, j in ambiguous_marks}
         placements = {
             key: replace(
                 value,
@@ -285,7 +296,57 @@ def project_event(conn: sqlite3.Connection, event: str, now: str, run_id: str) -
                 **_provenance(facts.evidence, now, run_id),
             )
         )
-    callbacks = _reconcile_callback_aggregates(callbacks, marks)
+    contradicted_callbacks: set[tuple[str, str]] = set()
+    for key, callback in callbacks.items():
+        later_rounds = sorted(
+            danced_round
+            for danced_round in entries[callback.entry_id].rounds
+            if order[round_types[danced_round]] > order[round_types[callback.round_id]]
+        )
+        if callback.source == "scoringdance" and callback.outcome == "eliminated" and later_rounds:
+            contradicted_callbacks.add(key)
+            findings.append(
+                Finding(
+                    kind="conflict",
+                    subject_kind="callback",
+                    subject_id=f"{callback.round_id}:{callback.entry_id}",
+                    severity="warning",
+                    summary="Eliminated callback conflicts with later-round participation",
+                    evidence={
+                        "snapshot_id": callback.snapshot_id,
+                        "round_id": callback.round_id,
+                        "entry_id": callback.entry_id,
+                        "later_round_ids": later_rounds,
+                    },
+                    snapshot_id=callback.snapshot_id,
+                )
+            )
+    callbacks = {
+        key: callback for key, callback in callbacks.items() if key not in contradicted_callbacks
+    }
+    callback_outcomes = callbacks
+    callbacks = _reconcile_callback_aggregates(callbacks, marks, ambiguous_marks)
+    output = [
+        replace(
+            record,
+            entry_count=sum(record.round_id in facts.rounds for facts in entries.values()),
+            promoted_count=(
+                None
+                if record.round_type == "final"
+                else None
+                if round_sources[record.round_id] == "wdr" and record.promoted_count is None
+                else None
+                if not round_outcomes_known[record.round_id]
+                else sum(
+                    round_ == record.round_id and callback.outcome == "promoted"
+                    for (round_, _entry), callback in callback_outcomes.items()
+                )
+            ),
+        )
+        if isinstance(record, Round)
+        else record
+        for record in output
+    ]
     output.extend(value[0] for value in judges.values())
     output.extend(marks.values())
     output.extend(callbacks.values())
@@ -367,12 +428,14 @@ def _project_table(
     entries: dict[str, EntryFacts],
     judges: dict[str, tuple[Judge, Evidence]],
     marks: dict[tuple[str, str, str], CallbackMark],
+    ambiguous_marks: set[tuple[str, str, str]],
     callbacks: dict[tuple[str, str], Callback],
     final_marks: dict[tuple[str, str, str], FinalMark],
     placements: dict[str, Placement],
     findings: list[Finding],
 ) -> None:
     headers = [_text(cell).casefold() for cell in table.headers]
+    outcome_known = _outcome_convention_known(table, evidence.source)
     judge_columns: dict[int, str] = {}
     for index, (token, name, anonymous) in _judge_columns(
         table, infer_named=evidence.source == "eepro"
@@ -576,7 +639,7 @@ def _project_table(
                             )
                         )
                     else:
-                        marks[(round_, entry, jid)] = CallbackMark(
+                        mark = CallbackMark(
                             round_id=round_,
                             entry_id=entry,
                             judge_id=jid,
@@ -585,11 +648,47 @@ def _project_table(
                             mark_value=value,
                             **_provenance(evidence, now, run_id),
                         )
+                        key = (round_, entry, jid)
+                        previous_mark = marks.get(key)
+                        if key in ambiguous_marks:
+                            continue
+                        if (
+                            evidence.source == "scoringdance"
+                            and previous_mark is not None
+                            and (
+                                previous_mark.mark != mark.mark
+                                or previous_mark.mark_value != mark.mark_value
+                            )
+                        ):
+                            del marks[key]
+                            ambiguous_marks.add(key)
+                            findings.append(
+                                Finding(
+                                    kind="conflict",
+                                    subject_kind="mark",
+                                    subject_id=":".join(key),
+                                    severity="warning",
+                                    summary="Conflicting callback marks for one entry and judge",
+                                    evidence={
+                                        "snapshot_id": evidence.snapshot_id,
+                                        "mark_raw_values": sorted(
+                                            {previous_mark.mark_raw, mark.mark_raw}
+                                        ),
+                                    },
+                                )
+                            )
+                        else:
+                            marks[key] = mark
             if round_type != "final" and raw_marks and not unknown_mark:
                 normalized_marks = [_mark(raw)[0] for raw in raw_marks]
-                outcome = _outcome(cells, headers, source=evidence.source)
+                outcome = _outcome(
+                    cells,
+                    headers,
+                    source=evidence.source,
+                    outcome_known=outcome_known,
+                )
                 if outcome is not None:
-                    callbacks[(round_, entry)] = Callback(
+                    callback = Callback(
                         round_id=round_,
                         entry_id=entry,
                         score_sum=sum(_mark(raw)[1] for raw in raw_marks),
@@ -600,6 +699,10 @@ def _project_table(
                         tie_break_applied=None,
                         heat_number=None,
                         **_provenance(evidence, now, run_id),
+                    )
+                    callback_key = (round_, entry)
+                    callbacks[callback_key] = _combine_callback_outcome(
+                        callbacks.get(callback_key), callback
                     )
         if round_type == "final" and row_entries:
             place = _place(_cell(cells, place_column)) if place_column is not None else row_number
@@ -865,7 +968,7 @@ def _contest_qualifier(name: str, vocabulary: ContestVocabulary) -> str:
         }.get(vocabulary.age_division, set())
     )
     ignored.update(
-        {"country"}
+        {"country", "csdc"}
         if vocabulary.dance_style == "country"
         else {"lindy"}
         if vocabulary.dance_style == "lindy"
@@ -1068,7 +1171,22 @@ def _place(value: str | None) -> int | None:
     return _integer(value) or _ordinal(value)
 
 
-def _outcome(cells: tuple[Cell, ...], headers: list[str], *, source: str = "") -> str | None:
+def _outcome_convention_known(table: ResultTable, source: str) -> bool:
+    if source != "scoringdance":
+        return True
+    headers = [_text(cell).casefold() for cell in table.headers]
+    return any("promot" in header or "alt" in header for header in headers) or any(
+        _attrs(cell).get("row-data-state", "").strip() for row in table.rows for cell in row.cells
+    )
+
+
+def _outcome(
+    cells: tuple[Cell, ...],
+    headers: list[str],
+    *,
+    source: str = "",
+    outcome_known: bool = True,
+) -> str | None:
     if source == "wdr":
         for cell in cells:
             if _attrs(cell).get("t") != "2":
@@ -1091,6 +1209,12 @@ def _outcome(cells: tuple[Cell, ...], headers: list[str], *, source: str = "") -
             return "alternate_1"
         if "alt2" in states:
             return "alternate_2"
+        if "alt3" in states:
+            return "alternate_3"
+        if "alt" in states:
+            return "alternate"
+        if not outcome_known:
+            return None
     for index, header in enumerate(headers):
         value = (_cell(cells, index) or "").casefold()
         if "promot" in header and value not in {"", "0", "no"}:
@@ -1100,14 +1224,31 @@ def _outcome(cells: tuple[Cell, ...], headers: list[str], *, source: str = "") -
     return "eliminated"
 
 
+def _combine_callback_outcome(previous: Callback | None, current: Callback) -> Callback:
+    if previous is None:
+        return current
+    precedence = {
+        "eliminated": 0,
+        "alternate": 1,
+        "alternate_3": 2,
+        "alternate_2": 3,
+        "alternate_1": 4,
+        "promoted": 5,
+    }
+    outcome = max((previous.outcome, current.outcome), key=precedence.__getitem__)
+    return replace(current, outcome=outcome)
+
+
 def _reconcile_callback_aggregates(
     callbacks: dict[tuple[str, str], Callback],
     marks: dict[tuple[str, str, str], CallbackMark],
+    ambiguous_marks: set[tuple[str, str, str]],
 ) -> dict[tuple[str, str], Callback]:
     """Make summaries agree with the retained marks across split source tables."""
     by_entry: dict[tuple[str, str], list[CallbackMark]] = {}
     for (round_, entry, _judge), mark in marks.items():
         by_entry.setdefault((round_, entry), []).append(mark)
+    ambiguous_entries = {(round_, entry) for round_, entry, _judge in ambiguous_marks}
     return {
         key: replace(
             callback,
@@ -1117,6 +1258,7 @@ def _reconcile_callback_aggregates(
             no_count=sum(mark.mark == "no" for mark in by_entry.get(key, ())),
         )
         for key, callback in callbacks.items()
+        if key not in ambiguous_entries
     }
 
 
@@ -1135,8 +1277,17 @@ def _promoted_count(tables: tuple[ResultTable, ...], *, source: str = "") -> int
     promoted: set[tuple[int, int]] = set()
     for table_number, table in enumerate(tables):
         headers = [_text(cell).casefold() for cell in table.headers]
+        outcome_known = _outcome_convention_known(table, source)
         for row_number, row in enumerate(table.rows):
-            if _outcome(row.cells, headers, source=source) == "promoted":
+            if (
+                _outcome(
+                    row.cells,
+                    headers,
+                    source=source,
+                    outcome_known=outcome_known,
+                )
+                == "promoted"
+            ):
                 promoted.add((table_number, row_number))
     return len(promoted)
 

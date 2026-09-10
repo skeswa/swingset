@@ -170,7 +170,7 @@ table: `source` (enum), `snapshot_id`, `parser_version`, `first_seen_at`,
 | `entry_id` | string | |
 | `score_sum` | float32 | |
 | `yes_count`, `alt_count`, `no_count` | int8 | |
-| `outcome` | enum | `promoted`, `alternate_1`, `alternate_2`, `alternate_3`, `eliminated` |
+| `outcome` | enum | `promoted`, `alternate` (source rank unknown), `alternate_1`, `alternate_2`, `alternate_3`, `eliminated` |
 | `tie_break_applied` | bool | nullable |
 | `heat_number` | int16 | nullable |
 | (prov) | | |

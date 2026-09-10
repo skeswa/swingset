@@ -70,7 +70,7 @@ def _quality(data: BuildInput) -> str:
     lines.extend(
         [
             "",
-            "Findings are not an error-rate estimate. Unknown callback outcomes are withheld, so callback rows alone are not a promotion-rate denominator. `rounds.judge_count` is the round-wide judge roster, not each entrant's voting-panel size. Registry divisions `PRO` and `TCH` retain literal source codes with unverified meanings; `unknown` levels mean unavailable interpretation, not no points. Conflicting registry claims are withheld with review findings.",
+            "Findings are not an error-rate estimate. Unknown callback outcomes are withheld, so callback rows alone are not a promotion-rate denominator. For entrants appearing with multiple partners, outcomes summarize their strongest reported result. Conflicting entrant/judge marks and their dependent summaries are withheld with findings; partner-specific score histories are not fully represented. `alternate` preserves an unranked source alternate status. `rounds.judge_count` is the round-wide judge roster, not each entrant's voting-panel size. Registry divisions `PRO` and `TCH` retain literal source codes with unverified meanings; `unknown` levels mean unavailable interpretation, not no points. Conflicting registry claims are withheld with review findings.",
         ]
     )
     return "\n\n".join(lines[:2]) + "\n\n" + "\n".join(lines[2:])
