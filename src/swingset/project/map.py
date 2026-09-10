@@ -14,6 +14,7 @@ from swingset.model.ids import event_id, series_id
 from swingset.normalize.events import event_dates_overlap, normalize_event_name
 
 from .contests import project_event
+from .registry_events import reconcile_registry_events
 from .writer import Projection, replace_scope, replace_source_event_map
 
 
@@ -138,6 +139,7 @@ def project_map(
             )
     desired_unknown_ids = {event.event_id for event in unknown}
     retained_unknown = list(unknown)
+    retiring_unknown_ids: set[str] = set()
     for row in conn.execute(
         """SELECT e.* FROM canonical_scope_rows c JOIN events e
         ON c.table_name='events' AND c.record_key=json_array(e.event_id)
@@ -146,6 +148,13 @@ def project_map(
         stored = _stored_event(row)
         if stored.event_id not in desired_unknown_ids:
             retained_unknown.append(stored)
+            owner_count = conn.execute(
+                "SELECT count(*) FROM canonical_scope_rows WHERE table_name='events' "
+                "AND record_key=json_array(?)",
+                (stored.event_id,),
+            ).fetchone()[0]
+            if owner_count == 1:
+                retiring_unknown_ids.add(stored.event_id)
     premap_unknown_changed = replace_scope(
         conn,
         scope_kind="unmatched_source_events",
@@ -175,6 +184,12 @@ def project_map(
             "DELETE FROM pending_work WHERE stage='project' AND unit_kind='event' AND unit_id=?",
             (event,),
         )
+    registry_changed = reconcile_registry_events(
+        conn,
+        reconciled_at=now,
+        run_id=run_id,
+        excluded_event_ids=frozenset(retiring_unknown_ids),
+    )
     unknown_changed = replace_scope(
         conn,
         scope_kind="unmatched_source_events",
@@ -184,7 +199,12 @@ def project_map(
         projected_at=now,
         enqueue_links=False,
     )
-    return premap_unknown_changed or unknown_changed or before != sorted(mapped)
+    return (
+        premap_unknown_changed
+        or registry_changed
+        or unknown_changed
+        or before != sorted(mapped)
+    )
 
 
 def _stored_event(row: sqlite3.Row) -> Event:

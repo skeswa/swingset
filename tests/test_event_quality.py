@@ -177,6 +177,24 @@ def test_city_of_angels_alias_uses_approximate_override_dates(tmp_path: Path) ->
         old_contest = database.connection.execute(
             "SELECT contest_id FROM contests WHERE event_id=?", (old_event,)
         ).fetchone()[0]
+        database.connection.execute(
+            "INSERT INTO dancers(wsdc_id,first_name,last_name,name_norm,is_pro,primary_role,"
+            "leader_required_level,leader_allowed_level,follower_required_level,"
+            "follower_allowed_level,leader_highest_level,leader_highest_points,"
+            "follower_highest_level,follower_highest_points,recent_year,registry_internal_id,"
+            "registry_fetched_at,source,snapshot_id,parser_version,first_seen_at,last_seen_at,"
+            "run_id) VALUES (1,'A','Dancer','a dancer',0,'leader','novice','novice','novice',"
+            "'novice','novice',1,'novice',1,2027,1,'2026-09-10','test','snapshot','1',"
+            "'2026-09-10','2026-09-10','run')"
+        )
+        database.connection.execute(
+            "INSERT INTO registry_placements(wsdc_id,role,dance_style,division,series_id,"
+            "series_name_raw,event_month,event_id,result,points,source,snapshot_id,"
+            "parser_version,first_seen_at,last_seen_at,run_id) VALUES "
+            "(1,'leader','wcs','novice','slug-city-of-angels','City Of Angels 2026',"
+            "'2027-04-01',?,'1',1,'test','snapshot','1','2026-09-10','2026-09-10','run')",
+            (old_event,),
+        )
         with database.transaction():
             project_map(database.connection, reviewed, "2026-09-10", "run", 11)
         mapping = database.connection.execute(
@@ -195,7 +213,11 @@ def test_city_of_angels_alias_uses_approximate_override_dates(tmp_path: Path) ->
         new_contests = database.connection.execute(
             "SELECT count(*) FROM contests WHERE event_id='2026-04-city-of-angels-wcs'"
         ).fetchone()[0]
+        registry_event = database.connection.execute(
+            "SELECT event_id FROM registry_placements WHERE wsdc_id=1"
+        ).fetchone()[0]
     assert tuple(mapping) == ("2026-04-city-of-angels-wcs", "override")
     assert tuple(event) == ("2026-04-01", "2026-04-30", "unknown", "override")
     assert tuple(old_rows) == (0, 0)
     assert new_contests == 1
+    assert registry_event is None
