@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import heapq
 import json
+import math
 import os
 import shutil
 import sqlite3
@@ -142,11 +143,46 @@ def _validate(rows: Mapping[str, list[dict[str, Any]]]) -> None:
             value = row.get(field)
             if value is not None and value not in allowed_values:
                 raise BuildError(f"unknown {table}.{field} enum value: {value!r}")
+    for row in rows.get("events", []):
+        start, end = row.get("start_date"), row.get("end_date")
+        if start is not None and end is not None and start > end:
+            raise BuildError(f"event {row.get('event_id')} starts after it ends")
     entry_ids = {row["entry_id"] for row in rows.get("entries", [])}
+    round_ids = {row["round_id"] for row in rows.get("rounds", [])}
+    judge_ids = {row["judge_id"] for row in rows.get("judges", [])}
     for table in ("callback_marks", "callbacks", "heats"):
         for row in rows.get(table, []):
             if row.get("entry_id") not in entry_ids:
                 raise BuildError(f"{table} references missing entry {row.get('entry_id')}")
+    for table in ("callback_marks", "callbacks"):
+        for row in rows.get(table, []):
+            if row.get("round_id") not in round_ids:
+                raise BuildError(f"{table} references missing round {row.get('round_id')}")
+    callback_marks: dict[tuple[Any, Any], list[dict[str, Any]]] = {}
+    for row in rows.get("callback_marks", []):
+        if row.get("judge_id") not in judge_ids:
+            raise BuildError(f"callback_marks references missing judge {row.get('judge_id')}")
+        callback_marks.setdefault((row.get("round_id"), row.get("entry_id")), []).append(row)
+    for callback in rows.get("callbacks", []):
+        callback_key = callback.get("round_id"), callback.get("entry_id")
+        marks = callback_marks.get(callback_key, [])
+        expected = {
+            "yes_count": sum(mark.get("mark") == "yes" for mark in marks),
+            "alt_count": sum(str(mark.get("mark", "")).startswith("alt") for mark in marks),
+            "no_count": sum(mark.get("mark") == "no" for mark in marks),
+        }
+        for field, value in expected.items():
+            if callback.get(field) != value:
+                raise BuildError(
+                    f"callback {callback_key!r} {field} disagrees with retained marks"
+                )
+        score_sum = sum(float(mark.get("mark_value") or 0) for mark in marks)
+        if not math.isclose(
+            float(callback.get("score_sum") or 0), score_sum, rel_tol=1e-6, abs_tol=1e-4
+        ):
+            raise BuildError(
+                f"callback {callback_key!r} score_sum disagrees with retained marks"
+            )
     for table, field in (
         ("placements", "leader_entry_id"),
         ("placements", "follower_entry_id"),

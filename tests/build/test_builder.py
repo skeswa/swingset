@@ -142,6 +142,86 @@ def test_broken_entry_reference_fails_without_complete_candidate(tmp_path: Path)
     assert not (tmp_path / "candidates" / "cand_bad").exists()
 
 
+def test_reversed_event_dates_block_build(tmp_path: Path) -> None:
+    event = {field.name: None for field in SCHEMAS["events"]}
+    event.update(
+        {
+            "event_id": "new-year",
+            "start_date": date(2026, 12, 30),
+            "end_date": date(2026, 1, 2),
+        }
+    )
+    with pytest.raises(BuildError, match="starts after it ends"):
+        build_candidate(tmp_path, inputs(events=[event]), metadata("cand_bad_dates"))
+
+
+def _callback_tables() -> dict[str, list[dict[str, object]]]:
+    entry = {field.name: None for field in SCHEMAS["entries"]}
+    entry.update({"entry_id": "e", "link_status": "unmatched"})
+    round_ = {field.name: None for field in SCHEMAS["rounds"]}
+    round_.update({"round_id": "r"})
+    judges = []
+    marks = []
+    for judge_id, mark, value in (("j1", "yes", 10.0), ("j2", "alt2", 4.3), ("j3", "no", 0.0)):
+        judge = {field.name: None for field in SCHEMAS["judges"]}
+        judge.update({"judge_id": judge_id})
+        judges.append(judge)
+        callback_mark = {field.name: None for field in SCHEMAS["callback_marks"]}
+        callback_mark.update(
+            {
+                "round_id": "r",
+                "entry_id": "e",
+                "judge_id": judge_id,
+                "mark": mark,
+                "mark_value": value,
+            }
+        )
+        marks.append(callback_mark)
+    callback = {field.name: None for field in SCHEMAS["callbacks"]}
+    callback.update(
+        {
+            "round_id": "r",
+            "entry_id": "e",
+            "score_sum": 14.30001,
+            "yes_count": 1,
+            "alt_count": 1,
+            "no_count": 1,
+            "outcome": "promoted",
+        }
+    )
+    return {
+        "entries": [entry],
+        "rounds": [round_],
+        "judges": judges,
+        "callback_marks": marks,
+        "callbacks": [callback],
+    }
+
+
+@pytest.mark.parametrize("field,bad_value", [("score_sum", 10.0), ("yes_count", 0), ("alt_count", 0), ("no_count", 0)])
+def test_callback_aggregate_must_match_retained_marks(
+    tmp_path: Path, field: str, bad_value: object
+) -> None:
+    tables = _callback_tables()
+    tables["callbacks"][0][field] = bad_value
+    with pytest.raises(BuildError, match="disagrees with retained marks"):
+        build_candidate(tmp_path, inputs(**tables), metadata(f"cand_bad_{field}"))
+
+
+def test_callback_validation_allows_float_tolerance_and_withheld_summary(tmp_path: Path) -> None:
+    tables = _callback_tables()
+    build_candidate(tmp_path / "summarized", inputs(**tables), metadata("cand_valid"))
+    tables["callbacks"] = []
+    build_candidate(tmp_path / "withheld", inputs(**tables), metadata("cand_withheld"))
+
+
+def test_callback_mark_with_missing_judge_blocks_build(tmp_path: Path) -> None:
+    tables = _callback_tables()
+    tables["judges"] = tables["judges"][1:]
+    with pytest.raises(BuildError, match="references missing judge j1"):
+        build_candidate(tmp_path, inputs(**tables), metadata("cand_missing_judge"))
+
+
 def test_bib_identity_is_scoped_to_a_contest(tmp_path: Path) -> None:
     def linked(entry_id: str, contest_id: str, wsdc_id: int) -> dict[str, object]:
         row = {field.name: None for field in SCHEMAS["entries"]}
