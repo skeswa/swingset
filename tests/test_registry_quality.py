@@ -1,4 +1,6 @@
+from swingset.model.canonical import RegistryPlacement
 from swingset.project.registry_events import reconcile_registry_events
+from swingset.project.writer import Projection, replace_scope
 from swingset.state.db import open_database
 
 
@@ -122,3 +124,51 @@ def test_dancer_scoped_reconciliation_does_not_touch_other_dancers(tmp_path) -> 
                 "SELECT wsdc_id,event_id FROM registry_placements ORDER BY wsdc_id"
             )
         ] == [(1, "event-a"), (2, "stale")]
+
+
+def test_repeat_dancer_projection_preserves_reconciled_event_without_churn(tmp_path) -> None:
+    with open_database(tmp_path, lock=False) as db:
+        _run(db.connection)
+        _event(db.connection, "event-a", "Exact Event", "2026-08-30")
+        _dancer_and_placement(db.connection)
+        reconcile_registry_events(db.connection, reconciled_at="t", run_id="run", wsdc_id=1)
+        before = tuple(db.connection.execute("SELECT * FROM registry_placements").fetchone())
+        revision = db.connection.execute(
+            "SELECT value FROM revisions WHERE name='dancers'"
+        ).fetchone()[0]
+        projected = RegistryPlacement(
+            wsdc_id=1,
+            role="leader",
+            dance_style="wcs",
+            division="novice",
+            series_id="wsdc-77",
+            series_name_raw="  Exact   Event ",
+            event_month="2026-08-01",
+            event_id=None,
+            result="1",
+            points=10,
+            source="test",
+            snapshot_id="snap",
+            parser_version="1",
+            first_seen_at="later",
+            last_seen_at="later",
+            run_id="later-run",
+        )
+        assert not replace_scope(
+            db.connection,
+            scope_kind="dancer",
+            scope_id="1",
+            projection=Projection((projected,)),
+            run_id="later-run",
+            projected_at="later",
+        )
+        assert not reconcile_registry_events(
+            db.connection, reconciled_at="later", run_id="run", wsdc_id=1
+        )
+        assert (
+            tuple(db.connection.execute("SELECT * FROM registry_placements").fetchone()) == before
+        )
+        assert (
+            db.connection.execute("SELECT value FROM revisions WHERE name='dancers'").fetchone()[0]
+            == revision
+        )

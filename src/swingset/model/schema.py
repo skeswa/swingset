@@ -54,7 +54,7 @@ TABLES: dict[str, TableSchema] = {
     "registry_placements": TableSchema(
         "registry_placements",
         ("wsdc_id", "role", "series_id", "event_month", "division", "dance_style"),
-        (),
+        ("event_id",),
         "event_id",
     ),
 }
