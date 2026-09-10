@@ -25,7 +25,7 @@ from .score import Weights, score_candidate
 if TYPE_CHECKING:
     from swingset.state.inputs import InputBundle
 
-LINKER_VERSION = "4"
+LINKER_VERSION = "5"
 
 
 def _source_ids(database: Database, event_id: str) -> dict[str, int]:
