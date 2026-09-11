@@ -1,7 +1,12 @@
 # research/
 
-One-off research artifacts. Not used by the pipeline. Facts here were
-captured on 2026-09-04 and are not kept up to date.
+One-off research artifacts and offline audit tools. Capture and review dates
+are recorded per artifact; historical findings are not kept up to date.
+
+## Dataset quality reviews
+
+- [First-pass audit, 2026-09-10](data-quality-2026-09-10.md): pinned baseline and defects.
+- [Correction release](data-quality-repair-2026-09-10.md): repairs, measured changes, publication verification, and remaining limits.
 
 ## Offline candidate audit
 

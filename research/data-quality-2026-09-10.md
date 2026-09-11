@@ -1,5 +1,8 @@
 # First-pass data quality audit
 
+Follow-up: [correction release and verification](data-quality-repair-2026-09-10.md).
+This audit describes the pinned baseline below.
+
 Audited 2026-09-10. **Useful for exploratory result lookup; not ready for
 callback-rate, dancer-history, or registry-points analysis.** File integrity is
 strong. Semantic correctness and coverage need further work.
