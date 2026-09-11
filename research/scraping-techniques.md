@@ -22,22 +22,22 @@ below is ranked by how much origin load it removes.
 One conditional-GET pair per host, plus a few single fetches. Gaps of at
 least 5 s within a host. User-Agent `swingset/0.0 (+https://github.com/skeswa/swingset)`.
 
-| Host | Server | Validators on results pages | Conditional GET | Bytes per poll (gzip) | Notes |
-|---|---|---|---|---|---|
-| `eepro.com` | Apache 2.4.62, Amazon Linux | strong `ETag` + `Last-Modified` on `.html` | **304 works** | 145 KB prelims page, 23 KB finals; 0 on 304 | `event.php` index has no validators (27 KB every time). `/results/<slug>/` is an Apache autoindex (1.8 KB) listing every file with its mtime. `/results/` root is an empty stub. `robots.txt` is 404. |
-| `scoring.dance` | Cloudflare in front of Apache | `Last-Modified` only, and it is the **render time**, not a content time (two origin renders 7 s apart had different values) | 304 only when Cloudflare's edge still holds the page (`cf-cache-status: HIT`, `s-maxage=600`); on a MISS the origin re-renders and answers 200 | 8 KB event page; 335 KB sitemap | `cache-control: public, max-age=300, s-maxage=600, stale-while-ravlativate=86400000` (typo is theirs, so browsers ignore that directive). Brotli by default, gzip on request. `robots.txt` allows all and names the sitemap. Sitemap has 1,915 `enUS` URLs, 383 event ids (max 444), five routes per event, **no `lastmod`**. |
-| `danceconvention.net` | Jetty 9.4 behind CloudFront | `ETag` present but **different on every response** (a Sentry trace id is in the `<head>`) | never 304 | **1.67 MB** gzip, 2.9 MB raw; the `__NUXT__` payload is only 124 KB of that | `Cache-Control: no-store`. `Accept-Ranges: none`, so we cannot fetch just the tail. PDFs have no validators and `no-store`; HEAD works. robots disallows registration flows, `eventpage:selectresultscontestrow`, and `eventpage.schedulecalendar:*`; results tab and `roundscores/*.pdf` are allowed. |
-| `scores.worlddanceregistry.com` | S3 behind CloudFront (React Static v7) | weak `ETag` + `Last-Modified` | **304 works** (`x-cache: RefreshHit from cloudfront`, so CloudFront revalidates against S3 and S3 answers 304) | 40 KB gzip for the full rounds JSON (500 KB raw); 1.8 KB awards; 0 on 304 | `Cache-Control: no-cache, no-store, must-revalidate`. Every route has a `routeInfo.json` next to it with the page's data as plain JSON. Bucket root, `robots.txt`, and sitemap return 403. |
-| `worldsdc.com` | Cloudflare, WordPress | none (`cf-cache-status: DYNAMIC`) | never 304 | 33 KB gzip (250 KB raw) | A GTranslate widget id changes every response, so a raw body hash always differs. `robots.txt` allows all; Yoast sitemap index exists. |
+| Host                            | Server                                 | Validators on results pages                                                                                                 | Conditional GET                                                                                                                                | Bytes per poll (gzip)                                                       | Notes                                                                                                                                                                                                                                                                                                                         |
+| ------------------------------- | -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `eepro.com`                     | Apache 2.4.62, Amazon Linux            | strong `ETag` + `Last-Modified` on `.html`                                                                                  | **304 works**                                                                                                                                  | 145 KB prelims page, 23 KB finals; 0 on 304                                 | `event.php` index has no validators (27 KB every time). `/results/<slug>/` is an Apache autoindex (1.8 KB) listing every file with its mtime. `/results/` root is an empty stub. `robots.txt` is 404.                                                                                                                         |
+| `scoring.dance`                 | Cloudflare in front of Apache          | `Last-Modified` only, and it is the **render time**, not a content time (two origin renders 7 s apart had different values) | 304 only when Cloudflare's edge still holds the page (`cf-cache-status: HIT`, `s-maxage=600`); on a MISS the origin re-renders and answers 200 | 8 KB event page; 335 KB sitemap                                             | `cache-control: public, max-age=300, s-maxage=600, stale-while-ravlativate=86400000` (typo is theirs, so browsers ignore that directive). Brotli by default, gzip on request. `robots.txt` allows all and names the sitemap. Sitemap has 1,915 `enUS` URLs, 383 event ids (max 444), five routes per event, **no `lastmod`**. |
+| `danceconvention.net`           | Jetty 9.4 behind CloudFront            | `ETag` present but **different on every response** (a Sentry trace id is in the `<head>`)                                   | never 304                                                                                                                                      | **1.67 MB** gzip, 2.9 MB raw; the `__NUXT__` payload is only 124 KB of that | `Cache-Control: no-store`. `Accept-Ranges: none`, so we cannot fetch just the tail. PDFs have no validators and `no-store`; HEAD works. robots disallows registration flows, `eventpage:selectresultscontestrow`, and `eventpage.schedulecalendar:*`; results tab and `roundscores/*.pdf` are allowed.                        |
+| `scores.worlddanceregistry.com` | S3 behind CloudFront (React Static v7) | weak `ETag` + `Last-Modified`                                                                                               | **304 works** (`x-cache: RefreshHit from cloudfront`, so CloudFront revalidates against S3 and S3 answers 304)                                 | 40 KB gzip for the full rounds JSON (500 KB raw); 1.8 KB awards; 0 on 304   | `Cache-Control: no-cache, no-store, must-revalidate`. Every route has a `routeInfo.json` next to it with the page's data as plain JSON. Bucket root, `robots.txt`, and sitemap return 403.                                                                                                                                    |
+| `worldsdc.com`                  | Cloudflare, WordPress                  | none (`cf-cache-status: DYNAMIC`)                                                                                           | never 304                                                                                                                                      | 33 KB gzip (250 KB raw)                                                     | A GTranslate widget id changes every response, so a raw body hash always differs. `robots.txt` allows all; Yoast sitemap index exists.                                                                                                                                                                                        |
 
 Wayback Machine coverage (CDX, `filter=statuscode:200`, `collapse=urlkey`):
 
-| Prefix | Unique URLs with a 200 capture | Distinct events | Years |
-|---|---|---|---|
-| `eepro.com/results/*` | 1,124 | 141 slugs | 2016 to 2026 |
-| `scoring.dance/enUS/events/*` | 3,155 | 330 event ids | 2021 to 2026 |
-| `danceconvention.net/eventdirector/en/eventpage/*` | 1,188 | 415 events | 2017 to 2026, mostly 2019 to 2021 |
-| `scores.worlddanceregistry.com/*` | 34 | 7 events | 2022 to 2026 |
+| Prefix                                             | Unique URLs with a 200 capture | Distinct events | Years                             |
+| -------------------------------------------------- | ------------------------------ | --------------- | --------------------------------- |
+| `eepro.com/results/*`                              | 1,124                          | 141 slugs       | 2016 to 2026                      |
+| `scoring.dance/enUS/events/*`                      | 3,155                          | 330 event ids   | 2021 to 2026                      |
+| `danceconvention.net/eventdirector/en/eventpage/*` | 1,188                          | 415 events      | 2017 to 2026, mostly 2019 to 2021 |
+| `scores.worlddanceregistry.com/*`                  | 34                             | 7 events        | 2022 to 2026                      |
 
 ## Techniques, ranked by origin load removed
 
@@ -74,13 +74,13 @@ therefore reads the archive, not the origin:
 Each source has a resource that is far smaller than the results page and
 changes whenever the results do:
 
-| Source | Small resource | Size | Replaces |
-|---|---|---|---|
-| EEPro | `/results/<slug>/` autoindex, which lists every file with mtime and size | 1.8 KB | polling each round page |
-| World Dance Registry | `/<uuid>/rounds/routeInfo.json` (all rounds) and `/<uuid>/awards/routeInfo.json` | 40 KB gzip, 1.8 KB | rendering anything; and a 304 costs nothing |
-| scoring.dance | none that is cheaper than the event results page itself (8 KB gzip); the sitemap is a discovery list, not a change signal | | |
-| DCN | none. `Accept-Ranges: none`, `no-store`, per-response ETag. Every poll costs 1.67 MB. | | see the DCN guide for how we compensate |
-| WSDC calendar | none. Daily fetch of 33 KB is fine. | | |
+| Source               | Small resource                                                                                                            | Size               | Replaces                                    |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------- | ------------------ | ------------------------------------------- |
+| EEPro                | `/results/<slug>/` autoindex, which lists every file with mtime and size                                                  | 1.8 KB             | polling each round page                     |
+| World Dance Registry | `/<uuid>/rounds/routeInfo.json` (all rounds) and `/<uuid>/awards/routeInfo.json`                                          | 40 KB gzip, 1.8 KB | rendering anything; and a 304 costs nothing |
+| scoring.dance        | none that is cheaper than the event results page itself (8 KB gzip); the sitemap is a discovery list, not a change signal |                    |                                             |
+| DCN                  | none. `Accept-Ranges: none`, `no-store`, per-response ETag. Every poll costs 1.67 MB.                                     |                    | see the DCN guide for how we compensate     |
+| WSDC calendar        | none. Daily fetch of 33 KB is fine.                                                                                       |                    |                                             |
 
 ### 3. Conditional GET only where the validator is honest
 
@@ -166,13 +166,13 @@ different headers.
 
 All five sources put their data in the first response:
 
-| Site | Where the data is | How we read it |
-|---|---|---|
-| EEPro | HTML tables | `selectolax` (lexbor backend) |
-| scoring.dance | HTML tables with `data-wsdc`, `data-state` attributes | `selectolax` |
-| DCN | `window.__NUXT__=(function(a,b,...){return {...}}(...))`, a Nuxt 2 function-call payload that dedups literals through parameters, so it is not JSON | evaluate in a sandboxed `node` subprocess (decision 18). `py-mini-racer` (V8 in a wheel, has timeouts) is the fallback if the subprocess is a problem on the NixOS box. The `quickjs` PyPI package's repo was archived on 2026-01-01 (**unverified**), so it is out. |
-| World Dance Registry | `routeInfo.json` beside every route (React Static v7 writes it in `exportRoute.js`) and `window.__routeInfo` inline | `json.loads`; no JavaScript engine at all |
-| WSDC calendar | HTML table | `selectolax` |
+| Site                 | Where the data is                                                                                                                                   | How we read it                                                                                                                                                                                                                                                       |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| EEPro                | HTML tables                                                                                                                                         | `selectolax` (lexbor backend)                                                                                                                                                                                                                                        |
+| scoring.dance        | HTML tables with `data-wsdc`, `data-state` attributes                                                                                               | `selectolax`                                                                                                                                                                                                                                                         |
+| DCN                  | `window.__NUXT__=(function(a,b,...){return {...}}(...))`, a Nuxt 2 function-call payload that dedups literals through parameters, so it is not JSON | evaluate in a sandboxed `node` subprocess (decision 18). `py-mini-racer` (V8 in a wheel, has timeouts) is the fallback if the subprocess is a problem on the NixOS box. The `quickjs` PyPI package's repo was archived on 2026-01-01 (**unverified**), so it is out. |
+| World Dance Registry | `routeInfo.json` beside every route (React Static v7 writes it in `exportRoute.js`) and `window.__routeInfo` inline                                 | `json.loads`; no JavaScript engine at all                                                                                                                                                                                                                            |
+| WSDC calendar        | HTML table                                                                                                                                          | `selectolax`                                                                                                                                                                                                                                                         |
 
 Playwright stays out of the pipeline. It fetches assets, executes
 scripts, and costs the origin many requests per page for data that is
@@ -204,32 +204,32 @@ fetch layer's politeness gate is tested with a fake clock.
 
 ## Things we considered and rejected
 
-| Option | Why not |
-|---|---|
-| Scrapy | AutoThrottle raises concurrency toward a target; its delay is `latency / target_concurrency`, smoothed. It optimizes throughput, which is the opposite of a fixed 5 s floor and one in-flight request. Its cache and robots middleware are fine but bring a framework we do not need at under 2,000 requests a day. |
-| crawlee-python | Autoscales on our CPU and memory, not on the server's comfort. |
-| hishel (RFC 9111 cache for httpx; 1.3.1, August 2026) | Good library, but it would be a second store of validators next to the `watches` table, and the design wants conditional-GET behavior explicit and logged. Revisit if the hand-written layer grows past a few hundred lines. |
-| aiolimiter, pyrate-limiter | A per-host "next allowed at" timestamp plus a lock is smaller than either dependency. |
-| Headless browser by default | Multiplies origin requests; nothing here needs it. |
-| `curl_cffi`, TLS impersonation, proxies, spoofed headers | Their purpose is to hide. We want to be found in the logs. |
-| Cloudflare Web Bot Auth (RFC 9421 signatures), Verified Bots | Needs key hosting and a program application; built for large crawlers. Not worth it for a hobby project; the User-Agent link is our identification. |
-| Save Page Now | Loads the origin from the archive's IPs. |
-| HEAD requests | Same cost as a conditional GET on the servers that honor validators, and unreliable elsewhere. |
-| `Range` on DCN | `Accept-Ranges: none`. |
+| Option                                                       | Why not                                                                                                                                                                                                                                                                                                             |
+| ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Scrapy                                                       | AutoThrottle raises concurrency toward a target; its delay is `latency / target_concurrency`, smoothed. It optimizes throughput, which is the opposite of a fixed 5 s floor and one in-flight request. Its cache and robots middleware are fine but bring a framework we do not need at under 2,000 requests a day. |
+| crawlee-python                                               | Autoscales on our CPU and memory, not on the server's comfort.                                                                                                                                                                                                                                                      |
+| hishel (RFC 9111 cache for httpx; 1.3.1, August 2026)        | Good library, but it would be a second store of validators next to the `watches` table, and the design wants conditional-GET behavior explicit and logged. Revisit if the hand-written layer grows past a few hundred lines.                                                                                        |
+| aiolimiter, pyrate-limiter                                   | A per-host "next allowed at" timestamp plus a lock is smaller than either dependency.                                                                                                                                                                                                                               |
+| Headless browser by default                                  | Multiplies origin requests; nothing here needs it.                                                                                                                                                                                                                                                                  |
+| `curl_cffi`, TLS impersonation, proxies, spoofed headers     | Their purpose is to hide. We want to be found in the logs.                                                                                                                                                                                                                                                          |
+| Cloudflare Web Bot Auth (RFC 9421 signatures), Verified Bots | Needs key hosting and a program application; built for large crawlers. Not worth it for a hobby project; the User-Agent link is our identification.                                                                                                                                                                 |
+| Save Page Now                                                | Loads the origin from the archive's IPs.                                                                                                                                                                                                                                                                            |
+| HEAD requests                                                | Same cost as a conditional GET on the servers that honor validators, and unreliable elsewhere.                                                                                                                                                                                                                      |
+| `Range` on DCN                                               | `Accept-Ranges: none`.                                                                                                                                                                                                                                                                                              |
 
 ## Load budget by source
 
 Estimates for one event weekend under the guides' intervals. Live window
 is about six days (36 h before start to 48 h after end).
 
-| Source | Requests per event weekend | Bytes from origin | Origin work per poll |
-|---|---|---|---|
-| EEPro | about 150 autoindex polls, about 40 file fetches on listing change, and about 250 clocked conditional refreshes, almost all 304 | under 4 MB | static file read or stat |
-| scoring.dance | about 150 event-page polls, about 30 first fetches of round pages, and about 1,000 clocked round refreshes (30 rounds, every 4 h live, then daily for 30 days) because the event page cannot reveal a corrected round | about 10 MB | one page render per poll when the edge has expired |
-| World Dance Registry | about 150 polls, almost all 304 | under 1 MB | S3 metadata read |
-| DCN | about 60 results-tab polls plus one PDF per round when it appears (about 20), fetched again once at day 30 | about 100 MB, dominated by the 1.67 MB page | full Nuxt render per poll |
-| WSDC calendar | 1 per day | 33 KB | one WordPress render |
-| WSDC registry | per design: 2 s gap, bootstrap once, then a trickle | tiny JSON | one database lookup |
+| Source               | Requests per event weekend                                                                                                                                                                                            | Bytes from origin                           | Origin work per poll                               |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------- | -------------------------------------------------- |
+| EEPro                | about 150 autoindex polls, about 40 file fetches on listing change, and about 250 clocked conditional refreshes, almost all 304                                                                                       | under 4 MB                                  | static file read or stat                           |
+| scoring.dance        | about 150 event-page polls, about 30 first fetches of round pages, and about 1,000 clocked round refreshes (30 rounds, every 4 h live, then daily for 30 days) because the event page cannot reveal a corrected round | about 10 MB                                 | one page render per poll when the edge has expired |
+| World Dance Registry | about 150 polls, almost all 304                                                                                                                                                                                       | under 1 MB                                  | S3 metadata read                                   |
+| DCN                  | about 60 results-tab polls plus one PDF per round when it appears (about 20), fetched again once at day 30                                                                                                            | about 100 MB, dominated by the 1.67 MB page | full Nuxt render per poll                          |
+| WSDC calendar        | 1 per day                                                                                                                                                                                                             | 33 KB                                       | one WordPress render                               |
+| WSDC registry        | per design: 2 s gap, bootstrap once, then a trickle                                                                                                                                                                   | tiny JSON                                   | one database lookup                                |
 
 DCN is the outlier. The guide halves its live poll rate relative to the
 other sources and lists the JSON endpoint hunt as the first open item.

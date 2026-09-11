@@ -9,20 +9,20 @@ source acceptance is tracked in issues #10 and #12–#14; #15 records the repair
 
 ## Implemented
 
-| Package | Code and local verification |
-|---|---|
-| WP0 | Python package, frozen uv dependencies, Nix flake, strict typing, CI, config, clock, structured logs. Native imports work on the Mac and arm64 NixOS. |
-| WP1 | SQLite migration, ids, enums, typed observations and canonical records, writer lock, durable work, atomic input acceptance. |
-| WP2 | Shared host gate, robots cache, request/byte budgets, conditional requests, retries, classification, compressed raw archive and extracts. Mock-transport tests cover failure and pause behavior. |
-| WP3 | Discovery, watch lifecycle, cycle budgets, calendar extraction, mapping, transactional projection, interruption recovery, pause/resume. A quiet calendar cycle does no fetch or stage work. |
-| WP4 | Reusable NixOS module, CLI package, cycle/backup/summary timers, service hardening, graceful stop handling. The OrbStack NixOS writer is installed with publication and scheduled jobs enabled. |
-| WP5 | Explicit Arrow schemas, invariant checks, suppressions, review queue, changelog, immutable candidates, dataset card, Hub adapter, publication reconciliation, complete checkpoints, locked restore and GC. Offline tests exercise publication failure boundaries and artifact closure. |
-| WP6 | Registry parser and projection, verified missing-id classifier, durable sweep/probe cursors, daily trickle, archived dump cross-check and replay. Real found/miss fixtures and fake-clock cursor tests. |
-| WP7a | Name/division normalization, nickname seed, canonical contest projection, event/role assignment, manual overrides, judge restrictions, identity candidates and invalidation. |
-| WP7b | EEPro index, autoindex and round adapters; child invalidation and slow refresh clocks. Real Summer Hummer fixtures, named judges, paired finals bibs, date ranges, and Count ranking verified. |
-| WP8 | scoring.dance sitemap/index/event/round adapters and real fixtures; source-id and registry confirmations, refresh watches, expected-points checks. |
-| WP9 | WDR rounds/awards adapters, validator polling, expected-403 retirement, seed script and 13 usable source overrides. Complete real rounds/awards captures for all 13. |
-| WP10 | Operator commands, diagnosis, summaries, reparse, runbook, collection/removal README, issue templates and generated enum documentation. |
+| Package | Code and local verification                                                                                                                                                                                                                                                            |
+| ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| WP0     | Python package, frozen uv dependencies, Nix flake, strict typing, CI, config, clock, structured logs. Native imports work on the Mac and arm64 NixOS.                                                                                                                                  |
+| WP1     | SQLite migration, ids, enums, typed observations and canonical records, writer lock, durable work, atomic input acceptance.                                                                                                                                                            |
+| WP2     | Shared host gate, robots cache, request/byte budgets, conditional requests, retries, classification, compressed raw archive and extracts. Mock-transport tests cover failure and pause behavior.                                                                                       |
+| WP3     | Discovery, watch lifecycle, cycle budgets, calendar extraction, mapping, transactional projection, interruption recovery, pause/resume. A quiet calendar cycle does no fetch or stage work.                                                                                            |
+| WP4     | Reusable NixOS module, CLI package, cycle/backup/summary timers, service hardening, graceful stop handling. The OrbStack NixOS writer is installed with publication and scheduled jobs enabled.                                                                                        |
+| WP5     | Explicit Arrow schemas, invariant checks, suppressions, review queue, changelog, immutable candidates, dataset card, Hub adapter, publication reconciliation, complete checkpoints, locked restore and GC. Offline tests exercise publication failure boundaries and artifact closure. |
+| WP6     | Registry parser and projection, verified missing-id classifier, durable sweep/probe cursors, daily trickle, archived dump cross-check and replay. Real found/miss fixtures and fake-clock cursor tests.                                                                                |
+| WP7a    | Name/division normalization, nickname seed, canonical contest projection, event/role assignment, manual overrides, judge restrictions, identity candidates and invalidation.                                                                                                           |
+| WP7b    | EEPro index, autoindex and round adapters; child invalidation and slow refresh clocks. Real Summer Hummer fixtures, named judges, paired finals bibs, date ranges, and Count ranking verified.                                                                                         |
+| WP8     | scoring.dance sitemap/index/event/round adapters and real fixtures; source-id and registry confirmations, refresh watches, expected-points checks.                                                                                                                                     |
+| WP9     | WDR rounds/awards adapters, validator polling, expected-403 retirement, seed script and 13 usable source overrides. Complete real rounds/awards captures for all 13.                                                                                                                   |
+| WP10    | Operator commands, diagnosis, summaries, reparse, runbook, collection/removal README, issue templates and generated enum documentation.                                                                                                                                                |
 
 Some file boundaries differ from the plan's suggested layout. Event name
 normalization lives in `normalize/events.py`; source-id, bib reuse and registry
@@ -57,12 +57,12 @@ materialized rows. This is offline recovery evidence, not a production soak test
 
 Live requests used `swingset fetch-one` or `cycle` through the configured gate:
 
-| Source | Observed result |
-|---|---|
-| WSDC calendar | Full archived body produces 172 observations and 169 deduplicated events. A second cycle was quiet. |
+| Source        | Observed result                                                                                                                                                                                                                                                                                                                                                  |
+| ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| WSDC calendar | Full archived body produces 172 observations and 169 deduplicated events. A second cycle was quiet.                                                                                                                                                                                                                                                              |
 | WSDC registry | Dancer 1 produced a found record and three placements. Ids 1,000,000 and 1,000,001 returned the same verified 404 error body. The comparison dump was archived with SHA-256 `ae7f2b9d688b69b49d08dfc718f60e5ef6b4b6561054d2503e8c94b8ae5e1d53`. The partial production mirror is at cursor 3,297 against the 27,039-ID dump; the full sweep remains in progress. |
-| scoring.dance | Archived sitemap, recent index, event 418 and all 12 rounds. Full local build: 6 contests, 12 rounds, 317 entries, 336 callbacks, 62 placements, 1,684 callback marks and 420 final marks; 236 entries have confirmed source IDs. Bib identity is scoped by contest and role. |
-| WDR | Complete rounds and awards captures for all 13 known source URLs. The acceptance build contained 285 contests, 451 rounds, 11,727 entries, 3,144 placements and 3,759 callbacks attributed to WDR. Repeated rounds fetch returned `NotModified`/304. |
+| scoring.dance | Archived sitemap, recent index, event 418 and all 12 rounds. Full local build: 6 contests, 12 rounds, 317 entries, 336 callbacks, 62 placements, 1,684 callback marks and 420 final marks; 236 entries have confirmed source IDs. Bib identity is scoped by contest and role.                                                                                    |
+| WDR           | Complete rounds and awards captures for all 13 known source URLs. The acceptance build contained 285 contests, 451 rounds, 11,727 entries, 3,144 placements and 3,759 callbacks attributed to WDR. Repeated rounds fetch returned `NotModified`/304.                                                                                                             |
 
 Archived parser fixtures live under `src/swingset/sources/*/fixtures/`.
 Synthetic fixtures are labeled under `tests/fixtures/sources/`. Raw source

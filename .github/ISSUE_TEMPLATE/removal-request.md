@@ -3,6 +3,7 @@ name: Personal data removal
 about: Request removal or correction of your public dataset records
 labels: removal
 ---
+
 Which event, result page, or dataset row is affected?
 
 What should be removed or corrected?

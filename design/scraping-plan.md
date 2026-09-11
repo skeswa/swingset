@@ -57,16 +57,16 @@ Record the date and outcome in the playbook's section 1.
 These are small and are folded into the design documents in this
 commit.
 
-| Change | Where |
-|---|---|
-| Each page kind has one pure `extract(body) -> Extract`; its canonical hash is the fingerprint and its content is the input to record construction, so nothing is parsed twice. Unchanged fingerprint: body discarded, `checked_at` recorded | [fetching](fetching.md#change-detection), [parsing](parsing.md#contract) |
-| `Accept-Encoding: gzip` only, never brotli, so Apache's `-gzip` ETag suffix is stable and every client we run decodes it | [fetching](fetching.md#politeness-rules) |
-| Per-host byte budget in addition to the request budget; defaults in fetching.md, overrides only in playbooks | [fetching](fetching.md#politeness-rules) |
-| The Wayback Machine is a host in `hosts.toml` and a transport in the fetch layer; backfill watches carry an archive URL | [fetching](fetching.md#archive), [scheduling](scheduling.md#watch-states-and-intervals) |
-| Watch kind `autoindex` (EEPro) and `json` (WDR) | [scheduling](scheduling.md#watches) |
-| World Dance Registry is a source with its own discovery (link scan plus overrides) | [sources](sources.md#world-dance-registry-pro-score-scoresworlddanceregistrycom) |
-| `overrides/source_urls.csv` feeds long-tail and WDR watches | [repository layout](repository-layout.md) |
-| Robots: a `User-agent: swingset` group is honored above the wildcard; 4xx including 403 means unrestricted | [fetching](fetching.md#politeness-rules) |
+| Change                                                                                                                                                                                                                                      | Where                                                                                   |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| Each page kind has one pure `extract(body) -> Extract`; its canonical hash is the fingerprint and its content is the input to record construction, so nothing is parsed twice. Unchanged fingerprint: body discarded, `checked_at` recorded | [fetching](fetching.md#change-detection), [parsing](parsing.md#contract)                |
+| `Accept-Encoding: gzip` only, never brotli, so Apache's `-gzip` ETag suffix is stable and every client we run decodes it                                                                                                                    | [fetching](fetching.md#politeness-rules)                                                |
+| Per-host byte budget in addition to the request budget; defaults in fetching.md, overrides only in playbooks                                                                                                                                | [fetching](fetching.md#politeness-rules)                                                |
+| The Wayback Machine is a host in `hosts.toml` and a transport in the fetch layer; backfill watches carry an archive URL                                                                                                                     | [fetching](fetching.md#archive), [scheduling](scheduling.md#watch-states-and-intervals) |
+| Watch kind `autoindex` (EEPro) and `json` (WDR)                                                                                                                                                                                             | [scheduling](scheduling.md#watches)                                                     |
+| World Dance Registry is a source with its own discovery (link scan plus overrides)                                                                                                                                                          | [sources](sources.md#world-dance-registry-pro-score-scoresworlddanceregistrycom)        |
+| `overrides/source_urls.csv` feeds long-tail and WDR watches                                                                                                                                                                                 | [repository layout](repository-layout.md)                                               |
+| Robots: a `User-agent: swingset` group is honored above the wildcard; 4xx including 403 means unrestricted                                                                                                                                  | [fetching](fetching.md#politeness-rules)                                                |
 
 ## Phases
 
@@ -202,16 +202,16 @@ A review of load should read the playbook, not this plan.
 
 ## Things to verify, by phase
 
-| Item | Phase |
-|---|---|
-| Calendar fingerprint stable across a week; Yoast sitemap `lastmod` for `/events/` | 0 |
-| Wayback 429 behavior at a 10 s gap (none in 27 requests on 2026-09-11) | 0 |
-| DCN PDFs in the archive; Step Right promotion marks; registry month versus end date | 6 |
-| EEPro `Count` column meaning; `/results/<year>/` existence; operator's answer on autoindex | 2 |
-| scoring.dance nonce check; Cloudflare stability at 15 min; paid API scope and price | 3 |
-| WDR `S<n>`, finals bib, `attributeGroup`, registration euid mapping | 3b |
-| DCN JSON endpoint; PDF bibs vs app bibs; hidden 7-digit ids | 4 |
-| Drive embedded folder view; Swing Fiction operator consent | 5 |
+| Item                                                                                       | Phase |
+| ------------------------------------------------------------------------------------------ | ----- |
+| Calendar fingerprint stable across a week; Yoast sitemap `lastmod` for `/events/`          | 0     |
+| Wayback 429 behavior at a 10 s gap (none in 27 requests on 2026-09-11)                     | 0     |
+| DCN PDFs in the archive; Step Right promotion marks; registry month versus end date        | 6     |
+| EEPro `Count` column meaning; `/results/<year>/` existence; operator's answer on autoindex | 2     |
+| scoring.dance nonce check; Cloudflare stability at 15 min; paid API scope and price        | 3     |
+| WDR `S<n>`, finals bib, `attributeGroup`, registration euid mapping                        | 3b    |
+| DCN JSON endpoint; PDF bibs vs app bibs; hidden 7-digit ids                                | 4     |
+| Drive embedded folder view; Swing Fiction operator consent                                 | 5     |
 
 ## Risks
 

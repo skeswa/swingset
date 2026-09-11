@@ -12,6 +12,8 @@ uv sync --frozen
 uv run pytest -q
 uv run ruff check .
 uv run mypy
+mise install
+mise run fmt
 orb create --cpus 4 --memory 8G nixos:25.11 swingset
 orb -m swingset
 cd /Users/skeswa/repos/skeswa/swingset

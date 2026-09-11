@@ -24,11 +24,11 @@ The detailed claim ledgers record the original claims and their dispositions.
 They describe defects in the pre-audit text; the corrected design document
 incorporates those findings.
 
-| Period | Claim ledger | Main evidence |
-|---|---|---|
-| Baseline through 2017 | [Early-period audit](wsdc-audit-early-2026-09-11.md) | Archived 2004 HTML; 2009, 2011, 2012, 2014, and both 2015 points documents; July 2015 requirements and announcement; 2017 newsletters |
-| 2018–2023 | [Middle-period audit](wsdc-audit-middle-2026-09-11.md) | Six-tier rules, 2019 and 2020 rules, May 2021 addendum, 2023.1B/1C and the September update filed as 1D, with newsletters |
-| 2024–2026 | [Recent-period audit](wsdc-audit-recent-2026-09-11.md) | 2024.1A/1B/2A/2B, final 2025.1A, excluded 2025 draft, 2026.1A–1D, newsletters, and the official rules index |
+| Period                | Claim ledger                                           | Main evidence                                                                                                                         |
+| --------------------- | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------- |
+| Baseline through 2017 | [Early-period audit](wsdc-audit-early-2026-09-11.md)   | Archived 2004 HTML; 2009, 2011, 2012, 2014, and both 2015 points documents; July 2015 requirements and announcement; 2017 newsletters |
+| 2018–2023             | [Middle-period audit](wsdc-audit-middle-2026-09-11.md) | Six-tier rules, 2019 and 2020 rules, May 2021 addendum, 2023.1B/1C and the September update filed as 1D, with newsletters             |
+| 2024–2026             | [Recent-period audit](wsdc-audit-recent-2026-09-11.md) | 2024.1A/1B/2A/2B, final 2025.1A, excluded 2025 draft, 2026.1A–1D, newsletters, and the official rules index                           |
 
 The [source table](../design/wsdc-rules-history.md#sources) has exact original
 URLs and full archive replay links. The [evidence manifest](verification/2026-09-11/wsdc-rules/cache-manifest.json)
@@ -128,8 +128,7 @@ recovered 2026 versions preserve the primary advancement thresholds and tier
 awards from 2025 while adding the secondary-role chart. Their final footer
 retains a conflicting 2025 effective date; the official index separately
 states that the 2026 rules are effective January 1, 2026. These are source
-metadata defects, not evidence that the 2026 secondary rules governed
-2025.[^1][^5]
+metadata defects, not evidence that the 2026 secondary rules governed 2025.[^1][^5]
 
 ## Dataset consequences
 
@@ -160,17 +159,17 @@ history's qualifications.
 
 ## Unresolved questions
 
-| Question | Evidence limit | What would resolve it |
-|---|---|---|
-| Does the recovered August 2010 update equal the later-listed September 1 version? | Similar chronology does not establish identical revisions. | A distinct dated copy or WSDC confirmation |
-| Were there additional operative revisions between recovered snapshots? | Archive silence cannot prove completeness. | Further contemporaneous documents or a complete official amendment register |
-| Which exact day in January 2014 governs its change? | The document gives only `1.2014`. | A dated announcement or WSDC clarification |
-| When did both-role entry and separate advancement calculation actually begin in 2021? | February announcement and May addendum do not specify an exact deployment date. | The original effective-date announcement or contemporaneous implementation evidence |
-| Were Junior/Masters points actually absent in 2018? | The 2018 text excludes age-based placements, unlike earlier and later texts. | Historical registry observations or an official explanation of the discrepancy |
-| Did Trial points begin January 1 or January 2, 2025, and which event was first? | Published dates conflict; eligibility does not prove actual publication. | WSDC clarification plus a dated first Trial award observation |
-| Which rules governed a contest spanning a change boundary? | Posting month and end date do not fully establish applicability. | Event-specific rules/results or an official transition policy |
-| What do the legacy sliding-window JSON fields mean? | The public rulebooks do not document the API. | API documentation, source code, or source-owner confirmation |
-| Is every original source still available, and is the recovered 2026 sequence exhaustive? | Current direct HTTP requests failed; indexed discovery is incomplete evidence. | Successful current-source retrieval and a complete version inventory |
+| Question                                                                                 | Evidence limit                                                                  | What would resolve it                                                               |
+| ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| Does the recovered August 2010 update equal the later-listed September 1 version?        | Similar chronology does not establish identical revisions.                      | A distinct dated copy or WSDC confirmation                                          |
+| Were there additional operative revisions between recovered snapshots?                   | Archive silence cannot prove completeness.                                      | Further contemporaneous documents or a complete official amendment register         |
+| Which exact day in January 2014 governs its change?                                      | The document gives only `1.2014`.                                               | A dated announcement or WSDC clarification                                          |
+| When did both-role entry and separate advancement calculation actually begin in 2021?    | February announcement and May addendum do not specify an exact deployment date. | The original effective-date announcement or contemporaneous implementation evidence |
+| Were Junior/Masters points actually absent in 2018?                                      | The 2018 text excludes age-based placements, unlike earlier and later texts.    | Historical registry observations or an official explanation of the discrepancy      |
+| Did Trial points begin January 1 or January 2, 2025, and which event was first?          | Published dates conflict; eligibility does not prove actual publication.        | WSDC clarification plus a dated first Trial award observation                       |
+| Which rules governed a contest spanning a change boundary?                               | Posting month and end date do not fully establish applicability.                | Event-specific rules/results or an official transition policy                       |
+| What do the legacy sliding-window JSON fields mean?                                      | The public rulebooks do not document the API.                                   | API documentation, source code, or source-owner confirmation                        |
+| Is every original source still available, and is the recovered 2026 sequence exhaustive? | Current direct HTTP requests failed; indexed discovery is incomplete evidence.  | Successful current-source retrieval and a complete version inventory                |
 
 The incidental claim that 76 All Stars were demoted was removed. It is not a
 rule, was attributed to a third-party analysis, and was not independently
@@ -184,16 +183,27 @@ The complete source inventory and exact archive links are in the
 below identify the primary documents supporting this report's main findings.
 
 [^1]: World Swing Dance Council, [Rules & Info](https://worldsdc.com/rules/), indexed page checked September 11, 2026. States that the 2026 rules are effective January 1, 2026 and separately lists a 2027 draft.
+
 [^2]: WSDC, [Points Registry Document, effective January 1, 2009](https://web.archive.org/web/20090711213926id_/http://www.swingdancecouncil.com:80/library/WSDC%20Points%20Registry%20Document.pdf), pp.1–2; [effective January 1, 2012](https://web.archive.org/web/20120711021140id_/http://www.swingdancecouncil.com:80/library/WSDC%20Points%20Registry%20Document.pdf), pp.1–2.
+
 [^3]: WSDC, [Points Registry Document, effective February 1, 2015](https://web.archive.org/web/20150608073004id_/http://www.swingdancecouncil.com/library/WSDC%20Points%20Registry%20Document.pdf), p.2; [July 2015 points document](https://web.archive.org/web/20150905114738id_/http://www.swingdancecouncil.com/library/WSDC%20Points%20Registry%20Document.pdf), p.2; [July 2015 announcement](https://web.archive.org/web/20150905125650id_/http://www.swingdancecouncil.com/library/UPDATED_EVENT_RULES_ANNOUNCEMENT.pdf); [Registry Event Requirements](https://web.archive.org/web/20150905130630id_/http://www.swingdancecouncil.com/library/WSDC_Registry_Event_Requirements.pdf), §5.
+
 [^4]: WSDC, [2018.1A Points Registry Rules](https://www.worldsdc.com/wp-content/uploads/2017/12/2018.1A-WSDC-Points-Registry-Rules-v2018.1A.pdf), effective January 3, 2018, pp.1–3.
+
 [^5]: WSDC, [2026.1B Registry Event Rules](https://www.worldsdc.com/wp-content/uploads/2026/01/WSDC-Registry-Event-Rules-Jan-17-2026.pdf), §§3.1–3.3; [2026.1C](https://www.worldsdc.com/wp-content/uploads/2026/03/Revised-WSDC-Registry-Event-Rules-Updated-Jan172026-V2026.1B.pdf); [2026.1D](https://www.worldsdc.com/wp-content/uploads/2026/05/Revised-WSDC-Registry-Event-Rules-05-22-2026.pdf). Version identities come from PDF headers.
+
 [^6]: WSDC, [Points Registry Document, January 2014](https://web.archive.org/web/20140809211447id_/http://www.swingdancecouncil.com/library/WSDC%20Points%20Registry%20Document.pdf), p.1; [2019.1A Points Registry Rules](https://www.worldsdc.com/wp-content/uploads/2019/03/2019.1A-WSDC-Points-Registry-Rules_Final.pdf), dated February 15, 2019; [Newsletter 9](https://www.worldsdc.com/wp-content/uploads/2020/12/WSDC-Newsleter-Vol-9-1-24-2019.pdf), January 24, 2019, p.1.
+
 [^7]: WSDC, [Newsletter 26](https://www.worldsdc.com/wp-content/uploads/2023/05/WSDC-Newsletter-Vol-26-05-16-2023-1.pdf), May 16, 2023, p.1.
+
 [^8]: WSDC, [May 14, 2021 addendum](https://www.worldsdc.com/wp-content/uploads/2021/06/2020.1B-WSDC-Points-Registry-Rules_with-addendum-5-14-2021.pdf), addendum pp.1–2.
+
 [^9]: WSDC, [2023.1B Registry Event Rules](https://www.worldsdc.com/wp-content/uploads/2022/11/2023-Registry-Event-Rules_vFinal2-2023.1B.pdf), effective January 1, 2023; [2023.1C](https://www.worldsdc.com/wp-content/uploads/2023/06/2023-Registry-Event-Rules_vFinal3-2023.1C.pdf), effective July 5, 2023, §3.2 and Chart 3; [Newsletter 27](https://www.worldsdc.com/wp-content/uploads/2023/09/WSDC-Newsletter-Vol-27-9-11-2023.pdf), September 11, 2023, p.2.
+
 [^10]: WSDC, [2025.1A Registry Event Rules](https://www.worldsdc.com/wp-content/uploads/2024/12/wsdcrules.pdf), effective January 1, 2025, §1.3 and note 2, Chart 4; [Newsletter 31](https://www.worldsdc.com/wp-content/uploads/2024/10/WSDC-Newsletter-Vol-31-October-16-2024.pdf), October 16, 2024, pp.1–3.
+
 [^11]: WSDC, [2020 points rules](https://www.worldsdc.com/wp-content/uploads/2021/02/2020.1B-WSDC-Points-Registry-Rules_vFinal.pdf), p.2 rule 10; [Newsletter 30](https://www.worldsdc.com/wp-content/uploads/2024/05/WSDC-Newsletter-Vol-30-05-21-2024-5.0.pdf), May 21, 2024, p.3.
+
 [^12]: WSDC, [2024.1B](https://www.worldsdc.com/wp-content/uploads/2024/03/2024-Registry-Event-Rules_v2024.1B.pdf), effective March 27, 2024, §3.4 note 6; [2024.2B](https://www.worldsdc.com/wp-content/uploads/2024/07/2024-Registry-Event-Rules_v2024.2B.pdf), July 11 clarification note and Definitions; [2025 v4 draft](https://www.worldsdc.com/wp-content/uploads/2025/11/2025-Registry-Event-Rules_v4.pdf), p.2.
 
 [^13]: WSDC, [2018.1A Registry Event Rules and Requirements](https://www.worldsdc.com/wp-content/uploads/2018/01/2018.1A-Registry-Event-Rules-and-Requirements.pdf), pp.4–5; [2019.1A Registry Event Rules](https://www.worldsdc.com/wp-content/uploads/2019/03/2019.1A-Registry-Event-Rules_Final.pdf), §§3–5.

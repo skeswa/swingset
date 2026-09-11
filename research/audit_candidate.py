@@ -106,7 +106,7 @@ def main() -> int:
             continue
         columns = ",".join(f'"{key}"' for key in keys)
         duplicate_keys[table] = scalar(
-            f'SELECT coalesce(sum(n - 1), 0) FROM ('
+            f"SELECT coalesce(sum(n - 1), 0) FROM ("
             f'SELECT count(*) n FROM "{table}" GROUP BY {columns} HAVING count(*) > 1)'
         )
     integrity["duplicate_primary_keys"] = duplicate_keys

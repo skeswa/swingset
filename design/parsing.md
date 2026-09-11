@@ -95,20 +95,20 @@ calendar, with the identifiers in [architecture](architecture.md#observations-an
 [Implementation plan](implementation-plan.md) owns build order. This
 inventory names parser output, before canonical projection.
 
-| Page kind | Input | Observations and watch specs |
-|---|---|---|
-| `wsdc_calendar.events` | print list HTML | `CalendarRow`s |
-| `wsdc_registry.dancer` | `/lookup2020/find` JSON | One `DancerLookup`, including registry placements or a verified miss |
-| `eepro.index` | `event.php` | `SourceEventRow`s and event watch specs |
-| `eepro.autoindex` | Apache directory listing | File metadata and round watch specs |
-| `eepro.round` | round HTML | `RoundSheet` with printed entries, judges, marks, and placements |
-| `scoringdance.sitemap`, `scoringdance.recent` | sitemap or recent list | Source event references and watch specs |
-| `scoringdance.event` | results index | Event sheet and round watch specs |
-| `scoringdance.round` | round HTML | Round sheet, including printed WSDC ids |
-| `wdr.rounds`, `wdr.awards` | `routeInfo.json` | Round and award sheets |
-| `dcn.list` (later) | upcoming / archive HTML | Source event rows |
-| `dcn.event_results` (later) | results tab HTML | Event sheet and PDF watch specs |
-| `dcn.round_pdf` (later) | roundscores PDF | Round sheet with printed bibs, judges, and marks |
+| Page kind                                     | Input                    | Observations and watch specs                                         |
+| --------------------------------------------- | ------------------------ | -------------------------------------------------------------------- |
+| `wsdc_calendar.events`                        | print list HTML          | `CalendarRow`s                                                       |
+| `wsdc_registry.dancer`                        | `/lookup2020/find` JSON  | One `DancerLookup`, including registry placements or a verified miss |
+| `eepro.index`                                 | `event.php`              | `SourceEventRow`s and event watch specs                              |
+| `eepro.autoindex`                             | Apache directory listing | File metadata and round watch specs                                  |
+| `eepro.round`                                 | round HTML               | `RoundSheet` with printed entries, judges, marks, and placements     |
+| `scoringdance.sitemap`, `scoringdance.recent` | sitemap or recent list   | Source event references and watch specs                              |
+| `scoringdance.event`                          | results index            | Event sheet and round watch specs                                    |
+| `scoringdance.round`                          | round HTML               | Round sheet, including printed WSDC ids                              |
+| `wdr.rounds`, `wdr.awards`                    | `routeInfo.json`         | Round and award sheets                                               |
+| `dcn.list` (later)                            | upcoming / archive HTML  | Source event rows                                                    |
+| `dcn.event_results` (later)                   | results tab HTML         | Event sheet and PDF watch specs                                      |
+| `dcn.round_pdf` (later)                       | roundscores PDF          | Round sheet with printed bibs, judges, and marks                     |
 
 ## Parsing rules
 
@@ -149,7 +149,6 @@ of nothing, so the test is honest) and the expected records as JSON.
 Fixture bodies come from our own archive so tests never hit the network.
 `pytest` runs them all. A parser change that alters expected output must
 update the fixture in the same commit.
-
 
 Fixtures are committed, not downloaded during tests. If a suppression
 request names a person in a fixture, re-record it from a different event

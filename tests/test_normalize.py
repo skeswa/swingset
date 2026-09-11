@@ -51,12 +51,8 @@ def test_event_normalization_series_and_date_matching() -> None:
     assert normalize_event_name("Montréal Westie Fest!") == "montreal westie fest"
     assert event_series_slug("The Open 2026 (On Hiatus)") == "the-open"
     candidates = [
-        EventCandidate(
-            "later", "Montréal Westie Fest", date(2026, 8, 7), date(2026, 8, 9)
-        ),
-        EventCandidate(
-            "earlier", "Montréal Westie Fest", date(2026, 8, 6), date(2026, 8, 8)
-        ),
+        EventCandidate("later", "Montréal Westie Fest", date(2026, 8, 7), date(2026, 8, 9)),
+        EventCandidate("earlier", "Montréal Westie Fest", date(2026, 8, 6), date(2026, 8, 8)),
         EventCandidate("wrong", "Another Event", date(2026, 8, 7), date(2026, 8, 9)),
     ]
     assert [

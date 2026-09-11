@@ -110,16 +110,13 @@ class EventPage(SitemapPage):
 
     def extract(self, body: bytes) -> JsonValue:
         source = body.decode("utf-8", "replace")
-        title_match = re.search(
-            r'<meta\s+property="og:title"\s+content="([^"]+)"', source, re.I
-        )
+        title_match = re.search(r'<meta\s+property="og:title"\s+content="([^"]+)"', source, re.I)
         name = title_match.group(1).strip() if title_match else None
         if name:
             name = re.sub(r"\s+results\s*$", "", name, flags=re.I)
         date_match = re.search(r"\bat\s+(\d{2}/\d{2}/\d{4})\s*\.", source, re.I)
         unpublished = (
-            "Sorry, the results aren't published yet. "
-            "Please wait until the awards are finished."
+            "Sorry, the results aren't published yet. Please wait until the awards are finished."
         ) in source
         return {
             "name": name,

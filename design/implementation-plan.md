@@ -19,27 +19,27 @@ NixOS virtual machine on the development Mac, publishing to
 `skeswa/swingset` on Hugging Face. The same NixOS module installs
 unchanged on the production box later.
 
-| In v1 | Milestone |
-|---|---|
-| Flake, NixOS module, CLI, config, SQLite state, fetch layer with politeness and archive, watches and scheduler, cycle timer, backup and restore | M0 |
-| WSDC calendar as the root of discovery | M0 |
-| Registry mirror: bootstrap sweep, dump cross-check, adaptive daily/weekly new-id probe, trickle, post-event confirmation; `dancers` and `registry_placements` | M1 |
-| Canonical model through `placements`; name normalization; EEPro discovery and parsers; name-based linking; `identity_links`, `link_candidates`, `review_queue`; overrides | M2 |
-| scoring.dance parsers; source-id links; registry confirmation loop; `points_matches_expected` | M3 |
-| World Dance Registry parsers fed by `overrides/source_urls.csv` | M3b |
-| Build with invariants, suppression, changelog, manifest; publish with atomic commits and the dataset card | M0 to M3 |
+| In v1                                                                                                                                                                     | Milestone |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- |
+| Flake, NixOS module, CLI, config, SQLite state, fetch layer with politeness and archive, watches and scheduler, cycle timer, backup and restore                           | M0        |
+| WSDC calendar as the root of discovery                                                                                                                                    | M0        |
+| Registry mirror: bootstrap sweep, dump cross-check, adaptive daily/weekly new-id probe, trickle, post-event confirmation; `dancers` and `registry_placements`             | M1        |
+| Canonical model through `placements`; name normalization; EEPro discovery and parsers; name-based linking; `identity_links`, `link_candidates`, `review_queue`; overrides | M2        |
+| scoring.dance parsers; source-id links; registry confirmation loop; `points_matches_expected`                                                                             | M3        |
+| World Dance Registry parsers fed by `overrides/source_urls.csv`                                                                                                           | M3b       |
+| Build with invariants, suppression, changelog, manifest; publish with atomic commits and the dataset card                                                                 | M0 to M3  |
 
 Out of v1, with what v1 keeps so nothing has to change later:
 
-| Deferred | Why | Kept in v1 |
-|---|---|---|
-| danceconvention.net (M4) | needs `node` evaluation, PDF parsing, byte budgets; 19 events a year | `daily_byte_budget` in the gate; `derived blob` slot in the archive; `node` in the devshell |
-| Wayback transport and backfill (M6) | weeks of low-priority fetching; nothing else depends on it | `archive_url` and `via` columns; `backfill` watch state; `web.archive.org` in `hosts.toml` |
-| Event-site link scan | discovery nicety; overrides cover 12 of 14 known WDR events | `site` watch kind reserved |
-| Heats, generic long-tail adapters, LLM draft tool (M5) | data is thin or manual | `heats` and `judges` tables published, `judges` filled, `heats` empty |
-| Splink weight fitting | needs scoring.dance data first | hand-set weights in `link/weights.toml`; `link_candidates` keeps every signal so fitting is offline later |
-| Summary webhook | destination undecided | `swingset summary` writes to the journal |
-| Per-source adaptive live floor | decision 13 says later | fixed 15 min floor |
+| Deferred                                               | Why                                                                  | Kept in v1                                                                                                |
+| ------------------------------------------------------ | -------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| danceconvention.net (M4)                               | needs `node` evaluation, PDF parsing, byte budgets; 19 events a year | `daily_byte_budget` in the gate; `derived blob` slot in the archive; `node` in the devshell               |
+| Wayback transport and backfill (M6)                    | weeks of low-priority fetching; nothing else depends on it           | `archive_url` and `via` columns; `backfill` watch state; `web.archive.org` in `hosts.toml`                |
+| Event-site link scan                                   | discovery nicety; overrides cover 12 of 14 known WDR events          | `site` watch kind reserved                                                                                |
+| Heats, generic long-tail adapters, LLM draft tool (M5) | data is thin or manual                                               | `heats` and `judges` tables published, `judges` filled, `heats` empty                                     |
+| Splink weight fitting                                  | needs scoring.dance data first                                       | hand-set weights in `link/weights.toml`; `link_candidates` keeps every signal so fitting is offline later |
+| Summary webhook                                        | destination undecided                                                | `swingset summary` writes to the journal                                                                  |
+| Per-source adaptive live floor                         | decision 13 says later                                               | fixed 15 min floor                                                                                        |
 
 ## 2. Environment
 
@@ -96,14 +96,14 @@ Per [technology](technology.md): nix owns Python 3.12, `uv`, and
 
 Decisions the design left open:
 
-| Concern | Decision |
-|---|---|
-| nixpkgs pin | `nixos-25.11` branch, matching the OrbStack image, so the machine and the flake share a store |
-| Python | `pkgs.python312`; `uv` is told never to download its own Python (`python-downloads = "never"` in `uv.toml`, `UV_PYTHON` set to the nix interpreter) |
-| Where the venv lives in the service | `UV_PROJECT_ENVIRONMENT=/var/lib/swingset/venv`, `UV_CACHE_DIR=/var/lib/swingset/uv-cache`; `ExecStartPre` runs `uv sync --frozen --no-dev` so a rebuild with a new lock refreshes it |
-| Native wheels on NixOS | manylinux wheels (`pyarrow`, `duckdb`, `scipy`, `numpy`, `rapidfuzz`, `selectolax`) need `libstdc++` and `zlib` from the system. The devshell and the unit set `LD_LIBRARY_PATH` to `${stdenv.cc.cc.lib}/lib:${zlib}/lib`. Verified by WP0's native import smoke test on 2026-09-09. Fallback, in order: take those packages from nixpkgs and give uv a venv with `--system-site-packages`; then, if still broken, drop uv and use `python312.withPackages` for everything |
-| Type checking | `mypy --strict` from the first commit, with `ignore_missing_imports` for libraries without stubs (`protego`, `nameparser`, `selectolax`) listed in `pyproject.toml` |
-| Test clock | every module that reads time takes a `Clock` protocol (`now()`, `sleep()`); tests pass a fake. No `freezegun` |
+| Concern                             | Decision                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| nixpkgs pin                         | `nixos-25.11` branch, matching the OrbStack image, so the machine and the flake share a store                                                                                                                                                                                                                                                                                                                                                                              |
+| Python                              | `pkgs.python312`; `uv` is told never to download its own Python (`python-downloads = "never"` in `uv.toml`, `UV_PYTHON` set to the nix interpreter)                                                                                                                                                                                                                                                                                                                        |
+| Where the venv lives in the service | `UV_PROJECT_ENVIRONMENT=/var/lib/swingset/venv`, `UV_CACHE_DIR=/var/lib/swingset/uv-cache`; `ExecStartPre` runs `uv sync --frozen --no-dev` so a rebuild with a new lock refreshes it                                                                                                                                                                                                                                                                                      |
+| Native wheels on NixOS              | manylinux wheels (`pyarrow`, `duckdb`, `scipy`, `numpy`, `rapidfuzz`, `selectolax`) need `libstdc++` and `zlib` from the system. The devshell and the unit set `LD_LIBRARY_PATH` to `${stdenv.cc.cc.lib}/lib:${zlib}/lib`. Verified by WP0's native import smoke test on 2026-09-09. Fallback, in order: take those packages from nixpkgs and give uv a venv with `--system-site-packages`; then, if still broken, drop uv and use `python312.withPackages` for everything |
+| Type checking                       | `mypy --strict` from the first commit, with `ignore_missing_imports` for libraries without stubs (`protego`, `nameparser`, `selectolax`) listed in `pyproject.toml`                                                                                                                                                                                                                                                                                                        |
+| Test clock                          | every module that reads time takes a `Clock` protocol (`now()`, `sleep()`); tests pass a fake. No `freezegun`                                                                                                                                                                                                                                                                                                                                                              |
 
 Runtime dependencies in v1: `httpx`, `protego`, `selectolax`,
 `pyarrow>=21`, `duckdb`, `rapidfuzz`, `scipy`, `nameparser`,
@@ -135,17 +135,17 @@ This plan owns v1 scope, environment choices, work order, and acceptance
 criteria. The following documents own the implementation contracts;
 update them in the same change when a package changes a contract.
 
-| Contract | Owner |
-|---|---|
-| Observation ownership, matching map, projection, findings | [Architecture](architecture.md) |
-| SQLite schema, invalidation, durable work, state directory | [Local state](state.md) |
-| Extract, parse, source interfaces, fixtures | [Parsing](parsing.md) |
-| Response classification and host gate | [Fetching](fetching.md) |
-| Watch policy and discovery | [Scheduling](scheduling.md) |
-| Build inputs, review queue, immutable output | [Build](build.md) |
-| Candidate identity, recovery, baseline promotion | [Publishing](publishing.md) |
-| Cycle, locks, pause, backup and restore | [Operations](operations.md) |
-| Modules and files | [Repository layout](repository-layout.md) |
+| Contract                                                   | Owner                                     |
+| ---------------------------------------------------------- | ----------------------------------------- |
+| Observation ownership, matching map, projection, findings  | [Architecture](architecture.md)           |
+| SQLite schema, invalidation, durable work, state directory | [Local state](state.md)                   |
+| Extract, parse, source interfaces, fixtures                | [Parsing](parsing.md)                     |
+| Response classification and host gate                      | [Fetching](fetching.md)                   |
+| Watch policy and discovery                                 | [Scheduling](scheduling.md)               |
+| Build inputs, review queue, immutable output               | [Build](build.md)                         |
+| Candidate identity, recovery, baseline promotion           | [Publishing](publishing.md)               |
+| Cycle, locks, pause, backup and restore                    | [Operations](operations.md)               |
+| Modules and files                                          | [Repository layout](repository-layout.md) |
 
 ## 4. Work packages
 
@@ -525,7 +525,7 @@ playbook. That is M3.
 Deliverables: `sources/wdr/` with `wdr.rounds` and `wdr.awards` on
 `routeInfo.json` (`change_mode = "validators"`), the cell type codes
 from the playbook, redacted rows emitted with `name_raw = "***"` and
-null marks, `roundName` split on ` - `, and `expected_statuses`
+null marks, `roundName` split on `-`, and `expected_statuses`
 returning `{403}` while the watch has never had a 200 so the fetch
 layer classifies it `ExpectedUnavailable` (daily for 30 days, then
 `gone`) instead of pausing the host ([response classification](fetching.md#response-classification)). Discovery from
@@ -569,13 +569,13 @@ almost all polls as 304 in `runs/*.json`. That is M3b.
 
 ## 5. Human tasks alongside the code
 
-| Task | Before | Who |
-|---|---|---|
-| Create `skeswa/swingset` (public) and `skeswa/swingset-archive` (private) on the Hub; make a write token; put it in the machine's environment file | WP5 done criteria | owner |
-| The EEPro operator conversation from [scraping plan](scraping-plan.md#operator-conversation-before-phase-2), recorded in the playbook's section 1 | first EEPro fetch (WP7b fixtures) | owner |
-| Fill in the scoring.dance operator relationship in its playbook; decide open question 1 (paid API) | WP8 live polling | owner |
-| Review the first `review_queue` and add override rows | after WP7b | owner |
-| Download the mechstack dump once for the cross-check | WP6 | owner or script |
+| Task                                                                                                                                               | Before                            | Who             |
+| -------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------- | --------------- |
+| Create `skeswa/swingset` (public) and `skeswa/swingset-archive` (private) on the Hub; make a write token; put it in the machine's environment file | WP5 done criteria                 | owner           |
+| The EEPro operator conversation from [scraping plan](scraping-plan.md#operator-conversation-before-phase-2), recorded in the playbook's section 1  | first EEPro fetch (WP7b fixtures) | owner           |
+| Fill in the scoring.dance operator relationship in its playbook; decide open question 1 (paid API)                                                 | WP8 live polling                  | owner           |
+| Review the first `review_queue` and add override rows                                                                                              | after WP7b                        | owner           |
+| Download the mechstack dump once for the cross-check                                                                                               | WP6                               | owner or script |
 
 If the EEPro conversation is pending when WP7a is done, do WP8 before
 WP7b; the two are independent, and scoring.dance needs no permission
@@ -591,14 +591,14 @@ start it as soon as WP6 lands.
 
 A plausible sequence at the project's weekend cadence:
 
-| Weekend | Packages | Result |
-|---|---|---|
-| 1 | WP0, WP1, WP2 | fetch layer tested offline; machine exists |
-| 2 | WP3, WP4, WP5 | M0: timers on the machine, first publish, restore proven |
-| 3 | WP6, start WP7a | M1: registry tables published; sweep running |
-| 4 | WP7a, WP7b | M2: first EEPro event end to end |
-| 5 | WP8 | M3: confirmed links from scoring.dance |
-| 6 | WP9, WP10 | M3b and cleanup; v1 declared |
+| Weekend | Packages        | Result                                                   |
+| ------- | --------------- | -------------------------------------------------------- |
+| 1       | WP0, WP1, WP2   | fetch layer tested offline; machine exists               |
+| 2       | WP3, WP4, WP5   | M0: timers on the machine, first publish, restore proven |
+| 3       | WP6, start WP7a | M1: registry tables published; sweep running             |
+| 4       | WP7a, WP7b      | M2: first EEPro event end to end                         |
+| 5       | WP8             | M3: confirmed links from scoring.dance                   |
+| 6       | WP9, WP10       | M3b and cleanup; v1 declared                             |
 
 These are estimates, not commitments.
 
@@ -628,16 +628,16 @@ These are estimates, not commitments.
 
 ## 8. Things to verify during v1
 
-| Item | Package |
-|---|---|
+| Item                                                                                                         | Package  |
+| ------------------------------------------------------------------------------------------------------------ | -------- |
 | OrbStack exposes the Mac home directory at the same path; `/etc/nixos/orbstack.nix` imports under `--impure` | WP0, WP4 |
-| manylinux wheels import on NixOS with `LD_LIBRARY_PATH` | WP0 |
-| Calendar fingerprint stable across a week | WP3 |
-| Registry miss response; full division code set; `adv_sliding` meaning | WP6 |
-| EEPro `Count` column; operator's answer on autoindex; `/results/<year>/` existence | WP7b |
-| scoring.dance nonce check; Cloudflare stability at 15 min | WP8 |
-| WDR `S<n>`, finals bib, `attributeGroup` | WP9 |
-| Timing from scoring to posting per platform, measured from snapshots | WP8, WP9 |
+| manylinux wheels import on NixOS with `LD_LIBRARY_PATH`                                                      | WP0      |
+| Calendar fingerprint stable across a week                                                                    | WP3      |
+| Registry miss response; full division code set; `adv_sliding` meaning                                        | WP6      |
+| EEPro `Count` column; operator's answer on autoindex; `/results/<year>/` existence                           | WP7b     |
+| scoring.dance nonce check; Cloudflare stability at 15 min                                                    | WP8      |
+| WDR `S<n>`, finals bib, `attributeGroup`                                                                     | WP9      |
+| Timing from scoring to posting per platform, measured from snapshots                                         | WP8, WP9 |
 
 ## 9. Risks
 

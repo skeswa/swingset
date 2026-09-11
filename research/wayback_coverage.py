@@ -6,6 +6,7 @@ those files with newer CDX output to refresh the numbers.
 
     python3 research/wayback_coverage.py
 """
+
 import collections
 import json
 import pathlib
@@ -69,7 +70,9 @@ def step_right():
         if e["rounds"]:
             with_rounds[y] += 1
             round_pages[y] += e["rounds"]
-    print("steprightsolutions.com: event slugs", len(events), "round pages", sum(round_pages.values()))
+    print(
+        "steprightsolutions.com: event slugs", len(events), "round pages", sum(round_pages.values())
+    )
     print("  year: slugs / slugs with round pages / round pages")
     for y in sorted(by_year):
         print(f"  {y}: {by_year[y]} / {with_rounds[y]} / {round_pages[y]}")

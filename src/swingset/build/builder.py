@@ -173,16 +173,12 @@ def _validate(rows: Mapping[str, list[dict[str, Any]]]) -> None:
         }
         for field, value in expected.items():
             if callback.get(field) != value:
-                raise BuildError(
-                    f"callback {callback_key!r} {field} disagrees with retained marks"
-                )
+                raise BuildError(f"callback {callback_key!r} {field} disagrees with retained marks")
         score_sum = sum(float(mark.get("mark_value") or 0) for mark in marks)
         if not math.isclose(
             float(callback.get("score_sum") or 0), score_sum, rel_tol=1e-6, abs_tol=1e-4
         ):
-            raise BuildError(
-                f"callback {callback_key!r} score_sum disagrees with retained marks"
-            )
+            raise BuildError(f"callback {callback_key!r} score_sum disagrees with retained marks")
     for table, field in (
         ("placements", "leader_entry_id"),
         ("placements", "follower_entry_id"),
@@ -345,9 +341,7 @@ class ParquetRows(Sequence[Mapping[str, Any]]):
             start, stop, step = index.indices(len(self))
             indices = list(range(start, stop, step))
             wanted = set(indices)
-            selected = {
-                position: row for position, row in enumerate(self) if position in wanted
-            }
+            selected = {position: row for position, row in enumerate(self) if position in wanted}
             return [selected[position] for position in indices]
         if index < 0:
             index += len(self)
@@ -491,9 +485,7 @@ def build_candidate(
             history: list[Path] = []
             if table_name == "changelog":
                 history = (
-                    sorted((baseline / "data" / "changelog").glob("*.parquet"))
-                    if baseline
-                    else []
+                    sorted((baseline / "data" / "changelog").glob("*.parquet")) if baseline else []
                 )
             if not table.schema.equals(schema, check_metadata=True):
                 raise BuildError(f"schema mismatch for {table_name}")
@@ -574,8 +566,13 @@ def build_candidate(
                 default=None,
             ),
             "latest_event_covered": max(
-                (str(row["end_date"]) for row in rows["events"] if row.get("end_date")
-                 and row["event_id"] in {placement["event_id"] for placement in rows["placements"]}),
+                (
+                    str(row["end_date"])
+                    for row in rows["events"]
+                    if row.get("end_date")
+                    and row["event_id"]
+                    in {placement["event_id"] for placement in rows["placements"]}
+                ),
                 default=None,
             ),
             "content_hash": content_hash,

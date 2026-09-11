@@ -26,17 +26,17 @@ layer can be checked against them line by line:
 12. Operator switch: how the operator stops us without asking.
 13. Open items.
 
-| Playbook | Host | Covers (events in the last year) |
-|---|---|---|
-| [eepro](eepro.md) | `eepro.com` | 38 |
-| [scoring-dance](scoring-dance.md) | `scoring.dance` | 87 |
-| [danceconvention](danceconvention.md) | `danceconvention.net` | 19 |
-| [world-dance-registry](world-dance-registry.md) | `scores.worlddanceregistry.com` | 14 |
-| [wsdc-calendar](wsdc-calendar.md) | `worldsdc.com` | all |
-| [wsdc-registry](wsdc-registry.md) | `points.worldsdc.com` | all |
-| [long-tail](long-tail.md) | many | 15 |
-| [wayback-machine](wayback-machine.md) | `web.archive.org` | history for every source |
-| [step-right-solutions](step-right-solutions.md) | `steprightsolutions.com` (archive only) | 108 events, 2009 to 2019 |
+| Playbook                                        | Host                                    | Covers (events in the last year) |
+| ----------------------------------------------- | --------------------------------------- | -------------------------------- |
+| [eepro](eepro.md)                               | `eepro.com`                             | 38                               |
+| [scoring-dance](scoring-dance.md)               | `scoring.dance`                         | 87                               |
+| [danceconvention](danceconvention.md)           | `danceconvention.net`                   | 19                               |
+| [world-dance-registry](world-dance-registry.md) | `scores.worlddanceregistry.com`         | 14                               |
+| [wsdc-calendar](wsdc-calendar.md)               | `worldsdc.com`                          | all                              |
+| [wsdc-registry](wsdc-registry.md)               | `points.worldsdc.com`                   | all                              |
+| [long-tail](long-tail.md)                       | many                                    | 15                               |
+| [wayback-machine](wayback-machine.md)           | `web.archive.org`                       | history for every source         |
+| [step-right-solutions](step-right-solutions.md) | `steprightsolutions.com` (archive only) | 108 events, 2009 to 2019         |
 
 Counts are from `research/results-sources.csv` (181 event editions
 ending between 2025-09-04 and 2026-09-04). The techniques behind these

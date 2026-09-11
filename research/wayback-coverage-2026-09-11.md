@@ -8,13 +8,13 @@ read on the VM with a throwaway script. This note informed
 
 ## Results platforms in the archive
 
-| Prefix | 200-status URLs | Events | Capture years | Note |
-|---|---|---|---|---|
-| `eepro.com/results/*` | 1,124 | 148 slugs | 2018 to 2026 | slugs by year: 2018: 8, 2019: 16, 2020: 1, 2021: 6, 2022: 17, 2023: 19, 2024: 31, 2025: 36, 2026: 13. Nothing before 2018 except two 2016 PHP pages. |
-| `scoring.dance/enUS/events/*` | 3,155 (2026-09-08 count) | 330 ids | 2021 to 2026 | earliest capture 2021-06-15 |
-| `danceconvention.net/eventdirector/en/eventpage/*` | 1,188 (2026-09-08 count) | 415 | 2017 to 2026 | earliest event page 2017-06-27; 6-digit ids then |
-| `scores.worlddanceregistry.com/*` | 34 (2026-09-08 count) | 7 | 2022 to 2026 | |
-| `steprightsolutions.com` (HTML) | 1,873 | 163 slugs, 1,685 round pages | 2013 to 2025 | round pages cover events from 2009; see below |
+| Prefix                                             | 200-status URLs          | Events                       | Capture years | Note                                                                                                                                                 |
+| -------------------------------------------------- | ------------------------ | ---------------------------- | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `eepro.com/results/*`                              | 1,124                    | 148 slugs                    | 2018 to 2026  | slugs by year: 2018: 8, 2019: 16, 2020: 1, 2021: 6, 2022: 17, 2023: 19, 2024: 31, 2025: 36, 2026: 13. Nothing before 2018 except two 2016 PHP pages. |
+| `scoring.dance/enUS/events/*`                      | 3,155 (2026-09-08 count) | 330 ids                      | 2021 to 2026  | earliest capture 2021-06-15                                                                                                                          |
+| `danceconvention.net/eventdirector/en/eventpage/*` | 1,188 (2026-09-08 count) | 415                          | 2017 to 2026  | earliest event page 2017-06-27; 6-digit ids then                                                                                                     |
+| `scores.worlddanceregistry.com/*`                  | 34 (2026-09-08 count)    | 7                            | 2022 to 2026  |                                                                                                                                                      |
+| `steprightsolutions.com` (HTML)                    | 1,873                    | 163 slugs, 1,685 round pages | 2013 to 2025  | round pages cover events from 2009; see below                                                                                                        |
 
 Step Right Solutions, per event year (slugs / slugs with round pages /
 round pages): 2009: 3/3/42, 2010: 4/4/58, 2011: 5/5/100, 2012: 6/6/137,
@@ -46,25 +46,25 @@ is **unverified**; no candidate domain was checked.
 The dump has 362 series, 2,653 event occurrences (series plus month),
 196,679 placements. Occurrences and placements per year since 2010:
 
-| Year | Occurrences | Placements | Dancers with points |
-|---|---|---|---|
-| 2010 | 80 | 4,957 | 1,931 |
-| 2011 | 85 | 5,742 | 2,276 |
-| 2012 | 91 | 6,530 | 2,626 |
-| 2013 | 106 | 8,005 | 3,033 |
-| 2014 | 117 | 8,810 | 3,521 |
-| 2015 | 122 | 9,583 | 3,816 |
-| 2016 | 135 | 10,708 | 4,282 |
-| 2017 | 148 | 12,048 | 4,633 |
-| 2018 | 146 | 11,277 | 4,476 |
-| 2019 | 153 | 12,192 | 4,781 |
-| 2020 | 31 | 2,506 | 1,823 |
-| 2021 | 26 | 1,885 | 1,208 |
-| 2022 | 92 | 7,843 | 3,205 |
-| 2023 | 120 | 11,839 | 4,504 |
-| 2024 | 139 | 14,645 | 5,508 |
-| 2025 | 172 | 17,564 | 6,453 |
-| 2026 (to Sep) | 123 | 12,871 | 5,530 |
+| Year          | Occurrences | Placements | Dancers with points |
+| ------------- | ----------- | ---------- | ------------------- |
+| 2010          | 80          | 4,957      | 1,931               |
+| 2011          | 85          | 5,742      | 2,276               |
+| 2012          | 91          | 6,530      | 2,626               |
+| 2013          | 106         | 8,005      | 3,033               |
+| 2014          | 117         | 8,810      | 3,521               |
+| 2015          | 122         | 9,583      | 3,816               |
+| 2016          | 135         | 10,708     | 4,282               |
+| 2017          | 148         | 12,048     | 4,633               |
+| 2018          | 146         | 11,277     | 4,476               |
+| 2019          | 153         | 12,192     | 4,781               |
+| 2020          | 31          | 2,506      | 1,823               |
+| 2021          | 26          | 1,885      | 1,208               |
+| 2022          | 92          | 7,843      | 3,205               |
+| 2023          | 120         | 11,839     | 4,504               |
+| 2024          | 139         | 14,645     | 5,508               |
+| 2025          | 172         | 17,564     | 6,453               |
+| 2026 (to Sep) | 123         | 12,871     | 5,530               |
 
 1,886 occurrences and 159,005 placements since 2010-01. Occurrence dates
 are first-of-month (`2014-03-01`): month precision only. 229 of 362

@@ -81,11 +81,7 @@ def test_repository_revision_invalidates_one_build_then_is_quiet(
         assert "build" in changed["stages"]
         manifest = json.loads(
             (
-                tmp_path
-                / "candidates"
-                / changed["candidate_id"]
-                / "_meta"
-                / "manifest.json"
+                tmp_path / "candidates" / changed["candidate_id"] / "_meta" / "manifest.json"
             ).read_bytes()
         )
         assert manifest["repository_commit"] == "revision-b"

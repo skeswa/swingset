@@ -98,7 +98,7 @@ cooling_interval = "6h"
   `{id, roundName, roundSubHeader, redacted, attributeGroup, results[]}`.
 - `roundName` is `"<Contest> - <Division> - <Round>"`, e.g.
   `Jack & Jill - Advanced - Prelim Round 1`, `Strictly Swing - Novice - Final`.
-  Split on ` - `.
+  Split on `-`.
 - `roundSubHeader` is the legend: `Placement Order` for finals,
   `Sum of Yes(10) / Alt 1(4.5) 2(4.3) 3(4.2) / No(0)` for prelims.
 - `results[]` holds one table for finals and couples contests, two for

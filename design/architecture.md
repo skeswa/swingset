@@ -74,15 +74,15 @@ or revision counters.
 
 ## Module boundaries
 
-| Owner | Contract |
-|---|---|
-| `sources/` | Pure extract and parse functions, watch seeds, source polling policy; see [parsing](parsing.md#source-interface) |
-| `project/` | Pure map and scope projections, plus the transactional writer |
-| `link/` | Per-event assignment and identity assertions; writes only link-owned fields and tables |
-| `state/work.py` | Accept changed inputs, enqueue affected units, and commit a unit's output and completion together |
-| `build/` | Read a settled database and captured files; produce immutable publication contents |
-| `publish/` | Own candidate markers, remote commit acknowledgment, and baseline promotion |
-| `backup/` | Copy the complete recoverable state and verify it on restore |
+| Owner           | Contract                                                                                                         |
+| --------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `sources/`      | Pure extract and parse functions, watch seeds, source polling policy; see [parsing](parsing.md#source-interface) |
+| `project/`      | Pure map and scope projections, plus the transactional writer                                                    |
+| `link/`         | Per-event assignment and identity assertions; writes only link-owned fields and tables                           |
+| `state/work.py` | Accept changed inputs, enqueue affected units, and commit a unit's output and completion together                |
+| `build/`        | Read a settled database and captured files; produce immutable publication contents                               |
+| `publish/`      | Own candidate markers, remote commit acknowledgment, and baseline promotion                                      |
+| `backup/`       | Copy the complete recoverable state and verify it on restore                                                     |
 
 `project_map(index_obs, calendar_obs, aliases, source_urls)` returns a
 `SourceEventMap`. `project(scope, observations, context)` returns a

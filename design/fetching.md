@@ -26,25 +26,25 @@ tighten a value or, for a host that is built for lookups (the
 registry), loosen the gap with the reason recorded; the 5 s gap is the
 floor everywhere else.
 
-| Rule | Value |
-|---|---|
-| In-flight requests per host | 1 |
-| Minimum gap between requests to a host | 5 s (floor). 2 s for the registry sweep only, because responses are tiny and the site is built for this. |
-| `Crawl-delay` in robots.txt | Honored if larger than our gap. |
-| Hosts fetched in parallel | at most 4 |
-| Daily request budget per host | 200 for any host without a playbook; playbooks set their own |
-| Daily byte budget per host | none by default; a playbook may add one |
-| Robots.txt | Fetched at most every 24 h. Parsed with Protego. A `User-agent: swingset` group wins over `*`, so any operator can stop or slow us without contacting us. 4xx (including 403, as on the WDR bucket) means unrestricted per RFC 9309. 5xx or unreachable means "disallow all" until next check. |
-| Request timeout | 30 s connect + read |
-| Retries | 3, full-jitter exponential backoff starting at 10 s |
-| 429 or 503 with `Retry-After` | Honor it exactly, minimum 60 s |
-| 429 or 503 without `Retry-After` | Pause host for 15 min, doubling per repeat up to 24 h |
-| 403 or Cloudflare challenge | Pause host 24 h. Log loudly. Never retry with different headers. |
-| 404 on a watched URL | Mark watch `gone` after 3 consecutive 404s over 3 days; the registry's exact verified miss is lookup evidence instead (see its playbook) |
-| Assets | Never fetch images, CSS, JS, fonts |
-| Compression | Send `Accept-Encoding: gzip`, always and only. Never brotli: Apache appends `-gzip` to ETags, so a changing encoding looks like a changed file, and not every client we run decodes brotli. |
-| Cookies | Not stored, not sent |
-| Per-source kill switch | `enabled = false` in config stops all fetches for that source |
+| Rule                                   | Value                                                                                                                                                                                                                                                                                          |
+| -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| In-flight requests per host            | 1                                                                                                                                                                                                                                                                                              |
+| Minimum gap between requests to a host | 5 s (floor). 2 s for the registry sweep only, because responses are tiny and the site is built for this.                                                                                                                                                                                       |
+| `Crawl-delay` in robots.txt            | Honored if larger than our gap.                                                                                                                                                                                                                                                                |
+| Hosts fetched in parallel              | at most 4                                                                                                                                                                                                                                                                                      |
+| Daily request budget per host          | 200 for any host without a playbook; playbooks set their own                                                                                                                                                                                                                                   |
+| Daily byte budget per host             | none by default; a playbook may add one                                                                                                                                                                                                                                                        |
+| Robots.txt                             | Fetched at most every 24 h. Parsed with Protego. A `User-agent: swingset` group wins over `*`, so any operator can stop or slow us without contacting us. 4xx (including 403, as on the WDR bucket) means unrestricted per RFC 9309. 5xx or unreachable means "disallow all" until next check. |
+| Request timeout                        | 30 s connect + read                                                                                                                                                                                                                                                                            |
+| Retries                                | 3, full-jitter exponential backoff starting at 10 s                                                                                                                                                                                                                                            |
+| 429 or 503 with `Retry-After`          | Honor it exactly, minimum 60 s                                                                                                                                                                                                                                                                 |
+| 429 or 503 without `Retry-After`       | Pause host for 15 min, doubling per repeat up to 24 h                                                                                                                                                                                                                                          |
+| 403 or Cloudflare challenge            | Pause host 24 h. Log loudly. Never retry with different headers.                                                                                                                                                                                                                               |
+| 404 on a watched URL                   | Mark watch `gone` after 3 consecutive 404s over 3 days; the registry's exact verified miss is lookup evidence instead (see its playbook)                                                                                                                                                       |
+| Assets                                 | Never fetch images, CSS, JS, fonts                                                                                                                                                                                                                                                             |
+| Compression                            | Send `Accept-Encoding: gzip`, always and only. Never brotli: Apache appends `-gzip` to ETags, so a changing encoding looks like a changed file, and not every client we run decodes brotli.                                                                                                    |
+| Cookies                                | Not stored, not sent                                                                                                                                                                                                                                                                           |
+| Per-source kill switch                 | `enabled = false` in config stops all fetches for that source                                                                                                                                                                                                                                  |
 
 A run also has a wall-clock budget ([operations](operations.md)). When time runs out,
 remaining due watches wait for the next run. Nothing is lost because

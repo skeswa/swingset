@@ -96,12 +96,8 @@ def records(projection: object, cls: type[object]) -> list[object]:
 
 
 def test_contest_identity_preserves_semantic_qualifiers() -> None:
-    assert _contest_slug("Jack & Jill Leader Advanced") == _contest_slug(
-        "Advanced Jack & Jill"
-    )
-    assert _contest_slug("Jack & Jill Follower All Stars") == _contest_slug(
-        "All Star Jack & Jill"
-    )
+    assert _contest_slug("Jack & Jill Leader Advanced") == _contest_slug("Advanced Jack & Jill")
+    assert _contest_slug("Jack & Jill Follower All Stars") == _contest_slug("All Star Jack & Jill")
     assert _contest_slug("WSDC Swing Jack & Jill Leader Advanced") == _contest_slug(
         "Advanced Jack & Jill"
     )

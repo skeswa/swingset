@@ -39,7 +39,10 @@ class HuggingFaceHub:
         files = set(self.api.list_repo_files(self.repo_id, repo_type="dataset", revision=commit))
         if not files <= {".gitattributes", "README.md"}:
             return False
-        return "README.md" not in files or self._download("README.md", commit).read_bytes() == _INITIAL_CARD
+        return (
+            "README.md" not in files
+            or self._download("README.md", commit).read_bytes() == _INITIAL_CARD
+        )
 
     def _download(self, name: str, commit: str) -> Path:
         return Path(

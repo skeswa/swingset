@@ -199,12 +199,7 @@ def project_map(
         projected_at=now,
         enqueue_links=False,
     )
-    return (
-        premap_unknown_changed
-        or registry_changed
-        or unknown_changed
-        or before != sorted(mapped)
-    )
+    return premap_unknown_changed or registry_changed or unknown_changed or before != sorted(mapped)
 
 
 def _stored_event(row: sqlite3.Row) -> Event:

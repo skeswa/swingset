@@ -14,28 +14,28 @@ Collection continued during the audit; later live-state counts are excluded.
 
 ## What is present
 
-| Measure | Published count |
-|---|---:|
-| Event metadata rows | 573 |
-| Events with contest results and placements | 96 |
-| Contests / rounds | 1,792 / 2,733 |
-| Entries / placements | 50,120 / 13,904 |
+| Measure                                        |  Published count |
+| ---------------------------------------------- | ---------------: |
+| Event metadata rows                            |              573 |
+| Events with contest results and placements     |               96 |
+| Contests / rounds                              |    1,792 / 2,733 |
+| Entries / placements                           |  50,120 / 13,904 |
 | Callback summaries / individual callback marks | 37,133 / 187,958 |
-| Final judge marks | 78,410 |
-| Registry dancers / registry placements | 2,228 / 21,230 |
-| Review items | 2,922 |
-| Heat assignments | 0 |
+| Final judge marks                              |           78,410 |
+| Registry dancers / registry placements         |   2,228 / 21,230 |
+| Review items                                   |            2,922 |
+| Heat assignments                               |                0 |
 
 Entries are contest records, sometimes representing couples; they are not a
 count of unique people. Placements include 13,195 classified as WCS, 452 as
 other, 168 as country, and 89 as lindy.
 
 | Results source | Metadata events | Events with results | Placements |
-|---|---:|---:|---:|
-| EEPro | 72 | 61 | 8,785 |
-| scoring.dance | 319 | 22 | 1,975 |
-| WDR | 13 | 13 | 3,144 |
-| WSDC calendar | 169 | 0 | 0 |
+| -------------- | --------------: | ------------------: | ---------: |
+| EEPro          |              72 |                  61 |      8,785 |
+| scoring.dance  |             319 |                  22 |      1,975 |
+| WDR            |              13 |                  13 |      3,144 |
+| WSDC calendar  |             169 |                   0 |          0 |
 
 These are coverage counts within our current event table, not recall against
 all competitions. The table mixes historical and future editions. Of 399

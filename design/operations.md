@@ -22,11 +22,11 @@ alone never enables publication. State layout is defined in
 
 ## Timers
 
-| Unit | Schedule | What it runs |
-|---|---|---|
-| `swingset-cycle.timer` | every 15 min, `RandomizedDelaySec=120` | `swingset cycle --budget 12m` |
-| `swingset-backup.timer` | Mon-Thu 04:00; Fri-Sun 04:00, 12:00, 20:00 (box local time) | `swingset backup` |
-| `swingset-summary.timer` | daily 08:00 | `swingset summary` |
+| Unit                     | Schedule                                                    | What it runs                  |
+| ------------------------ | ----------------------------------------------------------- | ----------------------------- |
+| `swingset-cycle.timer`   | every 15 min, `RandomizedDelaySec=120`                      | `swingset cycle --budget 12m` |
+| `swingset-backup.timer`  | Mon-Thu 04:00; Fri-Sun 04:00, 12:00, 20:00 (box local time) | `swingset backup`             |
+| `swingset-summary.timer` | daily 08:00                                                 | `swingset summary`            |
 
 Timers use `Persistent=true`. The 15-minute timer is the floor;
 [scheduling](scheduling.md) decides what is due. Backup lock waits do
@@ -64,12 +64,12 @@ and manual data mutations. The process holds it through each command;
 the kernel releases it on death. Read-only doctor and summary use a
 consistent database read and do not acquire the writer lock.
 
-| Caller finding the lock held | Required behavior |
-|---|---|
-| Timer-triggered duplicate cycle | Exit 0 with an explicit skipped-overlap log |
-| Manual mutation, including pause, resume, sweep, reparse, or fetch-one | Wait up to `--lock-timeout` (default 60 s); timeout exits nonzero and says no change was applied |
-| Backup | Wait for the lock; interruption or upload failure is nonzero and retried by the service |
-| Restore | Wait up to the explicit timeout; require timers disabled and the former writer stopped before activation |
+| Caller finding the lock held                                           | Required behavior                                                                                        |
+| ---------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| Timer-triggered duplicate cycle                                        | Exit 0 with an explicit skipped-overlap log                                                              |
+| Manual mutation, including pause, resume, sweep, reparse, or fetch-one | Wait up to `--lock-timeout` (default 60 s); timeout exits nonzero and says no change was applied         |
+| Backup                                                                 | Wait for the lock; interruption or upload failure is nonzero and retried by the service                  |
+| Restore                                                                | Wait up to the explicit timeout; require timers disabled and the former writer stopped before activation |
 
 Every data-writing command except restore refuses a state directory
 marked `RESTORE_PENDING`; doctor remains available for diagnosis.

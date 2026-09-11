@@ -1,0 +1,9 @@
+# Read by oxfmt (which honors .prettierignore natively).
+# Machine-written or captured from third-party sites — never reformat.
+flake.lock
+uv.lock
+# Captured HTTP bodies and their metadata; byte-exact copies of source pages.
+**/fixtures/
+# Research artifacts: cached sources, archive indexes, and workflow output.
+research/verification/
+research/workflow-output/

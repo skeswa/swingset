@@ -10,8 +10,8 @@ def test_card_lists_every_table_and_one_default() -> None:
     card = render_card(data).decode()
     assert card.count("config_name:") == len(SCHEMAS)
     assert card.count("default: true") == 1
-    assert 'config_name: events\n  default: true' in card
-    assert 'config_name: placements\n  default: true' not in card
+    assert "config_name: events\n  default: true" in card
+    assert "config_name: placements\n  default: true" not in card
     assert "ODC-By 1.0" in card
     assert "five-second" in card
     assert "LEFT JOIN" in card
@@ -41,12 +41,14 @@ def test_card_reports_actual_calendar_only_coverage_and_gaps() -> None:
 
 
 def test_card_defaults_to_placements_once_results_exist() -> None:
-    data = BuildInput({"placements": [{"placement_id": "one"}]}, SCHEMAS, PRIMARY_KEYS, {}, {}, "bundle")
+    data = BuildInput(
+        {"placements": [{"placement_id": "one"}]}, SCHEMAS, PRIMARY_KEYS, {}, {}, "bundle"
+    )
     card = render_card(data).decode()
 
     assert card.count("default: true") == 1
-    assert 'config_name: placements\n  default: true' in card
-    assert 'config_name: events\n  default: true' not in card
+    assert "config_name: placements\n  default: true" in card
+    assert "config_name: events\n  default: true" not in card
     assert "`placements` is the default config in this" in card
 
 

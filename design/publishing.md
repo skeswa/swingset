@@ -2,10 +2,10 @@
 
 ## Repos
 
-| Repo | Visibility | Contents |
-|---|---|---|
-| `skeswa/swingset` | public | published Parquet, README dataset card, `_meta/` |
-| `skeswa/swingset-archive` | private | complete checkpoint described in [operations](operations.md#backup-and-restore) |
+| Repo                      | Visibility | Contents                                                                        |
+| ------------------------- | ---------- | ------------------------------------------------------------------------------- |
+| `skeswa/swingset`         | public     | published Parquet, README dataset card, `_meta/`                                |
+| `skeswa/swingset-archive` | private    | complete checkpoint described in [operations](operations.md#backup-and-restore) |
 
 The archive repo is a backup and a reproducibility store, not part of the
 run loop. It is private because raw bodies contain names in bulk. It can
@@ -44,11 +44,11 @@ The next card switches the default to `placements` when results arrive:
 
 ```yaml
 configs:
-- config_name: placements
-  default: true
-  data_files: "data/placements/*.parquet"
-- config_name: entries
-  data_files: "data/entries/*.parquet"
+  - config_name: placements
+    default: true
+    data_files: "data/placements/*.parquet"
+  - config_name: entries
+    data_files: "data/entries/*.parquet"
 # ... one per table
 ```
 
@@ -83,12 +83,12 @@ acknowledged public version stored locally.
 The candidate directory is the publication journal. There is no second
 publication state machine in SQLite. Its files are:
 
-| Record | Meaning |
-|---|---|
-| `BUILT` | Contents complete and validated; records reuse key, candidate metadata, content hash, manifest hash, and expected parent |
-| `PUBLISHING` | Durable intent to publish these exact contents under that expected parent |
-| `PUBLISHED` | Remote commit SHA acknowledged for these contents |
-| `baseline` symlink | This candidate is the locally adopted public baseline |
+| Record             | Meaning                                                                                                                  |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------ |
+| `BUILT`            | Contents complete and validated; records reuse key, candidate metadata, content hash, manifest hash, and expected parent |
+| `PUBLISHING`       | Durable intent to publish these exact contents under that expected parent                                                |
+| `PUBLISHED`        | Remote commit SHA acknowledged for these contents                                                                        |
+| `baseline` symlink | This candidate is the locally adopted public baseline                                                                    |
 
 Data and metadata files are immutable after `BUILT`. Records are written
 with temporary files and atomic rename, with files and containing
@@ -116,12 +116,12 @@ head as the commit parent, so it does not omit concurrency checks.
 
 Reconcile runs before any new build, including when no inputs changed:
 
-| Pending state | Action |
-|---|---|
-| `PUBLISHED` exists | Finish local promotion without a network request |
-| No receipt; remote head matches the candidate id, manifest hash, and expected parent | Verify the remote manifest and file hashes, write the receipt, then promote |
-| No receipt; remote head still equals expected parent | Real run: retry this candidate. Dry run: report pending, skip new build and publish, leave intent intact |
-| No receipt; head is anything else | Fail with the expected and actual heads; do not rebuild, promote, or overwrite the remote |
+| Pending state                                                                        | Action                                                                                                   |
+| ------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------- |
+| `PUBLISHED` exists                                                                   | Finish local promotion without a network request                                                         |
+| No receipt; remote head matches the candidate id, manifest hash, and expected parent | Verify the remote manifest and file hashes, write the receipt, then promote                              |
+| No receipt; remote head still equals expected parent                                 | Real run: retry this candidate. Dry run: report pending, skip new build and publish, leave intent intact |
+| No receipt; head is anything else                                                    | Fail with the expected and actual heads; do not rebuild, promote, or overwrite the remote                |
 
 `swingset publish`, including `--dry-run`, reconciles first and obtains
 its candidate through build. Standalone build and publish require earlier
@@ -191,6 +191,7 @@ WHERE e.year = 2026 AND p.place = 1;
 
 ```python
 import polars as pl
+
 entries = pl.scan_parquet("hf://datasets/skeswa/swingset/data/entries/*.parquet")
 confirmed = entries.filter(pl.col("link_status") == "confirmed").collect()
 ```

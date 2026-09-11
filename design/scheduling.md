@@ -32,12 +32,12 @@ the event's time zone: we pad in UTC. `live` starts 36 hours before
 This covers Thursday-night contests and Sunday-night postings anywhere
 on Earth at the cost of a few extra cheap conditional GETs.
 
-| State | When | Interval | Notes |
-|---|---|---|---|
-| `dormant` | more than 14 days before start | none | Watch exists, nothing fetched. |
-| `upcoming` | 14 days to 36 h before start | 24 h | Catches early postings and schedule changes. |
-| `live` | see above | 15 min, plus 0 to 5 min random jitter | Conditional GET. Doubles after 8 unchanged checks in a row, up to 1 h. Resets to 15 min on any change. |
-| `cooling` | end of live to end + 30 days | 6 h, doubling per unchanged check up to 24 h | Catches corrected results. Resets to 6 h on change. |
+| State      | When                           | Interval                                     | Notes                                                                                                  |
+| ---------- | ------------------------------ | -------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `dormant`  | more than 14 days before start | none                                         | Watch exists, nothing fetched.                                                                         |
+| `upcoming` | 14 days to 36 h before start   | 24 h                                         | Catches early postings and schedule changes.                                                           |
+| `live`     | see above                      | 15 min, plus 0 to 5 min random jitter        | Conditional GET. Doubles after 8 unchanged checks in a row, up to 1 h. Resets to 15 min on any change. |
+| `cooling`  | end of live to end + 30 days   | 6 h, doubling per unchanged check up to 24 h | Catches corrected results. Resets to 6 h on change.                                                    |
 
 These are defaults. A playbook may override intervals for its host in
 its section 6 (danceconvention.net does, because each poll is 1.67 MB).
@@ -100,7 +100,6 @@ fine.
    rows in the review queue. Event sites use the default host settings.
 
 Discovery never deletes watches.
-
 
 ## Work order
 

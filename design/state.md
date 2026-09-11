@@ -8,25 +8,25 @@ tables where a table is published.
 
 Internal tables:
 
-| Table | Key columns | Purpose |
-|---|---|---|
-| `meta` | `key` | `schema_version`, `installed_at`, current input bundle hash |
-| `runs` | `run_id` | `started_at`, `finished_at`, `dry_run`, `summary_json` |
-| `hosts` | `host` | `next_allowed_at`, `paused_until`, `pause_reason`, `pause_streak`, `robots_sha256`, `robots_fetched_at`, `robots_status` |
-| `operator_pauses` | `scope_kind`, `scope_id` | operator-requested all, host, or source pause; nullable expiry, reason; separate from automatic host pauses |
-| `host_budget` | `host`, `day` | `requests`, `bytes` |
-| `cursors` | `name` | `value`; durable bootstrap and new-id probe positions and miss counts; `registry_probe_started_at`, `registry_probe_last_completed_at`, `registry_probe_next_at` preserve freshness and cadence across restarts |
-| `watches` | `watch_id` | every column in [scheduling](scheduling.md#watches) plus `fingerprint`, `extract_version`, `priority`, `created_by_snapshot_id`, `parent_watch_id`, `ever_ok`, current observation snapshot id |
-| `snapshots` | `snapshot_id` | every column in [fetching](fetching.md#archive) plus `via`, `archive_url`, `captured_at`, `observed_at`, `headers_json`, `classification`, `extract_status`, `extract_sha256`, `parse_status`, `parsed_at`, `extract_version`, `parser_version` (versions last attempted) |
-| `archive_captures` | `source`, `url`, `timestamp` | `digest`, `status`, `mimetype`, `length`, `queried_at`, `cdx_query_id`; the Wayback CDX index we hold per source, so capture selection can be redone offline ([backfill](backfill.md#the-wayback-transport)) |
-| `observations` | `observation_id` | `watch_id`, `snapshot_id`, `kind`, `scope_kind` (`source_event`, `dancer`, `source_index`, `calendar`), `scope_id` (a source reference such as `eepro:asc2025`, never a canonical id), `seq`, `extract_version`, `parser_version`, `payload_json`; indexed by `watch_id` and by (`scope_kind`, `scope_id`) |
-| `source_event_map` | `source`, `source_ref` | `event_id`, `match_method` (`name_date`, `alias`, `override`), `match_confidence`; the projection that resolves observation scopes to events; rewritten whenever index or calendar observations, `event_aliases.csv`, or `source_urls.csv` change |
-| `revisions` | `name` | monotonically increasing counter per set (`observations`, `source_event_map`, `source_events`, `canonical`, `dancers`, `links`, `findings`, `snapshots`), bumped in the writing transaction |
-| `pending_work` | `stage`, `unit_kind`, `unit_id` | `enqueued_at`; coalesced work for parse, project, and link; presence means unfinished |
-| `accepted_inputs` | `consumer`, `input_name` | `digest`; the input value whose invalidation work has been committed, not a stage completion record |
-| `findings` | `finding_id` | `kind`, `subject_kind`, `subject_id`, `watch_id`, `snapshot_id`, `severity`, `summary`, `evidence_json`, `suggested_override`, `opened_at`, `run_id`, `closed_at`, `closed_by` |
-| `source_events` | `source`, `source_ref` | projection of index observations: `name_raw`, `start_date`, `end_date`, `location_raw`, `url`, plus provenance; joins to `source_event_map` for the `event_id` |
-| `backup_uploads` | `path` | `sha256`, `uploaded_at`; upload optimization only, verified against the selected archive commit on restore |
+| Table              | Key columns                     | Purpose                                                                                                                                                                                                                                                                                                    |
+| ------------------ | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `meta`             | `key`                           | `schema_version`, `installed_at`, current input bundle hash                                                                                                                                                                                                                                                |
+| `runs`             | `run_id`                        | `started_at`, `finished_at`, `dry_run`, `summary_json`                                                                                                                                                                                                                                                     |
+| `hosts`            | `host`                          | `next_allowed_at`, `paused_until`, `pause_reason`, `pause_streak`, `robots_sha256`, `robots_fetched_at`, `robots_status`                                                                                                                                                                                   |
+| `operator_pauses`  | `scope_kind`, `scope_id`        | operator-requested all, host, or source pause; nullable expiry, reason; separate from automatic host pauses                                                                                                                                                                                                |
+| `host_budget`      | `host`, `day`                   | `requests`, `bytes`                                                                                                                                                                                                                                                                                        |
+| `cursors`          | `name`                          | `value`; durable bootstrap and new-id probe positions and miss counts; `registry_probe_started_at`, `registry_probe_last_completed_at`, `registry_probe_next_at` preserve freshness and cadence across restarts                                                                                            |
+| `watches`          | `watch_id`                      | every column in [scheduling](scheduling.md#watches) plus `fingerprint`, `extract_version`, `priority`, `created_by_snapshot_id`, `parent_watch_id`, `ever_ok`, current observation snapshot id                                                                                                             |
+| `snapshots`        | `snapshot_id`                   | every column in [fetching](fetching.md#archive) plus `via`, `archive_url`, `captured_at`, `observed_at`, `headers_json`, `classification`, `extract_status`, `extract_sha256`, `parse_status`, `parsed_at`, `extract_version`, `parser_version` (versions last attempted)                                  |
+| `archive_captures` | `source`, `url`, `timestamp`    | `digest`, `status`, `mimetype`, `length`, `queried_at`, `cdx_query_id`; the Wayback CDX index we hold per source, so capture selection can be redone offline ([backfill](backfill.md#the-wayback-transport))                                                                                               |
+| `observations`     | `observation_id`                | `watch_id`, `snapshot_id`, `kind`, `scope_kind` (`source_event`, `dancer`, `source_index`, `calendar`), `scope_id` (a source reference such as `eepro:asc2025`, never a canonical id), `seq`, `extract_version`, `parser_version`, `payload_json`; indexed by `watch_id` and by (`scope_kind`, `scope_id`) |
+| `source_event_map` | `source`, `source_ref`          | `event_id`, `match_method` (`name_date`, `alias`, `override`), `match_confidence`; the projection that resolves observation scopes to events; rewritten whenever index or calendar observations, `event_aliases.csv`, or `source_urls.csv` change                                                          |
+| `revisions`        | `name`                          | monotonically increasing counter per set (`observations`, `source_event_map`, `source_events`, `canonical`, `dancers`, `links`, `findings`, `snapshots`), bumped in the writing transaction                                                                                                                |
+| `pending_work`     | `stage`, `unit_kind`, `unit_id` | `enqueued_at`; coalesced work for parse, project, and link; presence means unfinished                                                                                                                                                                                                                      |
+| `accepted_inputs`  | `consumer`, `input_name`        | `digest`; the input value whose invalidation work has been committed, not a stage completion record                                                                                                                                                                                                        |
+| `findings`         | `finding_id`                    | `kind`, `subject_kind`, `subject_id`, `watch_id`, `snapshot_id`, `severity`, `summary`, `evidence_json`, `suggested_override`, `opened_at`, `run_id`, `closed_at`, `closed_by`                                                                                                                             |
+| `source_events`    | `source`, `source_ref`          | projection of index observations: `name_raw`, `start_date`, `end_date`, `location_raw`, `url`, plus provenance; joins to `source_event_map` for the `event_id`                                                                                                                                             |
+| `backup_uploads`   | `path`                          | `sha256`, `uploaded_at`; upload optimization only, verified against the selected archive commit on restore                                                                                                                                                                                                 |
 
 Canonical tables use the published columns in [data model](data-model.md#tables).
 Their `snapshot_id` provenance names the winning observation's snapshot.
@@ -87,18 +87,18 @@ by work key. Existing work runs against the newest accepted bundle;
 accepting another bundle enqueues its full affected set, including units
 already processed under the previous bundle.
 
-| Changed input | Work enqueued in the same transaction |
-|---|---|
-| New snapshot | Parse that snapshot |
-| `EXTRACT_VERSION` for a page kind | Parse every archived snapshot of that kind, re-extracting before parsing; invalidate the watch's cached extract fingerprint version |
-| `PARSER_VERSION` for a page kind | Parse every archived snapshot of that kind from its stored extract |
-| Successful parse changing current observations | Project their old and new scopes; calendar or index changes enqueue the map unit |
-| Event aliases, source URL overrides, event-matching vocabulary | Map unit: recompute map, source events, watch seeds, and affected old and new event projections |
-| Other projection vocabulary or `PROJECTOR_VERSION` | Map unit and every current or previously materialized canonical scope |
-| Event projection changes | Link that event, including removed subjects |
-| Registry dancer or placement projection changes | Link every event in v1; a new dancer can match an entry that had no candidate before |
-| Weights, nicknames, identity overrides, `LINKER_VERSION` | Link every event with canonical subjects or existing link rows |
-| Findings, published snapshot fields, source events, source map, canonical rows, dancers, or link outputs change | Advance their output revisions; build reads these directly |
+| Changed input                                                                                                   | Work enqueued in the same transaction                                                                                               |
+| --------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| New snapshot                                                                                                    | Parse that snapshot                                                                                                                 |
+| `EXTRACT_VERSION` for a page kind                                                                               | Parse every archived snapshot of that kind, re-extracting before parsing; invalidate the watch's cached extract fingerprint version |
+| `PARSER_VERSION` for a page kind                                                                                | Parse every archived snapshot of that kind from its stored extract                                                                  |
+| Successful parse changing current observations                                                                  | Project their old and new scopes; calendar or index changes enqueue the map unit                                                    |
+| Event aliases, source URL overrides, event-matching vocabulary                                                  | Map unit: recompute map, source events, watch seeds, and affected old and new event projections                                     |
+| Other projection vocabulary or `PROJECTOR_VERSION`                                                              | Map unit and every current or previously materialized canonical scope                                                               |
+| Event projection changes                                                                                        | Link that event, including removed subjects                                                                                         |
+| Registry dancer or placement projection changes                                                                 | Link every event in v1; a new dancer can match an entry that had no candidate before                                                |
+| Weights, nicknames, identity overrides, `LINKER_VERSION`                                                        | Link every event with canonical subjects or existing link rows                                                                      |
+| Findings, published snapshot fields, source events, source map, canonical rows, dancers, or link outputs change | Advance their output revisions; build reads these directly                                                                          |
 
 The affected set can be empty: map work is needed only when calendar
 or index observations, existing source events or mappings, or source

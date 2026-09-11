@@ -37,6 +37,14 @@ uv run swingset doctor --state ./tmp/state
 uv run swingset cycle --dry-run --state ./tmp/state
 ```
 
+Before committing hand edits, format them. The formatter toolchain is pinned
+in `mise.toml`; `mise install` fetches it once per machine.
+
+```sh
+mise install
+nix develop --command mise run fmt
+```
+
 `config/sources.toml` enables the calendar, registry, EEPro, scoring.dance, and
 WDR sources. The registry bootstrap requires an archived comparison dump and an
 explicitly seeded sweep. Adapters can be tested offline. Publication requires

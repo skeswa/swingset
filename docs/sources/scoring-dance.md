@@ -65,9 +65,9 @@ there on 2026-09-04. Never fetch `register`, `wall`, `mockjudge`, or
     `data-state`, judge `title` attributes, and the chief-judge marker.
     A corrected WSDC id or callback flag changes the fingerprint even
     when the visible text does not.
-  The rest of the page is assumed nonce-free (**unverified**; if raw
-  hashes differ while the fingerprint does not, that assumption
-  holds).
+    The rest of the page is assumed nonce-free (**unverified**; if raw
+    hashes differ while the fingerprint does not, that assumption
+    holds).
 - The `cache-control` header contains a misspelled directive
   (`stale-while-ravlativate`). Do not rely on stale-while-revalidate
   behavior.

@@ -43,17 +43,17 @@ labeled truth, because that source prints WSDC ids next to names.
 
 Signals:
 
-| Signal | Effect |
-|---|---|
-| Name similarity | main signal |
-| Name rarity | a rare surname match counts more (term frequency) |
-| Division consistency | the dancer's registry level for that role on the event date must allow the contest's division. A Champion dancing Novice is a near-impossible match. |
-| Role consistency | registry primary role matches entry role; weaker signal because dancers switch |
-| Recency | dancer has registry activity within 3 years of the event |
-| Geography | DCN city/country vs. the dancer's recent event locations; weak |
-| Bib reuse | the same bib at the same event in another contest already linked to a dancer; strong |
-| Registry confirmation | one exact normalized-name identity matches the same event, role, division, style, and numeric place or finalist result `F`; decisive |
-| Source-provided id | scoring.dance `data-wsdc`; decisive |
+| Signal                | Effect                                                                                                                                               |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Name similarity       | main signal                                                                                                                                          |
+| Name rarity           | a rare surname match counts more (term frequency)                                                                                                    |
+| Division consistency  | the dancer's registry level for that role on the event date must allow the contest's division. A Champion dancing Novice is a near-impossible match. |
+| Role consistency      | registry primary role matches entry role; weaker signal because dancers switch                                                                       |
+| Recency               | dancer has registry activity within 3 years of the event                                                                                             |
+| Geography             | DCN city/country vs. the dancer's recent event locations; weak                                                                                       |
+| Bib reuse             | the same bib at the same event in another contest already linked to a dancer; strong                                                                 |
+| Registry confirmation | one exact normalized-name identity matches the same event, role, division, style, and numeric place or finalist result `F`; decisive                 |
+| Source-provided id    | scoring.dance `data-wsdc`; decisive                                                                                                                  |
 
 Per-event constraints are applied after scoring as an assignment
 problem: within one event, one WSDC id links to at most one bib per role,
@@ -66,14 +66,14 @@ assignments below threshold.
 
 ## Link status
 
-| `link_status` | Meaning | Typical confidence |
-|---|---|---|
-| `confirmed` | source printed the WSDC id, or the registry shows the placement, or a human confirmed it | 1.0 |
-| `probable` | exactly one candidate above 0.9 and constraints hold | 0.9 to 0.99 |
-| `possible` | best candidate between 0.7 and 0.9, or two candidates close together | 0.5 to 0.9 |
-| `ambiguous` | multiple candidates, none clearly best | below 0.5 |
-| `unmatched` | no candidate above 0.5. Common for Newcomers with no WSDC number yet | 0 |
-| `suppressed` | removed on request; `wsdc_id` and `name_raw` are null | - |
+| `link_status` | Meaning                                                                                  | Typical confidence |
+| ------------- | ---------------------------------------------------------------------------------------- | ------------------ |
+| `confirmed`   | source printed the WSDC id, or the registry shows the placement, or a human confirmed it | 1.0                |
+| `probable`    | exactly one candidate above 0.9 and constraints hold                                     | 0.9 to 0.99        |
+| `possible`    | best candidate between 0.7 and 0.9, or two candidates close together                     | 0.5 to 0.9         |
+| `ambiguous`   | multiple candidates, none clearly best                                                   | below 0.5          |
+| `unmatched`   | no candidate above 0.5. Common for Newcomers with no WSDC number yet                     | 0                  |
+| `suppressed`  | removed on request; `wsdc_id` and `name_raw` are null                                    | -                  |
 
 `entries.wsdc_id` and `judges.wsdc_id` are populated only for
 `confirmed` and `probable`. Consumers who want more recall, or a
@@ -122,7 +122,6 @@ identity but does not establish a numeric rank or attach points to that exact
 placement. Bib reuse remains a separate linking signal.
 This is expected and is the main reason the dataset is "eventually
 correct".
-
 
 ## Work ownership
 

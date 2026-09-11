@@ -1,0 +1,30 @@
+# Repo-local tooling for working on swingset itself. `mise install` fetches
+# the formatters; `mise run fmt` formats everything hand-written. Python,
+# uv, ruff, and mypy come from `nix develop` (flake.nix), not from here.
+
+# Formatter versions are pinned exactly so `mise run fmt` output never shifts
+# under us; bump them deliberately (and re-run fmt) like any other update.
+[tools]
+# oxfmt's npm backend needs a node.
+node = "24"
+"npm:oxfmt" = "0.64.0"
+shfmt = "3.13.1"
+taplo = "0.10.0"
+
+[tasks.fmt]
+description = "Format every hand-written file in the repo"
+run = [
+  # .nix — nixfmt (RFC 166 style) via the flake's formatter output, repo-wide.
+  "nix fmt",
+  # .toml — taplo.
+  "git ls-files -z '*.toml' | xargs -0 taplo fmt",
+  # .sh — shfmt.
+  "git ls-files -z '*.sh' | xargs -0 shfmt --write --indent 2",
+  # .py — ruff's formatter, pinned by uv.lock. Its excludes live in
+  # pyproject.toml ([tool.ruff]).
+  "uv run ruff format .",
+  # .json, .md, .yml, .html — oxfmt, repo-wide. Machine-written and captured
+  # files are excluded via .gitignore + .prettierignore, both of which oxfmt
+  # reads by default.
+  "oxfmt",
+]

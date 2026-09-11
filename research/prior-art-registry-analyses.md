@@ -11,24 +11,24 @@ about the registry, about method, and about demand.
 
 ## The four sources
 
-| Source | Author, date | What it is |
-|---|---|---|
-| [WSDC Project Part 1: 2018 Rule Change](https://conniedoesdata.com/2018/01/03/WSDC-Project-Part-1/) and [Part 2: Taking Some Requests](https://conniedoesdata.com/2018/03/17/WSDC-Project-Part-2/) | Connie Wang, January and March 2018 | Two blog posts with R and Tableau analysis; code and CSVs at [conniewang3/WSDC-Project](https://github.com/conniewang3/WSDC-Project) |
-| [dgarwin/westiestats](https://github.com/dgarwin/westiestats/blob/master/analysis/basic.ipynb) | March 2020 | Node scraper plus a Jupyter notebook: cohort level counts, time between first points per division, a toy All-Star classifier |
-| [tomtseng/wsdc-points](https://github.com/tomtseng/wsdc-points) | Tom Tseng, April to May 2024 | Python scraper (`scrape-data.py`) and notebook (`get-stats.ipynb`) |
-| [How long it takes to move up divisions](https://modernswing.forum/posts/8CtcYhkf4Eo4NPH6r/how-long-it-takes-to-move-up-divisions-1) | Tom Tseng, 2025-01-12, Modern Swing Forum | Write-up of the notebook above; cites the other two as prior work |
+| Source                                                                                                                                                                                             | Author, date                              | What it is                                                                                                                           |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| [WSDC Project Part 1: 2018 Rule Change](https://conniedoesdata.com/2018/01/03/WSDC-Project-Part-1/) and [Part 2: Taking Some Requests](https://conniedoesdata.com/2018/03/17/WSDC-Project-Part-2/) | Connie Wang, January and March 2018       | Two blog posts with R and Tableau analysis; code and CSVs at [conniewang3/WSDC-Project](https://github.com/conniewang3/WSDC-Project) |
+| [dgarwin/westiestats](https://github.com/dgarwin/westiestats/blob/master/analysis/basic.ipynb)                                                                                                     | March 2020                                | Node scraper plus a Jupyter notebook: cohort level counts, time between first points per division, a toy All-Star classifier         |
+| [tomtseng/wsdc-points](https://github.com/tomtseng/wsdc-points)                                                                                                                                    | Tom Tseng, April to May 2024              | Python scraper (`scrape-data.py`) and notebook (`get-stats.ipynb`)                                                                   |
+| [How long it takes to move up divisions](https://modernswing.forum/posts/8CtcYhkf4Eo4NPH6r/how-long-it-takes-to-move-up-divisions-1)                                                               | Tom Tseng, 2025-01-12, Modern Swing Forum | Write-up of the notebook above; cites the other two as prior work                                                                    |
 
 ## What they teach about the registry
 
 **Endpoints and response shape drift.** Each generation hit a different
 shape of the same lookup:
 
-| When | Endpoint | Form field | Shape used by the code |
-|---|---|---|---|
-| 2018 (Wang) | `POST /lookup/find` | `q=<wsdc_id>` (a number in the name-search field) | `dancer.wscid`, `placements["West Coast Swing"]` as a **list** of division entries, each with `division.name` ("Novice", "All-Stars", "Masters") and `competitions[]` |
-| 2020 (westiestats) | `POST /lookup/find` with a JSON body `{num, _token}` | `num` plus a CSRF `_token` taken from the page | `placements["West Coast Swing"]` as a **dict** keyed by division code (`NEW`, `NOV`, `INT`, `ADV`, `ALS`), `level.required`, `level.allowed`, `dancer.wscid`; a 404 for a missing id |
-| 2024 (Tseng) | `POST /lookup2020/find` | `num=<wsdc_id>` | `dancer_wsdcid`, `dominate_data.level.allowed`, `dominate_data.placements["West Coast Swing"][<code>].competitions[]` |
-| 2026 (swingset, `design/sources.md`) | `POST /lookup2020/find` | `num=<wsdc_id>` | `leader` and `follower` blocks, `dominate_role`, `dominate_required`, `dominate_allowed`; the 2024 `dominate_data` key is not in our verified sample |
+| When                                 | Endpoint                                             | Form field                                        | Shape used by the code                                                                                                                                                               |
+| ------------------------------------ | ---------------------------------------------------- | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 2018 (Wang)                          | `POST /lookup/find`                                  | `q=<wsdc_id>` (a number in the name-search field) | `dancer.wscid`, `placements["West Coast Swing"]` as a **list** of division entries, each with `division.name` ("Novice", "All-Stars", "Masters") and `competitions[]`                |
+| 2020 (westiestats)                   | `POST /lookup/find` with a JSON body `{num, _token}` | `num` plus a CSRF `_token` taken from the page    | `placements["West Coast Swing"]` as a **dict** keyed by division code (`NEW`, `NOV`, `INT`, `ADV`, `ALS`), `level.required`, `level.allowed`, `dancer.wscid`; a 404 for a missing id |
+| 2024 (Tseng)                         | `POST /lookup2020/find`                              | `num=<wsdc_id>`                                   | `dancer_wsdcid`, `dominate_data.level.allowed`, `dominate_data.placements["West Coast Swing"][<code>].competitions[]`                                                                |
+| 2026 (swingset, `design/sources.md`) | `POST /lookup2020/find`                              | `num=<wsdc_id>`                                   | `leader` and `follower` blocks, `dominate_role`, `dominate_required`, `dominate_allowed`; the 2024 `dominate_data` key is not in our verified sample                                 |
 
 The registry has changed its JSON at least three times in eight years
 without notice. This is why the parser is versioned and why every
@@ -67,15 +67,14 @@ is gone in 2024 and 2026.
 
 **Growth of the id space, from their hard-coded maxima:**
 
-| Date | Highest id | Source |
-|---|---|---|
-| 2018-01 | about 16,800 | Wang, `range(16802)` |
-| 2018-02-02 | 16,981 | Wang, part 2 |
-| 2024-04-28 | 23,454 | Tseng, "manual trial and error" |
-| 2026-09-09 | 27,039 | mechstack dump (`docs/implementation-status.md`) |
+| Date       | Highest id   | Source                                           |
+| ---------- | ------------ | ------------------------------------------------ |
+| 2018-01    | about 16,800 | Wang, `range(16802)`                             |
+| 2018-02-02 | 16,981       | Wang, part 2                                     |
+| 2024-04-28 | 23,454       | Tseng, "manual trial and error"                  |
+| 2026-09-09 | 27,039       | mechstack dump (`docs/implementation-status.md`) |
 
-About 1,000 new numbers a year before 2020, about 1,200 a year since
-2022. This supports the sweep budget in `docs/sources/wsdc-registry.md`
+About 1,000 new numbers a year before 2020, about 1,200 a year since 2022. This supports the sweep budget in `docs/sources/wsdc-registry.md`
 and the expectation that new-id probes find a few numbers a week.
 
 ## What they teach about method

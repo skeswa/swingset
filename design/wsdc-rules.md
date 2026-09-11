@@ -8,14 +8,14 @@ Legacy legend: Yes = 1, Alt1 = 2.1, Alt2 = 2.2, Alt3 = 2.3, No = 3
 
 Points by tier (unique competitors in the role), places 1 to 5:
 
-| Tier | Competitors | 1st | 2nd | 3rd | 4th | 5th | Extra |
-|---|---|---|---|---|---|---|---|
-| 1 | 5 to 10 | 3 | 2 | 1 | 0 | 0 | |
-| 2 | 11 to 19 | 6 | 4 | 3 | 2 | 1 | |
-| 3 | 20 to 39 | 10 | 8 | 6 | 4 | 2 | 1 point through 10th |
-| 4 | 40 to 79 | 15 | 12 | 10 | 8 | 6 | 1 point through 12th |
-| 5 | 80 to 129 | 20 | 16 | 14 | 12 | 10 | 2 points through 15th |
-| 6 | 130+ | 25 | 22 | 18 | 15 | 12 | 2 points through 15th |
+| Tier | Competitors | 1st | 2nd | 3rd | 4th | 5th | Extra                 |
+| ---- | ----------- | --- | --- | --- | --- | --- | --------------------- |
+| 1    | 5 to 10     | 3   | 2   | 1   | 0   | 0   |                       |
+| 2    | 11 to 19    | 6   | 4   | 3   | 2   | 1   |                       |
+| 3    | 20 to 39    | 10  | 8   | 6   | 4   | 2   | 1 point through 10th  |
+| 4    | 40 to 79    | 15  | 12  | 10  | 8   | 6   | 1 point through 12th  |
+| 5    | 80 to 129   | 20  | 16  | 14  | 12  | 10  | 2 points through 15th |
+| 6    | 130+        | 25  | 22  | 18  | 15  | 12  | 2 points through 15th |
 
 Minimum 5 leaders and 5 followers in the final for points. Combined
 divisions award the lower division's points. Only J&J at registry events
@@ -33,12 +33,12 @@ One point in a higher division moves a dancer up immediately. The
 From `research/prior-art-registry-analyses.md`; dates need checking
 against the rule PDFs archived in `conniewang3/WSDC-Project/files/`.
 
-| Change | When | Note |
-|---|---|---|
-| Novice points to move up: 20 to 15 | 2012 or 2013 (**unverified** which) | |
-| Novice: 15 allowed to 16 allowed, 30 required | 2018 | Dancers with exactly 15 points before 2018 were grandfathered |
-| All-Star eligibility: from "45 Advanced points in 3 years or 1 All-Star point ever" to "45 Advanced points in 3 years or 3 All-Star points in 3 years" | 2018 | 76 All-Stars were demoted by this change (Wang) |
-| Thresholds in the table above | 2026 text | |
+| Change                                                                                                                                                 | When                                | Note                                                          |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------- | ------------------------------------------------------------- |
+| Novice points to move up: 20 to 15                                                                                                                     | 2012 or 2013 (**unverified** which) |                                                               |
+| Novice: 15 allowed to 16 allowed, 30 required                                                                                                          | 2018                                | Dancers with exactly 15 points before 2018 were grandfathered |
+| All-Star eligibility: from "45 Advanced points in 3 years or 1 All-Star point ever" to "45 Advanced points in 3 years or 3 All-Star points in 3 years" | 2018                                | 76 All-Stars were demoted by this change (Wang)               |
+| Thresholds in the table above                                                                                                                          | 2026 text                           |                                                               |
 
 `points_matches_expected` in `placements` compares `registry_points_*`
 against this chart with the tier inferred from `rounds.entry_count` of

@@ -11,23 +11,23 @@ Corrections replayed archived evidence without fetching new source pages.
 
 ## Measured changes
 
-| Measure | Pinned baseline | Corrected release |
-|---|---:|---:|
-| Events | 573 | 573 |
-| Events with results | 96 | 96 |
-| Contests | 1,792 | 1,759 |
-| Rounds | 2,733 | 2,729 |
-| Entries | 50,120 | 57,505 |
-| Placements | 13,904 | 13,922 |
-| Callbacks | 37,133 | 57,292 |
-| Callback marks | 187,958 | 283,343 |
-| Final marks | 78,410 | 78,612 |
-| Dancers | 2,228 | 3,229 |
-| Registry placements | 21,230 | 33,427 |
-| Registry rows mapped to events | 0 | 1,269 |
-| Placements with registry points | 0 | 153 |
-| Entries with a WSDC ID | 6,596 (13.2%) | 9,471 (16.5%) |
-| Review queue | 2,922 | 2,427 |
+| Measure                         | Pinned baseline | Corrected release |
+| ------------------------------- | --------------: | ----------------: |
+| Events                          |             573 |               573 |
+| Events with results             |              96 |                96 |
+| Contests                        |           1,792 |             1,759 |
+| Rounds                          |           2,733 |             2,729 |
+| Entries                         |          50,120 |            57,505 |
+| Placements                      |          13,904 |            13,922 |
+| Callbacks                       |          37,133 |            57,292 |
+| Callback marks                  |         187,958 |           283,343 |
+| Final marks                     |          78,410 |            78,612 |
+| Dancers                         |           2,228 |             3,229 |
+| Registry placements             |          21,230 |            33,427 |
+| Registry rows mapped to events  |               0 |             1,269 |
+| Placements with registry points |               0 |               153 |
+| Entries with a WSDC ID          |   6,596 (13.2%) |     9,471 (16.5%) |
+| Review queue                    |           2,922 |             2,427 |
 
 Of the 153 placements with points, 141 have comparable expected points and
 all 141 agree. The other 12 lack an established field size. Invalid dates,
@@ -77,13 +77,13 @@ up from 21,230. There are now 1,191 event mappings in that same cohort.
 
 The placement change is fully accounted for:
 
-| Event | Placement delta | Archived evidence |
-|---|---:|---|
-| Northeast Swing Classic | −23 | Exact duplicate finals consolidated: 7 advanced, 8 intermediate, 8 newcomer/novice Am Follower. |
-| Capital Swing 2026 | +38 | Recovered 12 advanced, 12 intermediate, and 14 novice WSDC finals; all 17 country finals remain. |
-| Swingover 2026 | +3 | Distinct “First Alt-American Final x 2” retained alongside the 12-row Large Final. |
-| City of Angels | 0 | All 177 placements rekeyed from 2027 to 2026. |
-| Total | +18 | No unexplained event-level loss. |
+| Event                   | Placement delta | Archived evidence                                                                                |
+| ----------------------- | --------------: | ------------------------------------------------------------------------------------------------ |
+| Northeast Swing Classic |             −23 | Exact duplicate finals consolidated: 7 advanced, 8 intermediate, 8 newcomer/novice Am Follower.  |
+| Capital Swing 2026      |             +38 | Recovered 12 advanced, 12 intermediate, and 14 novice WSDC finals; all 17 country finals remain. |
+| Swingover 2026          |              +3 | Distinct “First Alt-American Final x 2” retained alongside the 12-row Large Final.               |
+| City of Angels          |               0 | All 177 placements rekeyed from 2027 to 2026.                                                    |
+| Total                   |             +18 | No unexplained event-level loss.                                                                 |
 
 ## Verification and operation
 

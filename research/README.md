@@ -55,19 +55,19 @@ How it was built (`build_events.py`):
 
 Columns:
 
-| Column | Meaning |
-|---|---|
-| `event_key` | `<yyyy-mm>-<series_slug>`. `yyyy-mm` is the end-date month. Same rule as `event_id` in [design/data-model.md](../design/data-model.md#identifiers). Use this to cross-reference every other research CSV. |
-| `name` | Name as printed on the calendar (latest snapshot) |
-| `series_slug` | Name lowercased, ASCII-folded, with years, ordinals, roman numerals, and "hiatus" removed |
-| `start_date`, `end_date` | ISO dates from the calendar |
-| `city`, `region`, `country` | Split from the calendar's free-text location on commas. Dirty; the calendar has typos and inconsistent country names |
-| `country_code` | ISO 3166-1 alpha-3 from the flag link, sometimes blank or `transparent` |
-| `event_type` | `Registry Event`, `Trial Event`, or blank |
-| `flags` | Row CSS class: blank, `event-trial`, `event-unconfirmed`, `event-canceled` |
-| `status` | `ended`, `in_progress` (as of 2026-09-04), `hiatus` (name says hiatus), `canceled` |
-| `website` | Link from the calendar |
-| `first_seen_snapshot`, `last_seen_snapshot`, `snapshots_seen` | Which snapshots listed this edition |
+| Column                                                        | Meaning                                                                                                                                                                                                   |
+| ------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `event_key`                                                   | `<yyyy-mm>-<series_slug>`. `yyyy-mm` is the end-date month. Same rule as `event_id` in [design/data-model.md](../design/data-model.md#identifiers). Use this to cross-reference every other research CSV. |
+| `name`                                                        | Name as printed on the calendar (latest snapshot)                                                                                                                                                         |
+| `series_slug`                                                 | Name lowercased, ASCII-folded, with years, ordinals, roman numerals, and "hiatus" removed                                                                                                                 |
+| `start_date`, `end_date`                                      | ISO dates from the calendar                                                                                                                                                                               |
+| `city`, `region`, `country`                                   | Split from the calendar's free-text location on commas. Dirty; the calendar has typos and inconsistent country names                                                                                      |
+| `country_code`                                                | ISO 3166-1 alpha-3 from the flag link, sometimes blank or `transparent`                                                                                                                                   |
+| `event_type`                                                  | `Registry Event`, `Trial Event`, or blank                                                                                                                                                                 |
+| `flags`                                                       | Row CSS class: blank, `event-trial`, `event-unconfirmed`, `event-canceled`                                                                                                                                |
+| `status`                                                      | `ended`, `in_progress` (as of 2026-09-04), `hiatus` (name says hiatus), `canceled`                                                                                                                        |
+| `website`                                                     | Link from the calendar                                                                                                                                                                                    |
+| `first_seen_snapshot`, `last_seen_snapshot`, `snapshots_seen` | Which snapshots listed this edition                                                                                                                                                                       |
 
 Known quirks: `2026-03-flow-festival-nyc` and `2026-03-new-york-flow-festival`
 are the same event listed twice on the calendar under two names.
@@ -79,11 +79,11 @@ Event indexes of the three results platforms, captured once on
 2026-09-04 so that research agents could match events locally instead
 of crawling the platforms.
 
-| File | Source | Rows |
-|---|---|---|
-| `eepro_events.tsv` | `https://eepro.com/results/event.php` | slug, title, date |
-| `scoringdance_events.tsv` | `https://scoring.dance/enUS/recent` (noscript list) | event_id, title, dates |
-| `dcn_events.tsv` | `https://danceconvention.net/eventdirector/en/eventsarchive` and `eventsarchive:loadyear?year=2025` (XHR) | event_id, name, dates, location, results_published, affiliations, event_page |
+| File                      | Source                                                                                                    | Rows                                                                         |
+| ------------------------- | --------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| `eepro_events.tsv`        | `https://eepro.com/results/event.php`                                                                     | slug, title, date                                                            |
+| `scoringdance_events.tsv` | `https://scoring.dance/enUS/recent` (noscript list)                                                       | event_id, title, dates                                                       |
+| `dcn_events.tsv`          | `https://danceconvention.net/eventdirector/en/eventsarchive` and `eventsarchive:loadyear?year=2025` (XHR) | event_id, name, dates, location, results_published, affiliations, event_page |
 
 ## results-sources.csv
 
@@ -115,26 +115,26 @@ the retry run and says whether the edition took place at all.
 
 Platform counts as of 2026-09-08 (181 events):
 
-| `platform` | Events | Notes |
-|---|---|---|
-| `scoring.dance` | 87 | Prints bibs and WSDC ids. The `/enUS/recent` list holds past events only; the sitemap adds upcoming ones and City of Angels 2026 (id 315). |
-| `eepro` | 38 | |
-| `danceconvention.net` | 19 | Names and places on the page; bibs only in per-round PDFs. Some names are masked as `*******` at source (seen on Korea Westival 2026). The archive listing is not exhaustive: older editions exist under 7-digit ids (WesterOz 2018 is 1601070) that the listing never shows. |
-| `worlddanceregistry` | 14 | `scores.worlddanceregistry.com/<uuid>` ("Pro Score"). Not covered by the design yet. Mostly North American events (Trilogy, Swing City Chicago, Chicago Classic, Montreal Westie Fest, Carolina Summer Swing, Florida Dance Magic, Desert City Swing, and others). Pages are React Static builds with `/awards` (final results) and `/rounds` (round details) routes and a `lastBuilt` timestamp in `window.__routeInfo`. No public index; the bucket root, robots, and sitemap return 403. |
-| `event_website` | 7 | HTML or PDFs on the event's own site. |
-| `google_drive_or_sheets` | 2 | Mountain Magic posts one PDF per division and round in a public Drive folder. |
-| `other` | 6 | UCWDC results PDFs (Texas Classic, Chicagoland), Florida Classic Series blog, Charlotte WestieFest results page, Colorado Country Classic, and Swing Fiction's own JSON API (`api.swingfiction.cz`, see overrides). |
-| `not_held` | 4 | `edition_held=no`: Sea to Sky 2025, The Australian Classic 2026 (cancelled for low ticket sales), Dance N Play 2026, Toronto Open 2026. |
-| `not_found` | 4 | See below. |
+| `platform`               | Events | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| ------------------------ | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `scoring.dance`          | 87     | Prints bibs and WSDC ids. The `/enUS/recent` list holds past events only; the sitemap adds upcoming ones and City of Angels 2026 (id 315).                                                                                                                                                                                                                                                                                                                                                  |
+| `eepro`                  | 38     |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| `danceconvention.net`    | 19     | Names and places on the page; bibs only in per-round PDFs. Some names are masked as `*******` at source (seen on Korea Westival 2026). The archive listing is not exhaustive: older editions exist under 7-digit ids (WesterOz 2018 is 1601070) that the listing never shows.                                                                                                                                                                                                               |
+| `worlddanceregistry`     | 14     | `scores.worlddanceregistry.com/<uuid>` ("Pro Score"). Not covered by the design yet. Mostly North American events (Trilogy, Swing City Chicago, Chicago Classic, Montreal Westie Fest, Carolina Summer Swing, Florida Dance Magic, Desert City Swing, and others). Pages are React Static builds with `/awards` (final results) and `/rounds` (round details) routes and a `lastBuilt` timestamp in `window.__routeInfo`. No public index; the bucket root, robots, and sitemap return 403. |
+| `event_website`          | 7      | HTML or PDFs on the event's own site.                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| `google_drive_or_sheets` | 2      | Mountain Magic posts one PDF per division and round in a public Drive folder.                                                                                                                                                                                                                                                                                                                                                                                                               |
+| `other`                  | 6      | UCWDC results PDFs (Texas Classic, Chicagoland), Florida Classic Series blog, Charlotte WestieFest results page, Colorado Country Classic, and Swing Fiction's own JSON API (`api.swingfiction.cz`, see overrides).                                                                                                                                                                                                                                                                         |
+| `not_held`               | 4      | `edition_held=no`: Sea to Sky 2025, The Australian Classic 2026 (cancelled for low ticket sales), Dance N Play 2026, Toronto Open 2026.                                                                                                                                                                                                                                                                                                                                                     |
+| `not_found`              | 4      | See below.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 
 Still unresolved after the retry:
 
-| `event_key` | What we know |
-|---|---|
-| `2025-11-cash-bash` | Site links only a World Dance Registry registration page for the 2026 edition. Results for 2025 are probably on WDR under an unknown uuid. |
-| `2026-02-westeroz-swing` | Retry agent matched DCN event 1601070, which turned out to be the 2018 edition. Corrected by override. |
-| `2026-05-canadian-swing-championships` | Site links only two Facebook groups. The danceplace listing's results tab is empty. |
-| `2026-06-next-level-swing` | Site now advertises May 2027; whether the 2026 edition ran is unclear. |
+| `event_key`                            | What we know                                                                                                                               |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `2025-11-cash-bash`                    | Site links only a World Dance Registry registration page for the 2026 edition. Results for 2025 are probably on WDR under an unknown uuid. |
+| `2026-02-westeroz-swing`               | Retry agent matched DCN event 1601070, which turned out to be the 2018 edition. Corrected by override.                                     |
+| `2026-05-canadian-swing-championships` | Site links only two Facebook groups. The danceplace listing's results tab is empty.                                                        |
+| `2026-06-next-level-swing`             | Site now advertises May 2027; whether the 2026 edition ran is unclear.                                                                     |
 
 The retry run used Sonnet agents with WebFetch only, because the
 session's WebSearch allowance was still exhausted. Web search was done

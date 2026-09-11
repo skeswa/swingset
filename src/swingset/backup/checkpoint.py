@@ -52,9 +52,7 @@ def _artifact_closure(
             "SELECT robots_sha256 FROM hosts WHERE robots_sha256 IS NOT NULL"
         ):
             digest = str(body)
-            included.add(
-                state_dir / "blobs" / "sha256" / digest[:2] / digest[2:4] / digest
-            )
+            included.add(state_dir / "blobs" / "sha256" / digest[:2] / digest[2:4] / digest)
     if "findings" in table_names:
         for (evidence_json,) in connection.execute(
             "SELECT evidence_json FROM findings WHERE closed_at IS NULL"

@@ -116,9 +116,7 @@ def test_registry_date_key_builds_and_rebuilds_changelog(tmp_path: Path) -> None
         tmp_path, input_version(2, registry_placements=[changed]), metadata("cand_b")
     )
 
-    history = pq.read_table(
-        rebuilt.path / "data" / "changelog" / "changelog.parquet"
-    ).to_pylist()
+    history = pq.read_table(rebuilt.path / "data" / "changelog" / "changelog.parquet").to_pylist()
     point_change = next(row for row in history if row["field"] == "points")
     assert json.loads(point_change["record_key"]) == [
         1,
@@ -198,7 +196,9 @@ def _callback_tables() -> dict[str, list[dict[str, object]]]:
     }
 
 
-@pytest.mark.parametrize("field,bad_value", [("score_sum", 10.0), ("yes_count", 0), ("alt_count", 0), ("no_count", 0)])
+@pytest.mark.parametrize(
+    "field,bad_value", [("score_sum", 10.0), ("yes_count", 0), ("alt_count", 0), ("no_count", 0)]
+)
 def test_callback_aggregate_must_match_retained_marks(
     tmp_path: Path, field: str, bad_value: object
 ) -> None:
@@ -334,9 +334,7 @@ def test_changelog_stream_merge_preserves_sorted_history_and_nullable_keys(
         metadata("cand_c"),
     )
 
-    history = pq.read_table(
-        third.path / "data" / "changelog" / "changelog.parquet"
-    ).to_pylist()
+    history = pq.read_table(third.path / "data" / "changelog" / "changelog.parquet").to_pylist()
     keys = [
         json.dumps(
             (row["changed_at"], row["table"], row["record_key"], row["field"]),

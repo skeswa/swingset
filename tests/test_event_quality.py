@@ -105,9 +105,9 @@ def test_eepro_coming_soon_snapshot_completes_as_legitimate_empty(tmp_path: Path
         attempt = parse_snapshot(database, Archive(tmp_path), unit, clock, run_id)
         assert not attempt.failed
         assert database.connection.execute("SELECT count(*) FROM observations").fetchone()[0] == 0
-        assert database.connection.execute(
-            "SELECT parse_status FROM snapshots"
-        ).fetchone()[0] == "ok"
+        assert (
+            database.connection.execute("SELECT parse_status FROM snapshots").fetchone()[0] == "ok"
+        )
         client.close()
 
 

@@ -56,7 +56,6 @@ swingset/
     ISSUE_TEMPLATE/site-operator.md
 ```
 
-
 v1 creates the shared modules and the calendar, registry, EEPro,
 scoring.dance, and WDR adapters. `dcn/`, `generic/`, and `wayback.py` wait
 for later milestones. Module ownership and contracts are defined in

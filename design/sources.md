@@ -7,16 +7,16 @@ document. URL patterns are [below](#url-patterns).
 
 ## Summary table
 
-| Source | Gives | Bibs | Names | WSDC ids | Judges' marks | Heats | Format | Change signals |
-|---|---|---|---|---|---|---|---|---|
-| WSDC registry | dancers, points, final placements | no | yes | yes | no | no | JSON via POST | none (no ETag) |
-| WSDC event calendar | event list, dates, city, website | - | - | - | - | - | WordPress HTML | likely ETag (unverified) |
-| EEPro | prelim marks, callbacks, final marks, placements | yes | yes | no | yes, named | partial (unverified) | static HTML, some PDF | strong `ETag` + `Last-Modified` on files (304 verified); per-event autoindex lists mtimes |
-| scoring.dance | prelim marks, callbacks, final marks, placements | yes | yes | **yes** | yes, named | unverified | server-rendered HTML | `Last-Modified` is render time; Cloudflare edge gives 304 for 600 s; sitemap has no `lastmod` |
-| danceconvention.net (DCN) | rankings per round; per-round PDF with bibs and marks | PDF only | yes, with city | no | PDF only | app only (unverified) | Nuxt payload in HTML + PDF | `ETag` changes every response; `no-store`; 1.67 MB per poll |
-| World Dance Registry (WDR) | every round as JSON: bibs, marks, callbacks, placements | yes | yes (non-callbacks redacted) | no | yes, first names | no | static JSON (`routeInfo.json`) | weak `ETag` + `Last-Modified`, 304 verified |
-| Event-site PDFs | historical results | varies | yes | no | varies | no | PDF | none |
-| Step Right Solutions (archive only) | prelim marks, finals ranks, placements, 2009 to 2019 | yes | yes | no | anonymous columns, named panel | no | static HTML in the Wayback Machine | none; captures are immutable |
+| Source                              | Gives                                                   | Bibs     | Names                        | WSDC ids | Judges' marks                  | Heats                 | Format                             | Change signals                                                                                |
+| ----------------------------------- | ------------------------------------------------------- | -------- | ---------------------------- | -------- | ------------------------------ | --------------------- | ---------------------------------- | --------------------------------------------------------------------------------------------- |
+| WSDC registry                       | dancers, points, final placements                       | no       | yes                          | yes      | no                             | no                    | JSON via POST                      | none (no ETag)                                                                                |
+| WSDC event calendar                 | event list, dates, city, website                        | -        | -                            | -        | -                              | -                     | WordPress HTML                     | likely ETag (unverified)                                                                      |
+| EEPro                               | prelim marks, callbacks, final marks, placements        | yes      | yes                          | no       | yes, named                     | partial (unverified)  | static HTML, some PDF              | strong `ETag` + `Last-Modified` on files (304 verified); per-event autoindex lists mtimes     |
+| scoring.dance                       | prelim marks, callbacks, final marks, placements        | yes      | yes                          | **yes**  | yes, named                     | unverified            | server-rendered HTML               | `Last-Modified` is render time; Cloudflare edge gives 304 for 600 s; sitemap has no `lastmod` |
+| danceconvention.net (DCN)           | rankings per round; per-round PDF with bibs and marks   | PDF only | yes, with city               | no       | PDF only                       | app only (unverified) | Nuxt payload in HTML + PDF         | `ETag` changes every response; `no-store`; 1.67 MB per poll                                   |
+| World Dance Registry (WDR)          | every round as JSON: bibs, marks, callbacks, placements | yes      | yes (non-callbacks redacted) | no       | yes, first names               | no                    | static JSON (`routeInfo.json`)     | weak `ETag` + `Last-Modified`, 304 verified                                                   |
+| Event-site PDFs                     | historical results                                      | varies   | yes                          | no       | varies                         | no                    | PDF                                | none                                                                                          |
+| Step Right Solutions (archive only) | prelim marks, finals ranks, placements, 2009 to 2019    | yes      | yes                          | no       | anonymous columns, named panel | no                    | static HTML in the Wayback Machine | none; captures are immutable                                                                  |
 
 Heat lists are the thinnest data. All three platforms push heats through
 mobile apps or wall postings. We record heats when a public page shows
@@ -125,8 +125,7 @@ precision ([backfill](backfill.md#event-enumeration-for-history)).
   itself is an empty stub.
 - `event.php` lists only recent events (2024 on), but older slug
   directories are still served (`/results/liberty2018/` was a 200
-  index page on 2026-09-11). The Wayback Machine holds EEPro only from
-  2018. Older history comes from the operator, not from probing.
+  index page on 2026-09-11). The Wayback Machine holds EEPro only from 2018. Older history comes from the operator, not from probing.
 - Companion "SwingDancer" app pushes callbacks; we do not touch it.
 - The operator plans an API. The adapter is built to be swapped for it.
 
@@ -294,31 +293,43 @@ danceconvention.net
 {
   "leader": {
     "type": "dancer",
-    "dancer": {"id": 96, "first_name": "Bill", "last_name": "Borgida", "wscid": 100},
-    "level": {"required": "ALS", "allowed": "CHMP", "reason": ""},
+    "dancer": { "id": 96, "first_name": "Bill", "last_name": "Borgida", "wscid": 100 },
+    "level": { "required": "ALS", "allowed": "CHMP", "reason": "" },
     "placements": {
       "West Coast Swing": {
         "CHMP": {
-          "division": {"id": 7, "name": "Champions", "abbreviation": "CHMP"},
+          "division": { "id": 7, "name": "Champions", "abbreviation": "CHMP" },
           "total_points": 2,
           "competitions": [
-            {"role": "leader", "points": 1, "result": "F",
-             "event": {"id": 53, "name": "Summer Hummer",
-                       "location": "Boston, MA, United States",
-                       "url": "https://summerhummerboston.com/",
-                       "date": "August 2002"}}
+            {
+              "role": "leader",
+              "points": 1,
+              "result": "F",
+              "event": {
+                "id": 53,
+                "name": "Summer Hummer",
+                "location": "Boston, MA, United States",
+                "url": "https://summerhummerboston.com/",
+                "date": "August 2002"
+              }
+            }
           ],
-          "adv_sliding": [], "as_sliding": []
+          "adv_sliding": [],
+          "as_sliding": []
         }
       }
     },
     "recent_year": "2002"
   },
-  "follower": {"type": "dancer", "dancer": {"...": "..."}, "placements": [], "recent_year": 0},
-  "dancer_first": "Bill", "dancer_last": "Borgida", "dancer_wsdcid": 100,
+  "follower": { "type": "dancer", "dancer": { "...": "..." }, "placements": [], "recent_year": 0 },
+  "dancer_first": "Bill",
+  "dancer_last": "Borgida",
+  "dancer_wsdcid": 100,
   "dominate_role": "Primary Role Leader",
-  "dominate_required": "ALS", "dominate_allowed": "CHMP",
-  "is_pro": 0, "recent_year": "2002"
+  "dominate_required": "ALS",
+  "dominate_allowed": "CHMP",
+  "is_pro": 0,
+  "recent_year": "2002"
 }
 ```
 
