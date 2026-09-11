@@ -207,6 +207,7 @@ class FetchClient:
         watch = SimpleNamespace(**dict(row))
         if not self.config.enabled(watch.source):
             return FetchResult(Classification(Outcome.INVALID), skipped="source disabled")
+        registry_probe = watch.source == "wsdc_registry" and watch.notes == "probe"
         headers: dict[str, str] = {}
         if watch.etag:
             headers["If-None-Match"] = watch.etag
@@ -233,6 +234,20 @@ class FetchClient:
         if response is None:
             return FetchResult(outcome)
         body = response.content
+        reused_probe_body = False
+        failed_probe_cache = False
+        if registry_probe and outcome.outcome == Outcome.NOT_MODIFIED:
+            try:
+                if watch.body_sha256 is None:
+                    raise ValueError("probe 304 has no cached representation")
+                body = self.archive.read_body(str(watch.body_sha256))
+                reused_probe_body = True
+            except (EOFError, FileNotFoundError, OSError, ValueError):
+                # A 304 proves freshness only when its prior representation is intact.
+                failed_probe_cache = True
+                outcome = Classification(Outcome.INVALID)
+                if watch.body_sha256 is not None:
+                    self.archive.blob_path(str(watch.body_sha256)).unlink(missing_ok=True)
         body_sha = digest(body)
         extract_sha: str | None = None
         extract_status = "pending"
@@ -260,9 +275,22 @@ class FetchClient:
             except ExtractError:
                 extract_status = "failed"
         # Archive failures for diagnosis too, but never replace observations with HTTP error bodies.
-        archive_response = changed or outcome.outcome not in (Outcome.OK, Outcome.NOT_MODIFIED)
-        queue_parse = changed or (
-            watch.source == "wsdc_registry" and outcome.outcome == Outcome.INVALID
+        fresh_probe_evidence = registry_probe and (
+            outcome.outcome == Outcome.OK or reused_probe_body
+        )
+        archive_response = (
+            changed
+            or fresh_probe_evidence
+            or outcome.outcome not in (Outcome.OK, Outcome.NOT_MODIFIED)
+        ) and not failed_probe_cache
+        queue_parse = (
+            changed
+            or fresh_probe_evidence
+            or (
+                watch.source == "wsdc_registry"
+                and outcome.outcome == Outcome.INVALID
+                and not failed_probe_cache
+            )
         )
         snapshot_id: str | None = None
         if archive_response:
@@ -278,6 +306,10 @@ class FetchClient:
                 conn.execute(
                     "UPDATE watches SET etag=?,last_modified=? WHERE watch_id=?",
                     (response.headers.get("etag"), response.headers.get("last-modified"), watch_id),
+                )
+            if failed_probe_cache:
+                conn.execute(
+                    "UPDATE watches SET etag=NULL,last_modified=NULL WHERE watch_id=?", (watch_id,)
                 )
             if snapshot_id:
                 conn.execute(
@@ -297,7 +329,7 @@ class FetchClient:
                         response.headers.get("last-modified"),
                         response.headers.get("content-type"),
                         body_sha,
-                        len(body),
+                        len(response.content),
                         changed,
                         run_id,
                         "origin",
@@ -335,4 +367,4 @@ class FetchClient:
         except BaseException:
             conn.rollback()
             raise
-        return FetchResult(outcome, snapshot_id, changed, len(body), nonce_unchanged)
+        return FetchResult(outcome, snapshot_id, changed, len(response.content), nonce_unchanged)

@@ -12,11 +12,15 @@ from swingset.fetch.archive import Archive
 from swingset.fetch.classify import Classification, Outcome, classify, retry_after
 from swingset.fetch.client import USER_AGENT, FetchClient
 from swingset.fetch.politeness import Gate, Grant, Paused, Wait
-from swingset.schedule.watches import upsert_watch
+from swingset.schedule.parse import parse_snapshot
+from swingset.schedule.watches import refresh_policy, upsert_watch
 from swingset.sources.base import WatchSpec
 from swingset.sources.wdr import RoundsPage
 from swingset.sources.wsdc_calendar import EventsPage
+from swingset.sources.wsdc_registry import DancerPage
+from swingset.sources.wsdc_registry.adapter import SOURCE as REGISTRY_SOURCE
 from swingset.state.db import open_database
+from swingset.state.work import WorkUnit
 
 BODY = Path("tests/fixtures/sources/synthetic_calendar.html").read_bytes()
 
@@ -122,6 +126,172 @@ def test_fetch_conditional_no_cookies_archive_and_fingerprint(tmp_path):
                 db.connection.execute("SELECT body_sha256 FROM snapshots").fetchone()[0]
             )
             == BODY
+        )
+        client.close()
+
+
+@pytest.mark.parametrize("second_response", ["full", "not_modified"])
+def test_repeated_registry_probe_miss_archives_fresh_unchanged_evidence(tmp_path, second_response):
+    clock = FakeClock()
+    body = Path("src/swingset/sources/wsdc_registry/fixtures/lookup-1000000.body").read_bytes()
+    requests = []
+
+    def handler(request):
+        if request.url.path == "/robots.txt":
+            return httpx.Response(404)
+        requests.append(request)
+        if second_response == "not_modified" and request.headers.get("if-none-match") == '"miss"':
+            return httpx.Response(304)
+        return httpx.Response(
+            404,
+            content=body,
+            headers={"ETag": '"miss"', "Last-Modified": "Thu, 01 Jan 2026 00:00:00 GMT"},
+        )
+
+    cfg = Config({"points.worldsdc.com": HostConfig()}, {"wsdc_registry": SourceConfig(True)})
+    with open_database(tmp_path) as db:
+        run = db.start_run(clock.now())
+        spec = REGISTRY_SOURCE.watch(1_000_000)
+        upsert_watch(db.connection, spec, clock.now())
+        db.connection.execute("UPDATE watches SET notes='probe' WHERE watch_id=?", (spec.watch_id,))
+        client = FetchClient(
+            db.connection,
+            cfg,
+            clock,
+            Archive(tmp_path),
+            transport=httpx.MockTransport(handler),
+        )
+
+        first = client.fetch(spec.watch_id, DancerPage(), run)
+        clock.sleep(5)
+        second = client.fetch(spec.watch_id, DancerPage(), run)
+
+        assert first.changed
+        assert not second.changed
+        assert first.snapshot_id != second.snapshot_id
+        snapshots = db.connection.execute(
+            "SELECT fetched_at,body_sha256,content_changed,parse_status,http_status,classification,body_bytes FROM snapshots ORDER BY fetched_at"
+        ).fetchall()
+        assert len(snapshots) == 2
+        assert snapshots[0][0] < snapshots[1][0]
+        assert snapshots[0][1] == snapshots[1][1]
+        expected_second = (
+            (0, "pending", 304, "NotModified", 0)
+            if second_response == "not_modified"
+            else (0, "pending", 404, "Ok", len(body))
+        )
+        assert [tuple(row[2:]) for row in snapshots] == [
+            (1, "pending", 404, "Ok", len(body)),
+            expected_second,
+        ]
+        assert (
+            db.connection.execute(
+                "SELECT count(*) FROM pending_work WHERE stage='parse'"
+            ).fetchone()[0]
+            == 2
+        )
+        assert "if-none-match" not in requests[0].headers
+        assert requests[1].headers["if-none-match"] == '"miss"'
+        assert requests[1].headers["if-modified-since"] == "Thu, 01 Jan 2026 00:00:00 GMT"
+        assert len(list((tmp_path / "blobs").rglob(str(snapshots[0][1])))) == 1
+        parse_snapshot(
+            db,
+            Archive(tmp_path),
+            WorkUnit("parse", "snapshot", str(second.snapshot_id)),
+            clock,
+            run,
+        )
+        observation = db.connection.execute(
+            "SELECT snapshot_id,scope_kind,scope_id FROM observations"
+        ).fetchone()
+        assert tuple(observation) == (second.snapshot_id, "dancer", "1000000")
+        client.close()
+
+
+@pytest.mark.parametrize("cached_body", ["absent", "corrupt", "no_reference"])
+def test_registry_probe_304_without_valid_cached_body_creates_no_evidence(tmp_path, cached_body):
+    clock = FakeClock()
+    body = Path("src/swingset/sources/wsdc_registry/fixtures/lookup-1000000.body").read_bytes()
+    conditional = False
+
+    def handler(request):
+        nonlocal conditional
+        if request.url.path == "/robots.txt":
+            return httpx.Response(404)
+        if request.headers.get("if-none-match") == '"miss"':
+            conditional = True
+            return httpx.Response(304)
+        return httpx.Response(404, content=body, headers={"ETag": '"miss"'})
+
+    cfg = Config({"points.worldsdc.com": HostConfig()}, {"wsdc_registry": SourceConfig(True)})
+    with open_database(tmp_path) as db:
+        run = db.start_run(clock.now())
+        spec = REGISTRY_SOURCE.watch(1_000_000)
+        upsert_watch(db.connection, spec, clock.now())
+        db.connection.execute("UPDATE watches SET notes='probe' WHERE watch_id=?", (spec.watch_id,))
+        archive = Archive(tmp_path)
+        client = FetchClient(
+            db.connection, cfg, clock, archive, transport=httpx.MockTransport(handler)
+        )
+        first = client.fetch(spec.watch_id, DancerPage(), run)
+        blob = archive.blob_path(
+            db.connection.execute(
+                "SELECT body_sha256 FROM snapshots WHERE snapshot_id=?", (first.snapshot_id,)
+            ).fetchone()[0]
+        )
+        if cached_body == "absent":
+            blob.unlink()
+        elif cached_body == "no_reference":
+            db.connection.execute(
+                "UPDATE watches SET body_sha256=NULL WHERE watch_id=?", (spec.watch_id,)
+            )
+        else:
+            blob.write_bytes(b"not gzip")
+        clock.sleep(5)
+
+        second = client.fetch(spec.watch_id, DancerPage(), run)
+
+        assert conditional
+        assert second.classification.outcome == Outcome.INVALID
+        assert second.snapshot_id is None
+        assert db.connection.execute("SELECT count(*) FROM snapshots").fetchone()[0] == 1
+        assert (
+            db.connection.execute(
+                "SELECT count(*) FROM pending_work WHERE stage='parse'"
+            ).fetchone()[0]
+            == 1
+        )
+        assert tuple(
+            db.connection.execute(
+                "SELECT etag,last_modified FROM watches WHERE watch_id=?", (spec.watch_id,)
+            ).fetchone()
+        ) == (None, None)
+
+        refresh_policy(
+            db.connection,
+            cfg,
+            spec.watch_id,
+            clock.now(),
+            outcome=second.classification.outcome,
+            jitter=0,
+        )
+        retry_at = clock.now() + timedelta(minutes=15)
+        assert (
+            db.connection.execute(
+                "SELECT next_check_at FROM watches WHERE watch_id=?", (spec.watch_id,)
+            ).fetchone()[0]
+            == retry_at.isoformat()
+        )
+        clock.sleep(15 * 60)
+        third = client.fetch(spec.watch_id, DancerPage(), run)
+        assert third.classification.outcome == Outcome.OK
+        assert third.snapshot_id is not None
+        assert db.connection.execute("SELECT count(*) FROM snapshots").fetchone()[0] == 2
+        assert (
+            db.connection.execute(
+                "SELECT count(*) FROM pending_work WHERE stage='parse'"
+            ).fetchone()[0]
+            == 2
         )
         client.close()
 

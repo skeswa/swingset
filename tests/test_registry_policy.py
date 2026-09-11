@@ -53,21 +53,22 @@ def archive_dump(
     return archive_crosscheck_dump(database, dump, Archive(database.state_dir), NOW, run)
 
 
-def record(database: Database, wsdc_id: int, outcome: str) -> None:
+def record(database: Database, wsdc_id: int, outcome: str, now: datetime = NOW) -> None:
+    now += timedelta(microseconds=1)
     connection = database.connection
     spec = SOURCE.watch(wsdc_id)
-    upsert_watch(connection, spec, NOW)
+    upsert_watch(connection, spec, now)
     body_hash = f"{wsdc_id:064x}"
-    snap = snapshot_id(NOW, body_hash)
+    snap = snapshot_id(now, body_hash)
     run = "run_registry"
     connection.execute(
         "INSERT OR IGNORE INTO runs(run_id,started_at,dry_run) VALUES (?,?,1)",
-        (run, NOW.isoformat()),
+        (run, now.isoformat()),
     )
     connection.execute(
         "INSERT OR IGNORE INTO snapshots(snapshot_id,watch_id,method,url,fetched_at,http_status,body_sha256,body_bytes,content_changed,run_id,classification) "
         "VALUES (?,?,?,?,?,200,?,1,1,?,'OK')",
-        (snap, spec.watch_id, "POST", spec.url, NOW.isoformat(), body_hash, run),
+        (snap, spec.watch_id, "POST", spec.url, now.isoformat(), body_hash, run),
     )
     payload = DancerLookup(
         "dancer_lookup", outcome, wsdc_id, wsdc_id if outcome == "found" else None
@@ -559,4 +560,78 @@ def test_due_crosscheck_with_missing_blob_remains_due(tmp_path: Path) -> None:
                 "SELECT value FROM meta WHERE key='registry_crosscheck_due'"
             ).fetchone()[0]
             == digest
+        )
+
+
+def test_probe_requires_fresh_evidence_when_a_missing_number_is_later_issued(
+    tmp_path: Path,
+) -> None:
+    with open_database(tmp_path) as database:
+        discover_registry(database, NOW)
+        for number in range(1, 21):
+            record(database, number, "not_found")
+        advance_sweep(database, NOW)
+        later = NOW + timedelta(days=7)
+        discover_registry(database, later)
+        advance_sweep(database, later)
+        assert cursor(database, "registry_probe_cursor") == "1"
+        assert cursor(database, "registry_probe_misses") == "0"
+        record(database, 1, "found", later)
+        advance_sweep(database, later)
+        assert cursor(database, "registry_probe_cursor") == "2"
+        assert cursor(database, "registry_probe_misses") == "0"
+        for number in range(2, 22):
+            record(database, number, "not_found", later)
+        advance_sweep(database, later)
+        assert cursor(database, "registry_probe_cursor") is None
+        assert cursor(database, "registry_probe_last_completed_at") == later.isoformat()
+
+
+def test_legacy_probe_restarts_fresh_tail_without_counting_old_misses(tmp_path: Path) -> None:
+    with open_database(tmp_path) as database:
+        database.connection.executemany(
+            "INSERT INTO cursors(name,value) VALUES (?,?)",
+            (("registry_probe_cursor", "1"), ("registry_probe_misses", "19")),
+        )
+        record(database, 1, "not_found", NOW - timedelta(days=7))
+        advance_sweep(database, NOW)
+        assert cursor(database, "registry_probe_cursor") == "1"
+        discover_registry(database, NOW)
+        advance_sweep(database, NOW)
+        assert cursor(database, "registry_probe_misses") == "0"
+        assert cursor(database, "registry_probe_cursor") == "1"
+
+
+def test_probe_discovery_preserves_current_attempt_retry_delay(tmp_path: Path) -> None:
+    with open_database(tmp_path) as database:
+        discover_registry(database, NOW)
+        retry = NOW + timedelta(minutes=15)
+        database.connection.execute(
+            "UPDATE watches SET last_checked_at=?,next_check_at=? WHERE source_ref='wsdc:1'",
+            ((NOW + timedelta(seconds=1)).isoformat(), retry.isoformat()),
+        )
+        discover_registry(database, NOW + timedelta(minutes=1))
+        assert (
+            database.connection.execute(
+                "SELECT next_check_at FROM watches WHERE source_ref='wsdc:1'"
+            ).fetchone()[0]
+            == retry.isoformat()
+        )
+
+
+def test_probe_does_not_accept_cached_response_at_exact_start_time(tmp_path: Path) -> None:
+    with open_database(tmp_path) as database:
+        record(database, 1, "not_found", NOW - timedelta(microseconds=1))
+        database.connection.execute(
+            "UPDATE watches SET last_checked_at=?,next_check_at=? WHERE source_ref='wsdc:1'",
+            (NOW.isoformat(), (NOW + timedelta(days=365)).isoformat()),
+        )
+        discover_registry(database, NOW)
+        advance_sweep(database, NOW)
+        assert cursor(database, "registry_probe_cursor") == "1"
+        assert (
+            database.connection.execute(
+                "SELECT next_check_at FROM watches WHERE source_ref='wsdc:1'"
+            ).fetchone()[0]
+            == NOW.isoformat()
         )

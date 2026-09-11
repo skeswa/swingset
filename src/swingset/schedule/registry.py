@@ -8,6 +8,7 @@ from typing import Any
 from swingset.fetch.archive import Archive
 from swingset.model.ids import snapshot_id as make_snapshot_id
 from swingset.model.ids import watch_id as make_watch_id
+from swingset.schedule.confirmation import awaiting_first_number
 from swingset.schedule.watches import upsert_watch
 from swingset.sources.wsdc_registry.adapter import SOURCE
 from swingset.state.db import Database
@@ -27,10 +28,7 @@ def seed_sweep(database: Database, start: int) -> None:
             "INSERT INTO cursors(name,value) VALUES ('registry_sweep_misses','0') "
             "ON CONFLICT(name) DO UPDATE SET value='0'"
         )
-        conn.execute(
-            "DELETE FROM cursors WHERE name IN "
-            "('registry_probe_cursor','registry_probe_misses','registry_probe_next_at')"
-        )
+        conn.execute("DELETE FROM cursors WHERE name GLOB 'registry_probe_*'")
         conn.execute(
             "DELETE FROM meta WHERE key IN "
             "('registry_crosscheck_due','registry_crosscheck_completed')"
@@ -51,36 +49,7 @@ def discover_registry(database: Database, now: datetime, *, batch_size: int = 35
                     "UPDATE watches SET priority=5,notes='sweep' WHERE watch_id=?", (spec.watch_id,)
                 )
         else:
-            # A weekly probe is one sequential run that stops only after twenty
-            # verified consecutive misses. A found dancer resets that count.
-            probe_cursor = conn.execute(
-                "SELECT value FROM cursors WHERE name='registry_probe_cursor'"
-            ).fetchone()
-            due = conn.execute(
-                "SELECT value FROM cursors WHERE name='registry_probe_next_at'"
-            ).fetchone()
-            if probe_cursor is None and (due is None or datetime.fromisoformat(due[0]) <= now):
-                top = int(
-                    conn.execute("SELECT COALESCE(MAX(wsdc_id),0) FROM dancers").fetchone()[0]
-                )
-                conn.execute(
-                    "INSERT INTO cursors(name,value) VALUES ('registry_probe_cursor',?)",
-                    (str(top + 1),),
-                )
-                conn.execute(
-                    "INSERT INTO cursors(name,value) VALUES ('registry_probe_misses','0') "
-                    "ON CONFLICT(name) DO UPDATE SET value='0'"
-                )
-                probe_cursor = (str(top + 1),)
-            if probe_cursor is not None:
-                start = int(probe_cursor[0])
-                for wsdc_id in range(start, start + min(batch_size, 20)):
-                    spec = SOURCE.watch(wsdc_id)
-                    count += upsert_watch(conn, spec, now)
-                    conn.execute(
-                        "UPDATE watches SET priority=5,notes='probe',next_check_at=? WHERE watch_id=?",
-                        (now.isoformat(), spec.watch_id),
-                    )
+            count += _discover_probe(database, now, batch_size)
             # Daily trickle: at most 100 stale dancers, with a persistent day cursor.
             day = now.date().isoformat()
             trickle = conn.execute(
@@ -104,15 +73,68 @@ def discover_registry(database: Database, now: datetime, *, batch_size: int = 35
     return count
 
 
-def _lookup_outcome(conn: Any, wsdc_id: int) -> str | None:
+def _cursor(conn: Any, name: str) -> str | None:
+    row = conn.execute("SELECT value FROM cursors WHERE name=?", (name,)).fetchone()
+    return str(row[0]) if row else None
+
+
+def _set_cursor(conn: Any, name: str, value: str) -> None:
+    conn.execute(
+        "INSERT INTO cursors(name,value) VALUES (?,?) "
+        "ON CONFLICT(name) DO UPDATE SET value=excluded.value",
+        (name, value),
+    )
+
+
+def _discover_probe(database: Database, now: datetime, batch_size: int) -> int:
+    conn = database.connection
+    current = _cursor(conn, "registry_probe_cursor")
+    started = _cursor(conn, "registry_probe_started_at")
+    due = _cursor(conn, "registry_probe_next_at")
+    completed = _cursor(conn, "registry_probe_last_completed_at")
+    daily_due = awaiting_first_number(conn, now) and (
+        completed is None or datetime.fromisoformat(completed) + timedelta(days=1) <= now
+    )
+    if current is None:
+        if due is not None and datetime.fromisoformat(due) > now and not daily_due:
+            return 0
+        top = max(_local_found_bound(conn), _comparison_bound(database) or 0)
+        current = str(top + 1)
+        _set_cursor(conn, "registry_probe_cursor", current)
+        started = None
+    if started is None:
+        # Older checkpoints lack a freshness boundary. Recheck their remaining tail.
+        started = now.isoformat()
+        _set_cursor(conn, "registry_probe_started_at", started)
+        _set_cursor(conn, "registry_probe_misses", "0")
+    count = 0
+    for wsdc_id in range(int(current), int(current) + min(batch_size, 20)):
+        spec = SOURCE.watch(wsdc_id)
+        count += upsert_watch(conn, spec, now)
+        checked = conn.execute(
+            "SELECT last_checked_at FROM watches WHERE watch_id=?", (spec.watch_id,)
+        ).fetchone()[0]
+        if checked is None or datetime.fromisoformat(checked) <= datetime.fromisoformat(started):
+            conn.execute(
+                "UPDATE watches SET next_check_at=? WHERE watch_id=?",
+                (now.isoformat(), spec.watch_id),
+            )
+        conn.execute(
+            "UPDATE watches SET priority=5,notes='probe' WHERE watch_id=?", (spec.watch_id,)
+        )
+    return count
+
+
+def _lookup_outcome(conn: Any, wsdc_id: int, *, not_before: datetime | None = None) -> str | None:
     from swingset.model.observations import decode_payload
 
     found = conn.execute(
-        "SELECT kind,payload_json FROM observations WHERE scope_kind='dancer' AND scope_id=? "
-        "ORDER BY snapshot_id DESC LIMIT 1",
+        "SELECT o.kind,o.payload_json,s.fetched_at FROM observations o "
+        "JOIN snapshots s USING(snapshot_id) WHERE o.scope_kind='dancer' AND o.scope_id=? "
+        "ORDER BY o.snapshot_id DESC LIMIT 1",
         (str(wsdc_id),),
     ).fetchone()
-    if not found:
+    if not found or (not_before is not None and datetime.fromisoformat(found[2]) <= not_before):
         return None
     payload = decode_payload(found[0], found[1])
     outcome = getattr(payload, "outcome", None)
@@ -223,22 +245,28 @@ def advance_sweep(database: Database, now: datetime | None = None) -> bool:
     probe = conn.execute("SELECT value FROM cursors WHERE name='registry_probe_cursor'").fetchone()
     if probe is None:
         return False
+    started = _cursor(conn, "registry_probe_started_at")
+    if started is None:
+        return False
     current = int(probe[0])
     misses_row = conn.execute(
         "SELECT value FROM cursors WHERE name='registry_probe_misses'"
     ).fetchone()
     misses = int(misses_row[0]) if misses_row else 0
     while True:
-        outcome = _lookup_outcome(conn, current)
+        outcome = _lookup_outcome(conn, current, not_before=datetime.fromisoformat(started))
         if outcome not in {"found", "not_found"}:
             break
         misses = misses + 1 if outcome == "not_found" else 0
         current += 1
         if misses >= 20:
             conn.execute(
-                "DELETE FROM cursors WHERE name IN ('registry_probe_cursor','registry_probe_misses')"
+                "DELETE FROM cursors WHERE name IN "
+                "('registry_probe_cursor','registry_probe_misses','registry_probe_started_at')"
             )
-            due = (now or datetime.now().astimezone()).replace(microsecond=0) + timedelta(days=7)
+            completed = now or datetime.now().astimezone()
+            _set_cursor(conn, "registry_probe_last_completed_at", completed.isoformat())
+            due = completed + timedelta(days=7)
             conn.execute(
                 "INSERT INTO cursors(name,value) VALUES ('registry_probe_next_at',?) "
                 "ON CONFLICT(name) DO UPDATE SET value=excluded.value",
