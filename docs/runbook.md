@@ -245,7 +245,7 @@ The initial published calendar head is
 from the CLI environment and caches. Always pass the selected target with
 `--state` to restore, doctor, and the verification dry cycle.
 
-The initial results publication used installed revision
+Historical receipt: the initial results publication used installed revision
 `8fcc0a2564a635ea78ab69c01d9e2055233b4e23`, candidate
 `cand_984c84cc9dd34af8`, and public commit
 `a4abf85ff6e6e0ad4dd2088e130668987856613a`. Candidate review checked all 17
@@ -269,16 +269,32 @@ The host now enables publication (`dryRun = false`). Normal collection is
 every 15 minutes with up to 120 seconds of jitter; backup is 04:00 UTC Monday
 through Thursday and 04:00/12:00/20:00 UTC Friday through Sunday. Summary runs
 at 08:00 UTC. Check GitHub issue #9 for scheduled-run acceptance, and #1 for
-source rollout and the remaining multi-day observations.
+overall acceptance. Issues #12–#14 track the remaining source
+observations.
 
-The final active release is
-`9bade45dd5d0c96264aaf463044df4f4aa4700fa`. Its public commit is
-`c9789bad676e64424aa9ab7fc581b9aefe16868c`, with nine registry dancers and 202
-registry placements in addition to the reviewed results. Private checkpoint
-`245f6a4f507581254c989ee20aa7529f0f506a5b` was acknowledged at 02:34:55 UTC.
-The ID 1 lookup and following cycle advanced the sweep cursor to 2.
-All normal timers are active; temporary review guards and acceptance schedules
-have been removed. Doctor and summary showed no pending work, active host or
-operator pause, or restore marker. The next collection at handoff was
-02:45:07 UTC. Keep the full sweep and extended source observations open in
-issues #10 and #12–#14.
+The active corrected release is
+`2089803d379ef4233ee45a49193ce97befcf0911`. Its reviewed public candidate is
+`cand_d06d6d9e48fd41a2` at commit
+`ec6b7bbb84be9e5252d55c6bb1eae3feef05dd5b`. The public data has 573 events,
+96 with results, 13,922 placements, 57,505 entries, 3,229 dancers and 33,427
+registry placements. It includes 1,269 registry event mappings and 9,471
+entries with a WSDC ID.
+
+Private backup `556e04b59b8404a3e5a12f91c4804eecbf8fee2f` passed verification:
+9,240 files and the 691,200,000-byte transport hash and size matched, as did the
+public manifest and `PUBLISHED` receipt. Doctor showed no pending work or
+candidates, pauses, or restore marker before resumption. All three review guards
+were removed and timers resumed at 2026-09-11 03:29:39 UTC. At handoff the cycle
+service was running, while backup and summary were waiting for 04:00 and 08:00
+UTC. Do not count the running cycle as completed observation evidence.
+
+The registry mirror remains partial at cursor 3,297 against the archived
+27,039-ID dump. Keep issues #10, #12, #13 and #14 open; issue #15 records the
+completed correction release. See the
+[2026-09-10 data-quality repair report](../research/data-quality-repair-2026-09-10.md).
+
+The prior release `9bade45dd5d0c96264aaf463044df4f4aa4700fa`, public
+commit `c9789bad676e64424aa9ab7fc581b9aefe16868c`, candidate
+`cand_b2c68aaa3b7b4f3c`, and checkpoint
+`245f6a4f507581254c989ee20aa7529f0f506a5b` are historical receipts. Their
+cursor-2 and active-timer observations do not describe the current handoff.
