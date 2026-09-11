@@ -44,9 +44,11 @@ def comparison_dump(dancers: list[dict[str, object]]) -> dict[str, object]:
     }
 
 
-def archive_dump(database: Database, tmp_path: Path) -> str:
+def archive_dump(
+    database: Database, tmp_path: Path, dancers: list[dict[str, object]] | None = None
+) -> str:
     dump = tmp_path / "comparison.json"
-    dump.write_text(json.dumps(comparison_dump([])))
+    dump.write_text(json.dumps(comparison_dump(dancers or [])))
     run = database.start_run(NOW, dry_run=True)
     return archive_crosscheck_dump(database, dump, Archive(database.state_dir), NOW, run)
 
@@ -173,7 +175,7 @@ def test_sweep_advances_only_contiguous_verified_outcomes_across_restart(tmp_pat
         with database.transaction():
             advance_sweep(database, NOW)
         assert cursor(database, "registry_sweep_next") == "3"
-        assert cursor(database, "registry_sweep_misses") == "1"
+        assert cursor(database, "registry_sweep_misses") == "0"
     with open_database(tmp_path) as database:
         assert cursor(database, "registry_sweep_next") == "3"
         record(database, 3, "found")
@@ -200,6 +202,150 @@ def test_sweep_finishes_only_after_twenty_verified_trailing_misses(tmp_path: Pat
             ).fetchone()[0]
             == sha
         )
+
+
+def test_sweep_ignores_interior_misses_until_above_comparison_bound(tmp_path: Path) -> None:
+    with open_database(tmp_path) as database:
+        archive_dump(database, tmp_path, [{"id": 25}])
+        seed_sweep(database, 1)
+        for wsdc_id in range(1, 26):
+            record(database, wsdc_id, "not_found")
+        with database.transaction():
+            assert not advance_sweep(database, NOW)
+        assert cursor(database, "registry_sweep_next") == "26"
+        for wsdc_id in range(26, 45):
+            record(database, wsdc_id, "not_found")
+        with database.transaction():
+            assert not advance_sweep(database, NOW)
+        assert cursor(database, "registry_sweep_next") == "45"
+        record(database, 45, "not_found")
+        with database.transaction():
+            assert advance_sweep(database, NOW)
+        assert cursor(database, "registry_sweep_next") is None
+
+
+def test_sweep_bound_includes_unprojected_found_observations(tmp_path: Path) -> None:
+    with open_database(tmp_path) as database:
+        archive_dump(database, tmp_path, [{"id": 10}])
+        seed_sweep(database, 20)
+        for wsdc_id in range(20, 40):
+            record(database, wsdc_id, "not_found")
+        record(database, 40, "found")
+        with database.transaction():
+            assert not advance_sweep(database, NOW)
+        assert cursor(database, "registry_sweep_next") == "41"
+        for wsdc_id in range(41, 60):
+            record(database, wsdc_id, "not_found")
+        with database.transaction():
+            assert not advance_sweep(database, NOW)
+        assert cursor(database, "registry_sweep_next") == "60"
+        record(database, 60, "not_found")
+        with database.transaction():
+            assert advance_sweep(database, NOW)
+        assert cursor(database, "registry_sweep_next") is None
+
+
+def test_existing_dump_bound_is_lazily_cached_and_missing_blob_fails_closed(
+    tmp_path: Path,
+) -> None:
+    with open_database(tmp_path) as database:
+        sha = archive_dump(database, tmp_path, [{"id": 25}])
+        database.connection.execute(
+            "DELETE FROM meta WHERE key IN ('registry_sweep_bound_blob','registry_sweep_dump_bound')"
+        )
+        seed_sweep(database, 1)
+        record(database, 1, "not_found")
+        with database.transaction():
+            assert not advance_sweep(database, NOW)
+        assert cursor(database, "registry_sweep_next") == "2"
+        assert (
+            database.connection.execute(
+                "SELECT value FROM meta WHERE key='registry_sweep_bound_blob'"
+            ).fetchone()[0]
+            == sha
+        )
+        Archive(database.state_dir).blob_path(sha).unlink()
+        record(database, 2, "not_found")
+        with pytest.raises(FileNotFoundError, match="comparison dump is missing"):
+            with database.transaction():
+                advance_sweep(database, NOW)
+        assert cursor(database, "registry_sweep_next") == "2"
+
+
+def test_replaced_high_id_miss_can_raise_local_found_bound(tmp_path: Path) -> None:
+    with open_database(tmp_path) as database:
+        archive_dump(database, tmp_path, [{"id": 10}])
+        seed_sweep(database, 1)
+        record(database, 100, "not_found")
+        with database.transaction():
+            assert not advance_sweep(database, NOW)
+        assert (
+            database.connection.execute(
+                "SELECT value FROM meta WHERE key='registry_sweep_local_bound'"
+            ).fetchone()[0]
+            == "0"
+        )
+        record(database, 100, "found")
+        with database.transaction():
+            assert not advance_sweep(database, NOW)
+        assert (
+            database.connection.execute(
+                "SELECT value FROM meta WHERE key='registry_sweep_local_bound'"
+            ).fetchone()[0]
+            == "100"
+        )
+
+
+def test_reseed_clears_stale_completion_and_probe_bookkeeping(tmp_path: Path) -> None:
+    with open_database(tmp_path) as database:
+        database.connection.executemany(
+            "INSERT INTO cursors(name,value) VALUES (?,?)",
+            (
+                ("registry_probe_cursor", "50"),
+                ("registry_probe_misses", "4"),
+                ("registry_probe_next_at", NOW.isoformat()),
+            ),
+        )
+        database.connection.executemany(
+            "INSERT INTO meta(key,value) VALUES (?,?)",
+            (
+                ("registry_crosscheck_due", "old"),
+                ("registry_crosscheck_completed", "old"),
+            ),
+        )
+        seed_sweep(database, 5910)
+        assert cursor(database, "registry_sweep_next") == "5910"
+        assert cursor(database, "registry_sweep_misses") == "0"
+        assert (
+            database.connection.execute(
+                "SELECT COUNT(*) FROM cursors WHERE name LIKE 'registry_probe_%'"
+            ).fetchone()[0]
+            == 0
+        )
+        assert (
+            database.connection.execute(
+                "SELECT COUNT(*) FROM meta WHERE key IN "
+                "('registry_crosscheck_due','registry_crosscheck_completed')"
+            ).fetchone()[0]
+            == 0
+        )
+
+
+def test_new_dump_bound_clamps_restored_tail_misses_across_restart(tmp_path: Path) -> None:
+    state = tmp_path / "state"
+    with open_database(state) as database:
+        archive_dump(database, tmp_path, [{"id": 100}])
+        seed_sweep(database, 120)
+        database.connection.execute(
+            "UPDATE cursors SET value='19' WHERE name='registry_sweep_misses'"
+        )
+        archive_dump(database, tmp_path, [{"id": 115}])
+    with open_database(state) as database:
+        record(database, 120, "not_found")
+        with database.transaction():
+            assert not advance_sweep(database, NOW)
+        assert cursor(database, "registry_sweep_next") == "121"
+        assert cursor(database, "registry_sweep_misses") == "5"
 
 
 def test_weekly_probe_resets_misses_on_found_and_waits_after_twenty(tmp_path: Path) -> None:
@@ -273,9 +419,12 @@ def test_crosscheck_is_manual_snapshot_and_replayable_from_blob(tmp_path: Path) 
             "SELECT w.source,s.via,s.body_sha256 FROM snapshots s JOIN watches w USING(watch_id)"
         ).fetchone()
         assert tuple(row)[:2] == ("crosscheck", "manual")
-        assert database.connection.execute(
-            "SELECT value FROM revisions WHERE name='snapshots'"
-        ).fetchone()[0] == 1
+        assert (
+            database.connection.execute(
+                "SELECT value FROM revisions WHERE name='snapshots'"
+            ).fetchone()[0]
+            == 1
+        )
         assert (
             replay_crosscheck(database, str(row[2]), archive, NOW + timedelta(seconds=1), run) == 0
         )
@@ -319,9 +468,7 @@ def test_crosscheck_finding_is_a_build_input_and_survives_restore(tmp_path: Path
 
 
 def test_crosscheck_accepts_mechstack_dancer_ids_only_in_full_dump_shape(tmp_path: Path) -> None:
-    full_dump = comparison_dump(
-        [{"id": 7, "first_name": "Ada", "last_name": "Lovelace"}]
-    )
+    full_dump = comparison_dump([{"id": 7, "first_name": "Ada", "last_name": "Lovelace"}])
     dump = tmp_path / "data.json"
     dump.write_text(json.dumps(full_dump))
     with open_database(tmp_path / "state") as database:

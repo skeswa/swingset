@@ -22,8 +22,11 @@ POST https://points.worldsdc.com/lookup/find          num=<wsdc_id> | q=<name>  
 
 ## 4. Discovery
 
-Ids are dense integers from 1 to about 29,000. Weekly probe above the
-highest known id until 20 consecutive misses.
+Ids are dense integers from 1 to about 29,000. Bootstrap continues through the
+highest ID in the archived comparison dump or any locally verified found
+lookup, whichever is greater. Only 20 consecutive verified misses above that
+bound complete bootstrap. Weekly probes use the same 20-miss rule above the
+highest projected dancer after bootstrap.
 
 ## 5. Change detection
 
@@ -42,7 +45,10 @@ daily_request_budget = 1500        # 20000 during the one-time bootstrap sweep
 
 1. Bootstrap once: ids 1..N at one request per 2 s (about 16 hours),
    cross-checked against the `wsdc.mechstack.dev/data.json` dump, which
-   is downloaded once and never written into the dataset.
+   is downloaded once and never written into the dataset. The dump's maximum
+   dancer ID is cached with its archive hash, so each lookup does not reread the
+   dump. Locally verified found observations extend the bound even when dancer
+   projection is deferred.
 2. Post-event confirmation: each finalist we identified is refreshed
    once a day until the event appears in their record or 30 days pass.
 3. Trickle: dancers not refreshed in 365 days, at most 100 a day.
@@ -81,6 +87,9 @@ body is `Invalid`, so a new server error page cannot advance the sweep.
 ## 10. Backfill
 
 The bootstrap sweep is the backfill.
+Interior gaps do not contribute to its terminating miss count. Reseeding clears
+stale cross-check completion and weekly-probe bookkeeping before starting from
+the requested ID.
 
 ## 11. Load estimate
 

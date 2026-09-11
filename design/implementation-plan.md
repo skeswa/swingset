@@ -371,6 +371,8 @@ dropping nothing, since the JSON has no nonce) emitting `dancers` and
 projected by `project/registry.py`. Registry watch policy in `policy()`:
 bootstrap sweep from `cursors.registry_sweep_next` at a 2 s gap,
 lowest priority, daily budget 20,000 during the sweep then 1,500;
+bootstrap termination only after 20 verified consecutive misses above the
+highest ID in the archived comparison dump or locally verified found evidence;
 weekly probe above the highest id until 20 consecutive misses; trickle
 of 100 a day for dancers older than 365 days; post-event confirmation
 refresh (daily, 30 days) wired in WP8. `swingset sweep --start 1`

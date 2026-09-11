@@ -27,6 +27,14 @@ def seed_sweep(database: Database, start: int) -> None:
             "INSERT INTO cursors(name,value) VALUES ('registry_sweep_misses','0') "
             "ON CONFLICT(name) DO UPDATE SET value='0'"
         )
+        conn.execute(
+            "DELETE FROM cursors WHERE name IN "
+            "('registry_probe_cursor','registry_probe_misses','registry_probe_next_at')"
+        )
+        conn.execute(
+            "DELETE FROM meta WHERE key IN "
+            "('registry_crosscheck_due','registry_crosscheck_completed')"
+        )
 
 
 def discover_registry(database: Database, now: datetime, *, batch_size: int = 350) -> int:
@@ -111,30 +119,91 @@ def _lookup_outcome(conn: Any, wsdc_id: int) -> str | None:
     return str(outcome) if outcome is not None else None
 
 
+def _comparison_bound(database: Database) -> int | None:
+    conn = database.connection
+    blob = conn.execute("SELECT value FROM meta WHERE key='registry_crosscheck_blob'").fetchone()
+    if blob is None:
+        return None
+    sha = str(blob[0])
+    cached = conn.execute("SELECT value FROM meta WHERE key='registry_sweep_bound_blob'").fetchone()
+    bound = conn.execute("SELECT value FROM meta WHERE key='registry_sweep_dump_bound'").fetchone()
+    if cached is not None and str(cached[0]) == sha and bound is not None:
+        if not Archive(database.state_dir).blob_path(sha).exists():
+            raise FileNotFoundError(f"archived registry comparison dump is missing: {sha}")
+        return int(bound[0])
+    rows, _ = _dump_rows(Archive(database.state_dir).read_body(sha), require_comparison_dump=True)
+    result = max(int(row["id"]) for row in rows) if rows else 0
+    conn.execute(
+        "INSERT INTO meta(key,value) VALUES ('registry_sweep_bound_blob',?) "
+        "ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+        (sha,),
+    )
+    conn.execute(
+        "INSERT INTO meta(key,value) VALUES ('registry_sweep_dump_bound',?) "
+        "ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+        (str(result),),
+    )
+    return result
+
+
+def _local_found_bound(conn: Any) -> int:
+    """Retain the highest locally verified found lookup."""
+    from swingset.model.observations import decode_payload
+
+    cached = conn.execute(
+        "SELECT value FROM meta WHERE key='registry_sweep_local_bound'"
+    ).fetchone()
+    bound = int(cached[0]) if cached else 0
+    for row in conn.execute(
+        "SELECT kind,payload_json,scope_id FROM observations "
+        "WHERE scope_kind='dancer' AND CAST(scope_id AS INTEGER)>? "
+        "ORDER BY CAST(scope_id AS INTEGER) DESC",
+        (bound,),
+    ):
+        payload = decode_payload(str(row[0]), str(row[1]))
+        if getattr(payload, "outcome", None) == "found":
+            bound = int(row[2])
+            break
+    dancer = conn.execute("SELECT MAX(wsdc_id) FROM dancers").fetchone()[0]
+    bound = max(bound, int(dancer or 0))
+    conn.execute(
+        "INSERT INTO meta(key,value) VALUES ('registry_sweep_local_bound',?) "
+        "ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+        (str(bound),),
+    )
+    return bound
+
+
 def advance_sweep(database: Database, now: datetime | None = None) -> bool:
     """Advance contiguous verified sweep/probe results; invalid gaps stop progress."""
     conn = database.connection
     sweep = conn.execute("SELECT value FROM cursors WHERE name='registry_sweep_next'").fetchone()
     if sweep is not None:
         current = int(sweep[0])
+        dump_bound = _comparison_bound(database)
+        known_bound = max(dump_bound or 0, _local_found_bound(conn))
         misses_row = conn.execute(
             "SELECT value FROM cursors WHERE name='registry_sweep_misses'"
         ).fetchone()
         misses = int(misses_row[0]) if misses_row else 0
+        misses = min(misses, max(0, current - known_bound - 1))
         while True:
             outcome = _lookup_outcome(conn, current)
             if outcome not in {"found", "not_found"}:
                 break
-            misses = misses + 1 if outcome == "not_found" else 0
+            misses = misses + 1 if outcome == "not_found" and current > known_bound else 0
+            if outcome == "found":
+                known_bound = max(known_bound, current)
             current += 1
             if misses >= 20:
-                blob = conn.execute(
-                    "SELECT value FROM meta WHERE key='registry_crosscheck_blob'"
-                ).fetchone()
-                if blob is None:
+                if dump_bound is None:
                     raise RuntimeError(
                         "registry sweep completed without an archived comparison dump"
                     )
+                blob = conn.execute(
+                    "SELECT value FROM meta WHERE key='registry_crosscheck_blob'"
+                ).fetchone()
+                assert blob is not None
                 conn.execute("DELETE FROM cursors WHERE name='registry_sweep_next'")
                 conn.execute("DELETE FROM cursors WHERE name='registry_sweep_misses'")
                 conn.execute(
@@ -327,6 +396,7 @@ def _record_crosscheck_snapshot(
     database: Database, body: bytes, sha: str, now: datetime, run_id: str
 ) -> None:
     conn = database.connection
+    rows, comparison_dump = _dump_rows(body)
     url = f"archive://registry-crosscheck/{sha}"
     watch_id = make_watch_id("crosscheck", "registry_dump", "MANUAL", url)
     snap_id = make_snapshot_id(now, sha)
@@ -357,3 +427,15 @@ def _record_crosscheck_snapshot(
             "INSERT INTO meta(key,value) VALUES ('registry_crosscheck_blob',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",
             (sha,),
         )
+        if comparison_dump:
+            bound = max(int(row["id"]) for row in rows) if rows else 0
+            conn.execute(
+                "INSERT INTO meta(key,value) VALUES ('registry_sweep_bound_blob',?) "
+                "ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+                (sha,),
+            )
+            conn.execute(
+                "INSERT INTO meta(key,value) VALUES ('registry_sweep_dump_bound',?) "
+                "ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+                (str(bound),),
+            )
