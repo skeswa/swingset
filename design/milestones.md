@@ -12,7 +12,7 @@ the last one.
 | M3b | World Dance Registry: `routeInfo.json` parsers, discovery by overrides | the 14 known events parse; a live weekend shows almost all polls as 304s |
 | M4 | DCN: node-evaluated payload and PDF parsers, bib backfill from PDFs, JSON endpoint hunt first | DCN events reach parity with EEPro within the 300 MB/day byte budget |
 | M5 | Heats where public, `changelog` documented with examples, suppression path tested end to end, issue templates live | every data kind listed in [overview](overview.md#purpose) is represented |
-| M6 | Backfill: Wayback Machine first for every source, then EEPro year indexes, scoring.dance sitemap, DCN archive years from the origin for gaps only, newest first at lowest priority; schema declared 1.0 | coverage table in the card lists every year and source, and how many events came from the archive versus the origin |
+| M6 | Backfill to 2010-01-01 ([backfill](backfill.md)): Wayback transport, registry-seeded events with month precision, archived calendar captures, Step Right Solutions, platform archives newest first, origin only for gaps by each host's rule; `sealed` state; schema declared 1.0 | every registry occurrence since 2010 has an `events` row; the `coverage` table and card list every year, source, and tier, and archive versus origin counts |
 
 The phase-by-phase detail, per-host budgets, and the operator
 conversation that precedes M2 are in [scraping plan](scraping-plan.md).

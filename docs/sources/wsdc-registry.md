@@ -115,6 +115,18 @@ otherwise, each a few KB.
 
 `User-agent: swingset` in `robots.txt`, or an issue.
 
+## Prior scrapes (2018 to 2024)
+
+Four earlier registry scrapes are read in
+`research/prior-art-registry-analyses.md`. The lookup's JSON has changed
+shape at least three times since 2018 (`/lookup/find` with `q=`, then a
+CSRF `_token`, then `/lookup2020/find` with a `dominate_data` block in
+2024, then the `leader`/`follower` blocks we see). Verify during the
+sweep that `competitions[]` is ordered newest first, as all of them
+assumed, and keep dancers 3 (no placements) and 5 (level `PRO`) as
+fixtures. Their rates were 400 ms to 200 ms per request without blocks;
+ours stays 2 s.
+
 ## 13. Open items
 
 From `design/open-questions.md`: meaning of `adv_sliding` and `as_sliding`, whether merged numbers are

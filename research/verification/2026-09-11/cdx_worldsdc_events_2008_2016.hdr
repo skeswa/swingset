@@ -1,0 +1,22 @@
+Server: nginx
+Date: Fri, 11 Sep 2026 16:19:47 GMT
+Content-Type: application/json
+Transfer-Encoding: chunked
+Connection: close
+server-timing: exclusion.robots;dur=0.078064, exclusion.robots.policy;dur=0.068121, esindex;dur=0.007714
+x-app-server: wwwb-app217-dc8
+x-ts: 200
+x-tr: 9711
+server-timing: TR;dur=0,Tw;dur=0,Tc;dur=1
+set-cookie: wb-cdx-nomatch-SERVER=wwwb-app217; path=/
+X-location: cdx
+X-RL: 0
+X-NA: 0
+X-Page-Cache: BYPASS
+Server-Timing: BYPASS
+X-NID: SILVERSTAR-TELEPHONE
+Referrer-Policy: no-referrer-when-downgrade
+Permissions-Policy: interest-cohort=()
+X-sd: 0
+X-be: wb_cdx_pygwb_nomatch
+Content-Encoding: gzip

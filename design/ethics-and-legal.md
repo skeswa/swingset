@@ -20,6 +20,16 @@
   site owner asks us to stop, we stop that source and say so in the card.
 - **Load.** The politeness rules in [fetching](fetching.md) are stricter than what the
   sites already tolerate from search engines and other hobby scrapers.
+- **The Internet Archive.** History from 2010 is read from the Wayback
+  Machine so that origin sites are not re-crawled. The archive is a
+  nonprofit library and gets the gentlest settings we have (10 s gap,
+  200 requests a day, lowest priority). Its terms page needs JavaScript
+  and is read by hand before backfill starts; the research-use clause is
+  **unverified** wording. Every historical row's provenance names the
+  capture (`via`, `archive_url`, `captured_at`) so a removal request can
+  point at it. Backfill adds sixteen years of names of people who mostly
+  no longer compete; the suppression path removes a person from every
+  year in one publish cycle, and the card says where history came from.
 - **Attribution.** The dataset card names every source. Row-level
   `source` and `snapshot_id` columns say where each fact came from.
 - **License of scraped content.** Facts are not copyrightable in the US.

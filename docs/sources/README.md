@@ -35,6 +35,8 @@ layer can be checked against them line by line:
 | [wsdc-calendar](wsdc-calendar.md) | `worldsdc.com` | all |
 | [wsdc-registry](wsdc-registry.md) | `points.worldsdc.com` | all |
 | [long-tail](long-tail.md) | many | 15 |
+| [wayback-machine](wayback-machine.md) | `web.archive.org` | history for every source |
+| [step-right-solutions](step-right-solutions.md) | `steprightsolutions.com` (archive only) | 108 events, 2009 to 2019 |
 
 Counts are from `research/results-sources.csv` (181 event editions
 ending between 2025-09-04 and 2026-09-04). The techniques behind these
@@ -47,5 +49,6 @@ Rules that apply to every playbook and are not repeated:
   `Accept-Encoding: gzip` always and only, no cookies, no assets, never
   solve a challenge.
 - Anything older than 30 days is read from the Wayback Machine first.
+  History from 2010-01-01 is read as `design/backfill.md` describes.
 - `robots.txt` is refetched every 24 h. A `User-agent: swingset` group
   is honored above everything else.

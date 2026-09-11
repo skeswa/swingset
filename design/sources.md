@@ -16,6 +16,7 @@ document. URL patterns are [below](#url-patterns).
 | danceconvention.net (DCN) | rankings per round; per-round PDF with bibs and marks | PDF only | yes, with city | no | PDF only | app only (unverified) | Nuxt payload in HTML + PDF | `ETag` changes every response; `no-store`; 1.67 MB per poll |
 | World Dance Registry (WDR) | every round as JSON: bibs, marks, callbacks, placements | yes | yes (non-callbacks redacted) | no | yes, first names | no | static JSON (`routeInfo.json`) | weak `ETag` + `Last-Modified`, 304 verified |
 | Event-site PDFs | historical results | varies | yes | no | varies | no | PDF | none |
+| Step Right Solutions (archive only) | prelim marks, finals ranks, placements, 2009 to 2019 | yes | yes | no | anonymous columns, named panel | no | static HTML in the Wayback Machine | none; captures are immutable |
 
 Heat lists are the thinnest data. All three platforms push heats through
 mobile apps or wall postings. We record heats when a public page shows
@@ -95,7 +96,10 @@ go slower on purpose.
   name only.
 
 How we use it: fetch the print list daily. It seeds the `events` table
-and defines each event's polling window.
+and defines each event's polling window. Past editions come from
+archived captures (none before 2016-10; none in 2017, 2018, or 2022)
+and, where no capture lists them, from registry occurrences at month
+precision ([backfill](backfill.md#event-enumeration-for-history)).
 
 ## EEPro (`eepro.com/results/`)
 
@@ -119,6 +123,10 @@ and defines each event's polling window.
   with its mtime and size. It is the per-event change signal; round
   pages are fetched only when their listing entry changes. `/results/`
   itself is an empty stub.
+- `event.php` lists only recent events (2024 on), but older slug
+  directories are still served (`/results/liberty2018/` was a 200
+  index page on 2026-09-11). The Wayback Machine holds EEPro only from
+  2018. Older history comes from the operator, not from probing.
 - Companion "SwingDancer" app pushes callbacks; we do not touch it.
 - The operator plans an API. The adapter is built to be swapped for it.
 
@@ -213,7 +221,14 @@ Canada. Verified 2026-09-08.
 
 ## Other platforms
 
-- Step Right Solutions: server returns empty 200s. Dead. Historical only.
+- Step Right Solutions: server returns empty 200s. Dead at the origin,
+  but the Wayback Machine holds 1,685 round pages for 108 events from
+  2009 to 2019, mostly US West Coast (Chico, Reno, Palm Springs, Liberty
+  Swing, Swingtacular, SwingDiego, Boogie by the Bay, Capital Swing,
+  Easter Swing, French Open, SwingCouver). Prelims print bibs, names,
+  and `1`/`2`/`3` marks in anonymous judge columns; finals print leader,
+  follower, per-judge placements, and place. It is a first-class
+  archive-only source for the 2010 start (`docs/sources/step-right-solutions.md`).
 - Danceplace, Swing Director, SwingWars, Vote4Dance, EventManagement: on
   the WSDC approved list but no public results URLs found. Deferred.
 - Event-site PDFs (e.g. Liberty Swing 2004 to 2022): one-off backfill
@@ -253,7 +268,7 @@ EEPro
   GET  https://eepro.com/results/event.php?event=<slug>
   GET  https://eepro.com/results/<slug>/                  autoindex, the change signal
   GET  https://eepro.com/results/<slug>/<contest><round>.html
-  GET  https://eepro.com/results/<year>/
+  GET  https://eepro.com/results/<year>/                  does not exist: 404 for 2012 and 2015 on 2026-09-11
 
 scoring.dance
   GET  https://scoring.dance/enUS/recent

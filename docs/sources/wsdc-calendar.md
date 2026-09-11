@@ -69,13 +69,19 @@ implements this against archived snapshots and is the starting point.
 - Location is free text with typos; the country code from the flag is
   more reliable than the country name.
 - Past editions vanish, so history comes from the Wayback Machine
-  (snapshots roughly every two months in 2025 and 2026).
+  (snapshots roughly every two months in 2025 and 2026, none at all in
+  2017, 2018, and 2022) and from the registry.
 
 ## 10. Backfill
 
-Wayback snapshots of `/events/`, as in `research/build_events.py`.
-Gaps of more than about five months would lose short-lived listings
-(**unverified** gap size).
+Wayback captures of `/events/`, as in `research/build_events.py`, read
+oldest first through the Wayback transport as index snapshots. Months
+with a 200 capture (2026-09-11): 2016: 4, 2017: 0, 2018: 0, 2019: 7,
+2020: 5, 2021: 2, 2022: 0, 2023: 4, 2024: 5, 2025: 5, 2026: 4. No
+capture of `worldsdc.com` exists before 2016-10-30. Editions the
+captures miss come from registry occurrences at month precision
+(`design/backfill.md`). Gaps of more than about five months lose
+short-lived listings (**unverified** gap size).
 
 ## 11. Load estimate
 

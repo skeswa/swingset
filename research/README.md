@@ -3,6 +3,15 @@
 One-off research artifacts and offline audit tools. Capture and review dates
 are recorded per artifact; historical findings are not kept up to date.
 
+## WSDC rules history audit
+
+[Audit report, 2026-09-11](wsdc-rules-audit-2026-09-11.md): corrections to
+`design/wsdc-rules-history.md`, three detailed claim ledgers, exact primary
+source links, and unresolved date and implementation questions. The source
+cache manifest and archive indexes are in
+`verification/2026-09-11/wsdc-rules/`. A statement in a rulebook establishes
+written policy, not that every registry row followed it.
+
 ## Dataset quality reviews
 
 - [First-pass audit, 2026-09-10](data-quality-2026-09-10.md): pinned baseline and defects.
@@ -157,6 +166,20 @@ true for 70, `has_heat_sheets` for 26), and whether bibs or WSDC ids
 are visible on danceconvention.net and worlddanceregistry pages
 (`bibs_visible` and `wsdc_ids_visible` are `unknown` for 54 and 82
 events).
+
+## prior-art-registry-analyses.md
+
+Four earlier registry scrapes and analyses (Connie Wang 2018, westiestats
+2020, Tom Tseng 2024 to 2025): endpoints and JSON shapes over time,
+quirks, rates, the questions they answered, and what that implies for
+swingset. Read 2026-09-11.
+
+## wayback-coverage-2026-09-11.md and wayback_coverage.py
+
+What the Wayback Machine holds for each source, how far back the WSDC
+calendar and the registry reach, and how the Wayback host behaved at a
+10 s gap. `wayback_coverage.py` recomputes the tables from the CDX JSON
+kept in `verification/2026-09-11/`. Input to `design/backfill.md`.
 
 ## scraping-techniques.md and verification/
 

@@ -179,14 +179,19 @@ under the byte budget.
 - The LLM draft tool (`swingset draft <url>`) as a manual command that
   writes to the review queue, never to tables.
 
-### Phase 6: backfill (M6)
+### Phase 6: backfill to 2010-01-01 (M6)
 
-- Wayback first for every source, newest first, at the Wayback host's
-  own gate. A capture counts only if it parses into complete results;
-  otherwise it is a gap. Origin only for gaps, one event per cycle per
-  host, DCN one per day.
-- Coverage table in the card lists every year and source and says how
-  many events came from the archive versus the origin.
+Owned by [backfill](backfill.md), work packages WP11 to WP16.
+
+- Wayback first for every source, newest year first, at the Wayback
+  host's own gate. A capture counts only if it parses into complete
+  results; otherwise it is a gap. Origin only for gaps, one event per
+  cycle per host, DCN one per day, EEPro only after the operator names
+  the old slugs, Step Right Solutions never.
+- Events are enumerated from archived calendar captures, archived
+  platform indexes, the Step Right index, and registry occurrences.
+- The `coverage` table and card list every year, source, and coverage
+  tier, and how many events came from the archive versus the origin.
 
 ## Per-host settings
 
@@ -200,7 +205,8 @@ A review of load should read the playbook, not this plan.
 | Item | Phase |
 |---|---|
 | Calendar fingerprint stable across a week; Yoast sitemap `lastmod` for `/events/` | 0 |
-| Wayback 429 behavior at a 10 s gap | 0 |
+| Wayback 429 behavior at a 10 s gap (none in 27 requests on 2026-09-11) | 0 |
+| DCN PDFs in the archive; Step Right promotion marks; registry month versus end date | 6 |
 | EEPro `Count` column meaning; `/results/<year>/` existence; operator's answer on autoindex | 2 |
 | scoring.dance nonce check; Cloudflare stability at 15 min; paid API scope and price | 3 |
 | WDR `S<n>`, finals bib, `attributeGroup`, registration euid mapping | 3b |

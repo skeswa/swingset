@@ -23,9 +23,22 @@ earns points. Strictly, Classic, and Showcase never do.
 
 Level thresholds (allowed / required to move up): Novice 16 / 30,
 Intermediate 30 / 45, Advanced 60 / 90, All-Star to Champion 150 / 225.
-One point in a higher division moves a dancer up immediately. Sliding
-36-month windows may apply to Advanced and All-Star (**unverified** in the
-2026 text).
+One point in a higher division moves a dancer up immediately. The
+36-month windows on Advanced and All-Star points ended on 2023-07-05; the
+2026 text has no time limits. How these values changed since 2010 is in
+[WSDC rules history](wsdc-rules-history.md).
+
+## Rule history that splits cohorts
+
+From `research/prior-art-registry-analyses.md`; dates need checking
+against the rule PDFs archived in `conniewang3/WSDC-Project/files/`.
+
+| Change | When | Note |
+|---|---|---|
+| Novice points to move up: 20 to 15 | 2012 or 2013 (**unverified** which) | |
+| Novice: 15 allowed to 16 allowed, 30 required | 2018 | Dancers with exactly 15 points before 2018 were grandfathered |
+| All-Star eligibility: from "45 Advanced points in 3 years or 1 All-Star point ever" to "45 Advanced points in 3 years or 3 All-Star points in 3 years" | 2018 | 76 All-Stars were demoted by this change (Wang) |
+| Thresholds in the table above | 2026 text | |
 
 `points_matches_expected` in `placements` compares `registry_points_*`
 against this chart with the tier inferred from `rounds.entry_count` of

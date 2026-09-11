@@ -23,6 +23,9 @@ built from natural keys, not from database sequences.
 | `snapshot_id` | `snap_<fetched_at compact>_<sha256 prefix 12>` | `snap_20260906T031500Z_9f2c1a7b3e4d` |
 | `run_id` | `run_<start time compact>` | `run_20260906T031500Z` |
 
+The history start date is 2010-01-01: no `events` row exists for an
+earlier edition ([backfill](backfill.md#the-start-date-rule)).
+
 The month in `event_id` is the month of the event's end date, because
 the registry records an event by series and "Month YYYY" and appears to
 use the month results were reported (**unverified**; checked during the
@@ -58,8 +61,12 @@ table: `source` (enum), `snapshot_id`, `parser_version`, `first_seen_at`,
 | `series_id` | string | |
 | `name` | string | canonical name |
 | `year` | int16 | |
-| `start_date` | date32 | |
-| `end_date` | date32 | |
+| `start_date` | date32 | nullable; null when only the registry month is known |
+| `end_date` | date32 | nullable |
+| `event_month` | string | `yyyy-mm`, the month in `event_id` |
+| `date_precision` | enum | `day`, `month` |
+| `coverage_tier` | enum | `sheets_complete`, `sheets_partial`, `index_only`, `registry_only`; see [backfill](backfill.md) |
+| `history_source` | list<enum> | which of `calendar`, `platform`, `registry`, `steprightsolutions` named the event |
 | `city` | string | nullable |
 | `region` | string | state or province, nullable |
 | `country` | string | ISO 3166-1 alpha-2, nullable |
@@ -97,7 +104,7 @@ table: `source` (enum), `snapshot_id`, `parser_version`, `first_seen_at`,
 | `round_index` | int8 | order within contest, 1-based |
 | `name_raw` | string | as printed |
 | `scoring_method` | enum | `callback`, `relative_placement` |
-| `callback_legend` | enum | `wsdc_10`, `legacy_3`, `unknown` |
+| `callback_legend` | enum | `wsdc_10`, `legacy_3`, `unknown`; Step Right Solutions prints `legacy_3` |
 | `judge_count` | int8 | round-wide distinct judge roster; not each entrant's voting-panel size |
 | `chief_judge_id` | string | nullable |
 | `entry_count` | int32 | entries that danced |
@@ -321,7 +328,14 @@ and [build](build.md#review-queue).
 
 `snapshot_id`, `source`, `url`, `fetched_at`, `http_status`,
 `body_sha256`, `body_bytes`, `content_changed`, `parser`,
-`parser_version`, `parse_status`. Bodies are not published.
+`parser_version`, `parse_status`, `via` (`origin`, `wayback`,
+`manual`), `captured_at`, `archive_url`. Bodies are not published.
+
+**`coverage`**
+
+One row per `year`, `source`, `via`: `events`, `contests`, `rounds`,
+`entries`, and one count per coverage tier. Built from current state;
+it is the card's coverage table ([backfill](backfill.md#data-model-changes)).
 
 ## Relationships
 

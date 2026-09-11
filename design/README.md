@@ -1,6 +1,6 @@
 # swingset design
 
-Status: draft v0.3, 2026-09-08. Owner: Sandile Keswa.
+Status: draft v0.4, 2026-09-11. Owner: Sandile Keswa.
 
 These documents are the foundational design for `swingset`, a Hugging
 Face dataset of competitive West Coast Swing data and the code that
@@ -10,8 +10,9 @@ the same change when behavior changes; document date alone does not
 override a contract. Source playbooks own verified per-site detail and
 the host overrides permitted by [fetching](fetching.md#politeness-rules).
 
-Facts about third-party sites were checked on 2026-09-04 and, for the
-fetch layer, again on 2026-09-08 (`research/verification/`). Facts we
+Facts about third-party sites were checked on 2026-09-04, for the
+fetch layer again on 2026-09-08, and for the Wayback Machine and the
+historical sources on 2026-09-11 (`research/verification/`). Facts we
 could not check are marked **unverified**. Per-site operating detail
 lives in the playbooks under `docs/sources/`, which win over these
 documents.
@@ -27,6 +28,7 @@ documents.
 | [local state](state.md) | SQLite schema, captured inputs, invalidation, durable work, state directory |
 | [fetching](fetching.md) | Identity, politeness rules, change detection, raw archive |
 | [scheduling](scheduling.md) | Watches, polling states and intervals, discovery, backfill |
+| [backfill](backfill.md) | History from 2010-01-01: start-date rule, per-era sources, Wayback transport, capture selection, origin gap rules, coverage tiers |
 | [parsing](parsing.md) | Parser contract, parsers to build, parsing rules, fixtures |
 | [data model](data-model.md) | Identifiers and every published table |
 | [identity linking](identity-linking.md) | Bib to name to WSDC number, confidence, retroactive correction |
@@ -42,4 +44,5 @@ documents.
 | [open questions](open-questions.md) | Decisions still open and facts to verify |
 | [decision log](decision-log.md) | Index of decisions from the design review |
 | [WSDC rules](wsdc-rules.md) | Callback legends, points tiers, level thresholds we encode |
+| [WSDC rules history](wsdc-rules-history.md) | Audited points-rule history since 2010: charts, thresholds, roles, dates, and evidence gaps |
 | [references](references.md) | Standards, docs, and prior art |

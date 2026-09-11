@@ -1,0 +1,673 @@
+{
+  "review_date": "2026-09-11",
+  "target_before_audit_sha256": "5bea05117feb9506236b8ac30cd5b5e7a0798553b811074c5d2bbbe1986b3fe6",
+  "note": "Existing local source cache read during audit; hashes identify the files reviewed. Prior fetch response headers are unavailable. A CDX entry establishes an archive index record, not that the cached body was freshly downloaded or byte-matched to that capture in this audit. Original URLs and archive links are in design/wsdc-rules-history.md. Source bodies are not checked into the repo.",
+  "files": [
+    {
+      "cache_file": "old/UPDATED_EVENT_RULES_ANNOUNCEMENT-2015.pdf",
+      "bytes": 25517,
+      "sha256": "e379adb48eb4acb84ae90cd9d57e996dfc47acfa49f63f7a3c95d87a7610aab7"
+    },
+    {
+      "cache_file": "old/WSDC_Registry_Event_Requirements-2015.pdf",
+      "bytes": 43316,
+      "sha256": "ca1c5711fa18dc7c0c4acae7ccebd8674c603e2127e1dcaea6f33fe132f2fe2e"
+    },
+    {
+      "cache_file": "old/points-20080224.htm",
+      "bytes": 15380,
+      "sha256": "8092c2b2e977182766c6954a669ca359ab9e06be0a670fc23c3833566417ca5b"
+    },
+    {
+      "cache_file": "old/points-20090711.pdf",
+      "bytes": 379606,
+      "sha256": "09bf51a62a4e15e6d0bcad666050f215f510ebdcc90b06d6838d842064d7aced"
+    },
+    {
+      "cache_file": "old/points-20110716.pdf",
+      "bytes": 241691,
+      "sha256": "52d60f406bb7cdeea9480f52d150bba43a4ea23b96bb522852cf7f96777c024f"
+    },
+    {
+      "cache_file": "old/points-20120711.pdf",
+      "bytes": 157361,
+      "sha256": "71a6421000763b80bad1a98f4a9afc369ee63eae9528fc0bb9a4717bd78b53a9"
+    },
+    {
+      "cache_file": "old/points-20140809.pdf",
+      "bytes": 239650,
+      "sha256": "3b1f07d228c7dffe8bc67a79bb8a5ece13e027cc27045d47f90dd29024ab77c2"
+    },
+    {
+      "cache_file": "old/points-20150608.pdf",
+      "bytes": 242549,
+      "sha256": "2b0e8d269c53130aed57c0dce762001a5c29fbf5abf36b2719edd04ae199f548"
+    },
+    {
+      "cache_file": "old/points-20150905.pdf",
+      "bytes": 34703,
+      "sha256": "7ef60e172d8b521fef88cbe05aae7020135d442a5720f050a7ec25322ded4789"
+    },
+    {
+      "cache_file": "wb/2015-07-01-Points-Registry-Document.pdf",
+      "bytes": 34703,
+      "sha256": "7ef60e172d8b521fef88cbe05aae7020135d442a5720f050a7ec25322ded4789"
+    },
+    {
+      "cache_file": "wb/2016-library-rules.html",
+      "bytes": 37165,
+      "sha256": "a8ad36f3a17863e7ed4c1beeb8ccb1bce548bfc3ccca743a082b8453249136eb"
+    },
+    {
+      "cache_file": "wb/2016-registry-points.html",
+      "bytes": 27859,
+      "sha256": "2b24bd2a2d1e70fcb4abb889e306550388f02769eb9061495e0a13f9dcb5d7ee"
+    },
+    {
+      "cache_file": "wb/2016-wsdc-rules.html",
+      "bytes": 28648,
+      "sha256": "4bce4fc4385fbd7b08fe2fa403dc393e6a379b986e72b8c2368b27e5fec9d976"
+    },
+    {
+      "cache_file": "wb/2018.1A-Points-Registry-Rules.pdf",
+      "bytes": 170632,
+      "sha256": "fe6f3b621758613f81175f441af9f1ed071f9f91b01f92b76484f124db621328"
+    },
+    {
+      "cache_file": "wb/2018.1A-Registry-Event-Rules.pdf",
+      "bytes": 632342,
+      "sha256": "89cad6e21bb2b17307d93d668e06d811976d4c0d204c868b1c4ee2a3f60d8ee4"
+    },
+    {
+      "cache_file": "wb/2018.1B-Points-Registry-Rules.pdf",
+      "bytes": 155944,
+      "sha256": "ca31e99683eeb3caaee886a18c0c8c96c71cb17184bdb75725a16855ce311bd2"
+    },
+    {
+      "cache_file": "wb/2019.1A-Points-Registry-Rules.pdf",
+      "bytes": 225250,
+      "sha256": "e07e4c557db1149188fd3ab3bc572425e429c1996e937ffc18ffa8b802a0dd46"
+    },
+    {
+      "cache_file": "wb/2019.1A-Registry-Event-Rules.pdf",
+      "bytes": 217375,
+      "sha256": "4edb94d21368d0f9ee4a6057883e1e296d879268d99be0375d67f611a52a11e8"
+    },
+    {
+      "cache_file": "wb/2020.1B-Points-Registry-Rules-addendum-2021.pdf",
+      "bytes": 752077,
+      "sha256": "37fc73e74de99314f6e201d9db41768ee4281198887eeca7cba2643dc9522fae"
+    },
+    {
+      "cache_file": "wb/2020.1B-Points-Registry-Rules.pdf",
+      "bytes": 248571,
+      "sha256": "77a44aa50c26b8b45e65aadab325605180b9d850532b3934bcefda53fa4f20b1"
+    },
+    {
+      "cache_file": "wb/2020.1B-Registry-Event-Rules-addendum-2021.pdf",
+      "bytes": 737651,
+      "sha256": "8716989ba11aee3894d8eb58ae3d9da53effd76c6691211d885b380044c8f4bc"
+    },
+    {
+      "cache_file": "wb/2021-points-registry-rules.html",
+      "bytes": 84908,
+      "sha256": "f6ce63421d713e8e74d376331633fae933df601748465f8920acc828648cf5fc"
+    },
+    {
+      "cache_file": "wb/2023-points-registry-rules-old1.html",
+      "bytes": 111558,
+      "sha256": "4786543c5f0cb6f5e1e4c8ce56bb5afd61f6fa47390c90584e855d6ec54eb250"
+    },
+    {
+      "cache_file": "wb/2023.1B-Registry-Event-Rules.pdf",
+      "bytes": 378241,
+      "sha256": "2a2a2475f84af4d1bf305590b56d3e0590e0a8ba5fc491bcab388c3b537dccf5"
+    },
+    {
+      "cache_file": "wb/2023.1C-Registry-Event-Rules.pdf",
+      "bytes": 560587,
+      "sha256": "852a9cda12a29c14571e721ee8d3d97306349b5f94d80ce342adc5a563e649af"
+    },
+    {
+      "cache_file": "wb/2023.1D-Registry-Event-Rules.pdf",
+      "bytes": 294236,
+      "sha256": "db564e44adfb480c45c93e3f8493bbdd5983c95e96642f83b83ace6baaa0f836"
+    },
+    {
+      "cache_file": "wb/2024.1A-Registry-Event-Rules.pdf",
+      "bytes": 566189,
+      "sha256": "cdc9b4cff28cc4a5b7de94f13163911cf7e4cdab364d81332464e4ed1f3e028e"
+    },
+    {
+      "cache_file": "wb/2024.2A-Registry-Event-Rules.pdf",
+      "bytes": 579441,
+      "sha256": "90a8b92da12bb9be4ae03b0e6f0f2b9a7d785b871fb9c900c13deceb68de018d"
+    },
+    {
+      "cache_file": "wb/2024.2B-Registry-Event-Rules.pdf",
+      "bytes": 586021,
+      "sha256": "e77040f5ac7f4e40e2365dcfb6073ff6c05de2f7ce1ab6d0e75da42aaf8c4253"
+    },
+    {
+      "cache_file": "wb/2025-v4-Registry-Event-Rules.pdf",
+      "bytes": 773835,
+      "sha256": "60f52f44ae0d2ee7e1600c5b3197c62190476e7551b4a891ca9dee116cb9e69c"
+    },
+    {
+      "cache_file": "wb/2026-12.30.25-Registry-Event-Rules.pdf",
+      "bytes": 571593,
+      "sha256": "f1059bc6f7c2d03b2ae0c57424ab3a53f01935d0af658747a4f834893a005249"
+    },
+    {
+      "cache_file": "wb/2026-Jan17-Registry-Event-Rules.pdf",
+      "bytes": 345428,
+      "sha256": "739070bf6f9cd8f0114e9c996f66c48a0f2b021a41cc6e6c3e6efc64c3ab5e3a"
+    },
+    {
+      "cache_file": "wb/2026-May22-Registry-Event-Rules.pdf",
+      "bytes": 343944,
+      "sha256": "ed1e840fb91ceb917b162d436b39ca9764bc9eb7363740d66c19625678b619c7"
+    },
+    {
+      "cache_file": "nl/161202-WSDC-Newsletter-Vol-1-4.pdf",
+      "bytes": 647827,
+      "sha256": "44c788523cf470ad6f024404da5e8c296d2fcafdaa737927ee6fcd0bd65d7c6d"
+    },
+    {
+      "cache_file": "nl/170330-WSDC-Newsletter-Vol-2-3.pdf",
+      "bytes": 802829,
+      "sha256": "0177184cf9eba91bc084b38eb7d369031c4aec4955ca47b67ae79f1cd13ca00c"
+    },
+    {
+      "cache_file": "nl/170705-WSDC-Newsletter-Vol-3-7-5-2017.pdf",
+      "bytes": 688296,
+      "sha256": "08ef5aac26660711812dec52a1a0176d1f479df6f7dd60ced7ca6700cb8501e7"
+    },
+    {
+      "cache_file": "nl/171229-WSDC-Newsleter-Vol-5-12-29-2017.pdf",
+      "bytes": 787038,
+      "sha256": "9938b86a709424ca44dd6a4ccf830fa9362b260cec99ea9d0d90b305f07e6aca"
+    },
+    {
+      "cache_file": "nl/Revised-WSDC-Registry-Event-Rules-Updated-Jan172026-V2026.1B.pdf",
+      "bytes": 378929,
+      "sha256": "140caae75a8dd3378268e3d353fedf44911c1c2adb981fa4e81650f4e856d3b5"
+    },
+    {
+      "cache_file": "nl/WSDC-Newsleter-Vol-10-04-12-2019.pdf",
+      "bytes": 429809,
+      "sha256": "11d8e6dbdaab64fe68364da0a70a08ca4b0d3051f9b21fc8a2bacb8ee9abb93e"
+    },
+    {
+      "cache_file": "nl/WSDC-Newsleter-Vol-13-1-6-2020.pdf",
+      "bytes": 593436,
+      "sha256": "220a0f22f0f6bd1646ca42cd7e4c96ac38ca51d59e87836074d582deae692889"
+    },
+    {
+      "cache_file": "nl/WSDC-Newsleter-Vol-23-September-2022.pdf",
+      "bytes": 447848,
+      "sha256": "e2920d5d80beea725d9b36f33ba164cdcc255def99bf73a4b793dbc65db0eeaf"
+    },
+    {
+      "cache_file": "nl/WSDC-Newsleter-Vol-25-1-5-2023.pdf",
+      "bytes": 449201,
+      "sha256": "68c1360eb9f6a4bc487f4f08ea3f70fbd09e80cb1958cf72006f5a0c12803829"
+    },
+    {
+      "cache_file": "nl/WSDC-Newsleter-Vol-9-1-24-2019.pdf",
+      "bytes": 424080,
+      "sha256": "478d7ddb5edd0e23c6ddb529d429fecde0468456a42093745939e7bcb5f9b998"
+    },
+    {
+      "cache_file": "nl/WSDC-Newsletter-Vol-12-10-10-2019.pdf",
+      "bytes": 721236,
+      "sha256": "ea0a1cfa6f685e0efec35ae277732742c5a0ca9818adb28651fe6b767b4cbd7e"
+    },
+    {
+      "cache_file": "nl/WSDC-Newsletter-Vol-20-May-2021-1.pdf",
+      "bytes": 549973,
+      "sha256": "12545410f858740ff9ac6a85852eb8b32bf64767bdc59aaf860c56a3e617dcfd"
+    },
+    {
+      "cache_file": "nl/WSDC-Newsletter-Vol-26-05-16-2023-1.pdf",
+      "bytes": 549760,
+      "sha256": "ce3c79f4aa99125b4b1cad7cf79f025562a32e265ef708c97f9720053c7e65e9"
+    },
+    {
+      "cache_file": "nl/WSDC-Newsletter-Vol-27-9-11-2023.pdf",
+      "bytes": 976048,
+      "sha256": "10de9e3a897e1b1ceef8cf21939761f03622a89d4a87928cbd1c12233489fff2"
+    },
+    {
+      "cache_file": "nl/WSDC-Newsletter-Vol-29-1-5-2024-3.0.pdf",
+      "bytes": 661547,
+      "sha256": "ed5072b4dea1577bd79567057a957651e47a34fd83bb55a040b29a7bc74bc7b5"
+    },
+    {
+      "cache_file": "nl/WSDC-Newsletter-Vol-30-05-21-2024-5.0.pdf",
+      "bytes": 532662,
+      "sha256": "bf5de4bbd205632abc9c632c64bf09885cc15a8b806859749a4efd32dd16cf11"
+    },
+    {
+      "cache_file": "nl/WSDC-Newsletter-Vol-31-October-16-2024.pdf",
+      "bytes": 474380,
+      "sha256": "edcf23173c24fb1c9c8aa51ba474907b3e414027b6f8b60bc2557a2de130d66e"
+    },
+    {
+      "cache_file": "nl/WSDC-Newsletter-Vol-32-2-12-2025.pdf",
+      "bytes": 1938941,
+      "sha256": "1b814f2a513602c78047e17c1d43161c39ba5954b80e2e121e33e9b146dabf83"
+    },
+    {
+      "cache_file": "nl/WSDC-Newsletter-Vol-7-July-1-2018.pdf",
+      "bytes": 416498,
+      "sha256": "3347ef6a31416d1bbbf8f8bb450fef77464752c9f30559e1ff08227d6d851c12"
+    },
+    {
+      "cache_file": "nl/WSDC-Rules-2024-v2024.1B.pdf",
+      "bytes": 568578,
+      "sha256": "ff69eef10b54e3d9c018f77814886e14eebe44bfbda61488decebaa8ebbb0a79"
+    },
+    {
+      "cache_file": "nl/WSDC-Rules-2025.pdf",
+      "bytes": 577554,
+      "sha256": "09aa49b74f8319fc5159b4e05f9d88ef9ac20dcc4362a835a9653373601cc785"
+    }
+  ],
+  "sources": {
+    "P2004": {
+      "title": "Jack & Jill Competitor's Points Registry, effective 2004-01-04",
+      "original_urls": [
+        "http://www.swingdancecouncil.com:80/library/wsdcpointsregistry.htm"
+      ],
+      "archive_urls": [
+        "https://web.archive.org/web/20080224023552id_/http://www.swingdancecouncil.com:80/library/wsdcpointsregistry.htm"
+      ]
+    },
+    "P2008": {
+      "title": "WSDC Points Registry Document, updated 11.2008, effective 2009-01-01",
+      "original_urls": [
+        "http://www.swingdancecouncil.com/library/WSDC%20Points%20Registry%20Document.pdf"
+      ],
+      "archive_urls": [
+        "https://web.archive.org/web/20090711213926id_/http://www.swingdancecouncil.com:80/library/WSDC%20Points%20Registry%20Document.pdf"
+      ]
+    },
+    "P2010": {
+      "title": "WSDC Points Registry Document, updated 8.2010, effective 2011-01-01",
+      "original_urls": [
+        "http://www.swingdancecouncil.com/library/WSDC%20Points%20Registry%20Document.pdf"
+      ],
+      "archive_urls": [
+        "https://web.archive.org/web/20110716173423id_/http://www.swingdancecouncil.com/library/WSDC%20Points%20Registry%20Document.pdf"
+      ]
+    },
+    "P2011": {
+      "title": "WSDC Points Registry Document, updated 12.2011, effective 2012-01-01",
+      "original_urls": [
+        "http://www.swingdancecouncil.com/library/WSDC%20Points%20Registry%20Document.pdf"
+      ],
+      "archive_urls": [
+        "https://web.archive.org/web/20120711021140id_/http://www.swingdancecouncil.com:80/library/WSDC%20Points%20Registry%20Document.pdf"
+      ]
+    },
+    "P2014": {
+      "title": "WSDC Points Registry Document, updated 1.2014, effective 2014-01",
+      "original_urls": [
+        "http://www.swingdancecouncil.com/library/WSDC%20Points%20Registry%20Document.pdf"
+      ],
+      "archive_urls": [
+        "https://web.archive.org/web/20140809211447id_/http://www.swingdancecouncil.com/library/WSDC%20Points%20Registry%20Document.pdf"
+      ]
+    },
+    "P2015a": {
+      "title": "WSDC Points Registry Document, updated 1.2015, effective 2015-02-01",
+      "original_urls": [
+        "http://www.swingdancecouncil.com/library/WSDC%20Points%20Registry%20Document.pdf"
+      ],
+      "archive_urls": [
+        "https://web.archive.org/web/20150608073004id_/http://www.swingdancecouncil.com/library/WSDC%20Points%20Registry%20Document.pdf"
+      ]
+    },
+    "P2015b": {
+      "title": "WSDC Points Registry Document and Rules, updated and effective 7.2015",
+      "original_urls": [
+        "http://www.swingdancecouncil.com/library/WSDC%20Points%20Registry%20Document.pdf"
+      ],
+      "archive_urls": [
+        "https://web.archive.org/web/20150905114738id_/http://www.swingdancecouncil.com/library/WSDC%20Points%20Registry%20Document.pdf"
+      ]
+    },
+    "R2015": {
+      "title": "Registry Event Requirements (rev. 2015) and \"Updated Event Rules & Points Registry Document, July 2015\" letter",
+      "original_urls": [
+        "http://www.swingdancecouncil.com/library/WSDC_Registry_Event_Requirements.pdf",
+        "http://www.swingdancecouncil.com/library/UPDATED_EVENT_RULES_ANNOUNCEMENT.pdf"
+      ],
+      "archive_urls": [
+        "https://web.archive.org/web/20150905130630id_/http://www.swingdancecouncil.com/library/WSDC_Registry_Event_Requirements.pdf",
+        "https://web.archive.org/web/20150905125650id_/http://www.swingdancecouncil.com/library/UPDATED_EVENT_RULES_ANNOUNCEMENT.pdf"
+      ]
+    },
+    "P2018": {
+      "title": "WSDC Points Registry Rules, RPR Version 2018.1A, effective 2018-01-03 (2018.1B has the same substantive points rules with editorial/layout changes)",
+      "original_urls": [
+        "https://www.worldsdc.com/wp-content/uploads/2017/12/2018.1A-WSDC-Points-Registry-Rules-v2018.1A.pdf",
+        "https://www.worldsdc.com/wp-content/uploads/2017/12/2018.1B-WSDC-Points-Registry-Rules-v2018.1B.pdf"
+      ],
+      "archive_urls": [
+        "https://web.archive.org/web/20201109003552id_/https://www.worldsdc.com/wp-content/uploads/2017/12/2018.1A-WSDC-Points-Registry-Rules-v2018.1A.pdf",
+        "https://web.archive.org/web/20190310124522id_/https://www.worldsdc.com/wp-content/uploads/2017/12/2018.1B-WSDC-Points-Registry-Rules-v2018.1B.pdf"
+      ]
+    },
+    "P2019": {
+      "title": "WSDC Points Registry Rules, RPR Version 2019.1A, 2019-02-15",
+      "original_urls": [
+        "https://www.worldsdc.com/wp-content/uploads/2019/03/2019.1A-WSDC-Points-Registry-Rules_Final.pdf"
+      ],
+      "archive_urls": [
+        "https://web.archive.org/web/20191203194834id_/https://www.worldsdc.com/wp-content/uploads/2019/03/2019.1A-WSDC-Points-Registry-Rules_Final.pdf"
+      ]
+    },
+    "P2020": {
+      "title": "WSDC Points Registry Rules, internally RPR Version 2020.1A, 2020-01-01 (filename says 2020.1B)",
+      "original_urls": [
+        "https://www.worldsdc.com/wp-content/uploads/2021/02/2020.1B-WSDC-Points-Registry-Rules_vFinal.pdf"
+      ],
+      "archive_urls": [
+        "https://web.archive.org/web/20210506220118id_/https://www.worldsdc.com/wp-content/uploads/2021/02/2020.1B-WSDC-Points-Registry-Rules_vFinal.pdf"
+      ]
+    },
+    "A2021": {
+      "title": "Registry Rules May 2021 Addendum (bound with 2020.1A)",
+      "original_urls": [
+        "https://www.worldsdc.com/wp-content/uploads/2021/06/2020.1B-WSDC-Points-Registry-Rules_with-addendum-5-14-2021.pdf"
+      ],
+      "archive_urls": [
+        "https://web.archive.org/web/20210724140600id_/https://www.worldsdc.com/wp-content/uploads/2021/06/2020.1B-WSDC-Points-Registry-Rules_with-addendum-5-14-2021.pdf"
+      ]
+    },
+    "P2021web": {
+      "title": "WSDC Points Registry Rules web page (2020 text)",
+      "original_urls": [
+        "https://www.worldsdc.com/wsdc-points-registry-rules/"
+      ],
+      "archive_urls": [
+        "https://web.archive.org/web/20210415151336id_/https://www.worldsdc.com/wsdc-points-registry-rules/"
+      ]
+    },
+    "R2023a": {
+      "title": "WSDC Registry Event Rules, RER Version 2023.1B, effective 2023-01-01, dated 2022-11-02",
+      "original_urls": [
+        "https://www.worldsdc.com/wp-content/uploads/2022/11/2023-Registry-Event-Rules_vFinal2-2023.1B.pdf"
+      ],
+      "archive_urls": [
+        "https://web.archive.org/web/20230322022046id_/https://www.worldsdc.com/wp-content/uploads/2022/11/2023-Registry-Event-Rules_vFinal2-2023.1B.pdf"
+      ]
+    },
+    "R2023b": {
+      "title": "WSDC Registry Event Rules, RER Version 2023.1C, effective 2023-07-05, dated 2023-06-08",
+      "original_urls": [
+        "https://www.worldsdc.com/wp-content/uploads/2023/06/2023-Registry-Event-Rules_vFinal3-2023.1C.pdf"
+      ],
+      "archive_urls": [
+        "https://web.archive.org/web/20231025024912id_/https://www.worldsdc.com/wp-content/uploads/2023/06/2023-Registry-Event-Rules_vFinal3-2023.1C.pdf"
+      ]
+    },
+    "R2023c": {
+      "title": "WSDC Registry Event Rules, September 25, 2023 footnote-symbol update (file named 2023.1D; internally 2023.1C)",
+      "original_urls": [
+        "https://www.worldsdc.com/wp-content/uploads/2023/09/2023-Registry-Event-Rules_vFinal3b-2023.1D.pdf"
+      ],
+      "archive_urls": [
+        "https://web.archive.org/web/20231025025737id_/https://www.worldsdc.com/wp-content/uploads/2023/09/2023-Registry-Event-Rules_vFinal3b-2023.1D.pdf"
+      ]
+    },
+    "R2024a": {
+      "title": "WSDC Registry Event Rules, RER Version 2024.1A, effective 2024-01-01, dated 2023-12-17 (2024.1B effective 2024-03-27 clarifies numerical raw scores)",
+      "original_urls": [
+        "https://www.worldsdc.com/wp-content/uploads/2023/12/2024-Registry-Event-Rules_vFRER-Version-2024.1A.pdf",
+        "https://www.worldsdc.com/wp-content/uploads/2024/03/2024-Registry-Event-Rules_v2024.1B.pdf"
+      ],
+      "archive_urls": [
+        "https://web.archive.org/web/20240301102851id_/https://www.worldsdc.com/wp-content/uploads/2023/12/2024-Registry-Event-Rules_vFRER-Version-2024.1A.pdf",
+        "https://web.archive.org/web/20240425071413id_/https://www.worldsdc.com/wp-content/uploads/2024/03/2024-Registry-Event-Rules_v2024.1B.pdf"
+      ]
+    },
+    "R2024b": {
+      "title": "WSDC Registry Event Rules, RER Version 2024.2A, effective 2024-07-01",
+      "original_urls": [
+        "https://www.worldsdc.com/wp-content/uploads/2024/05/2024-Registry-Event-Rules_v2024.2A.pdf"
+      ],
+      "archive_urls": [
+        "https://web.archive.org/web/20240627150050id_/https://www.worldsdc.com/wp-content/uploads/2024/05/2024-Registry-Event-Rules_v2024.2A.pdf"
+      ]
+    },
+    "R2024c": {
+      "title": "WSDC Registry Event Rules, RER Version 2024.2B, clarifications added 2024-07-11",
+      "original_urls": [
+        "https://www.worldsdc.com/wp-content/uploads/2024/07/2024-Registry-Event-Rules_v2024.2B.pdf"
+      ],
+      "archive_urls": [
+        "https://web.archive.org/web/20240810062653id_/https://www.worldsdc.com/wp-content/uploads/2024/07/2024-Registry-Event-Rules_v2024.2B.pdf"
+      ]
+    },
+    "R2025": {
+      "title": "WSDC Registry Event Rules, RER Version 2025.1A, effective 2025-01-01, dated 2024-12-12",
+      "original_urls": [
+        "https://www.worldsdc.com/wp-content/uploads/2024/12/wsdcrules.pdf"
+      ],
+      "archive_urls": [
+        "https://web.archive.org/web/20250109133422id_/https://www.worldsdc.com/wp-content/uploads/2024/12/wsdcrules.pdf"
+      ]
+    },
+    "R2026a": {
+      "title": "2026 WSDC Registry Event Rules, Version 2026.1A, 2025-12-30",
+      "original_urls": [
+        "https://www.worldsdc.com/wp-content/uploads/2025/12/WSDC-Registry-Event-Rules-12.30.25.pdf"
+      ],
+      "archive_urls": [
+        "https://web.archive.org/web/20260109080931id_/https://www.worldsdc.com/wp-content/uploads/2025/12/WSDC-Registry-Event-Rules-12.30.25.pdf"
+      ]
+    },
+    "R2026b": {
+      "title": "2026 WSDC Registry Event Rules, Version 2026.1B, 2026-01-17",
+      "original_urls": [
+        "https://www.worldsdc.com/wp-content/uploads/2026/01/WSDC-Registry-Event-Rules-Jan-17-2026.pdf"
+      ],
+      "archive_urls": [
+        "https://web.archive.org/web/20260307150053id_/https://www.worldsdc.com/wp-content/uploads/2026/01/WSDC-Registry-Event-Rules-Jan-17-2026.pdf"
+      ]
+    },
+    "R2026c": {
+      "title": "2026 WSDC Registry Event Rules, Version 2026.1C (PDF header; filename says 1B)",
+      "original_urls": [
+        "https://www.worldsdc.com/wp-content/uploads/2026/03/Revised-WSDC-Registry-Event-Rules-Updated-Jan172026-V2026.1B.pdf"
+      ],
+      "archive_urls": [
+        "https://web.archive.org/web/20260419104700id_/https://www.worldsdc.com/wp-content/uploads/2026/03/Revised-WSDC-Registry-Event-Rules-Updated-Jan172026-V2026.1B.pdf"
+      ]
+    },
+    "R2026d": {
+      "title": "2026 WSDC Registry Event Rules, Version 2026.1D, 2026-05-22",
+      "original_urls": [
+        "https://www.worldsdc.com/wp-content/uploads/2026/05/Revised-WSDC-Registry-Event-Rules-05-22-2026.pdf"
+      ],
+      "archive_urls": [
+        "https://web.archive.org/web/20260606224547id_/https://www.worldsdc.com/wp-content/uploads/2026/05/Revised-WSDC-Registry-Event-Rules-05-22-2026.pdf"
+      ]
+    },
+    "NL2016-12": {
+      "title": "WSDC Newsletter Vol 1, 2016-12-02",
+      "original_urls": [
+        "https://www.worldsdc.com/wp-content/uploads/2017/12/161202-WSDC-Newsletter-Vol-1-4.pdf"
+      ],
+      "archive_urls": []
+    },
+    "NL2017-03": {
+      "title": "WSDC Newsletter Vol 2, 2017-03-30",
+      "original_urls": [
+        "https://www.worldsdc.com/wp-content/uploads/2020/12/170330-WSDC-Newsletter-Vol-2-3.pdf"
+      ],
+      "archive_urls": []
+    },
+    "NL2017-07": {
+      "title": "WSDC Newsletter Vol 3, 2017-07-05",
+      "original_urls": [
+        "https://www.worldsdc.com/wp-content/uploads/2017/12/170705-WSDC-Newsletter-Vol-3-7-5-2017.pdf"
+      ],
+      "archive_urls": []
+    },
+    "NL2017-12": {
+      "title": "WSDC Newsletter Vol 5, 2017-12-29",
+      "original_urls": [
+        "https://www.worldsdc.com/wp-content/uploads/2017/12/171229-WSDC-Newsleter-Vol-5-12-29-2017.pdf"
+      ],
+      "archive_urls": []
+    },
+    "NL2018-07": {
+      "title": "WSDC Newsletter Vol 7, 2018-07-25",
+      "original_urls": [
+        "https://www.worldsdc.com/wp-content/uploads/2020/12/WSDC-Newsletter-Vol-7-July-1-2018.pdf"
+      ],
+      "archive_urls": []
+    },
+    "NL2019-01": {
+      "title": "WSDC Newsletter Vol 9, 2019-01-24",
+      "original_urls": [
+        "https://www.worldsdc.com/wp-content/uploads/2020/12/WSDC-Newsleter-Vol-9-1-24-2019.pdf"
+      ],
+      "archive_urls": []
+    },
+    "NL2019-04": {
+      "title": "WSDC Newsletter Vol 10, 2019-04-12",
+      "original_urls": [
+        "https://www.worldsdc.com/wp-content/uploads/2020/12/WSDC-Newsleter-Vol-10-04-12-2019.pdf"
+      ],
+      "archive_urls": []
+    },
+    "NL2019-10": {
+      "title": "WSDC Newsletter Vol 12, 2019-10-10",
+      "original_urls": [
+        "https://www.worldsdc.com/wp-content/uploads/2020/12/WSDC-Newsletter-Vol-12-10-10-2019.pdf"
+      ],
+      "archive_urls": []
+    },
+    "NL2020-01": {
+      "title": "WSDC Newsletter Vol 13, 2020-01-06",
+      "original_urls": [
+        "https://www.worldsdc.com/wp-content/uploads/2021/02/WSDC-Newsleter-Vol-13-1-6-2020.pdf"
+      ],
+      "archive_urls": []
+    },
+    "NL2021-05": {
+      "title": "WSDC Newsletter Vol 20, May 2021",
+      "original_urls": [
+        "https://www.worldsdc.com/wp-content/uploads/2021/05/WSDC-Newsletter-Vol-20-May-2021-1.pdf"
+      ],
+      "archive_urls": []
+    },
+    "NL2022-09": {
+      "title": "WSDC Newsletter Vol 23, September 2022",
+      "original_urls": [
+        "https://www.worldsdc.com/wp-content/uploads/2022/09/WSDC-Newsleter-Vol-23-September-2022.pdf"
+      ],
+      "archive_urls": []
+    },
+    "NL2023-01": {
+      "title": "WSDC Newsletter Vol 25, 2023-01-05",
+      "original_urls": [
+        "https://www.worldsdc.com/wp-content/uploads/2023/01/WSDC-Newsleter-Vol-25-1-5-2023.pdf"
+      ],
+      "archive_urls": []
+    },
+    "NL2023-05": {
+      "title": "WSDC Newsletter Vol 26, 2023-05-16",
+      "original_urls": [
+        "https://www.worldsdc.com/wp-content/uploads/2023/05/WSDC-Newsletter-Vol-26-05-16-2023-1.pdf"
+      ],
+      "archive_urls": []
+    },
+    "NL2023-09": {
+      "title": "WSDC Newsletter Vol 27, 2023-09-11",
+      "original_urls": [
+        "https://www.worldsdc.com/wp-content/uploads/2023/09/WSDC-Newsletter-Vol-27-9-11-2023.pdf"
+      ],
+      "archive_urls": []
+    },
+    "NL2024-01": {
+      "title": "WSDC Newsletter Vol 29, 2024-01-05",
+      "original_urls": [
+        "https://www.worldsdc.com/wp-content/uploads/2024/01/WSDC-Newsletter-Vol-29-1-5-2024-3.0.pdf"
+      ],
+      "archive_urls": []
+    },
+    "NL2024-05": {
+      "title": "WSDC Newsletter Vol 30, 2024-05-21",
+      "original_urls": [
+        "https://www.worldsdc.com/wp-content/uploads/2024/05/WSDC-Newsletter-Vol-30-05-21-2024-5.0.pdf"
+      ],
+      "archive_urls": []
+    },
+    "NL2024-10": {
+      "title": "WSDC Newsletter Vol 31, 2024-10-16",
+      "original_urls": [
+        "https://www.worldsdc.com/wp-content/uploads/2024/10/WSDC-Newsletter-Vol-31-October-16-2024.pdf"
+      ],
+      "archive_urls": []
+    },
+    "NL2025-02": {
+      "title": "WSDC Newsletter Vol 32, 2025-02-12",
+      "original_urls": [
+        "https://www.worldsdc.com/wp-content/uploads/2025/02/WSDC-Newsletter-Vol-32-2-12-2025.pdf"
+      ],
+      "archive_urls": []
+    },
+    "E2018": {
+      "title": "Registry Event Rules and Requirements, RERR 2018.1A, dated 2018-01-01",
+      "original_urls": [
+        "https://www.worldsdc.com/wp-content/uploads/2018/01/2018.1A-Registry-Event-Rules-and-Requirements.pdf"
+      ],
+      "archive_urls": [
+        "https://web.archive.org/web/20190310181743id_/https://www.worldsdc.com/wp-content/uploads/2018/01/2018.1A-Registry-Event-Rules-and-Requirements.pdf"
+      ]
+    },
+    "E2019": {
+      "title": "Registry Event Rules, RER 2019.1A, dated 2019-02-15",
+      "original_urls": [
+        "https://www.worldsdc.com/wp-content/uploads/2019/03/2019.1A-Registry-Event-Rules_Final.pdf"
+      ],
+      "archive_urls": [
+        "https://web.archive.org/web/20221126093911id_/https://www.worldsdc.com/wp-content/uploads/2019/03/2019.1A-Registry-Event-Rules_Final.pdf"
+      ]
+    },
+    "W2026": {
+      "title": "WSDC Rules & Info index; states 2026 rules effective 2026-01-01",
+      "original_urls": [
+        "https://worldsdc.com/rules/"
+      ],
+      "archive_urls": []
+    }
+  },
+  "target_after_audit_sha256": "a4fca77a3288c399e59af8086fc6a0a747fcf3e4f0f53f9e0bdb9f9a5ad623a6",
+  "fresh_access_checks": [
+    {
+      "url": "https://worldsdc.com/robots.txt",
+      "method": "GET",
+      "user_agent": "swingset/0.0 (+https://github.com/skeswa/swingset)",
+      "result": "read timeout after 30 seconds; no response body retained"
+    },
+    {
+      "url": "https://worldsdc.com/rules/",
+      "method": "GET",
+      "user_agent": "swingset/0.1.0 (+https://github.com/skeswa/swingset)",
+      "result": "timeout after 30 seconds; no response body received"
+    }
+  ],
+  "indexed_discovery_urls": [
+    "https://worldsdc.com/rules/",
+    "https://worldsdc.com/newsletter/",
+    "https://worldsdc.com/generalmeetings/",
+    "https://www.worldsdc.com/wp-content/uploads/2026/05/Revised-WSDC-Registry-Event-Rules-05-22-2026.pdf"
+  ]
+}

@@ -54,3 +54,16 @@ Decisions from the implementation-plan maintainability review on 2026-09-08:
 | 36 | Classify responses before changing automatic host pauses | Expected WDR unavailability must not pause unrelated watches; [fetching](fetching.md#response-classification) |
 | 37 | Store findings as evidence; compute the review queue | Avoid two mutable versions of the same review state; [architecture](architecture.md#findings-and-review) |
 | 38 | Design contracts move to their owners immediately; the work plan owns sequencing and acceptance | Removes conflicting specifications and the deferred WP10 documentation merge; [design index](README.md) |
+
+Decisions from the backfill design on 2026-09-11:
+
+| # | Decision | Where |
+|---|---|---|
+| 39 | Event and result tabulation starts 2010-01-01; the registry mirror stays whole; earlier placements keep a null `event_id` | [backfill](backfill.md#the-start-date-rule) |
+| 40 | History is read from the Wayback Machine first; registry occurrences seed month-precision events where no capture names them; origin only for gaps by per-host rules, Step Right never, EEPro only after the operator names old slugs | [backfill](backfill.md) |
+| 41 | Step Right Solutions is a first-class archive-only source | `docs/sources/step-right-solutions.md` |
+| 42 | Conflicts and observation ownership compare `observed_at` (capture time for archive bodies), not fetch time | [backfill](backfill.md#data-model-changes), [architecture](architecture.md#observations-and-projections) |
+| 43 | Watches of events older than two years, or of dead origins, are `sealed` after a successful parse and never refetched | [scheduling](scheduling.md#watch-states-and-intervals) |
+| 44 | `events` gains nullable dates, `event_month`, `date_precision`, `coverage_tier`, `history_source`; a published `coverage` table replaces a card-only table | [data model](data-model.md#tables) |
+| 45 | The Wayback host gets the gentlest settings: 10 s gap, 200 a day, lowest priority, narrow paged CDX queries, no Save Page Now | `docs/sources/wayback-machine.md` |
+

@@ -24,6 +24,9 @@ Terms are used exactly as defined here, in code and in data.
 | Relative Placement | The majority-based ranking system used for WCS finals. |
 | Tier | The WSDC bracket that sets points per placement, based on how many unique competitors danced in each role. |
 | Snapshot | One archived HTTP response body with its headers and fetch time. |
+| Capture | One copy of a URL held by the Wayback Machine, identified by URL and timestamp. A snapshot fetched from a capture records the capture time as `observed_at`. |
+| Coverage tier | How much of an event's results we hold: `sheets_complete`, `sheets_partial`, `index_only`, or `registry_only`. |
+| History start | 2010-01-01. Events ending before it get no rows; registry placements before it keep a null event id. |
 | Watch | One request we monitor, including method and form data, plus its polling policy and parser. |
 | Link | An assertion that an entry is a specific WSDC dancer, with method and confidence. |
 | Run | One execution of the pipeline cycle. Has a `run_id`. |

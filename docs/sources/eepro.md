@@ -28,7 +28,7 @@ GET https://eepro.com/results/event.php?event=<slug>   event page (PHP)
 GET https://eepro.com/results/<slug>/                  Apache autoindex of the event's files (1.8 KB)
 GET https://eepro.com/results/<slug>/<file>.html       one contest round, e.g. jjprelims.html, jjfinals.html
 GET https://eepro.com/results/<slug>/<file>.pdf        occasional PDFs alongside
-GET https://eepro.com/results/<year>/                  year index (unverified this year; seen in design research)
+GET https://eepro.com/results/<year>/                  does not exist: 404 for 2012 and 2015 (2026-09-11)
 ```
 
 `<slug>` is the operator's own key, e.g. `summerhummer2026`, `asc2025`,
@@ -156,18 +156,23 @@ misrepresenting the numbers as callback marks.
 ## 10. Backfill
 
 The Wayback Machine holds 1,124 distinct 200-status URLs under
-`eepro.com/results/` across 141 slugs, 2016 to 2026. Backfill order:
+`eepro.com/results/` across 148 slugs, captured 2018 to 2026 (slugs by
+year: 2018: 8, 2019: 16, 2020: 1, 2021: 6, 2022: 17, 2023: 19,
+2024: 31, 2025: 36, 2026: 13). Nothing older is archived. Order:
 
-1. One CDX query per year of `eepro.com/results/*` with
-   `collapse=digest`; store the rows as `backfill` watches pointing at
-   the archived URL with the `id_` flag.
-2. Fetch from the archive at the Wayback host's own politeness setting.
-3. A slug goes to the origin, newest first, lowest priority, when the
-   archive lacks a listed file or the archived copy does not parse into
-   results (captured before the round was posted).
+1. One paged CDX query per capture year of `eepro.com/results/*`
+   (`design/backfill.md`); rows land in `archive_captures` and become
+   `backfill` watches.
+2. Fetch from the archive at the Wayback host's own settings, event
+   pages before round pages.
+3. A slug goes to the origin, newest first, lowest priority, one event
+   per cycle, when the archive lacks a listed file or the archived copy
+   does not parse into results.
 
-Year indexes (`/results/<year>/`) are fetched from the origin once per
-year of history to learn slugs the archive missed.
+Year indexes do not exist (404, 2026-09-11). The origin still serves
+old slug directories (`/results/liberty2018/` is a 2.2 KB index page),
+but `event.php` lists only 2024 on, so slugs before 2018 are learned
+from the operator, never by probing.
 
 ## 11. Load estimate
 
@@ -198,6 +203,7 @@ us, though a GitHub issue is welcome.
   intervals.
 - Ask whether an `index.json` or a `Last-Modified` on `event.php` is a
   cheap favor; either removes the last unconditional fetch.
-- Whether `/results/<year>/` still exists.
+- Ask the operator for the list of slugs older than 2018 that the
+  origin still serves, or for the API, before any pre-2018 fetch.
 - Measure a live event weekend; the accepted historical run does not establish
   live request volume or conditional-response rates.

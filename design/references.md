@@ -12,3 +12,8 @@
 - WSDC Registry Event Rules 2026, worldsdc.com FAQ, scoring-systems list.
 - Prior art: `smwa/wsdc_points_server`, `HarianthK/Registry-points`,
   `Lucroth/wsdc-stats`, `tomtseng/wsdc-points`, `andreaskasper/scoringCE`.
+- Registry analyses that show what consumers ask and how the registry's
+  JSON has drifted since 2018: Connie Wang's WSDC Project parts 1 and 2
+  (2018), `dgarwin/westiestats` (2020), Tom Tseng's `wsdc-points` and
+  "How long it takes to move up divisions" (2024 to 2025). Read in
+  `research/prior-art-registry-analyses.md`.

@@ -64,8 +64,10 @@ mentions it. `rounds_danced`, `best_round`, `entry_count`, and
 an event in the same way. Tables need no per-page owner columns.
 
 For conflicting facts, a round page wins over an event page, which
-wins over an index. Among equally specific pages, later `fetched_at`
-wins; snapshot id breaks timestamp ties deterministically. Every
+wins over an index. Among equally specific pages, later `observed_at`
+wins (the capture time for an archived body, the fetch time otherwise;
+see [backfill](backfill.md#data-model-changes)); snapshot id breaks
+timestamp ties deterministically. Every
 conflict names both snapshots. Canonical provenance names the winning
 snapshot. Recomputing unchanged evidence does not advance row timestamps
 or revision counters.

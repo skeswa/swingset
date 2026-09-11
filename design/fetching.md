@@ -120,14 +120,15 @@ full fetch of a few KB. The schedule (5.2) keeps those rare.
   `node`. An extractor upgrade deliberately re-evaluates it.
 - The Wayback Machine is a transport in this layer. A backfill watch
   carries an archive URL (`web.archive.org/web/<ts>id_/<url>`); the
-  body is archived under the original URL with `via = wayback` and the
-  capture timestamp. `web.archive.org` is a host in `hosts.toml` with
-  its own gate (10 s to start). A capture counts only if it parses
-  into results: a page archived before results were posted, or with
-  fewer rounds than the event page lists, is a gap. Origin backfill
-  happens for every URL whose archived captures are missing or
-  incomplete, taking the latest capture that parses, and prefers
-  captures made at least 30 days after the event's end date.
+  body is archived under the original URL with `via = wayback`,
+  `captured_at` from the `memento-datetime` header, and the origin's
+  `x-archive-orig-*` headers as validators. `web.archive.org` is a host
+  in `hosts.toml` with its own gate (10 s, 200 requests a day to start,
+  120 s CDX timeout). Capture selection, CDX indexing, the `sealed`
+  state, and origin fallback are owned by [backfill](backfill.md).
+  Conflict resolution and observation ownership compare `observed_at`
+  (capture time for archive bodies, fetch time otherwise), never our
+  fetch time alone.
 - WARC was considered. A plain content-addressed store plus SQLite is
   simpler and deduplicates better. A WARC export command can be added
   later without changing anything else.

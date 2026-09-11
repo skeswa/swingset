@@ -1,0 +1,11 @@
+{
+  "date": "2026-09-11",
+  "scope": "Offline documentation integrity; not source availability or historical completeness",
+  "source_keys": 45,
+  "source_keys_cited_in_narrative": 43,
+  "exact_archive_links": 29,
+  "local_links_checked": 14,
+  "cached_source_hashes_checked": 54,
+  "markdown_tables_consistent": true,
+  "errors": []
+}

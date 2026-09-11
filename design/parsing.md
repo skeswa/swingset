@@ -31,7 +31,9 @@ work; neither pure function performs I/O.
 The newest successfully parsed snapshot for a watch owns its current
 observations. Re-parsing that snapshot replaces the set; successfully
 parsing an older snapshot cannot replace a newer current set. Compare
-`(fetched_at, snapshot_id)` for a deterministic order. Historical reparse
+`(observed_at, snapshot_id)` for a deterministic order, where
+`observed_at` is the capture time of an archived body and the fetch
+time otherwise. Historical reparse
 updates its diagnostic and version records even when it does not own the
 current observations. Failures preserve the watch's last-good set.
 

@@ -1,0 +1,37 @@
+Server: nginx
+Date: Fri, 11 Sep 2026 16:32:06 GMT
+Content-Type: text/html; charset=UTF-8
+Transfer-Encoding: chunked
+Connection: close
+x-archive-orig-date: Fri, 09 Sep 2016 17:32:15 GMT
+x-archive-orig-server: Apache/2.4.7 (Ubuntu)
+x-archive-orig-x-powered-by: PHP/5.5.9-1ubuntu4.16
+x-archive-orig-cache-control: private, must-revalidate
+x-archive-orig-pragma: no-cache
+x-archive-orig-expires: -1
+x-archive-orig-set-cookie: srs_session=742de87d0324face712dcf3ca530bea319736a2a%2ByKIYqgxEuwvdZBrA3seFWp2Nug3ago4xeYSm847U; expires=Fri, 09-Sep-2016 18:32:15 GMT; Max-Age=3600; path=/; httponly
+x-archive-orig-vary: Accept-Encoding
+x-archive-orig-connection: close
+cache-control: max-age=1800
+memento-datetime: Fri, 09 Sep 2016 17:10:11 GMT
+link: <http://steprightsolutions.com/events/asianopen2013/round/508>; rel="original", <https://web.archive.org/web/timemap/link/http://steprightsolutions.com/events/asianopen2013/round/508>; rel="timemap"; type="application/link-format", <https://web.archive.org/web/http://steprightsolutions.com/events/asianopen2013/round/508>; rel="timegate", <https://web.archive.org/web/20160909171011/http://steprightsolutions.com/events/asianopen2013/round/508>; rel="first memento"; datetime="Fri, 09 Sep 2016 17:10:11 GMT", <https://web.archive.org/web/20160909171011/http://steprightsolutions.com/events/asianopen2013/round/508>; rel="memento"; datetime="Fri, 09 Sep 2016 17:10:11 GMT", <https://web.archive.org/web/20160909171011/http://steprightsolutions.com/events/asianopen2013/round/508>; rel="last memento"; datetime="Fri, 09 Sep 2016 17:10:11 GMT"
+content-security-policy: default-src 'self' 'unsafe-eval' 'unsafe-inline' data: blob: archive.org web.archive.org web-static.archive.org wayback-api.archive.org athena.archive.org analytics.archive.org pragma.archivelab.org wwwb-events.archive.org
+x-archive-src: WIDE-20160909161647-crawl809/WIDE-20160909165655-02656.warc.gz
+server-timing: captures_list;dur=0.371776, exclusion.robots;dur=0.044101, exclusion.robots.policy;dur=0.036946, esindex;dur=0.005679, cdx.remote;dur=7.272120, LoadShardBlock;dur=110.654968, PetaboxLoader3.datanode;dur=89.934922, PetaboxLoader3.resolve;dur=73.225454, load_resource;dur=106.323374
+x-app-server: wwwb-app219-dc8
+x-ts: 200
+x-tr: 238
+server-timing: TR;dur=0,Tw;dur=0,Tc;dur=1
+set-cookie: wb-p-SERVER=wwwb-app219; path=/
+cache-control: private
+X-location: All
+X-AS: 26223
+X-RL: 0
+X-NA: 0
+X-Page-Cache: MISS
+Server-Timing: MISS
+X-NID: SILVERSTAR-TELEPHONE
+Referrer-Policy: no-referrer-when-downgrade
+Permissions-Policy: interest-cohort=()
+X-sd: 0
+Content-Encoding: gzip

@@ -42,6 +42,7 @@ on Earth at the cost of a few extra cheap conditional GETs.
 These are defaults. A playbook may override intervals for its host in
 its section 6 (danceconvention.net does, because each poll is 1.67 MB).
 | `archived` | after cooling | 90 days | Only to catch late corrections and link rot. |
+| `sealed` | event ended more than two years ago, or the origin is dead, after a successful parse | none | Never refetched; reparse from the archive still works. See [backfill](backfill.md#scheduling). |
 | `gone` | 3 consecutive 404s | none | Kept for provenance. |
 | `paused` | host or source paused | resumes at `paused_until` | Overrides the others. |
 
@@ -59,10 +60,14 @@ after each event. These policies support multiple overlapping events.
 
 Backfill watches (historical events found in platform archives or the
 Wayback CDX) have state `backfill`. When `archive_url` is set the fetch
-goes to the Wayback Machine, not the origin. They are fetched only when no other watch is due in the
-current run, newest event first, one page at a time within the normal
-politeness rules. Once fetched they behave like `archived`. Backfill is
-expected to take weeks and that is fine.
+goes to the Wayback Machine, not the origin. They are fetched only when
+no other watch is due in the current run, newest event first, one page
+at a time within the normal politeness rules. A watch whose event ended
+more than two years ago, or whose origin is dead, becomes `sealed` after
+a successful parse and is never fetched again; younger ones behave like
+`archived`. Order, capture selection, and origin fallback are owned by
+[backfill](backfill.md). Backfill is expected to take weeks and that is
+fine.
 
 ## Discovery
 
@@ -71,9 +76,11 @@ expected to take weeks and that is fine.
 1. Parse the WSDC calendar into observations and project `events` rows
    (series slug + month).
 2. Parse each platform's index into observations and project `source_events` rows with the
-   platform's own id, name, and dates. Archive indexes (EEPro year
-   pages, scoring.dance sitemap, DCN `eventsarchive:loadyear`) are read
-   once per year of history and produce `backfill` watches.
+   platform's own id, name, and dates. Historical indexes (archived
+   calendar captures, archived platform indexes, the Step Right events
+   index, DCN `eventsarchive:loadyear`, registry occurrences) are read
+   as [backfill](backfill.md#event-enumeration-for-history) describes
+   and produce `backfill` watches and registry-seeded events.
 3. Project `source_event_map` by matching source observations to calendar
    events by normalized name and date overlap, then applying overrides.
    Unmatched source events still get an `events` row with
