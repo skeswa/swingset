@@ -38,11 +38,12 @@ uv run swingset cycle --dry-run --state ./tmp/state
 ```
 
 Before committing hand edits, format them. The formatter toolchain is pinned
-in `mise.toml`; `mise install` fetches it once per machine.
+in `mise.toml`; `mise install` fetches it once per machine. Neither command
+needs `nix develop`.
 
 ```sh
 mise install
-nix develop --command mise run fmt
+mise run fmt
 ```
 
 `config/sources.toml` enables the calendar, registry, EEPro, scoring.dance, and

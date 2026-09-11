@@ -47,10 +47,6 @@
           default = import ./nix/package.nix { inherit pkgs source; };
         }
       );
-      # `nix fmt` formats every .nix file in the repo (nixfmt, RFC 166 style,
-      # driven repo-wide by treefmt). `mise run fmt` calls this along with the
-      # formatters for every other file type — see mise.toml.
-      formatter = eachSystem (system: (forSystem system).nixfmt-tree);
       nixosModules.default = import ./nix/module.nix;
       nixosConfigurations.orb = nixpkgs.lib.nixosSystem {
         system = "aarch64-linux";

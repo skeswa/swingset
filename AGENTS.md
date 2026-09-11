@@ -64,12 +64,13 @@ separate revision from what was pushed.
 
 ## Formatting
 
-`mise run fmt` (from inside `nix develop`, so `uv` and `nix` are on the
-path) is the only formatting entry point: `nix fmt` (nixfmt, RFC 166) for
+`mise run fmt` is the only formatting entry point: nixfmt (RFC 166) for
 `.nix`, taplo for `.toml`, shfmt for `.sh`, `ruff format` for `.py`, oxfmt
-for `.json`, `.md`, and `.yml`. Run it before committing hand edits.
-Formatter versions are pinned exactly in `mise.toml`; `mise install`
-fetches them once per machine. Bump them deliberately and re-run fmt.
+for `.json`, `.md`, and `.yml`. It needs only mise, not `nix develop` or
+the project venv. Run it before committing hand edits. Formatter versions
+are pinned exactly in `mise.toml`; `mise install` fetches them once per
+machine. Bump them deliberately and re-run fmt, and keep the ruff pin in
+step with the one in `uv.lock`.
 
 Captured and machine-written files are never reformatted: `flake.lock`,
 `uv.lock`, every `fixtures/` directory, `research/verification/`, and
