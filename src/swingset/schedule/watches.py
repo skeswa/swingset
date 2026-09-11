@@ -9,6 +9,7 @@ from urllib.parse import urlsplit
 
 from swingset.config import Config
 from swingset.fetch.classify import Outcome
+from swingset.schedule.confirmation import pending_confirmation_events
 from swingset.schedule.policy import policy
 from swingset.sources.base import WatchSpec
 
@@ -93,13 +94,8 @@ def refresh_policy(
     interval = result.interval
     state = result.state
     if row["source"] == "wsdc_registry" and str(row["notes"] or "").startswith("confirmation:"):
-        event_id = str(row["notes"]).split(":", 1)[1]
-        confirmation_event = conn.execute(
-            "SELECT end_date FROM events WHERE event_id=?", (event_id,)
-        ).fetchone()
-        if confirmation_event and now.date() <= date.fromisoformat(
-            str(confirmation_event[0])
-        ) + timedelta(days=30):
+        wsdc_id = int(str(row["source_ref"]).removeprefix("wsdc:"))
+        if pending_confirmation_events(conn, wsdc_id, now):
             state, interval = "registry", 86400
         else:
             state, interval = "archived", 365 * 86400

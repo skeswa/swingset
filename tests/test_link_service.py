@@ -2,9 +2,19 @@ from datetime import UTC, datetime
 from types import MappingProxyType
 from unittest.mock import patch
 
+import pytest
+
 from swingset.clock import FakeClock
 from swingset.link import link_event
-from swingset.link.service import _update_registry_points
+from swingset.link.service import _seed_confirmation_watches, _update_registry_points
+from swingset.model.ids import observation_id
+from swingset.model.observations import encode_payload
+from swingset.project.process import process_unit
+from swingset.schedule.watches import upsert_watch
+from swingset.sources.records import DancerLookup
+from swingset.sources.records import RegistryPlacement as RawPlacement
+from swingset.sources.wsdc_registry import DancerPage
+from swingset.sources.wsdc_registry.adapter import SOURCE as REGISTRY_SOURCE
 from swingset.state.db import open_database
 from swingset.state.work import WorkUnit, enqueue
 
@@ -106,6 +116,109 @@ def test_registry_addition_reaches_previously_unmatched_entry(tmp_path) -> None:
         assert tuple(row) == (3, "probable")
 
 
+@pytest.mark.parametrize(
+    "now", [datetime(2026, 1, 12, tzinfo=UTC), datetime(2026, 2, 12, tzinfo=UTC)]
+)
+def test_later_registry_finalist_confirms_unmatched_entry_without_inventing_points(
+    tmp_path,
+    now,
+) -> None:
+    with open_database(tmp_path, lock=False) as db:
+        seed(db.connection)
+        db.connection.execute(
+            "INSERT INTO rounds(round_id,contest_id,round_type,round_index,name_raw,scoring_method,callback_legend,judge_count,entry_count,source_round_ref,source,snapshot_id,parser_version,first_seen_at,last_seen_at,run_id) VALUES ('c1/final','c1','final',1,'Final','relative_placement','{}',5,6,'final','test','snap','1','t','t','run')"
+        )
+        entry(db.connection, "event/c1/F-7", "c1", "7", "New Person")
+        db.connection.execute(
+            "UPDATE entries SET role='follower',rounds_danced='[\"final\"]' WHERE entry_id='event/c1/F-7'"
+        )
+        db.connection.execute(
+            "INSERT INTO placements(placement_id,round_id,contest_id,event_id,place,follower_entry_id,tally,source,snapshot_id,parser_version,first_seen_at,last_seen_at,run_id) VALUES ('place','c1/final','c1','event',6,'event/c1/F-7','','test','snap','1','t','t','run')"
+        )
+        run(db, Bundle())
+        assert tuple(
+            db.connection.execute(
+                "SELECT wsdc_id,status FROM identity_links WHERE subject_id='event/c1/F-7'"
+            ).fetchone()
+        ) == (None, "unmatched")
+
+        spec = REGISTRY_SOURCE.watch(3)
+        upsert_watch(db.connection, spec, now)
+        db.connection.execute(
+            "INSERT INTO runs(run_id,started_at,dry_run) VALUES ('registry-run',?,1)",
+            (now.isoformat(),),
+        )
+        db.connection.execute(
+            "INSERT INTO snapshots(snapshot_id,watch_id,method,url,fetched_at,http_status,body_bytes,content_changed,run_id,classification) VALUES ('registry-snap',?,'POST',?,?,200,1,1,'registry-run','Ok')",
+            (spec.watch_id, spec.url, now.isoformat()),
+        )
+        payload = DancerLookup(
+            "dancer_lookup",
+            "found",
+            3,
+            3,
+            first_name="New",
+            last_name="Person",
+            primary_role_raw="F",
+            follower_required_raw="NOV",
+            follower_allowed_raw="ADV",
+            follower_highest_raw="NOV",
+            recent_year=2026,
+            placements=(
+                RawPlacement(
+                    "follower",
+                    "NOV",
+                    "1",
+                    "Event",
+                    "January 2026",
+                    "F",
+                    1,
+                    "West Coast Swing",
+                ),
+            ),
+        )
+        page = DancerPage()
+        db.connection.execute(
+            "INSERT INTO observations VALUES (?,?,?,?,?,?,?,?,?,?)",
+            (
+                observation_id(spec.watch_id, "registry-snap", payload.kind, 0),
+                spec.watch_id,
+                "registry-snap",
+                payload.kind,
+                "dancer",
+                "3",
+                0,
+                str(page.EXTRACT_VERSION),
+                str(page.PARSER_VERSION),
+                encode_payload(payload),
+            ),
+        )
+        with db.transaction() as conn:
+            enqueue(conn, (WorkUnit("project", "dancer", "3"),), enqueued_at=now.isoformat())
+        assert process_unit(
+            db,
+            WorkUnit("project", "dancer", "3"),
+            Bundle(),
+            FakeClock(now),
+            "registry-run",
+        )
+        assert db.connection.execute(
+            "SELECT 1 FROM pending_work WHERE stage='link' AND unit_kind='event' AND unit_id='event'"
+        ).fetchone()
+
+        link_event(db, "event", Bundle(), FakeClock(now), "run")
+        assert tuple(
+            db.connection.execute(
+                "SELECT wsdc_id,status,method FROM identity_links WHERE subject_id='event/c1/F-7'"
+            ).fetchone()
+        ) == (3, "confirmed", "registry_placement")
+        assert tuple(
+            db.connection.execute(
+                "SELECT follower_wsdc_id,registry_points_follower,registry_confirmed FROM placements WHERE placement_id='place'"
+            ).fetchone()
+        ) == (3, None, 0)
+
+
 def test_source_id_can_link_same_dancer_across_contests(tmp_path) -> None:
     with open_database(tmp_path, lock=False) as db:
         seed(db.connection)
@@ -115,6 +228,58 @@ def test_source_id_can_link_same_dancer_across_contests(tmp_path) -> None:
             run(db, Bundle())
         ids = [row[0] for row in db.connection.execute("SELECT wsdc_id FROM identity_links")]
         assert ids.count(1) == 2
+
+
+def test_registry_finalist_claim_requires_one_exact_name(tmp_path) -> None:
+    with open_database(tmp_path, lock=False) as db:
+        seed(db.connection)
+        entry(db.connection, "event/c1/L-7", "c1", "7")
+        db.connection.execute(
+            "INSERT INTO rounds(round_id,contest_id,round_type,round_index,name_raw,scoring_method,callback_legend,judge_count,entry_count,source_round_ref,source,snapshot_id,parser_version,first_seen_at,last_seen_at,run_id) VALUES ('c1/final','c1','final',1,'Final','relative_placement','{}',5,6,'final','test','snap','1','t','t','run')"
+        )
+        db.connection.execute(
+            "INSERT INTO placements(placement_id,round_id,contest_id,event_id,place,leader_entry_id,tally,source,snapshot_id,parser_version,first_seen_at,last_seen_at,run_id) VALUES ('place','c1/final','c1','event',6,'event/c1/L-7','','test','snap','1','t','t','run')"
+        )
+        for wsdc_id in (1, 2):
+            db.connection.execute(
+                "INSERT INTO registry_placements(wsdc_id,role,dance_style,division,series_id,series_name_raw,event_month,event_id,result,points,source,snapshot_id,parser_version,first_seen_at,last_seen_at,run_id) VALUES (?,'leader','wcs','novice','wsdc-1','Event','2026-01','event','F',1,'test','snap','1','t','t','run')",
+                (wsdc_id,),
+            )
+        run(db, Bundle())
+        row = db.connection.execute(
+            "SELECT method,status FROM identity_links WHERE subject_id='event/c1/L-7'"
+        ).fetchone()
+        assert row[0] != "registry_placement"
+        assert row[1] != "confirmed"
+
+
+def test_event_relink_preserves_daily_confirmation_cadence(tmp_path) -> None:
+    with open_database(tmp_path, lock=False) as db:
+        seed(db.connection)
+        entry(db.connection, "event/c1/L-7", "c1", "7")
+        db.connection.execute("UPDATE entries SET wsdc_id=1 WHERE entry_id='event/c1/L-7'")
+        db.connection.execute(
+            "INSERT INTO rounds(round_id,contest_id,round_type,round_index,name_raw,scoring_method,callback_legend,judge_count,entry_count,source_round_ref,source,snapshot_id,parser_version,first_seen_at,last_seen_at,run_id) VALUES ('c1/final','c1','final',1,'Final','relative_placement','{}',5,6,'final','test','snap','1','t','t','run')"
+        )
+        db.connection.execute(
+            "INSERT INTO placements(placement_id,round_id,contest_id,event_id,place,leader_entry_id,tally,source,snapshot_id,parser_version,first_seen_at,last_seen_at,run_id) VALUES ('place','c1/final','c1','event',6,'event/c1/L-7','','test','snap','1','t','t','run')"
+        )
+        first = datetime(2026, 1, 5, tzinfo=UTC)
+        _seed_confirmation_watches(db.connection, "event", first)
+        watch_id = REGISTRY_SOURCE.watch(1).watch_id
+        db.connection.execute(
+            "UPDATE watches SET last_checked_at='2026-01-05T06:00:00+00:00',next_check_at='2026-01-06T06:00:00+00:00' WHERE watch_id=?",
+            (watch_id,),
+        )
+
+        _seed_confirmation_watches(db.connection, "event", datetime(2026, 1, 5, 12, tzinfo=UTC))
+
+        assert (
+            db.connection.execute(
+                "SELECT next_check_at FROM watches WHERE watch_id=?", (watch_id,)
+            ).fetchone()[0]
+            == "2026-01-06T06:00:00+00:00"
+        )
 
 
 def test_registry_points_use_each_roles_prelim_field_and_dance_style(tmp_path) -> None:

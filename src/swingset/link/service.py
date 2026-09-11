@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING
 
 from swingset.clock import Clock
 from swingset.normalize.names import normalize_name
+from swingset.schedule.confirmation import pending_confirmation_events
 from swingset.schedule.watches import upsert_watch
 from swingset.sources.wsdc_registry.adapter import SOURCE as REGISTRY_SOURCE
 from swingset.state.db import Database
@@ -25,7 +26,7 @@ from .score import Weights, score_candidate
 if TYPE_CHECKING:
     from swingset.state.inputs import InputBundle
 
-LINKER_VERSION = "5"
+LINKER_VERSION = "6"
 
 
 def _source_ids(database: Database, event_id: str) -> dict[str, int]:
@@ -201,14 +202,30 @@ def link_event(
     weights = _weights(bundle)
     overrides = {row["entry_id"]: row for row in bundle.csv("identity_overrides.csv")}
     registry_confirmations: dict[str, set[int]] = {}
+    dancer_names = {d.wsdc_id: normalize_name(d.name_raw).value for d in dancers}
     for subject in subjects:
         if subject.subject_kind != "entry" or subject.division is None:
             continue
         rows = conn.execute(
-            "SELECT rp.wsdc_id FROM registry_placements rp JOIN contests c ON c.contest_id=? WHERE rp.event_id=? AND rp.role=? AND rp.division=? AND rp.dance_style=c.dance_style",
-            (subject.contest_id, event_id, subject.role, subject.division),
+            """SELECT DISTINCT rp.wsdc_id
+            FROM placements p
+            JOIN contests c USING(contest_id)
+            JOIN registry_placements rp
+              ON rp.event_id=p.event_id
+             AND rp.role=?
+             AND rp.division=c.division
+             AND rp.dance_style=c.dance_style
+             AND rp.result IN (CAST(p.place AS TEXT),'F')
+            WHERE p.event_id=?
+              AND c.wsdc_points_eligible=1
+              AND ? IN (p.leader_entry_id,p.follower_entry_id,p.couple_entry_id)""",
+            (subject.role, event_id, subject.subject_id),
         )
-        registry_confirmations[subject.subject_id] = {int(row[0]) for row in rows}
+        registry_confirmations[subject.subject_id] = {
+            int(row[0])
+            for row in rows
+            if dancer_names.get(int(row[0])) == normalize_name(subject.name_raw).value
+        }
     scored: dict[str, list[tuple[Candidate, float]]] = {}
     surname_counts = Counter(
         d.name_raw.casefold().split()[-1] for d in dancers if d.name_raw.split()
@@ -304,13 +321,19 @@ def link_event(
                     "confirmed",
                     1.0,
                 )
-            elif confirmed := [
-                candidate.dancer.wsdc_id
-                for candidate, _score in ranked
-                if candidate.dancer.wsdc_id in registry_confirmations.get(subject.subject_id, set())
-            ]:
+            elif (
+                len(
+                    confirmed := {
+                        candidate.dancer.wsdc_id
+                        for candidate, _score in ranked
+                        if candidate.dancer.wsdc_id
+                        in registry_confirmations.get(subject.subject_id, set())
+                    }
+                )
+                == 1
+            ):
                 wsdc_id, method, status, confidence = (
-                    confirmed[0],
+                    next(iter(confirmed)),
                     "registry_placement",
                     "confirmed",
                     1.0,
@@ -440,13 +463,28 @@ def _seed_confirmation_watches(db: sqlite3.Connection, event_id: str, now: datet
     if event is None or date.fromisoformat(str(event[0])) + timedelta(days=30) < now.date():
         return
     ids = db.execute(
-        "SELECT DISTINCT e.wsdc_id FROM placements p JOIN entries e ON e.entry_id IN (p.leader_entry_id,p.follower_entry_id,p.couple_entry_id) WHERE p.event_id=? AND e.wsdc_id IS NOT NULL",
+        """SELECT DISTINCT e.wsdc_id FROM placements p
+        JOIN entries e ON e.entry_id IN
+          (p.leader_entry_id,p.follower_entry_id,p.couple_entry_id)
+        WHERE p.event_id=? AND e.wsdc_id IS NOT NULL""",
         (event_id,),
     )
     for row in ids:
-        spec = REGISTRY_SOURCE.watch(int(row[0]))
+        wsdc_id = int(row[0])
+        pending_events = pending_confirmation_events(db, wsdc_id, now)
+        if not pending_events:
+            continue
+        spec = REGISTRY_SOURCE.watch(wsdc_id)
         upsert_watch(db, spec, now)
+        watch = db.execute(
+            "SELECT last_checked_at,next_check_at FROM watches WHERE watch_id=?",
+            (spec.watch_id,),
+        ).fetchone()
+        due = str(watch[1] or now.isoformat())
+        if watch[0] is not None:
+            last_checked = datetime.fromisoformat(str(watch[0]).replace("Z", "+00:00"))
+            due = (last_checked + timedelta(days=1)).isoformat()
         db.execute(
             "UPDATE watches SET notes=?,priority=5,next_check_at=? WHERE watch_id=?",
-            (f"confirmation:{event_id}", now.isoformat(), spec.watch_id),
+            (f"confirmation:{pending_events[0]}", due, spec.watch_id),
         )
