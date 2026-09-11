@@ -47,8 +47,10 @@ Verified facts:
 - There is no bulk export, no event endpoint, no "recent results" feed.
   Every view of the registry other than one dancer must be rebuilt by
   reading every dancer.
-- Results reach the registry 1 to 7 days after an event. Event directors
-  must submit within 3 days.
+- Registry numbers are issued year-round. Newcomer and Novice finalists
+  earning their first point can appear in event results before they have a
+  number. The owner reports that registry records commonly appear about a
+  week later; this is an operating expectation, not a deadline.
 - Duplicate numbers happen and are merged by hand by WSDC staff. Name
   changes are also by hand.
 
@@ -60,11 +62,17 @@ How we use it:
   sweep, diff the two: every id in the dump must be in our sweep, and
   names and placement counts must agree. Disagreements go to the review
   queue. The dump is never written into the dataset.
-- **New dancers:** weekly, probe ids above the highest known id until 20
-  consecutive misses.
-- **Post-event confirmation:** after an event ends, refresh each finalist
-  we identified, once per day, until the event appears in their record or
-  30 days pass.
+- **New dancers:** after bootstrap, probe new ids daily in bounded batches
+  while an unlinked, points-eligible individual Newcomer or Novice finalist
+  from the last 30 days exists. Probe weekly otherwise, throughout the year.
+  Start above the highest known ID; stop each probe after 20 consecutive
+  verified misses. Each probe requires responses fetched after it started;
+  old misses cannot stand in for a fresh lookup. A found ID resets the miss
+  count. Missing IDs are retried in later probes, not retired permanently.
+- **Post-event confirmation:** while any recent eligible event result is
+  still absent, refresh each already-known finalist once per day for at most
+  30 days after that event. Multiple events can keep this schedule active;
+  once the result is posted, that event no longer causes intensive refresh.
 - **Trickle refresh:** refresh dancers not refreshed in 365 days, at most
   100 per day. This catches merges and name changes without full sweeps.
 - We never call autocomplete or name search in the pipeline. Name lookup
@@ -224,7 +232,8 @@ Canada. Verified 2026-09-08.
   for at least 30 days, and require corrected results be posted when
   errors are found. So a results page can change for 30 days after the
   event. No platform publishes a changelog.
-- Registry postings land 1 to 7 days after the event.
+- The owner reports that registry postings commonly land about a week after
+  the event. This is an expectation, not a deadline.
 
 ## URL patterns
 

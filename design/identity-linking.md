@@ -52,7 +52,7 @@ Signals:
 | Recency | dancer has registry activity within 3 years of the event |
 | Geography | DCN city/country vs. the dancer's recent event locations; weak |
 | Bib reuse | the same bib at the same event in another contest already linked to a dancer; strong |
-| Registry confirmation | after the event, the registry shows this dancer placed in this contest's division at this series in this month; decisive |
+| Registry confirmation | one exact normalized-name identity matches the same event, role, division, style, and numeric place or finalist result `F`; decisive |
 | Source-provided id | scoring.dance `data-wsdc`; decisive |
 
 Per-event constraints are applied after scoring as an assignment
@@ -85,8 +85,9 @@ candidate with every signal. Nothing the linker computed is discarded.
 Links change over time by design:
 
 1. Event weekend: name-based links (`probable`, `possible`).
-2. One to seven days later: registry posts results. Finalists get
-   `confirmed` via `registry_placement`. A `probable` link that the
+2. When the registry posts results, about a week later according to the
+   owner, finalists can get `confirmed` via `registry_placement`. This timing is an expectation,
+   not a deadline. A `probable` link that the
    registry contradicts is superseded and the entry is re-scored.
 3. Any time: a manual override row in `overrides/identity_overrides.csv`
    (`entry_id, wsdc_id or NONE, reason, author, date`) wins over
@@ -108,9 +109,17 @@ same-name confusion.
 ## Newcomers and first points
 
 A dancer without a WSDC number has no registry row until they earn a
-point. Their entries stay `unmatched`. When they later get a number, the
-next linker run finds the new registry row (weekly probe, [sources](sources.md#wsdc-registry-pointsworldsdccom)),
-and `bib_reuse` plus `registry_placement` confirm the earlier entries.
+point. Their entries stay `unmatched`. New numbers are issued throughout the
+year. Recent unlinked, points-eligible individual Newcomer or Novice finalists
+cause bounded daily probes for up to 30 days; probes continue weekly otherwise.
+When a later lookup projects the new registry row, the next linker run
+automatically revisits retained older results.
+
+Registry confirmation requires one exact normalized-name identity with the
+same event, role, division, and style, plus either the actual numeric place or
+registry result `F` for an entry in the recorded finals. `F` can confirm the
+identity but does not establish a numeric rank or attach points to that exact
+placement. Bib reuse remains a separate linking signal.
 This is expected and is the main reason the dataset is "eventually
 correct".
 

@@ -105,8 +105,9 @@ over a week; Wayback rate behavior at 10 s gaps.
 ### Phase 1: registry mirror (M1)
 
 Unchanged from the design: bootstrap sweep at a 2 s gap, dump
-cross-check, weekly probe, trickle refresh. Runs inside cycles at lowest
-priority.
+cross-check, bounded daily new-id probes while recent eligible unlinked
+Newcomer or Novice finalists exist, weekly probes year-round otherwise,
+and trickle refresh. Runs inside cycles at lowest priority.
 
 ### Phase 2: EEPro (M2)
 
@@ -136,8 +137,10 @@ stayed within the playbook's load estimate.
   confirmation loop.
 
 Round refreshes are the first to wait when the host budget runs short.
-Done when `confirmed` links appear within 7 days of an event and the nonce check (raw hash vs fingerprint) has been
-answered from a month of snapshots.
+Done when matching registry evidence automatically produces `confirmed`
+links after publication and the nonce check (raw hash vs fingerprint) has
+been answered from a month of snapshots. The owner's roughly one-week
+posting estimate is an expectation, not an acceptance deadline.
 
 ### Phase 3b: World Dance Registry (new)
 

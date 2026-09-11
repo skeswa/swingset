@@ -6,9 +6,9 @@ the last one.
 | # | Deliverable | Done when |
 |---|---|---|
 | M0 | Skeleton: flake, NixOS module, CLI, config, fetch layer with politeness and archive, SQLite state, timers, backup and restore | a cycle runs every 15 min on the box; a restore on a clean VM works |
-| M1 | Registry mirror: bootstrap sweep with dump cross-check, weekly probe, trickle refresh, `dancers` and `registry_placements` published | dataset viewer shows both tables; card written |
+| M1 | Registry mirror: bootstrap sweep with dump cross-check, adaptive daily/weekly new-id probes, trickle refresh, `dancers` and `registry_placements` published | dataset viewer shows both tables; card written |
 | M2 | EEPro: discovery, round parser, canonical model, `events` through `placements` published, name-only linking, `link_candidates` and `review_queue` | a full past event is queryable end to end |
-| M3 | scoring.dance: parser with WSDC ids; hand-set linker weights; registry confirmation loop; `points_matches_expected` | `confirmed` links appear automatically within 7 days of an event |
+| M3 | scoring.dance: parser with WSDC ids; hand-set linker weights; registry confirmation loop; `points_matches_expected` | matching registry evidence automatically produces `confirmed` links after publication |
 | M3b | World Dance Registry: `routeInfo.json` parsers, discovery by overrides | the 14 known events parse; a live weekend shows almost all polls as 304s |
 | M4 | DCN: node-evaluated payload and PDF parsers, bib backfill from PDFs, JSON endpoint hunt first | DCN events reach parity with EEPro within the 300 MB/day byte budget |
 | M5 | Heats where public, `changelog` documented with examples, suppression path tested end to end, issue templates live | every data kind listed in [overview](overview.md#purpose) is represented |

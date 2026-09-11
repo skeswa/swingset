@@ -25,8 +25,10 @@ POST https://points.worldsdc.com/lookup/find          num=<wsdc_id> | q=<name>  
 Ids are dense integers from 1 to about 29,000. Bootstrap continues through the
 highest ID in the archived comparison dump or any locally verified found
 lookup, whichever is greater. Only 20 consecutive verified misses above that
-bound complete bootstrap. Weekly probes use the same 20-miss rule above the
-highest projected dancer after bootstrap.
+bound complete bootstrap. After bootstrap, bounded probes above the highest
+known id run daily when a recent unlinked, points-eligible individual Newcomer
+or Novice finalist could be waiting for a first number, and weekly otherwise.
+The weekly schedule continues year-round.
 
 ## 5. Change detection
 
@@ -49,10 +51,15 @@ daily_request_budget = 1500        # 20000 during the one-time bootstrap sweep
    dancer ID is cached with its archive hash, so each lookup does not reread the
    dump. Locally verified found observations extend the bound even when dancer
    projection is deferred.
-2. Post-event confirmation: each finalist we identified is refreshed
-   once a day until the event appears in their record or 30 days pass.
-3. Trickle: dancers not refreshed in 365 days, at most 100 a day.
-4. Never call autocomplete or name search from the pipeline.
+2. New-id discovery: use bounded daily probes while qualifying unlinked
+   first-point finalists from the last 30 days exist; use weekly probes
+   otherwise.
+3. Post-event confirmation: refresh already-known finalists daily while any
+   recent eligible event result is absent, for at most 30 days after each
+   event. Multiple events are tracked independently, and a posted result ends
+   that event's intensive refresh.
+4. Trickle: dancers not refreshed in 365 days, at most 100 a day.
+5. Never call autocomplete or name search from the pipeline.
 
 ## 8. Parsing
 
@@ -75,8 +82,16 @@ when parser or projector versions change.
 
 ## 9. Quirks
 
-Duplicate numbers are merged by hand by WSDC staff. Results land 1 to 7
-days after an event.
+Duplicate numbers are merged by hand by WSDC staff. Numbers are issued
+year-round, and Newcomer or Novice first-point finalists can initially lack
+one. The owner reports that records commonly appear about a week after the
+event; this is an expectation, not a deadline.
+
+An exact normalized unique name plus matching event, role, division, style,
+and actual numeric place can confirm an identity. Registry result `F` shows
+finalist status only. It does not establish a numeric place or points and needs
+confirmation before it can support a placement match. Newly projected dancers
+automatically cause retained older event entries to be linked again.
 
 A missing numeric id returns HTTP 404 with an HTML error document. This was
 verified on 2026-09-09 UTC with ids 1000000 and 1000001; both bodies had SHA-256

@@ -51,6 +51,11 @@ and archive, WSDC calendar) are always `live`-like with a fixed interval:
 calendar is once every 24 h.
 
 Registry dancer watches follow [sources](sources.md#wsdc-registry-pointsworldsdccom), not this table.
+After bootstrap, bounded new-id probes run daily when recent unlinked,
+points-eligible individual Newcomer or Novice finalists could be waiting for
+their first number, and weekly otherwise. Known finalists receive daily
+refreshes while a recent eligible event result is absent, for at most 30 days
+after each event. These policies support multiple overlapping events.
 
 Backfill watches (historical events found in platform archives or the
 Wayback CDX) have state `backfill`. When `archive_url` is set the fetch

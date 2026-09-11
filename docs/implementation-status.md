@@ -90,8 +90,10 @@ cold VM; source fetches retain their separate 30-second timeout.
   and compare the completed mirror with the archived 27,039-ID dump. The
   partial mirror is at cursor 3,297; no completion or full-coverage claim
   exists yet.
-- Observe automatic finalist confirmation within seven days and a month of
-  scoring.dance snapshots for nonce and Cloudflare stability.
+- Observe automatic finalist confirmation after matching registry evidence is
+  published and collect a month of scoring.dance snapshots for nonce and
+  Cloudflare stability. The owner's roughly one-week posting estimate is an
+  expectation, not an acceptance deadline.
 - Obtain the exact Jax Westie Fest 2026 scores UUID. Swingapalooza is verified;
   all 13 known event URLs have complete rounds and awards captures. Measure one
   live weekend's conditional-response rate.

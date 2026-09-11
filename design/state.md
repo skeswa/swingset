@@ -15,7 +15,7 @@ Internal tables:
 | `hosts` | `host` | `next_allowed_at`, `paused_until`, `pause_reason`, `pause_streak`, `robots_sha256`, `robots_fetched_at`, `robots_status` |
 | `operator_pauses` | `scope_kind`, `scope_id` | operator-requested all, host, or source pause; nullable expiry, reason; separate from automatic host pauses |
 | `host_budget` | `host`, `day` | `requests`, `bytes` |
-| `cursors` | `name` | `value`; `registry_sweep_next`, `registry_probe_max_id`, `registry_probe_misses` |
+| `cursors` | `name` | `value`; durable bootstrap and new-id probe positions and miss counts; `registry_probe_started_at`, `registry_probe_last_completed_at`, `registry_probe_next_at` preserve freshness and cadence across restarts |
 | `watches` | `watch_id` | every column in [scheduling](scheduling.md#watches) plus `fingerprint`, `extract_version`, `priority`, `created_by_snapshot_id`, `parent_watch_id`, `ever_ok`, current observation snapshot id |
 | `snapshots` | `snapshot_id` | every column in [fetching](fetching.md#archive) plus `via`, `headers_json`, `classification`, `extract_status`, `extract_sha256`, `parse_status`, `parsed_at`, `extract_version`, `parser_version` (versions last attempted) |
 | `observations` | `observation_id` | `watch_id`, `snapshot_id`, `kind`, `scope_kind` (`source_event`, `dancer`, `source_index`, `calendar`), `scope_id` (a source reference such as `eepro:asc2025`, never a canonical id), `seq`, `extract_version`, `parser_version`, `payload_json`; indexed by `watch_id` and by (`scope_kind`, `scope_id`) |
@@ -153,5 +153,8 @@ fetching cannot starve projection, linking, or publication.
   dangling links or candidates.
 - A new registry dancer re-links previously unmatched entries without
   relying on an existing candidate relationship.
+- A newly projected registry record re-enqueues linking for retained older
+  events, so deferred first-point identities do not depend on an event still
+  being inside its intensive 30-day refresh window.
 - A fetch batch filling the budget cannot prevent its downstream work
   from completing in later cycles before another batch starts.

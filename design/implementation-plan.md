@@ -23,7 +23,7 @@ unchanged on the production box later.
 |---|---|
 | Flake, NixOS module, CLI, config, SQLite state, fetch layer with politeness and archive, watches and scheduler, cycle timer, backup and restore | M0 |
 | WSDC calendar as the root of discovery | M0 |
-| Registry mirror: bootstrap sweep, dump cross-check, weekly probe, trickle, post-event confirmation; `dancers` and `registry_placements` | M1 |
+| Registry mirror: bootstrap sweep, dump cross-check, adaptive daily/weekly new-id probe, trickle, post-event confirmation; `dancers` and `registry_placements` | M1 |
 | Canonical model through `placements`; name normalization; EEPro discovery and parsers; name-based linking; `identity_links`, `link_candidates`, `review_queue`; overrides | M2 |
 | scoring.dance parsers; source-id links; registry confirmation loop; `points_matches_expected` | M3 |
 | World Dance Registry parsers fed by `overrides/source_urls.csv` | M3b |
@@ -373,7 +373,8 @@ bootstrap sweep from `cursors.registry_sweep_next` at a 2 s gap,
 lowest priority, daily budget 20,000 during the sweep then 1,500;
 bootstrap termination only after 20 verified consecutive misses above the
 highest ID in the archived comparison dump or locally verified found evidence;
-weekly probe above the highest id until 20 consecutive misses; trickle
+bounded daily new-id probes while recent eligible unlinked Newcomer or Novice
+finalists exist, weekly probes year-round otherwise; trickle
 of 100 a day for dancers older than 365 days; post-event confirmation
 refresh (daily, 30 days) wired in WP8. `swingset sweep --start 1`
 seeds the cursor. `swingset registry-crosscheck <dump.json>`
@@ -514,9 +515,9 @@ fingerprint does not) is a counter in `runs/*.json`.
 Fixtures: sitemap, recent, one event page, one prelims round, one
 finals round.
 
-Done when: an event's finalists show `confirmed` links within seven
-days of the event without human action, and one month of snapshots
-has answered the nonce and Cloudflare stability questions in the
+Done when: eligible finalists acquire `confirmed` links after matching
+registry evidence is published, without human action, and one month of
+snapshots has answered the nonce and Cloudflare stability questions in the
 playbook. That is M3.
 
 ### WP9. World Dance Registry (S). Ends M3b.
