@@ -1,0 +1,5 @@
+interpretation,issue,metric,status,title,value
+"These are candidates for the eligibility bug, not proof each link is wrong.",16,individual entries in division=none by link status,open_on_pinned_data,Fix identity eligibility for unrestricted contest divisions,"{""confirmed"": 4482, ""possible"": 482, ""probable"": 1975, ""unmatched"": 9613}"
+"A high-risk lexical signal, not proof that every value contains two people.",17,leader/follower entries whose source name contains ' and ',open_on_pinned_data,Prevent paired source names from linking to the wrong individual role,4061
+Unmapped rows include missing aliases and editions absent from the event catalog.,18,registry placements without canonical event_id,open_on_pinned_data,Reconcile registry event aliases and preserve finalist point evidence,177155
+F proves finalist evidence but does not prove the detailed numeric place.,18,eligible detailed placements with mapped registry F evidence,open_on_pinned_data,Reconcile registry event aliases and preserve finalist point evidence,1735

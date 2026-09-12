@@ -1,0 +1,163 @@
+{
+  "capture": {
+    "baseline_unchanged": true,
+    "candidate": "/var/lib/swingset/candidates/cand_9671fadae32d4be2",
+    "comparison_sha256": "ae7f2b9d688b69b49d08dfc718f60e5ef6b4b6561054d2503e8c94b8ae5e1d53",
+    "finished_at": "2026-09-12T16:37:03.216753+00:00",
+    "publication": {
+      "commit": "845d92a04e30b03d4a7081655e754ec2cea323aa"
+    },
+    "started_at": "2026-09-12T16:37:01.277273+00:00",
+    "state_sha256": "165dc25256c448f8a5b2c1f9183c45af9e07f60560be99f446192907bcd48ee9"
+  },
+  "event_mapping": {
+    "in_scope_2010_on_mapped_occurrences": 197,
+    "in_scope_2010_on_mapped_rows": 20835,
+    "in_scope_2010_on_occurrences": 1888,
+    "in_scope_2010_on_rows": 159115,
+    "in_scope_2010_on_unmapped_rows": 138280,
+    "in_scope_by_dance_style": {
+      "wcs": {
+        "mapped_occurrences": 197,
+        "mapped_rows": 20835,
+        "occurrences": 1888,
+        "rows": 159115,
+        "unmapped_rows": 138280
+      }
+    },
+    "pre_2010_mapped_rows": 0,
+    "pre_2010_occurrences": 776,
+    "pre_2010_rows": 38875
+  },
+  "normalization_and_conflicts": {
+    "canonical_value_counts": {
+      "dance_style": {
+        "lindy": 1454,
+        "wcs": 196536
+      },
+      "division": {
+        "PRO": 2010,
+        "TCH": 100,
+        "advanced": 33951,
+        "allstar": 16153,
+        "champion": 5101,
+        "intermediate": 42602,
+        "invitational": 1620,
+        "juniors": 1145,
+        "masters": 16785,
+        "newcomer": 17549,
+        "novice": 55251,
+        "sophisticated": 5723
+      },
+      "result": {
+        "1": 25281,
+        "2": 25164,
+        "3": 25045,
+        "4": 22400,
+        "5": 22204,
+        "F": 77896
+      },
+      "role": {
+        "follower": 102559,
+        "leader": 95431
+      }
+    },
+    "open_unknown_registry_enum_findings": 0,
+    "open_withheld_conflicting_claim_groups": 303
+  },
+  "public_counts": {
+    "dancers": 27784,
+    "distinct_entry_wsdc_ids_absent_from_dancers": 13,
+    "entries_with_wsdc_id_absent_from_dancers": 26,
+    "entry_wsdc_ids_absent_from_dancers_by_lookup_outcome": {
+      "not_found": 10,
+      "unfetched": 3
+    },
+    "registry_placements": 197990
+  },
+  "reference_comparison": {
+    "absent_id_latest_lookup_outcomes": {
+      "not_found": 136
+    },
+    "absent_id_reference_placement_rows": 177,
+    "absent_ids_with_reference_placements": 136,
+    "local_ids_absent_from_reference": 881,
+    "raw_name_differences": 214,
+    "raw_name_substantive": 2,
+    "raw_name_whitespace_only": 212,
+    "reference_dancers": 27039,
+    "reference_ids_absent_locally": 136,
+    "shared_dancers": 26903
+  },
+  "reference_placement_claim_comparison": {
+    "local_claims_additional": 292,
+    "local_wcs_claims": 196536,
+    "missing_claim_reasons": {
+      "conflicting_claim_withheld": 257,
+      "dancer_currently_not_found": 177,
+      "unresolved_other": 1
+    },
+    "reference_claims": 196679,
+    "reference_claims_missing_locally": 435,
+    "scope_note": "Reference placement IDs were joined through its role, division, and event_occurrence tables; its placement schema has no dance-style field, so comparison is to local WCS claims.",
+    "shared_claim_value_differences": 0
+  },
+  "series_and_occurrences": {
+    "local_occurrences": 2664,
+    "local_occurrences_additional": [
+      [
+        "wsdc-105",
+        "2005-05"
+      ],
+      [
+        "wsdc-177",
+        "2026-09"
+      ],
+      [
+        "wsdc-268",
+        "2026-09"
+      ],
+      [
+        "wsdc-3",
+        "2003-10"
+      ],
+      [
+        "wsdc-32",
+        "2001-07"
+      ],
+      [
+        "wsdc-32",
+        "2002-07"
+      ],
+      [
+        "wsdc-32",
+        "2003-07"
+      ],
+      [
+        "wsdc-32",
+        "2004-07"
+      ],
+      [
+        "wsdc-32",
+        "2007-07"
+      ],
+      [
+        "wsdc-70",
+        "1997-09"
+      ],
+      [
+        "wsdc-94",
+        "2004-06"
+      ]
+    ],
+    "local_series": 364,
+    "local_series_additional": [
+      "wsdc-32",
+      "wsdc-94"
+    ],
+    "reference_occurrences": 2653,
+    "reference_occurrences_missing_locally": [],
+    "reference_series": 362,
+    "reference_series_missing_locally": []
+  }
+}

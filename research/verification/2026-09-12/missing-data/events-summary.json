@@ -1,0 +1,145 @@
+{
+  "as_of": "2026-09-12",
+  "publication_commit": "845d92a04e30b03d4a7081655e754ec2cea323aa",
+  "candidate": "/var/lib/swingset/candidates/cand_9671fadae32d4be2",
+  "state_sha256_capture": "165dc25256c448f8a5b2c1f9183c45af9e07f60560be99f446192907bcd48ee9",
+  "state_sha256_local": "165dc25256c448f8a5b2c1f9183c45af9e07f60560be99f446192907bcd48ee9",
+  "published": {
+    "events": 573,
+    "contests": 2312,
+    "rounds": 3625,
+    "entries": 76343,
+    "placements": 18005
+  },
+  "event_periods": {
+    "past": 404,
+    "future": 165,
+    "current": 4
+  },
+  "events_with_contests": 137,
+  "events_without_contests": 436,
+  "events_with_placements": 137,
+  "events_without_placements": 436,
+  "source_coverage": [
+    {
+      "source": "eepro",
+      "all_round_watches": 447,
+      "round_watches_without_parent": 5,
+      "all_never_checked_round_watches": 0,
+      "all_ever_ok_round_watches": 447,
+      "indexed_source_events": 72,
+      "mapped_source_events": 72,
+      "unmapped_source_events": 0,
+      "mapped_events_with_contests": 72,
+      "mapped_events_without_contests": 0,
+      "listed_round_urls": 442,
+      "fetched_round_urls": 442,
+      "unfetched_round_urls": 0,
+      "never_checked_round_urls": 0,
+      "fetched_without_current_observation": 0,
+      "latest_parse_not_ok": 0,
+      "published_contests": 1576,
+      "published_rounds": 2268,
+      "published_entries": 42889,
+      "published_placements": 10637
+    },
+    {
+      "source": "scoringdance",
+      "all_round_watches": 5390,
+      "round_watches_without_parent": 12,
+      "all_never_checked_round_watches": 4482,
+      "all_ever_ok_round_watches": 908,
+      "indexed_source_events": 383,
+      "mapped_source_events": 319,
+      "unmapped_source_events": 64,
+      "mapped_events_with_contests": 52,
+      "mapped_events_without_contests": 267,
+      "listed_round_urls": 5378,
+      "fetched_round_urls": 896,
+      "unfetched_round_urls": 4482,
+      "never_checked_round_urls": 4482,
+      "fetched_without_current_observation": 0,
+      "latest_parse_not_ok": 0,
+      "published_contests": 451,
+      "published_rounds": 906,
+      "published_entries": 23579,
+      "published_placements": 4224
+    },
+    {
+      "source": "wdr",
+      "indexed_source_events": 0,
+      "mapped_source_events": 13,
+      "unmapped_source_events": 0,
+      "mapped_events_with_contests": 13,
+      "mapped_events_without_contests": 0,
+      "listed_round_urls": 0,
+      "fetched_round_urls": 0,
+      "unfetched_round_urls": 0,
+      "never_checked_round_urls": 0,
+      "fetched_without_current_observation": 0,
+      "latest_parse_not_ok": 0,
+      "published_contests": 285,
+      "published_rounds": 451,
+      "published_entries": 9875,
+      "published_placements": 3144
+    }
+  ],
+  "research_leads": {
+    "rows": 181,
+    "not_in_published_events": 90,
+    "cancelled": 1,
+    "edition_not_held": 4,
+    "result_leads_not_published": 82,
+    "absent_exact_key_without_possible_match": 86,
+    "periods": {
+      "past": 180,
+      "cancelled": 1
+    }
+  },
+  "current_events": [
+    {
+      "event_id": "2026-09-bavarian-open-west-coast-swing-championships",
+      "name": "Bavarian Open West Coast Swing Championships",
+      "start_date": "2026-09-10",
+      "end_date": "2026-09-14"
+    },
+    {
+      "event_id": "2026-09-sea-dance-fest",
+      "name": "Sea Dance Fest",
+      "start_date": "2026-09-11",
+      "end_date": "2026-09-13"
+    },
+    {
+      "event_id": "2026-09-swingtime-denver",
+      "name": "SwingTime Denver",
+      "start_date": "2026-09-10",
+      "end_date": "2026-09-13"
+    },
+    {
+      "event_id": "2026-09-trilogy-swing",
+      "name": "Trilogy Swing",
+      "start_date": "2026-09-10",
+      "end_date": "2026-09-13"
+    }
+  ],
+  "latest_parser_failures": [
+    {
+      "source": "scoringdance",
+      "kind": "event",
+      "source_ref": "scoringdance:179",
+      "url": "https://scoring.dance/enUS/events/179/results/",
+      "snapshot_id": "snap_20260911T043231Z_0859efa5a48f",
+      "http_status": 200,
+      "extract_status": "failed",
+      "parse_status": "failed",
+      "fetched_at": "2026-09-11T04:32:31.547766+00:00"
+    }
+  ],
+  "limits": [
+    "An event without contests is not proof that results should exist.",
+    "Platform indexes enumerate source events, not every contest expected at an event.",
+    "Listed round watches are the only captured round-level completeness denominator.",
+    "Research CSV rows are leads and are not accepted source evidence.",
+    "The 2010 historical target is draft; this audit reports actual published coverage only."
+  ]
+}

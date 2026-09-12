@@ -1,0 +1,11 @@
+{
+  "started_at": "2026-09-12T16:37:01.277273+00:00",
+  "finished_at": "2026-09-12T16:37:03.216753+00:00",
+  "candidate": "/var/lib/swingset/candidates/cand_9671fadae32d4be2",
+  "publication": {
+    "commit": "845d92a04e30b03d4a7081655e754ec2cea323aa"
+  },
+  "baseline_unchanged": true,
+  "comparison_sha256": "ae7f2b9d688b69b49d08dfc718f60e5ef6b4b6561054d2503e8c94b8ae5e1d53",
+  "state_sha256": "165dc25256c448f8a5b2c1f9183c45af9e07f60560be99f446192907bcd48ee9"
+}

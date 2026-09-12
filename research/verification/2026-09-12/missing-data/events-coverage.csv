@@ -1,0 +1,574 @@
+contests,end_date,entries,event_id,event_sources,fetched_round_urls,listed_round_urls,mapped_platforms,name,never_checked_round_urls,period,placements,rounds,start_date,unfetched_round_urls,wsdc_status,year
+0,2018-02-03,0,2018-02-carnival-swing,scoringdance,0,0,scoringdance,Carnival Swing 2018,0,past,0,0,2018-02-03,0,unknown,2018
+0,2018-05-12,0,2018-05-cologne-zouk-festival,scoringdance,0,0,scoringdance,Cologne Zouk Festival,0,past,0,0,2018-05-12,0,unknown,2018
+0,2018-07-28,0,2018-07-pure-bachata-summer-festival-cologne,scoringdance,0,0,scoringdance,Pure Bachata Summer Festival Cologne,0,past,0,0,2018-07-28,0,unknown,2018
+1,2018-11-30,18,2018-11-cozyswing,scoringdance,1,1,scoringdance,CozySwing 2018,0,past,9,1,2018-11-30,0,unknown,2018
+0,2018-12-28,0,2018-12-swingvester,scoringdance,0,0,scoringdance,SwingVester 2018,0,past,0,0,2018-12-28,0,unknown,2018
+0,2019-01-19,0,2019-01-workshopweekend-heidelberg-jan2019,scoringdance,0,0,scoringdance,Workshopweekend Heidelberg Jan2019,0,past,0,0,2019-01-19,0,unknown,2019
+0,2019-02-23,0,2019-02-carnival-swing-cologne,scoringdance,0,5,scoringdance,Carnival Swing Cologne 2019,5,past,0,0,2019-02-23,5,unknown,2019
+0,2019-03-15,0,2019-03-west-in-lyon,scoringdance,0,21,scoringdance,West in Lyon 2019,21,past,0,0,2019-03-15,21,unknown,2019
+0,2019-04-19,0,2019-04-zouk-german-open-championship,scoringdance,0,4,scoringdance,Zouk 1st German Open Championship 2019,4,past,0,0,2019-04-19,4,unknown,2019
+0,2019-05-11,0,2019-05-3-taf-schleswig-cup-west-coast-swing,scoringdance,0,0,scoringdance,3.TAF Schleswig Cup West Coast Swing 2019,0,past,0,0,2019-05-11,0,unknown,2019
+0,2019-05-25,0,2019-05-taf-german-masters-west,scoringdance,0,6,scoringdance,TAF German Masters West 2019,6,past,0,0,2019-05-25,6,unknown,2019
+0,2019-06-27,0,2019-06-neverlandswing,scoringdance,0,11,scoringdance,NeverlandSwing 2019,11,past,0,0,2019-06-27,11,unknown,2019
+0,2019-08-08,0,2019-08-german-open,scoringdance,0,19,scoringdance,German Open 2019,19,past,0,0,2019-08-08,19,unknown,2019
+0,2019-09-12,0,2019-09-bavarian-open,scoringdance,0,23,scoringdance,Bavarian Open 2019,23,past,0,0,2019-09-12,23,unknown,2019
+0,2019-09-07,0,2019-09-taf-german-masters-west-coast-swing-nord,scoringdance,0,0,scoringdance,TAF German Masters West Coast Swing Nord 2019,0,past,0,0,2019-09-07,0,unknown,2019
+0,2019-10-31,0,2019-10-warsaw-halloween-swing,scoringdance,0,18,scoringdance,Warsaw Halloween Swing 2019,18,past,0,0,2019-10-31,18,unknown,2019
+0,2019-11-16,0,2019-11-taf-deutsche-meisterschaft-west-coast-swing,scoringdance,0,8,scoringdance,TAF Deutsche Meisterschaft West Coast Swing 2019,8,past,0,0,2019-11-16,8,unknown,2019
+0,2019-12-12,0,2019-12-berlin-swing-revolution,scoringdance,0,13,scoringdance,Berlin Swing Revolution 2019,13,past,0,0,2019-12-12,13,unknown,2019
+9,2020-01-02,1101,2020-01-budafest,scoringdance,23,23,scoringdance,Budafest 2020,0,past,102,23,2020-01-02,0,unknown,2020
+0,2020-01-23,0,2020-01-municorn-swing,scoringdance,0,11,scoringdance,Municorn Swing 2020,11,past,0,0,2020-01-23,11,unknown,2020
+3,2020-02-14,72,2020-02-carnival-swing-cologne,scoringdance,6,6,scoringdance,Carnival Swing Cologne 2020,0,past,18,6,2020-02-14,0,unknown,2020
+0,2021-09-23,0,2021-09-midland-swing-open,scoringdance,0,10,scoringdance,Midland Swing Open 2021,10,past,0,0,2021-09-23,10,unknown,2021
+0,2021-10-28,0,2021-10-warsaw-halloween-swing,scoringdance,0,20,scoringdance,Warsaw Halloween Swing 2021,20,past,0,0,2021-10-28,20,unknown,2021
+0,2021-12-09,0,2021-12-berlin-swing-revolution,scoringdance,0,12,scoringdance,Berlin Swing Revolution 2021,12,past,0,0,2021-12-09,12,unknown,2021
+9,2022-01-05,868,2022-01-budafest,scoringdance,23,23,scoringdance,Budafest 2022,0,past,105,23,2022-01-05,0,unknown,2022
+0,2022-03-26,0,2022-03-normandie-on-west,scoringdance,0,4,scoringdance,Normandie On West,4,past,0,0,2022-03-26,4,unknown,2022
+0,2022-03-10,0,2022-03-westie-spring-thing,scoringdance,0,14,scoringdance,Westie Spring Thing 2022,14,past,0,0,2022-03-10,14,unknown,2022
+0,2022-04-21,0,2022-04-detonation-dance,scoringdance,0,15,scoringdance,Detonation Dance 2022,15,past,0,0,2022-04-21,15,unknown,2022
+0,2022-04-15,0,2022-04-south-westie-swing,scoringdance,0,2,scoringdance,South Westie Swing 2022,2,past,0,0,2022-04-15,2,unknown,2022
+0,2022-04-22,0,2022-04-swingin-festival,scoringdance,0,6,scoringdance,SwingIn - Festival 2022,6,past,0,0,2022-04-22,6,unknown,2022
+0,2022-05-06,0,2022-05-nordic-wcs-championships,scoringdance,0,16,scoringdance,Nordic WCS Championships 2022,16,past,0,0,2022-05-06,16,unknown,2022
+0,2022-06-24,0,2022-06-baltic-swing,scoringdance,0,18,scoringdance,Baltic Swing 2022,18,past,0,0,2022-06-24,18,unknown,2022
+14,2022-06-16,742,2022-06-d-town-swing,scoringdance,28,28,scoringdance,D-Town Swing 2022,0,past,162,28,2022-06-16,0,unknown,2022
+0,2022-06-30,0,2022-06-neverlandswing,scoringdance,0,13,scoringdance,NeverlandSwing 2022,13,past,0,0,2022-06-30,13,unknown,2022
+0,2022-08-04,0,2022-08-german-open,scoringdance,0,18,scoringdance,German Open 2022,18,past,0,0,2022-08-04,18,unknown,2022
+0,2022-08-12,0,2022-08-uptown-swing,scoringdance,0,10,scoringdance,UpTown Swing 2022,10,past,0,0,2022-08-12,10,unknown,2022
+0,2022-09-08,0,2022-09-bavarian-open,scoringdance,0,26,scoringdance,Bavarian Open 2022,26,past,0,0,2022-09-08,26,unknown,2022
+0,2022-09-23,0,2022-09-cologne-swing-weekend,scoringdance,0,6,scoringdance,Cologne Swing Weekend 2022,6,past,0,0,2022-09-23,6,unknown,2022
+0,2022-09-23,0,2022-09-finnfest,scoringdance,0,16,scoringdance,Finnfest 2022,16,past,0,0,2022-09-23,16,unknown,2022
+0,2022-09-30,0,2022-09-midland-swing-open,scoringdance,0,15,scoringdance,Midland Swing Open 2022,15,past,0,0,2022-09-30,15,unknown,2022
+0,2022-10-27,0,2022-10-warsaw-halloween-swing,scoringdance,0,22,scoringdance,Warsaw Halloween Swing 2022,22,past,0,0,2022-10-27,22,unknown,2022
+0,2022-10-14,0,2022-10-wcs-festival-dusseldorf,scoringdance,0,15,scoringdance,WCS Festival Düsseldorf 2022,15,past,0,0,2022-10-14,15,unknown,2022
+0,2022-11-03,0,2022-11-scandinavian-open-wcs-snow,scoringdance,0,17,scoringdance,Scandinavian Open WCS 2022 [SNOW 2022],17,past,0,0,2022-11-03,17,unknown,2022
+0,2022-12-08,0,2022-12-berlin-swing-revolution,scoringdance,0,15,scoringdance,Berlin Swing Revolution 2022,15,past,0,0,2022-12-08,15,unknown,2022
+0,2022-12-15,0,2022-12-global-grand-prix-swing-dance-championships,scoringdance,0,19,scoringdance,Global Grand Prix Swing Dance Championships 2022,19,past,0,0,2022-12-15,19,unknown,2022
+0,2023-01-11,0,2023-01-budafest,scoringdance,0,25,scoringdance,Budafest 2023,25,past,0,0,2023-01-11,25,unknown,2023
+0,2023-01-06,0,2023-01-westie-gala,scoringdance,0,14,scoringdance,Westie Gala 2023,14,past,0,0,2023-01-06,14,unknown,2023
+0,2023-02-17,0,2023-02-valentine-swing,scoringdance,0,10,scoringdance,Valentine Swing 2023,10,past,0,0,2023-02-17,10,unknown,2023
+0,2023-03-23,0,2023-03-5280-westival,scoringdance,0,17,scoringdance,5280 Westival 2023,17,past,0,0,2023-03-23,17,unknown,2023
+0,2023-03-23,0,2023-03-dutch-open,scoringdance,0,13,scoringdance,Dutch Open 2023,13,past,0,0,2023-03-23,13,unknown,2023
+0,2023-03-09,0,2023-03-westie-spring-thing,scoringdance,0,20,scoringdance,Westie Spring Thing 2023,20,past,0,0,2023-03-09,20,unknown,2023
+0,2023-04-20,0,2023-04-detonation-dance,scoringdance,0,19,scoringdance,Detonation Dance 2023,19,past,0,0,2023-04-20,19,unknown,2023
+0,2023-04-28,0,2023-04-nordic-wcs-championships,scoringdance,0,19,scoringdance,Nordic WCS Championships 2023,19,past,0,0,2023-04-28,19,unknown,2023
+0,2023-04-21,0,2023-04-swingin-festival,scoringdance,0,7,scoringdance,SwingIn - Festival 2023,7,past,0,0,2023-04-21,7,unknown,2023
+0,2023-05-12,0,2023-05-tlv-swingfest,scoringdance,0,16,scoringdance,TLV Swingfest 2023,16,past,0,0,2023-05-12,16,unknown,2023
+0,2023-06-15,0,2023-06-baltic-swing,scoringdance,0,19,scoringdance,Baltic Swing 2023,19,past,0,0,2023-06-15,19,unknown,2023
+0,2023-06-22,0,2023-06-d-town-swing,scoringdance,0,30,scoringdance,D-Town Swing 2023,30,past,0,0,2023-06-22,30,unknown,2023
+7,2023-06-02,284,2023-06-hungarian-open,scoringdance,15,15,scoringdance,Hungarian Open 2023,0,past,68,15,2023-06-02,0,unknown,2023
+0,2023-06-08,0,2023-06-jack-jill-o-rama,scoringdance,0,0,scoringdance,Jack&Jill O'Rama,0,past,0,0,2023-06-08,0,unknown,2023
+0,2023-06-29,0,2023-06-neverlandswing,scoringdance,0,14,scoringdance,NeverlandSwing 2023,14,past,0,0,2023-06-29,14,unknown,2023
+5,2023-07-21,202,2023-07-rock-the-barn,scoringdance,10,10,scoringdance,Rock The Barn 2023,0,past,43,10,2023-07-21,0,unknown,2023
+0,2023-08-31,0,2023-08-bavarian-open,scoringdance,0,25,scoringdance,Bavarian Open 2023,25,past,0,0,2023-08-31,25,unknown,2023
+0,2023-08-03,0,2023-08-german-open,scoringdance,0,26,scoringdance,German Open 2023,26,past,0,0,2023-08-03,26,unknown,2023
+0,2023-08-11,0,2023-08-uptown-swing,scoringdance,0,15,scoringdance,UpTown Swing 2023,15,past,0,0,2023-08-11,15,unknown,2023
+0,2023-09-22,0,2023-09-cologne-swing-weekend,scoringdance,0,6,scoringdance,Cologne Swing Weekend 2023,6,past,0,0,2023-09-22,6,unknown,2023
+8,2023-09-22,358,2023-09-finnfest,scoringdance,16,16,scoringdance,Finnfest 2023,0,past,80,16,2023-09-22,0,unknown,2023
+0,2023-09-29,0,2023-09-german-open-bachata-championship,scoringdance,0,4,scoringdance,German Open Bachata Championship 2023,4,past,0,0,2023-09-29,4,unknown,2023
+0,2023-09-21,0,2023-09-midland-swing-open,scoringdance,0,21,scoringdance,Midland Swing Open 2023,21,past,0,0,2023-09-21,21,unknown,2023
+0,2023-10-20,0,2023-10-augsburg-westie-station,scoringdance,0,6,scoringdance,Augsburg Westie Station 2023,6,past,0,0,2023-10-20,6,unknown,2023
+0,2023-10-20,0,2023-10-milan-modern-swing,scoringdance,0,22,scoringdance,Milan Modern Swing 2023,22,past,0,0,2023-10-20,22,unknown,2023
+0,2023-10-26,0,2023-10-warsaw-halloween-swing,scoringdance,0,23,scoringdance,Warsaw Halloween Swing 2023,23,past,0,0,2023-10-26,23,unknown,2023
+0,2023-10-12,0,2023-10-wcs-festival-dusseldorf,scoringdance,0,18,scoringdance,WCS Festival Düsseldorf 2023,18,past,0,0,2023-10-12,18,unknown,2023
+0,2023-11-02,0,2023-11-scandinavian-open-wcs-snow,scoringdance,0,25,scoringdance,Scandinavian Open WCS 2023 [SNOW 2023],25,past,0,0,2023-11-02,25,unknown,2023
+0,2023-11-30,0,2023-11-winter-white,scoringdance,0,16,scoringdance,Winter White 2023,16,past,0,0,2023-11-30,16,unknown,2023
+8,2023-12-07,255,2023-12-berlin-swing-revolution,scoringdance,14,15,scoringdance,Berlin Swing Revolution 2023,1,past,57,14,2023-12-07,1,unknown,2023
+16,2023-12-14,479,2023-12-global-grand-prix-swing-dance-championships,scoringdance,27,27,scoringdance,Global Grand Prix Swing Dance Championships 2023,0,past,134,27,2023-12-14,0,unknown,2023
+0,2023-12-08,0,2023-12-munich-bachata-fest,scoringdance,0,4,scoringdance,Munich Bachata Fest 2023,4,past,0,0,2023-12-08,4,unknown,2023
+0,2023-12-28,0,2023-12-swingcouver-24,scoringdance,0,31,scoringdance,SwingCouver 2023/24,31,past,0,0,2023-12-28,31,unknown,2023
+0,2023-12-28,0,2023-12-westie-gala,scoringdance,0,16,scoringdance,Westie Gala 2023/2024,16,past,0,0,2023-12-28,16,unknown,2023
+11,2024-01-03,1297,2024-01-budafest,scoringdance,28,28,scoringdance,Budafest 2024,0,past,121,28,2024-01-03,0,unknown,2024
+0,2024-01-26,0,2024-01-swing-resolution,scoringdance,0,22,scoringdance,Swing Resolution 2024,22,past,0,0,2024-01-26,22,unknown,2024
+0,2024-02-13,0,2024-02-euro-dance-festival,scoringdance,0,15,scoringdance,Euro Dance Festival 2024,15,past,0,0,2024-02-13,15,unknown,2024
+0,2024-02-01,0,2024-02-paris-swing-classic,scoringdance,0,23,scoringdance,Paris Swing Classic 2024,23,past,0,0,2024-02-01,23,unknown,2024
+0,2024-02-15,0,2024-02-valentine-swing,scoringdance,0,14,scoringdance,Valentine Swing 2024,14,past,0,0,2024-02-15,14,unknown,2024
+9,2024-03-21,317,2024-03-5280-westival,scoringdance,17,17,scoringdance,5280 Westival 2024,0,past,72,17,2024-03-21,0,unknown,2024
+0,2024-03-07,0,2024-03-west-in-lyon,scoringdance,0,29,scoringdance,West in Lyon 2024,29,past,0,0,2024-03-07,29,unknown,2024
+0,2024-03-14,0,2024-03-westie-spring-thing,scoringdance,0,20,scoringdance,Westie Spring Thing 2024,20,past,0,0,2024-03-14,20,unknown,2024
+0,2024-04-11,0,2024-04-city-of-angels-swing,scoringdance,0,31,scoringdance,City of Angels Swing 2024,31,past,0,0,2024-04-11,31,unknown,2024
+0,2024-04-18,0,2024-04-detonation-dance,scoringdance,0,20,scoringdance,Detonation Dance 2024,20,past,0,0,2024-04-18,20,unknown,2024
+0,2024-04-04,0,2024-04-dutch-open,scoringdance,0,12,scoringdance,Dutch Open 2024,12,past,0,0,2024-04-04,12,unknown,2024
+0,2024-04-25,0,2024-04-nordic-wcs-championships,scoringdance,0,24,scoringdance,Nordic WCS Championships 2024,24,past,0,0,2024-04-25,24,unknown,2024
+0,2024-04-19,0,2024-04-slovenian-open,scoringdance,0,14,scoringdance,Slovenian Open 2024,14,past,0,0,2024-04-19,14,unknown,2024
+0,2024-04-26,0,2024-04-som-swing-of-music,scoringdance,0,8,scoringdance,SOM - Swing Of Music 2024,8,past,0,0,2024-04-26,8,unknown,2024
+0,2024-04-05,0,2024-04-swingin-festival,scoringdance,0,9,scoringdance,SwingIn - Festival 2024,9,past,0,0,2024-04-05,9,unknown,2024
+0,2024-05-08,0,2024-05-french-open,scoringdance,0,37,scoringdance,French Open 2024,37,past,0,0,2024-05-08,37,unknown,2024
+0,2024-05-31,0,2024-05-hungarian-open,scoringdance,0,15,scoringdance,Hungarian Open 2024,15,past,0,0,2024-05-31,15,unknown,2024
+0,2024-05-16,0,2024-05-soswing-convention,scoringdance,0,21,scoringdance,SOswing Convention 2024,21,past,0,0,2024-05-16,21,unknown,2024
+0,2024-05-02,0,2024-05-spring-time-swing,scoringdance,0,17,scoringdance,Spring Time Swing 2024,17,past,0,0,2024-05-02,17,unknown,2024
+0,2024-06-21,0,2024-06-bachata-sensual-congress-germany,scoringdance,0,4,scoringdance,Bachata Sensual Congress Germany 2024,4,past,0,0,2024-06-21,4,unknown,2024
+0,2024-06-06,0,2024-06-baltic-swing,scoringdance,0,23,scoringdance,Baltic Swing 2024,23,past,0,0,2024-06-06,23,unknown,2024
+0,2024-06-13,0,2024-06-d-town-swing,scoringdance,0,29,scoringdance,D-Town Swing 2024,29,past,0,0,2024-06-13,29,unknown,2024
+0,2024-06-13,0,2024-06-dance-n-play,scoringdance,0,17,scoringdance,Dance N Play 2024,17,past,0,0,2024-06-13,17,unknown,2024
+68,2024-06-08,290,2024-06-disco-america,eepro,6,6,eepro,Disco America,0,past,280,68,2024-06-05,0,unknown,2024
+0,2024-06-27,0,2024-06-neverlandswing,scoringdance,0,17,scoringdance,NeverlandSwing 2024,17,past,0,0,2024-06-27,17,unknown,2024
+0,2024-07-25,0,2024-07-bend-connection,scoringdance,0,13,scoringdance,Bend Connection 2024,13,past,0,0,2024-07-25,13,unknown,2024
+0,2024-07-18,0,2024-07-rock-the-barn,scoringdance,0,11,scoringdance,Rock The Barn 2024,11,past,0,0,2024-07-18,11,unknown,2024
+4,2024-07-12,151,2024-07-saunaswing,scoringdance,8,8,scoringdance,SaunaSwing 2024,0,past,31,8,2024-07-12,0,unknown,2024
+0,2024-07-27,0,2024-07-sea-sun-swing-camp,scoringdance,0,25,scoringdance,Sea Sun & Swing Camp 2024,25,past,0,0,2024-07-27,25,unknown,2024
+0,2024-08-09,0,2024-08-bristol-swing-fiesta,scoringdance,0,11,scoringdance,Bristol Swing Fiesta,11,past,0,0,2024-08-09,11,unknown,2024
+13,2024-08-01,1029,2024-08-german-open,scoringdance,27,27,scoringdance,German Open 2024,0,past,150,27,2024-08-01,0,unknown,2024
+0,2024-08-29,0,2024-08-rolling-swing,scoringdance,0,23,scoringdance,Rolling Swing 2024,23,past,0,0,2024-08-29,23,unknown,2024
+27,2024-08-15,1396,2024-08-swingtime-denver,scoringdance,50,50,scoringdance,SwingTime Denver 2024,0,past,257,50,2024-08-15,0,unknown,2024
+0,2024-08-09,0,2024-08-uptown-swing,scoringdance,0,15,scoringdance,UpTown Swing 2024,15,past,0,0,2024-08-09,15,unknown,2024
+0,2024-08-24,0,2024-08-wcs-magyar-kupa,scoringdance,0,7,scoringdance,WCS Magyar Kupa,7,past,0,0,2024-08-24,7,unknown,2024
+0,2024-09-25,0,2024-09-aloha-open,scoringdance,0,8,scoringdance,Aloha Open 2024,8,past,0,0,2024-09-25,8,unknown,2024
+0,2024-09-12,0,2024-09-bavarian-open,scoringdance,0,27,scoringdance,Bavarian Open 2024,27,past,0,0,2024-09-12,27,unknown,2024
+0,2024-09-06,0,2024-09-bindaas-bachata-festival,scoringdance,0,3,scoringdance,BINDAAS Bachata Festival 2024,3,past,0,0,2024-09-06,3,unknown,2024
+0,2024-09-19,0,2024-09-finnfest,scoringdance,0,21,scoringdance,Finnfest 2024,21,past,0,0,2024-09-19,21,unknown,2024
+12,2024-09-26,618,2024-09-midland-swing-open,scoringdance,25,25,scoringdance,Midland Swing Open 2024,0,past,125,25,2024-09-26,0,unknown,2024
+5,2024-09-27,186,2024-09-mooseland-swing,scoringdance,9,9,scoringdance,Mooseland Swing 2024,0,past,40,9,2024-09-27,0,unknown,2024
+7,2024-09-19,236,2024-09-retaliation-swing,scoringdance,13,13,scoringdance,Retaliation Swing 2024,0,past,66,13,2024-09-19,0,unknown,2024
+0,2024-09-26,0,2024-09-wcsparty,scoringdance,0,6,scoringdance,WCSParty 2024,6,past,0,0,2024-09-26,6,unknown,2024
+0,2024-10-17,0,2024-10-augsburg-westie-station,scoringdance,0,11,scoringdance,Augsburg Westie Station 2024,11,past,0,0,2024-10-17,11,unknown,2024
+0,2024-10-18,0,2024-10-bachata-explosion,scoringdance,0,2,scoringdance,Bachata Explosion 2024,2,past,0,0,2024-10-18,2,unknown,2024
+0,2024-10-10,0,2024-10-boogie-by-the-bay,scoringdance,0,35,scoringdance,Boogie by the Bay 2024,35,past,0,0,2024-10-10,35,unknown,2024
+0,2024-10-03,0,2024-10-german-open-championship,scoringdance,0,3,scoringdance,German Open Championship 2024,3,past,0,0,2024-10-03,3,unknown,2024
+0,2024-10-25,0,2024-10-halloween-swingthing,scoringdance,0,30,scoringdance,Halloween SwingThing 2024,30,past,0,0,2024-10-25,30,unknown,2024
+0,2024-10-17,0,2024-10-milan-modern-swing,scoringdance,0,23,scoringdance,Milan Modern Swing 2024,23,past,0,0,2024-10-17,23,unknown,2024
+10,2024-10-31,809,2024-10-scandinavian-open-wcs-snow,scoringdance,24,24,scoringdance,Scandinavian Open WCS 2024 [SNOW 2024],0,past,127,24,2024-10-31,0,unknown,2024
+0,2024-10-25,0,2024-10-swingside-invitational,scoringdance,0,16,scoringdance,Swingside Invitational 2024,16,past,0,0,2024-10-25,16,unknown,2024
+0,2024-10-24,0,2024-10-warsaw-halloween-swing,scoringdance,0,21,scoringdance,Warsaw Halloween Swing 2024,21,past,0,0,2024-10-24,21,unknown,2024
+13,2024-10-10,505,2024-10-wcs-festival-dusseldorf,scoringdance,24,24,scoringdance,WCS Festival Düsseldorf 2024,0,past,122,24,2024-10-10,0,unknown,2024
+16,2024-10-31,487,2024-10-westie-s-angels,scoringdance,28,28,scoringdance,Westie's Angels 2024,0,past,111,28,2024-10-31,0,unknown,2024
+4,2024-11-08,86,2024-11-flowstate,scoringdance,6,6,scoringdance,Flowstate,0,past,33,6,2024-11-08,0,unknown,2024
+1,2024-11-15,28,2024-11-pure-bachata-winter-festival,scoringdance,3,3,scoringdance,Pure Bachata Winter Festival 2024,0,past,6,3,2024-11-15,0,unknown,2024
+0,2024-11-07,0,2024-11-sea-to-sky,scoringdance,0,23,scoringdance,Sea to Sky 2024,23,past,0,0,2024-11-07,23,unknown,2024
+0,2024-11-01,0,2024-11-stockholm-sensusal-festival,scoringdance,0,2,scoringdance,Stockholm Sensusal Festival 2024,2,past,0,0,2024-11-01,2,unknown,2024
+0,2024-11-08,0,2024-11-westie-pink-city,scoringdance,0,21,scoringdance,Westie Pink City 2024,21,past,0,0,2024-11-08,21,unknown,2024
+0,2024-12-12,0,2024-12-berlin-swing-revolution,scoringdance,0,14,scoringdance,Berlin Swing Revolution 2024,14,past,0,0,2024-12-12,14,unknown,2024
+1,2024-12-06,96,2024-12-copenhagen-bachata-congress,scoringdance,3,3,scoringdance,Copenhagen Bachata Congress 2024,0,past,8,3,2024-12-06,0,unknown,2024
+0,2024-12-13,0,2024-12-global-grand-prix-swing-dance-championships,scoringdance,0,28,scoringdance,Global Grand Prix Swing Dance Championships 2024,28,past,0,0,2024-12-13,28,unknown,2024
+0,2024-12-27,0,2024-12-pure-bachata-role-rotation-weekend-cologne,scoringdance,0,3,scoringdance,Pure Bachata - Role Rotation Weekend Cologne 2024,3,past,0,0,2024-12-27,3,unknown,2024
+0,2024-12-27,0,2024-12-swingvester-25,scoringdance,0,32,scoringdance,SwingVester 2024/25,32,past,0,0,2024-12-27,32,unknown,2024
+0,2024-12-28,0,2024-12-westie-gala,scoringdance,0,18,scoringdance,Westie Gala 2024/2025,18,past,0,0,2024-12-28,18,unknown,2024
+0,2024-12-05,0,2024-12-winter-white,scoringdance,0,20,scoringdance,Winter White 2024,20,past,0,0,2024-12-05,20,unknown,2024
+17,2025-01-19,503,2025-01-austin-swing-dance-championships,eepro,7,7,eepro,Austin Swing Dance Championships,0,past,151,27,2025-01-16,0,unknown,2025
+0,2025-01-17,0,2025-01-avignon-city-swing,scoringdance,0,21,scoringdance,Avignon City Swing 2025,21,past,0,0,2025-01-17,21,unknown,2025
+0,2025-01-07,0,2025-01-budafest,scoringdance,0,28,scoringdance,Budafest 2025,28,past,0,0,2025-01-07,28,unknown,2025
+0,2025-01-02,0,2025-01-country-couver,scoringdance,0,16,scoringdance,Country Couver 2025,16,past,0,0,2025-01-02,16,unknown,2025
+25,2025-01-26,543,2025-01-derby-city-swing,eepro,5,5,eepro,Derby City Swing,0,past,174,37,2025-01-23,0,unknown,2025
+13,2025-01-26,474,2025-01-freedom-swing-dance-challenge,eepro,7,7,eepro,Freedom Swing Dance Challenge,0,past,111,26,2025-01-24,0,unknown,2025
+0,2025-01-31,0,2025-01-latin-dream-bachata-festival,scoringdance,0,3,scoringdance,Latin Dream Bachata Festival 2025,3,past,0,0,2025-01-31,3,unknown,2025
+0,2025-01-16,0,2025-01-montereyswingfest,scoringdance,0,32,scoringdance,MontereySwingfest 2025,32,past,0,0,2025-01-16,32,unknown,2025
+0,2025-01-09,0,2025-01-munich-bachata-fest,scoringdance,0,4,scoringdance,Munich Bachata Fest 2025,4,past,0,0,2025-01-09,4,unknown,2025
+45,2025-01-20,173,2025-01-nj-hustle-congress,eepro,9,9,eepro,NJ Hustle Congress,0,past,147,45,2025-01-16,0,unknown,2025
+0,2025-01-30,0,2025-01-paris-swing-classic,scoringdance,0,26,scoringdance,Paris Swing Classic 2025,26,past,0,0,2025-01-30,26,unknown,2025
+0,2025-01-31,0,2025-01-pure-bachata-urban-fusion-festival,scoringdance,0,2,scoringdance,Pure Bachata - Urban Fusion Festival 2025,2,past,0,0,2025-01-31,2,unknown,2025
+0,2025-01-23,0,2025-01-swing-resolution,scoringdance,0,21,scoringdance,Swing Resolution 2025,21,past,0,0,2025-01-23,21,unknown,2025
+0,2025-01-02,0,2025-01-swingcouver,scoringdance,0,42,scoringdance,SwingCouver 2025,42,past,0,0,2025-01-02,42,unknown,2025
+2,2025-01-17,39,2025-01-terra-livre-dance-festival-winter-edition,scoringdance,6,6,scoringdance,Terra Livre Dance Festival 2025 (Winter Edition),0,past,8,6,2025-01-17,0,unknown,2025
+1,2025-02-20,29,2025-02-bachatation-festival,scoringdance,3,3,scoringdance,Bachatation Festival 2025,0,past,5,3,2025-02-20,0,unknown,2025
+15,2025-02-16,735,2025-02-capital-swing,eepro,4,4,eepro,Capital Swing,0,past,155,28,2025-02-13,0,unknown,2025
+0,2025-02-07,0,2025-02-luxembourg-bachata-family-festival,scoringdance,0,3,scoringdance,Luxembourg Bachata Family Festival 2025,3,past,0,0,2025-02-07,3,unknown,2025
+0,2025-02-27,0,2025-02-nrw-united-bachata-festival,scoringdance,0,3,scoringdance,NRW United Bachata Festival 2025,3,past,0,0,2025-02-27,3,unknown,2025
+14,2025-02-20,918,2025-02-rose-city-swing,scoringdance,29,29,scoringdance,Rose City Swing 2025,0,past,154,29,2025-02-20,0,unknown,2025
+17,2025-02-23,490,2025-02-swing-crush,eepro,5,5,eepro,Swing Crush,0,past,120,26,2025-02-20,0,unknown,2025
+4,2025-02-06,235,2025-02-swingtzerland,scoringdance,9,9,scoringdance,Swingtzerland 2025,0,past,40,9,2025-02-06,0,unknown,2025
+0,2025-02-07,0,2025-02-trinity-swing,scoringdance,0,11,scoringdance,Trinity Swing 2025,11,past,0,0,2025-02-07,11,unknown,2025
+7,2025-02-14,326,2025-02-valentine-swing,scoringdance,14,14,scoringdance,Valentine Swing 2025,0,past,59,14,2025-02-14,0,unknown,2025
+8,2025-02-20,338,2025-02-winter-coast-swing,scoringdance,16,16,scoringdance,Winter Coast Swing 2025,0,past,74,16,2025-02-20,0,unknown,2025
+0,2025-03-20,0,2025-03-5280-westival,scoringdance,0,17,scoringdance,5280 Westival 2025,17,past,0,0,2025-03-20,17,unknown,2025
+2,2025-03-28,246,2025-03-bachata-geneva-festival-bachata-social-world-cup,scoringdance,5,5,scoringdance,Bachata Geneva Festival - Bachata Social World Cup 2025,0,past,6,4,2025-03-28,0,unknown,2025
+1,2025-03-14,40,2025-03-bindaas-bachata-festival,scoringdance,3,3,scoringdance,BINDAAS Bachata Festival 2025,0,past,5,3,2025-03-14,0,unknown,2025
+26,2025-03-23,809,2025-03-boston-tea-party,eepro,10,10,eepro,Boston Tea Party,0,past,187,43,2025-03-20,0,unknown,2025
+0,2025-03-27,0,2025-03-bto-open,scoringdance,0,28,scoringdance,BTO Open 2025,28,past,0,0,2025-03-27,28,unknown,2025
+0,2025-03-13,0,2025-03-dutch-open,scoringdance,0,14,scoringdance,Dutch Open 2025,14,past,0,0,2025-03-13,14,unknown,2025
+0,2025-03-04,0,2025-03-euro-dance-festival,scoringdance,0,15,scoringdance,Euro Dance Festival 2025,15,past,0,0,2025-03-04,15,unknown,2025
+0,2025-03-20,0,2025-03-king-swing,scoringdance,0,13,scoringdance,King Swing 2025,13,past,0,0,2025-03-20,13,unknown,2025
+22,2025-03-23,568,2025-03-novice-invitational,eepro,5,5,eepro,Novice Invitational,0,past,133,26,2025-03-20,0,unknown,2025
+0,2025-03-27,0,2025-03-uk-west-coast-swing-championships,scoringdance,0,29,scoringdance,UK West Coast Swing Championships 2025,29,past,0,0,2025-03-27,29,unknown,2025
+0,2025-03-13,0,2025-03-west-in-lyon,scoringdance,0,26,scoringdance,West in Lyon 2025,26,past,0,0,2025-03-13,26,unknown,2025
+0,2025-03-13,0,2025-03-westie-spring-thing,scoringdance,0,19,scoringdance,Westie Spring Thing 2025,19,past,0,0,2025-03-13,19,unknown,2025
+0,2025-04-09,0,2025-04-bachata-festival-germany,scoringdance,0,3,scoringdance,Bachata Festival Germany 2025,3,past,0,0,2025-04-09,3,unknown,2025
+0,2025-04-10,0,2025-04-city-of-angels,scoringdance,0,37,scoringdance,City of Angels 2025,37,past,0,0,2025-04-10,37,unknown,2025
+11,2025-04-24,477,2025-04-detonation-dance,scoringdance,20,20,scoringdance,Detonation Dance 2025,0,past,107,20,2025-04-24,0,unknown,2025
+0,2025-04-17,0,2025-04-easter-swing,scoringdance,0,28,scoringdance,Easter Swing 2025,28,past,0,0,2025-04-17,28,unknown,2025
+0,2025-04-10,0,2025-04-slovenian-open,scoringdance,0,17,scoringdance,Slovenian Open 2025,17,past,0,0,2025-04-10,17,unknown,2025
+0,2025-04-30,0,2025-04-spring-time-swing,scoringdance,0,23,scoringdance,Spring Time Swing 2025,23,past,0,0,2025-04-30,23,unknown,2025
+0,2025-04-24,0,2025-04-swingin-festival,scoringdance,0,16,scoringdance,SwingIn-Festival 2025,16,past,0,0,2025-04-24,16,unknown,2025
+27,2025-04-27,678,2025-04-swingover,eepro,6,6,eepro,Swingover,0,past,161,33,2025-04-24,0,unknown,2025
+23,2025-04-20,442,2025-04-tulsa-spring-swing,eepro,7,7,eepro,Tulsa Spring Swing,0,past,225,29,2025-04-18,0,unknown,2025
+0,2025-04-04,0,2025-04-westy-nantes,scoringdance,0,25,scoringdance,Westy Nantes 2025,25,past,0,0,2025-04-04,25,unknown,2025
+0,2025-05-08,0,2025-05-bachata-sphere-weekend-paris,scoringdance,0,10,scoringdance,Bachata Sphere Weekend Paris 2025,10,past,0,0,2025-05-08,10,unknown,2025
+0,2025-05-02,0,2025-05-beemad,scoringdance,0,3,scoringdance,BeeMAD 2025,3,past,0,0,2025-05-02,3,unknown,2025
+9,2025-05-30,198,2025-05-festival-city-swing-edinburgh,scoringdance,15,15,scoringdance,Festival City Swing Edinburgh 2025,0,past,58,15,2025-05-30,0,unknown,2025
+0,2025-05-28,0,2025-05-french-open,scoringdance,0,39,scoringdance,French Open 2025,39,past,0,0,2025-05-28,39,unknown,2025
+35,2025-05-25,844,2025-05-gndc,eepro,10,10,eepro,GNDC,0,past,231,46,2025-05-22,0,unknown,2025
+0,2025-05-30,0,2025-05-hungarian-open,scoringdance,0,16,scoringdance,Hungarian Open 2025,16,past,0,0,2025-05-30,16,unknown,2025
+0,2025-05-08,0,2025-05-med-in-swing,scoringdance,0,20,scoringdance,Med In Swing 2025,20,past,0,0,2025-05-08,20,unknown,2025
+0,2025-05-29,0,2025-05-n-xt-level-swing,scoringdance,0,13,scoringdance,N:XT LEVEL SWING 2025,13,past,0,0,2025-05-29,13,unknown,2025
+0,2025-05-23,0,2025-05-nanaimo-dance-fusion,scoringdance,0,14,scoringdance,Nanaimo Dance Fusion 2025,14,past,0,0,2025-05-23,14,unknown,2025
+0,2025-05-01,0,2025-05-nordic-wcs-championships,scoringdance,0,29,scoringdance,Nordic WCS Championships 2025,29,past,0,0,2025-05-01,29,unknown,2025
+0,2025-05-02,0,2025-05-pure-bachata-summer-festival-bachata-world-cup-geneva-qualifiers-event-germany,scoringdance,0,4,scoringdance,Pure Bachata Summer Festival (Bachata World Cup Geneva 2026 Qualifiers Event – Germany),4,past,0,0,2025-05-02,4,unknown,2025
+0,2025-05-15,0,2025-05-soswing-convention,scoringdance,0,26,scoringdance,SOswing Convention 2025,26,past,0,0,2025-05-15,26,unknown,2025
+0,2025-05-08,0,2025-05-swing-of-music,scoringdance,0,19,scoringdance,Swing of Music 2025,19,past,0,0,2025-05-08,19,unknown,2025
+5,2025-05-04,140,2025-05-swingin-into-spring,eepro,2,2,eepro,Swingin' Into Spring,0,past,32,9,2025-05-01,0,unknown,2025
+5,2025-05-18,275,2025-05-westie-weekend,eepro,3,3,eepro,Westie Weekend,0,past,50,11,2025-05-16,0,unknown,2025
+0,2025-06-19,0,2025-06-bachata-beach-festival,scoringdance,0,3,scoringdance,Bachata Beach Festival 2025,3,past,0,0,2025-06-19,3,unknown,2025
+0,2025-06-20,0,2025-06-bachata-sensual-congress-germany,scoringdance,0,4,scoringdance,Bachata Sensual Congress Germany 2025,4,past,0,0,2025-06-20,4,unknown,2025
+9,2025-06-05,508,2025-06-baltic-swing,scoringdance,22,22,scoringdance,Baltic Swing 2025,0,past,94,22,2025-06-05,0,unknown,2025
+0,2025-06-19,0,2025-06-barock-swing-ludwigsburg,scoringdance,0,14,scoringdance,Barock Swing Ludwigsburg 2025,14,past,0,0,2025-06-19,14,unknown,2025
+0,2025-06-12,0,2025-06-d-town-swing,scoringdance,0,30,scoringdance,D-Town Swing 2025,30,past,0,0,2025-06-12,30,unknown,2025
+0,2025-06-26,0,2025-06-dance-n-play,scoringdance,0,20,scoringdance,Dance N Play 2025,20,past,0,0,2025-06-26,20,unknown,2025
+0,2025-06-26,0,2025-06-french-connection,scoringdance,0,18,scoringdance,French Connection 2025,18,past,0,0,2025-06-26,18,unknown,2025
+0,2025-06-06,0,2025-06-hembsy-chill-silc-competition,scoringdance,0,23,scoringdance,Hembsy Chill SILC Competition 2025,23,past,0,0,2025-06-06,23,unknown,2025
+20,2025-06-08,1707,2025-06-jack-jill-o-rama,eepro,6,6,eepro,Jack & Jill O'Rama,0,past,232,45,2025-06-05,0,unknown,2025
+30,2025-06-29,1074,2025-06-liberty-swing,eepro,12,12,eepro,Liberty Swing,0,past,199,42,2025-06-26,0,unknown,2025
+19,2025-06-01,475,2025-06-michigan-classic,eepro,7,7,eepro,Michigan Classic,0,past,115,25,2025-05-29,0,unknown,2025
+0,2025-06-26,0,2025-06-neverland-swing,scoringdance,0,22,scoringdance,Neverland Swing 2025,22,past,0,0,2025-06-26,22,unknown,2025
+0,2025-06-13,0,2025-06-nordic-bachata-congress,scoringdance,0,5,scoringdance,Nordic Bachata Congress 2025,5,past,0,0,2025-06-13,5,unknown,2025
+26,2025-06-08,148,2025-06-orange-blossom,eepro,6,6,eepro,Orange Blossom,0,past,55,18,2025-06-05,0,unknown,2025
+0,2025-06-12,0,2025-06-terra-livre-dance-festival-summer-edition,scoringdance,0,3,scoringdance,Terra Livre Dance Festival 2025 (Summer Edition),3,past,0,0,2025-06-12,3,unknown,2025
+4,2025-07-13,133,2025-07-big-apple-cdf,eepro,2,2,eepro,Big Apple CDF,0,past,36,7,2025-07-10,0,unknown,2025
+16,2025-07-27,146,2025-07-dance-mardi-gras,eepro,5,5,eepro,Dance Mardi Gras,0,past,59,21,2025-07-24,0,unknown,2025
+0,2025-07-11,0,2025-07-mediterranean-open,scoringdance,0,16,scoringdance,Mediterranean Open 2025,16,past,0,0,2025-07-11,16,unknown,2025
+24,2025-07-20,569,2025-07-midwest-westie-fest,eepro,6,6,eepro,Midwest Westie Fest,0,past,138,29,2025-07-17,0,unknown,2025
+17,2025-07-06,664,2025-07-phoenix-of-july,eepro,7,7,eepro,Phoenix 4th Of July,0,past,170,35,2025-07-03,0,unknown,2025
+0,2025-07-17,0,2025-07-rock-the-barn,scoringdance,0,12,scoringdance,Rock The Barn 2025,12,past,0,0,2025-07-17,12,unknown,2025
+0,2025-07-03,0,2025-07-saunaswing,scoringdance,0,13,scoringdance,SaunaSwing 2025,13,past,0,0,2025-07-03,13,unknown,2025
+0,2025-07-31,0,2025-07-warsaw-summer-nights-westival,scoringdance,0,11,scoringdance,Warsaw Summer Nights Westival 2025,11,past,0,0,2025-07-31,11,unknown,2025
+16,2025-07-06,1124,2025-07-wild-wild-westie,eepro,5,5,eepro,Wild Wild Westie,0,past,167,36,2025-07-03,0,unknown,2025
+25,2025-08-03,293,2025-08-arizona-dance-classic,eepro,7,7,eepro,Arizona Dance Classic,0,past,121,30,2025-07-31,0,unknown,2025
+0,2025-08-01,0,2025-08-bristol-swing-fiesta,scoringdance,0,12,scoringdance,Bristol Swing Fiesta 2025,12,past,0,0,2025-08-01,12,unknown,2025
+0,2025-08-07,0,2025-08-german-open,scoringdance,0,31,scoringdance,German Open 2025,31,past,0,0,2025-08-07,31,unknown,2025
+9,2025-08-15,366,2025-08-grand-party-sofia,scoringdance,16,16,scoringdance,Grand Party Sofia 2025,0,past,62,16,2025-08-15,0,unknown,2025
+0,2025-08-01,0,2025-08-lisbon-westie-fest,scoringdance,0,13,scoringdance,Lisbon Westie Fest 2025,13,past,0,0,2025-08-01,13,unknown,2025
+10,2025-08-03,227,2025-08-ne-dance-festival,eepro,3,3,eepro,NE Dance Festival,0,past,71,16,2025-07-31,0,unknown,2025
+0,2025-08-28,0,2025-08-rolling-swing,scoringdance,0,23,scoringdance,Rolling Swing 2025,23,past,0,0,2025-08-28,23,unknown,2025
+22,2025-08-24,602,2025-08-summer-hummer,eepro,5,5,eepro,Summer Hummer,0,past,167,36,2025-08-21,0,unknown,2025
+29,2025-08-10,928,2025-08-swing-fling,eepro,8,8,eepro,Swing Fling,0,past,203,39,2025-08-07,0,unknown,2025
+8,2025-08-10,766,2025-08-swingtacular,eepro,4,4,eepro,Swingtacular,0,past,95,19,2025-08-07,0,unknown,2025
+16,2025-08-17,683,2025-08-swingtime,eepro,5,5,eepro,SwingTime,0,past,168,33,2025-08-14,0,unknown,2025
+0,2025-08-21,0,2025-08-the-bend-connection,scoringdance,0,17,scoringdance,The Bend Connection 2025,17,past,0,0,2025-08-21,17,unknown,2025
+0,2025-08-14,0,2025-08-uptown-swing,scoringdance,0,16,scoringdance,UpTown Swing 2025,16,past,0,0,2025-08-14,16,unknown,2025
+0,2025-08-30,0,2025-08-wcs-magyar-kupa,scoringdance,0,7,scoringdance,WCS Magyar Kupa 2025,7,past,0,0,2025-08-30,7,unknown,2025
+0,2025-09-04,0,2025-09-bachata-sensual-chicago,scoringdance,0,4,scoringdance,Bachata Sensual Chicago 2025,4,past,0,0,2025-09-04,4,unknown,2025
+0,2025-09-11,0,2025-09-bavarian-open,scoringdance,0,31,scoringdance,Bavarian Open 2025,31,past,0,0,2025-09-11,31,unknown,2025
+1,2025-09-19,62,2025-09-extravadanza-bachata-congress,scoringdance,3,3,scoringdance,Extravadanza Bachata Congress 2025,0,past,5,3,2025-09-19,0,unknown,2025
+0,2025-09-18,0,2025-09-finnfest,scoringdance,0,26,scoringdance,Finnfest 2025,26,past,0,0,2025-09-18,26,unknown,2025
+0,2025-09-24,0,2025-09-midland-swing-open,scoringdance,0,25,scoringdance,Midland Swing Open 2025,25,past,0,0,2025-09-24,25,unknown,2025
+0,2025-09-26,0,2025-09-mooseland-swing,scoringdance,0,12,scoringdance,Mooseland Swing 2025,12,past,0,0,2025-09-26,12,unknown,2025
+13,2025-09-21,265,2025-09-philly-swing-classic,eepro,5,5,eepro,Philly Swing Classic,0,past,89,20,2025-09-19,0,unknown,2025
+0,2025-09-18,0,2025-09-retaliation-swing,scoringdance,0,18,scoringdance,Retaliation Swing 2025,18,past,0,0,2025-09-18,18,unknown,2025
+34,2025-09-30,1216,2025-09-trilogy-swing,wdr,0,0,wdr,Trilogy Swing,0,past,484,50,2025-09-01,0,unknown,2025
+0,2025-09-18,0,2025-09-wcsparty,scoringdance,0,21,scoringdance,WCSParty 2025,21,past,0,0,2025-09-18,21,unknown,2025
+0,2025-10-10,0,2025-10-aloha-open,scoringdance,0,10,scoringdance,Aloha Open 2025,10,past,0,0,2025-10-10,10,unknown,2025
+23,2025-10-05,1108,2025-10-atlanta-swing-classic,eepro,7,7,eepro,Atlanta Swing Classic,0,past,177,42,2025-10-02,0,unknown,2025
+0,2025-10-23,0,2025-10-augsburg-westie-station,scoringdance,0,19,scoringdance,Augsburg Westie Station 2025,19,past,0,0,2025-10-23,19,unknown,2025
+0,2025-10-24,0,2025-10-bachata-zouk-royals,scoringdance,0,5,scoringdance,Bachata Zouk Royals 2025,5,past,0,0,2025-10-24,5,unknown,2025
+0,2025-10-16,0,2025-10-boogie-by-the-bay,scoringdance,0,38,scoringdance,Boogie By the Bay,38,past,0,0,2025-10-16,38,unknown,2025
+15,2025-10-26,598,2025-10-halloween-swingthing,eepro,5,5,eepro,Halloween Swingthing,0,past,135,31,2025-10-23,0,unknown,2025
+0,2025-10-09,0,2025-10-milan-modern-swing,scoringdance,0,27,scoringdance,Milan Modern Swing 2025,27,past,0,0,2025-10-09,27,unknown,2025
+17,2025-10-31,589,2025-10-montreal-westie-fest,wdr,0,0,wdr,Montreal Westie Fest,0,past,183,26,2025-10-01,0,unknown,2025
+0,2025-10-02,0,2025-10-norwegian-open,scoringdance,0,16,scoringdance,Norwegian Open 2025,16,past,0,0,2025-10-02,16,unknown,2025
+20,2025-10-26,285,2025-10-sass,eepro,6,6,eepro,SASS,0,past,129,26,2025-10-23,0,unknown,2025
+0,2025-10-29,0,2025-10-scandinavian-open-snow,scoringdance,0,24,scoringdance,Scandinavian Open 2025 [SNOW],24,past,0,0,2025-10-29,24,unknown,2025
+23,2025-10-31,802,2025-10-swing-city-chicago,wdr,0,0,wdr,Swing City Chicago,0,past,207,38,2025-10-01,0,unknown,2025
+9,2025-10-24,489,2025-10-swingside-invitational,scoringdance,16,16,scoringdance,Swingside Invitational 2025,0,past,66,16,2025-10-24,0,unknown,2025
+11,2025-10-31,308,2025-10-swustlicious,wdr,0,0,wdr,Swustlicious,0,past,82,20,2025-10-01,0,unknown,2025
+0,2025-10-30,0,2025-10-warsaw-halloween-swing,scoringdance,0,25,scoringdance,Warsaw Halloween Swing 2025,25,past,0,0,2025-10-30,25,unknown,2025
+0,2025-10-23,0,2025-10-wcs-festival-dusseldorf,scoringdance,0,21,scoringdance,WCS Festival Düsseldorf 2025,21,past,0,0,2025-10-23,21,unknown,2025
+0,2025-11-06,0,2025-11-autumn-swing-challenge,scoringdance,0,21,scoringdance,Autumn Swing Challenge 2025,21,past,0,0,2025-11-06,21,unknown,2025
+0,2025-11-22,0,2025-11-ceroc-champs,scoringdance,0,53,scoringdance,Ceroc Champs 2025,53,past,0,0,2025-11-22,53,unknown,2025
+29,2025-11-16,1040,2025-11-dc-swing-experience,eepro,6,6,eepro,DC Swing eXperience,0,past,190,40,2025-11-13,0,unknown,2025
+0,2025-11-14,0,2025-11-flowstate,scoringdance,0,9,scoringdance,Flowstate 2025,9,past,0,0,2025-11-14,9,unknown,2025
+28,2025-11-16,763,2025-11-midnight-madness,eepro,14,14,eepro,Midnight Madness,0,past,276,44,2025-11-13,0,unknown,2025
+24,2025-11-23,599,2025-11-northeast-swing-clasic,eepro,7,7,eepro,Northeast Swing Clasic,0,past,164,34,2025-11-20,0,unknown,2025
+0,2025-11-14,0,2025-11-pure-bachata-winter-festival,scoringdance,0,4,scoringdance,Pure Bachata Winter Festival 2025,4,past,0,0,2025-11-14,4,unknown,2025
+23,2025-11-30,445,2025-11-rocket-city-swing,wdr,0,0,wdr,Rocket City Swing,0,past,200,31,2025-11-01,0,unknown,2025
+28,2025-11-30,909,2025-11-the-open,eepro,13,13,eepro,The Open,0,past,277,48,2025-11-26,0,unknown,2025
+0,2025-11-13,0,2025-11-westie-pink-city,scoringdance,0,20,scoringdance,Westie Pink City 2025,20,past,0,0,2025-11-13,20,unknown,2025
+0,2025-11-06,0,2025-11-westie-s-angels,scoringdance,0,27,scoringdance,Westie's Angels 2025,27,past,0,0,2025-11-06,27,unknown,2025
+0,2025-12-05,0,2025-12-bachata-beyond-the-enchanted-realm-of-rhythm,scoringdance,0,6,scoringdance,Bachata Beyond 2025 | The Enchanted Realm of Rhythm,6,past,0,0,2025-12-05,6,unknown,2025
+0,2025-12-11,0,2025-12-berlin-swing-revolution,scoringdance,0,15,scoringdance,Berlin Swing Revolution 2025,15,past,0,0,2025-12-11,15,unknown,2025
+0,2025-12-12,0,2025-12-global-grand-prix-wcs,scoringdance,0,30,scoringdance,Global Grand Prix WCS 2025,30,past,0,0,2025-12-12,30,unknown,2025
+0,2025-12-31,0,2025-12-new-year-s-swing-fling,scoringdance,0,15,scoringdance,New Year's Swing Fling,15,past,0,0,2025-12-31,15,unknown,2025
+0,2025-12-11,0,2025-12-santa-swing,scoringdance,0,12,scoringdance,Santa Swing 2025,12,past,0,0,2025-12-11,12,unknown,2025
+13,2025-12-07,251,2025-12-swingle-bell-rock,eepro,5,5,eepro,Swingle Bell Rock,0,past,92,17,2025-12-04,0,unknown,2025
+0,2025-12-31,0,2025-12-swingvester-26-wsdc,scoringdance,0,43,scoringdance,SwingVester 2025/26 WSDC,43,past,0,0,2025-12-31,43,unknown,2025
+0,2025-12-28,0,2025-12-westie-gala,scoringdance,0,19,scoringdance,Westie Gala 2025/2026,19,past,0,0,2025-12-28,19,unknown,2025
+0,2025-12-04,0,2025-12-winter-white,scoringdance,0,20,scoringdance,Winter White 2025,20,past,0,0,2025-12-04,20,unknown,2025
+17,2026-01-18,536,2026-01-austin-swing-dance-championships,eepro,7,7,eepro,Austin Swing Dance Championships,0,past,148,28,2026-01-15,0,unknown,2026
+0,2026-01-16,0,2026-01-avignon-city-swing,scoringdance,0,19,scoringdance,Avignon City Swing 2026,19,past,0,0,2026-01-16,19,unknown,2026
+0,2026-01-29,0,2026-01-bachazouk-bachata-festival,scoringdance,0,5,scoringdance,BachaZouk Bachata Festival 2026,5,past,0,0,2026-01-29,5,unknown,2026
+0,2026-01-23,0,2026-01-big-3-festival-hamburg-bachata-jack-jill,scoringdance,0,3,scoringdance,Big 3 Festival Hamburg 2026 (Bachata Jack & Jill),3,past,0,0,2026-01-23,3,unknown,2026
+0,2026-01-23,0,2026-01-big-3-festival-hamburg-salsa-jack-jill,scoringdance,0,3,scoringdance,Big 3 Festival Hamburg 2026 (Salsa Jack & Jill),3,past,0,0,2026-01-23,3,unknown,2026
+0,2026-01-06,0,2026-01-budafest,scoringdance,0,29,scoringdance,Budafest 2026,29,past,0,0,2026-01-06,29,unknown,2026
+31,2026-01-04,464,2026-01-countdown-swing-boston,eepro,6,6,eepro,Countdown Swing Boston,0,past,167,36,2025-12-31,0,unknown,2026
+24,2026-01-25,346,2026-01-derby-city-swing,eepro,5,5,eepro,Derby City Swing,0,past,134,33,2026-01-22,0,unknown,2026
+31,2026-01-31,943,2026-01-floorplay-swing-vacation,wdr,0,0,wdr,Floorplay Swing Vacation,0,past,378,45,2026-01-01,0,unknown,2026
+14,2026-01-25,392,2026-01-freedom-swing-dance-challenge,eepro,6,6,eepro,Freedom Swing Dance Challenge,0,past,90,24,2026-01-23,0,unknown,2026
+0,2026-01-30,0,2026-01-latin-dreams,scoringdance,0,3,scoringdance,Latin Dreams 2026,3,past,0,0,2026-01-30,3,unknown,2026
+0,2026-01-15,0,2026-01-monterey-swinfest,scoringdance,0,33,scoringdance,Monterey Swinfest  2026,33,past,0,0,2026-01-15,33,unknown,2026
+34,2026-01-18,126,2026-01-nj-hustle-congress,eepro,9,9,eepro,NJ Hustle Congress,0,past,119,34,2026-01-15,0,unknown,2026
+26,2026-01-25,1077,2026-01-paris-swing-classic,eepro,6,6,eepro,Paris Swing Classic,0,past,154,38,2026-01-22,0,unknown,2026
+0,2026-01-02,0,2026-01-pure-bachata-role-rotation-weekend-cologne,scoringdance,0,3,scoringdance,Pure Bachata - Role Rotation Weekend Cologne 2026,3,past,0,0,2026-01-02,3,unknown,2026
+31,2026-01-03,962,2026-01-spotlight-new-year-s-celebration,eepro,7,7,eepro,Spotlight New Year's Celebration,0,past,209,45,2025-12-30,0,unknown,2026
+0,2026-01-23,0,2026-01-swing-resolution,scoringdance,0,22,scoringdance,Swing Resolution 2026,22,past,0,0,2026-01-23,22,unknown,2026
+20,2026-01-04,573,2026-01-swingcouver,eepro,5,5,eepro,Swingcouver,0,past,166,31,2025-12-31,0,unknown,2026
+13,2026-01-04,430,2026-01-ucwdc-country-dance-world-championships,eepro,6,6,eepro,UCWDC Country Dance World Championships,0,past,102,26,2025-12-28,0,unknown,2026
+0,2026-02-19,0,2026-02-arousa-westie-fest,scoringdance,0,17,scoringdance,Arousa Westie Fest 2026,17,past,0,0,2026-02-19,17,unknown,2026
+20,2026-02-15,803,2026-02-capital-swing,eepro,6,6,eepro,Capital Swing,0,past,182,37,2026-02-12,0,unknown,2026
+0,2026-02-17,0,2026-02-euro-dance-festival,scoringdance,0,16,scoringdance,Euro Dance Festival 2026,16,past,0,0,2026-02-17,16,unknown,2026
+0,2026-02-26,0,2026-02-munich-bachata-fest,scoringdance,0,4,scoringdance,Munich Bachata Fest 2026,4,past,0,0,2026-02-26,4,unknown,2026
+0,2026-02-13,0,2026-02-prague-alchemy-swing,scoringdance,0,15,scoringdance,Prague Alchemy Swing,15,past,0,0,2026-02-13,15,unknown,2026
+0,2026-02-26,0,2026-02-rose-city-swing,scoringdance,0,29,scoringdance,Rose City Swing 2026,29,past,0,0,2026-02-26,29,unknown,2026
+19,2026-02-22,562,2026-02-swing-crush,eepro,5,5,eepro,Swing Crush,0,past,197,32,2026-02-19,0,unknown,2026
+4,2026-02-05,212,2026-02-swingtzerland,scoringdance,9,9,scoringdance,Swingtzerland 2026,0,past,40,9,2026-02-05,0,unknown,2026
+7,2026-02-06,253,2026-02-trinity-swing,scoringdance,14,14,scoringdance,Trinity Swing 2026,0,past,59,14,2026-02-06,0,unknown,2026
+0,2026-02-13,0,2026-02-valentine-swing,scoringdance,0,12,scoringdance,Valentine Swing 2026,12,past,0,0,2026-02-13,12,unknown,2026
+10,2026-02-28,341,2026-02-waterloo-ontario-open-west-coast-swing-championships,wdr,0,0,wdr,Waterloo Ontario Open West Coast Swing Championships,0,past,88,18,2026-02-01,0,unknown,2026
+0,2026-02-19,0,2026-02-winter-coast-swing,scoringdance,0,15,scoringdance,Winter Coast Swing 2026,15,past,0,0,2026-02-19,15,unknown,2026
+0,2026-03-26,0,2026-03-5280-westival,scoringdance,0,21,scoringdance,5280 Westival 2026,21,past,0,0,2026-03-26,21,unknown,2026
+9,2026-03-12,513,2026-03-all-star-swingjam,scoringdance,18,18,scoringdance,All Star SwingJam 2026,0,past,100,18,2026-03-12,0,unknown,2026
+22,2026-03-29,576,2026-03-boston-tea-party,eepro,10,10,eepro,Boston Tea Party,0,past,169,37,2026-03-26,0,unknown,2026
+0,2026-03-12,0,2026-03-dutch-open,scoringdance,0,13,scoringdance,Dutch Open 2026,13,past,0,0,2026-03-12,13,unknown,2026
+22,2026-03-29,575,2026-03-h-town-throw-down,eepro,5,5,eepro,H-Town Throw Down,0,past,133,27,2026-03-26,0,unknown,2026
+5,2026-03-19,627,2026-03-king-swing,scoringdance,14,14,scoringdance,King Swing 2026,0,past,61,14,2026-03-19,0,unknown,2026
+23,2026-03-05,1486,2026-03-madjam,eepro,8,8,eepro,MADjam,0,past,222,49,2026-03-03,0,unknown,2026
+10,2026-03-01,293,2026-03-new-york-flow-festival,eepro,5,5,eepro,New York Flow Festival,0,past,78,16,2026-02-27,0,unknown,2026
+30,2026-03-31,1182,2026-03-the-chicago-classic,wdr,0,0,wdr,The Chicago Classic,0,past,293,52,2026-03-01,0,unknown,2026
+13,2026-03-26,1025,2026-03-uk-west-coast-swing-championships,scoringdance,31,31,scoringdance,UK West Coast Swing Championships 2026,0,past,147,31,2026-03-26,0,unknown,2026
+16,2026-03-12,694,2026-03-west-in-lyon,scoringdance,30,30,scoringdance,West in Lyon 2026,0,past,136,30,2026-03-12,0,unknown,2026
+0,2026-03-12,0,2026-03-westie-spring-thing,scoringdance,0,20,scoringdance,Westie Spring Thing 2026,20,past,0,0,2026-03-12,20,unknown,2026
+0,2026-04-16,0,2026-04-asia-wcs-open,scoringdance,0,21,scoringdance,Asia WCS Open  2026,21,past,0,0,2026-04-16,21,unknown,2026
+19,2026-04-30,724,2026-04-city-of-angels-wcs,scoringdance,33,33,scoringdance,City Of Angels 2026,0,past,177,33,2026-04-01,0,unknown,2026
+0,2026-04-23,0,2026-04-detonation-dance,scoringdance,0,22,scoringdance,Detonation Dance 2026,22,past,0,0,2026-04-23,22,unknown,2026
+0,2026-04-02,0,2026-04-easter-swing,scoringdance,0,28,scoringdance,Easter Swing 2026,28,past,0,0,2026-04-02,28,unknown,2026
+0,2026-04-09,0,2026-04-korean-open,scoringdance,0,29,scoringdance,Korean Open 2026,29,past,0,0,2026-04-09,29,unknown,2026
+0,2026-04-05,0,2026-04-lyon-bachata-festival,scoringdance,0,0,scoringdance,Lyon Bachata Festival 2026,0,past,0,0,2026-04-05,0,unknown,2026
+0,2026-04-30,0,2026-04-nordic-wcs-championships,scoringdance,0,30,scoringdance,Nordic WCS Championships 2026,30,past,0,0,2026-04-30,30,unknown,2026
+0,2026-04-23,0,2026-04-slovenian-open,scoringdance,0,17,scoringdance,Slovenian Open 2026,17,past,0,0,2026-04-23,17,unknown,2026
+0,2026-04-30,0,2026-04-spring-time-swing,scoringdance,0,25,scoringdance,Spring Time Swing 2026,25,past,0,0,2026-04-30,25,unknown,2026
+19,2026-04-30,630,2026-04-swing-in-bloom,wdr,0,0,wdr,Swing In Bloom,0,past,242,26,2026-04-01,0,unknown,2026
+10,2026-04-09,487,2026-04-swing-in-capital,scoringdance,22,22,scoringdance,Swing In Capital 2026,0,past,89,22,2026-04-09,0,unknown,2026
+0,2026-04-23,0,2026-04-swingin-festival,scoringdance,0,16,scoringdance,SwingIn Festival 2026,16,past,0,0,2026-04-23,16,unknown,2026
+30,2026-04-26,787,2026-04-swingover,eepro,6,6,eepro,Swingover,0,past,179,35,2026-04-23,0,unknown,2026
+25,2026-04-05,476,2026-04-tulsa-spring-swing,eepro,7,7,eepro,Tulsa Spring Swing,0,past,246,32,2026-04-03,0,unknown,2026
+0,2026-04-10,0,2026-04-westy-nantes,scoringdance,0,21,scoringdance,Westy Nantes 2026,21,past,0,0,2026-04-10,21,unknown,2026
+6,2026-05-01,252,2026-05-beemad,scoringdance,12,12,scoringdance,BeeMAD 2026,0,past,53,12,2026-05-01,0,unknown,2026
+0,2026-05-29,0,2026-05-festival-city-swing-edinburgh,scoringdance,0,12,scoringdance,Festival City Swing Edinburgh 2026,12,past,0,0,2026-05-29,12,unknown,2026
+21,2026-05-13,795,2026-05-french-open,scoringdance,36,36,scoringdance,French Open 2026,0,past,162,36,2026-05-13,0,unknown,2026
+27,2026-05-17,428,2026-05-gateway-swing-classic,eepro,8,8,eepro,Gateway Swing Classic,0,past,117,28,2026-05-14,0,unknown,2026
+34,2026-05-25,779,2026-05-gndc,eepro,10,10,eepro,GNDC,0,past,235,49,2026-05-21,0,unknown,2026
+0,2026-05-22,0,2026-05-hungarian-open,scoringdance,0,16,scoringdance,Hungarian Open 2026,16,past,0,0,2026-05-22,16,unknown,2026
+0,2026-05-07,0,2026-05-med-in-swing,scoringdance,0,21,scoringdance,Med In Swing 2026,21,past,0,0,2026-05-07,21,unknown,2026
+18,2026-05-31,454,2026-05-michigan-classic,eepro,6,6,eepro,Michigan Classic,0,past,110,25,2026-05-28,0,unknown,2026
+0,2026-05-28,0,2026-05-nanaimo-dance-fusion,scoringdance,0,14,scoringdance,Nanaimo Dance Fusion 2026,14,past,0,0,2026-05-28,14,unknown,2026
+0,2026-05-14,0,2026-05-soswing-convention,scoringdance,0,27,scoringdance,SOswing Convention 2026,27,past,0,0,2026-05-14,27,unknown,2026
+0,2026-05-07,0,2026-05-swing-of-music,scoringdance,0,22,scoringdance,Swing of Music 2026,22,past,0,0,2026-05-07,22,unknown,2026
+5,2026-05-03,186,2026-05-swingin-into-spring,eepro,2,2,eepro,Swingin' Into Spring,0,past,44,11,2026-05-01,0,unknown,2026
+5,2026-05-10,270,2026-05-westie-weekend,eepro,3,3,eepro,Westie Weekend,0,past,45,12,2026-05-08,0,unknown,2026
+0,2026-06-18,0,2026-06-bachata-beach-festival,scoringdance,0,1,scoringdance,Bachata Beach Festival,1,past,0,0,2026-06-18,1,unknown,2026
+0,2026-06-11,0,2026-06-baltic-swing,scoringdance,0,26,scoringdance,Baltic Swing 2026,26,past,0,0,2026-06-11,26,unknown,2026
+0,2026-06-25,0,2026-06-baroqueswing-ludwigsburg,scoringdance,0,14,scoringdance,BaroqueSwing Ludwigsburg 2026,14,past,0,0,2026-06-25,14,unknown,2026
+17,2026-06-18,734,2026-06-d-town-swing,scoringdance,31,31,scoringdance,D-Town Swing 2026,0,past,182,31,2026-06-18,0,unknown,2026
+83,2026-06-14,313,2026-06-disco-america,eepro,6,6,eepro,Disco America,0,past,274,83,2026-06-11,0,unknown,2026
+0,2026-06-05,0,2026-06-hembsy-chill-silc-competition,scoringdance,0,20,scoringdance,Hembsy Chill SILC Competition 2026,20,past,0,0,2026-06-05,20,unknown,2026
+20,2026-06-07,1798,2026-06-jack-jill-o-rama,eepro,6,6,eepro,Jack & Jill O'Rama,0,past,229,45,2026-06-04,0,unknown,2026
+29,2026-06-30,910,2026-06-liberty-swing,eepro,8,8,eepro,Liberty Swing,0,past,183,40,2026-06-25,0,unknown,2026
+0,2026-06-18,0,2026-06-milan-swing-vibes,scoringdance,0,21,scoringdance,Milan Swing Vibes 2026,21,past,0,0,2026-06-18,21,unknown,2026
+0,2026-06-25,0,2026-06-neverland-swing,scoringdance,0,20,scoringdance,Neverland Swing 2026,20,past,0,0,2026-06-25,20,unknown,2026
+32,2026-06-07,204,2026-06-orange-blossom,eepro,6,6,eepro,Orange Blossom,0,past,76,21,2026-06-04,0,unknown,2026
+24,2026-06-30,725,2026-06-swingapalooza,wdr,0,0,wdr,Swingapalooza,0,past,300,34,2026-06-01,0,unknown,2026
+5,2026-07-12,158,2026-07-big-apple-dance-festival,eepro,2,2,eepro,Big Apple Dance Festival,0,past,38,9,2026-07-09,0,unknown,2026
+24,2026-07-31,799,2026-07-carolina-summer-swing,wdr,0,0,wdr,Carolina Summer Swing,0,past,232,38,2026-07-01,0,unknown,2026
+26,2026-07-31,814,2026-07-florida-dance-magic,wdr,0,0,wdr,Florida Dance Magic,0,past,295,41,2026-07-01,0,unknown,2026
+0,2026-07-03,0,2026-07-french-connection,scoringdance,0,20,scoringdance,French Connection 2026,20,past,0,0,2026-07-03,20,unknown,2026
+0,2026-07-23,0,2026-07-infinite-swing-munich,scoringdance,0,14,scoringdance,Infinite Swing Munich 2026,14,past,0,0,2026-07-23,14,unknown,2026
+9,2026-07-09,517,2026-07-mediterranean-open,scoringdance,20,20,scoringdance,Mediterranean Open 2026,0,past,70,19,2026-07-09,0,unknown,2026
+24,2026-07-19,542,2026-07-midwest-westie-fest,eepro,6,6,eepro,Midwest Westie Fest,0,past,134,28,2026-07-16,0,unknown,2026
+0,2026-07-09,0,2026-07-my-swing,scoringdance,0,16,scoringdance,My Swing 2026,16,past,0,0,2026-07-09,16,unknown,2026
+18,2026-07-05,756,2026-07-phoenix-of-july,eepro,10,10,eepro,Phoenix 4th Of July,0,past,177,38,2026-07-02,0,unknown,2026
+0,2026-07-16,0,2026-07-rock-the-barn,scoringdance,0,14,scoringdance,Rock The Barn 2026,14,past,0,0,2026-07-16,14,unknown,2026
+0,2026-07-02,0,2026-07-saunaswing,scoringdance,0,13,scoringdance,SaunaSwing 2026,13,past,0,0,2026-07-02,13,unknown,2026
+0,2026-07-25,0,2026-07-sea-sun-swing-camp,scoringdance,0,19,scoringdance,Sea Sun & Swing Camp 2026,19,past,0,0,2026-07-25,19,unknown,2026
+9,2026-07-09,538,2026-07-swinglab-berlin,scoringdance,21,21,scoringdance,SwingLab Berlin,0,past,96,21,2026-07-09,0,unknown,2026
+0,2026-07-30,0,2026-07-warsaw-summer-nights-westival,scoringdance,0,13,scoringdance,Warsaw Summer Nights Westival 2026,13,past,0,0,2026-07-30,13,unknown,2026
+16,2026-07-05,1066,2026-07-wild-wild-westie,eepro,5,5,eepro,Wild Wild Westie,0,past,163,35,2026-07-02,0,unknown,2026
+4,2026-08-02,17,2026-08-arizona-dance-classic,eepro,3,3,eepro,Arizona Dance Classic,0,past,11,5,2026-07-30,0,unknown,2026
+6,2026-08-28,317,2026-08-bristol-swing-fiesta,scoringdance,0,0,scoringdance,Bristol Swing Fiesta 2026,0,past,62,12,2026-08-28,0,unknown,2026
+13,2026-08-31,1081,2026-08-desert-city-swing,wdr,0,0,wdr,Desert City Swing,0,past,160,32,2026-08-01,0,unknown,2026
+0,2026-08-05,0,2026-08-german-open,scoringdance,0,38,scoringdance,German Open 2026,38,past,0,0,2026-08-05,38,unknown,2026
+0,2026-08-13,0,2026-08-grand-party-sofia,scoringdance,0,20,scoringdance,Grand Party Sofia 2026,20,past,0,0,2026-08-13,20,unknown,2026
+0,2026-08-01,0,2026-08-lisbon-westie-fest,scoringdance,0,17,scoringdance,Lisbon Westie Fest 2026,17,past,0,0,2026-08-01,17,unknown,2026
+0,2026-08-21,0,2026-08-manneken-swing,scoringdance,0,17,scoringdance,Manneken Swing 2026,17,past,0,0,2026-08-21,17,unknown,2026
+0,2026-08-27,0,2026-08-rolling-swing,scoringdance,0,28,scoringdance,Rolling Swing 2026,28,past,0,0,2026-08-27,28,unknown,2026
+21,2026-08-23,586,2026-08-summer-hummer,eepro,0,0,eepro,Summer Hummer,0,past,162,35,2026-08-20,0,unknown,2026
+0,2026-08-20,0,2026-08-swing-creation-hamburg,scoringdance,0,24,scoringdance,Swing Creation Hamburg,24,past,0,0,2026-08-20,24,unknown,2026
+28,2026-08-09,893,2026-08-swing-fling,eepro,6,6,eepro,Swing Fling,0,past,180,38,2026-08-06,0,unknown,2026
+8,2026-08-09,744,2026-08-swingtacular,eepro,4,4,eepro,Swingtacular,0,past,82,19,2026-08-06,0,unknown,2026
+0,2026-08-21,0,2026-08-the-bend-connection,scoringdance,0,20,scoringdance,The Bend Connection 2026,20,past,0,0,2026-08-21,20,unknown,2026
+0,2026-08-14,0,2026-08-uptown-swing,scoringdance,0,17,scoringdance,UpTown Swing 2026,17,past,0,0,2026-08-14,17,unknown,2026
+0,2026-08-21,0,2026-08-westie-joy,scoringdance,0,20,scoringdance,Westie Joy 2026,20,past,0,0,2026-08-21,20,unknown,2026
+0,2026-09-20,0,2026-09-austin-rocks,wsdc_calendar,0,0,,Austin Rocks,0,future,0,0,2026-09-18,0,registry,2026
+0,2026-09-14,0,2026-09-bavarian-open-west-coast-swing-championships,wsdc_calendar,0,0,,Bavarian Open West Coast Swing Championships,0,current,0,0,2026-09-10,0,registry,2026
+0,2026-09-27,0,2026-09-best-of-the-best-wcs,wsdc_calendar,0,0,,Best of the Best WCS,0,future,0,0,2026-09-24,0,registry,2026
+0,2026-09-27,0,2026-09-calgary-town-open,wsdc_calendar,0,0,,Calgary Town Open,0,future,0,0,2026-09-24,0,registry,2026
+0,2026-09-21,0,2026-09-finnfest,wsdc_calendar,0,0,,Finnfest,0,future,0,0,2026-09-18,0,registry,2026
+0,2026-09-21,0,2026-09-global-grand-prix-west-coast-swing-championships,wsdc_calendar,0,0,,Global Grand Prix -- West Coast Swing Championships,0,future,0,0,2026-09-18,0,trial,2026
+0,2026-09-28,0,2026-09-meet-me-in-st-louis,wsdc_calendar,0,0,,Meet Me In St Louis,0,future,0,0,2026-09-24,0,registry,2026
+0,2026-09-28,0,2026-09-midland-swing-open,wsdc_calendar,0,0,,Midland Swing Open,0,future,0,0,2026-09-24,0,registry,2026
+0,2026-09-28,0,2026-09-mooseland-swing,wsdc_calendar,0,0,,Mooseland Swing 2026,0,future,0,0,2026-09-24,0,registry,2026
+0,2026-09-27,0,2026-09-philly-swing-classic,wsdc_calendar,0,0,,Philly Swing Classic,0,future,0,0,2026-09-25,0,registry,2026
+0,2026-09-20,0,2026-09-retaliation-swing,wsdc_calendar,0,0,,Retaliation Swing,0,future,0,0,2026-09-17,0,registry,2026
+0,2026-09-13,0,2026-09-sea-dance-fest,wsdc_calendar,0,0,,Sea Dance Fest,0,current,0,0,2026-09-11,0,registry,2026
+0,2026-09-13,0,2026-09-swingtime-denver,wsdc_calendar,0,0,,SwingTime Denver,0,current,0,0,2026-09-10,0,registry,2026
+0,2026-09-27,0,2026-09-the-aloha-open,wsdc_calendar,0,0,,The Aloha Open,0,future,0,0,2026-09-23,0,registry,2026
+0,2026-09-13,0,2026-09-trilogy-swing,wsdc_calendar,0,0,,Trilogy Swing,0,current,0,0,2026-09-10,0,registry,2026
+0,2026-09-21,0,2026-09-wcs-party-in-vienna,wsdc_calendar,0,0,,WCS Party in Vienna,0,future,0,0,2026-09-17,0,registry,2026
+0,2026-10-04,0,2026-10-atlanta-swing-classic,wsdc_calendar,0,0,,Atlanta Swing Classic,0,future,0,0,2026-10-01,0,registry,2026
+0,2026-10-25,0,2026-10-augsburg-westie-station,wsdc_calendar,0,0,,Augsburg Westie Station,0,future,0,0,2026-10-22,0,registry,2026
+0,2026-10-05,0,2026-10-autumn-beat,wsdc_calendar,0,0,,Autumn Beat,0,future,0,0,2026-10-02,0,trial,2026
+0,2026-10-12,0,2026-10-boogie-by-the-bay,wsdc_calendar,0,0,,Boogie By The Bay,0,future,0,0,2026-10-08,0,registry,2026
+0,2026-10-25,0,2026-10-halloween-swingthing,wsdc_calendar,0,0,,Halloween SwingThing,0,future,0,0,2026-10-22,0,registry,2026
+0,2026-10-18,0,2026-10-milan-modern-swing,wsdc_calendar,0,0,,Milan Modern Swing,0,future,0,0,2026-10-15,0,registry,2026
+0,2026-10-11,0,2026-10-montreal-westie-fest,wsdc_calendar,0,0,,Montreal Westie Fest,0,future,0,0,2026-10-09,0,registry,2026
+0,2026-10-04,0,2026-10-norwegian-open-wcs,wsdc_calendar,0,0,,Norwegian Open WCS,0,future,0,0,2026-10-01,0,registry,2026
+0,2026-10-18,0,2026-10-paradise-dance-festival,wsdc_calendar,0,0,,Paradise dance Festival,0,future,0,0,2026-10-15,0,registry,2026
+0,2026-10-05,0,2026-10-riverswingnights,wsdc_calendar,0,0,,RiverSwingNights,0,future,0,0,2026-10-01,0,trial,2026
+0,2026-10-25,0,2026-10-sass-spooky-albany-swing-spectacular,wsdc_calendar,0,0,,SASS- Spooky Albany Swing Spectacular,0,future,0,0,2026-10-22,0,registry,2026
+0,2026-10-25,0,2026-10-swing-city-chicago,wsdc_calendar,0,0,,Swing City Chicago,0,future,0,0,2026-10-22,0,registry,2026
+0,2026-10-25,0,2026-10-swingside-invitational,wsdc_calendar,0,0,,Swingside Invitational,0,future,0,0,2026-10-23,0,registry,2026
+0,2026-10-18,0,2026-10-swustlicious,wsdc_calendar,0,0,,Swustlicious,0,future,0,0,2026-10-16,0,registry,2026
+0,2026-10-18,0,2026-10-the-new-zealand-west-coast-swing-open,wsdc_calendar,0,0,,The New Zealand West Coast Swing Open,0,future,0,0,2026-10-15,0,registry,2026
+0,2026-10-18,0,2026-10-wcs-festival,wsdc_calendar,0,0,,WCS Festival,0,future,0,0,2026-10-16,0,registry,2026
+0,2026-10-05,0,2026-10-westie-harbor,wsdc_calendar,0,0,,Westie Harbor,0,future,0,0,2026-10-01,0,trial,2026
+0,2026-11-15,0,2026-11-autumn-swing-challenge,wsdc_calendar,0,0,,Autumn Swing Challenge,0,future,0,0,2026-11-13,0,registry,2026
+0,2026-11-29,0,2026-11-cash-bash,wsdc_calendar,0,0,,CASH Bash,0,future,0,0,2026-11-26,0,registry,2026
+0,2026-11-22,0,2026-11-dc-swing-experience-dcsx,wsdc_calendar,0,0,,DC Swing eXperience (DCSX),0,future,0,0,2026-11-19,0,registry,2026
+0,2026-11-15,0,2026-11-flowstate-west-coast-swing-zouk-festival,wsdc_calendar,0,0,,Flowstate | West Coast Swing & Zouk Festival,0,future,0,0,2026-11-13,0,registry,2026
+0,2026-11-15,0,2026-11-midnight-madness-wcs,wsdc_calendar,0,0,,Midnight Madness WCS 2026,0,future,0,0,2026-11-12,0,registry,2026
+0,2026-11-08,0,2026-11-moscow-westie-fest-gala-edition,wsdc_calendar,0,0,,Moscow Westie Fest Gala Edition,0,future,0,0,2026-11-06,0,registry,2026
+0,2026-11-08,0,2026-11-mountain-magic-dance-convention,wsdc_calendar,0,0,,Mountain Magic Dance Convention,0,future,0,0,2026-11-05,0,registry,2026
+0,2026-11-15,0,2026-11-northeast-swing-classic,wsdc_calendar,0,0,,Northeast Swing Classic,0,future,0,0,2026-11-12,0,registry,2026
+0,2026-11-22,0,2026-11-rocket-city-swing,wsdc_calendar,0,0,,Rocket City Swing,0,future,0,0,2026-11-19,0,registry,2026
+0,2026-11-02,0,2026-11-scandinavian-open-wcs-snow,wsdc_calendar,0,0,,"Scandinavian Open WCS ""SNOW""",0,future,0,0,2026-10-28,0,registry,2026
+0,2026-11-09,0,2026-11-sea-to-sky-seattle,wsdc_calendar,0,0,,Sea to Sky Seattle,0,future,0,0,2026-11-05,0,registry,2026
+0,2026-11-08,0,2026-11-simply-adelaide-west-coast-swing,wsdc_calendar,0,0,,Simply Adelaide West Coast Swing,0,future,0,0,2026-11-05,0,registry,2026
+0,2026-11-01,0,2026-11-spooky-westie-weekend,wsdc_calendar,0,0,,Spooky Westie Weekend,0,future,0,0,2026-10-29,0,registry,2026
+0,2026-11-08,0,2026-11-tampa-bay-classic,wsdc_calendar,0,0,,Tampa Bay Classic,0,future,0,0,2026-11-05,0,registry,2026
+0,2026-11-29,0,2026-11-the-open-swing-dance-championships,wsdc_calendar,0,0,,The Open Swing Dance Championships,0,future,0,0,2026-11-25,0,registry,2026
+0,2026-11-02,0,2026-11-warsaw-halloween-swing,wsdc_calendar,0,0,,Warsaw Halloween Swing,0,future,0,0,2026-10-29,0,registry,2026
+0,2026-11-08,0,2026-11-westie-pink-city,wsdc_calendar,0,0,,Westie Pink City,0,future,0,0,2026-11-06,0,registry,2026
+0,2026-11-15,0,2026-11-westie-s-angels,wsdc_calendar,0,0,,Westie's Angels,0,future,0,0,2026-11-12,0,registry,2026
+0,2026-12-13,0,2026-12-berlin-swing-revolution,wsdc_calendar,0,0,,Berlin Swing Revolution,0,future,0,0,2026-12-10,0,registry,2026
+0,2026-12-14,0,2026-12-santa-swing,wsdc_calendar,0,0,,Santa Swing,0,future,0,0,2026-12-10,0,registry,2026
+0,2026-12-13,0,2026-12-soul-flow-west-coast-swing-festival,wsdc_calendar,0,0,,Soul Flow - West Coast Swing Festival (Hiatus -- 2026),0,future,0,0,2026-12-11,0,registry,2026
+0,2026-12-20,0,2026-12-swiss-open-wcs,wsdc_calendar,0,0,,Swiss Open WCS,0,future,0,0,2026-12-18,0,trial,2026
+0,2026-12-07,0,2026-12-the-after-party-aka-tap,wsdc_calendar,0,0,,The After Party aka TAP,0,future,0,0,2026-12-03,0,registry,2026
+0,2026-12-06,0,2026-12-winter-white,wsdc_calendar,0,0,,Winter White,0,future,0,0,2026-12-03,0,registry,2026
+0,2027-01-17,0,2027-01-austin-swing-dance-championships,wsdc_calendar,0,0,,Austin Swing Dance Championships,0,future,0,0,2027-01-14,0,registry,2027
+0,2027-01-17,0,2027-01-avignon-city-swing,wsdc_calendar,0,0,,Avignon City Swing,0,future,0,0,2027-01-15,0,registry,2027
+0,2027-01-10,0,2027-01-budafest-open-wcs-championships,wsdc_calendar,0,0,,BudaFest Open WCS Championships,0,future,0,0,2027-01-05,0,registry,2027
+0,2027-01-17,0,2027-01-cologne-calling-wcs,wsdc_calendar,0,0,,Cologne Calling WCS,0,future,0,0,2027-01-14,0,trial,2027
+0,2027-01-25,0,2027-01-cosmic-connection,wsdc_calendar,0,0,,Cosmic Connection,0,future,0,0,2027-01-22,0,trial,2027
+0,2027-01-03,0,2027-01-countdown-swing-boston,wsdc_calendar,0,0,,Countdown Swing Boston,0,future,0,0,2026-12-31,0,registry,2027
+0,2027-01-24,0,2027-01-derby-city-swing,wsdc_calendar,0,0,,Derby City Swing,0,future,0,0,2027-01-21,0,registry,2027
+0,2027-01-03,0,2027-01-floorplay-swing-vacation,wsdc_calendar,0,0,,Floorplay Swing Vacation,0,future,0,0,2026-12-30,0,registry,2027
+0,2027-01-24,0,2027-01-freedom-swing-dance-challenge,wsdc_calendar,0,0,,Freedom Swing Dance Challenge,0,future,0,0,2027-01-22,0,registry,2027
+0,2027-01-17,0,2027-01-monterey-swing-fest,wsdc_calendar,0,0,,Monterey Swing Fest,0,future,0,0,2027-01-15,0,registry,2027
+0,2027-01-03,0,2027-01-new-years-swing-fling,wsdc_calendar,0,0,,New Years Swing Fling,0,future,0,0,2026-12-30,0,registry,2027
+0,2027-01-03,0,2027-01-spotlight-new-year-s-celebration,wsdc_calendar,0,0,,Spotlight New Year's Celebration,0,future,0,0,2026-12-30,0,registry,2027
+0,2027-01-25,0,2027-01-swing-in-paris,wsdc_calendar,0,0,,Swing In Paris,0,future,0,0,2027-01-22,0,trial,2027
+0,2027-01-25,0,2027-01-swing-resolution,wsdc_calendar,0,0,,SWING RESOLUTION,0,future,0,0,2027-01-21,0,registry,2027
+0,2027-01-11,0,2027-01-swingco,wsdc_calendar,0,0,,SwingCo,0,future,0,0,2027-01-07,0,registry,2027
+0,2027-01-04,0,2027-01-swingvester,wsdc_calendar,0,0,,SwingVester,0,future,0,0,2026-12-30,0,registry,2027
+0,2027-01-03,0,2027-01-ucwdc-country-dance-world-championships,wsdc_calendar,0,0,,UCWDC Country Dance World Championships,0,future,0,0,2026-12-28,0,registry,2027
+0,2027-01-31,0,2027-01-ultra-westie-fest,wsdc_calendar,0,0,,ULTRA Westie Fest,0,future,0,0,2027-01-29,0,trial,2027
+0,2027-01-04,0,2027-01-westie-gala,wsdc_calendar,0,0,,Westie Gala,0,future,0,0,2026-12-31,0,registry,2027
+0,2027-02-21,0,2027-02-arousa-westie-fest,wsdc_calendar,0,0,,Arousa Westie Fest,0,future,0,0,2027-02-18,0,registry,2027
+0,2027-02-14,0,2027-02-capital-swing-convention,wsdc_calendar,0,0,,Capital Swing Convention,0,future,0,0,2027-02-11,0,registry,2027
+0,2027-02-07,0,2027-02-charlotte-westiefest,wsdc_calendar,0,0,,Charlotte WestieFest,0,future,0,0,2027-02-04,0,registry,2027
+0,2027-02-14,0,2027-02-euro-dance-festival,wsdc_calendar,0,0,,Euro Dance Festival,0,future,0,0,2027-02-09,0,registry,2027
+0,2027-02-28,0,2027-02-new-york-flow-festival,wsdc_calendar,0,0,,New York Flow Festival,0,future,0,0,2027-02-26,0,registry,2027
+0,2027-02-21,0,2027-02-prague-alchemy-swing,wsdc_calendar,0,0,,Prague Alchemy Swing,0,future,0,0,2027-02-19,0,registry,2027
+0,2027-02-28,0,2027-02-rose-city-swing,wsdc_calendar,0,0,,Rose City Swing,0,future,0,0,2027-02-25,0,registry,2027
+0,2027-02-28,0,2027-02-southern-lights-swing,wsdc_calendar,0,0,,Southern Lights Swing,0,future,0,0,2027-02-25,0,registry,2027
+0,2027-02-22,0,2027-02-swing-crush,wsdc_calendar,0,0,,Swing Crush,0,future,0,0,2027-02-18,0,registry,2027
+0,2027-02-07,0,2027-02-swing-snow,wsdc_calendar,0,0,,Swing & Snow,0,future,0,0,2027-02-04,0,registry,2027
+0,2027-02-07,0,2027-02-swingtzerland,wsdc_calendar,0,0,,Swingtzerland,0,future,0,0,2027-02-04,0,registry,2027
+0,2027-02-07,0,2027-02-trinity-swing,wsdc_calendar,0,0,,Trinity Swing,0,future,0,0,2027-02-05,0,registry,2027
+0,2027-02-22,0,2027-02-valentine-swing,wsdc_calendar,0,0,,Valentine Swing,0,future,0,0,2027-02-19,0,registry,2027
+0,2027-02-07,0,2027-02-waterloo-ontario-open-west-coast-swing-championships,wsdc_calendar,0,0,,Waterloo Ontario Open West Coast Swing Championships,0,future,0,0,2027-02-04,0,registry,2027
+0,2027-02-28,0,2027-02-winter-coast-swing,wsdc_calendar,0,0,,Winter Coast Swing,0,future,0,0,2027-02-25,0,registry,2027
+0,2027-03-15,0,2027-03-5280-westival,wsdc_calendar,0,0,,5280 Westival,0,future,0,0,2027-03-11,0,registry,2027
+0,2027-03-14,0,2027-03-dutch-open-wcs,wsdc_calendar,0,0,,Dutch Open Wcs,0,future,0,0,2027-03-11,0,registry,2027
+0,2027-03-28,0,2027-03-easter-swing,wsdc_calendar,0,0,,Easter Swing,0,future,0,0,2027-03-25,0,registry,2027
+0,2027-03-14,0,2027-03-h-town-throw-down,wsdc_calendar,0,0,,H-Town Throw Down 2027,0,future,0,0,2027-03-11,0,registry,2027
+0,2027-03-14,0,2027-03-high-desert-dance-classic,wsdc_calendar,0,0,,High Desert Dance Classic,0,future,0,0,2027-03-12,0,registry,2027
+0,2027-03-22,0,2027-03-king-swing,wsdc_calendar,0,0,,King Swing,0,future,0,0,2027-03-18,0,registry,2027
+0,2027-03-08,0,2027-03-madjam-mid-atlantic-dance-jam,wsdc_calendar,0,0,,MADjam (Mid Atlantic Dance Jam),0,future,0,0,2027-03-04,0,registry,2027
+0,2027-03-08,0,2027-03-norway-westie-fest,wsdc_calendar,0,0,,Norway Westie Fest,0,future,0,0,2027-03-05,0,trial,2027
+0,2027-03-01,0,2027-03-paris-swing-classic,wsdc_calendar,0,0,,Paris Swing Classic,0,future,0,0,2027-02-25,0,registry,2027
+0,2027-03-07,0,2027-03-swingvasion,wsdc_calendar,0,0,,Swingvasion,0,future,0,0,2027-03-05,0,registry,2027
+0,2027-03-22,0,2027-03-the-boston-tea-party,wsdc_calendar,0,0,,The Boston Tea Party,0,future,0,0,2027-03-19,0,registry,2027
+0,2027-03-21,0,2027-03-the-chicago-classic,wsdc_calendar,0,0,,The Chicago Classic,0,future,0,0,2027-03-18,0,registry,2027
+0,2027-03-28,0,2027-03-tulsa-spring-swing,wsdc_calendar,0,0,,TULSA SPRING SWING,0,future,0,0,2027-03-25,0,registry,2027
+0,2027-03-29,0,2027-03-uk-west-coast-swing-championships,wsdc_calendar,0,0,,UK West Coast Swing Championships,0,future,0,0,2027-03-25,0,registry,2027
+0,2027-03-22,0,2027-03-west-in-lyon,wsdc_calendar,0,0,,West In Lyon,0,future,0,0,2027-03-18,0,registry,2027
+0,2027-03-14,0,2027-03-westie-spring-thing,wsdc_calendar,0,0,,Westie Spring Thing,0,future,0,0,2027-03-11,0,registry,2027
+0,2027-04-18,0,2027-04-asia-wcs-open,wsdc_calendar,0,0,,Asia WCS Open 2027,0,future,0,0,2027-04-15,0,registry,2027
+0,2027-04-26,0,2027-04-detonation-dance,wsdc_calendar,0,0,,Detonation Dance,0,future,0,0,2027-04-22,0,registry,2027
+0,2027-04-11,0,2027-04-franconian-swing-project,wsdc_calendar,0,0,,Franconian Swing Project,0,future,0,0,2027-04-08,0,trial,2027
+0,2027-04-25,0,2027-04-honey-fest,wsdc_calendar,0,0,,HONEY FEST,0,future,0,0,2027-04-22,0,registry,2027
+0,2027-04-11,0,2027-04-korean-open-wcs-championships,wsdc_calendar,0,0,,KOREAN OPEN WCS CHAMPIONSHIPS,0,future,0,0,2027-04-08,0,registry,2027
+0,2027-04-25,0,2027-04-sgi-swing-de-garotos-invitational,wsdc_calendar,0,0,,SGI - Swing de Garotos Invitational,0,future,0,0,2027-04-23,0,trial,2027
+0,2027-04-19,0,2027-04-slovenian-open,wsdc_calendar,0,0,,Slovenian Open,0,future,0,0,2027-04-14,0,registry,2027
+0,2027-04-25,0,2027-04-swing-in-bloom,wsdc_calendar,0,0,,Swing in Bloom,0,future,0,0,2027-04-22,0,registry,2027
+0,2027-04-04,0,2027-04-swing-in-capital,wsdc_calendar,0,0,,Swing In Capital,0,future,0,0,2027-04-01,0,registry,2027
+0,2027-04-25,0,2027-04-swingin-festival,wsdc_calendar,0,0,,SwingIn Festival,0,future,0,0,2027-04-22,0,registry,2027
+0,2027-04-25,0,2027-04-swingover,wsdc_calendar,0,0,,Swingover 2027,0,future,0,0,2027-04-22,0,registry,2027
+0,2027-04-18,0,2027-04-westy-nantes,wsdc_calendar,0,0,,WESTY NANTES,0,future,0,0,2027-04-16,0,registry,2027
+0,2027-05-02,0,2027-05-beemad,wsdc_calendar,0,0,,BeeMAD,0,future,0,0,2027-04-29,0,registry,2027
+0,2027-05-02,0,2027-05-calgary-dance-stampede,wsdc_calendar,0,0,,Calgary Dance Stampede,0,future,0,0,2027-04-29,0,registry,2027
+0,2027-05-02,0,2027-05-city-of-angels-wcs,wsdc_calendar,0,0,,City of Angels WCS,0,future,0,0,2027-04-29,0,registry,2027
+0,2027-05-10,0,2027-05-french-open-wcs,wsdc_calendar,0,0,,French Open WCS,0,future,0,0,2027-05-05,0,registry,2027
+0,2027-05-23,0,2027-05-gateway-swing-classic,wsdc_calendar,0,0,,Gateway Swing Classic,0,future,0,0,2027-05-20,0,registry,2027
+0,2027-05-17,0,2027-05-med-in-swing,wsdc_calendar,0,0,,Med in Swing,0,future,0,0,2027-05-14,0,registry,2027
+0,2027-05-23,0,2027-05-nanaimo-dance-fusion,wsdc_calendar,0,0,,Nanaimo Dance Fusion,0,future,0,0,2027-05-21,0,registry,2027
+0,2027-05-03,0,2027-05-nordic-wcs-championships,wsdc_calendar,0,0,,Nordic WCS Championships,0,future,0,0,2027-04-29,0,registry,2027
+0,2027-05-17,0,2027-05-som-swing-of-music,wsdc_calendar,0,0,,SOM-Swing of Music,0,future,0,0,2027-05-14,0,registry,2027
+0,2027-05-16,0,2027-05-soswing,wsdc_calendar,0,0,,SOswing,0,future,0,0,2027-05-13,0,registry,2027
+0,2027-05-24,0,2027-05-spring-time-swing,wsdc_calendar,0,0,,Spring Time Swing,0,future,0,0,2027-05-20,0,registry,2027
+0,2027-05-02,0,2027-05-swingin-into-spring,wsdc_calendar,0,0,,Swingin' Into Spring,0,future,0,0,2027-04-29,0,registry,2027
+0,2027-05-17,0,2027-05-swingsation,wsdc_calendar,0,0,,Swingsation,0,future,0,0,2027-05-13,0,registry,2027
+0,2027-05-31,0,2027-05-usa-grand-national-dance-championships,wsdc_calendar,0,0,,USA Grand National Dance Championships,0,future,0,0,2027-05-27,0,registry,2027
+0,2027-05-09,0,2027-05-westie-weekend,wsdc_calendar,0,0,,Westie Weekend,0,future,0,0,2027-05-07,0,registry,2027
+0,2027-06-14,0,2027-06-baltic-swing,wsdc_calendar,0,0,,Baltic Swing,0,future,0,0,2027-06-10,0,registry,2027
+0,2027-06-27,0,2027-06-baroqueswing,wsdc_calendar,0,0,,BaroqueSwing,0,future,0,0,2027-06-24,0,registry,2027
+0,2027-06-13,0,2027-06-d-townswing,wsdc_calendar,0,0,,D-TOWNSWING 2027,0,future,0,0,2027-06-10,0,registry,2027
+0,2027-06-07,0,2027-06-festival-city-swing,wsdc_calendar,0,0,,Festival City Swing,0,future,0,0,2027-06-03,0,registry,2027
+0,2027-06-28,0,2027-06-french-connection-wcs,wsdc_calendar,0,0,,French Connection WCS,0,future,0,0,2027-06-25,0,registry,2027
+0,2027-06-28,0,2027-06-liberty-swing-dance-championships,wsdc_calendar,0,0,,Liberty Swing Dance Championships,0,future,0,0,2027-06-24,0,registry,2027
+0,2027-06-06,0,2027-06-michigan-classic,wsdc_calendar,0,0,,Michigan Classic,0,future,0,0,2027-06-03,0,registry,2027
+0,2027-06-28,0,2027-06-neverlandswing-dutch-swing-championships,wsdc_calendar,0,0,,NeverlandSwing Dutch Swing Championships 2027,0,future,0,0,2027-06-24,0,registry,2027
+0,2027-06-20,0,2027-06-swingapalooza,wsdc_calendar,0,0,,SWINGAPALOOZA,0,future,0,0,2027-06-17,0,registry,2027
+0,2027-07-11,0,2027-07-carolina-summer-swing,wsdc_calendar,0,0,,Carolina Summer Swing,0,future,0,0,2027-07-08,0,registry,2027
+0,2027-07-25,0,2027-07-florida-dance-magic,wsdc_calendar,0,0,,Florida Dance Magic,0,future,0,0,2027-07-22,0,registry,2027
+0,2027-07-18,0,2027-07-midwest-westie-fest,wsdc_calendar,0,0,,Midwest Westie Fest,0,future,0,0,2027-07-15,0,registry,2027
+0,2027-07-18,0,2027-07-revitalise-wcs,wsdc_calendar,0,0,,Revitalise WCS,0,future,0,0,2027-07-15,0,registry,2027
+0,2027-07-25,0,2027-07-st-petersburg-wcs-nights,wsdc_calendar,0,0,,St. Petersburg WCS Nights,0,future,0,0,2027-07-22,0,registry,2027
+0,2027-07-04,0,2027-07-swing-valley,wsdc_calendar,0,0,,Swing Valley,0,future,0,0,2027-07-01,0,trial,2027
+0,2027-08-08,0,2027-08-arizona-dance-classic,wsdc_calendar,0,0,,Arizona Dance Classic,0,future,0,0,2027-08-06,0,registry,2027
+0,2027-08-22,0,2027-08-chicagoland-country-and-swing-dance-festival,wsdc_calendar,0,0,,Chicagoland Country and Swing Dance Festival,0,future,0,0,2027-08-20,0,registry,2027
+0,2027-08-16,0,2027-08-grand-party-sofia-gps,wsdc_calendar,0,0,,Grand Party Sofia (GPS),0,future,0,0,2027-08-12,0,registry,2027
+0,2027-08-01,0,2027-08-infinite-swing,wsdc_calendar,0,0,,Infinite Swing,0,future,0,0,2027-07-29,0,registry,2027
+0,2027-08-01,0,2027-08-lisbon-westie-fest,wsdc_calendar,0,0,,Lisbon Westie Fest,0,future,0,0,2027-07-30,0,registry,2027
+0,2027-08-22,0,2027-08-summer-hummer,wsdc_calendar,0,0,,Summer Hummer,0,future,0,0,2027-08-19,0,registry,2027
+0,2027-08-08,0,2027-08-swingtacular-the-galactic-open,wsdc_calendar,0,0,,Swingtacular: The Galactic Open,0,future,0,0,2027-08-05,0,registry,2027
+0,2027-08-22,0,2027-08-the-bend-connection,wsdc_calendar,0,0,,The Bend Connection,0,future,0,0,2027-08-19,0,registry,2027
+0,2027-08-02,0,2027-08-warsaw-summer-nights-westival,wsdc_calendar,0,0,,Warsaw Summer Nights Westival,0,future,0,0,2027-07-29,0,registry,2027
+0,2027-09-19,0,2027-09-best-of-the-best-wcs,wsdc_calendar,0,0,,Best of the Best WCS,0,future,0,0,2027-09-16,0,registry,2027
+0,2027-09-06,0,2027-09-desert-city-swing,wsdc_calendar,0,0,,Desert City Swing,0,future,0,0,2027-09-02,0,registry,2027
+0,2027-09-20,0,2027-09-finnfest,wsdc_calendar,0,0,,Finnfest,0,future,0,0,2027-09-17,0,registry,2027
+0,2027-10-10,0,2027-10-atlanta-swing-classic,wsdc_calendar,0,0,,Atlanta Swing Classic,0,future,0,0,2027-10-07,0,registry,2027
+0,2027-10-24,0,2027-10-swingside-invitational,wsdc_calendar,0,0,,Swingside Invitational,0,future,0,0,2027-10-22,0,registry,2027
+0,2027-10-17,0,2027-10-wcs-festival,wsdc_calendar,0,0,,WCS Festival,0,future,0,0,2027-10-15,0,registry,2027
+0,2028-03-05,0,2028-03-euro-dance-festival,wsdc_calendar,0,0,,Euro Dance Festival,0,future,0,0,2028-02-29,0,registry,2028
+0,2028-05-07,0,2028-05-spring-time-swing,wsdc_calendar,0,0,,Spring Time Swing,0,future,0,0,2028-05-04,0,registry,2028
+0,2028-10-01,0,2028-10-atlanta-swing-classic,wsdc_calendar,0,0,,Atlanta Swing Classic,0,future,0,0,2028-09-28,0,registry,2028
+0,2029-02-18,0,2029-02-euro-dance-festival,wsdc_calendar,0,0,,Euro Dance Festival,0,future,0,0,2029-02-13,0,registry,2029
+0,2030-03-10,0,2030-03-euro-dance-festival,wsdc_calendar,0,0,,Euro Dance Festival,0,future,0,0,2030-03-05,0,registry,2030

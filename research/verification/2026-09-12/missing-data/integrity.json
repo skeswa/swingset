@@ -1,0 +1,794 @@
+{
+  "candidate": "/Users/skeswa/repos/skeswa/swingset/tmp/missing-data-2026-09-12/candidate",
+  "manifest": {
+    "candidate_id": "cand_9671fadae32d4be2",
+    "built_at": "2026-09-12T16:33:13.882797+00:00",
+    "repository_commit": "064066d0ec64516ac96b2c3954971050df8219f3",
+    "latest_event_covered": "2026-08-31"
+  },
+  "integrity": {
+    "file_hash_failures": [],
+    "schema_failures": [],
+    "row_count_mismatches": {},
+    "manifest_tables_without_data": [],
+    "duplicate_primary_keys": {
+      "events": 0,
+      "contests": 0,
+      "rounds": 0,
+      "entries": 0,
+      "heats": 0,
+      "judges": 0,
+      "callback_marks": 0,
+      "callbacks": 0,
+      "final_marks": 0,
+      "placements": 0,
+      "dancers": 0,
+      "registry_placements": 0,
+      "identity_links": 0,
+      "link_candidates": 0,
+      "review_queue": 0,
+      "changelog": 0,
+      "snapshots": 0
+    },
+    "missing_foreign_references": {
+      "contests.event_id->events.event_id": 0,
+      "rounds.contest_id->contests.contest_id": 0,
+      "entries.event_id->events.event_id": 0,
+      "entries.contest_id->contests.contest_id": 0,
+      "entries.partner_entry_id->entries.entry_id": 0,
+      "judges.event_id->events.event_id": 0,
+      "heats.round_id->rounds.round_id": 0,
+      "heats.entry_id->entries.entry_id": 0,
+      "callback_marks.round_id->rounds.round_id": 0,
+      "callback_marks.entry_id->entries.entry_id": 0,
+      "callback_marks.judge_id->judges.judge_id": 0,
+      "callbacks.round_id->rounds.round_id": 0,
+      "callbacks.entry_id->entries.entry_id": 0,
+      "placements.round_id->rounds.round_id": 0,
+      "placements.contest_id->contests.contest_id": 0,
+      "placements.event_id->events.event_id": 0,
+      "placements.leader_entry_id->entries.entry_id": 0,
+      "placements.follower_entry_id->entries.entry_id": 0,
+      "placements.couple_entry_id->entries.entry_id": 0,
+      "final_marks.round_id->rounds.round_id": 0,
+      "final_marks.placement_id->placements.placement_id": 0,
+      "final_marks.judge_id->judges.judge_id": 0,
+      "registry_placements.wsdc_id->dancers.wsdc_id": 0,
+      "registry_placements.event_id->events.event_id": 0,
+      "identity_links.subject_id->typed_subject": 0
+    },
+    "missing_snapshot_references": {
+      "events": 0,
+      "contests": 0,
+      "rounds": 0,
+      "entries": 0,
+      "heats": 0,
+      "judges": 0,
+      "callback_marks": 0,
+      "callbacks": 0,
+      "final_marks": 0,
+      "placements": 0,
+      "dancers": 0,
+      "registry_placements": 0
+    },
+    "invalid_event_dates": [],
+    "dirty_contest_headings": [],
+    "relationship_errors": [
+      {
+        "check_name": "entry_event_vs_contest",
+        "n": 0
+      },
+      {
+        "check_name": "placement_contest_vs_round",
+        "n": 0
+      },
+      {
+        "check_name": "placement_event_vs_contest",
+        "n": 0
+      },
+      {
+        "check_name": "callback_entry_vs_round_contest",
+        "n": 0
+      },
+      {
+        "check_name": "partner_not_mutual",
+        "n": 0
+      },
+      {
+        "check_name": "partner_cross_contest",
+        "n": 0
+      },
+      {
+        "check_name": "final_mark_round_vs_placement",
+        "n": 0
+      }
+    ],
+    "placement_role_errors": 0,
+    "placement_sequence_errors": 0,
+    "callback_aggregate_mismatches": [],
+    "registry_point_evidence_orphans": 0
+  },
+  "coverage": {
+    "row_counts": {
+      "events": 573,
+      "contests": 2312,
+      "rounds": 3625,
+      "entries": 76343,
+      "heats": 0,
+      "judges": 3791,
+      "callback_marks": 380244,
+      "callbacks": 77624,
+      "final_marks": 101647,
+      "placements": 18005,
+      "dancers": 27784,
+      "registry_placements": 197990,
+      "identity_links": 80134,
+      "link_candidates": 84809,
+      "review_queue": 4750,
+      "changelog": 5355647,
+      "snapshots": 30904
+    },
+    "events_by_source": [
+      {
+        "source": "eepro",
+        "events": 72,
+        "events_with_contests": 72,
+        "events_with_placements": 72,
+        "placements": 10637
+      },
+      {
+        "source": "scoringdance",
+        "events": 319,
+        "events_with_contests": 52,
+        "events_with_placements": 52,
+        "placements": 4224
+      },
+      {
+        "source": "wdr",
+        "events": 13,
+        "events_with_contests": 13,
+        "events_with_placements": 13,
+        "placements": 3144
+      },
+      {
+        "source": "wsdc_calendar",
+        "events": 169,
+        "events_with_contests": 0,
+        "events_with_placements": 0,
+        "placements": 0
+      }
+    ],
+    "results_by_source_year": [
+      {
+        "source": "eepro",
+        "year": 2024,
+        "events": 1,
+        "placements": 280
+      },
+      {
+        "source": "eepro",
+        "year": 2025,
+        "events": 37,
+        "placements": 5402
+      },
+      {
+        "source": "eepro",
+        "year": 2026,
+        "events": 34,
+        "placements": 4955
+      },
+      {
+        "source": "scoringdance",
+        "year": 2018,
+        "events": 1,
+        "placements": 9
+      },
+      {
+        "source": "scoringdance",
+        "year": 2020,
+        "events": 2,
+        "placements": 120
+      },
+      {
+        "source": "scoringdance",
+        "year": 2022,
+        "events": 2,
+        "placements": 267
+      },
+      {
+        "source": "scoringdance",
+        "year": 2023,
+        "events": 5,
+        "placements": 382
+      },
+      {
+        "source": "scoringdance",
+        "year": 2024,
+        "events": 14,
+        "placements": 1269
+      },
+      {
+        "source": "scoringdance",
+        "year": 2025,
+        "events": 14,
+        "placements": 743
+      },
+      {
+        "source": "scoringdance",
+        "year": 2026,
+        "events": 14,
+        "placements": 1434
+      },
+      {
+        "source": "wdr",
+        "year": 2025,
+        "events": 5,
+        "placements": 1156
+      },
+      {
+        "source": "wdr",
+        "year": 2026,
+        "events": 8,
+        "placements": 1988
+      }
+    ],
+    "event_field_gaps": [
+      {
+        "source": "eepro",
+        "events": 72,
+        "override_placeholders": 0,
+        "missing_city": 72,
+        "missing_country": 72
+      },
+      {
+        "source": "scoringdance",
+        "events": 319,
+        "override_placeholders": 1,
+        "missing_city": 319,
+        "missing_country": 319
+      },
+      {
+        "source": "wdr",
+        "events": 13,
+        "override_placeholders": 13,
+        "missing_city": 13,
+        "missing_country": 13
+      },
+      {
+        "source": "wsdc_calendar",
+        "events": 169,
+        "override_placeholders": 0,
+        "missing_city": 0,
+        "missing_country": 8
+      }
+    ],
+    "contest_status": [
+      {
+        "source": "eepro",
+        "parse_status": "parsed",
+        "n": 1408
+      },
+      {
+        "source": "eepro",
+        "parse_status": "unsupported",
+        "n": 168
+      },
+      {
+        "source": "scoringdance",
+        "parse_status": "parsed",
+        "n": 451
+      },
+      {
+        "source": "wdr",
+        "parse_status": "parsed",
+        "n": 285
+      }
+    ],
+    "callback_outcomes": [
+      {
+        "source": "eepro",
+        "outcome": "alternate_1",
+        "n": 1337
+      },
+      {
+        "source": "eepro",
+        "outcome": "eliminated",
+        "n": 23437
+      },
+      {
+        "source": "eepro",
+        "outcome": "promoted",
+        "n": 23266
+      },
+      {
+        "source": "scoringdance",
+        "outcome": "alternate",
+        "n": 453
+      },
+      {
+        "source": "scoringdance",
+        "outcome": "alternate_1",
+        "n": 312
+      },
+      {
+        "source": "scoringdance",
+        "outcome": "alternate_2",
+        "n": 253
+      },
+      {
+        "source": "scoringdance",
+        "outcome": "alternate_3",
+        "n": 133
+      },
+      {
+        "source": "scoringdance",
+        "outcome": "eliminated",
+        "n": 12189
+      },
+      {
+        "source": "scoringdance",
+        "outcome": "promoted",
+        "n": 12485
+      },
+      {
+        "source": "wdr",
+        "outcome": "promoted",
+        "n": 3759
+      }
+    ],
+    "entry_identity": [
+      {
+        "source": "eepro",
+        "link_status": "confirmed",
+        "entries": 3463,
+        "with_wsdc_id": 3463,
+        "nameless": 0,
+        "without_bib": 11
+      },
+      {
+        "source": "eepro",
+        "link_status": "possible",
+        "entries": 6396,
+        "with_wsdc_id": 0,
+        "nameless": 0,
+        "without_bib": 286
+      },
+      {
+        "source": "eepro",
+        "link_status": "probable",
+        "entries": 16918,
+        "with_wsdc_id": 16918,
+        "nameless": 0,
+        "without_bib": 295
+      },
+      {
+        "source": "eepro",
+        "link_status": "unmatched",
+        "entries": 16112,
+        "with_wsdc_id": 0,
+        "nameless": 0,
+        "without_bib": 375
+      },
+      {
+        "source": "scoringdance",
+        "link_status": "confirmed",
+        "entries": 18252,
+        "with_wsdc_id": 18252,
+        "nameless": 0,
+        "without_bib": 1495
+      },
+      {
+        "source": "scoringdance",
+        "link_status": "possible",
+        "entries": 124,
+        "with_wsdc_id": 0,
+        "nameless": 0,
+        "without_bib": 18
+      },
+      {
+        "source": "scoringdance",
+        "link_status": "probable",
+        "entries": 809,
+        "with_wsdc_id": 809,
+        "nameless": 0,
+        "without_bib": 87
+      },
+      {
+        "source": "scoringdance",
+        "link_status": "unmatched",
+        "entries": 4394,
+        "with_wsdc_id": 0,
+        "nameless": 0,
+        "without_bib": 354
+      },
+      {
+        "source": "wdr",
+        "link_status": "confirmed",
+        "entries": 1048,
+        "with_wsdc_id": 1048,
+        "nameless": 0,
+        "without_bib": 33
+      },
+      {
+        "source": "wdr",
+        "link_status": "possible",
+        "entries": 959,
+        "with_wsdc_id": 0,
+        "nameless": 0,
+        "without_bib": 58
+      },
+      {
+        "source": "wdr",
+        "link_status": "probable",
+        "entries": 3235,
+        "with_wsdc_id": 3235,
+        "nameless": 0,
+        "without_bib": 1047
+      },
+      {
+        "source": "wdr",
+        "link_status": "unmatched",
+        "entries": 4633,
+        "with_wsdc_id": 0,
+        "nameless": 1149,
+        "without_bib": 1508
+      }
+    ],
+    "review_kinds": [
+      {
+        "kind": "unknown_enum",
+        "n": 2506
+      },
+      {
+        "kind": "registry_diff",
+        "n": 1231
+      },
+      {
+        "kind": "conflict",
+        "n": 653
+      },
+      {
+        "kind": "unsupported_contest",
+        "n": 168
+      },
+      {
+        "kind": "ambiguous_entry",
+        "n": 100
+      },
+      {
+        "kind": "event_alias",
+        "n": 64
+      },
+      {
+        "kind": "parse_warning",
+        "n": 26
+      },
+      {
+        "kind": "missing_identity",
+        "n": 1
+      },
+      {
+        "kind": "parse_failure",
+        "n": 1
+      }
+    ],
+    "review_summaries": [
+      {
+        "kind": "registry_diff",
+        "summary": "Mirror dancer absent from registry dump",
+        "n": 881
+      },
+      {
+        "kind": "registry_diff",
+        "summary": "Registry dump differs from mirror",
+        "n": 350
+      },
+      {
+        "kind": "conflict",
+        "summary": "Conflicting callback marks for one entry and judge",
+        "n": 305
+      },
+      {
+        "kind": "conflict",
+        "summary": "Registry contains conflicting placement claims for one key",
+        "n": 303
+      },
+      {
+        "kind": "unsupported_contest",
+        "summary": "Contest format is not supported",
+        "n": 168
+      },
+      {
+        "kind": "unknown_enum",
+        "summary": "WDR S<n> callback outcome omitted pending verified semantics",
+        "n": 167
+      },
+      {
+        "kind": "unknown_enum",
+        "summary": "Unknown callback mark '21'",
+        "n": 138
+      },
+      {
+        "kind": "ambiguous_entry",
+        "summary": "Multiple entries share a contest, role, and normalized name",
+        "n": 100
+      },
+      {
+        "kind": "unknown_enum",
+        "summary": "Unknown callback mark '26'",
+        "n": 83
+      },
+      {
+        "kind": "unknown_enum",
+        "summary": "Unknown callback mark '17'",
+        "n": 77
+      },
+      {
+        "kind": "event_alias",
+        "summary": "Source event is not matched to a calendar event",
+        "n": 64
+      },
+      {
+        "kind": "unknown_enum",
+        "summary": "Unknown callback mark '2'",
+        "n": 56
+      },
+      {
+        "kind": "unknown_enum",
+        "summary": "Unknown callback mark '4'",
+        "n": 56
+      },
+      {
+        "kind": "unknown_enum",
+        "summary": "Unknown callback mark '7'",
+        "n": 52
+      },
+      {
+        "kind": "unknown_enum",
+        "summary": "Unknown callback mark '8'",
+        "n": 52
+      },
+      {
+        "kind": "unknown_enum",
+        "summary": "Unknown callback mark '9'",
+        "n": 52
+      },
+      {
+        "kind": "unknown_enum",
+        "summary": "Unknown callback mark '11'",
+        "n": 51
+      },
+      {
+        "kind": "unknown_enum",
+        "summary": "Unknown callback mark '12'",
+        "n": 51
+      },
+      {
+        "kind": "unknown_enum",
+        "summary": "Unknown callback mark '5'",
+        "n": 51
+      },
+      {
+        "kind": "unknown_enum",
+        "summary": "Unknown callback mark '6'",
+        "n": 51
+      },
+      {
+        "kind": "unknown_enum",
+        "summary": "Unknown callback mark '13'",
+        "n": 37
+      },
+      {
+        "kind": "unknown_enum",
+        "summary": "Unknown callback mark '16'",
+        "n": 33
+      },
+      {
+        "kind": "unknown_enum",
+        "summary": "Unknown callback mark '14'",
+        "n": 32
+      },
+      {
+        "kind": "unknown_enum",
+        "summary": "Unknown callback mark '15'",
+        "n": 32
+      },
+      {
+        "kind": "unknown_enum",
+        "summary": "Unknown callback mark '20'",
+        "n": 24
+      },
+      {
+        "kind": "unknown_enum",
+        "summary": "Unknown callback mark '18'",
+        "n": 23
+      },
+      {
+        "kind": "unknown_enum",
+        "summary": "Unknown callback mark '19'",
+        "n": 23
+      },
+      {
+        "kind": "unknown_enum",
+        "summary": "Unknown callback mark 'scratched'",
+        "n": 23
+      },
+      {
+        "kind": "unknown_enum",
+        "summary": "WDR Am/Pro roles omitted pending explicit role labels",
+        "n": 15
+      },
+      {
+        "kind": "unknown_enum",
+        "summary": "Unknown callback mark '22'",
+        "n": 14
+      },
+      {
+        "kind": "unknown_enum",
+        "summary": "Unknown callback mark '23'",
+        "n": 14
+      },
+      {
+        "kind": "parse_warning",
+        "summary": "WDR S<n> callback value is preserved without interpretation",
+        "n": 13
+      },
+      {
+        "kind": "parse_warning",
+        "summary": "WDR finals Bib # is preserved without assigning it to a partner",
+        "n": 13
+      },
+      {
+        "kind": "unknown_enum",
+        "summary": "Unknown callback mark '25'",
+        "n": 9
+      },
+      {
+        "kind": "unknown_enum",
+        "summary": "Unknown callback mark '76.30'",
+        "n": 8
+      },
+      {
+        "kind": "unknown_enum",
+        "summary": "Unknown callback mark '24'",
+        "n": 7
+      },
+      {
+        "kind": "unknown_enum",
+        "summary": "Unknown callback mark '79.50'",
+        "n": 6
+      },
+      {
+        "kind": "unknown_enum",
+        "summary": "Unknown callback mark '8.8'",
+        "n": 6
+      },
+      {
+        "kind": "unknown_enum",
+        "summary": "Unknown callback mark '87.60'",
+        "n": 6
+      },
+      {
+        "kind": "unknown_enum",
+        "summary": "Unknown callback mark '89.00'",
+        "n": 6
+      },
+      {
+        "kind": "unknown_enum",
+        "summary": "Unknown callback mark '89.20'",
+        "n": 6
+      },
+      {
+        "kind": "unknown_enum",
+        "summary": "Unknown callback mark '92.10'",
+        "n": 6
+      },
+      {
+        "kind": "unknown_enum",
+        "summary": "Unknown callback mark '40.8'",
+        "n": 5
+      },
+      {
+        "kind": "unknown_enum",
+        "summary": "Unknown callback mark '65.4'",
+        "n": 5
+      },
+      {
+        "kind": "conflict",
+        "summary": "Eliminated callback conflicts with later-round participation",
+        "n": 4
+      },
+      {
+        "kind": "conflict",
+        "summary": "Source event edition year contradicts its date",
+        "n": 4
+      },
+      {
+        "kind": "unknown_enum",
+        "summary": "Unknown callback mark '21-SV'",
+        "n": 4
+      },
+      {
+        "kind": "unknown_enum",
+        "summary": "Unknown callback mark '32.6'",
+        "n": 4
+      },
+      {
+        "kind": "unknown_enum",
+        "summary": "Unknown callback mark '37.3'",
+        "n": 4
+      },
+      {
+        "kind": "unknown_enum",
+        "summary": "Unknown callback mark '52.8'",
+        "n": 4
+      }
+    ],
+    "registry": {
+      "placements": 197990,
+      "mapped_to_event": 20835,
+      "dancers_with_placements": 27456
+    },
+    "placement_registry_points": [
+      {
+        "source": "eepro",
+        "placements": 10637,
+        "registry_confirmed": 889,
+        "with_registry_points": 1009,
+        "expected_match": 972,
+        "expected_mismatch": 0
+      },
+      {
+        "source": "scoringdance",
+        "placements": 4224,
+        "registry_confirmed": 551,
+        "with_registry_points": 571,
+        "expected_match": 537,
+        "expected_mismatch": 0
+      },
+      {
+        "source": "wdr",
+        "placements": 3144,
+        "registry_confirmed": 280,
+        "with_registry_points": 309,
+        "expected_match": 287,
+        "expected_mismatch": 0
+      }
+    ],
+    "natural_entry_duplicates": [
+      {
+        "source": "eepro",
+        "duplicate_groups": 111,
+        "excess_rows": 112
+      },
+      {
+        "source": "scoringdance",
+        "duplicate_groups": 25,
+        "excess_rows": 34
+      }
+    ],
+    "named_placeholder_entries": [],
+    "event_time_coverage": [
+      {
+        "period": "current",
+        "events": 4,
+        "with_contests": 0,
+        "with_placements": 0
+      },
+      {
+        "period": "future",
+        "events": 165,
+        "with_contests": 0,
+        "with_placements": 0
+      },
+      {
+        "period": "past",
+        "events": 404,
+        "with_contests": 137,
+        "with_placements": 137
+      }
+    ]
+  },
+  "ok": true,
+  "violations": []
+}

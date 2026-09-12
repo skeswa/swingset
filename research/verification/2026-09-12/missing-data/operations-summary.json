@@ -1,0 +1,535 @@
+{
+  "capture": {
+    "started_at": "2026-09-12T16:37:01.277273+00:00",
+    "finished_at": "2026-09-12T16:37:03.216753+00:00",
+    "candidate": "/var/lib/swingset/candidates/cand_9671fadae32d4be2",
+    "publication": {
+      "commit": "845d92a04e30b03d4a7081655e754ec2cea323aa"
+    },
+    "baseline_unchanged": true,
+    "comparison_sha256": "ae7f2b9d688b69b49d08dfc718f60e5ef6b4b6561054d2503e8c94b8ae5e1d53",
+    "state_sha256": "165dc25256c448f8a5b2c1f9183c45af9e07f60560be99f446192907bcd48ee9"
+  },
+  "watch_coverage": [
+    {
+      "source": "crosscheck",
+      "kind": "registry_dump",
+      "state": "archived",
+      "watches": 1,
+      "never_checked": 1,
+      "without_observation": 1
+    },
+    {
+      "source": "eepro",
+      "kind": "autoindex",
+      "state": "archived",
+      "watches": 67,
+      "never_checked": 0,
+      "without_observation": 0
+    },
+    {
+      "source": "eepro",
+      "kind": "autoindex",
+      "state": "cooling",
+      "watches": 1,
+      "never_checked": 0,
+      "without_observation": 0
+    },
+    {
+      "source": "eepro",
+      "kind": "autoindex",
+      "state": "dormant",
+      "watches": 4,
+      "never_checked": 0,
+      "without_observation": 0
+    },
+    {
+      "source": "eepro",
+      "kind": "index",
+      "state": "live",
+      "watches": 1,
+      "never_checked": 0,
+      "without_observation": 0
+    },
+    {
+      "source": "eepro",
+      "kind": "round",
+      "state": "archived",
+      "watches": 424,
+      "never_checked": 0,
+      "without_observation": 0
+    },
+    {
+      "source": "eepro",
+      "kind": "round",
+      "state": "cooling",
+      "watches": 5,
+      "never_checked": 0,
+      "without_observation": 0
+    },
+    {
+      "source": "eepro",
+      "kind": "round",
+      "state": "dormant",
+      "watches": 18,
+      "never_checked": 0,
+      "without_observation": 0
+    },
+    {
+      "source": "scoringdance",
+      "kind": "event",
+      "state": "archived",
+      "watches": 312,
+      "never_checked": 0,
+      "without_observation": 0
+    },
+    {
+      "source": "scoringdance",
+      "kind": "event",
+      "state": "cooling",
+      "watches": 7,
+      "never_checked": 0,
+      "without_observation": 0
+    },
+    {
+      "source": "scoringdance",
+      "kind": "event",
+      "state": "live",
+      "watches": 64,
+      "never_checked": 0,
+      "without_observation": 1
+    },
+    {
+      "source": "scoringdance",
+      "kind": "index",
+      "state": "live",
+      "watches": 2,
+      "never_checked": 0,
+      "without_observation": 0
+    },
+    {
+      "source": "scoringdance",
+      "kind": "round",
+      "state": "archived",
+      "watches": 863,
+      "never_checked": 0,
+      "without_observation": 0
+    },
+    {
+      "source": "scoringdance",
+      "kind": "round",
+      "state": "cooling",
+      "watches": 12,
+      "never_checked": 0,
+      "without_observation": 0
+    },
+    {
+      "source": "scoringdance",
+      "kind": "round",
+      "state": "dormant",
+      "watches": 33,
+      "never_checked": 0,
+      "without_observation": 0
+    },
+    {
+      "source": "scoringdance",
+      "kind": "round",
+      "state": "live",
+      "watches": 4482,
+      "never_checked": 4482,
+      "without_observation": 4482
+    },
+    {
+      "source": "wdr",
+      "kind": "event",
+      "state": "archived",
+      "watches": 12,
+      "never_checked": 0,
+      "without_observation": 0
+    },
+    {
+      "source": "wdr",
+      "kind": "event",
+      "state": "cooling",
+      "watches": 1,
+      "never_checked": 0,
+      "without_observation": 0
+    },
+    {
+      "source": "wdr",
+      "kind": "json",
+      "state": "archived",
+      "watches": 12,
+      "never_checked": 0,
+      "without_observation": 0
+    },
+    {
+      "source": "wdr",
+      "kind": "json",
+      "state": "cooling",
+      "watches": 1,
+      "never_checked": 0,
+      "without_observation": 0
+    },
+    {
+      "source": "wsdc_calendar",
+      "kind": "index",
+      "state": "live",
+      "watches": 1,
+      "never_checked": 0,
+      "without_observation": 0
+    },
+    {
+      "source": "wsdc_registry",
+      "kind": "dancer",
+      "state": "registry",
+      "watches": 29048,
+      "never_checked": 0,
+      "without_observation": 0
+    }
+  ],
+  "latest_snapshot_health": [
+    {
+      "source": "crosscheck",
+      "classification": "OK",
+      "parse_status": "parsed",
+      "watches": 1
+    },
+    {
+      "source": "eepro",
+      "classification": "Ok",
+      "parse_status": "ok",
+      "watches": 520
+    },
+    {
+      "source": "scoringdance",
+      "classification": "Ok",
+      "parse_status": "failed",
+      "watches": 1
+    },
+    {
+      "source": "scoringdance",
+      "classification": "Ok",
+      "parse_status": "ok",
+      "watches": 1292
+    },
+    {
+      "source": "wdr",
+      "classification": "Ok",
+      "parse_status": "ok",
+      "watches": 26
+    },
+    {
+      "source": "wsdc_calendar",
+      "classification": "Ok",
+      "parse_status": "ok",
+      "watches": 1
+    },
+    {
+      "source": "wsdc_registry",
+      "classification": "Ok",
+      "parse_status": "ok",
+      "watches": 29048
+    }
+  ],
+  "open_findings": [
+    {
+      "kind": "ambiguous_entry",
+      "severity": "warning",
+      "findings": 100
+    },
+    {
+      "kind": "conflict",
+      "severity": "warning",
+      "findings": 653
+    },
+    {
+      "kind": "missing_identity",
+      "severity": "warning",
+      "findings": 1
+    },
+    {
+      "kind": "parse_failure",
+      "severity": "error",
+      "findings": 1
+    },
+    {
+      "kind": "parse_warning",
+      "severity": "warning",
+      "findings": 26
+    },
+    {
+      "kind": "registry_diff",
+      "severity": "warning",
+      "findings": 1231
+    },
+    {
+      "kind": "unknown_enum",
+      "severity": "warning",
+      "findings": 2506
+    }
+  ],
+  "pending_work": [],
+  "cursors": [
+    {
+      "name": "registry_probe_cursor",
+      "value": "29029"
+    },
+    {
+      "name": "registry_probe_misses",
+      "value": "0"
+    },
+    {
+      "name": "registry_probe_started_at",
+      "value": "2026-09-12T14:00:07.372556+00:00"
+    },
+    {
+      "name": "registry_trickle_day",
+      "value": "2026-09-12"
+    }
+  ],
+  "budget": [
+    {
+      "host": "eepro.com",
+      "day": "2026-09-12",
+      "requests": 23,
+      "bytes": 243800
+    },
+    {
+      "host": "points.worldsdc.com",
+      "day": "2026-09-12",
+      "requests": 17712,
+      "bytes": 73458153
+    },
+    {
+      "host": "scores.worlddanceregistry.com",
+      "day": "2026-09-12",
+      "requests": 3,
+      "bytes": 243
+    },
+    {
+      "host": "scoring.dance",
+      "day": "2026-09-12",
+      "requests": 800,
+      "bytes": 46296806
+    },
+    {
+      "host": "worldsdc.com",
+      "day": "2026-09-12",
+      "requests": 2,
+      "bytes": 251136
+    }
+  ],
+  "registry_due": [
+    {
+      "purpose": "confirmation",
+      "watches": 155
+    },
+    {
+      "purpose": "probe",
+      "watches": 20
+    }
+  ],
+  "registry_probe_watches": [
+    {
+      "source_ref": "wsdc:29029",
+      "last_checked_at": "2026-09-12T13:09:02.463727+00:00",
+      "next_check_at": "2026-09-12T16:32:07.271241+00:00"
+    },
+    {
+      "source_ref": "wsdc:29030",
+      "last_checked_at": "2026-09-12T13:09:04.378406+00:00",
+      "next_check_at": "2026-09-12T16:32:07.271241+00:00"
+    },
+    {
+      "source_ref": "wsdc:29031",
+      "last_checked_at": "2026-09-12T13:09:06.354325+00:00",
+      "next_check_at": "2026-09-12T16:32:07.271241+00:00"
+    },
+    {
+      "source_ref": "wsdc:29032",
+      "last_checked_at": "2026-09-12T13:09:08.375818+00:00",
+      "next_check_at": "2026-09-12T16:32:07.271241+00:00"
+    },
+    {
+      "source_ref": "wsdc:29033",
+      "last_checked_at": "2026-09-12T13:09:10.331774+00:00",
+      "next_check_at": "2026-09-12T16:32:07.271241+00:00"
+    },
+    {
+      "source_ref": "wsdc:29034",
+      "last_checked_at": "2026-09-12T13:09:12.404376+00:00",
+      "next_check_at": "2026-09-12T16:32:07.271241+00:00"
+    },
+    {
+      "source_ref": "wsdc:29035",
+      "last_checked_at": "2026-09-12T13:09:14.916644+00:00",
+      "next_check_at": "2026-09-12T16:32:07.271241+00:00"
+    },
+    {
+      "source_ref": "wsdc:29036",
+      "last_checked_at": "2026-09-12T13:09:16.619097+00:00",
+      "next_check_at": "2026-09-12T16:32:07.271241+00:00"
+    },
+    {
+      "source_ref": "wsdc:29037",
+      "last_checked_at": "2026-09-12T13:09:18.622495+00:00",
+      "next_check_at": "2026-09-12T16:32:07.271241+00:00"
+    },
+    {
+      "source_ref": "wsdc:29038",
+      "last_checked_at": "2026-09-12T13:09:20.630748+00:00",
+      "next_check_at": "2026-09-12T16:32:07.271241+00:00"
+    },
+    {
+      "source_ref": "wsdc:29039",
+      "last_checked_at": "2026-09-12T13:09:22.698904+00:00",
+      "next_check_at": "2026-09-12T16:32:07.271241+00:00"
+    },
+    {
+      "source_ref": "wsdc:29040",
+      "last_checked_at": "2026-09-12T13:09:24.706495+00:00",
+      "next_check_at": "2026-09-12T16:32:07.271241+00:00"
+    },
+    {
+      "source_ref": "wsdc:29041",
+      "last_checked_at": "2026-09-12T13:09:26.725892+00:00",
+      "next_check_at": "2026-09-12T16:32:07.271241+00:00"
+    },
+    {
+      "source_ref": "wsdc:29042",
+      "last_checked_at": "2026-09-12T13:09:28.660524+00:00",
+      "next_check_at": "2026-09-12T16:32:07.271241+00:00"
+    },
+    {
+      "source_ref": "wsdc:29043",
+      "last_checked_at": "2026-09-12T13:09:30.677739+00:00",
+      "next_check_at": "2026-09-12T16:32:07.271241+00:00"
+    },
+    {
+      "source_ref": "wsdc:29044",
+      "last_checked_at": "2026-09-12T13:09:32.706938+00:00",
+      "next_check_at": "2026-09-12T16:32:07.271241+00:00"
+    },
+    {
+      "source_ref": "wsdc:29045",
+      "last_checked_at": "2026-09-12T13:09:34.684987+00:00",
+      "next_check_at": "2026-09-12T16:32:07.271241+00:00"
+    },
+    {
+      "source_ref": "wsdc:29046",
+      "last_checked_at": "2026-09-12T13:09:36.706471+00:00",
+      "next_check_at": "2026-09-12T16:32:07.271241+00:00"
+    },
+    {
+      "source_ref": "wsdc:29047",
+      "last_checked_at": "2026-09-12T13:09:38.870991+00:00",
+      "next_check_at": "2026-09-12T16:32:07.271241+00:00"
+    },
+    {
+      "source_ref": "wsdc:29048",
+      "last_checked_at": "2026-09-12T13:09:40.726999+00:00",
+      "next_check_at": "2026-09-12T16:32:07.271241+00:00"
+    }
+  ],
+  "paused_hosts": [],
+  "backup": [
+    {
+      "key": "last_backup_at",
+      "value": "2026-09-12T12:04:26.183995+00:00"
+    },
+    {
+      "key": "last_backup_commit",
+      "value": "4b59e60a2e2bf73409c9f55b924a45d77274e463"
+    }
+  ],
+  "source_events": [
+    {
+      "source": "eepro",
+      "events": 72,
+      "unmapped": 0
+    },
+    {
+      "source": "scoringdance",
+      "events": 383,
+      "unmapped": 64
+    }
+  ],
+  "public_state_counts": [
+    {
+      "table": "callback_marks",
+      "public": 380244,
+      "state": 380244
+    },
+    {
+      "table": "callbacks",
+      "public": 77624,
+      "state": 77624
+    },
+    {
+      "table": "contests",
+      "public": 2312,
+      "state": 2312
+    },
+    {
+      "table": "dancers",
+      "public": 27784,
+      "state": 27784
+    },
+    {
+      "table": "entries",
+      "public": 76343,
+      "state": 76343
+    },
+    {
+      "table": "events",
+      "public": 573,
+      "state": 573
+    },
+    {
+      "table": "final_marks",
+      "public": 101647,
+      "state": 101647
+    },
+    {
+      "table": "heats",
+      "public": 0,
+      "state": 0
+    },
+    {
+      "table": "identity_links",
+      "public": 80134,
+      "state": 80134
+    },
+    {
+      "table": "judges",
+      "public": 3791,
+      "state": 3791
+    },
+    {
+      "table": "link_candidates",
+      "public": 84809,
+      "state": 84809
+    },
+    {
+      "table": "placements",
+      "public": 18005,
+      "state": 18005
+    },
+    {
+      "table": "registry_placements",
+      "public": 197990,
+      "state": 197990
+    },
+    {
+      "table": "rounds",
+      "public": 3625,
+      "state": 3625
+    },
+    {
+      "table": "snapshots",
+      "public": 30904,
+      "state": 30904
+    }
+  ]
+}

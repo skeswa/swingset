@@ -1,0 +1,255 @@
+table,column,type,rows,nulls,blank_strings
+callback_marks,round_id,VARCHAR,380244,0,0
+callback_marks,entry_id,VARCHAR,380244,0,0
+callback_marks,judge_id,VARCHAR,380244,0,0
+callback_marks,mark,VARCHAR,380244,0,0
+callback_marks,mark_raw,VARCHAR,380244,0,0
+callback_marks,mark_value,FLOAT,380244,0,0
+callback_marks,source,VARCHAR,380244,0,0
+callback_marks,snapshot_id,VARCHAR,380244,0,0
+callback_marks,parser_version,VARCHAR,380244,0,0
+callback_marks,first_seen_at,TIMESTAMP WITH TIME ZONE,380244,0,0
+callback_marks,last_seen_at,TIMESTAMP WITH TIME ZONE,380244,0,0
+callback_marks,run_id,VARCHAR,380244,0,0
+callbacks,round_id,VARCHAR,77624,0,0
+callbacks,entry_id,VARCHAR,77624,0,0
+callbacks,score_sum,FLOAT,77624,0,0
+callbacks,yes_count,TINYINT,77624,0,0
+callbacks,alt_count,TINYINT,77624,0,0
+callbacks,no_count,TINYINT,77624,0,0
+callbacks,outcome,VARCHAR,77624,0,0
+callbacks,tie_break_applied,BOOLEAN,77624,77624,0
+callbacks,heat_number,SMALLINT,77624,77624,0
+callbacks,source,VARCHAR,77624,0,0
+callbacks,snapshot_id,VARCHAR,77624,0,0
+callbacks,parser_version,VARCHAR,77624,0,0
+callbacks,first_seen_at,TIMESTAMP WITH TIME ZONE,77624,0,0
+callbacks,last_seen_at,TIMESTAMP WITH TIME ZONE,77624,0,0
+callbacks,run_id,VARCHAR,77624,0,0
+changelog,changed_at,TIMESTAMP WITH TIME ZONE,5355647,0,0
+changelog,run_id,VARCHAR,5355647,0,0
+changelog,table,VARCHAR,5355647,0,0
+changelog,record_key,VARCHAR,5355647,0,0
+changelog,field,VARCHAR,5355647,1208365,0
+changelog,old_value,VARCHAR,5355647,0,0
+changelog,new_value,VARCHAR,5355647,0,0
+changelog,change_type,VARCHAR,5355647,0,0
+changelog,reason,VARCHAR,5355647,0,0
+contests,contest_id,VARCHAR,2312,0,0
+contests,event_id,VARCHAR,2312,0,0
+contests,name_raw,VARCHAR,2312,0,1
+contests,division,VARCHAR,2312,0,0
+contests,age_division,VARCHAR,2312,0,0
+contests,contest_type,VARCHAR,2312,0,0
+contests,partner_mode,VARCHAR,2312,0,0
+contests,dance_style,VARCHAR,2312,0,0
+contests,wsdc_points_eligible,BOOLEAN,2312,0,0
+contests,combined_from,VARCHAR[],2312,0,0
+contests,parse_status,VARCHAR,2312,0,0
+contests,source_contest_ref,VARCHAR,2312,0,0
+contests,source,VARCHAR,2312,0,0
+contests,snapshot_id,VARCHAR,2312,0,0
+contests,parser_version,VARCHAR,2312,0,0
+contests,first_seen_at,TIMESTAMP WITH TIME ZONE,2312,0,0
+contests,last_seen_at,TIMESTAMP WITH TIME ZONE,2312,0,0
+contests,run_id,VARCHAR,2312,0,0
+dancers,wsdc_id,INTEGER,27784,0,0
+dancers,first_name,VARCHAR,27784,0,2
+dancers,last_name,VARCHAR,27784,0,2
+dancers,name_norm,VARCHAR,27784,0,2
+dancers,is_pro,BOOLEAN,27784,0,0
+dancers,primary_role,VARCHAR,27784,0,0
+dancers,leader_required_level,VARCHAR,27784,0,0
+dancers,leader_allowed_level,VARCHAR,27784,0,0
+dancers,follower_required_level,VARCHAR,27784,0,0
+dancers,follower_allowed_level,VARCHAR,27784,0,0
+dancers,leader_highest_level,VARCHAR,27784,0,0
+dancers,leader_highest_points,SMALLINT,27784,0,0
+dancers,follower_highest_level,VARCHAR,27784,0,0
+dancers,follower_highest_points,SMALLINT,27784,0,0
+dancers,recent_year,SMALLINT,27784,0,0
+dancers,registry_internal_id,INTEGER,27784,0,0
+dancers,registry_fetched_at,TIMESTAMP WITH TIME ZONE,27784,0,0
+dancers,merged_into_wsdc_id,INTEGER,27784,27784,0
+dancers,source,VARCHAR,27784,0,0
+dancers,snapshot_id,VARCHAR,27784,0,0
+dancers,parser_version,VARCHAR,27784,0,0
+dancers,first_seen_at,TIMESTAMP WITH TIME ZONE,27784,0,0
+dancers,last_seen_at,TIMESTAMP WITH TIME ZONE,27784,0,0
+dancers,run_id,VARCHAR,27784,0,0
+entries,entry_id,VARCHAR,76343,0,0
+entries,contest_id,VARCHAR,76343,0,0
+entries,event_id,VARCHAR,76343,0,0
+entries,role,VARCHAR,76343,0,0
+entries,bib,VARCHAR,76343,5567,0
+entries,name_raw,VARCHAR,76343,1149,0
+entries,name_norm,VARCHAR,76343,1149,0
+entries,partner_name_raw,VARCHAR,76343,53729,0
+entries,city_raw,VARCHAR,76343,76343,0
+entries,country_raw,VARCHAR,76343,76343,0
+entries,wsdc_id,INTEGER,76343,32618,0
+entries,link_status,VARCHAR,76343,0,0
+entries,link_confidence,FLOAT,76343,0,0
+entries,partner_entry_id,VARCHAR,76343,53729,0
+entries,rounds_danced,VARCHAR[],76343,0,0
+entries,best_round,VARCHAR,76343,0,0
+entries,source,VARCHAR,76343,0,0
+entries,snapshot_id,VARCHAR,76343,0,0
+entries,parser_version,VARCHAR,76343,0,0
+entries,first_seen_at,TIMESTAMP WITH TIME ZONE,76343,0,0
+entries,last_seen_at,TIMESTAMP WITH TIME ZONE,76343,0,0
+entries,run_id,VARCHAR,76343,0,0
+events,event_id,VARCHAR,573,0,0
+events,series_id,VARCHAR,573,0,0
+events,name,VARCHAR,573,0,0
+events,year,SMALLINT,573,0,0
+events,start_date,DATE,573,0,0
+events,end_date,DATE,573,0,0
+events,city,VARCHAR,573,404,0
+events,region,VARCHAR,573,424,0
+events,country,VARCHAR,573,412,0
+events,website,VARCHAR,573,404,0
+events,wsdc_status,VARCHAR,573,0,0
+events,sources,VARCHAR[],573,0,0
+events,live_window_start,TIMESTAMP WITH TIME ZONE,573,404,0
+events,live_window_end,TIMESTAMP WITH TIME ZONE,573,404,0
+events,source,VARCHAR,573,0,0
+events,snapshot_id,VARCHAR,573,0,0
+events,parser_version,VARCHAR,573,0,0
+events,first_seen_at,TIMESTAMP WITH TIME ZONE,573,0,0
+events,last_seen_at,TIMESTAMP WITH TIME ZONE,573,0,0
+events,run_id,VARCHAR,573,0,0
+final_marks,round_id,VARCHAR,101647,0,0
+final_marks,placement_id,VARCHAR,101647,0,0
+final_marks,judge_id,VARCHAR,101647,0,0
+final_marks,rank,TINYINT,101647,0,0
+final_marks,source,VARCHAR,101647,0,0
+final_marks,snapshot_id,VARCHAR,101647,0,0
+final_marks,parser_version,VARCHAR,101647,0,0
+final_marks,first_seen_at,TIMESTAMP WITH TIME ZONE,101647,0,0
+final_marks,last_seen_at,TIMESTAMP WITH TIME ZONE,101647,0,0
+final_marks,run_id,VARCHAR,101647,0,0
+heats,heat_id,VARCHAR,0,0,0
+heats,round_id,VARCHAR,0,0,0
+heats,heat_number,SMALLINT,0,0,0
+heats,entry_id,VARCHAR,0,0,0
+heats,position,SMALLINT,0,0,0
+heats,source,VARCHAR,0,0,0
+heats,snapshot_id,VARCHAR,0,0,0
+heats,parser_version,VARCHAR,0,0,0
+heats,first_seen_at,TIMESTAMP WITH TIME ZONE,0,0,0
+heats,last_seen_at,TIMESTAMP WITH TIME ZONE,0,0,0
+heats,run_id,VARCHAR,0,0,0
+identity_links,link_id,VARCHAR,80134,0,0
+identity_links,subject_kind,VARCHAR,80134,0,0
+identity_links,subject_id,VARCHAR,80134,0,0
+identity_links,wsdc_id,INTEGER,80134,26368,0
+identity_links,method,VARCHAR,80134,0,0
+identity_links,status,VARCHAR,80134,0,0
+identity_links,confidence,FLOAT,80134,0,0
+identity_links,constraints_applied,VARCHAR[],80134,0,0
+identity_links,asserted_at,TIMESTAMP WITH TIME ZONE,80134,0,0
+identity_links,run_id,VARCHAR,80134,0,0
+judges,judge_id,VARCHAR,3791,0,0
+judges,event_id,VARCHAR,3791,0,0
+judges,name_raw,VARCHAR,3791,0,0
+judges,initials,VARCHAR,3791,0,0
+judges,anonymous,BOOLEAN,3791,0,0
+judges,wsdc_id,INTEGER,3791,3791,0
+judges,source,VARCHAR,3791,0,0
+judges,snapshot_id,VARCHAR,3791,0,0
+judges,parser_version,VARCHAR,3791,0,0
+judges,first_seen_at,TIMESTAMP WITH TIME ZONE,3791,0,0
+judges,last_seen_at,TIMESTAMP WITH TIME ZONE,3791,0,0
+judges,run_id,VARCHAR,3791,0,0
+link_candidates,subject_kind,VARCHAR,84809,0,0
+link_candidates,subject_id,VARCHAR,84809,0,0
+link_candidates,wsdc_id,INTEGER,84809,0,0
+link_candidates,score,FLOAT,84809,0,0
+link_candidates,name_similarity,FLOAT,84809,0,0
+link_candidates,name_rarity,FLOAT,84809,0,0
+link_candidates,division_ok,BOOLEAN,84809,11378,0
+link_candidates,role_ok,BOOLEAN,84809,0,0
+link_candidates,recency_ok,BOOLEAN,84809,0,0
+link_candidates,geography,FLOAT,84809,84809,0
+link_candidates,bib_reuse,BOOLEAN,84809,0,0
+link_candidates,registry_confirms,BOOLEAN,84809,0,0
+link_candidates,source_id_confirms,BOOLEAN,84809,0,0
+link_candidates,rank,SMALLINT,84809,0,0
+link_candidates,chosen,BOOLEAN,84809,0,0
+link_candidates,run_id,VARCHAR,84809,0,0
+placements,placement_id,VARCHAR,18005,0,0
+placements,round_id,VARCHAR,18005,0,0
+placements,contest_id,VARCHAR,18005,0,0
+placements,event_id,VARCHAR,18005,0,0
+placements,place,TINYINT,18005,0,0
+placements,leader_entry_id,VARCHAR,18005,4374,0
+placements,follower_entry_id,VARCHAR,18005,4560,0
+placements,couple_entry_id,VARCHAR,18005,15240,0
+placements,leader_wsdc_id,INTEGER,18005,9343,0
+placements,follower_wsdc_id,INTEGER,18005,9692,0
+placements,marks_sorted,VARCHAR,18005,0,20
+placements,tally,TINYINT[],18005,0,0
+placements,registry_points_leader,SMALLINT,18005,16187,0
+placements,registry_points_follower,SMALLINT,18005,16214,0
+placements,registry_confirmed,BOOLEAN,18005,0,0
+placements,points_matches_expected,BOOLEAN,18005,16209,0
+placements,source,VARCHAR,18005,0,0
+placements,snapshot_id,VARCHAR,18005,0,0
+placements,parser_version,VARCHAR,18005,0,0
+placements,first_seen_at,TIMESTAMP WITH TIME ZONE,18005,0,0
+placements,last_seen_at,TIMESTAMP WITH TIME ZONE,18005,0,0
+placements,run_id,VARCHAR,18005,0,0
+registry_placements,wsdc_id,INTEGER,197990,0,0
+registry_placements,role,VARCHAR,197990,0,0
+registry_placements,dance_style,VARCHAR,197990,0,0
+registry_placements,division,VARCHAR,197990,0,0
+registry_placements,series_id,VARCHAR,197990,0,0
+registry_placements,series_name_raw,VARCHAR,197990,0,0
+registry_placements,event_month,DATE,197990,0,0
+registry_placements,event_id,VARCHAR,197990,177155,0
+registry_placements,result,VARCHAR,197990,0,0
+registry_placements,points,SMALLINT,197990,0,0
+registry_placements,source,VARCHAR,197990,0,0
+registry_placements,snapshot_id,VARCHAR,197990,0,0
+registry_placements,parser_version,VARCHAR,197990,0,0
+registry_placements,first_seen_at,TIMESTAMP WITH TIME ZONE,197990,0,0
+registry_placements,last_seen_at,TIMESTAMP WITH TIME ZONE,197990,0,0
+registry_placements,run_id,VARCHAR,197990,0,0
+review_queue,item_id,VARCHAR,4750,0,0
+review_queue,kind,VARCHAR,4750,0,0
+review_queue,subject_id,VARCHAR,4750,0,0
+review_queue,summary,VARCHAR,4750,0,0
+review_queue,suggested_override,VARCHAR,4750,4750,0
+review_queue,opened_at,TIMESTAMP WITH TIME ZONE,4750,0,0
+review_queue,run_id,VARCHAR,4750,0,0
+rounds,round_id,VARCHAR,3625,0,0
+rounds,contest_id,VARCHAR,3625,0,0
+rounds,round_type,VARCHAR,3625,0,0
+rounds,round_index,TINYINT,3625,0,0
+rounds,name_raw,VARCHAR,3625,0,0
+rounds,scoring_method,VARCHAR,3625,0,0
+rounds,callback_legend,VARCHAR,3625,0,0
+rounds,judge_count,TINYINT,3625,0,0
+rounds,chief_judge_id,VARCHAR,3625,3625,0
+rounds,entry_count,INTEGER,3625,0,0
+rounds,promoted_count,INTEGER,3625,2245,0
+rounds,source_round_ref,VARCHAR,3625,0,0
+rounds,score_sheet_url,VARCHAR,3625,3625,0
+rounds,source,VARCHAR,3625,0,0
+rounds,snapshot_id,VARCHAR,3625,0,0
+rounds,parser_version,VARCHAR,3625,0,0
+rounds,first_seen_at,TIMESTAMP WITH TIME ZONE,3625,0,0
+rounds,last_seen_at,TIMESTAMP WITH TIME ZONE,3625,0,0
+rounds,run_id,VARCHAR,3625,0,0
+snapshots,snapshot_id,VARCHAR,30904,0,0
+snapshots,source,VARCHAR,30904,0,0
+snapshots,url,VARCHAR,30904,0,0
+snapshots,fetched_at,TIMESTAMP WITH TIME ZONE,30904,0,0
+snapshots,http_status,SMALLINT,30904,0,0
+snapshots,body_sha256,VARCHAR,30904,0,0
+snapshots,body_bytes,BIGINT,30904,0,0
+snapshots,content_changed,BOOLEAN,30904,0,0
+snapshots,parser,VARCHAR,30904,0,0
+snapshots,parser_version,VARCHAR,30904,0,0
+snapshots,parse_status,VARCHAR,30904,0,0

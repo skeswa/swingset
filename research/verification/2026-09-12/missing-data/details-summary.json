@@ -1,0 +1,109 @@
+{
+  "capture": {
+    "baseline_unchanged": true,
+    "candidate": "/var/lib/swingset/candidates/cand_9671fadae32d4be2",
+    "comparison_sha256": "ae7f2b9d688b69b49d08dfc718f60e5ef6b4b6561054d2503e8c94b8ae5e1d53",
+    "finished_at": "2026-09-12T16:37:03.216753+00:00",
+    "publication": {
+      "commit": "845d92a04e30b03d4a7081655e754ec2cea323aa"
+    },
+    "started_at": "2026-09-12T16:37:01.277273+00:00",
+    "state_sha256": "165dc25256c448f8a5b2c1f9183c45af9e07f60560be99f446192907bcd48ee9"
+  },
+  "definitions": {
+    "matrix_denominator": "Published detail rows multiplied by the round's declared judge_count; reported only when both are positive.",
+    "possible": "A candidate exists below the publication threshold; public wsdc_id remains null.",
+    "published_wsdc_id_missing": "The public wsdc_id field is null. This does not establish that no WSDC number exists.",
+    "unmatched": "No publishable candidate was selected from available evidence."
+  },
+  "identity": {
+    "bib_missing": 5567,
+    "entries": 76343,
+    "judges": 3791,
+    "judges_anonymous": 0,
+    "judges_name_missing": 0,
+    "judges_published_wsdc_id_missing": 3791,
+    "link_status": {
+      "confirmed": 22763,
+      "possible": 7479,
+      "probable": 20962,
+      "unmatched": 25139
+    },
+    "mixed_name_individual_role": 4061,
+    "name_missing": 1149,
+    "published_wsdc_id_missing": 32618,
+    "roles": {
+      "couple": 7095,
+      "follower": 35155,
+      "leader": 34093
+    },
+    "sources": {
+      "eepro": 42889,
+      "scoringdance": 23579,
+      "wdr": 9875
+    },
+    "unknown_role": 0
+  },
+  "integrity": {
+    "file_hash_failures": [],
+    "ok": true,
+    "row_count_mismatches": {},
+    "schema_failures": [],
+    "violations": []
+  },
+  "issues": [
+    {
+      "interpretation": "These are candidates for the eligibility bug, not proof each link is wrong.",
+      "issue": 16,
+      "metric": "individual entries in division=none by link status",
+      "status": "open_on_pinned_data",
+      "title": "Fix identity eligibility for unrestricted contest divisions",
+      "value": "{\"confirmed\": 4482, \"possible\": 482, \"probable\": 1975, \"unmatched\": 9613}"
+    },
+    {
+      "interpretation": "A high-risk lexical signal, not proof that every value contains two people.",
+      "issue": 17,
+      "metric": "leader/follower entries whose source name contains ' and '",
+      "status": "open_on_pinned_data",
+      "title": "Prevent paired source names from linking to the wrong individual role",
+      "value": 4061
+    },
+    {
+      "interpretation": "Unmapped rows include missing aliases and editions absent from the event catalog.",
+      "issue": 18,
+      "metric": "registry placements without canonical event_id",
+      "status": "open_on_pinned_data",
+      "title": "Reconcile registry event aliases and preserve finalist point evidence",
+      "value": 177155
+    },
+    {
+      "interpretation": "F proves finalist evidence but does not prove the detailed numeric place.",
+      "issue": 18,
+      "metric": "eligible detailed placements with mapped registry F evidence",
+      "status": "open_on_pinned_data",
+      "title": "Reconcile registry event aliases and preserve finalist point evidence",
+      "value": 1735
+    }
+  ],
+  "results": {
+    "callback_marks": 380244,
+    "callback_matrix_coverage": 0.550576,
+    "callback_rounds_with_valid_matrix_denominator": 1542,
+    "callbacks": 77624,
+    "eligible_placements": 6141,
+    "eligible_points_matches_expected_false": 0,
+    "eligible_points_matches_expected_null": 4345,
+    "eligible_points_matches_expected_true": 1796,
+    "eligible_registry_confirmed": 1720,
+    "final_marks": 101647,
+    "final_matrix_coverage": 0.920974,
+    "final_rounds_with_valid_matrix_denominator": 2053,
+    "heats": 0,
+    "placements": 18005,
+    "registry_placements": 197990,
+    "registry_placements_unmapped_event": 177155,
+    "registry_result_F": 77896,
+    "registry_result_numeric": 120094,
+    "rounds": 3625
+  }
+}

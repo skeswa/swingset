@@ -1,0 +1,15 @@
+fetched_round_urls,listed_round_urls,mapped_events_with_contests,mapped_events_without_contests,mapped_source_events,never_checked_round_urls,period,published_contests,published_rounds,source,source_events,year
+6,6,1,0,1,0,past,68,68,eepro,1,2024
+260,260,41,0,41,0,past,845,1257,eepro,41,2025
+176,176,30,0,30,0,past,663,943,eepro,30,2026
+1,1,1,4,5,0,past,1,1,scoringdance,5,2018
+0,128,0,13,13,128,past,0,0,scoringdance,13,2019
+29,40,2,1,3,11,past,12,29,scoringdance,3,2020
+0,42,0,3,3,42,past,0,0,scoringdance,3,2021
+51,318,2,19,21,267,past,23,51,scoringdance,21,2022
+82,564,5,29,34,482,past,44,82,scoringdance,34,2023
+265,1158,14,51,65,893,past,133,265,scoringdance,65,2024
+177,1821,14,90,104,1644,past,87,176,scoringdance,104,2025
+258,1273,13,57,70,1015,past,132,269,scoringdance,70,2026
+33,33,1,0,1,0,past,19,33,scoringdance,1,2027
+0,0,0,0,0,0,unknown,0,0,scoringdance,64,unkn

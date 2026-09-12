@@ -25,6 +25,7 @@ documents.
 | [glossary](glossary.md)                       | Terms used exactly as defined, in code and data                                                                                   |
 | [sources](sources.md)                         | Every data source: what it gives, how we read it, URL patterns, registry JSON shape                                               |
 | [architecture](architecture.md)               | Observation ownership, projections, module boundaries, findings                                                                   |
+| [self-healing proposal](self-healing.md)      | Proposed recovery guarantees, evidence freshness, recurring reconciliation, assertion acceptance, and safe publication            |
 | [local state](state.md)                       | SQLite schema, captured inputs, invalidation, durable work, state directory                                                       |
 | [fetching](fetching.md)                       | Identity, politeness rules, change detection, raw archive                                                                         |
 | [scheduling](scheduling.md)                   | Watches, polling states and intervals, discovery, backfill                                                                        |

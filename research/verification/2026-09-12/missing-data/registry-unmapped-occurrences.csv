@@ -1,0 +1,2468 @@
+series_id,series_name_raw,event_month,placement_rows,example_wsdc_id
+wsdc-49,Spring Fling,1991-05,13,40
+wsdc-1,4TH of July Convention,1991-07,1,858
+wsdc-28,Las Vegas Swing Expo,1992-01,9,199
+wsdc-6,Bay Swingers,1992-02,6,31
+wsdc-16,Dancers Fund/Moover & Groover/SwingExpo,1992-03,16,199
+wsdc-49,Spring Fling,1992-05,18,134
+wsdc-1,4TH of July Convention,1992-07,28,102
+wsdc-29,Michigan Swing Dance Champs,1992-08,6,236
+wsdc-47,Swingtime in the Rockies,1992-08,20,69
+wsdc-15,Dallas D.A.N.C.E.,1992-09,6,13
+wsdc-68,US Open Swing Dance Championships,1992-11,11,102
+wsdc-28,Las Vegas Swing Expo,1993-01,10,244
+wsdc-58,Swing Expo,1993-01,15,93
+wsdc-12,Capital Swing Dance Convention,1993-02,39,75
+wsdc-6,Bay Swingers,1993-02,1,714
+wsdc-60,Swing Jam,1993-04,2,660
+wsdc-49,Spring Fling,1993-05,18,84
+wsdc-73,World Swing Dance Championships,1993-05,6,5
+wsdc-1,4TH of July Convention,1993-07,29,1
+wsdc-29,Michigan Swing Dance Champs,1993-08,8,236
+wsdc-47,Swingtime in the Rockies,1993-08,18,95
+wsdc-15,Dallas D.A.N.C.E.,1993-09,10,332
+wsdc-70,Virginia State Open,1993-09,10,195
+wsdc-8,Boogie By The Bay,1993-10,20,172
+wsdc-68,US Open Swing Dance Championships,1993-11,6,169
+wsdc-28,Las Vegas Swing Expo,1994-01,14,239
+wsdc-58,Swing Expo,1994-01,16,25
+wsdc-62,Monterey SwingFest,1994-01,8,127
+wsdc-12,Capital Swing Dance Convention,1994-02,29,103
+wsdc-14,Country Boogie,1994-02,38,6
+wsdc-6,Bay Swingers,1994-02,9,92
+wsdc-18,Seattle's Easter Swing,1994-04,13,177
+wsdc-60,Swing Jam,1994-04,3,141
+wsdc-20,FreZno Dance Classic,1994-05,18,96
+wsdc-49,Spring Fling,1994-05,24,132
+wsdc-1,4TH of July Convention,1994-07,34,19
+wsdc-52,Summer Dance Festival,1994-07,21,26
+wsdc-59,Swing Fling,1994-07,1,1269
+wsdc-72,Windy City,1994-07,31,175
+wsdc-29,Michigan Swing Dance Champs,1994-08,10,15
+wsdc-47,Swingtime in the Rockies,1994-08,18,76
+wsdc-15,Dallas D.A.N.C.E.,1994-09,9,13
+wsdc-27,Labor Day Swing Dance Festival,1994-09,31,6
+wsdc-70,Virginia State Open,1994-09,10,158
+wsdc-4,American Swing Dance Championships,1994-10,4,185
+wsdc-65,Halloween SwingThing,1994-10,14,131
+wsdc-8,Boogie By The Bay,1994-10,21,1
+wsdc-68,US Open Swing Dance Championships,1994-11,4,27
+wsdc-33,National New Year,1994-12,10,96
+wsdc-28,Las Vegas Swing Expo,1995-01,1,239
+wsdc-39,New Year's Dance Extravaganza,1995-01,1,1788
+wsdc-58,Swing Expo,1995-01,11,194
+wsdc-62,Monterey SwingFest,1995-01,11,162
+wsdc-12,Capital Swing Dance Convention,1995-02,33,19
+wsdc-14,Country Boogie,1995-02,29,24
+wsdc-6,Bay Swingers,1995-02,11,208
+wsdc-18,Seattle's Easter Swing,1995-04,40,41
+wsdc-60,Swing Jam,1995-04,3,126
+wsdc-20,FreZno Dance Classic,1995-05,18,6
+wsdc-49,Spring Fling,1995-05,40,85
+wsdc-67,Americas Classic,1995-05,10,90
+wsdc-25,J&J O'Rama,1995-06,25,22
+wsdc-1,4TH of July Convention,1995-07,43,20
+wsdc-52,Summer Dance Festival,1995-07,40,6
+wsdc-59,Swing Fling,1995-07,17,5
+wsdc-72,Windy City,1995-07,26,35
+wsdc-29,Michigan Swing Dance Champs,1995-08,9,114
+wsdc-47,Swingtime in the Rockies,1995-08,19,76
+wsdc-15,Dallas D.A.N.C.E.,1995-09,10,97
+wsdc-27,Labor Day Swing Dance Festival,1995-09,29,5
+wsdc-70,Virginia State Open,1995-09,19,107
+wsdc-4,American Swing Dance Championships,1995-10,9,5
+wsdc-43,Paradise Country Dance Festival,1995-10,1,711
+wsdc-65,Halloween SwingThing,1995-10,18,86
+wsdc-7,Boogie & Blues,1995-10,25,102
+wsdc-8,Boogie By The Bay,1995-10,21,22
+wsdc-35,New England Swing Jam 1,1995-11,20,29
+wsdc-68,US Open Swing Dance Championships,1995-11,6,242
+wsdc-33,National New Year,1995-12,11,69
+wsdc-75,Worlds UCWDC,1995-12,27,6
+wsdc-28,Las Vegas Swing Expo,1996-01,12,17
+wsdc-58,Swing Expo,1996-01,27,46
+wsdc-62,Monterey SwingFest,1996-01,16,117
+wsdc-12,Capital Swing Dance Convention,1996-02,61,18
+wsdc-14,Country Boogie,1996-02,35,6
+wsdc-21,Golden State Classic,1996-04,36,99
+wsdc-60,Swing Jam,1996-04,29,144
+wsdc-20,FreZno Dance Classic,1996-05,34,142
+wsdc-22,USA Grand Nationals,1996-05,14,141
+wsdc-46,Rising Star - Dallas,1996-05,31,24
+wsdc-49,Spring Fling,1996-05,39,126
+wsdc-67,Americas Classic,1996-05,6,106
+wsdc-25,J&J O'Rama,1996-06,30,30
+wsdc-1,4TH of July Convention,1996-07,51,2
+wsdc-17,Desert Swing Dance Club,1996-07,6,218
+wsdc-52,Summer Dance Festival,1996-07,45,40
+wsdc-59,Swing Fling,1996-07,19,33
+wsdc-24,J&J National Championships,1996-08,39,172
+wsdc-29,Michigan Swing Dance Champs,1996-08,10,5
+wsdc-47,Swingtime in the Rockies,1996-08,39,28
+wsdc-57,Swing Challenge,1996-08,22,5
+wsdc-15,Dallas D.A.N.C.E.,1996-09,5,332
+wsdc-27,Labor Day Swing Dance Festival,1996-09,39,6
+wsdc-70,Virginia State Open,1996-09,18,195
+wsdc-4,American Swing Dance Championships,1996-10,30,5
+wsdc-43,Paradise Country Dance Festival,1996-10,18,16
+wsdc-65,Halloween SwingThing,1996-10,12,12
+wsdc-7,Boogie & Blues,1996-10,28,67
+wsdc-8,Boogie By The Bay,1996-10,53,24
+wsdc-35,New England Swing Jam 1,1996-11,14,5
+wsdc-68,US Open Swing Dance Championships,1996-11,10,87
+wsdc-28,Las Vegas Swing Expo,1997-01,19,46
+wsdc-58,Swing Expo,1997-01,17,49
+wsdc-62,Monterey SwingFest,1997-01,30,1
+wsdc-12,Capital Swing Dance Convention,1997-02,41,61
+wsdc-14,Country Boogie,1997-02,39,6
+wsdc-13,Chicago Classic,1997-03,41,24
+wsdc-9,Boston Tea Party,1997-03,30,5
+wsdc-18,Seattle's Easter Swing,1997-04,32,176
+wsdc-21,Golden State Classic,1997-04,44,6
+wsdc-60,Swing Jam,1997-04,21,24
+wsdc-11,California State Championships,1997-05,42,24
+wsdc-20,FreZno Dance Classic,1997-05,20,117
+wsdc-22,USA Grand Nationals,1997-05,10,73
+wsdc-49,Spring Fling,1997-05,64,5
+wsdc-67,Americas Classic,1997-05,6,68
+wsdc-25,J&J O'Rama,1997-06,38,24
+wsdc-44,Portland Dance Festival,1997-06,12,4
+wsdc-64,Swinging In The Northland,1997-06,17,111
+wsdc-1,4TH of July Convention,1997-07,90,22
+wsdc-2,4TH of July Swing Bash,1997-07,4,468
+wsdc-52,Summer Dance Festival,1997-07,42,24
+wsdc-59,Swing Fling,1997-07,31,51
+wsdc-71,Westcoast Swing Dance Championships,1997-07,62,24
+wsdc-29,Michigan Swing Dance Champs,1997-08,20,35
+wsdc-47,Swingtime in the Rockies,1997-08,56,28
+wsdc-48,South Bay CW Dance Festival,1997-08,24,57
+wsdc-53,Summer Hummer,1997-08,48,121
+wsdc-57,Swing Challenge,1997-08,12,5
+wsdc-15,Dallas D.A.N.C.E.,1997-09,8,50
+wsdc-27,Labor Day Swing Dance Festival,1997-09,40,6
+wsdc-70,Virginia State Open,1997-09,19,114
+wsdc-4,American Swing Dance Championships,1997-10,11,54
+wsdc-43,Paradise Country Dance Festival,1997-10,18,24
+wsdc-45,Rising Star - Chicago,1997-10,34,49
+wsdc-65,Halloween SwingThing,1997-10,56,138
+wsdc-7,Boogie & Blues,1997-10,43,24
+wsdc-8,Boogie By The Bay,1997-10,60,61
+wsdc-68,US Open Swing Dance Championships,1997-11,10,455
+wsdc-36,New Years Dance Camp,1997-12,18,198
+wsdc-28,Las Vegas Swing Expo,1998-01,50,46
+wsdc-58,Swing Expo,1998-01,30,46
+wsdc-62,Monterey SwingFest,1998-01,58,61
+wsdc-12,Capital Swing Dance Convention,1998-02,73,4
+wsdc-14,Country Boogie,1998-02,66,19
+wsdc-13,Chicago Classic,1998-03,46,76
+wsdc-9,Boston Tea Party,1998-03,54,5
+wsdc-18,Seattle's Easter Swing,1998-04,66,24
+wsdc-21,Golden State Classic,1998-04,30,6
+wsdc-40,North Atlantic Swing Dance Championships,1998-04,58,51
+wsdc-11,California State Championships,1998-05,62,24
+wsdc-20,FreZno Dance Classic,1998-05,69,4
+wsdc-22,USA Grand Nationals,1998-05,28,264
+wsdc-49,Spring Fling,1998-05,82,46
+wsdc-67,Americas Classic,1998-05,45,49
+wsdc-25,J&J O'Rama,1998-06,102,46
+wsdc-64,Swinging In The Northland,1998-06,18,111
+wsdc-1,4TH of July Convention,1998-07,96,2
+wsdc-52,Summer Dance Festival,1998-07,74,46
+wsdc-59,Swing Fling,1998-07,2,748
+wsdc-71,Westcoast Swing Dance Championships,1998-07,55,162
+wsdc-29,Michigan Swing Dance Champs,1998-08,16,49
+wsdc-47,Swingtime in the Rockies,1998-08,68,76
+wsdc-48,South Bay CW Dance Festival,1998-08,18,168
+wsdc-5,Bakersfield Swing Bash,1998-08,36,46
+wsdc-53,Summer Hummer,1998-08,62,121
+wsdc-57,Swing Challenge,1998-08,12,327
+wsdc-15,Dallas D.A.N.C.E.,1998-09,42,50
+wsdc-34,New England Swing Dance Championships,1998-09,56,136
+wsdc-51,Palm Springs Summer Dance Classic,1998-09,70,140
+wsdc-55,Sundance Labor Day Swing Dance Festival,1998-09,62,24
+wsdc-70,Virginia State Open,1998-09,20,176
+wsdc-4,American Swing Dance Championships,1998-10,48,5
+wsdc-43,Paradise Country Dance Festival,1998-10,18,198
+wsdc-65,Halloween SwingThing,1998-10,30,140
+wsdc-7,Boogie & Blues,1998-10,58,46
+wsdc-8,Boogie By The Bay,1998-10,46,140
+wsdc-36,New Years Dance Camp,1998-12,54,98
+wsdc-28,Las Vegas Swing Expo,1999-01,30,46
+wsdc-38,New Year's Dance Championships,1999-01,56,24
+wsdc-39,New Year's Dance Extravaganza,1999-01,38,178
+wsdc-58,Swing Expo,1999-01,30,46
+wsdc-62,Monterey SwingFest,1999-01,78,61
+wsdc-12,Capital Swing Dance Convention,1999-02,143,24
+wsdc-14,Country Boogie,1999-02,22,7
+wsdc-26,Jitterbug Jam,1999-02,12,1932
+wsdc-9,Boston Tea Party,1999-03,60,273
+wsdc-18,Seattle's Easter Swing,1999-04,62,46
+wsdc-40,North Atlantic Swing Dance Championships,1999-04,57,211
+wsdc-56,Swing Break,1999-04,67,61
+wsdc-11,California State Championships,1999-05,24,6
+wsdc-20,FreZno Dance Classic,1999-05,95,61
+wsdc-22,USA Grand Nationals,1999-05,20,13
+wsdc-25,J&J O'Rama,1999-06,86,46
+wsdc-44,Portland Dance Festival,1999-06,18,61
+wsdc-64,Swinging In The Northland,1999-06,16,1095
+wsdc-1,4TH of July Convention,1999-07,102,73
+wsdc-52,Summer Dance Festival,1999-07,24,63
+wsdc-59,Swing Fling,1999-07,50,87
+wsdc-71,Westcoast Swing Dance Championships,1999-07,45,46
+wsdc-23,HustleMania,1999-08,38,38
+wsdc-29,Michigan Swing Dance Champs,1999-08,20,50
+wsdc-53,Summer Hummer,1999-08,71,87
+wsdc-66,Swingtime in the Rockies,1999-08,61,21
+wsdc-15,Dallas D.A.N.C.E.,1999-09,12,178
+wsdc-51,Palm Springs Summer Dance Classic,1999-09,46,180
+wsdc-69,Valley DanceFest,1999-09,53,173
+wsdc-70,Virginia State Open,1999-09,12,114
+wsdc-43,Paradise Country Dance Festival,1999-10,54,24
+wsdc-45,Rising Star - Chicago,1999-10,46,170
+wsdc-65,Halloween SwingThing,1999-10,35,311
+wsdc-7,Boogie & Blues,1999-10,40,46
+wsdc-8,Boogie By The Bay,1999-10,54,102
+wsdc-31,Mountain Magic,1999-11,26,139
+wsdc-63,Swingin' New England Dance Festival,1999-11,60,136
+wsdc-36,New Years Dance Camp,1999-12,39,98
+wsdc-28,Las Vegas Swing Expo,2000-01,36,46
+wsdc-38,New Year's Dance Championships,2000-01,58,102
+wsdc-39,New Year's Dance Extravaganza,2000-01,101,192
+wsdc-58,Swing Expo,2000-01,64,46
+wsdc-62,Monterey SwingFest,2000-01,60,4
+wsdc-12,Capital Swing Dance Convention,2000-02,107,17
+wsdc-9,Boston Tea Party,2000-03,70,192
+wsdc-18,Seattle's Easter Swing,2000-04,54,78
+wsdc-40,North Atlantic Swing Dance Championships,2000-04,68,61
+wsdc-56,Swing Break,2000-04,77,102
+wsdc-19,Eastern/Washington Dance Challenge,2000-05,47,421
+wsdc-20,FreZno Dance Classic,2000-05,50,273
+wsdc-22,USA Grand Nationals,2000-05,32,176
+wsdc-67,Americas Classic,2000-05,30,68
+wsdc-25,J&J O'Rama,2000-06,90,46
+wsdc-1,4TH of July Convention,2000-07,102,46
+wsdc-52,Summer Dance Festival,2000-07,62,178
+wsdc-59,Swing Fling,2000-07,81,38
+wsdc-71,Westcoast Swing Dance Championships,2000-07,55,46
+wsdc-29,Michigan Swing Dance Champs,2000-08,20,50
+wsdc-53,Summer Hummer,2000-08,80,87
+wsdc-66,Swingtime in the Rockies,2000-08,68,55
+wsdc-15,Dallas D.A.N.C.E.,2000-09,52,50
+wsdc-70,Virginia State Open,2000-09,20,114
+wsdc-3,American Lindy Hop Championships,2000-10,37,1308
+wsdc-41,Northwest Regional,2000-10,39,242
+wsdc-45,Rising Star - Chicago,2000-10,74,103
+wsdc-65,Halloween SwingThing,2000-10,50,178
+wsdc-7,Boogie & Blues,2000-10,63,98
+wsdc-8,Boogie By The Bay,2000-10,69,102
+wsdc-31,Mountain Magic,2000-11,26,143
+wsdc-63,Swingin' New England Dance Festival,2000-11,60,87
+wsdc-68,US Open Swing Dance Championships,2000-11,20,50
+wsdc-36,New Years Dance Camp,2000-12,59,98
+wsdc-39,New Year's Dance Extravaganza,2001-01,158,61
+wsdc-58,Swing Expo,2001-01,64,46
+wsdc-62,Monterey SwingFest,2001-01,42,178
+wsdc-12,Capital Swing Dance Convention,2001-02,132,50
+wsdc-16,Dancers Fund/Moover & Groover/SwingExpo,2001-03,57,46
+wsdc-9,Boston Tea Party,2001-03,74,33
+wsdc-18,Seattle's Easter Swing,2001-04,81,102
+wsdc-40,North Atlantic Swing Dance Championships,2001-04,68,87
+wsdc-20,FreZno Dance Classic,2001-05,58,61
+wsdc-22,USA Grand Nationals,2001-05,38,231
+wsdc-67,Americas Classic,2001-05,38,117
+wsdc-73,World Swing Dance Championships,2001-05,54,46
+wsdc-25,J&J O'Rama,2001-06,64,180
+wsdc-1,4TH of July Convention,2001-07,110,46
+wsdc-32,National Jitterbug Championships,2001-07,36,1938
+wsdc-52,Summer Dance Festival,2001-07,66,6
+wsdc-59,Swing Fling,2001-07,88,87
+wsdc-29,Michigan Swing Dance Champs,2001-08,28,50
+wsdc-47,Swingtime in the Rockies,2001-08,72,76
+wsdc-48,South Bay CW Dance Festival,2001-08,54,168
+wsdc-53,Summer Hummer,2001-08,94,192
+wsdc-10,Bridgetown Swing Boogie,2001-09,56,102
+wsdc-15,Dallas D.A.N.C.E.,2001-09,50,50
+wsdc-34,New England Swing Dance Championships,2001-09,32,192
+wsdc-54,Summer Swing Jam,2001-09,24,630
+wsdc-70,Virginia State Open,2001-09,44,114
+wsdc-3,American Lindy Hop Championships,2001-10,11,1987
+wsdc-65,Halloween SwingThing,2001-10,70,46
+wsdc-7,Boogie & Blues,2001-10,62,185
+wsdc-8,Boogie By The Bay,2001-10,86,88
+wsdc-31,Mountain Magic,2001-11,58,66
+wsdc-63,Swingin' New England Dance Festival,2001-11,52,61
+wsdc-37,New Year's Dance Camp,2001-12,77,132
+wsdc-42,Floorplay New Years Swing Vacation,2001-12,40,807
+wsdc-39,New Year's Dance Extravaganza,2002-01,90,999
+wsdc-58,Swing Expo,2002-01,60,46
+wsdc-61,SwingDiego,2002-01,86,46
+wsdc-62,Monterey SwingFest,2002-01,68,242
+wsdc-12,Capital Swing Dance Convention,2002-02,144,87
+wsdc-30,Mid USA Jack & Jill,2002-03,20,175
+wsdc-50,St. Patrick's Day Swing,2002-03,86,178
+wsdc-9,Boston Tea Party,2002-03,100,170
+wsdc-18,Seattle's Easter Swing,2002-04,68,170
+wsdc-40,North Atlantic Swing Dance Championships,2002-04,78,61
+wsdc-19,Eastern/Washington Dance Challenge,2002-05,60,236
+wsdc-20,FreZno Dance Classic,2002-05,144,46
+wsdc-22,USA Grand Nationals,2002-05,20,320
+wsdc-67,Americas Classic,2002-05,72,50
+wsdc-73,World Swing Dance Championships,2002-05,54,46
+wsdc-25,J&J O'Rama,2002-06,68,46
+wsdc-1,4TH of July Convention,2002-07,124,33
+wsdc-32,National Jitterbug Championships,2002-07,40,1935
+wsdc-52,Summer Dance Festival,2002-07,56,259
+wsdc-59,Swing Fling,2002-07,81,61
+wsdc-76,Michigan Dance Classic,2002-07,31,50
+wsdc-48,South Bay CW Dance Festival,2002-08,52,578
+wsdc-53,Summer Hummer,2002-08,71,87
+wsdc-66,Swingtime in the Rockies,2002-08,89,68
+wsdc-77,Arizona Dance Classic,2002-08,16,6
+wsdc-10,Bridgetown Swing Boogie,2002-09,58,102
+wsdc-15,Dallas D.A.N.C.E.,2002-09,46,50
+wsdc-51,Palm Springs Summer Dance Classic,2002-09,38,102
+wsdc-54,Summer Swing Jam,2002-09,30,873
+wsdc-70,Virginia State Open,2002-09,54,33
+wsdc-78,Mid-American Dance Championships,2002-09,52,69
+wsdc-79,Sea to Sky,2002-09,46,273
+wsdc-41,Northwest Regional,2002-10,46,102
+wsdc-65,Halloween SwingThing,2002-10,56,211
+wsdc-7,Boogie & Blues,2002-10,47,46
+wsdc-8,Boogie By The Bay,2002-10,80,87
+wsdc-81,Nashville Swing & Shag Dance Classic,2002-10,46,125
+wsdc-31,Mountain Magic,2002-11,65,20
+wsdc-63,Swingin' New England Dance Festival,2002-11,96,136
+wsdc-80,Twin City Swing Challenge,2002-11,30,77
+wsdc-37,New Year's Dance Camp,2002-12,70,67
+wsdc-39,New Year's Dance Extravaganza,2003-01,77,266
+wsdc-58,Swing Expo,2003-01,66,111
+wsdc-61,SwingDiego,2003-01,80,46
+wsdc-62,Monterey SwingFest,2003-01,60,242
+wsdc-12,Capital Swing Dance Convention,2003-02,127,61
+wsdc-82,Motor City Jam,2003-02,22,1141
+wsdc-30,Mid USA Jack & Jill,2003-03,18,327
+wsdc-50,St. Patrick's Day Swing,2003-03,75,260
+wsdc-9,Boston Tea Party,2003-03,92,87
+wsdc-18,Seattle's Easter Swing,2003-04,79,76
+wsdc-40,North Atlantic Swing Dance Championships,2003-04,20,1385
+wsdc-90,Chicago Dance Challenge,2003-04,43,517
+wsdc-19,Eastern/Washington Dance Challenge,2003-05,62,178
+wsdc-20,FreZno Dance Classic,2003-05,100,143
+wsdc-22,USA Grand Nationals,2003-05,20,858
+wsdc-67,Americas Classic,2003-05,50,216
+wsdc-73,World Swing Dance Championships,2003-05,27,770
+wsdc-83,Spring Swing,2003-05,34,327
+wsdc-25,J&J O'Rama,2003-06,64,46
+wsdc-85,Indy Swing Classic,2003-06,40,327
+wsdc-1,4TH of July Convention,2003-07,110,2
+wsdc-32,National Jitterbug Championships,2003-07,20,1936
+wsdc-52,Summer Dance Festival,2003-07,52,7
+wsdc-59,Swing Fling,2003-07,77,33
+wsdc-84,Wisconsin Dance Challenge/Midwest Area Swing Dance Challenge,2003-07,60,320
+wsdc-86,World Hustle Dance Championships,2003-07,33,566
+wsdc-29,Michigan Swing Dance Champs,2003-08,16,77
+wsdc-48,South Bay CW Dance Festival,2003-08,40,548
+wsdc-53,Summer Hummer,2003-08,75,170
+wsdc-66,Swingtime in the Rockies,2003-08,77,77
+wsdc-10,Bridgetown Swing Boogie,2003-09,48,87
+wsdc-15,Dallas D.A.N.C.E.,2003-09,64,50
+wsdc-51,Palm Springs Summer Dance Classic,2003-09,55,7
+wsdc-70,Virginia State Open,2003-09,53,114
+wsdc-78,Mid-American Dance Championships,2003-09,57,320
+wsdc-79,Sea to Sky,2003-09,30,1478
+wsdc-3,American Lindy Hop Championships,2003-10,49,1745
+wsdc-65,Halloween SwingThing,2003-10,70,188
+wsdc-7,Boogie & Blues,2003-10,76,46
+wsdc-8,Boogie By The Bay,2003-10,90,61
+wsdc-81,Nashville Swing & Shag Dance Classic,2003-10,134,50
+wsdc-89,Monster Mash,2003-10,58,340
+wsdc-31,Mountain Magic,2003-11,60,69
+wsdc-63,Swingin' New England Dance Festival,2003-11,62,168
+wsdc-80,Twin City Swing Challenge,2003-11,38,111
+wsdc-87,C.A.S.H. Bash Weekend,2003-11,40,566
+wsdc-88,KC Swing Challenge and Heartland Dance Festival,2003-11,54,50
+wsdc-37,New Year's Dance Camp,2003-12,71,190
+wsdc-101,New Years Swing & Salsa Ball,2004-01,10,178
+wsdc-28,Las Vegas Swing Expo,2004-01,30,122
+wsdc-39,New Year's Dance Extravaganza,2004-01,72,709
+wsdc-61,SwingDiego,2004-01,92,46
+wsdc-62,Monterey SwingFest,2004-01,64,242
+wsdc-12,Capital Swing Dance Convention,2004-02,154,102
+wsdc-82,Motor City Jam,2004-02,12,1754
+wsdc-9,Boston Tea Party,2004-03,111,87
+wsdc-91,Reno Dance Sensation,2004-03,105,77
+wsdc-92,Mid-Atlantic Dance Jam,2004-03,49,1124
+wsdc-18,Seattle's Easter Swing,2004-04,86,102
+wsdc-40,North Atlantic Swing Dance Championships,2004-04,29,1095
+wsdc-19,Eastern/Washington Dance Challenge,2004-05,60,180
+wsdc-20,FreZno Dance Classic,2004-05,93,7
+wsdc-22,USA Grand Nationals,2004-05,20,1194
+wsdc-67,Americas Classic,2004-05,78,87
+wsdc-73,World Swing Dance Championships,2004-05,27,114
+wsdc-93,Champion's Weekend (MD),2004-05,12,2122
+wsdc-25,J&J O'Rama,2004-06,84,7
+wsdc-85,Indy Swing Classic,2004-06,39,51
+wsdc-94,American Open,2004-06,10,3733
+wsdc-95,Swing Niagara Dance Championships,2004-06,51,1127
+wsdc-96,Liberty Swing Dance Championships,2004-06,58,87
+wsdc-1,4TH of July Convention,2004-07,109,46
+wsdc-32,National Jitterbug Championships,2004-07,40,1936
+wsdc-59,Swing Fling,2004-07,70,170
+wsdc-76,Michigan Dance Classic,2004-07,70,170
+wsdc-84,Wisconsin Dance Challenge/Midwest Area Swing Dance Challenge,2004-07,58,320
+wsdc-86,World Hustle Dance Championships,2004-07,17,1281
+wsdc-97,Grand Prix of Swing,2004-07,20,1564
+wsdc-48,South Bay CW Dance Festival,2004-08,40,6
+wsdc-53,Summer Hummer,2004-08,54,999
+wsdc-66,Swingtime in the Rockies,2004-08,67,77
+wsdc-77,Arizona Dance Classic,2004-08,28,853
+wsdc-98,Pacific Rim Dance Classic,2004-08,28,454
+wsdc-99,Chicagoland,2004-08,28,320
+wsdc-10,Bridgetown Swing Boogie,2004-09,65,77
+wsdc-100,New Mexico Dance Fiesta,2004-09,20,168
+wsdc-15,Dallas D.A.N.C.E.,2004-09,48,160
+wsdc-51,Palm Springs Summer Dance Classic,2004-09,77,7
+wsdc-78,Mid-American Dance Championships,2004-09,54,320
+wsdc-65,Halloween SwingThing,2004-10,75,211
+wsdc-8,Boogie By The Bay,2004-10,128,61
+wsdc-81,Nashville Swing & Shag Dance Classic,2004-10,66,178
+wsdc-89,Monster Mash,2004-10,51,242
+wsdc-31,Mountain Magic,2004-11,58,193
+wsdc-63,Swingin' New England Dance Festival,2004-11,115,87
+wsdc-80,Twin City Swing Challenge,2004-11,53,77
+wsdc-87,C.A.S.H. Bash Weekend,2004-11,39,327
+wsdc-37,New Year's Dance Camp,2004-12,83,165
+wsdc-75,Worlds UCWDC,2004-12,79,284
+wsdc-102,Dance America Seattle,2005-01,30,236
+wsdc-39,New Year's Dance Extravaganza,2005-01,80,1141
+wsdc-61,SwingDiego,2005-01,102,178
+wsdc-62,Monterey SwingFest,2005-01,68,272
+wsdc-103,Xanadu - Midwinter Dance Celebration,2005-02,36,67
+wsdc-12,Capital Swing Dance Convention,2005-02,136,103
+wsdc-82,Motor City Jam,2005-02,10,1754
+wsdc-9,Boston Tea Party,2005-03,111,178
+wsdc-91,Reno Dance Sensation,2005-03,108,242
+wsdc-92,Mid-Atlantic Dance Jam,2005-03,64,242
+wsdc-104,Los Angeles Premiere Dance Classic,2005-04,60,7
+wsdc-106,Phoenix Dance Festival,2005-04,27,83
+wsdc-107,Motown Dance Championships,2005-04,50,320
+wsdc-18,Seattle's Easter Swing,2005-04,78,178
+wsdc-105,Canadian Swing Championships,2005-05,12,3133
+wsdc-108,Vancouver Vibrations,2005-05,12,3558
+wsdc-19,Eastern/Washington Dance Challenge,2005-05,37,1751
+wsdc-20,FreZno Dance Classic,2005-05,90,184
+wsdc-22,USA Grand Nationals,2005-05,20,1572
+wsdc-67,Americas Classic,2005-05,60,216
+wsdc-73,World Swing Dance Championships,2005-05,51,7
+wsdc-93,Champion's Weekend (MD),2005-05,20,1751
+wsdc-109,Colorado Country Classic,2005-06,28,1196
+wsdc-25,J&J O'Rama,2005-06,92,173
+wsdc-44,Portland Dance Festival,2005-06,30,2288
+wsdc-85,Indy Swing Classic,2005-06,54,216
+wsdc-95,Swing Niagara Dance Championships,2005-06,68,87
+wsdc-96,Liberty Swing Dance Championships,2005-06,67,37
+wsdc-1,4TH of July Convention,2005-07,110,103
+wsdc-110,Brandin' Iron Dance Festival,2005-07,20,1513
+wsdc-59,Swing Fling,2005-07,80,170
+wsdc-76,Michigan Dance Classic,2005-07,56,87
+wsdc-84,Wisconsin Dance Challenge/Midwest Area Swing Dance Challenge,2005-07,58,175
+wsdc-86,World Hustle Dance Championships,2005-07,10,3880
+wsdc-97,Grand Prix of Swing,2005-07,28,50
+wsdc-111,MadMAC,2005-08,50,320
+wsdc-47,Swingtime in the Rockies,2005-08,90,69
+wsdc-48,South Bay CW Dance Festival,2005-08,56,421
+wsdc-53,Summer Hummer,2005-08,88,102
+wsdc-77,Arizona Dance Classic,2005-08,50,165
+wsdc-99,Chicagoland,2005-08,30,175
+wsdc-10,Bridgetown Swing Boogie,2005-09,61,102
+wsdc-100,New Mexico Dance Fiesta,2005-09,20,2085
+wsdc-15,Dallas D.A.N.C.E.,2005-09,74,50
+wsdc-51,Palm Springs Summer Dance Classic,2005-09,82,242
+wsdc-70,Virginia State Open,2005-09,34,438
+wsdc-112,US National Dance Championships,2005-10,20,2716
+wsdc-43,Paradise Country Dance Festival,2005-10,22,999
+wsdc-65,Halloween SwingThing,2005-10,68,211
+wsdc-8,Boogie By The Bay,2005-10,130,77
+wsdc-81,Nashville Swing & Shag Dance Classic,2005-10,59,49
+wsdc-89,Monster Mash,2005-10,49,176
+wsdc-113,Dallas Dance Festival,2005-11,29,59
+wsdc-31,Mountain Magic,2005-11,56,142
+wsdc-63,Swingin' New England Dance Festival,2005-11,139,136
+wsdc-68,US Open Swing Dance Championships,2005-11,24,260
+wsdc-80,Twin City Swing Challenge,2005-11,63,111
+wsdc-87,C.A.S.H. Bash Weekend,2005-11,42,175
+wsdc-37,New Year's Dance Camp,2005-12,96,144
+wsdc-75,Worlds UCWDC,2005-12,60,168
+wsdc-39,New Year's Dance Extravaganza,2006-01,65,999
+wsdc-61,SwingDiego,2006-01,98,178
+wsdc-62,Monterey SwingFest,2006-01,90,178
+wsdc-115,Da Dance Camp,2006-02,35,1277
+wsdc-12,Capital Swing Dance Convention,2006-02,133,136
+wsdc-82,Motor City Jam,2006-02,10,4074
+wsdc-114,British Columbia Dance Challenge,2006-03,43,1005
+wsdc-9,Boston Tea Party,2006-03,87,976
+wsdc-91,Reno Dance Sensation,2006-03,115,242
+wsdc-92,Mid-Atlantic Dance Jam,2006-03,101,96
+wsdc-104,Los Angeles Premiere Dance Classic,2006-04,70,242
+wsdc-106,Phoenix Dance Festival,2006-04,28,83
+wsdc-107,Motown Dance Championships,2006-04,46,136
+wsdc-116,Calgary Dance Stampede,2006-04,10,5000
+wsdc-18,Seattle's Easter Swing,2006-04,100,176
+wsdc-105,Canadian Swing Championships,2006-05,6,2179
+wsdc-108,Vancouver Vibrations,2006-05,10,1981
+wsdc-121,The Texas Classic,2006-05,25,2514
+wsdc-19,Eastern/Washington Dance Challenge,2006-05,49,998
+wsdc-20,FreZno Dance Classic,2006-05,90,214
+wsdc-22,USA Grand Nationals,2006-05,32,320
+wsdc-67,Americas Classic,2006-05,60,50
+wsdc-93,Champion's Weekend (MD),2006-05,13,2718
+wsdc-109,Colorado Country Classic,2006-06,28,1196
+wsdc-117,Orange Blossom Dance Festival,2006-06,29,2173
+wsdc-25,J&J O'Rama,2006-06,94,122
+wsdc-44,Portland Dance Festival,2006-06,41,1005
+wsdc-85,Indy Swing Classic,2006-06,40,327
+wsdc-95,Swing Niagara Dance Championships,2006-06,78,648
+wsdc-96,Liberty Swing Dance Championships,2006-06,88,160
+wsdc-1,4TH of July Convention,2006-07,108,175
+wsdc-110,Brandin' Iron Dance Festival,2006-07,43,60
+wsdc-123,Champions Weekend (MA),2006-07,38,1392
+wsdc-59,Swing Fling,2006-07,80,178
+wsdc-76,Michigan Dance Classic,2006-07,26,1279
+wsdc-84,Wisconsin Dance Challenge/Midwest Area Swing Dance Challenge,2006-07,56,320
+wsdc-97,Grand Prix of Swing,2006-07,50,216
+wsdc-111,MadMAC,2006-08,52,320
+wsdc-120,Lone Star Invitational,2006-08,38,216
+wsdc-122,Boston Dance Revolution,2006-08,34,992
+wsdc-47,Swingtime in the Rockies,2006-08,104,69
+wsdc-48,South Bay CW Dance Festival,2006-08,50,260
+wsdc-53,Summer Hummer,2006-08,100,178
+wsdc-99,Chicagoland,2006-08,42,1095
+wsdc-10,Bridgetown Swing Boogie,2006-09,87,273
+wsdc-100,New Mexico Dance Fiesta,2006-09,20,1844
+wsdc-130,River City Dance Festival,2006-09,10,5137
+wsdc-15,Dallas D.A.N.C.E.,2006-09,60,50
+wsdc-51,Palm Springs Summer Dance Classic,2006-09,74,7
+wsdc-70,Virginia State Open,2006-09,43,1174
+wsdc-112,US National Dance Championships,2006-10,9,4339
+wsdc-124,ProviDANCE Swing in the City,2006-10,39,1392
+wsdc-125,Swing City Chicago,2006-10,39,327
+wsdc-126,Chico Dance Sensation,2006-10,46,242
+wsdc-127,Tulsa Fall Fling,2006-10,20,1291
+wsdc-128,Waltz Across Texas,2006-10,18,4291
+wsdc-43,Paradise Country Dance Festival,2006-10,18,1681
+wsdc-65,Halloween SwingThing,2006-10,76,285
+wsdc-8,Boogie By The Bay,2006-10,140,69
+wsdc-81,Nashville Swing & Shag Dance Classic,2006-10,77,216
+wsdc-113,Dallas Dance Festival,2006-11,20,2472
+wsdc-129,West Coast Dance Challenge,2006-11,40,176
+wsdc-31,Mountain Magic,2006-11,46,219
+wsdc-63,Swingin' New England Dance Festival,2006-11,98,136
+wsdc-68,US Open Swing Dance Championships,2006-11,20,1095
+wsdc-80,Twin City Swing Challenge,2006-11,60,320
+wsdc-87,C.A.S.H. Bash Weekend,2006-11,36,327
+wsdc-37,New Year's Dance Camp,2006-12,81,144
+wsdc-42,Floorplay New Years Swing Vacation,2006-12,40,2136
+wsdc-61,SwingDiego,2007-01,100,61
+wsdc-62,Monterey SwingFest,2007-01,92,61
+wsdc-115,Da Dance Camp,2007-02,40,175
+wsdc-12,Capital Swing Dance Convention,2007-02,133,61
+wsdc-82,Motor City Jam,2007-02,5,4791
+wsdc-114,British Columbia Dance Challenge,2007-03,40,719
+wsdc-132,Tulsa Spring Swing,2007-03,42,144
+wsdc-9,Boston Tea Party,2007-03,69,340
+wsdc-91,Reno Dance Sensation,2007-03,76,311
+wsdc-92,Mid-Atlantic Dance Jam,2007-03,100,180
+wsdc-104,Los Angeles Premiere Dance Classic,2007-04,70,226
+wsdc-107,Motown Dance Championships,2007-04,40,1127
+wsdc-116,Calgary Dance Stampede,2007-04,20,1567
+wsdc-134,Swing Dance America,2007-04,54,1107
+wsdc-18,Seattle's Easter Swing,2007-04,104,87
+wsdc-105,Canadian Swing Championships,2007-05,10,5140
+wsdc-121,The Texas Classic,2007-05,10,5022
+wsdc-19,Eastern/Washington Dance Challenge,2007-05,39,2393
+wsdc-20,FreZno Dance Classic,2007-05,86,7
+wsdc-22,USA Grand Nationals,2007-05,30,860
+wsdc-67,Americas Classic,2007-05,72,50
+wsdc-73,World Swing Dance Championships,2007-05,56,446
+wsdc-93,Champion's Weekend (MD),2007-05,10,2718
+wsdc-109,Colorado Country Classic,2007-06,20,1234
+wsdc-117,Orange Blossom Dance Festival,2007-06,25,2717
+wsdc-25,J&J O'Rama,2007-06,98,226
+wsdc-95,Swing Niagara Dance Championships,2007-06,48,1184
+wsdc-96,Liberty Swing Dance Championships,2007-06,78,142
+wsdc-1,4TH of July Convention,2007-07,114,46
+wsdc-110,Brandin' Iron Dance Festival,2007-07,20,226
+wsdc-123,Champions Weekend (MA),2007-07,30,1389
+wsdc-32,National Jitterbug Championships,2007-07,30,1936
+wsdc-59,Swing Fling,2007-07,68,1127
+wsdc-86,World Hustle Dance Championships,2007-07,16,1769
+wsdc-97,Grand Prix of Swing,2007-07,59,50
+wsdc-120,Lone Star Invitational,2007-08,19,1819
+wsdc-122,Boston Dance Revolution,2007-08,29,1174
+wsdc-48,South Bay CW Dance Festival,2007-08,60,226
+wsdc-53,Summer Hummer,2007-08,92,211
+wsdc-66,Swingtime in the Rockies,2007-08,81,69
+wsdc-99,Chicagoland,2007-08,36,320
+wsdc-10,Bridgetown Swing Boogie,2007-09,62,211
+wsdc-100,New Mexico Dance Fiesta,2007-09,10,3893
+wsdc-130,River City Dance Festival,2007-09,10,5137
+wsdc-131,Meet Me In St Louis,2007-09,50,50
+wsdc-135,Desert City Swing,2007-09,52,211
+wsdc-15,Dallas D.A.N.C.E.,2007-09,60,216
+wsdc-51,Palm Springs Summer Dance Classic,2007-09,86,242
+wsdc-70,Virginia State Open,2007-09,40,216
+wsdc-79,Sea to Sky,2007-09,58,211
+wsdc-125,Swing City Chicago,2007-10,57,320
+wsdc-126,Chico Dance Sensation,2007-10,60,242
+wsdc-127,Tulsa Fall Fling,2007-10,10,4109
+wsdc-136,Halloween In Harrisburg & Swingzing,2007-10,8,2166
+wsdc-65,Halloween SwingThing,2007-10,82,178
+wsdc-8,Boogie By The Bay,2007-10,123,211
+wsdc-137,Tampa Bay Classic,2007-11,49,211
+wsdc-138,Music City Swing Dance Championships,2007-11,35,214
+wsdc-31,Mountain Magic,2007-11,58,77
+wsdc-63,Swingin' New England Dance Festival,2007-11,80,136
+wsdc-68,US Open Swing Dance Championships,2007-11,20,216
+wsdc-80,Twin City Swing Challenge,2007-11,29,1819
+wsdc-87,C.A.S.H. Bash Weekend,2007-11,39,327
+wsdc-139,New Year's Dancin' Eve,2007-12,69,1759
+wsdc-140,Hawaii Dance Sensation,2007-12,20,3108
+wsdc-141,Spotlight Dance Challenge,2007-12,50,320
+wsdc-37,New Year's Dance Camp,2007-12,92,242
+wsdc-42,Floorplay New Years Swing Vacation,2007-12,50,111
+wsdc-75,Worlds UCWDC,2007-12,28,320
+wsdc-61,SwingDiego,2008-01,112,61
+wsdc-62,Monterey SwingFest,2008-01,74,211
+wsdc-115,Da Dance Camp,2008-02,16,3814
+wsdc-12,Capital Swing Dance Convention,2008-02,128,61
+wsdc-132,Tulsa Spring Swing,2008-03,49,2599
+wsdc-142,The Chicago Classic,2008-03,98,214
+wsdc-143,High Desert Dance Classic,2008-03,51,226
+wsdc-9,Boston Tea Party,2008-03,90,640
+wsdc-91,Reno Dance Sensation,2008-03,110,242
+wsdc-92,Mid-Atlantic Dance Jam,2008-03,109,178
+wsdc-104,Los Angeles Premiere Dance Classic,2008-04,60,178
+wsdc-116,Calgary Dance Stampede,2008-04,10,5138
+wsdc-134,Swing Dance America,2008-04,70,320
+wsdc-18,Seattle's Easter Swing,2008-04,106,78
+wsdc-121,The Texas Classic,2008-05,10,2396
+wsdc-144,Swingin' Into Spring,2008-05,56,1179
+wsdc-145,Come Rain Come Shine,2008-05,44,3421
+wsdc-19,Eastern/Washington Dance Challenge,2008-05,39,1627
+wsdc-20,FreZno Dance Classic,2008-05,82,61
+wsdc-22,USA Grand Nationals,2008-05,30,1627
+wsdc-67,Americas Classic,2008-05,77,50
+wsdc-73,World Swing Dance Championships,2008-05,58,226
+wsdc-109,Colorado Country Classic,2008-06,40,77
+wsdc-117,Orange Blossom Dance Festival,2008-06,29,2396
+wsdc-25,J&J O'Rama,2008-06,100,273
+wsdc-44,Portland Dance Festival,2008-06,40,1478
+wsdc-95,Swing Niagara Dance Championships,2008-06,50,1965
+wsdc-96,Liberty Swing Dance Championships,2008-06,19,2346
+wsdc-1,4TH of July Convention,2008-07,110,61
+wsdc-146,Boston Dance Challenge,2008-07,38,1385
+wsdc-147,Toronto Open Swing & Hustle Championships,2008-07,30,3233
+wsdc-148,New Orleans Dance Mardi Gras,2008-07,29,2038
+wsdc-149,Florida Dance Magic,2008-07,60,360
+wsdc-160,Inland Valley Dance Festival,2008-07,36,226
+wsdc-59,Swing Fling,2008-07,70,596
+wsdc-84,Wisconsin Dance Challenge/Midwest Area Swing Dance Challenge,2008-07,29,3777
+wsdc-86,World Hustle Dance Championships,2008-07,29,596
+wsdc-97,Grand Prix of Swing,2008-07,58,87
+wsdc-119,Chicagoland Dance Festival,2008-08,36,320
+wsdc-120,Lone Star Invitational,2008-08,19,4486
+wsdc-122,Boston Dance Revolution,2008-08,18,1389
+wsdc-48,South Bay CW Dance Festival,2008-08,59,242
+wsdc-53,Summer Hummer,2008-08,114,311
+wsdc-66,Swingtime in the Rockies,2008-08,78,77
+wsdc-77,Arizona Dance Classic,2008-08,9,4771
+wsdc-10,Bridgetown Swing Boogie,2008-09,64,77
+wsdc-100,New Mexico Dance Fiesta,2008-09,10,4571
+wsdc-130,River City Dance Festival,2008-09,10,6104
+wsdc-131,Meet Me In St Louis,2008-09,70,50
+wsdc-135,Desert City Swing,2008-09,67,211
+wsdc-15,Dallas D.A.N.C.E.,2008-09,70,50
+wsdc-51,Palm Springs Summer Dance Classic,2008-09,94,214
+wsdc-70,Virginia State Open,2008-09,47,1627
+wsdc-79,Sea to Sky,2008-09,57,144
+wsdc-125,Swing City Chicago,2008-10,65,1277
+wsdc-126,Chico Dance Sensation,2008-10,60,193
+wsdc-127,Tulsa Fall Fling,2008-10,30,2004
+wsdc-150,Carolina Groove,2008-10,35,311
+wsdc-43,Paradise Country Dance Festival,2008-10,40,226
+wsdc-65,Halloween SwingThing,2008-10,100,178
+wsdc-8,Boogie By The Bay,2008-10,164,61
+wsdc-129,West Coast Dance Challenge,2008-11,38,1478
+wsdc-137,Tampa Bay Classic,2008-11,80,360
+wsdc-138,Music City Swing Dance Championships,2008-11,29,50
+wsdc-151,Sunshine State Dance Challenge,2008-11,10,4698
+wsdc-31,Mountain Magic,2008-11,60,260
+wsdc-63,Swingin' New England Dance Festival,2008-11,78,136
+wsdc-68,US Open Swing Dance Championships,2008-11,20,2211
+wsdc-87,C.A.S.H. Bash Weekend,2008-11,38,2108
+wsdc-75,Worlds UCWDC,2008-12,20,2926
+wsdc-61,SwingDiego,2009-01,96,311
+wsdc-62,Monterey SwingFest,2009-01,102,124
+wsdc-12,Capital Swing Dance Convention,2009-02,120,102
+wsdc-132,Tulsa Spring Swing,2009-03,58,50
+wsdc-142,The Chicago Classic,2009-03,109,175
+wsdc-143,High Desert Dance Classic,2009-03,66,226
+wsdc-153,Novice Invitational,2009-03,39,2372
+wsdc-9,Boston Tea Party,2009-03,70,273
+wsdc-91,Reno Dance Sensation,2009-03,70,285
+wsdc-92,Mid-Atlantic Dance Jam,2009-03,118,211
+wsdc-104,Los Angeles Premiere Dance Classic,2009-04,70,61
+wsdc-116,Calgary Dance Stampede,2009-04,20,5176
+wsdc-134,Swing Dance America,2009-04,58,2368
+wsdc-154,UK WCS Dance Championships,2009-04,30,6066
+wsdc-18,Seattle's Easter Swing,2009-04,106,124
+wsdc-105,Canadian Swing Championships,2009-05,39,2431
+wsdc-121,The Texas Classic,2009-05,20,2396
+wsdc-144,Swingin' Into Spring,2009-05,58,1179
+wsdc-145,Come Rain Come Shine,2009-05,50,1679
+wsdc-19,Eastern/Washington Dance Challenge,2009-05,40,281
+wsdc-20,FreZno Dance Classic,2009-05,98,61
+wsdc-22,USA Grand Nationals,2009-05,60,1735
+wsdc-67,Americas Classic,2009-05,70,2004
+wsdc-109,Colorado Country Classic,2009-06,39,1194
+wsdc-117,Orange Blossom Dance Festival,2009-06,29,932
+wsdc-25,J&J O'Rama,2009-06,110,226
+wsdc-44,Portland Dance Festival,2009-06,40,176
+wsdc-95,Swing Niagara Dance Championships,2009-06,48,3248
+wsdc-96,Liberty Swing Dance Championships,2009-06,92,1822
+wsdc-1,4TH of July Convention,2009-07,120,211
+wsdc-146,Boston Dance Challenge,2009-07,30,1745
+wsdc-147,Toronto Open Swing & Hustle Championships,2009-07,29,2530
+wsdc-149,Florida Dance Magic,2009-07,76,178
+wsdc-155,The City of Light,2009-07,20,6677
+wsdc-156,Big Apple Dance Festival,2009-07,30,1174
+wsdc-160,Inland Valley Dance Festival,2009-07,40,226
+wsdc-59,Swing Fling,2009-07,69,281
+wsdc-76,Michigan Dance Classic,2009-07,48,327
+wsdc-84,Wisconsin Dance Challenge/Midwest Area Swing Dance Challenge,2009-07,49,320
+wsdc-86,World Hustle Dance Championships,2009-07,19,2999
+wsdc-97,Grand Prix of Swing,2009-07,59,50
+wsdc-119,Chicagoland Dance Festival,2009-08,40,320
+wsdc-120,Lone Star Invitational,2009-08,20,2043
+wsdc-157,New England Dance Festival,2009-08,37,1385
+wsdc-159,World Swing Masters,2009-08,40,5228
+wsdc-48,South Bay CW Dance Festival,2009-08,60,421
+wsdc-53,Summer Hummer,2009-08,108,178
+wsdc-66,Swingtime in the Rockies,2009-08,103,311
+wsdc-10,Bridgetown Swing Boogie,2009-09,70,242
+wsdc-130,River City Dance Festival,2009-09,8,5506
+wsdc-131,Meet Me In St Louis,2009-09,69,631
+wsdc-135,Desert City Swing,2009-09,90,102
+wsdc-15,Dallas D.A.N.C.E.,2009-09,76,50
+wsdc-51,Palm Springs Summer Dance Classic,2009-09,90,242
+wsdc-70,Virginia State Open,2009-09,67,96
+wsdc-79,Sea to Sky,2009-09,59,211
+wsdc-125,Swing City Chicago,2009-10,50,2368
+wsdc-126,Chico Dance Sensation,2009-10,88,311
+wsdc-136,Halloween In Harrisburg & Swingzing,2009-10,8,5782
+wsdc-43,Paradise Country Dance Festival,2009-10,40,855
+wsdc-65,Halloween SwingThing,2009-10,84,178
+wsdc-8,Boogie By The Bay,2009-10,138,102
+wsdc-129,West Coast Dance Challenge,2009-11,38,1478
+wsdc-137,Tampa Bay Classic,2009-11,100,285
+wsdc-151,Sunshine State Dance Challenge,2009-11,20,4815
+wsdc-31,Mountain Magic,2009-11,75,142
+wsdc-63,Swingin' New England Dance Festival,2009-11,70,1389
+wsdc-68,US Open Swing Dance Championships,2009-11,20,2216
+wsdc-87,C.A.S.H. Bash Weekend,2009-11,40,216
+wsdc-139,New Year's Dancin' Eve,2009-12,80,1629
+wsdc-141,Spotlight Dance Challenge,2009-12,48,50
+wsdc-152,Worlds UCWDC,2009-12,29,1820
+wsdc-37,New Year's Dance Camp,2009-12,90,242
+wsdc-42,Floorplay New Years Swing Vacation,2009-12,50,681
+wsdc-139,New Year's Dancin' Eve,2010-01,89,87
+wsdc-141,Spotlight Dance Challenge,2010-01,49,1281
+wsdc-37,New Year's Dance Camp,2010-01,90,242
+wsdc-42,Floorplay New Years Swing Vacation,2010-01,50,2586
+wsdc-62,Monterey SwingFest,2010-01,110,124
+wsdc-67,Americas Classic,2010-01,72,216
+wsdc-75,Worlds UCWDC,2010-01,18,1369
+wsdc-115,Da Dance Camp,2010-02,29,1754
+wsdc-12,Capital Swing Dance Convention,2010-02,140,102
+wsdc-13,Chicago Classic,2010-03,118,320
+wsdc-132,Tulsa Spring Swing,2010-03,68,50
+wsdc-143,High Desert Dance Classic,2010-03,57,260
+wsdc-153,Novice Invitational,2010-03,40,3193
+wsdc-9,Boston Tea Party,2010-03,76,1745
+wsdc-91,Reno Dance Sensation,2010-03,88,242
+wsdc-92,Mid-Atlantic Dance Jam,2010-03,106,211
+wsdc-104,Los Angeles Premiere Dance Classic,2010-04,80,446
+wsdc-116,Calgary Dance Stampede,2010-04,10,5138
+wsdc-134,Swing Dance America,2010-04,88,379
+wsdc-154,UK WCS Dance Championships,2010-04,50,2008
+wsdc-161,USA Jack & Jill Championships,2010-04,28,1627
+wsdc-18,Seattle's Easter Swing,2010-04,94,211
+wsdc-105,Canadian Swing Championships,2010-05,18,2431
+wsdc-121,The Texas Classic,2010-05,8,5840
+wsdc-144,Swingin' Into Spring,2010-05,60,1179
+wsdc-145,Come Rain Come Shine,2010-05,40,1128
+wsdc-162,Swingapalooza,2010-05,50,160
+wsdc-163,DFW Pro Am Jam,2010-05,30,332
+wsdc-19,Eastern/Washington Dance Challenge,2010-05,38,433
+wsdc-20,FreZno Dance Classic,2010-05,102,7
+wsdc-22,USA Grand Nationals,2010-05,60,2356
+wsdc-61,SwingDiego,2010-05,108,102
+wsdc-73,World Swing Dance Championships,2010-05,66,7
+wsdc-109,Colorado Country Classic,2010-06,45,159
+wsdc-117,Orange Blossom Dance Festival,2010-06,43,2989
+wsdc-25,J&J O'Rama,2010-06,70,124
+wsdc-44,Portland Dance Festival,2010-06,30,2608
+wsdc-96,Liberty Swing Dance Championships,2010-06,105,1420
+wsdc-1,4TH of July Convention,2010-07,109,102
+wsdc-147,Toronto Open Swing & Hustle Championships,2010-07,48,2431
+wsdc-148,New Orleans Dance Mardi Gras,2010-07,47,350
+wsdc-149,Florida Dance Magic,2010-07,69,360
+wsdc-155,The City of Light,2010-07,30,6281
+wsdc-156,Big Apple Dance Festival,2010-07,38,1385
+wsdc-59,Swing Fling,2010-07,78,96
+wsdc-76,Michigan Dance Classic,2010-07,49,976
+wsdc-84,Wisconsin Dance Challenge/Midwest Area Swing Dance Challenge,2010-07,59,50
+wsdc-97,Grand Prix of Swing,2010-07,83,50
+wsdc-119,Chicagoland Dance Festival,2010-08,47,320
+wsdc-120,Lone Star Invitational,2010-08,20,408
+wsdc-157,New England Dance Festival,2010-08,28,3932
+wsdc-159,World Swing Masters,2010-08,32,5228
+wsdc-164,Sea Sun and Swing,2010-08,50,5284
+wsdc-48,South Bay CW Dance Festival,2010-08,70,560
+wsdc-53,Summer Hummer,2010-08,116,211
+wsdc-66,Swingtime in the Rockies,2010-08,89,311
+wsdc-77,Arizona Dance Classic,2010-08,20,1901
+wsdc-10,Bridgetown Swing Boogie,2010-09,68,660
+wsdc-100,New Mexico Dance Fiesta,2010-09,16,2472
+wsdc-130,River City Dance Festival,2010-09,10,6104
+wsdc-131,Meet Me In St Louis,2010-09,72,178
+wsdc-135,Desert City Swing,2010-09,99,102
+wsdc-15,Dallas D.A.N.C.E.,2010-09,74,50
+wsdc-165,Midland Swing Open,2010-09,40,5284
+wsdc-51,Palm Springs Summer Dance Classic,2010-09,110,242
+wsdc-79,Sea to Sky,2010-09,59,242
+wsdc-95,Swing Niagara Dance Championships,2010-09,64,1279
+wsdc-125,Swing City Chicago,2010-10,53,320
+wsdc-43,Paradise Country Dance Festival,2010-10,40,226
+wsdc-65,Halloween SwingThing,2010-10,86,188
+wsdc-8,Boogie By The Bay,2010-10,125,50
+wsdc-137,Tampa Bay Classic,2010-11,122,976
+wsdc-151,Sunshine State Dance Challenge,2010-11,19,1391
+wsdc-166,London SWINGvitational,2010-11,39,5629
+wsdc-31,Mountain Magic,2010-11,59,260
+wsdc-63,Swingin' New England Dance Festival,2010-11,89,87
+wsdc-68,US Open Swing Dance Championships,2010-11,28,216
+wsdc-70,Virginia State Open,2010-11,60,96
+wsdc-87,C.A.S.H. Bash Weekend,2010-11,38,320
+wsdc-126,Chico Dance Sensation,2010-12,76,242
+wsdc-139,New Year's Dancin' Eve,2011-01,69,1420
+wsdc-37,New Year's Dance Camp,2011-01,98,242
+wsdc-42,Floorplay New Years Swing Vacation,2011-01,49,2672
+wsdc-62,Monterey SwingFest,2011-01,117,76
+wsdc-67,Americas Classic,2011-01,82,216
+wsdc-12,Capital Swing Dance Convention,2011-02,152,124
+wsdc-167,Best of the Best,2011-02,40,6179
+wsdc-168,Scottish WCS Dance Championships,2011-02,30,5144
+wsdc-169,Dance Camp Chicago,2011-02,48,2514
+wsdc-171,Toronto International Swing Dance,2011-02,37,3233
+wsdc-142,The Chicago Classic,2011-03,122,50
+wsdc-143,High Desert Dance Classic,2011-03,50,7
+wsdc-153,Novice Invitational,2011-03,45,2372
+wsdc-9,Boston Tea Party,2011-03,102,1420
+wsdc-92,Mid-Atlantic Dance Jam,2011-03,129,178
+wsdc-104,Los Angeles Premiere Dance Classic,2011-04,60,144
+wsdc-132,Tulsa Spring Swing,2011-04,69,50
+wsdc-154,UK WCS Dance Championships,2011-04,70,2008
+wsdc-161,USA Jack & Jill Championships,2011-04,39,1095
+wsdc-170,Russian Open WCS Championships,2011-04,22,8022
+wsdc-172,International Hustle & Salsa Congress,2011-04,43,117
+wsdc-18,Seattle's Easter Swing,2011-04,112,124
+wsdc-91,Reno Dance Sensation,2011-04,93,242
+wsdc-105,Canadian Swing Championships,2011-05,40,2308
+wsdc-134,Swing Dance America,2011-05,65,320
+wsdc-144,Swingin' Into Spring,2011-05,63,1389
+wsdc-162,Swingapalooza,2011-05,48,216
+wsdc-163,DFW Pro Am Jam,2011-05,49,2604
+wsdc-173,Austrian Open,2011-05,30,7578
+wsdc-174,Swingsation,2011-05,36,2927
+wsdc-20,FreZno Dance Classic,2011-05,102,142
+wsdc-22,USA Grand Nationals,2011-05,61,1735
+wsdc-61,SwingDiego,2011-05,116,231
+wsdc-109,Colorado Country Classic,2011-06,56,692
+wsdc-117,Orange Blossom Dance Festival,2011-06,51,1730
+wsdc-175,French Open West Coast Swing,2011-06,77,2008
+wsdc-25,J&J O'Rama,2011-06,103,124
+wsdc-76,Michigan Dance Classic,2011-06,67,50
+wsdc-96,Liberty Swing Dance Championships,2011-06,134,242
+wsdc-1,4TH of July Convention,2011-07,84,87
+wsdc-146,Boston Dance Challenge,2011-07,54,2538
+wsdc-147,Toronto Open Swing & Hustle Championships,2011-07,45,2308
+wsdc-148,New Orleans Dance Mardi Gras,2011-07,44,2375
+wsdc-149,Florida Dance Magic,2011-07,74,117
+wsdc-155,The City of Light,2011-07,30,6578
+wsdc-156,Big Apple Dance Festival/World Hustle Championships,2011-07,23,3114
+wsdc-44,Portland Dance Festival,2011-07,41,2608
+wsdc-47,Swingtime in the Rockies,2011-07,106,50
+wsdc-73,World Swing Dance Championships,2011-07,29,1619
+wsdc-84,Wisconsin Dance Challenge/Midwest Area Swing Dance Challenge,2011-07,69,50
+wsdc-119,Chicagoland Dance Festival,2011-08,48,320
+wsdc-120,Lone Star Invitational,2011-08,36,1735
+wsdc-157,New England Dance Festival,2011-08,49,496
+wsdc-159,World Swing Masters,2011-08,44,5457
+wsdc-164,Sea Sun and Swing,2011-08,47,7178
+wsdc-53,Summer Hummer,2011-08,105,242
+wsdc-59,Swing Fling,2011-08,86,273
+wsdc-77,Arizona Dance Classic,2011-08,39,421
+wsdc-97,Grand Prix of Swing,2011-08,48,50
+wsdc-10,Bridgetown Swing Boogie,2011-09,66,242
+wsdc-131,Meet Me In St Louis,2011-09,85,50
+wsdc-135,Desert City Swing,2011-09,116,102
+wsdc-15,Dallas D.A.N.C.E.,2011-09,83,50
+wsdc-177,River City Swing,2011-09,69,1391
+wsdc-48,South Bay CW Dance Festival,2011-09,100,764
+wsdc-51,Palm Springs Summer Dance Classic,2011-09,96,231
+wsdc-95,Swing Niagara Dance Championships,2011-09,64,2308
+wsdc-125,Swing City Chicago,2011-10,83,320
+wsdc-165,Midland Swing Open,2011-10,40,4683
+wsdc-178,Montreal WCS Fest,2011-10,50,2308
+wsdc-179,New Zealand Open Swing Dance Championships,2011-10,28,2927
+wsdc-180,Australian Open Swing Dance Championships,2011-10,40,5456
+wsdc-43,Paradise Country Dance Festival,2011-10,53,260
+wsdc-65,Halloween SwingThing,2011-10,90,178
+wsdc-79,Sea to Sky,2011-10,77,660
+wsdc-8,Boogie By The Bay,2011-10,135,102
+wsdc-137,Tampa Bay Classic,2011-11,98,117
+wsdc-151,Sunshine State Dance Challenge,2011-11,38,1730
+wsdc-166,London SWINGvitational,2011-11,41,5457
+wsdc-181,DC Swing eXperience,2011-11,70,1123
+wsdc-31,Mountain Magic,2011-11,79,272
+wsdc-63,Swingin' New England Dance Festival,2011-11,95,87
+wsdc-68,US Open Swing Dance Championships,2011-11,30,2814
+wsdc-87,C.A.S.H. Bash Weekend,2011-11,51,1739
+wsdc-126,Chico Dance Sensation,2011-12,88,211
+wsdc-141,Spotlight Dance Challenge,2012-01,81,50
+wsdc-152,Worlds UCWDC,2012-01,43,1492
+wsdc-167,Best of the Best,2012-01,40,6179
+wsdc-183,Freedom Swing Dance Challenge,2012-01,70,1179
+wsdc-184,BudaFest Open WCS Championships,2012-01,50,6774
+wsdc-37,New Year's Dance Camp,2012-01,96,61
+wsdc-39,New Year's Dance Extravaganza,2012-01,69,1420
+wsdc-42,Floorplay New Years Swing Vacation,2012-01,58,3070
+wsdc-62,Monterey SwingFest,2012-01,107,77
+wsdc-67,Americas Classic,2012-01,115,50
+wsdc-12,Capital Swing Dance Convention,2012-02,143,102
+wsdc-168,Scottish WCS Dance Championships,2012-02,29,6705
+wsdc-169,Dance Camp Chicago,2012-02,39,320
+wsdc-185,Sweetheart Swing Classic,2012-02,39,4688
+wsdc-13,Chicago Classic,2012-03,137,175
+wsdc-143,High Desert Dance Classic,2012-03,60,61
+wsdc-153,Novice Invitational,2012-03,52,3356
+wsdc-170,Russian Open WCS Championships,2012-03,38,7533
+wsdc-186,West In Lyon,2012-03,50,6274
+wsdc-9,Boston Tea Party,2012-03,90,1629
+wsdc-92,Mid-Atlantic Dance Jam,2012-03,128,211
+wsdc-132,Tulsa Spring Swing,2012-04,81,50
+wsdc-134,Swing Dance America,2012-04,79,976
+wsdc-154,UK WCS Dance Championships,2012-04,56,6070
+wsdc-172,International Hustle & Salsa Congress,2012-04,39,1391
+wsdc-18,Seattle's Easter Swing,2012-04,115,78
+wsdc-187,City of Angels,2012-04,121,147
+wsdc-105,Canadian Swing Championships,2012-05,33,6088
+wsdc-121,The Texas Classic,2012-05,29,4208
+wsdc-144,Swingin' Into Spring,2012-05,70,2517
+wsdc-162,Swingapalooza,2012-05,50,50
+wsdc-163,DFW Pro Am Jam,2012-05,59,3193
+wsdc-174,Swingsation,2012-05,40,5456
+wsdc-175,French Open West Coast Swing,2012-05,74,2008
+wsdc-20,FreZno Dance Classic,2012-05,95,61
+wsdc-22,USA Grand Nationals,2012-05,76,1627
+wsdc-61,SwingDiego,2012-05,106,237
+wsdc-109,Colorado Country Classic,2012-06,61,1194
+wsdc-117,Orange Blossom Dance Festival,2012-06,47,3901
+wsdc-188,NSW West Coast Swing Dance Championships,2012-06,36,5456
+wsdc-25,J&J O'Rama,2012-06,110,124
+wsdc-76,Michigan Dance Classic,2012-06,91,50
+wsdc-96,Liberty Swing Dance Championships,2012-06,110,96
+wsdc-1,4TH of July Convention,2012-07,107,124
+wsdc-146,Boston Dance Challenge,2012-07,60,999
+wsdc-147,Toronto Open Swing & Hustle Championships,2012-07,52,1739
+wsdc-148,New Orleans Dance Mardi Gras,2012-07,70,50
+wsdc-149,Florida Dance Magic,2012-07,73,273
+wsdc-156,Big Apple Dance Festival,2012-07,27,1174
+wsdc-189,Swingin in the Valley,2012-07,20,7120
+wsdc-44,Portland Dance Festival,2012-07,54,797
+wsdc-47,Swingtime in the Rockies,2012-07,93,50
+wsdc-84,Wisconsin Dance Challenge/Midwest Area Swing Dance Challenge,2012-07,64,50
+wsdc-120,Lone Star Invitational,2012-08,42,4710
+wsdc-157,New England Dance Festival,2012-08,43,1492
+wsdc-159,World Swing Masters,2012-08,40,5457
+wsdc-164,Sea Sun and Swing,2012-08,71,2008
+wsdc-51,Palm Springs Summer Dance Classic,2012-08,115,231
+wsdc-53,Summer Hummer,2012-08,107,242
+wsdc-59,Swing Fling,2012-08,110,237
+wsdc-77,Arizona Dance Classic,2012-08,34,1064
+wsdc-99,Chicagoland,2012-08,47,320
+wsdc-10,Bridgetown Swing Boogie,2012-09,68,2241
+wsdc-131,Meet Me In St Louis,2012-09,84,50
+wsdc-135,Desert City Swing,2012-09,125,242
+wsdc-15,Dallas D.A.N.C.E.,2012-09,87,50
+wsdc-165,Midland Swing Open,2012-09,60,1659
+wsdc-177,River City Swing,2012-09,75,408
+wsdc-190,Vermont Swing Dance Championships,2012-09,55,1389
+wsdc-191,Sunny Side Dance Camp,2012-09,34,7533
+wsdc-48,South Bay CW Dance Festival,2012-09,84,548
+wsdc-95,Swing Niagara Dance Championships,2012-09,83,2308
+wsdc-125,Swing City Chicago,2012-10,102,1153
+wsdc-178,Montreal WCS Fest,2012-10,60,2008
+wsdc-179,New Zealand Open Swing Dance Championships,2012-10,30,2927
+wsdc-180,Australian Open Swing Dance Championships,2012-10,42,5456
+wsdc-192,Swing Generation,2012-10,68,6677
+wsdc-193,Warsaw Swing,2012-10,44,7053
+wsdc-43,Paradise Country Dance Festival,2012-10,55,165
+wsdc-65,Halloween SwingThing,2012-10,92,102
+wsdc-8,Boogie By The Bay,2012-10,139,102
+wsdc-137,Tampa Bay Classic,2012-11,90,50
+wsdc-166,London SWINGvitational,2012-11,52,5457
+wsdc-181,DC Swing eXperience,2012-11,100,242
+wsdc-194,Moscow Westie Dance Fest,2012-11,66,320
+wsdc-31,Mountain Magic,2012-11,75,260
+wsdc-63,Swingin' New England Dance Festival,2012-11,89,178
+wsdc-68,US Open Swing Dance Championships,2012-11,78,2008
+wsdc-79,Sea to Sky,2012-11,85,439
+wsdc-87,C.A.S.H. Bash Weekend,2012-11,69,320
+wsdc-126,Chico Dance Sensation,2012-12,97,1047
+wsdc-141,Spotlight Dance Challenge,2013-01,95,50
+wsdc-167,Best of the Best,2013-01,47,7120
+wsdc-183,Freedom Swing Dance Challenge,2013-01,82,1172
+wsdc-184,BudaFest Open WCS Championships,2013-01,89,4552
+wsdc-195,Palm Springs New Years Swing Dance Classic,2013-01,114,231
+wsdc-196,SwingCouver,2013-01,59,719
+wsdc-39,New Year's Dance Extravaganza,2013-01,69,1759
+wsdc-42,Floorplay New Years Swing Vacation,2013-01,60,3070
+wsdc-62,Monterey SwingFest,2013-01,100,124
+wsdc-67,Americas Classic,2013-01,102,50
+wsdc-75,Worlds UCWDC,2013-01,45,548
+wsdc-12,Capital Swing Dance Convention,2013-02,164,61
+wsdc-168,Scottish WCS Dance Championships,2013-02,30,7524
+wsdc-169,Dance Camp Chicago,2013-02,54,432
+wsdc-132,Tulsa Spring Swing,2013-03,78,50
+wsdc-142,The Chicago Classic,2013-03,140,50
+wsdc-143,High Desert Dance Classic,2013-03,63,61
+wsdc-153,Novice Invitational,2013-03,45,3193
+wsdc-170,Russian Open WCS Championships,2013-03,59,6863
+wsdc-18,Seattle's Easter Swing,2013-03,103,124
+wsdc-186,West In Lyon,2013-03,81,6274
+wsdc-197,5280 Swing Dance Championships,2013-03,89,850
+wsdc-9,Boston Tea Party,2013-03,97,1629
+wsdc-92,Mid-Atlantic Dance Jam,2013-03,145,211
+wsdc-134,Swing Dance America,2013-04,101,976
+wsdc-172,International Hustle & Salsa Congress,2013-04,43,2495
+wsdc-187,City of Angels,2013-04,106,50
+wsdc-198,UK & European WCS Championships,2013-04,70,6274
+wsdc-199,San Francisco Dance Sensation,2013-04,88,1123
+wsdc-200,Austin Swing Dance Championships,2013-04,78,216
+wsdc-201,MidAtlantic Dance Classic,2013-04,35,1492
+wsdc-202,Asian WCS Open Swingvitation,2013-04,40,7269
+wsdc-203,Detonation Dance ,2013-04,50,2514
+wsdc-105,Canadian Swing Championships,2013-05,24,6016
+wsdc-121,The Texas Classic,2013-05,33,3253
+wsdc-144,Swingin' Into Spring,2013-05,78,2726
+wsdc-162,Swingapalooza,2013-05,44,50
+wsdc-163,DFW Pro Am Jam,2013-05,65,178
+wsdc-174,Swingsation,2013-05,65,4233
+wsdc-175,French Open West Coast Swing,2013-05,101,2008
+wsdc-185,Sweetheart Swing Classic,2013-05,53,50
+wsdc-20,FreZno Dance Classic,2013-05,99,61
+wsdc-204,Spring Swing,2013-05,39,7532
+wsdc-205,SOswing,2013-05,74,440
+wsdc-22,USA Grand Nationals,2013-05,67,2577
+wsdc-61,SwingDiego,2013-05,112,147
+wsdc-109,Colorado Country Classic,2013-06,72,260
+wsdc-117,Orange Blossom Dance Festival,2013-06,57,5226
+wsdc-188,NSW West Coast Swing Dance Championships,2013-06,40,5456
+wsdc-206,Hungarian Open,2013-06,52,6826
+wsdc-207,Dance N Play,2013-06,44,2615
+wsdc-25,J&J O'Rama,2013-06,87,147
+wsdc-76,Michigan Dance Classic,2013-06,111,237
+wsdc-96,Liberty Swing Dance Championships,2013-06,131,242
+wsdc-1,4TH of July Convention,2013-07,110,147
+wsdc-147,Toronto Open Swing & Hustle Championships,2013-07,55,236
+wsdc-148,New Orleans Dance Mardi Gras,2013-07,60,3760
+wsdc-149,Florida Dance Magic,2013-07,65,439
+wsdc-208,WCS@IDB,2013-07,44,2380
+wsdc-209,SinCity Swing,2013-07,81,220
+wsdc-44,Portland Dance Festival,2013-07,65,797
+wsdc-47,Swingtime in the Rockies,2013-07,109,50
+wsdc-119,Chicagoland Dance Festival,2013-08,69,1952
+wsdc-120,Lone Star Invitational,2013-08,39,2587
+wsdc-157,New England Dance Festival,2013-08,46,496
+wsdc-159,World Swing Masters,2013-08,39,5457
+wsdc-164,Sea Sun and Swing,2013-08,80,6826
+wsdc-51,Palm Springs Summer Dance Classic,2013-08,126,242
+wsdc-53,Summer Hummer,2013-08,116,242
+wsdc-59,Swing Fling,2013-08,110,237
+wsdc-77,Arizona Dance Classic,2013-08,23,4874
+wsdc-10,Bridgetown Swing Boogie,2013-09,77,1567
+wsdc-100,New Mexico Dance Fiesta,2013-09,40,1194
+wsdc-131,Meet Me In St Louis,2013-09,90,50
+wsdc-135,Desert City Swing,2013-09,114,173
+wsdc-15,Dallas D.A.N.C.E.,2013-09,94,50
+wsdc-165,Midland Swing Open,2013-09,70,4552
+wsdc-177,River City Swing,2013-09,89,2727
+wsdc-190,Vermont Swing Dance Championships,2013-09,70,1385
+wsdc-191,Sunny Side Dance Camp,2013-09,50,7533
+wsdc-48,South Bay CW Dance Festival,2013-09,89,816
+wsdc-125,Swing City Chicago,2013-10,113,320
+wsdc-178,Montreal WCS Fest,2013-10,68,136
+wsdc-179,New Zealand Open Swing Dance Championships,2013-10,30,7225
+wsdc-180,Australian Open Swing Dance Championships,2013-10,56,4110
+wsdc-192,Swing Generation,2013-10,69,6605
+wsdc-193,Warsaw Swing,2013-10,45,8180
+wsdc-210,Korean Open Swing Dance Championships,2013-10,40,2986
+wsdc-211,Atlanta Swing Classic,2013-10,86,50
+wsdc-43,Paradise Country Dance Festival,2013-10,70,144
+wsdc-65,Halloween SwingThing,2013-10,100,144
+wsdc-8,Boogie By The Bay,2013-10,122,211
+wsdc-137,Tampa Bay Classic,2013-11,107,242
+wsdc-166,London SWINGvitational,2013-11,68,6382
+wsdc-181,DC Swing eXperience,2013-11,91,242
+wsdc-194,Moscow Westie Dance Fest,2013-11,74,1420
+wsdc-31,Mountain Magic,2013-11,62,260
+wsdc-63,Swingin' New England Dance Festival,2013-11,85,178
+wsdc-79,Sea to Sky,2013-11,92,440
+wsdc-141,Spotlight Dance Challenge,2013-12,103,50
+wsdc-212,The After Party,2013-12,86,1567
+wsdc-213,Swingtimate,2013-12,54,5456
+wsdc-39,New Year's Dance Extravaganza,2013-12,58,1759
+wsdc-42,Floorplay New Years Swing Vacation,2013-12,45,3546
+wsdc-68,US Open Swing Dance Championships,2013-12,109,147
+wsdc-87,C.A.S.H. Bash Weekend,2013-12,83,1420
+wsdc-183,Freedom Swing Dance Challenge,2014-01,107,284
+wsdc-184,BudaFest Open WCS Championships,2014-01,82,6511
+wsdc-195,Palm Springs New Years Swing Dance Classic,2014-01,128,231
+wsdc-196,SwingCouver,2014-01,82,211
+wsdc-214,New Year's Swing Fling,2014-01,80,5629
+wsdc-62,Monterey SwingFest,2014-01,113,142
+wsdc-67,Americas Classic,2014-01,91,50
+wsdc-75,Worlds UCWDC,2014-01,35,1839
+wsdc-12,Capital Swing Dance Convention,2014-02,135,124
+wsdc-167,Best of the Best,2014-02,50,8052
+wsdc-168,Scottish WCS Dance Championships,2014-02,52,6070
+wsdc-185,Sweetheart Swing Classic,2014-02,64,237
+wsdc-197,5280 Swing Dance Championships,2014-02,91,903
+wsdc-215,Swing & Snow,2014-02,62,6511
+wsdc-142,The Chicago Classic,2014-03,125,50
+wsdc-143,High Desert Dance Classic,2014-03,65,255
+wsdc-153,Novice Invitational,2014-03,59,3193
+wsdc-169,Dance Camp Chicago,2014-03,54,6079
+wsdc-170,Russian Open WCS Championships,2014-03,60,6775
+wsdc-186,West In Lyon,2014-03,85,6826
+wsdc-216,The Brazilian Open Championships,2014-03,38,8394
+wsdc-9,Boston Tea Party,2014-03,94,496
+wsdc-92,Mid-Atlantic Dance Jam,2014-03,150,211
+wsdc-132,Tulsa Spring Swing,2014-04,53,797
+wsdc-134,Swing Dance America,2014-04,85,320
+wsdc-18,Seattle's Easter Swing,2014-04,125,242
+wsdc-187,City of Angels,2014-04,114,147
+wsdc-198,UK & European WCS Championships,2014-04,90,6271
+wsdc-200,Austin Swing Dance Championships,2014-04,97,216
+wsdc-203,Detonation Dance ,2014-04,50,6274
+wsdc-217,San Diego Dance Festival,2014-04,55,61
+wsdc-218,Asia West Coast Swing Open,2014-04,63,6179
+wsdc-219,KIWI Fest,2014-04,40,8185
+wsdc-105,Canadian Swing Championships,2014-05,40,2515
+wsdc-121,The Texas Classic,2014-05,41,3193
+wsdc-144,Swingin' Into Spring,2014-05,75,2111
+wsdc-162,Swingapalooza,2014-05,65,50
+wsdc-163,DFW Pro Am Jam,2014-05,49,4195
+wsdc-172,International Hustle & Salsa Congress,2014-05,19,4297
+wsdc-174,Swingsation,2014-05,60,6436
+wsdc-20,FreZno Dance Classic,2014-05,81,142
+wsdc-201,MidAtlantic Dance Classic,2014-05,40,1492
+wsdc-204,Spring Swing,2014-05,60,7058
+wsdc-205,SOswing,2014-05,84,440
+wsdc-206,Hungarian Open,2014-05,70,6271
+wsdc-22,USA Grand Nationals,2014-05,84,2256
+wsdc-220,D-Townswing,2014-05,40,8220
+wsdc-221,Show-Me Showdown,2014-05,38,5272
+wsdc-61,SwingDiego,2014-05,110,147
+wsdc-109,Colorado Country Classic,2014-06,52,260
+wsdc-117,Orange Blossom Dance Festival,2014-06,65,3070
+wsdc-175,French Open West Coast Swing,2014-06,103,6271
+wsdc-188,NSW West Coast Swing Dance Championships,2014-06,53,5456
+wsdc-207,Dance N Play,2014-06,64,2363
+wsdc-222,Baltic Swing,2014-06,73,7178
+wsdc-223,Slingshot Swing,2014-06,40,8540
+wsdc-224,Midwest Westie Fest,2014-06,82,272
+wsdc-25,J&J O'Rama,2014-06,100,147
+wsdc-76,Michigan Dance Classic,2014-06,118,50
+wsdc-96,Liberty Swing Dance Championships,2014-06,139,242
+wsdc-1,4TH of July Convention,2014-07,107,144
+wsdc-147,Toronto Open Swing & Hustle Championships,2014-07,54,496
+wsdc-148,New Orleans Dance Mardi Gras,2014-07,82,2742
+wsdc-149,Florida Dance Magic,2014-07,59,1391
+wsdc-156,Big Apple Dance Festival,2014-07,30,1492
+wsdc-209,SinCity Swing,2014-07,104,560
+wsdc-225,Wild Wild Westie,2014-07,60,237
+wsdc-226,Ft. Lauderdale Swing & Shag Beach Bash,2014-07,43,50
+wsdc-44,Portland Dance Festival,2014-07,65,1956
+wsdc-66,Swingtime in the Rockies,2014-07,90,50
+wsdc-119,Chicagoland Dance Festival,2014-08,69,320
+wsdc-120,Lone Star Invitational,2014-08,59,1898
+wsdc-157,New England Dance Festival,2014-08,52,496
+wsdc-159,World Swing Masters,2014-08,30,5629
+wsdc-164,Sea Sun and Swing,2014-08,78,6284
+wsdc-177,River City Swing,2014-08,110,178
+wsdc-227,Swingtacular,2014-08,90,147
+wsdc-228,Summer Swing Classic,2014-08,63,1739
+wsdc-229,Scandinavian Open,2014-08,47,8185
+wsdc-48,South Bay CW Dance Festival,2014-08,83,173
+wsdc-51,Palm Springs Summer Dance Classic,2014-08,108,231
+wsdc-53,Summer Hummer,2014-08,112,311
+wsdc-59,Swing Fling,2014-08,115,596
+wsdc-77,Arizona Dance Classic,2014-08,25,1485
+wsdc-10,Bridgetown Swing Boogie,2014-09,83,1567
+wsdc-100,New Mexico Dance Fiesta,2014-09,24,2166
+wsdc-131,Meet Me In St Louis,2014-09,110,50
+wsdc-135,Desert City Swing,2014-09,128,211
+wsdc-15,Dallas D.A.N.C.E.,2014-09,100,50
+wsdc-165,Midland Swing Open,2014-09,70,4552
+wsdc-190,Vermont Swing Dance Championships,2014-09,81,1385
+wsdc-230,Sunny Side Dance Camp,2014-09,37,8022
+wsdc-231,Swing Trilogy,2014-09,73,2515
+wsdc-232,Norway Westie Fest,2014-09,45,8968
+wsdc-233,Bavarian Open,2014-09,49,8366
+wsdc-234,Philly Swing Classic,2014-09,78,1389
+wsdc-125,Swing City Chicago,2014-10,97,320
+wsdc-179,New Zealand Open Swing Dance Championships,2014-10,34,7225
+wsdc-180,Australian Open Swing Dance Championships,2014-10,55,6436
+wsdc-211,Atlanta Swing Classic,2014-10,113,50
+wsdc-237,WCS Helsinki,2014-10,35,8025
+wsdc-43,Paradise Country Dance Festival,2014-10,65,144
+wsdc-65,Halloween SwingThing,2014-10,79,144
+wsdc-8,Boogie By The Bay,2014-10,114,142
+wsdc-137,Tampa Bay Classic,2014-11,113,50
+wsdc-181,DC Swing eXperience,2014-11,101,237
+wsdc-194,Moscow Westie Dance Fest,2014-11,78,7533
+wsdc-236,Warsaw Halloween Swing,2014-11,75,6271
+wsdc-31,Mountain Magic,2014-11,65,142
+wsdc-63,Swingin' New England Dance Festival,2014-11,88,904
+wsdc-68,US Open Swing Dance Championships,2014-11,98,147
+wsdc-79,Sea to Sky,2014-11,86,440
+wsdc-87,C.A.S.H. Bash Weekend,2014-11,85,1739
+wsdc-212,The After Party,2014-12,81,1123
+wsdc-213,Swingtimate,2014-12,58,5456
+wsdc-238,Winter White,2014-12,57,6271
+wsdc-239,The Challenge,2014-12,100,332
+wsdc-141,Spotlight Dance Challenge,2015-01,90,1277
+wsdc-152,Worlds UCWDC,2015-01,45,1297
+wsdc-183,Freedom Swing Dance Challenge,2015-01,122,284
+wsdc-184,BudaFest Open WCS Championships,2015-01,116,6511
+wsdc-195,Palm Springs New Years Swing Dance Classic,2015-01,115,231
+wsdc-196,SwingCouver,2015-01,103,311
+wsdc-200,Austin Swing Dance Championships,2015-01,105,216
+wsdc-214,New Year's Swing Fling,2015-01,80,6207
+wsdc-240,Sweden Westie Gala,2015-01,53,8220
+wsdc-241,Moscow Xmas Dance Camp,2015-01,40,8173
+wsdc-39,New Year's Dance Extravaganza,2015-01,75,1759
+wsdc-42,Floorplay New Years Swing Vacation,2015-01,65,1297
+wsdc-62,Monterey SwingFest,2015-01,95,142
+wsdc-12,Capital Swing Dance Convention,2015-02,136,118
+wsdc-185,Sweetheart Swing Classic,2015-02,74,2970
+wsdc-215,Swing & Snow,2015-02,71,7533
+wsdc-242,Derby City Swing,2015-02,68,4165
+wsdc-243,Anti Valentines,2015-02,39,1153
+wsdc-142,The Chicago Classic,2015-03,124,216
+wsdc-143,High Desert Dance Classic,2015-03,59,818
+wsdc-153,Novice Invitational,2015-03,54,3759
+wsdc-169,Dance Camp Chicago,2015-03,74,1277
+wsdc-170,Russian Open WCS Championships,2015-03,60,7533
+wsdc-186,West In Lyon,2015-03,89,6946
+wsdc-197,5280 Swing Dance Championships,2015-03,91,147
+wsdc-216,The Brazilian Open Championships,2015-03,30,8394
+wsdc-244,Rose City Swing,2015-03,84,3512
+wsdc-245,Holy Land Open,2015-03,50,3093
+wsdc-246,Swing Escape,2015-03,42,5456
+wsdc-9,Boston Tea Party,2015-03,108,1385
+wsdc-92,Mid-Atlantic Dance Jam,2015-03,178,237
+wsdc-132,Tulsa Spring Swing,2015-04,66,379
+wsdc-134,Swing Dance America,2015-04,98,2371
+wsdc-18,Seattle's Easter Swing,2015-04,120,118
+wsdc-187,City of Angels,2015-04,135,147
+wsdc-198,UK & European WCS Championships,2015-04,98,2986
+wsdc-203,Detonation Dance ,2015-04,50,5629
+wsdc-217,San Diego Dance Festival,2015-04,56,61
+wsdc-218,Asia West Coast Swing Open,2015-04,62,7014
+wsdc-247,Austrian WCS Spectacle,2015-04,39,8228
+wsdc-105,Canadian Swing Championships,2015-05,42,496
+wsdc-121,The Texas Classic,2015-05,43,4547
+wsdc-144,Swingin' Into Spring,2015-05,61,2111
+wsdc-174,Swingsation,2015-05,58,5456
+wsdc-175,French Open West Coast Swing,2015-05,114,5113
+wsdc-20,FreZno Dance Classic,2015-05,80,61
+wsdc-201,MidAtlantic Dance Classic,2015-05,58,1534
+wsdc-206,Hungarian Open,2015-05,73,6271
+wsdc-219,KIWI Fest,2015-05,49,7578
+wsdc-22,USA Grand Nationals,2015-05,106,917
+wsdc-221,Show-Me Showdown,2015-05,43,1952
+wsdc-253,Nordic WCS Championships,2015-05,70,7532
+wsdc-61,SwingDiego,2015-05,104,147
+wsdc-76,Michigan Dance Classic,2015-05,109,50
+wsdc-109,Colorado Country Classic,2015-06,43,316
+wsdc-117,Orange Blossom Dance Festival,2015-06,54,3070
+wsdc-162,Swingapalooza,2015-06,87,37
+wsdc-188,NSW West Coast Swing Dance Championships,2015-06,49,6436
+wsdc-207,Dance N Play,2015-06,75,2775
+wsdc-220,D-Townswing,2015-06,69,2986
+wsdc-222,Baltic Swing,2015-06,70,6271
+wsdc-25,J&J O'Rama,2015-06,110,124
+wsdc-254,Finnfest,2015-06,50,8023
+wsdc-96,Liberty Swing Dance Championships,2015-06,157,50
+wsdc-1,4TH of July Convention,2015-07,109,142
+wsdc-148,New Orleans Dance Mardi Gras,2015-07,80,2003
+wsdc-149,Florida Dance Magic,2015-07,54,178
+wsdc-156,Big Apple Dance Festival,2015-07,36,2742
+wsdc-209,SinCity Swing,2015-07,70,1509
+wsdc-225,Wild Wild Westie,2015-07,104,237
+wsdc-226,Ft. Lauderdale Swing & Shag Beach Bash,2015-07,61,50
+wsdc-255,Indy Dance Explosion,2015-07,60,1153
+wsdc-256,Rock The Barn,2015-07,50,9390
+wsdc-44,Portland Dance Festival,2015-07,60,260
+wsdc-66,Swingtime in the Rockies,2015-07,88,50
+wsdc-119,Chicagoland Dance Festival,2015-08,69,2472
+wsdc-120,Lone Star Invitational,2015-08,65,379
+wsdc-157,New England Dance Festival,2015-08,49,2343
+wsdc-159,World Swing Masters,2015-08,19,7799
+wsdc-227,Swingtacular,2015-08,107,124
+wsdc-228,Summer Swing Classic,2015-08,69,2173
+wsdc-51,Palm Springs Summer Dance Classic,2015-08,93,147
+wsdc-53,Summer Hummer,2015-08,106,311
+wsdc-59,Swing Fling,2015-08,97,237
+wsdc-77,Arizona Dance Classic,2015-08,44,1134
+wsdc-10,Bridgetown Swing Boogie,2015-09,109,2173
+wsdc-131,Meet Me In St Louis,2015-09,115,50
+wsdc-135,Desert City Swing,2015-09,112,147
+wsdc-137,Tampa Bay Classic,2015-09,101,50
+wsdc-15,Dallas D.A.N.C.E.,2015-09,68,216
+wsdc-165,Midland Swing Open,2015-09,49,6705
+wsdc-167,Best of the Best,2015-09,60,6179
+wsdc-177,River City Swing,2015-09,117,176
+wsdc-190,Vermont Swing Dance Championships,2015-09,80,1389
+wsdc-230,Sunny Side Dance Camp,2015-09,39,7533
+wsdc-232,Norway Westie Fest,2015-09,44,8968
+wsdc-233,Bavarian Open,2015-09,75,6825
+wsdc-48,South Bay CW Dance Festival,2015-09,78,396
+wsdc-178,Montreal WCS Fest,2015-10,69,3121
+wsdc-179,New Zealand Open Swing Dance Championships,2015-10,39,6436
+wsdc-180,Australian Open Swing Dance Championships,2015-10,50,7014
+wsdc-211,Atlanta Swing Classic,2015-10,106,50
+wsdc-229,Scandinavian Open,2015-10,54,7446
+wsdc-234,Philly Swing Classic,2015-10,79,1389
+wsdc-237,WCS Helsinki,2015-10,30,8025
+wsdc-257,Italian Open,2015-10,110,6826
+wsdc-43,Paradise Country Dance Festival,2015-10,63,144
+wsdc-8,Boogie By The Bay,2015-10,120,118
+wsdc-125,Swing City Chicago,2015-11,109,320
+wsdc-166,London SWINGvitational,2015-11,55,7025
+wsdc-181,DC Swing eXperience,2015-11,124,216
+wsdc-194,Moscow Westie Dance Fest,2015-11,80,7599
+wsdc-236,Warsaw Halloween Swing,2015-11,100,5008
+wsdc-31,Mountain Magic,2015-11,68,118
+wsdc-63,Swingin' New England Dance Festival,2015-11,96,764
+wsdc-65,Halloween SwingThing,2015-11,107,147
+wsdc-68,US Open Swing Dance Championships,2015-11,116,118
+wsdc-79,Sea to Sky,2015-11,102,440
+wsdc-87,C.A.S.H. Bash Weekend,2015-11,84,1739
+wsdc-212,The After Party,2015-12,82,1047
+wsdc-238,Winter White,2015-12,54,7352
+wsdc-239,The Challenge,2015-12,115,216
+wsdc-141,Spotlight Dance Challenge,2016-01,100,2308
+wsdc-183,Freedom Swing Dance Challenge,2016-01,80,1389
+wsdc-184,BudaFest Open WCS Championships,2016-01,106,6948
+wsdc-195,Palm Springs New Years Swing Dance Classic,2016-01,120,118
+wsdc-196,SwingCouver,2016-01,98,1573
+wsdc-200,Austin Swing Dance Championships,2016-01,99,216
+wsdc-214,New Year's Swing Fling,2016-01,92,5008
+wsdc-240,Sweden Westie Gala,2016-01,73,8543
+wsdc-241,Moscow Xmas Dance Camp,2016-01,35,7599
+wsdc-242,Derby City Swing,2016-01,87,4988
+wsdc-39,New Year's Dance Extravaganza,2016-01,79,2343
+wsdc-42,Floorplay New Years Swing Vacation,2016-01,70,2723
+wsdc-62,Monterey SwingFest,2016-01,98,142
+wsdc-75,Worlds UCWDC,2016-01,48,432
+wsdc-12,Capital Swing Dance Convention,2016-02,138,118
+wsdc-169,Dance Camp Chicago,2016-02,68,2688
+wsdc-185,Sweetheart Swing Classic,2016-02,79,50
+wsdc-197,5280 Swing Dance Championships,2016-02,91,147
+wsdc-215,Swing & Snow,2016-02,84,7029
+wsdc-244,Rose City Swing,2016-02,92,2775
+wsdc-245,Holy Land Open,2016-02,49,7356
+wsdc-258,Swingtzerland,2016-02,52,7461
+wsdc-142,The Chicago Classic,2016-03,139,50
+wsdc-143,High Desert Dance Classic,2016-03,65,144
+wsdc-153,Novice Invitational,2016-03,72,3263
+wsdc-170,Russian Open WCS Championships,2016-03,69,7029
+wsdc-18,Seattle's Easter Swing,2016-03,108,440
+wsdc-186,West In Lyon,2016-03,115,6378
+wsdc-216,The Brazilian Open Championships,2016-03,38,6048
+wsdc-217,San Diego Dance Festival,2016-03,44,173
+wsdc-259,Swing Over Orlando,2016-03,80,3070
+wsdc-9,Boston Tea Party,2016-03,110,2247
+wsdc-92,Mid-Atlantic Dance Jam,2016-03,162,147
+wsdc-132,Tulsa Spring Swing,2016-04,63,50
+wsdc-187,City of Angels,2016-04,117,147
+wsdc-198,UK & European WCS Championships,2016-04,115,3390
+wsdc-203,Detonation Dance ,2016-04,52,6705
+wsdc-218,Asia West Coast Swing Open,2016-04,60,8049
+wsdc-246,Swing Escape,2016-04,40,5456
+wsdc-247,Austrian WCS Spectacle,2016-04,50,8023
+wsdc-105,Canadian Swing Championships,2016-05,49,5817
+wsdc-121,The Texas Classic,2016-05,61,379
+wsdc-134,Swing Dance America,2016-05,85,1277
+wsdc-144,Swingin' Into Spring,2016-05,75,2726
+wsdc-174,Swingsation,2016-05,65,8049
+wsdc-175,French Open West Coast Swing,2016-05,79,6378
+wsdc-20,FreZno Dance Classic,2016-05,80,147
+wsdc-201,MidAtlantic Dance Classic,2016-05,30,2742
+wsdc-205,SOswing,2016-05,89,211
+wsdc-206,Hungarian Open,2016-05,68,8228
+wsdc-219,KIWI Fest,2016-05,80,627
+wsdc-22,USA Grand Nationals,2016-05,113,1443
+wsdc-221,Show-Me Showdown,2016-05,46,3495
+wsdc-253,Nordic WCS Championships,2016-05,105,7532
+wsdc-61,SwingDiego,2016-05,128,147
+wsdc-109,Colorado Country Classic,2016-06,55,902
+wsdc-117,Orange Blossom Dance Festival,2016-06,50,3070
+wsdc-162,Swingapalooza,2016-06,87,50
+wsdc-188,NSW West Coast Swing Dance Championships,2016-06,50,6832
+wsdc-207,Dance N Play,2016-06,73,2775
+wsdc-220,D-Townswing,2016-06,99,2986
+wsdc-222,Baltic Swing,2016-06,80,5178
+wsdc-223,Slingshot Swing,2016-06,54,7058
+wsdc-25,J&J O'Rama,2016-06,114,147
+wsdc-254,Finnfest,2016-06,55,8725
+wsdc-261,Neverland Swing,2016-06,49,8332
+wsdc-76,Michigan Dance Classic,2016-06,101,216
+wsdc-96,Liberty Swing Dance Championships,2016-06,120,1385
+wsdc-1,4TH of July Convention,2016-07,118,142
+wsdc-147,Toronto Open Swing & Hustle Championships,2016-07,85,2308
+wsdc-148,New Orleans Dance Mardi Gras,2016-07,68,2372
+wsdc-149,Florida Dance Magic,2016-07,62,178
+wsdc-156,Big Apple Dance Festival,2016-07,30,3368
+wsdc-225,Wild Wild Westie,2016-07,123,290
+wsdc-226,Ft. Lauderdale Swing & Shag Beach Bash,2016-07,52,50
+wsdc-255,Indy Dance Explosion,2016-07,59,2514
+wsdc-256,Rock The Barn,2016-07,40,10203
+wsdc-260,Sao Paulo Swing Dance Championships,2016-07,39,7267
+wsdc-262,Swing It Like It's Hot,2016-07,50,7178
+wsdc-44,Portland Dance Festival,2016-07,65,2363
+wsdc-66,Swingtime in the Rockies,2016-07,86,77
+wsdc-77,Arizona Dance Classic,2016-07,50,6
+wsdc-119,Chicagoland Dance Festival,2016-08,70,320
+wsdc-120,Lone Star Invitational,2016-08,79,37
+wsdc-137,Tampa Bay Classic,2016-08,85,764
+wsdc-157,New England Dance Festival,2016-08,40,1385
+wsdc-164,Sea Sun and Swing,2016-08,75,6851
+wsdc-224,Midwest Westie Fest,2016-08,76,216
+wsdc-227,Swingtacular,2016-08,117,231
+wsdc-263,Riga Summer Swing,2016-08,62,8173
+wsdc-264,Swedish Swing Summer Camp,2016-08,70,6866
+wsdc-51,Palm Springs Summer Dance Classic,2016-08,113,147
+wsdc-53,Summer Hummer,2016-08,113,242
+wsdc-59,Swing Fling,2016-08,130,237
+wsdc-131,Meet Me In St Louis,2016-09,103,50
+wsdc-135,Desert City Swing,2016-09,136,147
+wsdc-15,Dallas D.A.N.C.E.,2016-09,58,216
+wsdc-167,Best of the Best,2016-09,63,5178
+wsdc-177,River City Swing,2016-09,90,3070
+wsdc-230,Sunny Side Dance Camp,2016-09,40,8182
+wsdc-231,Swing Trilogy,2016-09,105,2571
+wsdc-232,Norway Westie Fest,2016-09,50,7885
+wsdc-233,Bavarian Open,2016-09,63,7461
+wsdc-234,Philly Swing Classic,2016-09,68,54
+wsdc-265,Upstate Dance Challenge,2016-09,78,1759
+wsdc-266,Rocky Mountain 5 Dance,2016-09,53,311
+wsdc-48,South Bay CW Dance Festival,2016-09,61,468
+wsdc-10,Bridgetown Swing Boogie,2016-10,119,77
+wsdc-125,Swing City Chicago,2016-10,127,1277
+wsdc-165,Midland Swing Open,2016-10,50,5629
+wsdc-178,Montreal WCS Fest,2016-10,75,3442
+wsdc-179,New Zealand Open Swing Dance Championships,2016-10,30,8745
+wsdc-211,Atlanta Swing Classic,2016-10,125,904
+wsdc-236,Warsaw Halloween Swing,2016-10,105,6863
+wsdc-257,Italian Open,2016-10,95,7537
+wsdc-267,Swustlicious,2016-10,44,3223
+wsdc-268,Korea Westival,2016-10,32,6236
+wsdc-43,Paradise Country Dance Festival,2016-10,83,144
+wsdc-65,Halloween SwingThing,2016-10,96,144
+wsdc-8,Boogie By The Bay,2016-10,123,118
+wsdc-181,DC Swing eXperience,2016-11,131,147
+wsdc-194,Moscow Westie Dance Fest,2016-11,88,7029
+wsdc-229,Scandinavian Open,2016-11,75,7058
+wsdc-237,WCS Helsinki,2016-11,48,5008
+wsdc-269,Autumn Swing Challenge,2016-11,49,7877
+wsdc-270,Westie's Angels,2016-11,73,7352
+wsdc-31,Mountain Magic,2016-11,68,61
+wsdc-63,Swingin' New England Dance Festival,2016-11,100,764
+wsdc-68,US Open Swing Dance Championships,2016-11,110,118
+wsdc-79,Sea to Sky,2016-11,107,440
+wsdc-87,C.A.S.H. Bash Weekend,2016-11,85,1739
+wsdc-212,The After Party,2016-12,103,147
+wsdc-213,Swingtimate,2016-12,45,8049
+wsdc-238,Winter White,2016-12,50,7823
+wsdc-271,Berlin Swing Revolution,2016-12,70,5457
+wsdc-141,Spotlight Dance Challenge,2017-01,101,2308
+wsdc-183,Freedom Swing Dance Challenge,2017-01,82,394
+wsdc-184,BudaFest Open WCS Championships,2017-01,115,2986
+wsdc-195,Palm Springs New Years Swing Dance Classic,2017-01,110,144
+wsdc-196,SwingCouver,2017-01,86,2097
+wsdc-200,Austin Swing Dance Championships,2017-01,110,216
+wsdc-214,New Year's Swing Fling,2017-01,85,6866
+wsdc-240,Sweden Westie Gala,2017-01,60,9220
+wsdc-241,Moscow Xmas Dance Camp,2017-01,54,8024
+wsdc-242,Derby City Swing,2017-01,105,3706
+wsdc-272,Paris Westie Fest,2017-01,75,6271
+wsdc-39,New Year's Dance Extravaganza,2017-01,76,5729
+wsdc-42,Floorplay New Years Swing Vacation,2017-01,80,1391
+wsdc-62,Monterey SwingFest,2017-01,110,147
+wsdc-75,Worlds UCWDC,2017-01,50,432
+wsdc-12,Capital Swing Dance Convention,2017-02,135,231
+wsdc-169,Dance Camp Chicago,2017-02,67,1277
+wsdc-185,Sweetheart Swing Classic,2017-02,95,50
+wsdc-197,5280 Swing Dance Championships,2017-02,81,147
+wsdc-215,Swing & Snow,2017-02,99,6271
+wsdc-244,Rose City Swing,2017-02,97,6199
+wsdc-258,Swingtzerland,2017-02,75,7532
+wsdc-273,Charlotte Westie Fest,2017-02,125,2515
+wsdc-274,Australasian WCS & Zouk Champs,2017-02,50,8061
+wsdc-143,High Desert Dance Classic,2017-03,75,144
+wsdc-153,Novice Invitational,2017-03,79,2371
+wsdc-186,West In Lyon,2017-03,115,6948
+wsdc-246,Swing Escape,2017-03,49,5456
+wsdc-247,Austrian WCS Spectacle,2017-03,40,8228
+wsdc-259,Swing Over Orlando,2017-03,75,3070
+wsdc-275,Dutch Open West Coast Swing,2017-03,59,6563
+wsdc-9,Boston Tea Party,2017-03,125,902
+wsdc-92,Mid-Atlantic Dance Jam,2017-03,185,147
+wsdc-132,Tulsa Spring Swing,2017-04,77,50
+wsdc-134,Swing Dance America,2017-04,101,1754
+wsdc-170,Russian Open WCS Championships,2017-04,55,8173
+wsdc-18,Seattle's Easter Swing,2017-04,141,242
+wsdc-187,City of Angels,2017-04,126,61
+wsdc-198,UK & European WCS Championships,2017-04,92,3390
+wsdc-203,Detonation Dance ,2017-04,53,6825
+wsdc-217,San Diego Dance Festival,2017-04,65,147
+wsdc-218,Asia West Coast Swing Open,2017-04,64,2029
+wsdc-253,Nordic WCS Championships,2017-04,98,6274
+wsdc-276,Anchor Festival,2017-04,69,6866
+wsdc-105,Canadian Swing Championships,2017-05,43,6016
+wsdc-121,The Texas Classic,2017-05,49,5019
+wsdc-144,Swingin' Into Spring,2017-05,74,2343
+wsdc-174,Swingsation,2017-05,60,7180
+wsdc-175,French Open West Coast Swing,2017-05,103,6863
+wsdc-20,FreZno Dance Classic,2017-05,90,118
+wsdc-205,SOswing,2017-05,90,440
+wsdc-206,Hungarian Open,2017-05,75,7025
+wsdc-219,KIWI Fest,2017-05,79,6863
+wsdc-22,USA Grand Nationals,2017-05,116,1893
+wsdc-221,Show-Me Showdown,2017-05,30,320
+wsdc-277,Scotland Swing Classic,2017-05,50,6541
+wsdc-61,SwingDiego,2017-05,117,147
+wsdc-109,Colorado Country Classic,2017-06,53,1194
+wsdc-117,Orange Blossom Dance Festival,2017-06,45,2626
+wsdc-162,Swingapalooza,2017-06,111,50
+wsdc-188,NSW West Coast Swing Dance Championships,2017-06,42,7121
+wsdc-207,Dance N Play,2017-06,57,4686
+wsdc-220,D-Townswing,2017-06,110,2986
+wsdc-222,Baltic Swing,2017-06,94,6946
+wsdc-25,J&J O'Rama,2017-06,135,147
+wsdc-254,Finnfest,2017-06,49,9390
+wsdc-268,Korea Westival,2017-06,45,5710
+wsdc-279,Swing Open Kazan,2017-06,35,8173
+wsdc-76,Michigan Dance Classic,2017-06,92,147
+wsdc-1,4TH of July Convention,2017-07,121,61
+wsdc-147,Toronto Open Swing & Hustle Championships,2017-07,90,2308
+wsdc-148,New Orleans Dance Mardi Gras,2017-07,56,5110
+wsdc-149,Florida Dance Magic,2017-07,63,902
+wsdc-156,Big Apple Dance Festival,2017-07,35,3253
+wsdc-164,Sea Sun and Swing,2017-07,85,6863
+wsdc-179,New Zealand Open Swing Dance Championships,2017-07,40,6832
+wsdc-225,Wild Wild Westie,2017-07,125,237
+wsdc-226,Ft. Lauderdale Swing & Shag Beach Bash,2017-07,40,1153
+wsdc-255,Indy Dance Explosion,2017-07,52,3495
+wsdc-256,Rock The Barn,2017-07,73,7962
+wsdc-261,Neverland Swing,2017-07,57,8944
+wsdc-262,Swing It Like It's Hot,2017-07,70,1420
+wsdc-278,Americano Dance Camp,2017-07,38,8188
+wsdc-280,Saint Petersburg WCS Nights,2017-07,67,7533
+wsdc-281,Sacramento All Swing,2017-07,79,61
+wsdc-44,Portland Dance Festival,2017-07,60,548
+wsdc-51,Palm Springs Summer Dance Classic,2017-07,97,147
+wsdc-66,Swingtime in the Rockies,2017-07,78,77
+wsdc-77,Arizona Dance Classic,2017-07,40,421
+wsdc-96,Liberty Swing Dance Championships,2017-07,126,1389
+wsdc-119,Chicagoland Dance Festival,2017-08,69,320
+wsdc-120,Lone Star Invitational,2017-08,60,2587
+wsdc-137,Tampa Bay Classic,2017-08,96,237
+wsdc-157,New England Dance Festival,2017-08,49,1389
+wsdc-224,Midwest Westie Fest,2017-08,83,50
+wsdc-227,Swingtacular,2017-08,116,231
+wsdc-263,Riga Summer Swing,2017-08,85,5008
+wsdc-264,Swedish Swing Summer Camp,2017-08,73,5008
+wsdc-282,German Open,2017-08,60,7461
+wsdc-283,Kazan EL Fest,2017-08,40,8181
+wsdc-53,Summer Hummer,2017-08,115,619
+wsdc-59,Swing Fling,2017-08,135,50
+wsdc-10,Bridgetown Swing Boogie,2017-09,110,440
+wsdc-131,Meet Me In St Louis,2017-09,99,216
+wsdc-135,Desert City Swing,2017-09,119,147
+wsdc-15,Dallas D.A.N.C.E.,2017-09,48,216
+wsdc-177,River City Swing,2017-09,94,3070
+wsdc-231,Swing Trilogy,2017-09,119,3394
+wsdc-232,Norway Westie Fest,2017-09,58,3393
+wsdc-233,Bavarian Open,2017-09,80,7461
+wsdc-234,Philly Swing Classic,2017-09,80,496
+wsdc-265,Upstate Dance Challenge,2017-09,85,1172
+wsdc-284,Citadel Swing,2017-09,70,7821
+wsdc-48,South Bay CW Dance Festival,2017-09,63,396
+wsdc-125,Swing City Chicago,2017-10,122,3070
+wsdc-165,Midland Swing Open,2017-10,50,5629
+wsdc-167,Best of the Best,2017-10,60,325
+wsdc-178,Montreal WCS Fest,2017-10,68,3337
+wsdc-211,Atlanta Swing Classic,2017-10,133,2726
+wsdc-236,Warsaw Halloween Swing,2017-10,100,7461
+wsdc-257,Italian Open,2017-10,89,7025
+wsdc-267,Swustlicious,2017-10,57,3276
+wsdc-285,Old Town Swing,2017-10,52,6863
+wsdc-286,WCS Festival,2017-10,65,4552
+wsdc-43,Paradise Country Dance Festival,2017-10,80,61
+wsdc-65,Halloween SwingThing,2017-10,116,144
+wsdc-8,Boogie By The Bay,2017-10,126,142
+wsdc-166,London SWINGvitational,2017-11,50,6382
+wsdc-181,DC Swing eXperience,2017-11,155,237
+wsdc-194,Moscow Westie Dance Fest,2017-11,85,7533
+wsdc-229,Scandinavian Open,2017-11,80,7025
+wsdc-237,WCS Helsinki,2017-11,29,9499
+wsdc-269,Autumn Swing Challenge,2017-11,72,6866
+wsdc-270,Westie's Angels,2017-11,80,6378
+wsdc-287,Florida Westie Fest,2017-11,60,4349
+wsdc-288,Midnight Madness,2017-11,58,2600
+wsdc-31,Mountain Magic,2017-11,59,61
+wsdc-63,Swingin' New England Dance Festival,2017-11,100,764
+wsdc-68,US Open Swing Dance Championships,2017-11,115,173
+wsdc-79,Sea to Sky,2017-11,85,4780
+wsdc-87,C.A.S.H. Bash Weekend,2017-11,88,1754
+wsdc-141,Spotlight Dance Challenge,2017-12,121,237
+wsdc-212,The After Party,2017-12,113,64
+wsdc-213,Swingtimate,2017-12,43,8053
+wsdc-214,New Year's Swing Fling,2017-12,95,6705
+wsdc-238,Winter White,2017-12,69,8888
+wsdc-271,Berlin Swing Revolution,2017-12,65,7461
+wsdc-42,Floorplay New Years Swing Vacation,2017-12,100,1739
+wsdc-183,Freedom Swing Dance Challenge,2018-01,101,2495
+wsdc-184,BudaFest Open WCS Championships,2018-01,131,2986
+wsdc-195,Palm Springs New Years Swing Dance Classic,2018-01,107,147
+wsdc-196,SwingCouver,2018-01,127,2308
+wsdc-200,Austin Swing Dance Championships,2018-01,109,216
+wsdc-240,Sweden Westie Gala,2018-01,50,9499
+wsdc-242,Derby City Swing,2018-01,92,2393
+wsdc-272,Paris Westie Fest,2018-01,74,7813
+wsdc-289,Swingvester,2018-01,67,7361
+wsdc-290,Shooba Dooba Swing,2018-01,48,8173
+wsdc-291,Municorn Swing,2018-01,42,8949
+wsdc-39,New Year's Dance Extravaganza,2018-01,90,2343
+wsdc-62,Monterey SwingFest,2018-01,120,147
+wsdc-75,Worlds UCWDC,2018-01,47,226
+wsdc-12,Capital Swing Dance Convention,2018-02,130,61
+wsdc-169,Dance Camp Chicago,2018-02,63,3440
+wsdc-185,Sweetheart Swing Classic,2018-02,77,50
+wsdc-215,Swing & Snow,2018-02,84,8173
+wsdc-244,Rose City Swing,2018-02,120,1055
+wsdc-258,Swingtzerland,2018-02,70,2986
+wsdc-273,Charlotte Westie Fest,2018-02,146,2495
+wsdc-142,The Chicago Classic,2018-03,143,50
+wsdc-143,High Desert Dance Classic,2018-03,60,144
+wsdc-153,Novice Invitational,2018-03,72,2371
+wsdc-170,Russian Open WCS Championships,2018-03,64,7592
+wsdc-186,West In Lyon,2018-03,115,6378
+wsdc-197,5280 Swing Dance Championships,2018-03,80,902
+wsdc-246,Swing Escape,2018-03,38,5456
+wsdc-259,Swing Over Orlando,2018-03,56,3114
+wsdc-275,Dutch Open West Coast Swing,2018-03,54,7246
+wsdc-292,King Swing,2018-03,86,8338
+wsdc-9,Boston Tea Party,2018-03,120,1389
+wsdc-92,Mid-Atlantic Dance Jam,2018-03,188,147
+wsdc-134,Swing Dance America,2018-04,84,1952
+wsdc-18,Seattle's Easter Swing,2018-04,136,440
+wsdc-187,City of Angels,2018-04,122,147
+wsdc-198,UK & European WCS Championships,2018-04,95,5460
+wsdc-203,Detonation Dance ,2018-04,37,6347
+wsdc-205,SOswing,2018-04,77,241
+wsdc-217,San Diego Dance Festival,2018-04,42,61
+wsdc-218,Asia West Coast Swing Open,2018-04,68,6236
+wsdc-253,Nordic WCS Championships,2018-04,98,6274
+wsdc-276,Anchor Festival,2018-04,76,8049
+wsdc-293,Westy Nantes,2018-04,75,7024
+wsdc-105,Canadian Swing Championships,2018-05,38,5729
+wsdc-121,The Texas Classic,2018-05,43,5210
+wsdc-144,Swingin' Into Spring,2018-05,64,2343
+wsdc-174,Swingsation,2018-05,64,7903
+wsdc-175,French Open West Coast Swing,2018-05,110,6863
+wsdc-20,FreZno Dance Classic,2018-05,76,61
+wsdc-206,Hungarian Open,2018-05,74,7821
+wsdc-219,KIWI Fest,2018-05,60,8173
+wsdc-22,USA Grand Nationals,2018-05,132,432
+wsdc-221,Show-Me Showdown,2018-05,64,216
+wsdc-277,Scotland Swing Classic,2018-05,29,7525
+wsdc-61,SwingDiego,2018-05,113,147
+wsdc-117,Orange Blossom Dance Festival,2018-06,39,2626
+wsdc-162,Swingapalooza,2018-06,90,216
+wsdc-179,New Zealand Open Swing Dance Championships,2018-06,22,6626
+wsdc-188,NSW West Coast Swing Dance Championships,2018-06,35,5456
+wsdc-207,Dance N Play,2018-06,56,902
+wsdc-220,D-Townswing,2018-06,99,2986
+wsdc-222,Baltic Swing,2018-06,92,7461
+wsdc-25,J&J O'Rama,2018-06,136,147
+wsdc-254,Finnfest,2018-06,64,10200
+wsdc-268,Korea Westival,2018-06,43,8734
+wsdc-76,Michigan Dance Classic,2018-06,90,2308
+wsdc-1,4TH of July Convention,2018-07,83,61
+wsdc-147,Toronto Open Swing & Hustle Championships,2018-07,82,1819
+wsdc-148,New Orleans Dance Mardi Gras,2018-07,26,3387
+wsdc-149,Florida Dance Magic,2018-07,43,216
+wsdc-156,Big Apple Dance Festival,2018-07,33,1385
+wsdc-225,Wild Wild Westie,2018-07,146,241
+wsdc-226,Ft. Lauderdale Swing & Shag Beach Bash,2018-07,17,1153
+wsdc-255,Indy Dance Explosion,2018-07,42,3871
+wsdc-256,Rock The Barn,2018-07,49,9555
+wsdc-261,Neverland Swing,2018-07,46,7797
+wsdc-262,Swing It Like It's Hot,2018-07,43,7286
+wsdc-278,Americano Dance Camp,2018-07,40,8179
+wsdc-280,Saint Petersburg WCS Nights,2018-07,51,8181
+wsdc-303,Odyssey West Coast Swing,2018-07,29,8077
+wsdc-44,Portland Dance Festival,2018-07,61,421
+wsdc-47,Swingtime in the Rockies,2018-07,103,241
+wsdc-96,Liberty Swing Dance Championships,2018-07,140,1385
+wsdc-120,LoneStar Invitational,2018-08,49,3171
+wsdc-137,Tampa Bay Classic,2018-08,64,2904
+wsdc-157,New England Dance Festival,2018-08,38,8441
+wsdc-224,Midwest Westie Fest,2018-08,67,50
+wsdc-227,Swingtacular,2018-08,137,147
+wsdc-263,Riga Summer Swing,2018-08,91,7356
+wsdc-264,Swedish Swing Summer Camp,2018-08,60,9333
+wsdc-282,German Open WCS Championships,2018-08,63,7461
+wsdc-298,Shakedown Swing,2018-08,32,8055
+wsdc-51,Palm Springs Summer Dance Camp Classic,2018-08,83,61
+wsdc-53,Summer Hummer,2018-08,134,619
+wsdc-59,Swing Fling,2018-08,150,147
+wsdc-77,Arizona Dance Classic,2018-08,40,421
+wsdc-99,Chicagoland Country & Swing Dance Festival,2018-08,58,1754
+wsdc-10,BridgeTown Swing,2018-09,93,4686
+wsdc-131,Meet Me in St. Louis Swing Dance Championships,2018-09,96,216
+wsdc-135,Desert City Swing,2018-09,114,50
+wsdc-15,Dallas D.A.N.C.E.,2018-09,20,3045
+wsdc-165,Midland Swing Open,2018-09,75,5629
+wsdc-167,Best of the Best,2018-09,39,5178
+wsdc-177,River City Swing,2018-09,92,432
+wsdc-216,The Brazilian Open,2018-09,24,8394
+wsdc-231,Trilogy Swing,2018-09,110,432
+wsdc-232,Norway Westie Fest,2018-09,51,9677
+wsdc-233,Bavarian Open WCS,2018-09,98,1333
+wsdc-234,Philly Swing Classic,2018-09,71,3223
+wsdc-266,Rocky Mountain Five Dance (RM5),2018-09,35,1205
+wsdc-284,Citadel Swing,2018-09,76,8212
+wsdc-296,Fall Fall in Swing,2018-09,37,6236
+wsdc-299,Ukrainian Open,2018-09,51,6866
+wsdc-300,Austin Rocks,2018-09,81,2761
+wsdc-48,South Bay Dance Fling,2018-09,74,421
+wsdc-125,Swing City Chicago,2018-10,118,1952
+wsdc-178,Montreal Westie Fest,2018-10,83,5514
+wsdc-211,Atlanta Swing Classic,2018-10,126,432
+wsdc-267,Swustlicious,2018-10,61,2245
+wsdc-285,Old Town Swing,2018-10,63,8944
+wsdc-286,WCS Festival,2018-10,69,6866
+wsdc-294,European Swing Challenge,2018-10,38,7246
+wsdc-43,Paradise Country & Swing Dance Festival,2018-10,76,147
+wsdc-65,Halloween Swingthing,2018-10,113,144
+wsdc-8,Boogie By The Bay,2018-10,116,147
+wsdc-166,London SWINGvitational,2018-11,40,6821
+wsdc-181,DC Swing Experience (DCSX),2018-11,139,61
+wsdc-194,Moscow Westie Fest,2018-11,74,7599
+wsdc-229,Scandinavian Open WCS,2018-11,86,7536
+wsdc-236,Warsaw Halloween Swing,2018-11,82,7352
+wsdc-269,Autumn Swing Challenge,2018-11,74,8330
+wsdc-270,Westie's Angels,2018-11,60,7813
+wsdc-287,Florida Westie Fest,2018-11,54,3070
+wsdc-288,Midnight Madness,2018-11,49,421
+wsdc-31,Mountain Magic Dance Convention,2018-11,69,173
+wsdc-312,Westie Pink City,2018-11,64,6866
+wsdc-63,Swingin' New England,2018-11,86,5729
+wsdc-68,US Open Swing Dance Championships,2018-11,111,216
+wsdc-79,Sea To Sky - Seattle,2018-11,101,902
+wsdc-87,C.A.S.H. Bash Weekend,2018-11,70,1739
+wsdc-212,The After Party (TAP),2018-12,118,147
+wsdc-213,Swingtimate,2018-12,51,8053
+wsdc-238,Winter White WCS,2018-12,73,6821
+wsdc-265,Upstate Dance Challenge,2018-12,87,1385
+wsdc-271,Berlin Swing Revolution,2018-12,73,4533
+wsdc-141,Spotlight Dance Challenge,2019-01,107,1153
+wsdc-183,Freedom Swing Dance Challenge,2019-01,89,3230
+wsdc-184,BudaFest Open WCS Championships,2019-01,138,5460
+wsdc-195,Palm Springs New Year,2019-01,60,147
+wsdc-196,SwingCouver,2019-01,119,2308
+wsdc-200,Austin Swing Dance Championships,2019-01,108,216
+wsdc-214,New Year's Swing Fling,2019-01,89,6705
+wsdc-242,Derby City Swing,2019-01,93,1754
+wsdc-289,Swingvester,2019-01,80,8627
+wsdc-290,Shooba Dooba Swing,2019-01,42,8181
+wsdc-291,Municorn Swing,2019-01,46,7797
+wsdc-301,Swing Resolution,2019-01,41,3223
+wsdc-39,New Year's Dance Extravaganza,2019-01,63,2343
+wsdc-42,FloorPlay New Years Swing Vacation,2019-01,93,1391
+wsdc-62,Monterey Swingfest,2019-01,119,147
+wsdc-75,Worlds UCWDC,2019-01,35,432
+wsdc-12,Capital Swing Dance Convention,2019-02,146,147
+wsdc-169,Dance Camp Chicago,2019-02,63,1277
+wsdc-215,Swing & Snow,2019-02,93,7592
+wsdc-244,Rose City Swing ,2019-02,137,1573
+wsdc-258,Swingtzerland,2019-02,77,7532
+wsdc-272,Paris Westie Fest,2019-02,74,4533
+wsdc-273,Charlotte Westie Fest,2019-02,135,272
+wsdc-297,Winter Coast Swing,2019-02,44,9493
+wsdc-302,WesterOz Swing,2019-02,38,7593
+wsdc-310,Valentine Swing,2019-02,45,7461
+wsdc-142,The Chicago Classic,2019-03,136,61
+wsdc-143,High Desert Dance Classic,2019-03,52,241
+wsdc-153,Novice Invitational,2019-03,99,1138
+wsdc-170,Russian Open WCS Championships,2019-03,67,7592
+wsdc-197,5280 Swing Dance Championships,2019-03,73,147
+wsdc-246,Swing Escape,2019-03,46,5456
+wsdc-259,Swing Over,2019-03,92,2308
+wsdc-275,Dutch Open West Coast Swing,2019-03,56,7995
+wsdc-276,Anchor Festival,2019-03,80,6271
+wsdc-292,King Swing,2019-03,105,8212
+wsdc-314,Westie Spring Thing,2019-03,76,8228
+wsdc-9,The Boston Tea Party,2019-03,120,2343
+wsdc-92,Mid Atlantic Dance Jam (MADjam),2019-03,187,147
+wsdc-132,Tulsa Spring Swing,2019-04,55,50
+wsdc-134,Swing Dance America,2019-04,73,2389
+wsdc-18,Easter Swing,2019-04,131,619
+wsdc-187,City of Angels,2019-04,135,61
+wsdc-198,U.K. & European WCS Championships ,2019-04,85,2430
+wsdc-203,Detonation Dance,2019-04,53,6821
+wsdc-217,San Diego Dance Festival,2019-04,36,421
+wsdc-218,Asia West Coast Swing Open,2019-04,72,6236
+wsdc-253,Nordic WCS Championships,2019-04,81,5861
+wsdc-293,Westy Nantes,2019-04,101,6866
+wsdc-304,Swing In Capital,2019-04,50,7695
+wsdc-306,Go West Swing Fest,2019-04,32,7121
+wsdc-105,Canadian Swing Championships (CSC),2019-05,35,6376
+wsdc-121,The Texas Classic,2019-05,46,3604
+wsdc-144,Swingin' Into Spring,2019-05,64,770
+wsdc-174,Swingsation,2019-05,68,8053
+wsdc-20,FreZno Dance Classic,2019-05,112,61
+wsdc-205,SOswing,2019-05,83,797
+wsdc-206,Hungarian Open,2019-05,81,7569
+wsdc-219,KIWI Fest,2019-05,69,7599
+wsdc-22,USA Grand Nationals Dance Championships,2019-05,135,714
+wsdc-221,Show Me Showdown,2019-05,60,216
+wsdc-277,Scotland Swing Classic,2019-05,61,6705
+wsdc-311,TLV SwingFest,2019-05,65,5861
+wsdc-61,SwingDiego (The Superbowl of Swing),2019-05,110,147
+wsdc-117,Orange Blossom Dance Festival,2019-06,22,3276
+wsdc-162,Swingapalooza,2019-06,104,50
+wsdc-175,French Open West Coast Swing,2019-06,120,6866
+wsdc-188,NSW West Coast Swing Dance Championships,2019-06,42,7903
+wsdc-207,Dance N Play,2019-06,44,902
+wsdc-220,D-Townswing,2019-06,106,7536
+wsdc-222,Baltic Swing,2019-06,104,6347
+wsdc-25,Jack & Jill O'Rama,2019-06,149,61
+wsdc-254,Finnfest,2019-06,65,9390
+wsdc-255,Indy Dance Explosion,2019-06,36,3707
+wsdc-268,Korea Westival,2019-06,47,8734
+wsdc-76,Michigan Dance Classic,2019-06,95,50
+wsdc-96,Liberty Swing Dance Championships,2019-06,138,1659
+wsdc-1,Phoenix 4th of July,2019-07,91,61
+wsdc-109,Colorado Country Classic,2019-07,26,548
+wsdc-147,Toronto Open Swing & Hustle Championships,2019-07,62,2308
+wsdc-149,Florida Dance Magic,2019-07,41,216
+wsdc-156,Big Apple Dance Festival,2019-07,18,4271
+wsdc-164,Sea Sun & Swing Camp,2019-07,73,6946
+wsdc-224,Midwest Westie Fest,2019-07,99,50
+wsdc-225,Wild Wild Westie,2019-07,171,272
+wsdc-256,Rock the Barn,2019-07,63,8354
+wsdc-261,Neverland Swing,2019-07,44,8541
+wsdc-278,Americano Dance Camp,2019-07,40,8188
+wsdc-280,Saint Petersburg WCS Nights,2019-07,62,8173
+wsdc-303,Odyssey West Coast Swing,2019-07,26,7903
+wsdc-44,Portland Dance Festival,2019-07,70,3512
+wsdc-47,SwingTime,2019-07,87,902
+wsdc-119,Chicagoland Country and Swing Dance Festival,2019-08,70,1754
+wsdc-120,LoneStar Invitational,2019-08,57,3045
+wsdc-157,New England Dance Festival,2019-08,30,8913
+wsdc-227,Swingtacular: The Galactic Open,2019-08,113,147
+wsdc-263,Riga Summer Swing,2019-08,102,5284
+wsdc-264,UpTown Swing ,2019-08,72,6821
+wsdc-282,German Open WCS Championships,2019-08,105,8943
+wsdc-283,Kazan EL Fest,2019-08,34,9106
+wsdc-298,Shakedown Swing,2019-08,42,8053
+wsdc-299,Ukrainian Open,2019-08,52,7599
+wsdc-51,Palm Springs Swing Dance Classic,2019-08,76,468
+wsdc-53,Summer Hummer,2019-08,131,311
+wsdc-59,Swing Fling,2019-08,121,3839
+wsdc-77,Arizona Dance Classic (Cancelled due to Covid-19),2019-08,42,421
+wsdc-10,BridgeTown Swing,2019-09,105,147
+wsdc-131,Meet Me in St. Louis Swing Dance Championships,2019-09,84,216
+wsdc-135,Desert City Swing,2019-09,125,61
+wsdc-165,Midland Swing Open,2019-09,80,6347
+wsdc-167,Best of the Best,2019-09,35,6832
+wsdc-177,River City Swing,2019-09,82,714
+wsdc-216,The Brazilian Open Championships (Cancelled due to Coronavirus),2019-09,24,10214
+wsdc-231,Trilogy Swing,2019-09,117,61
+wsdc-232,Norway Westie Fest,2019-09,48,6827
+wsdc-233,Bavarian Open WCS,2019-09,110,2356
+wsdc-234,Philly Swing Classic,2019-09,87,2495
+wsdc-284,Citadel Swing (Cancelled due to Covid-19),2019-09,96,7879
+wsdc-300,Austin Rocks,2019-09,95,2308
+wsdc-313,Rolling Swing,2019-09,66,8392
+wsdc-125,Swing City Chicago,2019-10,111,216
+wsdc-178,Montreal Westie Fest,2019-10,75,5514
+wsdc-179,New Zealand Open Swing Dance Championships,2019-10,40,8077
+wsdc-211,Atlanta Swing Classic,2019-10,130,2601
+wsdc-267,Swustlicious,2019-10,45,3230
+wsdc-286,WCS Festival,2019-10,67,7627
+wsdc-294,European Swing Challenge,2019-10,41,7246
+wsdc-322,Milan Modern Swing,2019-10,80,7589
+wsdc-43,Paradise Country and Swing Dance Festival,2019-10,78,147
+wsdc-65,Halloween Swingthing,2019-10,86,61
+wsdc-8,Boogie by the Bay,2019-10,164,61
+wsdc-137,Tampa Bay Classic,2019-11,56,2495
+wsdc-166,London SwingVitational,2019-11,49,6347
+wsdc-181,DC Swing eXperience (DCSX),2019-11,127,4334
+wsdc-194,Moscow Westie Fest,2019-11,68,8023
+wsdc-229,Scandinavian Open,2019-11,109,7821
+wsdc-236,Warsaw Halloween Swing,2019-11,88,7166
+wsdc-269,Autumn Swing Challenge,2019-11,61,8395
+wsdc-270,Westie's Angels,2019-11,79,7352
+wsdc-288,Midnight Madness,2019-11,53,2600
+wsdc-31,Mountain Magic Dance Convention,2019-11,72,61
+wsdc-312,Westie Pink City,2019-11,75,5284
+wsdc-79,Sea To Sky - Seattle,2019-11,94,3092
+wsdc-212,The After Party,2019-12,145,242
+wsdc-213,Swingtimate,2019-12,48,8053
+wsdc-238,Winter White WCS,2019-12,73,8889
+wsdc-265,Upstate Dance Challenge,2019-12,43,2495
+wsdc-290,Shooba Dooba Swing,2019-12,62,8023
+wsdc-42,Floor Play Swing Vacation,2019-12,96,1391
+wsdc-68,US Open Swing Dance Championships,2019-12,128,147
+wsdc-87,C.A.S.H. Bash Weekend,2019-12,64,2501
+wsdc-141,Spotlight New Year's Celebration ,2020-01,113,50
+wsdc-183,Freedom Swing Dance Challenge,2020-01,74,1120
+wsdc-184,BudaFest Open WCS Championships,2020-01,130,1679
+wsdc-195,Palm Springs New Years Swing Dance Classic,2020-01,47,147
+wsdc-196,SwingCouver 2020 - The 10th Episode,2020-01,123,311
+wsdc-200,Austin Swing Dance Championships,2020-01,102,61
+wsdc-214,New Year's Swing Fling,2020-01,106,3687
+wsdc-240,Westie Gala,2020-01,63,10097
+wsdc-242,Derby City Swing,2020-01,85,1153
+wsdc-289,Swingvester,2020-01,89,5008
+wsdc-301,Swing Resolution,2020-01,51,6541
+wsdc-309,Avignon City Swing,2020-01,73,6946
+wsdc-39,Countdown Swing Boston,2020-01,62,3230
+wsdc-62,Monterey Swingfest (Cancelled due to Covid-19),2020-01,105,147
+wsdc-75,Country Dance World Championships,2020-01,46,61
+wsdc-12,Capital Swing Presidents' Day Convention ,2020-02,129,61
+wsdc-215,Swing & Snow,2020-02,98,8183
+wsdc-244,Rose City Swing,2020-02,151,147
+wsdc-258,Swingtzerland,2020-02,78,2986
+wsdc-273,Charlotte Westie Fest,2020-02,152,714
+wsdc-297,Winter Coast Swing,2020-02,37,10027
+wsdc-302,WesterOz Swing,2020-02,38,8354
+wsdc-307,Paris Westie Fest,2020-02,104,1537
+wsdc-310,Valentine Swing,2020-02,56,9677
+wsdc-92,MADjam (Mid Atlantic Dance Jam),2020-03,170,242
+wsdc-179,New Zealand Open,2020-10,26,10998
+wsdc-194,Moscow Westie Fest,2020-11,55,8173
+wsdc-325,Simply Adelaide West Coast Swing,2020-11,16,8077
+wsdc-213,Swingtimate 2020,2020-12,20,8053
+wsdc-290,Shooba Dooba Swing,2020-12,52,8624
+wsdc-215,Swing & Snow,2021-02,48,9521
+wsdc-170,Russian Open WCS Championship,2021-04,65,8393
+wsdc-117,Orange Blossom Dance Festival,2021-06,67,2626
+wsdc-174,Swingsation,2021-06,33,7903
+wsdc-156,Big Apple Dance Festival,2021-07,18,6727
+wsdc-225,Wild Wild Westie,2021-07,170,1333
+wsdc-278,Americano Dance Camp,2021-07,50,8937
+wsdc-280,Saint Petersburg WCS Nights,2021-07,60,8173
+wsdc-119,Chicagoland Country and Swing Dance Festival,2021-08,54,320
+wsdc-120,Lone Star Invitational,2021-08,42,6616
+wsdc-77,Arizona Dance Classic,2021-08,56,147
+wsdc-135,Desert City Swing Dance Championships,2021-09,102,61
+wsdc-234,Philly Swing Classic,2021-09,82,2495
+wsdc-313,Rolling Swing,2021-09,87,7589
+wsdc-194,Moscow Westie Dance Fest,2021-10,60,7599
+wsdc-211,Atlanta Swing Classic,2021-10,125,714
+wsdc-197,5280 Westival,2021-11,129,147
+wsdc-236,Warsaw Halloween Swing,2021-11,118,4533
+wsdc-270,Westie's Angels,2021-11,79,7576
+wsdc-288,Midnight Madness,2021-11,83,421
+wsdc-312,Westie Pink City,2021-11,70,6946
+wsdc-323,Westies on the Water,2021-11,41,1153
+wsdc-325,Simply Adelaide West Coast Swing,2021-11,32,8077
+wsdc-212,The After Party,2021-12,127,147
+wsdc-290,Shooba Dooba Swing,2021-12,46,7592
+wsdc-183,Freedom Swing Dance Challenge,2022-01,72,3613
+wsdc-184,BudaFest Open WCS Championships,2022-01,135,6826
+wsdc-334,Countdown Swing Boston,2022-01,61,3379
+wsdc-42,Floorplay New Years Swing Vacation,2022-01,122,2723
+wsdc-62,Monterey SwingFest,2022-01,91,1493
+wsdc-75,UCWDC Country Dance World Championships,2022-01,47,421
+wsdc-215,Swing&Snow,2022-02,76,7599
+wsdc-244,Rose City Swing,2022-02,106,2894
+wsdc-273,Charlotte Westie Fest,2022-02,112,1843
+wsdc-142,The Chicago Classic,2022-03,119,2495
+wsdc-153,Novice Invitational ,2022-03,83,3045
+wsdc-186,West In Lyon,2022-03,115,7589
+wsdc-197,5280 Westival,2022-03,28,5733
+wsdc-292,King Swing,2022-03,104,8330
+wsdc-318,All Star SwingJam,2022-03,69,7388
+wsdc-92,Mid-Atlantic Dance Jam,2022-03,156,61
+wsdc-18,Easter Swing,2022-04,141,147
+wsdc-187,City of Angels Swing Event,2022-04,120,147
+wsdc-259,Swingover,2022-04,80,562
+wsdc-293,Westy Nantes,2022-04,85,7576
+wsdc-121,Texas Classic ,2022-05,65,5521
+wsdc-134,Swing Dance America,2022-05,56,142
+wsdc-144,Swingin' Into Spring,2022-05,34,6518
+wsdc-175,French Open West Coast Swing,2022-05,135,6946
+wsdc-205,SOswing 2022,2022-05,86,3613
+wsdc-109,Colorado Country Classic,2022-06,47,421
+wsdc-117,Orange Blossom Dance Festival,2022-06,44,3387
+wsdc-162,Swingapalooza,2022-06,107,2283
+wsdc-255,Indy Dance Explosion,2022-06,36,3468
+wsdc-96,Liberty Swing Dance Championships,2022-06,140,2495
+wsdc-1,Phoenix 4th of July,2022-07,90,61
+wsdc-148,Dance Mardi Gras,2022-07,61,1205
+wsdc-149,Florida Dance Magic,2022-07,28,5521
+wsdc-156,Big Apple Dance Festival,2022-07,14,6255
+wsdc-225,Wild Wild Westie,2022-07,163,1333
+wsdc-261,Neverland Swing,2022-07,54,8212
+wsdc-278,Americano Dance Camp,2022-07,68,9523
+wsdc-280,St.Petersburg WCS Nights,2022-07,61,8937
+wsdc-47,SwingTime,2022-07,133,77
+wsdc-119,Chicagoland Country and Swing Dance Festival,2022-08,62,320
+wsdc-120,LoneStar Invitational,2022-08,57,4297
+wsdc-157,New England Dance Festival,2022-08,36,6255
+wsdc-227,Swingtacular: The Galactic Open 2022,2022-08,134,468
+wsdc-256,Rock The Barn,2022-08,52,10097
+wsdc-282,German Open Championships,2022-08,90,7821
+wsdc-283,Kazan EL Fest,2022-08,46,8937
+wsdc-59,Swing Fling,2022-08,126,2495
+wsdc-77,Arizona Dance Classic,2022-08,41,147
+wsdc-10,BridgeTown Swing,2022-09,88,147
+wsdc-131,Meet Me in St Louis Swing Dance Championships,2022-09,80,50
+wsdc-135,Desert City Swing,2022-09,129,147
+wsdc-167,Best of the Best WCS,2022-09,44,6832
+wsdc-231,Trilogy Swing,2022-09,136,2495
+wsdc-234,Philly Swing Classic ,2022-09,69,2495
+wsdc-313,Rolling Swing,2022-09,99,6863
+wsdc-48,South Bay Dance Fling,2022-09,34,7388
+wsdc-125,Swing City Chicago,2022-10,120,216
+wsdc-165,Midland Swing Open,2022-10,65,6816
+wsdc-179,The New Zealand Open,2022-10,34,8344
+wsdc-211,Atlanta Swing Classic,2022-10,143,432
+wsdc-267,Swustlicious,2022-10,56,4271
+wsdc-286,WCS Festival,2022-10,86,7536
+wsdc-322,Milan Modern Swing,2022-10,82,7881
+wsdc-43,Paradise Country Dance Festival,2022-10,70,147
+wsdc-65,Halloween SwingThing,2022-10,120,61
+wsdc-8,Boogie By The Bay,2022-10,125,61
+wsdc-181,DC Swing eXperience (DCSX),2022-11,141,2495
+wsdc-194,Moscow Westie Fest,2022-11,57,8624
+wsdc-229,Scandinavian Open WCS 2022,2022-11,118,7576
+wsdc-269,Autumn Swing Challenge,2022-11,83,7592
+wsdc-270,Westie's Angels,2022-11,117,7352
+wsdc-288,Midnight Madness,2022-11,110,421
+wsdc-31,Mountain Magic Dance Convention,2022-11,74,142
+wsdc-312,Westie Pink City,2022-11,75,7532
+wsdc-323,Westies on The Water,2022-11,43,4039
+wsdc-330,Simply Adelaide West Coast Swing 2022,2022-11,54,8061
+wsdc-68,US Open Swing Dance Championships,2022-11,142,147
+wsdc-87,CASH Bash,2022-11,55,3234
+wsdc-212,The After Party - TAP,2022-12,128,147
+wsdc-213,Swingtimate,2022-12,33,8051
+wsdc-238,Winter White West Coast Swing,2022-12,73,7446
+wsdc-290,Shooba Dooba Swing,2022-12,56,8173
+wsdc-183,Freedom Swing Dance Challenge,2023-01,80,2495
+wsdc-184,BudaFest Open WCS Championships,2023-01,172,5861
+wsdc-196,SwingCouver,2023-01,107,147
+wsdc-242,Derby City Swing,2023-01,106,2904
+wsdc-289,Swingvester,2023-01,127,7537
+wsdc-301,Swing Resolution,2023-01,72,7562
+wsdc-309,Avignon City Swing,2023-01,82,6946
+wsdc-334,Countdown Swing Boston,2023-01,125,1010
+wsdc-42,Floor Play Swing Vacation,2023-01,131,432
+wsdc-62,Monterey Swing Fest,2023-01,110,147
+wsdc-75,Country Dance World Championships,2023-01,84,147
+wsdc-12,Capital Swing Dancers' President's Day,2023-02,120,147
+wsdc-215,Swing & Snow,2023-02,95,7599
+wsdc-244,Rose City Swing,2023-02,125,2308
+wsdc-273,Charlotte WestieFest,2023-02,140,1843
+wsdc-297,Winter Coast Swing,2023-02,42,9493
+wsdc-302,WesterOz Swing,2023-02,26,9903
+wsdc-307,Paris Swing Classic,2023-02,120,7034
+wsdc-142,The Chicago Classic,2023-03,134,50
+wsdc-153,Novice Invitational,2023-03,96,2600
+wsdc-186,West In Lyon,2023-03,153,6946
+wsdc-275,DOWCS,2023-03,65,7446
+wsdc-292,King Swing,2023-03,115,8212
+wsdc-318,All Star SwingJam,2023-03,99,3947
+wsdc-92,MADjam (Mid Atlantic Dance Jam),2023-03,194,242
+wsdc-18,Easter Swing,2023-04,160,147
+wsdc-187,City of Angels Swing Event,2023-04,135,61
+wsdc-210,Korean Open WCS Championsips,2023-04,72,5351
+wsdc-218,Asia WCS Open - 10th Anniversary,2023-04,93,8344
+wsdc-259,Swingover,2023-04,110,3861
+wsdc-293,WESTY NANTES,2023-04,125,7024
+wsdc-324,BTO Open,2023-04,62,6778
+wsdc-105,Canadian Swing Championships,2023-05,57,2986
+wsdc-121,Texas Classic,2023-05,60,6791
+wsdc-134,Swing Dance America,2023-05,58,320
+wsdc-174,Swingsation,2023-05,46,8077
+wsdc-175,French Open West Coast Swing,2023-05,169,3331
+wsdc-205,SOswing,2023-05,105,820
+wsdc-22,USA Grand National Dance Championships,2023-05,157,692
+wsdc-253,Nordic WCS Championships,2023-05,100,7352
+wsdc-117,Orange Blossom Dance Festival,2023-06,58,421
+wsdc-162,Swingapalooza,2023-06,91,216
+wsdc-220,D-Townswing,2023-06,141,714
+wsdc-1,Phoenix 4th of July,2023-07,113,147
+wsdc-147,Toronto Open Swing and Hustle Championships,2023-07,56,3233
+wsdc-148,Dance Mardi Gras,2023-07,56,2723
+wsdc-156,Big Apple Dance Festival,2023-07,31,3643
+wsdc-224,Midwest Westie Fest,2023-07,92,147
+wsdc-225,Wild Wild Westie,2023-07,175,2600
+wsdc-255,Indy Dance Explosion,2023-07,44,3387
+wsdc-261,Neverland Swing,2023-07,74,7562
+wsdc-278,Americano Dance Camp,2023-07,72,8188
+wsdc-280,St.Petersburg WCS Nights,2023-07,74,8173
+wsdc-303,Odyssey West Coast Swing,2023-07,50,6436
+wsdc-331,Swing Fiction,2023-07,85,10074
+wsdc-96,Liberty Swing Dance Championships,2023-07,164,714
+wsdc-119,Chicagoland Dance Festival,2023-08,61,320
+wsdc-120,LoneStar Invitational,2023-08,58,5542
+wsdc-157,New England Dance Festival,2023-08,51,2343
+wsdc-164,Sea Sun & Swing Camp,2023-08,83,7532
+wsdc-227,Swingtacular: The Galactic Open 2023,2023-08,130,468
+wsdc-279,Kazan EL Fest,2023-08,51,9709
+wsdc-282,German Open Championships,2023-08,145,7815
+wsdc-298,Shakedown Swing,2023-08,36,8745
+wsdc-47,SwingTime Denver,2023-08,118,147
+wsdc-59,Swing Fling,2023-08,162,2343
+wsdc-77,Arizona Dance Classic ,2023-08,46,147
+wsdc-10,BridgeTown Swing,2023-09,109,2060
+wsdc-131,Meet Me in St Louis Swing Dance Championships,2023-09,83,216
+wsdc-135,Desert City Swing,2023-09,126,147
+wsdc-167,Best of the Best,2023-09,53,7903
+wsdc-177,River City Swing,2023-09,75,432
+wsdc-231,Trilogy Swing,2023-09,160,50
+wsdc-233,Bavarian Open West Coast Swing Championships,2023-09,137,3125
+wsdc-268,Korea Westival,2023-09,60,9283
+wsdc-313,Rolling Swing,2023-09,123,7562
+wsdc-48,South Bay Dance Fling,2023-09,63,61
+wsdc-125,Swing City Chicago,2023-10,130,320
+wsdc-178,Montreal Westie Fest,2023-10,80,6016
+wsdc-179,New Zealand Open,2023-10,45,6236
+wsdc-211,Atlanta Swing Classic,2023-10,146,2601
+wsdc-267,Swustlicious,2023-10,92,1629
+wsdc-286,WCS Festival,2023-10,132,7592
+wsdc-330,Simply Adelaide West Coast Swing 2023,2023-10,59,7014
+wsdc-43,Paradise Dance Festival,2023-10,84,147
+wsdc-65,Halloween Swingthing,2023-10,128,61
+wsdc-8,Boogie By The Bay,2023-10,150,61
+wsdc-137,Tampa Bay Classic,2023-11,68,2495
+wsdc-181,DC Swing eXperience  (DCSX),2023-11,168,719
+wsdc-194,Moscow Westie Fest,2023-11,81,7599
+wsdc-269,Autumn Swing Challenge,2023-11,107,4683
+wsdc-270,Westie's Angels,2023-11,133,7589
+wsdc-288,Midnight Madness,2023-11,102,421
+wsdc-31,Mountain Magic Dance Convention,2023-11,64,548
+wsdc-312,Westie Pink City,2023-11,110,6946
+wsdc-323,Westies on the Water,2023-11,75,1291
+wsdc-68,US Open Swing Dance Championships,2023-11,150,147
+wsdc-79,Sea to Sky Seattle WCS,2023-11,101,2642
+wsdc-87,C.A.S.H. Bash,2023-11,41,3945
+wsdc-212,The After Party “TAP”,2023-12,128,4295
+wsdc-238,Winter White WCS,2023-12,81,9058
+wsdc-290,Shooba Dooba Swing,2023-12,67,8024
+wsdc-342,Global Grand Prix - West Coast Swing Reunion,2023-12,128,6207
+wsdc-141,Spotlight New Year's Celebration,2024-01,137,311
+wsdc-183,Freedom Swing Dance Challenge,2024-01,104,1629
+wsdc-184,BudaFest Open WCS Championships,2024-01,180,311
+wsdc-196,SwingCouver ,2024-01,121,147
+wsdc-200,Austin Swing Dance Championships (ASDC),2024-01,114,216
+wsdc-240,Westie Gala,2024-01,102,6816
+wsdc-242,Derby City Swing,2024-01,87,320
+wsdc-289,SwingVester,2024-01,140,4533
+wsdc-309,Avignon City Swing,2024-01,84,4533
+wsdc-334,Countdown Swing Boston ,2024-01,121,2543
+wsdc-42,Floor Play Swing Vacation ,2024-01,99,432
+wsdc-62,Monterey Swing Fest 2024,2024-01,114,820
+wsdc-75,UCWDC Country Dance World Championships,2024-01,78,421
+wsdc-12,Capital Swing Convention,2024-02,125,231
+wsdc-215,Swing & Snow,2024-02,100,7599
+wsdc-244,Rose City Swing,2024-02,135,4689
+wsdc-258,Swingtzerland,2024-02,68,2986
+wsdc-273,Charlotte WestieFest,2024-02,170,50
+wsdc-297,Winter Coast Swing,2024-02,57,10612
+wsdc-132,Tulsa Spring Swing,2024-03,65,2371
+wsdc-142,The Chicago Classic,2024-03,145,1952
+wsdc-143,High Desert Dance Classic,2024-03,88,254
+wsdc-153,Novice Invitational,2024-03,112,3045
+wsdc-217,San Diego Dance Festival,2024-03,55,147
+wsdc-292,King Swing,2024-03,125,8212
+wsdc-318,All Star SwingJam,2024-03,79,1659
+wsdc-324,BTO Open,2024-03,75,6014
+wsdc-333,Swingvasion,2024-03,41,7225
+wsdc-9,The Boston Tea Party,2024-03,120,2495
+wsdc-92,MADjam (Mid Atlantic Dance Jam),2024-03,199,764
+wsdc-116,Calgary Dance Stampede,2024-04,50,4439
+wsdc-18,Easter Swing,2024-04,150,242
+wsdc-187,City of Angels Swing Event,2024-04,132,147
+wsdc-210,Korean Open WCS Championsips,2024-04,143,4033
+wsdc-218,Asia WCS Open XI,2024-04,125,7391
+wsdc-259,Swingover,2024-04,120,4852
+wsdc-275,Dutch Open West Coast Swing 2024,2024-04,66,7879
+wsdc-293,Westy Nantes,2024-04,132,6946
+wsdc-345,HONEY FEST,2024-04,86,7599
+wsdc-105,Canadian Swing Championships,2024-05,48,6778
+wsdc-121,Texas Classic,2024-05,58,421
+wsdc-134,Swing Dance America (SDA),2024-05,63,3171
+wsdc-144,Swingin' Into Spring,2024-05,23,2343
+wsdc-174,Swingsation 2024,2024-05,66,2986
+wsdc-175,French Open WCS,2024-05,200,2008
+wsdc-205,SOswing,2024-05,107,1054
+wsdc-22,USA Grand Nationals Dance Championship,2024-05,150,147
+wsdc-221,Show Me Showdown,2024-05,61,3171
+wsdc-109,Colorado Country Classic,2024-06,49,421
+wsdc-117,Orange Blossom Dance Festival,2024-06,43,3387
+wsdc-162,SWINGAPALOOZA,2024-06,103,216
+wsdc-206,Hungarian Open,2024-06,116,8212
+wsdc-220,D-TOWNSWING,2024-06,143,7446
+wsdc-25,Jack & Jill O'Rama,2024-06,145,421
+wsdc-331,Swing Fiction 2024,2024-06,98,8212
+wsdc-76,Michigan Classic,2024-06,98,2389
+wsdc-96,Liberty Swing Dance Championships,2024-06,175,1629
+wsdc-1,Phoenix 4th of July,2024-07,99,147
+wsdc-147,Toronto Open Swing and Hustle Championships,2024-07,85,3468
+wsdc-148,Dance Mardi Gras,2024-07,39,421
+wsdc-149,Florida Dance Magic (Unconfirmed),2024-07,79,3604
+wsdc-156,Big Apple Dance Festival,2024-07,41,5581
+wsdc-224,Midwest Westie Fest,2024-07,129,50
+wsdc-225,Wild Wild Westie,2024-07,160,1054
+wsdc-261,NeverlandSwing,2024-07,96,4533
+wsdc-263,Riga Summer Swing,2024-07,83,8951
+wsdc-278,Americano Dance camp,2024-07,88,7592
+wsdc-280,St.Petersburg WCS Nights,2024-07,113,7592
+wsdc-303,Odyssey West Coast Swing,2024-07,67,8051
+wsdc-119,Chicagoland Country and Swing Dance Festival,2024-08,64,4281
+wsdc-120,Lonestar Invitational,2024-08,42,4292
+wsdc-157,New England Dance Festival,2024-08,68,3387
+wsdc-164,Sea Sun & Swing Camp,2024-08,130,6946
+wsdc-227,Swingtacular: The Galactic Open,2024-08,140,1047
+wsdc-282,The German Open WCS Championships,2024-08,170,4533
+wsdc-298,Shakedown Swing,2024-08,36,9288
+wsdc-53,Summer Hummer,2024-08,136,714
+wsdc-59,Swing Fling 2024,2024-08,170,50
+wsdc-77,Arizona Dance Classic,2024-08,39,147
+wsdc-131,Meet Me in St Louis Swing Dance Championships,2024-09,116,147
+wsdc-135,Desert City Swing,2024-09,147,144
+wsdc-167,Best of the Best WCS,2024-09,82,8051
+wsdc-177,Jax Westie Fest,2024-09,69,3394
+wsdc-231,Trilogy Swing,2024-09,152,2495
+wsdc-233,Bavarian Open West Coast Swing Championships,2024-09,157,3125
+wsdc-234,Philly Swing Dance Classic,2024-09,84,2495
+wsdc-268,Korea Westival,2024-09,77,7835
+wsdc-300,Austin Rocks 2024 ,2024-09,113,50
+wsdc-313,Rolling Swing,2024-09,138,7696
+wsdc-338,Sea Dance Fest,2024-09,42,8393
+wsdc-48,South Bay Dance Fling,2024-09,62,147
+wsdc-125,Swing City Chicago,2024-10,153,3234
+wsdc-178,Montreal Westie Fest,2024-10,95,6304
+wsdc-211,Atlanta Swing Classic,2024-10,152,2173
+wsdc-267,Swustlicious,2024-10,94,2343
+wsdc-286,WCS Festival,2024-10,121,9016
+wsdc-367,Go West Swingfest,2024-10,25,17924
+wsdc-43,Paradise Dance Festival,2024-10,80,147
+wsdc-179,New Zealand Open,2024-11,56,2986
+wsdc-181,DC Swing eXperience (DCSX),2024-11,171,719
+wsdc-229,"Scandinavian Open WCS ""SNOW""",2024-11,145,6774
+wsdc-269,Autumn Swing Challenge,2024-11,126,5460
+wsdc-270,Westie's Angels,2024-11,124,7035
+wsdc-288,Midnight Madness Swing,2024-11,111,50
+wsdc-31,Mountain Magic Dance Convention,2024-11,52,452
+wsdc-323,Rocket City Swing,2024-11,66,2211
+wsdc-330,Simply Adelaide West Coast Swing 2024,2024-11,57,7020
+wsdc-340,Spooky Westie Weekend,2024-11,43,9283
+wsdc-79,Sea to Sky Seattle,2024-11,126,1493
+wsdc-212,"The After Party - ""TAP""",2024-12,130,820
+wsdc-238,Winter White WCS,2024-12,106,8212
+wsdc-290,Shooba Dooba Swing,2024-12,103,8024
+wsdc-342,Global Grand Prix - West Coast Swing,2024-12,118,4533
+wsdc-68,The Open World Swing Dance Championships,2024-12,163,147
+wsdc-87,CASH Bash,2024-12,76,1085
+wsdc-141,Spotlight New Year's Celebration,2025-01,151,619
+wsdc-184,BudaFest Open WCS Championships,2025-01,169,4533
+wsdc-240,Westie Gala,2025-01,111,7879
+wsdc-289,SwingVester,2025-01,149,5421
+wsdc-334,Countdown Swing Boston,2025-01,114,3467
+wsdc-381,The Australian Classic West Coast Swing Dance Championships (Trial Event),2025-01,50,6832
+wsdc-42,Floorplay Swing Vacation,2025-01,115,2343
+wsdc-62,Monterey Swing Fest,2025-01,111,820
+wsdc-75,UCWDC Country Dance World Championship,2025-01,55,421
+wsdc-12,Capital Swing Dance Convention,2025-02,122,396
+wsdc-215,Swing & Snow,2025-02,113,7599
+wsdc-273,Charlotte WestieFest,2025-02,156,2495
+wsdc-302,WesterOz Swing,2025-02,44,9850
+wsdc-307,Paris Swing Classic,2025-02,138,7352
+wsdc-344,Arousa Westie Fest,2025-02,94,7879
+wsdc-142,The Chicago Classic,2025-03,170,50
+wsdc-143,High Desert Dance Classic,2025-03,100,241
+wsdc-154,UK WCS Championships,2025-03,154,764
+wsdc-275,Dutch open West Coast swing,2025-03,80,7532
+wsdc-324,By-Town Open (BTO),2025-03,93,6014
+wsdc-333,Swingvasion,2025-03,38,9149
+wsdc-9,The Boston Tea Party,2025-03,114,714
+wsdc-116,Calgary Dance Stampede,2025-04,66,3512
+wsdc-210,Korean Open WCS Championships,2025-04,120,4033
+wsdc-218,Asia West Coast Swing Open,2025-04,116,4533
+wsdc-345,HONEY FEST,2025-04,86,7599
+wsdc-105,Canadian Swing Championships,2025-05,50,6778
+wsdc-121,Texas Classic,2025-05,43,7844
+wsdc-174,Swingsation,2025-05,66,7180
+wsdc-205,SOswing,2025-05,113,142
+wsdc-22,USA Grand National Dance Championships,2025-05,137,61
+wsdc-221,Show Me Showdown,2025-05,65,5271
+wsdc-336,SOM - Swing of Music,2025-05,83,8212
+wsdc-354,Spring Time Swing,2025-05,136,1333
+wsdc-372,Dance Jam Jack & Jill Weekend,2025-05,85,2495
+wsdc-109,Colorado Country Classic,2025-06,68,421
+wsdc-117,Orange Blossom Dance Festival,2025-06,57,3387
+wsdc-162,SWINGAPALOOZA,2025-06,107,216
+wsdc-175,French Open WCS,2025-06,153,3331
+wsdc-206,Hungarian Open,2025-06,102,6236
+wsdc-220,D-TOWNSWING,2025-06,129,7576
+wsdc-255,Indy Dance Explosion,2025-06,21,7942
+wsdc-261,NeverlandSwing,2025-06,115,6236
+wsdc-321,Swing Fiction,2025-06,87,9895
+wsdc-368,Next Level Swing,2025-06,74,10713
+wsdc-369,FRENCH CONNECTION WCS,2025-06,118,4533
+wsdc-371,Festival City Swing,2025-06,65,7562
+wsdc-96,Liberty Swing Dance Championships,2025-06,163,1629
+wsdc-147,Toronto Open,2025-07,94,2495
+wsdc-149,Florida Dance Magic,2025-07,90,3070
+wsdc-156,Big Apple Dance Festival,2025-07,43,2742
+wsdc-278,Americano Dance Camp,2025-07,86,8024
+wsdc-280,St. Petersburg WCS Nights,2025-07,122,7599
+wsdc-362,MY Swing,2025-07,92,8734
+wsdc-373,Carolina Summer Swing,2025-07,122,3394
+wsdc-375,Mediterranean Open WCS,2025-07,138,2343
+wsdc-385,Revitalise WCS,2025-07,52,2986
+wsdc-119,Chicagoland Country and Swing Dance Festival,2025-08,68,5168
+wsdc-120,Lonestar Invitational,2025-08,23,13734
+wsdc-157,New England Dance Festival,2025-08,82,2543
+wsdc-177,Jax Westie Fest,2025-08,80,3337
+wsdc-227,Swingtacular: The Galactic Open,2025-08,118,468
+wsdc-282,German Open West Coast Swing,2025-08,168,4533
+wsdc-298,Shakedown Swing,2025-08,38,12264
+wsdc-383,Warsaw Summer Nights Westival,2025-08,94,9495
+wsdc-384,Grand Party Sofia (GPS),2025-08,77,3978
+wsdc-391,Swing Dance Mania,2025-08,80,3771
+wsdc-47,SwingTime Denver,2025-08,139,61
+wsdc-131,Meet Me in St. Louis Swing Dance Championships,2025-09,117,3171
+wsdc-135,Desert City Swing,2025-09,133,147
+wsdc-167,Best of the Best WCS,2025-09,77,6436
+wsdc-233,Bavarian Open West Coast Swing Championships,2025-09,144,764
+wsdc-234,Philly Swing Dance Classic,2025-09,66,2495
+wsdc-268,Korea Westival 2025,2025-09,90,8734
+wsdc-300,Austin Rocks,2025-09,124,2761
+wsdc-313,Rolling Swing,2025-09,124,7352
+wsdc-338,Sea Dance Fest,2025-09,75,7599
+wsdc-357,WCS Party,2025-09,118,8212
+wsdc-48,South Bay Dance Fling,2025-09,80,396
+wsdc-179,The New Zealand West Coast Swing Open,2025-10,60,8051
+wsdc-286,WCS Festival,2025-10,111,10291
+wsdc-355,The Aloha Open,2025-10,43,584
+wsdc-367,Go West SwingFest,2025-10,41,9912
+wsdc-380,SASS Spooky Albany Swing Spectacular,2025-10,67,2313
+wsdc-388,Norwegian Open WCS,2025-10,81,9058
+wsdc-43,Paradise dance festival,2025-10,82,6
+wsdc-137,Tampa Bay Classic,2025-11,103,432
+wsdc-181,DC Swing eXperience (DCSX),2025-11,156,764
+wsdc-194,Moscow Westie Fest Gala Edition,2025-11,99,8145
+wsdc-229,"Scandinavian Open WCS ""SNOW""",2025-11,144,6946
+wsdc-236,Warsaw Halloween Swing,2025-11,144,2008
+wsdc-288,Midnight Madness WCS,2025-11,146,50
+wsdc-31,Mountain Magic Dance Convention,2025-11,57,548
+wsdc-330,Simply Adelaide West Coast Swing,2025-11,76,6832
+wsdc-340,Spooky Westie Weekend,2025-11,54,7835
+wsdc-365,Flowstate | West Coast Swing & Zouk Festival,2025-11,58,7562
+wsdc-376,Northeast Swing Classic,2025-11,110,1629
+wsdc-68,The Open World Swing Dance Championships,2025-11,144,216
+wsdc-87,CASH Bash,2025-11,54,3771
+wsdc-212,"The After Party ""TAP""",2025-12,115,820
+wsdc-238,Winter White West Coast Swing,2025-12,102,8374
+wsdc-290,Shooba Dooba Swing,2025-12,102,8024
+wsdc-342,Global Grand Prix - West Coast Swing Championships,2025-12,117,4533
+wsdc-184,BudaFest Open WCS Championships,2026-01,166,3125
+wsdc-240,Westie Gala,2026-01,126,7879
+wsdc-289,SwingVester 2025,2026-01,164,7537
+wsdc-62,Monterey Swing Fest,2026-01,138,396
+wsdc-12,Capital Swing Convention,2026-02,124,396
+wsdc-215,Swing & Snow,2026-02,104,7599
+wsdc-273,Charlotte WestieFest,2026-02,144,2501
+wsdc-143,High Desert Dance Classic,2026-03,88,6
+wsdc-244,Rose City Swing,2026-03,144,4033
+wsdc-275,Dutch Open West Coast Swing,2026-03,71,7995
+wsdc-333,Swingvasion,2026-03,45,8054
+wsdc-394,Southern Lights Swing,2026-03,68,8051
+wsdc-9,The Boston Tea Party,2026-03,97,4852
+wsdc-92,MADjam (Mid Atlantic Dance Jam),2026-03,191,242
+wsdc-116,Calgary Dance Stampede,2026-04,72,4780
+wsdc-187,City of Angels WCS,2026-04,122,147
+wsdc-210,Korean Open WCS Championships,2026-04,124,2986
+wsdc-345,HONEY FEST,2026-04,83,7599
+wsdc-105,Canadian Swing Championships,2026-05,54,6778
+wsdc-121,Texas Classic,2026-05,45,3193
+wsdc-174,Swingsation 2026,2026-05,60,7020
+wsdc-175,French Open WCS,2026-05,157,2970
+wsdc-205,SOswing,2026-05,106,2761
+wsdc-22,USA Grand National Dance Championships,2026-05,127,61
+wsdc-253,Nordic WCS Championships,2026-05,150,4683
+wsdc-336,SOM-Swing of Music,2026-05,96,8212
+wsdc-354,Spring Time Swing,2026-05,128,3685
+wsdc-109,Colorado Country Classic,2026-06,68,905
+wsdc-117,Orange Blossom Dance Festival,2026-06,54,2501
+wsdc-220,D-Townswing,2026-06,127,7809
+wsdc-261,NeverlandSwing Dutch Swing Championships 2026,2026-06,88,4533
+wsdc-331,Swing Fiction,2026-06,89,8344
+wsdc-371,Festival City Swing,2026-06,62,6705
+wsdc-374,BaroqueSwing,2026-06,97,9424
+wsdc-96,Liberty Swing Dance Championships,2026-06,137,1629
+wsdc-278,Americano Dance Camp,2026-07,86,8393
+wsdc-280,St. Petersburg WCS Nights,2026-07,102,8024
+wsdc-369,French Connection WCS,2026-07,113,4683
+wsdc-375,Mediterranean Open WCS,2026-07,120,8203
+wsdc-385,Revitalise WCS,2026-07,76,6832
+wsdc-404,Infinite Swing,2026-07,93,8395
+wsdc-119,Chicagoland Country and Swing Dance Festival,2026-08,73,1952
+wsdc-157,New England Dance Festival,2026-08,66,1493
+wsdc-164,Sea Sun and Swing,2026-08,86,7576
+wsdc-227,Swingtacular: The Galactic Open,2026-08,118,2761
+wsdc-282,German Open WCS,2026-08,159,4533
+wsdc-298,Shakedown Swing,2026-08,56,7225
+wsdc-383,Warsaw Summer Nights Westival,2026-08,103,10667
+wsdc-384,Grand Party Sofia (GPS),2026-08,101,8212
+wsdc-177,Jax Westie Fest,2026-09,92,432
+wsdc-268,Korea Westival,2026-09,88,7835
+wsdc-48,South Bay Dance Fling,2026-09,85,61

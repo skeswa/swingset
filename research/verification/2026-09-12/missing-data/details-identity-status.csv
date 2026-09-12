@@ -1,0 +1,11 @@
+asserted_wsdc_id_missing,count,method,status,subject_kind
+False,4931,registry_placement,confirmed,entry
+False,17832,source_id,confirmed,entry
+False,1710,assignment,possible,entry
+False,5769,name_unique,possible,entry
+False,3595,assignment,probable,entry
+False,17367,name_unique,probable,entry
+True,25139,none,unmatched,entry
+False,51,assignment,possible,judge
+False,2511,name_unique,possible,judge
+True,1229,none,unmatched,judge

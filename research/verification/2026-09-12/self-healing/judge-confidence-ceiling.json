@@ -1,0 +1,43 @@
+{
+  "all_pinned_dancer_primary_roles": {
+    "follower": 16345,
+    "leader": 11439
+  },
+  "candidate_pool_primary_roles": {
+    "follower": 668,
+    "leader": 624
+  },
+  "candidate_pool_size": 1292,
+  "conclusion": "Every current automatic judge candidate is capped at 0.875 because all candidate dancers have leader/follower primary roles. With no source ID or division evidence, none can reach the 0.9 probable publication threshold.",
+  "formula": {
+    "denominator": 0.8,
+    "division_numerator": 0.0,
+    "maximum": 0.875,
+    "name_numerator": 0.65,
+    "recency_numerator": 0.05,
+    "role_numerator": 0.0
+  },
+  "judge_subject": {
+    "division": null,
+    "role": "unknown",
+    "source_wsdc_id": null
+  },
+  "offline_score_candidate_result": 0.875,
+  "pinned_judge_links": {
+    "maximum_confidence": 0.875,
+    "status_method": {
+      "possible:assignment": 51,
+      "possible:name_unique": 2511,
+      "unmatched:none": 1229
+    },
+    "total": 3791
+  },
+  "probable_threshold": 0.9,
+  "weights": {
+    "division": 0.2,
+    "name": 0.65,
+    "recency": 0.05,
+    "role": 0.1,
+    "source_id": 1.0
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "registry_probe": {
+    "probe_started_at": "2026-09-08T00:00:00+00:00",
+    "first_snapshot": "snap_20260901T000005Z_8437bd0ef46a",
+    "second_snapshot": "snap_20260908T000006Z_8437bd0ef46a",
+    "second_body_changed": false,
+    "observation_snapshot": "snap_20260901T000005Z_8437bd0ef46a",
+    "observation_fetched_at": "2026-09-01T00:00:05+00:00",
+    "watch_current_observation_snapshot_id": "snap_20260908T000006Z_8437bd0ef46a",
+    "probe_cursor_after_advance": "1000000",
+    "fresh_recheck_not_consumed": true
+  },
+  "registry_trickle": {
+    "initial_registry_fetched_at": "2025-01-01T00:00:05+00:00",
+    "unchanged_fetch_changed": false,
+    "snapshot_count_after_unchanged_fetch": 1,
+    "registry_fetched_at_after": "2025-01-01T00:00:05+00:00",
+    "next_day_watch": [
+      "trickle",
+      "2026-01-03T00:00:05+00:00"
+    ],
+    "selected_again_next_day": true
+  },
+  "judge": {
+    "description": "Exact name, eligible pro dancer, fresh activity, unknown judge role",
+    "score": 0.875,
+    "probable_threshold_at_audit": 0.9,
+    "below_publication_threshold_at_audit": true
+  }
+}

@@ -1,0 +1,2 @@
+extract_status,fetched_at,http_status,kind,parse_status,snapshot_id,source,source_ref,url
+failed,2026-09-11T04:32:31.547766+00:00,200,event,failed,snap_20260911T043231Z_0859efa5a48f,scoringdance,scoringdance:179,https://scoring.dance/enUS/events/179/results/
