@@ -127,6 +127,11 @@ license: odc-by
 # Swingset
 
 Swingset is an evidence-preserving dataset of competitive West Coast Swing results.
+It traces history from {data.history_start.isoformat()} onward. Events that ended
+before that date get no rows in `events` or the tables under it. The registry mirror
+(`dancers`, `registry_placements`) is published whole, back to the registry's own
+beginning; a registry placement from before the start date keeps a null `event_id`.
+That absence is the start-date rule, not missing data.
 
 ## Load it
 

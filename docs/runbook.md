@@ -123,6 +123,9 @@ intact. Each overdue watch is checked once, subject to budget, then returns to
 its normal schedule; there is no catch-up burst.
 
 Set a source's `enabled = false` in `config/sources.toml` to disable its fetches.
+The same file's top-level `history_start` (2010-01-01) is the date events are
+traced from; the build fails on any event that ended earlier, so change it only
+as `design/backfill.md` describes.
 Rebuild the service to install config changes. Override CSV changes need no
 rebuild: the next cycle validates, captures and accepts them transactionally.
 Malformed headers, identities, dates, URLs and duplicate policy keys are rejected

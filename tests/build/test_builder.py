@@ -153,6 +153,44 @@ def test_reversed_event_dates_block_build(tmp_path: Path) -> None:
         build_candidate(tmp_path, inputs(events=[event]), metadata("cand_bad_dates"))
 
 
+def test_event_ending_before_history_start_blocks_build(tmp_path: Path) -> None:
+    event = {field.name: None for field in SCHEMAS["events"]}
+    event.update(
+        {
+            "event_id": "2009-12-old",
+            "year": 2009,
+            "start_date": date(2009, 12, 29),
+            "end_date": date(2009, 12, 31),
+        }
+    )
+    with pytest.raises(BuildError, match="ended before the history start 2010-01-01"):
+        build_candidate(tmp_path, inputs(events=[event]), metadata("cand_before_history"))
+    assert not (tmp_path / "candidates" / "cand_before_history").exists()
+
+
+def test_undated_event_before_history_start_blocks_build_by_year(tmp_path: Path) -> None:
+    event = {field.name: None for field in SCHEMAS["events"]}
+    event.update({"event_id": "2009-old", "year": 2009})
+    with pytest.raises(BuildError, match="ended before the history start"):
+        build_candidate(tmp_path, inputs(events=[event]), metadata("cand_before_by_year"))
+
+
+def test_event_on_history_start_builds_and_manifest_records_it(tmp_path: Path) -> None:
+    event = {field.name: None for field in SCHEMAS["events"]}
+    event.update(
+        {
+            "event_id": "2010-01-first",
+            "year": 2010,
+            "start_date": date(2009, 12, 30),
+            "end_date": date(2010, 1, 1),
+        }
+    )
+    result = build_candidate(tmp_path, inputs(events=[event]), metadata("cand_first"))
+    manifest = json.loads((result.path / "_meta" / "manifest.json").read_text())
+    assert manifest["history_start"] == "2010-01-01"
+    assert manifest["row_counts"]["events"] == 1
+
+
 def _callback_tables() -> dict[str, list[dict[str, object]]]:
     entry = {field.name: None for field in SCHEMAS["entries"]}
     entry.update({"entry_id": "e", "link_status": "unmatched"})

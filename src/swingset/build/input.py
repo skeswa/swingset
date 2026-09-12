@@ -11,6 +11,7 @@ import pyarrow as pa
 
 from swingset.build.builder import PUBLISHED_TABLES, BuildInput
 from swingset.build.schema import PRIMARY_KEYS, SCHEMAS
+from swingset.model.history import HISTORY_START
 from swingset.model.schema import TABLES
 
 
@@ -183,6 +184,10 @@ def read_build_input(connection: sqlite3.Connection, bundle: Any) -> BuildInput:
         hashes_value = bundle.get("file_hashes", {})
     if not isinstance(hashes_value, Mapping):
         raise TypeError("bundle file_hashes must be a mapping")
+    config = getattr(bundle, "config", None)
+    history_start = getattr(config, "history_start", HISTORY_START)
+    if not isinstance(history_start, date):
+        raise TypeError("bundle config history_start must be a date")
     return BuildInput(
         tables=rows,
         schemas=SCHEMAS,
@@ -194,4 +199,5 @@ def read_build_input(connection: sqlite3.Connection, bundle: Any) -> BuildInput:
             if not isinstance(bundle, Mapping)
             else bundle.get("hash", "")
         ),
+        history_start=history_start,
     )

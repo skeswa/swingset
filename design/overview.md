@@ -12,6 +12,14 @@ data. It covers:
 5. The WSDC registry: every dancer's WSDC number, name, points, and
    placements, mirrored from the official registry.
 
+History starts on **2010-01-01**. `swingset` aims to trace every event
+from that date onward and none before it: an event that ended earlier
+gets no rows, while the registry mirror is published whole and earlier
+registry placements keep a null event id. The date is the project's
+enshrined start ([backfill](backfill.md#the-start-date-rule),
+[glossary](glossary.md)); it is restated in `config/sources.toml`, checked
+at build, and printed in the dataset card and manifest.
+
 The dataset updates quickly. Most WCS events run Friday to Sunday and post
 results during and just after the weekend. `swingset` polls harder on
 weekends and rests on weekdays.
@@ -58,3 +66,5 @@ These rules decide every trade-off in this design.
 - No non-WCS dances, even though some sources (and the registry) also
   carry Lindy or Country. We keep those rows if they come for free but do
   not chase them.
+- No events before 2010-01-01. Earlier history exists in the registry
+  mirror only ([backfill](backfill.md#the-start-date-rule)).

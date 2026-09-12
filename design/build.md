@@ -19,6 +19,10 @@
   - callback round and judge references resolve; published callback sums and
     yes/alternate/no counts agree with retained marks, within float tolerance;
   - event start dates do not exceed their end dates;
+  - no event ended before the history start, 2010-01-01 by default and
+    `history_start` in `config/sources.toml` ([backfill](backfill.md#the-start-date-rule));
+    an event's end date decides, then its start date, then its year, and
+    an event with none of these is not rejected;
   - every placement has a `place` in 1..N with no gaps per round;
   - `entries.wsdc_id` set only when `link_status` in (`confirmed`, `probable`);
   - a bib per role per event maps to at most one `wsdc_id`;
@@ -36,7 +40,8 @@
 - `_meta/manifest.json`: candidate id, captured `built_at` and `run_id`,
   repository commit id (or an explicit source identity for an uncommitted
   build), parser/projector/linker versions, row counts,
-  source snapshot counts, latest event covered, and `schema_version`;
+  source snapshot counts, the `history_start` the build enforced, latest
+  event covered, and `schema_version`;
   also the content hash, build fingerprint, expected parent commit,
   input bundle hash, and hashes of all published data and card files.
   Raw override contents stay private in the captured input bundle.

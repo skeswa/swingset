@@ -9,6 +9,10 @@ The dataset includes events, contests, rounds, competitors, judges, marks,
 callbacks, placements, and WSDC registry records. Name matches carry an explicit
 confidence and status. A likely match is not proof of identity.
 
+History starts on 2010-01-01. swingset aims to trace every event from that date
+onward; events that ended earlier get no rows, and the registry mirror is
+published whole. See `design/backfill.md` for the start-date rule.
+
 The collector identifies itself as
 `swingset/0.1.0 (+https://github.com/skeswa/swingset)`. It honors robots.txt,
 conditional requests, host budgets, and one request at a time per host. The
@@ -47,7 +51,7 @@ mise run fmt
 ```
 
 `config/sources.toml` enables the calendar, registry, EEPro, scoring.dance, and
-WDR sources. The registry bootstrap requires an archived comparison dump and an
+WDR sources and restates the history start date (`history_start = 2010-01-01`). The registry bootstrap requires an archived comparison dump and an
 explicitly seeded sweep. Adapters can be tested offline. Publication requires
 an explicit `--publish` (or `swingset publish`) and a provisioned token. The
 reusable NixOS module defaults to dry runs; the selected OrbStack writer enables

@@ -13,6 +13,7 @@ def test_card_lists_every_table_and_one_default() -> None:
     assert "config_name: events\n  default: true" in card
     assert "config_name: placements\n  default: true" not in card
     assert "ODC-By 1.0" in card
+    assert "traces history from 2010-01-01 onward" in card
     assert "five-second" in card
     assert "LEFT JOIN" in card
     assert "no claim of complete source or" in card

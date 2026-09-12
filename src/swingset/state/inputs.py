@@ -9,7 +9,7 @@ from pathlib import Path
 from types import MappingProxyType
 
 from swingset.clock import Clock
-from swingset.config import Config, parse_hosts, parse_sources
+from swingset.config import Config, parse_history_start, parse_hosts, parse_sources
 from swingset.fetch.archive import canonical, digest, durable_write
 from swingset.state.db import Database
 from swingset.state.override_validation import validate_override
@@ -54,7 +54,9 @@ def capture(
         files["link/weights.toml"] = body
     files["versions.json"] = canonical(versions)
     config = Config(
-        parse_hosts(files["config/hosts.toml"]), parse_sources(files["config/sources.toml"])
+        parse_hosts(files["config/hosts.toml"]),
+        parse_sources(files["config/sources.toml"]),
+        parse_history_start(files["config/sources.toml"]),
     )
     hashes = {name: digest(body) for name, body in files.items()}
     bundle_digest = digest(canonical(hashes))

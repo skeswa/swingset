@@ -23,7 +23,11 @@ polite, and how the work is ordered and measured.
   2010 gets an `events` row. The card says this plainly so nobody reads
   the absence as missing data.
 - The start date is a constant in `config/sources.toml`
-  (`history_start = 2010-01-01`). Moving it earlier is a config change
+  (`history_start = 2010-01-01`); the same date is the code default in
+  `swingset.model.history.HISTORY_START`, so an absent key means 2010.
+  The build refuses any `events` row that ended before it
+  ([build](build.md)), the manifest records `history_start`, and the
+  card states the rule. Moving it earlier is a config change
   plus a backfill run; moving it later is a schema-visible change
   ([publishing](publishing.md#commit-strategy)) because rows disappear.
 

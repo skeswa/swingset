@@ -10,7 +10,7 @@ import sqlite3
 import uuid
 from collections.abc import Callable, Iterator, Mapping, Sequence
 from dataclasses import dataclass, replace
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from enum import StrEnum
 from pathlib import Path
 from typing import Any, overload
@@ -20,6 +20,7 @@ import pyarrow.parquet as pq
 
 from swingset.build.files import canonical_json, durable_write, fsync_dir, sha256_file
 from swingset.model import enums
+from swingset.model.history import HISTORY_START, in_history
 
 PUBLISHED_TABLES = (
     "events",
@@ -51,6 +52,7 @@ class BuildInput:
     revisions: Mapping[str, int]
     captured_file_hashes: Mapping[str, str]
     input_bundle_hash: str
+    history_start: date = HISTORY_START
 
 
 @dataclass(frozen=True)
@@ -136,7 +138,7 @@ def _fingerprint(data: BuildInput, meta: BuildMetadata) -> str:
     )
 
 
-def _validate(rows: Mapping[str, list[dict[str, Any]]]) -> None:
+def _validate(rows: Mapping[str, list[dict[str, Any]]], history_start: date) -> None:
     for (table, field), enum_type in ENUM_FIELDS.items():
         allowed_values = {member.value for member in enum_type}
         for row in rows.get(table, []):
@@ -147,6 +149,10 @@ def _validate(rows: Mapping[str, list[dict[str, Any]]]) -> None:
         start, end = row.get("start_date"), row.get("end_date")
         if start is not None and end is not None and start > end:
             raise BuildError(f"event {row.get('event_id')} starts after it ends")
+        if not in_history(history_start, end_date=end, start_date=start, year=row.get("year")):
+            raise BuildError(
+                f"event {row.get('event_id')} ended before the history start {history_start}"
+            )
     entry_ids = {row["entry_id"] for row in rows.get("entries", [])}
     round_ids = {row["round_id"] for row in rows.get("rounds", [])}
     judge_ids = {row["judge_id"] for row in rows.get("judges", [])}
@@ -466,7 +472,7 @@ def build_candidate(
     try:
         rows = {name: [dict(row) for row in data.tables.get(name, ())] for name in PUBLISHED_TABLES}
         apply_suppressions(rows, suppressions)
-        _validate(rows)
+        _validate(rows, data.history_start)
         build_time = meta.built_at or datetime.now(UTC)
         rows["changelog"] = _changelog(
             rows, baseline, data.primary_keys, changed_at=build_time, run_id=meta.run_id
@@ -561,6 +567,7 @@ def build_candidate(
                     {str(row["source"]) for row in rows["snapshots"] if row.get("source")}
                 )
             },
+            "history_start": data.history_start.isoformat(),
             "calendar_horizon": max(
                 (str(row["end_date"]) for row in rows["events"] if row.get("end_date")),
                 default=None,

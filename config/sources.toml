@@ -1,3 +1,8 @@
+# swingset traces events from this date onward. Events that ended earlier get
+# no rows; the registry mirror stays whole and earlier registry placements keep
+# a null event id. See design/backfill.md, "The start-date rule".
+history_start = 2010-01-01
+
 [sources.wsdc_calendar]
 enabled = true
 index_urls = ["https://worldsdc.com/events/"]

@@ -4,8 +4,11 @@ import re
 import tomllib
 from collections.abc import Mapping
 from dataclasses import dataclass, fields
+from datetime import date
 from pathlib import Path
 from types import MappingProxyType
+
+from swingset.model import history
 
 
 def duration(value: str | int | float) -> float:
@@ -47,6 +50,7 @@ class SourceConfig:
 class Config:
     hosts: Mapping[str, HostConfig]
     sources: Mapping[str, SourceConfig]
+    history_start: date = history.HISTORY_START
 
     def host(self, name: str) -> HostConfig:
         return self.hosts.get(name, HostConfig())
@@ -101,8 +105,18 @@ def parse_sources(body: bytes) -> Mapping[str, SourceConfig]:
     return MappingProxyType(result)
 
 
+def parse_history_start(body: bytes) -> date:
+    """Read the top-level `history_start` of sources.toml; absent means the enshrined default."""
+    raw = tomllib.loads(body.decode())
+    if "history_start" not in raw:
+        return history.HISTORY_START
+    return history.parse_history_start(raw["history_start"])
+
+
 def load_config(directory: Path = Path("config")) -> Config:
+    sources = (directory / "sources.toml").read_bytes()
     return Config(
         parse_hosts((directory / "hosts.toml").read_bytes()),
-        parse_sources((directory / "sources.toml").read_bytes()),
+        parse_sources(sources),
+        parse_history_start(sources),
     )
