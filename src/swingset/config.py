@@ -9,6 +9,7 @@ from pathlib import Path
 from types import MappingProxyType
 
 from swingset.model import history
+from swingset.schedule.fair_policy import SchedulerConfig, parse_scheduler
 
 
 def duration(value: str | int | float) -> float:
@@ -51,6 +52,7 @@ class Config:
     hosts: Mapping[str, HostConfig]
     sources: Mapping[str, SourceConfig]
     history_start: date = history.HISTORY_START
+    scheduler: SchedulerConfig = SchedulerConfig()
 
     def host(self, name: str) -> HostConfig:
         return self.hosts.get(name, HostConfig())
@@ -119,4 +121,5 @@ def load_config(directory: Path = Path("config")) -> Config:
         parse_hosts((directory / "hosts.toml").read_bytes()),
         parse_sources(sources),
         parse_history_start(sources),
+        parse_scheduler(sources),
     )

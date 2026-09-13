@@ -1,0 +1,7 @@
+{
+  "run_id": "run_20260913T080824Z",
+  "interrupted_at": "2026-09-13T08:28:42+00:00",
+  "reason": "Linux memory cgroup killed build process at 6760136 KiB anonymous RSS; completed admission, project, link retained; no candidate or publication",
+  "recorded_at": "2026-09-13T08:30:11.582877+00:00",
+  "pending_work": 0
+}

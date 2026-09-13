@@ -1,0 +1,65 @@
+{
+  "generated_at": "2026-09-13T07:10:43.795479+00:00",
+  "candidate_id": "cand_a8580553523d4b02",
+  "candidate_manifest_sha256": "b5cf073615019ce3f5e64f1405071551d6c2c3e799fb6f17517dbdfd64bc15e4",
+  "baseline_commit": "7cfcf4ec5dbc994d91f3e4d816f43b3abe16637b",
+  "release_policy_token": {
+    "admission_digest": "4f527e109a7b2f9f1668a43215a550f10010ce0a7e80943a5a5143aa88d2e562",
+    "decision_policy": "identity-decisions-v1",
+    "journal_digest": "e1487f143891001bc7ddb16cfe6e32003e1ac95628fcaa3a03849e3806f6a246",
+    "journal_generation": 1,
+    "release_version": "identity-release-v1"
+  },
+  "baseline_default_ids": 36715,
+  "retained_default_ids": 34959,
+  "withdrawn_default_ids": 1756,
+  "counts": [
+    {
+      "category": "current_decision_withholds",
+      "reason": "ambiguous_source_locator",
+      "count": 166
+    },
+    {
+      "category": "current_decision_withholds",
+      "reason": "contradictory_source_and_registry_identities",
+      "count": 4
+    },
+    {
+      "category": "printed_source_identity_unavailable",
+      "reason": "different_owned_printed_id;other_scope_same_name",
+      "count": 9
+    },
+    {
+      "category": "printed_source_identity_unavailable",
+      "reason": "no_owned_printed_id;other_scope_same_name",
+      "count": 1494
+    },
+    {
+      "category": "printed_source_identity_unavailable",
+      "reason": "no_owned_printed_id;same_contest_role_name_elsewhere",
+      "count": 1
+    },
+    {
+      "category": "source_reference_unavailable",
+      "reason": "no_owned_printed_id",
+      "count": 82
+    }
+  ],
+  "journal_rows": 0,
+  "baseline_manual_assertions": 0,
+  "late_manual_path_fix_affects_baseline": false,
+  "raw_verified_representatives": 16,
+  "raw_verified_registry_bodies": 5,
+  "all_ambiguous_subjects_print_previous_id": true,
+  "artifacts": {
+    "v3-identity-withdrawals-20260913.json": "53d84a8f92c2a22f45ef8cd3b84523c10b26bbcf18c10247bdb6fa40f9116c8d",
+    "v3-identity-source-proof-20260913.json": "d0c0da3d5ca74e7c9a57d2aa6fe839eda3d4e35c0615a123c79b5593a72f0db4"
+  },
+  "scope": "Read-only comparison of pinned baseline and exact candidate, with retained source observations and independently checked archived raw bodies; no network, state mutation, build, publication, or human identity adjudication.",
+  "limitations": [
+    "Raw body inspection covers 16 representative source rows, including all nine differing printed IDs and all four source/registry conflict subjects; remaining subjects are classified using retained parsed source cells.",
+    "Ambiguous source references and missing exact-cell support do not establish that an old person identity was false.",
+    "Registry evidence uses the pinned baseline release tables; no later registry facts become correction support.",
+    "María Aguirre Roquero registry result says February 2025 while canonical Paris Swing Classic event slug is January 2025."
+  ]
+}

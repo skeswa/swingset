@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import copy
 import json
+import runpy
 from datetime import UTC, date, datetime
 from pathlib import Path
 
+import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
 
@@ -12,6 +15,7 @@ from swingset.build.builder import (
     BuildInput,
     BuildMetadata,
     ParquetRows,
+    _changelog,
     build_candidate,
 )
 from swingset.build.schema import PRIMARY_KEYS, SCHEMAS
@@ -51,6 +55,56 @@ def metadata(candidate_id: str) -> BuildMetadata:
         built_at=datetime(2026, 1, 1, tzinfo=UTC),
         candidate_id=candidate_id,
     )
+
+
+def test_bounded_baseline_diff_matches_original_eager_changelog(tmp_path):
+    original = runpy.run_path(
+        str(Path(__file__).parents[1] / "fixtures/build/changelog_before_memory_fix.py")
+    )["_changelog"]
+    before = {
+        "entries": [
+            {"entry_id": "same", "wsdc_id": 7, "link_status": "confirmed", "refs": ["a"]},
+            {"entry_id": "changed", "wsdc_id": 8, "link_status": "confirmed", "refs": ["b"]},
+            {"entry_id": "removed", "wsdc_id": 9, "link_status": "confirmed", "refs": ["c"]},
+        ],
+        "final_marks": [
+            {"round_id": "r1", "judge_id": "j", "rank": 1},
+            {"round_id": "r2", "judge_id": "j", "rank": 2},
+        ],
+        "changelog": [],
+    }
+    after = copy.deepcopy(before)
+    after["entries"][1].update(wsdc_id=None, link_status="unmatched", refs=["new-reference"])
+    after["entries"][2] = {
+        "entry_id": "added",
+        "wsdc_id": None,
+        "link_status": "suppressed",
+        "refs": [],
+    }
+    after["final_marks"][1]["rank"] = 3
+    untouched = copy.deepcopy(after)
+    keys = {"entries": ("entry_id",), "final_marks": ("round_id", "judge_id")}
+    for table, rows in before.items():
+        if not rows:
+            continue
+        directory = tmp_path / "data" / table
+        directory.mkdir(parents=True)
+        schema = pa.Table.from_pylist(rows).schema
+        for index, row in enumerate(rows):
+            pq.write_table(
+                pa.Table.from_pylist([row], schema=schema), directory / f"{index}.parquet"
+            )
+    options = {"changed_at": datetime(2026, 9, 13, tzinfo=UTC), "run_id": "memory-comparison"}
+    expected = original(after, tmp_path, keys, **options)
+    actual = _changelog(after, tmp_path, keys, **options)
+    assert actual == expected
+    assert after == untouched
+    assert {row["change_type"] for row in actual} == {"added", "removed", "updated"}
+    assert {row["reason"] for row in actual} == {
+        "suppression",
+        "link_downgraded",
+        "new_source_data",
+    }
 
 
 def test_empty_build_is_complete_and_byte_reusable(tmp_path: Path) -> None:
@@ -138,6 +192,71 @@ def test_broken_entry_reference_fails_without_complete_candidate(tmp_path: Path)
     with pytest.raises(BuildError, match="missing entry"):
         build_candidate(tmp_path, inputs(callback_marks=[mark]), metadata("cand_bad"))
     assert not (tmp_path / "candidates" / "cand_bad").exists()
+
+
+@pytest.mark.parametrize("status,asserted_id", [("probable", 1), ("confirmed", 2), (None, None)])
+def test_stale_judge_join_is_rejected_without_matching_confirmed_assertion(
+    tmp_path, status, asserted_id
+):
+    judge = {field.name: None for field in SCHEMAS["judges"]}
+    judge.update(judge_id="judge", wsdc_id=1)
+    assertion = {field.name: None for field in SCHEMAS["identity_links"]}
+    assertion.update(
+        link_id="link", subject_kind="judge", subject_id="judge", wsdc_id=asserted_id, status=status
+    )
+    with pytest.raises(BuildError, match="lacks a confirmed identity"):
+        build_candidate(
+            tmp_path,
+            inputs(judges=[judge], identity_links=[assertion] if status else []),
+            metadata("stale_judge"),
+        )
+    assert not (tmp_path / "candidates" / "stale_judge").exists()
+
+
+@pytest.mark.parametrize("role", ["leader", "follower"])
+@pytest.mark.parametrize("entry_id", [None, 2])
+def test_placement_cannot_restore_revoked_or_changed_entry_identity(tmp_path, role, entry_id):
+    entry = {field.name: None for field in SCHEMAS["entries"]}
+    entry.update(
+        entry_id="entry",
+        role=role,
+        wsdc_id=entry_id,
+        link_status="confirmed" if entry_id else "probable",
+    )
+    placement = {field.name: None for field in SCHEMAS["placements"]}
+    placement.update(placement_id="placement", round_id="round", place=1)
+    placement[f"{role}_entry_id"] = "entry"
+    placement[f"{role}_wsdc_id"] = 1
+    with pytest.raises(BuildError, match=f"unsupported {role} identity"):
+        build_candidate(
+            tmp_path, inputs(entries=[entry], placements=[placement]), metadata("stale_placement")
+        )
+    assert not (tmp_path / "candidates" / "stale_placement").exists()
+
+
+def test_confirmed_judge_and_matching_placement_dependencies_can_build(tmp_path):
+    judge = {field.name: None for field in SCHEMAS["judges"]}
+    judge.update(judge_id="judge", wsdc_id=1)
+    assertion = {field.name: None for field in SCHEMAS["identity_links"]}
+    assertion.update(
+        link_id="link", subject_kind="judge", subject_id="judge", wsdc_id=1, status="confirmed"
+    )
+    entry = {field.name: None for field in SCHEMAS["entries"]}
+    entry.update(entry_id="entry", role="leader", wsdc_id=1, link_status="confirmed")
+    placement = {field.name: None for field in SCHEMAS["placements"]}
+    placement.update(
+        placement_id="placement",
+        round_id="round",
+        place=1,
+        leader_entry_id="entry",
+        leader_wsdc_id=1,
+    )
+    result = build_candidate(
+        tmp_path,
+        inputs(judges=[judge], identity_links=[assertion], entries=[entry], placements=[placement]),
+        metadata("confirmed_dependencies"),
+    )
+    assert (result.path / "BUILT").exists()
 
 
 def test_reversed_event_dates_block_build(tmp_path: Path) -> None:
@@ -306,9 +425,12 @@ def test_suppression_scrubs_identity_and_removes_candidates(tmp_path: Path) -> N
     )
     candidate = {field.name: None for field in SCHEMAS["link_candidates"]}
     candidate.update({"subject_kind": "entry", "subject_id": "e", "wsdc_id": 42})
+    entry["retained_nested_evidence"] = {"references": ["Private Person", "unchanged"]}
+    data = inputs(entries=[entry], link_candidates=[candidate])
+    before = copy.deepcopy(data.tables)
     result = build_candidate(
         tmp_path,
-        inputs(entries=[entry], link_candidates=[candidate]),
+        data,
         metadata("cand_suppressed"),
         suppressions=[{"wsdc_id": "42", "name_norm": "private person"}],
     )
@@ -318,6 +440,7 @@ def test_suppression_scrubs_identity_and_removes_candidates(tmp_path: Path) -> N
     assert entries[0]["wsdc_id"] is None
     assert entries[0]["link_status"] == "suppressed"
     assert candidates.num_rows == 0
+    assert data.tables == before
 
 
 def test_stale_dry_run_candidate_rebuilds_against_new_baseline_history(tmp_path: Path) -> None:

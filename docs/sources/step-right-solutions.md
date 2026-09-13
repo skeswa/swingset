@@ -107,3 +107,29 @@ director is honored like any removal request.
 - Promotion marking on prelims rows.
 - Sub-values of mark `2`.
 - Finals bib ownership.
+
+## 14. Local implementation status
+
+Offline parser preparation is present in `sources/steprightsolutions/`.
+Index observations retain series, location, year, and original event
+URL. Event observations retain raw dates and contest/round links.
+Round observations retain zero-padded bibs, names, anonymous columns,
+raw marks and placements, the printed panel roster, and chief judge.
+Panel names do not need WSDC numbers and never own anonymous columns.
+
+The source emits no seed or discovered watches. Its source-specific
+observations are not admitted to the canonical contest projector yet.
+This prevents the current projector from inventing an alternate rank
+for `2` or assigning a finals bib to both partners. Callback `2` means
+an unranked alternate; unknown values are retained with a warning.
+Promotion stays unknown even when a row has a highlight class. Finals
+bib ownership stays unknown and produces a warning.
+
+Tests use explicitly synthetic HTML in
+`tests/fixtures/sources/steprightsolutions/`. The retained CDX index
+supports URL discovery only. The retained index and round 507/508
+response headers have no accompanying page bodies. These tests do not
+close the three open source questions or demonstrate real event-year
+coverage. WP14 acceptance remains open until complete archived bodies
+are retained, reviewed, and tested; canonical integration follows that
+review and the V5 admission gates.

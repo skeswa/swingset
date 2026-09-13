@@ -1,0 +1,200 @@
+{
+  "body_sha256": "0f124c6527204e027f9b0d2fc5cf141908a7d99b1a951e91267dcfc56b3fbe1c",
+  "corrected_child_count": 7,
+  "discovered_child_locators": [
+    {
+      "archive_url": null,
+      "form": null,
+      "kind": "round",
+      "method": "GET",
+      "notes": null,
+      "parser": "eepro.round",
+      "source": "eepro",
+      "source_ref": "eepro:freedomswing2019",
+      "url": "http://eepro.com/results/freedomswing2019/allamericanfinals.html",
+      "watch_id": "9e71ae3467bb03df"
+    },
+    {
+      "archive_url": null,
+      "form": null,
+      "kind": "round",
+      "method": "GET",
+      "notes": null,
+      "parser": "eepro.round",
+      "source": "eepro",
+      "source_ref": "eepro:freedomswing2019",
+      "url": "http://eepro.com/results/freedomswing2019/allamericanprelims.html",
+      "watch_id": "2fbbc0fc0a0c4ea8"
+    },
+    {
+      "archive_url": null,
+      "form": null,
+      "kind": "round",
+      "method": "GET",
+      "notes": null,
+      "parser": "eepro.round",
+      "source": "eepro",
+      "source_ref": "eepro:freedomswing2019",
+      "url": "http://eepro.com/results/freedomswing2019/jackandjillfinals.html",
+      "watch_id": "0c455e8865631d8c"
+    },
+    {
+      "archive_url": null,
+      "form": null,
+      "kind": "round",
+      "method": "GET",
+      "notes": null,
+      "parser": "eepro.round",
+      "source": "eepro",
+      "source_ref": "eepro:freedomswing2019",
+      "url": "http://eepro.com/results/freedomswing2019/jackandjillprelimssemis.html",
+      "watch_id": "b7b89828b76c6ae4"
+    },
+    {
+      "archive_url": null,
+      "form": null,
+      "kind": "round",
+      "method": "GET",
+      "notes": null,
+      "parser": "eepro.round",
+      "source": "eepro",
+      "source_ref": "eepro:freedomswing2019",
+      "url": "http://eepro.com/results/freedomswing2019/proamjj.html",
+      "watch_id": "5311a6f25a598d4c"
+    },
+    {
+      "archive_url": null,
+      "form": null,
+      "kind": "round",
+      "method": "GET",
+      "notes": null,
+      "parser": "eepro.round",
+      "source": "eepro",
+      "source_ref": "eepro:freedomswing2019",
+      "url": "http://eepro.com/results/freedomswing2019/proamstrictly.html",
+      "watch_id": "199b88fe41fe6a5f"
+    },
+    {
+      "archive_url": null,
+      "form": null,
+      "kind": "round",
+      "method": "GET",
+      "notes": null,
+      "parser": "eepro.round",
+      "source": "eepro",
+      "source_ref": "eepro:freedomswing2019",
+      "url": "http://eepro.com/results/freedomswing2019/strictlyswingfinals.html",
+      "watch_id": "be985f06a64bdafb"
+    }
+  ],
+  "extract_version": 3,
+  "network_requests": 0,
+  "observations": [
+    {
+      "kind": "file_row",
+      "payload": {
+        "kind": "file_row",
+        "modified_raw": "2019-01-20 00:06",
+        "name": "allamericanfinals.html",
+        "size_raw": "3.3K",
+        "url": "http://eepro.com/results/freedomswing2019/allamericanfinals.html"
+      },
+      "scope": {
+        "kind": "source_event",
+        "ref": "eepro:freedomswing2019"
+      }
+    },
+    {
+      "kind": "file_row",
+      "payload": {
+        "kind": "file_row",
+        "modified_raw": "2019-01-20 00:06",
+        "name": "allamericanprelims.html",
+        "size_raw": "7.6K",
+        "url": "http://eepro.com/results/freedomswing2019/allamericanprelims.html"
+      },
+      "scope": {
+        "kind": "source_event",
+        "ref": "eepro:freedomswing2019"
+      }
+    },
+    {
+      "kind": "file_row",
+      "payload": {
+        "kind": "file_row",
+        "modified_raw": "2019-01-20 00:06",
+        "name": "jackandjillfinals.html",
+        "size_raw": "18K",
+        "url": "http://eepro.com/results/freedomswing2019/jackandjillfinals.html"
+      },
+      "scope": {
+        "kind": "source_event",
+        "ref": "eepro:freedomswing2019"
+      }
+    },
+    {
+      "kind": "file_row",
+      "payload": {
+        "kind": "file_row",
+        "modified_raw": "2019-01-20 00:06",
+        "name": "jackandjillprelimssemis.html",
+        "size_raw": "80K",
+        "url": "http://eepro.com/results/freedomswing2019/jackandjillprelimssemis.html"
+      },
+      "scope": {
+        "kind": "source_event",
+        "ref": "eepro:freedomswing2019"
+      }
+    },
+    {
+      "kind": "file_row",
+      "payload": {
+        "kind": "file_row",
+        "modified_raw": "2019-01-20 00:06",
+        "name": "proamjj.html",
+        "size_raw": "15K",
+        "url": "http://eepro.com/results/freedomswing2019/proamjj.html"
+      },
+      "scope": {
+        "kind": "source_event",
+        "ref": "eepro:freedomswing2019"
+      }
+    },
+    {
+      "kind": "file_row",
+      "payload": {
+        "kind": "file_row",
+        "modified_raw": "2019-01-20 13:12",
+        "name": "proamstrictly.html",
+        "size_raw": "6.4K",
+        "url": "http://eepro.com/results/freedomswing2019/proamstrictly.html"
+      },
+      "scope": {
+        "kind": "source_event",
+        "ref": "eepro:freedomswing2019"
+      }
+    },
+    {
+      "kind": "file_row",
+      "payload": {
+        "kind": "file_row",
+        "modified_raw": "2019-01-20 00:06",
+        "name": "strictlyswingfinals.html",
+        "size_raw": "12K",
+        "url": "http://eepro.com/results/freedomswing2019/strictlyswingfinals.html"
+      },
+      "scope": {
+        "kind": "source_event",
+        "ref": "eepro:freedomswing2019"
+      }
+    }
+  ],
+  "original_child_count": 5,
+  "original_fetch_receipt": "receipt.json",
+  "original_receipt_sha256": "b63fe66fc12248a0b80914dc196dd4fc383a117c328441a78cc5aa76ba087f66",
+  "parser_version": 1,
+  "persisted_child_watches": 0,
+  "reason": "Two full hrefs were omitted because Apache shortened their visible labels.",
+  "score_sheets_fetched": 0,
+  "supersedes": "Only the original receipt's extracted observations and child locators."
+}

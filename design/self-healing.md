@@ -1,7 +1,8 @@
 # Self-healing and publication accuracy
 
-Status: proposal, 2026-09-12. Not implemented and not an accepted replacement
-for the current contracts. Based on the
+Status: accepted for implementation, 2026-09-12. Not yet implemented; each
+contract changes only when the rollout revision that owns it lands, in the
+order set by [implementation plan v2](implementation-plan-v2.md). Based on the
 [systemic audit](../research/self-healing-2026-09-12.md) and the
 [curated-dataset research](../research/curated-datasets-state-of-the-art-2026-09-12.md).
 The work plan is the [rollout](self-healing-rollout.md).

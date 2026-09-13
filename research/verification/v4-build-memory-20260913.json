@@ -1,0 +1,102 @@
+{
+  "runtime": "/nix/store/acbgadnny89l7kp459im2lx6bp2ll39q-source",
+  "unit": "swingset-v4-build-retry.service",
+  "stop_threshold_rss_kib": 6291456,
+  "stopped": false,
+  "scope": "External samples only; RSS peak is sampled, MemoryPeak also includes file cache.",
+  "samples": [
+    {
+      "ActiveState": "active",
+      "SubState": "running",
+      "MainPID": "67573",
+      "ExecMainStatus": "0",
+      "MemoryCurrent": "3087204352",
+      "MemoryPeak": "3087204352",
+      "at": "2026-09-13T08:38:46.698540+00:00",
+      "process": "67573 216032      00:19 Rsl  python"
+    },
+    {
+      "ActiveState": "active",
+      "SubState": "running",
+      "MainPID": "67573",
+      "ExecMainStatus": "0",
+      "ControlGroup": "/system.slice/swingset-v4-build-retry.service",
+      "MemoryCurrent": "5785989120",
+      "MemoryPeak": "5785989120",
+      "at": "2026-09-13T08:39:38.636450+00:00",
+      "process": "67573 3550860     01:11 Rsl  python",
+      "accounting": {
+        "anon": 3565686784,
+        "file": 2219741184,
+        "shmem": 0,
+        "file_mapped": 61063168
+      },
+      "finished_at": null,
+      "candidate": null
+    },
+    {
+      "ActiveState": "active",
+      "SubState": "running",
+      "MainPID": "67573",
+      "ExecMainStatus": "0",
+      "ControlGroup": "/system.slice/swingset-v4-build-retry.service",
+      "MemoryCurrent": "5892722688",
+      "MemoryPeak": "6765928448",
+      "at": "2026-09-13T08:40:11.064583+00:00",
+      "process": "67573 5529876     01:44 Rsl  python",
+      "accounting": {
+        "anon": 5614612480,
+        "file": 198205440,
+        "shmem": 0,
+        "file_mapped": 44789760
+      },
+      "finished_at": null,
+      "candidate": null
+    },
+    {
+      "ActiveState": "active",
+      "SubState": "running",
+      "MainPID": "67573",
+      "ExecMainStatus": "0",
+      "ControlGroup": "/system.slice/swingset-v4-build-retry.service",
+      "MemoryCurrent": "6551093248",
+      "MemoryPeak": "6765928448",
+      "at": "2026-09-13T08:40:45.112032+00:00",
+      "process": "67573 6162132     02:18 Rsl  python",
+      "accounting": {
+        "anon": 6292451328,
+        "file": 128585728,
+        "shmem": 0,
+        "file_mapped": 15613952
+      },
+      "finished_at": null,
+      "candidate": null
+    },
+    {
+      "at": "2026-09-13T08:41:08.383518+00:00",
+      "pid": "67573",
+      "rss_kib": 6231744
+    },
+    {
+      "at": "2026-09-13T08:41:13.442598+00:00",
+      "pid": "67573",
+      "rss_kib": 6234816
+    },
+    {
+      "at": "2026-09-13T08:41:18.491656+00:00",
+      "pid": "67573",
+      "rss_kib": 6136872
+    },
+    {
+      "at": "2026-09-13T08:41:23.529560+00:00",
+      "pid": "67573",
+      "rss_kib": 6137768
+    },
+    {
+      "at": "2026-09-13T08:41:27.576638+00:00",
+      "finished_at": "2026-09-13T08:41:27.160929+00:00",
+      "pid": "0",
+      "action": "monitor_ended"
+    }
+  ]
+}

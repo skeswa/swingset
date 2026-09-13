@@ -1,0 +1,31 @@
+{
+  "format": "h16-production-release-driver-review-v1",
+  "reviewed_at": "2026-09-13T15:15:00.612419+00:00",
+  "reviewer": "Codex coordinator /root, independent of author /root/registry_verification",
+  "source": "/nix/store/kshnpz73b37h89zkmj03f4b3srd5ldaf-source",
+  "source_receipt_sha256": "1b42aef638b49b3579d1ab02a67c4135db0519b1dd57d55f4f0d3aee3a21f4cb",
+  "input_bundle_hash": "e5e8df491d9e31ff008ed873d1254fe1438f0e41ddae1ec9a96cc7bb912de42a",
+  "files": {
+    "h16-production-release-driver-20260913.py": "0b8b4d9c2883ba11e90bfa7f6316ae17bd3c24bd514b7caf5929fab7f355ba5d",
+    "h16-production-release-driver-tests-20260913.py": "0ddcb63acff25777c7db84111ea98daffe161103635dbbd34cb34e68ffbb6251",
+    "h16-production-release-operations-20260913.md": "621dd133c099077cffef0580cd8401a4945190d7109a13eb1a2405131aaa91a1"
+  },
+  "independent_tests": {
+    "passed": 34,
+    "log": "/tmp/swingset-h16-production-release-root-review.log",
+    "runtime": "frozen H16 mirror schema14; explicit PYTHONPATH"
+  },
+  "reviewed_guards": [
+    "exact initialization gate/marker/current receipt and driver/source/bundle",
+    "actual unfinished work discovery before build",
+    "all substantive identity and table audit checks",
+    "same candidate and manifest across production build/audit/publication",
+    "changed identity stops before remote read",
+    "lost-response reconciliation without second commit",
+    "operator pause preserved without commit",
+    "unchanged unpublished candidate cannot count as success"
+  ],
+  "production_executed": false,
+  "network_requests": 0,
+  "future_actual_gate_assembled": false
+}

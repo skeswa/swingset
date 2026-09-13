@@ -1,0 +1,87 @@
+{
+  "source_event_map": [
+    {
+      "source": "scoringdance",
+      "source_ref": "scoringdance:272",
+      "event_id": "2026-01-monterey-swinfest",
+      "match_method": "name_date",
+      "match_confidence": 0.5
+    }
+  ],
+  "operator_pauses": [],
+  "source_events": [
+    {
+      "source": "scoringdance",
+      "source_ref": "scoringdance:272",
+      "name_raw": "Monterey Swinfest  2026",
+      "start_date": "2026-01-15",
+      "end_date": "2026-01-15",
+      "location_raw": null,
+      "url": "https://scoring.dance/enUS/events/272/results/",
+      "snapshot_id": "snap_20260910T060237Z_ec3a9683fbdf",
+      "parser_version": "3",
+      "first_seen_at": "2026-09-10T03:32:07.720495Z",
+      "last_seen_at": "2026-09-10T06:13:05.981599Z",
+      "run_id": "run_20260910T060106Z"
+    }
+  ],
+  "round_backlog": [
+    {
+      "state": "archived",
+      "total": 1588,
+      "never_checked": 0
+    },
+    {
+      "state": "cooling",
+      "total": 12,
+      "never_checked": 0
+    },
+    {
+      "state": "dormant",
+      "total": 33,
+      "never_checked": 0
+    },
+    {
+      "state": "live",
+      "total": 3757,
+      "never_checked": 3757
+    }
+  ],
+  "monterey_failures": [
+    {
+      "n": 0
+    }
+  ],
+  "host_budget": [
+    {
+      "host": "scoring.dance",
+      "day": "2026-09-09",
+      "requests": 14,
+      "bytes": 938234
+    },
+    {
+      "host": "scoring.dance",
+      "day": "2026-09-10",
+      "requests": 800,
+      "bytes": 55229268
+    },
+    {
+      "host": "scoring.dance",
+      "day": "2026-09-11",
+      "requests": 61,
+      "bytes": 1838026
+    },
+    {
+      "host": "scoring.dance",
+      "day": "2026-09-12",
+      "requests": 800,
+      "bytes": 46296806
+    },
+    {
+      "host": "scoring.dance",
+      "day": "2026-09-13",
+      "requests": 725,
+      "bytes": 54530203
+    }
+  ]
+}

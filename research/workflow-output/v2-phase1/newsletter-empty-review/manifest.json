@@ -1,0 +1,50 @@
+[
+  {
+    "volume": 14,
+    "body_sha256": "085674f10a5da1ab09fe968b42eee10a1301a39cc04a7aebce4c173a973d8fc7",
+    "snapshot_id": "snap_20260913T053214Z_085674f10a5d",
+    "path": "/Users/skeswa/repos/skeswa/swingset/research/workflow-output/v2-phase1/newsletter-empty-review/Vol14"
+  },
+  {
+    "volume": 15,
+    "body_sha256": "aafbd00bb65715cc286d65033bb1f8fbb52b1c1f6eac9fea01cc149683b31566",
+    "snapshot_id": "snap_20260913T053223Z_aafbd00bb657",
+    "path": "/Users/skeswa/repos/skeswa/swingset/research/workflow-output/v2-phase1/newsletter-empty-review/Vol15"
+  },
+  {
+    "volume": 16,
+    "body_sha256": "b00e313eecfaf55361c87040d3e056d1902664f38e6dded7e37373a91dc9923d",
+    "snapshot_id": "snap_20260913T053233Z_b00e313eecfa",
+    "path": "/Users/skeswa/repos/skeswa/swingset/research/workflow-output/v2-phase1/newsletter-empty-review/Vol16"
+  },
+  {
+    "volume": 17,
+    "body_sha256": "e10a45b1cbafd884f1d9be5a8fba406170f1cd6e57e0f908d9a2655396aa6f90",
+    "snapshot_id": "snap_20260913T053313Z_e10a45b1cbaf",
+    "path": "/Users/skeswa/repos/skeswa/swingset/research/workflow-output/v2-phase1/newsletter-empty-review/Vol17"
+  },
+  {
+    "volume": 18,
+    "body_sha256": "59a6bf606025adc6cb8f809124cb3414ebb47f0b84c5f8e64fe66c59221ac759",
+    "snapshot_id": "snap_20260913T053323Z_59a6bf606025",
+    "path": "/Users/skeswa/repos/skeswa/swingset/research/workflow-output/v2-phase1/newsletter-empty-review/Vol18"
+  },
+  {
+    "volume": 19,
+    "body_sha256": "793ee2d9e0810bc4cc1983efaeadb5d3c7dd820f8eed08664519af08746c5936",
+    "snapshot_id": "snap_20260913T053334Z_793ee2d9e081",
+    "path": "/Users/skeswa/repos/skeswa/swingset/research/workflow-output/v2-phase1/newsletter-empty-review/Vol19"
+  },
+  {
+    "volume": 20,
+    "body_sha256": "12545410f858740ff9ac6a85852eb8b32bf64767bdc59aaf860c56a3e617dcfd",
+    "snapshot_id": "snap_20260913T053343Z_12545410f858",
+    "path": "/Users/skeswa/repos/skeswa/swingset/research/workflow-output/v2-phase1/newsletter-empty-review/Vol20"
+  },
+  {
+    "volume": 21,
+    "body_sha256": "b7a224d7799f3eb1ca13ec9307ac1fc2149cccdabe680585d6aa1abf268fc82b",
+    "snapshot_id": "snap_20260913T053354Z_b7a224d7799f",
+    "path": "/Users/skeswa/repos/skeswa/swingset/research/workflow-output/v2-phase1/newsletter-empty-review/Vol21"
+  }
+]

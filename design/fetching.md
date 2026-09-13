@@ -50,6 +50,23 @@ A run also has a wall-clock budget ([operations](operations.md)). When time runs
 remaining due watches wait for the next run. Nothing is lost because
 "due" is computed from state, not from a queue.
 
+The fair scheduler allocates this existing capacity; it does not increase
+it. `scheduler_requests` attributes each issued HTTP request to its host,
+UTC debit day, work class, and cycle in the same transaction that increments
+`host_budget`. Robots checks, redirect hops, retries, and requests that
+fail after issuance all count. A skipped, paused, or budget-denied visit
+records no service. Response body bytes are added on release to the original
+request day. These are accounted body bytes, not wire-byte measurements.
+
+Pending-work backpressure is checked again at request admission. Its
+two-request repair reserve includes every HTTP operation, so a robots
+check and a redirect may use the whole reserve before the desired page
+is reached. The next cycle can continue under the same host limits.
+Reservation cannot override a source, kind, host, or global pause, a host
+cooldown, a byte limit, or the Archive's 200-request daily budget. See
+[fair scheduling](scheduling.md#work-order) for initial allocations and
+the measured load behind them.
+
 ## Response classification
 
 `classify(response_or_exception, page_kind, watch) -> Classification`
@@ -132,3 +149,16 @@ full fetch of a few KB. The schedule (5.2) keeps those rare.
 - WARC was considered. A plain content-addressed store plus SQLite is
   simpler and deduplicates better. A WARC export command can be added
   later without changing anything else.
+
+## Registry check evidence (H1)
+
+Every registry response records a verification attempt, including identical
+200s, the exact verified 404 miss, 304s, invalid content, and transport
+failures. Only a successful content check joined to an accepted interpretation
+renews usable freshness. Repeated responses reuse the original observation
+snapshot; they do not rewrite a claim's provenance or force a duplicate parse.
+Checks received while parsing is pending keep their own check times and become
+usable together when that interpretation succeeds. A 304 with a missing or
+corrupt cached body records the failure and required digest, clears validators,
+and does not count as a successful check. A missing or corrupt extract also
+prevents freshness renewal. Automatic artifact repair is outside H1.

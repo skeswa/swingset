@@ -1,0 +1,178 @@
+{
+  "measurement": {
+    "all_unfinished_counts": {
+      "seconds": 0.44857018801849335,
+      "value": {
+        "link": 2541,
+        "project": 32445
+      }
+    },
+    "assessment": {
+      "all_unmaterialized": true,
+      "desired_fingerprints_computed": 0,
+      "elapsed_seconds": 0.6089542079716921,
+      "page_size": 256,
+      "pages": 137,
+      "sample": [
+        {
+          "id": "2010-01-americas-classic",
+          "kind": "event",
+          "stage": "link",
+          "state": "unmaterialized"
+        },
+        {
+          "id": "2010-01-floorplay-new-years-swing-vacation",
+          "kind": "event",
+          "stage": "link",
+          "state": "unmaterialized"
+        },
+        {
+          "id": "2010-01-monterey-swingfest",
+          "kind": "event",
+          "stage": "link",
+          "state": "unmaterialized"
+        },
+        {
+          "id": "2010-01-new-year-s-dance-camp",
+          "kind": "event",
+          "stage": "link",
+          "state": "unmaterialized"
+        },
+        {
+          "id": "2010-01-new-year-s-dancin-eve",
+          "kind": "event",
+          "stage": "link",
+          "state": "unmaterialized"
+        },
+        {
+          "id": "2010-01-spotlight-dance-challenge",
+          "kind": "event",
+          "stage": "link",
+          "state": "unmaterialized"
+        },
+        {
+          "id": "2010-01-worlds-ucwdc",
+          "kind": "event",
+          "stage": "link",
+          "state": "unmaterialized"
+        },
+        {
+          "id": "2010-02-capital-swing-dance-convention",
+          "kind": "event",
+          "stage": "link",
+          "state": "unmaterialized"
+        },
+        {
+          "id": "2010-02-da-dance-camp",
+          "kind": "event",
+          "stage": "link",
+          "state": "unmaterialized"
+        },
+        {
+          "id": "2010-02-dance-camp-chicago",
+          "kind": "event",
+          "stage": "link",
+          "state": "unmaterialized"
+        },
+        {
+          "id": "2010-02-sweetheart-swing-classic",
+          "kind": "event",
+          "stage": "link",
+          "state": "unmaterialized"
+        },
+        {
+          "id": "2010-03-boston-tea-party",
+          "kind": "event",
+          "stage": "link",
+          "state": "unmaterialized"
+        },
+        {
+          "id": "2010-03-chicago-classic",
+          "kind": "event",
+          "stage": "link",
+          "state": "unmaterialized"
+        },
+        {
+          "id": "2010-03-high-desert-dance-classic",
+          "kind": "event",
+          "stage": "link",
+          "state": "unmaterialized"
+        },
+        {
+          "id": "2010-03-mid-atlantic-dance-jam",
+          "kind": "event",
+          "stage": "link",
+          "state": "unmaterialized"
+        },
+        {
+          "id": "2010-03-novice-invitational",
+          "kind": "event",
+          "stage": "link",
+          "state": "unmaterialized"
+        },
+        {
+          "id": "2010-03-reno-dance-sensation",
+          "kind": "event",
+          "stage": "link",
+          "state": "unmaterialized"
+        },
+        {
+          "id": "2010-03-russian-open-wcs-championship",
+          "kind": "event",
+          "stage": "link",
+          "state": "unmaterialized"
+        },
+        {
+          "id": "2010-03-tulsa-spring-swing",
+          "kind": "event",
+          "stage": "link",
+          "state": "unmaterialized"
+        },
+        {
+          "id": "2010-04-calgary-dance-stampede",
+          "kind": "event",
+          "stage": "link",
+          "state": "unmaterialized"
+        }
+      ],
+      "scope_counts": {
+        "link/event": 2541,
+        "project/calendar": 2,
+        "project/dancer": 29048,
+        "project/event": 2541,
+        "project/history": 1,
+        "project/inventory": 1,
+        "project/map": 1,
+        "project/source_event": 467,
+        "project/source_index": 384
+      },
+      "scopes": 34986,
+      "service_executed": false
+    },
+    "at": "2026-09-13T11:43:26.677980+00:00",
+    "checkpoint": "/var/lib/swingset/checkpoints/h14-before-h15-20260913",
+    "checkpoint_manifest_sha256": "f1ade4f3db6a29cf329c01de43db4540e0bd3d6768030fc7ff5fe56d9a275268",
+    "copy_seconds": 1.773600426968187,
+    "first_offline": {
+      "seconds": 0.3615064040059224,
+      "value": "WorkUnit(stage='project', unit_kind='calendar', unit_id='wsdc')"
+    },
+    "first_project": {
+      "seconds": 0.00020147004397585988,
+      "value": "WorkUnit(stage='project', unit_kind='calendar', unit_id='wsdc')"
+    },
+    "first_selection": {
+      "dependency_count": 3118,
+      "fingerprint": "c22617e1d3ef37e6396ec80940c972358da7cf4f78adc11ccc1571145fb6482b",
+      "seconds": 0.022443513968028128,
+      "unit": "WorkUnit(stage='project', unit_kind='calendar', unit_id='wsdc')"
+    },
+    "generated_outputs": 0,
+    "purpose": "offline retained-state scale check; no output materialization or source requests",
+    "schema": 14,
+    "scratch": "/var/tmp/swingset-h15-scale-final"
+  },
+  "script_sha256": "b6e3909afdbf37ac034a08d2ae5b9267726f22cc8885d355866c85ed2c05ed60",
+  "source": "/nix/store/694311m4fcif32w774bs8vpkc4iv6d9a-source",
+  "source_receipt_sha256": "be7001a7e3bd3bc496f40513662cb5b561217b55cf37a3e11255fa84deea1c8c"
+}

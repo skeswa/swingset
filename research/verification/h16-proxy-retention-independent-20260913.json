@@ -1,0 +1,253 @@
+{
+  "all_passed": true,
+  "checkpoint": "/var/lib/swingset/checkpoints/h15-before-h16-20260913",
+  "elapsed_seconds": 68.1751395839965,
+  "foreign_key_check": [],
+  "map_sha256": "3fb7b5a69c9d1a1dc3fae4ef4be67fe91443e9a94653447da9b57f4e9345b7c3",
+  "original_unchanged": true,
+  "proxies": [
+    {
+      "changed": false,
+      "dates": [
+        null,
+        null
+      ],
+      "default_recipe_current": false,
+      "elapsed_seconds": 3.590982777008321,
+      "explicit_recipe_current": true,
+      "map_generation_unchanged": true,
+      "map_rows_unchanged": true,
+      "mapped": false,
+      "probe_rolled_back": true,
+      "unit_id": "scoringdance:109"
+    },
+    {
+      "changed": false,
+      "dates": [
+        null,
+        null
+      ],
+      "default_recipe_current": false,
+      "elapsed_seconds": 3.7210240039858036,
+      "explicit_recipe_current": true,
+      "map_generation_unchanged": true,
+      "map_rows_unchanged": true,
+      "mapped": false,
+      "probe_rolled_back": true,
+      "unit_id": "scoringdance:11"
+    },
+    {
+      "changed": false,
+      "dates": [
+        null,
+        null
+      ],
+      "default_recipe_current": false,
+      "elapsed_seconds": 3.8227234990336,
+      "explicit_recipe_current": true,
+      "map_generation_unchanged": true,
+      "map_rows_unchanged": true,
+      "mapped": false,
+      "probe_rolled_back": true,
+      "unit_id": "scoringdance:111"
+    },
+    {
+      "changed": false,
+      "dates": [
+        null,
+        null
+      ],
+      "default_recipe_current": false,
+      "elapsed_seconds": 3.513533204968553,
+      "explicit_recipe_current": true,
+      "map_generation_unchanged": true,
+      "map_rows_unchanged": true,
+      "mapped": false,
+      "probe_rolled_back": true,
+      "unit_id": "scoringdance:12"
+    },
+    {
+      "changed": false,
+      "dates": [
+        null,
+        null
+      ],
+      "default_recipe_current": false,
+      "elapsed_seconds": 3.5050030249985866,
+      "explicit_recipe_current": true,
+      "map_generation_unchanged": true,
+      "map_rows_unchanged": true,
+      "mapped": false,
+      "probe_rolled_back": true,
+      "unit_id": "scoringdance:120"
+    },
+    {
+      "changed": false,
+      "dates": [
+        null,
+        null
+      ],
+      "default_recipe_current": false,
+      "elapsed_seconds": 3.5195360360085033,
+      "explicit_recipe_current": true,
+      "map_generation_unchanged": true,
+      "map_rows_unchanged": true,
+      "mapped": false,
+      "probe_rolled_back": true,
+      "unit_id": "scoringdance:123"
+    },
+    {
+      "changed": false,
+      "dates": [
+        null,
+        null
+      ],
+      "default_recipe_current": false,
+      "elapsed_seconds": 3.5380448100040667,
+      "explicit_recipe_current": true,
+      "map_generation_unchanged": true,
+      "map_rows_unchanged": true,
+      "mapped": false,
+      "probe_rolled_back": true,
+      "unit_id": "scoringdance:13"
+    },
+    {
+      "changed": false,
+      "dates": [
+        null,
+        null
+      ],
+      "default_recipe_current": false,
+      "elapsed_seconds": 3.514384876994882,
+      "explicit_recipe_current": true,
+      "map_generation_unchanged": true,
+      "map_rows_unchanged": true,
+      "mapped": false,
+      "probe_rolled_back": true,
+      "unit_id": "scoringdance:20"
+    },
+    {
+      "changed": false,
+      "dates": [
+        null,
+        null
+      ],
+      "default_recipe_current": false,
+      "elapsed_seconds": 3.974050319986418,
+      "explicit_recipe_current": true,
+      "map_generation_unchanged": true,
+      "map_rows_unchanged": true,
+      "mapped": false,
+      "probe_rolled_back": true,
+      "unit_id": "scoringdance:21"
+    },
+    {
+      "changed": false,
+      "dates": [
+        null,
+        null
+      ],
+      "default_recipe_current": false,
+      "elapsed_seconds": 4.228510048997123,
+      "explicit_recipe_current": true,
+      "map_generation_unchanged": true,
+      "map_rows_unchanged": true,
+      "mapped": false,
+      "probe_rolled_back": true,
+      "unit_id": "scoringdance:210"
+    },
+    {
+      "changed": false,
+      "dates": [
+        null,
+        null
+      ],
+      "default_recipe_current": false,
+      "elapsed_seconds": 3.9820238450192846,
+      "explicit_recipe_current": true,
+      "map_generation_unchanged": true,
+      "map_rows_unchanged": true,
+      "mapped": false,
+      "probe_rolled_back": true,
+      "unit_id": "scoringdance:212"
+    },
+    {
+      "changed": false,
+      "dates": [
+        null,
+        null
+      ],
+      "default_recipe_current": false,
+      "elapsed_seconds": 3.8623801909852773,
+      "explicit_recipe_current": true,
+      "map_generation_unchanged": true,
+      "map_rows_unchanged": true,
+      "mapped": false,
+      "probe_rolled_back": true,
+      "unit_id": "scoringdance:217"
+    },
+    {
+      "changed": false,
+      "dates": [
+        null,
+        null
+      ],
+      "default_recipe_current": false,
+      "elapsed_seconds": 3.496664105972741,
+      "explicit_recipe_current": true,
+      "map_generation_unchanged": true,
+      "map_rows_unchanged": true,
+      "mapped": false,
+      "probe_rolled_back": true,
+      "unit_id": "scoringdance:226"
+    },
+    {
+      "changed": false,
+      "dates": [
+        null,
+        null
+      ],
+      "default_recipe_current": false,
+      "elapsed_seconds": 3.498019722988829,
+      "explicit_recipe_current": true,
+      "map_generation_unchanged": true,
+      "map_rows_unchanged": true,
+      "mapped": false,
+      "probe_rolled_back": true,
+      "unit_id": "scoringdance:24"
+    },
+    {
+      "changed": false,
+      "dates": [
+        null,
+        null
+      ],
+      "default_recipe_current": false,
+      "elapsed_seconds": 3.5349198449985124,
+      "explicit_recipe_current": true,
+      "map_generation_unchanged": true,
+      "map_rows_unchanged": true,
+      "mapped": false,
+      "probe_rolled_back": true,
+      "unit_id": "scoringdance:266"
+    },
+    {
+      "changed": false,
+      "dates": [
+        null,
+        null
+      ],
+      "default_recipe_current": false,
+      "elapsed_seconds": 3.496692107990384,
+      "explicit_recipe_current": true,
+      "map_generation_unchanged": true,
+      "map_rows_unchanged": true,
+      "mapped": false,
+      "probe_rolled_back": true,
+      "unit_id": "scoringdance:28"
+    }
+  ],
+  "runtime_overlay": "project/map.py",
+  "scope": "diagnostic disposable clone; map committed only in clone; every proxy probe rolled back",
+  "scratch": "/var/tmp/swingset-h16-proxy-retention-independent-v2"
+}

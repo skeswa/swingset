@@ -169,7 +169,7 @@ def test_city_of_angels_alias_uses_approximate_override_dates(tmp_path: Path) ->
             (encode_payload(result),),
         )
         with database.transaction():
-            project_map(database.connection, automatic, "2026-09-10", "run", 11)
+            project_map(database.connection, automatic, "2026-09-10T00:00:00Z", "run", 11)
         old_event = database.connection.execute(
             "SELECT event_id FROM source_event_map WHERE source='scoringdance' "
             "AND source_ref='scoringdance:315'"
@@ -196,7 +196,7 @@ def test_city_of_angels_alias_uses_approximate_override_dates(tmp_path: Path) ->
             (old_event,),
         )
         with database.transaction():
-            project_map(database.connection, reviewed, "2026-09-10", "run", 11)
+            project_map(database.connection, reviewed, "2026-09-10T00:00:00Z", "run", 11)
         mapping = database.connection.execute(
             "SELECT event_id,match_method FROM source_event_map WHERE source='scoringdance' "
             "AND source_ref='scoringdance:315'"

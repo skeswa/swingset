@@ -1,0 +1,393 @@
+{
+  "pages": [
+    {
+      "round_id": "4894",
+      "observations": 2,
+      "warnings": []
+    },
+    {
+      "round_id": "4896",
+      "observations": 2,
+      "warnings": []
+    },
+    {
+      "round_id": "4897",
+      "observations": 1,
+      "warnings": []
+    },
+    {
+      "round_id": "4898",
+      "observations": 2,
+      "warnings": []
+    },
+    {
+      "round_id": "4899",
+      "observations": 2,
+      "warnings": []
+    },
+    {
+      "round_id": "4900",
+      "observations": 1,
+      "warnings": []
+    },
+    {
+      "round_id": "4901",
+      "observations": 2,
+      "warnings": []
+    },
+    {
+      "round_id": "4903",
+      "observations": 1,
+      "warnings": []
+    },
+    {
+      "round_id": "4904",
+      "observations": 2,
+      "warnings": []
+    },
+    {
+      "round_id": "4906",
+      "observations": 1,
+      "warnings": []
+    },
+    {
+      "round_id": "4907",
+      "observations": 2,
+      "warnings": []
+    },
+    {
+      "round_id": "4908",
+      "observations": 1,
+      "warnings": []
+    },
+    {
+      "round_id": "4909",
+      "observations": 2,
+      "warnings": []
+    },
+    {
+      "round_id": "4910",
+      "observations": 1,
+      "warnings": []
+    },
+    {
+      "round_id": "4911",
+      "observations": 1,
+      "warnings": []
+    },
+    {
+      "round_id": "4912",
+      "observations": 1,
+      "warnings": []
+    },
+    {
+      "round_id": "4913",
+      "observations": 1,
+      "warnings": []
+    },
+    {
+      "round_id": "4914",
+      "observations": 1,
+      "warnings": []
+    },
+    {
+      "round_id": "4915",
+      "observations": 1,
+      "warnings": []
+    },
+    {
+      "round_id": "4916",
+      "observations": 1,
+      "warnings": []
+    },
+    {
+      "round_id": "4918",
+      "observations": 1,
+      "warnings": []
+    },
+    {
+      "round_id": "4919",
+      "observations": 1,
+      "warnings": []
+    },
+    {
+      "round_id": "4920",
+      "observations": 1,
+      "warnings": []
+    },
+    {
+      "round_id": "4921",
+      "observations": 1,
+      "warnings": []
+    },
+    {
+      "round_id": "4922",
+      "observations": 2,
+      "warnings": []
+    },
+    {
+      "round_id": "4923",
+      "observations": 1,
+      "warnings": []
+    },
+    {
+      "round_id": "4924",
+      "observations": 1,
+      "warnings": []
+    },
+    {
+      "round_id": "4925",
+      "observations": 1,
+      "warnings": []
+    },
+    {
+      "round_id": "4928",
+      "observations": 2,
+      "warnings": []
+    },
+    {
+      "round_id": "4929",
+      "observations": 1,
+      "warnings": []
+    },
+    {
+      "round_id": "4930",
+      "observations": 2,
+      "warnings": []
+    },
+    {
+      "round_id": "4931",
+      "observations": 1,
+      "warnings": []
+    },
+    {
+      "round_id": "4932",
+      "observations": 1,
+      "warnings": []
+    }
+  ],
+  "personal_source_rows": [
+    {
+      "round_id": "4898",
+      "url": "https://scoring.dance/enUS/events/272/results/4898.html",
+      "cells": [
+        "254",
+        "Sandile Keswa",
+        "",
+        "Yes",
+        "Yes",
+        "Alt3",
+        "Yes",
+        "",
+        "34.2",
+        "",
+        ""
+      ],
+      "state": "CB",
+      "html": "<tr class=\"callback  \" data-state=\"CB\" data-rownum=\"26\"><td class=\"text-center d-none d-md-table-cell\">254</td><td><a class=\"\" href=\"/enUS/wsdc/registry/26781.html\" data-action=\"modalwsdcprofile\" data-wsdc=\"26781\" style=\"color: inherit;\">Sandile Keswa</a></td><td class=\"\"></td><td class=\"text-center\" title=\"Hugo Miguez\" data-tooltipenabled=\"true\"><span style=\"color: #080;\">Yes</span></td><td class=\"text-center\" title=\"Mackenzie Keister\" data-tooltipenabled=\"true\"><span style=\"color: #080;\">Yes</span></td><td class=\"text-center\" title=\"Matthew Auclair\" data-tooltipenabled=\"true\">Alt3</td><td class=\"text-center\" title=\"Rome Slater\" data-tooltipenabled=\"true\"><span style=\"color: #080;\">Yes</span></td><td class=\"text-center\" title=\"Estelle Bonnaire (Chiefjudge)\" data-tooltipenabled=\"true\"></td><td class=\"text-right pr-0\"><b>34.2</b></td><td class=\"pl-0\"></td><td class=\"text-center\"></td></tr>"
+    },
+    {
+      "round_id": "4899",
+      "url": "https://scoring.dance/enUS/events/272/results/4899.html",
+      "cells": [
+        "254",
+        "Sandile Keswa",
+        "",
+        "Yes",
+        "No",
+        "No",
+        "Yes",
+        "",
+        "20",
+        "",
+        ""
+      ],
+      "state": "CB",
+      "html": "<tr class=\"callback  \" data-state=\"CB\" data-rownum=\"14\"><td class=\"text-center d-none d-md-table-cell\">254</td><td><a class=\"\" href=\"/enUS/wsdc/registry/26781.html\" data-action=\"modalwsdcprofile\" data-wsdc=\"26781\" style=\"color: inherit;\">Sandile Keswa</a></td><td class=\"\"></td><td class=\"text-center\" title=\"Austin Kois\" data-tooltipenabled=\"true\"><span style=\"color: #080;\">Yes</span></td><td class=\"text-center\" title=\"Ben McHenry\" data-tooltipenabled=\"true\"><span style=\"color: #800;\">No</span></td><td class=\"text-center\" title=\"Cameo McHenry\" data-tooltipenabled=\"true\"><span style=\"color: #800;\">No</span></td><td class=\"text-center\" title=\"Tony Schubert\" data-tooltipenabled=\"true\"><span style=\"color: #080;\">Yes</span></td><td class=\"text-center\" title=\"Estelle Bonnaire (Chiefjudge)\" data-tooltipenabled=\"true\"></td><td class=\"text-right pr-0\"><b>20</b></td><td class=\"pl-0\"></td><td class=\"text-center\"></td></tr>"
+    },
+    {
+      "round_id": "4900",
+      "url": "https://scoring.dance/enUS/events/272/results/4900.html",
+      "cells": [
+        "254",
+        "Sandile Keswa",
+        "Kyra Peters",
+        "7",
+        "10",
+        "14",
+        "3",
+        "14",
+        "",
+        "11th",
+        ""
+      ],
+      "state": null,
+      "html": "<tr class=\"  \" data-state=\"\" data-rownum=\"11\"><td class=\"text-center d-none d-md-table-cell\">254</td><td><a class=\"\" href=\"/enUS/wsdc/registry/26781.html\" data-action=\"modalwsdcprofile\" data-wsdc=\"26781\" style=\"color: inherit;\">Sandile Keswa</a></td><td class=\"\"><a class=\"\" href=\"/enUS/wsdc/registry/23974.html\" data-action=\"modalwsdcprofile\" data-wsdc=\"23974\" style=\"color: inherit;\">Kyra Peters</a></td><td class=\"text-center\" title=\"Alexis Garrish\" data-tooltipenabled=\"true\">7</td><td class=\"text-center\" title=\"Bryn Anderson\" data-tooltipenabled=\"true\">10</td><td class=\"text-center\" title=\"Hugo Miguez\" data-tooltipenabled=\"true\">14</td><td class=\"text-center\" title=\"KP Rutland\" data-tooltipenabled=\"true\">3</td><td class=\"text-center\" title=\"Matthew Auclair\" data-tooltipenabled=\"true\">14</td><td class=\"text-center\" title=\"Estelle Bonnaire (Chiefjudge)\" data-tooltipenabled=\"true\"></td><td class=\"text-right\"><b>11th</b></td><td class=\"text-center\"></td></tr>"
+    },
+    {
+      "round_id": "4914",
+      "url": "https://scoring.dance/enUS/events/272/results/4914.html",
+      "cells": [
+        "254",
+        "Sandile Keswa",
+        "Lynne yun",
+        "No",
+        "No",
+        "No",
+        "No",
+        "No",
+        "",
+        "0",
+        "",
+        ""
+      ],
+      "state": null,
+      "html": "<tr class=\"  \" data-state=\"\" data-rownum=\"23\"><td class=\"text-center d-none d-md-table-cell\">254</td><td><a class=\"\" href=\"/enUS/wsdc/registry/26781.html\" data-action=\"modalwsdcprofile\" data-wsdc=\"26781\" style=\"color: inherit;\">Sandile Keswa</a></td><td class=\"\">Lynne yun</td><td class=\"text-center\" title=\"Austin Kois\" data-tooltipenabled=\"true\"><span style=\"color: #800;\">No</span></td><td class=\"text-center\" title=\"Bryn Anderson\" data-tooltipenabled=\"true\"><span style=\"color: #800;\">No</span></td><td class=\"text-center\" title=\"Cameo McHenry\" data-tooltipenabled=\"true\"><span style=\"color: #800;\">No</span></td><td class=\"text-center\" title=\"Christopher Dumond\" data-tooltipenabled=\"true\"><span style=\"color: #800;\">No</span></td><td class=\"text-center\" title=\"Emily Huang\" data-tooltipenabled=\"true\"><span style=\"color: #800;\">No</span></td><td class=\"text-center\" title=\"Estelle Bonnaire (Chiefjudge)\" data-tooltipenabled=\"true\"></td><td class=\"text-right pr-0\"><b>0</b></td><td class=\"pl-0\"></td><td class=\"text-center\"></td></tr>"
+    }
+  ],
+  "projected_counts": {
+    "Contest": 16,
+    "Round": 33,
+    "Entry": 990,
+    "Judge": 35,
+    "CallbackMark": 4126,
+    "Callback": 953,
+    "Placement": 163,
+    "FinalMark": 869
+  },
+  "personal_projected_entries": [
+    {
+      "source": "scoringdance",
+      "snapshot_id": "4898",
+      "parser_version": "4",
+      "first_seen_at": "2026-09-13T00:00:00Z",
+      "last_seen_at": "2026-09-13T00:00:00Z",
+      "run_id": "run_monterey",
+      "entry_id": "2026-01-monterey-swing-fest/intermediate-jj/L-254",
+      "contest_id": "2026-01-monterey-swing-fest/intermediate-jj",
+      "event_id": "2026-01-monterey-swing-fest",
+      "role": "leader",
+      "bib": "254",
+      "name_raw": "Sandile Keswa",
+      "name_norm": "sandile keswa",
+      "partner_name_raw": "Kyra Peters",
+      "city_raw": null,
+      "country_raw": null,
+      "wsdc_id": null,
+      "link_status": "unmatched",
+      "link_confidence": 0.0,
+      "partner_entry_id": "2026-01-monterey-swing-fest/intermediate-jj/F-145",
+      "rounds_danced": [
+        "prelim",
+        "semifinal",
+        "final"
+      ],
+      "best_round": "final"
+    },
+    {
+      "source": "scoringdance",
+      "snapshot_id": "4914",
+      "parser_version": "4",
+      "first_seen_at": "2026-09-13T00:00:00Z",
+      "last_seen_at": "2026-09-13T00:00:00Z",
+      "run_id": "run_monterey",
+      "entry_id": "2026-01-monterey-swing-fest/intermediate-strictly/L-254",
+      "contest_id": "2026-01-monterey-swing-fest/intermediate-strictly",
+      "event_id": "2026-01-monterey-swing-fest",
+      "role": "leader",
+      "bib": "254",
+      "name_raw": "Sandile Keswa",
+      "name_norm": "sandile keswa",
+      "partner_name_raw": "Lynne yun",
+      "city_raw": null,
+      "country_raw": null,
+      "wsdc_id": null,
+      "link_status": "unmatched",
+      "link_confidence": 0.0,
+      "partner_entry_id": "2026-01-monterey-swing-fest/intermediate-strictly/F-254",
+      "rounds_danced": [
+        "prelim"
+      ],
+      "best_round": "prelim"
+    }
+  ],
+  "personal_projected_placements": [
+    {
+      "source": "scoringdance",
+      "snapshot_id": "4900",
+      "parser_version": "4",
+      "first_seen_at": "2026-09-13T00:00:00Z",
+      "last_seen_at": "2026-09-13T00:00:00Z",
+      "run_id": "run_monterey",
+      "placement_id": "2026-01-monterey-swing-fest/intermediate-jj/final/place-11",
+      "round_id": "2026-01-monterey-swing-fest/intermediate-jj/final",
+      "contest_id": "2026-01-monterey-swing-fest/intermediate-jj",
+      "event_id": "2026-01-monterey-swing-fest",
+      "place": 11,
+      "leader_entry_id": "2026-01-monterey-swing-fest/intermediate-jj/L-254",
+      "follower_entry_id": "2026-01-monterey-swing-fest/intermediate-jj/F-145",
+      "couple_entry_id": null,
+      "leader_wsdc_id": null,
+      "follower_wsdc_id": null,
+      "marks_sorted": "10-14-14-3-7",
+      "tally": [],
+      "registry_points_leader": null,
+      "registry_points_follower": null,
+      "registry_confirmed": false,
+      "points_matches_expected": null
+    }
+  ],
+  "personal_projected_callbacks": [
+    {
+      "source": "scoringdance",
+      "snapshot_id": "4898",
+      "parser_version": "4",
+      "first_seen_at": "2026-09-13T00:00:00Z",
+      "last_seen_at": "2026-09-13T00:00:00Z",
+      "run_id": "run_monterey",
+      "round_id": "2026-01-monterey-swing-fest/intermediate-jj/prelim",
+      "entry_id": "2026-01-monterey-swing-fest/intermediate-jj/L-254",
+      "score_sum": 34.2,
+      "yes_count": 3,
+      "alt_count": 1,
+      "no_count": 0,
+      "outcome": "promoted",
+      "tie_break_applied": null,
+      "heat_number": null
+    },
+    {
+      "source": "scoringdance",
+      "snapshot_id": "4899",
+      "parser_version": "4",
+      "first_seen_at": "2026-09-13T00:00:00Z",
+      "last_seen_at": "2026-09-13T00:00:00Z",
+      "run_id": "run_monterey",
+      "round_id": "2026-01-monterey-swing-fest/intermediate-jj/semifinal",
+      "entry_id": "2026-01-monterey-swing-fest/intermediate-jj/L-254",
+      "score_sum": 20.0,
+      "yes_count": 2,
+      "alt_count": 0,
+      "no_count": 2,
+      "outcome": "promoted",
+      "tie_break_applied": null,
+      "heat_number": null
+    },
+    {
+      "source": "scoringdance",
+      "snapshot_id": "4914",
+      "parser_version": "4",
+      "first_seen_at": "2026-09-13T00:00:00Z",
+      "last_seen_at": "2026-09-13T00:00:00Z",
+      "run_id": "run_monterey",
+      "round_id": "2026-01-monterey-swing-fest/intermediate-strictly/prelim",
+      "entry_id": "2026-01-monterey-swing-fest/intermediate-strictly/L-254",
+      "score_sum": 0.0,
+      "yes_count": 0,
+      "alt_count": 0,
+      "no_count": 5,
+      "outcome": "eliminated",
+      "tie_break_applied": null,
+      "heat_number": null
+    }
+  ]
+}

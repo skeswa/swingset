@@ -7,6 +7,15 @@ from pathlib import Path
 from typing import Protocol
 
 from swingset.build.files import canonical_json, durable_write, fsync_dir
+from swingset.publish.safety import (
+    PublicationHeldError,
+    StaleCandidateError,
+    publication_boundary,
+    publication_in_flight,
+    publication_receipt,
+    reject_candidate,
+    settle_publication,
+)
 
 
 @dataclass(frozen=True)
@@ -37,6 +46,7 @@ class PublishResult:
     state: str
     candidate_id: str | None = None
     commit: str | None = None
+    reason: str | None = None
 
 
 class PublishError(RuntimeError):
@@ -126,12 +136,16 @@ def _verify_remote(candidate: Path, remote: RemoteCommit, built: dict[str, objec
 def reconcile(state_dir: Path, hub: Hub, *, dry_run: bool) -> PublishResult:
     candidate = _pending(state_dir)
     if candidate is None:
+        baseline = state_dir / "baseline"
+        if baseline.is_symlink():
+            settle_publication(state_dir, baseline.resolve(), outcome="receipt_promoted")
         return PublishResult("none")
     built = json.loads((candidate / "BUILT").read_text())
     receipt = candidate / "PUBLISHED"
     if receipt.is_file():
         commit = str(json.loads(receipt.read_text())["commit"])
         _promote(state_dir, candidate)
+        settle_publication(state_dir, candidate, outcome="receipt_promoted")
         return PublishResult("promoted", candidate.name, commit)
     head = hub.head()
     expected = built.get("expected_parent")
@@ -147,9 +161,17 @@ def reconcile(state_dir: Path, hub: Hub, *, dry_run: bool) -> PublishResult:
         if remote.parent != expected:
             raise PublishError(f"public head changed: expected {expected!r}, actual {head!r}")
         _verify_remote(candidate, remote, built)
-        durable_write(receipt, canonical_json({"commit": head}))
+        durable_write(receipt, canonical_json(publication_receipt(candidate, head, recovered=True)))
         _promote(state_dir, candidate)
+        settle_publication(state_dir, candidate, outcome="landed_recovered")
         return PublishResult("recovered", candidate.name, head)
+    if publication_in_flight(state_dir, candidate):
+        return PublishResult(
+            "draining",
+            candidate.name,
+            reason="active publication awaits completion or startup recovery",
+        )
+    settle_publication(state_dir, candidate, outcome="not_landed")
     if dry_run:
         return PublishResult("pending", candidate.name)
     return _submit(state_dir, candidate, hub)
@@ -159,7 +181,7 @@ def _files(candidate: Path) -> dict[str, Path]:
     return {
         path.relative_to(candidate).as_posix(): path
         for path in candidate.rglob("*")
-        if path.is_file() and path.name not in {"BUILT", "PUBLISHING", "PUBLISHED"}
+        if path.is_file() and path.name not in {"BUILT", "PUBLISHING", "PUBLISHED", "REJECTED"}
     }
 
 
@@ -169,16 +191,29 @@ def _submit(state_dir: Path, candidate: Path, hub: Hub) -> PublishResult:
     expected_files = set(manifest["files"]) | {"_meta/manifest.json"}
     baseline = state_dir / "baseline"
     old_files = set(_files(baseline.resolve())) if baseline.is_symlink() else set()
-    commit = hub.create_commit(
-        parent=built.get("expected_parent"),
-        message=f"Publish {candidate.name} ({built['manifest_hash']})",
-        additions=_files(candidate),
-        deletions=tuple(sorted(old_files - expected_files)),
-    )
-    remote = hub.inspect(commit)
-    _verify_remote(candidate, remote, built)
-    durable_write(candidate / "PUBLISHED", canonical_json({"commit": commit}))
-    _promote(state_dir, candidate)
+    from swingset.state.controls import ControlPaused
+
+    try:
+        with publication_boundary(state_dir, candidate):
+            commit = hub.create_commit(
+                parent=built.get("expected_parent"),
+                message=f"Publish {candidate.name} ({built['manifest_hash']})",
+                additions=_files(candidate),
+                deletions=tuple(sorted(old_files - expected_files)),
+            )
+            remote = hub.inspect(commit)
+            _verify_remote(candidate, remote, built)
+            durable_write(
+                candidate / "PUBLISHED", canonical_json(publication_receipt(candidate, commit))
+            )
+            _promote(state_dir, candidate)
+    except ControlPaused as exc:
+        return PublishResult("held", candidate.name, reason=str(exc))
+    except StaleCandidateError as exc:
+        reject_candidate(candidate, str(exc))
+        raise PublishError(str(exc)) from exc
+    except PublicationHeldError as exc:
+        raise PublishError(str(exc)) from exc
     return PublishResult("published", candidate.name, commit)
 
 
@@ -188,6 +223,8 @@ def publish(state_dir: Path, candidate: Path, hub: Hub, *, dry_run: bool = False
     recovered = reconcile(state_dir, hub, dry_run=dry_run)
     if recovered.state != "none":
         return recovered
+    if _is_baseline(state_dir, candidate) and (candidate / "PUBLISHED").is_file():
+        return PublishResult("unchanged", candidate.name)
     built_path = candidate / "BUILT"
     if not built_path.is_file():
         raise PublishError("candidate is incomplete")

@@ -23,10 +23,13 @@ def reconcile_registry_events(
 ) -> bool:
     """Set event_id only when canonical series-name and month evidence is unique."""
     events: dict[tuple[str, str], list[str]] = {}
-    for row in conn.execute("SELECT event_id,name,end_date FROM events"):
+    for row in conn.execute(
+        "SELECT event_id,name,COALESCE(NULLIF(event_month,''),substr(end_date,1,7)),series_id FROM events"
+    ):
         if str(row[0]) in excluded_event_ids:
             continue
         events.setdefault((_name(str(row[1])), str(row[2])[:7]), []).append(str(row[0]))
+        events.setdefault((str(row[3]), str(row[2])[:7]), []).append(str(row[0]))
 
     changed = False
     affected: set[str] = set()
@@ -38,7 +41,12 @@ def reconcile_registry_events(
         parameters = (wsdc_id,)
     rows = conn.execute(query, parameters).fetchall()
     for row in rows:
-        candidates = sorted(events.get((_name(str(row[6])), str(row[3])[:7]), []))
+        candidates = sorted(
+            events.get(
+                (str(row[2]), str(row[3])[:7]),
+                events.get((_name(str(row[6])), str(row[3])[:7]), []),
+            )
+        )
         desired = candidates[0] if len(candidates) == 1 else None
         previous = str(row[7]) if row[7] is not None else None
         if len(candidates) > 1:

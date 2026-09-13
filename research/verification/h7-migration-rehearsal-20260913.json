@@ -1,0 +1,45 @@
+{
+  "admission_summary": {
+    "accepted_units": 0,
+    "available": true,
+    "generations": [],
+    "legacy_unassessed": 31612,
+    "policies": []
+  },
+  "automatic_admissions": 0,
+  "foreign_key_violations": 0,
+  "identity_decisions": 0,
+  "legacy_unassessed": 31612,
+  "migration_seconds": 1.2090051879931707,
+  "network_requests": 0,
+  "observations_after": {
+    "count": 37393,
+    "sha256": "9e31d90bb167af4d88cae718fe4d5aa2e67ca0ef17b7c99f5a4278c16750a294"
+  },
+  "observations_before": {
+    "count": 37393,
+    "sha256": "9e31d90bb167af4d88cae718fe4d5aa2e67ca0ef17b7c99f5a4278c16750a294"
+  },
+  "preserved_table_counts": {
+    "canonical_scope_rows": 1061417,
+    "contests": 2644,
+    "entries": 95178,
+    "events": 2240,
+    "findings": 54144,
+    "judges": 4919,
+    "observations": 37393,
+    "pending_work": 0,
+    "registry_placements": 197990,
+    "rounds": 4347,
+    "snapshots": 31629,
+    "watches": 35371
+  },
+  "production_mutations": 0,
+  "reopen_idempotent": true,
+  "result_schema": 9,
+  "scratch": "/var/tmp/swingset-h7-migration-review",
+  "selection_digest": "4f527e109a7b2f9f1668a43215a550f10010ce0a7e80943a5a5143aa88d2e562",
+  "source": "/var/lib/swingset/checkpoints/v2-v1-published-20260913T0543Z",
+  "source_schema": 7,
+  "total_seconds": 5.82278433299507
+}

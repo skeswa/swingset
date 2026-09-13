@@ -26,7 +26,7 @@ from swingset.schedule.registry import (
 from swingset.schedule.watches import due_watches, upsert_watch
 from swingset.sources.base import WatchSpec
 from swingset.sources.records import DancerLookup
-from swingset.sources.wsdc_registry.adapter import SOURCE
+from swingset.sources.wsdc_registry.adapter import SOURCE, DancerPage
 from swingset.state.db import Database, open_database
 
 NOW = datetime(2026, 9, 8, 12, tzinfo=UTC)
@@ -91,6 +91,22 @@ def record(database: Database, wsdc_id: int, outcome: str, now: datetime = NOW) 
             encode_payload(payload),
         ),
     )
+
+    if outcome in {"found", "not_found"}:
+        connection.execute(
+            "INSERT INTO registry_verifications(watch_id,checked_at,http_status,body_sha256,"
+            "snapshot_id,extract_version,parser_version,outcome,usable,reason) "
+            "VALUES (?,?,200,?,?,?,?,?,1,'verified')",
+            (
+                spec.watch_id,
+                now.isoformat(),
+                body_hash,
+                snap,
+                str(DancerPage.EXTRACT_VERSION),
+                str(DancerPage.PARSER_VERSION),
+                outcome,
+            ),
+        )
 
 
 def cursor(database: Database, name: str) -> str | None:
@@ -452,12 +468,14 @@ def test_crosscheck_finding_is_a_build_input_and_survives_restore(tmp_path: Path
             state_dir,
             database.connection,
             checkpoint_dir,
-            schema_version=1,
+            schema_version=database.schema_version,
             versions={},
             input_bundle_hash=None,
         )
     restored = tmp_path / "restored"
-    restore_checkpoint(checkpoint_dir, restored, maximum_schema_version=1)
+    from swingset.state.db import SCHEMA_VERSION
+
+    restore_checkpoint(checkpoint_dir, restored, maximum_schema_version=SCHEMA_VERSION)
     with open_database(restored, allow_restore_pending=True) as database:
         assert (
             database.connection.execute(

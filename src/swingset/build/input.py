@@ -10,7 +10,7 @@ from typing import Any
 import pyarrow as pa
 
 from swingset.build.builder import PUBLISHED_TABLES, BuildInput
-from swingset.build.schema import PRIMARY_KEYS, SCHEMAS
+from swingset.build.schema import PRIMARY_KEYS, RELEASE_FIELDS, SCHEMAS
 from swingset.model.history import HISTORY_START
 from swingset.model.schema import TABLES
 
@@ -41,6 +41,11 @@ def _read_table(connection: sqlite3.Connection, table: str) -> list[dict[str, An
     schema = SCHEMAS[table]
     available = {str(row[1]) for row in connection.execute(f'PRAGMA table_info("{table}")')}
     missing = set(schema.names) - available
+    missing -= set(RELEASE_FIELDS.get(table, ()))
+    if table == "identity_links":
+        from swingset.build.identity_policy import PUBLIC_RESOLUTION_FIELDS
+
+        missing -= set(PUBLIC_RESOLUTION_FIELDS)
     if missing:
         raise RuntimeError(f"SQLite table {table} is missing public columns: {sorted(missing)}")
     columns = [field.name for field in schema if field.name in available]
@@ -50,6 +55,9 @@ def _read_table(connection: sqlite3.Connection, table: str) -> list[dict[str, An
     result: list[dict[str, Any]] = []
     for values in connection.execute(f'SELECT {quoted} FROM "{table}"'):
         row = dict(zip(columns, values, strict=True))
+        if table == "coverage":
+            row["scope_kind"] = "year"
+            row["scope_id"] = str(row["year"])
         result.append({field.name: _convert(row.get(field.name), field.type) for field in schema})
     return result
 
@@ -59,7 +67,9 @@ def _read_snapshots(connection: sqlite3.Connection) -> list[dict[str, Any]]:
     query = """
         SELECT s.snapshot_id, w.source, s.url, s.fetched_at, s.http_status,
                s.body_sha256, s.body_bytes, s.content_changed, w.parser,
-               s.parser_version, s.parse_status
+               s.parser_version, s.parse_status, s.via,
+               COALESCE(s.captured_at,s.fetched_at), s.archive_url,
+               COALESCE(s.observed_at,s.captured_at,s.fetched_at)
         FROM snapshots AS s JOIN watches AS w ON w.watch_id = s.watch_id
     """
     result: list[dict[str, Any]] = []
@@ -147,15 +157,12 @@ def _review_queue(connection: sqlite3.Connection, existing: set[str]) -> list[di
 def read_build_input(connection: sqlite3.Connection, bundle: Any) -> BuildInput:
     """Capture every published DB dependency from the caller's read transaction."""
     existing = _tables(connection)
-    pending = (
-        connection.execute("SELECT COUNT(*) FROM pending_work").fetchone()
-        if "pending_work" in existing
-        else (0,)
-    )
-    if pending is not None and int(pending[0]):
+    if "pending_work" in existing:
         from swingset.build.builder import BuildError
+        from swingset.state.work import unfinished_units
 
-        raise BuildError("build is blocked by pending parse, project, or link work")
+        if next(iter(unfinished_units(connection)), None) is not None:
+            raise BuildError("build is blocked by pending parse, project, or link work")
     rows = {
         name: (
             _read_snapshots(connection)
@@ -177,7 +184,7 @@ def read_build_input(connection: sqlite3.Connection, bundle: Any) -> BuildInput:
     )
     # The state schema owns persistent primary keys; assert the public mapping has not drifted.
     for name, table in TABLES.items():
-        if name in PRIMARY_KEYS and PRIMARY_KEYS[name] != table.primary_key:
+        if name in PRIMARY_KEYS and name != "coverage" and PRIMARY_KEYS[name] != table.primary_key:
             raise RuntimeError(f"public primary key drift for {name}")
     hashes_value = getattr(bundle, "file_hashes", None)
     if hashes_value is None and isinstance(bundle, Mapping):
@@ -200,4 +207,41 @@ def read_build_input(connection: sqlite3.Connection, bundle: Any) -> BuildInput:
             else bundle.get("hash", "")
         ),
         history_start=history_start,
+    )
+
+
+def read_selected_input(
+    connection: sqlite3.Connection, bundle: Any, selected: Any, *, snapshot_ids: set[str]
+) -> BuildInput:
+    """Convert a reconstructed immutable closure without reading live canonical rows."""
+    rows: dict[str, list[dict[str, Any]]] = {}
+    for table in PUBLISHED_TABLES:
+        schema = SCHEMAS[table]
+        rows[table] = []
+        if table in {"changelog", "snapshots", "review_queue"}:
+            continue
+        for original in selected.iter_table(table):
+            row = dict(original)
+            if table == "coverage":
+                row.update(scope_kind="year", scope_id=str(row["year"]))
+            rows[table].append(
+                {field.name: _convert(row.get(field.name), field.type) for field in schema}
+            )
+    rows["snapshots"] = [
+        row for row in _read_snapshots(connection) if row["snapshot_id"] in snapshot_ids
+    ]
+    # Open findings describe omissions in this read snapshot. Derived reviews
+    # must not import facts from a different mutable event/link generation.
+    rows["review_queue"] = _review_queue(connection, {"findings"})
+    return BuildInput(
+        rows,
+        SCHEMAS,
+        PRIMARY_KEYS,
+        {
+            str(row[0]): int(row[1])
+            for row in connection.execute("SELECT name,value FROM revisions")
+        },
+        bundle.file_hashes,
+        bundle.digest,
+        bundle.config.history_start,
     )

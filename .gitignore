@@ -8,3 +8,16 @@ result
 result-*
 tmp/
 *.egg-info/
+
+# Generated diagnostic dumps, across runs and nested verification directories.
+/research/verification/**/doctor.json
+/research/verification/**/*.doctor.json
+/research/verification/**/*-doctor-*.json
+
+# Regenerable review packets, across workflow runs.
+/research/workflow-output/**/alias-proposals.json
+/research/workflow-output/**/alias-review.html
+/research/workflow-output/**/review.json
+
+# Retain important identity audits as byte-exact .json.gz archives.
+/research/verification/**/*-identity-withdrawals-*.json

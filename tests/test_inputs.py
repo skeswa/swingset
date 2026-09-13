@@ -66,7 +66,7 @@ def test_invalid_override_is_rejected_before_acceptance(tmp_path):
         (overrides / "identity_overrides.csv").write_text(
             "entry_id,wsdc_id,reason,author,date\nentry,not-a-number,correction,owner,2026-09-09\n"
         )
-        with pytest.raises(ValueError, match=r"identity_overrides.csv:2: wsdc_id"):
+        with pytest.raises(ValueError, match="convert legacy overrides first"):
             capture(Path("config"), overrides, state, {})
         assert (
             db.connection.execute(

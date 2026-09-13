@@ -1,0 +1,120 @@
+{
+  "rehearsal": "/var/tmp/swingset-h7-contract4-rehearsal",
+  "source": "/var/lib/swingset/checkpoints/v2-v1-published-20260913T0543Z",
+  "kinds": {
+    "eepro.index": {
+      "payloads_changed": 0,
+      "changed_fields": {},
+      "method_annotation_only": {},
+      "other_payload_changes": 0,
+      "added": 0,
+      "removed": 0,
+      "added_scopes": [],
+      "removed_scopes": [],
+      "newly_unaccepted_generations": 0
+    },
+    "eepro.autoindex": {
+      "payloads_changed": 0,
+      "changed_fields": {},
+      "method_annotation_only": {},
+      "other_payload_changes": 0,
+      "added": 0,
+      "removed": 0,
+      "added_scopes": [],
+      "removed_scopes": [],
+      "newly_unaccepted_generations": 0
+    },
+    "eepro.round": {
+      "payloads_changed": 3112,
+      "changed_fields": {
+        "scoring_method_raw": 3112
+      },
+      "method_annotation_only": {
+        "Avg": 178,
+        "None": 2934
+      },
+      "other_payload_changes": 0,
+      "added": 0,
+      "removed": 0,
+      "added_scopes": [],
+      "removed_scopes": [],
+      "newly_unaccepted_generations": 9
+    },
+    "scoringdance.sitemap": {
+      "payloads_changed": 0,
+      "changed_fields": {},
+      "method_annotation_only": {},
+      "other_payload_changes": 0,
+      "added": 0,
+      "removed": 0,
+      "added_scopes": [],
+      "removed_scopes": [],
+      "newly_unaccepted_generations": 0
+    },
+    "scoringdance.recent": {
+      "payloads_changed": 0,
+      "changed_fields": {},
+      "method_annotation_only": {},
+      "other_payload_changes": 0,
+      "added": 0,
+      "removed": 0,
+      "added_scopes": [],
+      "removed_scopes": [],
+      "newly_unaccepted_generations": 0
+    },
+    "scoringdance.event": {
+      "payloads_changed": 0,
+      "changed_fields": {},
+      "method_annotation_only": {},
+      "other_payload_changes": 0,
+      "added": 0,
+      "removed": 0,
+      "added_scopes": [],
+      "removed_scopes": [],
+      "newly_unaccepted_generations": 74
+    },
+    "scoringdance.round": {
+      "payloads_changed": 2018,
+      "changed_fields": {
+        "scoring_method_raw": 2018
+      },
+      "method_annotation_only": {
+        "None": 2018
+      },
+      "other_payload_changes": 0,
+      "added": 0,
+      "removed": 0,
+      "added_scopes": [],
+      "removed_scopes": [],
+      "newly_unaccepted_generations": 238
+    },
+    "wdr.rounds": {
+      "payloads_changed": 413,
+      "changed_fields": {
+        "scoring_method_raw": 413
+      },
+      "method_annotation_only": {
+        "Placement Order": 213,
+        "Sum of Yes(10) / Alt 1(4.5) 2(4.3) 3(4.2) / No(0)": 152,
+        "Average Raw Scores": 48
+      },
+      "other_payload_changes": 0,
+      "added": 0,
+      "removed": 0,
+      "added_scopes": [],
+      "removed_scopes": [],
+      "newly_unaccepted_generations": 1
+    },
+    "wsdc_registry.dancer": {
+      "payloads_changed": 0,
+      "changed_fields": {},
+      "method_annotation_only": {},
+      "other_payload_changes": 0,
+      "added": 0,
+      "removed": 0,
+      "added_scopes": [],
+      "removed_scopes": [],
+      "newly_unaccepted_generations": 2
+    }
+  }
+}

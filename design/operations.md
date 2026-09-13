@@ -40,22 +40,28 @@ successful checkpoint so retrying cannot conceal stale backups.
    `RESTORE_PENDING` exists. Capture and accept changed input files.
 2. Reconcile any pending publication before creating another candidate.
    This runs even when no fetch or build is due. Respect dry-run mode.
-3. If parse, project, or link work is already pending, skip adding a
-   fetch batch this cycle. Otherwise discover seed watches and fetch
-   due requests within the remaining wall-clock budget.
-4. Drain parse, project (map first), and link work, in that order.
-   Check the budget between units. A handled parser failure completes
-   its unit with evidence; other failed units remain pending.
-5. Only after those queues drain, build when the input/baseline pair
-   needs work and publish when semantic content differs. Otherwise
-   leave work for the next cycle. A dry run can build but never commits.
+3. Give pending identity corrections priority. Discover seed watches
+   and reserve acquisition time even when offline work is pending.
+   Select eligible requests fairly within existing host limits,
+   controls, and backlog high-water marks.
+4. Rotate eligible parse, project, and link units fairly. Check the
+   budget between units. Failed units retain their evidence and retry
+   eligibility; unrelated work continues. A shared projection may run
+   again when later parses change its inputs, but the same input
+   fingerprint is attempted at most once in a cycle.
+5. Run saved interpretation once its parse and project inputs settle.
+   Once all queues drain, build when the input/baseline pair needs work
+   and publish when semantic content differs. These actions receive
+   offline time before unused time is lent back to acquisition. Leave
+   unfinished work for the next cycle. A dry run can build but never commits.
 6. Write `runs/<run_id>.json` and release the lock.
 
 There is no "nothing fetched, skip later stages" rule. File changes,
 manual findings, and queued work are independent reasons to run. The
 cycle runner consumes [durable work](state.md#invalidation); it does not
-carry another stage dependency graph. Existing work takes precedence
-over another fetch batch so a registry sweep cannot starve publication.
+carry another stage dependency graph. Reserved acquisition prevents
+offline backlog from starving collection; fair offline service and
+build-before-borrowing prevent a registry sweep from taking every turn.
 
 ## Locks and operator commands
 
@@ -64,35 +70,76 @@ and manual data mutations. The process holds it through each command;
 the kernel releases it on death. Read-only doctor and summary use a
 consistent database read and do not acquire the writer lock.
 
-| Caller finding the lock held                                           | Required behavior                                                                                        |
-| ---------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| Timer-triggered duplicate cycle                                        | Exit 0 with an explicit skipped-overlap log                                                              |
-| Manual mutation, including pause, resume, sweep, reparse, or fetch-one | Wait up to `--lock-timeout` (default 60 s); timeout exits nonzero and says no change was applied         |
-| Backup                                                                 | Wait for the lock; interruption or upload failure is nonzero and retried by the service                  |
-| Restore                                                                | Wait up to the explicit timeout; require timers disabled and the former writer stopped before activation |
+| Caller finding the lock held                       | Required behavior                                                                                        |
+| -------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| Timer-triggered duplicate cycle                    | Exit 0 with an explicit skipped-overlap log                                                              |
+| Manual data mutation: sweep, reparse, or fetch-one | Wait up to `--lock-timeout` (default 60 s); timeout exits nonzero and says no change was applied         |
+| Backup                                             | Wait for the lock; interruption or upload failure is nonzero and retried by the service                  |
+| Restore                                            | Wait up to the explicit timeout; require timers disabled and the former writer stopped before activation |
 
 Every data-writing command except restore refuses a state directory
 marked `RESTORE_PENDING`; doctor remains available for diagnosis.
 Manual mutation success means its transaction committed. There is no
-successful skipped pause or sweep. Tests hold the lock, start pause,
-release it, and assert the pause is persisted before success. A separate
-test exhausts the timeout and asserts nonzero exit and unchanged state.
-Backup tests overlap a cycle and prove the checkpoint eventually runs.
+successful skipped pause or sweep. Backup tests overlap a cycle and prove
+that the checkpoint eventually runs.
 
-`swingset pause --all | --host <h> | --source <s> [--until <time>]`
-records an operator pause; `resume` removes only the selected operator
-pause. Automatic throttle and block pauses remain in host state and
-cannot be cleared accidentally by resume. Operator pauses are checked
-before requests to the affected sources; all post-fetch stages still
-run so an override can publish while fetching is paused. An indefinite
-pause is a row without an expiry. Operator pauses are not run failures.
+`swingset pause --all | --host <h> | --source <s> | --kind <k>` records
+an operator pause. `resume` removes only the selected operator pause.
+Both accept `--reason`, `--actor`, `--lock-timeout`, and `--wait [seconds]`.
+The actor defaults to the local account and the reason to `operator request`;
+blank values and unknown selectors are rejected. `--until` on pause requires
+a future timestamp with a timezone. An omitted expiry means indefinite.
+Automatic host pauses remain separate and resume never clears them.
 
-A pause command can wait behind an active cycle; it does not claim to
-interrupt that cycle. To stop immediately, stop the active cycle service
-and its timer, then record the pause. Stopping only the timer prevents
-future starts and does not stop the active cycle. Resume has no catch-up:
-each overdue watch is checked once, subject to normal budgets and
-priority, then follows its ordinary schedule.
+Controls use a restricted connection that cannot migrate or accept inputs.
+They bypass the whole-cycle writer lock and serialize at the next bounded
+admission boundary under `control.lock`. A successful receipt means the control
+transaction committed. A servicing timeout is nonzero and means no change was
+persisted. Once committed, a pause prevents matching new admissions; already
+admitted work may drain. `--wait` waits up to sixty seconds by default for that
+drain. A wait timeout or interruption preserves the pause and reports the
+remaining admissions; it never reports that no change occurred.
+
+Worker write phases have a 45-second wall-clock limit, leaving time for rollback
+and control servicing within the default 60-second bound. The limit interrupts
+Python work and long SQLite statements. Nested transactions inherit the outer
+deadline. A timed-out derivation rolls back, retains its queue token, and records
+`write_deadline_exceeded`; unchanged work waits for a changed input or explicit
+retry. Worker writes run on the process main thread. Read snapshots, including
+release construction, do not hold SQLite's writer and have no write deadline.
+Explicit schema migrations remain held maintenance operations. A shorter
+operator timeout may still expire before a valid bounded unit drains.
+
+All and source pauses hold matching requests and post-fetch repairs. Kind
+pauses use registered requirement kinds and the actual dependencies of each
+action. A shared action waits if any required dependency is paused. Host pauses
+hold requests only. A coherent publication waits on any paused source or kind;
+its suppression and integrity checks remain mandatory. Manual parse, project and link use the same bounded worker and attempt ledger as
+cycles. They skip held units, report their dependencies, and stop cleanly when
+no eligible work remains. Explicit and saved registry-crosscheck interpretation
+also requires admission; archive-only retention preserves supplied evidence
+without interpreting it. Startup recovers abandoned admissions before accepting
+inputs or creating a run; uncertain publications still require receipt reconciliation.
+Resume does not trigger
+a catch-up burst: overdue work remains subject to ordinary scheduling budgets.
+
+Doctor and summary report `running`, `pausing`, or `paused`, the control revision,
+pause IDs, actor, reason, expiry, duration and exact resume selectors. They show
+draining admissions separately, and flag a drain older than sixty seconds.
+Inventory and queue overlays use the same dependency resolver as execution.
+`no_progress_clock` and queue `lag_clock` exclude the union of known matching
+operator pause intervals, including overlapping controls, selective resume and
+expiry. After resume, intentional hold time does not immediately trigger a
+no-progress alarm. These are clocks under current dependencies; they do not
+reconstruct old dependency ownership, automatic host-pause history or budgets.
+A legacy pause with an unknown start makes an overlapping clock unavailable,
+with an explicit count and reason. Evidence age, correction age and queue wall
+age remain unchanged. Interval histories are read once and cached by scope.
+Intentional pauses suppress matching no-progress alarms while retaining ages;
+unpaused stalled work and stuck drains remain visible. Status reads do not
+expire rows or change work eligibility. Expiry is recorded at the next mutation
+boundary. To stop a process immediately, stop its service as well as its timer;
+a durable pause does not kill an already admitted action.
 
 ## Interruption and recovery
 
@@ -130,6 +177,9 @@ Include the following closure of referenced artifacts:
 
 - All raw and manual blobs referenced by snapshots or findings.
 - All derived extracts referenced by snapshots.
+- Every body and extract named by a retained source generation manifest,
+  including staged, blocked, superseded, and revoked generations whose
+  extract was never installed on the snapshot pointer.
 - Captured input bundles referenced by current state or retained candidates.
 - The complete baseline candidate and any pending candidate, including
   `BUILT`, `PUBLISHING`, and `PUBLISHED` when present. A receipt without
@@ -209,8 +259,9 @@ by design.
 ## Bootstrap and backfill
 
 The registry sweep (16 hours) and the historical backfill (weeks) both
-run inside normal cycles, driven by cursors in state, at the lowest
-priority. `swingset sweep --start 1` seeds the registry cursor. No
+run inside normal cycles, driven by cursors in state, with reserved
+service for eligible old work. Historical year and admission gates
+still apply. `swingset sweep --start 1` seeds the registry cursor. No
 special long-running job exists; the box is always on, so the cycle loop
 is the long-running job.
 
@@ -228,13 +279,12 @@ is the long-running job.
   journal and, if `summary_webhook_url` is set in config, to that URL as
   a JSON POST. The destination is the owner's choice and is not decided
   here.
-- A handled parse failure does not by itself fail the run. It marks the snapshot
-  `parse_status = failed`, keeps the body and last-good observations,
-  records the attempted versions, and completes that work item. A
-  version change or explicit reparse can retry it; it does not spin
-  forever on the same deterministic failure. The run summary
-  lists failures. A parse failure rate above 10% for a source fails the
-  run so it is noticed.
+- A handled parse failure marks the snapshot `parse_status = failed`, retains
+  its body and last-good observations, and records the attempted versions.
+  H12 records the failure durably and keeps the unit pending but ineligible
+  for unchanged inputs. Independent eligible fetches and derivations can
+  still progress. The run summary lists parse and unit failures; unit
+  failures or a source parse failure rate above 10% mark the run failed.
 - A host paused for 403 or challenge fails the run with a clear message
   and is the first line of the next daily summary. This is the one
   condition that should interrupt a human.
@@ -246,3 +296,97 @@ is the long-running job.
   pauses separately, budget use, watches by state, pending work by
   stage, pending candidate, restore status, last backup commit and
   time, review size, and last acknowledged publish SHA.
+
+## Requirement reporting in shadow (H11)
+
+Doctor adds a local requirement inventory with `--json`, `--watch`,
+`--interval` (five seconds by default), `--source`, `--kind`, and
+`--requirement`. JSON includes a versioned inventory schema. Human and JSON
+views share one SQLite snapshot and require no writer lock or network. An
+older database reports that its inventory migration is pending.
+
+The view shows the scan cursor and age, unmet states, eligibility and pause
+overlays, active attempts, oldest unresolved age, last progress, and each
+requirement's evidence and next action. A scan or eligible requirement with
+no progress for thirty minutes raises a local alert. Intentional pauses
+suppress eligible-work alarms while evidence and scan ages remain visible.
+Worker state is inferred from durable run times; `stopped_or_stale` does not
+claim an operating-system process check.
+
+`pipeline_lag` reports acquisition schedule age from overdue `next_check_at`
+values and derivation queue age from the current legacy `enqueued_at` values.
+It labels source-wide acquisition and global queue denominators separately
+from filtered requirements. Unknown schedules and enqueue times stay explicit.
+Diagnostic alerts use the report's staleness threshold and identify the oldest
+scope and next action; they do not assert available host budget or establish
+H14 service-gap objectives. Acquisition pauses and cooldowns suppress acquisition
+diagnostics; matching all/source/kind controls suppress queue-age diagnostics.
+A host pause alone does not suppress local derivation alerts. Ages remain visible.
+H15 counts unfinished derivations by fingerprint comparison. Their available
+queue hint times supply lag ages; replacement inputs can reset those times, and
+lost hints leave age unknown rather than reporting zero. Requirement alerts include the last
+recorded attempt and blocking reason without counting retries as progress.
+
+Summary adds opened, reopened, satisfied, and retired counts, with attempts
+and failures separate. `--since` accepts an explicit timezone. With no
+`--since`, each filter resumes from its last report timestamp in
+`state/reports/`; the first report covers one day. Reports survive restart.
+Cohorts keep a fixed denominator; reopening lowers completion, and retirement
+is not a repair. New work outside a cohort counts only requirements in its
+source, kind, and policy scope whose first-open transition follows capture.
+Previously closed requirements, later retries, and reopened or recreated old
+rows do not count as discoveries. The cutoff preserves ordering when capture
+and discovery share a clock timestamp. Legacy cohorts without the cutoff show
+known later discoveries and the count with unknown same-time ordering; their
+exact new-work count is unavailable while that ambiguity exists.
+Unbounded, paused, blocked, or incompatible cohorts have no
+percentage or ETA. H11 supplies a local shadow inventory only; later rollout
+revisions supply repair execution and publication progress.
+
+## Work isolation and artifact recovery (H12)
+
+Ordinary parse, project, and link units run through `schedule.derive`. Each
+attempt starts durably, isolates its transaction, and records a classified
+outcome. One failed scope does not block healthy acquisition or independent
+derivation. Unchanged blocked inputs remain visible and do not run again in
+every cycle. Transient I/O failures and interrupted work currently receive a
+60-second retry deadline. No additional host budget is created.
+
+`swingset reparse --kind KIND --since TIME` is an explicit operator retry for
+its selected snapshots. It enqueues their work and advances retry generation
+for prior failed attempts in the same transaction. Doctor and inventory scans
+do not request retries. A later verified local artifact restoration can also
+be followed by an explicit retry; simply observing the file does not erase
+the failed outcome or claim completed derivation.
+
+Cycles share one `LocalCheckpointRecovery` through an optional `Archive`
+recovery argument. Healthy artifact reads do not enumerate backups. On a
+missing or corrupt body or extract, recovery considers only local private
+checkpoints containing that exact digest path. Before first use it verifies
+the complete physical file closure, actual SQLite schema and integrity,
+foreign keys, retained candidate markers, and referenced artifacts. Checkpoint
+SQLite is opened with `mode=ro&immutable=1` and explicitly closed.
+
+Successful qualification is reused within the helper only for identical
+manifest bytes. Every restore independently verifies the selected file's
+size and stored hash, then its decompressed body hash or serialized-extract
+hash against the required historical digest. It atomically restores those
+bytes and records checkpoint and manifest provenance in the cycle summary.
+Failed qualification is not cached, and modification times never establish
+artifact validity. Recovery does not fetch a current replacement page or
+rewrite a historical snapshot's digest.
+
+If no valid matching checkpoint is available, `ArtifactUnavailable` retains
+artifact kind, required digest, reason, and attempted local checkpoints. The
+unit becomes unavailable, its requirement and pending work remain, and other
+units continue. Recovery cannot write into a checkpoint. After recovery,
+normal parsing and admission still govern whether output can commit.
+
+The offline H12 acceptance cases exercise a real failed parser beside a
+healthy fetch and projection within three fake-clock cycles, with one failed
+attempt for unchanged inputs. A separate cycle test restores historical bytes
+from an actual SQLite checkpoint and commits their interpretation; the case
+without a backup retains unavailable evidence while healthy work progresses.
+These scenarios use ordinary work, without correction-only publication.
+H12 does not enable requirement repair kinds, kind pauses, or H14 scheduling
+objectives.

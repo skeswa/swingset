@@ -3,7 +3,6 @@ from datetime import UTC, datetime, timedelta
 import pytest
 
 from swingset.config import Config, HostConfig, SourceConfig
-from swingset.fetch.classify import Outcome
 from swingset.schedule.confirmation import awaiting_first_number, pending_confirmation_events
 from swingset.schedule.registry import discover_registry
 from swingset.schedule.watches import refresh_policy, upsert_watch
@@ -236,7 +235,7 @@ def test_confirmation_refresh_tracks_all_pending_events_and_stops_after_posting(
         )
         posted(conn, "newer")
         assert pending_confirmation_events(conn, 1, NOW) == ["older"]
-        refresh_policy(conn, config, spec.watch_id, NOW, outcome=Outcome.OK, jitter=0)
+        refresh_policy(conn, config, spec.watch_id, NOW, jitter=0)
         assert (
             conn.execute(
                 "SELECT next_check_at FROM watches WHERE watch_id=?", (spec.watch_id,)
@@ -247,7 +246,7 @@ def test_confirmation_refresh_tracks_all_pending_events_and_stops_after_posting(
         assert pending_confirmation_events(conn, 1, NOW) == ["older"]
         conn.execute("UPDATE registry_placements SET result='6' WHERE event_id='older'")
         assert pending_confirmation_events(conn, 1, NOW) == []
-        refresh_policy(conn, config, spec.watch_id, NOW, outcome=Outcome.OK, jitter=0)
+        refresh_policy(conn, config, spec.watch_id, NOW, jitter=0)
         assert (
             conn.execute(
                 "SELECT next_check_at FROM watches WHERE watch_id=?", (spec.watch_id,)

@@ -1,0 +1,3817 @@
+{
+  "generated_at": "2026-09-13T06:55:38.871929+00:00",
+  "state": "/var/tmp/swingset-v1-correction/state.sqlite",
+  "schema_version": 7,
+  "selection": "Largest events by entry count; ties ordered by event ID",
+  "interpretation": "Locator coverage only; multiple references may be valid rounds, and none are identity adjudications.",
+  "events": [
+    {
+      "event_id": "2026-06-jack-jill-o-rama",
+      "seconds": 0.25702149799326435,
+      "counts": {
+        "entry": {
+          "subjects": 1829,
+          "no_reference": 5,
+          "multiple_references": 411,
+          "default_id_without_reference": 2
+        },
+        "judge": {
+          "subjects": 60,
+          "no_reference": 0,
+          "multiple_references": 37,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": [
+        {
+          "kind": "entry",
+          "subject_id": "2026-06-jack-jill-o-rama/advanced-jj/F-870",
+          "snapshot_id": "snap_20260910T044215Z_232b9cba39cd"
+        },
+        {
+          "kind": "entry",
+          "subject_id": "2026-06-jack-jill-o-rama/intermediate-jj/F-791",
+          "snapshot_id": "snap_20260910T044215Z_232b9cba39cd"
+        }
+      ]
+    },
+    {
+      "event_id": "2025-06-jack-jill-o-rama",
+      "seconds": 0.22452652198262513,
+      "counts": {
+        "entry": {
+          "subjects": 1790,
+          "no_reference": 3,
+          "multiple_references": 338,
+          "default_id_without_reference": 1
+        },
+        "judge": {
+          "subjects": 58,
+          "no_reference": 0,
+          "multiple_references": 25,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": [
+        {
+          "kind": "entry",
+          "subject_id": "2025-06-jack-jill-o-rama/novice-jj/F-289",
+          "snapshot_id": "snap_20260910T050358Z_10dba9734834"
+        }
+      ]
+    },
+    {
+      "event_id": "2026-03-madjam",
+      "seconds": 0.18522129900520667,
+      "counts": {
+        "entry": {
+          "subjects": 1486,
+          "no_reference": 73,
+          "multiple_references": 549,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 36,
+          "no_reference": 0,
+          "multiple_references": 24,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2024-08-swingtime-denver",
+      "seconds": 0.1404326710035093,
+      "counts": {
+        "entry": {
+          "subjects": 1396,
+          "no_reference": 0,
+          "multiple_references": 44,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 72,
+          "no_reference": 0,
+          "multiple_references": 3,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2024-01-budafest",
+      "seconds": 0.14368010600446723,
+      "counts": {
+        "entry": {
+          "subjects": 1297,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 62,
+          "no_reference": 0,
+          "multiple_references": 2,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2026-01-budafest",
+      "seconds": 0.1346105959964916,
+      "counts": {
+        "entry": {
+          "subjects": 1289,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 78,
+          "no_reference": 0,
+          "multiple_references": 2,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2025-09-trilogy-swing",
+      "seconds": 0.4003626439953223,
+      "counts": {
+        "entry": {
+          "subjects": 1216,
+          "no_reference": 0,
+          "multiple_references": 189,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 43,
+          "no_reference": 0,
+          "multiple_references": 42,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2026-03-the-chicago-classic",
+      "seconds": 0.5786025290144607,
+      "counts": {
+        "entry": {
+          "subjects": 1182,
+          "no_reference": 0,
+          "multiple_references": 247,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 39,
+          "no_reference": 0,
+          "multiple_references": 36,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2025-07-wild-wild-westie",
+      "seconds": 0.13709060999099165,
+      "counts": {
+        "entry": {
+          "subjects": 1133,
+          "no_reference": 2,
+          "multiple_references": 447,
+          "default_id_without_reference": 2
+        },
+        "judge": {
+          "subjects": 40,
+          "no_reference": 0,
+          "multiple_references": 29,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": [
+        {
+          "kind": "entry",
+          "subject_id": "2025-07-wild-wild-westie/advanced-jj/L-89",
+          "snapshot_id": "snap_20260910T043912Z_a260513bbb56"
+        },
+        {
+          "kind": "entry",
+          "subject_id": "2025-07-wild-wild-westie/allstar-jj/F-823",
+          "snapshot_id": "snap_20260910T043912Z_a260513bbb56"
+        }
+      ]
+    },
+    {
+      "event_id": "2025-10-atlanta-swing-classic",
+      "seconds": 0.14758083599735983,
+      "counts": {
+        "entry": {
+          "subjects": 1108,
+          "no_reference": 84,
+          "multiple_references": 318,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 36,
+          "no_reference": 0,
+          "multiple_references": 33,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2020-01-budafest",
+      "seconds": 0.11732291500084102,
+      "counts": {
+        "entry": {
+          "subjects": 1101,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 49,
+          "no_reference": 0,
+          "multiple_references": 1,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2026-01-paris-swing-classic",
+      "seconds": 0.129360857012216,
+      "counts": {
+        "entry": {
+          "subjects": 1088,
+          "no_reference": 168,
+          "multiple_references": 261,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 40,
+          "no_reference": 0,
+          "multiple_references": 27,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2026-08-desert-city-swing",
+      "seconds": 1.5324146409984678,
+      "counts": {
+        "entry": {
+          "subjects": 1081,
+          "no_reference": 0,
+          "multiple_references": 283,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 23,
+          "no_reference": 0,
+          "multiple_references": 23,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2026-07-wild-wild-westie",
+      "seconds": 0.18279761899611913,
+      "counts": {
+        "entry": {
+          "subjects": 1075,
+          "no_reference": 3,
+          "multiple_references": 416,
+          "default_id_without_reference": 2
+        },
+        "judge": {
+          "subjects": 40,
+          "no_reference": 0,
+          "multiple_references": 30,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": [
+        {
+          "kind": "entry",
+          "subject_id": "2026-07-wild-wild-westie/intermediate-jj/L-844",
+          "snapshot_id": "snap_20260910T025659Z_c44e29f98a14"
+        },
+        {
+          "kind": "entry",
+          "subject_id": "2026-07-wild-wild-westie/newcomer-jj/L-847",
+          "snapshot_id": "snap_20260910T025659Z_c44e29f98a14"
+        }
+      ]
+    },
+    {
+      "event_id": "2025-06-liberty-swing",
+      "seconds": 0.15077972901053727,
+      "counts": {
+        "entry": {
+          "subjects": 1074,
+          "no_reference": 83,
+          "multiple_references": 320,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 47,
+          "no_reference": 0,
+          "multiple_references": 29,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2025-11-dc-swing-experience",
+      "seconds": 0.13881578599102795,
+      "counts": {
+        "entry": {
+          "subjects": 1040,
+          "no_reference": 79,
+          "multiple_references": 271,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 36,
+          "no_reference": 0,
+          "multiple_references": 32,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2024-08-german-open",
+      "seconds": 0.13785894800093956,
+      "counts": {
+        "entry": {
+          "subjects": 1029,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 51,
+          "no_reference": 0,
+          "multiple_references": 1,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2026-03-uk-west-coast-swing-championships",
+      "seconds": 0.14622674501151778,
+      "counts": {
+        "entry": {
+          "subjects": 1025,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 44,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2025-03-uk-west-coast-swing-championships",
+      "seconds": 0.12351382500492036,
+      "counts": {
+        "entry": {
+          "subjects": 963,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 46,
+          "no_reference": 0,
+          "multiple_references": 2,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2026-01-spotlight-new-year-s-celebration",
+      "seconds": 0.13470734699512832,
+      "counts": {
+        "entry": {
+          "subjects": 962,
+          "no_reference": 16,
+          "multiple_references": 280,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 41,
+          "no_reference": 0,
+          "multiple_references": 20,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2026-01-floorplay-swing-vacation",
+      "seconds": 0.979444049007725,
+      "counts": {
+        "entry": {
+          "subjects": 943,
+          "no_reference": 0,
+          "multiple_references": 76,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 32,
+          "no_reference": 0,
+          "multiple_references": 30,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2025-08-swing-fling",
+      "seconds": 0.09782713701133616,
+      "counts": {
+        "entry": {
+          "subjects": 928,
+          "no_reference": 101,
+          "multiple_references": 180,
+          "default_id_without_reference": 2
+        },
+        "judge": {
+          "subjects": 29,
+          "no_reference": 0,
+          "multiple_references": 19,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": [
+        {
+          "kind": "entry",
+          "subject_id": "2025-08-swing-fling/advanced-jj/L-167",
+          "snapshot_id": "snap_20260910T050322Z_491197760083"
+        },
+        {
+          "kind": "entry",
+          "subject_id": "2025-08-swing-fling/novice-jj/L-531",
+          "snapshot_id": "snap_20260910T050322Z_491197760083"
+        }
+      ]
+    },
+    {
+      "event_id": "2025-04-city-of-angels",
+      "seconds": 0.1112369220063556,
+      "counts": {
+        "entry": {
+          "subjects": 923,
+          "no_reference": 0,
+          "multiple_references": 8,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 49,
+          "no_reference": 0,
+          "multiple_references": 4,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2025-02-rose-city-swing",
+      "seconds": 0.16909145799581893,
+      "counts": {
+        "entry": {
+          "subjects": 918,
+          "no_reference": 0,
+          "multiple_references": 22,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 39,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2026-06-liberty-swing",
+      "seconds": 0.13558385201031342,
+      "counts": {
+        "entry": {
+          "subjects": 910,
+          "no_reference": 86,
+          "multiple_references": 322,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 50,
+          "no_reference": 0,
+          "multiple_references": 43,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2025-11-the-open",
+      "seconds": 0.13009577899356373,
+      "counts": {
+        "entry": {
+          "subjects": 909,
+          "no_reference": 16,
+          "multiple_references": 332,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 41,
+          "no_reference": 0,
+          "multiple_references": 23,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2026-08-swing-fling",
+      "seconds": 0.10727340000448748,
+      "counts": {
+        "entry": {
+          "subjects": 893,
+          "no_reference": 72,
+          "multiple_references": 217,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 29,
+          "no_reference": 0,
+          "multiple_references": 28,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2026-04-nordic-wcs-championships",
+      "seconds": 0.10260487301275134,
+      "counts": {
+        "entry": {
+          "subjects": 879,
+          "no_reference": 0,
+          "multiple_references": 1,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 38,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2022-01-budafest",
+      "seconds": 0.10218366200570017,
+      "counts": {
+        "entry": {
+          "subjects": 868,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 37,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2025-05-gndc",
+      "seconds": 0.12422612099908292,
+      "counts": {
+        "entry": {
+          "subjects": 854,
+          "no_reference": 1,
+          "multiple_references": 210,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 43,
+          "no_reference": 0,
+          "multiple_references": 32,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2025-01-paris-swing-classic",
+      "seconds": 0.10333700198680162,
+      "counts": {
+        "entry": {
+          "subjects": 842,
+          "no_reference": 0,
+          "multiple_references": 26,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 18,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2025-05-nordic-wcs-championships",
+      "seconds": 0.11028133300715126,
+      "counts": {
+        "entry": {
+          "subjects": 825,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 40,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2026-07-florida-dance-magic",
+      "seconds": 0.5430644100124482,
+      "counts": {
+        "entry": {
+          "subjects": 814,
+          "no_reference": 0,
+          "multiple_references": 99,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 35,
+          "no_reference": 0,
+          "multiple_references": 32,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2024-10-scandinavian-open-wcs-snow",
+      "seconds": 0.0981722229917068,
+      "counts": {
+        "entry": {
+          "subjects": 809,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 56,
+          "no_reference": 0,
+          "multiple_references": 1,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2025-03-boston-tea-party",
+      "seconds": 0.09953202199540101,
+      "counts": {
+        "entry": {
+          "subjects": 809,
+          "no_reference": 48,
+          "multiple_references": 196,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 43,
+          "no_reference": 0,
+          "multiple_references": 11,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2026-02-capital-swing",
+      "seconds": 0.11088062799535692,
+      "counts": {
+        "entry": {
+          "subjects": 803,
+          "no_reference": 23,
+          "multiple_references": 175,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 55,
+          "no_reference": 0,
+          "multiple_references": 41,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2026-04-asia-wcs-open",
+      "seconds": 0.11037950098398142,
+      "counts": {
+        "entry": {
+          "subjects": 803,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 56,
+          "no_reference": 0,
+          "multiple_references": 1,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2025-10-swing-city-chicago",
+      "seconds": 0.47974342698580585,
+      "counts": {
+        "entry": {
+          "subjects": 802,
+          "no_reference": 0,
+          "multiple_references": 118,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 28,
+          "no_reference": 0,
+          "multiple_references": 27,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2026-07-carolina-summer-swing",
+      "seconds": 0.3337830989912618,
+      "counts": {
+        "entry": {
+          "subjects": 799,
+          "no_reference": 0,
+          "multiple_references": 105,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 24,
+          "no_reference": 0,
+          "multiple_references": 24,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2026-05-french-open",
+      "seconds": 0.12289936299202964,
+      "counts": {
+        "entry": {
+          "subjects": 795,
+          "no_reference": 0,
+          "multiple_references": 1,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 50,
+          "no_reference": 0,
+          "multiple_references": 1,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2026-05-gndc",
+      "seconds": 0.10259278898593038,
+      "counts": {
+        "entry": {
+          "subjects": 791,
+          "no_reference": 0,
+          "multiple_references": 230,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 42,
+          "no_reference": 0,
+          "multiple_references": 31,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2026-04-swingover",
+      "seconds": 0.12373990900232457,
+      "counts": {
+        "entry": {
+          "subjects": 787,
+          "no_reference": 13,
+          "multiple_references": 234,
+          "default_id_without_reference": 1
+        },
+        "judge": {
+          "subjects": 32,
+          "no_reference": 0,
+          "multiple_references": 28,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": [
+        {
+          "kind": "entry",
+          "subject_id": "2026-04-swingover/novice-jj/F-374",
+          "snapshot_id": "snap_20260910T032807Z_2a385989d981"
+        }
+      ]
+    },
+    {
+      "event_id": "2025-11-midnight-madness",
+      "seconds": 0.17667325100046583,
+      "counts": {
+        "entry": {
+          "subjects": 775,
+          "no_reference": 5,
+          "multiple_references": 216,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 47,
+          "no_reference": 0,
+          "multiple_references": 27,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2025-08-swingtacular",
+      "seconds": 0.105088178999722,
+      "counts": {
+        "entry": {
+          "subjects": 766,
+          "no_reference": 0,
+          "multiple_references": 358,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 47,
+          "no_reference": 0,
+          "multiple_references": 38,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2025-09-finnfest",
+      "seconds": 0.09484920397517271,
+      "counts": {
+        "entry": {
+          "subjects": 759,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 41,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2026-07-phoenix-of-july",
+      "seconds": 0.09318098600488156,
+      "counts": {
+        "entry": {
+          "subjects": 756,
+          "no_reference": 136,
+          "multiple_references": 157,
+          "default_id_without_reference": 9
+        },
+        "judge": {
+          "subjects": 31,
+          "no_reference": 0,
+          "multiple_references": 22,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": [
+        {
+          "kind": "entry",
+          "subject_id": "2026-07-phoenix-of-july/allstar-jj/L-55",
+          "snapshot_id": "snap_20260910T044014Z_9d9d5f73c530"
+        },
+        {
+          "kind": "entry",
+          "subject_id": "2026-07-phoenix-of-july/champion-jj/L-1060",
+          "snapshot_id": "snap_20260910T044014Z_9d9d5f73c530"
+        },
+        {
+          "kind": "entry",
+          "subject_id": "2026-07-phoenix-of-july/champion-jj/F-1043",
+          "snapshot_id": "snap_20260910T044014Z_9d9d5f73c530"
+        },
+        {
+          "kind": "entry",
+          "subject_id": "2026-07-phoenix-of-july/champion-jj/L-772",
+          "snapshot_id": "snap_20260910T044014Z_9d9d5f73c530"
+        },
+        {
+          "kind": "entry",
+          "subject_id": "2026-07-phoenix-of-july/champion-jj/F-11",
+          "snapshot_id": "snap_20260910T044014Z_9d9d5f73c530"
+        },
+        {
+          "kind": "entry",
+          "subject_id": "2026-07-phoenix-of-july/champion-jj/L-1",
+          "snapshot_id": "snap_20260910T044014Z_9d9d5f73c530"
+        },
+        {
+          "kind": "entry",
+          "subject_id": "2026-07-phoenix-of-july/champion-jj/F-928",
+          "snapshot_id": "snap_20260910T044014Z_9d9d5f73c530"
+        },
+        {
+          "kind": "entry",
+          "subject_id": "2026-07-phoenix-of-july/champion-jj/L-1930",
+          "snapshot_id": "snap_20260910T044014Z_9d9d5f73c530"
+        },
+        {
+          "kind": "entry",
+          "subject_id": "2026-07-phoenix-of-july/champion-jj/L-1918",
+          "snapshot_id": "snap_20260910T044014Z_9d9d5f73c530"
+        }
+      ]
+    },
+    {
+      "event_id": "2026-04-korean-open",
+      "seconds": 0.08787045598728582,
+      "counts": {
+        "entry": {
+          "subjects": 753,
+          "no_reference": 0,
+          "multiple_references": 21,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 41,
+          "no_reference": 0,
+          "multiple_references": 1,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2025-02-capital-swing",
+      "seconds": 0.12413712000125088,
+      "counts": {
+        "entry": {
+          "subjects": 750,
+          "no_reference": 40,
+          "multiple_references": 247,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 55,
+          "no_reference": 0,
+          "multiple_references": 40,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2026-08-swingtacular",
+      "seconds": 0.1401472520083189,
+      "counts": {
+        "entry": {
+          "subjects": 744,
+          "no_reference": 3,
+          "multiple_references": 371,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 45,
+          "no_reference": 0,
+          "multiple_references": 38,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2022-06-d-town-swing",
+      "seconds": 0.13204791498719715,
+      "counts": {
+        "entry": {
+          "subjects": 742,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 44,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2026-06-d-town-swing",
+      "seconds": 0.12697234499501064,
+      "counts": {
+        "entry": {
+          "subjects": 734,
+          "no_reference": 0,
+          "multiple_references": 20,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 39,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2026-06-swingapalooza",
+      "seconds": 0.2614581900124904,
+      "counts": {
+        "entry": {
+          "subjects": 725,
+          "no_reference": 0,
+          "multiple_references": 54,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 22,
+          "no_reference": 0,
+          "multiple_references": 21,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2026-04-city-of-angels-wcs",
+      "seconds": 0.12057434901362285,
+      "counts": {
+        "entry": {
+          "subjects": 724,
+          "no_reference": 0,
+          "multiple_references": 13,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 33,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2025-08-swingtime",
+      "seconds": 0.10249516402836889,
+      "counts": {
+        "entry": {
+          "subjects": 698,
+          "no_reference": 0,
+          "multiple_references": 174,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 35,
+          "no_reference": 0,
+          "multiple_references": 21,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2026-03-west-in-lyon",
+      "seconds": 0.0983419319964014,
+      "counts": {
+        "entry": {
+          "subjects": 694,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 33,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2025-04-swingover",
+      "seconds": 0.09459332699771039,
+      "counts": {
+        "entry": {
+          "subjects": 678,
+          "no_reference": 27,
+          "multiple_references": 201,
+          "default_id_without_reference": 5
+        },
+        "judge": {
+          "subjects": 37,
+          "no_reference": 0,
+          "multiple_references": 32,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": [
+        {
+          "kind": "entry",
+          "subject_id": "2025-04-swingover/champion-jj/L-name-hugo-miguez",
+          "snapshot_id": "snap_20260910T050227Z_01044864eff0"
+        },
+        {
+          "kind": "entry",
+          "subject_id": "2025-04-swingover/champion-jj/F-name-nicole-ramirez",
+          "snapshot_id": "snap_20260910T050227Z_01044864eff0"
+        },
+        {
+          "kind": "entry",
+          "subject_id": "2025-04-swingover/champion-jj/L-name-robert-royston",
+          "snapshot_id": "snap_20260910T050227Z_01044864eff0"
+        },
+        {
+          "kind": "entry",
+          "subject_id": "2025-04-swingover/champion-jj/L-name-thibault-ramirez",
+          "snapshot_id": "snap_20260910T050227Z_01044864eff0"
+        },
+        {
+          "kind": "entry",
+          "subject_id": "2025-04-swingover/champion-jj/F-name-annmarie-marker",
+          "snapshot_id": "snap_20260910T050227Z_01044864eff0"
+        }
+      ]
+    },
+    {
+      "event_id": "2025-07-phoenix-of-july",
+      "seconds": 0.09564429201418534,
+      "counts": {
+        "entry": {
+          "subjects": 664,
+          "no_reference": 97,
+          "multiple_references": 193,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 31,
+          "no_reference": 0,
+          "multiple_references": 23,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2025-11-ceroc-champs",
+      "seconds": 0.09302444400964305,
+      "counts": {
+        "entry": {
+          "subjects": 649,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 34,
+          "no_reference": 0,
+          "multiple_references": 2,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2026-04-swing-in-bloom",
+      "seconds": 0.24873095101793297,
+      "counts": {
+        "entry": {
+          "subjects": 630,
+          "no_reference": 0,
+          "multiple_references": 50,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 27,
+          "no_reference": 0,
+          "multiple_references": 23,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2025-03-king-swing",
+      "seconds": 0.07555517798755318,
+      "counts": {
+        "entry": {
+          "subjects": 628,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 39,
+          "no_reference": 0,
+          "multiple_references": 1,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2026-03-king-swing",
+      "seconds": 0.08430697699077427,
+      "counts": {
+        "entry": {
+          "subjects": 627,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 37,
+          "no_reference": 0,
+          "multiple_references": 1,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2024-09-midland-swing-open",
+      "seconds": 0.07464692299254239,
+      "counts": {
+        "entry": {
+          "subjects": 618,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 38,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2025-10-halloween-swingthing",
+      "seconds": 0.07102098598261364,
+      "counts": {
+        "entry": {
+          "subjects": 610,
+          "no_reference": 0,
+          "multiple_references": 143,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 24,
+          "no_reference": 0,
+          "multiple_references": 22,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2025-08-summer-hummer",
+      "seconds": 0.08063953998498619,
+      "counts": {
+        "entry": {
+          "subjects": 602,
+          "no_reference": 9,
+          "multiple_references": 148,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 32,
+          "no_reference": 0,
+          "multiple_references": 23,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2025-11-northeast-swing-clasic",
+      "seconds": 0.08073045799392276,
+      "counts": {
+        "entry": {
+          "subjects": 599,
+          "no_reference": 35,
+          "multiple_references": 93,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 24,
+          "no_reference": 0,
+          "multiple_references": 16,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2026-03-westie-spring-thing",
+      "seconds": 0.061296013998799026,
+      "counts": {
+        "entry": {
+          "subjects": 593,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 38,
+          "no_reference": 0,
+          "multiple_references": 1,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2026-03-h-town-throw-down",
+      "seconds": 0.06914805801352486,
+      "counts": {
+        "entry": {
+          "subjects": 590,
+          "no_reference": 18,
+          "multiple_references": 120,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 22,
+          "no_reference": 0,
+          "multiple_references": 15,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2025-10-montreal-westie-fest",
+      "seconds": 0.2543780670093838,
+      "counts": {
+        "entry": {
+          "subjects": 589,
+          "no_reference": 0,
+          "multiple_references": 68,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 21,
+          "no_reference": 0,
+          "multiple_references": 21,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2025-12-winter-white",
+      "seconds": 0.06406353000784293,
+      "counts": {
+        "entry": {
+          "subjects": 587,
+          "no_reference": 0,
+          "multiple_references": 12,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 28,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2026-08-summer-hummer",
+      "seconds": 0.08016962098190561,
+      "counts": {
+        "entry": {
+          "subjects": 586,
+          "no_reference": 8,
+          "multiple_references": 133,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 33,
+          "no_reference": 0,
+          "multiple_references": 28,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2026-02-swing-crush",
+      "seconds": 0.07001677199150436,
+      "counts": {
+        "entry": {
+          "subjects": 583,
+          "no_reference": 2,
+          "multiple_references": 132,
+          "default_id_without_reference": 1
+        },
+        "judge": {
+          "subjects": 24,
+          "no_reference": 0,
+          "multiple_references": 16,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": [
+        {
+          "kind": "entry",
+          "subject_id": "2026-02-swing-crush/advanced-jj/L-319",
+          "snapshot_id": "snap_20260910T035512Z_2d3703cb86bd"
+        }
+      ]
+    },
+    {
+      "event_id": "2024-05-soswing-convention",
+      "seconds": 0.047921396006131545,
+      "counts": {
+        "entry": {
+          "subjects": 580,
+          "no_reference": 0,
+          "multiple_references": 1,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 25,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2026-03-boston-tea-party",
+      "seconds": 0.06685029499931261,
+      "counts": {
+        "entry": {
+          "subjects": 576,
+          "no_reference": 37,
+          "multiple_references": 104,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 36,
+          "no_reference": 0,
+          "multiple_references": 23,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2026-01-swingcouver",
+      "seconds": 0.05633273598505184,
+      "counts": {
+        "entry": {
+          "subjects": 573,
+          "no_reference": 117,
+          "multiple_references": 102,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 31,
+          "no_reference": 0,
+          "multiple_references": 23,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2025-07-midwest-westie-fest",
+      "seconds": 0.07074352601193823,
+      "counts": {
+        "entry": {
+          "subjects": 569,
+          "no_reference": 17,
+          "multiple_references": 141,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 21,
+          "no_reference": 0,
+          "multiple_references": 17,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2025-03-novice-invitational",
+      "seconds": 0.06343435897724703,
+      "counts": {
+        "entry": {
+          "subjects": 568,
+          "no_reference": 16,
+          "multiple_references": 175,
+          "default_id_without_reference": 1
+        },
+        "judge": {
+          "subjects": 25,
+          "no_reference": 0,
+          "multiple_references": 13,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": [
+        {
+          "kind": "entry",
+          "subject_id": "2025-03-novice-invitational/intermediate-jj/L-693",
+          "snapshot_id": "snap_20260911T033155Z_75439f7ef4db"
+        }
+      ]
+    },
+    {
+      "event_id": "2025-01-derby-city-swing",
+      "seconds": 0.0635059849882964,
+      "counts": {
+        "entry": {
+          "subjects": 543,
+          "no_reference": 14,
+          "multiple_references": 132,
+          "default_id_without_reference": 4
+        },
+        "judge": {
+          "subjects": 13,
+          "no_reference": 0,
+          "multiple_references": 13,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": [
+        {
+          "kind": "entry",
+          "subject_id": "2025-01-derby-city-swing/allstar-jj/L-253",
+          "snapshot_id": "snap_20260910T043934Z_9a0491ee3846"
+        },
+        {
+          "kind": "entry",
+          "subject_id": "2025-01-derby-city-swing/allstar-jj/F-107",
+          "snapshot_id": "snap_20260910T043934Z_9a0491ee3846"
+        },
+        {
+          "kind": "entry",
+          "subject_id": "2025-01-derby-city-swing/allstar-jj/L-367",
+          "snapshot_id": "snap_20260910T043934Z_9a0491ee3846"
+        },
+        {
+          "kind": "entry",
+          "subject_id": "2025-01-derby-city-swing/allstar-jj/F-185",
+          "snapshot_id": "snap_20260910T043934Z_9a0491ee3846"
+        }
+      ]
+    },
+    {
+      "event_id": "2026-07-midwest-westie-fest",
+      "seconds": 0.06705583800794557,
+      "counts": {
+        "entry": {
+          "subjects": 542,
+          "no_reference": 18,
+          "multiple_references": 148,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 25,
+          "no_reference": 0,
+          "multiple_references": 20,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2026-07-swinglab-berlin",
+      "seconds": 0.051107539009535685,
+      "counts": {
+        "entry": {
+          "subjects": 538,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 31,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2026-01-austin-swing-dance-championships",
+      "seconds": 0.05087970499880612,
+      "counts": {
+        "entry": {
+          "subjects": 536,
+          "no_reference": 2,
+          "multiple_references": 134,
+          "default_id_without_reference": 2
+        },
+        "judge": {
+          "subjects": 20,
+          "no_reference": 0,
+          "multiple_references": 13,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": [
+        {
+          "kind": "entry",
+          "subject_id": "2026-01-austin-swing-dance-championships/advanced-jj/F-462",
+          "snapshot_id": "snap_20260910T035314Z_869249e49e75"
+        },
+        {
+          "kind": "entry",
+          "subject_id": "2026-01-austin-swing-dance-championships/novice-jj/L-498",
+          "snapshot_id": "snap_20260910T035314Z_869249e49e75"
+        }
+      ]
+    },
+    {
+      "event_id": "2026-07-mediterranean-open",
+      "seconds": 0.07262778698350303,
+      "counts": {
+        "entry": {
+          "subjects": 517,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 39,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2026-03-all-star-swingjam",
+      "seconds": 0.05095253899344243,
+      "counts": {
+        "entry": {
+          "subjects": 513,
+          "no_reference": 0,
+          "multiple_references": 30,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 17,
+          "no_reference": 0,
+          "multiple_references": 2,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2025-06-baltic-swing",
+      "seconds": 0.049352113011991605,
+      "counts": {
+        "entry": {
+          "subjects": 508,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 26,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2025-12-westie-gala",
+      "seconds": 0.05010336701525375,
+      "counts": {
+        "entry": {
+          "subjects": 508,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 28,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2024-10-wcs-festival-dusseldorf",
+      "seconds": 0.045005962980212644,
+      "counts": {
+        "entry": {
+          "subjects": 505,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 25,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2025-01-austin-swing-dance-championships",
+      "seconds": 0.05250246400828473,
+      "counts": {
+        "entry": {
+          "subjects": 503,
+          "no_reference": 2,
+          "multiple_references": 125,
+          "default_id_without_reference": 1
+        },
+        "judge": {
+          "subjects": 22,
+          "no_reference": 0,
+          "multiple_references": 15,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": [
+        {
+          "kind": "entry",
+          "subject_id": "2025-01-austin-swing-dance-championships/intermediate-jj/L-366",
+          "snapshot_id": "snap_20260910T050718Z_50518948ca91"
+        }
+      ]
+    },
+    {
+      "event_id": "2025-02-swing-crush",
+      "seconds": 0.04838989899144508,
+      "counts": {
+        "entry": {
+          "subjects": 491,
+          "no_reference": 0,
+          "multiple_references": 96,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 19,
+          "no_reference": 0,
+          "multiple_references": 14,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2025-10-swingside-invitational",
+      "seconds": 0.04341495499829762,
+      "counts": {
+        "entry": {
+          "subjects": 489,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 34,
+          "no_reference": 0,
+          "multiple_references": 1,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2024-10-westie-s-angels",
+      "seconds": 0.054547393025131896,
+      "counts": {
+        "entry": {
+          "subjects": 487,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 25,
+          "no_reference": 0,
+          "multiple_references": 7,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2026-04-swing-in-capital",
+      "seconds": 0.03741575399180874,
+      "counts": {
+        "entry": {
+          "subjects": 487,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 27,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2025-11-westie-s-angels",
+      "seconds": 0.05447985097998753,
+      "counts": {
+        "entry": {
+          "subjects": 483,
+          "no_reference": 0,
+          "multiple_references": 2,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 27,
+          "no_reference": 0,
+          "multiple_references": 1,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2024-12-westie-gala",
+      "seconds": 0.042179779993603006,
+      "counts": {
+        "entry": {
+          "subjects": 482,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 23,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2023-12-global-grand-prix-swing-dance-championships",
+      "seconds": 0.04568534198915586,
+      "counts": {
+        "entry": {
+          "subjects": 479,
+          "no_reference": 0,
+          "multiple_references": 3,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 40,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2026-04-tulsa-spring-swing",
+      "seconds": 0.03576516101020388,
+      "counts": {
+        "entry": {
+          "subjects": 478,
+          "no_reference": 103,
+          "multiple_references": 54,
+          "default_id_without_reference": 5
+        },
+        "judge": {
+          "subjects": 23,
+          "no_reference": 0,
+          "multiple_references": 13,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": [
+        {
+          "kind": "entry",
+          "subject_id": "2026-04-tulsa-spring-swing/allstar-jj/F-202",
+          "snapshot_id": "snap_20260910T032508Z_4387d376bc4a"
+        },
+        {
+          "kind": "entry",
+          "subject_id": "2026-04-tulsa-spring-swing/allstar-jj/L-336",
+          "snapshot_id": "snap_20260910T032508Z_4387d376bc4a"
+        },
+        {
+          "kind": "entry",
+          "subject_id": "2026-04-tulsa-spring-swing/allstar-jj/F-384",
+          "snapshot_id": "snap_20260910T032508Z_4387d376bc4a"
+        },
+        {
+          "kind": "entry",
+          "subject_id": "2026-04-tulsa-spring-swing/allstar-jj/L-385",
+          "snapshot_id": "snap_20260910T032508Z_4387d376bc4a"
+        },
+        {
+          "kind": "entry",
+          "subject_id": "2026-04-tulsa-spring-swing/allstar-jj/F-375",
+          "snapshot_id": "snap_20260910T032508Z_4387d376bc4a"
+        }
+      ]
+    },
+    {
+      "event_id": "2025-04-detonation-dance",
+      "seconds": 0.039095347019610927,
+      "counts": {
+        "entry": {
+          "subjects": 477,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 17,
+          "no_reference": 0,
+          "multiple_references": 1,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2025-06-michigan-classic",
+      "seconds": 0.05002153301029466,
+      "counts": {
+        "entry": {
+          "subjects": 475,
+          "no_reference": 18,
+          "multiple_references": 111,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 15,
+          "no_reference": 0,
+          "multiple_references": 9,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2025-01-freedom-swing-dance-challenge",
+      "seconds": 0.04650818000664003,
+      "counts": {
+        "entry": {
+          "subjects": 474,
+          "no_reference": 50,
+          "multiple_references": 112,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 13,
+          "no_reference": 0,
+          "multiple_references": 13,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2026-01-countdown-swing-boston",
+      "seconds": 0.04825760598760098,
+      "counts": {
+        "entry": {
+          "subjects": 464,
+          "no_reference": 59,
+          "multiple_references": 94,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 22,
+          "no_reference": 0,
+          "multiple_references": 21,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2025-04-tulsa-spring-swing",
+      "seconds": 0.04305978599586524,
+      "counts": {
+        "entry": {
+          "subjects": 458,
+          "no_reference": 129,
+          "multiple_references": 54,
+          "default_id_without_reference": 11
+        },
+        "judge": {
+          "subjects": 26,
+          "no_reference": 0,
+          "multiple_references": 5,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": [
+        {
+          "kind": "entry",
+          "subject_id": "2025-04-tulsa-spring-swing/advanced-jj/L-402",
+          "snapshot_id": "snap_20260912T163231Z_3b5ab60a8800"
+        },
+        {
+          "kind": "entry",
+          "subject_id": "2025-04-tulsa-spring-swing/advanced-jj/F-396",
+          "snapshot_id": "snap_20260912T163231Z_3b5ab60a8800"
+        },
+        {
+          "kind": "entry",
+          "subject_id": "2025-04-tulsa-spring-swing/advanced-jj/L-415",
+          "snapshot_id": "snap_20260912T163231Z_3b5ab60a8800"
+        },
+        {
+          "kind": "entry",
+          "subject_id": "2025-04-tulsa-spring-swing/advanced-jj/F-154",
+          "snapshot_id": "snap_20260912T163231Z_3b5ab60a8800"
+        },
+        {
+          "kind": "entry",
+          "subject_id": "2025-04-tulsa-spring-swing/advanced-jj/L-372",
+          "snapshot_id": "snap_20260912T163231Z_3b5ab60a8800"
+        },
+        {
+          "kind": "entry",
+          "subject_id": "2025-04-tulsa-spring-swing/advanced-jj/F-321",
+          "snapshot_id": "snap_20260912T163231Z_3b5ab60a8800"
+        },
+        {
+          "kind": "entry",
+          "subject_id": "2025-04-tulsa-spring-swing/allstar-jj/L-124",
+          "snapshot_id": "snap_20260912T163231Z_3b5ab60a8800"
+        },
+        {
+          "kind": "entry",
+          "subject_id": "2025-04-tulsa-spring-swing/allstar-jj/F-136",
+          "snapshot_id": "snap_20260912T163231Z_3b5ab60a8800"
+        },
+        {
+          "kind": "entry",
+          "subject_id": "2025-04-tulsa-spring-swing/allstar-jj/L-318",
+          "snapshot_id": "snap_20260912T163231Z_3b5ab60a8800"
+        },
+        {
+          "kind": "entry",
+          "subject_id": "2025-04-tulsa-spring-swing/allstar-jj/F-305",
+          "snapshot_id": "snap_20260912T163231Z_3b5ab60a8800"
+        }
+      ]
+    },
+    {
+      "event_id": "2026-05-michigan-classic",
+      "seconds": 0.04952419700566679,
+      "counts": {
+        "entry": {
+          "subjects": 454,
+          "no_reference": 24,
+          "multiple_references": 75,
+          "default_id_without_reference": 8
+        },
+        "judge": {
+          "subjects": 22,
+          "no_reference": 0,
+          "multiple_references": 20,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": [
+        {
+          "kind": "entry",
+          "subject_id": "2026-05-michigan-classic/novice-jj/F-57",
+          "snapshot_id": "snap_20260911T033424Z_57146af871b0"
+        },
+        {
+          "kind": "entry",
+          "subject_id": "2026-05-michigan-classic/novice-jj/L-337",
+          "snapshot_id": "snap_20260911T033424Z_57146af871b0"
+        },
+        {
+          "kind": "entry",
+          "subject_id": "2026-05-michigan-classic/champion-jj/L-name-kyle-fitzgerald",
+          "snapshot_id": "snap_20260911T033424Z_57146af871b0"
+        },
+        {
+          "kind": "entry",
+          "subject_id": "2026-05-michigan-classic/champion-jj/F-name-susan-kirklin",
+          "snapshot_id": "snap_20260911T033424Z_57146af871b0"
+        },
+        {
+          "kind": "entry",
+          "subject_id": "2026-05-michigan-classic/champion-jj/L-name-gary-mcintyre",
+          "snapshot_id": "snap_20260911T033424Z_57146af871b0"
+        },
+        {
+          "kind": "entry",
+          "subject_id": "2026-05-michigan-classic/champion-jj/F-name-melodie-paletta",
+          "snapshot_id": "snap_20260911T033424Z_57146af871b0"
+        },
+        {
+          "kind": "entry",
+          "subject_id": "2026-05-michigan-classic/champion-jj/L-name-robert-cordoba",
+          "snapshot_id": "snap_20260911T033424Z_57146af871b0"
+        },
+        {
+          "kind": "entry",
+          "subject_id": "2026-05-michigan-classic/champion-jj/F-name-alexis-garrish",
+          "snapshot_id": "snap_20260911T033424Z_57146af871b0"
+        }
+      ]
+    },
+    {
+      "event_id": "2025-08-uptown-swing",
+      "seconds": 0.039011637010844424,
+      "counts": {
+        "entry": {
+          "subjects": 449,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 28,
+          "no_reference": 0,
+          "multiple_references": 1,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2025-11-rocket-city-swing",
+      "seconds": 0.06412548798834905,
+      "counts": {
+        "entry": {
+          "subjects": 445,
+          "no_reference": 0,
+          "multiple_references": 58,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 25,
+          "no_reference": 0,
+          "multiple_references": 25,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2025-11-westie-pink-city",
+      "seconds": 0.034791988000506535,
+      "counts": {
+        "entry": {
+          "subjects": 434,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 27,
+          "no_reference": 0,
+          "multiple_references": 1,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2026-01-ucwdc-country-dance-world-championships",
+      "seconds": 0.03658458200516179,
+      "counts": {
+        "entry": {
+          "subjects": 430,
+          "no_reference": 28,
+          "multiple_references": 80,
+          "default_id_without_reference": 5
+        },
+        "judge": {
+          "subjects": 25,
+          "no_reference": 0,
+          "multiple_references": 22,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": [
+        {
+          "kind": "entry",
+          "subject_id": "2026-01-ucwdc-country-dance-world-championships/allstar-jj/L-840",
+          "snapshot_id": "snap_20260910T051056Z_96403ace93f5"
+        },
+        {
+          "kind": "entry",
+          "subject_id": "2026-01-ucwdc-country-dance-world-championships/allstar-jj/F-940",
+          "snapshot_id": "snap_20260910T051056Z_96403ace93f5"
+        },
+        {
+          "kind": "entry",
+          "subject_id": "2026-01-ucwdc-country-dance-world-championships/allstar-jj/L-702",
+          "snapshot_id": "snap_20260910T051056Z_96403ace93f5"
+        },
+        {
+          "kind": "entry",
+          "subject_id": "2026-01-ucwdc-country-dance-world-championships/allstar-jj/L-872",
+          "snapshot_id": "snap_20260910T051056Z_96403ace93f5"
+        },
+        {
+          "kind": "entry",
+          "subject_id": "2026-01-ucwdc-country-dance-world-championships/allstar-jj/F-892",
+          "snapshot_id": "snap_20260910T051056Z_96403ace93f5"
+        }
+      ]
+    },
+    {
+      "event_id": "2026-05-gateway-swing-classic",
+      "seconds": 0.04749547800747678,
+      "counts": {
+        "entry": {
+          "subjects": 428,
+          "no_reference": 82,
+          "multiple_references": 78,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 21,
+          "no_reference": 0,
+          "multiple_references": 18,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2026-01-avignon-city-swing",
+      "seconds": 0.028529161005280912,
+      "counts": {
+        "entry": {
+          "subjects": 418,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 24,
+          "no_reference": 0,
+          "multiple_references": 4,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2023-04-detonation-dance",
+      "seconds": 0.029416667006444186,
+      "counts": {
+        "entry": {
+          "subjects": 413,
+          "no_reference": 0,
+          "multiple_references": 3,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 14,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2026-01-freedom-swing-dance-challenge",
+      "seconds": 0.02686556801199913,
+      "counts": {
+        "entry": {
+          "subjects": 392,
+          "no_reference": 42,
+          "multiple_references": 50,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 15,
+          "no_reference": 0,
+          "multiple_references": 14,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2023-09-midland-swing-open",
+      "seconds": 0.0370091260119807,
+      "counts": {
+        "entry": {
+          "subjects": 390,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 20,
+          "no_reference": 0,
+          "multiple_references": 1,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2025-10-augsburg-westie-station",
+      "seconds": 0.03213205700740218,
+      "counts": {
+        "entry": {
+          "subjects": 379,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 34,
+          "no_reference": 0,
+          "multiple_references": 5,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2026-02-winter-coast-swing",
+      "seconds": 0.02883383000153117,
+      "counts": {
+        "entry": {
+          "subjects": 368,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 21,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2025-08-grand-party-sofia",
+      "seconds": 0.027012028003809974,
+      "counts": {
+        "entry": {
+          "subjects": 366,
+          "no_reference": 0,
+          "multiple_references": 2,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 20,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2024-05-hungarian-open",
+      "seconds": 0.027262404008070007,
+      "counts": {
+        "entry": {
+          "subjects": 365,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 24,
+          "no_reference": 0,
+          "multiple_references": 1,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2023-09-finnfest",
+      "seconds": 0.02721386300981976,
+      "counts": {
+        "entry": {
+          "subjects": 358,
+          "no_reference": 0,
+          "multiple_references": 2,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 27,
+          "no_reference": 0,
+          "multiple_references": 1,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2026-01-derby-city-swing",
+      "seconds": 0.02535147700109519,
+      "counts": {
+        "entry": {
+          "subjects": 346,
+          "no_reference": 44,
+          "multiple_references": 68,
+          "default_id_without_reference": 6
+        },
+        "judge": {
+          "subjects": 12,
+          "no_reference": 0,
+          "multiple_references": 9,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": [
+        {
+          "kind": "entry",
+          "subject_id": "2026-01-derby-city-swing/allstar-jj/L-228",
+          "snapshot_id": "snap_20260910T050513Z_16d01d064530"
+        },
+        {
+          "kind": "entry",
+          "subject_id": "2026-01-derby-city-swing/allstar-jj/F-224",
+          "snapshot_id": "snap_20260910T050513Z_16d01d064530"
+        },
+        {
+          "kind": "entry",
+          "subject_id": "2026-01-derby-city-swing/allstar-jj/L-273",
+          "snapshot_id": "snap_20260910T050513Z_16d01d064530"
+        },
+        {
+          "kind": "entry",
+          "subject_id": "2026-01-derby-city-swing/allstar-jj/F-230",
+          "snapshot_id": "snap_20260910T050513Z_16d01d064530"
+        },
+        {
+          "kind": "entry",
+          "subject_id": "2026-01-derby-city-swing/allstar-jj/L-248",
+          "snapshot_id": "snap_20260910T050513Z_16d01d064530"
+        },
+        {
+          "kind": "entry",
+          "subject_id": "2026-01-derby-city-swing/allstar-jj/F-264",
+          "snapshot_id": "snap_20260910T050513Z_16d01d064530"
+        }
+      ]
+    },
+    {
+      "event_id": "2026-02-waterloo-ontario-open-west-coast-swing-championships",
+      "seconds": 0.10675702200387605,
+      "counts": {
+        "entry": {
+          "subjects": 341,
+          "no_reference": 0,
+          "multiple_references": 40,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 20,
+          "no_reference": 0,
+          "multiple_references": 20,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2025-02-winter-coast-swing",
+      "seconds": 0.024766264978097752,
+      "counts": {
+        "entry": {
+          "subjects": 338,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 19,
+          "no_reference": 0,
+          "multiple_references": 1,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2023-12-westie-gala",
+      "seconds": 0.0339693590067327,
+      "counts": {
+        "entry": {
+          "subjects": 337,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 22,
+          "no_reference": 0,
+          "multiple_references": 2,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2025-02-valentine-swing",
+      "seconds": 0.023090464004781097,
+      "counts": {
+        "entry": {
+          "subjects": 326,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 26,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2024-03-5280-westival",
+      "seconds": 0.03239884998765774,
+      "counts": {
+        "entry": {
+          "subjects": 317,
+          "no_reference": 0,
+          "multiple_references": 5,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 19,
+          "no_reference": 1,
+          "multiple_references": 1,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2026-08-bristol-swing-fiesta",
+      "seconds": 0.020893159991828725,
+      "counts": {
+        "entry": {
+          "subjects": 317,
+          "no_reference": 0,
+          "multiple_references": 2,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 21,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2026-06-disco-america",
+      "seconds": 0.04469579498982057,
+      "counts": {
+        "entry": {
+          "subjects": 313,
+          "no_reference": 36,
+          "multiple_references": 15,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 22,
+          "no_reference": 0,
+          "multiple_references": 21,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2025-10-swustlicious",
+      "seconds": 0.0728269130049739,
+      "counts": {
+        "entry": {
+          "subjects": 308,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 13,
+          "no_reference": 0,
+          "multiple_references": 13,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2025-01-munich-bachata-fest",
+      "seconds": 0.02210550001473166,
+      "counts": {
+        "entry": {
+          "subjects": 304,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 31,
+          "no_reference": 0,
+          "multiple_references": 2,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2025-06-barock-swing-ludwigsburg",
+      "seconds": 0.02284937899094075,
+      "counts": {
+        "entry": {
+          "subjects": 300,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 28,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2025-08-arizona-dance-classic",
+      "seconds": 0.015512546000536531,
+      "counts": {
+        "entry": {
+          "subjects": 293,
+          "no_reference": 104,
+          "multiple_references": 0,
+          "default_id_without_reference": 5
+        },
+        "judge": {
+          "subjects": 25,
+          "no_reference": 0,
+          "multiple_references": 20,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": [
+        {
+          "kind": "entry",
+          "subject_id": "2025-08-arizona-dance-classic/allstar-jj/L-771",
+          "snapshot_id": "snap_20260910T035609Z_ef10fd92350c"
+        },
+        {
+          "kind": "entry",
+          "subject_id": "2025-08-arizona-dance-classic/allstar-jj/F-769",
+          "snapshot_id": "snap_20260910T035609Z_ef10fd92350c"
+        },
+        {
+          "kind": "entry",
+          "subject_id": "2025-08-arizona-dance-classic/allstar-jj/L-775",
+          "snapshot_id": "snap_20260910T035609Z_ef10fd92350c"
+        },
+        {
+          "kind": "entry",
+          "subject_id": "2025-08-arizona-dance-classic/allstar-jj/F-770",
+          "snapshot_id": "snap_20260910T035609Z_ef10fd92350c"
+        },
+        {
+          "kind": "entry",
+          "subject_id": "2025-08-arizona-dance-classic/allstar-jj/L-973",
+          "snapshot_id": "snap_20260910T035609Z_ef10fd92350c"
+        }
+      ]
+    },
+    {
+      "event_id": "2026-03-new-york-flow-festival",
+      "seconds": 0.023159756005043164,
+      "counts": {
+        "entry": {
+          "subjects": 293,
+          "no_reference": 21,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 15,
+          "no_reference": 0,
+          "multiple_references": 7,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2024-06-disco-america",
+      "seconds": 0.028011909016640857,
+      "counts": {
+        "entry": {
+          "subjects": 290,
+          "no_reference": 25,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 20,
+          "no_reference": 0,
+          "multiple_references": 18,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2025-10-sass",
+      "seconds": 0.016771095019066706,
+      "counts": {
+        "entry": {
+          "subjects": 285,
+          "no_reference": 54,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 16,
+          "no_reference": 0,
+          "multiple_references": 16,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2023-06-hungarian-open",
+      "seconds": 0.02496001697727479,
+      "counts": {
+        "entry": {
+          "subjects": 284,
+          "no_reference": 0,
+          "multiple_references": 2,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 26,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2026-07-saunaswing",
+      "seconds": 0.019112441019387916,
+      "counts": {
+        "entry": {
+          "subjects": 282,
+          "no_reference": 0,
+          "multiple_references": 3,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 22,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2025-05-westie-weekend",
+      "seconds": 0.023010005010291934,
+      "counts": {
+        "entry": {
+          "subjects": 275,
+          "no_reference": 0,
+          "multiple_references": 57,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 15,
+          "no_reference": 0,
+          "multiple_references": 13,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2026-05-westie-weekend",
+      "seconds": 0.022871629014844075,
+      "counts": {
+        "entry": {
+          "subjects": 270,
+          "no_reference": 0,
+          "multiple_references": 86,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 17,
+          "no_reference": 0,
+          "multiple_references": 12,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2025-09-philly-swing-classic",
+      "seconds": 0.01581867301138118,
+      "counts": {
+        "entry": {
+          "subjects": 265,
+          "no_reference": 57,
+          "multiple_references": 6,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 14,
+          "no_reference": 0,
+          "multiple_references": 12,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2023-12-berlin-swing-revolution",
+      "seconds": 0.018527145992266014,
+      "counts": {
+        "entry": {
+          "subjects": 255,
+          "no_reference": 0,
+          "multiple_references": 2,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 26,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2025-12-new-year-s-swing-fling",
+      "seconds": 0.026703985000494868,
+      "counts": {
+        "entry": {
+          "subjects": 253,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 16,
+          "no_reference": 0,
+          "multiple_references": 1,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2026-02-trinity-swing",
+      "seconds": 0.016825636994326487,
+      "counts": {
+        "entry": {
+          "subjects": 253,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 13,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2026-05-beemad",
+      "seconds": 0.018863023986341432,
+      "counts": {
+        "entry": {
+          "subjects": 252,
+          "no_reference": 0,
+          "multiple_references": 1,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 21,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2025-12-swingle-bell-rock",
+      "seconds": 0.01800693600671366,
+      "counts": {
+        "entry": {
+          "subjects": 251,
+          "no_reference": 94,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 20,
+          "no_reference": 0,
+          "multiple_references": 19,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2025-03-bachata-geneva-festival-bachata-social-world-cup",
+      "seconds": 0.020611116982763633,
+      "counts": {
+        "entry": {
+          "subjects": 246,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 30,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2024-09-retaliation-swing",
+      "seconds": 0.01635071699274704,
+      "counts": {
+        "entry": {
+          "subjects": 236,
+          "no_reference": 0,
+          "multiple_references": 2,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 21,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2025-02-swingtzerland",
+      "seconds": 0.017222181020770222,
+      "counts": {
+        "entry": {
+          "subjects": 235,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 21,
+          "no_reference": 0,
+          "multiple_references": 1,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2025-08-ne-dance-festival",
+      "seconds": 0.01620284200180322,
+      "counts": {
+        "entry": {
+          "subjects": 227,
+          "no_reference": 11,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 13,
+          "no_reference": 0,
+          "multiple_references": 8,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2024-04-dutch-open",
+      "seconds": 0.015112584980670363,
+      "counts": {
+        "entry": {
+          "subjects": 217,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 17,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2026-02-swingtzerland",
+      "seconds": 0.015422754018800333,
+      "counts": {
+        "entry": {
+          "subjects": 212,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 29,
+          "no_reference": 0,
+          "multiple_references": 1,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2026-06-orange-blossom",
+      "seconds": 0.016142799984663725,
+      "counts": {
+        "entry": {
+          "subjects": 204,
+          "no_reference": 10,
+          "multiple_references": 40,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 14,
+          "no_reference": 0,
+          "multiple_references": 12,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2023-07-rock-the-barn",
+      "seconds": 0.014016453991644084,
+      "counts": {
+        "entry": {
+          "subjects": 202,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 14,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2025-05-festival-city-swing-edinburgh",
+      "seconds": 0.013798703002976254,
+      "counts": {
+        "entry": {
+          "subjects": 198,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 16,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2024-09-mooseland-swing",
+      "seconds": 0.013171783008147031,
+      "counts": {
+        "entry": {
+          "subjects": 186,
+          "no_reference": 0,
+          "multiple_references": 1,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 15,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2026-05-swingin-into-spring",
+      "seconds": 0.01908106601331383,
+      "counts": {
+        "entry": {
+          "subjects": 186,
+          "no_reference": 0,
+          "multiple_references": 38,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 12,
+          "no_reference": 0,
+          "multiple_references": 11,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2025-01-nj-hustle-congress",
+      "seconds": 0.012795823015039787,
+      "counts": {
+        "entry": {
+          "subjects": 173,
+          "no_reference": 52,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 5,
+          "no_reference": 0,
+          "multiple_references": 5,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2025-02-trinity-swing",
+      "seconds": 0.012729029986076057,
+      "counts": {
+        "entry": {
+          "subjects": 170,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 16,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2020-01-municorn-swing",
+      "seconds": 0.011642441008007154,
+      "counts": {
+        "entry": {
+          "subjects": 159,
+          "no_reference": 0,
+          "multiple_references": 2,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 25,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2026-07-big-apple-dance-festival",
+      "seconds": 0.01262578001478687,
+      "counts": {
+        "entry": {
+          "subjects": 158,
+          "no_reference": 28,
+          "multiple_references": 50,
+          "default_id_without_reference": 3
+        },
+        "judge": {
+          "subjects": 8,
+          "no_reference": 0,
+          "multiple_references": 8,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": [
+        {
+          "kind": "entry",
+          "subject_id": "2026-07-big-apple-dance-festival/advanced-jj/F-289",
+          "snapshot_id": "snap_20260910T044258Z_0f47de14cc3e"
+        },
+        {
+          "kind": "entry",
+          "subject_id": "2026-07-big-apple-dance-festival/advanced-jj/L-299",
+          "snapshot_id": "snap_20260910T044258Z_0f47de14cc3e"
+        },
+        {
+          "kind": "entry",
+          "subject_id": "2026-07-big-apple-dance-festival/advanced-jj/F-276",
+          "snapshot_id": "snap_20260910T044258Z_0f47de14cc3e"
+        }
+      ]
+    },
+    {
+      "event_id": "2024-07-saunaswing",
+      "seconds": 0.011403440003050491,
+      "counts": {
+        "entry": {
+          "subjects": 151,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 13,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2025-06-orange-blossom",
+      "seconds": 0.013087200000882149,
+      "counts": {
+        "entry": {
+          "subjects": 148,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 14,
+          "no_reference": 0,
+          "multiple_references": 13,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2021-09-midland-swing-open",
+      "seconds": 0.021493912994628772,
+      "counts": {
+        "entry": {
+          "subjects": 146,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 9,
+          "no_reference": 0,
+          "multiple_references": 6,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2025-07-dance-mardi-gras",
+      "seconds": 0.012862281000707299,
+      "counts": {
+        "entry": {
+          "subjects": 146,
+          "no_reference": 14,
+          "multiple_references": 0,
+          "default_id_without_reference": 6
+        },
+        "judge": {
+          "subjects": 15,
+          "no_reference": 0,
+          "multiple_references": 8,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": [
+        {
+          "kind": "entry",
+          "subject_id": "2025-07-dance-mardi-gras/newcomer-jj/L-263",
+          "snapshot_id": "snap_20260910T032050Z_fe17fb6373e3"
+        },
+        {
+          "kind": "entry",
+          "subject_id": "2025-07-dance-mardi-gras/newcomer-jj/F-120",
+          "snapshot_id": "snap_20260910T032050Z_fe17fb6373e3"
+        },
+        {
+          "kind": "entry",
+          "subject_id": "2025-07-dance-mardi-gras/newcomer-jj/L-169",
+          "snapshot_id": "snap_20260910T032050Z_fe17fb6373e3"
+        },
+        {
+          "kind": "entry",
+          "subject_id": "2025-07-dance-mardi-gras/newcomer-jj/F-244",
+          "snapshot_id": "snap_20260910T032050Z_fe17fb6373e3"
+        },
+        {
+          "kind": "entry",
+          "subject_id": "2025-07-dance-mardi-gras/newcomer-jj/L-283",
+          "snapshot_id": "snap_20260910T032050Z_fe17fb6373e3"
+        },
+        {
+          "kind": "entry",
+          "subject_id": "2025-07-dance-mardi-gras/newcomer-jj/F-174",
+          "snapshot_id": "snap_20260910T032050Z_fe17fb6373e3"
+        }
+      ]
+    },
+    {
+      "event_id": "2025-09-bachata-sensual-chicago",
+      "seconds": 0.010218099982012063,
+      "counts": {
+        "entry": {
+          "subjects": 144,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 13,
+          "no_reference": 0,
+          "multiple_references": 2,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2025-05-swingin-into-spring",
+      "seconds": 0.009828679991187528,
+      "counts": {
+        "entry": {
+          "subjects": 140,
+          "no_reference": 7,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 10,
+          "no_reference": 0,
+          "multiple_references": 10,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2025-07-big-apple-cdf",
+      "seconds": 0.00893163401633501,
+      "counts": {
+        "entry": {
+          "subjects": 133,
+          "no_reference": 27,
+          "multiple_references": 52,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 8,
+          "no_reference": 0,
+          "multiple_references": 8,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2026-01-nj-hustle-congress",
+      "seconds": 0.010053890000563115,
+      "counts": {
+        "entry": {
+          "subjects": 126,
+          "no_reference": 15,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 5,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2023-10-augsburg-westie-station",
+      "seconds": 0.007487335009500384,
+      "counts": {
+        "entry": {
+          "subjects": 110,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 11,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2026-01-bachazouk-bachata-festival",
+      "seconds": 0.006857539003249258,
+      "counts": {
+        "entry": {
+          "subjects": 110,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 20,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2024-06-bachata-sensual-congress-germany",
+      "seconds": 0.0072091660113073885,
+      "counts": {
+        "entry": {
+          "subjects": 98,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 20,
+          "no_reference": 0,
+          "multiple_references": 1,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2024-12-copenhagen-bachata-congress",
+      "seconds": 0.007209249015431851,
+      "counts": {
+        "entry": {
+          "subjects": 96,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 19,
+          "no_reference": 0,
+          "multiple_references": 1,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2024-11-flowstate",
+      "seconds": 0.009019384015118703,
+      "counts": {
+        "entry": {
+          "subjects": 86,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 12,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2020-02-carnival-swing-cologne",
+      "seconds": 0.004254482977557927,
+      "counts": {
+        "entry": {
+          "subjects": 72,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 10,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2019-02-carnival-swing-cologne",
+      "seconds": 0.0037377300031948835,
+      "counts": {
+        "entry": {
+          "subjects": 64,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 10,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2025-09-extravadanza-bachata-congress",
+      "seconds": 0.005033070017816499,
+      "counts": {
+        "entry": {
+          "subjects": 62,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 14,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2024-09-bindaas-bachata-festival",
+      "seconds": 0.003955731022870168,
+      "counts": {
+        "entry": {
+          "subjects": 53,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 11,
+          "no_reference": 0,
+          "multiple_references": 1,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2024-10-bachata-explosion",
+      "seconds": 0.003767728980164975,
+      "counts": {
+        "entry": {
+          "subjects": 52,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 16,
+          "no_reference": 0,
+          "multiple_references": 1,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2025-03-bindaas-bachata-festival",
+      "seconds": 0.00465294299647212,
+      "counts": {
+        "entry": {
+          "subjects": 40,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 36,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2025-01-terra-livre-dance-festival-winter-edition",
+      "seconds": 0.002882975008105859,
+      "counts": {
+        "entry": {
+          "subjects": 39,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 8,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2025-02-bachatation-festival",
+      "seconds": 0.0026530979957897216,
+      "counts": {
+        "entry": {
+          "subjects": 29,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 12,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2024-11-pure-bachata-winter-festival",
+      "seconds": 0.0021145119972061366,
+      "counts": {
+        "entry": {
+          "subjects": 28,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 15,
+          "no_reference": 0,
+          "multiple_references": 1,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2018-11-cozyswing",
+      "seconds": 0.0009840890124905854,
+      "counts": {
+        "entry": {
+          "subjects": 18,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 5,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    },
+    {
+      "event_id": "2026-08-arizona-dance-classic",
+      "seconds": 0.0011702570191118866,
+      "counts": {
+        "entry": {
+          "subjects": 17,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        },
+        "judge": {
+          "subjects": 7,
+          "no_reference": 0,
+          "multiple_references": 0,
+          "default_id_without_reference": 0
+        }
+      },
+      "missing_default_reference_examples": []
+    }
+  ]
+}

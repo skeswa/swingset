@@ -1,0 +1,848 @@
+{
+  "after": {
+    "backup_neutral_meta": {
+      "count": 12,
+      "sha256": "bced29ce278b6df3fba4ee694dbe478518dd60e8ff1ce93d01d02faa8d6ae673"
+    },
+    "schema": 11,
+    "tables": {
+      "accepted_inputs": {
+        "count": 48,
+        "sha256": "e76c985711abb70ca4bf557ea75a294f88766c8953bc30faf43bab638337161d"
+      },
+      "admission_decisions": {
+        "count": 31610,
+        "sha256": "c755c03e3f01fb9f54df68e7d54908c368cea665d0d853dfa934968063a924fd"
+      },
+      "admission_policies": {
+        "count": 13,
+        "sha256": "300651d0a2eeb9ad91696c7f49bb0a22b067a322fd8f67644d4dd2c8b483090a"
+      },
+      "admission_reviews": {
+        "count": 9,
+        "sha256": "ab1f192a4e9e4e6dfe3bcb296af1d682b71a37ce85deaba3e8c349d4416394a3"
+      },
+      "archive_captures": {
+        "count": 32,
+        "sha256": "4b8c72d093dd415fe2d7a9c89359af379c019f9e313e2854b8b305e6009bfa2b"
+      },
+      "archive_queries": {
+        "count": 15,
+        "sha256": "672868210f8a15815829f1c7563bd68c33125249dfac67be520c2db737c52c87"
+      },
+      "backup_uploads": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "callback_marks": {
+        "count": 484141,
+        "sha256": "2a26c3b338e0e3d321e2a8c1d31943584bf66b282b5794a31a26e541f3e10219"
+      },
+      "callbacks": {
+        "count": 98481,
+        "sha256": "f5da42003f2f2a4d50bd56efc29ec86bfc2d32ccff4549047a0ff1bff64d28b2"
+      },
+      "canonical_scope_rows": {
+        "count": 1058390,
+        "sha256": "f6106fdb1f8d4b9cb696a1532966d5c3d3776409d42e006503ef8149ff7fcb78"
+      },
+      "contests": {
+        "count": 2644,
+        "sha256": "0fd02b5c9578a25fca6bd187a56ec0277f559e44093044faf52820614aacd19c"
+      },
+      "coverage": {
+        "count": 66,
+        "sha256": "6aec7d24725b064f9915590af2b7f107ff497b7bbdb094130662bf80c175fefc"
+      },
+      "cursors": {
+        "count": 4,
+        "sha256": "1c53a23629f72d89ac1ca90d804f3d530d8edf7e3c2d1b6dceebcedf29b33cc7"
+      },
+      "dancers": {
+        "count": 27784,
+        "sha256": "61c9c6c37398b0e34895c14ca16cd4d6bcced83d9d71e54cc60ef3e758fa3c81"
+      },
+      "entries": {
+        "count": 93820,
+        "sha256": "0246e69ef8b2d06e52f428c3672c21ff59259238359370cd26f5afee1f83d232"
+      },
+      "events": {
+        "count": 2541,
+        "sha256": "28b88cc0ae8b3b201b065249f1ee1e2e6d6ebe697b16eb94e317e599f65a7fdb"
+      },
+      "final_marks": {
+        "count": 121623,
+        "sha256": "8c6b6608919fc6b739c918da89b8d14a23260534b6618ec9b190ce3fe122a857"
+      },
+      "finding_support": {
+        "count": 55904,
+        "sha256": "e3a1da271b957228bee0591937e5ed9351905101c8cc709a494249dc3fdb0d01"
+      },
+      "findings": {
+        "count": 107683,
+        "sha256": "e24522acc187b1c99050e5f1be6f2fec6a848fa3f48fbd92a3ab0f4caf6fca0e"
+      },
+      "heats": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "history_acceptance": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "host_budget": {
+        "count": 24,
+        "sha256": "c94690d546cddb7fe55c013200e83ea0a14b5219c1f04e51592d5c29df1535ec"
+      },
+      "hosts": {
+        "count": 7,
+        "sha256": "a3390bfbc66fe018dfbf24ef8b82db3ffb610a3ab24fbe7a608cb8e4e406949c"
+      },
+      "identity_decisions": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "identity_journal_acceptances": {
+        "count": 1,
+        "sha256": "a1d71b31f92e3e463680ef7712d479dfea52ad426de2190765af1b2596d7e27c"
+      },
+      "identity_link_history": {
+        "count": 198848,
+        "sha256": "12aea56af2e3c89a11ebcf90b43bbc758bd901f3cdb6b973cfe99c741188fa66"
+      },
+      "identity_link_resolutions": {
+        "count": 98751,
+        "sha256": "5aa475325645ee1d04220dbba69ba43d58dcf9f23678602ecf8c73335c1aa127"
+      },
+      "identity_links": {
+        "count": 98751,
+        "sha256": "1d1daee4ba8b7695ddbf3108130cfbb5393f38b7da4bb643ac3321d5e87402d7"
+      },
+      "identity_reference_bindings": {
+        "count": 115718,
+        "sha256": "fb9ddc8433342898cfe17d6fc66a1706453c3bab92c91ce9d6e9da4cd173ab64"
+      },
+      "identity_reference_migrations": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "identity_source_refs": {
+        "count": 115713,
+        "sha256": "439e6fb1d0e6af7e1711147e256d41eb43c07469a4f8ea159b9994661c325ec1"
+      },
+      "judges": {
+        "count": 4931,
+        "sha256": "1990272027dd4acf5adbb175d939417e7f1160615416a834d91d1c4cdbd5b5b7"
+      },
+      "link_candidates": {
+        "count": 92499,
+        "sha256": "40d5d527cdcc1f409666617b8dcffa7cc7696f8376bfd8a299fc507bf954a41f"
+      },
+      "meta": {
+        "count": 14,
+        "sha256": "f7a40b5c9522d564ebb063a1082b930a6dbf3bb94d974b44e5658c66dd8c7f23"
+      },
+      "observations": {
+        "count": 58169,
+        "sha256": "d110d12fe8c4e70411816a7f445fafc433f6291ef0363f672897947bf07d782c"
+      },
+      "operator_pauses": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "pending_work": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "placements": {
+        "count": 20236,
+        "sha256": "dd86dab92b20cff03babd4789c39e73d731ad56c16bb32cc0ac37b360a2e2605"
+      },
+      "registry_placements": {
+        "count": 197990,
+        "sha256": "0dd1cf6a53c821d833a127f9db901d1fcf1152eb2c22d8b2db32b87fca3dfdbd"
+      },
+      "registry_verifications": {
+        "count": 29060,
+        "sha256": "5adebc5eaef388f0fc91f92a6a897ba9d713e43a2db507a671d6c62e0fac6b4a"
+      },
+      "requirement_attempts": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "requirement_cohort_members": {
+        "count": 36689,
+        "sha256": "74504da5c8eb08fbac0d32dbfa0ac74b9e9851bce5d66a5b22486171bb0fec1f"
+      },
+      "requirement_cohorts": {
+        "count": 1,
+        "sha256": "b0bd5b8b6da1a42395852d68022b47ec804dacbabc65ea3e1a0fb47fefabc8b3"
+      },
+      "requirement_scan": {
+        "count": 1,
+        "sha256": "a2c535de6d137014de9b007aa4386a69c82c35825351e91674773c3e47519e8b"
+      },
+      "requirement_transitions": {
+        "count": 108420,
+        "sha256": "564a74dbdd586945b1f08de941449fa95e1be888cc01030e5a4c72ef0d8ce516"
+      },
+      "revisions": {
+        "count": 9,
+        "sha256": "22abb1e81541d2de548899bd1c84ff40cf8beb48064a8ba76c22c666d94eb5e0"
+      },
+      "rounds": {
+        "count": 4279,
+        "sha256": "0514c41b62003ddb14366c3a0e4a8871565c3f4e0ab5c9faa1fad8c01fc3b6b7"
+      },
+      "runs": {
+        "count": 1979,
+        "sha256": "e9d10ec510453be9b0292513afab2a1d38ac8b6ae497881c3a500d6456ed39c0"
+      },
+      "series": {
+        "count": 288,
+        "sha256": "fede156b78353a9d8bdc46981c4a69ed77692790ce9ed20f42b89ae26fbc65da"
+      },
+      "snapshots": {
+        "count": 31821,
+        "sha256": "71e33dbba6a383b386107ebdb2812e69dc7eb52a13164a408d8e8caabe483f21"
+      },
+      "source_event_map": {
+        "count": 404,
+        "sha256": "e61d794010d73685a5277bd4cd800c8b4b757f90d47d0494a783130d08bc0c7d"
+      },
+      "source_event_scope_rows": {
+        "count": 837,
+        "sha256": "ede97f7de69cc3da1ec3c3ed1697e3d901f9aeebdf5c86c6d52d1c63d868db70"
+      },
+      "source_events": {
+        "count": 455,
+        "sha256": "094027f191f621fa786304c77236ed77a6f93c5d5958374b7f48a3d1e7ba304e"
+      },
+      "source_generations": {
+        "count": 32189,
+        "sha256": "0fc6bf7a29227180d2d4ce6cada193a338ad4328bf708e7bb4e700cf91a8082a"
+      },
+      "source_units": {
+        "count": 31805,
+        "sha256": "7bf6c130e33bad5c237d1fd9489cb4634c15c71f280eea8a46e87f179858a7c4"
+      },
+      "watches": {
+        "count": 35417,
+        "sha256": "4f877b1b1840310c729bb6a851b8984d9c809773f31aa3408db4c9643427b522"
+      }
+    }
+  },
+  "baseline": {
+    "commit": "81121dcc7d62a1db9e76ee1c49a6b90e1f4c5653",
+    "manifest_sha256": "87ac286a1ae452f09f7e5cea646f260ac34035f3d05bb83de17c7d9cc8f08884"
+  },
+  "baseline_unchanged": true,
+  "before": {
+    "backup_neutral_meta": {
+      "count": 12,
+      "sha256": "bced29ce278b6df3fba4ee694dbe478518dd60e8ff1ce93d01d02faa8d6ae673"
+    },
+    "schema": 10,
+    "tables": {
+      "accepted_inputs": {
+        "count": 48,
+        "sha256": "e76c985711abb70ca4bf557ea75a294f88766c8953bc30faf43bab638337161d"
+      },
+      "admission_decisions": {
+        "count": 31610,
+        "sha256": "c755c03e3f01fb9f54df68e7d54908c368cea665d0d853dfa934968063a924fd"
+      },
+      "admission_policies": {
+        "count": 13,
+        "sha256": "300651d0a2eeb9ad91696c7f49bb0a22b067a322fd8f67644d4dd2c8b483090a"
+      },
+      "admission_reviews": {
+        "count": 9,
+        "sha256": "ab1f192a4e9e4e6dfe3bcb296af1d682b71a37ce85deaba3e8c349d4416394a3"
+      },
+      "archive_captures": {
+        "count": 32,
+        "sha256": "4b8c72d093dd415fe2d7a9c89359af379c019f9e313e2854b8b305e6009bfa2b"
+      },
+      "archive_queries": {
+        "count": 15,
+        "sha256": "672868210f8a15815829f1c7563bd68c33125249dfac67be520c2db737c52c87"
+      },
+      "backup_uploads": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "callback_marks": {
+        "count": 484141,
+        "sha256": "2a26c3b338e0e3d321e2a8c1d31943584bf66b282b5794a31a26e541f3e10219"
+      },
+      "callbacks": {
+        "count": 98481,
+        "sha256": "f5da42003f2f2a4d50bd56efc29ec86bfc2d32ccff4549047a0ff1bff64d28b2"
+      },
+      "canonical_scope_rows": {
+        "count": 1058390,
+        "sha256": "f6106fdb1f8d4b9cb696a1532966d5c3d3776409d42e006503ef8149ff7fcb78"
+      },
+      "contests": {
+        "count": 2644,
+        "sha256": "0fd02b5c9578a25fca6bd187a56ec0277f559e44093044faf52820614aacd19c"
+      },
+      "coverage": {
+        "count": 66,
+        "sha256": "6aec7d24725b064f9915590af2b7f107ff497b7bbdb094130662bf80c175fefc"
+      },
+      "cursors": {
+        "count": 4,
+        "sha256": "1c53a23629f72d89ac1ca90d804f3d530d8edf7e3c2d1b6dceebcedf29b33cc7"
+      },
+      "dancers": {
+        "count": 27784,
+        "sha256": "61c9c6c37398b0e34895c14ca16cd4d6bcced83d9d71e54cc60ef3e758fa3c81"
+      },
+      "entries": {
+        "count": 93820,
+        "sha256": "0246e69ef8b2d06e52f428c3672c21ff59259238359370cd26f5afee1f83d232"
+      },
+      "events": {
+        "count": 2541,
+        "sha256": "28b88cc0ae8b3b201b065249f1ee1e2e6d6ebe697b16eb94e317e599f65a7fdb"
+      },
+      "final_marks": {
+        "count": 121623,
+        "sha256": "8c6b6608919fc6b739c918da89b8d14a23260534b6618ec9b190ce3fe122a857"
+      },
+      "finding_support": {
+        "count": 55904,
+        "sha256": "e3a1da271b957228bee0591937e5ed9351905101c8cc709a494249dc3fdb0d01"
+      },
+      "findings": {
+        "count": 107683,
+        "sha256": "e24522acc187b1c99050e5f1be6f2fec6a848fa3f48fbd92a3ab0f4caf6fca0e"
+      },
+      "heats": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "history_acceptance": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "host_budget": {
+        "count": 24,
+        "sha256": "c94690d546cddb7fe55c013200e83ea0a14b5219c1f04e51592d5c29df1535ec"
+      },
+      "hosts": {
+        "count": 7,
+        "sha256": "a3390bfbc66fe018dfbf24ef8b82db3ffb610a3ab24fbe7a608cb8e4e406949c"
+      },
+      "identity_decisions": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "identity_journal_acceptances": {
+        "count": 1,
+        "sha256": "a1d71b31f92e3e463680ef7712d479dfea52ad426de2190765af1b2596d7e27c"
+      },
+      "identity_link_history": {
+        "count": 198848,
+        "sha256": "12aea56af2e3c89a11ebcf90b43bbc758bd901f3cdb6b973cfe99c741188fa66"
+      },
+      "identity_link_resolutions": {
+        "count": 98751,
+        "sha256": "5aa475325645ee1d04220dbba69ba43d58dcf9f23678602ecf8c73335c1aa127"
+      },
+      "identity_links": {
+        "count": 98751,
+        "sha256": "1d1daee4ba8b7695ddbf3108130cfbb5393f38b7da4bb643ac3321d5e87402d7"
+      },
+      "identity_reference_bindings": {
+        "count": 115718,
+        "sha256": "fb9ddc8433342898cfe17d6fc66a1706453c3bab92c91ce9d6e9da4cd173ab64"
+      },
+      "identity_reference_migrations": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "identity_source_refs": {
+        "count": 115713,
+        "sha256": "439e6fb1d0e6af7e1711147e256d41eb43c07469a4f8ea159b9994661c325ec1"
+      },
+      "judges": {
+        "count": 4931,
+        "sha256": "1990272027dd4acf5adbb175d939417e7f1160615416a834d91d1c4cdbd5b5b7"
+      },
+      "link_candidates": {
+        "count": 92499,
+        "sha256": "40d5d527cdcc1f409666617b8dcffa7cc7696f8376bfd8a299fc507bf954a41f"
+      },
+      "meta": {
+        "count": 14,
+        "sha256": "f7a40b5c9522d564ebb063a1082b930a6dbf3bb94d974b44e5658c66dd8c7f23"
+      },
+      "observations": {
+        "count": 58169,
+        "sha256": "d110d12fe8c4e70411816a7f445fafc433f6291ef0363f672897947bf07d782c"
+      },
+      "operator_pauses": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "pending_work": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "placements": {
+        "count": 20236,
+        "sha256": "dd86dab92b20cff03babd4789c39e73d731ad56c16bb32cc0ac37b360a2e2605"
+      },
+      "registry_placements": {
+        "count": 197990,
+        "sha256": "0dd1cf6a53c821d833a127f9db901d1fcf1152eb2c22d8b2db32b87fca3dfdbd"
+      },
+      "registry_verifications": {
+        "count": 29060,
+        "sha256": "5adebc5eaef388f0fc91f92a6a897ba9d713e43a2db507a671d6c62e0fac6b4a"
+      },
+      "requirement_attempts": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "requirement_cohort_members": {
+        "count": 36689,
+        "sha256": "74504da5c8eb08fbac0d32dbfa0ac74b9e9851bce5d66a5b22486171bb0fec1f"
+      },
+      "requirement_cohorts": {
+        "count": 1,
+        "sha256": "b0bd5b8b6da1a42395852d68022b47ec804dacbabc65ea3e1a0fb47fefabc8b3"
+      },
+      "requirement_scan": {
+        "count": 1,
+        "sha256": "a2c535de6d137014de9b007aa4386a69c82c35825351e91674773c3e47519e8b"
+      },
+      "requirement_transitions": {
+        "count": 108420,
+        "sha256": "564a74dbdd586945b1f08de941449fa95e1be888cc01030e5a4c72ef0d8ce516"
+      },
+      "revisions": {
+        "count": 9,
+        "sha256": "22abb1e81541d2de548899bd1c84ff40cf8beb48064a8ba76c22c666d94eb5e0"
+      },
+      "rounds": {
+        "count": 4279,
+        "sha256": "0514c41b62003ddb14366c3a0e4a8871565c3f4e0ab5c9faa1fad8c01fc3b6b7"
+      },
+      "runs": {
+        "count": 1979,
+        "sha256": "e9d10ec510453be9b0292513afab2a1d38ac8b6ae497881c3a500d6456ed39c0"
+      },
+      "series": {
+        "count": 288,
+        "sha256": "fede156b78353a9d8bdc46981c4a69ed77692790ce9ed20f42b89ae26fbc65da"
+      },
+      "snapshots": {
+        "count": 31821,
+        "sha256": "71e33dbba6a383b386107ebdb2812e69dc7eb52a13164a408d8e8caabe483f21"
+      },
+      "source_event_map": {
+        "count": 404,
+        "sha256": "e61d794010d73685a5277bd4cd800c8b4b757f90d47d0494a783130d08bc0c7d"
+      },
+      "source_event_scope_rows": {
+        "count": 837,
+        "sha256": "ede97f7de69cc3da1ec3c3ed1697e3d901f9aeebdf5c86c6d52d1c63d868db70"
+      },
+      "source_events": {
+        "count": 455,
+        "sha256": "094027f191f621fa786304c77236ed77a6f93c5d5958374b7f48a3d1e7ba304e"
+      },
+      "source_generations": {
+        "count": 32189,
+        "sha256": "0fc6bf7a29227180d2d4ce6cada193a338ad4328bf708e7bb4e700cf91a8082a"
+      },
+      "source_units": {
+        "count": 31805,
+        "sha256": "7bf6c130e33bad5c237d1fd9489cb4634c15c71f280eea8a46e87f179858a7c4"
+      },
+      "watches": {
+        "count": 35417,
+        "sha256": "4f877b1b1840310c729bb6a851b8984d9c809773f31aa3408db4c9643427b522"
+      }
+    }
+  },
+  "checkpoint": {
+    "backup_neutral_meta": {
+      "count": 12,
+      "sha256": "bced29ce278b6df3fba4ee694dbe478518dd60e8ff1ce93d01d02faa8d6ae673"
+    },
+    "schema": 10,
+    "tables": {
+      "accepted_inputs": {
+        "count": 48,
+        "sha256": "e76c985711abb70ca4bf557ea75a294f88766c8953bc30faf43bab638337161d"
+      },
+      "admission_decisions": {
+        "count": 31610,
+        "sha256": "c755c03e3f01fb9f54df68e7d54908c368cea665d0d853dfa934968063a924fd"
+      },
+      "admission_policies": {
+        "count": 13,
+        "sha256": "300651d0a2eeb9ad91696c7f49bb0a22b067a322fd8f67644d4dd2c8b483090a"
+      },
+      "admission_reviews": {
+        "count": 9,
+        "sha256": "ab1f192a4e9e4e6dfe3bcb296af1d682b71a37ce85deaba3e8c349d4416394a3"
+      },
+      "archive_captures": {
+        "count": 32,
+        "sha256": "4b8c72d093dd415fe2d7a9c89359af379c019f9e313e2854b8b305e6009bfa2b"
+      },
+      "archive_queries": {
+        "count": 15,
+        "sha256": "672868210f8a15815829f1c7563bd68c33125249dfac67be520c2db737c52c87"
+      },
+      "backup_uploads": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "callback_marks": {
+        "count": 484141,
+        "sha256": "2a26c3b338e0e3d321e2a8c1d31943584bf66b282b5794a31a26e541f3e10219"
+      },
+      "callbacks": {
+        "count": 98481,
+        "sha256": "f5da42003f2f2a4d50bd56efc29ec86bfc2d32ccff4549047a0ff1bff64d28b2"
+      },
+      "canonical_scope_rows": {
+        "count": 1058390,
+        "sha256": "f6106fdb1f8d4b9cb696a1532966d5c3d3776409d42e006503ef8149ff7fcb78"
+      },
+      "contests": {
+        "count": 2644,
+        "sha256": "0fd02b5c9578a25fca6bd187a56ec0277f559e44093044faf52820614aacd19c"
+      },
+      "coverage": {
+        "count": 66,
+        "sha256": "6aec7d24725b064f9915590af2b7f107ff497b7bbdb094130662bf80c175fefc"
+      },
+      "cursors": {
+        "count": 4,
+        "sha256": "1c53a23629f72d89ac1ca90d804f3d530d8edf7e3c2d1b6dceebcedf29b33cc7"
+      },
+      "dancers": {
+        "count": 27784,
+        "sha256": "61c9c6c37398b0e34895c14ca16cd4d6bcced83d9d71e54cc60ef3e758fa3c81"
+      },
+      "entries": {
+        "count": 93820,
+        "sha256": "0246e69ef8b2d06e52f428c3672c21ff59259238359370cd26f5afee1f83d232"
+      },
+      "events": {
+        "count": 2541,
+        "sha256": "28b88cc0ae8b3b201b065249f1ee1e2e6d6ebe697b16eb94e317e599f65a7fdb"
+      },
+      "final_marks": {
+        "count": 121623,
+        "sha256": "8c6b6608919fc6b739c918da89b8d14a23260534b6618ec9b190ce3fe122a857"
+      },
+      "finding_support": {
+        "count": 55904,
+        "sha256": "e3a1da271b957228bee0591937e5ed9351905101c8cc709a494249dc3fdb0d01"
+      },
+      "findings": {
+        "count": 107683,
+        "sha256": "e24522acc187b1c99050e5f1be6f2fec6a848fa3f48fbd92a3ab0f4caf6fca0e"
+      },
+      "heats": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "history_acceptance": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "host_budget": {
+        "count": 24,
+        "sha256": "c94690d546cddb7fe55c013200e83ea0a14b5219c1f04e51592d5c29df1535ec"
+      },
+      "hosts": {
+        "count": 7,
+        "sha256": "a3390bfbc66fe018dfbf24ef8b82db3ffb610a3ab24fbe7a608cb8e4e406949c"
+      },
+      "identity_decisions": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "identity_journal_acceptances": {
+        "count": 1,
+        "sha256": "a1d71b31f92e3e463680ef7712d479dfea52ad426de2190765af1b2596d7e27c"
+      },
+      "identity_link_history": {
+        "count": 198848,
+        "sha256": "12aea56af2e3c89a11ebcf90b43bbc758bd901f3cdb6b973cfe99c741188fa66"
+      },
+      "identity_link_resolutions": {
+        "count": 98751,
+        "sha256": "5aa475325645ee1d04220dbba69ba43d58dcf9f23678602ecf8c73335c1aa127"
+      },
+      "identity_links": {
+        "count": 98751,
+        "sha256": "1d1daee4ba8b7695ddbf3108130cfbb5393f38b7da4bb643ac3321d5e87402d7"
+      },
+      "identity_reference_bindings": {
+        "count": 115718,
+        "sha256": "fb9ddc8433342898cfe17d6fc66a1706453c3bab92c91ce9d6e9da4cd173ab64"
+      },
+      "identity_reference_migrations": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "identity_source_refs": {
+        "count": 115713,
+        "sha256": "439e6fb1d0e6af7e1711147e256d41eb43c07469a4f8ea159b9994661c325ec1"
+      },
+      "judges": {
+        "count": 4931,
+        "sha256": "1990272027dd4acf5adbb175d939417e7f1160615416a834d91d1c4cdbd5b5b7"
+      },
+      "link_candidates": {
+        "count": 92499,
+        "sha256": "40d5d527cdcc1f409666617b8dcffa7cc7696f8376bfd8a299fc507bf954a41f"
+      },
+      "meta": {
+        "count": 14,
+        "sha256": "f7a40b5c9522d564ebb063a1082b930a6dbf3bb94d974b44e5658c66dd8c7f23"
+      },
+      "observations": {
+        "count": 58169,
+        "sha256": "d110d12fe8c4e70411816a7f445fafc433f6291ef0363f672897947bf07d782c"
+      },
+      "operator_pauses": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "pending_work": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "placements": {
+        "count": 20236,
+        "sha256": "dd86dab92b20cff03babd4789c39e73d731ad56c16bb32cc0ac37b360a2e2605"
+      },
+      "registry_placements": {
+        "count": 197990,
+        "sha256": "0dd1cf6a53c821d833a127f9db901d1fcf1152eb2c22d8b2db32b87fca3dfdbd"
+      },
+      "registry_verifications": {
+        "count": 29060,
+        "sha256": "5adebc5eaef388f0fc91f92a6a897ba9d713e43a2db507a671d6c62e0fac6b4a"
+      },
+      "requirement_attempts": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "requirement_cohort_members": {
+        "count": 36689,
+        "sha256": "74504da5c8eb08fbac0d32dbfa0ac74b9e9851bce5d66a5b22486171bb0fec1f"
+      },
+      "requirement_cohorts": {
+        "count": 1,
+        "sha256": "b0bd5b8b6da1a42395852d68022b47ec804dacbabc65ea3e1a0fb47fefabc8b3"
+      },
+      "requirement_scan": {
+        "count": 1,
+        "sha256": "a2c535de6d137014de9b007aa4386a69c82c35825351e91674773c3e47519e8b"
+      },
+      "requirement_transitions": {
+        "count": 108420,
+        "sha256": "564a74dbdd586945b1f08de941449fa95e1be888cc01030e5a4c72ef0d8ce516"
+      },
+      "revisions": {
+        "count": 9,
+        "sha256": "22abb1e81541d2de548899bd1c84ff40cf8beb48064a8ba76c22c666d94eb5e0"
+      },
+      "rounds": {
+        "count": 4279,
+        "sha256": "0514c41b62003ddb14366c3a0e4a8871565c3f4e0ab5c9faa1fad8c01fc3b6b7"
+      },
+      "runs": {
+        "count": 1979,
+        "sha256": "e9d10ec510453be9b0292513afab2a1d38ac8b6ae497881c3a500d6456ed39c0"
+      },
+      "series": {
+        "count": 288,
+        "sha256": "fede156b78353a9d8bdc46981c4a69ed77692790ce9ed20f42b89ae26fbc65da"
+      },
+      "snapshots": {
+        "count": 31821,
+        "sha256": "71e33dbba6a383b386107ebdb2812e69dc7eb52a13164a408d8e8caabe483f21"
+      },
+      "source_event_map": {
+        "count": 404,
+        "sha256": "e61d794010d73685a5277bd4cd800c8b4b757f90d47d0494a783130d08bc0c7d"
+      },
+      "source_event_scope_rows": {
+        "count": 837,
+        "sha256": "ede97f7de69cc3da1ec3c3ed1697e3d901f9aeebdf5c86c6d52d1c63d868db70"
+      },
+      "source_events": {
+        "count": 455,
+        "sha256": "094027f191f621fa786304c77236ed77a6f93c5d5958374b7f48a3d1e7ba304e"
+      },
+      "source_generations": {
+        "count": 32189,
+        "sha256": "0fc6bf7a29227180d2d4ce6cada193a338ad4328bf708e7bb4e700cf91a8082a"
+      },
+      "source_units": {
+        "count": 31805,
+        "sha256": "7bf6c130e33bad5c237d1fd9489cb4634c15c71f280eea8a46e87f179858a7c4"
+      },
+      "watches": {
+        "count": 35417,
+        "sha256": "4f877b1b1840310c729bb6a851b8984d9c809773f31aa3408db4c9643427b522"
+      }
+    }
+  },
+  "doctor": {
+    "fixed_time": "2026-09-13T09:58:23.871905+00:00",
+    "fresh_process_equal": true,
+    "human_json_equal": true
+  },
+  "driver_sha256": "e1dcf65a2d26a4e4ab4b20cb2db00abc462d8d62af5c5b04dd793cf5618f3ff1",
+  "elapsed_seconds": 35.49840925398166,
+  "executed": true,
+  "final_hold": {
+    "swingset-backup.service": {
+      "ActiveState": "inactive",
+      "ConditionResult": "no",
+      "LoadState": "loaded",
+      "SubState": "dead",
+      "unit_text_sha256": "e43da2c0325fc30c2a7f2841b3e1abcf318f4418fcbe85ce36e32df83073fde9",
+      "verified_conditions": [
+        "ConditionPathExists=!/var/lib/swingset/operator-hold"
+      ]
+    },
+    "swingset-backup.timer": {
+      "ActiveState": "inactive",
+      "ConditionResult": "yes",
+      "LoadState": "loaded",
+      "SubState": "dead"
+    },
+    "swingset-cycle.service": {
+      "ActiveState": "inactive",
+      "ConditionResult": "no",
+      "LoadState": "loaded",
+      "SubState": "dead",
+      "unit_text_sha256": "bd7dd335e01b0118e62d3b4b529f3036d69db86f0c88eb0d36624f7a9f8159b1",
+      "verified_conditions": [
+        "ConditionPathExists=!/var/lib/swingset/operator-hold"
+      ]
+    },
+    "swingset-cycle.timer": {
+      "ActiveState": "inactive",
+      "ConditionResult": "yes",
+      "LoadState": "loaded",
+      "SubState": "dead"
+    },
+    "swingset-summary.service": {
+      "ActiveState": "inactive",
+      "ConditionResult": "no",
+      "LoadState": "loaded",
+      "SubState": "dead",
+      "unit_text_sha256": "99e8682713e625c658d099776cdc20aecd88e0ece905f885c215d021ff88b5df",
+      "verified_conditions": [
+        "ConditionPathExists=!/var/lib/swingset/operator-hold"
+      ]
+    },
+    "swingset-summary.timer": {
+      "ActiveState": "inactive",
+      "ConditionResult": "yes",
+      "LoadState": "loaded",
+      "SubState": "dead"
+    }
+  },
+  "gate": {
+    "checkpoint": "/var/lib/swingset/checkpoints/h11-before-h12-20260913",
+    "checkpoint_manifest_sha256": "3323b2bede8fba5ebd30cb7a7062c9238695962a8bedd2bc1ce514acf649792c",
+    "driver_sha256": "e1dcf65a2d26a4e4ab4b20cb2db00abc462d8d62af5c5b04dd793cf5618f3ff1",
+    "evidence_files": {
+      "backup.json": "b8a683d7f2b7a19fff3537b528bd4e073516f44c874afcaad56e5a94af429504",
+      "private-verification.json": "b04046a58aeaad98811861819571b583ddbb6f356041fb5ce4763eed3c22d323",
+      "v4-verification.json": "290b2302c65ce84b4483c4f2b6104cebcc9ba68b5e132f6c674bbaed410f8b2a"
+    },
+    "format": "h12-operational-gate-v1",
+    "private_backup_commit": "fe6047edb1cc6b23d7d0ef19f7cb5a077b8d0c66",
+    "private_backup_receipt": "backup.json",
+    "private_backup_verified": true,
+    "source_receipt_sha256": "ad1e0b8395b28559e6f4623459955b31574637503edddd994354520b384450ee",
+    "v4_commit": "81121dcc7d62a1db9e76ee1c49a6b90e1f4c5653",
+    "v4_manifest_sha256": "87ac286a1ae452f09f7e5cea646f260ac34035f3d05bb83de17c7d9cc8f08884",
+    "v4_verified": true,
+    "verified_at": "2026-09-13T09:55:10.627353+00:00"
+  },
+  "gate_sha256": "c96335241b89612094f89278fe71ac167f7127be6ba1ffae11f5af17a63bb191",
+  "hold": {
+    "swingset-backup.service": {
+      "ActiveState": "inactive",
+      "ConditionResult": "no",
+      "LoadState": "loaded",
+      "SubState": "dead",
+      "unit_text_sha256": "e43da2c0325fc30c2a7f2841b3e1abcf318f4418fcbe85ce36e32df83073fde9",
+      "verified_conditions": [
+        "ConditionPathExists=!/var/lib/swingset/operator-hold"
+      ]
+    },
+    "swingset-backup.timer": {
+      "ActiveState": "inactive",
+      "ConditionResult": "yes",
+      "LoadState": "loaded",
+      "SubState": "dead"
+    },
+    "swingset-cycle.service": {
+      "ActiveState": "inactive",
+      "ConditionResult": "no",
+      "LoadState": "loaded",
+      "SubState": "dead",
+      "unit_text_sha256": "bd7dd335e01b0118e62d3b4b529f3036d69db86f0c88eb0d36624f7a9f8159b1",
+      "verified_conditions": [
+        "ConditionPathExists=!/var/lib/swingset/operator-hold"
+      ]
+    },
+    "swingset-cycle.timer": {
+      "ActiveState": "inactive",
+      "ConditionResult": "yes",
+      "LoadState": "loaded",
+      "SubState": "dead"
+    },
+    "swingset-summary.service": {
+      "ActiveState": "inactive",
+      "ConditionResult": "no",
+      "LoadState": "loaded",
+      "SubState": "dead",
+      "unit_text_sha256": "99e8682713e625c658d099776cdc20aecd88e0ece905f885c215d021ff88b5df",
+      "verified_conditions": [
+        "ConditionPathExists=!/var/lib/swingset/operator-hold"
+      ]
+    },
+    "swingset-summary.timer": {
+      "ActiveState": "inactive",
+      "ConditionResult": "yes",
+      "LoadState": "loaded",
+      "SubState": "dead"
+    }
+  },
+  "network_requests": 0,
+  "new_tables": {
+    "work_attempts": {
+      "count": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "work_generations": {
+      "count": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "passed": true,
+  "preflight_passed": true,
+  "published": false
+}

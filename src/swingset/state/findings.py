@@ -74,13 +74,26 @@ def replace_findings(
         return False
     for identifier in set(existing) - set(desired):
         conn.execute(
-            "UPDATE findings SET closed_at=?,closed_by=? WHERE finding_id=?",
-            (opened_at, run_id, identifier),
+            "UPDATE findings SET closed_at=?,closed_by=?,state='satisfied',status_at=?,last_progress_at=? WHERE finding_id=?",
+            (opened_at, run_id, opened_at, opened_at, identifier),
         )
+        conn.execute("UPDATE finding_support SET active=0 WHERE finding_id=?", (identifier,))
     for identifier, values in desired.items():
         conn.execute(
             "INSERT INTO findings(finding_id,owner_kind,owner_id,kind,subject_kind,subject_id,severity,summary,evidence_json,suggested_override,watch_id,snapshot_id,opened_at,run_id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(finding_id) DO UPDATE SET severity=excluded.severity,evidence_json=excluded.evidence_json,suggested_override=excluded.suggested_override,watch_id=excluded.watch_id,snapshot_id=excluded.snapshot_id,closed_at=NULL,closed_by=NULL",
             (identifier, owner_kind, owner_id, *values, opened_at, run_id),
+        )
+        conn.execute(
+            "UPDATE findings SET state='needs_review',status_at=? WHERE finding_id=? AND state<>'needs_review'",
+            (opened_at, identifier),
+        )
+        row = conn.execute(
+            "SELECT owner_kind,owner_id,kind,subject_kind,subject_id,severity,summary,evidence_json,suggested_override,watch_id,snapshot_id,opened_at,run_id FROM findings WHERE finding_id=?",
+            (identifier,),
+        ).fetchone()
+        conn.execute(
+            "INSERT INTO finding_support VALUES (?,?,1) ON CONFLICT(finding_id) DO UPDATE SET payload_json=excluded.payload_json,active=1",
+            (identifier, json.dumps(dict(row), sort_keys=True)),
         )
     bump_revision(conn, "findings")
     return True

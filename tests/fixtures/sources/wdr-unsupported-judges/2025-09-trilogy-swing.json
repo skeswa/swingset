@@ -1,0 +1,20 @@
+{
+  "snapshot_id": "snap_20260909T150519Z_3e342cde93d4",
+  "url": "https://scores.worlddanceregistry.com/3ac5b6cd-17f3-11f0-9a29-0aa72bbce9ea/rounds/routeInfo.json",
+  "fetched_at": "2026-09-09T15:05:19.109252+00:00",
+  "body_sha256": "3e342cde93d4bf735269a1637ad7d1e6a6bb71263508d4772ff4bc2eafe4ac5c",
+  "body_bytes": 820454,
+  "http_status": 200,
+  "source_ref": "wdr:3ac5b6cd-17f3-11f0-9a29-0aa72bbce9ea",
+  "event_id": "2025-09-trilogy-swing",
+  "expected_preserved_judges": [
+    {
+      "judge_id": "2025-09-trilogy-swing/judge/kristen",
+      "name_raw": "Kristen"
+    },
+    {
+      "judge_id": "2025-09-trilogy-swing/judge/mia",
+      "name_raw": "Mia"
+    }
+  ]
+}

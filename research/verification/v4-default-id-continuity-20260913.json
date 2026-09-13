@@ -1,0 +1,1066 @@
+{
+  "all_four_explained": true,
+  "baseline": "cand_a9a87deb3ee34dac",
+  "candidate": "cand_7f8cf9bcbf7e4a60",
+  "comparison_sql": "SELECT o.entry_id,o.wsdc_id AS old_wsdc_id,n.wsdc_id AS new_wsdc_id,n.entry_id IS NULL AS entry_removed,o.contest_id FROM old_entries o LEFT JOIN new_entries n USING(entry_id) WHERE o.wsdc_id IS NOT NULL AND o.wsdc_id IS DISTINCT FROM n.wsdc_id ORDER BY o.entry_id",
+  "counts": {
+    "new": 34955,
+    "old": 34959
+  },
+  "explanation": "All four named entries remain in a parsed, non-points ProAm contest. Their source cells, printed IDs and computed durable references are unchanged. The full V4 link replay retained bindings that reveal multiple source columns sharing row-based follower references; conservative source_row_replacement_requires_reference_migration checks now withhold the default IDs. V3 correction-only policy had read references without retaining this full binding history. No human decision was fabricated, and no ID was replaced.",
+  "losses": [
+    {
+      "contest_id": "2026-05-french-open/pro-am-follower",
+      "entry_id": "2026-05-french-open/pro-am-follower/F-name-aless-tondolo",
+      "entry_removed": false,
+      "interpretations": {
+        "new": {
+          "assertion": {
+            "acceptance_state": "revoked",
+            "decision_ids": [],
+            "method": "none",
+            "source_ref_ids": [
+              "474abc7565c7aed0ae1f8061051f9465231289eca353284103e14e0af1da971c"
+            ],
+            "status": "unmatched",
+            "wsdc_id": null
+          },
+          "binding_problem": "source_row_replacement_requires_reference_migration",
+          "bindings": [
+            {
+              "event_id": "2026-05-french-open",
+              "locator": {
+                "bib": "",
+                "column": 1,
+                "role": "follower",
+                "row": 2,
+                "source_wsdc_id": 18560,
+                "table": 0,
+                "url": "https://scoring.dance/enUS/events/391/results/5541.html"
+              },
+              "reference": {
+                "contest": "5541#0",
+                "participant": "entry:follower:row:2",
+                "round": "0",
+                "source": "scoringdance",
+                "source_event": "scoringdance:391"
+              },
+              "semantic_hash": "6960fc062289cd12967ee329fd58c6fddb1150aa24d1ef13c26309a799278670",
+              "snapshot_id": "snap_20260912T145423Z_eececf24b320",
+              "subject_id": "2026-05-french-open/pro-am-follower/F-name-aless-tondolo",
+              "subject_kind": "entry"
+            }
+          ],
+          "contest": {
+            "name": "ProAm Routines (Am = Follower)",
+            "parse_status": "parsed",
+            "wsdc_points_eligible": false
+          },
+          "observations": [
+            {
+              "extract_version": "3",
+              "kind": "round_sheet",
+              "observation_id": "e804d21b76ca63aa",
+              "parser_version": "3",
+              "payload_bytes": 5103,
+              "snapshot_id": "snap_20260912T145423Z_eececf24b320"
+            }
+          ],
+          "printed_ids": [
+            18560
+          ],
+          "resolution": {
+            "blocked_wsdc_ids": [],
+            "contradictions": [
+              "source_row_replacement_requires_reference_migration"
+            ],
+            "decision_ids": [],
+            "hold_subject": true,
+            "migration_ids": [],
+            "policy_version": "identity-decisions-v1",
+            "positive_wsdc_id": null,
+            "ref_ids": [
+              "474abc7565c7aed0ae1f8061051f9465231289eca353284103e14e0af1da971c"
+            ],
+            "review_required": true,
+            "token": {
+              "digest": "e1487f143891001bc7ddb16cfe6e32003e1ac95628fcaa3a03849e3806f6a246",
+              "generation": 1
+            }
+          },
+          "retained_reference_bindings": [
+            {
+              "binding_id": "4fd2405d7b9431538be02a4eb72540a3aff3eca972ba4f75e6fd5368debbf89e",
+              "bound_at": "2026-09-13T08:25:46.025880+00:00",
+              "current_source_locators": [
+                {
+                  "bib": "",
+                  "column": 1,
+                  "role": "follower",
+                  "row": 2,
+                  "source_wsdc_id": 18560,
+                  "table": 0,
+                  "url": "https://scoring.dance/enUS/events/391/results/5541.html"
+                }
+              ],
+              "current_subject_name": "Aless Tondolo",
+              "current_subject_role": "follower",
+              "event_id": "2026-05-french-open",
+              "ref_id": "474abc7565c7aed0ae1f8061051f9465231289eca353284103e14e0af1da971c",
+              "semantic_hash": "6960fc062289cd12967ee329fd58c6fddb1150aa24d1ef13c26309a799278670",
+              "snapshot_id": "snap_20260912T145423Z_eececf24b320",
+              "subject_id": "2026-05-french-open/pro-am-follower/F-name-aless-tondolo",
+              "subject_kind": "entry"
+            },
+            {
+              "binding_id": "4aa40760e160f3d526e1ff054e57effb051f1c60e9c283173d08b3b8143159bb",
+              "bound_at": "2026-09-13T08:25:46.025880+00:00",
+              "current_source_locators": [
+                {
+                  "bib": "",
+                  "column": 2,
+                  "role": "follower",
+                  "row": 2,
+                  "source_wsdc_id": null,
+                  "table": 0,
+                  "url": "https://scoring.dance/enUS/events/391/results/5541.html"
+                }
+              ],
+              "current_subject_name": "Gabrielle Volpei",
+              "current_subject_role": "follower",
+              "event_id": "2026-05-french-open",
+              "ref_id": "474abc7565c7aed0ae1f8061051f9465231289eca353284103e14e0af1da971c",
+              "semantic_hash": "ec1b5402ef0a99b6a6ddb22059f6a2a8a09b9985697be1e457de928b7e887a9f",
+              "snapshot_id": "snap_20260912T145423Z_eececf24b320",
+              "subject_id": "2026-05-french-open/pro-am-follower/F-name-gabrielle-volpei",
+              "subject_kind": "entry"
+            }
+          ],
+          "subject": {
+            "bib": null,
+            "contest_id": "2026-05-french-open/pro-am-follower",
+            "entry_id": "2026-05-french-open/pro-am-follower/F-name-aless-tondolo",
+            "event_id": "2026-05-french-open",
+            "link_status": "unmatched",
+            "name_norm": "aless tondolo",
+            "name_raw": "Aless Tondolo",
+            "parser_version": "3",
+            "role": "follower",
+            "snapshot_id": "snap_20260912T145423Z_eececf24b320",
+            "source": "scoringdance",
+            "wsdc_id": null
+          }
+        },
+        "old": {
+          "assertion": {
+            "acceptance_state": "accepted",
+            "decision_ids": [],
+            "method": "source_id",
+            "source_ref_ids": [
+              "474abc7565c7aed0ae1f8061051f9465231289eca353284103e14e0af1da971c"
+            ],
+            "status": "confirmed",
+            "wsdc_id": 18560
+          },
+          "binding_problem": null,
+          "bindings": [
+            {
+              "event_id": "2026-05-french-open",
+              "locator": {
+                "bib": "",
+                "column": 1,
+                "role": "follower",
+                "row": 2,
+                "source_wsdc_id": 18560,
+                "table": 0,
+                "url": "https://scoring.dance/enUS/events/391/results/5541.html"
+              },
+              "reference": {
+                "contest": "5541#0",
+                "participant": "entry:follower:row:2",
+                "round": "0",
+                "source": "scoringdance",
+                "source_event": "scoringdance:391"
+              },
+              "semantic_hash": "6960fc062289cd12967ee329fd58c6fddb1150aa24d1ef13c26309a799278670",
+              "snapshot_id": "snap_20260912T145423Z_eececf24b320",
+              "subject_id": "2026-05-french-open/pro-am-follower/F-name-aless-tondolo",
+              "subject_kind": "entry"
+            }
+          ],
+          "contest": {
+            "name": "ProAm Routines (Am = Follower)",
+            "parse_status": "parsed",
+            "wsdc_points_eligible": false
+          },
+          "observations": [
+            {
+              "extract_version": "3",
+              "kind": "round_sheet",
+              "observation_id": "e804d21b76ca63aa",
+              "parser_version": "3",
+              "payload_bytes": 5077,
+              "snapshot_id": "snap_20260912T145423Z_eececf24b320"
+            }
+          ],
+          "printed_ids": [
+            18560
+          ],
+          "resolution": {
+            "blocked_wsdc_ids": [],
+            "contradictions": [],
+            "decision_ids": [],
+            "hold_subject": false,
+            "migration_ids": [],
+            "policy_version": "identity-decisions-v1",
+            "positive_wsdc_id": null,
+            "ref_ids": [
+              "474abc7565c7aed0ae1f8061051f9465231289eca353284103e14e0af1da971c"
+            ],
+            "review_required": false,
+            "token": {
+              "digest": "e1487f143891001bc7ddb16cfe6e32003e1ac95628fcaa3a03849e3806f6a246",
+              "generation": 1
+            }
+          },
+          "retained_reference_bindings": [],
+          "subject": {
+            "bib": null,
+            "contest_id": "2026-05-french-open/pro-am-follower",
+            "entry_id": "2026-05-french-open/pro-am-follower/F-name-aless-tondolo",
+            "event_id": "2026-05-french-open",
+            "link_status": "confirmed",
+            "name_norm": "aless tondolo",
+            "name_raw": "Aless Tondolo",
+            "parser_version": "3",
+            "role": "follower",
+            "snapshot_id": "snap_20260912T145423Z_eececf24b320",
+            "source": "scoringdance",
+            "wsdc_id": 18560
+          }
+        }
+      },
+      "new_wsdc_id": null,
+      "old_wsdc_id": 18560,
+      "source_cells_unchanged": true,
+      "source_payload_changed_fields": [
+        "scoring_method_raw"
+      ]
+    },
+    {
+      "contest_id": "2026-05-french-open/pro-am-follower",
+      "entry_id": "2026-05-french-open/pro-am-follower/F-name-david-kalifa",
+      "entry_removed": false,
+      "interpretations": {
+        "new": {
+          "assertion": {
+            "acceptance_state": "revoked",
+            "decision_ids": [],
+            "method": "none",
+            "source_ref_ids": [
+              "af7ec128e1531993ec821d63d7f97f68dfde7ce53fff08a1cdd95bb62dae5db1"
+            ],
+            "status": "unmatched",
+            "wsdc_id": null
+          },
+          "binding_problem": "source_row_replacement_requires_reference_migration",
+          "bindings": [
+            {
+              "event_id": "2026-05-french-open",
+              "locator": {
+                "bib": "",
+                "column": 1,
+                "role": "follower",
+                "row": 4,
+                "source_wsdc_id": 8440,
+                "table": 0,
+                "url": "https://scoring.dance/enUS/events/391/results/5541.html"
+              },
+              "reference": {
+                "contest": "5541#0",
+                "participant": "entry:follower:row:4",
+                "round": "0",
+                "source": "scoringdance",
+                "source_event": "scoringdance:391"
+              },
+              "semantic_hash": "c07754f9f95be41e054f4c3e86859ca1dfdfd4abdbf4cfa7c90621ec36d5cb1f",
+              "snapshot_id": "snap_20260912T145423Z_eececf24b320",
+              "subject_id": "2026-05-french-open/pro-am-follower/F-name-david-kalifa",
+              "subject_kind": "entry"
+            }
+          ],
+          "contest": {
+            "name": "ProAm Routines (Am = Follower)",
+            "parse_status": "parsed",
+            "wsdc_points_eligible": false
+          },
+          "observations": [
+            {
+              "extract_version": "3",
+              "kind": "round_sheet",
+              "observation_id": "e804d21b76ca63aa",
+              "parser_version": "3",
+              "payload_bytes": 5103,
+              "snapshot_id": "snap_20260912T145423Z_eececf24b320"
+            }
+          ],
+          "printed_ids": [
+            8440
+          ],
+          "resolution": {
+            "blocked_wsdc_ids": [],
+            "contradictions": [
+              "source_row_replacement_requires_reference_migration"
+            ],
+            "decision_ids": [],
+            "hold_subject": true,
+            "migration_ids": [],
+            "policy_version": "identity-decisions-v1",
+            "positive_wsdc_id": null,
+            "ref_ids": [
+              "af7ec128e1531993ec821d63d7f97f68dfde7ce53fff08a1cdd95bb62dae5db1"
+            ],
+            "review_required": true,
+            "token": {
+              "digest": "e1487f143891001bc7ddb16cfe6e32003e1ac95628fcaa3a03849e3806f6a246",
+              "generation": 1
+            }
+          },
+          "retained_reference_bindings": [
+            {
+              "binding_id": "dfb285f32b1565841b21e054f5cdea847340048130b2336ca001a0d8e60bb164",
+              "bound_at": "2026-09-13T08:25:46.025880+00:00",
+              "current_source_locators": [
+                {
+                  "bib": "",
+                  "column": 1,
+                  "role": "follower",
+                  "row": 4,
+                  "source_wsdc_id": 8440,
+                  "table": 0,
+                  "url": "https://scoring.dance/enUS/events/391/results/5541.html"
+                }
+              ],
+              "current_subject_name": "David Kalifa",
+              "current_subject_role": "follower",
+              "event_id": "2026-05-french-open",
+              "ref_id": "af7ec128e1531993ec821d63d7f97f68dfde7ce53fff08a1cdd95bb62dae5db1",
+              "semantic_hash": "c07754f9f95be41e054f4c3e86859ca1dfdfd4abdbf4cfa7c90621ec36d5cb1f",
+              "snapshot_id": "snap_20260912T145423Z_eececf24b320",
+              "subject_id": "2026-05-french-open/pro-am-follower/F-name-david-kalifa",
+              "subject_kind": "entry"
+            },
+            {
+              "binding_id": "fd2ff7e27e2bf4727df2ba70d87dc51964874a421a4c72950d829f2f8b47529a",
+              "bound_at": "2026-09-13T08:25:46.025880+00:00",
+              "current_source_locators": [
+                {
+                  "bib": "",
+                  "column": 2,
+                  "role": "follower",
+                  "row": 4,
+                  "source_wsdc_id": null,
+                  "table": 0,
+                  "url": "https://scoring.dance/enUS/events/391/results/5541.html"
+                }
+              ],
+              "current_subject_name": "Julie Coquelet",
+              "current_subject_role": "follower",
+              "event_id": "2026-05-french-open",
+              "ref_id": "af7ec128e1531993ec821d63d7f97f68dfde7ce53fff08a1cdd95bb62dae5db1",
+              "semantic_hash": "46e436a4bd124b749bcb10c68fc2014feb5a7266be94aa901256423293ebba23",
+              "snapshot_id": "snap_20260912T145423Z_eececf24b320",
+              "subject_id": "2026-05-french-open/pro-am-follower/F-name-julie-coquelet",
+              "subject_kind": "entry"
+            }
+          ],
+          "subject": {
+            "bib": null,
+            "contest_id": "2026-05-french-open/pro-am-follower",
+            "entry_id": "2026-05-french-open/pro-am-follower/F-name-david-kalifa",
+            "event_id": "2026-05-french-open",
+            "link_status": "unmatched",
+            "name_norm": "david kalifa",
+            "name_raw": "David Kalifa",
+            "parser_version": "3",
+            "role": "follower",
+            "snapshot_id": "snap_20260912T145423Z_eececf24b320",
+            "source": "scoringdance",
+            "wsdc_id": null
+          }
+        },
+        "old": {
+          "assertion": {
+            "acceptance_state": "accepted",
+            "decision_ids": [],
+            "method": "source_id",
+            "source_ref_ids": [
+              "af7ec128e1531993ec821d63d7f97f68dfde7ce53fff08a1cdd95bb62dae5db1"
+            ],
+            "status": "confirmed",
+            "wsdc_id": 8440
+          },
+          "binding_problem": null,
+          "bindings": [
+            {
+              "event_id": "2026-05-french-open",
+              "locator": {
+                "bib": "",
+                "column": 1,
+                "role": "follower",
+                "row": 4,
+                "source_wsdc_id": 8440,
+                "table": 0,
+                "url": "https://scoring.dance/enUS/events/391/results/5541.html"
+              },
+              "reference": {
+                "contest": "5541#0",
+                "participant": "entry:follower:row:4",
+                "round": "0",
+                "source": "scoringdance",
+                "source_event": "scoringdance:391"
+              },
+              "semantic_hash": "c07754f9f95be41e054f4c3e86859ca1dfdfd4abdbf4cfa7c90621ec36d5cb1f",
+              "snapshot_id": "snap_20260912T145423Z_eececf24b320",
+              "subject_id": "2026-05-french-open/pro-am-follower/F-name-david-kalifa",
+              "subject_kind": "entry"
+            }
+          ],
+          "contest": {
+            "name": "ProAm Routines (Am = Follower)",
+            "parse_status": "parsed",
+            "wsdc_points_eligible": false
+          },
+          "observations": [
+            {
+              "extract_version": "3",
+              "kind": "round_sheet",
+              "observation_id": "e804d21b76ca63aa",
+              "parser_version": "3",
+              "payload_bytes": 5077,
+              "snapshot_id": "snap_20260912T145423Z_eececf24b320"
+            }
+          ],
+          "printed_ids": [
+            8440
+          ],
+          "resolution": {
+            "blocked_wsdc_ids": [],
+            "contradictions": [],
+            "decision_ids": [],
+            "hold_subject": false,
+            "migration_ids": [],
+            "policy_version": "identity-decisions-v1",
+            "positive_wsdc_id": null,
+            "ref_ids": [
+              "af7ec128e1531993ec821d63d7f97f68dfde7ce53fff08a1cdd95bb62dae5db1"
+            ],
+            "review_required": false,
+            "token": {
+              "digest": "e1487f143891001bc7ddb16cfe6e32003e1ac95628fcaa3a03849e3806f6a246",
+              "generation": 1
+            }
+          },
+          "retained_reference_bindings": [],
+          "subject": {
+            "bib": null,
+            "contest_id": "2026-05-french-open/pro-am-follower",
+            "entry_id": "2026-05-french-open/pro-am-follower/F-name-david-kalifa",
+            "event_id": "2026-05-french-open",
+            "link_status": "confirmed",
+            "name_norm": "david kalifa",
+            "name_raw": "David Kalifa",
+            "parser_version": "3",
+            "role": "follower",
+            "snapshot_id": "snap_20260912T145423Z_eececf24b320",
+            "source": "scoringdance",
+            "wsdc_id": 8440
+          }
+        }
+      },
+      "new_wsdc_id": null,
+      "old_wsdc_id": 8440,
+      "source_cells_unchanged": true,
+      "source_payload_changed_fields": [
+        "scoring_method_raw"
+      ]
+    },
+    {
+      "contest_id": "2026-05-french-open/pro-am-follower",
+      "entry_id": "2026-05-french-open/pro-am-follower/F-name-joao-parada",
+      "entry_removed": false,
+      "interpretations": {
+        "new": {
+          "assertion": {
+            "acceptance_state": "revoked",
+            "decision_ids": [],
+            "method": "none",
+            "source_ref_ids": [
+              "634fb560fa1f70d2efde3b9682df74faf40f5e625a05959c808e373cf95ba4c7",
+              "92366447e12f6cd10ffbd0fb2e6dacbc0602198d547e3571b83d5694675f8537"
+            ],
+            "status": "unmatched",
+            "wsdc_id": null
+          },
+          "binding_problem": "source_row_replacement_requires_reference_migration",
+          "bindings": [
+            {
+              "event_id": "2026-05-french-open",
+              "locator": {
+                "bib": "",
+                "column": 1,
+                "role": "follower",
+                "row": 3,
+                "source_wsdc_id": null,
+                "table": 0,
+                "url": "https://scoring.dance/enUS/events/391/results/5541.html"
+              },
+              "reference": {
+                "contest": "5541#0",
+                "participant": "entry:follower:row:3",
+                "round": "0",
+                "source": "scoringdance",
+                "source_event": "scoringdance:391"
+              },
+              "semantic_hash": "d985c816382fb9d301a5eb251f71bb23675ea4ededc809b2bc19339b9d0b625b",
+              "snapshot_id": "snap_20260912T145423Z_eececf24b320",
+              "subject_id": "2026-05-french-open/pro-am-follower/F-name-joao-parada",
+              "subject_kind": "entry"
+            },
+            {
+              "event_id": "2026-05-french-open",
+              "locator": {
+                "bib": "",
+                "column": 1,
+                "role": "follower",
+                "row": 0,
+                "source_wsdc_id": 10214,
+                "table": 0,
+                "url": "https://scoring.dance/enUS/events/391/results/5541.html"
+              },
+              "reference": {
+                "contest": "5541#0",
+                "participant": "entry:follower:row:0",
+                "round": "0",
+                "source": "scoringdance",
+                "source_event": "scoringdance:391"
+              },
+              "semantic_hash": "d985c816382fb9d301a5eb251f71bb23675ea4ededc809b2bc19339b9d0b625b",
+              "snapshot_id": "snap_20260912T145423Z_eececf24b320",
+              "subject_id": "2026-05-french-open/pro-am-follower/F-name-joao-parada",
+              "subject_kind": "entry"
+            }
+          ],
+          "contest": {
+            "name": "ProAm Routines (Am = Follower)",
+            "parse_status": "parsed",
+            "wsdc_points_eligible": false
+          },
+          "observations": [
+            {
+              "extract_version": "3",
+              "kind": "round_sheet",
+              "observation_id": "e804d21b76ca63aa",
+              "parser_version": "3",
+              "payload_bytes": 5103,
+              "snapshot_id": "snap_20260912T145423Z_eececf24b320"
+            }
+          ],
+          "printed_ids": [
+            10214
+          ],
+          "resolution": {
+            "blocked_wsdc_ids": [],
+            "contradictions": [
+              "source_row_replacement_requires_reference_migration"
+            ],
+            "decision_ids": [],
+            "hold_subject": true,
+            "migration_ids": [],
+            "policy_version": "identity-decisions-v1",
+            "positive_wsdc_id": null,
+            "ref_ids": [
+              "634fb560fa1f70d2efde3b9682df74faf40f5e625a05959c808e373cf95ba4c7",
+              "92366447e12f6cd10ffbd0fb2e6dacbc0602198d547e3571b83d5694675f8537"
+            ],
+            "review_required": true,
+            "token": {
+              "digest": "e1487f143891001bc7ddb16cfe6e32003e1ac95628fcaa3a03849e3806f6a246",
+              "generation": 1
+            }
+          },
+          "retained_reference_bindings": [
+            {
+              "binding_id": "a2d4aa7dffd61822fd8d02e56656f7a58d699e39be4b5eaea252b75b019c9823",
+              "bound_at": "2026-09-13T08:25:46.025880+00:00",
+              "current_source_locators": [
+                {
+                  "bib": "",
+                  "column": 2,
+                  "role": "follower",
+                  "row": 3,
+                  "source_wsdc_id": null,
+                  "table": 0,
+                  "url": "https://scoring.dance/enUS/events/391/results/5541.html"
+                }
+              ],
+              "current_subject_name": "Denise Richardet",
+              "current_subject_role": "follower",
+              "event_id": "2026-05-french-open",
+              "ref_id": "634fb560fa1f70d2efde3b9682df74faf40f5e625a05959c808e373cf95ba4c7",
+              "semantic_hash": "dee74b6b10cabe2a77181a6e7116f725f41c4b7cf2432ba94fe88882bae9bc28",
+              "snapshot_id": "snap_20260912T145423Z_eececf24b320",
+              "subject_id": "2026-05-french-open/pro-am-follower/F-name-denise-richardet",
+              "subject_kind": "entry"
+            },
+            {
+              "binding_id": "afef634dd3369d98602a6e2ea675893946ff6e6d184e420825928ea8f1125e44",
+              "bound_at": "2026-09-13T08:25:46.025880+00:00",
+              "current_source_locators": [
+                {
+                  "bib": "",
+                  "column": 1,
+                  "role": "follower",
+                  "row": 3,
+                  "source_wsdc_id": null,
+                  "table": 0,
+                  "url": "https://scoring.dance/enUS/events/391/results/5541.html"
+                }
+              ],
+              "current_subject_name": "Jo\u00e3o Parada",
+              "current_subject_role": "follower",
+              "event_id": "2026-05-french-open",
+              "ref_id": "634fb560fa1f70d2efde3b9682df74faf40f5e625a05959c808e373cf95ba4c7",
+              "semantic_hash": "d985c816382fb9d301a5eb251f71bb23675ea4ededc809b2bc19339b9d0b625b",
+              "snapshot_id": "snap_20260912T145423Z_eececf24b320",
+              "subject_id": "2026-05-french-open/pro-am-follower/F-name-joao-parada",
+              "subject_kind": "entry"
+            },
+            {
+              "binding_id": "e5ddece6490ddda4118bda0bc5ba4b408e5d4689a3af3160960b532504f21741",
+              "bound_at": "2026-09-13T08:25:46.025880+00:00",
+              "current_source_locators": [
+                {
+                  "bib": "",
+                  "column": 2,
+                  "role": "follower",
+                  "row": 0,
+                  "source_wsdc_id": null,
+                  "table": 0,
+                  "url": "https://scoring.dance/enUS/events/391/results/5541.html"
+                }
+              ],
+              "current_subject_name": "Estelle Chardonnens",
+              "current_subject_role": "follower",
+              "event_id": "2026-05-french-open",
+              "ref_id": "92366447e12f6cd10ffbd0fb2e6dacbc0602198d547e3571b83d5694675f8537",
+              "semantic_hash": "db904f6dcbc63bf7a71d71ac000f529125a09ec5a1402fc194ea3c0fc5016fd5",
+              "snapshot_id": "snap_20260912T145423Z_eececf24b320",
+              "subject_id": "2026-05-french-open/pro-am-follower/F-name-estelle-chardonnens",
+              "subject_kind": "entry"
+            },
+            {
+              "binding_id": "2d979d7858d2fbfd27590fce90c8933ea2bbbba57fb58caa6755c950fcc6f769",
+              "bound_at": "2026-09-13T08:25:46.025880+00:00",
+              "current_source_locators": [
+                {
+                  "bib": "",
+                  "column": 1,
+                  "role": "follower",
+                  "row": 0,
+                  "source_wsdc_id": 10214,
+                  "table": 0,
+                  "url": "https://scoring.dance/enUS/events/391/results/5541.html"
+                }
+              ],
+              "current_subject_name": "Jo\u00e3o Parada",
+              "current_subject_role": "follower",
+              "event_id": "2026-05-french-open",
+              "ref_id": "92366447e12f6cd10ffbd0fb2e6dacbc0602198d547e3571b83d5694675f8537",
+              "semantic_hash": "d985c816382fb9d301a5eb251f71bb23675ea4ededc809b2bc19339b9d0b625b",
+              "snapshot_id": "snap_20260912T145423Z_eececf24b320",
+              "subject_id": "2026-05-french-open/pro-am-follower/F-name-joao-parada",
+              "subject_kind": "entry"
+            }
+          ],
+          "subject": {
+            "bib": null,
+            "contest_id": "2026-05-french-open/pro-am-follower",
+            "entry_id": "2026-05-french-open/pro-am-follower/F-name-joao-parada",
+            "event_id": "2026-05-french-open",
+            "link_status": "unmatched",
+            "name_norm": "joao parada",
+            "name_raw": "Jo\u00e3o Parada",
+            "parser_version": "3",
+            "role": "follower",
+            "snapshot_id": "snap_20260912T145423Z_eececf24b320",
+            "source": "scoringdance",
+            "wsdc_id": null
+          }
+        },
+        "old": {
+          "assertion": {
+            "acceptance_state": "accepted",
+            "decision_ids": [],
+            "method": "source_id",
+            "source_ref_ids": [
+              "634fb560fa1f70d2efde3b9682df74faf40f5e625a05959c808e373cf95ba4c7",
+              "92366447e12f6cd10ffbd0fb2e6dacbc0602198d547e3571b83d5694675f8537"
+            ],
+            "status": "confirmed",
+            "wsdc_id": 10214
+          },
+          "binding_problem": null,
+          "bindings": [
+            {
+              "event_id": "2026-05-french-open",
+              "locator": {
+                "bib": "",
+                "column": 1,
+                "role": "follower",
+                "row": 3,
+                "source_wsdc_id": null,
+                "table": 0,
+                "url": "https://scoring.dance/enUS/events/391/results/5541.html"
+              },
+              "reference": {
+                "contest": "5541#0",
+                "participant": "entry:follower:row:3",
+                "round": "0",
+                "source": "scoringdance",
+                "source_event": "scoringdance:391"
+              },
+              "semantic_hash": "d985c816382fb9d301a5eb251f71bb23675ea4ededc809b2bc19339b9d0b625b",
+              "snapshot_id": "snap_20260912T145423Z_eececf24b320",
+              "subject_id": "2026-05-french-open/pro-am-follower/F-name-joao-parada",
+              "subject_kind": "entry"
+            },
+            {
+              "event_id": "2026-05-french-open",
+              "locator": {
+                "bib": "",
+                "column": 1,
+                "role": "follower",
+                "row": 0,
+                "source_wsdc_id": 10214,
+                "table": 0,
+                "url": "https://scoring.dance/enUS/events/391/results/5541.html"
+              },
+              "reference": {
+                "contest": "5541#0",
+                "participant": "entry:follower:row:0",
+                "round": "0",
+                "source": "scoringdance",
+                "source_event": "scoringdance:391"
+              },
+              "semantic_hash": "d985c816382fb9d301a5eb251f71bb23675ea4ededc809b2bc19339b9d0b625b",
+              "snapshot_id": "snap_20260912T145423Z_eececf24b320",
+              "subject_id": "2026-05-french-open/pro-am-follower/F-name-joao-parada",
+              "subject_kind": "entry"
+            }
+          ],
+          "contest": {
+            "name": "ProAm Routines (Am = Follower)",
+            "parse_status": "parsed",
+            "wsdc_points_eligible": false
+          },
+          "observations": [
+            {
+              "extract_version": "3",
+              "kind": "round_sheet",
+              "observation_id": "e804d21b76ca63aa",
+              "parser_version": "3",
+              "payload_bytes": 5077,
+              "snapshot_id": "snap_20260912T145423Z_eececf24b320"
+            }
+          ],
+          "printed_ids": [
+            10214
+          ],
+          "resolution": {
+            "blocked_wsdc_ids": [],
+            "contradictions": [],
+            "decision_ids": [],
+            "hold_subject": false,
+            "migration_ids": [],
+            "policy_version": "identity-decisions-v1",
+            "positive_wsdc_id": null,
+            "ref_ids": [
+              "634fb560fa1f70d2efde3b9682df74faf40f5e625a05959c808e373cf95ba4c7",
+              "92366447e12f6cd10ffbd0fb2e6dacbc0602198d547e3571b83d5694675f8537"
+            ],
+            "review_required": false,
+            "token": {
+              "digest": "e1487f143891001bc7ddb16cfe6e32003e1ac95628fcaa3a03849e3806f6a246",
+              "generation": 1
+            }
+          },
+          "retained_reference_bindings": [],
+          "subject": {
+            "bib": null,
+            "contest_id": "2026-05-french-open/pro-am-follower",
+            "entry_id": "2026-05-french-open/pro-am-follower/F-name-joao-parada",
+            "event_id": "2026-05-french-open",
+            "link_status": "confirmed",
+            "name_norm": "joao parada",
+            "name_raw": "Jo\u00e3o Parada",
+            "parser_version": "3",
+            "role": "follower",
+            "snapshot_id": "snap_20260912T145423Z_eececf24b320",
+            "source": "scoringdance",
+            "wsdc_id": 10214
+          }
+        }
+      },
+      "new_wsdc_id": null,
+      "old_wsdc_id": 10214,
+      "source_cells_unchanged": true,
+      "source_payload_changed_fields": [
+        "scoring_method_raw"
+      ]
+    },
+    {
+      "contest_id": "2026-05-french-open/pro-am-follower",
+      "entry_id": "2026-05-french-open/pro-am-follower/F-name-teddy-sanchez",
+      "entry_removed": false,
+      "interpretations": {
+        "new": {
+          "assertion": {
+            "acceptance_state": "revoked",
+            "decision_ids": [],
+            "method": "none",
+            "source_ref_ids": [
+              "2a11bebe8ebddb4cd20026a67e336f22d29117c80c516048306df9eecad03d61"
+            ],
+            "status": "unmatched",
+            "wsdc_id": null
+          },
+          "binding_problem": "source_row_replacement_requires_reference_migration",
+          "bindings": [
+            {
+              "event_id": "2026-05-french-open",
+              "locator": {
+                "bib": "",
+                "column": 1,
+                "role": "follower",
+                "row": 1,
+                "source_wsdc_id": 21133,
+                "table": 0,
+                "url": "https://scoring.dance/enUS/events/391/results/5541.html"
+              },
+              "reference": {
+                "contest": "5541#0",
+                "participant": "entry:follower:row:1",
+                "round": "0",
+                "source": "scoringdance",
+                "source_event": "scoringdance:391"
+              },
+              "semantic_hash": "e168c31ed5eec4643979b2c91b202c1adce2ab28e7fb5a1730d89ccce1b390e3",
+              "snapshot_id": "snap_20260912T145423Z_eececf24b320",
+              "subject_id": "2026-05-french-open/pro-am-follower/F-name-teddy-sanchez",
+              "subject_kind": "entry"
+            }
+          ],
+          "contest": {
+            "name": "ProAm Routines (Am = Follower)",
+            "parse_status": "parsed",
+            "wsdc_points_eligible": false
+          },
+          "observations": [
+            {
+              "extract_version": "3",
+              "kind": "round_sheet",
+              "observation_id": "e804d21b76ca63aa",
+              "parser_version": "3",
+              "payload_bytes": 5103,
+              "snapshot_id": "snap_20260912T145423Z_eececf24b320"
+            }
+          ],
+          "printed_ids": [
+            21133
+          ],
+          "resolution": {
+            "blocked_wsdc_ids": [],
+            "contradictions": [
+              "source_row_replacement_requires_reference_migration"
+            ],
+            "decision_ids": [],
+            "hold_subject": true,
+            "migration_ids": [],
+            "policy_version": "identity-decisions-v1",
+            "positive_wsdc_id": null,
+            "ref_ids": [
+              "2a11bebe8ebddb4cd20026a67e336f22d29117c80c516048306df9eecad03d61"
+            ],
+            "review_required": true,
+            "token": {
+              "digest": "e1487f143891001bc7ddb16cfe6e32003e1ac95628fcaa3a03849e3806f6a246",
+              "generation": 1
+            }
+          },
+          "retained_reference_bindings": [
+            {
+              "binding_id": "35ee8d01d674f528510557a88beca2b1c9447c3c7e2dbac43fe9bbcfe1ebb362",
+              "bound_at": "2026-09-13T08:25:46.025880+00:00",
+              "current_source_locators": [
+                {
+                  "bib": "",
+                  "column": 2,
+                  "role": "follower",
+                  "row": 1,
+                  "source_wsdc_id": null,
+                  "table": 0,
+                  "url": "https://scoring.dance/enUS/events/391/results/5541.html"
+                }
+              ],
+              "current_subject_name": "C\u00e9cile Cubada",
+              "current_subject_role": "follower",
+              "event_id": "2026-05-french-open",
+              "ref_id": "2a11bebe8ebddb4cd20026a67e336f22d29117c80c516048306df9eecad03d61",
+              "semantic_hash": "8e5726a95562de349e33769df5d79bc245ba6e20bf523e853f39f868b2cfdf60",
+              "snapshot_id": "snap_20260912T145423Z_eececf24b320",
+              "subject_id": "2026-05-french-open/pro-am-follower/F-name-cecile-cubada",
+              "subject_kind": "entry"
+            },
+            {
+              "binding_id": "4290c02e736dd0ee413970a0822a7a9c8cf93224d07beb00f42c4157489dde6a",
+              "bound_at": "2026-09-13T08:25:46.025880+00:00",
+              "current_source_locators": [
+                {
+                  "bib": "",
+                  "column": 1,
+                  "role": "follower",
+                  "row": 1,
+                  "source_wsdc_id": 21133,
+                  "table": 0,
+                  "url": "https://scoring.dance/enUS/events/391/results/5541.html"
+                }
+              ],
+              "current_subject_name": "Teddy Sanchez",
+              "current_subject_role": "follower",
+              "event_id": "2026-05-french-open",
+              "ref_id": "2a11bebe8ebddb4cd20026a67e336f22d29117c80c516048306df9eecad03d61",
+              "semantic_hash": "e168c31ed5eec4643979b2c91b202c1adce2ab28e7fb5a1730d89ccce1b390e3",
+              "snapshot_id": "snap_20260912T145423Z_eececf24b320",
+              "subject_id": "2026-05-french-open/pro-am-follower/F-name-teddy-sanchez",
+              "subject_kind": "entry"
+            }
+          ],
+          "subject": {
+            "bib": null,
+            "contest_id": "2026-05-french-open/pro-am-follower",
+            "entry_id": "2026-05-french-open/pro-am-follower/F-name-teddy-sanchez",
+            "event_id": "2026-05-french-open",
+            "link_status": "unmatched",
+            "name_norm": "teddy sanchez",
+            "name_raw": "Teddy Sanchez",
+            "parser_version": "3",
+            "role": "follower",
+            "snapshot_id": "snap_20260912T145423Z_eececf24b320",
+            "source": "scoringdance",
+            "wsdc_id": null
+          }
+        },
+        "old": {
+          "assertion": {
+            "acceptance_state": "accepted",
+            "decision_ids": [],
+            "method": "source_id",
+            "source_ref_ids": [
+              "2a11bebe8ebddb4cd20026a67e336f22d29117c80c516048306df9eecad03d61"
+            ],
+            "status": "confirmed",
+            "wsdc_id": 21133
+          },
+          "binding_problem": null,
+          "bindings": [
+            {
+              "event_id": "2026-05-french-open",
+              "locator": {
+                "bib": "",
+                "column": 1,
+                "role": "follower",
+                "row": 1,
+                "source_wsdc_id": 21133,
+                "table": 0,
+                "url": "https://scoring.dance/enUS/events/391/results/5541.html"
+              },
+              "reference": {
+                "contest": "5541#0",
+                "participant": "entry:follower:row:1",
+                "round": "0",
+                "source": "scoringdance",
+                "source_event": "scoringdance:391"
+              },
+              "semantic_hash": "e168c31ed5eec4643979b2c91b202c1adce2ab28e7fb5a1730d89ccce1b390e3",
+              "snapshot_id": "snap_20260912T145423Z_eececf24b320",
+              "subject_id": "2026-05-french-open/pro-am-follower/F-name-teddy-sanchez",
+              "subject_kind": "entry"
+            }
+          ],
+          "contest": {
+            "name": "ProAm Routines (Am = Follower)",
+            "parse_status": "parsed",
+            "wsdc_points_eligible": false
+          },
+          "observations": [
+            {
+              "extract_version": "3",
+              "kind": "round_sheet",
+              "observation_id": "e804d21b76ca63aa",
+              "parser_version": "3",
+              "payload_bytes": 5077,
+              "snapshot_id": "snap_20260912T145423Z_eececf24b320"
+            }
+          ],
+          "printed_ids": [
+            21133
+          ],
+          "resolution": {
+            "blocked_wsdc_ids": [],
+            "contradictions": [],
+            "decision_ids": [],
+            "hold_subject": false,
+            "migration_ids": [],
+            "policy_version": "identity-decisions-v1",
+            "positive_wsdc_id": null,
+            "ref_ids": [
+              "2a11bebe8ebddb4cd20026a67e336f22d29117c80c516048306df9eecad03d61"
+            ],
+            "review_required": false,
+            "token": {
+              "digest": "e1487f143891001bc7ddb16cfe6e32003e1ac95628fcaa3a03849e3806f6a246",
+              "generation": 1
+            }
+          },
+          "retained_reference_bindings": [],
+          "subject": {
+            "bib": null,
+            "contest_id": "2026-05-french-open/pro-am-follower",
+            "entry_id": "2026-05-french-open/pro-am-follower/F-name-teddy-sanchez",
+            "event_id": "2026-05-french-open",
+            "link_status": "confirmed",
+            "name_norm": "teddy sanchez",
+            "name_raw": "Teddy Sanchez",
+            "parser_version": "3",
+            "role": "follower",
+            "snapshot_id": "snap_20260912T145423Z_eececf24b320",
+            "source": "scoringdance",
+            "wsdc_id": 21133
+          }
+        }
+      },
+      "new_wsdc_id": null,
+      "old_wsdc_id": 21133,
+      "source_cells_unchanged": true,
+      "source_payload_changed_fields": [
+        "scoring_method_raw"
+      ]
+    }
+  ],
+  "lost_entries_in_reviewed_unsupported_contests": 0,
+  "network_requests": 0,
+  "no_reference_migration_approved": true,
+  "state_mutations": 0,
+  "verified_public_commit": "81121dcc7d62a1db9e76ee1c49a6b90e1f4c5653"
+}

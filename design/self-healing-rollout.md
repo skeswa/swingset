@@ -1,7 +1,8 @@
 # Self-healing rollout
 
-Status: proposal, 2026-09-12. Work plan for the
-[self-healing proposal](self-healing.md). These are proposed revisions, not
+Status: accepted, 2026-09-12. Work plan for [self-healing](self-healing.md).
+The order in which these revisions interleave with the backfill is owned by
+[implementation plan v2](implementation-plan-v2.md). Acceptance is not
 completed work or new authorization to publish. Each revision is done when it
 has updated the contracts it names, its tests are green, and every scenario
 listed for it in [acceptance scenarios](#acceptance-scenarios) passes. On

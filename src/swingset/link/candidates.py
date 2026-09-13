@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from rapidfuzz.distance import JaroWinkler
 from rapidfuzz.fuzz import token_set_ratio
 
-from swingset.normalize.names import nickname_equivalent, normalize_name
+from swingset.normalize.names import nickname_equivalent, normalize_name, paired_names
 
 
 @dataclass(frozen=True)
@@ -63,11 +63,15 @@ _LEVEL = {
 
 
 def _division_ok(subject: Subject, dancer: DancerRecord) -> bool | None:
-    if subject.division not in _LEVEL or subject.role not in {"leader", "follower"}:
+    if (
+        subject.division in {None, "none", "open"}
+        or subject.division not in _LEVEL
+        or subject.role not in {"leader", "follower"}
+    ):
         return None
     required = getattr(dancer, f"{subject.role}_required_level").casefold()
     allowed = getattr(dancer, f"{subject.role}_allowed_level").casefold()
-    if required not in _LEVEL or allowed not in _LEVEL:
+    if required not in _LEVEL or allowed not in _LEVEL or "none" in {required, allowed}:
         return None
     return _LEVEL[required] <= _LEVEL[subject.division] <= _LEVEL[allowed]
 
@@ -75,6 +79,8 @@ def _division_ok(subject: Subject, dancer: DancerRecord) -> bool | None:
 def generate_candidates(
     subject: Subject, dancers: list[DancerRecord], nicknames: dict[str, str]
 ) -> list[Candidate]:
+    if subject.role == "couple" or paired_names(subject.name_raw):
+        return []
     wanted = normalize_name(subject.name_raw)
     result = []
     for dancer in dancers:

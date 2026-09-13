@@ -69,13 +69,19 @@ How we use it:
   Start above the highest known ID; stop each probe after 20 consecutive
   verified misses. Each probe requires responses fetched after it started;
   old misses cannot stand in for a fresh lookup. A found ID resets the miss
-  count. Missing IDs are retried in later probes, not retired permanently.
+  count. Completion consumes usable verification, so identical successful
+  responses count and failures do not. Missing IDs are retried in later
+  probes, not retired permanently. Weekly discovery continues beyond day 30;
+  every newly projected dancer reconsiders retained older unresolved results,
+  even when those entries had no existing candidate edge.
 - **Post-event confirmation:** while any recent eligible event result is
   still absent, refresh each already-known finalist once per day for at most
   30 days after that event. Multiple events can keep this schedule active;
   once the result is posted, that event no longer causes intensive refresh.
 - **Trickle refresh:** refresh dancers not refreshed in 365 days, at most
-  100 per day. This catches merges and name changes without full sweeps.
+  100 per day. Age uses usable verification, including identical successful
+  checks, rather than the winning claim's fetch time. Missing verification is
+  stale. This catches merges and name changes without full sweeps.
 - We never call autocomplete or name search in the pipeline. Name lookup
   uses our local mirror.
 

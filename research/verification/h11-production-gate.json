@@ -1,0 +1,15 @@
+{
+  "format": "h11-operational-gate-v1",
+  "v4_verified": true,
+  "v4_commit": "81121dcc7d62a1db9e76ee1c49a6b90e1f4c5653",
+  "v4_manifest_sha256": "87ac286a1ae452f09f7e5cea646f260ac34035f3d05bb83de17c7d9cc8f08884",
+  "private_backup_verified": true,
+  "private_backup_commit": "2dd1c31510aec7ce10d752403cf5901f8a375636",
+  "checkpoint": "/var/lib/swingset/checkpoints/v2-v4-published-cand_7f8cf9bcbf7e4a60",
+  "checkpoint_manifest_sha256": "28b08a723746f40490aa071951fb4071da9f96f29ede2d282a5cefc189a835cf",
+  "verified_at": "2026-09-13T09:06:01.655424+00:00",
+  "evidence_files": {
+    "v4-remote-verification.json": "290b2302c65ce84b4483c4f2b6104cebcc9ba68b5e132f6c674bbaed410f8b2a",
+    "private-backup-verification.json": "b9732522fd147571fbf90d3ec01fb0e0c472de1e6e9c54685d249831fa141b1b"
+  }
+}

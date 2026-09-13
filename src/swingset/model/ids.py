@@ -82,8 +82,11 @@ def _compact(moment: datetime) -> str:
     return moment.astimezone(UTC).strftime("%Y%m%dT%H%M%SZ")
 
 
-def snapshot_id(fetched_at: datetime, body_sha256: str) -> str:
-    return f"snap_{_compact(fetched_at)}_{body_sha256[:12]}"
+def snapshot_id(fetched_at: datetime, body_sha256: str, *, watch_key: str | None = None) -> str:
+    # Distinct hosts may return identical bodies within the same second.
+    # Keep their acquisition/provenance envelopes distinct while bodies dedupe.
+    suffix = "_" + hashlib.sha256(watch_key.encode()).hexdigest()[:12] if watch_key else ""
+    return f"snap_{_compact(fetched_at)}_{body_sha256[:12]}{suffix}"
 
 
 def run_id(started_at: datetime) -> str:

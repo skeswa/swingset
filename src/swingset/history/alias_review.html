@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="en">
+  <meta charset="utf-8" /><title>Historical series alias review</title>
+  <style>
+    body {
+      font: 16px system-ui;
+      margin: 2rem;
+      max-width: 1100px;
+    }
+    button,
+    input,
+    select {
+      font: inherit;
+      padding: 0.4rem;
+    }
+    article {
+      border-top: 1px solid #ccc;
+      padding: 1rem 0;
+    }
+    small {
+      color: #555;
+    }
+    pre {
+      white-space: pre-wrap;
+      word-break: break-word;
+      background: #f5f5f5;
+      padding: 1rem;
+    }
+    details {
+      margin: 0.7rem 0;
+    }
+    label {
+      display: block;
+      margin: 0.8rem 0;
+    }
+    header {
+      position: sticky;
+      top: 0;
+      background: white;
+      padding: 0.6rem 0;
+      border-bottom: 1px solid #999;
+    }
+    li {
+      margin: 0.5rem 0;
+    }
+    .row {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+  </style>
+  <h1>Historical series alias review</h1>
+  <p id="notice"></p>
+  <header>
+    <div class="row">
+      <input
+        id="search"
+        placeholder="Filter names, IDs or years"
+        aria-label="Filter groups"
+      /><button id="download">Download reviewed aliases CSV</button
+      ><button id="save">Download decisions JSON</button
+      ><label>Load decisions <input id="load" type="file" accept="application/json" /></label>
+    </div>
+    <p id="status"></p>
+  </header>
+  <main id="groups"></main>
+  <script id="packet" type="application/json">
+    __PACKET__
+  </script>
+  <script>
+    const packet = JSON.parse(document.getElementById("packet").textContent),
+      decisions = {};
+    const el = (tag, text, parent) => {
+      const node = document.createElement(tag);
+      if (text !== undefined) node.textContent = text;
+      if (parent) parent.append(node);
+      return node;
+    };
+    function lazy(details, value) {
+      details.addEventListener("toggle", () => {
+        if (details.open && !details.dataset.loaded) {
+          el("pre", JSON.stringify(value, null, 2), details);
+          details.dataset.loaded = "1";
+        }
+      });
+    }
+    document.getElementById("notice").textContent =
+      packet.notice +
+      " Generated " +
+      packet.generated_at +
+      ". Nothing is selected automatically. Downloads do not modify the repository or authorize phase 2.";
+    function status() {
+      const selected = Object.values(decisions).filter((d) => d.series_id).length;
+      document.getElementById("status").textContent =
+        `${packet.groups.length} groups cover ${packet.groups.reduce((n, g) => n + g.findings.length, 0)} findings. ${selected} groups explicitly selected. Decisions stay in this page until downloaded.`;
+    }
+    function render() {
+      const host = document.getElementById("groups");
+      host.replaceChildren();
+      const filter = document.getElementById("search").value.toLowerCase();
+      for (const group of packet.groups) {
+        if (
+          filter &&
+          !JSON.stringify([
+            group.printed_names,
+            group.months,
+            group.candidates.map((c) => [c.series_id, c.registry_names]),
+          ])
+            .toLowerCase()
+            .includes(filter)
+        )
+          continue;
+        const article = el("article", undefined, host);
+        el("h2", group.printed_names.join(" / "), article);
+        el(
+          "p",
+          `${group.findings.length} findings · ${group.months.join(", ")} · normalization key: ${group.group_id}`,
+          article,
+        );
+        if (group.exact_candidates.length > 1)
+          el(
+            "p",
+            "Multiple registry IDs share this normalized name. If different years belong to different IDs, leave this group unresolved: the current alias format applies across every year and cannot express a year-specific split.",
+            article,
+          );
+        const decision = decisions[group.group_id] || { series_id: "", note: "" };
+        const label = el("label", "Human decision: ", article),
+          select = el("select", undefined, label);
+        el("option", "Leave unresolved", select).value = "";
+        for (const candidate of group.candidates) {
+          const option = el(
+            "option",
+            candidate.series_id + " — " + candidate.registry_names.join(" / "),
+            select,
+          );
+          option.value = candidate.series_id;
+        }
+        el("option", "Create distinct listed series (review identity first)", select).value =
+          "__new";
+        select.value = decision.series_id === group.suggested_new_id ? "__new" : decision.series_id;
+        select.onchange = () => {
+          decisions[group.group_id] = {
+            series_id: select.value === "__new" ? group.suggested_new_id : select.value,
+            note: note.value,
+          };
+          status();
+        };
+        const note = el("input", undefined, article);
+        note.placeholder = "Review note (required for CSV export)";
+        note.value = decision.note;
+        note.style.width = "95%";
+        note.oninput = () => {
+          decisions[group.group_id] = {
+            series_id: select.value === "__new" ? group.suggested_new_id : select.value,
+            note: note.value,
+          };
+          status();
+        };
+        for (const candidate of group.candidates) {
+          const details = el("details", undefined, article);
+          el(
+            "summary",
+            candidate.series_id +
+              " — " +
+              candidate.registry_names.join(" / ") +
+              " · " +
+              candidate.reasons.join("; "),
+            details,
+          );
+          el(
+            "p",
+            "Matching printed months: " +
+              (candidate.same_months.join(", ") || "none") +
+              ". Following reporting months: " +
+              (candidate.following_months.join(", ") || "none") +
+              ". Listed months absent from registry: " +
+              (candidate.missing_listed_months.join(", ") || "none") +
+              ".",
+            details,
+          );
+          lazy(details, candidate.registry_occurrences);
+        }
+        const raw = el("details", undefined, article);
+        el(
+          "summary",
+          `Retained raw source evidence (${group.evidence.length} rows) and exact finding IDs`,
+          raw,
+        );
+        lazy(raw, { variants: group.variants, findings: group.findings, evidence: group.evidence });
+      }
+      status();
+    }
+    function download(name, type, body) {
+      const url = URL.createObjectURL(new Blob([body], { type })),
+        a = document.createElement("a");
+      a.href = url;
+      a.download = name;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+    const csv = (value) => '"' + String(value).replaceAll('"', '""') + '"';
+    document.getElementById("download").onclick = () => {
+      const rows = [["printed_name", "series_id", "source", "note"]];
+      for (const group of packet.groups) {
+        const d = decisions[group.group_id];
+        if (!d?.series_id) continue;
+        if (!d.note.trim()) {
+          alert("Add a review note for " + group.printed_names[0]);
+          return;
+        }
+        if (!group.variants.length) {
+          alert(
+            "No retained row/source variants for " + group.printed_names[0] + ". Inspect manually.",
+          );
+          return;
+        }
+        for (const [name, source] of group.variants) rows.push([name, d.series_id, source, d.note]);
+      }
+      download(
+        "reviewed-series-aliases.csv",
+        "text/csv",
+        rows.map((row) => row.map(csv).join(",")).join("\n") + "\n",
+      );
+    };
+    document.getElementById("save").onclick = () =>
+      download(
+        "alias-review-decisions.json",
+        "application/json",
+        JSON.stringify({ generated_at: packet.generated_at, decisions }, null, 2),
+      );
+    document.getElementById("load").onchange = async (event) => {
+      try {
+        const saved = JSON.parse(await event.target.files[0].text());
+        if (saved.generated_at !== packet.generated_at)
+          throw Error("Decisions belong to a different proposal packet");
+        for (const [key, d] of Object.entries(saved.decisions)) {
+          const g = packet.groups.find((g) => g.group_id === key);
+          if (
+            !g ||
+            typeof d.note !== "string" ||
+            !["", g.suggested_new_id, ...g.candidates.map((c) => c.series_id)].includes(d.series_id)
+          )
+            throw Error("Invalid decision");
+          decisions[key] = d;
+        }
+        render();
+      } catch (error) {
+        alert(error.message);
+      }
+    };
+    document.getElementById("search").oninput = render;
+    render();
+  </script>
+</html>

@@ -1,0 +1,283 @@
+{
+  "reference_sha256": "6d10d7fa0b15c2da0f64e6ae135e7c0a3fd6da0e304f2c8074c4477411f6fbf8",
+  "current_sha256": "52eaf8b503ac91904d24b86e81ff796bab3e3e59fbc2d45c324824e78d7b2574",
+  "phases": [
+    "registry_only",
+    "calendar_newsletter_unresolved",
+    "reviewed_alias_cancelled",
+    "platform_metadata",
+    "settled_replay"
+  ],
+  "tables": [
+    "events",
+    "series",
+    "source_events",
+    "source_event_scope_rows",
+    "source_event_map",
+    "canonical_scope_rows",
+    "registry_placements",
+    "findings",
+    "coverage",
+    "revisions",
+    "pending_work"
+  ],
+  "results": {
+    "wrapper": {
+      "equal": true,
+      "differences": []
+    },
+    "split": {
+      "equal": true,
+      "differences": []
+    }
+  },
+  "expected": [
+    {
+      "changed": true,
+      "tables": {
+        "events": {
+          "count": 1,
+          "sha256": "645f500bab60d933ad8d619f31be075f3febcac81e55aa0076d290d16c222382"
+        },
+        "series": {
+          "count": 1,
+          "sha256": "537b09d4998491175e00a4a25253e56d768937c96d5888618fb13b7d3100838d"
+        },
+        "source_events": {
+          "count": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        "source_event_scope_rows": {
+          "count": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        "source_event_map": {
+          "count": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        "canonical_scope_rows": {
+          "count": 4,
+          "sha256": "18d98809778ca58e46c56665f580e229f0b2913b372602658716033aff88cf93"
+        },
+        "registry_placements": {
+          "count": 2,
+          "sha256": "337a55518ce5563372772421402c1c89f96bbd3c2b2ab2dd059b8b820b4792c6"
+        },
+        "findings": {
+          "count": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        "coverage": {
+          "count": 1,
+          "sha256": "20c5e99a52ae84e674377cbe5e97db7a29dc38232f7c9aed9ac2abb110fdcea5"
+        },
+        "revisions": {
+          "count": 9,
+          "sha256": "d14bda598609b33aed19efa44c286f2b2d402f9bed6c9a140ac4602e28c911cf"
+        },
+        "pending_work": {
+          "count": 1,
+          "sha256": "62afba50d8df4cf08d060bf75fa3105e97be31319745110044b8342e4d857ae7"
+        }
+      }
+    },
+    {
+      "changed": true,
+      "tables": {
+        "events": {
+          "count": 1,
+          "sha256": "b959f8f5415061020999009293d435cc4ec1f7f85f1316f092dcccd523578463"
+        },
+        "series": {
+          "count": 1,
+          "sha256": "537b09d4998491175e00a4a25253e56d768937c96d5888618fb13b7d3100838d"
+        },
+        "source_events": {
+          "count": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        "source_event_scope_rows": {
+          "count": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        "source_event_map": {
+          "count": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        "canonical_scope_rows": {
+          "count": 4,
+          "sha256": "18d98809778ca58e46c56665f580e229f0b2913b372602658716033aff88cf93"
+        },
+        "registry_placements": {
+          "count": 2,
+          "sha256": "337a55518ce5563372772421402c1c89f96bbd3c2b2ab2dd059b8b820b4792c6"
+        },
+        "findings": {
+          "count": 1,
+          "sha256": "e2a9cb70f5e70af70d219197b7d0d5b06d55b29e0785632aadbe5211d56ee747"
+        },
+        "coverage": {
+          "count": 2,
+          "sha256": "9ecbab146865a18e26b2582b6dbad2847067ecf256b50da7b887716f3b4b7f17"
+        },
+        "revisions": {
+          "count": 9,
+          "sha256": "f9da8f336ca50c9126c2a16df95fb5e1a4e314522cb2f904cc2c039a5c91489f"
+        },
+        "pending_work": {
+          "count": 1,
+          "sha256": "62afba50d8df4cf08d060bf75fa3105e97be31319745110044b8342e4d857ae7"
+        }
+      }
+    },
+    {
+      "changed": true,
+      "tables": {
+        "events": {
+          "count": 2,
+          "sha256": "e36e13b784ddc2e5a96a70a968b32fac098c44c07c7544b983d2c3525249c79b"
+        },
+        "series": {
+          "count": 2,
+          "sha256": "0dfe73690072f0ccc9d3362c49de5a06e5d4427ad81cd207fe279214eafc39ef"
+        },
+        "source_events": {
+          "count": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        "source_event_scope_rows": {
+          "count": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        "source_event_map": {
+          "count": 0,
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        },
+        "canonical_scope_rows": {
+          "count": 4,
+          "sha256": "18d98809778ca58e46c56665f580e229f0b2913b372602658716033aff88cf93"
+        },
+        "registry_placements": {
+          "count": 2,
+          "sha256": "337a55518ce5563372772421402c1c89f96bbd3c2b2ab2dd059b8b820b4792c6"
+        },
+        "findings": {
+          "count": 1,
+          "sha256": "8a8840f288e68a7b97c4b1c9be4b085d8ea09b8df0184ed174e022d0e0037f74"
+        },
+        "coverage": {
+          "count": 3,
+          "sha256": "19215b1db79bf923e15e89ddeb4b4daa017d69aadc4c73f334ce713359129a16"
+        },
+        "revisions": {
+          "count": 9,
+          "sha256": "1b7cb1065181e4f1438fe98dcf269df91536b9f711f7206dca5527b606cf3372"
+        },
+        "pending_work": {
+          "count": 2,
+          "sha256": "70b660bf2d3d840ac2b8a55a9765a024cd4b381e0d788610638ed02531caa199"
+        }
+      }
+    },
+    {
+      "changed": true,
+      "tables": {
+        "events": {
+          "count": 2,
+          "sha256": "8ba0b9e733de108f7fd2f5435d31e1aa7a81c54bc390c83e02ee332dac29f3ac"
+        },
+        "series": {
+          "count": 2,
+          "sha256": "0dfe73690072f0ccc9d3362c49de5a06e5d4427ad81cd207fe279214eafc39ef"
+        },
+        "source_events": {
+          "count": 1,
+          "sha256": "d2243c1d2f7c5732d6523ed99aa308a31cc1d3144504834c24b8326ff5758518"
+        },
+        "source_event_scope_rows": {
+          "count": 1,
+          "sha256": "c54a32edc71d5859b371cadd8aa701a5c89c6514e69d17b479d2bdb6dfa3b39f"
+        },
+        "source_event_map": {
+          "count": 1,
+          "sha256": "264a6cf2141807f9b745799c58ac2214da8f44ceef69d9991a56ac5e12699111"
+        },
+        "canonical_scope_rows": {
+          "count": 4,
+          "sha256": "18d98809778ca58e46c56665f580e229f0b2913b372602658716033aff88cf93"
+        },
+        "registry_placements": {
+          "count": 2,
+          "sha256": "337a55518ce5563372772421402c1c89f96bbd3c2b2ab2dd059b8b820b4792c6"
+        },
+        "findings": {
+          "count": 1,
+          "sha256": "8a8840f288e68a7b97c4b1c9be4b085d8ea09b8df0184ed174e022d0e0037f74"
+        },
+        "coverage": {
+          "count": 3,
+          "sha256": "19215b1db79bf923e15e89ddeb4b4daa017d69aadc4c73f334ce713359129a16"
+        },
+        "revisions": {
+          "count": 9,
+          "sha256": "5db548379dc14a22a9526fe8f09b2b7b8b73624e603c3232e6620c18a78a23f2"
+        },
+        "pending_work": {
+          "count": 3,
+          "sha256": "738e87bcfdec0d345b873157e5f80e0d4d4ea2276ca6cb0a7ed7231883c1662c"
+        }
+      }
+    },
+    {
+      "changed": false,
+      "tables": {
+        "events": {
+          "count": 2,
+          "sha256": "8ba0b9e733de108f7fd2f5435d31e1aa7a81c54bc390c83e02ee332dac29f3ac"
+        },
+        "series": {
+          "count": 2,
+          "sha256": "0dfe73690072f0ccc9d3362c49de5a06e5d4427ad81cd207fe279214eafc39ef"
+        },
+        "source_events": {
+          "count": 1,
+          "sha256": "d2243c1d2f7c5732d6523ed99aa308a31cc1d3144504834c24b8326ff5758518"
+        },
+        "source_event_scope_rows": {
+          "count": 1,
+          "sha256": "c54a32edc71d5859b371cadd8aa701a5c89c6514e69d17b479d2bdb6dfa3b39f"
+        },
+        "source_event_map": {
+          "count": 1,
+          "sha256": "264a6cf2141807f9b745799c58ac2214da8f44ceef69d9991a56ac5e12699111"
+        },
+        "canonical_scope_rows": {
+          "count": 4,
+          "sha256": "18d98809778ca58e46c56665f580e229f0b2913b372602658716033aff88cf93"
+        },
+        "registry_placements": {
+          "count": 2,
+          "sha256": "337a55518ce5563372772421402c1c89f96bbd3c2b2ab2dd059b8b820b4792c6"
+        },
+        "findings": {
+          "count": 1,
+          "sha256": "8a8840f288e68a7b97c4b1c9be4b085d8ea09b8df0184ed174e022d0e0037f74"
+        },
+        "coverage": {
+          "count": 3,
+          "sha256": "19215b1db79bf923e15e89ddeb4b4daa017d69aadc4c73f334ce713359129a16"
+        },
+        "revisions": {
+          "count": 9,
+          "sha256": "5db548379dc14a22a9526fe8f09b2b7b8b73624e603c3232e6620c18a78a23f2"
+        },
+        "pending_work": {
+          "count": 3,
+          "sha256": "738e87bcfdec0d345b873157e5f80e0d4d4ea2276ca6cb0a7ed7231883c1662c"
+        }
+      }
+    }
+  ],
+  "reference_source": "/nix/store/2q702cgg7rxw7nydlh97mjh4wggp5ia8-source",
+  "reference_matches_deployed_h14": true
+}

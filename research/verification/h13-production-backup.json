@@ -1,0 +1,10 @@
+{
+  "commit": "26038f82a082044c4ca04506a27cf380c7e8c476",
+  "manifest_hash": "ab2ddef462bf3248cd65b85cfacbbc589502bee3dc60e3d15174717dd9304cdc",
+  "checkpoint": "/var/lib/swingset/checkpoints/h12-before-h13-20260913",
+  "files": 65930,
+  "schema_version": 11,
+  "baseline_commit": "81121dcc7d62a1db9e76ee1c49a6b90e1f4c5653",
+  "finished_at": "2026-09-13T10:06:47.989973+00:00",
+  "source_receipt_sha256": "ad1e0b8395b28559e6f4623459955b31574637503edddd994354520b384450ee"
+}

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import sqlite3
-from collections.abc import Callable, Iterable, Mapping
+from collections.abc import Callable, Collection, Iterable, Mapping
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
@@ -73,17 +73,97 @@ def accept_input(
     return input_name in changed
 
 
-def next_work(conn: sqlite3.Connection, stage: str) -> WorkUnit | None:
+def next_work(
+    conn: sqlite3.Connection,
+    stage: str,
+    *,
+    now: datetime | None = None,
+    fingerprint: Callable[[WorkUnit], str] | None = None,
+    exclude: Collection[WorkUnit] = (),
+    allowed: Callable[[WorkUnit], bool] | None = None,
+    unit_kind: str | None = None,
+) -> WorkUnit | None:
     order = (
-        "CASE unit_kind WHEN 'map' THEN 0 ELSE 1 END,enqueued_at,unit_kind,unit_id"
+        "CASE unit_kind WHEN 'map' THEN 0 WHEN 'history' THEN 2 ELSE 1 END,enqueued_at,unit_kind,unit_id"
         if stage == "project"
         else "enqueued_at,unit_kind,unit_id"
     )
-    row = conn.execute(
-        f"SELECT stage,unit_kind,unit_id FROM pending_work WHERE stage=? ORDER BY {order} LIMIT 1",
-        (stage,),
-    ).fetchone()
-    return None if row is None else WorkUnit(str(row[0]), str(row[1]), str(row[2]))
+    attempts_available = (
+        conn.execute("SELECT 1 FROM sqlite_master WHERE name='work_attempts'").fetchone()
+        is not None
+    )
+    from . import derivations
+
+    derived = stage in {"project", "link"} and derivations.available(conn)
+    units = (
+        derivations.candidate_units(conn, stage, kind=unit_kind)
+        if derived
+        else (
+            WorkUnit(str(row[0]), str(row[1]), str(row[2]))
+            for row in conn.execute(
+                f"SELECT stage,unit_kind,unit_id FROM pending_work WHERE stage=? ORDER BY {order}",
+                (stage,),
+            )
+        )
+    )
+    for unit in units:
+        if (
+            (unit_kind is not None and unit.unit_kind != unit_kind)
+            or unit in exclude
+            or (allowed is not None and not allowed(unit))
+        ):
+            continue
+        if derived and not derivations.ready(conn, unit):
+            continue
+        if not attempts_available:
+            return unit
+        from .attempts import eligible, latest_attempt
+        from .work_fingerprints import input_fingerprint
+
+        if latest_attempt(conn, unit) is None or eligible(
+            conn,
+            unit,
+            fingerprint(unit) if fingerprint else input_fingerprint(conn, unit),
+            now or datetime.now(UTC),
+        ):
+            return unit
+    return None
+
+
+def unfinished_units(
+    conn: sqlite3.Connection,
+    stages: Iterable[str] = ("parse", "project", "link"),
+) -> Iterable[WorkUnit]:
+    """All unfinished work, regardless of retry or control eligibility."""
+    from . import derivations
+
+    for stage in stages:
+        if stage in {"project", "link"} and derivations.available(conn):
+            yield from derivations.pending_units(conn, stage)
+        else:
+            yield from (
+                WorkUnit(*row)
+                for row in conn.execute(
+                    "SELECT stage,unit_kind,unit_id FROM pending_work WHERE stage=? ORDER BY unit_kind,unit_id",
+                    (stage,),
+                )
+            )
+
+
+def runnable_exists(
+    conn: sqlite3.Connection,
+    *,
+    now: datetime | None = None,
+    fingerprint: Callable[[WorkUnit], str] | None = None,
+    exclude: Collection[WorkUnit] = (),
+    allowed: Callable[[WorkUnit], bool] | None = None,
+) -> bool:
+    """Blocked pending work remains unfinished, but does not prohibit healthy I/O."""
+    return any(
+        next_work(conn, stage, now=now, fingerprint=fingerprint, exclude=exclude, allowed=allowed)
+        is not None
+        for stage in ("parse", "project", "link")
+    )
 
 
 def complete(
@@ -95,7 +175,11 @@ def complete(
             "SELECT 1 FROM pending_work WHERE stage=? AND unit_kind=? AND unit_id=?",
             (unit.stage, unit.unit_kind, unit.unit_id),
         ).fetchone()
-        if exists is None:
+        from . import derivations
+
+        if exists is None and not (
+            unit.stage in {"project", "link"} and derivations.available(conn)
+        ):
             return
         write(conn)
         conn.execute(
@@ -112,6 +196,12 @@ def bump_revision(conn: sqlite3.Connection, name: str) -> None:
 
 def affected_work(conn: sqlite3.Connection, input_name: str) -> Iterable[WorkUnit]:
     """The centralized invalidation map from the state contract."""
+    if input_name == "recipe/runtime":
+        conn.execute("UPDATE watches SET extract_version=NULL")
+        return tuple(
+            WorkUnit("parse", "snapshot", str(row[0]))
+            for row in conn.execute("SELECT snapshot_id FROM snapshots")
+        )
     if input_name.startswith(("extract_version:", "version/extract/")):
         kind = input_name.rsplit(":" if ":" in input_name else "/", 1)[1]
         conn.execute(
@@ -158,6 +248,12 @@ def affected_work(conn: sqlite3.Connection, input_name: str) -> Iterable[WorkUni
         ):
             units.add(WorkUnit("project", "map", "all"))
         return tuple(sorted(units))
+    if input_name == "overrides/series_aliases.csv":
+        if conn.execute(
+            "SELECT 1 FROM events UNION SELECT 1 FROM registry_placements UNION SELECT 1 FROM observations WHERE scope_kind='calendar' LIMIT 1"
+        ).fetchone():
+            return (WorkUnit("project", "history", "all"),)
+        return ()
     if input_name in {
         "event_aliases",
         "source_urls",

@@ -1,0 +1,20 @@
+{
+  "snapshot_id": "snap_20260909T150529Z_09e356e60d4c",
+  "url": "https://scores.worlddanceregistry.com/a5dd75a4-87d2-11ef-9a29-0aa72bbce9ea/rounds/routeInfo.json",
+  "fetched_at": "2026-09-09T15:05:29.342256+00:00",
+  "body_sha256": "09e356e60d4cf90e83a37b3e3f0b88e592a157c0b8a31c527f2b2d7ca11ec8f7",
+  "body_bytes": 233455,
+  "http_status": 200,
+  "source_ref": "wdr:a5dd75a4-87d2-11ef-9a29-0aa72bbce9ea",
+  "event_id": "2025-10-montreal-westie-fest",
+  "expected_preserved_judges": [
+    {
+      "judge_id": "2025-10-montreal-westie-fest/judge/isabelle",
+      "name_raw": "Isabelle"
+    },
+    {
+      "judge_id": "2025-10-montreal-westie-fest/judge/maelys",
+      "name_raw": "Maelys"
+    }
+  ]
+}

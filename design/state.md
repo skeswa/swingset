@@ -13,7 +13,7 @@ Internal tables:
 | `meta`             | `key`                           | `schema_version`, `installed_at`, current input bundle hash                                                                                                                                                                                                                                                |
 | `runs`             | `run_id`                        | `started_at`, `finished_at`, `dry_run`, `summary_json`                                                                                                                                                                                                                                                     |
 | `hosts`            | `host`                          | `next_allowed_at`, `paused_until`, `pause_reason`, `pause_streak`, `robots_sha256`, `robots_fetched_at`, `robots_status`                                                                                                                                                                                   |
-| `operator_pauses`  | `scope_kind`, `scope_id`        | operator-requested all, host, or source pause; nullable expiry, reason; separate from automatic host pauses                                                                                                                                                                                                |
+| `operator_pauses`  | `scope_kind`, `scope_id`        | operator-requested all, host, source, or requirement-kind pause; stable pause ID, actor, reason, revision, creation time and nullable expiry; separate from automatic host pauses                                                                                                                          |
 | `host_budget`      | `host`, `day`                   | `requests`, `bytes`                                                                                                                                                                                                                                                                                        |
 | `cursors`          | `name`                          | `value`; durable bootstrap and new-id probe positions and miss counts; `registry_probe_started_at`, `registry_probe_last_completed_at`, `registry_probe_next_at` preserve freshness and cadence across restarts                                                                                            |
 | `watches`          | `watch_id`                      | every column in [scheduling](scheduling.md#watches) plus `fingerprint`, `extract_version`, `priority`, `created_by_snapshot_id`, `parent_watch_id`, `ever_ok`, current observation snapshot id                                                                                                             |
@@ -39,6 +39,29 @@ and [publishing](publishing.md#candidate-and-baseline).
 `watch_id` is `sha256(source|kind|method|url|form)[:16]`, so discovery
 is idempotent by construction. `observation_id` is
 `sha256(watch_id|snapshot_id|kind|seq)[:16]`.
+
+## Registry verification (H1)
+
+`registry_verifications` records each registry content check separately from
+claim provenance: watch, check time, HTTP status, body digest, interpretation
+snapshot, extractor and parser versions, found or not-found outcome, usable
+flag, and stable reason. `last_checked_at` remains the attempt clock;
+`registry_fetched_at` remains the winning claim's source time. Neither is the
+usable verification clock.
+
+Changed content waits for a successful parse. Identical content and a valid
+304 reuse its accepted interpretation after checking the body and extract
+artifacts. Missing or corrupt artifacts retain their required digest (the
+extract digest is on the referenced snapshot) and `missing_artifact` or
+`corrupt_artifact`; they do not renew freshness. HTTP and transport failures,
+failed parsing, and obsolete interpreter recipes do not qualify. H15 captures
+the runtime artifact independently of manual version labels.
+
+Migration recovers only recorded successful snapshot checks tied to intact
+content and accepted current interpretations. It retains their original
+`fetched_at`; attempt timestamps and migration time never manufacture
+history. Recovery is idempotent. Doctor reports oldest usable verification
+age, stale watches, and watches with unknown verification.
 
 ## State directory
 
@@ -66,14 +89,15 @@ or retained backup references. GC is manual in v1.
 
 ## Invalidation
 
-There is one definition of unfinished parse, project, or link work:
-`pending_work`. Stage-wide fingerprints do not gate these queues.
-`accepted_inputs` only records that the work for an input change has
-been scheduled. Output revisions describe changed data, never whether
-another stage ran.
+`state.work.unfinished_units` defines unfinished work. Parse retains its
+durable queue and admission contract. Project and link compare desired inputs
+with their materialized generations; their queue rows are scheduling hints.
+Deleting a hint cannot hide unfinished work. `accepted_inputs` identifies the
+captured inputs available to consumers. Output revisions describe changed
+data, never whether another stage ran.
 
-At cycle start, read config, overrides, vocabularies, and implementation
-versions once into a validated immutable input bundle. Each consumer
+At cycle start, read config, overrides, vocabularies, implementation versions,
+and the exact runtime artifact into a validated immutable input bundle. Each consumer
 uses those captured bytes throughout the cycle, including build. The
 checkout stays the source of corrections; saved bundles provide exact
 replay and backup. A later checkout edit is accepted next cycle. Capture
@@ -90,6 +114,7 @@ already processed under the previous bundle.
 | Changed input                                                                                                   | Work enqueued in the same transaction                                                                                               |
 | --------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
 | New snapshot                                                                                                    | Parse that snapshot                                                                                                                 |
+| Captured runtime artifact changes, even with unchanged version labels                                           | Parse retained snapshots with the new recipe; project and link desired fingerprints change                                          |
 | `EXTRACT_VERSION` for a page kind                                                                               | Parse every archived snapshot of that kind, re-extracting before parsing; invalidate the watch's cached extract fingerprint version |
 | `PARSER_VERSION` for a page kind                                                                                | Parse every archived snapshot of that kind from its stored extract                                                                  |
 | Successful parse changing current observations                                                                  | Project their old and new scopes; calendar or index changes enqueue the map unit                                                    |
@@ -113,7 +138,8 @@ registry scope, including registry placements); link-owned columns and
 link tables advance `links`. Link never advances a revision to relay an
 unrelated projection change to build.
 
-Project drains map work before other scopes. A map unit commits the new
+Fair offline service rotates stages and unit kinds; initial ties put map
+work before other project scopes. A map unit commits the new
 map and all event projections affected by membership changes atomically,
 then enqueues their link work. It may subsume pending projection work
 for those scopes in that same transaction. Ordinary scopes are one
@@ -122,21 +148,44 @@ an observation also removes its former canonical rows.
 
 Link drains one event at a time, applying assignment, link rows,
 candidates, and linked columns in one transaction. It does not dirty
-itself through its own writes. Every unit deletes its pending row only
-in the transaction committing its output. If a unit cannot complete,
-its row stays pending and downstream stages do not consume partial work.
+itself through its own writes. Every unit deletes its queue hint only
+in the transaction committing its output. Project and link commit their
+materialized generation in that transaction too. If a unit cannot complete,
+it remains unfinished and downstream stages do not consume partial work.
 Parse's handled failures are defined in [parsing](parsing.md#version-changes-and-failures).
 
-Build waits for parse, project, and link queues to drain. A budget stop
-leaves those queues for the next cycle and skips new build and publish;
-an already pending publication can still be reconciled. Build inputs
-and completion are owned by [build](build.md#build-inputs), not by a
-second generic stage-completion table.
+Normal build waits for parse, project, and link work to finish, then
+receives offline time before unused time is lent back to acquisition.
+A budget stop leaves unfinished queues for the next cycle. Pending
+publication reconciliation and necessary correction-only builds have
+priority before ordinary acquisition and derivation. Build inputs
+and artifact completion are owned by [build](build.md#build-inputs). Its
+derivation generation records the selected inputs and exact artifact pointer.
 
-The scheduler services existing downstream work before adding another
-fetch batch. During a sweep, a fetch batch can exhaust the cycle budget;
-the next cycle drains its work before fetching more. Thus continuous
-fetching cannot starve projection, linking, or publication.
+The scheduler reserves acquisition time even with downstream work pending,
+then rotates eligible offline work fairly. Actual host limits, controls,
+and backlog high-water marks govern collection. A cycle excludes attempted
+input fingerprints, rather than whole units, so later parses can supply
+new inputs to a shared projection without reopening unchanged retries.
+See [scheduling](scheduling.md) for the initial allocations and objectives.
+
+## Identity decision state
+
+Schema migration 9 adds the accepted append-only identity journal, acceptance
+records, durable source references and bindings, reviewed reference migrations,
+current link resolutions, and append-only assertion history. Canonical subject
+removal retains the source bindings and a superseded assertion. The journal
+revision advances on accepted decisions or reference migrations and participates
+in a link's captured token alongside the journal digest.
+
+Journal acceptance belongs to the captured-input transaction. It rejects any
+changed or missing accepted decision ID and enqueues all current events and all
+historical bound event IDs. An obsolete linker cannot commit or delete its work
+if this token changed while it computed. A checkpoint includes the accepted
+captured bundle and referenced archive artifacts; it does not promote a merely
+captured but unaccepted journal. See
+[identity resolution](identity-linking.md#durable-decisions-and-resolution-h8h9)
+for source-reference continuity and decision semantics.
 
 ## Acceptance cases
 
@@ -157,5 +206,189 @@ fetching cannot starve projection, linking, or publication.
 - A newly projected registry record re-enqueues linking for retained older
   events, so deferred first-point identities do not depend on an event still
   being inside its intensive 30-day refresh window.
-- A fetch batch filling the budget cannot prevent its downstream work
-  from completing in later cycles before another batch starts.
+- Sustained collection and existing offline backlog both receive service.
+  Once downstream work settles, build runs before acquisition borrows
+  unused offline time. Resume preserves host usage and cooldowns.
+
+## Requirement inventory in shadow (H11)
+
+`findings` holds review findings and acquisition requirements. Added columns
+record the policy, desired evidence fingerprint, state, source, next action,
+blocking reason, retry time, attempts, and status and progress times. States
+are `ready`, `retry_wait`, `waiting_for_source`, `needs_implementation`,
+`needs_review`, `unavailable`, `out_of_scope`, and `satisfied`. A successful
+attempt alone never satisfies a requirement. Owner replacement remains the
+postcondition check for review findings.
+
+`finding_support` retains the accepted owner evidence for review findings.
+`requirement_transitions` and `requirement_attempts` survive inventory-row
+loss. `requirement_scan` stores a bounded keyset cursor across all retained
+years. Each cycle checks at most 100 scopes before ordinary work. A later
+page or pass recreates a deleted requirement from its support. Removed scopes
+retire explicitly; they are not counted as successful repairs.
+
+`requirement_cohorts` pins scope, policy, baseline time, whether its universe is
+bounded, and the first-open transition cutoff captured atomically with its
+membership. Migration 10 adds that nullable cutoff; legacy captures retain
+NULL because their within-timestamp ordering is unknown. Membership in
+`requirement_cohort_members` never changes
+when work is retried, reopened, retired, or newly discovered. H11 executes no
+repairs. H15 derivation reporting uses fingerprint comparisons and separately
+counts registered scopes with no materialized generation. Older schemas retain
+an explicitly labeled queue-based report.
+
+## Isolated work attempts (H12)
+
+Migration 11 adds `work_generations` and `work_attempts`. Queue insertions and
+invalidations advance a per-unit generation without changing admission's
+existing timestamp token. Explicit retries have a separate generation and a
+recorded reason and request time.
+
+`state.attempts.begin_attempt` durably records the unit, queue generation,
+retry generation, work token, input fingerprint, run, and start time before
+execution. Outcomes are `running`, `succeeded`, `blocked`, `transient`,
+`unavailable`, `interrupted`, and `superseded`. Completion retains its time,
+stable reason, evidence, retry deadline when applicable, and requirement ID.
+
+Success commits with the unit's output and queue completion. If the queue
+changed during execution, the caller rolls back stale output and records
+supersession. Failure keeps the pending unit; it cannot consume newer work.
+The fingerprint identifies retry inputs: relevant source bytes, source/watch
+identity, admission policy, and captured implementation inputs. Queue times,
+attempt counts, and attempt findings do not change it. These fingerprints
+control retries; H15 owns desired/materialized derivation generations.
+
+Blocked and unavailable work does not retry the same inputs merely because
+another cycle or inventory scan runs. Changed relevant inputs or an explicit
+`request_retry` releases that latch. Transient and interrupted outcomes have a
+future deadline. After acquiring the process lock, restart converts abandoned
+running attempts to interrupted outcomes; it does not infer success.
+
+A failed work unit has a `work_attempt` requirement with the exact unit and
+fingerprint, outcome evidence, reason, and next action. Its retained
+`finding_support` payload lets the bounded scan recreate a deleted inventory
+row without resetting eligibility. Restoring an artifact does not satisfy the
+work requirement; its output still has to commit. Doctor counts durable
+running rows even before a unit has its first finding. Legacy running mirrors
+are deduplicated. This records attempt state, not operating-system liveness.
+
+## Derivation generations (H15)
+
+Migration 14 adds a scope catalog, immutable derivation generations, retained
+output rows, and interned ordered dependency sets. Migration registers existing
+work without declaring any old output materialized. A desired-fingerprint
+column is a diagnostic cache; changing or deleting it cannot establish that
+output is current. Retired scopes remain discoverable so their old rows can be
+removed.
+
+SQLite change tokens advance in the same transaction as relevant inputs.
+Completion records a signature of those tokens and the selected recipe. An
+unchanged signature permits reuse of the already checked exact manifest; changed
+tokens require the full comparison. Tokens cannot create a materialized pointer.
+Shared dependency manifests are memoized only within a query, with changes on
+the same or another connection invalidating that memoization.
+
+Each selection binds its scope, recipe, ordered dependencies, and context.
+Recipes retain package source, SQL schemas and other package data, project lock
+inputs when present, interpreter identity, and installed dependency manifest
+digests. The captured files remain in the immutable input bundle. Installed
+RECORD hashes identify dependencies; they do not audit every installed binary.
+Manual version labels remain descriptive. Relevant override and policy inputs
+join each stage's recipe; scheduler allocations do not.
+
+The projection order is calendar, source index, and dancer scopes; history
+inventory; source mapping; event scopes; then history association and coverage.
+Inventory includes occurrence and listing enrichment. Previous inventory output
+supports stable IDs but does not trigger its own next generation. An alias move
+commits the map and every affected old and new event generation together.
+Linking selects event output and the whole registry candidate universe, including
+dancers that have never been candidates for the event. Link-owned columns are
+excluded from its project dependencies.
+
+Completion rechecks the selected inputs and prior materialized pointer. Output,
+owned output-row history, revision bumps, and the new pointer commit together.
+A late worker cannot overwrite a newer generation. A crash before commit leaves
+the scope unfinished; a crash after commit preserves complete output. Immutable
+generations retain exact dependency references even after newer inputs arrive.
+Equal inputs with different output are rejected. H12 attempt controls still
+govern retries; they cannot make unfinished derivations disappear.
+
+Snapshot extract reuse additionally requires its captured runtime recipe hash.
+An unchanged body and manual extractor version cannot reuse an extract from a
+different artifact. A failed extraction never relabels a previous extract.
+
+Doctor reports unfinished project and link scopes from this comparison, raw
+parse work, registered and unmaterialized scope counts, and retained generations.
+The last durable build materialization is separate from publication progress.
+H16 owns release closure and publication coverage; H15 keeps the existing normal
+build barrier until that revision lands.
+
+## Accepted source generations (H7)
+
+Migration 8 adds `source_units`, immutable `source_generations`, append-only
+`admission_decisions`, immutable `admission_reviews`, and `admission_policies`.
+Units hold desired fingerprints and accepted pointers. Generations retain the
+ordered input manifest, exact recipe and captured input digests, observations,
+coverage, field accounting, guard results, previous generation, and work token.
+Only the decision state changes; evidence cannot be updated in place.
+
+Existing V1 origin selections bootstrap as `legacy_unassessed`, with their
+original snapshot pointer retained. They gain neither an accepted generation
+nor removal authority. New archived calendar, newsletter, and directory
+evidence does not become legacy merely because the migration is running.
+Each approved phase-one archived index snapshot has a separate native admission
+unit. Phase-two fallback captures share the watch unit and follow its explicitly
+selected archive URL, rather than the greatest historical capture time. The
+attempt retains that selected URL so a changed watch can veto stale completion.
+
+Selection compares current inputs and guards in the same transaction as the
+observation writer and downstream invalidation. A source miss is dated absence
+evidence, never deletion permission. Revocation records its explicit evidence,
+withdraws only that generation's source claims, and cannot be reversed by
+retrying the same input fingerprint.
+
+`admission.support.interpretation_support` is the read-only publication check.
+It distinguishes accepted support, explicit revocation, legacy unassessed
+evidence, and unselected or superseded interpretations. Legacy is reported
+separately and is never returned as automatically usable. `selection_digest`
+pins policies, desired and accepted pointers, legacy classifications, and
+revocations for publication's boundary checks. `admission_summary` reports
+per-kind states and oldest staged creation times without decoding every report.
+
+## Durable controls (H13)
+
+`control_state` holds the monotonic control revision. `control_events` retains
+pause, resume, expiry and legacy-import history. Schema 12 imports existing
+pauses without inventing their original actor or creation time. The restricted
+control connection writes only these tables and `operator_pauses`; it never
+migrates, accepts an input bundle, or changes repair evidence.
+
+`execution_admissions` records each action's checked revision, start time,
+run/work-attempt/candidate references and active, uncertain or settled state.
+`execution_dependencies` records its required sources and requirement kinds.
+A request additionally records its host. Local derivations have no host scope.
+The short control mutex serializes pause servicing with new admission; output
+settlement joins the existing unit transaction without reacquiring that mutex.
+An acknowledged pause fences later admissions while prior work drains.
+
+Outer immediate worker transactions enforce a 45-second wall-clock deadline;
+savepoints inherit it. Interrupted output rolls back before the attempt records
+its blocked outcome. Read snapshots remain available to a concurrently serviced
+control and do not consume this write budget. A long unit cannot keep reacquiring
+the write lock ahead of a waiting control.
+
+Reports resolve the same action dependencies as admission. Pauses are overlays,
+not requirement-state transitions or successful repair. Expired rows remain
+visible to read-only reporting until a mutation records expiry. A selective
+resume leaves overlapping controls and automatic host pauses intact. Unknown
+selectors are rejected against registered sources, retained hosts and actual
+requirement kinds. No retry history, accepted generation or identity decision is
+cleared by a control change.
+
+Control reporting reads `control_events` to union matching pause intervals once
+per action scope. Resume closes a recorded interval; expiry caps it even before
+a later mutation records the expiry event. Legacy-import events separate an
+unknown earlier duration from the known interval after import. Reports keep
+unknown overlapping durations unavailable and retain evidence wall ages. These
+diagnostic clocks use current dependencies; they do not claim reconstructed
+historical ownership or host-budget eligibility.

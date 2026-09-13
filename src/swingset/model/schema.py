@@ -21,6 +21,55 @@ class TableSchema:
     scope_column: str | None
 
 
+# These columns describe a pinned public release, not mutable canonical facts.
+PUBLIC_SCOPE_TABLES = frozenset(
+    {
+        "events",
+        "contests",
+        "rounds",
+        "entries",
+        "judges",
+        "placements",
+        "dancers",
+        "registry_placements",
+    }
+)
+PUBLIC_SCOPE_COLUMNS = frozenset({"scope_status", "evidence_observed_at"})
+COVERAGE_PUBLIC_COLUMNS = frozenset(
+    {
+        "scope_kind",
+        "scope_id",
+        "scope_status",
+        "scope_reasons",
+        "missing_scopes",
+        "discovered_units",
+        "acquired_units",
+        "interpreted_units",
+        "mapped_units",
+        "withheld_units",
+        "unavailable_units",
+        "unassessed_units",
+        "resolved_identities",
+        "identity_subjects",
+        "withheld_identities",
+        "withheld_scopes",
+        "unavailable_scopes",
+        "discovery_denominator",
+        "discovery_universe",
+        "acquisition_denominator",
+        "interpretation_denominator",
+        "mapping_denominator",
+        "evidence_cutoff",
+        "evidence_observed_at",
+        "usable_verified_at",
+        "health_as_of",
+        "method",
+        "population",
+        "uncertainty",
+    }
+)
+
+
 TABLES: dict[str, TableSchema] = {
     "events": TableSchema("events", ("event_id",), (), "event_id"),
     "contests": TableSchema("contests", ("contest_id",), (), "event_id"),

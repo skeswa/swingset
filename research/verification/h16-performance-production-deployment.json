@@ -1,0 +1,20 @@
+{
+  "active_system": "/nix/store/r29kapzbjk0ch5h0vkk288jd47dvg90j-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+  "finished_at": "2026-09-13T13:31:43.107786+00:00",
+  "gate_sha256": "96c0a2d25f8d5f1ca3746364948e116a2e0bbfca00c9fc9fa06fc15a170876d5",
+  "passed": true,
+  "preflight_sha256": "1b77e11a42114129168c74a45178d940546c49ecb3bb4c3b19a8cc79f3fc9562",
+  "previous_system": "/nix/store/jvp496x98i20fqcmpz0ikam96lyihbcs-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+  "source": "/nix/store/dihx01r68nq8nqxzm1dlgrzl5qrjw583-source",
+  "source_receipt_sha256": "92cb3a524a5f11b70df37db2a988c312a0256d0f7a55e65d34ed1686aaff059b",
+  "started_at": "2026-09-13T13:31:41.675967+00:00",
+  "system": "/nix/store/r29kapzbjk0ch5h0vkk288jd47dvg90j-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+  "unit_states": {
+    "swingset-backup.service": "inactive",
+    "swingset-backup.timer": "inactive",
+    "swingset-cycle.service": "inactive",
+    "swingset-cycle.timer": "inactive",
+    "swingset-summary.service": "inactive",
+    "swingset-summary.timer": "inactive"
+  }
+}

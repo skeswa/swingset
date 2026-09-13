@@ -1,0 +1,954 @@
+{
+  "accepted_changed_inputs": [
+    "recipe/runtime",
+    "version/repository"
+  ],
+  "after_closed_file_bytes": {
+    "state.sqlite": 2677207040
+  },
+  "after_open_file_bytes": {
+    "state.sqlite": 2677129216,
+    "state.sqlite-shm": 32768,
+    "state.sqlite-wal": 8375992
+  },
+  "after_storage": {
+    "dependency_bytes": 15964671,
+    "dependency_sets": 347,
+    "generations": 171,
+    "output_rows": 1737,
+    "payload_bytes": 645006
+  },
+  "before_file_bytes": {
+    "state.sqlite": 2675884032,
+    "state.sqlite-shm": 32768,
+    "state.sqlite-wal": 0
+  },
+  "before_storage": {
+    "dependency_bytes": 15905687,
+    "dependency_sets": 149,
+    "generations": 71,
+    "output_rows": 985,
+    "payload_bytes": 353766
+  },
+  "capture_accept_seconds": 2.580897810985334,
+  "counts": {
+    "project/calendar": 2,
+    "project/dancer": 49,
+    "project/source_index": 49
+  },
+  "derive_seconds": 10.458164464042056,
+  "failures": [],
+  "finished_at": "2026-09-13T12:26:38.653117+00:00",
+  "input_digest": "c0e467f1ae48e05d48e68acfd3a0e3f3ff58cffc67f6bc5683097d3df018d8a2",
+  "network_requests": 0,
+  "published": false,
+  "purpose": "100 actual offline derivations with isolated frozen H16 runtime",
+  "records": [
+    {
+      "derive_seconds": 2.9822520510060713,
+      "failed": false,
+      "id": "wsdc",
+      "kind": "calendar",
+      "reason": null,
+      "selection_seconds": 0.5176593309734017,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 0.032976931950543076,
+      "failed": false,
+      "id": "10029",
+      "kind": "dancer",
+      "reason": null,
+      "selection_seconds": 0.41197477403329685,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 0.10410602099727839,
+      "failed": false,
+      "id": "scoringdance:129",
+      "kind": "source_index",
+      "reason": null,
+      "selection_seconds": 0.4223110189777799,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 1.4290879360050894,
+      "failed": false,
+      "id": "wsdc-history",
+      "kind": "calendar",
+      "reason": null,
+      "selection_seconds": 0.8946548069943674,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 0.03411105094710365,
+      "failed": false,
+      "id": "1003",
+      "kind": "dancer",
+      "reason": null,
+      "selection_seconds": 0.4190829500439577,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 0.10141270101303235,
+      "failed": false,
+      "id": "scoringdance:13",
+      "kind": "source_index",
+      "reason": null,
+      "selection_seconds": 0.4210238989908248,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 0.025165467988699675,
+      "failed": false,
+      "id": "10030",
+      "kind": "dancer",
+      "reason": null,
+      "selection_seconds": 0.4249819230171852,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 0.12391130602918565,
+      "failed": false,
+      "id": "scoringdance:130",
+      "kind": "source_index",
+      "reason": null,
+      "selection_seconds": 0.4301153569831513,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 0.028769408992957324,
+      "failed": false,
+      "id": "10031",
+      "kind": "dancer",
+      "reason": null,
+      "selection_seconds": 0.47151358402334154,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 0.09572976897470653,
+      "failed": false,
+      "id": "scoringdance:131",
+      "kind": "source_index",
+      "reason": null,
+      "selection_seconds": 0.4292669440037571,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 0.023164844955317676,
+      "failed": false,
+      "id": "10032",
+      "kind": "dancer",
+      "reason": null,
+      "selection_seconds": 0.43265060504199937,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 0.10191695700632408,
+      "failed": false,
+      "id": "scoringdance:132",
+      "kind": "source_index",
+      "reason": null,
+      "selection_seconds": 0.46704810799565166,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 0.034458182053640485,
+      "failed": false,
+      "id": "10033",
+      "kind": "dancer",
+      "reason": null,
+      "selection_seconds": 0.42938453797250986,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 0.09952169697498903,
+      "failed": false,
+      "id": "scoringdance:133",
+      "kind": "source_index",
+      "reason": null,
+      "selection_seconds": 0.43206092400942,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 0.028433614992536604,
+      "failed": false,
+      "id": "10034",
+      "kind": "dancer",
+      "reason": null,
+      "selection_seconds": 0.42758094804594293,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 0.09796535701025277,
+      "failed": false,
+      "id": "scoringdance:134",
+      "kind": "source_index",
+      "reason": null,
+      "selection_seconds": 0.42320167896104977,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 0.020617041969671845,
+      "failed": false,
+      "id": "10035",
+      "kind": "dancer",
+      "reason": null,
+      "selection_seconds": 0.43373718101065606,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 0.10296545998426154,
+      "failed": false,
+      "id": "scoringdance:135",
+      "kind": "source_index",
+      "reason": null,
+      "selection_seconds": 0.4485136160510592,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 0.018975827028043568,
+      "failed": false,
+      "id": "10036",
+      "kind": "dancer",
+      "reason": null,
+      "selection_seconds": 0.43108679598663,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 0.11742697801673785,
+      "failed": false,
+      "id": "scoringdance:136",
+      "kind": "source_index",
+      "reason": null,
+      "selection_seconds": 0.43606660701334476,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 0.04116225097095594,
+      "failed": false,
+      "id": "10037",
+      "kind": "dancer",
+      "reason": null,
+      "selection_seconds": 0.4215502139995806,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 0.12201791303232312,
+      "failed": false,
+      "id": "scoringdance:137",
+      "kind": "source_index",
+      "reason": null,
+      "selection_seconds": 0.4330052619916387,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 0.041113417013548315,
+      "failed": false,
+      "id": "10038",
+      "kind": "dancer",
+      "reason": null,
+      "selection_seconds": 0.4508801259798929,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 0.10344729595817626,
+      "failed": false,
+      "id": "scoringdance:138",
+      "kind": "source_index",
+      "reason": null,
+      "selection_seconds": 0.4257919820374809,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 0.04580956097925082,
+      "failed": false,
+      "id": "10039",
+      "kind": "dancer",
+      "reason": null,
+      "selection_seconds": 0.4260313580161892,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 0.121922870981507,
+      "failed": false,
+      "id": "scoringdance:139",
+      "kind": "source_index",
+      "reason": null,
+      "selection_seconds": 0.43799069797387347,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 0.0399848289671354,
+      "failed": false,
+      "id": "1004",
+      "kind": "dancer",
+      "reason": null,
+      "selection_seconds": 0.430173333035782,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 0.1250185509561561,
+      "failed": false,
+      "id": "scoringdance:14",
+      "kind": "source_index",
+      "reason": null,
+      "selection_seconds": 0.4273685710504651,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 0.04000374604947865,
+      "failed": false,
+      "id": "10040",
+      "kind": "dancer",
+      "reason": null,
+      "selection_seconds": 0.4380599489668384,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 0.09965694701531902,
+      "failed": false,
+      "id": "scoringdance:140",
+      "kind": "source_index",
+      "reason": null,
+      "selection_seconds": 0.435757229977753,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 0.015524396032560617,
+      "failed": false,
+      "id": "10041",
+      "kind": "dancer",
+      "reason": null,
+      "selection_seconds": 0.42744194698752835,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 0.09917190298438072,
+      "failed": false,
+      "id": "scoringdance:141",
+      "kind": "source_index",
+      "reason": null,
+      "selection_seconds": 0.45432351500494406,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 0.015591063012834638,
+      "failed": false,
+      "id": "10042",
+      "kind": "dancer",
+      "reason": null,
+      "selection_seconds": 0.42591369099682197,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 0.09356508898781613,
+      "failed": false,
+      "id": "scoringdance:142",
+      "kind": "source_index",
+      "reason": null,
+      "selection_seconds": 0.4363541920320131,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 0.021531463018618524,
+      "failed": false,
+      "id": "10043",
+      "kind": "dancer",
+      "reason": null,
+      "selection_seconds": 0.42777273996034637,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 0.09371908998582512,
+      "failed": false,
+      "id": "scoringdance:143",
+      "kind": "source_index",
+      "reason": null,
+      "selection_seconds": 0.42774719797307625,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 0.0252709619817324,
+      "failed": false,
+      "id": "10044",
+      "kind": "dancer",
+      "reason": null,
+      "selection_seconds": 0.42854617501143366,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 0.09872621699469164,
+      "failed": false,
+      "id": "scoringdance:144",
+      "kind": "source_index",
+      "reason": null,
+      "selection_seconds": 0.4496738000307232,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 0.01616490399464965,
+      "failed": false,
+      "id": "10045",
+      "kind": "dancer",
+      "reason": null,
+      "selection_seconds": 0.44153107702732086,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 0.09642046299995854,
+      "failed": false,
+      "id": "scoringdance:145",
+      "kind": "source_index",
+      "reason": null,
+      "selection_seconds": 0.4302948910044506,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 0.016430904041044414,
+      "failed": false,
+      "id": "10046",
+      "kind": "dancer",
+      "reason": null,
+      "selection_seconds": 0.42615763295907527,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 0.10406668501673266,
+      "failed": false,
+      "id": "scoringdance:146",
+      "kind": "source_index",
+      "reason": null,
+      "selection_seconds": 0.4248436719644815,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 0.0228002070216462,
+      "failed": false,
+      "id": "10047",
+      "kind": "dancer",
+      "reason": null,
+      "selection_seconds": 0.42948109697317705,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 0.09525804501026869,
+      "failed": false,
+      "id": "scoringdance:147",
+      "kind": "source_index",
+      "reason": null,
+      "selection_seconds": 0.4294750550179742,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 0.020939121022820473,
+      "failed": false,
+      "id": "10048",
+      "kind": "dancer",
+      "reason": null,
+      "selection_seconds": 0.42823247000342235,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 0.11425382801098749,
+      "failed": false,
+      "id": "scoringdance:148",
+      "kind": "source_index",
+      "reason": null,
+      "selection_seconds": 0.42235300096217543,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 0.016760071041062474,
+      "failed": false,
+      "id": "10049",
+      "kind": "dancer",
+      "reason": null,
+      "selection_seconds": 0.4317167679546401,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 0.09275304002221674,
+      "failed": false,
+      "id": "scoringdance:149",
+      "kind": "source_index",
+      "reason": null,
+      "selection_seconds": 0.42790471902117133,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 0.01566631899913773,
+      "failed": false,
+      "id": "1005",
+      "kind": "dancer",
+      "reason": null,
+      "selection_seconds": 0.42628892505308613,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 0.10741010698257014,
+      "failed": false,
+      "id": "scoringdance:15",
+      "kind": "source_index",
+      "reason": null,
+      "selection_seconds": 0.4455327090108767,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 0.015124567958991975,
+      "failed": false,
+      "id": "10050",
+      "kind": "dancer",
+      "reason": null,
+      "selection_seconds": 0.4351395660196431,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 0.09663346299203113,
+      "failed": false,
+      "id": "scoringdance:150",
+      "kind": "source_index",
+      "reason": null,
+      "selection_seconds": 0.4281630119658075,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 0.016423362016212195,
+      "failed": false,
+      "id": "10051",
+      "kind": "dancer",
+      "reason": null,
+      "selection_seconds": 0.4578205230063759,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 0.10722710698610172,
+      "failed": false,
+      "id": "scoringdance:151",
+      "kind": "source_index",
+      "reason": null,
+      "selection_seconds": 0.42683550901710987,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 0.015398068993818015,
+      "failed": false,
+      "id": "10052",
+      "kind": "dancer",
+      "reason": null,
+      "selection_seconds": 0.43107193300966173,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 0.09254187298938632,
+      "failed": false,
+      "id": "scoringdance:152",
+      "kind": "source_index",
+      "reason": null,
+      "selection_seconds": 0.4320519350003451,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 0.01854520000051707,
+      "failed": false,
+      "id": "10053",
+      "kind": "dancer",
+      "reason": null,
+      "selection_seconds": 0.4325285599916242,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 0.09581754496321082,
+      "failed": false,
+      "id": "scoringdance:153",
+      "kind": "source_index",
+      "reason": null,
+      "selection_seconds": 0.4524469710304402,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 0.01788507297169417,
+      "failed": false,
+      "id": "10054",
+      "kind": "dancer",
+      "reason": null,
+      "selection_seconds": 0.4369308190071024,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 0.09824842400848866,
+      "failed": false,
+      "id": "scoringdance:154",
+      "kind": "source_index",
+      "reason": null,
+      "selection_seconds": 0.4290587219875306,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 0.015147318947128952,
+      "failed": false,
+      "id": "10055",
+      "kind": "dancer",
+      "reason": null,
+      "selection_seconds": 0.42887363804038614,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 0.097403839987237,
+      "failed": false,
+      "id": "scoringdance:155",
+      "kind": "source_index",
+      "reason": null,
+      "selection_seconds": 0.426221133035142,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 0.01709757198113948,
+      "failed": false,
+      "id": "10056",
+      "kind": "dancer",
+      "reason": null,
+      "selection_seconds": 0.4371017779922113,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 0.09678025601897389,
+      "failed": false,
+      "id": "scoringdance:156",
+      "kind": "source_index",
+      "reason": null,
+      "selection_seconds": 0.42620050796540454,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 0.015379860997200012,
+      "failed": false,
+      "id": "10057",
+      "kind": "dancer",
+      "reason": null,
+      "selection_seconds": 0.4265867169597186,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 0.09289112396072596,
+      "failed": false,
+      "id": "scoringdance:157",
+      "kind": "source_index",
+      "reason": null,
+      "selection_seconds": 0.42585133999818936,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 0.018387490999884903,
+      "failed": false,
+      "id": "10058",
+      "kind": "dancer",
+      "reason": null,
+      "selection_seconds": 0.43420448096003383,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 0.09605312900384888,
+      "failed": false,
+      "id": "scoringdance:158",
+      "kind": "source_index",
+      "reason": null,
+      "selection_seconds": 0.4305025989888236,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 0.018182658008299768,
+      "failed": false,
+      "id": "10059",
+      "kind": "dancer",
+      "reason": null,
+      "selection_seconds": 0.428848345996812,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 0.09624192101182416,
+      "failed": false,
+      "id": "scoringdance:159",
+      "kind": "source_index",
+      "reason": null,
+      "selection_seconds": 0.42644317500526085,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 0.014757610042579472,
+      "failed": false,
+      "id": "1006",
+      "kind": "dancer",
+      "reason": null,
+      "selection_seconds": 0.44364816398592666,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 0.09766200702870265,
+      "failed": false,
+      "id": "scoringdance:16",
+      "kind": "source_index",
+      "reason": null,
+      "selection_seconds": 0.4317382680019364,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 0.018611032981425524,
+      "failed": false,
+      "id": "10060",
+      "kind": "dancer",
+      "reason": null,
+      "selection_seconds": 0.43911703099729493,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 0.09666788001777604,
+      "failed": false,
+      "id": "scoringdance:160",
+      "kind": "source_index",
+      "reason": null,
+      "selection_seconds": 0.4417002439731732,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 0.01890749199083075,
+      "failed": false,
+      "id": "10061",
+      "kind": "dancer",
+      "reason": null,
+      "selection_seconds": 0.43922140600625426,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 0.1061132299946621,
+      "failed": false,
+      "id": "scoringdance:161",
+      "kind": "source_index",
+      "reason": null,
+      "selection_seconds": 0.4394338650163263,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 0.018636699998751283,
+      "failed": false,
+      "id": "10062",
+      "kind": "dancer",
+      "reason": null,
+      "selection_seconds": 0.4497684669913724,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 0.09416304202750325,
+      "failed": false,
+      "id": "scoringdance:163",
+      "kind": "source_index",
+      "reason": null,
+      "selection_seconds": 0.4284591790055856,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 0.020511202979832888,
+      "failed": false,
+      "id": "10063",
+      "kind": "dancer",
+      "reason": null,
+      "selection_seconds": 0.462884615000803,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 0.09822875802638009,
+      "failed": false,
+      "id": "scoringdance:164",
+      "kind": "source_index",
+      "reason": null,
+      "selection_seconds": 0.42917692998889834,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 0.015973362023942173,
+      "failed": false,
+      "id": "10064",
+      "kind": "dancer",
+      "reason": null,
+      "selection_seconds": 0.4299704729928635,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 0.09822571696713567,
+      "failed": false,
+      "id": "scoringdance:165",
+      "kind": "source_index",
+      "reason": null,
+      "selection_seconds": 0.42637717502657324,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 0.02537516999291256,
+      "failed": false,
+      "id": "10065",
+      "kind": "dancer",
+      "reason": null,
+      "selection_seconds": 0.4243044210015796,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 0.09850880003068596,
+      "failed": false,
+      "id": "scoringdance:166",
+      "kind": "source_index",
+      "reason": null,
+      "selection_seconds": 0.42990072298562154,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 0.015494403021875769,
+      "failed": false,
+      "id": "10066",
+      "kind": "dancer",
+      "reason": null,
+      "selection_seconds": 0.43603773397626355,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 0.09420516702812165,
+      "failed": false,
+      "id": "scoringdance:167",
+      "kind": "source_index",
+      "reason": null,
+      "selection_seconds": 0.4286853880039416,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 0.02641271403990686,
+      "failed": false,
+      "id": "10067",
+      "kind": "dancer",
+      "reason": null,
+      "selection_seconds": 0.4285126369795762,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 0.09573696204461157,
+      "failed": false,
+      "id": "scoringdance:168",
+      "kind": "source_index",
+      "reason": null,
+      "selection_seconds": 0.4373326529748738,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 0.01964095199946314,
+      "failed": false,
+      "id": "10068",
+      "kind": "dancer",
+      "reason": null,
+      "selection_seconds": 0.4499290910316631,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 0.09837688301922753,
+      "failed": false,
+      "id": "scoringdance:169",
+      "kind": "source_index",
+      "reason": null,
+      "selection_seconds": 0.42590121598914266,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 0.02545508701587096,
+      "failed": false,
+      "id": "10069",
+      "kind": "dancer",
+      "reason": null,
+      "selection_seconds": 0.4229082940146327,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 0.09357208298752084,
+      "failed": false,
+      "id": "scoringdance:17",
+      "kind": "source_index",
+      "reason": null,
+      "selection_seconds": 0.4279234280111268,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 0.01733219699235633,
+      "failed": false,
+      "id": "1007",
+      "kind": "dancer",
+      "reason": null,
+      "selection_seconds": 0.4286850959761068,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 0.10000259400112554,
+      "failed": false,
+      "id": "scoringdance:170",
+      "kind": "source_index",
+      "reason": null,
+      "selection_seconds": 0.4627690319903195,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 0.018620116985403,
+      "failed": false,
+      "id": "10070",
+      "kind": "dancer",
+      "reason": null,
+      "selection_seconds": 0.43603139999322593,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 0.0992246349924244,
+      "failed": false,
+      "id": "scoringdance:171",
+      "kind": "source_index",
+      "reason": null,
+      "selection_seconds": 0.4409039090387523,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 0.016664904018398374,
+      "failed": false,
+      "id": "10071",
+      "kind": "dancer",
+      "reason": null,
+      "selection_seconds": 0.4305918500176631,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 0.09530558600090444,
+      "failed": false,
+      "id": "scoringdance:172",
+      "kind": "source_index",
+      "reason": null,
+      "selection_seconds": 0.4294904720154591,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 0.021226079028565437,
+      "failed": false,
+      "id": "10072",
+      "kind": "dancer",
+      "reason": null,
+      "selection_seconds": 0.4564913539797999,
+      "stage": "project"
+    },
+    {
+      "derive_seconds": 0.09601237898459658,
+      "failed": false,
+      "id": "scoringdance:173",
+      "kind": "source_index",
+      "reason": null,
+      "selection_seconds": 0.4433928719954565,
+      "stage": "project"
+    }
+  ],
+  "replay_seconds": 54.566125874000136,
+  "selection_seconds": 43.926278240047395,
+  "source": "/var/tmp/swingset-h16-100scope-source",
+  "source_digest": "55bd3fd935ed0f8367af07cd3288592d3a3926cb95236c269a935e14fc29c64e",
+  "started_at": "2026-09-13T12:25:41.477028+00:00",
+  "state": "/var/tmp/swingset-h15-offline-replay"
+}

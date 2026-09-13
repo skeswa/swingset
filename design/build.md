@@ -24,14 +24,28 @@
     an event's end date decides, then its start date, then its year, and
     an event with none of these is not rejected;
   - every placement has a `place` in 1..N with no gaps per round;
-  - `entries.wsdc_id` set only when `link_status` in (`confirmed`, `probable`);
+  - `entries.wsdc_id` set only when `link_status` is `confirmed`;
   - a bib per role per event maps to at most one `wsdc_id`;
   - no suppressed `wsdc_id` or name appears anywhere.
 - Suppression is applied here, last, from `overrides/suppressions.csv`:
-  the matching `entries`, `judges`, and `dancers` rows keep their
-  structural columns and get null names, null `wsdc_id`, null city, and
-  `link_status = suppressed`. Their `link_candidates` rows are removed.
-  Raw bodies in the private archive are untouched.
+  matching entries and judges retain their structural rows and marks while
+  personal names, initials, location, and default IDs become null. Entries
+  receive `link_status = suppressed`. Name-bearing entry and judge IDs become
+  deterministic opaque IDs, with matching changes to marks, chief-judge and
+  partner references. Ordinary bib-based structural keys remain intact.
+  Suppressed dancers and registry placements are omitted because their WSDC
+  numbers are primary keys; nulling several keys would create invalid rows.
+  Candidate and identity assertions for suppressed subjects or WSDC numbers
+  are removed. Placement IDs and points depending on a suppressed identity
+  become null, and combined confirmation flags are cleared. This corrects the
+  earlier contract that proposed keeping dancer rows with null primary keys.
+  Generated and historical changelog streams pass through the same suppression
+  policy. Reopened history scans retain only affected keys and name fragments
+  until discovery stops changing. A bounded pass limit fails closed instead of
+  emitting partially scrubbed history. Streaming output then omits private
+  changes without altering the order of surviving history. Operator reasons
+  and private notes are not copied into public output. Raw bodies in the
+  private archive are untouched.
 - `review_queue` is rebuilt from scratch each build from the current
   state, so resolved items vanish without bookkeeping.
 - `changelog` is computed by diffing the new tables against the last
@@ -48,7 +62,7 @@
 
 ## Build inputs
 
-Build reads all published inputs directly. Its fingerprint contains:
+Build captures one read snapshot and the input bundle. Its fingerprint contains:
 
 - `canonical`, `dancers` (including registry placements), `links`,
   `findings`, `snapshots`, `source_events`, and `source_event_map`
@@ -57,7 +71,8 @@ Build reads all published inputs directly. Its fingerprint contains:
   items, and the card, including suppressions, source configuration,
   event aliases, and source URL overrides;
 - schema, package, extractor, parser, projector, and linker versions,
-  captured repository/source identity, plus the card template hash.
+  captured repository/source identity, the exact captured runtime recipe,
+  plus the card template hash.
 
 Link output is only one input. Canonical corrections must reach build
 when links do not change. Source-event names and dates can change computed review items even
@@ -66,19 +81,50 @@ review item, or card field belongs in this dependency list. Revisions
 advance only on changed data. Run logs, budget counters, and unchanged
 poll timestamps are not published inputs.
 
-Build runs only with no pending parse, project, or link work, using one
-consistent database view and the captured input bundle. It cannot
-publish half of a vocabulary migration or half of an alias move. Handled
-parse failures preserve last-good observations and appear as findings;
-unhandled projection or link failures keep work pending and block build.
+H16 selects retained immutable generations at an evidence cutoff. One history
+generation anchors its exact event, registry, inventory, and alias dependencies.
+A link generation joins only when its dependencies match that anchor. An
+unrelated unfinished parse does not block a coherent release. Missing,
+unsupported, and incompatible scopes remain disclosed omissions. The older
+canonical-table reader keeps its settled-work precondition for callers that
+explicitly request that view.
+
+A disposable SQLite spool reconstructs selected rows by column ownership.
+It does not modify live canonical tables or copy the changelog. A legacy source
+fact may remain only when its owned values match the verified published
+baseline under the public column types and no revocation applies. This grants
+no new identity join or source admission authority.
 
 Candidate reuse requires **both** this fingerprint and the baseline
 commit against which its changelog was calculated. The candidate's
-`BUILT` record is the completion record; no SQLite completion row can
-outlive its directory. A matching baseline already published from these
+`BUILT` record and verified file closure establish artifact completion.
+A retained H15 materialized pointer is current only while that closure verifies;
+the pointer alone cannot establish completion. A matching baseline already published from these
 inputs needs no rebuild. Otherwise reuse a complete candidate with the
 same pair, or build one. Deleting a disposable candidate makes that work
 due again without database repair.
+
+H15 selects the build derivation inside the same read snapshot as its rows.
+After the candidate files and `BUILT` are durable, a short transaction rechecks
+the baseline and captured inputs, then records the immutable generation and
+artifact hashes. H16 checks the pinned closure rather than newer source pointers.
+Changed corrections, contracts, captured inputs, or baseline still reject the
+unpublished candidate. A crash before that transaction can leave reusable files but no completed
+generation. Missing or corrupt candidate files force a fresh candidate even
+when its manifest and `BUILT` remain. The recorded generation describes local
+materialization; only a publication receipt establishes published progress.
+
+Before writing candidate files, retain the exact private cutoff proof in a
+short transaction. This records inputs, not build completion. The public
+manifest contains opaque generation IDs and proof hashes; source locators,
+recipes, and private policy notes remain in local immutable storage. Publication
+requires both the verified file closure and the durable build-generation receipt.
+
+Reuse a release while selected evidence, corrections, and material health
+status remain unchanged. Public health advances once per UTC day, initially,
+and immediately when material status changes. A successful unchanged poll
+does not cause a new release. The actual evidence cutoff remains fixed in a
+reused candidate. Reusing the acknowledged baseline creates no remote commit.
 
 ## Immutable contents
 
@@ -106,6 +152,10 @@ Reusing a candidate preserves every byte, including its metadata.
 
 The changelog is the baseline's history plus the current delta. Build
 never compares changelog against itself to generate more changelog rows.
+When comparing pre-H16 coverage, its year/source/via key maps to the
+corresponding year-scope key. Each old year remains distinct, its old payload
+is retained, and new scope fields appear as updates. Stored historical
+changelog records keep their original keys.
 Promotion, not building or a dry run, advances the history. Every table
 is present from the first publish, empty where v1 has no data, so the
 card configs and consumer examples are complete from day one.
@@ -144,3 +194,34 @@ The card reads history counts lazily. The initial full-history benchmark covered
 `latest_event_covered` is the greatest end date among events with placements.
 Neither upgrades override month ranges into verified event dates. The card
 reports result coverage, entry link statuses, and review kinds separately.
+
+The v2 build includes `coverage` with source and transport counts, year
+acceptance, date precision, and an unknown expected-round denominator until
+enumeration is checked. It validates month-only events using `event_month`;
+day precision requires both dates. A retained round is partial sheet coverage
+until the index and its complete round set have passed closure checks.
+
+Default entry and judge WSDC IDs accept confirmed links only. Probable
+identity decisions remain in `identity_links` and `link_candidates` for
+review. H10 rechecks exact source-owned printed IDs, registry agreement in the
+selected release tables, current decisions, and source support. A former
+assertion cannot serve as its own evidence. New default joins remain withheld
+until H17 permits expansion; this applies to an empty initial dataset too.
+
+`build/service.py` owns normal and correction-only releases. Normal releases
+use the selected dependency closure. Correction-only releases read and hash
+the acknowledged baseline, withdraw revoked source scopes and identities, and
+rebuild dependent identity fields. They include no new source generation.
+The manifest records remaining parse work and findings, withdrawal counts,
+the source admission digest, the journal digest and generation, current input
+hashes, and the identity policy version. Public assertions carry safe decision
+references and acceptance state; private reasons stay private.
+
+The publication boundary repeats the correction, closure, and file checks in
+a short admission transaction. Semantic-write fences protect the remote commit;
+no SQLite write transaction is held during the network request. Changed or
+invalid inputs reject the candidate and retire its unlanded intent. A lost
+response is reconciled first: an already-landed commit is acknowledged, then
+newly accepted decisions require the next correction. An unlanded intent
+cannot submit during restore verification. The receipt records correction
+latency; recovered network outcomes report an upper bound.

@@ -1,0 +1,20 @@
+{
+  "snapshot_id": "snap_20260909T150549Z_abf51d8711ef",
+  "url": "https://scores.worlddanceregistry.com/fe9b06d3-4273-11f0-9a29-0aa72bbce9ea/rounds/routeInfo.json",
+  "fetched_at": "2026-09-09T15:05:49.469670+00:00",
+  "body_sha256": "abf51d8711ef256d1b14389381b929b8ec0db5827c9070a6dfd760c386ad2a77",
+  "body_bytes": 341137,
+  "http_status": 200,
+  "source_ref": "wdr:fe9b06d3-4273-11f0-9a29-0aa72bbce9ea",
+  "event_id": "2025-10-swing-city-chicago",
+  "expected_preserved_judges": [
+    {
+      "judge_id": "2025-10-swing-city-chicago/judge/julie",
+      "name_raw": "Julie"
+    },
+    {
+      "judge_id": "2025-10-swing-city-chicago/judge/nataliya",
+      "name_raw": "Nataliya"
+    }
+  ]
+}

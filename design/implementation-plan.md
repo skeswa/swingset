@@ -8,6 +8,7 @@ remain acceptance requirements; code coverage alone does not satisfy them.
 
 This is the order of work for the first version of the pipeline. It
 refines [milestones](milestones.md) and [scraping plan](scraping-plan.md).
+Work after v1 is ordered by [implementation plan v2](implementation-plan-v2.md).
 The contract owners in section 3 define how the pipeline works. Facts
 about this Mac were checked on 2026-09-08. Facts we could not check are
 marked **unverified**.

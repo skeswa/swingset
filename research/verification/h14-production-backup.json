@@ -1,0 +1,12 @@
+{
+  "commit": "48a625781cb580e36cc0f2a99ab06740ef5f6c6f",
+  "manifest_hash": "4ae650570ed1561573edf11edd842324ed527d3bae9f0e82431a6d6facd8e084",
+  "checkpoint": "/var/lib/swingset/checkpoints/h13-before-h14-20260913-closure-fix",
+  "files": 66993,
+  "schema_version": 12,
+  "baseline_commit": "81121dcc7d62a1db9e76ee1c49a6b90e1f4c5653",
+  "finished_at": "2026-09-13T10:40:31.650431+00:00",
+  "source_receipt_sha256": "ad95f42e33c551986af2ddaa0199937e4d4ef7bff9f88817f108f412216d0f7e",
+  "verification_source_receipt_sha256": "e359136cb07b2174c8ddd2394bceedb615abeb64e4ca1ec9a157e63c92320f5e",
+  "verification_source": "/nix/store/0yq6dbr63yldsr1fkgfzyvqpm2vax1sg-swingset-h13-checkpoint-fix-source"
+}

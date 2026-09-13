@@ -10,18 +10,23 @@ strings. Timestamps are UTC with microsecond precision. Dates are
 Ids are deterministic, readable, and stable across rebuilds. They are
 built from natural keys, not from database sequences.
 
-| Id             | Format                                                                         | Example                                  |
-| -------------- | ------------------------------------------------------------------------------ | ---------------------------------------- |
-| `series_id`    | `wsdc-<registry event id>` when known, else `slug-<name slug>`                 | `wsdc-53`                                |
-| `event_id`     | `<yyyy-mm>-<series slug>`                                                      | `2026-08-summer-hummer`                  |
-| `contest_id`   | `<event_id>/<contest slug>`                                                    | `2026-08-summer-hummer/novice-jj`        |
-| `round_id`     | `<contest_id>/<round type>[-<n>]`                                              | `2026-08-summer-hummer/novice-jj/prelim` |
-| `entry_id`     | `<contest_id>/<role letter>-<bib>` for J&J; `<contest_id>/C-<bib>` for couples | `2026-08-summer-hummer/novice-jj/L-255`  |
-| `heat_id`      | `<round_id>/heat-<n>`                                                          | `.../prelim/heat-3`                      |
-| `judge_id`     | `<event_id>/judge/<name slug or "anon-n">`                                     | `2026-08-summer-hummer/judge/jane-doe`   |
-| `placement_id` | `<round_id>/place-<n>`                                                         | `.../final/place-1`                      |
-| `snapshot_id`  | `snap_<fetched_at compact>_<sha256 prefix 12>`                                 | `snap_20260906T031500Z_9f2c1a7b3e4d`     |
-| `run_id`       | `run_<start time compact>`                                                     | `run_20260906T031500Z`                   |
+| Id             | Format                                                                         | Example                                           |
+| -------------- | ------------------------------------------------------------------------------ | ------------------------------------------------- |
+| `series_id`    | `wsdc-<registry event id>` when known, else `slug-<name slug>`                 | `wsdc-53`                                         |
+| `event_id`     | `<yyyy-mm>-<series slug>`                                                      | `2026-08-summer-hummer`                           |
+| `contest_id`   | `<event_id>/<contest slug>`                                                    | `2026-08-summer-hummer/novice-jj`                 |
+| `round_id`     | `<contest_id>/<round type>[-<n>]`                                              | `2026-08-summer-hummer/novice-jj/prelim`          |
+| `entry_id`     | `<contest_id>/<role letter>-<bib>` for J&J; `<contest_id>/C-<bib>` for couples | `2026-08-summer-hummer/novice-jj/L-255`           |
+| `heat_id`      | `<round_id>/heat-<n>`                                                          | `.../prelim/heat-3`                               |
+| `judge_id`     | `<event_id>/judge/<name slug or "anon-n">`                                     | `2026-08-summer-hummer/judge/jane-doe`            |
+| `placement_id` | `<round_id>/place-<n>`                                                         | `.../final/place-1`                               |
+| `snapshot_id`  | `snap_<fetched_at compact>_<body hash 12>_<watch hash 12>`                     | `snap_20260906T031500Z_9f2c1a7b3e4d_12ab34cd56ef` |
+| `run_id`       | `run_<start time compact>`                                                     | `run_20260906T031500Z`                            |
+
+Existing snapshot IDs keep their original form without the watch hash. New
+acquisitions include the watch hash so identical bodies returned by different
+hosts within one second retain separate provenance. Bodies still deduplicate
+by their full SHA-256.
 
 The history start date is 2010-01-01: no `events` row exists for an
 earlier edition ([backfill](backfill.md#the-start-date-rule)).
@@ -253,21 +258,27 @@ internally to produce the flag and can be recomputed by anyone from
 
 **`identity_links`** (current assertion per entry or judge)
 
-| Column                | Type         | Notes                                 |
-| --------------------- | ------------ | ------------------------------------- |
-| `link_id`             | string       | key                                   |
-| `subject_kind`        | enum         | `entry`, `judge`                      |
-| `subject_id`          | string       | `entry_id` or `judge_id`              |
-| `wsdc_id`             | int32        | nullable when asserting "no match"    |
-| `method`              | enum         | see 11.3                              |
-| `status`              | enum         | see 11.4                              |
-| `confidence`          | float32      |                                       |
-| `constraints_applied` | list<string> | e.g. `bib_unique`, `division_allowed` |
-| `asserted_at`         | timestamp    |                                       |
-| `run_id`              | string       |                                       |
+| Column                | Type         | Notes                                                                 |
+| --------------------- | ------------ | --------------------------------------------------------------------- |
+| `link_id`             | string       | key                                                                   |
+| `subject_kind`        | enum         | `entry`, `judge`                                                      |
+| `subject_id`          | string       | `entry_id` or `judge_id`                                              |
+| `wsdc_id`             | int32        | nullable when asserting "no match"                                    |
+| `method`              | enum         | see 11.3                                                              |
+| `status`              | enum         | see 11.4                                                              |
+| `confidence`          | float32      |                                                                       |
+| `constraints_applied` | list<string> | e.g. `bib_unique`, `division_allowed`                                 |
+| `source_ref_ids`      | list<string> | durable original source references used in the current decision check |
+| `decision_ids`        | list<string> | causative accepted journal decisions; private notes are not published |
+| `acceptance_policy`   | string       | version of the identity decision policy                               |
+| `acceptance_state`    | enum         | `accepted`, `unresolved`, or `revoked` for this release               |
+| `journal_digest`      | string       | accepted journal digest checked at build and publication              |
+| `journal_generation`  | int64        | includes reviewed reference migrations as well as journal changes     |
+| `asserted_at`         | timestamp    |                                                                       |
+| `run_id`              | string       |                                                                       |
 
 Earlier assertions are not kept in this table. They are recoverable from
-the Hub commit history and are summarized in `changelog` with reason
+the private append-only identity history and the Hub commit history. They are summarized in `changelog` with reason
 `link_upgraded` or `link_downgraded`.
 
 **`link_candidates`** (every scored candidate, so no information is lost)
@@ -329,13 +340,63 @@ and [build](build.md#review-queue).
 `snapshot_id`, `source`, `url`, `fetched_at`, `http_status`,
 `body_sha256`, `body_bytes`, `content_changed`, `parser`,
 `parser_version`, `parse_status`, `via` (`origin`, `wayback`,
-`manual`), `captured_at`, `archive_url`. Bodies are not published.
+`manual`), `captured_at`, `archive_url`, `observed_at`. Bodies are not published.
+`observed_at` is the capture time for archive evidence and the fetch time
+otherwise; fetching an old capture today does not make its facts newer.
 
 **`coverage`**
 
-One row per `year`, `source`, `via`: `events`, `contests`, `rounds`,
-`entries`, and one count per coverage tier. Built from current state;
-it is the card's coverage table ([backfill](backfill.md#data-model-changes)).
+The public key is `scope_kind`, `scope_id`, `source`, `via`. `scope_kind`
+is `source`, `year`, or `event`; source rows have a null year. The internal
+SQLite table remains keyed by year, source, and transport. Release construction
+adds scope rows and metadata without changing canonical fact generations.
+
+Year rows retain `events`, `contests`, `rounds`, `entries`,
+`events_registry_only`, `events_index_only`, `events_sheets_partial`,
+`events_sheets_complete`, `events_day_precision`, `events_listed_only`,
+`events_accepted`, `expected_rounds`, `parsed_rounds`, `unresolved_findings`,
+and `last_changed_at`. Filter `scope_kind='year'` for the original aggregate
+view. `events_accepted` describes reviewed year inventory and is null on other
+scope kinds. Counts overlap across sources and scope levels; do not sum them
+as unique event totals.
+
+`scope_status`, `scope_reasons`, and `missing_scopes` identify retained,
+withheld, or unavailable support, including scopes with no selected fact rows.
+Missing dancer scopes expose their kind and count, not registry identifiers.
+Source unit counts are `discovered_units`, `acquired_units`,
+`interpreted_units`, `mapped_units`, `withheld_units`, `unavailable_units`,
+and `unassessed_units`. A successful acquisition remains counted when a later
+check fails. A retained accepted interpretation remains counted when newer
+input is blocked. `withheld_scopes` and `unavailable_scopes` count omitted
+derivation scopes separately. `identity_subjects`, `resolved_identities`,
+and `withheld_identities` count selected entry and judge subjects, separately
+from source units. A named judge need not have a registry number.
+
+`discovery_denominator` is null and `discovery_universe='unknown'` unless a
+complete discovery universe is established. Known retained units supply the
+acquisition denominator; acquired units supply the interpretation denominator;
+interpreted units supply the mapping denominator. None of these denominators
+establishes the discovery universe. `expected_rounds` remains null when source
+enumeration has not established it. Partial rows alone do not prove complete
+sheet coverage or reviewed identity accuracy.
+
+Each row records `method`, `population`, `uncertainty`, `evidence_cutoff`,
+`evidence_observed_at`, `usable_verified_at`, and `health_as_of`. The latest
+usable verification is distinct from when the source evidence was observed.
+Archive capture time remains evidence time even when acquired years later.
+The initial public health cadence is daily, with immediate material status
+changes; successful identical poll timestamps alone do not force releases.
+
+Common public tables—events, contests, rounds, entries, judges, placements,
+dancers, and registry placements—also carry `scope_status` and
+`evidence_observed_at`. These columns describe the selected release. They are
+not added to mutable canonical SQL rows or immutable projection payloads.
+They distinguish accepted support, retained or unassessed legacy facts, and
+withheld identity joins without changing source names or inventing timestamps.
+
+Year acceptance records an owner and the digest of the reviewed event
+inventory. A changed inventory or an open year finding withholds acceptance.
+Repeated counting preserves `last_changed_at` when the counts are unchanged.
 
 ## Relationships
 

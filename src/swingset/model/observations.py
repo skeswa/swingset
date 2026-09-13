@@ -19,6 +19,7 @@ class Observation(Protocol):
 
 
 _DECODERS: dict[str, Callable[[Mapping[str, JsonValue]], Observation]] = {}
+_TYPE_HINTS: dict[type[Any], Mapping[str, Any]] = {}
 
 
 def register_observation_type[T: Observation](cls: type[T]) -> type[T]:
@@ -74,8 +75,18 @@ def decode_payload(kind: str, payload_json: str) -> Observation:
     return decoder(cast(Mapping[str, JsonValue], value))
 
 
+def _resolved_hints(cls: type[Any]) -> Mapping[str, Any]:
+    # Payload classes and their nested records have stable annotations. Resolving
+    # the same Cell/ResultRow annotations for every table cell dominates replay.
+    hints = _TYPE_HINTS.get(cls)
+    if hints is None:
+        hints = get_type_hints(cls)
+        _TYPE_HINTS[cls] = hints
+    return hints
+
+
 def _construct[T](cls: type[T], values: Mapping[str, JsonValue]) -> T:
-    hints = get_type_hints(cls)
+    hints = _resolved_hints(cls)
     return cls(**{name: _convert(hints.get(name), value) for name, value in values.items()})
 
 

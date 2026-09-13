@@ -1,0 +1,96 @@
+{
+  "at": "2026-09-13T08:36:40.742197+00:00",
+  "state": "/var/tmp/swingset-h11-schema10-review/state.sqlite",
+  "schema_version": 10,
+  "inventory_seconds": 1.4763696949812584,
+  "pipeline_lag": {
+    "acquisition": {
+      "basis": "seconds past an existing watch's next_check_at; schedule age, not a failed verification or an execution-eligibility claim",
+      "source_filter": null,
+      "filter_scope": "source-wide schedules; requirement kind and ID filters do not redefine watch scheduling",
+      "overdue_watches": 4431,
+      "paused_overdue_watches": 0,
+      "cooldown_overdue_watches": 0,
+      "unknown_schedule_watches": 1,
+      "oldest_lag_seconds": 256049.69127,
+      "oldest": {
+        "watch_id": "0b8b23fb1337c793",
+        "source": "scoringdance",
+        "scheduled_at": "2026-09-10T09:29:11.050927+00:00",
+        "lag_seconds": 256049.69127,
+        "paused": false,
+        "cooldown": false
+      }
+    },
+    "derivation": {
+      "basis": "seconds since current legacy offline queue enqueue, including parse; replacement inputs may reset that timestamp; H15 supplies desired fingerprints",
+      "filter_scope": "global legacy queue; requirement filters do not claim per-kind derivation ownership",
+      "pending_units": 32780,
+      "paused_by_all": false,
+      "by_stage": {
+        "link": 2240,
+        "parse": 461,
+        "project": 30079
+      },
+      "unknown_enqueue_times": 0,
+      "oldest_lag_seconds": 5263.378067,
+      "oldest": {
+        "stage": "link",
+        "unit_kind": "event",
+        "unit_id": "2010-01-americas-classic",
+        "enqueued_at": "2026-09-13T07:08:57.364130+00:00",
+        "lag_seconds": 5263.378067
+      }
+    },
+    "alert_after_seconds": 1800,
+    "alert_basis": "diagnostic report staleness threshold; host budgets and full work admission are not assessed; this is not an H14 service-gap objective",
+    "alerts": [
+      {
+        "reason": "acquisition_schedule_lag",
+        "count": 4431,
+        "oldest": {
+          "watch_id": "0b8b23fb1337c793",
+          "source": "scoringdance",
+          "scheduled_at": "2026-09-10T09:29:11.050927+00:00",
+          "lag_seconds": 256049.69127,
+          "paused": false,
+          "cooldown": false
+        },
+        "next_action": "inspect source budget, schedule and acquisition blockers; no request is made by reporting"
+      },
+      {
+        "reason": "queued_derivation_lag",
+        "count": 32780,
+        "oldest": {
+          "stage": "link",
+          "unit_kind": "event",
+          "unit_id": "2010-01-americas-classic",
+          "enqueued_at": "2026-09-13T07:08:57.364130+00:00",
+          "lag_seconds": 5263.378067
+        },
+        "next_action": "inspect the queued scope and its parse or derivation findings; reporting does not retry work"
+      }
+    ]
+  },
+  "cohort_outside_counts": [
+    {
+      "cohort_id": "h11-benchmark-20260913T075951Z",
+      "outside_cohort": 0,
+      "outside_cohort_known_new": 0,
+      "outside_cohort_uncertain": 0
+    },
+    {
+      "cohort_id": "synthetic-legacy-order-control",
+      "outside_cohort": null,
+      "outside_cohort_known_new": 1513,
+      "outside_cohort_uncertain": 233
+    }
+  ],
+  "requirement_count": 105735,
+  "execution_enabled": false,
+  "source_files": {
+    "/Users/skeswa/repos/skeswa/swingset/src/swingset/state/lag_report.py": "1f5de0cdc121b27d5f7249a28e31d4cf9686f9b48d6c00b119e76f83a4bb8384",
+    "/Users/skeswa/repos/skeswa/swingset/src/swingset/state/requirement_report.py": "f2cb210565cd4542862bb239ba5458aa4b432aec206df4e216cbe173a75ce306"
+  },
+  "scope": "One report on isolated schema10 benchmark database; no scan, requests, live-state reads/writes or repair execution. Ordinary read-only SQLite may create sidecars only in the disposable scratch directory."
+}

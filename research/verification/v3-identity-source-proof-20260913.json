@@ -1,0 +1,1019 @@
+{
+  "candidate": "/var/tmp/swingset-h7-migration-review/candidates/cand_a8580553523d4b02",
+  "verified_representatives": [
+    {
+      "subject_id": "2020-01-budafest/open-strictly/F-name-angelique-pernotte",
+      "name": "Angelique Pernotte",
+      "old_id": 9005,
+      "classification": "no_owned_printed_id;other_scope_same_name",
+      "body_sha256": "fd151fe21ea94a6ecf2fcee484bd9feace667f9a47d12415b1dd41a3101b8c44",
+      "body_hash_verified": true,
+      "source_url": "https://scoring.dance/enUS/events/25/results/326.html",
+      "printed_ids": [],
+      "registry_ids": [],
+      "matching_body_rows": [
+        {
+          "cell_text": "Angelique Pernotte",
+          "owned_data_wsdc_attributes": [],
+          "row_cells": [
+            "602",
+            "Joao Parada",
+            "Angelique Pernotte",
+            "5",
+            "8",
+            "6",
+            "3",
+            "6",
+            "2",
+            "9",
+            "",
+            "5th",
+            ""
+          ]
+        }
+      ],
+      "registry_evidence": []
+    },
+    {
+      "subject_id": "2024-08-swingtime-denver/champion-jj/L-428",
+      "name": "Maxime Zzaoui",
+      "old_id": 1507,
+      "classification": "different_owned_printed_id;other_scope_same_name",
+      "body_sha256": "1a35b79f2dc452bbc9f4b9d66f53c1eb904fe3d4376832bc682286a358efa336",
+      "body_hash_verified": true,
+      "source_url": "https://scoring.dance/enUS/events/141/results/2266.html",
+      "printed_ids": [
+        7541
+      ],
+      "registry_ids": [
+        7541
+      ],
+      "matching_body_rows": [
+        {
+          "cell_text": "Maxime Zzaoui",
+          "owned_data_wsdc_attributes": [
+            {
+              "class": "",
+              "href": "/enUS/wsdc/registry/7541.html",
+              "data-action": "modalwsdcprofile",
+              "data-wsdc": "7541",
+              "style": "color: inherit;"
+            }
+          ],
+          "row_cells": [
+            "428",
+            "Maxime Zzaoui",
+            "",
+            "Yes",
+            "Yes",
+            "Yes",
+            "",
+            "30",
+            "",
+            ""
+          ]
+        }
+      ],
+      "registry_evidence": []
+    },
+    {
+      "subject_id": "2024-08-swingtime-denver/country-jj-all-american/F-227",
+      "name": "Aaron Nuno",
+      "old_id": 22485,
+      "classification": "ambiguous_source_locator",
+      "body_sha256": "f32f9f46333370026ee98ee8bc7cadc83f1dbd0d0879fdff11fbad7eb0c60207",
+      "body_hash_verified": true,
+      "source_url": "https://scoring.dance/enUS/events/141/results/2229.html",
+      "printed_ids": [
+        22485
+      ],
+      "registry_ids": [],
+      "matching_body_rows": [
+        {
+          "cell_text": "Aaron Nuno",
+          "owned_data_wsdc_attributes": [
+            {
+              "class": "",
+              "href": "/enUS/wsdc/registry/22485.html",
+              "data-action": "modalwsdcprofile",
+              "data-wsdc": "22485",
+              "style": "color: inherit;"
+            }
+          ],
+          "row_cells": [
+            "377/227",
+            "Kristen Buttrey",
+            "Aaron Nuno",
+            "No",
+            "Yes",
+            "No",
+            "Yes",
+            "",
+            "20",
+            "",
+            ""
+          ]
+        },
+        {
+          "cell_text": "Aaron Nuno",
+          "owned_data_wsdc_attributes": [
+            {
+              "class": "",
+              "href": "/enUS/wsdc/registry/22485.html",
+              "data-action": "modalwsdcprofile",
+              "data-wsdc": "22485",
+              "style": "color: inherit;"
+            }
+          ],
+          "row_cells": [
+            "107/227",
+            "Riley Hirengen",
+            "Aaron Nuno",
+            "No",
+            "No",
+            "No",
+            "Yes",
+            "",
+            "10",
+            "",
+            ""
+          ]
+        }
+      ],
+      "registry_evidence": []
+    },
+    {
+      "subject_id": "2024-08-swingtime-denver/newcomer-jj/L-666",
+      "name": "Michele Hatfield",
+      "old_id": 20666,
+      "classification": "contradictory_source_and_registry_identities",
+      "body_sha256": "8b189a9b6929ef0cdc1787885ef8eb0704d3f55dba980259d2ffda02c04491a8",
+      "body_hash_verified": true,
+      "source_url": "https://scoring.dance/enUS/events/141/results/2240.html",
+      "printed_ids": [
+        20666
+      ],
+      "registry_ids": [
+        20666,
+        24054
+      ],
+      "matching_body_rows": [
+        {
+          "cell_text": "Michele Hatfield",
+          "owned_data_wsdc_attributes": [
+            {
+              "class": "",
+              "href": "/enUS/wsdc/registry/20666.html",
+              "data-action": "modalwsdcprofile",
+              "data-wsdc": "20666",
+              "style": "color: inherit;"
+            }
+          ],
+          "row_cells": [
+            "666",
+            "Michele Hatfield",
+            "",
+            "Yes",
+            "Yes",
+            "No",
+            "No",
+            "Yes",
+            "",
+            "30",
+            "",
+            ""
+          ]
+        }
+      ],
+      "registry_evidence": [
+        {
+          "dancer": {
+            "wsdc_id": 20666,
+            "first_name": "Michele",
+            "last_name": "Hatfield",
+            "merged_into_wsdc_id": null,
+            "snapshot_id": "snap_20260912T082455Z_b754b26475b9"
+          },
+          "placements": [
+            {
+              "wsdc_id": 20666,
+              "role": "leader",
+              "division": "newcomer",
+              "dance_style": "wcs",
+              "result": "F",
+              "event_id": "2024-08-swingtime-denver",
+              "snapshot_id": "snap_20260912T082455Z_b754b26475b9"
+            }
+          ],
+          "body_sha256": "b754b26475b96c65995d989c34cbf449a9b639b9f23498d0e5572c3eb361fcc2",
+          "body_hash_verified": true,
+          "raw_body_top_level_keys": [
+            "leader",
+            "follower",
+            "dominate_data",
+            "non_dominate_data",
+            "non_dominate_lookup",
+            "dancer_first",
+            "dancer_last",
+            "dancer_wsdcid",
+            "dominate_role",
+            "non_dominate_role",
+            "dominate_required",
+            "dominate_allowed",
+            "show_secondary_icons",
+            "short_dominate_role",
+            "short_non_dominate_role",
+            "dominate_role_highest_level_points",
+            "dominate_role_highest_level",
+            "non_dominate_role_highest_level_points",
+            "non_dominate_role_highest_level",
+            "points_message",
+            "recent_year",
+            "is_pro",
+            "show_chmp_warning"
+          ],
+          "raw_identity": {
+            "dancer_first": "Michele",
+            "dancer_last": "Hatfield",
+            "dancer_wsdcid": 20666
+          },
+          "raw_competitions": [
+            {
+              "role": "leader",
+              "points": 1,
+              "event": {
+                "id": 47,
+                "name": "SwingTime Denver",
+                "location": "Denver, CO, United States",
+                "url": "http://www.swingtimewcs.com",
+                "date": "August 2024"
+              },
+              "result": "F"
+            }
+          ]
+        },
+        {
+          "dancer": {
+            "wsdc_id": 24054,
+            "first_name": "Michele",
+            "last_name": "Hatfield",
+            "merged_into_wsdc_id": null,
+            "snapshot_id": "snap_20260912T101817Z_87ba0e3f2dc7"
+          },
+          "placements": [
+            {
+              "wsdc_id": 24054,
+              "role": "leader",
+              "division": "newcomer",
+              "dance_style": "wcs",
+              "result": "F",
+              "event_id": "2024-08-swingtime-denver",
+              "snapshot_id": "snap_20260912T101817Z_87ba0e3f2dc7"
+            }
+          ],
+          "body_sha256": "87ba0e3f2dc7bf86efc66b551de0ec743a5aebf05d2a28dc437df865919ec7f5",
+          "body_hash_verified": true,
+          "raw_body_top_level_keys": [
+            "leader",
+            "follower",
+            "dominate_data",
+            "non_dominate_data",
+            "non_dominate_lookup",
+            "dancer_first",
+            "dancer_last",
+            "dancer_wsdcid",
+            "dominate_role",
+            "non_dominate_role",
+            "dominate_required",
+            "dominate_allowed",
+            "show_secondary_icons",
+            "short_dominate_role",
+            "short_non_dominate_role",
+            "dominate_role_highest_level_points",
+            "dominate_role_highest_level",
+            "non_dominate_role_highest_level_points",
+            "non_dominate_role_highest_level",
+            "points_message",
+            "recent_year",
+            "is_pro",
+            "show_chmp_warning"
+          ],
+          "raw_identity": {
+            "dancer_first": "Michele",
+            "dancer_last": "Hatfield",
+            "dancer_wsdcid": 24054
+          },
+          "raw_competitions": [
+            {
+              "role": "leader",
+              "points": 1,
+              "event": {
+                "id": 47,
+                "name": "SwingTime Denver",
+                "location": "Denver, CO, United States",
+                "url": "http://www.swingtimewcs.com",
+                "date": "August 2024"
+              },
+              "result": "F"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "subject_id": "2024-12-westie-gala/novice-jj/L-230",
+      "name": "Peter Jonsson",
+      "old_id": 19920,
+      "classification": "different_owned_printed_id;other_scope_same_name",
+      "body_sha256": "be10805fa98f4fdfa3babceef7a6f16a2c5d729846f97307276a1ce49c1f55ac",
+      "body_hash_verified": true,
+      "source_url": "https://scoring.dance/enUS/events/196/results/2869.html",
+      "printed_ids": [
+        23980
+      ],
+      "registry_ids": [],
+      "matching_body_rows": [
+        {
+          "cell_text": "Peter Jonsson",
+          "owned_data_wsdc_attributes": [
+            {
+              "class": "",
+              "href": "/enUS/wsdc/registry/23980.html",
+              "data-action": "modalwsdcprofile",
+              "data-wsdc": "23980",
+              "style": "color: inherit;"
+            }
+          ],
+          "row_cells": [
+            "230",
+            "Peter Jonsson",
+            "",
+            "No",
+            "No",
+            "No",
+            "Yes",
+            "",
+            "10",
+            "",
+            ""
+          ]
+        }
+      ],
+      "registry_evidence": []
+    },
+    {
+      "subject_id": "2024-12-westie-gala/strictly-soiree/L-230",
+      "name": "Peter Jonsson",
+      "old_id": 19920,
+      "classification": "different_owned_printed_id;other_scope_same_name",
+      "body_sha256": "9f8c22851f1e17160334b23b3a0c2f8bbf6f02d218222654d52ec120d9890edb",
+      "body_hash_verified": true,
+      "source_url": "https://scoring.dance/enUS/events/196/results/2864.html",
+      "printed_ids": [
+        23980
+      ],
+      "registry_ids": [],
+      "matching_body_rows": [
+        {
+          "cell_text": "Peter Jonsson",
+          "owned_data_wsdc_attributes": [
+            {
+              "class": "",
+              "href": "/enUS/wsdc/registry/23980.html",
+              "data-action": "modalwsdcprofile",
+              "data-wsdc": "23980",
+              "style": "color: inherit;"
+            }
+          ],
+          "row_cells": [
+            "230",
+            "Peter Jonsson",
+            "Charlotte Aste",
+            "No",
+            "No",
+            "No",
+            "No",
+            "No",
+            "",
+            "0",
+            "",
+            ""
+          ]
+        }
+      ],
+      "registry_evidence": []
+    },
+    {
+      "subject_id": "2025-01-paris-swing-classic/newcomer-jj/L-200",
+      "name": "María Aguirre Roquero",
+      "old_id": 22943,
+      "classification": "contradictory_source_and_registry_identities",
+      "body_sha256": "f84dfc1f6a7a4aa75b4bfa448c70a0a34088d81ca4e99ae3abe002ef81f3fab9",
+      "body_hash_verified": true,
+      "source_url": "https://scoring.dance/enUS/events/206/results/3096.html",
+      "printed_ids": [
+        22943
+      ],
+      "registry_ids": [
+        26441
+      ],
+      "matching_body_rows": [
+        {
+          "cell_text": "María Aguirre Roquero",
+          "owned_data_wsdc_attributes": [
+            {
+              "class": "",
+              "href": "/enUS/wsdc/registry/22943.html",
+              "data-action": "modalwsdcprofile",
+              "data-wsdc": "22943",
+              "style": "color: inherit;"
+            }
+          ],
+          "row_cells": [
+            "200",
+            "María Aguirre Roquero",
+            "",
+            "No",
+            "Yes",
+            "Yes",
+            "Yes",
+            "",
+            "30",
+            "",
+            ""
+          ]
+        }
+      ],
+      "registry_evidence": [
+        {
+          "dancer": {
+            "wsdc_id": 26441,
+            "first_name": "María",
+            "last_name": "Aguirre Roquero",
+            "merged_into_wsdc_id": null,
+            "snapshot_id": "snap_20260912T113756Z_2bc1db9a6945"
+          },
+          "placements": [
+            {
+              "wsdc_id": 26441,
+              "role": "leader",
+              "division": "newcomer",
+              "dance_style": "wcs",
+              "result": "4",
+              "event_id": "2025-01-paris-swing-classic",
+              "snapshot_id": "snap_20260912T113756Z_2bc1db9a6945"
+            }
+          ],
+          "body_sha256": "2bc1db9a6945868a93008a01ef9d5f447c2eef7d103098ac5b5a6be92499419b",
+          "body_hash_verified": true,
+          "raw_body_top_level_keys": [
+            "leader",
+            "follower",
+            "dominate_data",
+            "non_dominate_data",
+            "non_dominate_lookup",
+            "dancer_first",
+            "dancer_last",
+            "dancer_wsdcid",
+            "dominate_role",
+            "non_dominate_role",
+            "dominate_required",
+            "dominate_allowed",
+            "show_secondary_icons",
+            "short_dominate_role",
+            "short_non_dominate_role",
+            "dominate_role_highest_level_points",
+            "dominate_role_highest_level",
+            "non_dominate_role_highest_level_points",
+            "non_dominate_role_highest_level",
+            "points_message",
+            "recent_year",
+            "is_pro",
+            "show_chmp_warning"
+          ],
+          "raw_identity": {
+            "dancer_first": "María",
+            "dancer_last": "Aguirre Roquero",
+            "dancer_wsdcid": 26441
+          },
+          "raw_competitions": [
+            {
+              "role": "leader",
+              "points": 4,
+              "event": {
+                "id": 307,
+                "name": "Paris Swing Classic",
+                "location": "Paris, France/Paris, France",
+                "url": "https://www.parisswingclassic.com/",
+                "date": "February 2025"
+              },
+              "result": "4"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "subject_id": "2025-02-valentine-swing/intermediate-jj/L-209",
+      "name": "Peter Jonsson",
+      "old_id": 23980,
+      "classification": "different_owned_printed_id;other_scope_same_name",
+      "body_sha256": "05466cfef5843852195ab8e48e8e400e5e9c8451e0d82203a003f77fdb9e696e",
+      "body_hash_verified": true,
+      "source_url": "https://scoring.dance/enUS/events/223/results/3149.html",
+      "printed_ids": [
+        19920
+      ],
+      "registry_ids": [],
+      "matching_body_rows": [
+        {
+          "cell_text": "Peter Jonsson",
+          "owned_data_wsdc_attributes": [
+            {
+              "class": "",
+              "href": "/enUS/wsdc/registry/19920.html",
+              "data-action": "modalwsdcprofile",
+              "data-wsdc": "19920",
+              "style": "color: inherit;"
+            }
+          ],
+          "row_cells": [
+            "209",
+            "Peter Jonsson",
+            "",
+            "No",
+            "No",
+            "Yes",
+            "No",
+            "Yes",
+            "",
+            "20",
+            "",
+            ""
+          ]
+        }
+      ],
+      "registry_evidence": []
+    },
+    {
+      "subject_id": "2025-05-nordic-wcs-championships/intermediate-jj/L-267",
+      "name": "Peter Jonsson",
+      "old_id": 23980,
+      "classification": "different_owned_printed_id;other_scope_same_name",
+      "body_sha256": "bd968b3d0d01b7d2a78cf27539ff4e4f7eba50bd159f9c18ae02d4585869bc53",
+      "body_hash_verified": true,
+      "source_url": "https://scoring.dance/enUS/events/249/results/3656.html",
+      "printed_ids": [
+        19920
+      ],
+      "registry_ids": [],
+      "matching_body_rows": [
+        {
+          "cell_text": "Peter Jonsson",
+          "owned_data_wsdc_attributes": [
+            {
+              "class": "",
+              "href": "/enUS/wsdc/registry/19920.html",
+              "data-action": "modalwsdcprofile",
+              "data-wsdc": "19920",
+              "style": "color: inherit;"
+            }
+          ],
+          "row_cells": [
+            "267",
+            "Peter Jonsson",
+            "",
+            "Yes",
+            "No",
+            "Yes",
+            "Yes",
+            "",
+            "30",
+            "",
+            ""
+          ]
+        }
+      ],
+      "registry_evidence": []
+    },
+    {
+      "subject_id": "2025-08-uptown-swing/intermediate-jj/L-134",
+      "name": "Peter Jonsson",
+      "old_id": 23980,
+      "classification": "different_owned_printed_id;other_scope_same_name",
+      "body_sha256": "af95d4aa069c0c6c37327ef450390a54799864e2cec1f4d59c9c6f39efeb2788",
+      "body_hash_verified": true,
+      "source_url": "https://scoring.dance/enUS/events/292/results/4226.html",
+      "printed_ids": [
+        19920
+      ],
+      "registry_ids": [],
+      "matching_body_rows": [
+        {
+          "cell_text": "Peter Jonsson",
+          "owned_data_wsdc_attributes": [
+            {
+              "class": "",
+              "href": "/enUS/wsdc/registry/19920.html",
+              "data-action": "modalwsdcprofile",
+              "data-wsdc": "19920",
+              "style": "color: inherit;"
+            }
+          ],
+          "row_cells": [
+            "134",
+            "Peter Jonsson",
+            "",
+            "Yes",
+            "Yes",
+            "Alt2",
+            "Yes",
+            "",
+            "34.3",
+            "",
+            ""
+          ]
+        }
+      ],
+      "registry_evidence": []
+    },
+    {
+      "subject_id": "2025-11-westie-pink-city/open-strictly/L-106",
+      "name": "Antoine Duvocelle",
+      "old_id": 13357,
+      "classification": "different_owned_printed_id;other_scope_same_name",
+      "body_sha256": "ce8e450ea8e3b20e7b88e7f1ebfe0744d6fcd5448ed8e4138c45ebd7bd8c5f0f",
+      "body_hash_verified": true,
+      "source_url": "https://scoring.dance/enUS/events/316/results/4547.html",
+      "printed_ids": [
+        12037
+      ],
+      "registry_ids": [],
+      "matching_body_rows": [
+        {
+          "cell_text": "Antoine Duvocelle",
+          "owned_data_wsdc_attributes": [
+            {
+              "class": "",
+              "href": "/enUS/wsdc/registry/12037.html",
+              "data-action": "modalwsdcprofile",
+              "data-wsdc": "12037",
+              "style": "color: inherit;"
+            }
+          ],
+          "row_cells": [
+            "106",
+            "Antoine Duvocelle",
+            "Alexia Maire",
+            "Alt2",
+            "Alt2",
+            "No",
+            "Alt3",
+            "No",
+            "",
+            "12.8",
+            "",
+            ""
+          ]
+        }
+      ],
+      "registry_evidence": []
+    },
+    {
+      "subject_id": "2025-12-westie-gala/intermediate-jj/L-16",
+      "name": "Peter Jonsson",
+      "old_id": 23980,
+      "classification": "different_owned_printed_id;other_scope_same_name",
+      "body_sha256": "30464dab8ce53b1c08f885ca16301b088e9997531938d980b126f68ae2503049",
+      "body_hash_verified": true,
+      "source_url": "https://scoring.dance/enUS/events/352/results/4939.html",
+      "printed_ids": [
+        19920
+      ],
+      "registry_ids": [],
+      "matching_body_rows": [
+        {
+          "cell_text": "Peter Jonsson",
+          "owned_data_wsdc_attributes": [
+            {
+              "class": "",
+              "href": "/enUS/wsdc/registry/19920.html",
+              "data-action": "modalwsdcprofile",
+              "data-wsdc": "19920",
+              "style": "color: inherit;"
+            }
+          ],
+          "row_cells": [
+            "16",
+            "Peter Jonsson",
+            "",
+            "No",
+            "No",
+            "Alt2",
+            "No",
+            "",
+            "4.3",
+            "",
+            ""
+          ]
+        }
+      ],
+      "registry_evidence": []
+    },
+    {
+      "subject_id": "2026-03-all-star-swingjam/advanced-jj/L-183",
+      "name": "Tobias Ziegler",
+      "old_id": 23025,
+      "classification": "no_owned_printed_id;same_contest_role_name_elsewhere",
+      "body_sha256": "165d0de0a47fb317bfd62e4e27b4d024c3008d9b68d7b4e62138b3744ae48581",
+      "body_hash_verified": true,
+      "source_url": "https://scoring.dance/enUS/events/321/results/5242.html",
+      "printed_ids": [],
+      "registry_ids": [
+        23025
+      ],
+      "matching_body_rows": [
+        {
+          "cell_text": "Tobias Ziegler",
+          "owned_data_wsdc_attributes": [],
+          "row_cells": [
+            "183",
+            "Tobias Ziegler",
+            "",
+            "Yes",
+            "Alt1",
+            "Yes",
+            "Alt3",
+            "",
+            "28.7",
+            "",
+            ""
+          ]
+        }
+      ],
+      "registry_evidence": []
+    },
+    {
+      "subject_id": "2026-04-asia-wcs-open/novice-jj/L-471",
+      "name": "Arnold Cheong",
+      "old_id": 27026,
+      "classification": "contradictory_source_and_registry_identities",
+      "body_sha256": "7437349f96f0cff00d78e08aa562a1931b34aacee036b004402a1315272f808f",
+      "body_hash_verified": true,
+      "source_url": "https://scoring.dance/enUS/events/333/results/5654.html",
+      "printed_ids": [
+        27026
+      ],
+      "registry_ids": [
+        26581
+      ],
+      "matching_body_rows": [
+        {
+          "cell_text": "Arnold Cheong",
+          "owned_data_wsdc_attributes": [
+            {
+              "class": "",
+              "href": "/enUS/wsdc/registry/27026.html",
+              "data-action": "modalwsdcprofile",
+              "data-wsdc": "27026",
+              "style": "color: inherit;"
+            }
+          ],
+          "row_cells": [
+            "471",
+            "Arnold Cheong",
+            "",
+            "Yes",
+            "No",
+            "Yes",
+            "Yes",
+            "Yes",
+            "",
+            "40",
+            "",
+            ""
+          ]
+        }
+      ],
+      "registry_evidence": [
+        {
+          "dancer": {
+            "wsdc_id": 26581,
+            "first_name": "Arnold",
+            "last_name": "Cheong",
+            "merged_into_wsdc_id": null,
+            "snapshot_id": "snap_20260912T114241Z_c006d3606539"
+          },
+          "placements": [
+            {
+              "wsdc_id": 26581,
+              "role": "leader",
+              "division": "novice",
+              "dance_style": "wcs",
+              "result": "5",
+              "event_id": "2026-04-asia-wcs-open",
+              "snapshot_id": "snap_20260912T114241Z_c006d3606539"
+            }
+          ],
+          "body_sha256": "c006d36065395a8a748f80e9e4885f062eb03e1f1b061b79f51393a063091fe4",
+          "body_hash_verified": true,
+          "raw_body_top_level_keys": [
+            "leader",
+            "follower",
+            "dominate_data",
+            "non_dominate_data",
+            "non_dominate_lookup",
+            "dancer_first",
+            "dancer_last",
+            "dancer_wsdcid",
+            "dominate_role",
+            "non_dominate_role",
+            "dominate_required",
+            "dominate_allowed",
+            "show_secondary_icons",
+            "short_dominate_role",
+            "short_non_dominate_role",
+            "dominate_role_highest_level_points",
+            "dominate_role_highest_level",
+            "non_dominate_role_highest_level_points",
+            "non_dominate_role_highest_level",
+            "points_message",
+            "recent_year",
+            "is_pro",
+            "show_chmp_warning"
+          ],
+          "raw_identity": {
+            "dancer_first": "Arnold",
+            "dancer_last": "Cheong",
+            "dancer_wsdcid": 26581
+          },
+          "raw_competitions": [
+            {
+              "role": "leader",
+              "points": 10,
+              "event": {
+                "id": 218,
+                "name": "Asia WCS Open XIII",
+                "location": "Singapore, Singapore, Singapore",
+                "url": "https://www.asiawcsopen.com/",
+                "date": "April 2026"
+              },
+              "result": "5"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "subject_id": "2026-04-city-of-angels-wcs/novice-jj/F-170",
+      "name": "Brandie Charity",
+      "old_id": 27749,
+      "classification": "contradictory_source_and_registry_identities",
+      "body_sha256": "0e1c5d913482099d1a93e8165af93c2cdbfd3a675793431daea8a3af2bf31df5",
+      "body_hash_verified": true,
+      "source_url": "https://scoring.dance/enUS/events/315/results/5687.html",
+      "printed_ids": [
+        27749
+      ],
+      "registry_ids": [
+        27751
+      ],
+      "matching_body_rows": [
+        {
+          "cell_text": "Brandie Charity",
+          "owned_data_wsdc_attributes": [
+            {
+              "class": "",
+              "href": "/enUS/wsdc/registry/27749.html",
+              "data-action": "modalwsdcprofile",
+              "data-wsdc": "27749",
+              "style": "color: inherit;"
+            }
+          ],
+          "row_cells": [
+            "170",
+            "Brandie Charity",
+            "",
+            "Yes",
+            "Yes",
+            "No",
+            "Yes",
+            "",
+            "30",
+            "",
+            ""
+          ]
+        }
+      ],
+      "registry_evidence": [
+        {
+          "dancer": {
+            "wsdc_id": 27751,
+            "first_name": "Brandie",
+            "last_name": "Charity",
+            "merged_into_wsdc_id": null,
+            "snapshot_id": "snap_20260912T122600Z_f93817826d89"
+          },
+          "placements": [
+            {
+              "wsdc_id": 27751,
+              "role": "follower",
+              "division": "novice",
+              "dance_style": "wcs",
+              "result": "F",
+              "event_id": "2026-04-city-of-angels-wcs",
+              "snapshot_id": "snap_20260912T122600Z_f93817826d89"
+            }
+          ],
+          "body_sha256": "f93817826d899844db5ef3477553f2fc307369156f9eb74b515eb04a443d01c7",
+          "body_hash_verified": true,
+          "raw_body_top_level_keys": [
+            "leader",
+            "follower",
+            "dominate_data",
+            "non_dominate_data",
+            "non_dominate_lookup",
+            "dancer_first",
+            "dancer_last",
+            "dancer_wsdcid",
+            "dominate_role",
+            "non_dominate_role",
+            "dominate_required",
+            "dominate_allowed",
+            "show_secondary_icons",
+            "short_dominate_role",
+            "short_non_dominate_role",
+            "dominate_role_highest_level_points",
+            "dominate_role_highest_level",
+            "non_dominate_role_highest_level_points",
+            "non_dominate_role_highest_level",
+            "points_message",
+            "recent_year",
+            "is_pro",
+            "show_chmp_warning"
+          ],
+          "raw_identity": {
+            "dancer_first": "Brandie",
+            "dancer_last": "Charity",
+            "dancer_wsdcid": 27751
+          },
+          "raw_competitions": [
+            {
+              "role": "follower",
+              "points": 1,
+              "event": {
+                "id": 187,
+                "name": "City of Angels WCS",
+                "location": "Burbank, California, California, USA",
+                "url": "http://cityofangelswcs.com",
+                "date": "April 2026"
+              },
+              "result": "F"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "subject_id": "2026-04-nordic-wcs-championships/intermediate-jj/L-142",
+      "name": "Peter Jonsson",
+      "old_id": 23980,
+      "classification": "different_owned_printed_id;other_scope_same_name",
+      "body_sha256": "41aec19f1c79785fc5cb44d2aaf7dbedcae6ba7e6ecd55e1e3a30de892517093",
+      "body_hash_verified": true,
+      "source_url": "https://scoring.dance/enUS/events/407/results/5829.html",
+      "printed_ids": [
+        19920
+      ],
+      "registry_ids": [],
+      "matching_body_rows": [
+        {
+          "cell_text": "Peter Jonsson",
+          "owned_data_wsdc_attributes": [
+            {
+              "class": "",
+              "href": "/enUS/wsdc/registry/19920.html",
+              "data-action": "modalwsdcprofile",
+              "data-wsdc": "19920",
+              "style": "color: inherit;"
+            }
+          ],
+          "row_cells": [
+            "142",
+            "Peter Jonsson",
+            "",
+            "No",
+            "No",
+            "No",
+            "No",
+            "",
+            "0",
+            "",
+            ""
+          ]
+        }
+      ],
+      "registry_evidence": []
+    }
+  ]
+}

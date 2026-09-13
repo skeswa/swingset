@@ -1,0 +1,2350 @@
+{
+  "baseline": {
+    "commit": "81121dcc7d62a1db9e76ee1c49a6b90e1f4c5653",
+    "manifest_sha256": "87ac286a1ae452f09f7e5cea646f260ac34035f3d05bb83de17c7d9cc8f08884"
+  },
+  "before": {
+    "autoincrement_sequences": {
+      "count": 3,
+      "sha256": "077735a167c114704d8f94d3b71cb6eb771cf72111cac3acb05bfe8cab4e454b"
+    },
+    "backup_neutral_meta": {
+      "count": 13,
+      "sha256": "0fda765ad2802aa703a5eac254607267f0cd6d404ee5cfb4b1c784d4333ae93d"
+    },
+    "columns": {
+      "accepted_inputs": [
+        "consumer",
+        "input_name",
+        "digest"
+      ],
+      "admission_decisions": [
+        "decision_id",
+        "generation_id",
+        "state",
+        "reason",
+        "decided_at",
+        "policy_revision"
+      ],
+      "admission_policies": [
+        "page_kind",
+        "contract_version",
+        "mode",
+        "policy_revision",
+        "reviewed_report_digest",
+        "reviewed_by",
+        "reviewed_at"
+      ],
+      "admission_reviews": [
+        "report_digest",
+        "page_kind",
+        "contract_version",
+        "cohort_json",
+        "reviewer",
+        "reviewed_at",
+        "evidence"
+      ],
+      "archive_captures": [
+        "source",
+        "url",
+        "timestamp",
+        "digest",
+        "status",
+        "mimetype",
+        "length",
+        "queried_at",
+        "cdx_query_id"
+      ],
+      "archive_queries": [
+        "query_id",
+        "source",
+        "prefix",
+        "year",
+        "next_page",
+        "total_pages",
+        "completed_at",
+        "started_at"
+      ],
+      "backup_uploads": [
+        "path",
+        "sha256",
+        "uploaded_at"
+      ],
+      "callback_marks": [
+        "round_id",
+        "entry_id",
+        "judge_id",
+        "mark",
+        "mark_raw",
+        "mark_value",
+        "source",
+        "snapshot_id",
+        "parser_version",
+        "first_seen_at",
+        "last_seen_at",
+        "run_id"
+      ],
+      "callbacks": [
+        "round_id",
+        "entry_id",
+        "score_sum",
+        "yes_count",
+        "alt_count",
+        "no_count",
+        "outcome",
+        "tie_break_applied",
+        "heat_number",
+        "source",
+        "snapshot_id",
+        "parser_version",
+        "first_seen_at",
+        "last_seen_at",
+        "run_id"
+      ],
+      "canonical_scope_rows": [
+        "scope_kind",
+        "scope_id",
+        "table_name",
+        "record_key"
+      ],
+      "contests": [
+        "contest_id",
+        "event_id",
+        "name_raw",
+        "division",
+        "age_division",
+        "contest_type",
+        "partner_mode",
+        "dance_style",
+        "wsdc_points_eligible",
+        "combined_from",
+        "parse_status",
+        "source_contest_ref",
+        "source",
+        "snapshot_id",
+        "parser_version",
+        "first_seen_at",
+        "last_seen_at",
+        "run_id"
+      ],
+      "control_events": [
+        "event_id",
+        "control_revision",
+        "pause_id",
+        "scope_kind",
+        "scope_id",
+        "action",
+        "actor",
+        "reason",
+        "until_at",
+        "occurred_at"
+      ],
+      "control_state": [
+        "singleton",
+        "revision"
+      ],
+      "coverage": [
+        "year",
+        "source",
+        "via",
+        "events",
+        "contests",
+        "rounds",
+        "entries",
+        "events_registry_only",
+        "events_index_only",
+        "events_sheets_partial",
+        "events_sheets_complete",
+        "events_day_precision",
+        "events_listed_only",
+        "events_accepted",
+        "expected_rounds",
+        "parsed_rounds",
+        "unresolved_findings",
+        "last_changed_at"
+      ],
+      "cursors": [
+        "name",
+        "value"
+      ],
+      "dancers": [
+        "wsdc_id",
+        "first_name",
+        "last_name",
+        "name_norm",
+        "is_pro",
+        "primary_role",
+        "leader_required_level",
+        "leader_allowed_level",
+        "follower_required_level",
+        "follower_allowed_level",
+        "leader_highest_level",
+        "leader_highest_points",
+        "follower_highest_level",
+        "follower_highest_points",
+        "recent_year",
+        "registry_internal_id",
+        "registry_fetched_at",
+        "merged_into_wsdc_id",
+        "source",
+        "snapshot_id",
+        "parser_version",
+        "first_seen_at",
+        "last_seen_at",
+        "run_id"
+      ],
+      "derivation_dependency_sets": [
+        "dependency_set_id",
+        "manifest_json"
+      ],
+      "derivation_generations": [
+        "generation_id",
+        "stage",
+        "unit_kind",
+        "unit_id",
+        "input_fingerprint",
+        "recipe_json",
+        "dependency_set_id",
+        "previous_generation_id",
+        "output_digest",
+        "row_count",
+        "created_at",
+        "run_id"
+      ],
+      "derivation_input_versions": [
+        "namespace",
+        "input_key",
+        "version"
+      ],
+      "derivation_rows": [
+        "generation_id",
+        "ordinal",
+        "table_name",
+        "record_key",
+        "payload_json"
+      ],
+      "derivation_scopes": [
+        "stage",
+        "unit_kind",
+        "unit_id",
+        "desired_fingerprint",
+        "materialized_generation_id",
+        "registered_at",
+        "materialized_signature"
+      ],
+      "entries": [
+        "entry_id",
+        "contest_id",
+        "event_id",
+        "role",
+        "bib",
+        "name_raw",
+        "name_norm",
+        "partner_name_raw",
+        "city_raw",
+        "country_raw",
+        "wsdc_id",
+        "link_status",
+        "link_confidence",
+        "partner_entry_id",
+        "rounds_danced",
+        "best_round",
+        "source",
+        "snapshot_id",
+        "parser_version",
+        "first_seen_at",
+        "last_seen_at",
+        "run_id"
+      ],
+      "events": [
+        "event_id",
+        "series_id",
+        "name",
+        "year",
+        "start_date",
+        "end_date",
+        "city",
+        "region",
+        "country",
+        "website",
+        "wsdc_status",
+        "sources",
+        "live_window_start",
+        "live_window_end",
+        "source",
+        "snapshot_id",
+        "parser_version",
+        "first_seen_at",
+        "last_seen_at",
+        "run_id",
+        "event_month",
+        "date_precision",
+        "held",
+        "coverage_tier",
+        "history_source"
+      ],
+      "execution_admissions": [
+        "action_id",
+        "action_kind",
+        "admitted_at",
+        "control_revision",
+        "run_id",
+        "work_attempt_id",
+        "candidate_id",
+        "host",
+        "all_sources",
+        "all_kinds",
+        "state",
+        "settled_at",
+        "outcome"
+      ],
+      "execution_dependencies": [
+        "action_id",
+        "scope_kind",
+        "scope_id"
+      ],
+      "final_marks": [
+        "round_id",
+        "placement_id",
+        "judge_id",
+        "rank",
+        "source",
+        "snapshot_id",
+        "parser_version",
+        "first_seen_at",
+        "last_seen_at",
+        "run_id"
+      ],
+      "finding_support": [
+        "finding_id",
+        "payload_json",
+        "active"
+      ],
+      "findings": [
+        "finding_id",
+        "owner_kind",
+        "owner_id",
+        "kind",
+        "subject_kind",
+        "subject_id",
+        "watch_id",
+        "snapshot_id",
+        "severity",
+        "summary",
+        "evidence_json",
+        "suggested_override",
+        "opened_at",
+        "run_id",
+        "closed_at",
+        "closed_by",
+        "policy_version",
+        "desired_fingerprint",
+        "state",
+        "source",
+        "next_action",
+        "blocking_reason",
+        "next_eligible_at",
+        "attempt_count",
+        "last_progress_at",
+        "status_at"
+      ],
+      "heats": [
+        "heat_id",
+        "round_id",
+        "heat_number",
+        "entry_id",
+        "position",
+        "source",
+        "snapshot_id",
+        "parser_version",
+        "first_seen_at",
+        "last_seen_at",
+        "run_id"
+      ],
+      "history_acceptance": [
+        "year",
+        "accepted_at",
+        "accepted_by",
+        "inventory_digest"
+      ],
+      "host_budget": [
+        "host",
+        "day",
+        "requests",
+        "bytes"
+      ],
+      "hosts": [
+        "host",
+        "next_allowed_at",
+        "paused_until",
+        "pause_reason",
+        "pause_streak",
+        "robots_sha256",
+        "robots_fetched_at",
+        "robots_status"
+      ],
+      "identity_decisions": [
+        "decision_id",
+        "source",
+        "source_event",
+        "contest",
+        "round",
+        "participant",
+        "wsdc_id",
+        "decision",
+        "evidence",
+        "reason",
+        "author",
+        "date",
+        "supersedes",
+        "row_json",
+        "row_sha256",
+        "accepted_digest",
+        "accepted_at"
+      ],
+      "identity_journal_acceptances": [
+        "digest",
+        "bundle_digest",
+        "accepted_at",
+        "decision_count",
+        "generation"
+      ],
+      "identity_link_history": [
+        "history_id",
+        "subject_kind",
+        "subject_id",
+        "state",
+        "assertion_json",
+        "resolution_json",
+        "recorded_at"
+      ],
+      "identity_link_resolutions": [
+        "subject_kind",
+        "subject_id",
+        "ref_ids_json",
+        "decision_ids_json",
+        "policy_version",
+        "journal_digest",
+        "journal_generation",
+        "state",
+        "reason",
+        "asserted_at"
+      ],
+      "identity_links": [
+        "link_id",
+        "subject_kind",
+        "subject_id",
+        "wsdc_id",
+        "method",
+        "status",
+        "confidence",
+        "constraints_applied",
+        "asserted_at",
+        "run_id",
+        "linker_version"
+      ],
+      "identity_reference_bindings": [
+        "binding_id",
+        "ref_id",
+        "subject_kind",
+        "subject_id",
+        "event_id",
+        "snapshot_id",
+        "semantic_hash",
+        "bound_at"
+      ],
+      "identity_reference_migrations": [
+        "migration_id",
+        "from_ref_id",
+        "to_ref_ids_json",
+        "status",
+        "evidence",
+        "reason",
+        "author",
+        "date",
+        "supersedes",
+        "recorded_at"
+      ],
+      "identity_source_refs": [
+        "ref_id",
+        "source",
+        "source_event",
+        "contest",
+        "round",
+        "participant",
+        "subject_kind",
+        "locator_json",
+        "created_at"
+      ],
+      "judges": [
+        "judge_id",
+        "event_id",
+        "name_raw",
+        "initials",
+        "anonymous",
+        "wsdc_id",
+        "source",
+        "snapshot_id",
+        "parser_version",
+        "first_seen_at",
+        "last_seen_at",
+        "run_id"
+      ],
+      "link_candidates": [
+        "subject_kind",
+        "subject_id",
+        "wsdc_id",
+        "score",
+        "name_similarity",
+        "name_rarity",
+        "division_ok",
+        "role_ok",
+        "recency_ok",
+        "geography",
+        "bib_reuse",
+        "registry_confirms",
+        "source_id_confirms",
+        "rank",
+        "chosen",
+        "run_id"
+      ],
+      "meta": [
+        "key",
+        "value"
+      ],
+      "observations": [
+        "observation_id",
+        "watch_id",
+        "snapshot_id",
+        "kind",
+        "scope_kind",
+        "scope_id",
+        "seq",
+        "extract_version",
+        "parser_version",
+        "payload_json"
+      ],
+      "operator_pauses": [
+        "scope_kind",
+        "scope_id",
+        "until_at",
+        "reason",
+        "pause_id",
+        "actor",
+        "control_revision",
+        "created_at"
+      ],
+      "pending_work": [
+        "stage",
+        "unit_kind",
+        "unit_id",
+        "enqueued_at"
+      ],
+      "placements": [
+        "placement_id",
+        "round_id",
+        "contest_id",
+        "event_id",
+        "place",
+        "leader_entry_id",
+        "follower_entry_id",
+        "couple_entry_id",
+        "leader_wsdc_id",
+        "follower_wsdc_id",
+        "marks_sorted",
+        "tally",
+        "registry_points_leader",
+        "registry_points_follower",
+        "registry_confirmed",
+        "points_matches_expected",
+        "source",
+        "snapshot_id",
+        "parser_version",
+        "first_seen_at",
+        "last_seen_at",
+        "run_id"
+      ],
+      "registry_placements": [
+        "wsdc_id",
+        "role",
+        "dance_style",
+        "division",
+        "series_id",
+        "series_name_raw",
+        "event_month",
+        "event_id",
+        "result",
+        "points",
+        "source",
+        "snapshot_id",
+        "parser_version",
+        "first_seen_at",
+        "last_seen_at",
+        "run_id"
+      ],
+      "registry_verifications": [
+        "verification_id",
+        "watch_id",
+        "checked_at",
+        "http_status",
+        "body_sha256",
+        "snapshot_id",
+        "extract_version",
+        "parser_version",
+        "outcome",
+        "usable",
+        "reason"
+      ],
+      "requirement_attempts": [
+        "attempt_id",
+        "requirement_id",
+        "at",
+        "outcome"
+      ],
+      "requirement_cohort_members": [
+        "cohort_id",
+        "requirement_id"
+      ],
+      "requirement_cohorts": [
+        "cohort_id",
+        "created_at",
+        "policy_version",
+        "source",
+        "kind",
+        "bounded",
+        "first_open_transition_cutoff"
+      ],
+      "requirement_scan": [
+        "singleton",
+        "cursor",
+        "started_at",
+        "last_scanned_at",
+        "last_completed_at",
+        "scanned"
+      ],
+      "requirement_transitions": [
+        "transition_id",
+        "requirement_id",
+        "kind",
+        "source",
+        "old_state",
+        "new_state",
+        "event",
+        "at"
+      ],
+      "revisions": [
+        "name",
+        "value"
+      ],
+      "rounds": [
+        "round_id",
+        "contest_id",
+        "round_type",
+        "round_index",
+        "name_raw",
+        "scoring_method",
+        "callback_legend",
+        "judge_count",
+        "chief_judge_id",
+        "entry_count",
+        "promoted_count",
+        "source_round_ref",
+        "score_sheet_url",
+        "source",
+        "snapshot_id",
+        "parser_version",
+        "first_seen_at",
+        "last_seen_at",
+        "run_id"
+      ],
+      "runs": [
+        "run_id",
+        "started_at",
+        "finished_at",
+        "dry_run",
+        "summary_json"
+      ],
+      "scheduler_offline_service": [
+        "stage",
+        "unit_kind",
+        "attempts",
+        "last_served_at",
+        "sequence"
+      ],
+      "scheduler_parent_links": [
+        "parent_watch_id",
+        "child_watch_id",
+        "first_snapshot_id",
+        "first_seen_at"
+      ],
+      "scheduler_requests": [
+        "action_id",
+        "host",
+        "day",
+        "category",
+        "work_key",
+        "run_id",
+        "repair",
+        "pressure_reserved",
+        "issued_at",
+        "body_bytes"
+      ],
+      "scheduler_watch_state": [
+        "watch_id",
+        "metadata_attempts",
+        "last_metadata_attempt_at"
+      ],
+      "series": [
+        "series_id",
+        "name",
+        "website",
+        "location_raw"
+      ],
+      "snapshots": [
+        "snapshot_id",
+        "watch_id",
+        "method",
+        "url",
+        "form",
+        "fetched_at",
+        "http_status",
+        "etag",
+        "last_modified",
+        "content_type",
+        "body_sha256",
+        "body_bytes",
+        "content_changed",
+        "run_id",
+        "via",
+        "headers_json",
+        "classification",
+        "extract_status",
+        "extract_sha256",
+        "parse_status",
+        "parsed_at",
+        "extract_version",
+        "parser_version",
+        "captured_at",
+        "observed_at",
+        "archive_url",
+        "requested_archive_url",
+        "extract_recipe_sha256"
+      ],
+      "source_event_map": [
+        "source",
+        "source_ref",
+        "event_id",
+        "match_method",
+        "match_confidence"
+      ],
+      "source_event_scope_rows": [
+        "scope_id",
+        "source",
+        "source_ref"
+      ],
+      "source_events": [
+        "source",
+        "source_ref",
+        "name_raw",
+        "start_date",
+        "end_date",
+        "location_raw",
+        "url",
+        "snapshot_id",
+        "parser_version",
+        "first_seen_at",
+        "last_seen_at",
+        "run_id"
+      ],
+      "source_generations": [
+        "generation_id",
+        "unit_key",
+        "page_kind",
+        "contract_version",
+        "input_fingerprint",
+        "manifest_json",
+        "recipe_json",
+        "result_json",
+        "report_json",
+        "previous_generation_id",
+        "work_token",
+        "created_at",
+        "run_id",
+        "state",
+        "removal_authority"
+      ],
+      "source_units": [
+        "unit_key",
+        "watch_id",
+        "page_kind",
+        "desired_fingerprint",
+        "accepted_generation_id",
+        "legacy_snapshot_id",
+        "legacy_state"
+      ],
+      "watches": [
+        "watch_id",
+        "source",
+        "kind",
+        "method",
+        "url",
+        "form",
+        "archive_url",
+        "parser",
+        "source_ref",
+        "state",
+        "next_check_at",
+        "last_checked_at",
+        "last_changed_at",
+        "unchanged_streak",
+        "etag",
+        "last_modified",
+        "body_sha256",
+        "paused_until",
+        "notes",
+        "fingerprint",
+        "extract_version",
+        "priority",
+        "created_by_snapshot_id",
+        "parent_watch_id",
+        "ever_ok",
+        "current_observation_snapshot_id",
+        "consecutive_404s",
+        "first_404_at"
+      ],
+      "work_attempts": [
+        "attempt_id",
+        "stage",
+        "unit_kind",
+        "unit_id",
+        "queue_generation",
+        "retry_generation",
+        "work_token",
+        "input_fingerprint",
+        "run_id",
+        "started_at",
+        "finished_at",
+        "outcome",
+        "reason_code",
+        "evidence_json",
+        "retry_at",
+        "requirement_id"
+      ],
+      "work_generations": [
+        "stage",
+        "unit_kind",
+        "unit_id",
+        "generation",
+        "retry_generation",
+        "retry_reason",
+        "retry_requested_at"
+      ]
+    },
+    "schema": 14,
+    "schema_objects": {
+      "count": 509,
+      "sha256": "1704633774a26a8a386ec978a97a55bbc17174f30c6e9e49b8557c0ab660c936"
+    },
+    "tables": {
+      "accepted_inputs": {
+        "count": 48,
+        "sha256": "e76c985711abb70ca4bf557ea75a294f88766c8953bc30faf43bab638337161d"
+      },
+      "admission_decisions": {
+        "count": 31610,
+        "sha256": "c755c03e3f01fb9f54df68e7d54908c368cea665d0d853dfa934968063a924fd"
+      },
+      "admission_policies": {
+        "count": 13,
+        "sha256": "300651d0a2eeb9ad91696c7f49bb0a22b067a322fd8f67644d4dd2c8b483090a"
+      },
+      "admission_reviews": {
+        "count": 9,
+        "sha256": "ab1f192a4e9e4e6dfe3bcb296af1d682b71a37ce85deaba3e8c349d4416394a3"
+      },
+      "archive_captures": {
+        "count": 32,
+        "sha256": "4b8c72d093dd415fe2d7a9c89359af379c019f9e313e2854b8b305e6009bfa2b"
+      },
+      "archive_queries": {
+        "count": 15,
+        "sha256": "672868210f8a15815829f1c7563bd68c33125249dfac67be520c2db737c52c87"
+      },
+      "backup_uploads": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "callback_marks": {
+        "count": 484141,
+        "sha256": "2a26c3b338e0e3d321e2a8c1d31943584bf66b282b5794a31a26e541f3e10219"
+      },
+      "callbacks": {
+        "count": 98481,
+        "sha256": "f5da42003f2f2a4d50bd56efc29ec86bfc2d32ccff4549047a0ff1bff64d28b2"
+      },
+      "canonical_scope_rows": {
+        "count": 1058390,
+        "sha256": "f6106fdb1f8d4b9cb696a1532966d5c3d3776409d42e006503ef8149ff7fcb78"
+      },
+      "contests": {
+        "count": 2644,
+        "sha256": "0fd02b5c9578a25fca6bd187a56ec0277f559e44093044faf52820614aacd19c"
+      },
+      "control_events": {
+        "count": 2,
+        "sha256": "c5352b1e711796963fa7114976b01fa92c08147d0565ed4b5ee82f026017abd7"
+      },
+      "control_state": {
+        "count": 1,
+        "sha256": "f109b002d2f351fa534341fcb7d18145d187efd8a47fc21539f8395a7a85d0d6"
+      },
+      "coverage": {
+        "count": 66,
+        "sha256": "6aec7d24725b064f9915590af2b7f107ff497b7bbdb094130662bf80c175fefc"
+      },
+      "cursors": {
+        "count": 4,
+        "sha256": "1c53a23629f72d89ac1ca90d804f3d530d8edf7e3c2d1b6dceebcedf29b33cc7"
+      },
+      "dancers": {
+        "count": 27784,
+        "sha256": "61c9c6c37398b0e34895c14ca16cd4d6bcced83d9d71e54cc60ef3e758fa3c81"
+      },
+      "derivation_dependency_sets": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "derivation_generations": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "derivation_input_versions": {
+        "count": 6,
+        "sha256": "d685cacf9828b59935f93a1163b53e37ebf864d3b19217f758c91cf547e064ec"
+      },
+      "derivation_rows": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "derivation_scopes": {
+        "count": 34983,
+        "sha256": "ef84681845bb34c6aebcb8e0acd86e10d2abbc5c54133121ccfc1c56450c5bda"
+      },
+      "entries": {
+        "count": 93820,
+        "sha256": "0246e69ef8b2d06e52f428c3672c21ff59259238359370cd26f5afee1f83d232"
+      },
+      "events": {
+        "count": 2541,
+        "sha256": "28b88cc0ae8b3b201b065249f1ee1e2e6d6ebe697b16eb94e317e599f65a7fdb"
+      },
+      "execution_admissions": {
+        "count": 1,
+        "sha256": "2c77b20031353169a68a2e4dc9e19482aebd1b7059ae38376a6704463de53d16"
+      },
+      "execution_dependencies": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "final_marks": {
+        "count": 121623,
+        "sha256": "8c6b6608919fc6b739c918da89b8d14a23260534b6618ec9b190ce3fe122a857"
+      },
+      "finding_support": {
+        "count": 55904,
+        "sha256": "e3a1da271b957228bee0591937e5ed9351905101c8cc709a494249dc3fdb0d01"
+      },
+      "findings": {
+        "count": 107683,
+        "sha256": "e24522acc187b1c99050e5f1be6f2fec6a848fa3f48fbd92a3ab0f4caf6fca0e"
+      },
+      "heats": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "history_acceptance": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "host_budget": {
+        "count": 24,
+        "sha256": "c94690d546cddb7fe55c013200e83ea0a14b5219c1f04e51592d5c29df1535ec"
+      },
+      "hosts": {
+        "count": 7,
+        "sha256": "a3390bfbc66fe018dfbf24ef8b82db3ffb610a3ab24fbe7a608cb8e4e406949c"
+      },
+      "identity_decisions": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "identity_journal_acceptances": {
+        "count": 1,
+        "sha256": "a1d71b31f92e3e463680ef7712d479dfea52ad426de2190765af1b2596d7e27c"
+      },
+      "identity_link_history": {
+        "count": 198848,
+        "sha256": "12aea56af2e3c89a11ebcf90b43bbc758bd901f3cdb6b973cfe99c741188fa66"
+      },
+      "identity_link_resolutions": {
+        "count": 98751,
+        "sha256": "5aa475325645ee1d04220dbba69ba43d58dcf9f23678602ecf8c73335c1aa127"
+      },
+      "identity_links": {
+        "count": 98751,
+        "sha256": "1d1daee4ba8b7695ddbf3108130cfbb5393f38b7da4bb643ac3321d5e87402d7"
+      },
+      "identity_reference_bindings": {
+        "count": 115718,
+        "sha256": "fb9ddc8433342898cfe17d6fc66a1706453c3bab92c91ce9d6e9da4cd173ab64"
+      },
+      "identity_reference_migrations": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "identity_source_refs": {
+        "count": 115713,
+        "sha256": "439e6fb1d0e6af7e1711147e256d41eb43c07469a4f8ea159b9994661c325ec1"
+      },
+      "judges": {
+        "count": 4931,
+        "sha256": "1990272027dd4acf5adbb175d939417e7f1160615416a834d91d1c4cdbd5b5b7"
+      },
+      "link_candidates": {
+        "count": 92499,
+        "sha256": "40d5d527cdcc1f409666617b8dcffa7cc7696f8376bfd8a299fc507bf954a41f"
+      },
+      "meta": {
+        "count": 15,
+        "sha256": "aff68cbc0e7161238625f6de1c250af7da75002032b164329cb397762bf10edf"
+      },
+      "observations": {
+        "count": 58169,
+        "sha256": "d110d12fe8c4e70411816a7f445fafc433f6291ef0363f672897947bf07d782c"
+      },
+      "operator_pauses": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "pending_work": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "placements": {
+        "count": 20236,
+        "sha256": "dd86dab92b20cff03babd4789c39e73d731ad56c16bb32cc0ac37b360a2e2605"
+      },
+      "registry_placements": {
+        "count": 197990,
+        "sha256": "0dd1cf6a53c821d833a127f9db901d1fcf1152eb2c22d8b2db32b87fca3dfdbd"
+      },
+      "registry_verifications": {
+        "count": 29060,
+        "sha256": "5adebc5eaef388f0fc91f92a6a897ba9d713e43a2db507a671d6c62e0fac6b4a"
+      },
+      "requirement_attempts": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "requirement_cohort_members": {
+        "count": 36689,
+        "sha256": "74504da5c8eb08fbac0d32dbfa0ac74b9e9851bce5d66a5b22486171bb0fec1f"
+      },
+      "requirement_cohorts": {
+        "count": 1,
+        "sha256": "b0bd5b8b6da1a42395852d68022b47ec804dacbabc65ea3e1a0fb47fefabc8b3"
+      },
+      "requirement_scan": {
+        "count": 1,
+        "sha256": "a2c535de6d137014de9b007aa4386a69c82c35825351e91674773c3e47519e8b"
+      },
+      "requirement_transitions": {
+        "count": 108420,
+        "sha256": "564a74dbdd586945b1f08de941449fa95e1be888cc01030e5a4c72ef0d8ce516"
+      },
+      "revisions": {
+        "count": 9,
+        "sha256": "22abb1e81541d2de548899bd1c84ff40cf8beb48064a8ba76c22c666d94eb5e0"
+      },
+      "rounds": {
+        "count": 4279,
+        "sha256": "0514c41b62003ddb14366c3a0e4a8871565c3f4e0ab5c9faa1fad8c01fc3b6b7"
+      },
+      "runs": {
+        "count": 1979,
+        "sha256": "e9d10ec510453be9b0292513afab2a1d38ac8b6ae497881c3a500d6456ed39c0"
+      },
+      "scheduler_offline_service": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "scheduler_parent_links": {
+        "count": 6274,
+        "sha256": "be424046d9075b68cd42d307fcc36afdf76042aa8fd8df90917a10e60e42d299"
+      },
+      "scheduler_requests": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "scheduler_watch_state": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "series": {
+        "count": 288,
+        "sha256": "fede156b78353a9d8bdc46981c4a69ed77692790ce9ed20f42b89ae26fbc65da"
+      },
+      "snapshots": {
+        "count": 31821,
+        "sha256": "878ce523e4db95bb37610c7a3ad5543b5749a2188bf6c5666d459ec57af68148"
+      },
+      "source_event_map": {
+        "count": 404,
+        "sha256": "e61d794010d73685a5277bd4cd800c8b4b757f90d47d0494a783130d08bc0c7d"
+      },
+      "source_event_scope_rows": {
+        "count": 837,
+        "sha256": "ede97f7de69cc3da1ec3c3ed1697e3d901f9aeebdf5c86c6d52d1c63d868db70"
+      },
+      "source_events": {
+        "count": 455,
+        "sha256": "094027f191f621fa786304c77236ed77a6f93c5d5958374b7f48a3d1e7ba304e"
+      },
+      "source_generations": {
+        "count": 32189,
+        "sha256": "0fc6bf7a29227180d2d4ce6cada193a338ad4328bf708e7bb4e700cf91a8082a"
+      },
+      "source_units": {
+        "count": 31805,
+        "sha256": "7bf6c130e33bad5c237d1fd9489cb4634c15c71f280eea8a46e87f179858a7c4"
+      },
+      "watches": {
+        "count": 35417,
+        "sha256": "4f877b1b1840310c729bb6a851b8984d9c809773f31aa3408db4c9643427b522"
+      },
+      "work_attempts": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "work_generations": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    }
+  },
+  "checkpoint": {
+    "autoincrement_sequences": {
+      "count": 3,
+      "sha256": "077735a167c114704d8f94d3b71cb6eb771cf72111cac3acb05bfe8cab4e454b"
+    },
+    "backup_neutral_meta": {
+      "count": 13,
+      "sha256": "0fda765ad2802aa703a5eac254607267f0cd6d404ee5cfb4b1c784d4333ae93d"
+    },
+    "columns": {
+      "accepted_inputs": [
+        "consumer",
+        "input_name",
+        "digest"
+      ],
+      "admission_decisions": [
+        "decision_id",
+        "generation_id",
+        "state",
+        "reason",
+        "decided_at",
+        "policy_revision"
+      ],
+      "admission_policies": [
+        "page_kind",
+        "contract_version",
+        "mode",
+        "policy_revision",
+        "reviewed_report_digest",
+        "reviewed_by",
+        "reviewed_at"
+      ],
+      "admission_reviews": [
+        "report_digest",
+        "page_kind",
+        "contract_version",
+        "cohort_json",
+        "reviewer",
+        "reviewed_at",
+        "evidence"
+      ],
+      "archive_captures": [
+        "source",
+        "url",
+        "timestamp",
+        "digest",
+        "status",
+        "mimetype",
+        "length",
+        "queried_at",
+        "cdx_query_id"
+      ],
+      "archive_queries": [
+        "query_id",
+        "source",
+        "prefix",
+        "year",
+        "next_page",
+        "total_pages",
+        "completed_at",
+        "started_at"
+      ],
+      "backup_uploads": [
+        "path",
+        "sha256",
+        "uploaded_at"
+      ],
+      "callback_marks": [
+        "round_id",
+        "entry_id",
+        "judge_id",
+        "mark",
+        "mark_raw",
+        "mark_value",
+        "source",
+        "snapshot_id",
+        "parser_version",
+        "first_seen_at",
+        "last_seen_at",
+        "run_id"
+      ],
+      "callbacks": [
+        "round_id",
+        "entry_id",
+        "score_sum",
+        "yes_count",
+        "alt_count",
+        "no_count",
+        "outcome",
+        "tie_break_applied",
+        "heat_number",
+        "source",
+        "snapshot_id",
+        "parser_version",
+        "first_seen_at",
+        "last_seen_at",
+        "run_id"
+      ],
+      "canonical_scope_rows": [
+        "scope_kind",
+        "scope_id",
+        "table_name",
+        "record_key"
+      ],
+      "contests": [
+        "contest_id",
+        "event_id",
+        "name_raw",
+        "division",
+        "age_division",
+        "contest_type",
+        "partner_mode",
+        "dance_style",
+        "wsdc_points_eligible",
+        "combined_from",
+        "parse_status",
+        "source_contest_ref",
+        "source",
+        "snapshot_id",
+        "parser_version",
+        "first_seen_at",
+        "last_seen_at",
+        "run_id"
+      ],
+      "control_events": [
+        "event_id",
+        "control_revision",
+        "pause_id",
+        "scope_kind",
+        "scope_id",
+        "action",
+        "actor",
+        "reason",
+        "until_at",
+        "occurred_at"
+      ],
+      "control_state": [
+        "singleton",
+        "revision"
+      ],
+      "coverage": [
+        "year",
+        "source",
+        "via",
+        "events",
+        "contests",
+        "rounds",
+        "entries",
+        "events_registry_only",
+        "events_index_only",
+        "events_sheets_partial",
+        "events_sheets_complete",
+        "events_day_precision",
+        "events_listed_only",
+        "events_accepted",
+        "expected_rounds",
+        "parsed_rounds",
+        "unresolved_findings",
+        "last_changed_at"
+      ],
+      "cursors": [
+        "name",
+        "value"
+      ],
+      "dancers": [
+        "wsdc_id",
+        "first_name",
+        "last_name",
+        "name_norm",
+        "is_pro",
+        "primary_role",
+        "leader_required_level",
+        "leader_allowed_level",
+        "follower_required_level",
+        "follower_allowed_level",
+        "leader_highest_level",
+        "leader_highest_points",
+        "follower_highest_level",
+        "follower_highest_points",
+        "recent_year",
+        "registry_internal_id",
+        "registry_fetched_at",
+        "merged_into_wsdc_id",
+        "source",
+        "snapshot_id",
+        "parser_version",
+        "first_seen_at",
+        "last_seen_at",
+        "run_id"
+      ],
+      "derivation_dependency_sets": [
+        "dependency_set_id",
+        "manifest_json"
+      ],
+      "derivation_generations": [
+        "generation_id",
+        "stage",
+        "unit_kind",
+        "unit_id",
+        "input_fingerprint",
+        "recipe_json",
+        "dependency_set_id",
+        "previous_generation_id",
+        "output_digest",
+        "row_count",
+        "created_at",
+        "run_id"
+      ],
+      "derivation_input_versions": [
+        "namespace",
+        "input_key",
+        "version"
+      ],
+      "derivation_rows": [
+        "generation_id",
+        "ordinal",
+        "table_name",
+        "record_key",
+        "payload_json"
+      ],
+      "derivation_scopes": [
+        "stage",
+        "unit_kind",
+        "unit_id",
+        "desired_fingerprint",
+        "materialized_generation_id",
+        "registered_at",
+        "materialized_signature"
+      ],
+      "entries": [
+        "entry_id",
+        "contest_id",
+        "event_id",
+        "role",
+        "bib",
+        "name_raw",
+        "name_norm",
+        "partner_name_raw",
+        "city_raw",
+        "country_raw",
+        "wsdc_id",
+        "link_status",
+        "link_confidence",
+        "partner_entry_id",
+        "rounds_danced",
+        "best_round",
+        "source",
+        "snapshot_id",
+        "parser_version",
+        "first_seen_at",
+        "last_seen_at",
+        "run_id"
+      ],
+      "events": [
+        "event_id",
+        "series_id",
+        "name",
+        "year",
+        "start_date",
+        "end_date",
+        "city",
+        "region",
+        "country",
+        "website",
+        "wsdc_status",
+        "sources",
+        "live_window_start",
+        "live_window_end",
+        "source",
+        "snapshot_id",
+        "parser_version",
+        "first_seen_at",
+        "last_seen_at",
+        "run_id",
+        "event_month",
+        "date_precision",
+        "held",
+        "coverage_tier",
+        "history_source"
+      ],
+      "execution_admissions": [
+        "action_id",
+        "action_kind",
+        "admitted_at",
+        "control_revision",
+        "run_id",
+        "work_attempt_id",
+        "candidate_id",
+        "host",
+        "all_sources",
+        "all_kinds",
+        "state",
+        "settled_at",
+        "outcome"
+      ],
+      "execution_dependencies": [
+        "action_id",
+        "scope_kind",
+        "scope_id"
+      ],
+      "final_marks": [
+        "round_id",
+        "placement_id",
+        "judge_id",
+        "rank",
+        "source",
+        "snapshot_id",
+        "parser_version",
+        "first_seen_at",
+        "last_seen_at",
+        "run_id"
+      ],
+      "finding_support": [
+        "finding_id",
+        "payload_json",
+        "active"
+      ],
+      "findings": [
+        "finding_id",
+        "owner_kind",
+        "owner_id",
+        "kind",
+        "subject_kind",
+        "subject_id",
+        "watch_id",
+        "snapshot_id",
+        "severity",
+        "summary",
+        "evidence_json",
+        "suggested_override",
+        "opened_at",
+        "run_id",
+        "closed_at",
+        "closed_by",
+        "policy_version",
+        "desired_fingerprint",
+        "state",
+        "source",
+        "next_action",
+        "blocking_reason",
+        "next_eligible_at",
+        "attempt_count",
+        "last_progress_at",
+        "status_at"
+      ],
+      "heats": [
+        "heat_id",
+        "round_id",
+        "heat_number",
+        "entry_id",
+        "position",
+        "source",
+        "snapshot_id",
+        "parser_version",
+        "first_seen_at",
+        "last_seen_at",
+        "run_id"
+      ],
+      "history_acceptance": [
+        "year",
+        "accepted_at",
+        "accepted_by",
+        "inventory_digest"
+      ],
+      "host_budget": [
+        "host",
+        "day",
+        "requests",
+        "bytes"
+      ],
+      "hosts": [
+        "host",
+        "next_allowed_at",
+        "paused_until",
+        "pause_reason",
+        "pause_streak",
+        "robots_sha256",
+        "robots_fetched_at",
+        "robots_status"
+      ],
+      "identity_decisions": [
+        "decision_id",
+        "source",
+        "source_event",
+        "contest",
+        "round",
+        "participant",
+        "wsdc_id",
+        "decision",
+        "evidence",
+        "reason",
+        "author",
+        "date",
+        "supersedes",
+        "row_json",
+        "row_sha256",
+        "accepted_digest",
+        "accepted_at"
+      ],
+      "identity_journal_acceptances": [
+        "digest",
+        "bundle_digest",
+        "accepted_at",
+        "decision_count",
+        "generation"
+      ],
+      "identity_link_history": [
+        "history_id",
+        "subject_kind",
+        "subject_id",
+        "state",
+        "assertion_json",
+        "resolution_json",
+        "recorded_at"
+      ],
+      "identity_link_resolutions": [
+        "subject_kind",
+        "subject_id",
+        "ref_ids_json",
+        "decision_ids_json",
+        "policy_version",
+        "journal_digest",
+        "journal_generation",
+        "state",
+        "reason",
+        "asserted_at"
+      ],
+      "identity_links": [
+        "link_id",
+        "subject_kind",
+        "subject_id",
+        "wsdc_id",
+        "method",
+        "status",
+        "confidence",
+        "constraints_applied",
+        "asserted_at",
+        "run_id",
+        "linker_version"
+      ],
+      "identity_reference_bindings": [
+        "binding_id",
+        "ref_id",
+        "subject_kind",
+        "subject_id",
+        "event_id",
+        "snapshot_id",
+        "semantic_hash",
+        "bound_at"
+      ],
+      "identity_reference_migrations": [
+        "migration_id",
+        "from_ref_id",
+        "to_ref_ids_json",
+        "status",
+        "evidence",
+        "reason",
+        "author",
+        "date",
+        "supersedes",
+        "recorded_at"
+      ],
+      "identity_source_refs": [
+        "ref_id",
+        "source",
+        "source_event",
+        "contest",
+        "round",
+        "participant",
+        "subject_kind",
+        "locator_json",
+        "created_at"
+      ],
+      "judges": [
+        "judge_id",
+        "event_id",
+        "name_raw",
+        "initials",
+        "anonymous",
+        "wsdc_id",
+        "source",
+        "snapshot_id",
+        "parser_version",
+        "first_seen_at",
+        "last_seen_at",
+        "run_id"
+      ],
+      "link_candidates": [
+        "subject_kind",
+        "subject_id",
+        "wsdc_id",
+        "score",
+        "name_similarity",
+        "name_rarity",
+        "division_ok",
+        "role_ok",
+        "recency_ok",
+        "geography",
+        "bib_reuse",
+        "registry_confirms",
+        "source_id_confirms",
+        "rank",
+        "chosen",
+        "run_id"
+      ],
+      "meta": [
+        "key",
+        "value"
+      ],
+      "observations": [
+        "observation_id",
+        "watch_id",
+        "snapshot_id",
+        "kind",
+        "scope_kind",
+        "scope_id",
+        "seq",
+        "extract_version",
+        "parser_version",
+        "payload_json"
+      ],
+      "operator_pauses": [
+        "scope_kind",
+        "scope_id",
+        "until_at",
+        "reason",
+        "pause_id",
+        "actor",
+        "control_revision",
+        "created_at"
+      ],
+      "pending_work": [
+        "stage",
+        "unit_kind",
+        "unit_id",
+        "enqueued_at"
+      ],
+      "placements": [
+        "placement_id",
+        "round_id",
+        "contest_id",
+        "event_id",
+        "place",
+        "leader_entry_id",
+        "follower_entry_id",
+        "couple_entry_id",
+        "leader_wsdc_id",
+        "follower_wsdc_id",
+        "marks_sorted",
+        "tally",
+        "registry_points_leader",
+        "registry_points_follower",
+        "registry_confirmed",
+        "points_matches_expected",
+        "source",
+        "snapshot_id",
+        "parser_version",
+        "first_seen_at",
+        "last_seen_at",
+        "run_id"
+      ],
+      "registry_placements": [
+        "wsdc_id",
+        "role",
+        "dance_style",
+        "division",
+        "series_id",
+        "series_name_raw",
+        "event_month",
+        "event_id",
+        "result",
+        "points",
+        "source",
+        "snapshot_id",
+        "parser_version",
+        "first_seen_at",
+        "last_seen_at",
+        "run_id"
+      ],
+      "registry_verifications": [
+        "verification_id",
+        "watch_id",
+        "checked_at",
+        "http_status",
+        "body_sha256",
+        "snapshot_id",
+        "extract_version",
+        "parser_version",
+        "outcome",
+        "usable",
+        "reason"
+      ],
+      "requirement_attempts": [
+        "attempt_id",
+        "requirement_id",
+        "at",
+        "outcome"
+      ],
+      "requirement_cohort_members": [
+        "cohort_id",
+        "requirement_id"
+      ],
+      "requirement_cohorts": [
+        "cohort_id",
+        "created_at",
+        "policy_version",
+        "source",
+        "kind",
+        "bounded",
+        "first_open_transition_cutoff"
+      ],
+      "requirement_scan": [
+        "singleton",
+        "cursor",
+        "started_at",
+        "last_scanned_at",
+        "last_completed_at",
+        "scanned"
+      ],
+      "requirement_transitions": [
+        "transition_id",
+        "requirement_id",
+        "kind",
+        "source",
+        "old_state",
+        "new_state",
+        "event",
+        "at"
+      ],
+      "revisions": [
+        "name",
+        "value"
+      ],
+      "rounds": [
+        "round_id",
+        "contest_id",
+        "round_type",
+        "round_index",
+        "name_raw",
+        "scoring_method",
+        "callback_legend",
+        "judge_count",
+        "chief_judge_id",
+        "entry_count",
+        "promoted_count",
+        "source_round_ref",
+        "score_sheet_url",
+        "source",
+        "snapshot_id",
+        "parser_version",
+        "first_seen_at",
+        "last_seen_at",
+        "run_id"
+      ],
+      "runs": [
+        "run_id",
+        "started_at",
+        "finished_at",
+        "dry_run",
+        "summary_json"
+      ],
+      "scheduler_offline_service": [
+        "stage",
+        "unit_kind",
+        "attempts",
+        "last_served_at",
+        "sequence"
+      ],
+      "scheduler_parent_links": [
+        "parent_watch_id",
+        "child_watch_id",
+        "first_snapshot_id",
+        "first_seen_at"
+      ],
+      "scheduler_requests": [
+        "action_id",
+        "host",
+        "day",
+        "category",
+        "work_key",
+        "run_id",
+        "repair",
+        "pressure_reserved",
+        "issued_at",
+        "body_bytes"
+      ],
+      "scheduler_watch_state": [
+        "watch_id",
+        "metadata_attempts",
+        "last_metadata_attempt_at"
+      ],
+      "series": [
+        "series_id",
+        "name",
+        "website",
+        "location_raw"
+      ],
+      "snapshots": [
+        "snapshot_id",
+        "watch_id",
+        "method",
+        "url",
+        "form",
+        "fetched_at",
+        "http_status",
+        "etag",
+        "last_modified",
+        "content_type",
+        "body_sha256",
+        "body_bytes",
+        "content_changed",
+        "run_id",
+        "via",
+        "headers_json",
+        "classification",
+        "extract_status",
+        "extract_sha256",
+        "parse_status",
+        "parsed_at",
+        "extract_version",
+        "parser_version",
+        "captured_at",
+        "observed_at",
+        "archive_url",
+        "requested_archive_url",
+        "extract_recipe_sha256"
+      ],
+      "source_event_map": [
+        "source",
+        "source_ref",
+        "event_id",
+        "match_method",
+        "match_confidence"
+      ],
+      "source_event_scope_rows": [
+        "scope_id",
+        "source",
+        "source_ref"
+      ],
+      "source_events": [
+        "source",
+        "source_ref",
+        "name_raw",
+        "start_date",
+        "end_date",
+        "location_raw",
+        "url",
+        "snapshot_id",
+        "parser_version",
+        "first_seen_at",
+        "last_seen_at",
+        "run_id"
+      ],
+      "source_generations": [
+        "generation_id",
+        "unit_key",
+        "page_kind",
+        "contract_version",
+        "input_fingerprint",
+        "manifest_json",
+        "recipe_json",
+        "result_json",
+        "report_json",
+        "previous_generation_id",
+        "work_token",
+        "created_at",
+        "run_id",
+        "state",
+        "removal_authority"
+      ],
+      "source_units": [
+        "unit_key",
+        "watch_id",
+        "page_kind",
+        "desired_fingerprint",
+        "accepted_generation_id",
+        "legacy_snapshot_id",
+        "legacy_state"
+      ],
+      "watches": [
+        "watch_id",
+        "source",
+        "kind",
+        "method",
+        "url",
+        "form",
+        "archive_url",
+        "parser",
+        "source_ref",
+        "state",
+        "next_check_at",
+        "last_checked_at",
+        "last_changed_at",
+        "unchanged_streak",
+        "etag",
+        "last_modified",
+        "body_sha256",
+        "paused_until",
+        "notes",
+        "fingerprint",
+        "extract_version",
+        "priority",
+        "created_by_snapshot_id",
+        "parent_watch_id",
+        "ever_ok",
+        "current_observation_snapshot_id",
+        "consecutive_404s",
+        "first_404_at"
+      ],
+      "work_attempts": [
+        "attempt_id",
+        "stage",
+        "unit_kind",
+        "unit_id",
+        "queue_generation",
+        "retry_generation",
+        "work_token",
+        "input_fingerprint",
+        "run_id",
+        "started_at",
+        "finished_at",
+        "outcome",
+        "reason_code",
+        "evidence_json",
+        "retry_at",
+        "requirement_id"
+      ],
+      "work_generations": [
+        "stage",
+        "unit_kind",
+        "unit_id",
+        "generation",
+        "retry_generation",
+        "retry_reason",
+        "retry_requested_at"
+      ]
+    },
+    "schema": 14,
+    "schema_objects": {
+      "count": 509,
+      "sha256": "1704633774a26a8a386ec978a97a55bbc17174f30c6e9e49b8557c0ab660c936"
+    },
+    "tables": {
+      "accepted_inputs": {
+        "count": 48,
+        "sha256": "e76c985711abb70ca4bf557ea75a294f88766c8953bc30faf43bab638337161d"
+      },
+      "admission_decisions": {
+        "count": 31610,
+        "sha256": "c755c03e3f01fb9f54df68e7d54908c368cea665d0d853dfa934968063a924fd"
+      },
+      "admission_policies": {
+        "count": 13,
+        "sha256": "300651d0a2eeb9ad91696c7f49bb0a22b067a322fd8f67644d4dd2c8b483090a"
+      },
+      "admission_reviews": {
+        "count": 9,
+        "sha256": "ab1f192a4e9e4e6dfe3bcb296af1d682b71a37ce85deaba3e8c349d4416394a3"
+      },
+      "archive_captures": {
+        "count": 32,
+        "sha256": "4b8c72d093dd415fe2d7a9c89359af379c019f9e313e2854b8b305e6009bfa2b"
+      },
+      "archive_queries": {
+        "count": 15,
+        "sha256": "672868210f8a15815829f1c7563bd68c33125249dfac67be520c2db737c52c87"
+      },
+      "backup_uploads": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "callback_marks": {
+        "count": 484141,
+        "sha256": "2a26c3b338e0e3d321e2a8c1d31943584bf66b282b5794a31a26e541f3e10219"
+      },
+      "callbacks": {
+        "count": 98481,
+        "sha256": "f5da42003f2f2a4d50bd56efc29ec86bfc2d32ccff4549047a0ff1bff64d28b2"
+      },
+      "canonical_scope_rows": {
+        "count": 1058390,
+        "sha256": "f6106fdb1f8d4b9cb696a1532966d5c3d3776409d42e006503ef8149ff7fcb78"
+      },
+      "contests": {
+        "count": 2644,
+        "sha256": "0fd02b5c9578a25fca6bd187a56ec0277f559e44093044faf52820614aacd19c"
+      },
+      "control_events": {
+        "count": 2,
+        "sha256": "c5352b1e711796963fa7114976b01fa92c08147d0565ed4b5ee82f026017abd7"
+      },
+      "control_state": {
+        "count": 1,
+        "sha256": "f109b002d2f351fa534341fcb7d18145d187efd8a47fc21539f8395a7a85d0d6"
+      },
+      "coverage": {
+        "count": 66,
+        "sha256": "6aec7d24725b064f9915590af2b7f107ff497b7bbdb094130662bf80c175fefc"
+      },
+      "cursors": {
+        "count": 4,
+        "sha256": "1c53a23629f72d89ac1ca90d804f3d530d8edf7e3c2d1b6dceebcedf29b33cc7"
+      },
+      "dancers": {
+        "count": 27784,
+        "sha256": "61c9c6c37398b0e34895c14ca16cd4d6bcced83d9d71e54cc60ef3e758fa3c81"
+      },
+      "derivation_dependency_sets": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "derivation_generations": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "derivation_input_versions": {
+        "count": 6,
+        "sha256": "d685cacf9828b59935f93a1163b53e37ebf864d3b19217f758c91cf547e064ec"
+      },
+      "derivation_rows": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "derivation_scopes": {
+        "count": 34983,
+        "sha256": "ef84681845bb34c6aebcb8e0acd86e10d2abbc5c54133121ccfc1c56450c5bda"
+      },
+      "entries": {
+        "count": 93820,
+        "sha256": "0246e69ef8b2d06e52f428c3672c21ff59259238359370cd26f5afee1f83d232"
+      },
+      "events": {
+        "count": 2541,
+        "sha256": "28b88cc0ae8b3b201b065249f1ee1e2e6d6ebe697b16eb94e317e599f65a7fdb"
+      },
+      "execution_admissions": {
+        "count": 1,
+        "sha256": "2c77b20031353169a68a2e4dc9e19482aebd1b7059ae38376a6704463de53d16"
+      },
+      "execution_dependencies": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "final_marks": {
+        "count": 121623,
+        "sha256": "8c6b6608919fc6b739c918da89b8d14a23260534b6618ec9b190ce3fe122a857"
+      },
+      "finding_support": {
+        "count": 55904,
+        "sha256": "e3a1da271b957228bee0591937e5ed9351905101c8cc709a494249dc3fdb0d01"
+      },
+      "findings": {
+        "count": 107683,
+        "sha256": "e24522acc187b1c99050e5f1be6f2fec6a848fa3f48fbd92a3ab0f4caf6fca0e"
+      },
+      "heats": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "history_acceptance": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "host_budget": {
+        "count": 24,
+        "sha256": "c94690d546cddb7fe55c013200e83ea0a14b5219c1f04e51592d5c29df1535ec"
+      },
+      "hosts": {
+        "count": 7,
+        "sha256": "a3390bfbc66fe018dfbf24ef8b82db3ffb610a3ab24fbe7a608cb8e4e406949c"
+      },
+      "identity_decisions": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "identity_journal_acceptances": {
+        "count": 1,
+        "sha256": "a1d71b31f92e3e463680ef7712d479dfea52ad426de2190765af1b2596d7e27c"
+      },
+      "identity_link_history": {
+        "count": 198848,
+        "sha256": "12aea56af2e3c89a11ebcf90b43bbc758bd901f3cdb6b973cfe99c741188fa66"
+      },
+      "identity_link_resolutions": {
+        "count": 98751,
+        "sha256": "5aa475325645ee1d04220dbba69ba43d58dcf9f23678602ecf8c73335c1aa127"
+      },
+      "identity_links": {
+        "count": 98751,
+        "sha256": "1d1daee4ba8b7695ddbf3108130cfbb5393f38b7da4bb643ac3321d5e87402d7"
+      },
+      "identity_reference_bindings": {
+        "count": 115718,
+        "sha256": "fb9ddc8433342898cfe17d6fc66a1706453c3bab92c91ce9d6e9da4cd173ab64"
+      },
+      "identity_reference_migrations": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "identity_source_refs": {
+        "count": 115713,
+        "sha256": "439e6fb1d0e6af7e1711147e256d41eb43c07469a4f8ea159b9994661c325ec1"
+      },
+      "judges": {
+        "count": 4931,
+        "sha256": "1990272027dd4acf5adbb175d939417e7f1160615416a834d91d1c4cdbd5b5b7"
+      },
+      "link_candidates": {
+        "count": 92499,
+        "sha256": "40d5d527cdcc1f409666617b8dcffa7cc7696f8376bfd8a299fc507bf954a41f"
+      },
+      "meta": {
+        "count": 15,
+        "sha256": "1db0fc8880e4ae4b083a54d7e75af2c5fb533eb662ef683977177b4539345341"
+      },
+      "observations": {
+        "count": 58169,
+        "sha256": "d110d12fe8c4e70411816a7f445fafc433f6291ef0363f672897947bf07d782c"
+      },
+      "operator_pauses": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "pending_work": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "placements": {
+        "count": 20236,
+        "sha256": "dd86dab92b20cff03babd4789c39e73d731ad56c16bb32cc0ac37b360a2e2605"
+      },
+      "registry_placements": {
+        "count": 197990,
+        "sha256": "0dd1cf6a53c821d833a127f9db901d1fcf1152eb2c22d8b2db32b87fca3dfdbd"
+      },
+      "registry_verifications": {
+        "count": 29060,
+        "sha256": "5adebc5eaef388f0fc91f92a6a897ba9d713e43a2db507a671d6c62e0fac6b4a"
+      },
+      "requirement_attempts": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "requirement_cohort_members": {
+        "count": 36689,
+        "sha256": "74504da5c8eb08fbac0d32dbfa0ac74b9e9851bce5d66a5b22486171bb0fec1f"
+      },
+      "requirement_cohorts": {
+        "count": 1,
+        "sha256": "b0bd5b8b6da1a42395852d68022b47ec804dacbabc65ea3e1a0fb47fefabc8b3"
+      },
+      "requirement_scan": {
+        "count": 1,
+        "sha256": "a2c535de6d137014de9b007aa4386a69c82c35825351e91674773c3e47519e8b"
+      },
+      "requirement_transitions": {
+        "count": 108420,
+        "sha256": "564a74dbdd586945b1f08de941449fa95e1be888cc01030e5a4c72ef0d8ce516"
+      },
+      "revisions": {
+        "count": 9,
+        "sha256": "22abb1e81541d2de548899bd1c84ff40cf8beb48064a8ba76c22c666d94eb5e0"
+      },
+      "rounds": {
+        "count": 4279,
+        "sha256": "0514c41b62003ddb14366c3a0e4a8871565c3f4e0ab5c9faa1fad8c01fc3b6b7"
+      },
+      "runs": {
+        "count": 1979,
+        "sha256": "e9d10ec510453be9b0292513afab2a1d38ac8b6ae497881c3a500d6456ed39c0"
+      },
+      "scheduler_offline_service": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "scheduler_parent_links": {
+        "count": 6274,
+        "sha256": "be424046d9075b68cd42d307fcc36afdf76042aa8fd8df90917a10e60e42d299"
+      },
+      "scheduler_requests": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "scheduler_watch_state": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "series": {
+        "count": 288,
+        "sha256": "fede156b78353a9d8bdc46981c4a69ed77692790ce9ed20f42b89ae26fbc65da"
+      },
+      "snapshots": {
+        "count": 31821,
+        "sha256": "878ce523e4db95bb37610c7a3ad5543b5749a2188bf6c5666d459ec57af68148"
+      },
+      "source_event_map": {
+        "count": 404,
+        "sha256": "e61d794010d73685a5277bd4cd800c8b4b757f90d47d0494a783130d08bc0c7d"
+      },
+      "source_event_scope_rows": {
+        "count": 837,
+        "sha256": "ede97f7de69cc3da1ec3c3ed1697e3d901f9aeebdf5c86c6d52d1c63d868db70"
+      },
+      "source_events": {
+        "count": 455,
+        "sha256": "094027f191f621fa786304c77236ed77a6f93c5d5958374b7f48a3d1e7ba304e"
+      },
+      "source_generations": {
+        "count": 32189,
+        "sha256": "0fc6bf7a29227180d2d4ce6cada193a338ad4328bf708e7bb4e700cf91a8082a"
+      },
+      "source_units": {
+        "count": 31805,
+        "sha256": "7bf6c130e33bad5c237d1fd9489cb4634c15c71f280eea8a46e87f179858a7c4"
+      },
+      "watches": {
+        "count": 35417,
+        "sha256": "4f877b1b1840310c729bb6a851b8984d9c809773f31aa3408db4c9643427b522"
+      },
+      "work_attempts": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "work_generations": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    }
+  },
+  "driver_sha256": "8ed4b2384fb946100934a14b57025b6cc6272fb7927632eaede5c19eb2519f50",
+  "executed": false,
+  "gate": {
+    "checkpoint": "/var/lib/swingset/checkpoints/h15-before-h16-20260913",
+    "checkpoint_manifest_sha256": "700b2adc01db9eefc5c0c7ba35fddabfbc3aa00b6ed6f4900543b4e4a54ae444",
+    "driver_sha256": "8ed4b2384fb946100934a14b57025b6cc6272fb7927632eaede5c19eb2519f50",
+    "evidence_files": {
+      "backup.json": "d7188f357d99f79c80cb2277dd335539840be8cb2305ef34c41162991c69793f",
+      "private-verification.json": "4941e52a6f65f843737215570f037881b6f7a788a917fc624584cf45f294a6ba",
+      "v4-verification.json": "290b2302c65ce84b4483c4f2b6104cebcc9ba68b5e132f6c674bbaed410f8b2a"
+    },
+    "format": "h16-operational-gate-v1",
+    "private_backup_commit": "c656e88c775b23ae5879661924d57fa1f93cfa7d",
+    "private_backup_receipt": "backup.json",
+    "private_backup_verified": true,
+    "source_receipt_sha256": "1b42aef638b49b3579d1ab02a67c4135db0519b1dd57d55f4f0d3aee3a21f4cb",
+    "v4_commit": "81121dcc7d62a1db9e76ee1c49a6b90e1f4c5653",
+    "v4_manifest_sha256": "87ac286a1ae452f09f7e5cea646f260ac34035f3d05bb83de17c7d9cc8f08884",
+    "v4_verified": true,
+    "verification_basis": "retained verified receipts and current local baseline hashes",
+    "verified_at": "2026-09-13T14:10:35.398786+00:00"
+  },
+  "gate_sha256": "a630db4139eac24fb59e2814efaa04cee83bce49fa0b1e7d9d93dac7bf96380b",
+  "hold": {
+    "swingset-backup.service": {
+      "ActiveState": "inactive",
+      "ConditionResult": "no",
+      "LoadState": "loaded",
+      "SubState": "dead",
+      "unit_text_sha256": "9e04faf2b0060eed8a68b2626623c428e137a7df29572e9bf933f43fc0e4e2fd",
+      "verified_conditions": [
+        "ConditionPathExists=!/var/lib/swingset/operator-hold"
+      ]
+    },
+    "swingset-backup.timer": {
+      "ActiveState": "inactive",
+      "ConditionResult": "yes",
+      "LoadState": "loaded",
+      "SubState": "dead"
+    },
+    "swingset-cycle.service": {
+      "ActiveState": "inactive",
+      "ConditionResult": "no",
+      "LoadState": "loaded",
+      "SubState": "dead",
+      "unit_text_sha256": "774a66c6652e289e3a8a9b8e5fc05ace29465de2e7187ea7ac04fe09436d72bb",
+      "verified_conditions": [
+        "ConditionPathExists=!/var/lib/swingset/operator-hold"
+      ]
+    },
+    "swingset-cycle.timer": {
+      "ActiveState": "inactive",
+      "ConditionResult": "yes",
+      "LoadState": "loaded",
+      "SubState": "dead"
+    },
+    "swingset-summary.service": {
+      "ActiveState": "inactive",
+      "ConditionResult": "no",
+      "LoadState": "loaded",
+      "SubState": "dead",
+      "unit_text_sha256": "e5089f34159ec1e0368d6de76a2021ce0be095987f16f5004170150df4a8d8fe",
+      "verified_conditions": [
+        "ConditionPathExists=!/var/lib/swingset/operator-hold"
+      ]
+    },
+    "swingset-summary.timer": {
+      "ActiveState": "inactive",
+      "ConditionResult": "yes",
+      "LoadState": "loaded",
+      "SubState": "dead"
+    }
+  },
+  "migrated": false,
+  "network_requests": 0,
+  "passed": false,
+  "preflight_passed": true,
+  "published": false,
+  "service_executed": false,
+  "sizes": {
+    "assessment_page_size": 256,
+    "database_bytes": 2646597632,
+    "doctor_output_policy": "one full settled report plus fresh-process digest; ops output only",
+    "source_bytes": 20310686,
+    "source_files": 611
+  }
+}

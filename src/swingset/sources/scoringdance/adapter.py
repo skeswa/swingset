@@ -17,6 +17,7 @@ from ..base import (
     WatchSpec,
 )
 from ..common import absolute, attr, canonical_attrs, tags
+from ..interpretation import declared
 from ..records import Cell, EventSheet, ResultRow, ResultTable, RoundSheet, SourceEventRow
 
 EVENT_RE = re.compile(r"/events/(\d+)(?:/|$)")
@@ -46,6 +47,7 @@ class SitemapPage:
             raise ExtractError("sitemap has no event ids")
         return ids
 
+    @declared
     def parse(self, extract: JsonValue, ctx: ParseContext) -> ParseResult:
         observations = []
         watches = []
@@ -90,6 +92,7 @@ class RecentPage(SitemapPage):
             if isinstance(event, dict) and event.get("id") is not None
         ]
 
+    @declared
     def parse(self, extract: JsonValue, ctx: ParseContext) -> ParseResult:
         observations = []
         for item in extract:
@@ -125,6 +128,7 @@ class EventPage(SitemapPage):
             "unpublished": unpublished,
         }
 
+    @declared
     def parse(self, extract: JsonValue, ctx: ParseContext) -> ParseResult:
         if not isinstance(extract, dict) or not isinstance(extract.get("rounds"), list):
             raise ExtractError("scoring.dance event extract is invalid")
@@ -168,8 +172,8 @@ class EventPage(SitemapPage):
 
 class RoundPage(SitemapPage):
     kind = "scoringdance.round"
-    EXTRACT_VERSION = 3
-    PARSER_VERSION = 3
+    EXTRACT_VERSION = 4
+    PARSER_VERSION = 4
 
     def extract(self, body: bytes) -> JsonValue:
         result = []
@@ -206,8 +210,9 @@ class RoundPage(SitemapPage):
         if not result:
             raise ExtractError("round has no result table")
         # scoring.dance renders competitor headings as blank cells. Their
-        # position is stable: prelims split roles into two tables; finals put
-        # both roles in one row. Give the shared projector explicit captions.
+        # J&J prelims split roles into two tables. Finals and Strictly couple
+        # sheets put both roles in one row, including partners without IDs.
+        # Give the shared projector explicit captions.
         is_final = bool(re.search(r"\bfinal\b", heading, re.I))
         for table_number, table in enumerate(result):
             table_rows = table.get("rows")
@@ -218,12 +223,20 @@ class RoundPage(SitemapPage):
             ):
                 continue
             headers = table_rows[0]
+            strictly_pair = (
+                bool(re.search(r"\bstrictly\b", heading, re.I))
+                and len(headers) > 2
+                and isinstance(headers[2], dict)
+                and not headers[2].get("text")
+                and not headers[2].get("attributes", {}).get("title")
+            )
             if len(headers) > 1 and isinstance(headers[1], dict):
                 headers[1]["text"] = "Leader" if is_final or table_number == 0 else "Follower"
-            if is_final and len(headers) > 2 and isinstance(headers[2], dict):
+            if (is_final or strictly_pair) and len(headers) > 2 and isinstance(headers[2], dict):
                 headers[2]["text"] = "Follower"
         return result
 
+    @declared
     def parse(self, extract: JsonValue, ctx: ParseContext) -> ParseResult:
         ref = ctx.source_ref or "scoringdance:unknown"
         output = []

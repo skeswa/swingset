@@ -6,6 +6,8 @@ import re
 from dataclasses import dataclass
 from datetime import date
 
+from selectolax.parser import HTMLParser, Node
+
 from ..base import (
     ExtractError,
     JsonValue,
@@ -13,10 +15,12 @@ from ..base import (
     ObservationScope,
     ParseContext,
     ParseResult,
+    ParseWarning,
     WatchSpec,
 )
-from ..common import attr, tags, text
+from ..common import text
 from ..records import CalendarRow
+from .legacy import fullcalendar_rows, map_rows
 
 _MONTHS = {
     name: number
@@ -27,6 +31,20 @@ _MONTHS = {
 
 
 def _dates(raw: str) -> tuple[str, str]:
+    single = re.fullmatch(r"([A-Z][a-z]{2}) (\d{1,2}), (\d{4})", raw)
+    if single:
+        month, day, year = single.groups()
+        value = date(int(year), _MONTHS[month], int(day)).isoformat()
+        return value, value
+    historical = re.fullmatch(
+        r"(\d{1,2})(?:st|nd|rd|th) ([A-Za-z]+), (\d{4}) To (\d{1,2})(?:st|nd|rd|th) ([A-Za-z]+), (\d{4})",
+        raw,
+    )
+    if historical:
+        day1, month1, year1, day2, month2, year2 = historical.groups()
+        return date(int(year1), _MONTHS[month1[:3]], int(day1)).isoformat(), date(
+            int(year2), _MONTHS[month2[:3]], int(day2)
+        ).isoformat()
     same_month = re.fullmatch(r"([A-Z][a-z]{2}) (\d+) - (\d+), (\d{4})", raw)
     if same_month:
         month, start, end, year = same_month.groups()
@@ -40,7 +58,7 @@ def _dates(raw: str) -> tuple[str, str]:
             int(year), _MONTHS[month2], int(day2)
         ).isoformat()
     explicit_years = re.fullmatch(
-        r"([A-Z][a-z]{2}) (\d+) (\d{4}) - ([A-Z][a-z]{2}) (\d+) (\d{4})", raw
+        r"([A-Z][a-z]{2}) (\d+),? (\d{4}) - ([A-Z][a-z]{2}) (\d+),? (\d{4})", raw
     )
     if explicit_years:
         month1, day1, year1, month2, day2, year2 = explicit_years.groups()
@@ -52,49 +70,89 @@ def _dates(raw: str) -> tuple[str, str]:
 
 class EventsPage:
     kind = "wsdc_calendar.events"
-    EXTRACT_VERSION = 1
-    PARSER_VERSION = 1
+    EXTRACT_VERSION = 4
+    PARSER_VERSION = 7
     change_mode = "extract"
 
     def extract(self, body: bytes) -> JsonValue:
         source = body.decode("utf-8", "replace")
+        embedded = fullcalendar_rows(source)
+        if embedded is None:
+            embedded = map_rows(source)
+        if embedded is not None:
+            return embedded
         rows: list[JsonValue] = []
-        for attrs, inner, _ in tags(source, "tr"):
-            if "event_name" not in inner:
+        tree = HTMLParser(source)
+        for row in tree.css("tr"):
+            cells = [node for node in row.iter() if node.tag == "td"]
+            classes = (row.attributes.get("class") or "").split()
+            legacy = "tr_events_load" in classes
+            if len(cells) < 3:
                 continue
-            cells = tags(inner, "td")
-            name_match = re.search(
-                r'class=["\']event_name["\'][^>]*>(.*?)</div>', inner, re.I | re.S
-            )
-            type_match = re.search(
-                r'class=["\']event_type["\'][^>]*>(.*?)</div>', inner, re.I | re.S
-            )
-            anchor = re.search(
-                r"<a\b([^>]*)>(.*?)</a>", name_match.group(1) if name_match else "", re.I | re.S
-            )
-            country = re.search(r'[?&]country=([^&"\']*)', inner, re.I)
+            name_node = cells[1].css_first(".event_name")
+            if name_node is None and not legacy:
+                continue
+            name_node = name_node if name_node is not None else cells[1]
+            anchor = name_node.css_first("a")
+            type_node = cells[1].css_first(".event_type")
+            name = text((anchor if anchor is not None else name_node).text(separator=" "))
+            event_type = text(type_node.text(separator=" ")) if type_node else ""
+            if legacy:
+                event_type = text(cells[1].text(separator=" "))
+                if event_type.startswith(name):
+                    event_type = event_type[len(name) :].strip()
+            country = re.search(r'[?&]country=([^&"\']*)', row.html or "", re.I)
             rows.append(
                 {
-                    "classes": sorted((attr(attrs, "class") or "").split()),
-                    "date": cells[0][2] if cells else "",
-                    "name": text(
-                        re.sub(
-                            r"<[^>]+>",
-                            " ",
-                            anchor.group(2)
-                            if anchor
-                            else (name_match.group(1) if name_match else ""),
-                        )
-                    ),
-                    "website": attr(anchor.group(1), "href") if anchor else None,
-                    "event_type": text(re.sub(r"<[^>]+>", " ", type_match.group(1)))
-                    if type_match
-                    else "",
-                    "location": cells[2][2] if len(cells) > 2 else "",
+                    "classes": sorted(classes),
+                    "date": text(cells[0].text(separator=" ")),
+                    "name": name,
+                    "website": anchor.attributes.get("href") if anchor else None,
+                    "event_type": event_type,
+                    "location": text(cells[2].text(separator=" ")),
                     "country_code": country.group(1) if country else None,
                 }
             )
+        # The 2016 page contains 20 table rows and the complete listing as cards.
+        # Preserve the full cards; their visible dates are independent of JS.
+        cards: list[JsonValue] = []
+        for card in tree.css("#event_list .box"):
+            start = card.css_first(".top .left")
+            end = card.css_first(".top .right")
+            label = card.css_first(".top_text")
+            anchor = label.css_first("a") if label else None
+            location = card.css_first(".box2 .text2")
+            if start is None or end is None or label is None:
+                raise ExtractError("incomplete legacy calendar card")
+            name = text((anchor if anchor else label).text(separator=" "))
+
+            def card_date(node: Node) -> str:
+                raw = text(node.text(separator=" "))
+                match = re.fullmatch(r"(\d{1,2})(?: 00:00:00)? ([A-Za-z]{3}), (\d{4})", raw)
+                if not match:
+                    raise ExtractError(f"unknown calendar card date: {raw!r}")
+                return f"{match[2]} {match[1]} {match[3]}"
+
+            cards.append(
+                {
+                    "classes": [],
+                    "date": card_date(start) + " - " + card_date(end),
+                    "name": name,
+                    "website": anchor.attributes.get("href") if anchor else None,
+                    "event_type": text(label.text(separator=" "))[len(name) :].strip(),
+                    "location": text(location.text(separator=" ")) if location else "",
+                    "country_code": None,
+                }
+            )
+        if cards:
+            rows = cards
         if not rows:
+            if re.search(
+                r"event[-_](?:calendar|map)|tribe-events|Events Calendar|WSDC Event List",
+                source,
+                re.I,
+            ):
+                return []
             raise ExtractError("calendar contains no event rows")
         return rows
 
@@ -102,11 +160,16 @@ class EventsPage:
         if not isinstance(extract, list):
             raise ExtractError("calendar extract is not a list")
         observations: list[Observation] = []
+        warnings: list[ParseWarning] = []
         for item in extract:
             if not isinstance(item, dict):
                 raise ExtractError("calendar row is not an object")
             date_raw = str(item.get("date", ""))
-            start_date, end_date = _dates(date_raw)
+            try:
+                start_date, end_date = _dates(date_raw)
+            except (ValueError, KeyError) as error:
+                warnings.append(ParseWarning("unrecognized_listing_date", str(error), item))
+                continue
             payload = CalendarRow(
                 kind="calendar_row",
                 name_raw=str(item.get("name", "")),
@@ -123,7 +186,9 @@ class EventsPage:
             observations.append(
                 Observation(ObservationScope("calendar", "wsdc"), payload.kind, payload)
             )
-        return ParseResult(tuple(observations))
+        return ParseResult(
+            tuple(observations), warnings=tuple(warnings), legitimate_empty=not extract
+        )
 
     def expected_statuses(self, watch: object) -> frozenset[int]:
         return frozenset()

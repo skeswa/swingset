@@ -1,0 +1,499 @@
+{
+  "baseline": "/var/lib/swingset/candidates/cand_a9a87deb3ee34dac",
+  "candidate": "/var/lib/swingset/candidates/cand_7f8cf9bcbf7e4a60",
+  "checkpoint": "/var/lib/swingset/checkpoints/v2-v3-published-20260913T0715Z",
+  "network_requests": 0,
+  "passed": true,
+  "reviewed_identity_precision": "unavailable; H17 human adjudication remains pending",
+  "sections": {
+    "acquisition": {
+      "checks": {
+        "acquisition_controls_preserved": true,
+        "driver_reports_zero_acquisition": true,
+        "gated_intents_retained_without_controls": true,
+        "only_phase1_snapshots_imported": true,
+        "public_gate_findings": true
+      },
+      "details": {
+        "changed_controls": [],
+        "gate_finding_ids": [
+          "badcfe354f8a59fd",
+          "59d8fa015443cdd3",
+          "99335c728e911f16",
+          "605b45d150a80cbc",
+          "8fd7a9bd983a18c1",
+          "cc44e33f9c154461",
+          "6f939c0302b9466e"
+        ],
+        "gated_watch_ids": [
+          "15e48c4d227845a8",
+          "29cb5a5de573eac0",
+          "4206caf83c5140e6",
+          "5f26ff699e205d06",
+          "9dd8e5e2d7b4929a",
+          "dc43d2a1264754cf",
+          "df693417d9a0ab77"
+        ],
+        "lost_controls": [],
+        "missing_gate_evidence": [],
+        "new_controls": [],
+        "new_snapshots": 192,
+        "unexpected_snapshots": []
+      }
+    },
+    "admission": {
+      "checks": {
+        "exact_nine_enforced_contracts": true,
+        "exact_review_receipts": true
+      },
+      "details": {
+        "failures": [],
+        "versions": {
+          "eepro.autoindex": "5",
+          "eepro.index": "4",
+          "eepro.round": "4",
+          "scoringdance.event": "4",
+          "scoringdance.recent": "4",
+          "scoringdance.round": "4",
+          "scoringdance.sitemap": "4",
+          "wdr.rounds": "4",
+          "wsdc_registry.dancer": "4"
+        }
+      }
+    },
+    "admission_outputs": {
+      "checks": {
+        "accepted_pointers_resolve_passing_contracts": true,
+        "failed_legacy_observations_preserved": true,
+        "guarded_current_units_have_public_reasons": true
+      },
+      "details": {
+        "changed_failed_legacy_units": [],
+        "guarded_current_units": 323,
+        "invalid_accepted_units": [],
+        "missing_public_guard_findings": []
+      }
+    },
+    "history": {
+      "checks": {
+        "history_coverage_matches_actual_source_transport": true,
+        "history_coverage_tiers_partition_events": true,
+        "history_dates_respect_printed_precision": true,
+        "history_each_registry_occurrence_has_one_event": true,
+        "history_every_year_accepted_or_explained": true,
+        "history_every_year_has_coverage": true,
+        "history_no_unreviewed_year_acceptance": true,
+        "history_public_year_findings_have_open_support": true,
+        "history_registry_references_match_occurrences": true,
+        "history_retained_occurrences_are_published_once": true,
+        "phase1_artifacts_are_closed": true,
+        "phase1_package_matches_reviewed_digest": true,
+        "phase1_retained_inputs_current_or_explained": true
+      },
+      "details": {
+        "coverage_accounting_errors": [],
+        "date_precision_errors": [],
+        "occurrence_mapping_errors": [],
+        "phase1_artifact_errors": [],
+        "phase1_artifacts": {
+          "bodies": 204,
+          "extracts": 161
+        },
+        "phase1_catalog_statuses": {
+          "duplicate": 4,
+          "empty": 33,
+          "finding": 4,
+          "parsed": 155,
+          "pending": 17
+        },
+        "phase1_interpretation_errors": [],
+        "phase1_manifest_sha256": "7b5954a5cca0bf46f29bc1176c3030787cf0b6fbc36a4849112a51e4822f5720",
+        "registry_event_reference_errors": 0,
+        "registry_occurrences": 1888,
+        "retained_occurrence_inventory_errors": [],
+        "retained_registry_occurrences": 1888,
+        "unsupported_public_year_findings": [],
+        "year_coverage": [
+          {
+            "accepted": false,
+            "groups": 2,
+            "unresolved": 32,
+            "year": 2010
+          },
+          {
+            "accepted": false,
+            "groups": 2,
+            "unresolved": 19,
+            "year": 2011
+          },
+          {
+            "accepted": false,
+            "groups": 2,
+            "unresolved": 39,
+            "year": 2012
+          },
+          {
+            "accepted": false,
+            "groups": 2,
+            "unresolved": 32,
+            "year": 2013
+          },
+          {
+            "accepted": false,
+            "groups": 2,
+            "unresolved": 25,
+            "year": 2014
+          },
+          {
+            "accepted": false,
+            "groups": 2,
+            "unresolved": 36,
+            "year": 2015
+          },
+          {
+            "accepted": false,
+            "groups": 4,
+            "unresolved": 35,
+            "year": 2016
+          },
+          {
+            "accepted": false,
+            "groups": 3,
+            "unresolved": 56,
+            "year": 2017
+          },
+          {
+            "accepted": false,
+            "groups": 4,
+            "unresolved": 40,
+            "year": 2018
+          },
+          {
+            "accepted": false,
+            "groups": 4,
+            "unresolved": 55,
+            "year": 2019
+          },
+          {
+            "accepted": false,
+            "groups": 4,
+            "unresolved": 131,
+            "year": 2020
+          },
+          {
+            "accepted": false,
+            "groups": 3,
+            "unresolved": 92,
+            "year": 2021
+          },
+          {
+            "accepted": false,
+            "groups": 4,
+            "unresolved": 48,
+            "year": 2022
+          },
+          {
+            "accepted": false,
+            "groups": 4,
+            "unresolved": 62,
+            "year": 2023
+          },
+          {
+            "accepted": false,
+            "groups": 5,
+            "unresolved": 140,
+            "year": 2024
+          },
+          {
+            "accepted": false,
+            "groups": 6,
+            "unresolved": 94,
+            "year": 2025
+          },
+          {
+            "accepted": false,
+            "groups": 8,
+            "unresolved": 44,
+            "year": 2026
+          },
+          {
+            "accepted": false,
+            "groups": 2,
+            "unresolved": 0,
+            "year": 2027
+          },
+          {
+            "accepted": false,
+            "groups": 1,
+            "unresolved": 0,
+            "year": 2028
+          },
+          {
+            "accepted": false,
+            "groups": 1,
+            "unresolved": 0,
+            "year": 2029
+          },
+          {
+            "accepted": false,
+            "groups": 1,
+            "unresolved": 0,
+            "year": 2030
+          }
+        ],
+        "years_without_acceptance_or_named_findings": [],
+        "years_without_coverage": []
+      }
+    },
+    "identity": {
+      "checks": {
+        "accepted_assertions_have_confirmation_method_and_references": true,
+        "accepted_assertions_have_default_ids": true,
+        "accepted_identities_match_retained_support": true,
+        "default_ids_have_accepted_assertions": true,
+        "entries_no_new_or_replaced_default_ids": true,
+        "identity_baseline_commit_matches": true,
+        "identity_expansions_remain_withheld": true,
+        "identity_state_journal_matches_release": true,
+        "judges_no_new_or_replaced_default_ids": true,
+        "named_null_id_judges_preserved_where_source_persists": true,
+        "placement_follower_identity_and_points_supported": true,
+        "placement_identity_flags_supported": true,
+        "placement_leader_identity_and_points_supported": true,
+        "public_assertion_acceptance_fields_match_release": true,
+        "public_assertions_have_structural_subjects": true,
+        "public_identity_assertions_respect_decisions": true,
+        "unique_public_assertion_per_subject": true
+      },
+      "details": {
+        "accepted_assertions_have_confirmation_method_and_references": {
+          "examples": [],
+          "violations": 0
+        },
+        "accepted_assertions_have_default_ids": {
+          "examples": [],
+          "violations": 0
+        },
+        "accepted_identities_match_retained_support": {
+          "checked": 34955,
+          "examples": [],
+          "violations": 0
+        },
+        "default_ids_have_accepted_assertions": {
+          "examples": [],
+          "violations": 0
+        },
+        "entries_no_new_or_replaced_default_ids": {
+          "examples": [],
+          "violations": 0
+        },
+        "judges_no_new_or_replaced_default_ids": {
+          "examples": [],
+          "violations": 0
+        },
+        "named_null_id_judges_preserved_where_source_persists": {
+          "examples": [],
+          "interpretation": "Missing or changed names with retained source bindings require explicit review of remapping, source correction, or suppression; absence of a registry number alone never permits deletion.",
+          "retained": 4919,
+          "violations": 0
+        },
+        "placement_follower_identity_and_points_supported": {
+          "examples": [],
+          "violations": 0
+        },
+        "placement_identity_flags_supported": {
+          "examples": [],
+          "violations": 0
+        },
+        "placement_leader_identity_and_points_supported": {
+          "examples": [],
+          "violations": 0
+        },
+        "public_assertion_acceptance_fields_match_release": {
+          "examples": [],
+          "violations": 0
+        },
+        "public_assertions_have_structural_subjects": {
+          "examples": [],
+          "violations": 0
+        },
+        "public_identity_assertions_respect_decisions": {
+          "checked": 69917,
+          "examples": [],
+          "violations": 0
+        },
+        "unique_public_assertion_per_subject": {
+          "examples": [],
+          "violations": 0
+        }
+      }
+    },
+    "seal": {
+      "checks": {
+        "all_seven_reviewed_intents_gated": true,
+        "current_input_and_revisions": true,
+        "current_policy_token": true,
+        "driver_completed_all_stages": true,
+        "driver_matches_candidate": true,
+        "no_state_foreign_key_errors": true,
+        "published_v3_parent": true,
+        "reviewed_projector_version": true,
+        "reviewed_scoring_impact_pinned": true,
+        "settled_release": true,
+        "v4_schema_matches_pin": true
+      },
+      "details": {
+        "manifest_hash": "87ac286a1ae452f09f7e5cea646f260ac34035f3d05bb83de17c7d9cc8f08884",
+        "release_policy": {
+          "accuracy_expansions": "withheld_pending_H17",
+          "baseline_commit": "4653f3a3a6076d3af474c28f7bd0e93998ca0a9c",
+          "default_join_counts": {
+            "accepted": 29294,
+            "accepted_legacy": 5661,
+            "accuracy_gate_pending": 262,
+            "current_decision_withholds": 4,
+            "source_reference_unavailable": 82
+          },
+          "detected_at": "2026-09-13T07:08:57.942256+00:00",
+          "input_bundle_hash": "184923097435f167078a7743568eb5d6a3b962b1b40542c106164ef71b6eba78",
+          "input_file_hashes": {
+            "config/hosts.toml": "6c0b8d7b34e1c4a068374c59d0f41d52459f0113883b9868a6750c2753123122",
+            "config/sources.toml": "276a2bca3c4dea77525d8f241a83531a2fd908fcb5071dddca494e1ba850ff27",
+            "link/weights.toml": "dfcb30d69d7ba24518294f1facb2a1e1912b23ba332494eb8103445c59234174",
+            "overrides/event_aliases.csv": "3fb16a5e6eab2923e3d157341f80bef4a5a5d5685e4f2288e304d79be074570d",
+            "overrides/identity_overrides.csv": "e1487f143891001bc7ddb16cfe6e32003e1ac95628fcaa3a03849e3806f6a246",
+            "overrides/nicknames.csv": "468106077a4b1aac34289b705b16e38f7bc29de28376d5db052d84a3c5e50dcf",
+            "overrides/series_aliases.csv": "92366188e4295b901772dbe1cc3e1f12116fab46be9765a577a8845e31815642",
+            "overrides/source_urls.csv": "cce22c27665b53c67291a41dc18e99989b6b3eab4fe817aeb5e902e6f251e9a1",
+            "overrides/suppressions.csv": "2362faa4e3e099c1d307b9a72182e016f60818ab067135be75feb53bccd61fd9",
+            "versions.json": "55c53e5f958347a7704fbceb02f63fd8e00ac942c4c43ccf898defef934b834c"
+          },
+          "legacy_policy": "Published baseline support may remain unassessed; no revocation, new join, or removal authority is permitted.",
+          "mode": "settled",
+          "revisions": {
+            "canonical": 606,
+            "dancers": 35616,
+            "findings": 3398,
+            "identity_decisions": 1,
+            "links": 16445,
+            "observations": 33683,
+            "snapshots": 65225,
+            "source_event_map": 10,
+            "source_events": 317
+          },
+          "support_withdrawals": {
+            "reasons": {
+              "support_checks": 30253
+            },
+            "removed_rows": {},
+            "withdrawn_claims": {}
+          },
+          "token": {
+            "admission_digest": "b6e899905ff31f2fd16d19ab87daeb8b49247e86e1ca8902f571235f0cccfea0",
+            "decision_policy": "identity-decisions-v1",
+            "journal_digest": "e1487f143891001bc7ddb16cfe6e32003e1ac95628fcaa3a03849e3806f6a246",
+            "journal_generation": 1,
+            "release_version": "identity-release-v1"
+          }
+        }
+      }
+    },
+    "structure": {
+      "checks": {
+        "no_orphans": true,
+        "unique_keys": true
+      },
+      "details": {
+        "duplicates": {
+          "callback_marks": 0,
+          "callbacks": 0,
+          "changelog": 0,
+          "contests": 0,
+          "coverage": 0,
+          "dancers": 0,
+          "entries": 0,
+          "events": 0,
+          "final_marks": 0,
+          "heats": 0,
+          "identity_links": 0,
+          "judges": 0,
+          "link_candidates": 0,
+          "placements": 0,
+          "registry_placements": 0,
+          "review_queue": 0,
+          "rounds": 0,
+          "snapshots": 0
+        },
+        "missing_references": {
+          "callback_marks.entry_id": 0,
+          "callback_marks.judge_id": 0,
+          "callback_marks.round_id": 0,
+          "callback_marks.snapshot_id": 0,
+          "callbacks.entry_id": 0,
+          "callbacks.round_id": 0,
+          "callbacks.snapshot_id": 0,
+          "contests.event_id": 0,
+          "contests.snapshot_id": 0,
+          "dancers.snapshot_id": 0,
+          "entries.contest_id": 0,
+          "entries.event_id": 0,
+          "entries.partner_entry_id": 0,
+          "entries.snapshot_id": 0,
+          "events.snapshot_id": 0,
+          "final_marks.judge_id": 0,
+          "final_marks.placement_id": 0,
+          "final_marks.round_id": 0,
+          "final_marks.snapshot_id": 0,
+          "heats.entry_id": 0,
+          "heats.round_id": 0,
+          "heats.snapshot_id": 0,
+          "judges.event_id": 0,
+          "judges.snapshot_id": 0,
+          "placements.contest_id": 0,
+          "placements.couple_entry_id": 0,
+          "placements.event_id": 0,
+          "placements.follower_entry_id": 0,
+          "placements.leader_entry_id": 0,
+          "placements.round_id": 0,
+          "placements.snapshot_id": 0,
+          "registry_placements.event_id": 0,
+          "registry_placements.snapshot_id": 0,
+          "registry_placements.wsdc_id": 0,
+          "rounds.contest_id": 0,
+          "rounds.snapshot_id": 0
+        }
+      }
+    },
+    "unsupported_scoring": {
+      "checks": {
+        "baseline_impact_matches": true,
+        "exact_unsupported_transition": true,
+        "reviewed_67_contests": true,
+        "unsupported_results_withheld": true
+      },
+      "details": {
+        "baseline_rows": {
+          "callback_marks": 0,
+          "callbacks": 0,
+          "entries": 1358,
+          "final_marks": 683,
+          "placements": 930,
+          "rounds": 68
+        },
+        "expected_transitions_missing": [],
+        "missing_or_still_parsed": 0,
+        "remaining_rows": {
+          "callback_marks": 0,
+          "callbacks": 0,
+          "entries": 0,
+          "final_marks": 0,
+          "placements": 0,
+          "rounds": 0
+        },
+        "unreviewed_transitions": []
+      }
+    }
+  },
+  "state": "/var/lib/swingset",
+  "state_mutations": 0
+}

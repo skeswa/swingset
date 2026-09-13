@@ -81,7 +81,9 @@ class Gate:
                 crawl_delay,
                 2 if sweep and host == "points.worldsdc.com" else 5,
             )
-            conn.execute("BEGIN IMMEDIATE")
+            outer_transaction = conn.in_transaction
+            if not outer_transaction:
+                conn.execute("BEGIN IMMEDIATE")
             try:
                 conn.execute(
                     "UPDATE hosts SET next_allowed_at=? WHERE host=?",
@@ -90,12 +92,19 @@ class Gate:
                 conn.execute(
                     "UPDATE host_budget SET requests=requests+1 WHERE host=? AND day=?", (host, day)
                 )
-                conn.commit()  # Issued requests are never refunded after a crash.
+                if not outer_transaction:
+                    conn.commit()  # Issued requests are never refunded after a crash.
             except BaseException:
-                conn.rollback()
+                if not outer_transaction:
+                    conn.rollback()
                 raise
             self.inflight.add(host)
             return Grant(host)
+
+    def discard(self, host: str) -> None:
+        """Release a process-local claim without refunding durable accounting."""
+        with self._mutex:
+            self.inflight.discard(host)
 
     def release(
         self,
@@ -106,35 +115,43 @@ class Gate:
         request_day: str | None = None,
     ) -> None:
         with self._mutex:
-            conn = self.connection
-            now = self.clock.now()
-            conn.execute(
-                "UPDATE host_budget SET bytes=bytes+? WHERE host=? AND day=?",
-                (body_bytes, host, request_day or now.date().isoformat()),
-            )
-            if classification.outcome in (Outcome.THROTTLED, Outcome.BLOCKED, Outcome.SERVER_ERROR):
-                row = conn.execute(
-                    "SELECT pause_streak FROM hosts WHERE host=?", (host,)
-                ).fetchone()
-                streak = int(row[0] or 0) + 1
-                seconds = (
-                    self.config.host(host).challenge_pause
-                    if classification.outcome == Outcome.BLOCKED
-                    else classification.retry_after or min(86400, 900 * 2 ** min(streak - 1, 7))
-                )
+            try:
+                conn = self.connection
+                outer_transaction = conn.in_transaction
+                now = self.clock.now()
                 conn.execute(
-                    "UPDATE hosts SET paused_until=?,pause_reason=?,pause_streak=? WHERE host=?",
-                    (
-                        (now + timedelta(seconds=seconds)).isoformat(),
-                        classification.outcome.value,
-                        streak,
-                        host,
-                    ),
+                    "UPDATE host_budget SET bytes=bytes+? WHERE host=? AND day=?",
+                    (body_bytes, host, request_day or now.date().isoformat()),
                 )
-            elif classification.outcome in (Outcome.OK, Outcome.NOT_MODIFIED):
-                conn.execute(
-                    "UPDATE hosts SET paused_until=NULL,pause_reason=NULL,pause_streak=0 WHERE host=?",
-                    (host,),
-                )
-            conn.commit()
-            self.inflight.discard(host)
+                if classification.outcome in (
+                    Outcome.THROTTLED,
+                    Outcome.BLOCKED,
+                    Outcome.SERVER_ERROR,
+                ):
+                    row = conn.execute(
+                        "SELECT pause_streak FROM hosts WHERE host=?", (host,)
+                    ).fetchone()
+                    streak = int(row[0] or 0) + 1
+                    seconds = (
+                        self.config.host(host).challenge_pause
+                        if classification.outcome == Outcome.BLOCKED
+                        else classification.retry_after or min(86400, 900 * 2 ** min(streak - 1, 7))
+                    )
+                    conn.execute(
+                        "UPDATE hosts SET paused_until=?,pause_reason=?,pause_streak=? WHERE host=?",
+                        (
+                            (now + timedelta(seconds=seconds)).isoformat(),
+                            classification.outcome.value,
+                            streak,
+                            host,
+                        ),
+                    )
+                elif classification.outcome in (Outcome.OK, Outcome.NOT_MODIFIED):
+                    conn.execute(
+                        "UPDATE hosts SET paused_until=NULL,pause_reason=NULL,pause_streak=0 WHERE host=?",
+                        (host,),
+                    )
+                if not outer_transaction:
+                    conn.commit()
+            finally:
+                self.inflight.discard(host)

@@ -1,0 +1,23 @@
+{
+  "at": "2026-09-13T09:25:11.400666+00:00",
+  "checkpoint": "/var/lib/swingset/checkpoints/v2-v4-published-cand_7f8cf9bcbf7e4a60",
+  "checkpoint_database_sha256": "fc05bfc79c57a153f6f5fa9de21438aa432e57952d02b88b92f1a685f3cf2b92",
+  "checkpoint_manifest_sha256": "28b08a723746f40490aa071951fb4071da9f96f29ede2d282a5cefc189a835cf",
+  "checkpoint_mutations": 0,
+  "checkpoint_recorded_database_sha256": "fc05bfc79c57a153f6f5fa9de21438aa432e57952d02b88b92f1a685f3cf2b92",
+  "generation_counts": {
+    "accepted": 31276,
+    "needs_review": 894,
+    "superseded": 12,
+    "waiting_for_inputs": 7
+  },
+  "immutable_checkpoint_reader": true,
+  "live_state": "/var/lib/swingset",
+  "network_requests": 0,
+  "omitted_artifacts": [],
+  "omitted_by_kind": {},
+  "omitted_live_exists": 0,
+  "omitted_live_verified": 0,
+  "schema_version": 9,
+  "unique_generation_artifacts": 61012
+}

@@ -1,0 +1,29 @@
+Sep 13 16:05:55 swingset systemd[1]: Started [systemd-run] /var/lib/swingset/venv/bin/python /var/lib/swingset/operations/h16-changelog-20260913/accept_h16.py --state /var/lib/swingset --source /nix/store/093lylp4naslq5yb2mygbkkgkbsar3ym-source --gate /var/lib/swingset/operations/h16-changelog-20260913/gate.json --output /var/lib/swingset/operations/h16-changelog-20260913/preflight.json --source-receipt-sha256 3930dbc9f6023250a5253043ade60bd3fc90c57bda27e2c64f8520aa4c588a92 --max-seconds 900.
+Sep 13 16:05:55 swingset python[85470]: Traceback (most recent call last):
+Sep 13 16:05:55 swingset python[85470]:   File "/var/lib/swingset/operations/h16-changelog-20260913/accept_h16.py", line 450, in <module>
+Sep 13 16:05:55 swingset python[85470]:     main()
+Sep 13 16:05:55 swingset python[85470]:   File "/var/lib/swingset/operations/h16-changelog-20260913/accept_h16.py", line 437, in main
+Sep 13 16:05:55 swingset python[85470]:     run(
+Sep 13 16:05:55 swingset python[85470]:   File "/var/lib/swingset/operations/h16-changelog-20260913/accept_h16.py", line 361, in run
+Sep 13 16:05:55 swingset python[85470]:     preview = json.loads(gate.read_bytes())
+Sep 13 16:05:55 swingset python[85470]:                          ^^^^^^^^^^^^^^^^^
+Sep 13 16:05:55 swingset python[85470]:   File "/nix/store/s5rij9y3vb4gxbh0iqz3k0ndmsac7h02-python3-3.12.13/lib/python3.12/pathlib.py", line 1019, in read_bytes
+Sep 13 16:05:55 swingset python[85470]:     with self.open(mode='rb') as f:
+Sep 13 16:05:55 swingset python[85470]:          ^^^^^^^^^^^^^^^^^^^^
+Sep 13 16:05:55 swingset python[85470]:   File "/nix/store/s5rij9y3vb4gxbh0iqz3k0ndmsac7h02-python3-3.12.13/lib/python3.12/pathlib.py", line 1013, in open
+Sep 13 16:05:55 swingset python[85470]:     return io.open(self, mode, buffering, encoding, errors, newline)
+Sep 13 16:05:55 swingset python[85470]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Sep 13 16:05:55 swingset python[85470]: FileNotFoundError: [Errno 2] No such file or directory: '/var/lib/swingset/operations/h16-changelog-20260913/gate.json'
+Sep 13 16:05:55 swingset systemd[1]: swingset-h16-changelog-preflight.service: Main process exited, code=exited, status=1/FAILURE
+Sep 13 16:05:55 swingset systemd[1]: swingset-h16-changelog-preflight.service: Failed with result 'exit-code'.
+Sep 13 16:05:55 swingset systemd[1]: swingset-h16-changelog-preflight.service: Consumed 840ms CPU time, 128.7M memory peak, 85.3M read from disk.
+Sep 13 16:07:07 swingset systemd[1]: Started [systemd-run] /var/lib/swingset/venv/bin/python /var/lib/swingset/operations/h16-changelog-20260913/accept_h16.py --state /var/lib/swingset --source /nix/store/093lylp4naslq5yb2mygbkkgkbsar3ym-source --gate /var/lib/swingset/operations/h16-changelog-20260913/gate.json --output /var/lib/swingset/operations/h16-changelog-20260913/preflight.json --source-receipt-sha256 3930dbc9f6023250a5253043ade60bd3fc90c57bda27e2c64f8520aa4c588a92 --max-seconds 900.
+Sep 13 16:07:07 swingset python[85500]: Traceback (most recent call last):
+Sep 13 16:07:07 swingset python[85500]:   File "/var/lib/swingset/operations/h16-changelog-20260913/accept_h16.py", line 23, in <module>
+Sep 13 16:07:07 swingset python[85500]:     from research import accept_h11 as prior
+Sep 13 16:07:07 swingset python[85500]:   File "/nix/store/093lylp4naslq5yb2mygbkkgkbsar3ym-source/research/accept_h11.py", line 21, in <module>
+Sep 13 16:07:07 swingset python[85500]:     from swingset.admission.support import selection_digest
+Sep 13 16:07:07 swingset python[85500]: ModuleNotFoundError: No module named 'swingset.admission'
+Sep 13 16:07:07 swingset systemd[1]: swingset-h16-changelog-preflight-002.service: Main process exited, code=exited, status=1/FAILURE
+Sep 13 16:07:07 swingset systemd[1]: swingset-h16-changelog-preflight-002.service: Failed with result 'exit-code'.
+Sep 13 16:07:07 swingset systemd[1]: swingset-h16-changelog-preflight-002.service: Consumed 52ms CPU time, 21.6M memory peak, 6M read from disk.

@@ -6,58 +6,40 @@ import hashlib
 import json
 import sqlite3
 import tomllib
+from calendar import monthrange
 from collections import Counter
+from dataclasses import replace
 from datetime import date, datetime, timedelta
 from typing import TYPE_CHECKING
 
 from swingset.clock import Clock
-from swingset.normalize.names import normalize_name
+from swingset.normalize.names import normalize_name, paired_names
+from swingset.project.materialization import helper_recipe, materializing
 from swingset.schedule.confirmation import pending_confirmation_events
 from swingset.schedule.watches import upsert_watch
 from swingset.sources.wsdc_registry.adapter import SOURCE as REGISTRY_SOURCE
+from swingset.state.attempts import SupersededWorkError
 from swingset.state.db import Database
+from swingset.state.findings import Finding, replace_findings
+from swingset.state.identity_journal import token as journal_token
+from swingset.state.identity_references import ReferenceReader, retain_binding
 from swingset.state.work import WorkUnit, bump_revision, complete
 
 from .assign import ScoredPair, assign
 from .candidates import Candidate, DancerRecord, Subject, generate_candidates
+from .decisions import DecisionResolver, retain_resolution
 from .points import expected_points
 from .score import Weights, score_candidate
 
 if TYPE_CHECKING:
+    from swingset.state.derivations import Selection
     from swingset.state.inputs import InputBundle
 
-LINKER_VERSION = "6"
+LINKER_VERSION = "9"
 
 
-def _source_ids(database: Database, event_id: str) -> dict[str, int]:
-    """Read scoring.dance cell attributes without making projection own links."""
-    result: dict[str, int] = {}
-    rows = database.connection.execute(
-        "SELECT o.payload_json FROM observations o JOIN source_event_map m ON m.source_ref=o.scope_id WHERE o.scope_kind='source_event' AND m.event_id=? AND m.source='scoringdance'",
-        (event_id,),
-    )
-
-    def visit(value: object) -> None:
-        if isinstance(value, dict):
-            attributes = value.get("attributes")
-            if isinstance(attributes, list):
-                pairs = {
-                    str(item[0]): str(item[1])
-                    for item in attributes
-                    if isinstance(item, list) and len(item) == 2
-                }
-                raw_name = value.get("text")
-                if isinstance(raw_name, str) and pairs.get("data-wsdc", "").isdigit():
-                    result[normalize_name(raw_name).value] = int(pairs["data-wsdc"])
-            for child in value.values():
-                visit(child)
-        elif isinstance(value, list):
-            for child in value:
-                visit(child)
-
-    for row in rows:
-        visit(json.loads(str(row[0])))
-    return result
+class StaleIdentityResolution(RuntimeError):
+    """A newly accepted decision keeps this work queued for recomputation."""
 
 
 def _link_id(kind: str, subject_id: str) -> str:
@@ -74,6 +56,22 @@ def _nicknames(bundle: InputBundle) -> dict[str, str]:
 def _weights(bundle: InputBundle) -> Weights:
     raw = tomllib.loads(bundle.files.get("link/weights.toml", b"").decode() or "")
     return Weights(**{key: float(value) for key, value in raw.items()})
+
+
+def _candidate_pools(
+    dancers: list[DancerRecord], judge_ids: set[int]
+) -> tuple[dict[str, list[DancerRecord]], dict[str, list[DancerRecord]]]:
+    """Apply the generator's surname-initial block once for an event."""
+    entries: dict[str, list[DancerRecord]] = {}
+    judges: dict[str, list[DancerRecord]] = {}
+    for dancer in dancers:
+        surname = normalize_name(dancer.name_raw).last_token
+        if not surname:
+            continue
+        entries.setdefault(surname[0], []).append(dancer)
+        if dancer.wsdc_id in judge_ids:
+            judges.setdefault(surname[0], []).append(dancer)
+    return entries, judges
 
 
 def _update_registry_points(db: sqlite3.Connection, event_id: str) -> None:
@@ -142,13 +140,44 @@ def _update_registry_points(db: sqlite3.Connection, event_id: str) -> None:
 
 
 def link_event(
-    database: Database, event_id: str, bundle: InputBundle, clock: Clock, run_id: str
+    database: Database,
+    event_id: str,
+    bundle: InputBundle,
+    clock: Clock,
+    run_id: str,
+    *,
+    selection: Selection | None = None,
 ) -> bool:
     """Replace every link and candidate for an event in one transaction."""
     conn = database.connection
-    dancer_rows = conn.execute(
-        "SELECT wsdc_id,first_name,last_name,primary_role,recent_year,is_pro,leader_required_level,leader_allowed_level,follower_required_level,follower_allowed_level,leader_highest_level,follower_highest_level FROM dancers WHERE merged_into_wsdc_id IS NULL"
+    delegated = selection is not None
+    from swingset.state import derivations
+
+    if selection is None and derivations.available(conn):
+        with database.transaction():
+            selection = derivations.capture(
+                conn,
+                WorkUnit("link", "event", event_id),
+                now=clock.now(),
+                recipe=helper_recipe(conn, bundle.files, "link"),
+            )
+    resolver = DecisionResolver(conn)
+    event = conn.execute("SELECT year FROM events WHERE event_id=?", (event_id,)).fetchone()
+    event_year = int(event[0]) if event else None
+    entry_rows = conn.execute(
+        "SELECT e.entry_id,e.name_raw,e.role,e.wsdc_id,c.division,e.bib,e.contest_id FROM entries e JOIN contests c USING(contest_id) WHERE e.event_id=?",
+        (event_id,),
     ).fetchall()
+    judge_rows = conn.execute(
+        "SELECT judge_id,name_raw,wsdc_id FROM judges WHERE event_id=?", (event_id,)
+    ).fetchall()
+    dancer_rows = (
+        conn.execute(
+            "SELECT wsdc_id,first_name,last_name,primary_role,recent_year,is_pro,leader_required_level,leader_allowed_level,follower_required_level,follower_allowed_level,leader_highest_level,follower_highest_level FROM dancers WHERE merged_into_wsdc_id IS NULL"
+        ).fetchall()
+        if entry_rows or judge_rows
+        else []
+    )
     dancers = [
         DancerRecord(
             int(row[0]),
@@ -163,16 +192,14 @@ def link_event(
         )
         for row in dancer_rows
     ]
-    event = conn.execute("SELECT year FROM events WHERE event_id=?", (event_id,)).fetchone()
-    event_year = int(event[0]) if event else None
-    source_ids = _source_ids(database, event_id)
-    entry_rows = conn.execute(
-        "SELECT e.entry_id,e.name_raw,e.role,e.wsdc_id,c.division,e.bib,e.contest_id FROM entries e JOIN contests c USING(contest_id) WHERE e.event_id=?",
-        (event_id,),
-    ).fetchall()
-    judge_rows = conn.execute(
-        "SELECT judge_id,name_raw,wsdc_id FROM judges WHERE event_id=?", (event_id,)
-    ).fetchall()
+    eligible_judges = {
+        int(row[0])
+        for row in dancer_rows
+        if bool(row[5])
+        or str(row[10]).casefold() in {"allstar", "als", "champion", "chmp"}
+        or str(row[11]).casefold() in {"allstar", "als", "champion", "chmp"}
+    }
+    entry_pools, judge_pools = _candidate_pools(dancers, eligible_judges)
     subjects = [
         Subject(
             "entry",
@@ -181,7 +208,7 @@ def link_event(
             str(row[2]),
             str(row[4]),
             event_year,
-            source_ids.get(normalize_name(str(row[1] or "")).value),
+            None,
             str(row[5]) if row[5] is not None else None,
             str(row[6]),
         )
@@ -200,7 +227,6 @@ def link_event(
     ]
     nicknames = _nicknames(bundle)
     weights = _weights(bundle)
-    overrides = {row["entry_id"]: row for row in bundle.csv("identity_overrides.csv")}
     registry_confirmations: dict[str, set[int]] = {}
     dancer_names = {d.wsdc_id: normalize_name(d.name_raw).value for d in dancers}
     for subject in subjects:
@@ -226,6 +252,69 @@ def link_event(
             for row in rows
             if dancer_names.get(int(row[0])) == normalize_name(subject.name_raw).value
         }
+    previous_default_ids = {str(row[0]): row[3] for row in entry_rows}
+    previous_default_ids.update({str(row[0]): row[2] for row in judge_rows})
+    reference_reader = ReferenceReader(conn)
+    bindings = {
+        subject.subject_id: reference_reader.for_subject(subject.subject_kind, subject.subject_id)
+        for subject in subjects
+    }
+    printed_ids = {
+        identifier: {
+            int(binding.locator["source_wsdc_id"])
+            for binding in references
+            if binding.locator.get("source_wsdc_id") is not None
+        }
+        for identifier, references in bindings.items()
+    }
+    subjects = [
+        replace(subject, source_wsdc_id=next(iter(printed_ids[subject.subject_id])))
+        if len(printed_ids[subject.subject_id]) == 1
+        else subject
+        for subject in subjects
+    ]
+    decisions = {
+        subject.subject_id: resolver.resolve(
+            tuple(binding.reference for binding in bindings[subject.subject_id]),
+            source_wsdc_id=subject.source_wsdc_id,
+            registry_wsdc_ids=frozenset(registry_confirmations.get(subject.subject_id, set())),
+            legacy_subject_id=subject.subject_id,
+            reference_problem="contradictory_printed_source_identities"
+            if len(printed_ids[subject.subject_id]) > 1
+            else resolver.binding_problem(
+                bindings[subject.subject_id],
+                subject_kind=subject.subject_kind,
+                subject_id=subject.subject_id,
+            ),
+        )
+        for subject in subjects
+    }
+    claims: dict[tuple[str | None, str, int], list[Subject]] = {}
+    for subject in subjects:
+        policy = decisions[subject.subject_id]
+        if subject.subject_kind != "entry" or policy.hold_subject:
+            continue
+        strong_ids = (
+            registry_confirmations.get(subject.subject_id, set())
+            | ({subject.source_wsdc_id} if subject.source_wsdc_id is not None else set())
+            | ({policy.positive_wsdc_id} if policy.positive_wsdc_id is not None else set())
+        )
+        for number in strong_ids:
+            if policy.allows(number):
+                claims.setdefault((subject.contest_id, subject.role, number), []).append(subject)
+    for claimants in claims.values():
+        if len({subject.bib or subject.subject_id for subject in claimants}) <= 1:
+            continue
+        for subject in claimants:
+            policy = decisions[subject.subject_id]
+            decisions[subject.subject_id] = replace(
+                policy,
+                hold_subject=True,
+                review_required=True,
+                contradictions=tuple(
+                    sorted(set(policy.contradictions) | {"identity_claimed_by_distinct_bibs"})
+                ),
+            )
     scored: dict[str, list[tuple[Candidate, float]]] = {}
     surname_counts = Counter(
         d.name_raw.casefold().split()[-1] for d in dancers if d.name_raw.split()
@@ -240,17 +329,28 @@ def link_event(
                 (subject.contest_id, subject.role, subject.source_wsdc_id), set()
             ).add(subject.bib or subject.subject_id)
     for subject in subjects:
-        pool = [
-            d
-            for d, row in zip(dancers, dancer_rows, strict=True)
-            if subject.subject_kind == "entry"
-            or d.is_pro
-            or str(row[10]).casefold() in {"allstar", "als", "champion", "chmp"}
-            or str(row[11]).casefold() in {"allstar", "als", "champion", "chmp"}
-        ]
+        pools = entry_pools if subject.subject_kind == "entry" else judge_pools
+        initial = normalize_name(subject.name_raw).last_token[:1]
+        pool = pools.get(initial, [])
+        generated = {}
+        variants = [
+            replace(subject, source_wsdc_id=printed)
+            for printed in sorted(printed_ids[subject.subject_id])
+        ] or [subject]
+        for variant in variants:
+            for candidate in generate_candidates(variant, pool, nicknames):
+                if candidate.dancer.wsdc_id in printed_ids[subject.subject_id]:
+                    candidate = replace(
+                        candidate,
+                        subject=replace(subject, source_wsdc_id=candidate.dancer.wsdc_id),
+                    )
+                generated[candidate.dancer.wsdc_id] = candidate
         scored[subject.subject_id] = [
             (candidate, score_candidate(candidate, weights))
-            for candidate in generate_candidates(subject, pool, nicknames)
+            for candidate in sorted(
+                generated.values(),
+                key=lambda item: (-item.name_similarity, item.dancer.wsdc_id),
+            )
         ]
     assignments: dict[str, ScoredPair] = {}
     for contest_id, role in {(subject.contest_id, subject.role) for subject in subjects}:
@@ -267,6 +367,7 @@ def link_event(
             )
             for subject in scoped_subjects
             for candidate, score in scored[subject.subject_id]
+            if decisions[subject.subject_id].allows(candidate.dancer.wsdc_id)
         ]
         group_assignments = assign(pairs)
         for subject in scoped_subjects:
@@ -292,6 +393,9 @@ def link_event(
     ]
 
     def write(db: sqlite3.Connection) -> None:
+        if journal_token(db) != resolver.token:
+            raise StaleIdentityResolution("identity decisions changed during linking")
+        findings: list[Finding] = []
         subject_ids = [subject.subject_id for subject in subjects]
         if subject_ids:
             marks = ",".join("?" for _ in subject_ids)
@@ -301,15 +405,34 @@ def link_event(
             ranked = sorted(
                 scored[subject.subject_id], key=lambda item: (-item[1], item[0].dancer.wsdc_id)
             )
-            override = overrides.get(subject.subject_id)
+            decision = decisions[subject.subject_id]
             chosen = assignments.get(subject.subject_id)
-            if override is not None:
-                wsdc_id = (
-                    None if override["wsdc_id"].upper() == "NONE" else int(override["wsdc_id"])
+            mixed_person = subject.role == "couple" or bool(paired_names(subject.name_raw))
+            if mixed_person:
+                wsdc_id, method, status, confidence = None, "none", "unmatched", 0.0
+                findings.append(
+                    Finding(
+                        kind="paired_name",
+                        subject_kind=subject.subject_kind,
+                        subject_id=subject.subject_id,
+                        severity="warning",
+                        summary="Individual identity withheld for a paired subject",
+                        evidence={
+                            "name_raw": subject.name_raw,
+                            "reason": "paired_name_ownership_unresolved",
+                            "source_wsdc_id": subject.source_wsdc_id,
+                            "has_override": bool(decision.decision_ids),
+                        },
+                    )
                 )
+            elif decision.hold_subject:
+                wsdc_id, method, status, confidence = None, "none", "unmatched", 0.0
+            elif decision.positive_wsdc_id is not None:
+                wsdc_id = decision.positive_wsdc_id
                 method, status, confidence = "manual", "confirmed", 1.0
             elif (
                 subject.source_wsdc_id is not None
+                and decision.allows(subject.source_wsdc_id)
                 and len(
                     source_id_groups[(subject.contest_id, subject.role, subject.source_wsdc_id)]
                 )
@@ -328,6 +451,7 @@ def link_event(
                         for candidate, _score in ranked
                         if candidate.dancer.wsdc_id
                         in registry_confirmations.get(subject.subject_id, set())
+                        and decision.allows(candidate.dancer.wsdc_id)
                     }
                 )
                 == 1
@@ -356,6 +480,27 @@ def link_event(
                     and bib_counts[(subject.contest_id, subject.role, subject.bib)] > 1
                 ):
                     method = "bib_reuse"
+            if decision.review_required:
+                findings.append(
+                    Finding(
+                        kind="identity_decision",
+                        subject_kind=subject.subject_kind,
+                        subject_id=subject.subject_id,
+                        severity="warning",
+                        summary="Identity requires decision-aware review",
+                        evidence={
+                            "decision_ids": decision.decision_ids,
+                            "reference_ids": decision.ref_ids,
+                            "migration_ids": decision.migration_ids,
+                            "contradictions": decision.contradictions,
+                            "blocked_wsdc_ids": sorted(decision.blocked_wsdc_ids),
+                            "printed_wsdc_ids": sorted(printed_ids[subject.subject_id]),
+                            "hold_subject": decision.hold_subject,
+                            "journal_digest": decision.token.digest,
+                            "policy_version": decision.policy_version,
+                        },
+                    )
+                )
             db.execute(
                 "INSERT INTO identity_links VALUES (?,?,?,?,?,?,?,?,?,?,?)",
                 (
@@ -366,7 +511,11 @@ def link_event(
                     method,
                     status,
                     confidence,
-                    json.dumps(["contest_role_unique"]),
+                    json.dumps(
+                        ["paired_name_ownership_unresolved"]
+                        if mixed_person
+                        else ["contest_role_unique"]
+                    ),
                     now,
                     run_id,
                     LINKER_VERSION,
@@ -385,7 +534,9 @@ def link_event(
                         candidate.name_similarity,
                         rarity,
                         None if candidate.division_ok is None else int(candidate.division_ok),
-                        int(subject.role == candidate.dancer.primary_role),
+                        None
+                        if subject.subject_kind == "judge" and subject.role == "unknown"
+                        else int(subject.role == candidate.dancer.primary_role),
                         int(
                             event_year is not None
                             and candidate.dancer.recent_year >= event_year - 3
@@ -400,14 +551,14 @@ def link_event(
                             candidate.dancer.wsdc_id
                             in registry_confirmations.get(subject.subject_id, set())
                         ),
-                        int(subject.source_wsdc_id == candidate.dancer.wsdc_id),
+                        int(candidate.dancer.wsdc_id in printed_ids[subject.subject_id]),
                         rank,
                         int(wsdc_id == candidate.dancer.wsdc_id),
                         run_id,
                     ),
                 )
             if subject.subject_kind == "entry":
-                published_id = wsdc_id if status in {"confirmed", "probable"} else None
+                published_id = wsdc_id if status == "confirmed" else None
                 db.execute(
                     "UPDATE entries SET wsdc_id=?,link_status=?,link_confidence=? WHERE entry_id=?",
                     (published_id, status, confidence, subject.subject_id),
@@ -415,8 +566,37 @@ def link_event(
             else:
                 db.execute(
                     "UPDATE judges SET wsdc_id=? WHERE judge_id=?",
-                    (wsdc_id if status in {"confirmed", "probable"} else None, subject.subject_id),
+                    (wsdc_id if status == "confirmed" else None, subject.subject_id),
                 )
+            for binding in bindings[subject.subject_id]:
+                retain_binding(db, binding, now=now)
+            previous_id = previous_default_ids[subject.subject_id]
+            accepted = wsdc_id is not None and status == "confirmed"
+            retain_resolution(
+                db,
+                subject.subject_kind,
+                subject.subject_id,
+                decision,
+                state="accepted"
+                if accepted
+                else "revoked"
+                if previous_id is not None
+                else "unresolved",
+                reason=",".join(decision.contradictions) or "subject_hold"
+                if decision.hold_subject
+                else "paired_name_ownership_unresolved"
+                if mixed_person
+                else method,
+                now=now,
+            )
+        replace_findings(
+            db,
+            owner_kind="link",
+            owner_id=event_id,
+            findings=tuple(findings),
+            opened_at=now,
+            run_id=run_id,
+        )
         db.execute(
             "UPDATE placements SET leader_wsdc_id=(SELECT wsdc_id FROM entries WHERE entry_id=leader_entry_id),follower_wsdc_id=(SELECT wsdc_id FROM entries WHERE entry_id=follower_entry_id) WHERE event_id=?",
             (event_id,),
@@ -440,7 +620,23 @@ def link_event(
         if old != current:
             bump_revision(db, "links")
 
-    complete(database, WorkUnit("link", "event", event_id), write)
+    def generation_write(db: sqlite3.Connection) -> None:
+        with materializing(
+            db,
+            WorkUnit("link", "event", event_id),
+            now=clock.now(),
+            run_id=run_id,
+            selection=selection,
+            recipe=helper_recipe(db, bundle.files, "link"),
+        ):
+            write(db)
+
+    try:
+        complete(database, WorkUnit("link", "event", event_id), generation_write)
+    except (StaleIdentityResolution, SupersededWorkError) as exc:
+        if delegated:
+            raise SupersededWorkError("identity inputs changed during linking") from exc
+        return False
     new = [
         tuple(row)
         for row in conn.execute(
@@ -459,8 +655,19 @@ def link_event(
 
 
 def _seed_confirmation_watches(db: sqlite3.Connection, event_id: str, now: datetime) -> None:
-    event = db.execute("SELECT end_date FROM events WHERE event_id=?", (event_id,)).fetchone()
-    if event is None or date.fromisoformat(str(event[0])) + timedelta(days=30) < now.date():
+    event = db.execute(
+        "SELECT end_date,event_month FROM events WHERE event_id=?", (event_id,)
+    ).fetchone()
+    if event is None:
+        return
+    if event[0] is None:
+        if not event[1]:
+            return
+        year, month = map(int, str(event[1]).split("-"))
+        end = date(year, month, monthrange(year, month)[1])
+    else:
+        end = date.fromisoformat(str(event[0]))
+    if end + timedelta(days=30) < now.date():
         return
     ids = db.execute(
         """SELECT DISTINCT e.wsdc_id FROM placements p

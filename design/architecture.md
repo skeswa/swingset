@@ -116,3 +116,41 @@ rows. `review_queue` is open findings plus those computed items, as
 specified in [build](build.md#review-queue). A registry dump used for a
 cross-check is archived as a blob; it never directly populates canonical
 tables.
+
+## Requirement reconciliation in shadow (H11)
+
+The inventory scan reads retained round watches, source events, printed-ID
+links, registry occurrences, first-point finalists, archived artifact digests,
+and accepted finding evidence. It checks local postconditions and writes
+requirements and transitions in one transaction. It makes no requests,
+changes no identity decisions, and starts no repair work. Registry occurrences
+are grouped by series and month, so one mapping gap has one requirement.
+First-point requirements persist beyond the intensive thirty-day window.
+
+Unknown finding kinds remain `needs_review`. Existing parser and projector
+owners decide when their findings no longer apply; their accepted finding
+evidence is retained independently from the inventory rows. The periodic
+scan can rebuild missing inventory rows without inventing source evidence.
+Admission guards, journal contradictions, and publication support checks join
+this inventory as those contracts are implemented.
+
+## Source generation boundary
+
+`sources/interpretation.py` attaches pure accounting to adapter results.
+`admission/contracts.py` checks those declarations against archived structure;
+registry and round contracts own source-specific field rules. The generic
+coverage evaluator owns ordered-page, child, count, revision, critical-field,
+and manual-sentinel guards.
+
+`admission/generations.py` freezes inputs and stages evidence before output can
+change. `admission/select.py` owns the transaction that checks current desired
+inputs and policy, writes observations, invalidates old and new scopes, moves
+the accepted pointer, and completes the exact work token. The observation
+writer implements scoped replacement or preservation of historical snapshots.
+Policy activation requires an external corpus review; read-only corpus tooling
+cannot activate itself.
+
+`admission/support.py` exposes the publication-facing interpretation check and
+selection digest. Publication can withhold unsupported baseline scopes without
+admitting new source data. Legacy unassessed selections remain a disclosed
+compatibility state, and explicit revocation always defeats apparent support.

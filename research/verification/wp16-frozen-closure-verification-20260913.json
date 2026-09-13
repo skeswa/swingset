@@ -1,0 +1,49 @@
+{
+  "acquisition_executed": false,
+  "all_pass": true,
+  "artifact_files": {
+    "wp16-source-assembly-plan-20260913.json": "f2bff1057235f30315ed2e4dffba8b25b554a245bdbf03a28745d9d424b2d805",
+    "wp16-source-assembly-preparation-20260913.md": "34d6e93bc64b55a19adea4cd32bcc7c9bbba1fde8fd354fd218b6632a507805a",
+    "wp16-source-assembly-script-20260913.py": "836065287a62d0bb4473cceb8d601db0f8775045ac3ea406c61997de9d38a6d1"
+  },
+  "base": "/nix/store/093lylp4naslq5yb2mygbkkgkbsar3ym-source",
+  "base_receipt_sha256": "3930dbc9f6023250a5253043ade60bd3fc90c57bda27e2c64f8520aa4c588a92",
+  "checks": {
+    "actual_closure": true,
+    "all_file_hashes": true,
+    "base_provenance_preserved": true,
+    "disabled_metadata": true,
+    "exact_base_receipt": true,
+    "exact_plan": true,
+    "exact_receipt": true,
+    "fixture_helpers_present": true,
+    "manifest_equals_overlay": true,
+    "no_caches": true,
+    "no_symlinks": true,
+    "only_new_migration15": true,
+    "protected_equal_base": true,
+    "resources_present": true,
+    "schema15": true
+  },
+  "deployed": false,
+  "format": "wp16-independent-frozen-closure-v1",
+  "migration_executed": false,
+  "nixos_system": "/nix/store/zbslayiywdmk4bsd1n1ph745pan9zzra-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+  "plan_sha256": "f2bff1057235f30315ed2e4dffba8b25b554a245bdbf03a28745d9d424b2d805",
+  "protected_files": 31,
+  "source": "/nix/store/sfsm1sjnbzjmchv52hyqsx6x4kr2r5cd-source",
+  "source_bytes": 21260360,
+  "source_files": 652,
+  "source_receipt_sha256": "20fb28b173617b3cdfdf8aa08df2e2ba62ac8861b984ec61b4b643c2872bb6a1",
+  "test_resources": [
+    "research/verification/2026-09-11/cdx_dcn_eventpage_2013_2018_first50.json",
+    "research/verification/2026-09-11/cdx_steprightsolutions_html_all.json",
+    "research/verification/2026-09-11/wayback_id_steprt_events_index.hdr",
+    "research/verification/2026-09-11/wayback_id_steprt_round_507.hdr",
+    "research/verification/2026-09-11/wayback_id_steprt_round_508.hdr",
+    "research/verification/2026-09-12/event-list/asp/r00_web_archive_org.json",
+    "research/verification/2026-09-12/event-list/asp3/r05_web_archive_org.json"
+  ],
+  "verification_method": "Independent read-only VM source/base SHA256 and file-set comparison; separate local mirror rehash after adapter tests",
+  "verified_at": "2026-09-13T16:46:27.735679+00:00"
+}

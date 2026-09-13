@@ -1,0 +1,18 @@
+{
+  "archive_url": null,
+  "body_sha256": "755adc411a237e7775a8530c8bf718713ca615b4efab46f1e7b0fc39f0686190",
+  "captured_at": "2026-09-09T15:05:37.268198+00:00",
+  "child_count": 0,
+  "extract_sha256": "d0a0a30f2a2dce24f28527c0890c9851077141f4e319e7cfa83a61ad9e17e2f7",
+  "extract_version": "3",
+  "observation_count": 21,
+  "observed_at": "2026-09-09T15:05:37.268198+00:00",
+  "page_kind": "eepro.round",
+  "parser_version": "6",
+  "report_digest": "77619d0a41f15f09580d6cf1b97611bdbdd4c4695ba6e362cefc49f83bd9c366",
+  "snapshot_id": "snap_20260909T150537Z_755adc411a23",
+  "state_root": "/var/lib/swingset/checkpoints/v2-v1-published-20260913T0543Z",
+  "url": "https://eepro.com/results/summerhummer2026/jjprelims.html",
+  "via": "origin",
+  "watch_id": "49028e7d87011afa"
+}

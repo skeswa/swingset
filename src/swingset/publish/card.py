@@ -21,6 +21,31 @@ def _rows(data: BuildInput, table: str) -> Sequence[Mapping[str, Any]]:
 
 
 def _coverage(data: BuildInput) -> str:
+    inventory = [row for row in _rows(data, "coverage") if row.get("scope_kind") in (None, "year")]
+    if inventory:
+        lines = [
+            "| Source | Via | Year | Events | Day precision | Listed only | Registry only | Index only | Partial sheets | Complete sheets | Events accepted |",
+            "|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---|",
+        ]
+        for row in sorted(inventory, key=lambda row: (row["year"], row["source"], row["via"])):
+            values = [
+                row.get(field, 0)
+                for field in (
+                    "source",
+                    "via",
+                    "year",
+                    "events",
+                    "events_day_precision",
+                    "events_listed_only",
+                    "events_registry_only",
+                    "events_index_only",
+                    "events_sheets_partial",
+                    "events_sheets_complete",
+                )
+            ]
+            values.append("yes" if row.get("events_accepted") else "no")
+            lines.append("| " + " | ".join(str(value) for value in values) + " |")
+        return "\n".join(lines)
     counts: Counter[tuple[str, str]] = Counter()
     for event in _rows(data, "events"):
         year = str(event.get("year") or "unknown")
@@ -60,7 +85,7 @@ def _quality(data: BuildInput) -> str:
     linked = sum(row.get("wsdc_id") is not None for row in entries)
     lines = [
         f"{linked} of {len(entries)} entry records carry a WSDC ID. Entries represent contest participation, sometimes couples, and are not unique people.",
-        "Confirmed source IDs identify what the source asserted; probable matches are inferred. An ID can precede the corresponding registry fetch. Registry coverage does not establish complete dancer histories.",
+        "Default WSDC IDs contain confirmed links only. Probable matches remain candidate evidence in `identity_links` and `link_candidates`; they do not populate default entry or judge joins. Confirmed source IDs identify what the source asserted. An ID can precede the corresponding registry fetch. Registry coverage does not establish complete dancer histories.",
         "| Entry link status | Records |",
         "|---|---:|",
     ]
@@ -80,6 +105,155 @@ def _table_counts(data: BuildInput) -> str:
     lines = ["| Table | Rows |", "|---|---:|"]
     lines.extend(f"| `{name}` | {len(_rows(data, name))} |" for name in PUBLISHED_TABLES)
     return "\n".join(lines)
+
+
+def _corrections(data: BuildInput) -> str:
+    policy = data.release_policy
+    if not policy:
+        return ""
+    lines = [
+        "### Identity corrections",
+        "",
+        "Default entry and judge IDs have been rechecked against the accepted decision journal, source evidence and suppression policy. `identity_links.acceptance_state` describes publication acceptance; probable scores remain in `link_candidates`. Named judges without WSDC numbers retain null IDs.",
+        "",
+        "New default joins remain withheld pending the reviewed accuracy gate. Published baseline interpretations may retain disclosed legacy support; this does not grant admission or removal authority. The manifest pins the journal and admission policy digests. Suppressed personal records are omitted from correction history.",
+    ]
+    if policy.get("mode") == "correction_only":
+        pending = policy.get("pending_work", {})
+        lines.extend(
+            [
+                "",
+                "This correction uses the acknowledged published baseline and includes no new source generations. Pending work remains: "
+                + ", ".join(f"{stage} {count}" for stage, count in sorted(pending.items()))
+                + ".",
+            ]
+        )
+    counts = policy.get("default_join_counts", {})
+    if counts:
+        lines.extend(["", "| Identity policy outcome | Records |", "|---|---:|"])
+        lines.extend(f"| {reason} | {count} |" for reason, count in sorted(counts.items()))
+    omissions = policy.get("support_withdrawals", {}).get("removed_rows", {})
+    if any(omissions.values()):
+        lines.extend(
+            [
+                "",
+                "Rows omitted after support revocation: "
+                + ", ".join(
+                    f"{table} {count}" for table, count in sorted(omissions.items()) if count
+                )
+                + ".",
+            ]
+        )
+    return "\n".join(lines)
+
+
+def _phase1_gaps(data: BuildInput) -> list[str]:
+    """Describe only findings in these public tables, including frozen corrections."""
+    findings = _rows(data, "review_queue")
+    gated = [row for row in findings if row.get("kind") == "acquisition_gate"]
+    archive_gaps = [row for row in findings if row.get("kind") == "history_archive_gap"]
+    site_reviews = [row for row in findings if row.get("kind") == "history_event_site_review"]
+    unmapped_sheets = [row for row in findings if row.get("kind") == "history_unmapped_sheet"]
+    incomplete = [row for row in findings if row.get("kind") == "phase1_incomplete"]
+    aliases = [
+        row
+        for row in findings
+        if row.get("kind") in {"series_alias", "event_alias"}
+        and str(row.get("subject_id", ""))[:4].isdigit()
+    ]
+    warnings = [
+        row
+        for row in findings
+        if row.get("kind") == "parse_warning"
+        and str(row.get("summary") or "").startswith(
+            (
+                "unknown calendar date:",
+                "Listed event has no safely parsed date;",
+                "Newsletter page has no safely dated event rows;",
+                "Prose approval notice needs a dated event interpretation",
+                "Trial or member activity colour was not recovered;",
+            )
+        )
+    ]
+    maps = [
+        row
+        for row in findings
+        if row.get("kind") == "parse_failure"
+        and str(row.get("summary") or "").startswith(
+            "captured map marker lacks a name or printed date"
+        )
+    ]
+    if not (
+        incomplete
+        or aliases
+        or warnings
+        or maps
+        or gated
+        or archive_gaps
+        or unmapped_sheets
+        or site_reviews
+    ):
+        return []
+
+    def years(rows: Sequence[Mapping[str, Any]]) -> str:
+        values = sorted(
+            {
+                str(row.get("subject_id", ""))[:4]
+                for row in rows
+                if str(row.get("subject_id", ""))[:4].isdigit()
+            }
+        )
+        return ", ".join(values) or "not identified in the public finding rows"
+
+    result = []
+    if site_reviews:
+        result.append(
+            f"- {len(site_reviews)} event-site result findings await human override review for {years(site_reviews)}. "
+            "These are retained CDX candidates or evidence gaps; they do not establish parsed results, admit a parser, or start acquisition."
+        )
+    if archive_gaps or unmapped_sheets:
+        result.append(
+            f"- Historical results have {len(archive_gaps)} archive-gap findings and {len(unmapped_sheets)} unmapped-sheet findings. "
+            f"Event years identified in these public findings: {years(archive_gaps + unmapped_sheets)}. "
+            "Counts describe findings, not distinct missing rounds. Missing or incomplete archive evidence does not authorize origin acquisition; year, source-kind, archive-proof and host limits still apply."
+        )
+    if gated:
+        result.append(
+            f"- {len(gated)} newly discovered sheet links await event-year acceptance and the historical acquisition gates. "
+            "Their index evidence is retained; acquisition has not started for these links."
+        )
+    if incomplete:
+        result.append(
+            f"- Event-list completion has {len(incomplete)} open year-scope findings for {years(incomplete)}. "
+            "These combine pending captures (including any waits for host budgets), unresolved source interpretations, and incomplete discovery. "
+            "The public year findings do not provide a distinct pending-capture count."
+        )
+    if aliases:
+        series = sum(row.get("kind") == "series_alias" for row in aliases)
+        result.append(
+            f"- Event-list identity review has {series} series-alias and {len(aliases) - series} event-alias findings across {years(aliases)}. "
+            "Printed names and ambiguous editions remain unresolved until reviewed; these counts are findings, not distinct people or series."
+        )
+    if warnings or maps:
+        result.append(
+            f"- Event-list sources have {len(warnings)} warning findings for dates, hiatus/cancellation notices, newsletter approvals or unrecovered status colours, "
+            f"and {len(maps)} archived-map parse findings for missing printed names or dates. "
+            "Unsupported dates and undated listings remain findings; they are not silently assigned dates."
+        )
+    coverage = [row for row in _rows(data, "coverage") if row.get("scope_kind") in (None, "year")]
+    unaccepted = sorted(
+        {
+            str(row["year"])
+            for row in coverage
+            if row.get("year") is not None and not row.get("events_accepted")
+        }
+    )
+    if unaccepted:
+        result.append(
+            f"- Event-list acceptance remains open for {', '.join(unaccepted)}. "
+            "Publishing this partial inventory does not accept a year or authorize its historical score-sheet intake."
+        )
+    return result
 
 
 def _gaps(data: BuildInput) -> str:
@@ -102,6 +276,7 @@ def _gaps(data: BuildInput) -> str:
     gaps.append(
         "- Rows with `snapshot_id = override` are URL-override placeholders, not fetched source evidence. Their dates span the month encoded in the override ID; they are not verified event dates. Do not infer result coverage from these rows."
     )
+    gaps.extend(_phase1_gaps(data))
     return "\n".join(gaps)
 
 
@@ -132,6 +307,9 @@ before that date get no rows in `events` or the tables under it. The registry mi
 (`dancers`, `registry_placements`) is published whole, back to the registry's own
 beginning; a registry placement from before the start date keeps a null `event_id`.
 That absence is the start-date rule, not missing data.
+Month-only events have null start and end dates and retain their registry month.
+Editions with neither a registry occurrence nor a public listing are outside the
+discoverable event inventory.
 
 ## Load it
 
@@ -157,6 +335,10 @@ default to `events`; after results arrive, the default changes to `placements`.
 
 This table is computed from the event rows in this exact dataset version. A source on
 an event identifies its evidence source or an explicitly labeled URL-override placeholder; it does not establish complete contest or round coverage.
+The `coverage` table separates archive and origin evidence. Counts across sources
+can overlap. Event-list acceptance requires recorded owner review; an empty findings
+queue alone does not approve a year. Sheet completeness remains unknown until the
+source index and all expected rounds have been checked.
 
 {_coverage(data)}
 
@@ -169,6 +351,8 @@ Event metadata includes future schedules and index-only events. Results coverage
 ### Data quality
 
 {_quality(data)}
+
+{_corrections(data)}
 
 ### Row counts
 
@@ -213,5 +397,7 @@ and pin the Hub commit used.
 
 ## Schema versions
 
-The schema is pre-1.0. Migration notes will appear here when its version changes.
+The schema is pre-1.0. This version adds event precision, held status, history
+sources, archive capture times, and the `coverage` table. Probable identity links
+are excluded from default entry and judge WSDC IDs.
 """.encode()

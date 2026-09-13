@@ -10,6 +10,18 @@ from functools import lru_cache
 SUFFIXES = frozenset({"jr", "sr", "ii", "iii"})
 
 
+def paired_names(raw: str) -> tuple[str, ...]:
+    """Recognize explicit person separators before lossy normalization.
+
+    This identifies ownership uncertainty; it does not assign dancing roles.
+    Hyphens, apostrophes, particles, and multiple given names are not separators.
+    """
+    parts = tuple(
+        part.strip() for part in re.split(r"\s+and\s+|\s*[&/]\s*", raw, flags=re.IGNORECASE)
+    )
+    return parts if len(parts) > 1 and all(parts) else ()
+
+
 @dataclass(frozen=True)
 class NormalizedName:
     value: str

@@ -1,0 +1,68 @@
+{
+  "source": "/var/lib/swingset/checkpoints/v2-v1-published-20260913T0543Z",
+  "scratch": "/var/tmp/swingset-h7-autoindex-contract5-final/state",
+  "started_at": "2026-09-13T07:28:33.493869+00:00",
+  "reviewer": "Codex coordinator",
+  "reviewed_at": "2026-09-13",
+  "review_evidence": "research/h6-autoindex-contract5-review-2026-09-13.md; isolated72-index rehearsal of 6750eccd884a572c00a2f525d719a8c434b1dfdea73367558c0cb490e63c7755; Freedom2019 restricted to read-only corpus",
+  "corpus_digest": "6750eccd884a572c00a2f525d719a8c434b1dfdea73367558c0cb490e63c7755",
+  "network_requests": 0,
+  "production_mutations": 0,
+  "comparison": "Selected source observations and scopes; canonical projection/publication not run",
+  "kinds": {
+    "eepro.autoindex": {
+      "attempts": 72,
+      "before": 449,
+      "after": 457,
+      "added": 8,
+      "removed": 0,
+      "changed": 11,
+      "added_scopes": [],
+      "removed_scopes": [],
+      "changed_witness_examples": [
+        "[\"2550b5aeb587dc93\",\"snap_20260910T024737Z_e68c4cd02f7e\",\"file_row\",\"source_event\",\"eepro:njhustle2026\",6]",
+        "[\"2550b5aeb587dc93\",\"snap_20260910T024737Z_e68c4cd02f7e\",\"file_row\",\"source_event\",\"eepro:njhustle2026\",7]",
+        "[\"2550b5aeb587dc93\",\"snap_20260910T024737Z_e68c4cd02f7e\",\"file_row\",\"source_event\",\"eepro:njhustle2026\",8]",
+        "[\"4e8127cc7d466139\",\"snap_20260910T024941Z_a757dac3bda3\",\"file_row\",\"source_event\",\"eepro:adc2025\",5]",
+        "[\"4e8127cc7d466139\",\"snap_20260910T024941Z_a757dac3bda3\",\"file_row\",\"source_event\",\"eepro:adc2025\",6]",
+        "[\"4e8127cc7d466139\",\"snap_20260910T024941Z_a757dac3bda3\",\"file_row\",\"source_event\",\"eepro:adc2025\",7]",
+        "[\"580d2c59b6f6f734\",\"snap_20260910T024949Z_6bc1ce8a00bc\",\"file_row\",\"source_event\",\"eepro:njhustle2025\",6]",
+        "[\"580d2c59b6f6f734\",\"snap_20260910T024949Z_6bc1ce8a00bc\",\"file_row\",\"source_event\",\"eepro:njhustle2025\",7]",
+        "[\"580d2c59b6f6f734\",\"snap_20260910T024949Z_6bc1ce8a00bc\",\"file_row\",\"source_event\",\"eepro:njhustle2025\",8]",
+        "[\"cf89493ae22f8461\",\"snap_20260910T025326Z_d89afb20cf5b\",\"file_row\",\"source_event\",\"eepro:worlds2025\",4]",
+        "[\"cf89493ae22f8461\",\"snap_20260910T025326Z_d89afb20cf5b\",\"file_row\",\"source_event\",\"eepro:worlds2025\",5]"
+      ],
+      "removed_witness_examples": [],
+      "decisions": {
+        "contract_passed": 72
+      },
+      "newly_unaccepted_generations": 0,
+      "legacy_units_remaining": 0
+    }
+  },
+  "admission": {
+    "available": true,
+    "policies": [
+      {
+        "page_kind": "eepro.autoindex",
+        "contract_version": "5",
+        "mode": "enforce",
+        "policy_revision": "review:925ec1bc2b1306197bdbd8852e9bf022d2bdb8e6bb95efd94ccb84c2eb05eb28",
+        "reviewed_by": "Codex coordinator",
+        "reviewed_at": "2026-09-13"
+      }
+    ],
+    "generations": [
+      {
+        "page_kind": "eepro.autoindex",
+        "state": "accepted",
+        "count": 72,
+        "oldest_created_at": "2026-09-13T07:28:38.537229+00:00"
+      }
+    ],
+    "legacy_unassessed": 31540,
+    "accepted_units": 72
+  },
+  "foreign_key_violations": 0,
+  "elapsed_seconds": 18.266620041016722
+}

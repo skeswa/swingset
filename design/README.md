@@ -19,32 +19,33 @@ documents.
 
 ## Read in this order
 
-| Document                                        | What it covers                                                                                                                                      |
-| ----------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [overview](overview.md)                         | Purpose, guiding rules, non-goals                                                                                                                   |
-| [glossary](glossary.md)                         | Terms used exactly as defined, in code and data                                                                                                     |
-| [sources](sources.md)                           | Every data source: what it gives, how we read it, URL patterns, registry JSON shape                                                                 |
-| [architecture](architecture.md)                 | Observation ownership, projections, module boundaries, findings                                                                                     |
-| [self-healing proposal](self-healing.md)        | Proposed recovery guarantees, source admission, durable corrections, pause/resume, progress, and safe publication                                   |
-| [self-healing rollout](self-healing-rollout.md) | Revisions H1 to H18 with dependencies and sizes, migration steps, and the scenarios that gate each                                                  |
-| [local state](state.md)                         | SQLite schema, captured inputs, invalidation, durable work, state directory                                                                         |
-| [fetching](fetching.md)                         | Identity, politeness rules, change detection, raw archive                                                                                           |
-| [scheduling](scheduling.md)                     | Watches, polling states and intervals, discovery, backfill                                                                                          |
-| [backfill](backfill.md)                         | History from 2010-01-01: start-date rule, event list first, per-era sources, Wayback transport, capture selection, origin gap rules, coverage tiers |
-| [parsing](parsing.md)                           | Parser contract, parsers to build, parsing rules, fixtures                                                                                          |
-| [data model](data-model.md)                     | Identifiers and every published table                                                                                                               |
-| [identity linking](identity-linking.md)         | Bib to name to WSDC number, confidence, retroactive correction                                                                                      |
-| [build](build.md)                               | Parquet materialization, invariants, suppression, changelog                                                                                         |
-| [publishing](publishing.md)                     | Hub repos, layout, commit strategy, dataset card, consumer examples                                                                                 |
-| [technology](technology.md)                     | Language, libraries, packaging                                                                                                                      |
-| [operations](operations.md)                     | Host, systemd timers, backup and restore, secrets, observability                                                                                    |
-| [ethics and legal](ethics-and-legal.md)         | Public data, personal data, terms, license of scraped content                                                                                       |
-| [repository layout](repository-layout.md)       | Where code, config, overrides, and docs live                                                                                                        |
-| [milestones](milestones.md)                     | M0 through M6 and their done criteria                                                                                                               |
-| [scraping plan](scraping-plan.md)               | Phase-by-phase plan for the fetch and parse side, per-host budgets, operator conversation                                                           |
-| [implementation plan](implementation-plan.md)   | v1 scope (M0 to M3b), the OrbStack NixOS VM, toolchain decisions, work packages, order, and done criteria                                           |
-| [open questions](open-questions.md)             | Decisions still open and facts to verify                                                                                                            |
-| [decision log](decision-log.md)                 | Index of decisions from the design review                                                                                                           |
-| [WSDC rules](wsdc-rules.md)                     | Callback legends, points tiers, level thresholds we encode                                                                                          |
-| [WSDC rules history](wsdc-rules-history.md)     | Audited points-rule history since 2010: charts, thresholds, roles, dates, and evidence gaps                                                         |
-| [references](references.md)                     | Standards, docs, and prior art                                                                                                                      |
+| Document                                            | What it covers                                                                                                                                      |
+| --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [overview](overview.md)                             | Purpose, guiding rules, non-goals                                                                                                                   |
+| [glossary](glossary.md)                             | Terms used exactly as defined, in code and data                                                                                                     |
+| [sources](sources.md)                               | Every data source: what it gives, how we read it, URL patterns, registry JSON shape                                                                 |
+| [architecture](architecture.md)                     | Observation ownership, projections, module boundaries, findings                                                                                     |
+| [self-healing](self-healing.md)                     | Accepted recovery guarantees, source admission, durable corrections, pause/resume, progress, and safe publication                                   |
+| [self-healing rollout](self-healing-rollout.md)     | Revisions H1 to H18 with dependencies and sizes, migration steps, and the scenarios that gate each; sequenced by implementation plan v2             |
+| [local state](state.md)                             | SQLite schema, captured inputs, invalidation, durable work, state directory                                                                         |
+| [fetching](fetching.md)                             | Identity, politeness rules, change detection, raw archive                                                                                           |
+| [scheduling](scheduling.md)                         | Watches, polling states and intervals, discovery, backfill                                                                                          |
+| [backfill](backfill.md)                             | History from 2010-01-01: start-date rule, event list first, per-era sources, Wayback transport, capture selection, origin gap rules, coverage tiers |
+| [parsing](parsing.md)                               | Parser contract, parsers to build, parsing rules, fixtures                                                                                          |
+| [data model](data-model.md)                         | Identifiers and every published table                                                                                                               |
+| [identity linking](identity-linking.md)             | Bib to name to WSDC number, confidence, retroactive correction                                                                                      |
+| [build](build.md)                                   | Parquet materialization, invariants, suppression, changelog                                                                                         |
+| [publishing](publishing.md)                         | Hub repos, layout, commit strategy, dataset card, consumer examples                                                                                 |
+| [technology](technology.md)                         | Language, libraries, packaging                                                                                                                      |
+| [operations](operations.md)                         | Host, systemd timers, backup and restore, secrets, observability                                                                                    |
+| [ethics and legal](ethics-and-legal.md)             | Public data, personal data, terms, license of scraped content                                                                                       |
+| [repository layout](repository-layout.md)           | Where code, config, overrides, and docs live                                                                                                        |
+| [milestones](milestones.md)                         | M0 through M6 and their done criteria                                                                                                               |
+| [scraping plan](scraping-plan.md)                   | Phase-by-phase plan for the fetch and parse side, per-host budgets, operator conversation                                                           |
+| [implementation plan](implementation-plan.md)       | v1 scope (M0 to M3b), the OrbStack NixOS VM, toolchain decisions, work packages, order, and done criteria                                           |
+| [implementation plan v2](implementation-plan-v2.md) | The accepted order for history and self-healing: stages V1 to V7, gates between the two streams, and the calendar                                   |
+| [open questions](open-questions.md)                 | Decisions still open and facts to verify                                                                                                            |
+| [decision log](decision-log.md)                     | Index of decisions from the design review                                                                                                           |
+| [WSDC rules](wsdc-rules.md)                         | Callback legends, points tiers, level thresholds we encode                                                                                          |
+| [WSDC rules history](wsdc-rules-history.md)         | Audited points-rule history since 2010: charts, thresholds, roles, dates, and evidence gaps                                                         |
+| [references](references.md)                         | Standards, docs, and prior art                                                                                                                      |

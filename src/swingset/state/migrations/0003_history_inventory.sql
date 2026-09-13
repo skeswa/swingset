@@ -1,0 +1,15 @@
+CREATE TABLE events_history (event_id TEXT PRIMARY KEY, series_id TEXT NOT NULL, name TEXT NOT NULL, year INTEGER NOT NULL, start_date TEXT, end_date TEXT, city TEXT, region TEXT, country TEXT, website TEXT, wsdc_status TEXT NOT NULL, sources TEXT NOT NULL, live_window_start TEXT, live_window_end TEXT, source TEXT NOT NULL, snapshot_id TEXT NOT NULL, parser_version TEXT NOT NULL, first_seen_at TEXT NOT NULL, last_seen_at TEXT NOT NULL, run_id TEXT NOT NULL, event_month TEXT NOT NULL DEFAULT '', date_precision TEXT NOT NULL DEFAULT 'day', held TEXT NOT NULL DEFAULT 'listed', coverage_tier TEXT NOT NULL DEFAULT 'index_only', history_source TEXT NOT NULL DEFAULT '[]');
+INSERT INTO events_history(event_id,series_id,name,year,start_date,end_date,city,region,country,website,wsdc_status,sources,live_window_start,live_window_end,source,snapshot_id,parser_version,first_seen_at,last_seen_at,run_id,event_month,history_source) SELECT event_id,series_id,name,year,start_date,end_date,city,region,country,website,wsdc_status,sources,live_window_start,live_window_end,source,snapshot_id,parser_version,first_seen_at,last_seen_at,run_id,substr(end_date,1,7),'["calendar"]' FROM events;
+DROP TABLE events;
+ALTER TABLE events_history RENAME TO events;
+ALTER TABLE snapshots ADD COLUMN captured_at TEXT;
+ALTER TABLE snapshots ADD COLUMN observed_at TEXT;
+ALTER TABLE snapshots ADD COLUMN archive_url TEXT;
+ALTER TABLE snapshots ADD COLUMN requested_archive_url TEXT;
+UPDATE snapshots SET captured_at=fetched_at,observed_at=fetched_at;
+CREATE TABLE archive_captures (source TEXT NOT NULL,url TEXT NOT NULL,timestamp TEXT NOT NULL,digest TEXT NOT NULL,status INTEGER NOT NULL,mimetype TEXT NOT NULL,length INTEGER NOT NULL,queried_at TEXT NOT NULL,cdx_query_id TEXT NOT NULL,PRIMARY KEY(source,url,timestamp));
+CREATE TABLE archive_queries (query_id TEXT PRIMARY KEY,source TEXT NOT NULL,prefix TEXT NOT NULL,year INTEGER NOT NULL,next_page INTEGER NOT NULL DEFAULT 0,total_pages INTEGER,completed_at TEXT,started_at TEXT NOT NULL DEFAULT '');
+CREATE TABLE series (series_id TEXT PRIMARY KEY,name TEXT NOT NULL,website TEXT,location_raw TEXT);
+CREATE TABLE coverage (year INTEGER NOT NULL,source TEXT NOT NULL,via TEXT NOT NULL,events INTEGER NOT NULL DEFAULT 0,contests INTEGER NOT NULL DEFAULT 0,rounds INTEGER NOT NULL DEFAULT 0,entries INTEGER NOT NULL DEFAULT 0,events_registry_only INTEGER NOT NULL DEFAULT 0,events_index_only INTEGER NOT NULL DEFAULT 0,events_sheets_partial INTEGER NOT NULL DEFAULT 0,events_sheets_complete INTEGER NOT NULL DEFAULT 0,events_day_precision INTEGER NOT NULL DEFAULT 0,events_listed_only INTEGER NOT NULL DEFAULT 0,events_accepted INTEGER NOT NULL DEFAULT 0,expected_rounds INTEGER,parsed_rounds INTEGER NOT NULL DEFAULT 0,unresolved_findings INTEGER NOT NULL DEFAULT 0,last_changed_at TEXT NOT NULL,PRIMARY KEY(year,source,via));
+CREATE TABLE history_acceptance (year INTEGER PRIMARY KEY,accepted_at TEXT NOT NULL,accepted_by TEXT NOT NULL,inventory_digest TEXT NOT NULL);
+UPDATE meta SET value='3' WHERE key='schema_version';

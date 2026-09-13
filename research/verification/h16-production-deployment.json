@@ -1,0 +1,16 @@
+{
+  "active_system": "/nix/store/jvp496x98i20fqcmpz0ikam96lyihbcs-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+  "old_system": "/nix/store/0zlgf7zarcylyjik5plfi7f072mpm5k9-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+  "operator_hold": true,
+  "source": "/nix/store/d8bwqgbqi94b19l0wfgqr7a2gir1xkf5-source",
+  "source_receipt_sha256": "abb69e5f559769bd2b6ae782c290c10ff746df3783f4118a2b107e440c462983",
+  "switched_at": "2026-09-13T12:41:15.789323+00:00",
+  "units": {
+    "swingset-backup.service": "inactive",
+    "swingset-backup.timer": "inactive",
+    "swingset-cycle.service": "inactive",
+    "swingset-cycle.timer": "inactive",
+    "swingset-summary.service": "inactive",
+    "swingset-summary.timer": "inactive"
+  }
+}

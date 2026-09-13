@@ -3,13 +3,13 @@ from datetime import UTC, datetime
 
 import pytest
 
-from swingset.state.db import open_database
+from swingset.state.db import SCHEMA_VERSION, open_database
 from swingset.state.work import WorkUnit, accept_input
 
 
 def test_fresh_database_has_complete_schema(tmp_path) -> None:
     with open_database(tmp_path, lock=False) as database:
-        assert database.schema_version == 1
+        assert database.schema_version == SCHEMA_VERSION
         tables = {
             row[0]
             for row in database.connection.execute(

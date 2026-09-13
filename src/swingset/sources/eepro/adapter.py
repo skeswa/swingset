@@ -16,6 +16,7 @@ from ..base import (
     WatchSpec,
 )
 from ..common import absolute, attr, canonical_attrs, query_value, tags
+from ..interpretation import declared
 from ..records import Cell, FileRow, ResultRow, ResultTable, RoundSheet, SourceEventRow
 
 
@@ -69,6 +70,7 @@ class IndexPage:
             raise ExtractError("EEPro index has no event links")
         return rows
 
+    @declared
     def parse(self, extract: JsonValue, ctx: ParseContext) -> ParseResult:
         if not isinstance(extract, list):
             raise ExtractError("EEPro index extract is not a list")
@@ -110,7 +112,7 @@ class IndexPage:
 
 class AutoIndexPage:
     kind = "eepro.autoindex"
-    EXTRACT_VERSION = 2
+    EXTRACT_VERSION = 3
     PARSER_VERSION = 1
     change_mode = "extract"
 
@@ -122,8 +124,9 @@ class AutoIndexPage:
             link = re.search(r"<a\b([^>]*)>(.*?)</a>", inner, re.I | re.S)
             if link is None:
                 continue
-            name = re.sub(r"<[^>]+>", "", link.group(2)).strip()
             href = attr(link.group(1), "href") or ""
+            # Apache abbreviates long visible labels; href retains the filename.
+            name = urlparse(href).path.rsplit("/", 1)[-1]
             if not re.search(r"\.(?:html?|pdf)$", name, re.I):
                 continue
             files.append(
@@ -140,6 +143,7 @@ class AutoIndexPage:
             raise ExtractError("EEPro directory has no result files")
         return files
 
+    @declared
     def parse(self, extract: JsonValue, ctx: ParseContext) -> ParseResult:
         if not isinstance(extract, list):
             raise ExtractError("EEPro autoindex extract is not a list")
@@ -180,7 +184,7 @@ class AutoIndexPage:
 class RoundPage:
     kind = "eepro.round"
     EXTRACT_VERSION = 3
-    PARSER_VERSION = 6
+    PARSER_VERSION = 7
     change_mode = "validators"
 
     def extract(self, body: bytes) -> JsonValue:
@@ -202,6 +206,7 @@ class RoundPage:
             raise ExtractError("EEPro round has no result table")
         return result
 
+    @declared
     def parse(self, extract: JsonValue, ctx: ParseContext) -> ParseResult:
         if not isinstance(extract, list):
             raise ExtractError("EEPro round extract is not a list")
@@ -264,6 +269,10 @@ class RoundPage:
                 contest,
                 round_name,
                 (table,),
+                scoring_method_raw=next(
+                    (cell.text for cell in table.headers if (cell.text or "").casefold() == "avg"),
+                    None,
+                ),
             )
             sheets.append(Observation(ObservationScope("source_event", ref), payload.kind, payload))
         return ParseResult(tuple(sheets), legitimate_empty=not extract)

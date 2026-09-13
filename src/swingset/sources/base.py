@@ -4,7 +4,10 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Any, Literal, Protocol
+from typing import TYPE_CHECKING, Any, Literal, Protocol
+
+if TYPE_CHECKING:
+    from swingset.admission.report import Report
 
 type JsonScalar = None | bool | int | float | str
 # Extracts are dynamically decoded trees. Adapters validate their own shape;
@@ -81,6 +84,7 @@ class ParseResult:
     watches: tuple[WatchSpec, ...] = ()
     warnings: tuple[ParseWarning, ...] = ()
     legitimate_empty: bool = False
+    interpretation: Report | None = None
 
 
 class ExtractError(ValueError):

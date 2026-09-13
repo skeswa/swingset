@@ -1,0 +1,31 @@
+{
+  "checked_at": "2026-09-13T18:24:39.341544+00:00",
+  "scratch": "/var/tmp/swingset-h16-changelog-replay",
+  "source": "/nix/store/093lylp4naslq5yb2mygbkkgkbsar3ym-source",
+  "source_receipt_sha256": "3930dbc9f6023250a5253043ade60bd3fc90c57bda27e2c64f8520aa4c588a92",
+  "driver_sha256": "aa248cafb7349c4247cb7106a10a4cea810dc8874d4cc87a8dd48cbe687477fe",
+  "counts": [
+    [
+      "link",
+      "succeeded",
+      1123
+    ],
+    [
+      "project",
+      "succeeded",
+      32445
+    ]
+  ],
+  "units": {
+    "swingset-cycle.service": "inactive",
+    "swingset-cycle.timer": "inactive",
+    "swingset-backup.service": "inactive",
+    "swingset-backup.timer": "inactive",
+    "swingset-summary.service": "inactive",
+    "swingset-summary.timer": "inactive"
+  },
+  "active_system": "/nix/store/r29kapzbjk0ch5h0vkk288jd47dvg90j-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+  "writer_lock_available": true,
+  "authorized_scope": "complete scratch replay only; stop before build",
+  "passed": true
+}

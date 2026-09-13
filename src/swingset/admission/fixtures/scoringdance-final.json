@@ -1,0 +1,18 @@
+{
+  "archive_url": null,
+  "body_sha256": "eab39f49a9fe3b6a6f998d42fc36db19d952db582e8a8158af7f7223483762d2",
+  "captured_at": "2026-09-09T15:05:20.577803+00:00",
+  "child_count": 0,
+  "extract_sha256": "783d9f132b8feeb0192d589d94ef2c0050bba50df520260e79271e4bd0b3df7a",
+  "extract_version": "3",
+  "observation_count": 1,
+  "observed_at": "2026-09-09T15:05:20.577803+00:00",
+  "page_kind": "scoringdance.round",
+  "parser_version": "3",
+  "report_digest": "54a7ff6a174c469401d3d5dedadc201547dc89a560fb120c5c6d3a14a2d6677e",
+  "snapshot_id": "snap_20260909T150520Z_eab39f49a9fe",
+  "state_root": "/var/lib/swingset/checkpoints/v2-v1-published-20260913T0543Z",
+  "url": "https://scoring.dance/enUS/events/418/results/6011.html",
+  "via": "origin",
+  "watch_id": "2159cb805770154d"
+}

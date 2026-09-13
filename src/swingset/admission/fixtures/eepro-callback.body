@@ -1,0 +1,4145 @@
+
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Strict//EN">
+<head>
+    <title>Event Express Pro Floor Interface</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <link href="css/judgesscoresheetsyle.css?v=5" rel="stylesheet" type="text/css">
+    <script src="./jquery.js" type="text/javascript"></script>
+    <script src="./jquery.jeditable.js" type="text/javascript" charset="utf-8"></script>
+</head>
+<body>
+
+		<p>&nbsp;</p>
+		<H2><center>Summer Hummer - 2026</center></H2>
+<table border="1" cellspacing="1" cellpadding="10" align="center" width="100%">
+
+</table><p><table border="1" cellspacing="1" cellpadding="2" align="center" width="100%"><tr bgcolor='#ffae5e'><td colspan = '13'>Jack & Jill Follower Advanced Prelims - 28 competed<br>When marks are tied, lowest sum used as tiebreaker, Y=10, ALT1=4.5, ALT2=4.3, ALT3=4.2, N=0<br>All ties broken by head judge.</td></tr><tr>
+			 <td><em><strong>Count</strong></em></td>
+			 <td width="400"><em><strong>Competitor</strong></em></td><td><em><strong>Arjay Centeno</strong></em></td><td><em><strong>Bryn Anderson</strong></em></td><td><em><strong>Emily Huang</strong></em></td><td><em><strong>Flore Berne</strong></em></td><td><em><strong>Sayaka Suzaki</strong></em></td><td><em><strong>BIB</strong></em></td>
+			 <td><em><strong>Counts (Y-A-N)</strong></em></td>
+			 <td><em><strong>Sum</strong></em></td>
+			 <td><em><strong>Promote</strong></em></td>
+			 <td><em><strong>Alt</strong></em></td>
+			 </tr><tr>
+	   <td>1</td>
+					<td>Annie Ogren</td><td>Y</td><td>Y</td><td>Y</td><td>A2</td><td>Y</td><td><div class='contentblack'>612</div></td>
+					<td>4-1-0</td>
+					<td>44.3</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>2</td>
+					<td>Emily Aukamp</td><td>Y</td><td>Y</td><td>Y</td><td>N</td><td>Y</td><td><div class='contentblack'>760</div></td>
+					<td>4-0-1</td>
+					<td>40</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>2</td>
+					<td>Sydney Taylor</td><td>Y</td><td>Y</td><td>Y</td><td>N</td><td>Y</td><td><div class='contentblack'>768</div></td>
+					<td>4-0-1</td>
+					<td>40</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>2</td>
+					<td>Jing Huang</td><td>Y</td><td>Y</td><td>N</td><td>Y</td><td>Y</td><td><div class='contentblack'>779</div></td>
+					<td>4-0-1</td>
+					<td>40</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>5</td>
+					<td>Jillian Carroll</td><td>A1</td><td>Y</td><td>Y</td><td>Y</td><td>A1</td><td><div class='contentblack'>871</div></td>
+					<td>3-2-0</td>
+					<td>39</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>6</td>
+					<td>Ashley Veal</td><td>Y</td><td>A2</td><td>Y</td><td>N</td><td>Y</td><td><div class='contentblack'>598</div></td>
+					<td>3-1-1</td>
+					<td>34.3</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>7</td>
+					<td>Tegan Wilson</td><td>A3</td><td>Y</td><td>Y</td><td>N</td><td>Y</td><td><div class='contentblack'>793</div></td>
+					<td>3-1-1</td>
+					<td>34.2</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>7</td>
+					<td>Lindsey Granger</td><td>N</td><td>Y</td><td>Y</td><td>Y</td><td>A3</td><td><div class='contentblack'>800</div></td>
+					<td>3-1-1</td>
+					<td>34.2</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>9</td>
+					<td>Megan Souza</td><td>Y</td><td>N</td><td>Y</td><td>N</td><td>Y</td><td><div class='contentblack'>504</div></td>
+					<td>3-0-2</td>
+					<td>30</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>10</td>
+					<td>Bekah Breaux</td><td>A1</td><td>N</td><td>A1</td><td>Y</td><td>Y</td><td><div class='contentblack'>751</div></td>
+					<td>2-2-1</td>
+					<td>29</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>11</td>
+					<td>Maelys Fillon</td><td>Y</td><td>Y</td><td>N</td><td>A1</td><td>N</td><td><div class='contentblack'>794</div></td>
+					<td>2-1-2</td>
+					<td>24.5</td>
+					<td>X</td>
+					<td>ALT1</td>
+					</tr><tr>
+	   <td>12</td>
+					<td>Desirae Vasquez</td><td>Y</td><td>N</td><td>N</td><td>Y</td><td>A2</td><td><div class='contentblack'>845</div></td>
+					<td>2-1-2</td>
+					<td>24.3</td>
+					<td>X</td>
+					<td>ALT2</td>
+					</tr><tr>
+	   <td></td>
+					<td>Vanessa Zighelboim</td><td>N</td><td>N</td><td>N</td><td>Y</td><td>Y</td><td><div class='contentblack'>631</div></td>
+					<td>2-0-3</td>
+					<td>20</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Jessie Rosenberg</td><td>Y</td><td>N</td><td>N</td><td>Y</td><td>N</td><td><div class='contentblack'>844</div></td>
+					<td>2-0-3</td>
+					<td>20</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Maria Flores</td><td>N</td><td>A1</td><td>N</td><td>Y</td><td>A1</td><td><div class='contentblack'>625</div></td>
+					<td>1-2-2</td>
+					<td>19</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Gwen Smith</td><td>N</td><td>N</td><td>Y</td><td>N</td><td>N</td><td><div class='contentblack'>533</div></td>
+					<td>1-0-4</td>
+					<td>10</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Rosina Cleland</td><td>N</td><td>Y</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>802</div></td>
+					<td>1-0-4</td>
+					<td>10</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Alyssa Schoeller</td><td>N</td><td>N</td><td>N</td><td>Y</td><td>N</td><td><div class='contentblack'>841</div></td>
+					<td>1-0-4</td>
+					<td>10</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Rae Tardif</td><td>N</td><td>N</td><td>A1</td><td>A1</td><td>N</td><td><div class='contentblack'>975</div></td>
+					<td>0-2-3</td>
+					<td>9</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Kate Leach</td><td>N</td><td>A1</td><td>A3</td><td>N</td><td>N</td><td><div class='contentblack'>577</div></td>
+					<td>0-2-3</td>
+					<td>8.7</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Patty Houston</td><td>A2</td><td>N</td><td>N</td><td>A3</td><td>N</td><td><div class='contentblack'>692</div></td>
+					<td>0-2-3</td>
+					<td>8.5</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Heather Lombardi</td><td>N</td><td>N</td><td>A2</td><td>N</td><td>N</td><td><div class='contentblack'>879</div></td>
+					<td>0-1-4</td>
+					<td>4.3</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Catherine Cogut</td><td>N</td><td>A3</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>764</div></td>
+					<td>0-1-4</td>
+					<td>4.2</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Emily Shoov</td><td>N</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>505</div></td>
+					<td>0-0-5</td>
+					<td>0</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Asher Newman</td><td>N</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>576</div></td>
+					<td>0-0-5</td>
+					<td>0</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Alesia Haxhia</td><td>N</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>820</div></td>
+					<td>0-0-5</td>
+					<td>0</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Katia Rar</td><td>N</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>887</div></td>
+					<td>0-0-5</td>
+					<td>0</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Benjamin Yang</td><td>N</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>968</div></td>
+					<td>0-0-5</td>
+					<td>0</td>
+					<td></td>
+					<td></td>
+					</tr></table><p><table border="1" cellspacing="1" cellpadding="2" align="center" width="100%"><tr bgcolor='#ffae5e'><td colspan = '13'>Jack & Jill Follower All Star Prelims - 20 competed<br>When marks are tied, lowest sum used as tiebreaker, Y=10, ALT1=4.5, ALT2=4.3, ALT3=4.2, N=0<br>All ties broken by head judge.</td></tr><tr>
+			 <td><em><strong>Count</strong></em></td>
+			 <td width="400"><em><strong>Competitor</strong></em></td><td><em><strong>Arjay Centeno</strong></em></td><td><em><strong>Bryn Anderson</strong></em></td><td><em><strong>Emily Huang</strong></em></td><td><em><strong>Flore Berne</strong></em></td><td><em><strong>Sayaka Suzaki</strong></em></td><td><em><strong>BIB</strong></em></td>
+			 <td><em><strong>Counts (Y-A-N)</strong></em></td>
+			 <td><em><strong>Sum</strong></em></td>
+			 <td><em><strong>Promote</strong></em></td>
+			 <td><em><strong>Alt</strong></em></td>
+			 </tr><tr>
+	   <td>1</td>
+					<td>Sara Mouchon</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>536</div></td>
+					<td>5-0-0</td>
+					<td>50</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>1</td>
+					<td>Shanna Porcari</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>707</div></td>
+					<td>5-0-0</td>
+					<td>50</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>1</td>
+					<td>Jes Ann Nail</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>763</div></td>
+					<td>5-0-0</td>
+					<td>50</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>4</td>
+					<td>Heejung Jung</td><td>N</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>644</div></td>
+					<td>4-0-1</td>
+					<td>40</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>4</td>
+					<td>Lara Deni</td><td>Y</td><td>N</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>696</div></td>
+					<td>4-0-1</td>
+					<td>40</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>4</td>
+					<td>Tatiana Doldonova</td><td>N</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>857</div></td>
+					<td>4-0-1</td>
+					<td>40</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>4</td>
+					<td>Elise Renwick</td><td>Y</td><td>N</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>858</div></td>
+					<td>4-0-1</td>
+					<td>40</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>8</td>
+					<td>Charlotte Ridgway</td><td>Y</td><td>A3</td><td>A3</td><td>Y</td><td>Y</td><td><div class='contentblack'>548</div></td>
+					<td>3-2-0</td>
+					<td>38.4</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>9</td>
+					<td>Jen Ferreira</td><td>Y</td><td>Y</td><td>Y</td><td>N</td><td>A1</td><td><div class='contentblack'>847</div></td>
+					<td>3-1-1</td>
+					<td>34.5</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>9</td>
+					<td>Bella Bierezowiec</td><td>A1</td><td>Y</td><td>Y</td><td>N</td><td>Y</td><td><div class='contentblack'>884</div></td>
+					<td>3-1-1</td>
+					<td>34.5</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>11</td>
+					<td>Alli Reese</td><td>N</td><td>A2</td><td>A1</td><td>Y</td><td>A3</td><td><div class='contentblack'>738</div></td>
+					<td>1-3-1</td>
+					<td>23</td>
+					<td>X</td>
+					<td>ALT1</td>
+					</tr><tr>
+	   <td>12</td>
+					<td>Jennifer Norris</td><td>Y</td><td>N</td><td>A2</td><td>A1</td><td>N</td><td><div class='contentblack'>811</div></td>
+					<td>1-2-2</td>
+					<td>18.8</td>
+					<td>X</td>
+					<td>ALT2</td>
+					</tr><tr>
+	   <td></td>
+					<td>Renee Wasko</td><td>Y</td><td>N</td><td>N</td><td>A2</td><td>A2</td><td><div class='contentblack'>603</div></td>
+					<td>1-2-2</td>
+					<td>18.6</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Pauline Charbogne</td><td>N</td><td>Y</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>558</div></td>
+					<td>1-0-4</td>
+					<td>10</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Hyunhee Lee</td><td>N</td><td>Y</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>822</div></td>
+					<td>1-0-4</td>
+					<td>10</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Dani Mullin Darasz</td><td>N</td><td>A1</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>703</div></td>
+					<td>0-1-4</td>
+					<td>4.5</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Isabelle Roy</td><td>A2</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>701</div></td>
+					<td>0-1-4</td>
+					<td>4.3</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Abi Jennings</td><td>N</td><td>N</td><td>N</td><td>A3</td><td>N</td><td><div class='contentblack'>619</div></td>
+					<td>0-1-4</td>
+					<td>4.2</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Elizabeth Lloyd</td><td>A3</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>721</div></td>
+					<td>0-1-4</td>
+					<td>4.2</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Jenny Cadieux</td><td>N</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>749</div></td>
+					<td>0-0-5</td>
+					<td>0</td>
+					<td></td>
+					<td></td>
+					</tr></table><p><table border="1" cellspacing="1" cellpadding="2" align="center" width="100%"><tr bgcolor='#ffae5e'><td colspan = '13'>Jack & Jill Follower Champions Prelims - 13 competed<br>When marks are tied, lowest sum used as tiebreaker, Y=10, ALT1=4.5, ALT2=4.3, ALT3=4.2, N=0<br>All ties broken by head judge.</td></tr><tr>
+			 <td><em><strong>Count</strong></em></td>
+			 <td width="400"><em><strong>Competitor</strong></em></td><td><em><strong>Demery Levya</strong></em></td><td><em><strong>Jessica McCurdy</strong></em></td><td><em><strong>John Lindo</strong></em></td><td><em><strong>LeAnn Norris</strong></em></td><td><em><strong>Michael Norris</strong></em></td><td><em><strong>BIB</strong></em></td>
+			 <td><em><strong>Counts (Y-A-N)</strong></em></td>
+			 <td><em><strong>Sum</strong></em></td>
+			 <td><em><strong>Promote</strong></em></td>
+			 <td><em><strong>Alt</strong></em></td>
+			 </tr><tr>
+	   <td>1</td>
+					<td>Alexis Garrish</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>818</div></td>
+					<td>5-0-0</td>
+					<td>50</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>1</td>
+					<td>Bryn Anderson</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>855</div></td>
+					<td>5-0-0</td>
+					<td>50</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>3</td>
+					<td>Mackenzie Keister</td><td>Y</td><td>Y</td><td>A2</td><td>Y</td><td>Y</td><td><div class='contentblack'>573</div></td>
+					<td>4-1-0</td>
+					<td>44.3</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>4</td>
+					<td>Emily Huang</td><td>Y</td><td>A3</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>731</div></td>
+					<td>4-1-0</td>
+					<td>44.2</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>5</td>
+					<td>Mia Pastor</td><td>Y</td><td>Y</td><td>N</td><td>Y</td><td>Y</td><td><div class='contentblack'>832</div></td>
+					<td>4-0-1</td>
+					<td>40</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>6</td>
+					<td>Melodie Paletta</td><td>Y</td><td>A1</td><td>Y</td><td>A1</td><td>Y</td><td><div class='contentblack'>563</div></td>
+					<td>3-2-0</td>
+					<td>39</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>6</td>
+					<td>Mia Primavera</td><td>A1</td><td>Y</td><td>Y</td><td>Y</td><td>A1</td><td><div class='contentblack'>587</div></td>
+					<td>3-2-0</td>
+					<td>39</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Sonya Dessureault</td><td>A2</td><td>A2</td><td>A1</td><td>A3</td><td>A3</td><td><div class='contentblack'>544</div></td>
+					<td>0-5-0</td>
+					<td>21.5</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Flore Berne</td><td>A3</td><td>N</td><td>Y</td><td>A2</td><td>N</td><td><div class='contentblack'>740</div></td>
+					<td>1-2-2</td>
+					<td>18.5</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Nataliya Kane</td><td>N</td><td>Y</td><td>N</td><td>N</td><td>A2</td><td><div class='contentblack'>787</div></td>
+					<td>1-1-3</td>
+					<td>14.3</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Kristen Wallace</td><td>N</td><td>N</td><td>A3</td><td>N</td><td>N</td><td><div class='contentblack'>643</div></td>
+					<td>0-1-4</td>
+					<td>4.2</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Nicole Zwerlein</td><td>N</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>645</div></td>
+					<td>0-0-5</td>
+					<td>0</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Ksenia Nomberg</td><td>N</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>821</div></td>
+					<td>0-0-5</td>
+					<td>0</td>
+					<td></td>
+					<td></td>
+					</tr></table><p><table border="1" cellspacing="1" cellpadding="2" align="center" width="100%"><tr bgcolor='#ffae5e'><td colspan = '13'>Jack & Jill Follower Intermediate Prelims - 53 competed<br>When marks are tied, lowest sum used as tiebreaker, Y=10, ALT1=4.5, ALT2=4.3, ALT3=4.2, N=0<br>All ties broken by head judge.</td></tr><tr>
+			 <td><em><strong>Count</strong></em></td>
+			 <td width="400"><em><strong>Competitor</strong></em></td><td><em><strong>Derek Levya</strong></em></td><td><em><strong>Melodie Paletta</strong></em></td><td><em><strong>Mia Pastor</strong></em></td><td><em><strong>Nicole Zwerlein</strong></em></td><td><em><strong>Sayaka Suzaki</strong></em></td><td><em><strong>BIB</strong></em></td>
+			 <td><em><strong>Counts (Y-A-N)</strong></em></td>
+			 <td><em><strong>Sum</strong></em></td>
+			 <td><em><strong>Promote</strong></em></td>
+			 <td><em><strong>Alt</strong></em></td>
+			 </tr><tr>
+	   <td>1</td>
+					<td>Alice Stratmann</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>561</div></td>
+					<td>5-0-0</td>
+					<td>50</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>1</td>
+					<td>Ariane Martel-Theoret</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>649</div></td>
+					<td>5-0-0</td>
+					<td>50</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>1</td>
+					<td>Melissa Liao</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>695</div></td>
+					<td>5-0-0</td>
+					<td>50</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>1</td>
+					<td>Kaitlyn McGuire</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>790</div></td>
+					<td>5-0-0</td>
+					<td>50</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>1</td>
+					<td>Makayla Heinle</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>935</div></td>
+					<td>5-0-0</td>
+					<td>50</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>6</td>
+					<td>Dario Haxhia</td><td>A1</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>602</div></td>
+					<td>4-1-0</td>
+					<td>44.5</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>6</td>
+					<td>Christa Sparks</td><td>Y</td><td>A1</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>711</div></td>
+					<td>4-1-0</td>
+					<td>44.5</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>8</td>
+					<td>Shay Culpepper</td><td>N</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>540</div></td>
+					<td>4-0-1</td>
+					<td>40</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>8</td>
+					<td>Tina Lin</td><td>Y</td><td>N</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>550</div></td>
+					<td>4-0-1</td>
+					<td>40</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>8</td>
+					<td>Rachel Little</td><td>Y</td><td>Y</td><td>N</td><td>Y</td><td>Y</td><td><div class='contentblack'>555</div></td>
+					<td>4-0-1</td>
+					<td>40</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>8</td>
+					<td>Bella Belarmino</td><td>Y</td><td>N</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>556</div></td>
+					<td>4-0-1</td>
+					<td>40</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>8</td>
+					<td>Garrett Maglio</td><td>Y</td><td>N</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>689</div></td>
+					<td>4-0-1</td>
+					<td>40</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>8</td>
+					<td>Jessica King</td><td>Y</td><td>Y</td><td>N</td><td>Y</td><td>Y</td><td><div class='contentblack'>697</div></td>
+					<td>4-0-1</td>
+					<td>40</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>8</td>
+					<td>Kareen Rivera</td><td>Y</td><td>Y</td><td>Y</td><td>N</td><td>Y</td><td><div class='contentblack'>737</div></td>
+					<td>4-0-1</td>
+					<td>40</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>8</td>
+					<td>Roxanne Brulé</td><td>Y</td><td>N</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>747</div></td>
+					<td>4-0-1</td>
+					<td>40</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>16</td>
+					<td>Anastasia Vanekhina</td><td>N</td><td>A3</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>570</div></td>
+					<td>3-1-1</td>
+					<td>34.2</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>16</td>
+					<td>Danielle Considine</td><td>Y</td><td>Y</td><td>A3</td><td>Y</td><td>N</td><td><div class='contentblack'>756</div></td>
+					<td>3-1-1</td>
+					<td>34.2</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>18</td>
+					<td>Betty Quinn</td><td>N</td><td>Y</td><td>N</td><td>Y</td><td>Y</td><td><div class='contentblack'>506</div></td>
+					<td>3-0-2</td>
+					<td>30</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>18</td>
+					<td>Leah Lawrence</td><td>N</td><td>Y</td><td>N</td><td>Y</td><td>Y</td><td><div class='contentblack'>513</div></td>
+					<td>3-0-2</td>
+					<td>30</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>18</td>
+					<td>Madi Fabber</td><td>Y</td><td>N</td><td>Y</td><td>N</td><td>Y</td><td><div class='contentblack'>531</div></td>
+					<td>3-0-2</td>
+					<td>30</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>18</td>
+					<td>Cristina Sinn</td><td>N</td><td>Y</td><td>Y</td><td>Y</td><td>N</td><td><div class='contentblack'>595</div></td>
+					<td>3-0-2</td>
+					<td>30</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>18</td>
+					<td>Domenica Dunnigan</td><td>N</td><td>Y</td><td>N</td><td>Y</td><td>Y</td><td><div class='contentblack'>748</div></td>
+					<td>3-0-2</td>
+					<td>30</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>18</td>
+					<td>Victoria Bian</td><td>Y</td><td>Y</td><td>Y</td><td>N</td><td>N</td><td><div class='contentblack'>755</div></td>
+					<td>3-0-2</td>
+					<td>30</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>18</td>
+					<td>Lucia Huo</td><td>N</td><td>Y</td><td>Y</td><td>N</td><td>Y</td><td><div class='contentblack'>762</div></td>
+					<td>3-0-2</td>
+					<td>30</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Elaine Anderson</td><td>Y</td><td>Y</td><td>N</td><td>N</td><td>A1</td><td><div class='contentblack'>596</div></td>
+					<td>2-1-2</td>
+					<td>24.5</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>María Aguirre Roquero</td><td>N</td><td>Y</td><td>Y</td><td>N</td><td>N</td><td><div class='contentblack'>526</div></td>
+					<td>2-0-3</td>
+					<td>20</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Nadege Lebert</td><td>Y</td><td>N</td><td>Y</td><td>N</td><td>N</td><td><div class='contentblack'>580</div></td>
+					<td>2-0-3</td>
+					<td>20</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Melissa Miller</td><td>Y</td><td>N</td><td>Y</td><td>N</td><td>N</td><td><div class='contentblack'>583</div></td>
+					<td>2-0-3</td>
+					<td>20</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Orian Breaux</td><td>Y</td><td>N</td><td>N</td><td>Y</td><td>N</td><td><div class='contentblack'>624</div></td>
+					<td>2-0-3</td>
+					<td>20</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Jennifer Shipley</td><td>N</td><td>Y</td><td>N</td><td>Y</td><td>N</td><td><div class='contentblack'>660</div></td>
+					<td>2-0-3</td>
+					<td>20</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Shannon Ball</td><td>Y</td><td>N</td><td>Y</td><td>N</td><td>N</td><td><div class='contentblack'>750</div></td>
+					<td>2-0-3</td>
+					<td>20</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Claire McCarthy</td><td>Y</td><td>N</td><td>Y</td><td>N</td><td>N</td><td><div class='contentblack'>809</div></td>
+					<td>2-0-3</td>
+					<td>20</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Tia Batallas</td><td>N</td><td>N</td><td>A1</td><td>Y</td><td>N</td><td><div class='contentblack'>601</div></td>
+					<td>1-1-3</td>
+					<td>14.5</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Carol Klarman</td><td>N</td><td>Y</td><td>A2</td><td>N</td><td>N</td><td><div class='contentblack'>541</div></td>
+					<td>1-1-3</td>
+					<td>14.3</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Valerie Higgins</td><td>N</td><td>N</td><td>Y</td><td>A2</td><td>N</td><td><div class='contentblack'>754</div></td>
+					<td>1-1-3</td>
+					<td>14.3</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Lara Beecher</td><td>Y</td><td>N</td><td>N</td><td>N</td><td>A2</td><td><div class='contentblack'>901</div></td>
+					<td>1-1-3</td>
+					<td>14.3</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Betty Peng</td><td>N</td><td>N</td><td>N</td><td>A3</td><td>Y</td><td><div class='contentblack'>579</div></td>
+					<td>1-1-3</td>
+					<td>14.2</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Renee Young</td><td>A3</td><td>Y</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>664</div></td>
+					<td>1-1-3</td>
+					<td>14.2</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Micha Hamady</td><td>A2</td><td>N</td><td>N</td><td>A1</td><td>A3</td><td><div class='contentblack'>735</div></td>
+					<td>0-3-2</td>
+					<td>13</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Shalyn Palmateer</td><td>N</td><td>N</td><td>N</td><td>N</td><td>Y</td><td><div class='contentblack'>512</div></td>
+					<td>1-0-4</td>
+					<td>10</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Amanda LaVigne</td><td>N</td><td>N</td><td>N</td><td>Y</td><td>N</td><td><div class='contentblack'>662</div></td>
+					<td>1-0-4</td>
+					<td>10</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Renee Ulbinsky</td><td>N</td><td>Y</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>765</div></td>
+					<td>1-0-4</td>
+					<td>10</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Eliot Heinrich</td><td>N</td><td>Y</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>783</div></td>
+					<td>1-0-4</td>
+					<td>10</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Alexis Boudreau</td><td>N</td><td>N</td><td>N</td><td>N</td><td>Y</td><td><div class='contentblack'>873</div></td>
+					<td>1-0-4</td>
+					<td>10</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Frédérique Gosselin</td><td>Y</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>900</div></td>
+					<td>1-0-4</td>
+					<td>10</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Kimberly Ritter</td><td>N</td><td>A2</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>774</div></td>
+					<td>0-1-4</td>
+					<td>4.3</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Amy Danziger</td><td>N</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>618</div></td>
+					<td>0-0-5</td>
+					<td>0</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Fanny Herisson</td><td>N</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>623</div></td>
+					<td>0-0-5</td>
+					<td>0</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Patty Gray</td><td>N</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>639</div></td>
+					<td>0-0-5</td>
+					<td>0</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Sam Smith</td><td>N</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>659</div></td>
+					<td>0-0-5</td>
+					<td>0</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Kaiano Levine</td><td>N</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>682</div></td>
+					<td>0-0-5</td>
+					<td>0</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Valerie Pamphile</td><td>N</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>726</div></td>
+					<td>0-0-5</td>
+					<td>0</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Maria Chang</td><td>N</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>868</div></td>
+					<td>0-0-5</td>
+					<td>0</td>
+					<td></td>
+					<td></td>
+					</tr></table><p><table border="1" cellspacing="1" cellpadding="2" align="center" width="100%"><tr bgcolor='#ffae5e'><td colspan = '13'>Jack & Jill Follower Intermediate Semis - 24 competed<br>When marks are tied, lowest sum used as tiebreaker, Y=10, ALT1=4.5, ALT2=4.3, ALT3=4.2, N=0<br>All ties broken by head judge.</td></tr><tr>
+			 <td><em><strong>Count</strong></em></td>
+			 <td width="400"><em><strong>Competitor</strong></em></td><td><em><strong>Derek Levya</strong></em></td><td><em><strong>Melodie Paletta</strong></em></td><td><em><strong>Mia Pastor</strong></em></td><td><em><strong>Nicole Zwerlein</strong></em></td><td><em><strong>Sayaka Suzaki</strong></em></td><td><em><strong>BIB</strong></em></td>
+			 <td><em><strong>Counts (Y-A-N)</strong></em></td>
+			 <td><em><strong>Sum</strong></em></td>
+			 <td><em><strong>Promote</strong></em></td>
+			 <td><em><strong>Alt</strong></em></td>
+			 </tr><tr>
+	   <td>1</td>
+					<td>Alice Stratmann</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>561</div></td>
+					<td>5-0-0</td>
+					<td>50</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>1</td>
+					<td>Dario Haxhia</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>602</div></td>
+					<td>5-0-0</td>
+					<td>50</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>3</td>
+					<td>Makayla Heinle</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td>A1</td><td><div class='contentblack'>935</div></td>
+					<td>4-1-0</td>
+					<td>44.5</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>4</td>
+					<td>Anastasia Vanekhina</td><td>Y</td><td>N</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>570</div></td>
+					<td>4-0-1</td>
+					<td>40</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>4</td>
+					<td>Ariane Martel-Theoret</td><td>Y</td><td>Y</td><td>N</td><td>Y</td><td>Y</td><td><div class='contentblack'>649</div></td>
+					<td>4-0-1</td>
+					<td>40</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>4</td>
+					<td>Kaitlyn McGuire</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td>N</td><td><div class='contentblack'>790</div></td>
+					<td>4-0-1</td>
+					<td>40</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>7</td>
+					<td>Roxanne Brulé</td><td>N</td><td>Y</td><td>A1</td><td>Y</td><td>Y</td><td><div class='contentblack'>747</div></td>
+					<td>3-1-1</td>
+					<td>34.5</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>7</td>
+					<td>Lucia Huo</td><td>Y</td><td>A1</td><td>Y</td><td>Y</td><td>N</td><td><div class='contentblack'>762</div></td>
+					<td>3-1-1</td>
+					<td>34.5</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>9</td>
+					<td>Garrett Maglio</td><td>Y</td><td>N</td><td>Y</td><td>Y</td><td>A3</td><td><div class='contentblack'>689</div></td>
+					<td>3-1-1</td>
+					<td>34.2</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>10</td>
+					<td>Shay Culpepper</td><td>N</td><td>Y</td><td>Y</td><td>N</td><td>Y</td><td><div class='contentblack'>540</div></td>
+					<td>3-0-2</td>
+					<td>30</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>10</td>
+					<td>Bella Belarmino</td><td>N</td><td>Y</td><td>Y</td><td>N</td><td>Y</td><td><div class='contentblack'>556</div></td>
+					<td>3-0-2</td>
+					<td>30</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>10</td>
+					<td>Melissa Liao</td><td>Y</td><td>Y</td><td>N</td><td>Y</td><td>N</td><td><div class='contentblack'>695</div></td>
+					<td>3-0-2</td>
+					<td>30</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>10</td>
+					<td>Danielle Considine</td><td>Y</td><td>Y</td><td>N</td><td>Y</td><td>N</td><td><div class='contentblack'>756</div></td>
+					<td>3-0-2</td>
+					<td>30</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>14</td>
+					<td>Madi Fabber</td><td>A1</td><td>N</td><td>Y</td><td>N</td><td>Y</td><td><div class='contentblack'>531</div></td>
+					<td>2-1-2</td>
+					<td>24.5</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>15</td>
+					<td>Christa Sparks</td><td>Y</td><td>N</td><td>A2</td><td>N</td><td>Y</td><td><div class='contentblack'>711</div></td>
+					<td>2-1-2</td>
+					<td>24.3</td>
+					<td>X</td>
+					<td>ALT1</td>
+					</tr><tr>
+	   <td>16</td>
+					<td>Kareen Rivera</td><td>Y</td><td>Y</td><td>A3</td><td>N</td><td>N</td><td><div class='contentblack'>737</div></td>
+					<td>2-1-2</td>
+					<td>24.2</td>
+					<td>X</td>
+					<td>ALT2</td>
+					</tr><tr>
+	   <td></td>
+					<td>Tina Lin</td><td>N</td><td>N</td><td>Y</td><td>N</td><td>Y</td><td><div class='contentblack'>550</div></td>
+					<td>2-0-3</td>
+					<td>20</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Rachel Little</td><td>A2</td><td>Y</td><td>N</td><td>A2</td><td>N</td><td><div class='contentblack'>555</div></td>
+					<td>1-2-2</td>
+					<td>18.6</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Leah Lawrence</td><td>A3</td><td>A3</td><td>N</td><td>Y</td><td>N</td><td><div class='contentblack'>513</div></td>
+					<td>1-2-2</td>
+					<td>18.4</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Victoria Bian</td><td>N</td><td>A2</td><td>Y</td><td>N</td><td>N</td><td><div class='contentblack'>755</div></td>
+					<td>1-1-3</td>
+					<td>14.3</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Betty Quinn</td><td>N</td><td>N</td><td>N</td><td>A3</td><td>Y</td><td><div class='contentblack'>506</div></td>
+					<td>1-1-3</td>
+					<td>14.2</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Domenica Dunnigan</td><td>N</td><td>N</td><td>N</td><td>N</td><td>Y</td><td><div class='contentblack'>748</div></td>
+					<td>1-0-4</td>
+					<td>10</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Cristina Sinn</td><td>N</td><td>N</td><td>N</td><td>A1</td><td>N</td><td><div class='contentblack'>595</div></td>
+					<td>0-1-4</td>
+					<td>4.5</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Jessica King</td><td>N</td><td>N</td><td>N</td><td>N</td><td>A2</td><td><div class='contentblack'>697</div></td>
+					<td>0-1-4</td>
+					<td>4.3</td>
+					<td></td>
+					<td></td>
+					</tr></table><p><table border="1" cellspacing="1" cellpadding="2" align="center" width="100%"><tr bgcolor='#ffae5e'><td colspan = '13'>Jack & Jill Follower Masters Prelims - 16 competed<br>When marks are tied, lowest sum used as tiebreaker, Y=10, ALT1=4.5, ALT2=4.3, ALT3=4.2, N=0<br>All ties broken by head judge.</td></tr><tr>
+			 <td><em><strong>Count</strong></em></td>
+			 <td width="400"><em><strong>Competitor</strong></em></td><td><em><strong>Derek Levya</strong></em></td><td><em><strong>Melodie Paletta</strong></em></td><td><em><strong>Mia Pastor</strong></em></td><td><em><strong>Nicole Zwerlein</strong></em></td><td><em><strong>Sayaka Suzaki</strong></em></td><td><em><strong>BIB</strong></em></td>
+			 <td><em><strong>Counts (Y-A-N)</strong></em></td>
+			 <td><em><strong>Sum</strong></em></td>
+			 <td><em><strong>Promote</strong></em></td>
+			 <td><em><strong>Alt</strong></em></td>
+			 </tr><tr>
+	   <td>1</td>
+					<td>Catherine Miu</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>515</div></td>
+					<td>5-0-0</td>
+					<td>50</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>1</td>
+					<td>Tristan Tariao-Lee</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>674</div></td>
+					<td>5-0-0</td>
+					<td>50</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>3</td>
+					<td>Renee Ulbinsky</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td>A3</td><td><div class='contentblack'>765</div></td>
+					<td>4-1-0</td>
+					<td>44.2</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>4</td>
+					<td>Laura C</td><td>Y</td><td>Y</td><td>Y</td><td>N</td><td>Y</td><td><div class='contentblack'>673</div></td>
+					<td>4-0-1</td>
+					<td>40</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>5</td>
+					<td>Micha Hamady</td><td>A2</td><td>A1</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>735</div></td>
+					<td>3-2-0</td>
+					<td>38.8</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>6</td>
+					<td>Albana Haxhia</td><td>A3</td><td>N</td><td>A1</td><td>Y</td><td>Y</td><td><div class='contentblack'>615</div></td>
+					<td>2-2-1</td>
+					<td>28.7</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>7</td>
+					<td>Carol Klarman</td><td>Y</td><td>Y</td><td>A2</td><td>N</td><td>N</td><td><div class='contentblack'>541</div></td>
+					<td>2-1-2</td>
+					<td>24.3</td>
+					<td>X</td>
+					<td>ALT1</td>
+					</tr><tr>
+	   <td>8</td>
+					<td>Ava Berinstein</td><td>A1</td><td>N</td><td>N</td><td>A3</td><td>A2</td><td><div class='contentblack'>795</div></td>
+					<td>0-3-2</td>
+					<td>13</td>
+					<td>X</td>
+					<td>ALT2</td>
+					</tr><tr>
+	   <td></td>
+					<td>Maria Chang</td><td>N</td><td>N</td><td>N</td><td>A1</td><td>A1</td><td><div class='contentblack'>868</div></td>
+					<td>0-2-3</td>
+					<td>9</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Alison Bert</td><td>N</td><td>A2</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>553</div></td>
+					<td>0-1-4</td>
+					<td>4.3</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Malgorzata Trocka</td><td>N</td><td>N</td><td>N</td><td>A2</td><td>N</td><td><div class='contentblack'>636</div></td>
+					<td>0-1-4</td>
+					<td>4.3</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Amy Danziger</td><td>N</td><td>A3</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>618</div></td>
+					<td>0-1-4</td>
+					<td>4.2</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Patty Gray</td><td>N</td><td>N</td><td>A3</td><td>N</td><td>N</td><td><div class='contentblack'>639</div></td>
+					<td>0-1-4</td>
+					<td>4.2</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Ligaya MacGregor</td><td>N</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>640</div></td>
+					<td>0-0-5</td>
+					<td>0</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Tracey Smith</td><td>N</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>690</div></td>
+					<td>0-0-5</td>
+					<td>0</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Donna Warner</td><td>N</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>972</div></td>
+					<td>0-0-5</td>
+					<td>0</td>
+					<td></td>
+					<td></td>
+					</tr></table><p><table border="1" cellspacing="1" cellpadding="2" align="center" width="100%"><tr bgcolor='#ffae5e'><td colspan = '13'>Jack & Jill Follower Newcomer Prelims - 19 competed<br>When marks are tied, lowest sum used as tiebreaker, Y=10, ALT1=4.5, ALT2=4.3, ALT3=4.2, N=0<br>All ties broken by head judge.</td></tr><tr>
+			 <td><em><strong>Count</strong></em></td>
+			 <td width="400"><em><strong>Competitor</strong></em></td><td><em><strong>Derek Levya</strong></em></td><td><em><strong>Melodie Paletta</strong></em></td><td><em><strong>Mia Pastor</strong></em></td><td><em><strong>Nicole Zwerlein</strong></em></td><td><em><strong>Sayaka Suzaki</strong></em></td><td><em><strong>BIB</strong></em></td>
+			 <td><em><strong>Counts (Y-A-N)</strong></em></td>
+			 <td><em><strong>Sum</strong></em></td>
+			 <td><em><strong>Promote</strong></em></td>
+			 <td><em><strong>Alt</strong></em></td>
+			 </tr><tr>
+	   <td>1</td>
+					<td>Emily Harris</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>525</div></td>
+					<td>5-0-0</td>
+					<td>50</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>1</td>
+					<td>Ashley J. Mandanas</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>702</div></td>
+					<td>5-0-0</td>
+					<td>50</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>1</td>
+					<td>Kayla Oster</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>904</div></td>
+					<td>5-0-0</td>
+					<td>50</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>4</td>
+					<td>Rachel Sklair</td><td>Y</td><td>Y</td><td>Y</td><td>A2</td><td>Y</td><td><div class='contentblack'>535</div></td>
+					<td>4-1-0</td>
+					<td>44.3</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>5</td>
+					<td>Abigail Wahl</td><td>Y</td><td>Y</td><td>A1</td><td>Y</td><td>A1</td><td><div class='contentblack'>651</div></td>
+					<td>3-2-0</td>
+					<td>39</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>6</td>
+					<td>Eliza Duggan</td><td>N</td><td>N</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>604</div></td>
+					<td>3-0-2</td>
+					<td>30</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>6</td>
+					<td>Sofia Lee</td><td>N</td><td>Y</td><td>N</td><td>Y</td><td>Y</td><td><div class='contentblack'>842</div></td>
+					<td>3-0-2</td>
+					<td>30</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>8</td>
+					<td>Fiona Seibert</td><td>A2</td><td>A1</td><td>N</td><td>A1</td><td>N</td><td><div class='contentblack'>772</div></td>
+					<td>0-3-2</td>
+					<td>13.3</td>
+					<td>X</td>
+					<td>ALT1</td>
+					</tr><tr>
+	   <td>9</td>
+					<td>Isabella Montuori</td><td>A3</td><td>N</td><td>A3</td><td>N</td><td>A3</td><td><div class='contentblack'>672</div></td>
+					<td>0-3-2</td>
+					<td>12.6</td>
+					<td>X</td>
+					<td>ALT2</td>
+					</tr><tr>
+	   <td></td>
+					<td>Wendy Gross-pinto</td><td>N</td><td>N</td><td>Y</td><td>N</td><td>N</td><td><div class='contentblack'>566</div></td>
+					<td>1-0-4</td>
+					<td>10</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Stephanie Woreth</td><td>Y</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>688</div></td>
+					<td>1-0-4</td>
+					<td>10</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Hanna Hillman</td><td>N</td><td>N</td><td>A2</td><td>N</td><td>A2</td><td><div class='contentblack'>538</div></td>
+					<td>0-2-3</td>
+					<td>8.6</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Lauren McDonough</td><td>A1</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>654</div></td>
+					<td>0-1-4</td>
+					<td>4.5</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Boris Yelin</td><td>N</td><td>A2</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>516</div></td>
+					<td>0-1-4</td>
+					<td>4.3</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Roman Zapata</td><td>N</td><td>A3</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>584</div></td>
+					<td>0-1-4</td>
+					<td>4.2</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Shasha Lin</td><td>N</td><td>N</td><td>N</td><td>A3</td><td>N</td><td><div class='contentblack'>773</div></td>
+					<td>0-1-4</td>
+					<td>4.2</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Casey Raymond</td><td>N</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>616</div></td>
+					<td>0-0-5</td>
+					<td>0</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Ragnar Kempf</td><td>N</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>805</div></td>
+					<td>0-0-5</td>
+					<td>0</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Whitney McKnight</td><td>N</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>881</div></td>
+					<td>0-0-5</td>
+					<td>0</td>
+					<td></td>
+					<td></td>
+					</tr></table><p><table border="1" cellspacing="1" cellpadding="2" align="center" width="100%"><tr bgcolor='#ffae5e'><td colspan = '13'>Jack & Jill Follower Novice Prelims - 69 competed<br>When marks are tied, lowest sum used as tiebreaker, Y=10, ALT1=4.5, ALT2=4.3, ALT3=4.2, N=0<br>All ties broken by head judge.</td></tr><tr>
+			 <td><em><strong>Count</strong></em></td>
+			 <td width="400"><em><strong>Competitor</strong></em></td><td><em><strong>Derek Levya</strong></em></td><td><em><strong>Melodie Paletta</strong></em></td><td><em><strong>Mia Pastor</strong></em></td><td><em><strong>Nicole Zwerlein</strong></em></td><td><em><strong>Sayaka Suzaki</strong></em></td><td><em><strong>BIB</strong></em></td>
+			 <td><em><strong>Counts (Y-A-N)</strong></em></td>
+			 <td><em><strong>Sum</strong></em></td>
+			 <td><em><strong>Promote</strong></em></td>
+			 <td><em><strong>Alt</strong></em></td>
+			 </tr><tr>
+	   <td>1</td>
+					<td>Laura Mellado</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>552</div></td>
+					<td>5-0-0</td>
+					<td>50</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>1</td>
+					<td>Erica Lin</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>568</div></td>
+					<td>5-0-0</td>
+					<td>50</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>1</td>
+					<td>Caroline Kruis</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>650</div></td>
+					<td>5-0-0</td>
+					<td>50</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>1</td>
+					<td>Rachel Madrigal</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>669</div></td>
+					<td>5-0-0</td>
+					<td>50</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>1</td>
+					<td>Nancy Vachon</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>677</div></td>
+					<td>5-0-0</td>
+					<td>50</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>1</td>
+					<td>Kristina Riccio</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>717</div></td>
+					<td>5-0-0</td>
+					<td>50</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>1</td>
+					<td>Millicent Jiang</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>759</div></td>
+					<td>5-0-0</td>
+					<td>50</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>1</td>
+					<td>Kathryn Noel</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>798</div></td>
+					<td>5-0-0</td>
+					<td>50</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>9</td>
+					<td>Isabelle Wolansky</td><td>Y</td><td>Y</td><td>A1</td><td>Y</td><td>Y</td><td><div class='contentblack'>569</div></td>
+					<td>4-1-0</td>
+					<td>44.5</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>10</td>
+					<td>Thomas Crockett</td><td>Y</td><td>Y</td><td>Y</td><td>A2</td><td>Y</td><td><div class='contentblack'>551</div></td>
+					<td>4-1-0</td>
+					<td>44.3</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>10</td>
+					<td>Katherine Ryan</td><td>A2</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>572</div></td>
+					<td>4-1-0</td>
+					<td>44.3</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>12</td>
+					<td>Elza Duarte</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td>N</td><td><div class='contentblack'>530</div></td>
+					<td>4-0-1</td>
+					<td>40</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>12</td>
+					<td>Genevieve Barnett</td><td>N</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>606</div></td>
+					<td>4-0-1</td>
+					<td>40</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>12</td>
+					<td>Erin Campagna</td><td>Y</td><td>N</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>610</div></td>
+					<td>4-0-1</td>
+					<td>40</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>12</td>
+					<td>Yaelle Moses</td><td>Y</td><td>Y</td><td>N</td><td>Y</td><td>Y</td><td><div class='contentblack'>666</div></td>
+					<td>4-0-1</td>
+					<td>40</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>12</td>
+					<td>Casey Su-Morrill</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td>N</td><td><div class='contentblack'>706</div></td>
+					<td>4-0-1</td>
+					<td>40</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>12</td>
+					<td>Sabrina Mazer</td><td>Y</td><td>N</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>718</div></td>
+					<td>4-0-1</td>
+					<td>40</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>18</td>
+					<td>Véronique Lapierre</td><td>Y</td><td>A1</td><td>N</td><td>Y</td><td>Y</td><td><div class='contentblack'>545</div></td>
+					<td>3-1-1</td>
+					<td>34.5</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>18</td>
+					<td>Joelle White</td><td>Y</td><td>Y</td><td>Y</td><td>N</td><td>A1</td><td><div class='contentblack'>641</div></td>
+					<td>3-1-1</td>
+					<td>34.5</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>18</td>
+					<td>Anya Keller</td><td>Y</td><td>Y</td><td>N</td><td>A1</td><td>Y</td><td><div class='contentblack'>656</div></td>
+					<td>3-1-1</td>
+					<td>34.5</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>21</td>
+					<td>Claire Hotvedt</td><td>Y</td><td>Y</td><td>N</td><td>Y</td><td>A2</td><td><div class='contentblack'>866</div></td>
+					<td>3-1-1</td>
+					<td>34.3</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>22</td>
+					<td>Julia Dupere</td><td>N</td><td>Y</td><td>Y</td><td>N</td><td>Y</td><td><div class='contentblack'>585</div></td>
+					<td>3-0-2</td>
+					<td>30</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>22</td>
+					<td>Samantha Eller</td><td>N</td><td>Y</td><td>Y</td><td>N</td><td>Y</td><td><div class='contentblack'>586</div></td>
+					<td>3-0-2</td>
+					<td>30</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>22</td>
+					<td>Kevin Yuanzhi Chen</td><td>N</td><td>Y</td><td>Y</td><td>Y</td><td>N</td><td><div class='contentblack'>588</div></td>
+					<td>3-0-2</td>
+					<td>30</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>22</td>
+					<td>Elizabeth DeFreitas</td><td>Y</td><td>N</td><td>Y</td><td>Y</td><td>N</td><td><div class='contentblack'>626</div></td>
+					<td>3-0-2</td>
+					<td>30</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>22</td>
+					<td>Octavia Buliman</td><td>N</td><td>N</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>637</div></td>
+					<td>3-0-2</td>
+					<td>30</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>22</td>
+					<td>Tom Tseng</td><td>Y</td><td>Y</td><td>N</td><td>Y</td><td>N</td><td><div class='contentblack'>730</div></td>
+					<td>3-0-2</td>
+					<td>30</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>22</td>
+					<td>Ann Walkup</td><td>Y</td><td>Y</td><td>N</td><td>N</td><td>Y</td><td><div class='contentblack'>770</div></td>
+					<td>3-0-2</td>
+					<td>30</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>YiLin Zhao</td><td>N</td><td>A2</td><td>Y</td><td>N</td><td>Y</td><td><div class='contentblack'>592</div></td>
+					<td>2-1-2</td>
+					<td>24.3</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Clare Carlow</td><td>Y</td><td>N</td><td>A2</td><td>Y</td><td>N</td><td><div class='contentblack'>988</div></td>
+					<td>2-1-2</td>
+					<td>24.3</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Maretta Morovitz</td><td>N</td><td>N</td><td>Y</td><td>N</td><td>Y</td><td><div class='contentblack'>508</div></td>
+					<td>2-0-3</td>
+					<td>20</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Lianne Blodgett</td><td>N</td><td>Y</td><td>N</td><td>N</td><td>Y</td><td><div class='contentblack'>597</div></td>
+					<td>2-0-3</td>
+					<td>20</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Christina de Bruyn Kops</td><td>N</td><td>Y</td><td>Y</td><td>N</td><td>N</td><td><div class='contentblack'>776</div></td>
+					<td>2-0-3</td>
+					<td>20</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Eloise Flechon</td><td>N</td><td>Y</td><td>Y</td><td>N</td><td>N</td><td><div class='contentblack'>804</div></td>
+					<td>2-0-3</td>
+					<td>20</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Ya-Ching Liu</td><td>Y</td><td>N</td><td>A3</td><td>A3</td><td>N</td><td><div class='contentblack'>670</div></td>
+					<td>1-2-2</td>
+					<td>18.4</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Katherine Cunningham</td><td>A1</td><td>Y</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>713</div></td>
+					<td>1-1-3</td>
+					<td>14.5</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Lauren Duffy</td><td>N</td><td>N</td><td>N</td><td>Y</td><td>A3</td><td><div class='contentblack'>501</div></td>
+					<td>1-1-3</td>
+					<td>14.2</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Sarah Dziedzic</td><td>N</td><td>N</td><td>N</td><td>Y</td><td>N</td><td><div class='contentblack'>522</div></td>
+					<td>1-0-4</td>
+					<td>10</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Briana Cologna</td><td>N</td><td>N</td><td>N</td><td>N</td><td>Y</td><td><div class='contentblack'>528</div></td>
+					<td>1-0-4</td>
+					<td>10</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Arielle Oechslie</td><td>N</td><td>N</td><td>N</td><td>N</td><td>Y</td><td><div class='contentblack'>578</div></td>
+					<td>1-0-4</td>
+					<td>10</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Helen Read</td><td>N</td><td>N</td><td>N</td><td>Y</td><td>N</td><td><div class='contentblack'>633</div></td>
+					<td>1-0-4</td>
+					<td>10</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Ligaya MacGregor</td><td>N</td><td>N</td><td>N</td><td>N</td><td>Y</td><td><div class='contentblack'>640</div></td>
+					<td>1-0-4</td>
+					<td>10</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Bree Groff</td><td>Y</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>716</div></td>
+					<td>1-0-4</td>
+					<td>10</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Jackie Hi</td><td>N</td><td>N</td><td>Y</td><td>N</td><td>N</td><td><div class='contentblack'>784</div></td>
+					<td>1-0-4</td>
+					<td>10</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Laurie Wolfrum</td><td>Y</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>788</div></td>
+					<td>1-0-4</td>
+					<td>10</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Danielle Brazel</td><td>Y</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>807</div></td>
+					<td>1-0-4</td>
+					<td>10</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Emily Rager</td><td>N</td><td>N</td><td>Y</td><td>N</td><td>N</td><td><div class='contentblack'>831</div></td>
+					<td>1-0-4</td>
+					<td>10</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Sue Sohn</td><td>N</td><td>N</td><td>N</td><td>Y</td><td>N</td><td><div class='contentblack'>892</div></td>
+					<td>1-0-4</td>
+					<td>10</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Melania M. Falcon</td><td>N</td><td>A3</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>581</div></td>
+					<td>0-1-4</td>
+					<td>4.2</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Camille Vitale</td><td>A3</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>685</div></td>
+					<td>0-1-4</td>
+					<td>4.2</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Kaylie Song</td><td>N</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>543</div></td>
+					<td>0-0-5</td>
+					<td>0</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Alison Bert</td><td>N</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>553</div></td>
+					<td>0-0-5</td>
+					<td>0</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Allison beitel</td><td>N</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>560</div></td>
+					<td>0-0-5</td>
+					<td>0</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Jenny Samuelson</td><td>N</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>564</div></td>
+					<td>0-0-5</td>
+					<td>0</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Liz Lane</td><td>N</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>608</div></td>
+					<td>0-0-5</td>
+					<td>0</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Jessy Petigny</td><td>N</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>686</div></td>
+					<td>0-0-5</td>
+					<td>0</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Tracey Smith</td><td>N</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>690</div></td>
+					<td>0-0-5</td>
+					<td>0</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Shannon Carey</td><td>N</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>693</div></td>
+					<td>0-0-5</td>
+					<td>0</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Jade Doherty</td><td>N</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>710</div></td>
+					<td>0-0-5</td>
+					<td>0</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Janet Orde</td><td>N</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>723</div></td>
+					<td>0-0-5</td>
+					<td>0</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Dana Dessereaux</td><td>N</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>725</div></td>
+					<td>0-0-5</td>
+					<td>0</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Alison Burkart</td><td>N</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>733</div></td>
+					<td>0-0-5</td>
+					<td>0</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Shannon Dover</td><td>N</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>746</div></td>
+					<td>0-0-5</td>
+					<td>0</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Katie Evers</td><td>N</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>753</div></td>
+					<td>0-0-5</td>
+					<td>0</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Micah Harkins</td><td>N</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>791</div></td>
+					<td>0-0-5</td>
+					<td>0</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Jordan Lapierre</td><td>N</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>815</div></td>
+					<td>0-0-5</td>
+					<td>0</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Natasha Freeman</td><td>N</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>853</div></td>
+					<td>0-0-5</td>
+					<td>0</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Ellen Rubner</td><td>N</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>874</div></td>
+					<td>0-0-5</td>
+					<td>0</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Donna Warner</td><td>N</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>972</div></td>
+					<td>0-0-5</td>
+					<td>0</td>
+					<td></td>
+					<td></td>
+					</tr></table><p><table border="1" cellspacing="1" cellpadding="2" align="center" width="100%"><tr bgcolor='#ffae5e'><td colspan = '13'>Jack & Jill Follower Novice Semis - 28 competed<br>When marks are tied, lowest sum used as tiebreaker, Y=10, ALT1=4.5, ALT2=4.3, ALT3=4.2, N=0<br>All ties broken by head judge.</td></tr><tr>
+			 <td><em><strong>Count</strong></em></td>
+			 <td width="400"><em><strong>Competitor</strong></em></td><td><em><strong>Derek Levya</strong></em></td><td><em><strong>Melodie Paletta</strong></em></td><td><em><strong>Mia Pastor</strong></em></td><td><em><strong>Nicole Zwerlein</strong></em></td><td><em><strong>Sayaka Suzaki</strong></em></td><td><em><strong>BIB</strong></em></td>
+			 <td><em><strong>Counts (Y-A-N)</strong></em></td>
+			 <td><em><strong>Sum</strong></em></td>
+			 <td><em><strong>Promote</strong></em></td>
+			 <td><em><strong>Alt</strong></em></td>
+			 </tr><tr>
+	   <td>1</td>
+					<td>Erin Campagna</td><td>Y</td><td>A1</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>610</div></td>
+					<td>4-1-0</td>
+					<td>44.5</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>2</td>
+					<td>Erica Lin</td><td>Y</td><td>Y</td><td>A2</td><td>Y</td><td>Y</td><td><div class='contentblack'>568</div></td>
+					<td>4-1-0</td>
+					<td>44.3</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>2</td>
+					<td>Rachel Madrigal</td><td>Y</td><td>Y</td><td>Y</td><td>A2</td><td>Y</td><td><div class='contentblack'>669</div></td>
+					<td>4-1-0</td>
+					<td>44.3</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>4</td>
+					<td>Elza Duarte</td><td>Y</td><td>N</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>530</div></td>
+					<td>4-0-1</td>
+					<td>40</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>4</td>
+					<td>Caroline Kruis</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td>N</td><td><div class='contentblack'>650</div></td>
+					<td>4-0-1</td>
+					<td>40</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>6</td>
+					<td>Kevin Yuanzhi Chen</td><td>N</td><td>Y</td><td>Y</td><td>Y</td><td>A1</td><td><div class='contentblack'>588</div></td>
+					<td>3-1-1</td>
+					<td>34.5</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>6</td>
+					<td>Kathryn Noel</td><td>A1</td><td>Y</td><td>Y</td><td>N</td><td>Y</td><td><div class='contentblack'>798</div></td>
+					<td>3-1-1</td>
+					<td>34.5</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>8</td>
+					<td>Laura Mellado</td><td>Y</td><td>N</td><td>Y</td><td>N</td><td>Y</td><td><div class='contentblack'>552</div></td>
+					<td>3-0-2</td>
+					<td>30</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>8</td>
+					<td>Isabelle Wolansky</td><td>Y</td><td>Y</td><td>N</td><td>N</td><td>Y</td><td><div class='contentblack'>569</div></td>
+					<td>3-0-2</td>
+					<td>30</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>8</td>
+					<td>Nancy Vachon</td><td>Y</td><td>Y</td><td>Y</td><td>N</td><td>N</td><td><div class='contentblack'>677</div></td>
+					<td>3-0-2</td>
+					<td>30</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>11</td>
+					<td>Joelle White</td><td>Y</td><td>A3</td><td>N</td><td>A1</td><td>Y</td><td><div class='contentblack'>641</div></td>
+					<td>2-2-1</td>
+					<td>28.7</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>11</td>
+					<td>Millicent Jiang</td><td>A3</td><td>Y</td><td>A1</td><td>N</td><td>Y</td><td><div class='contentblack'>759</div></td>
+					<td>2-2-1</td>
+					<td>28.7</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>13</td>
+					<td>Kristina Riccio</td><td>Y</td><td>A2</td><td>Y</td><td>N</td><td>A3</td><td><div class='contentblack'>717</div></td>
+					<td>2-2-1</td>
+					<td>28.5</td>
+					<td>X</td>
+					<td>ALT1</td>
+					</tr><tr>
+	   <td>14</td>
+					<td>Genevieve Barnett</td><td>N</td><td>N</td><td>Y</td><td>Y</td><td>N</td><td><div class='contentblack'>606</div></td>
+					<td>2-0-3</td>
+					<td>20</td>
+					<td>X</td>
+					<td>ALT2</td>
+					</tr><tr>
+	   <td></td>
+					<td>Sabrina Mazer</td><td>Y</td><td>N</td><td>N</td><td>Y</td><td>N</td><td><div class='contentblack'>718</div></td>
+					<td>2-0-3</td>
+					<td>20</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Yaelle Moses</td><td>N</td><td>N</td><td>N</td><td>Y</td><td>A2</td><td><div class='contentblack'>666</div></td>
+					<td>1-1-3</td>
+					<td>14.3</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Julia Dupere</td><td>N</td><td>Y</td><td>N</td><td>A3</td><td>N</td><td><div class='contentblack'>585</div></td>
+					<td>1-1-3</td>
+					<td>14.2</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Claire Hotvedt</td><td>N</td><td>N</td><td>A3</td><td>Y</td><td>N</td><td><div class='contentblack'>866</div></td>
+					<td>1-1-3</td>
+					<td>14.2</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Véronique Lapierre</td><td>N</td><td>N</td><td>N</td><td>N</td><td>Y</td><td><div class='contentblack'>545</div></td>
+					<td>1-0-4</td>
+					<td>10</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Katherine Ryan</td><td>N</td><td>N</td><td>N</td><td>Y</td><td>N</td><td><div class='contentblack'>572</div></td>
+					<td>1-0-4</td>
+					<td>10</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Samantha Eller</td><td>N</td><td>Y</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>586</div></td>
+					<td>1-0-4</td>
+					<td>10</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Elizabeth DeFreitas</td><td>N</td><td>N</td><td>Y</td><td>N</td><td>N</td><td><div class='contentblack'>626</div></td>
+					<td>1-0-4</td>
+					<td>10</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Casey Su-Morrill</td><td>N</td><td>N</td><td>N</td><td>Y</td><td>N</td><td><div class='contentblack'>706</div></td>
+					<td>1-0-4</td>
+					<td>10</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Tom Tseng</td><td>N</td><td>Y</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>730</div></td>
+					<td>1-0-4</td>
+					<td>10</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Ann Walkup</td><td>N</td><td>N</td><td>N</td><td>N</td><td>Y</td><td><div class='contentblack'>770</div></td>
+					<td>1-0-4</td>
+					<td>10</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Thomas Crockett</td><td>A2</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>551</div></td>
+					<td>0-1-4</td>
+					<td>4.3</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Octavia Buliman</td><td>N</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>637</div></td>
+					<td>0-0-5</td>
+					<td>0</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Anya Keller</td><td>N</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>656</div></td>
+					<td>0-0-5</td>
+					<td>0</td>
+					<td></td>
+					<td></td>
+					</tr></table><p><table border="1" cellspacing="1" cellpadding="2" align="center" width="100%"><tr bgcolor='#ffae5e'><td colspan = '13'>Jack & Jill Follower Sophisticated Prelims - 24 competed<br>When marks are tied, lowest sum used as tiebreaker, Y=10, ALT1=4.5, ALT2=4.3, ALT3=4.2, N=0<br>All ties broken by head judge.</td></tr><tr>
+			 <td><em><strong>Count</strong></em></td>
+			 <td width="400"><em><strong>Competitor</strong></em></td><td><em><strong>Derek Levya</strong></em></td><td><em><strong>Melodie Paletta</strong></em></td><td><em><strong>Mia Pastor</strong></em></td><td><em><strong>Nicole Zwerlein</strong></em></td><td><em><strong>Sayaka Suzaki</strong></em></td><td><em><strong>BIB</strong></em></td>
+			 <td><em><strong>Counts (Y-A-N)</strong></em></td>
+			 <td><em><strong>Sum</strong></em></td>
+			 <td><em><strong>Promote</strong></em></td>
+			 <td><em><strong>Alt</strong></em></td>
+			 </tr><tr>
+	   <td>1</td>
+					<td>Abi Jennings</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>619</div></td>
+					<td>5-0-0</td>
+					<td>50</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>1</td>
+					<td>Dani Mullin Darasz</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>703</div></td>
+					<td>5-0-0</td>
+					<td>50</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>1</td>
+					<td>Jes Ann Nail</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>763</div></td>
+					<td>5-0-0</td>
+					<td>50</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>1</td>
+					<td>Tatiana Doldonova</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>857</div></td>
+					<td>5-0-0</td>
+					<td>50</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>5</td>
+					<td>Isabelle Roy</td><td>A1</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>816</div></td>
+					<td>4-1-0</td>
+					<td>44.5</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>6</td>
+					<td>Desirae Vasquez</td><td>Y</td><td>N</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>845</div></td>
+					<td>4-0-1</td>
+					<td>40</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>7</td>
+					<td>Jessie Rosenberg</td><td>Y</td><td>Y</td><td>Y</td><td>A3</td><td>A1</td><td><div class='contentblack'>844</div></td>
+					<td>3-2-0</td>
+					<td>38.7</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>8</td>
+					<td>Emily Shoov</td><td>Y</td><td>Y</td><td>N</td><td>Y</td><td>A2</td><td><div class='contentblack'>505</div></td>
+					<td>3-1-1</td>
+					<td>34.3</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>8</td>
+					<td>Anastasia Vanekhina</td><td>N</td><td>Y</td><td>A2</td><td>Y</td><td>Y</td><td><div class='contentblack'>570</div></td>
+					<td>3-1-1</td>
+					<td>34.3</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>10</td>
+					<td>Ariane Martel-Theoret</td><td>Y</td><td>A3</td><td>A1</td><td>A1</td><td>Y</td><td><div class='contentblack'>649</div></td>
+					<td>2-3-0</td>
+					<td>33.2</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>11</td>
+					<td>leah lawrence</td><td>N</td><td>Y</td><td>N</td><td>Y</td><td>N</td><td><div class='contentblack'>513</div></td>
+					<td>2-0-3</td>
+					<td>20</td>
+					<td>X</td>
+					<td>ALT1</td>
+					</tr><tr>
+	   <td>12</td>
+					<td>Tristan Tariao-Lee</td><td>Y</td><td>A1</td><td>N</td><td>N</td><td>A3</td><td><div class='contentblack'>674</div></td>
+					<td>1-2-2</td>
+					<td>18.7</td>
+					<td>X</td>
+					<td>ALT2</td>
+					</tr><tr>
+	   <td></td>
+					<td>Shay Culpepper</td><td>N</td><td>N</td><td>Y</td><td>A2</td><td>N</td><td><div class='contentblack'>540</div></td>
+					<td>1-1-3</td>
+					<td>14.3</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Kate Leach</td><td>N</td><td>N</td><td>N</td><td>N</td><td>Y</td><td><div class='contentblack'>577</div></td>
+					<td>1-0-4</td>
+					<td>10</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Roxanne Brulé</td><td>N</td><td>N</td><td>Y</td><td>N</td><td>N</td><td><div class='contentblack'>747</div></td>
+					<td>1-0-4</td>
+					<td>10</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Catherine Cogut</td><td>A2</td><td>N</td><td>A3</td><td>N</td><td>N</td><td><div class='contentblack'>764</div></td>
+					<td>0-2-3</td>
+					<td>8.5</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Renee Young</td><td>N</td><td>A2</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>664</div></td>
+					<td>0-1-4</td>
+					<td>4.3</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Elza Duarte</td><td>A3</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>530</div></td>
+					<td>0-1-4</td>
+					<td>4.2</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Samantha Eller</td><td>N</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>586</div></td>
+					<td>0-0-5</td>
+					<td>0</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Amy Danziger</td><td>N</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>618</div></td>
+					<td>0-0-5</td>
+					<td>0</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Bree Groff</td><td>N</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>716</div></td>
+					<td>0-0-5</td>
+					<td>0</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Ann Walkup</td><td>N</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>770</div></td>
+					<td>0-0-5</td>
+					<td>0</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Christina de Bruyn Kops</td><td>N</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>776</div></td>
+					<td>0-0-5</td>
+					<td>0</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Maria Chang</td><td>N</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>868</div></td>
+					<td>0-0-5</td>
+					<td>0</td>
+					<td></td>
+					<td></td>
+					</tr></table><p><table border="1" cellspacing="1" cellpadding="2" align="center" width="100%"><tr bgcolor='#ffae5e'><td colspan = '13'>Jack & Jill Leader Advanced Prelims - 20 competed<br>When marks are tied, lowest sum used as tiebreaker, Y=10, ALT1=4.5, ALT2=4.3, ALT3=4.2, N=0<br>All ties broken by head judge.</td></tr><tr>
+			 <td><em><strong>Count</strong></em></td>
+			 <td width="400"><em><strong>Competitor</strong></em></td><td><em><strong>Chris Dumond</strong></em></td><td><em><strong>KP Rutland</strong></em></td><td><em><strong>Kevin Kane</strong></em></td><td><em><strong>Philippe Berne</strong></em></td><td><em><strong>Sonya Dessureault</strong></em></td><td><em><strong>BIB</strong></em></td>
+			 <td><em><strong>Counts (Y-A-N)</strong></em></td>
+			 <td><em><strong>Sum</strong></em></td>
+			 <td><em><strong>Promote</strong></em></td>
+			 <td><em><strong>Alt</strong></em></td>
+			 </tr><tr>
+	   <td>1</td>
+					<td>Gabe Ofordu</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>661</div></td>
+					<td>5-0-0</td>
+					<td>50</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>1</td>
+					<td>Lucas Frassrand</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>761</div></td>
+					<td>5-0-0</td>
+					<td>50</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>1</td>
+					<td>Miles Van de Wetering</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>810</div></td>
+					<td>5-0-0</td>
+					<td>50</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>4</td>
+					<td>Caio Botelho</td><td>Y</td><td>Y</td><td>Y</td><td>A1</td><td>Y</td><td><div class='contentblack'>736</div></td>
+					<td>4-1-0</td>
+					<td>44.5</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>5</td>
+					<td>Ben Dobson</td><td>Y</td><td>Y</td><td>A2</td><td>Y</td><td>Y</td><td><div class='contentblack'>850</div></td>
+					<td>4-1-0</td>
+					<td>44.3</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>6</td>
+					<td>Orian Breaux</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td>A3</td><td><div class='contentblack'>624</div></td>
+					<td>4-1-0</td>
+					<td>44.2</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>7</td>
+					<td>Corrado Mazzarelli</td><td>Y</td><td>Y</td><td>Y</td><td>N</td><td>Y</td><td><div class='contentblack'>797</div></td>
+					<td>4-0-1</td>
+					<td>40</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>8</td>
+					<td>Rohit Venugopal</td><td>A3</td><td>A3</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>937</div></td>
+					<td>3-2-0</td>
+					<td>38.4</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>9</td>
+					<td>John Collini</td><td>A1</td><td>Y</td><td>Y</td><td>Y</td><td>N</td><td><div class='contentblack'>719</div></td>
+					<td>3-1-1</td>
+					<td>34.5</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>10</td>
+					<td>Patrick Thompson</td><td>N</td><td>Y</td><td>A3</td><td>A2</td><td>Y</td><td><div class='contentblack'>648</div></td>
+					<td>2-2-1</td>
+					<td>28.5</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>11</td>
+					<td>Mandy Fried</td><td>Y</td><td>N</td><td>N</td><td>N</td><td>Y</td><td><div class='contentblack'>801</div></td>
+					<td>2-0-3</td>
+					<td>20</td>
+					<td>X</td>
+					<td>ALT1</td>
+					</tr><tr>
+	   <td>12</td>
+					<td>David Castrejon</td><td>Y</td><td>A1</td><td>N</td><td>N</td><td>A2</td><td><div class='contentblack'>778</div></td>
+					<td>1-2-2</td>
+					<td>18.8</td>
+					<td>X</td>
+					<td>ALT2</td>
+					</tr><tr>
+	   <td></td>
+					<td>Ken Yie</td><td>N</td><td>A2</td><td>Y</td><td>A3</td><td>N</td><td><div class='contentblack'>667</div></td>
+					<td>1-2-2</td>
+					<td>18.5</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Thibaud Baron</td><td>N</td><td>N</td><td>A1</td><td>Y</td><td>N</td><td><div class='contentblack'>653</div></td>
+					<td>1-1-3</td>
+					<td>14.5</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Jaden Frost</td><td>N</td><td>N</td><td>N</td><td>Y</td><td>N</td><td><div class='contentblack'>502</div></td>
+					<td>1-0-4</td>
+					<td>10</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Rish Rastogi</td><td>N</td><td>N</td><td>N</td><td>N</td><td>A1</td><td><div class='contentblack'>607</div></td>
+					<td>0-1-4</td>
+					<td>4.5</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Peter Khoo</td><td>A2</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>708</div></td>
+					<td>0-1-4</td>
+					<td>4.3</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Pascal Emond</td><td>N</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>557</div></td>
+					<td>0-0-5</td>
+					<td>0</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Keita Sumikawa</td><td>N</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>620</div></td>
+					<td>0-0-5</td>
+					<td>0</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Everest</td><td>N</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>891</div></td>
+					<td>0-0-5</td>
+					<td>0</td>
+					<td></td>
+					<td></td>
+					</tr></table><p><table border="1" cellspacing="1" cellpadding="2" align="center" width="100%"><tr bgcolor='#ffae5e'><td colspan = '13'>Jack & Jill Leader All Star Prelims - 18 competed<br>When marks are tied, lowest sum used as tiebreaker, Y=10, ALT1=4.5, ALT2=4.3, ALT3=4.2, N=0<br>All ties broken by head judge.</td></tr><tr>
+			 <td><em><strong>Count</strong></em></td>
+			 <td width="400"><em><strong>Competitor</strong></em></td><td><em><strong>Chris Dumond</strong></em></td><td><em><strong>KP Rutland</strong></em></td><td><em><strong>Kevin Kane</strong></em></td><td><em><strong>Philippe Berne</strong></em></td><td><em><strong>Sonya Dessureault</strong></em></td><td><em><strong>BIB</strong></em></td>
+			 <td><em><strong>Counts (Y-A-N)</strong></em></td>
+			 <td><em><strong>Sum</strong></em></td>
+			 <td><em><strong>Promote</strong></em></td>
+			 <td><em><strong>Alt</strong></em></td>
+			 </tr><tr>
+	   <td>1</td>
+					<td>Dario Haxhia</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>602</div></td>
+					<td>5-0-0</td>
+					<td>50</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>1</td>
+					<td>Joseph Tong</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>741</div></td>
+					<td>5-0-0</td>
+					<td>50</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>1</td>
+					<td>Sam Vaden</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>777</div></td>
+					<td>5-0-0</td>
+					<td>50</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>1</td>
+					<td>Aris Demarco</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>792</div></td>
+					<td>5-0-0</td>
+					<td>50</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>5</td>
+					<td>Matt Davis</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td>N</td><td><div class='contentblack'>582</div></td>
+					<td>4-0-1</td>
+					<td>40</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>6</td>
+					<td>Paul Nunez</td><td>A1</td><td>Y</td><td>Y</td><td>Y</td><td>N</td><td><div class='contentblack'>872</div></td>
+					<td>3-1-1</td>
+					<td>34.5</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>7</td>
+					<td>Lucky Sipin</td><td>A3</td><td>N</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>590</div></td>
+					<td>3-1-1</td>
+					<td>34.2</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>8</td>
+					<td>Joe Miller</td><td>Y</td><td>A1</td><td>A1</td><td>A2</td><td>Y</td><td><div class='contentblack'>953</div></td>
+					<td>2-3-0</td>
+					<td>33.3</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>9</td>
+					<td>Derek Leyva</td><td>N</td><td>Y</td><td>Y</td><td>N</td><td>Y</td><td><div class='contentblack'>712</div></td>
+					<td>3-0-2</td>
+					<td>30</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>10</td>
+					<td>Ryan Pflumm</td><td>Y</td><td>Y</td><td>N</td><td>A1</td><td>A1</td><td><div class='contentblack'>542</div></td>
+					<td>2-2-1</td>
+					<td>29</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>11</td>
+					<td>Alexander Glover</td><td>N</td><td>A2</td><td>Y</td><td>Y</td><td>A2</td><td><div class='contentblack'>729</div></td>
+					<td>2-2-1</td>
+					<td>28.6</td>
+					<td>X</td>
+					<td>ALT1</td>
+					</tr><tr>
+	   <td>11</td>
+					<td>Maxwell Thew</td><td>A2</td><td>Y</td><td>A2</td><td>N</td><td>Y</td><td><div class='contentblack'>780</div></td>
+					<td>2-2-1</td>
+					<td>28.6</td>
+					<td>X</td>
+					<td>ALT2</td>
+					</tr><tr>
+	   <td></td>
+					<td>Kristen Wallace</td><td>Y</td><td>A3</td><td>A3</td><td>A3</td><td>A3</td><td><div class='contentblack'>453</div></td>
+					<td>1-4-0</td>
+					<td>26.8</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Simon Girard</td><td>Y</td><td>N</td><td>N</td><td>N</td><td>Y</td><td><div class='contentblack'>714</div></td>
+					<td>2-0-3</td>
+					<td>20</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Chris Wasko</td><td>N</td><td>N</td><td>N</td><td>Y</td><td>N</td><td><div class='contentblack'>565</div></td>
+					<td>1-0-4</td>
+					<td>10</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Anthony Audin</td><td>N</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>599</div></td>
+					<td>0-0-5</td>
+					<td>0</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Frank Moda III</td><td>N</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>734</div></td>
+					<td>0-0-5</td>
+					<td>0</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Eliot Heinrich</td><td>N</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>783</div></td>
+					<td>0-0-5</td>
+					<td>0</td>
+					<td></td>
+					<td></td>
+					</tr></table><p><table border="1" cellspacing="1" cellpadding="2" align="center" width="100%"><tr bgcolor='#ffae5e'><td colspan = '13'>Jack & Jill Leader Champions Prelims - 11 competed<br>When marks are tied, lowest sum used as tiebreaker, Y=10, ALT1=4.5, ALT2=4.3, ALT3=4.2, N=0<br>All ties broken by head judge.</td></tr><tr>
+			 <td><em><strong>Count</strong></em></td>
+			 <td width="400"><em><strong>Competitor</strong></em></td><td><em><strong>Demery Levya</strong></em></td><td><em><strong>Jessica McCurdy</strong></em></td><td><em><strong>John Lindo</strong></em></td><td><em><strong>LeAnn Norris</strong></em></td><td><em><strong>Michael Norris</strong></em></td><td><em><strong>BIB</strong></em></td>
+			 <td><em><strong>Counts (Y-A-N)</strong></em></td>
+			 <td><em><strong>Sum</strong></em></td>
+			 <td><em><strong>Promote</strong></em></td>
+			 <td><em><strong>Alt</strong></em></td>
+			 </tr><tr>
+	   <td>1</td>
+					<td>Christopher Dumond</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>767</div></td>
+					<td>5-0-0</td>
+					<td>50</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>1</td>
+					<td>KP Rutland</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>808</div></td>
+					<td>5-0-0</td>
+					<td>50</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>1</td>
+					<td>PJ Turner</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>882</div></td>
+					<td>5-0-0</td>
+					<td>50</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>1</td>
+					<td>Arjay Centeno</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>888</div></td>
+					<td>5-0-0</td>
+					<td>50</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>1</td>
+					<td>Robert Royston</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>895</div></td>
+					<td>5-0-0</td>
+					<td>50</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>6</td>
+					<td>Jaden Pfeiffer</td><td>A3</td><td>Y</td><td>A2</td><td>A1</td><td>Y</td><td><div class='contentblack'>547</div></td>
+					<td>2-3-0</td>
+					<td>33</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>6</td>
+					<td>Kyle FitzGerald</td><td>Y</td><td>A1</td><td>A3</td><td>Y</td><td>A2</td><td><div class='contentblack'>687</div></td>
+					<td>2-3-0</td>
+					<td>33</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Keerigan Rudd</td><td>A1</td><td>A2</td><td>Y</td><td>A3</td><td>A3</td><td><div class='contentblack'>814</div></td>
+					<td>1-4-0</td>
+					<td>27.2</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Jerome Subey</td><td>A2</td><td>N</td><td>A1</td><td>N</td><td>N</td><td><div class='contentblack'>652</div></td>
+					<td>0-2-3</td>
+					<td>8.8</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Kevin Kane</td><td>N</td><td>A3</td><td>N</td><td>N</td><td>A1</td><td><div class='contentblack'>680</div></td>
+					<td>0-2-3</td>
+					<td>8.7</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Philippe Berne</td><td>N</td><td>N</td><td>N</td><td>A2</td><td>N</td><td><div class='contentblack'>766</div></td>
+					<td>0-1-4</td>
+					<td>4.3</td>
+					<td></td>
+					<td></td>
+					</tr></table><p><table border="1" cellspacing="1" cellpadding="2" align="center" width="100%"><tr bgcolor='#ffae5e'><td colspan = '13'>Jack & Jill Leader Intermediate Prelims - 32 competed<br>When marks are tied, lowest sum used as tiebreaker, Y=10, ALT1=4.5, ALT2=4.3, ALT3=4.2, N=0<br>All ties broken by head judge.</td></tr><tr>
+			 <td><em><strong>Count</strong></em></td>
+			 <td width="400"><em><strong>Competitor</strong></em></td><td><em><strong>Jennifer Norris</strong></em></td><td><em><strong>Kyle Fitzgerald</strong></em></td><td><em><strong>Matt Davis</strong></em></td><td><em><strong>Roberto Corporan</strong></em></td><td><em><strong>Sam Vaden</strong></em></td><td><em><strong>BIB</strong></em></td>
+			 <td><em><strong>Counts (Y-A-N)</strong></em></td>
+			 <td><em><strong>Sum</strong></em></td>
+			 <td><em><strong>Promote</strong></em></td>
+			 <td><em><strong>Alt</strong></em></td>
+			 </tr><tr>
+	   <td>1</td>
+					<td>Andrew Knops</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>559</div></td>
+					<td>5-0-0</td>
+					<td>50</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>1</td>
+					<td>Kevin Yuanzhi Chen</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>588</div></td>
+					<td>5-0-0</td>
+					<td>50</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>1</td>
+					<td>Adriane Hines</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>594</div></td>
+					<td>5-0-0</td>
+					<td>50</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>1</td>
+					<td>Maayan Harispe</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>782</div></td>
+					<td>5-0-0</td>
+					<td>50</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>1</td>
+					<td>Tatiana Doldonova</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>857</div></td>
+					<td>5-0-0</td>
+					<td>50</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>6</td>
+					<td>Leah Grodstein</td><td>A1</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>521</div></td>
+					<td>4-1-0</td>
+					<td>44.5</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>6</td>
+					<td>Ajay Phatak</td><td>Y</td><td>Y</td><td>Y</td><td>A1</td><td>Y</td><td><div class='contentblack'>534</div></td>
+					<td>4-1-0</td>
+					<td>44.5</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>6</td>
+					<td>David Hahn</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td>A1</td><td><div class='contentblack'>894</div></td>
+					<td>4-1-0</td>
+					<td>44.5</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>9</td>
+					<td>Michael Medini</td><td>Y</td><td>Y</td><td>A2</td><td>Y</td><td>Y</td><td><div class='contentblack'>943</div></td>
+					<td>4-1-0</td>
+					<td>44.3</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>10</td>
+					<td>Jacob Guerin</td><td>Y</td><td>Y</td><td>A3</td><td>Y</td><td>Y</td><td><div class='contentblack'>691</div></td>
+					<td>4-1-0</td>
+					<td>44.2</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>11</td>
+					<td>Antonio Kin-Foo</td><td>Y</td><td>Y</td><td>Y</td><td>N</td><td>Y</td><td><div class='contentblack'>591</div></td>
+					<td>4-0-1</td>
+					<td>40</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>11</td>
+					<td>Yoshi Tryba</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td>N</td><td><div class='contentblack'>627</div></td>
+					<td>4-0-1</td>
+					<td>40</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>11</td>
+					<td>Jason Math</td><td>Y</td><td>Y</td><td>Y</td><td>N</td><td>Y</td><td><div class='contentblack'>684</div></td>
+					<td>4-0-1</td>
+					<td>40</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>11</td>
+					<td>Tom Tseng</td><td>N</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>730</div></td>
+					<td>4-0-1</td>
+					<td>40</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>11</td>
+					<td>Hyunhee Lee</td><td>Y</td><td>Y</td><td>Y</td><td>N</td><td>Y</td><td><div class='contentblack'>822</div></td>
+					<td>4-0-1</td>
+					<td>40</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>16</td>
+					<td>Norman Shipman</td><td>Y</td><td>Y</td><td>Y</td><td>N</td><td>A2</td><td><div class='contentblack'>547</div></td>
+					<td>3-1-1</td>
+					<td>34.3</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>17</td>
+					<td>Paul Okura</td><td>Y</td><td>N</td><td>Y</td><td>Y</td><td>A3</td><td><div class='contentblack'>621</div></td>
+					<td>3-1-1</td>
+					<td>34.2</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>18</td>
+					<td>Andrew Adam</td><td>Y</td><td>N</td><td>Y</td><td>Y</td><td>N</td><td><div class='contentblack'>611</div></td>
+					<td>3-0-2</td>
+					<td>30</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>18</td>
+					<td>Daniel Ahn</td><td>N</td><td>N</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>742</div></td>
+					<td>3-0-2</td>
+					<td>30</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>18</td>
+					<td>Matthew Jo</td><td>N</td><td>Y</td><td>N</td><td>Y</td><td>Y</td><td><div class='contentblack'>745</div></td>
+					<td>3-0-2</td>
+					<td>30</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>18</td>
+					<td>Thomas Anthony</td><td>N</td><td>Y</td><td>N</td><td>Y</td><td>Y</td><td><div class='contentblack'>785</div></td>
+					<td>3-0-2</td>
+					<td>30</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>18</td>
+					<td>Carlo DelDonno</td><td>Y</td><td>N</td><td>Y</td><td>N</td><td>Y</td><td><div class='contentblack'>859</div></td>
+					<td>3-0-2</td>
+					<td>30</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>23</td>
+					<td>Zachary Pappalau</td><td>Y</td><td>N</td><td>A1</td><td>Y</td><td>N</td><td><div class='contentblack'>646</div></td>
+					<td>2-1-2</td>
+					<td>24.5</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>24</td>
+					<td>Daniel Desjardin</td><td>Y</td><td>A2</td><td>N</td><td>Y</td><td>N</td><td><div class='contentblack'>529</div></td>
+					<td>2-1-2</td>
+					<td>24.3</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Joshua Hillis</td><td>N</td><td>A3</td><td>Y</td><td>N</td><td>Y</td><td><div class='contentblack'>503</div></td>
+					<td>2-1-2</td>
+					<td>24.2</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Carlos Servan-Alvarez</td><td>N</td><td>N</td><td>Y</td><td>A3</td><td>Y</td><td><div class='contentblack'>709</div></td>
+					<td>2-1-2</td>
+					<td>24.2</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Thomas Crockett</td><td>N</td><td>N</td><td>N</td><td>Y</td><td>Y</td><td><div class='contentblack'>551</div></td>
+					<td>2-0-3</td>
+					<td>20</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Kevin Spahr</td><td>A2</td><td>A1</td><td>N</td><td>Y</td><td>N</td><td><div class='contentblack'>683</div></td>
+					<td>1-2-2</td>
+					<td>18.8</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Micah Harkins</td><td>A3</td><td>Y</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>791</div></td>
+					<td>1-1-3</td>
+					<td>14.2</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Todd Irzyk</td><td>N</td><td>Y</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>705</div></td>
+					<td>1-0-4</td>
+					<td>10</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Mark Lee</td><td>Y</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>956</div></td>
+					<td>1-0-4</td>
+					<td>10</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Paul Kubik</td><td>N</td><td>N</td><td>N</td><td>A2</td><td>N</td><td><div class='contentblack'>510</div></td>
+					<td>0-1-4</td>
+					<td>4.3</td>
+					<td></td>
+					<td></td>
+					</tr></table><p><table border="1" cellspacing="1" cellpadding="2" align="center" width="100%"><tr bgcolor='#ffae5e'><td colspan = '13'>Jack & Jill Leader Intermediate Semis - 24 competed<br>When marks are tied, lowest sum used as tiebreaker, Y=10, ALT1=4.5, ALT2=4.3, ALT3=4.2, N=0<br>All ties broken by head judge.</td></tr><tr>
+			 <td><em><strong>Count</strong></em></td>
+			 <td width="400"><em><strong>Competitor</strong></em></td><td><em><strong>Jennifer Norris</strong></em></td><td><em><strong>Kyle Fitzgerald</strong></em></td><td><em><strong>Matt Davis</strong></em></td><td><em><strong>Roberto Corporan</strong></em></td><td><em><strong>Sam Vaden</strong></em></td><td><em><strong>BIB</strong></em></td>
+			 <td><em><strong>Counts (Y-A-N)</strong></em></td>
+			 <td><em><strong>Sum</strong></em></td>
+			 <td><em><strong>Promote</strong></em></td>
+			 <td><em><strong>Alt</strong></em></td>
+			 </tr><tr>
+	   <td>1</td>
+					<td>Kevin Yuanzhi Chen</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td>A1</td><td><div class='contentblack'>588</div></td>
+					<td>4-1-0</td>
+					<td>44.5</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>2</td>
+					<td>Yoshi Tryba</td><td>Y</td><td>A2</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>627</div></td>
+					<td>4-1-0</td>
+					<td>44.3</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>3</td>
+					<td>Andrew Knops</td><td>Y</td><td>A3</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>559</div></td>
+					<td>4-1-0</td>
+					<td>44.2</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>4</td>
+					<td>Ajay Phatak</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td>N</td><td><div class='contentblack'>534</div></td>
+					<td>4-0-1</td>
+					<td>40</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>4</td>
+					<td>Tom Tseng</td><td>Y</td><td>Y</td><td>N</td><td>Y</td><td>Y</td><td><div class='contentblack'>730</div></td>
+					<td>4-0-1</td>
+					<td>40</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>4</td>
+					<td>Maayan Harispe</td><td>Y</td><td>N</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>782</div></td>
+					<td>4-0-1</td>
+					<td>40</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>7</td>
+					<td>Adriane Hines</td><td>N</td><td>Y</td><td>Y</td><td>A1</td><td>Y</td><td><div class='contentblack'>594</div></td>
+					<td>3-1-1</td>
+					<td>34.5</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>7</td>
+					<td>Jason Math</td><td>Y</td><td>A1</td><td>Y</td><td>N</td><td>Y</td><td><div class='contentblack'>684</div></td>
+					<td>3-1-1</td>
+					<td>34.5</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>9</td>
+					<td>Thomas Anthony</td><td>A2</td><td>Y</td><td>N</td><td>Y</td><td>Y</td><td><div class='contentblack'>785</div></td>
+					<td>3-1-1</td>
+					<td>34.3</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>10</td>
+					<td>Andrew Adam</td><td>A3</td><td>Y</td><td>Y</td><td>Y</td><td>N</td><td><div class='contentblack'>611</div></td>
+					<td>3-1-1</td>
+					<td>34.2</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>10</td>
+					<td>Tatiana Doldonova</td><td>Y</td><td>N</td><td>A3</td><td>Y</td><td>Y</td><td><div class='contentblack'>857</div></td>
+					<td>3-1-1</td>
+					<td>34.2</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>12</td>
+					<td>Norman Shipman</td><td>Y</td><td>Y</td><td>Y</td><td>N</td><td>N</td><td><div class='contentblack'>547</div></td>
+					<td>3-0-2</td>
+					<td>30</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>12</td>
+					<td>Daniel Ahn</td><td>Y</td><td>N</td><td>Y</td><td>N</td><td>Y</td><td><div class='contentblack'>742</div></td>
+					<td>3-0-2</td>
+					<td>30</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>12</td>
+					<td>Matthew Jo</td><td>N</td><td>Y</td><td>N</td><td>Y</td><td>Y</td><td><div class='contentblack'>745</div></td>
+					<td>3-0-2</td>
+					<td>30</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>15</td>
+					<td>Antonio Kin-Foo</td><td>A1</td><td>Y</td><td>Y</td><td>N</td><td>N</td><td><div class='contentblack'>591</div></td>
+					<td>2-1-2</td>
+					<td>24.5</td>
+					<td>X</td>
+					<td>ALT1</td>
+					</tr><tr>
+	   <td>15</td>
+					<td>Carlo DelDonno</td><td>N</td><td>Y</td><td>A1</td><td>N</td><td>Y</td><td><div class='contentblack'>859</div></td>
+					<td>2-1-2</td>
+					<td>24.5</td>
+					<td>X</td>
+					<td>ALT2</td>
+					</tr><tr>
+	   <td></td>
+					<td>Jacob Guerin</td><td>N</td><td>Y</td><td>N</td><td>Y</td><td>A2</td><td><div class='contentblack'>691</div></td>
+					<td>2-1-2</td>
+					<td>24.3</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Hyunhee Lee</td><td>N</td><td>N</td><td>A2</td><td>Y</td><td>Y</td><td><div class='contentblack'>822</div></td>
+					<td>2-1-2</td>
+					<td>24.3</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Daniel Desjardin</td><td>N</td><td>Y</td><td>N</td><td>A3</td><td>N</td><td><div class='contentblack'>529</div></td>
+					<td>1-1-3</td>
+					<td>14.2</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>David Hahn</td><td>Y</td><td>N</td><td>N</td><td>N</td><td>A3</td><td><div class='contentblack'>894</div></td>
+					<td>1-1-3</td>
+					<td>14.2</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Leah Grodstein</td><td>N</td><td>N</td><td>Y</td><td>N</td><td>N</td><td><div class='contentblack'>521</div></td>
+					<td>1-0-4</td>
+					<td>10</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Michael Medini</td><td>Y</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>943</div></td>
+					<td>1-0-4</td>
+					<td>10</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Paul Okura</td><td>N</td><td>N</td><td>N</td><td>A2</td><td>N</td><td><div class='contentblack'>621</div></td>
+					<td>0-1-4</td>
+					<td>4.3</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Zachary Pappalau</td><td>N</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>646</div></td>
+					<td>0-0-5</td>
+					<td>0</td>
+					<td></td>
+					<td></td>
+					</tr></table><p><table border="1" cellspacing="1" cellpadding="2" align="center" width="100%"><tr bgcolor='#ffae5e'><td colspan = '13'>Jack & Jill Leader Masters Prelims - 13 competed<br>When marks are tied, lowest sum used as tiebreaker, Y=10, ALT1=4.5, ALT2=4.3, ALT3=4.2, N=0<br>All ties broken by head judge.</td></tr><tr>
+			 <td><em><strong>Count</strong></em></td>
+			 <td width="400"><em><strong>Competitor</strong></em></td><td><em><strong>Jennifer Norris</strong></em></td><td><em><strong>Kyle Fitzgerald</strong></em></td><td><em><strong>Matt Davis</strong></em></td><td><em><strong>Roberto Corporan</strong></em></td><td><em><strong>Sam Vaden</strong></em></td><td><em><strong>BIB</strong></em></td>
+			 <td><em><strong>Counts (Y-A-N)</strong></em></td>
+			 <td><em><strong>Sum</strong></em></td>
+			 <td><em><strong>Promote</strong></em></td>
+			 <td><em><strong>Alt</strong></em></td>
+			 </tr><tr>
+	   <td>1</td>
+					<td>Paul Okura</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>621</div></td>
+					<td>5-0-0</td>
+					<td>50</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>1</td>
+					<td>Demery Leyva</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>896</div></td>
+					<td>5-0-0</td>
+					<td>50</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>3</td>
+					<td>Jun Ogata</td><td>A2</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>575</div></td>
+					<td>4-1-0</td>
+					<td>44.3</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>4</td>
+					<td>Mark Lee</td><td>N</td><td>Y</td><td>N</td><td>Y</td><td>Y</td><td><div class='contentblack'>956</div></td>
+					<td>3-0-2</td>
+					<td>30</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>5</td>
+					<td>Leigh Yu</td><td>Y</td><td>Y</td><td>A1</td><td>N</td><td>A1</td><td><div class='contentblack'>658</div></td>
+					<td>2-2-1</td>
+					<td>29</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>6</td>
+					<td>Todd Irzyk</td><td>Y</td><td>A1</td><td>Y</td><td>A2</td><td>N</td><td><div class='contentblack'>705</div></td>
+					<td>2-2-1</td>
+					<td>28.8</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>7</td>
+					<td>kyle king</td><td>Y</td><td>N</td><td>A2</td><td>Y</td><td>N</td><td><div class='contentblack'>704</div></td>
+					<td>2-1-2</td>
+					<td>24.3</td>
+					<td>X</td>
+					<td>ALT1</td>
+					</tr><tr>
+	   <td>7</td>
+					<td>Jack Flynn</td><td>N</td><td>A2</td><td>Y</td><td>N</td><td>Y</td><td><div class='contentblack'>655</div></td>
+					<td>2-1-2</td>
+					<td>24.3</td>
+					<td>X</td>
+					<td>ALT2</td>
+					</tr><tr>
+	   <td></td>
+					<td>Jason B Smith</td><td>A3</td><td>N</td><td>A3</td><td>N</td><td>A2</td><td><div class='contentblack'>605</div></td>
+					<td>0-3-2</td>
+					<td>12.7</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Paul Heising</td><td>A1</td><td>N</td><td>N</td><td>A1</td><td>N</td><td><div class='contentblack'>678</div></td>
+					<td>0-2-3</td>
+					<td>9</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Brian Pedranti</td><td>N</td><td>N</td><td>N</td><td>A3</td><td>N</td><td><div class='contentblack'>757</div></td>
+					<td>0-1-4</td>
+					<td>4.2</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Narine Bridgemohan</td><td>N</td><td>A3</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>865</div></td>
+					<td>0-1-4</td>
+					<td>4.2</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Steven Behm</td><td>N</td><td>N</td><td>N</td><td>N</td><td>A3</td><td><div class='contentblack'>928</div></td>
+					<td>0-1-4</td>
+					<td>4.2</td>
+					<td></td>
+					<td></td>
+					</tr></table><p><table border="1" cellspacing="1" cellpadding="2" align="center" width="100%"><tr bgcolor='#ffae5e'><td colspan = '13'>Jack & Jill Leader Newcomer Prelims - 11 competed<br>When marks are tied, lowest sum used as tiebreaker, Y=10, ALT1=4.5, ALT2=4.3, ALT3=4.2, N=0<br>All ties broken by head judge.</td></tr><tr>
+			 <td><em><strong>Count</strong></em></td>
+			 <td width="400"><em><strong>Competitor</strong></em></td><td><em><strong>Jennifer Norris</strong></em></td><td><em><strong>Kyle Fitzgerald</strong></em></td><td><em><strong>Matt Davis</strong></em></td><td><em><strong>Roberto Corporan</strong></em></td><td><em><strong>Sam Vaden</strong></em></td><td><em><strong>BIB</strong></em></td>
+			 <td><em><strong>Counts (Y-A-N)</strong></em></td>
+			 <td><em><strong>Sum</strong></em></td>
+			 <td><em><strong>Promote</strong></em></td>
+			 <td><em><strong>Alt</strong></em></td>
+			 </tr><tr>
+	   <td>1</td>
+					<td>Philip Francisco</td><td>Y</td><td>Y</td><td>A1</td><td>Y</td><td>Y</td><td><div class='contentblack'>796</div></td>
+					<td>4-1-0</td>
+					<td>44.5</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>2</td>
+					<td>Alex Huynh</td><td>A3</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>635</div></td>
+					<td>4-1-0</td>
+					<td>44.2</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>3</td>
+					<td>Nicholas Wasko</td><td>N</td><td>Y</td><td>Y</td><td>Y</td><td>A3</td><td><div class='contentblack'>715</div></td>
+					<td>3-1-1</td>
+					<td>34.2</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>4</td>
+					<td>Kieran Persaud</td><td>A2</td><td>A3</td><td>Y</td><td>A3</td><td>Y</td><td><div class='contentblack'>758</div></td>
+					<td>2-3-0</td>
+					<td>32.7</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>5</td>
+					<td>Garrett Rappazzo</td><td>N</td><td>Y</td><td>Y</td><td>Y</td><td>N</td><td><div class='contentblack'>786</div></td>
+					<td>3-0-2</td>
+					<td>30</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>6</td>
+					<td>Matt Bisson</td><td>Y</td><td>A1</td><td>N</td><td>Y</td><td>A1</td><td><div class='contentblack'>913</div></td>
+					<td>2-2-1</td>
+					<td>29</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>7</td>
+					<td>Chris O'Dwyer</td><td>Y</td><td>N</td><td>A3</td><td>A1</td><td>Y</td><td><div class='contentblack'>539</div></td>
+					<td>2-2-1</td>
+					<td>28.7</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>8</td>
+					<td>Jaryd Petroski</td><td>N</td><td>Y</td><td>A2</td><td>N</td><td>Y</td><td><div class='contentblack'>617</div></td>
+					<td>2-1-2</td>
+					<td>24.3</td>
+					<td>X</td>
+					<td>ALT1</td>
+					</tr><tr>
+	   <td>9</td>
+					<td>Jieyu Wu</td><td>Y</td><td>A2</td><td>N</td><td>A2</td><td>A2</td><td><div class='contentblack'>663</div></td>
+					<td>1-3-1</td>
+					<td>22.9</td>
+					<td>X</td>
+					<td>ALT2</td>
+					</tr><tr>
+	   <td></td>
+					<td>Will Babincsak</td><td>Y</td><td>N</td><td>Y</td><td>N</td><td>N</td><td><div class='contentblack'>806</div></td>
+					<td>2-0-3</td>
+					<td>20</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Justin Guerra</td><td>A1</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>700</div></td>
+					<td>0-1-4</td>
+					<td>4.5</td>
+					<td></td>
+					<td></td>
+					</tr></table><p><table border="1" cellspacing="1" cellpadding="2" align="center" width="100%"><tr bgcolor='#ffae5e'><td colspan = '13'>Jack & Jill Leader Novice Prelims - 71 competed<br>When marks are tied, lowest sum used as tiebreaker, Y=10, ALT1=4.5, ALT2=4.3, ALT3=4.2, N=0<br>All ties broken by head judge.</td></tr><tr>
+			 <td><em><strong>Count</strong></em></td>
+			 <td width="400"><em><strong>Competitor</strong></em></td><td><em><strong>Jennifer Norris</strong></em></td><td><em><strong>Kyle Fitzgerald</strong></em></td><td><em><strong>Matt Davis</strong></em></td><td><em><strong>Roberto Corporan</strong></em></td><td><em><strong>Sam Vaden</strong></em></td><td><em><strong>BIB</strong></em></td>
+			 <td><em><strong>Counts (Y-A-N)</strong></em></td>
+			 <td><em><strong>Sum</strong></em></td>
+			 <td><em><strong>Promote</strong></em></td>
+			 <td><em><strong>Alt</strong></em></td>
+			 </tr><tr>
+	   <td>1</td>
+					<td>Alice Stratmann</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>561</div></td>
+					<td>5-0-0</td>
+					<td>50</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>1</td>
+					<td>Eric Fernandez</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>638</div></td>
+					<td>5-0-0</td>
+					<td>50</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>1</td>
+					<td>Jing Huang</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>779</div></td>
+					<td>5-0-0</td>
+					<td>50</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>1</td>
+					<td>Rosina Cleland</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>802</div></td>
+					<td>5-0-0</td>
+					<td>50</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>1</td>
+					<td>Heather Lombardi</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>879</div></td>
+					<td>5-0-0</td>
+					<td>50</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>6</td>
+					<td>Tina Lin</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td>A3</td><td><div class='contentblack'>550</div></td>
+					<td>4-1-0</td>
+					<td>44.2</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>7</td>
+					<td>Karl-Philippe Télémaque-Hector</td><td>N</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>507</div></td>
+					<td>4-0-1</td>
+					<td>40</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>7</td>
+					<td>María Aguirre Roquero</td><td>Y</td><td>Y</td><td>Y</td><td>N</td><td>Y</td><td><div class='contentblack'>526</div></td>
+					<td>4-0-1</td>
+					<td>40</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>7</td>
+					<td>Christian Yzaguirre</td><td>Y</td><td>N</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>554</div></td>
+					<td>4-0-1</td>
+					<td>40</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>7</td>
+					<td>Vanessa Zighelboim</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td>N</td><td><div class='contentblack'>631</div></td>
+					<td>4-0-1</td>
+					<td>40</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>7</td>
+					<td>Kareen Rivera</td><td>Y</td><td>Y</td><td>Y</td><td>N</td><td>Y</td><td><div class='contentblack'>737</div></td>
+					<td>4-0-1</td>
+					<td>40</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>12</td>
+					<td>Daniel Semac</td><td>A1</td><td>Y</td><td>Y</td><td>Y</td><td>N</td><td><div class='contentblack'>519</div></td>
+					<td>3-1-1</td>
+					<td>34.5</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>12</td>
+					<td>Mark O'Dea</td><td>Y</td><td>Y</td><td>Y</td><td>N</td><td>A1</td><td><div class='contentblack'>803</div></td>
+					<td>3-1-1</td>
+					<td>34.5</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>14</td>
+					<td>Jun Ogata</td><td>Y</td><td>N</td><td>A2</td><td>Y</td><td>Y</td><td><div class='contentblack'>575</div></td>
+					<td>3-1-1</td>
+					<td>34.3</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>15</td>
+					<td>Raymond Ritchie</td><td>Y</td><td>Y</td><td>N</td><td>N</td><td>Y</td><td><div class='contentblack'>567</div></td>
+					<td>3-0-2</td>
+					<td>30</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>15</td>
+					<td>Roman Zapata</td><td>N</td><td>N</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>584</div></td>
+					<td>3-0-2</td>
+					<td>30</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>15</td>
+					<td>Ted Lee</td><td>Y</td><td>Y</td><td>Y</td><td>N</td><td>N</td><td><div class='contentblack'>589</div></td>
+					<td>3-0-2</td>
+					<td>30</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>15</td>
+					<td>Jacob Mendelowitz</td><td>Y</td><td>Y</td><td>N</td><td>Y</td><td>N</td><td><div class='contentblack'>609</div></td>
+					<td>3-0-2</td>
+					<td>30</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>15</td>
+					<td>Andrew Balmer</td><td>Y</td><td>Y</td><td>N</td><td>Y</td><td>N</td><td><div class='contentblack'>622</div></td>
+					<td>3-0-2</td>
+					<td>30</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>15</td>
+					<td>Cuong Nguyen</td><td>Y</td><td>N</td><td>Y</td><td>Y</td><td>N</td><td><div class='contentblack'>632</div></td>
+					<td>3-0-2</td>
+					<td>30</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>15</td>
+					<td>Leigh Yu</td><td>N</td><td>Y</td><td>Y</td><td>N</td><td>Y</td><td><div class='contentblack'>658</div></td>
+					<td>3-0-2</td>
+					<td>30</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>15</td>
+					<td>Amanda LaVigne</td><td>N</td><td>Y</td><td>Y</td><td>N</td><td>Y</td><td><div class='contentblack'>662</div></td>
+					<td>3-0-2</td>
+					<td>30</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>15</td>
+					<td>Alexandre George</td><td>Y</td><td>N</td><td>Y</td><td>N</td><td>Y</td><td><div class='contentblack'>679</div></td>
+					<td>3-0-2</td>
+					<td>30</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>24</td>
+					<td>Francois Constantin-D'Amour</td><td>Y</td><td>A1</td><td>N</td><td>A2</td><td>Y</td><td><div class='contentblack'>520</div></td>
+					<td>2-2-1</td>
+					<td>28.8</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>25</td>
+					<td>Boris Yelin</td><td>Y</td><td>Y</td><td>N</td><td>A1</td><td>N</td><td><div class='contentblack'>516</div></td>
+					<td>2-1-2</td>
+					<td>24.5</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>25</td>
+					<td>Catherine Cogut</td><td>Y</td><td>N</td><td>A1</td><td>N</td><td>Y</td><td><div class='contentblack'>764</div></td>
+					<td>2-1-2</td>
+					<td>24.5</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>27</td>
+					<td>Anup Sreekumar</td><td>N</td><td>A2</td><td>Y</td><td>N</td><td>Y</td><td><div class='contentblack'>657</div></td>
+					<td>2-1-2</td>
+					<td>24.3</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>27</td>
+					<td>Dan Nehrbass</td><td>A2</td><td>N</td><td>Y</td><td>Y</td><td>N</td><td><div class='contentblack'>681</div></td>
+					<td>2-1-2</td>
+					<td>24.3</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Sam Greenblatt</td><td>N</td><td>Y</td><td>A3</td><td>Y</td><td>N</td><td><div class='contentblack'>628</div></td>
+					<td>2-1-2</td>
+					<td>24.2</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Brittany Palmer</td><td>N</td><td>N</td><td>Y</td><td>N</td><td>Y</td><td><div class='contentblack'>509</div></td>
+					<td>2-0-3</td>
+					<td>20</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Jaylee Dupere</td><td>Y</td><td>N</td><td>N</td><td>Y</td><td>N</td><td><div class='contentblack'>549</div></td>
+					<td>2-0-3</td>
+					<td>20</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Donald Curran</td><td>N</td><td>Y</td><td>N</td><td>N</td><td>Y</td><td><div class='contentblack'>593</div></td>
+					<td>2-0-3</td>
+					<td>20</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Steve Byerly</td><td>N</td><td>Y</td><td>N</td><td>Y</td><td>N</td><td><div class='contentblack'>642</div></td>
+					<td>2-0-3</td>
+					<td>20</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Jack Flynn</td><td>N</td><td>N</td><td>Y</td><td>N</td><td>Y</td><td><div class='contentblack'>655</div></td>
+					<td>2-0-3</td>
+					<td>20</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Paul Heising</td><td>Y</td><td>N</td><td>N</td><td>Y</td><td>N</td><td><div class='contentblack'>678</div></td>
+					<td>2-0-3</td>
+					<td>20</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Emmanuel Matthews</td><td>Y</td><td>N</td><td>N</td><td>Y</td><td>N</td><td><div class='contentblack'>699</div></td>
+					<td>2-0-3</td>
+					<td>20</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Anuj Varma</td><td>Y</td><td>Y</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>743</div></td>
+					<td>2-0-3</td>
+					<td>20</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Domenica Dunnigan</td><td>N</td><td>Y</td><td>N</td><td>N</td><td>Y</td><td><div class='contentblack'>748</div></td>
+					<td>2-0-3</td>
+					<td>20</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Austin Ganzer</td><td>N</td><td>N</td><td>N</td><td>Y</td><td>Y</td><td><div class='contentblack'>789</div></td>
+					<td>2-0-3</td>
+					<td>20</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>David Ritter</td><td>N</td><td>N</td><td>Y</td><td>Y</td><td>N</td><td><div class='contentblack'>799</div></td>
+					<td>2-0-3</td>
+					<td>20</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Robby Harrison</td><td>N</td><td>Y</td><td>Y</td><td>N</td><td>N</td><td><div class='contentblack'>860</div></td>
+					<td>2-0-3</td>
+					<td>20</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Christian Larsen</td><td>Y</td><td>N</td><td>N</td><td>Y</td><td>N</td><td><div class='contentblack'>983</div></td>
+					<td>2-0-3</td>
+					<td>20</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Peter Deng</td><td>N</td><td>Y</td><td>N</td><td>N</td><td>A2</td><td><div class='contentblack'>744</div></td>
+					<td>1-1-3</td>
+					<td>14.3</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Richard Morris</td><td>N</td><td>A3</td><td>N</td><td>N</td><td>Y</td><td><div class='contentblack'>665</div></td>
+					<td>1-1-3</td>
+					<td>14.2</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Alexander Graber-Tilton</td><td>A3</td><td>N</td><td>N</td><td>N</td><td>Y</td><td><div class='contentblack'>668</div></td>
+					<td>1-1-3</td>
+					<td>14.2</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Leah Lawrence</td><td>N</td><td>Y</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>513</div></td>
+					<td>1-0-4</td>
+					<td>10</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Paul Forness</td><td>N</td><td>N</td><td>N</td><td>Y</td><td>N</td><td><div class='contentblack'>514</div></td>
+					<td>1-0-4</td>
+					<td>10</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Jyotishka Biswas</td><td>N</td><td>N</td><td>Y</td><td>N</td><td>N</td><td><div class='contentblack'>518</div></td>
+					<td>1-0-4</td>
+					<td>10</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Patricia Smith</td><td>N</td><td>N</td><td>N</td><td>N</td><td>Y</td><td><div class='contentblack'>524</div></td>
+					<td>1-0-4</td>
+					<td>10</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Connor Redding</td><td>Y</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>546</div></td>
+					<td>1-0-4</td>
+					<td>10</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Ricky Sato</td><td>N</td><td>N</td><td>Y</td><td>N</td><td>N</td><td><div class='contentblack'>571</div></td>
+					<td>1-0-4</td>
+					<td>10</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Steven Houston</td><td>N</td><td>N</td><td>N</td><td>N</td><td>Y</td><td><div class='contentblack'>647</div></td>
+					<td>1-0-4</td>
+					<td>10</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Kyle King</td><td>N</td><td>N</td><td>N</td><td>Y</td><td>N</td><td><div class='contentblack'>704</div></td>
+					<td>1-0-4</td>
+					<td>10</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Brian Passon</td><td>N</td><td>N</td><td>N</td><td>Y</td><td>N</td><td><div class='contentblack'>724</div></td>
+					<td>1-0-4</td>
+					<td>10</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Andrew Nocon</td><td>N</td><td>N</td><td>N</td><td>A3</td><td>N</td><td><div class='contentblack'>676</div></td>
+					<td>0-1-4</td>
+					<td>4.2</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Jonathan Mitchell</td><td>N</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>562</div></td>
+					<td>0-0-5</td>
+					<td>0</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Matthew Jagelski</td><td>N</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>600</div></td>
+					<td>0-0-5</td>
+					<td>0</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Jason B Smith</td><td>N</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>605</div></td>
+					<td>0-0-5</td>
+					<td>0</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>James Figluizzi-Bingham</td><td>N</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>629</div></td>
+					<td>0-0-5</td>
+					<td>0</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Matthew Fox</td><td>N</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>727</div></td>
+					<td>0-0-5</td>
+					<td>0</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Brian Pedranti</td><td>N</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>757</div></td>
+					<td>0-0-5</td>
+					<td>0</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Luis Toscano</td><td>N</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>769</div></td>
+					<td>0-0-5</td>
+					<td>0</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Christian Nicdao</td><td>N</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>775</div></td>
+					<td>0-0-5</td>
+					<td>0</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Ragnar Kempf</td><td>N</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>805</div></td>
+					<td>0-0-5</td>
+					<td>0</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Jack Meyers</td><td>N</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>817</div></td>
+					<td>0-0-5</td>
+					<td>0</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Joseph Patrick Alaby</td><td>N</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>828</div></td>
+					<td>0-0-5</td>
+					<td>0</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Ortal Yahdav</td><td>N</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>843</div></td>
+					<td>0-0-5</td>
+					<td>0</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Craig Van Alsten</td><td>N</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>856</div></td>
+					<td>0-0-5</td>
+					<td>0</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Narine Bridgemohan</td><td>N</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>865</div></td>
+					<td>0-0-5</td>
+					<td>0</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Jordan Grace</td><td>N</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>898</div></td>
+					<td>0-0-5</td>
+					<td>0</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Steven Behm</td><td>N</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>928</div></td>
+					<td>0-0-5</td>
+					<td>0</td>
+					<td></td>
+					<td></td>
+					</tr></table><p><table border="1" cellspacing="1" cellpadding="2" align="center" width="100%"><tr bgcolor='#ffae5e'><td colspan = '13'>Jack & Jill Leader Novice Semis - 28 competed<br>When marks are tied, lowest sum used as tiebreaker, Y=10, ALT1=4.5, ALT2=4.3, ALT3=4.2, N=0<br>All ties broken by head judge.</td></tr><tr>
+			 <td><em><strong>Count</strong></em></td>
+			 <td width="400"><em><strong>Competitor</strong></em></td><td><em><strong>Jennifer Norris</strong></em></td><td><em><strong>Kyle Fitzgerald</strong></em></td><td><em><strong>Matt Davis</strong></em></td><td><em><strong>Roberto Corporan</strong></em></td><td><em><strong>Sam Vaden</strong></em></td><td><em><strong>BIB</strong></em></td>
+			 <td><em><strong>Counts (Y-A-N)</strong></em></td>
+			 <td><em><strong>Sum</strong></em></td>
+			 <td><em><strong>Promote</strong></em></td>
+			 <td><em><strong>Alt</strong></em></td>
+			 </tr><tr>
+	   <td>1</td>
+					<td>Alice Stratmann</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>561</div></td>
+					<td>5-0-0</td>
+					<td>50</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>1</td>
+					<td>Eric Fernandez</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>638</div></td>
+					<td>5-0-0</td>
+					<td>50</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>3</td>
+					<td>Tina Lin</td><td>Y</td><td>Y</td><td>N</td><td>Y</td><td>Y</td><td><div class='contentblack'>550</div></td>
+					<td>4-0-1</td>
+					<td>40</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>3</td>
+					<td>Jing Huang</td><td>N</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>779</div></td>
+					<td>4-0-1</td>
+					<td>40</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>5</td>
+					<td>Cuong Nguyen</td><td>Y</td><td>A2</td><td>Y</td><td>A2</td><td>Y</td><td><div class='contentblack'>632</div></td>
+					<td>3-2-0</td>
+					<td>38.6</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>6</td>
+					<td>María Aguirre Roquero</td><td>Y</td><td>Y</td><td>A2</td><td>Y</td><td>N</td><td><div class='contentblack'>526</div></td>
+					<td>3-1-1</td>
+					<td>34.3</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>7</td>
+					<td>Daniel Semac</td><td>Y</td><td>N</td><td>Y</td><td>Y</td><td>N</td><td><div class='contentblack'>519</div></td>
+					<td>3-0-2</td>
+					<td>30</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>7</td>
+					<td>Christian Yzaguirre</td><td>Y</td><td>N</td><td>N</td><td>Y</td><td>Y</td><td><div class='contentblack'>554</div></td>
+					<td>3-0-2</td>
+					<td>30</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>7</td>
+					<td>Heather Lombardi</td><td>N</td><td>Y</td><td>N</td><td>Y</td><td>Y</td><td><div class='contentblack'>879</div></td>
+					<td>3-0-2</td>
+					<td>30</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>10</td>
+					<td>Karl-Philippe Télémaque-Hector</td><td>N</td><td>Y</td><td>A1</td><td>Y</td><td>N</td><td><div class='contentblack'>507</div></td>
+					<td>2-1-2</td>
+					<td>24.5</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>10</td>
+					<td>Vanessa Zighelboim</td><td>Y</td><td>N</td><td>N</td><td>A1</td><td>Y</td><td><div class='contentblack'>631</div></td>
+					<td>2-1-2</td>
+					<td>24.5</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>12</td>
+					<td>Amanda LaVigne</td><td>A2</td><td>Y</td><td>Y</td><td>N</td><td>N</td><td><div class='contentblack'>662</div></td>
+					<td>2-1-2</td>
+					<td>24.3</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>13</td>
+					<td>Jacob Mendelowitz</td><td>N</td><td>Y</td><td>N</td><td>Y</td><td>A3</td><td><div class='contentblack'>609</div></td>
+					<td>2-1-2</td>
+					<td>24.2</td>
+					<td>X</td>
+					<td>ALT1</td>
+					</tr><tr>
+	   <td>13</td>
+					<td>Kareen Rivera</td><td>N</td><td>Y</td><td>A3</td><td>N</td><td>Y</td><td><div class='contentblack'>737</div></td>
+					<td>2-1-2</td>
+					<td>24.2</td>
+					<td>X</td>
+					<td>ALT2</td>
+					</tr><tr>
+	   <td></td>
+					<td>Ted Lee</td><td>Y</td><td>N</td><td>Y</td><td>N</td><td>N</td><td><div class='contentblack'>589</div></td>
+					<td>2-0-3</td>
+					<td>20</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Anup Sreekumar</td><td>N</td><td>N</td><td>Y</td><td>N</td><td>Y</td><td><div class='contentblack'>657</div></td>
+					<td>2-0-3</td>
+					<td>20</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Alexandre George</td><td>Y</td><td>N</td><td>Y</td><td>N</td><td>N</td><td><div class='contentblack'>679</div></td>
+					<td>2-0-3</td>
+					<td>20</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Rosina Cleland</td><td>N</td><td>N</td><td>N</td><td>Y</td><td>A1</td><td><div class='contentblack'>802</div></td>
+					<td>1-1-3</td>
+					<td>14.5</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Roman Zapata</td><td>N</td><td>A3</td><td>Y</td><td>N</td><td>N</td><td><div class='contentblack'>584</div></td>
+					<td>1-1-3</td>
+					<td>14.2</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Jun Ogata</td><td>N</td><td>N</td><td>N</td><td>N</td><td>Y</td><td><div class='contentblack'>575</div></td>
+					<td>1-0-4</td>
+					<td>10</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Leigh Yu</td><td>N</td><td>Y</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>658</div></td>
+					<td>1-0-4</td>
+					<td>10</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Dan Nehrbass</td><td>N</td><td>N</td><td>Y</td><td>N</td><td>N</td><td><div class='contentblack'>681</div></td>
+					<td>1-0-4</td>
+					<td>10</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Catherine Cogut</td><td>Y</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>764</div></td>
+					<td>1-0-4</td>
+					<td>10</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Mark O'Dea</td><td>N</td><td>A1</td><td>N</td><td>N</td><td>A2</td><td><div class='contentblack'>803</div></td>
+					<td>0-2-3</td>
+					<td>8.8</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Boris Yelin</td><td>A1</td><td>N</td><td>N</td><td>A3</td><td>N</td><td><div class='contentblack'>516</div></td>
+					<td>0-2-3</td>
+					<td>8.7</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Raymond Ritchie</td><td>A3</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>567</div></td>
+					<td>0-1-4</td>
+					<td>4.2</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Francois Constantin-D'Amour</td><td>N</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>520</div></td>
+					<td>0-0-5</td>
+					<td>0</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Andrew Balmer</td><td>N</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>622</div></td>
+					<td>0-0-5</td>
+					<td>0</td>
+					<td></td>
+					<td></td>
+					</tr></table><p><table border="1" cellspacing="1" cellpadding="2" align="center" width="100%"><tr bgcolor='#ffae5e'><td colspan = '13'>Jack & Jill Leader Sophisticated Prelims - 18 competed<br>When marks are tied, lowest sum used as tiebreaker, Y=10, ALT1=4.5, ALT2=4.3, ALT3=4.2, N=0<br>All ties broken by head judge.</td></tr><tr>
+			 <td><em><strong>Count</strong></em></td>
+			 <td width="400"><em><strong>Competitor</strong></em></td><td><em><strong>Jennifer Norris</strong></em></td><td><em><strong>Kyle Fitzgerald</strong></em></td><td><em><strong>Matt Davis</strong></em></td><td><em><strong>Roberto Corporan</strong></em></td><td><em><strong>Sam Vaden</strong></em></td><td><em><strong>BIB</strong></em></td>
+			 <td><em><strong>Counts (Y-A-N)</strong></em></td>
+			 <td><em><strong>Sum</strong></em></td>
+			 <td><em><strong>Promote</strong></em></td>
+			 <td><em><strong>Alt</strong></em></td>
+			 </tr><tr>
+	   <td>1</td>
+					<td>Orian Breaux</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>624</div></td>
+					<td>5-0-0</td>
+					<td>50</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>1</td>
+					<td>Eric Fernandez</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>638</div></td>
+					<td>5-0-0</td>
+					<td>50</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>1</td>
+					<td>Kaiano Levine</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>682</div></td>
+					<td>5-0-0</td>
+					<td>50</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>1</td>
+					<td>Mandy Fried</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>801</div></td>
+					<td>5-0-0</td>
+					<td>50</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>5</td>
+					<td>Thibaud baron</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td>A1</td><td><div class='contentblack'>653</div></td>
+					<td>4-1-0</td>
+					<td>44.5</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>6</td>
+					<td>Frank Moda III</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td>N</td><td><div class='contentblack'>734</div></td>
+					<td>4-0-1</td>
+					<td>40</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>6</td>
+					<td>Leo Cook</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td>N</td><td><div class='contentblack'>852</div></td>
+					<td>4-0-1</td>
+					<td>40</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>8</td>
+					<td>Chris Wasko</td><td>A1</td><td>A1</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>565</div></td>
+					<td>3-2-0</td>
+					<td>39</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>9</td>
+					<td>Peter Khoo</td><td>A3</td><td>Y</td><td>Y</td><td>A2</td><td>Y</td><td><div class='contentblack'>708</div></td>
+					<td>3-2-0</td>
+					<td>38.5</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>10</td>
+					<td>Pascal Emond</td><td>Y</td><td>Y</td><td>A2</td><td>A1</td><td>N</td><td><div class='contentblack'>557</div></td>
+					<td>2-2-1</td>
+					<td>28.8</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>11</td>
+					<td>Melissa Miller</td><td>Y</td><td>A3</td><td>A1</td><td>A3</td><td>A2</td><td><div class='contentblack'>583</div></td>
+					<td>1-4-0</td>
+					<td>27.2</td>
+					<td>X</td>
+					<td>ALT1</td>
+					</tr><tr>
+	   <td>12</td>
+					<td>Daniel Desjardin</td><td>A2</td><td>N</td><td>A3</td><td>N</td><td>A3</td><td><div class='contentblack'>529</div></td>
+					<td>0-3-2</td>
+					<td>12.7</td>
+					<td>X</td>
+					<td>ALT2</td>
+					</tr><tr>
+	   <td></td>
+					<td>Daniel Semac</td><td>N</td><td>N</td><td>N</td><td>Y</td><td>N</td><td><div class='contentblack'>519</div></td>
+					<td>1-0-4</td>
+					<td>10</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Steven Houston</td><td>N</td><td>N</td><td>N</td><td>N</td><td>Y</td><td><div class='contentblack'>647</div></td>
+					<td>1-0-4</td>
+					<td>10</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Brian Passon</td><td>N</td><td>N</td><td>N</td><td>N</td><td>Y</td><td><div class='contentblack'>724</div></td>
+					<td>1-0-4</td>
+					<td>10</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Joseph Patrick Alaby</td><td>N</td><td>N</td><td>N</td><td>N</td><td>Y</td><td><div class='contentblack'>828</div></td>
+					<td>1-0-4</td>
+					<td>10</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Kevin Spahr</td><td>N</td><td>A2</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>683</div></td>
+					<td>0-1-4</td>
+					<td>4.3</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Steven Behm</td><td>N</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>928</div></td>
+					<td>0-0-5</td>
+					<td>0</td>
+					<td></td>
+					<td></td>
+					</tr></table><p><table border="1" cellspacing="1" cellpadding="2" align="center" width="100%"><tr bgcolor='#ffae5e'><td colspan = '13'>Jack & Jill Switch Role Prelims - 28 competed<br>When marks are tied, lowest sum used as tiebreaker, Y=10, ALT1=4.5, ALT2=4.3, ALT3=4.2, N=0<br>All ties broken by head judge.</td></tr><tr>
+			 <td><em><strong>Count</strong></em></td>
+			 <td width="400"><em><strong>Competitor</strong></em></td><td><em><strong>Arjay Centeno</strong></em></td><td><em><strong>Kevin Kane</strong></em></td><td><em><strong>Nataliya Kane</strong></em></td><td><em><strong>Philippe Berne</strong></em></td><td><em><strong>Roberto Corporan</strong></em></td><td><em><strong>BIB</strong></em></td>
+			 <td><em><strong>Counts (Y-A-N)</strong></em></td>
+			 <td><em><strong>Sum</strong></em></td>
+			 <td><em><strong>Promote</strong></em></td>
+			 <td><em><strong>Alt</strong></em></td>
+			 </tr><tr>
+	   <td>1</td>
+					<td>Kristen Wallace</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>453</div></td>
+					<td>5-0-0</td>
+					<td>50</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>1</td>
+					<td>Melissa Miller</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>583</div></td>
+					<td>5-0-0</td>
+					<td>50</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>1</td>
+					<td>Dario Haxhia</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>602</div></td>
+					<td>5-0-0</td>
+					<td>50</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>1</td>
+					<td>Derek Leyva</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>712</div></td>
+					<td>5-0-0</td>
+					<td>50</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>1</td>
+					<td>Jing Huang</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>779</div></td>
+					<td>5-0-0</td>
+					<td>50</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>1</td>
+					<td>Tegan Wilson</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>793</div></td>
+					<td>5-0-0</td>
+					<td>50</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>1</td>
+					<td>Corrado Mazzarelli</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>797</div></td>
+					<td>5-0-0</td>
+					<td>50</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>1</td>
+					<td>Demery leyva</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>896</div></td>
+					<td>5-0-0</td>
+					<td>50</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>9</td>
+					<td>Orian Breaux</td><td>Y</td><td>Y</td><td>Y</td><td>A2</td><td>Y</td><td><div class='contentblack'>624</div></td>
+					<td>4-1-0</td>
+					<td>44.3</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>9</td>
+					<td>Heather Lombardi</td><td>Y</td><td>Y</td><td>A2</td><td>Y</td><td>Y</td><td><div class='contentblack'>879</div></td>
+					<td>4-1-0</td>
+					<td>44.3</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>11</td>
+					<td>Eliot Heinrich</td><td>Y</td><td>N</td><td>Y</td><td>Y</td><td>Y</td><td><div class='contentblack'>783</div></td>
+					<td>4-0-1</td>
+					<td>40</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>11</td>
+					<td>Patrick Thompson</td><td>Y</td><td>Y</td><td>Y</td><td>Y</td><td>N</td><td><div class='contentblack'>848</div></td>
+					<td>4-0-1</td>
+					<td>40</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>13</td>
+					<td>Tatiana Doldonova</td><td>Y</td><td>Y</td><td>A1</td><td>Y</td><td>N</td><td><div class='contentblack'>857</div></td>
+					<td>3-1-1</td>
+					<td>34.5</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>14</td>
+					<td>Leah Grodstein</td><td>Y</td><td>A3</td><td>N</td><td>Y</td><td>Y</td><td><div class='contentblack'>521</div></td>
+					<td>3-1-1</td>
+					<td>34.2</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>15</td>
+					<td>Tom Tseng</td><td>A3</td><td>Y</td><td>A3</td><td>A1</td><td>Y</td><td><div class='contentblack'>730</div></td>
+					<td>2-3-0</td>
+					<td>32.9</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>16</td>
+					<td>Ajay Phatak</td><td>N</td><td>A1</td><td>Y</td><td>Y</td><td>A1</td><td><div class='contentblack'>534</div></td>
+					<td>2-2-1</td>
+					<td>29</td>
+					<td>X</td>
+					<td></td>
+					</tr><tr>
+	   <td>17</td>
+					<td>Jason Math</td><td>A1</td><td>Y</td><td>Y</td><td>N</td><td>N</td><td><div class='contentblack'>684</div></td>
+					<td>2-1-2</td>
+					<td>24.5</td>
+					<td>X</td>
+					<td>ALT1</td>
+					</tr><tr>
+	   <td>18</td>
+					<td>David Hahn</td><td>N</td><td>A2</td><td>N</td><td>Y</td><td>Y</td><td><div class='contentblack'>894</div></td>
+					<td>2-1-2</td>
+					<td>24.3</td>
+					<td>X</td>
+					<td>ALT2</td>
+					</tr><tr>
+	   <td></td>
+					<td>Ann Walkup</td><td>Y</td><td>N</td><td>N</td><td>N</td><td>Y</td><td><div class='contentblack'>770</div></td>
+					<td>2-0-3</td>
+					<td>20</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Jun Ogata</td><td>N</td><td>Y</td><td>N</td><td>A3</td><td>A2</td><td><div class='contentblack'>575</div></td>
+					<td>1-2-2</td>
+					<td>18.5</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Patricia Smith</td><td>N</td><td>N</td><td>Y</td><td>N</td><td>A3</td><td><div class='contentblack'>524</div></td>
+					<td>1-1-3</td>
+					<td>14.2</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Ted Lee</td><td>N</td><td>N</td><td>Y</td><td>N</td><td>N</td><td><div class='contentblack'>589</div></td>
+					<td>1-0-4</td>
+					<td>10</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Claire Hotvedt</td><td>A2</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>851</div></td>
+					<td>0-1-4</td>
+					<td>4.3</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Jenny Samuelson</td><td>N</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>564</div></td>
+					<td>0-0-5</td>
+					<td>0</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Matthew Jagelski</td><td>N</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>600</div></td>
+					<td>0-0-5</td>
+					<td>0</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Camille Vitale</td><td>N</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>685</div></td>
+					<td>0-0-5</td>
+					<td>0</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Sunjay Cauligi</td><td>N</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>739</div></td>
+					<td>0-0-5</td>
+					<td>0</td>
+					<td></td>
+					<td></td>
+					</tr><tr>
+	   <td></td>
+					<td>Ragnar Kempf</td><td>N</td><td>N</td><td>N</td><td>N</td><td>N</td><td><div class='contentblack'>805</div></td>
+					<td>0-0-5</td>
+					<td>0</td>
+					<td></td>
+					<td></td>
+					</tr>
+</table>
+<p>
+<div align="center">INSTANT SCORING provided by Paul Stoddard</div>
+</p>
+</body>
+</html>

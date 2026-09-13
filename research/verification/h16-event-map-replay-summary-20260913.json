@@ -1,0 +1,632 @@
+{
+  "accounting_checks": {
+    "all_prior_cases_succeeded": true,
+    "foreign_keys_clean": true,
+    "no_failed_or_running": true,
+    "prior_case_count": 21
+  },
+  "built": false,
+  "database_bytes": 4571488256,
+  "failed_or_running_attempts": [],
+  "final_receipt_sha256": "eb1b55bbca3f7ffc1af169d3f2079975297d3bb5728b515a235cdda34b383c9e",
+  "foreign_key_check": [],
+  "format": "offline-derivation-replay-summary-v1",
+  "generation_count": 34986,
+  "initial_database_bytes": 2646597632,
+  "input_bundle_hash": "e5e8df491d9e31ff008ed873d1254fe1438f0e41ddae1ec9a96cc7bb912de42a",
+  "link_worker_durations_seconds": {
+    "count": 2541,
+    "maximum": 4.134932,
+    "median": 0.966809,
+    "total": 2663.836015
+  },
+  "network_requests": 0,
+  "outcomes_by_run": [
+    {
+      "count": 2,
+      "outcome": "succeeded",
+      "run_id": "run_20260913T140401Z",
+      "stage": "project",
+      "unit_kind": "calendar"
+    },
+    {
+      "count": 28456,
+      "outcome": "succeeded",
+      "run_id": "run_20260913T140401Z",
+      "stage": "project",
+      "unit_kind": "dancer"
+    },
+    {
+      "count": 52,
+      "outcome": "succeeded",
+      "run_id": "run_20260913T141331Z",
+      "stage": "link",
+      "unit_kind": "event"
+    },
+    {
+      "count": 592,
+      "outcome": "succeeded",
+      "run_id": "run_20260913T141331Z",
+      "stage": "project",
+      "unit_kind": "dancer"
+    },
+    {
+      "count": 2541,
+      "outcome": "succeeded",
+      "run_id": "run_20260913T141331Z",
+      "stage": "project",
+      "unit_kind": "event"
+    },
+    {
+      "count": 1,
+      "outcome": "succeeded",
+      "run_id": "run_20260913T141331Z",
+      "stage": "project",
+      "unit_kind": "history"
+    },
+    {
+      "count": 1,
+      "outcome": "succeeded",
+      "run_id": "run_20260913T141331Z",
+      "stage": "project",
+      "unit_kind": "inventory"
+    },
+    {
+      "count": 1,
+      "outcome": "succeeded",
+      "run_id": "run_20260913T141331Z",
+      "stage": "project",
+      "unit_kind": "map"
+    },
+    {
+      "count": 467,
+      "outcome": "succeeded",
+      "run_id": "run_20260913T141331Z",
+      "stage": "project",
+      "unit_kind": "source_event"
+    },
+    {
+      "count": 384,
+      "outcome": "succeeded",
+      "run_id": "run_20260913T141331Z",
+      "stage": "project",
+      "unit_kind": "source_index"
+    },
+    {
+      "count": 311,
+      "outcome": "succeeded",
+      "run_id": "run_20260913T142258Z",
+      "stage": "link",
+      "unit_kind": "event"
+    },
+    {
+      "count": 314,
+      "outcome": "succeeded",
+      "run_id": "run_20260913T143228Z",
+      "stage": "link",
+      "unit_kind": "event"
+    },
+    {
+      "count": 316,
+      "outcome": "succeeded",
+      "run_id": "run_20260913T144143Z",
+      "stage": "link",
+      "unit_kind": "event"
+    },
+    {
+      "count": 312,
+      "outcome": "succeeded",
+      "run_id": "run_20260913T145100Z",
+      "stage": "link",
+      "unit_kind": "event"
+    },
+    {
+      "count": 303,
+      "outcome": "succeeded",
+      "run_id": "run_20260913T150020Z",
+      "stage": "link",
+      "unit_kind": "event"
+    },
+    {
+      "count": 292,
+      "outcome": "succeeded",
+      "run_id": "run_20260913T150937Z",
+      "stage": "link",
+      "unit_kind": "event"
+    },
+    {
+      "count": 263,
+      "outcome": "succeeded",
+      "run_id": "run_20260913T151854Z",
+      "stage": "link",
+      "unit_kind": "event"
+    },
+    {
+      "count": 245,
+      "outcome": "succeeded",
+      "run_id": "run_20260913T152817Z",
+      "stage": "link",
+      "unit_kind": "event"
+    },
+    {
+      "count": 133,
+      "outcome": "succeeded",
+      "run_id": "run_20260913T153733Z",
+      "stage": "link",
+      "unit_kind": "event"
+    }
+  ],
+  "parse_executed": false,
+  "prior_failed_cases": [
+    {
+      "outcome": "succeeded",
+      "reason_code": "output_committed",
+      "stage": "project",
+      "unit_id": "2023-10-augsburg-westie-station",
+      "unit_kind": "event"
+    },
+    {
+      "outcome": "succeeded",
+      "reason_code": "output_committed",
+      "stage": "project",
+      "unit_id": "2024-07-saunaswing",
+      "unit_kind": "event"
+    },
+    {
+      "outcome": "succeeded",
+      "reason_code": "output_committed",
+      "stage": "project",
+      "unit_id": "2024-09-mooseland-swing",
+      "unit_kind": "event"
+    },
+    {
+      "outcome": "succeeded",
+      "reason_code": "output_committed",
+      "stage": "project",
+      "unit_id": "2024-09-retaliation-swing",
+      "unit_kind": "event"
+    },
+    {
+      "outcome": "succeeded",
+      "reason_code": "output_committed",
+      "stage": "project",
+      "unit_id": "2025-12-new-year-s-swing-fling",
+      "unit_kind": "event"
+    },
+    {
+      "outcome": "succeeded",
+      "reason_code": "output_committed",
+      "stage": "project",
+      "unit_id": "scoringdance:109",
+      "unit_kind": "source_event"
+    },
+    {
+      "outcome": "succeeded",
+      "reason_code": "output_committed",
+      "stage": "project",
+      "unit_id": "scoringdance:11",
+      "unit_kind": "source_event"
+    },
+    {
+      "outcome": "succeeded",
+      "reason_code": "output_committed",
+      "stage": "project",
+      "unit_id": "scoringdance:111",
+      "unit_kind": "source_event"
+    },
+    {
+      "outcome": "succeeded",
+      "reason_code": "output_committed",
+      "stage": "project",
+      "unit_id": "scoringdance:12",
+      "unit_kind": "source_event"
+    },
+    {
+      "outcome": "succeeded",
+      "reason_code": "output_committed",
+      "stage": "project",
+      "unit_id": "scoringdance:120",
+      "unit_kind": "source_event"
+    },
+    {
+      "outcome": "succeeded",
+      "reason_code": "output_committed",
+      "stage": "project",
+      "unit_id": "scoringdance:123",
+      "unit_kind": "source_event"
+    },
+    {
+      "outcome": "succeeded",
+      "reason_code": "output_committed",
+      "stage": "project",
+      "unit_id": "scoringdance:13",
+      "unit_kind": "source_event"
+    },
+    {
+      "outcome": "succeeded",
+      "reason_code": "output_committed",
+      "stage": "project",
+      "unit_id": "scoringdance:20",
+      "unit_kind": "source_event"
+    },
+    {
+      "outcome": "succeeded",
+      "reason_code": "output_committed",
+      "stage": "project",
+      "unit_id": "scoringdance:21",
+      "unit_kind": "source_event"
+    },
+    {
+      "outcome": "succeeded",
+      "reason_code": "output_committed",
+      "stage": "project",
+      "unit_id": "scoringdance:210",
+      "unit_kind": "source_event"
+    },
+    {
+      "outcome": "succeeded",
+      "reason_code": "output_committed",
+      "stage": "project",
+      "unit_id": "scoringdance:212",
+      "unit_kind": "source_event"
+    },
+    {
+      "outcome": "succeeded",
+      "reason_code": "output_committed",
+      "stage": "project",
+      "unit_id": "scoringdance:217",
+      "unit_kind": "source_event"
+    },
+    {
+      "outcome": "succeeded",
+      "reason_code": "output_committed",
+      "stage": "project",
+      "unit_id": "scoringdance:226",
+      "unit_kind": "source_event"
+    },
+    {
+      "outcome": "succeeded",
+      "reason_code": "output_committed",
+      "stage": "project",
+      "unit_id": "scoringdance:24",
+      "unit_kind": "source_event"
+    },
+    {
+      "outcome": "succeeded",
+      "reason_code": "output_committed",
+      "stage": "project",
+      "unit_id": "scoringdance:266",
+      "unit_kind": "source_event"
+    },
+    {
+      "outcome": "succeeded",
+      "reason_code": "output_committed",
+      "stage": "project",
+      "unit_id": "scoringdance:28",
+      "unit_kind": "source_event"
+    }
+  ],
+  "published": false,
+  "receipts": [
+    {
+      "attempted": 28458,
+      "completed": 28458,
+      "elapsed_seconds": 550.0312043449958,
+      "fairness_claimed": false,
+      "format": "offline-derivation-replay-v1",
+      "generation_count": 28458,
+      "input_bundle_hash": "e5e8df491d9e31ff008ed873d1254fe1438f0e41ddae1ec9a96cc7bb912de42a",
+      "interrupted_attempts": 0,
+      "marker_sha256": "c01080748fcff31c7e189de494232212b29d8c1a623a544618315eb38142a65e",
+      "max_seconds": 600.0,
+      "network_requests": 0,
+      "outcomes": {
+        "output_committed": 28458
+      },
+      "parse_executed": false,
+      "path": "/var/tmp/swingset-h16-event-map-replay-001.json",
+      "published": false,
+      "recovered_admissions": 0,
+      "run_id": "run_20260913T140401Z",
+      "scratch": "/var/tmp/swingset-h16-event-map-replay",
+      "selection_seconds": 4.685775776626542,
+      "sha256": "534aa424f62ea307083dbfc8c1fc8363a3247447dddf13eea30b2ee1012d2c8e",
+      "source_receipt_sha256": "1b42aef638b49b3579d1ab02a67c4135db0519b1dd57d55f4f0d3aee3a21f4cb",
+      "status": "bounded_stop",
+      "sweeps": 1,
+      "worker_seconds": 540.9042456603493
+    },
+    {
+      "attempted": 4039,
+      "completed": 4039,
+      "elapsed_seconds": 550.0469038970186,
+      "fairness_claimed": false,
+      "format": "offline-derivation-replay-v1",
+      "generation_count": 32497,
+      "input_bundle_hash": "e5e8df491d9e31ff008ed873d1254fe1438f0e41ddae1ec9a96cc7bb912de42a",
+      "interrupted_attempts": 0,
+      "marker_sha256": "c01080748fcff31c7e189de494232212b29d8c1a623a544618315eb38142a65e",
+      "max_seconds": 600.0,
+      "network_requests": 0,
+      "outcomes": {
+        "output_committed": 4039
+      },
+      "parse_executed": false,
+      "path": "/var/tmp/swingset-h16-event-map-replay-002.json",
+      "published": false,
+      "recovered_admissions": 0,
+      "run_id": "run_20260913T141331Z",
+      "scratch": "/var/tmp/swingset-h16-event-map-replay",
+      "selection_seconds": 51.470321275352035,
+      "sha256": "d1177796f4ec6dc723d07a4c49bea8003a6ebfcf03caeea509272eef3c1d9915",
+      "source_receipt_sha256": "1b42aef638b49b3579d1ab02a67c4135db0519b1dd57d55f4f0d3aee3a21f4cb",
+      "status": "bounded_stop",
+      "sweeps": 1,
+      "worker_seconds": 497.0143802429084
+    },
+    {
+      "attempted": 311,
+      "completed": 311,
+      "elapsed_seconds": 550.0992374870111,
+      "fairness_claimed": false,
+      "format": "offline-derivation-replay-v1",
+      "generation_count": 32808,
+      "input_bundle_hash": "e5e8df491d9e31ff008ed873d1254fe1438f0e41ddae1ec9a96cc7bb912de42a",
+      "interrupted_attempts": 0,
+      "marker_sha256": "c01080748fcff31c7e189de494232212b29d8c1a623a544618315eb38142a65e",
+      "max_seconds": 600.0,
+      "network_requests": 0,
+      "outcomes": {
+        "output_committed": 311
+      },
+      "parse_executed": false,
+      "path": "/var/tmp/swingset-h16-event-map-replay-003.json",
+      "published": false,
+      "recovered_admissions": 0,
+      "run_id": "run_20260913T142258Z",
+      "scratch": "/var/tmp/swingset-h16-event-map-replay",
+      "selection_seconds": 184.6779494129587,
+      "sha256": "166e083f6b342cab148341ef081c5b68b11b9e7781781180d8710db712330ae5",
+      "source_receipt_sha256": "1b42aef638b49b3579d1ab02a67c4135db0519b1dd57d55f4f0d3aee3a21f4cb",
+      "status": "bounded_stop",
+      "sweeps": 1,
+      "worker_seconds": 364.32477557763923
+    },
+    {
+      "attempted": 314,
+      "completed": 314,
+      "elapsed_seconds": 550.4418975429726,
+      "fairness_claimed": false,
+      "format": "offline-derivation-replay-v1",
+      "generation_count": 33122,
+      "input_bundle_hash": "e5e8df491d9e31ff008ed873d1254fe1438f0e41ddae1ec9a96cc7bb912de42a",
+      "interrupted_attempts": 0,
+      "marker_sha256": "c01080748fcff31c7e189de494232212b29d8c1a623a544618315eb38142a65e",
+      "max_seconds": 600.0,
+      "network_requests": 0,
+      "outcomes": {
+        "output_committed": 314
+      },
+      "parse_executed": false,
+      "path": "/var/tmp/swingset-h16-event-map-replay-004.json",
+      "published": false,
+      "recovered_admissions": 0,
+      "run_id": "run_20260913T143228Z",
+      "scratch": "/var/tmp/swingset-h16-event-map-replay",
+      "selection_seconds": 184.3417133007315,
+      "sha256": "601a2765dcd489c164caf7ffb49435bfb1ebe54bc4e8fd9ea6b27f02392728e9",
+      "source_receipt_sha256": "1b42aef638b49b3579d1ab02a67c4135db0519b1dd57d55f4f0d3aee3a21f4cb",
+      "status": "bounded_stop",
+      "sweeps": 1,
+      "worker_seconds": 363.4058116818778
+    },
+    {
+      "attempted": 316,
+      "completed": 316,
+      "elapsed_seconds": 550.2116131329676,
+      "fairness_claimed": false,
+      "format": "offline-derivation-replay-v1",
+      "generation_count": 33438,
+      "input_bundle_hash": "e5e8df491d9e31ff008ed873d1254fe1438f0e41ddae1ec9a96cc7bb912de42a",
+      "interrupted_attempts": 0,
+      "marker_sha256": "c01080748fcff31c7e189de494232212b29d8c1a623a544618315eb38142a65e",
+      "max_seconds": 600.0,
+      "network_requests": 0,
+      "outcomes": {
+        "output_committed": 316
+      },
+      "parse_executed": false,
+      "path": "/var/tmp/swingset-h16-event-map-replay-005.json",
+      "published": false,
+      "recovered_admissions": 0,
+      "run_id": "run_20260913T144143Z",
+      "scratch": "/var/tmp/swingset-h16-event-map-replay",
+      "selection_seconds": 184.47602732252562,
+      "sha256": "62b734f2b2914e081d47860e1e36941e32e3fecf6c19b799c031a9655bf5fd58",
+      "source_receipt_sha256": "1b42aef638b49b3579d1ab02a67c4135db0519b1dd57d55f4f0d3aee3a21f4cb",
+      "status": "bounded_stop",
+      "sweeps": 1,
+      "worker_seconds": 364.7213438069448
+    },
+    {
+      "attempted": 312,
+      "completed": 312,
+      "elapsed_seconds": 550.7111804870074,
+      "fairness_claimed": false,
+      "format": "offline-derivation-replay-v1",
+      "generation_count": 33750,
+      "input_bundle_hash": "e5e8df491d9e31ff008ed873d1254fe1438f0e41ddae1ec9a96cc7bb912de42a",
+      "interrupted_attempts": 0,
+      "marker_sha256": "c01080748fcff31c7e189de494232212b29d8c1a623a544618315eb38142a65e",
+      "max_seconds": 600.0,
+      "network_requests": 0,
+      "outcomes": {
+        "output_committed": 312
+      },
+      "parse_executed": false,
+      "path": "/var/tmp/swingset-h16-event-map-replay-006.json",
+      "published": false,
+      "recovered_admissions": 0,
+      "run_id": "run_20260913T145100Z",
+      "scratch": "/var/tmp/swingset-h16-event-map-replay",
+      "selection_seconds": 186.3313205136801,
+      "sha256": "8e8d5c41ce3cf01bbe45547881d8ba88ed4211f5de63db9758d30c309de78aaa",
+      "source_receipt_sha256": "1b42aef638b49b3579d1ab02a67c4135db0519b1dd57d55f4f0d3aee3a21f4cb",
+      "status": "bounded_stop",
+      "sweeps": 1,
+      "worker_seconds": 363.3757664441946
+    },
+    {
+      "attempted": 303,
+      "completed": 303,
+      "elapsed_seconds": 550.6474972100114,
+      "fairness_claimed": false,
+      "format": "offline-derivation-replay-v1",
+      "generation_count": 34053,
+      "input_bundle_hash": "e5e8df491d9e31ff008ed873d1254fe1438f0e41ddae1ec9a96cc7bb912de42a",
+      "interrupted_attempts": 0,
+      "marker_sha256": "c01080748fcff31c7e189de494232212b29d8c1a623a544618315eb38142a65e",
+      "max_seconds": 600.0,
+      "network_requests": 0,
+      "outcomes": {
+        "output_committed": 303
+      },
+      "parse_executed": false,
+      "path": "/var/tmp/swingset-h16-event-map-replay-007.json",
+      "published": false,
+      "recovered_admissions": 0,
+      "run_id": "run_20260913T150020Z",
+      "scratch": "/var/tmp/swingset-h16-event-map-replay",
+      "selection_seconds": 184.7994191615726,
+      "sha256": "19f692cf55bfd18f7ffc7940871cd703b6bf8d0ee2936cf71b9580572ed6e84c",
+      "source_receipt_sha256": "1b42aef638b49b3579d1ab02a67c4135db0519b1dd57d55f4f0d3aee3a21f4cb",
+      "status": "bounded_stop",
+      "sweeps": 1,
+      "worker_seconds": 364.8565851615276
+    },
+    {
+      "attempted": 292,
+      "completed": 292,
+      "elapsed_seconds": 550.7706695320085,
+      "fairness_claimed": false,
+      "format": "offline-derivation-replay-v1",
+      "generation_count": 34345,
+      "input_bundle_hash": "e5e8df491d9e31ff008ed873d1254fe1438f0e41ddae1ec9a96cc7bb912de42a",
+      "interrupted_attempts": 0,
+      "marker_sha256": "c01080748fcff31c7e189de494232212b29d8c1a623a544618315eb38142a65e",
+      "max_seconds": 600.0,
+      "network_requests": 0,
+      "outcomes": {
+        "output_committed": 292
+      },
+      "parse_executed": false,
+      "path": "/var/tmp/swingset-h16-event-map-replay-008.json",
+      "published": false,
+      "recovered_admissions": 0,
+      "run_id": "run_20260913T150937Z",
+      "scratch": "/var/tmp/swingset-h16-event-map-replay",
+      "selection_seconds": 179.99971991183702,
+      "sha256": "dd353ba138ad1455ec117967f2da5346c33859c4bbc7a92080a45b52e57a94ec",
+      "source_receipt_sha256": "1b42aef638b49b3579d1ab02a67c4135db0519b1dd57d55f4f0d3aee3a21f4cb",
+      "status": "bounded_stop",
+      "sweeps": 1,
+      "worker_seconds": 369.74181912932545
+    },
+    {
+      "attempted": 263,
+      "completed": 263,
+      "elapsed_seconds": 551.08995899203,
+      "fairness_claimed": false,
+      "format": "offline-derivation-replay-v1",
+      "generation_count": 34608,
+      "input_bundle_hash": "e5e8df491d9e31ff008ed873d1254fe1438f0e41ddae1ec9a96cc7bb912de42a",
+      "interrupted_attempts": 0,
+      "marker_sha256": "c01080748fcff31c7e189de494232212b29d8c1a623a544618315eb38142a65e",
+      "max_seconds": 600.0,
+      "network_requests": 0,
+      "outcomes": {
+        "output_committed": 263
+      },
+      "parse_executed": false,
+      "path": "/var/tmp/swingset-h16-event-map-replay-009.json",
+      "published": false,
+      "recovered_admissions": 0,
+      "run_id": "run_20260913T151854Z",
+      "scratch": "/var/tmp/swingset-h16-event-map-replay",
+      "selection_seconds": 162.2613701291848,
+      "sha256": "b0f361e01e36fddd53a3495696bed7c4daf7980db19df71c1e7c13af6d124bb3",
+      "source_receipt_sha256": "1b42aef638b49b3579d1ab02a67c4135db0519b1dd57d55f4f0d3aee3a21f4cb",
+      "status": "bounded_stop",
+      "sweeps": 1,
+      "worker_seconds": 387.77616898855194
+    },
+    {
+      "attempted": 245,
+      "completed": 245,
+      "elapsed_seconds": 551.0538122320431,
+      "fairness_claimed": false,
+      "format": "offline-derivation-replay-v1",
+      "generation_count": 34853,
+      "input_bundle_hash": "e5e8df491d9e31ff008ed873d1254fe1438f0e41ddae1ec9a96cc7bb912de42a",
+      "interrupted_attempts": 0,
+      "marker_sha256": "c01080748fcff31c7e189de494232212b29d8c1a623a544618315eb38142a65e",
+      "max_seconds": 600.0,
+      "network_requests": 0,
+      "outcomes": {
+        "output_committed": 245
+      },
+      "parse_executed": false,
+      "path": "/var/tmp/swingset-h16-event-map-replay-010.json",
+      "published": false,
+      "recovered_admissions": 0,
+      "run_id": "run_20260913T152817Z",
+      "scratch": "/var/tmp/swingset-h16-event-map-replay",
+      "selection_seconds": 152.35421896766638,
+      "sha256": "a4ac31031f805597aad9619638c77659da2443781451a102ca23ba1a1dc2b3d3",
+      "source_receipt_sha256": "1b42aef638b49b3579d1ab02a67c4135db0519b1dd57d55f4f0d3aee3a21f4cb",
+      "status": "bounded_stop",
+      "sweeps": 1,
+      "worker_seconds": 397.62380223569926
+    },
+    {
+      "attempted": 133,
+      "completed": 133,
+      "elapsed_seconds": 250.30095191905275,
+      "fairness_claimed": false,
+      "format": "offline-derivation-replay-v1",
+      "generation_count": 34986,
+      "input_bundle_hash": "e5e8df491d9e31ff008ed873d1254fe1438f0e41ddae1ec9a96cc7bb912de42a",
+      "interrupted_attempts": 0,
+      "marker_sha256": "c01080748fcff31c7e189de494232212b29d8c1a623a544618315eb38142a65e",
+      "max_seconds": 600.0,
+      "network_requests": 0,
+      "outcomes": {
+        "output_committed": 133
+      },
+      "parse_executed": false,
+      "path": "/var/tmp/swingset-h16-event-map-replay-011.json",
+      "published": false,
+      "recovered_admissions": 0,
+      "run_id": "run_20260913T153733Z",
+      "scratch": "/var/tmp/swingset-h16-event-map-replay",
+      "selection_seconds": 87.45607515104348,
+      "sha256": "eb1b55bbca3f7ffc1af169d3f2079975297d3bb5728b515a235cdda34b383c9e",
+      "source_receipt_sha256": "1b42aef638b49b3579d1ab02a67c4135db0519b1dd57d55f4f0d3aee3a21f4cb",
+      "status": "current",
+      "sweeps": 2,
+      "unfinished_by_scope": {},
+      "worker_seconds": 159.48564318218268
+    }
+  ],
+  "scratch": "/var/tmp/swingset-h16-event-map-replay",
+  "source": "/nix/store/kshnpz73b37h89zkmj03f4b3srd5ldaf-source",
+  "source_receipt_sha256": "1b42aef638b49b3579d1ab02a67c4135db0519b1dd57d55f4f0d3aee3a21f4cb",
+  "status": "current",
+  "total_attempted": 34986,
+  "total_committed": 34986,
+  "total_invocation_elapsed_seconds": 5755.404926777119,
+  "total_selection_seconds": 1562.8539109231788,
+  "total_worker_seconds": 4173.230342111201,
+  "unfinished_by_scope": {},
+  "writer_lock_release_independently_verified": true
+}

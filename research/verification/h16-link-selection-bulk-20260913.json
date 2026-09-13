@@ -1,0 +1,123 @@
+{
+  "dependency_count": 15,
+  "dependency_kinds": {
+    "dependency_set": 12,
+    "journal": 1,
+    "revision": 2
+  },
+  "dependency_manifest_bytes": 1853,
+  "dependency_sets": {
+    "0f921222756882292d6e43dbd34f3f50c8a17bbe5d01309ea0a51f4a7a73e7be": {
+      "bytes": 78,
+      "kinds": {
+        "derivation": 1
+      },
+      "members": 1
+    },
+    "1576f1f9394d0c537be64747a5ae4df6a802b085eb0abf4d07de22602c00ea9a": {
+      "bytes": 4142759,
+      "kinds": {
+        "derivation": 29048
+      },
+      "members": 29048
+    },
+    "1c27ab562b8244fe592fbedc453c15417238beeb61a1903d4b5f828fb4f90c00": {
+      "bytes": 147,
+      "kinds": {
+        "canonical": 1
+      },
+      "members": 1
+    },
+    "1d12407872e3a169c52dfb5d0da2ba47a39486520c26f09826e8b120cffa5c49": {
+      "bytes": 7904,
+      "kinds": {
+        "canonical": 45
+      },
+      "members": 45
+    },
+    "441462b8393a1df8178eb350d902f09d093dddc60f58b1406cf066b17519170c": {
+      "bytes": 318665,
+      "kinds": {
+        "canonical": 1829
+      },
+      "members": 1829
+    },
+    "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945": {
+      "bytes": 2,
+      "kinds": {},
+      "members": 0
+    },
+    "4f9d60277e99ca182e966ce488e25d85abafaa944b56f08d633f2eadab248012": {
+      "bytes": 9954,
+      "kinds": {
+        "canonical": 60
+      },
+      "members": 60
+    },
+    "6a9c89f37dd24fb708d8d633009dea957161c5c4c08da7ce56007df1e1d49b6a": {
+      "bytes": 3437,
+      "kinds": {
+        "canonical": 20
+      },
+      "members": 20
+    },
+    "6ded6f191eee69302bc15728ff37c985f8eec53c2bdda81877bbe1df5ebe5ceb": {
+      "bytes": 42885,
+      "kinds": {
+        "canonical": 229
+      },
+      "members": 229
+    },
+    "700e538d1397a11e6b5c1eecd0a2d35864751f7cfd9fd273d35d5953c8b44299": {
+      "bytes": 97,
+      "kinds": {
+        "derivation": 1
+      },
+      "members": 1
+    },
+    "dd2e6a67debcf335cfa021f22be34ec02d627880e1f4f3c39c6d35209c576aa8": {
+      "bytes": 35490,
+      "kinds": {
+        "observation": 65,
+        "source_selection": 7
+      },
+      "members": 72
+    }
+  },
+  "exact_dependency_equivalence": true,
+  "fingerprint": "db83e5a6575b49a43d1263eea18a2e47e7c81e5386045fb6ad34841c2362ca97",
+  "generation_id": "dg_20b5ee29d83d55bcc633aac80f85b17884b56ee1ab7b3c8415ea92aad7131edb",
+  "measurements": [
+    {
+      "elapsed_seconds": 0.6332397410296835,
+      "operation": "ready",
+      "profile": "         1539638 function calls in 0.633 seconds\n\n   Ordered by: cumulative time\n   List reduced from 57 to 28 due to restriction <28>\n\n   ncalls  tottime  percall  cumtime  percall filename:lineno(function)\n        1    0.000    0.000    0.633    0.633 <stdin>:31(<lambda>)\n        1    0.001    0.001    0.633    0.633 /Users/skeswa/repos/skeswa/swingset/src/swingset/state/derivations.py:512(ready)\n        1    0.003    0.003    0.633    0.633 /Users/skeswa/repos/skeswa/swingset/src/swingset/state/derivations.py:525(_ready)\n        1    0.220    0.220    0.565    0.565 /Users/skeswa/repos/skeswa/swingset/src/swingset/state/derivation_readiness.py:15(dancers_current)\n   116192    0.052    0.000    0.233    0.000 /nix/store/s5rij9y3vb4gxbh0iqz3k0ndmsac7h02-python3-3.12.13/lib/python3.12/json/__init__.py:183(dumps)\n    29048    0.020    0.000    0.209    0.000 /Users/skeswa/repos/skeswa/swingset/src/swingset/state/derivation_signatures.py:36(base_certificate)\n    87144    0.014    0.000    0.203    0.000 /Users/skeswa/repos/skeswa/swingset/src/swingset/state/derivation_signatures.py:19(_json)\n   116192    0.039    0.000    0.171    0.000 /nix/store/s5rij9y3vb4gxbh0iqz3k0ndmsac7h02-python3-3.12.13/lib/python3.12/json/encoder.py:183(encode)\n    29048    0.011    0.000    0.124    0.000 /Users/skeswa/repos/skeswa/swingset/src/swingset/state/derivation_signatures.py:27(_digest)\n   116192    0.114    0.000    0.114    0.000 /nix/store/s5rij9y3vb4gxbh0iqz3k0ndmsac7h02-python3-3.12.13/lib/python3.12/json/encoder.py:205(iterencode)\n    29048    0.012    0.000    0.080    0.000 /Users/skeswa/repos/skeswa/swingset/src/swingset/state/derivation_signatures.py:31(materialized_proof)\n        1    0.000    0.000    0.064    0.064 /Users/skeswa/repos/skeswa/swingset/src/swingset/state/derivation_dependencies.py:184(prerequisites)\n        3    0.000    0.000    0.064    0.021 /nix/store/d8bwqgbqi94b19l0wfgqr7a2gir1xkf5-source/src/swingset/state/derivation_query.py:40(memo)\n        2    0.000    0.000    0.064    0.032 /Users/skeswa/repos/skeswa/swingset/src/swingset/state/derivation_dependencies.py:100(_project_subset)\n        2    0.000    0.000    0.064    0.032 /Users/skeswa/repos/skeswa/swingset/src/swingset/state/derivation_dependencies.py:101(selected)\n        2    0.001    0.001    0.063    0.032 /Users/skeswa/repos/skeswa/swingset/src/swingset/state/derivation_dependencies.py:122(_stored_project_kind)\n    29051    0.053    0.000    0.062    0.000 /Users/skeswa/repos/skeswa/swingset/src/swingset/state/derivation_dependencies.py:124(<genexpr>)\n    58096    0.013    0.000    0.013    0.000 {built-in method _hashlib.openssl_sha256}\n   232384    0.011    0.000    0.011    0.000 {built-in method builtins.isinstance}\n   116192    0.010    0.000    0.010    0.000 /nix/store/s5rij9y3vb4gxbh0iqz3k0ndmsac7h02-python3-3.12.13/lib/python3.12/json/encoder.py:105(__init__)\n    58096    0.010    0.000    0.010    0.000 {method 'hexdigest' of '_hashlib.HASH' objects}\n    29052    0.009    0.000    0.009    0.000 <string>:2(__init__)\n    29048    0.006    0.000    0.009    0.000 {method 'extend' of 'list' objects}\n    58096    0.008    0.000    0.008    0.000 {method 'get' of 'dict' objects}\n   116194    0.007    0.000    0.007    0.000 {method 'join' of 'str' objects}\n    87144    0.005    0.000    0.005    0.000 {method 'append' of 'list' objects}\n    29048    0.004    0.000    0.004    0.000 /Users/skeswa/repos/skeswa/swingset/src/swingset/state/derivation_signatures.py:23(_basis)\n    58096    0.004    0.000    0.004    0.000 {method 'encode' of 'str' objects}\n\n\n"
+    },
+    {
+      "elapsed_seconds": 0.25767604098655283,
+      "operation": "desired",
+      "profile": "         603559 function calls in 0.258 seconds\n\n   Ordered by: cumulative time\n   List reduced from 59 to 28 due to restriction <28>\n\n   ncalls  tottime  percall  cumtime  percall filename:lineno(function)\n        1    0.000    0.000    0.258    0.258 <stdin>:31(<lambda>)\n        1    0.000    0.000    0.258    0.258 /Users/skeswa/repos/skeswa/swingset/src/swingset/state/derivations.py:99(desired)\n        1    0.008    0.008    0.257    0.257 /Users/skeswa/repos/skeswa/swingset/src/swingset/state/derivation_dependencies.py:279(dependencies)\n        7    0.000    0.000    0.225    0.032 /nix/store/d8bwqgbqi94b19l0wfgqr7a2gir1xkf5-source/src/swingset/state/derivation_query.py:40(memo)\n        3    0.000    0.000    0.177    0.059 /Users/skeswa/repos/skeswa/swingset/src/swingset/state/derivation_dependencies.py:459(_selected_members)\n       17    0.006    0.000    0.165    0.010 {built-in method builtins.sorted}\n    29053    0.004    0.000    0.102    0.000 /Users/skeswa/repos/skeswa/swingset/src/swingset/state/derivation_dependencies.py:464(<genexpr>)\n    29050    0.011    0.000    0.098    0.000 /Users/skeswa/repos/skeswa/swingset/src/swingset/state/derivations.py:94(selected_dependency)\n    29050    0.016    0.000    0.086    0.000 /Users/skeswa/repos/skeswa/swingset/src/swingset/state/derivations.py:83(selected_generation)\n    33502    0.005    0.000    0.080    0.000 /Users/skeswa/repos/skeswa/swingset/src/swingset/state/derivation_dependencies.py:21(_canonical)\n    33520    0.013    0.000    0.075    0.000 /nix/store/s5rij9y3vb4gxbh0iqz3k0ndmsac7h02-python3-3.12.13/lib/python3.12/json/__init__.py:183(dumps)\n    33520    0.010    0.000    0.059    0.000 /nix/store/s5rij9y3vb4gxbh0iqz3k0ndmsac7h02-python3-3.12.13/lib/python3.12/json/encoder.py:183(encode)\n    29077    0.053    0.000    0.053    0.000 {method 'execute' of 'sqlite3.Connection' objects}\n        1    0.000    0.000    0.048    0.048 /Users/skeswa/repos/skeswa/swingset/src/swingset/state/derivation_dependencies.py:184(prerequisites)\n        2    0.000    0.000    0.048    0.024 /Users/skeswa/repos/skeswa/swingset/src/swingset/state/derivation_dependencies.py:100(_project_subset)\n        2    0.000    0.000    0.048    0.024 /Users/skeswa/repos/skeswa/swingset/src/swingset/state/derivation_dependencies.py:101(selected)\n        2    0.001    0.001    0.048    0.024 /Users/skeswa/repos/skeswa/swingset/src/swingset/state/derivation_dependencies.py:122(_stored_project_kind)\n    29051    0.037    0.000    0.047    0.000 /Users/skeswa/repos/skeswa/swingset/src/swingset/state/derivation_dependencies.py:124(<genexpr>)\n    33520    0.045    0.000    0.045    0.000 /nix/store/s5rij9y3vb4gxbh0iqz3k0ndmsac7h02-python3-3.12.13/lib/python3.12/json/encoder.py:205(iterencode)\n     2196    0.001    0.000    0.026    0.000 /Users/skeswa/repos/skeswa/swingset/src/swingset/state/derivation_dependencies.py:25(_digest)\n    29052    0.019    0.000    0.019    0.000 {method 'fetchone' of 'sqlite3.Cursor' objects}\n    29053    0.009    0.000    0.009    0.000 <string>:2(__init__)\n        9    0.000    0.000    0.006    0.001 /Users/skeswa/repos/skeswa/swingset/src/swingset/state/derivation_dependencies.py:287(group)\n        1    0.000    0.000    0.004    0.004 /Users/skeswa/repos/skeswa/swingset/src/swingset/state/derivation_dependencies.py:226(_raw)\n    29053    0.003    0.000    0.003    0.000 /Users/skeswa/repos/skeswa/swingset/src/swingset/state/derivation_dependencies.py:295(<genexpr>)\n    67040    0.003    0.000    0.003    0.000 {built-in method builtins.isinstance}\n    33520    0.002    0.000    0.002    0.000 /nix/store/s5rij9y3vb4gxbh0iqz3k0ndmsac7h02-python3-3.12.13/lib/python3.12/json/encoder.py:105(__init__)\n    58103    0.002    0.000    0.002    0.000 /Users/skeswa/repos/skeswa/swingset/src/swingset/state/derivations.py:33(_key)\n\n\n"
+    }
+  ],
+  "network_requests": 0,
+  "overlay_file": "/Users/skeswa/repos/skeswa/swingset/src/swingset/state/derivation_dependencies.py",
+  "overlay_hashes": {
+    "/Users/skeswa/repos/skeswa/swingset/src/swingset/state/derivation_dependencies.py": "4b67dbab52b4a37a09dadbd739ce15470b04ec14e4dcb9877d10e8649cc33a2a",
+    "/Users/skeswa/repos/skeswa/swingset/src/swingset/state/derivation_readiness.py": "90c2c57820571a14fc136eb538d2a54e34ecba315144b817ab8d285e11b848e7",
+    "/Users/skeswa/repos/skeswa/swingset/src/swingset/state/derivation_signatures.py": "ab5801096ae4645da03eb71faebce0a1b57439be9eda72995889063d6a5fb7a2",
+    "/Users/skeswa/repos/skeswa/swingset/src/swingset/state/derivations.py": "449622ccf9f8a79d557ff9d7ca3178e444cf90a0f94fe677c5c3fea671492c55"
+  },
+  "overlay_sha256": "4b67dbab52b4a37a09dadbd739ce15470b04ec14e4dcb9877d10e8649cc33a2a",
+  "read_only": true,
+  "ready": false,
+  "recipe_bytes": 457,
+  "scope": {
+    "entries": 1829,
+    "id": "2026-06-jack-jill-o-rama",
+    "kind": "event",
+    "stage": "link"
+  },
+  "source": "/nix/store/d8bwqgbqi94b19l0wfgqr7a2gir1xkf5-source",
+  "state": "/var/tmp/swingset-h16-full-replay",
+  "worker_executed": false
+}

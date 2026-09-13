@@ -31,6 +31,35 @@ def config(host="example.test", budget=200):
     )
 
 
+@pytest.mark.parametrize(
+    "url", ["https://steprightsolutions.com/events", "https://example.test/events"]
+)
+def test_archive_only_source_refuses_origin_before_robots(tmp_path, url):
+    clock = FakeClock()
+    requests = []
+    policy = Config({}, {"steprightsolutions": SourceConfig(True)})
+    with open_database(tmp_path) as db:
+        run = db.start_run(clock.now(), dry_run=True)
+        spec = WatchSpec("", "steprightsolutions", "index", "GET", url, "steprightsolutions.index")
+        upsert_watch(db.connection, spec, clock.now())
+        client = FetchClient(
+            db.connection,
+            policy,
+            clock,
+            Archive(tmp_path),
+            transport=httpx.MockTransport(
+                lambda request: requests.append(request) or httpx.Response(200)
+            ),
+        )
+        try:
+            result = client.fetch(spec.watch_id, EventsPage(), run)
+            assert result.skipped == "archive required"
+            assert not requests
+            assert db.connection.execute("SELECT COUNT(*) FROM host_budget").fetchone()[0] == 0
+        finally:
+            client.close()
+
+
 def test_classify_expected_403_is_watch_local():
     page = RoundsPage()
     response = httpx.Response(403)
@@ -131,7 +160,9 @@ def test_fetch_conditional_no_cookies_archive_and_fingerprint(tmp_path):
 
 
 @pytest.mark.parametrize("second_response", ["full", "not_modified"])
-def test_repeated_registry_probe_miss_archives_fresh_unchanged_evidence(tmp_path, second_response):
+def test_repeated_registry_probe_miss_verifies_without_replacing_claim_evidence(
+    tmp_path, second_response
+):
     clock = FakeClock()
     body = Path("src/swingset/sources/wsdc_registry/fixtures/lookup-1000000.body").read_bytes()
     requests = []
@@ -168,43 +199,35 @@ def test_repeated_registry_probe_miss_archives_fresh_unchanged_evidence(tmp_path
 
         assert first.changed
         assert not second.changed
-        assert first.snapshot_id != second.snapshot_id
-        snapshots = db.connection.execute(
-            "SELECT fetched_at,body_sha256,content_changed,parse_status,http_status,classification,body_bytes FROM snapshots ORDER BY fetched_at"
-        ).fetchall()
-        assert len(snapshots) == 2
-        assert snapshots[0][0] < snapshots[1][0]
-        assert snapshots[0][1] == snapshots[1][1]
-        expected_second = (
-            (0, "pending", 304, "NotModified", 0)
-            if second_response == "not_modified"
-            else (0, "pending", 404, "Ok", len(body))
-        )
-        assert [tuple(row[2:]) for row in snapshots] == [
-            (1, "pending", 404, "Ok", len(body)),
-            expected_second,
-        ]
+        assert second.snapshot_id is None
+        assert db.connection.execute("SELECT COUNT(*) FROM snapshots").fetchone()[0] == 1
         assert (
             db.connection.execute(
-                "SELECT count(*) FROM pending_work WHERE stage='parse'"
+                "SELECT COUNT(*) FROM pending_work WHERE stage='parse'"
             ).fetchone()[0]
-            == 2
+            == 1
+        )
+        assert (
+            db.connection.execute(
+                "SELECT COUNT(*) FROM registry_verifications WHERE usable=1"
+            ).fetchone()[0]
+            == 0
         )
         assert "if-none-match" not in requests[0].headers
         assert requests[1].headers["if-none-match"] == '"miss"'
-        assert requests[1].headers["if-modified-since"] == "Thu, 01 Jan 2026 00:00:00 GMT"
-        assert len(list((tmp_path / "blobs").rglob(str(snapshots[0][1])))) == 1
         parse_snapshot(
-            db,
-            Archive(tmp_path),
-            WorkUnit("parse", "snapshot", str(second.snapshot_id)),
-            clock,
-            run,
+            db, Archive(tmp_path), WorkUnit("parse", "snapshot", first.snapshot_id), clock, run
         )
+        checks = db.connection.execute(
+            "SELECT checked_at,outcome,usable,snapshot_id FROM registry_verifications ORDER BY verification_id"
+        ).fetchall()
+        assert len(checks) == 2
+        assert checks[0][0] < checks[1][0]
+        assert [tuple(row[1:]) for row in checks] == [("not_found", 1, first.snapshot_id)] * 2
         observation = db.connection.execute(
             "SELECT snapshot_id,scope_kind,scope_id FROM observations"
         ).fetchone()
-        assert tuple(observation) == (second.snapshot_id, "dancer", "1000000")
+        assert tuple(observation) == (first.snapshot_id, "dancer", "1000000")
         client.close()
 
 

@@ -1,0 +1,29 @@
+{
+  "experimental_module_sha256": "a135f1994a998d87c584978bb5d56f87d6aa8112e3526fcbfeee261975c0f9dc",
+  "fingerprints_equal": true,
+  "format": "h16-map-lookup-profile-v1",
+  "measurements": {
+    "new": {
+      "current": false,
+      "fingerprint": "fef50de96d9526a4d8a46cac377def7074aea4c4209b671ccb825faba0ba3fd0",
+      "log_sha256": "7688cf2f466f34f1407f4e11fad7aaf6eaa3a17a0e544d9f866e167cf9bc7037",
+      "ready": true,
+      "seconds_with_profiler": 0.005,
+      "unit": "WorkUnit(stage='project', unit_kind='event', unit_id='2012-03-russian-open-wcs-championships')"
+    },
+    "old": {
+      "current": false,
+      "fingerprint": "fef50de96d9526a4d8a46cac377def7074aea4c4209b671ccb825faba0ba3fd0",
+      "log_sha256": "7a7ec23ade06403016d2871084221dc3801f8cc354a7808fe13809584394956f",
+      "ready": true,
+      "seconds_with_profiler": 0.686,
+      "unit": "WorkUnit(stage='project', unit_kind='event', unit_id='2012-03-russian-open-wcs-championships')"
+    }
+  },
+  "production_mutated": false,
+  "source_pin": "/nix/store/d8bwqgbqi94b19l0wfgqr7a2gir1xkf5-source",
+  "source_receipt_sha256": "abb69e5f559769bd2b6ae782c290c10ff746df3783f4118a2b107e440c462983",
+  "state": "/var/tmp/swingset-h16-full-replay",
+  "state_paused": true,
+  "worker_executed": false
+}

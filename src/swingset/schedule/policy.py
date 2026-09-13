@@ -39,8 +39,8 @@ def policy(
     unchanged_streak: int = 0,
     jitter: float = 0,
 ) -> Policy:
-    if state == "gone":
-        return Policy("gone", None, 99)
+    if state in {"gone", "sealed"}:
+        return Policy(state, None, 99)
     if source == "wsdc_registry":
         return Policy("registry", 86400 * 365, 5)
     if source == "wsdc_calendar":

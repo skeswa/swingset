@@ -28,8 +28,13 @@ class Event(Provenance):
     series_id: str
     name: str
     year: int
-    start_date: str
-    end_date: str
+    start_date: str | None
+    end_date: str | None
+    event_month: str = ""
+    date_precision: str = "day"
+    held: str = "listed"
+    coverage_tier: str = "index_only"
+    history_source: tuple[str, ...] = ()
     city: str | None = None
     region: str | None = None
     country: str | None = None
@@ -38,6 +43,10 @@ class Event(Provenance):
     sources: tuple[str, ...] = ()
     live_window_start: str | None = None
     live_window_end: str | None = None
+
+    def __post_init__(self) -> None:
+        if not self.event_month and self.end_date:
+            object.__setattr__(self, "event_month", self.end_date[:7])
 
     def key(self) -> tuple[object, ...]:
         return (self.event_id,)

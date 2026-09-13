@@ -1,0 +1,25 @@
+{
+  "command": "PYTHONPATH=/tmp/swingset-wp16-frozen-tests:/tmp/swingset-wp16-frozen-tests/src:/tmp/swingset-wp16-frozen-tests/tests /Users/skeswa/repos/skeswa/swingset/.venv/bin/python -m pytest -q /tmp/test_fixture_exception_h13.py",
+  "cwd": "/tmp/swingset-wp16-frozen-tests",
+  "driver_sha256": "e9fc5dbb988ecee61099c9d5a046e6caa34c58f18849eaa54ff94de656af1f9c",
+  "format": "wp16-frozen-fixture-adapter-validation-v1",
+  "limits": [
+    "MockTransport/FakeClock and disposable SQLite only",
+    "No production main/source gate or owner authorization is claimed",
+    "No real request, migration, deployment or activation",
+    "Full frozen suite is independently owned by root and not rerun here"
+  ],
+  "mirror": "/tmp/swingset-wp16-frozen-tests",
+  "mirror_all_inventoried_hashes_verified": true,
+  "network_requests": 0,
+  "source": "/nix/store/sfsm1sjnbzjmchv52hyqsx6x4kr2r5cd-source",
+  "source_receipt_sha256": "20fb28b173617b3cdfdf8aa08df2e2ba62ac8861b984ec61b4b643c2872bb6a1",
+  "tested_at": "2026-09-13T16:47:15.924654+00:00",
+  "tests": {
+    "log": "research/verification/wp16-frozen-fixture-adapter-tests-20260913.log",
+    "log_sha256": "77a33dd1eae4050657fd9b1fe948582d92a3d45214e4019ff78e3058bb71c3b1",
+    "passed": 18,
+    "seconds": 0.66
+  },
+  "tests_sha256": "424f580e7b92b92a72cda20446a199355743d9f329f788fab92b20e99e7d2d96"
+}

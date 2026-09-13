@@ -5,7 +5,9 @@ import hashlib
 import json
 import os
 import tempfile
+import zlib
 from pathlib import Path
+from typing import Literal, Protocol
 
 from swingset.sources.base import JsonValue
 
@@ -39,9 +41,31 @@ def durable_write(path: Path, body: bytes) -> None:
             os.unlink(temporary)
 
 
+type ArtifactKind = Literal["body", "extract"]
+
+
+class ArtifactUnavailable(OSError):
+    """The exact historical digest cannot currently be recovered locally."""
+
+    def __init__(
+        self,
+        kind: ArtifactKind,
+        sha256: str,
+        reason: str,
+        attempts: tuple[dict[str, str], ...] = (),
+    ) -> None:
+        self.kind, self.sha256, self.reason, self.attempts = kind, sha256, reason, attempts
+        super().__init__(f"{kind} artifact {sha256} unavailable: {reason}")
+
+
+class ArtifactRecovery(Protocol):
+    def recover(self, kind: ArtifactKind, sha256: str, destination: Path) -> None: ...
+
+
 class Archive:
-    def __init__(self, state_dir: Path) -> None:
+    def __init__(self, state_dir: Path, *, recovery: ArtifactRecovery | None = None) -> None:
         self.state_dir = state_dir
+        self.recovery = recovery
 
     def blob_path(self, sha256: str) -> Path:
         self._validate_hash(sha256)
@@ -64,7 +88,18 @@ class Archive:
         return sha
 
     def read_body(self, sha256: str) -> bytes:
-        body = gzip.decompress(self.blob_path(sha256).read_bytes())
+        path = self.blob_path(sha256)
+        try:
+            return self._body(path, sha256)
+        except (OSError, ValueError, EOFError, zlib.error):
+            if self.recovery is None:
+                raise
+            self.recovery.recover("body", sha256, path)
+            return self._body(path, sha256)
+
+    @staticmethod
+    def _body(path: Path, sha256: str) -> bytes:
+        body = gzip.decompress(path.read_bytes())
         if digest(body) != sha256:
             raise ValueError(f"corrupt blob: {sha256}")
         return body
@@ -77,9 +112,20 @@ class Archive:
         return sha
 
     def read_extract(self, sha256: str) -> JsonValue:
+        path = self.extract_path(sha256)
+        try:
+            return self._extract(path, sha256)
+        except (OSError, ValueError):
+            if self.recovery is None:
+                raise
+            self.recovery.recover("extract", sha256, path)
+            return self._extract(path, sha256)
+
+    @staticmethod
+    def _extract(path: Path, sha256: str) -> JsonValue:
         from typing import cast
 
-        body = self.extract_path(sha256).read_bytes()
+        body = path.read_bytes()
         if digest(body) != sha256:
             raise ValueError(f"corrupt extract: {sha256}")
         return cast(JsonValue, json.loads(body))

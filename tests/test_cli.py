@@ -13,7 +13,7 @@ from swingset.cli import main
 from swingset.fetch.classify import Classification, Outcome
 from swingset.fetch.client import FetchResult
 from swingset.publish.service import RemoteCommit
-from swingset.state.db import open_database
+from swingset.state.db import SCHEMA_VERSION, open_database
 
 
 class EmptyHub:
@@ -37,7 +37,7 @@ def checkpoint(tmp_path: Path) -> Path:
             source,
             database.connection,
             tmp_path / "checkpoint",
-            schema_version=1,
+            schema_version=database.schema_version,
             versions={},
             input_bundle_hash=None,
         )
@@ -46,6 +46,7 @@ def checkpoint(tmp_path: Path) -> Path:
 
 def test_pause_timeout_applies_no_change(tmp_path):
     with open_database(tmp_path) as db:
+        db.connection.execute("BEGIN IMMEDIATE")
         result = subprocess.run(
             [
                 sys.executable,
@@ -62,12 +63,13 @@ def test_pause_timeout_applies_no_change(tmp_path):
             text=True,
         )
         assert result.returncode == 1
-        assert "no change was applied" in result.stderr
+        assert "no change was persisted" in result.stderr
         assert db.connection.execute("SELECT COUNT(*) FROM operator_pauses").fetchone()[0] == 0
 
 
 def test_pause_waits_and_commits_before_success(tmp_path):
     db = open_database(tmp_path)
+    db.connection.execute("BEGIN IMMEDIATE")
     child = subprocess.Popen(
         [
             sys.executable,
@@ -99,7 +101,7 @@ def test_pause_waits_and_commits_before_success(tmp_path):
 def test_doctor_does_not_wait_for_writer(tmp_path, capsys):
     with open_database(tmp_path):
         assert main(["doctor", "--state", str(tmp_path)]) == 0
-    assert '"schema_version": 1' in capsys.readouterr().out
+    assert f'"schema_version": {SCHEMA_VERSION}' in capsys.readouterr().out
 
 
 def test_restore_pending_blocks_mutations_but_allows_diagnosis(tmp_path):

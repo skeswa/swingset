@@ -14,7 +14,7 @@ from typing import IO, Self
 from swingset.clock import Clock, SystemClock
 from swingset.model.ids import run_id as make_run_id
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 15
 
 
 class DatabaseLockedError(RuntimeError):
@@ -59,14 +59,28 @@ class Database:
             else:
                 self.connection.execute(f"RELEASE {name}")
             return
-        self.connection.execute("BEGIN IMMEDIATE" if immediate else "BEGIN")
         try:
-            yield self.connection
+            from .write_deadline import bounded_write
+
+            boundary = bounded_write(self.connection) if immediate else self._read_snapshot()
+            with boundary:
+                self.connection.execute("BEGIN IMMEDIATE" if immediate else "BEGIN")
+                yield self.connection
         except BaseException:
             self.connection.rollback()
             raise
         else:
             self.connection.commit()
+
+    @contextlib.contextmanager
+    def _read_snapshot(self) -> Iterator[None]:
+        """An unbounded read may never upgrade to an unbounded SQLite writer."""
+        previous = int(self.connection.execute("PRAGMA query_only").fetchone()[0])
+        self.connection.execute("PRAGMA query_only=ON")
+        try:
+            yield
+        finally:
+            self.connection.execute("PRAGMA query_only=ON" if previous else "PRAGMA query_only=OFF")
 
     def start_run(self, started_at: datetime, *, dry_run: bool = False) -> str:
         base = make_run_id(started_at)
@@ -147,7 +161,12 @@ def open_database(
     database = Database(state_dir, conn, lock_file)
     try:
         if not read_only:
-            _migrate(database)
+            from .control_lock import control_lock
+
+            with control_lock(state_dir, timeout=60 if lock_timeout is None else lock_timeout):
+                if not allow_restore_pending and (state_dir / "RESTORE_PENDING").exists():
+                    raise RuntimeError(f"restore verification is pending: {state_dir}")
+                _migrate(database)
     except BaseException:
         database.close()
         raise
@@ -157,15 +176,47 @@ def open_database(
 def _migrate(database: Database) -> None:
     current = int(database.connection.execute("PRAGMA user_version").fetchone()[0])
     migrations = Path(__file__).with_name("migrations")
-    for version in range(current + 1, SCHEMA_VERSION + 1):
-        script = (migrations / f"{version:04d}_init.sql").read_text()
-        # executescript commits implicitly, so migration files carry all of their
-        # changes as a single explicit transaction.
-        database.connection.executescript(
-            f"BEGIN IMMEDIATE;\n{script}\nPRAGMA user_version={version};\nCOMMIT;"
-        )
     if current > SCHEMA_VERSION:
         raise RuntimeError(f"database schema {current} is newer than supported {SCHEMA_VERSION}")
+    if 12 <= current < SCHEMA_VERSION:
+        from .controls import recover_admissions
+
+        # The writer and lifecycle locks exclude surviving workers. A process
+        # may have died with a remote publication in flight; retain uncertainty
+        # while releasing its stale semantic fence before schema writes.
+        with database.transaction() as conn:
+            recover_admissions(conn, now=datetime.now(UTC))
+    for version in range(current + 1, SCHEMA_VERSION + 1):
+        matches = sorted(migrations.glob(f"{version:04d}_*.sql"))
+        if len(matches) != 1:
+            raise RuntimeError(f"expected one migration for schema {version}, found {len(matches)}")
+        script = matches[0].read_text()
+        # executescript commits implicitly, so migration files carry all of their
+        # changes as a single explicit transaction. Disable FK actions while
+        # rebuilding parent tables, then validate before committing the schema.
+        conn = database.connection
+        conn.execute("PRAGMA foreign_keys=OFF")
+        try:
+            conn.executescript(f"BEGIN IMMEDIATE;\n{script}")
+            if version == 2:
+                from swingset.state.verification import recover_registry_verifications
+
+                recover_registry_verifications(database)
+            if version >= 12:
+                from .publication_fence import install_publication_fences
+
+                install_publication_fences(conn)
+            violations = conn.execute("PRAGMA foreign_key_check").fetchall()
+            if violations:
+                raise RuntimeError(f"migration {version} violates foreign keys: {violations[:5]}")
+            conn.execute("UPDATE meta SET value=? WHERE key='schema_version'", (str(version),))
+            conn.execute(f"PRAGMA user_version={version}")
+            conn.commit()
+        except BaseException:
+            conn.rollback()
+            raise
+        finally:
+            conn.execute("PRAGMA foreign_keys=ON")
 
 
 def _iso(moment: datetime) -> str:

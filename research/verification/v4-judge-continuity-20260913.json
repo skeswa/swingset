@@ -1,0 +1,572 @@
+{
+  "added_judge_count": 0,
+  "affected_events": [
+    "2025-04-tulsa-spring-swing",
+    "2025-09-trilogy-swing",
+    "2025-10-montreal-westie-fest",
+    "2025-10-sass",
+    "2025-10-swing-city-chicago",
+    "2025-11-rocket-city-swing",
+    "2026-01-floorplay-swing-vacation",
+    "2026-03-the-chicago-classic",
+    "2026-04-swing-in-bloom",
+    "2026-04-tulsa-spring-swing",
+    "2026-06-swingapalooza",
+    "2026-07-carolina-summer-swing",
+    "2026-07-florida-dance-magic"
+  ],
+  "baseline": "/var/lib/swingset/candidates/cand_a9a87deb3ee34dac",
+  "baseline_affected_judges": 361,
+  "baseline_all_judges": 4919,
+  "baseline_commit": "4653f3a3a6076d3af474c28f7bd0e93998ca0a9c",
+  "changed_names": [],
+  "checked_at": "2026-09-13T07:54:49.549794+00:00",
+  "database_mutations": 0,
+  "network_requests": 0,
+  "note": "Rehearsal DB canonical tables have177pending projection units; audit executes P18pureproject_event per affectedevent in memory rather than mistaking stale4919judge table for replayed output.",
+  "p19_followup": {
+    "added_named_null_id_with_source_bindings": true,
+    "added_source_binding_total": 104,
+    "added_vs_v3": [
+      {
+        "anonymous": false,
+        "event_id": "2025-06-liberty-swing",
+        "judge_id": "2025-06-liberty-swing/judge/demery",
+        "name_raw": "Demery",
+        "raw_body_sha256": "fa1f2e53fdff28d1c852cddc9293f2b7c2a2f070d3d21e8a5566cf2111a2ff4f",
+        "raw_header_cells": 2,
+        "raw_header_row_example": "Competitor Demery Flore Kenzie Lara Sebastian BIB Avg Place",
+        "raw_url": "https://eepro.com/results/libertyswing2025/proamstrictly.html",
+        "snapshot_id": "snap_20260910T043213Z_fa1f2e53fdff",
+        "source": "eepro",
+        "source_binding_count": 2,
+        "source_ref_ids": [
+          "c63deac9e4220c10403b949f96b31e88973f7a83bffcde5cf347735fc8c71192",
+          "fbe876bb6749d73a19d1ae811fa11e0d7be23b070d24ff25e30e53174db63683"
+        ],
+        "wsdc_id": null
+      },
+      {
+        "anonymous": false,
+        "event_id": "2025-06-orange-blossom",
+        "judge_id": "2025-06-orange-blossom/judge/anthony-lee",
+        "name_raw": "Anthony Lee",
+        "raw_body_sha256": "decf7f2141fc89f6e284fa21f05a795ea06d04df226215c58ce669f3ce8e6791",
+        "raw_header_cells": 13,
+        "raw_header_row_example": "Competitor Andrew Sinclair Tommy Gibbs Anthony Lee Helen Matthews Stuart Palmer BIB Avg Place",
+        "raw_url": "https://eepro.com/results/orangeblossom2025/proamjj.html",
+        "snapshot_id": "snap_20260910T032203Z_decf7f2141fc",
+        "source": "eepro",
+        "source_binding_count": 13,
+        "source_ref_ids": [
+          "14157d972e71b1c841a6cf492bd463e6d9d52f43cd43f888cf7d9f5f6b7f25e2",
+          "19b79deb1574b7db2a111751a72a20f3b2d2ae746c86466131071b34c71e213b",
+          "2239874131f8b64e88e7597cdcbc54e42daa3e1cbafbc5c3fa48538c479db584",
+          "3f8a8a81a0c8e0381d8da8df7c5d9dbe534f230a069fb97cad69bcfec4a45036",
+          "4ef5c469c8008eaae6da42931dcf087d30f0b4fcc8d9e996a1a5e13c62555bc4",
+          "66aa0cdad08a5747f79bb9c4e10ff29e0383aa1dc8f22d52b0fb08cdf168ddad",
+          "6ff3826435c1cf87e4c2d0fae3cfd8c123b10abc863db8dbfd80639dfeda54c8",
+          "9d510a1c6e3ebfaeb6769ff28f98b4d7e5167225faba051e7023decdd923324e",
+          "a3da90d10dcbc17383954d139ae6bdca10436fb6f6e32dc8152866fc413187d9",
+          "af91afb7e57791eca9512351ca1da65325d6851eb89c89dae00a7203cf5adf62",
+          "b62760325df6d48212af6ddcb86ae9b0bbc72bb26db34c3ede74f839db73e560",
+          "ea6036c30847cefac1de4cdde4d4f54ef157b97dbcc0b023b6f2803b01db0446",
+          "fc0aa60213be8877be45214a58b066ff9a8fe97c2657df635c347502ead8613d"
+        ],
+        "wsdc_id": null
+      },
+      {
+        "anonymous": false,
+        "event_id": "2025-06-orange-blossom",
+        "judge_id": "2025-06-orange-blossom/judge/helen-matthews",
+        "name_raw": "Helen Matthews",
+        "raw_body_sha256": "decf7f2141fc89f6e284fa21f05a795ea06d04df226215c58ce669f3ce8e6791",
+        "raw_header_cells": 13,
+        "raw_header_row_example": "Competitor Andrew Sinclair Tommy Gibbs Anthony Lee Helen Matthews Stuart Palmer BIB Avg Place",
+        "raw_url": "https://eepro.com/results/orangeblossom2025/proamjj.html",
+        "snapshot_id": "snap_20260910T032203Z_decf7f2141fc",
+        "source": "eepro",
+        "source_binding_count": 13,
+        "source_ref_ids": [
+          "16ac88b860c7995597abd3dfea1372aea3cd14f72191dc47c8b5dbd16d2a2d00",
+          "1b0a99af65540632a670d96e374ef7b5ede6d0e88ea07c2dc446f199343f9643",
+          "24c8589769daf13c7b2bce870f7d5cfec968a0b80e3bf91628882e9fe8fae58b",
+          "32cfdc9dc27c8999b1ccd5fee5e4380fa4dcb6741a200a6042ae1a37eca93d5d",
+          "3eeb6ad881cca8f84bdb294639617aa3c4b755d80dd75a231bcf2248e18b86ae",
+          "5dabaafb5c7121e98fede2ded0e5dc88c6ca49d83b9ab3bfdc001b507d87b87d",
+          "6357f1f0793d3304bb6c2ae93902f1b935cc9aaac706d64676e2f8c1c93ea2b8",
+          "69c999a3a892e9081ee320ac0dd0d9756bd6f53c1a66f5a49d996d12d85e0f4b",
+          "ab7f96200bb57223c3d5d2cf3ee4450fab3637199c3c042b31fe26253c5d1c07",
+          "c2b53b0fe5f968d04347aae7a2e84d01ded480d22d4383c71f547781a53311dd",
+          "c7bd75a30956c03e121df18dbdc7c25cda34ecdcb3b707a9108d187641669f81",
+          "cef5650815324d3c6c87a91e6f3da887d83c4f3bfa85880a61933f6b3b121048",
+          "ed2b4c5374a1743c727c62e713018f41a66eac9543acc634ea250ca7388e685f"
+        ],
+        "wsdc_id": null
+      },
+      {
+        "anonymous": false,
+        "event_id": "2025-06-orange-blossom",
+        "judge_id": "2025-06-orange-blossom/judge/stuart-palmer",
+        "name_raw": "Stuart Palmer",
+        "raw_body_sha256": "decf7f2141fc89f6e284fa21f05a795ea06d04df226215c58ce669f3ce8e6791",
+        "raw_header_cells": 13,
+        "raw_header_row_example": "Competitor Andrew Sinclair Tommy Gibbs Anthony Lee Helen Matthews Stuart Palmer BIB Avg Place",
+        "raw_url": "https://eepro.com/results/orangeblossom2025/proamjj.html",
+        "snapshot_id": "snap_20260910T032203Z_decf7f2141fc",
+        "source": "eepro",
+        "source_binding_count": 13,
+        "source_ref_ids": [
+          "05a2307972bd85fa2dc32ee48bad53c4171202bf35b6b3be5b544a143bda03b8",
+          "136839caee72b5560ddb8f12dd9a67a4694d473865b06f3f5ec91b00de48a91a",
+          "17786e57c68fb4a3bb3b3a0b15e27c638e8d452fe6524049ae4be22bdb121c29",
+          "1e9ad041d27899ebe3a783c2fe99316f8c34563b088bd1f6df7c75efd44a8c77",
+          "382cbec2618b84d87c7bc90d29996035f02033102ab2d1f2b2c4330fc87fffdb",
+          "5d2450423ed6b5145d3ba2a46c428ea3770e786b584ac88fd7e32f8b8b38feaa",
+          "8df992972cc65188407298db6e16598145befccdb4a82d32115f35ab5fd3666d",
+          "9085732f83515f2cf26b59cfbb4a06f7584541449004b22a9dcdedb1775b3ab6",
+          "99a1e4d56d711704254b43d07ecc03e213a24528addbb61aa121be33a8902e90",
+          "ba69c0c81aeeb043a24e99ffe9fa7c9fdad70e804204944a824f9249bad127e9",
+          "d0686096e5d89a595812e1a5a094cebb5d66148b4ee9e9f6d941df516f864850",
+          "d6add58436f0cbc129e1bb676461f34a4e99c1701e0b44b98a333c9aec97601c",
+          "fcd668197bf8238a6ec4debc4ce39b2611e019bf67ab0ab904068d2e75db45b4"
+        ],
+        "wsdc_id": null
+      },
+      {
+        "anonymous": false,
+        "event_id": "2026-04-swingover",
+        "judge_id": "2026-04-swingover/judge/brooklyn-lanham",
+        "name_raw": "Brooklyn Lanham",
+        "raw_body_sha256": "aefb6f127eebb8dcb3d1e72e7508c1b56d42d75d6ecf3df227bd53796d40c24f",
+        "raw_header_cells": 3,
+        "raw_header_row_example": "Competitor Brooklyn Lanham Dawn Sgarlata Lyla Ruth Mia Primavera Tommy Gibbs BIB Avg Place",
+        "raw_url": "https://eepro.com/results/swingover2026/proamss.html",
+        "snapshot_id": "snap_20260910T032817Z_aefb6f127eeb",
+        "source": "eepro",
+        "source_binding_count": 3,
+        "source_ref_ids": [
+          "63fc9e9e078968d3ac6312f9e37409de26223964eef3358d9e077145c4abb81b",
+          "7bb12b7d339b817ee6220a9000ef6b0f87ad271232a94f85512996703f7fdd4b",
+          "b9b023bc22442cda49cf3a60137629c239837cc32a3fe2801530a338ada774b8"
+        ],
+        "wsdc_id": null
+      },
+      {
+        "anonymous": false,
+        "event_id": "2026-05-gateway-swing-classic",
+        "judge_id": "2026-05-gateway-swing-classic/judge/omaid-karimi",
+        "name_raw": "Omaid Karimi",
+        "raw_body_sha256": "26d8911a708d06399593ce2d66c6071d42d74e4085e2ddf8fa2dc940653c2d3f",
+        "raw_header_cells": 2,
+        "raw_header_row_example": "Competitor Matt Auclair Eric Byers Tim Morrow Xander Stavloa Omaid Karimi BIB Avg Place",
+        "raw_url": "https://eepro.com/results/gateway2026/proamjj.html",
+        "snapshot_id": "snap_20260910T051151Z_26d8911a708d",
+        "source": "eepro",
+        "source_binding_count": 2,
+        "source_ref_ids": [
+          "011852e215d9d37008ead59e714a068adfa8863af8009d2877da1b69db60c84e",
+          "f3f3418a580396609672679e68729f0f6eca9ea18054c9ab73d1f9cc4ed5699b"
+        ],
+        "wsdc_id": null
+      },
+      {
+        "anonymous": false,
+        "event_id": "2026-06-orange-blossom",
+        "judge_id": "2026-06-orange-blossom/judge/dawn-sgarlata",
+        "name_raw": "Dawn Sgarlata",
+        "raw_body_sha256": "35d70e4bd31025f049eb2a067754c73f3b4d483b236fb6e12d5832fee54472de",
+        "raw_header_cells": 17,
+        "raw_header_row_example": "Competitor Marnie Mattei Mike Wagner Shari Huggett-Milton Dawn Sgarlata Helen Matthews BIB Avg Place",
+        "raw_url": "https://eepro.com/results/orangeblossom2026/proamjj.html",
+        "snapshot_id": "snap_20260910T031752Z_35d70e4bd310",
+        "source": "eepro",
+        "source_binding_count": 17,
+        "source_ref_ids": [
+          "197cd9169dd332091a399beb0866d2f6e7295e9ae1d475835d9819602d973a16",
+          "334210cf3eb13adea2683fddf8408f1ac13fe6dc55dbf51771fc5f2b840bfd8c",
+          "381db49ce76380c27c491f266574b2b23fdbfa5a0bb66d57400e93a8b4f852b5",
+          "5664339bf56f7270daf4408540cd2046da88053670b225a599fbd3ee5948ae22",
+          "6c803afdf4cad4411ec8b21d661b225b3288799ac059e7936963df9a8a97b349",
+          "71e8ca7254a111b739c39ebaf0eee9b0d8410900f634f7bc4aa91ff5cfe14db9",
+          "835089186c9b6099dc62c3d627367aff04ab60214d74b4617449b87aadf05e09",
+          "9acea6a5672908146515b152cebf77d3d0cc3dac92371649810777c80c8779c0",
+          "9b60d3e9f132bced42e454f847fb84079669be0e30af90e541b3fd123b9bec86",
+          "9f99ec17ddded16b06b9d844c1cc6fe0ee443887a2b15c0b3ebf2fa60ce728c1",
+          "a693c532d59c3cc7010e34127f29cd38727362f650813500e2396bde23779026",
+          "cca912942c7eb77ee148b5116a00f49cde546b16211b37f0359c6c276233b86d",
+          "e7f8ecbb52c05c4c4eea7f74960a9b8fa922cdc7dcf376ecbdc79ff33654d977",
+          "ea096e4bb6f07692cc6ab6e179cc2d39153a48b914a6fd4087c9e3504cfec720",
+          "ea8be84d317da4fd7560b60c1788f33f37e144bb110d42345e476b193e84e7ec",
+          "f6c80ba7c221026feaf9a36be1833e75c5fd26d071eca021a3c2419fe46c85c2",
+          "fe1bb706ac8069883520a974029246e8c3efe6a349097a1013836d278987aae2"
+        ],
+        "wsdc_id": null
+      },
+      {
+        "anonymous": false,
+        "event_id": "2026-06-orange-blossom",
+        "judge_id": "2026-06-orange-blossom/judge/helen-matthews",
+        "name_raw": "Helen Matthews",
+        "raw_body_sha256": "35d70e4bd31025f049eb2a067754c73f3b4d483b236fb6e12d5832fee54472de",
+        "raw_header_cells": 8,
+        "raw_header_row_example": "Competitor Marnie Mattei Mike Wagner Shari Huggett-Milton Dawn Sgarlata Helen Matthews BIB Avg Place",
+        "raw_url": "https://eepro.com/results/orangeblossom2026/proamjj.html",
+        "snapshot_id": "snap_20260910T031752Z_35d70e4bd310",
+        "source": "eepro",
+        "source_binding_count": 8,
+        "source_ref_ids": [
+          "11612fd7c2aa1ae4af60e8fe1f508456905f4be89b02223b885abf6982765c50",
+          "5a77a7af3327dae3e075b8c1806018863961f7f428173ff06f088544bc1306e0",
+          "79adaae12353130f492e32adf0788ab7d19ee4b3f611f1fb5ca549f4f8b9df1e",
+          "a7ff417e78d19be4c7276c6adc6d4d6696801ceca40a6156eaa6345f9d46f636",
+          "da7eee041a540890da78977fbf599f9bc58aa593b6d06e4a5a4567a4f93c6bd2",
+          "e38ca62995e083fb14949f4fa62c96b390d2e6b64e9b4e82b3037fc93ce80210",
+          "f25de00f601094538425ef11b9da73b9670179bbac1530f50b0898d5f8a95630",
+          "f9a31a9dcea52710ce5073d2ff5b85f504779f8e8281c9e10d840abd949adfe9"
+        ],
+        "wsdc_id": null
+      },
+      {
+        "anonymous": false,
+        "event_id": "2026-06-orange-blossom",
+        "judge_id": "2026-06-orange-blossom/judge/marnie-mattei",
+        "name_raw": "Marnie Mattei",
+        "raw_body_sha256": "35d70e4bd31025f049eb2a067754c73f3b4d483b236fb6e12d5832fee54472de",
+        "raw_header_cells": 8,
+        "raw_header_row_example": "Competitor Marnie Mattei Mike Wagner Shari Huggett-Milton Dawn Sgarlata Helen Matthews BIB Avg Place",
+        "raw_url": "https://eepro.com/results/orangeblossom2026/proamjj.html",
+        "snapshot_id": "snap_20260910T031752Z_35d70e4bd310",
+        "source": "eepro",
+        "source_binding_count": 8,
+        "source_ref_ids": [
+          "0e8a6c47413f0f5840d2bae6c1b873f996fdd1be88d085655a190f2a114d2549",
+          "16d908fae43a88952f92d3398716327785afdba7f1873b7e6f50b44559046360",
+          "6a268cbfd8ed5555603b523773e4dbb5ed4d98457daba98bc5617f880318c3da",
+          "6a42275499900605d5c4f73eaae4641a600c6ffbc1587294c5757fc9dc5e621f",
+          "78819174f97207af3f38f05cbbc7da008252f3f1bae1042b9e28e53c8ea71584",
+          "a8a224bd84cd7220ef0421702ff3f40662e99431234e4c262ef44a131435a62c",
+          "c1cb3a3809542fdf52ec4a5fa6c57665e45e5cc64962956e3903b05d8d6f21a7",
+          "ec99f6add51368b004702792d7e856674eed2817778f92f12c9c7f94ca521438"
+        ],
+        "wsdc_id": null
+      },
+      {
+        "anonymous": false,
+        "event_id": "2026-06-orange-blossom",
+        "judge_id": "2026-06-orange-blossom/judge/mike-wagner",
+        "name_raw": "Mike Wagner",
+        "raw_body_sha256": "35d70e4bd31025f049eb2a067754c73f3b4d483b236fb6e12d5832fee54472de",
+        "raw_header_cells": 8,
+        "raw_header_row_example": "Competitor Marnie Mattei Mike Wagner Shari Huggett-Milton Dawn Sgarlata Helen Matthews BIB Avg Place",
+        "raw_url": "https://eepro.com/results/orangeblossom2026/proamjj.html",
+        "snapshot_id": "snap_20260910T031752Z_35d70e4bd310",
+        "source": "eepro",
+        "source_binding_count": 8,
+        "source_ref_ids": [
+          "19250afb92425ee1f98d804029da9ff1c4063a2f5e0ec1104aab35af969d7f2e",
+          "4c45cc53223ec4a484ef187fbd62241d7efcfc189734d1bb65277f8ee9c1d0c0",
+          "5b77c6210dd47c79502935daeb3a583bfe58b15d68979e566202f4a976981591",
+          "6ad7634ddffa5819d568d252181ed8d3fcc25eb85e4009244c22e92a8ba4d082",
+          "71a9f9d5460fa2ebb5f4febe9c661aa360ddde746da421b2fa9d768b5394c0fc",
+          "7fe04de64d423d7ad84fdbcee4626af3f7f7b630942ad1ac771c9ec7b6211153",
+          "8d8548d47ccf644a14f9204f4d3ab64041a7eecceabf85776ca35f7339328e11",
+          "d6cdebcf53acc261e1d6a53dcfad86f46468007ede37305b6a1fb04dcb13e5a1"
+        ],
+        "wsdc_id": null
+      },
+      {
+        "anonymous": false,
+        "event_id": "2026-06-orange-blossom",
+        "judge_id": "2026-06-orange-blossom/judge/penny-lalonde",
+        "name_raw": "Penny Lalonde",
+        "raw_body_sha256": "35d70e4bd31025f049eb2a067754c73f3b4d483b236fb6e12d5832fee54472de",
+        "raw_header_cells": 9,
+        "raw_header_row_example": "Competitor Andrew Sinclair David Appel Tommy Gibbs Dawn Sgarlata Penny Lalonde BIB Avg Place",
+        "raw_url": "https://eepro.com/results/orangeblossom2026/proamjj.html",
+        "snapshot_id": "snap_20260910T031752Z_35d70e4bd310",
+        "source": "eepro",
+        "source_binding_count": 9,
+        "source_ref_ids": [
+          "044dc10a88f533c082b4ff19ad13b0e1c3d1219545ebceb7aafcc386ceaf7053",
+          "323456f0111f905842d2116ac5e0d58bd524513326007addb32219c4fcc3ef20",
+          "854d3b24107b8dd751010551511497ee18603bb8107345d78d18a71cffb0cbbb",
+          "9a6d9bf53e5d2b9ef26a739cd9641648003696ee8351abf6ac91a212cc2cb2cf",
+          "b28d2cc3bd6bf5a397e980a97d115034f78ca6d46046c89d5e88b2c4109550bc",
+          "e1d249512415e9466c2eba26362ca07c843fc39372be8baade254c8d4bc39337",
+          "e62612304c10394f78c8125e90b7b339b6703c6b9dee25c19f8bc09327c65a86",
+          "ef59742357148f983e659b30f3a6f0032afd12511dee0f8582f95e7045f65ccb",
+          "f728f6eae058b9890fd337bc3f12cc4752df605569634af10d8b53755d445cca"
+        ],
+        "wsdc_id": null
+      },
+      {
+        "anonymous": false,
+        "event_id": "2026-06-orange-blossom",
+        "judge_id": "2026-06-orange-blossom/judge/shari-huggett-milton",
+        "name_raw": "Shari Huggett-Milton",
+        "raw_body_sha256": "35d70e4bd31025f049eb2a067754c73f3b4d483b236fb6e12d5832fee54472de",
+        "raw_header_cells": 8,
+        "raw_header_row_example": "Competitor Marnie Mattei Mike Wagner Shari Huggett-Milton Dawn Sgarlata Helen Matthews BIB Avg Place",
+        "raw_url": "https://eepro.com/results/orangeblossom2026/proamjj.html",
+        "snapshot_id": "snap_20260910T031752Z_35d70e4bd310",
+        "source": "eepro",
+        "source_binding_count": 8,
+        "source_ref_ids": [
+          "094c42ef1483b90663c3928411685cb42a1afa19d10cdcb32510d76b5951464c",
+          "281a6a84c6b09fdc679bdd05cf40621a4bbcbad42fa3333fd55744d7d1f29505",
+          "61c3f3238c3fb662cdb449b2b78f74d7ae6a63924d49f0ca7964f866372fb609",
+          "66254ea45941a8f1675ba24e16ce4c945fd1e7d53c4bb358bcb591ec6d64c601",
+          "6aabba01ed3b8bdc817df772cadf5e6d000e7c99aa4dab263198132c707a0149",
+          "f083a303ab699a7c059a459e386600e65a4d058809dbb10e8bfe0aebd092cd4f",
+          "f1be139153d7fe70c11a1f3c4cdcccf679272bfe37a96c3a0c31987bd4c08b9e",
+          "f8d2a5afe25cc0f7ef9390d3c03e6d75022b97a9abc59d7a3deb2142ab299b81"
+        ],
+        "wsdc_id": null
+      }
+    ],
+    "all_added_names_printed_in_retained_raw_cells": true,
+    "baseline_judges_in_scope": 4919,
+    "changed_names_vs_v3": [],
+    "checked_at": "2026-09-13T08:01:55.466662+00:00",
+    "contests_module_sha256": "f65e87516828d9caad581e7dbd80550344cd7b570bfd6ceb4fbff87ffdaab0c3",
+    "database_mutations": 0,
+    "network_requests": 0,
+    "nonjudge_structural_output_matches_p18": true,
+    "p18_judges": 4908,
+    "p19_judges": 4931,
+    "pinned_contests_module_sha256": "f65e87516828d9caad581e7dbd80550344cd7b570bfd6ceb4fbff87ffdaab0c3",
+    "pinned_module_matches_reviewed": true,
+    "projected_events": 178,
+    "projector_version": 19,
+    "removed_vs_v3": [],
+    "restored_previously_removed_ids": [
+      "2025-09-trilogy-swing/judge/kristen",
+      "2025-09-trilogy-swing/judge/mia",
+      "2025-10-montreal-westie-fest/judge/isabelle",
+      "2025-10-montreal-westie-fest/judge/maelys",
+      "2025-10-swing-city-chicago/judge/julie",
+      "2025-10-swing-city-chicago/judge/nataliya",
+      "2025-11-rocket-city-swing/judge/christine",
+      "2026-04-swing-in-bloom/judge/isabelle",
+      "2026-07-florida-dance-magic/judge/christianna",
+      "2026-07-florida-dance-magic/judge/michael",
+      "2026-07-florida-dance-magic/judge/tamara"
+    ],
+    "reviewed_pinned_source": "/nix/store/lz99diyqwf6f95i8ggvx3ji0lvrjpfxd-source",
+    "source": "working copy with narrow named-judge preservation correction",
+    "structural": {
+      "Callback": {
+        "count": 98481,
+        "sha256": "104e5495fe11ecb31fd7b0139e0c5d2a7c6a831a57a69cd761c1b9b99e35e7c6"
+      },
+      "CallbackMark": {
+        "count": 484141,
+        "sha256": "f4dfbe171fa1bfa851568fdecf7e6d2172d035b4415c4fb7ee7a3322c4baf74d"
+      },
+      "Contest": {
+        "count": 2644,
+        "sha256": "099f10372052396c27a34fb85493f79c27e67817615b22dacce7c86b4633db16"
+      },
+      "Entry": {
+        "count": 93820,
+        "sha256": "26b941b254cc4f44264e4c9d19b5984b3a49f8a477dda0a58f4c2975ca9d4020"
+      },
+      "FinalMark": {
+        "count": 121623,
+        "sha256": "45a6e73b3cc62306f3139d5eaca321de3fb43897ba02aa94a8e6dc350cb70ac2"
+      },
+      "Placement": {
+        "count": 20236,
+        "sha256": "107fc3d87dc10e0d3bf9d1449dbe5844500bf991fd49e106c2394ecd4c6a1afd"
+      },
+      "Round": {
+        "count": 4279,
+        "sha256": "605a2a2de4ad5413be1a61b7e7a7322d51380f5230b3ae5d4e61d44b574954b3"
+      }
+    }
+  },
+  "projected_affected_judges": 350,
+  "projector_version": 18,
+  "read_only_database": true,
+  "removed_judge_count": 11,
+  "removed_judges": [
+    {
+      "anonymous": false,
+      "event_id": "2025-09-trilogy-swing",
+      "judge_id": "2025-09-trilogy-swing/judge/kristen",
+      "name_raw": "Kristen",
+      "parser_version": "2",
+      "retained_source_binding_count": 3,
+      "retained_source_refs": [
+        "01c4f3ea73641a4128db7f76c09c42fbabda3742d3fcffb73e67b31eac25d594",
+        "a485612fbf2eeaec1a3b40618ebe3ea2f994b46070b96c5a0c2613f3f2e23954",
+        "db3b0f7ea95d2937bf49b03a1e6aa7f093e2eee231d4c74dc13d050533ff23f1"
+      ],
+      "snapshot_id": "snap_20260909T150519Z_3e342cde93d4",
+      "source": "wdr",
+      "wsdc_id": null
+    },
+    {
+      "anonymous": false,
+      "event_id": "2025-09-trilogy-swing",
+      "judge_id": "2025-09-trilogy-swing/judge/mia",
+      "name_raw": "Mia",
+      "parser_version": "2",
+      "retained_source_binding_count": 3,
+      "retained_source_refs": [
+        "3e92466659653ee4be467421b209e4d4f23d17c44f01f2e01f88fc1acdd89944",
+        "6ded3a55a6518725413b689f328139ac7ef66fe7bd7a0249642756ced168008b",
+        "dc2701fe164c5b29a55fedff46c84d778a0f35ed067adfbfbf319bfd493c1c71"
+      ],
+      "snapshot_id": "snap_20260909T150519Z_3e342cde93d4",
+      "source": "wdr",
+      "wsdc_id": null
+    },
+    {
+      "anonymous": false,
+      "event_id": "2025-10-montreal-westie-fest",
+      "judge_id": "2025-10-montreal-westie-fest/judge/isabelle",
+      "name_raw": "Isabelle",
+      "parser_version": "2",
+      "retained_source_binding_count": 2,
+      "retained_source_refs": [
+        "504ff6e9d4c10b210ff3a2b8f62f49d875fda3b8eb8f54e77f7a56cb27c28201",
+        "6ddc8d29e669a4e8913979bf879cb3a9ad98aaae796eebf189469818d8d3b45c"
+      ],
+      "snapshot_id": "snap_20260909T150529Z_09e356e60d4c",
+      "source": "wdr",
+      "wsdc_id": null
+    },
+    {
+      "anonymous": false,
+      "event_id": "2025-10-montreal-westie-fest",
+      "judge_id": "2025-10-montreal-westie-fest/judge/maelys",
+      "name_raw": "Maelys",
+      "parser_version": "2",
+      "retained_source_binding_count": 2,
+      "retained_source_refs": [
+        "4fb8643a6059c319eaa0c7b459fa414cea50255f33cb6d0f5aa4a095354804b1",
+        "af38735a0ddef84b7efe662e58f101bae9947ed2799b072ac0e0e9277a7a5868"
+      ],
+      "snapshot_id": "snap_20260909T150529Z_09e356e60d4c",
+      "source": "wdr",
+      "wsdc_id": null
+    },
+    {
+      "anonymous": false,
+      "event_id": "2025-10-swing-city-chicago",
+      "judge_id": "2025-10-swing-city-chicago/judge/julie",
+      "name_raw": "Julie",
+      "parser_version": "2",
+      "retained_source_binding_count": 6,
+      "retained_source_refs": [
+        "3a16512decacd758a75dc30c794d0407191f8f18cfdc54fce2808a1d10b5f5cf",
+        "45c9a83226463049cd88119d92f98c653f557fde5911aafbc22f0c28792b41eb",
+        "476e13e3dab9ef734362ded4f04bdeea4a2bfef9f7dabe2634d2fa55a7a51012",
+        "a3b7ed202163e35f12a1995ec016a1de2cd9cb097476084ba1f187d4ad96584b",
+        "be7f8c192613c3943cd9da661f15b90847ce31bd0acf80bb7807b912d4c202ff",
+        "c49ca289758c59fd8fa93b44c57dca25ddb6b841f025b28b9dbb8ad6ddda5f99"
+      ],
+      "snapshot_id": "snap_20260909T150549Z_abf51d8711ef",
+      "source": "wdr",
+      "wsdc_id": null
+    },
+    {
+      "anonymous": false,
+      "event_id": "2025-10-swing-city-chicago",
+      "judge_id": "2025-10-swing-city-chicago/judge/nataliya",
+      "name_raw": "Nataliya",
+      "parser_version": "2",
+      "retained_source_binding_count": 3,
+      "retained_source_refs": [
+        "493547582d8297d3aa601ecc6ca3695eca2df74482175fffaafd0032afc4e92e",
+        "4c85f059696eb5d52d0e48a1e9758a64f45e44b073177fed2d453bbcc47ba3d6",
+        "fbdcbd410f38a651aa514fc7065636a66da1244c1bf3a03275ffa9769aa41783"
+      ],
+      "snapshot_id": "snap_20260909T150549Z_abf51d8711ef",
+      "source": "wdr",
+      "wsdc_id": null
+    },
+    {
+      "anonymous": false,
+      "event_id": "2025-11-rocket-city-swing",
+      "judge_id": "2025-11-rocket-city-swing/judge/christine",
+      "name_raw": "Christine",
+      "parser_version": "2",
+      "retained_source_binding_count": 2,
+      "retained_source_refs": [
+        "1bc2ed526541f2df1b2c1f52227e4ec30a65c003ab4130c9eb3b591fa748e265",
+        "ae56c8b9d5648697a07d0ac2281283016a6a01170d56432c3de2ce6c06daa370"
+      ],
+      "snapshot_id": "snap_20260909T150559Z_a99511a710de",
+      "source": "wdr",
+      "wsdc_id": null
+    },
+    {
+      "anonymous": false,
+      "event_id": "2026-04-swing-in-bloom",
+      "judge_id": "2026-04-swing-in-bloom/judge/isabelle",
+      "name_raw": "Isabelle",
+      "parser_version": "2",
+      "retained_source_binding_count": 2,
+      "retained_source_refs": [
+        "daf4fa549dfc407914dbe9558d3c2022012e9446dd42d9ed836fe72e882cec05",
+        "de1f65b3588d2cb7ab3d828d27266575721b62c31ce41c31b30c419c50a5c71a"
+      ],
+      "snapshot_id": "snap_20260909T150642Z_80dc64c0a2fc",
+      "source": "wdr",
+      "wsdc_id": null
+    },
+    {
+      "anonymous": false,
+      "event_id": "2026-07-florida-dance-magic",
+      "judge_id": "2026-07-florida-dance-magic/judge/christianna",
+      "name_raw": "Christianna",
+      "parser_version": "2",
+      "retained_source_binding_count": 1,
+      "retained_source_refs": [
+        "2039a57359b9b7f7d4ade219d7d9ca95bbdb53fbfc04c265bc92a5eb2f2c1d62"
+      ],
+      "snapshot_id": "snap_20260909T150700Z_9daf9b317bf0",
+      "source": "wdr",
+      "wsdc_id": null
+    },
+    {
+      "anonymous": false,
+      "event_id": "2026-07-florida-dance-magic",
+      "judge_id": "2026-07-florida-dance-magic/judge/michael",
+      "name_raw": "Michael",
+      "parser_version": "2",
+      "retained_source_binding_count": 1,
+      "retained_source_refs": [
+        "ae9a2dbe09583f207173162d23ace24e57322b56c6069294bad22eb50592544d"
+      ],
+      "snapshot_id": "snap_20260909T150700Z_9daf9b317bf0",
+      "source": "wdr",
+      "wsdc_id": null
+    },
+    {
+      "anonymous": false,
+      "event_id": "2026-07-florida-dance-magic",
+      "judge_id": "2026-07-florida-dance-magic/judge/tamara",
+      "name_raw": "Tamara",
+      "parser_version": "2",
+      "retained_source_binding_count": 3,
+      "retained_source_refs": [
+        "cce7eab08cc47093ba0fb25ecc38fa53f9352f4c9b8df5ec7e85ee9fe91317ea",
+        "e06558ddad2ed218dc32504ad89a1f119e2eabed4f4aa00bdbcb6e0c8475a246",
+        "fa5fc4777597711fe499b7b8d8b185e88748923ced2fdc5b3f7639b7c6f196e9"
+      ],
+      "snapshot_id": "snap_20260909T150700Z_9daf9b317bf0",
+      "source": "wdr",
+      "wsdc_id": null
+    }
+  ],
+  "removed_named_judge_count": 11,
+  "removed_with_retained_binding_count": 11,
+  "reviewed_unsupported_contests": 67,
+  "source": "/nix/store/pch8bhx4lr1l80b6zls237gzhgzhbd0s-source",
+  "state": "/var/tmp/swingset-h7-contract4-rehearsal/state",
+  "unsupported_impact_sha256": "3e527751b4053c0aa667b2d7c523db9caf6b9b13584fa3124cb43131572d5ba2"
+}

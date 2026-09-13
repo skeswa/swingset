@@ -102,6 +102,35 @@ def test_checkpoint_excludes_service_home_tool_caches(tmp_path: Path) -> None:
     verify_checkpoint(checkpoint.path, maximum_schema_version=1)
 
 
+def test_nested_checkpoint_manifest_is_retained_verified_and_restored(tmp_path: Path) -> None:
+    source = tmp_path / "source"
+    connection = state(source)
+    relative = Path("operations/restore-specimen/checkpoint/checkpoint.json")
+    nested = source / relative
+    nested.parent.mkdir(parents=True)
+    body = b'{"format": "retained specimen evidence"}'
+    nested.write_bytes(body)
+    checkpoint = create_checkpoint(
+        source,
+        connection,
+        tmp_path / "checkpoint",
+        schema_version=1,
+        versions={},
+        input_bundle_hash="bundle-a",
+    )
+    connection.close()
+    assert (
+        relative.as_posix() in verify_checkpoint(checkpoint.path, maximum_schema_version=1)["files"]
+    )
+    restored = tmp_path / "restored"
+    restore_checkpoint(checkpoint.path, restored, maximum_schema_version=1)
+    assert (restored / relative).read_bytes() == body
+    assert not (restored / "checkpoint.json").exists()
+    (checkpoint.path / relative).write_bytes(b"changed nested evidence")
+    with pytest.raises(CheckpointError, match="file failed verification"):
+        verify_checkpoint(checkpoint.path, maximum_schema_version=1)
+
+
 def test_changed_checkpoint_file_is_rejected(tmp_path: Path) -> None:
     source = tmp_path / "source"
     connection = state(source)
@@ -330,3 +359,133 @@ def test_restore_refuses_valid_unmarked_state_and_resumes_marked_staging(tmp_pat
     restore_from_checkpoint(checkpoint.path, target, StaticHub("abc"), FakeClock(), lock_timeout=1)
     assert not (target / "partial").exists()
     assert not (target / "RESTORE_PENDING").exists()
+
+
+@pytest.mark.parametrize("blocked", [False, True])
+def test_checkpoint_retains_generation_extract_not_on_snapshot_and_restores_it(tmp_path, blocked):
+    from dataclasses import replace
+
+    from test_admission import Corpus
+
+    from swingset.admission.report import Guard
+    from swingset.fetch.archive import Archive
+    from swingset.state.db import open_database
+
+    source = tmp_path / "source"
+    with open_database(source) as db:
+        c = Corpus(db)
+        context = c.snapshot("staged-only")
+        generation, _ = c.stage(
+            context,
+            report_change=lambda report: (
+                replace(
+                    report,
+                    guards=(
+                        *report.guards,
+                        Guard("review_required", False, "Synthetic blocked source evidence"),
+                    ),
+                )
+                if blocked
+                else report
+            ),
+        )
+        row = db.connection.execute(
+            "SELECT manifest_json,state FROM source_generations WHERE generation_id=?",
+            (generation,),
+        ).fetchone()
+        manifest = json.loads(row["manifest_json"])
+        extract_sha = manifest[0]["extract_sha256"]
+        assert (
+            db.connection.execute(
+                "SELECT extract_sha256 FROM snapshots WHERE snapshot_id=?", (context.snapshot_id,)
+            ).fetchone()[0]
+            is None
+        )
+        assert (
+            db.connection.execute("SELECT accepted_generation_id FROM source_units").fetchone()[0]
+            is None
+        )
+        value = c.archive.read_extract(extract_sha)
+        saved = create_checkpoint(
+            source,
+            db.connection,
+            tmp_path / "checkpoint",
+            schema_version=db.schema_version,
+            versions={},
+            input_bundle_hash=None,
+        )
+        schema = db.schema_version
+    assert f"extracts/{extract_sha}" in saved.files
+    before = {
+        path.relative_to(saved.path).as_posix(): path.read_bytes()
+        for path in saved.path.rglob("*")
+        if path.is_file()
+    }
+    verify_checkpoint(saved.path, maximum_schema_version=schema)
+    restored = tmp_path / "restored"
+    restore_checkpoint(saved.path, restored, maximum_schema_version=schema)
+    assert Archive(restored).read_extract(extract_sha) == value
+    assert {
+        path.relative_to(saved.path).as_posix(): path.read_bytes()
+        for path in saved.path.rglob("*")
+        if path.is_file()
+    } == before
+    assert not (saved.path / "state.sqlite-wal").exists()
+    assert not (saved.path / "state.sqlite-shm").exists()
+
+
+def test_missing_generation_only_extract_blocks_checkpoint_instead_of_losing_evidence(tmp_path):
+    from test_admission import Corpus
+
+    from swingset.state.db import open_database
+
+    with open_database(tmp_path / "source") as db:
+        c = Corpus(db)
+        generation, _ = c.stage(c.snapshot("only-in-generation"))
+        manifest = json.loads(
+            db.connection.execute(
+                "SELECT manifest_json FROM source_generations WHERE generation_id=?", (generation,)
+            ).fetchone()[0]
+        )
+        c.archive.extract_path(manifest[0]["extract_sha256"]).unlink()
+        with pytest.raises(CheckpointError, match="referenced artifact is missing"):
+            create_checkpoint(
+                db.state_dir,
+                db.connection,
+                tmp_path / "incomplete",
+                schema_version=db.schema_version,
+                versions={},
+                input_bundle_hash=None,
+            )
+        assert not (tmp_path / "incomplete").exists()
+
+
+def test_new_closure_validation_rejects_backup_that_omitted_generation_extract(tmp_path):
+    from test_admission import Corpus
+
+    from swingset.state.db import open_database
+
+    with open_database(tmp_path / "source") as db:
+        c = Corpus(db)
+        generation, _ = c.stage(c.snapshot("staged"))
+        item = json.loads(
+            db.connection.execute(
+                "SELECT manifest_json FROM source_generations WHERE generation_id=?", (generation,)
+            ).fetchone()[0]
+        )[0]
+        saved = create_checkpoint(
+            db.state_dir,
+            db.connection,
+            tmp_path / "checkpoint",
+            schema_version=db.schema_version,
+            versions={},
+            input_bundle_hash=None,
+        )
+        schema = db.schema_version
+    relative = "extracts/" + item["extract_sha256"]
+    (saved.path / relative).unlink()
+    manifest = json.loads((saved.path / "checkpoint.json").read_bytes())
+    del manifest["files"][relative]
+    (saved.path / "checkpoint.json").write_text(json.dumps(manifest))
+    with pytest.raises(CheckpointError, match="referenced artifact is missing"):
+        verify_checkpoint(saved.path, maximum_schema_version=schema)

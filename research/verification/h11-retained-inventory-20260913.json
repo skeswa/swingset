@@ -1,0 +1,131 @@
+{
+  "at": "2026-09-13T05:08:10.070096+00:00",
+  "checkpoint": "/var/lib/swingset/checkpoints/v2-g1-verified-20260913T0428Z",
+  "counts": {
+    "entries": 94811,
+    "findings": 30852,
+    "pending_work": 5,
+    "placements": 21156,
+    "snapshots": 31629
+  },
+  "live_mutations": 0,
+  "network_requests": 0,
+  "open_and_migrate_seconds": 1.5868446690146811,
+  "publication": "held",
+  "query_plans": {
+    "artifact": [
+      [
+        3,
+        0,
+        53,
+        "SEARCH snapshots USING COVERING INDEX snapshots_body_idx (body_sha256=?)"
+      ]
+    ],
+    "finalist": [
+      [
+        5,
+        0,
+        0,
+        "MULTI-INDEX OR"
+      ],
+      [
+        6,
+        5,
+        0,
+        "INDEX 1"
+      ],
+      [
+        14,
+        6,
+        61,
+        "SEARCH placements USING INDEX placements_leader_entry_idx (leader_entry_id=?)"
+      ],
+      [
+        19,
+        5,
+        0,
+        "INDEX 2"
+      ],
+      [
+        27,
+        19,
+        61,
+        "SEARCH placements USING INDEX placements_follower_entry_idx (follower_entry_id=?)"
+      ]
+    ],
+    "transition_history": [
+      [
+        5,
+        0,
+        62,
+        "SEARCH requirement_transitions USING INDEX requirement_transitions_requirement_idx (requirement_id=?)"
+      ]
+    ]
+  },
+  "scans": [
+    {
+      "checked": 109049,
+      "cohorts": [
+        {
+          "baseline_at": "2026-09-13T05:08:10.070096+00:00",
+          "blocked": true,
+          "cohort_id": "h11-benchmark-20260913T050810Z",
+          "compatible": true,
+          "completion_percent": null,
+          "eta": null,
+          "missing": 0,
+          "outside_cohort": 67992,
+          "retired": 0,
+          "satisfied": 0,
+          "total": 14451
+        }
+      ],
+      "complete": true,
+      "doctor_inventory_seconds": 0.7396588239935227,
+      "iteration": 1,
+      "max_page_seconds": 0.07178210999700241,
+      "pages": 1091,
+      "seconds": 9.639921437978046,
+      "states": {
+        "needs_review": 7622,
+        "out_of_scope": 776,
+        "ready": 3775,
+        "satisfied": 67216,
+        "waiting_for_source": 3054
+      }
+    },
+    {
+      "checked": 109049,
+      "cohorts": [
+        {
+          "baseline_at": "2026-09-13T05:08:10.070096+00:00",
+          "blocked": true,
+          "cohort_id": "h11-benchmark-20260913T050810Z",
+          "compatible": true,
+          "completion_percent": null,
+          "eta": null,
+          "missing": 0,
+          "outside_cohort": 67992,
+          "retired": 0,
+          "satisfied": 0,
+          "total": 14451
+        }
+      ],
+      "complete": true,
+      "doctor_inventory_seconds": 0.7751143179775681,
+      "iteration": 2,
+      "max_page_seconds": 0.05652975701377727,
+      "pages": 1091,
+      "seconds": 4.581975377979688,
+      "states": {
+        "needs_review": 7622,
+        "out_of_scope": 776,
+        "ready": 3775,
+        "satisfied": 67216,
+        "waiting_for_source": 3054
+      }
+    }
+  ],
+  "schema_version": 6,
+  "scratch_state": "/var/tmp/swingset-h11-review"
+}

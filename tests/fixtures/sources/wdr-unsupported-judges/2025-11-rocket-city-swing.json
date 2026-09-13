@@ -1,0 +1,16 @@
+{
+  "snapshot_id": "snap_20260909T150559Z_a99511a710de",
+  "url": "https://scores.worlddanceregistry.com/163ba964-df59-11ef-9a29-0aa72bbce9ea/rounds/routeInfo.json",
+  "fetched_at": "2026-09-09T15:05:59.368724+00:00",
+  "body_sha256": "a99511a710de12dd3219a6ba7d1aa951c76aca7205e2f01d19f413bd1fdb102a",
+  "body_bytes": 207817,
+  "http_status": 200,
+  "source_ref": "wdr:163ba964-df59-11ef-9a29-0aa72bbce9ea",
+  "event_id": "2025-11-rocket-city-swing",
+  "expected_preserved_judges": [
+    {
+      "judge_id": "2025-11-rocket-city-swing/judge/christine",
+      "name_raw": "Christine"
+    }
+  ]
+}

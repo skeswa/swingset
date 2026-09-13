@@ -7,22 +7,22 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 _HEADERS = {
+    "series_aliases.csv": {"printed_name", "series_id", "source", "note"},
     "event_aliases.csv": {"source", "source_ref", "event_id", "note"},
-    "identity_overrides.csv": {"entry_id", "wsdc_id", "reason", "author", "date"},
     "nicknames.csv": {"nickname", "canonical"},
     "source_urls.csv": {"event_id", "source", "kind", "url", "parser", "notes"},
     "suppressions.csv": {"reason", "date"},
 }
 _REQUIRED = {
+    "series_aliases.csv": ("printed_name", "series_id", "source"),
     "event_aliases.csv": ("source", "source_ref", "event_id"),
-    "identity_overrides.csv": ("entry_id", "wsdc_id", "reason", "author", "date"),
     "nicknames.csv": ("nickname", "canonical"),
     "source_urls.csv": ("event_id", "source", "kind", "url", "parser"),
     "suppressions.csv": ("reason", "date"),
 }
 _KEYS = {
+    "series_aliases.csv": ("printed_name",),
     "event_aliases.csv": ("source", "source_ref"),
-    "identity_overrides.csv": ("entry_id",),
     "nicknames.csv": ("nickname",),
     "source_urls.csv": ("source", "url"),
     "suppressions.csv": ("wsdc_id", "name_norm"),
@@ -30,6 +30,11 @@ _KEYS = {
 
 
 def validate_override(path: Path, body: bytes) -> None:
+    if path.name == "identity_overrides.csv":
+        from swingset.state.identity_journal import parse_journal
+
+        parse_journal(body)
+        return
     reader = csv.DictReader(io.StringIO(body.decode("utf-8")))
     headers = reader.fieldnames or []
     if len(headers) != len(set(headers)):
@@ -49,15 +54,13 @@ def validate_override(path: Path, body: bytes) -> None:
                     raise ValueError(f"empty {name}")
             if row.get("date"):
                 date.fromisoformat(row["date"])
-            if path.name in ("identity_overrides.csv", "suppressions.csv"):
+            if path.name == "suppressions.csv":
                 wsdc_id = row.get("wsdc_id", "").strip()
                 if not wsdc_id and not row.get("name_norm", "").strip():
                     raise ValueError("missing identity")
-                if wsdc_id and not (path.name == "identity_overrides.csv" and wsdc_id == "NONE"):
+                if wsdc_id:
                     if not wsdc_id.isdecimal() or int(wsdc_id) < 1:
-                        raise ValueError(
-                            "wsdc_id must be positive, or NONE for an identity override"
-                        )
+                        raise ValueError("wsdc_id must be positive")
             if path.name == "source_urls.csv":
                 from swingset.sources import get_page_kind
 

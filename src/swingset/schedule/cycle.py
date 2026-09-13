@@ -1,36 +1,58 @@
-"""One budgeted cycle, with durable downstream work ahead of new requests."""
+"""One budgeted cycle with independent collection and offline service shares."""
 
 import json
 import os
 from collections import Counter
 from collections.abc import Callable
-from datetime import timedelta
+from dataclasses import asdict
+from datetime import datetime, timedelta
 from hashlib import sha256
 from pathlib import Path
 from typing import Any
+from uuid import uuid4
 
 import httpx
 
 from swingset import __version__
-from swingset.build.builder import BuildMetadata, BuildResult, build_candidate
-from swingset.build.input import read_build_input
+from swingset.build.builder import BuildResult
 from swingset.clock import Clock
 from swingset.fetch.archive import Archive, canonical, durable_write
 from swingset.fetch.client import FetchClient
+from swingset.fetch.recovery import LocalCheckpointRecovery
 from swingset.log import log
-from swingset.publish.service import Hub, expected_parent, publish, reconcile
+from swingset.publish.service import Hub, publish, reconcile
+from swingset.schedule.derive import derive_one
 from swingset.schedule.discover import discover
-from swingset.schedule.parse import parse_snapshot
+from swingset.schedule.fair_policy import allocation
+from swingset.schedule.fairness import (
+    WatchChoice,
+    backpressure,
+    next_delay,
+    next_offline,
+    next_watch,
+    record_offline_service,
+    servicing,
+)
 from swingset.schedule.registry import (
     advance_sweep,
     discover_registry,
     run_saved_crosscheck_if_due,
 )
-from swingset.schedule.watches import due_watches, refresh_policy
+from swingset.schedule.watches import refresh_policy
 from swingset.sources import get_page_kind, sources
-from swingset.state.db import Database
+from swingset.state.attempts import latest_attempt, recover_interrupted
+from swingset.state.control_scopes import for_publication, for_unit, for_watch, unit_allowed
+from swingset.state.controls import (
+    ControlPaused,
+    matching_pauses,
+    operation,
+    recover_admissions,
+    status,
+)
+from swingset.state.db import SCHEMA_VERSION, Database
 from swingset.state.inputs import InputBundle, accept, capture
-from swingset.state.work import next_work
+from swingset.state.work import WorkUnit, unfinished_units
+from swingset.state.work_fingerprints import input_fingerprint
 
 
 def repository_identity(package_root: Path | None = None) -> str:
@@ -77,33 +99,27 @@ def baseline_commit(state_dir: Path) -> str | None:
 
 
 def build(
-    database: Database, bundle: InputBundle, clock: Clock, run_id: str, remote: Hub | None = None
+    database: Database,
+    bundle: InputBundle,
+    clock: Clock,
+    run_id: str,
+    remote: Hub | None = None,
+    *,
+    correction_only: bool = False,
 ) -> BuildResult:
-    from swingset.publish.card import render_card
+    from swingset.build.service import build_release
 
-    with database.transaction(immediate=False) as conn:
-        data = read_build_input(conn, bundle)
-    captured_versions = {
-        str(name): str(value) for name, value in json.loads(bundle.files["versions.json"]).items()
-    }
-    meta = BuildMetadata(
+    with operation(
+        database,
+        action_id="build_" + uuid4().hex,
+        action_kind="build",
+        scope=for_publication(database.connection),
+        clock=clock,
         run_id=run_id,
-        repository_commit=captured_versions["repository"],
-        expected_parent=expected_parent(database.state_dir, remote)
-        if remote
-        else baseline_commit(database.state_dir),
-        schema_version=1,
-        versions=captured_versions,
-        card=render_card(data),
-        built_at=clock.now(),
-    )
-    return build_candidate(
-        database.state_dir,
-        data,
-        meta,
-        suppressions=bundle.csv("suppressions.csv"),
-        card_renderer=render_card,
-    )
+    ):
+        return build_release(
+            database, bundle, clock, run_id, remote, correction_only=correction_only
+        )
 
 
 def run_cycle(
@@ -120,6 +136,9 @@ def run_cycle(
 ) -> dict[str, Any]:
     started = clock.now()
     deadline = started + timedelta(seconds=budget)
+    with database.transaction() as conn:
+        recovered_admissions = recover_admissions(conn, now=started)
+        interrupted_attempts = recover_interrupted(database, now=started)
     run_id = database.start_run(started, dry_run=dry_run)
     summary: dict[str, Any] = {
         "run_id": run_id,
@@ -132,112 +151,354 @@ def run_cycle(
         "failed": False,
         "stages": [],
         "bytes_by_host": {},
+        "recovered_admissions": recovered_admissions,
+        "interrupted_attempts": interrupted_attempts,
+        "held_operations": [],
     }
     attempts: Counter[str] = Counter()
     failures: Counter[str] = Counter()
-    archive = Archive(database.state_dir)
+    recovery = LocalCheckpointRecovery(
+        database.state_dir / "checkpoints", maximum_schema_version=SCHEMA_VERSION
+    )
+    archive = Archive(database.state_dir, recovery=recovery)
     fetcher: FetchClient | None = None
 
     def stop() -> bool:
         return should_stop() or clock.now() >= deadline
 
+    def allowed(unit: WorkUnit) -> bool:
+        return unit_allowed(database.connection, unit, now=clock.now())
+
+    def held(action: str, exc: ControlPaused) -> None:
+        summary["held_operations"].append(
+            {"action": action, "reason": "operator_pause", "pauses": exc.pauses}
+        )
+
     try:
         bundle = capture(config_dir, overrides_dir, database.state_dir, versions())
         summary["accepted_inputs"] = sorted(accept(database, bundle, clock))
+        from swingset.state.requirements import scan
+        from swingset.state.verification import verification_summary
+
+        if not stop():
+            summary["requirements_scanned"] = scan(
+                database, clock.now(), run_id, history_start=bundle.config.history_start
+            )
+        if (
+            not stop()
+            and database.connection.execute("SELECT 1 FROM history_acceptance LIMIT 1").fetchone()
+        ):
+            from swingset.history.event_sites import reconcile as review_event_sites
+            from swingset.state.controls import ActionScope
+
+            try:
+                with operation(
+                    database,
+                    action_id="event_sites_" + uuid4().hex,
+                    action_kind="project",
+                    scope=ActionScope(all_sources=True, kinds=frozenset({"source_event_mapping"})),
+                    clock=clock,
+                    run_id=run_id,
+                ):
+                    summary["event_sites_reviewed"] = review_event_sites(
+                        database,
+                        now=clock.now(),
+                        run_id=run_id,
+                        history_start=bundle.config.history_start,
+                        overrides=tuple(bundle.csv("source_urls.csv")),
+                        wall_seconds=min(10, max(0, (deadline - clock.now()).total_seconds())),
+                    )
+            except ControlPaused as exc:
+                held("event_site_review", exc)
+        summary["registry_verification"] = verification_summary(database.connection, clock.now())
         if hub is not None:
             reconciled = reconcile(database.state_dir, hub, dry_run=dry_run)
+            summary["reconciliation"] = asdict(reconciled)
             if reconciled.commit:
                 summary["publish_commit"] = reconciled.commit
-        queued = database.connection.execute("SELECT COUNT(*) FROM pending_work").fetchone()[0]
-        if not queued and not stop():
+        queued = next(iter(unfinished_units(database.connection)), None) is not None
+        if queued and hub is not None and not stop():
+            from swingset.build.service import correction_needed
+
+            if correction_needed(database, bundle):
+                try:
+                    correction = build(
+                        database,
+                        bundle,
+                        clock,
+                        run_id,
+                        remote=hub if not dry_run else None,
+                        correction_only=True,
+                    )
+                    summary["correction_candidate_id"] = correction.candidate_id
+                    if not dry_run:
+                        corrected = publish(database.state_dir, correction.path, hub)
+                        summary["correction_publication"] = asdict(corrected)
+                        if corrected.commit:
+                            summary["correction_commit"] = corrected.commit
+                except ControlPaused as exc:
+                    held("correction_build", exc)
+        split = allocation(bundle.config, budget)
+        summary["scheduler"] = {
+            "allocation": asdict(split),
+            "phase_seconds": {
+                "reconciliation": (clock.now() - started).total_seconds(),
+                "acquisition": 0.0,
+                "offline": 0.0,
+            },
+            "backpressure_before": backpressure(database.connection, bundle.config),
+        }
+        if not stop():
             discover(database, bundle, clock.now())
             if bundle.config.enabled("wsdc_registry"):
                 discover_registry(database, clock.now())
-            fetcher = FetchClient(
-                database.connection,
-                bundle.config,
-                clock,
-                archive,
-                transport=transport,
-                should_stop=should_stop,
-            )
-            for watch_id in due_watches(database.connection, bundle.config, clock.now()):
-                if stop():
-                    break
-                row = database.connection.execute(
-                    "SELECT parser,notes,url FROM watches WHERE watch_id=?", (watch_id,)
-                ).fetchone()
-                result = fetcher.fetch(
-                    watch_id,
-                    get_page_kind(row["parser"]),
-                    run_id,
-                    deadline=deadline,
-                    sweep=row["notes"] == "sweep",
+        visited_watches: set[str] = set()
+        attempted_inputs: dict[WorkUnit, set[str]] = {}
+
+        def offline_allowed(unit: WorkUnit) -> bool:
+            if not allowed(unit):
+                return False
+            previous = attempted_inputs.get(unit)
+            return previous is None or input_fingerprint(database.connection, unit) not in previous
+
+        summary["unit_failures"] = []
+
+        def client() -> FetchClient:
+            nonlocal fetcher
+            if fetcher is None:
+                fetcher = FetchClient(
+                    database.connection,
+                    bundle.config,
+                    clock,
+                    archive,
+                    transport=transport,
+                    should_stop=should_stop,
                 )
-                if result.skipped:
-                    continue
-                summary["checked"] += 1
-                summary["changed"] += int(result.changed)
-                summary["not_modified"] += int(result.classification.outcome == "NotModified")
-                summary["nonce_unchanged"] += int(result.nonce_unchanged)
+            return fetcher
+
+        def acquisition(until: datetime) -> bool:
+            from swingset.history.backfill import dispatch_one, offer
+
+            began = clock.now()
+            issued = False
+            offered = offer(database, bundle.config, clock, run_id=run_id) if not stop() else None
+            extra: tuple[WatchChoice, ...] = ()
+            if offered is not None and offered.watch_id not in visited_watches:
                 from urllib.parse import urlsplit
 
-                host = urlsplit(row["url"]).hostname or ""
-                summary["bytes_by_host"][host] = (
-                    summary["bytes_by_host"].get(host, 0) + result.body_bytes
+                offered_host = urlsplit(offered.archive_url or offered.url).hostname or ""
+                extra = (
+                    WatchChoice(
+                        key=offered.watch_id,
+                        watch_id=None,
+                        host=offered_host,
+                        category="old",
+                        scope=for_watch(
+                            database.connection,
+                            source=offered.source,
+                            watch_id=offered.watch_id,
+                            page_kind=offered.parser,
+                            watch_kind=offered.kind,
+                            host=offered_host,
+                        ),
+                        due_at=clock.now(),
+                        archive=bool(offered.archive_url),
+                        history=True,
+                    ),
                 )
-                with database.transaction() as conn:
-                    refresh_policy(
-                        conn,
+            while not stop() and clock.now() < until:
+                choice = next_watch(
+                    database.connection,
+                    bundle.config,
+                    now=clock.now(),
+                    exclude=visited_watches,
+                    extra_choices=extra,
+                    run_id=run_id,
+                )
+                if choice is None:
+                    delay = next_delay(
+                        database.connection,
                         bundle.config,
-                        watch_id,
-                        clock.now(),
-                        outcome=result.classification.outcome,
+                        now=clock.now(),
+                        exclude=visited_watches,
+                        extra_choices=extra,
+                        run_id=run_id,
                     )
-        for stage in ("parse", "project", "link"):
-            while not stop() and (unit := next_work(database.connection, stage)) is not None:
-                if stage not in summary["stages"]:
-                    summary["stages"].append(stage)
-                if stage == "parse":
-                    attempt = parse_snapshot(database, archive, unit, clock, run_id)
+                    if delay is None or delay <= 0:
+                        break
+                    clock.sleep(min(delay, (until - clock.now()).total_seconds(), 5))
+                    continue
+                visited_watches.add(choice.key)
+                with servicing(choice, run_id=run_id):
+                    if choice.archive or choice.history:
+                        historical = dispatch_one(
+                            database,
+                            bundle.config,
+                            clock,
+                            run_id,
+                            deadline=until,
+                            fetcher=client(),
+                            allocated=True,
+                            target_watch_id=choice.key,
+                        )
+                        summary["history_dispatch"] = {
+                            "reason": historical.reason,
+                            "watch_id": historical.watch_id,
+                        }
+                        result = historical.result
+                        if result is None:
+                            continue
+                    else:
+                        assert choice.watch_id is not None
+                        row = database.connection.execute(
+                            "SELECT parser,notes,url,archive_url FROM watches WHERE watch_id=?",
+                            (choice.watch_id,),
+                        ).fetchone()
+                        result = client().fetch(
+                            choice.watch_id,
+                            get_page_kind(row["parser"]),
+                            run_id,
+                            deadline=until,
+                            sweep=row["notes"] == "sweep",
+                        )
+                        if not result.skipped:
+                            with database.transaction() as conn:
+                                refresh_policy(
+                                    conn,
+                                    bundle.config,
+                                    choice.watch_id,
+                                    clock.now(),
+                                    outcome=result.classification.outcome,
+                                )
+                                if row["parser"] == "wsdc_registry.dancer":
+                                    advance_sweep(database, now=clock.now())
+                    if result.skipped:
+                        continue
+                    issued = True
+                    summary["checked"] += 1
+                    summary["changed"] += int(result.changed)
+                    summary["not_modified"] += int(result.classification.outcome == "NotModified")
+                    summary["nonce_unchanged"] += int(result.nonce_unchanged)
+                    host = choice.host
+                    summary["bytes_by_host"][host] = (
+                        summary["bytes_by_host"].get(host, 0) + result.body_bytes
+                    )
+            summary["scheduler"]["phase_seconds"]["acquisition"] += (
+                clock.now() - began
+            ).total_seconds()
+            return issued
+
+        def settle_offline() -> None:
+            if (
+                not stop()
+                and next(iter(unfinished_units(database.connection, ("parse", "project"))), None)
+                is None
+            ):
+                if database.connection.execute(
+                    "SELECT 1 FROM meta WHERE key='registry_crosscheck_due'"
+                ).fetchone():
+                    try:
+                        with operation(
+                            database,
+                            action_id="crosscheck_" + uuid4().hex,
+                            action_kind="registry_crosscheck",
+                            scope=for_unit(
+                                database.connection, WorkUnit("project", "history", "all")
+                            ),
+                            clock=clock,
+                            run_id=run_id,
+                        ):
+                            run_saved_crosscheck_if_due(database, archive, clock.now(), run_id)
+                    except ControlPaused as exc:
+                        held("registry_crosscheck", exc)
+            if not stop():
+                try:
+                    candidate = build(
+                        database, bundle, clock, run_id, remote=hub if not dry_run else None
+                    )
+                    if not candidate.reused:
+                        summary["stages"].append("build")
+                    summary["candidate_id"] = candidate.candidate_id
+                    if not dry_run:
+                        if hub is None:
+                            raise ValueError("publication enabled but no Hub adapter configured")
+                        published = publish(database.state_dir, candidate.path, hub, dry_run=False)
+                        summary["publication"] = asdict(published)
+                        if published.commit:
+                            summary["publish_commit"] = published.commit
+                except ControlPaused as exc:
+                    held("build", exc)
+
+        # A retained compatible release gets a publication opportunity before
+        # continuously arriving work can consume this cycle's entire budget.
+        if baseline_commit(database.state_dir) is not None and not stop():
+            settle_offline()
+        if not stop():
+            acquisition(min(deadline, clock.now() + timedelta(seconds=split.acquisition_seconds)))
+        while not stop():
+            began = clock.now()
+            while (
+                not stop()
+                and (
+                    unit := next_offline(
+                        database.connection, now=clock.now(), allowed=offline_allowed
+                    )
+                )
+                is not None
+            ):
+                attempt = derive_one(database, archive, unit, bundle, clock, run_id)
+                if attempt.reason == "operator_pause":
+                    continue
+                completed = latest_attempt(database.connection, unit)
+                assert completed is not None
+                attempted_inputs.setdefault(unit, set()).add(str(completed["input_fingerprint"]))
+                with database.transaction() as conn:
+                    record_offline_service(conn, unit, now=clock.now())
+                if unit.stage not in summary["stages"]:
+                    summary["stages"].append(unit.stage)
+                if attempt.failed:
+                    summary["unit_failures"].append(
+                        {
+                            "stage": unit.stage,
+                            "unit_kind": unit.unit_kind,
+                            "unit_id": unit.unit_id,
+                            "reason": attempt.reason,
+                        }
+                    )
+                if unit.stage == "parse" and attempt.source is not None:
                     attempts[attempt.source] += 1
                     failures[attempt.source] += int(attempt.failed)
                     if attempt.source == "wsdc_registry":
                         with database.transaction():
                             advance_sweep(database, now=clock.now())
-                elif stage == "project":
-                    from swingset.project import process_unit
-
-                    process_unit(database, unit, bundle, clock, run_id)
-                else:
-                    from swingset.link import link_event
-
-                    link_event(database, unit.unit_id, bundle, clock, run_id)
-            if (
-                stage == "project"
-                and not stop()
-                and next_work(database.connection, "parse") is None
-                and next_work(database.connection, "project") is None
-            ):
-                run_saved_crosscheck_if_due(database, archive, clock.now(), run_id)
-            if next_work(database.connection, stage) is not None:
+            # Builds and saved interpretation consume offline time before any
+            # unused share is lent back to collection.
+            settle_offline()
+            summary["scheduler"]["phase_seconds"]["offline"] += (
+                clock.now() - began
+            ).total_seconds()
+            # Empty/blocked offline demand lends its unused allocation. Visits
+            # remain unique per cycle and each actual HTTP debit keeps host caps.
+            if stop() or not acquisition(deadline):
                 break
-        settled = not database.connection.execute("SELECT COUNT(*) FROM pending_work").fetchone()[0]
-        if settled and not stop():
-            candidate = build(database, bundle, clock, run_id, remote=hub if not dry_run else None)
-            if not candidate.reused:
-                summary["stages"].append("build")
-            summary["candidate_id"] = candidate.candidate_id
-            if not dry_run:
-                if hub is None:
-                    raise ValueError("publication enabled but no Hub adapter configured")
-                published = publish(database.state_dir, candidate.path, hub, dry_run=False)
-                if published.commit:
-                    summary["publish_commit"] = published.commit
+        summary["scheduler"]["backpressure_after"] = backpressure(
+            database.connection, bundle.config
+        )
+        summary["held_units"] = [
+            {
+                **asdict(unit),
+                "pauses": matching_pauses(
+                    database.connection, for_unit(database.connection, unit), now=clock.now()
+                ),
+            }
+            for unit in unfinished_units(database.connection)
+            if not allowed(unit)
+        ]
         summary["parse_errors"] = dict(failures)
+        summary["restored_artifacts"] = recovery.restored
         summary["failed"] = any(
             failures[source] / count > 0.1 for source, count in attempts.items()
-        )
+        ) or any(item["stage"] != "parse" for item in summary["unit_failures"])
         paused = [
             dict(row)
             for row in database.connection.execute(
@@ -256,6 +517,7 @@ def run_cycle(
     finally:
         if fetcher is not None:
             fetcher.close()
+        summary["controls"] = status(database.connection, now=clock.now())
         summary["stopped"] = should_stop() or clock.now() >= deadline
         summary["duration_seconds"] = (clock.now() - started).total_seconds()
         summary["finished_at"] = clock.now().isoformat()

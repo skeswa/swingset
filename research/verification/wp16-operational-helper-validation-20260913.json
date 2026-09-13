@@ -1,0 +1,20 @@
+{
+  "files": {
+    "research/accept_wp16.py": "97c60c1c618fe402e4e952500baee045237b05b70412c5d11e71471f5aef3cab",
+    "research/wp16-deployment-preparation.md": "b32f69380f16bcc7b53feb48c2929d96e9117cd718f12cd93534781df3ecb698",
+    "tests/test_wp16_operational_preparation.py": "dde899e746fbb8635f8a5adb138996dd31079dc73e5a053c2fd9ee8956da86bb"
+  },
+  "focused_test_seconds": 7.32,
+  "focused_tests_passed": 30,
+  "format": "wp16-operational-helper-validation-v1",
+  "independent_review_findings_remaining": 0,
+  "independent_test_seconds": 2.44,
+  "independent_tests_passed": 5,
+  "mypy_modules_including_runtime": 168,
+  "production_executed": false,
+  "ruff_passed": true,
+  "schema_transition": [
+    14,
+    15
+  ]
+}

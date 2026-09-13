@@ -1,0 +1,32 @@
+{
+  "build_receipt_produced": false,
+  "diagnosis": {
+    "limit": "No captured stack proves the precise pre-write line at SIGTERM",
+    "observed": "Empty temporary candidate directory, reconstruction temporary state removed, no table files written; stopped before first table write",
+    "supported_memory_path": "Full generated changelog delta materialized as Python dictionaries atop copied release rows before writing"
+  },
+  "elapsed_seconds": 230.53253358398797,
+  "evidence": {
+    "research/verification/h16-event-map-build-journal-20260913.log": "ff80228712876df4ea36c2989e352d1e1f52a497c704428b0e43c1e4d28fc93d",
+    "research/verification/h16-event-map-build-resources-20260913.json": "3d63b45a2b1bcea00b3365ba91c0f7c8fa9b8b320d52f2e3eb2277d9ad6d203b"
+  },
+  "format": "h16-build-controlled-stop-v1",
+  "input_bundle_hash": "e5e8df491d9e31ff008ed873d1254fe1438f0e41ddae1ec9a96cc7bb912de42a",
+  "network_requests": 0,
+  "passed": false,
+  "peak_anon_kib": 6374916,
+  "peak_rss_kib": 6388644,
+  "preservation": [
+    "Completed replay and stopped build scratch retained",
+    "Production schema/input authority and public V4 baseline unchanged",
+    "No deployment, initialization, audit or publication authorized by this stopped build"
+  ],
+  "published": false,
+  "reason": "anonymous_memory_over_6_gib",
+  "recorded_at": "2026-09-13T15:48:47.196978+00:00",
+  "replay_receipt_sha256": "eb1b55bbca3f7ffc1af169d3f2079975297d3bb5728b515a235cdda34b383c9e",
+  "source": "/nix/store/kshnpz73b37h89zkmj03f4b3srd5ldaf-source",
+  "source_receipt_sha256": "1b42aef638b49b3579d1ab02a67c4135db0519b1dd57d55f4f0d3aee3a21f4cb",
+  "state": "/var/tmp/swingset-h16-event-map-build",
+  "unit_invocation_id": "4a4266f07bf14b0087a0d82acf3785b5"
+}

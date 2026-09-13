@@ -1,0 +1,955 @@
+{
+  "projector_version": 18,
+  "state": "/var/tmp/swingset-h7-contract4-rehearsal/state",
+  "baseline": "/var/lib/swingset/checkpoints/v2-v1-published-20260913T0543Z",
+  "projected_events": 85,
+  "database_mutations": 0,
+  "newly_unsupported": [
+    {
+      "contest_id": "2025-10-swing-city-chicago/intermediate-strictly-pro-am-followers",
+      "source": "wdr",
+      "name": "Pro Am Strictly Swing - Intermediate - Followers",
+      "prior_parse_status": "parsed",
+      "prior_rows": {
+        "rounds": 1,
+        "entries": 15,
+        "placements": 9,
+        "callbacks": 0,
+        "callback_marks": 0,
+        "final_marks": 0
+      }
+    },
+    {
+      "contest_id": "2025-10-swing-city-chicago/intermediate-strictly-pro-am-leaders",
+      "source": "wdr",
+      "name": "Pro Am Strictly Swing - Intermediate - Leaders",
+      "prior_parse_status": "parsed",
+      "prior_rows": {
+        "rounds": 1,
+        "entries": 16,
+        "placements": 10,
+        "callbacks": 0,
+        "callback_marks": 0,
+        "final_marks": 0
+      }
+    },
+    {
+      "contest_id": "2025-10-swing-city-chicago/newcomer-strictly-pro-am-followers",
+      "source": "wdr",
+      "name": "Pro Am Strictly Swing - Newcomer - Followers",
+      "prior_parse_status": "parsed",
+      "prior_rows": {
+        "rounds": 1,
+        "entries": 10,
+        "placements": 5,
+        "callbacks": 0,
+        "callback_marks": 0,
+        "final_marks": 0
+      }
+    },
+    {
+      "contest_id": "2025-10-swing-city-chicago/newcomer-strictly-pro-am-leaders",
+      "source": "wdr",
+      "name": "Pro Am Strictly Swing - Newcomer - Leaders",
+      "prior_parse_status": "parsed",
+      "prior_rows": {
+        "rounds": 1,
+        "entries": 9,
+        "placements": 5,
+        "callbacks": 0,
+        "callback_marks": 0,
+        "final_marks": 0
+      }
+    },
+    {
+      "contest_id": "2025-10-swing-city-chicago/novice-strictly-pro-am-followers",
+      "source": "wdr",
+      "name": "Pro Am Strictly Swing - Novice - Followers",
+      "prior_parse_status": "parsed",
+      "prior_rows": {
+        "rounds": 1,
+        "entries": 34,
+        "placements": 23,
+        "callbacks": 0,
+        "callback_marks": 0,
+        "final_marks": 0
+      }
+    },
+    {
+      "contest_id": "2025-10-swing-city-chicago/novice-strictly-pro-am-leaders",
+      "source": "wdr",
+      "name": "Pro Am Strictly Swing - Novice - Leaders",
+      "prior_parse_status": "parsed",
+      "prior_rows": {
+        "rounds": 1,
+        "entries": 21,
+        "placements": 11,
+        "callbacks": 0,
+        "callback_marks": 0,
+        "final_marks": 0
+      }
+    },
+    {
+      "contest_id": "2026-04-tulsa-spring-swing/jj-pro-am-am-follower-pro-leader",
+      "source": "eepro",
+      "name": "Pro-Am Jack & Jill AM Follower PRO Leader",
+      "prior_parse_status": "parsed",
+      "prior_rows": {
+        "rounds": 1,
+        "entries": 52,
+        "placements": 42,
+        "callbacks": 0,
+        "callback_marks": 0,
+        "final_marks": 100
+      }
+    },
+    {
+      "contest_id": "2026-04-tulsa-spring-swing/jj-pro-am-am-leader-pro-follower",
+      "source": "eepro",
+      "name": "Pro-Am Jack & Jill AM Leader PRO Follower",
+      "prior_parse_status": "parsed",
+      "prior_rows": {
+        "rounds": 1,
+        "entries": 37,
+        "placements": 25,
+        "callbacks": 0,
+        "callback_marks": 0,
+        "final_marks": 106
+      }
+    },
+    {
+      "contest_id": "2025-10-sass/advanced-jj-proam-follower",
+      "source": "eepro",
+      "name": "ProAm Jack & Jill Follower Advanced",
+      "prior_parse_status": "parsed",
+      "prior_rows": {
+        "rounds": 1,
+        "entries": 3,
+        "placements": 3,
+        "callbacks": 0,
+        "callback_marks": 0,
+        "final_marks": 14
+      }
+    },
+    {
+      "contest_id": "2025-10-sass/intermediate-jj-proam-follower",
+      "source": "eepro",
+      "name": "ProAm Jack & Jill Follower Intermediate",
+      "prior_parse_status": "parsed",
+      "prior_rows": {
+        "rounds": 1,
+        "entries": 9,
+        "placements": 9,
+        "callbacks": 0,
+        "callback_marks": 0,
+        "final_marks": 39
+      }
+    },
+    {
+      "contest_id": "2025-10-sass/jj-proam-follower-new-nov",
+      "source": "eepro",
+      "name": "ProAm Jack & Jill Follower New-Nov",
+      "prior_parse_status": "parsed",
+      "prior_rows": {
+        "rounds": 1,
+        "entries": 16,
+        "placements": 16,
+        "callbacks": 0,
+        "callback_marks": 0,
+        "final_marks": 65
+      }
+    },
+    {
+      "contest_id": "2025-10-sass/advanced-jj-proam-leader",
+      "source": "eepro",
+      "name": "ProAm Jack & Jill Leader Advanced",
+      "prior_parse_status": "parsed",
+      "prior_rows": {
+        "rounds": 1,
+        "entries": 2,
+        "placements": 2,
+        "callbacks": 0,
+        "callback_marks": 0,
+        "final_marks": 10
+      }
+    },
+    {
+      "contest_id": "2025-10-sass/intermediate-jj-proam-leader",
+      "source": "eepro",
+      "name": "ProAm Jack & Jill Leader Intermediate",
+      "prior_parse_status": "parsed",
+      "prior_rows": {
+        "rounds": 1,
+        "entries": 4,
+        "placements": 4,
+        "callbacks": 0,
+        "callback_marks": 0,
+        "final_marks": 20
+      }
+    },
+    {
+      "contest_id": "2025-10-sass/jj-proam-leader-new-nov",
+      "source": "eepro",
+      "name": "ProAm Jack & Jill Leader New-Nov",
+      "prior_parse_status": "parsed",
+      "prior_rows": {
+        "rounds": 1,
+        "entries": 8,
+        "placements": 8,
+        "callbacks": 0,
+        "callback_marks": 0,
+        "final_marks": 40
+      }
+    },
+    {
+      "contest_id": "2025-04-tulsa-spring-swing/jj-pro-am-am-leader-pro-follower",
+      "source": "eepro",
+      "name": "Pro-Am Jack & Jill AM Leader PRO Follower",
+      "prior_parse_status": "parsed",
+      "prior_rows": {
+        "rounds": 1,
+        "entries": 32,
+        "placements": 26,
+        "callbacks": 0,
+        "callback_marks": 0,
+        "final_marks": 160
+      }
+    },
+    {
+      "contest_id": "2025-04-tulsa-spring-swing/jj-pro-am-am-follower-pro-leader",
+      "source": "eepro",
+      "name": "Pro-Am Jack & Jill AM Follower PRO Leader",
+      "prior_parse_status": "parsed",
+      "prior_rows": {
+        "rounds": 1,
+        "entries": 56,
+        "placements": 47,
+        "callbacks": 0,
+        "callback_marks": 0,
+        "final_marks": 129
+      }
+    },
+    {
+      "contest_id": "2025-09-trilogy-swing/intermediate-strictly-pro-am-followers",
+      "source": "wdr",
+      "name": "Pro Am Strictly Swing - Intermediate - Followers",
+      "prior_parse_status": "parsed",
+      "prior_rows": {
+        "rounds": 1,
+        "entries": 31,
+        "placements": 20,
+        "callbacks": 0,
+        "callback_marks": 0,
+        "final_marks": 0
+      }
+    },
+    {
+      "contest_id": "2025-09-trilogy-swing/intermediate-strictly-pro-am-leaders",
+      "source": "wdr",
+      "name": "Pro Am Strictly Swing - Intermediate - Leaders",
+      "prior_parse_status": "parsed",
+      "prior_rows": {
+        "rounds": 1,
+        "entries": 13,
+        "placements": 7,
+        "callbacks": 0,
+        "callback_marks": 0,
+        "final_marks": 0
+      }
+    },
+    {
+      "contest_id": "2025-09-trilogy-swing/masters-strictly-pro-am-followers",
+      "source": "wdr",
+      "name": "Pro Am Strictly Swing - Masters - Followers",
+      "prior_parse_status": "parsed",
+      "prior_rows": {
+        "rounds": 1,
+        "entries": 18,
+        "placements": 11,
+        "callbacks": 0,
+        "callback_marks": 0,
+        "final_marks": 0
+      }
+    },
+    {
+      "contest_id": "2025-09-trilogy-swing/masters-strictly-pro-am-leaders",
+      "source": "wdr",
+      "name": "Pro Am Strictly Swing - Masters - Leaders",
+      "prior_parse_status": "parsed",
+      "prior_rows": {
+        "rounds": 1,
+        "entries": 7,
+        "placements": 4,
+        "callbacks": 0,
+        "callback_marks": 0,
+        "final_marks": 0
+      }
+    },
+    {
+      "contest_id": "2025-09-trilogy-swing/newcomer-strictly-pro-am-novice-followers",
+      "source": "wdr",
+      "name": "Pro Am Strictly Swing - Newcomer / Novice - Followers",
+      "prior_parse_status": "parsed",
+      "prior_rows": {
+        "rounds": 1,
+        "entries": 61,
+        "placements": 41,
+        "callbacks": 0,
+        "callback_marks": 0,
+        "final_marks": 0
+      }
+    },
+    {
+      "contest_id": "2025-09-trilogy-swing/newcomer-strictly-pro-am-novice-leaders",
+      "source": "wdr",
+      "name": "Pro Am Strictly Swing - Newcomer / Novice - Leaders",
+      "prior_parse_status": "parsed",
+      "prior_rows": {
+        "rounds": 1,
+        "entries": 30,
+        "placements": 20,
+        "callbacks": 0,
+        "callback_marks": 0,
+        "final_marks": 0
+      }
+    },
+    {
+      "contest_id": "2025-09-trilogy-swing/trio-team-3-way-solo-routine",
+      "source": "wdr",
+      "name": "Trio Team 3-Way Solo Routine",
+      "prior_parse_status": "parsed",
+      "prior_rows": {
+        "rounds": 1,
+        "entries": 0,
+        "placements": 0,
+        "callbacks": 0,
+        "callback_marks": 0,
+        "final_marks": 0
+      }
+    },
+    {
+      "contest_id": "2025-10-montreal-westie-fest/jj-non-lumbar",
+      "source": "wdr",
+      "name": "NON WSDC Jack & Jill - Swing - Lumbar Jack/Jill",
+      "prior_parse_status": "parsed",
+      "prior_rows": {
+        "rounds": 1,
+        "entries": 48,
+        "placements": 0,
+        "callbacks": 0,
+        "callback_marks": 0,
+        "final_marks": 0
+      }
+    },
+    {
+      "contest_id": "2025-10-montreal-westie-fest/intermediate-jj-pro-am-followers",
+      "source": "wdr",
+      "name": "Pro-Am Jack & Jill - Intermediate - Followers",
+      "prior_parse_status": "parsed",
+      "prior_rows": {
+        "rounds": 1,
+        "entries": 19,
+        "placements": 19,
+        "callbacks": 0,
+        "callback_marks": 0,
+        "final_marks": 0
+      }
+    },
+    {
+      "contest_id": "2025-10-montreal-westie-fest/intermediate-jj-pro-am-leaders",
+      "source": "wdr",
+      "name": "Pro-Am Jack & Jill - Intermediate - Leaders",
+      "prior_parse_status": "parsed",
+      "prior_rows": {
+        "rounds": 1,
+        "entries": 11,
+        "placements": 11,
+        "callbacks": 0,
+        "callback_marks": 0,
+        "final_marks": 0
+      }
+    },
+    {
+      "contest_id": "2025-10-montreal-westie-fest/newcomer-jj-pro-am-novice-followers",
+      "source": "wdr",
+      "name": "Pro-Am Jack & Jill - Newcomer / Novice - Followers",
+      "prior_parse_status": "parsed",
+      "prior_rows": {
+        "rounds": 1,
+        "entries": 49,
+        "placements": 49,
+        "callbacks": 0,
+        "callback_marks": 0,
+        "final_marks": 0
+      }
+    },
+    {
+      "contest_id": "2025-10-montreal-westie-fest/newcomer-jj-pro-am-novice-leaders",
+      "source": "wdr",
+      "name": "Pro-Am Jack & Jill - Newcomer / Novice - Leaders",
+      "prior_parse_status": "parsed",
+      "prior_rows": {
+        "rounds": 1,
+        "entries": 9,
+        "placements": 9,
+        "callbacks": 0,
+        "callback_marks": 0,
+        "final_marks": 0
+      }
+    },
+    {
+      "contest_id": "2025-11-rocket-city-swing/jj-all-american-tournament",
+      "source": "wdr",
+      "name": "Jack & Jill - All American - Tournament",
+      "prior_parse_status": "parsed",
+      "prior_rows": {
+        "rounds": 1,
+        "entries": 44,
+        "placements": 24,
+        "callbacks": 0,
+        "callback_marks": 0,
+        "final_marks": 0
+      }
+    },
+    {
+      "contest_id": "2025-11-rocket-city-swing/intermediate-strictly-pro-am-followers",
+      "source": "wdr",
+      "name": "Pro Am Strictly Swing - Intermediate - Followers",
+      "prior_parse_status": "parsed",
+      "prior_rows": {
+        "rounds": 1,
+        "entries": 9,
+        "placements": 5,
+        "callbacks": 0,
+        "callback_marks": 0,
+        "final_marks": 0
+      }
+    },
+    {
+      "contest_id": "2025-11-rocket-city-swing/intermediate-strictly-pro-am-leaders",
+      "source": "wdr",
+      "name": "Pro Am Strictly Swing - Intermediate - Leaders",
+      "prior_parse_status": "parsed",
+      "prior_rows": {
+        "rounds": 1,
+        "entries": 8,
+        "placements": 4,
+        "callbacks": 0,
+        "callback_marks": 0,
+        "final_marks": 0
+      }
+    },
+    {
+      "contest_id": "2025-11-rocket-city-swing/novice-strictly-pro-am-followers",
+      "source": "wdr",
+      "name": "Pro Am Strictly Swing - Novice - Followers",
+      "prior_parse_status": "parsed",
+      "prior_rows": {
+        "rounds": 1,
+        "entries": 35,
+        "placements": 24,
+        "callbacks": 0,
+        "callback_marks": 0,
+        "final_marks": 0
+      }
+    },
+    {
+      "contest_id": "2025-11-rocket-city-swing/novice-strictly-pro-am-leaders",
+      "source": "wdr",
+      "name": "Pro Am Strictly Swing - Novice - Leaders",
+      "prior_parse_status": "parsed",
+      "prior_rows": {
+        "rounds": 1,
+        "entries": 14,
+        "placements": 8,
+        "callbacks": 0,
+        "callback_marks": 0,
+        "final_marks": 0
+      }
+    },
+    {
+      "contest_id": "2026-01-floorplay-swing-vacation/intermediate-strictly-pro-am-followers",
+      "source": "wdr",
+      "name": "Pro Am Strictly Swing - Intermediate - Followers",
+      "prior_parse_status": "parsed",
+      "prior_rows": {
+        "rounds": 1,
+        "entries": 15,
+        "placements": 9,
+        "callbacks": 0,
+        "callback_marks": 0,
+        "final_marks": 0
+      }
+    },
+    {
+      "contest_id": "2026-01-floorplay-swing-vacation/intermediate-strictly-pro-am-leaders",
+      "source": "wdr",
+      "name": "Pro Am Strictly Swing - Intermediate - Leaders",
+      "prior_parse_status": "parsed",
+      "prior_rows": {
+        "rounds": 1,
+        "entries": 9,
+        "placements": 6,
+        "callbacks": 0,
+        "callback_marks": 0,
+        "final_marks": 0
+      }
+    },
+    {
+      "contest_id": "2026-01-floorplay-swing-vacation/newcomer-strictly-pro-am-followers",
+      "source": "wdr",
+      "name": "Pro Am Strictly Swing - Newcomer - Followers",
+      "prior_parse_status": "parsed",
+      "prior_rows": {
+        "rounds": 1,
+        "entries": 12,
+        "placements": 7,
+        "callbacks": 0,
+        "callback_marks": 0,
+        "final_marks": 0
+      }
+    },
+    {
+      "contest_id": "2026-01-floorplay-swing-vacation/newcomer-strictly-pro-am-leaders",
+      "source": "wdr",
+      "name": "Pro Am Strictly Swing - Newcomer - Leaders",
+      "prior_parse_status": "parsed",
+      "prior_rows": {
+        "rounds": 1,
+        "entries": 9,
+        "placements": 5,
+        "callbacks": 0,
+        "callback_marks": 0,
+        "final_marks": 0
+      }
+    },
+    {
+      "contest_id": "2026-01-floorplay-swing-vacation/novice-strictly-pro-am-followers",
+      "source": "wdr",
+      "name": "Pro Am Strictly Swing - Novice - Followers",
+      "prior_parse_status": "parsed",
+      "prior_rows": {
+        "rounds": 1,
+        "entries": 37,
+        "placements": 24,
+        "callbacks": 0,
+        "callback_marks": 0,
+        "final_marks": 0
+      }
+    },
+    {
+      "contest_id": "2026-01-floorplay-swing-vacation/novice-strictly-pro-am-leaders",
+      "source": "wdr",
+      "name": "Pro Am Strictly Swing - Novice - Leaders",
+      "prior_parse_status": "parsed",
+      "prior_rows": {
+        "rounds": 1,
+        "entries": 21,
+        "placements": 13,
+        "callbacks": 0,
+        "callback_marks": 0,
+        "final_marks": 0
+      }
+    },
+    {
+      "contest_id": "2026-03-the-chicago-classic/intermediate-strictly-pro-am-followers",
+      "source": "wdr",
+      "name": "Pro Am Strictly Swing - Intermediate - Followers",
+      "prior_parse_status": "parsed",
+      "prior_rows": {
+        "rounds": 1,
+        "entries": 25,
+        "placements": 16,
+        "callbacks": 0,
+        "callback_marks": 0,
+        "final_marks": 0
+      }
+    },
+    {
+      "contest_id": "2026-03-the-chicago-classic/intermediate-strictly-pro-am-leaders",
+      "source": "wdr",
+      "name": "Pro Am Strictly Swing - Intermediate - Leaders",
+      "prior_parse_status": "parsed",
+      "prior_rows": {
+        "rounds": 1,
+        "entries": 6,
+        "placements": 3,
+        "callbacks": 0,
+        "callback_marks": 0,
+        "final_marks": 0
+      }
+    },
+    {
+      "contest_id": "2026-03-the-chicago-classic/newcomer-strictly-pro-am-followers",
+      "source": "wdr",
+      "name": "Pro Am Strictly Swing - Newcomer - Followers",
+      "prior_parse_status": "parsed",
+      "prior_rows": {
+        "rounds": 1,
+        "entries": 8,
+        "placements": 4,
+        "callbacks": 0,
+        "callback_marks": 0,
+        "final_marks": 0
+      }
+    },
+    {
+      "contest_id": "2026-03-the-chicago-classic/newcomer-strictly-pro-am-leaders",
+      "source": "wdr",
+      "name": "Pro Am Strictly Swing - Newcomer - Leaders",
+      "prior_parse_status": "parsed",
+      "prior_rows": {
+        "rounds": 1,
+        "entries": 8,
+        "placements": 4,
+        "callbacks": 0,
+        "callback_marks": 0,
+        "final_marks": 0
+      }
+    },
+    {
+      "contest_id": "2026-03-the-chicago-classic/novice-strictly-pro-am-followers",
+      "source": "wdr",
+      "name": "Pro Am Strictly Swing - Novice - Followers",
+      "prior_parse_status": "parsed",
+      "prior_rows": {
+        "rounds": 1,
+        "entries": 36,
+        "placements": 24,
+        "callbacks": 0,
+        "callback_marks": 0,
+        "final_marks": 0
+      }
+    },
+    {
+      "contest_id": "2026-03-the-chicago-classic/novice-strictly-pro-am-leaders",
+      "source": "wdr",
+      "name": "Pro Am Strictly Swing - Novice - Leaders",
+      "prior_parse_status": "parsed",
+      "prior_rows": {
+        "rounds": 1,
+        "entries": 28,
+        "placements": 16,
+        "callbacks": 0,
+        "callback_marks": 0,
+        "final_marks": 0
+      }
+    },
+    {
+      "contest_id": "2026-04-swing-in-bloom/intermediate-jj-pro-am-followers",
+      "source": "wdr",
+      "name": "Pro-Am Jack & Jill - Intermediate - Followers",
+      "prior_parse_status": "parsed",
+      "prior_rows": {
+        "rounds": 1,
+        "entries": 20,
+        "placements": 20,
+        "callbacks": 0,
+        "callback_marks": 0,
+        "final_marks": 0
+      }
+    },
+    {
+      "contest_id": "2026-04-swing-in-bloom/intermediate-jj-pro-am-leaders",
+      "source": "wdr",
+      "name": "Pro-Am Jack & Jill - Intermediate - Leaders",
+      "prior_parse_status": "parsed",
+      "prior_rows": {
+        "rounds": 1,
+        "entries": 17,
+        "placements": 17,
+        "callbacks": 0,
+        "callback_marks": 0,
+        "final_marks": 0
+      }
+    },
+    {
+      "contest_id": "2026-04-swing-in-bloom/newcomer-jj-pro-am-novice-followers",
+      "source": "wdr",
+      "name": "Pro-Am Jack & Jill - Newcomer / Novice - Followers",
+      "prior_parse_status": "parsed",
+      "prior_rows": {
+        "rounds": 1,
+        "entries": 57,
+        "placements": 57,
+        "callbacks": 0,
+        "callback_marks": 0,
+        "final_marks": 0
+      }
+    },
+    {
+      "contest_id": "2026-04-swing-in-bloom/newcomer-jj-pro-am-novice-leaders",
+      "source": "wdr",
+      "name": "Pro-Am Jack & Jill - Newcomer / Novice - Leaders",
+      "prior_parse_status": "parsed",
+      "prior_rows": {
+        "rounds": 1,
+        "entries": 20,
+        "placements": 20,
+        "callbacks": 0,
+        "callback_marks": 0,
+        "final_marks": 0
+      }
+    },
+    {
+      "contest_id": "2026-07-carolina-summer-swing/intermediate-strictly-pro-am-followers",
+      "source": "wdr",
+      "name": "Pro Am Strictly Swing - Intermediate - Followers",
+      "prior_parse_status": "parsed",
+      "prior_rows": {
+        "rounds": 1,
+        "entries": 21,
+        "placements": 11,
+        "callbacks": 0,
+        "callback_marks": 0,
+        "final_marks": 0
+      }
+    },
+    {
+      "contest_id": "2026-07-carolina-summer-swing/intermediate-strictly-pro-am-leaders",
+      "source": "wdr",
+      "name": "Pro Am Strictly Swing - Intermediate - Leaders",
+      "prior_parse_status": "parsed",
+      "prior_rows": {
+        "rounds": 1,
+        "entries": 10,
+        "placements": 6,
+        "callbacks": 0,
+        "callback_marks": 0,
+        "final_marks": 0
+      }
+    },
+    {
+      "contest_id": "2026-07-carolina-summer-swing/masters-strictly-pro-am-followers",
+      "source": "wdr",
+      "name": "Pro Am Strictly Swing - Masters - Followers",
+      "prior_parse_status": "parsed",
+      "prior_rows": {
+        "rounds": 1,
+        "entries": 13,
+        "placements": 8,
+        "callbacks": 0,
+        "callback_marks": 0,
+        "final_marks": 0
+      }
+    },
+    {
+      "contest_id": "2026-07-carolina-summer-swing/masters-strictly-pro-am-leaders",
+      "source": "wdr",
+      "name": "Pro Am Strictly Swing - Masters - Leaders",
+      "prior_parse_status": "parsed",
+      "prior_rows": {
+        "rounds": 1,
+        "entries": 4,
+        "placements": 2,
+        "callbacks": 0,
+        "callback_marks": 0,
+        "final_marks": 0
+      }
+    },
+    {
+      "contest_id": "2026-07-carolina-summer-swing/newcomer-strictly-pro-am-novice-followers",
+      "source": "wdr",
+      "name": "Pro Am Strictly Swing - Newcomer / Novice - Followers",
+      "prior_parse_status": "parsed",
+      "prior_rows": {
+        "rounds": 1,
+        "entries": 37,
+        "placements": 24,
+        "callbacks": 0,
+        "callback_marks": 0,
+        "final_marks": 0
+      }
+    },
+    {
+      "contest_id": "2026-07-carolina-summer-swing/newcomer-strictly-pro-am-novice-leaders",
+      "source": "wdr",
+      "name": "Pro Am Strictly Swing - Newcomer / Novice - Leaders",
+      "prior_parse_status": "parsed",
+      "prior_rows": {
+        "rounds": 1,
+        "entries": 24,
+        "placements": 15,
+        "callbacks": 0,
+        "callback_marks": 0,
+        "final_marks": 0
+      }
+    },
+    {
+      "contest_id": "2026-07-florida-dance-magic/line-dance-high",
+      "source": "wdr",
+      "name": "Line Dance - High",
+      "prior_parse_status": "parsed",
+      "prior_rows": {
+        "rounds": 2,
+        "entries": 0,
+        "placements": 0,
+        "callbacks": 0,
+        "callback_marks": 0,
+        "final_marks": 0
+      }
+    },
+    {
+      "contest_id": "2026-07-florida-dance-magic/line-dance-low",
+      "source": "wdr",
+      "name": "Line Dance - Low",
+      "prior_parse_status": "parsed",
+      "prior_rows": {
+        "rounds": 1,
+        "entries": 0,
+        "placements": 0,
+        "callbacks": 0,
+        "callback_marks": 0,
+        "final_marks": 0
+      }
+    },
+    {
+      "contest_id": "2026-07-florida-dance-magic/intermediate-strictly-pro-am-followers",
+      "source": "wdr",
+      "name": "Pro Am Strictly Swing - Intermediate - Followers",
+      "prior_parse_status": "parsed",
+      "prior_rows": {
+        "rounds": 1,
+        "entries": 26,
+        "placements": 16,
+        "callbacks": 0,
+        "callback_marks": 0,
+        "final_marks": 0
+      }
+    },
+    {
+      "contest_id": "2026-07-florida-dance-magic/intermediate-strictly-pro-am-leaders",
+      "source": "wdr",
+      "name": "Pro Am Strictly Swing - Intermediate - Leaders",
+      "prior_parse_status": "parsed",
+      "prior_rows": {
+        "rounds": 1,
+        "entries": 11,
+        "placements": 7,
+        "callbacks": 0,
+        "callback_marks": 0,
+        "final_marks": 0
+      }
+    },
+    {
+      "contest_id": "2026-07-florida-dance-magic/newcomer-strictly-pro-am-followers",
+      "source": "wdr",
+      "name": "Pro Am Strictly Swing - Newcomer - Followers",
+      "prior_parse_status": "parsed",
+      "prior_rows": {
+        "rounds": 1,
+        "entries": 15,
+        "placements": 9,
+        "callbacks": 0,
+        "callback_marks": 0,
+        "final_marks": 0
+      }
+    },
+    {
+      "contest_id": "2026-07-florida-dance-magic/newcomer-strictly-pro-am-leaders",
+      "source": "wdr",
+      "name": "Pro Am Strictly Swing - Newcomer - Leaders",
+      "prior_parse_status": "parsed",
+      "prior_rows": {
+        "rounds": 1,
+        "entries": 2,
+        "placements": 1,
+        "callbacks": 0,
+        "callback_marks": 0,
+        "final_marks": 0
+      }
+    },
+    {
+      "contest_id": "2026-07-florida-dance-magic/novice-strictly-pro-am-followers",
+      "source": "wdr",
+      "name": "Pro Am Strictly Swing - Novice - Followers",
+      "prior_parse_status": "parsed",
+      "prior_rows": {
+        "rounds": 1,
+        "entries": 38,
+        "placements": 25,
+        "callbacks": 0,
+        "callback_marks": 0,
+        "final_marks": 0
+      }
+    },
+    {
+      "contest_id": "2026-07-florida-dance-magic/novice-strictly-pro-am-leaders",
+      "source": "wdr",
+      "name": "Pro Am Strictly Swing - Novice - Leaders",
+      "prior_parse_status": "parsed",
+      "prior_rows": {
+        "rounds": 1,
+        "entries": 13,
+        "placements": 7,
+        "callbacks": 0,
+        "callback_marks": 0,
+        "final_marks": 0
+      }
+    },
+    {
+      "contest_id": "2026-06-swingapalooza/intermediate-strictly-pro-am-followers",
+      "source": "wdr",
+      "name": "Pro Am Strictly Swing - Intermediate - Followers",
+      "prior_parse_status": "parsed",
+      "prior_rows": {
+        "rounds": 1,
+        "entries": 21,
+        "placements": 12,
+        "callbacks": 0,
+        "callback_marks": 0,
+        "final_marks": 0
+      }
+    },
+    {
+      "contest_id": "2026-06-swingapalooza/intermediate-strictly-pro-am-leaders",
+      "source": "wdr",
+      "name": "Pro Am Strictly Swing - Intermediate - Leaders",
+      "prior_parse_status": "parsed",
+      "prior_rows": {
+        "rounds": 1,
+        "entries": 13,
+        "placements": 8,
+        "callbacks": 0,
+        "callback_marks": 0,
+        "final_marks": 0
+      }
+    },
+    {
+      "contest_id": "2026-06-swingapalooza/novice-strictly-pro-am-followers",
+      "source": "wdr",
+      "name": "Pro Am Strictly Swing - Novice - Followers",
+      "prior_parse_status": "parsed",
+      "prior_rows": {
+        "rounds": 1,
+        "entries": 34,
+        "placements": 21,
+        "callbacks": 0,
+        "callback_marks": 0,
+        "final_marks": 0
+      }
+    },
+    {
+      "contest_id": "2026-06-swingapalooza/novice-strictly-pro-am-leaders",
+      "source": "wdr",
+      "name": "Pro Am Strictly Swing - Novice - Leaders",
+      "prior_parse_status": "parsed",
+      "prior_rows": {
+        "rounds": 1,
+        "entries": 18,
+        "placements": 12,
+        "callbacks": 0,
+        "callback_marks": 0,
+        "final_marks": 0
+      }
+    }
+  ],
+  "prior_rows_in_newly_unsupported_contests": {
+    "rounds": 68,
+    "entries": 1358,
+    "placements": 930,
+    "callbacks": 0,
+    "callback_marks": 0,
+    "final_marks": 683
+  }
+}

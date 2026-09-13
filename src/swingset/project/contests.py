@@ -20,7 +20,7 @@ from swingset.model.canonical import (
 from swingset.model.ids import entry_id, judge_id, placement_id, round_id, slug, unique_slugs
 from swingset.model.observations import decode_payload
 from swingset.normalize.divisions import ContestVocabulary, classify_contest
-from swingset.normalize.names import normalize_name
+from swingset.normalize.names import normalize_name, paired_names
 from swingset.sources.records import Cell, ResultTable, RoundSheet
 from swingset.state.findings import Finding
 
@@ -112,9 +112,7 @@ def project_event(conn: sqlite3.Connection, event: str, now: str, run_id: str) -
                 )
         vocabulary = classify_contest(contest_name)
         unsupported = any(
-            _unsupported_eepro_numeric_prelim(item, table)
-            for item in sheets
-            for table in item.sheet.tables
+            _unsupported_scoring(item, table) for item in sheets for table in item.sheet.tables
         )
         output.append(
             Contest(
@@ -138,6 +136,36 @@ def project_event(conn: sqlite3.Connection, event: str, now: str, run_id: str) -
             )
         )
         if unsupported:
+            # Scoring semantics do not determine whether a printed panel name
+            # is a valid judge identity. Preserve names without emitting scores.
+            panels: dict[str, Evidence] = {}
+            for item in sheets:
+                prior = panels.get(item.sheet.source_round_ref)
+                if prior is None or item.precedence > prior.precedence:
+                    panels[item.sheet.source_round_ref] = item
+            for panel in panels.values():
+                for table in panel.sheet.tables:
+                    _collect_judges(event, panel, table, now, run_id, judges, named_only=True)
+            findings.append(
+                Finding(
+                    kind="parse_gap",
+                    subject_kind="contest",
+                    subject_id=cid,
+                    severity="warning",
+                    summary="Source scoring method or Solo category has no canonical representation",
+                    evidence={
+                        "snapshots": sorted({item.snapshot_id for item in sheets}),
+                        "scoring_methods_raw": sorted(
+                            {
+                                item.sheet.scoring_method_raw
+                                for item in sheets
+                                if item.sheet.scoring_method_raw
+                            }
+                        ),
+                        "disposition": "Raw rows retained; contest marked unsupported; no canonical results emitted",
+                    },
+                )
+            )
             continue
         round_groups: dict[tuple[str, int], list[Evidence]] = {}
         for item in sheets:
@@ -416,6 +444,44 @@ def _entry_redirects(entries: dict[str, EntryFacts], findings: list[Finding]) ->
     return redirects
 
 
+def _collect_judges(
+    event: str,
+    evidence: Evidence,
+    table: ResultTable,
+    now: str,
+    run_id: str,
+    judges: dict[str, tuple[Judge, Evidence]],
+    *,
+    named_only: bool = False,
+) -> dict[int, str]:
+    judge_columns: dict[int, str] = {}
+    for index, (token, name, anonymous) in _judge_columns(
+        table, infer_named=evidence.source == "eepro"
+    ).items():
+        if named_only and (anonymous or not name):
+            continue
+        cell = table.headers[index]
+        jid = (
+            judge_id(event, name=name)
+            if not anonymous
+            else judge_id(event, anonymous_number=int(token.removeprefix("anon-")))
+        )
+        judge_columns[index] = jid
+        record = Judge(
+            judge_id=jid,
+            event_id=event,
+            name_raw=name,
+            initials=_text(cell) or None,
+            anonymous=anonymous,
+            wsdc_id=None,
+            **_provenance(evidence, now, run_id),
+        )
+        prior = judges.get(jid)
+        if prior is None or evidence.precedence > prior[1].precedence:
+            judges[jid] = record, evidence
+    return judge_columns
+
+
 def _project_table(
     event: str,
     contest: str,
@@ -436,29 +502,7 @@ def _project_table(
 ) -> None:
     headers = [_text(cell).casefold() for cell in table.headers]
     outcome_known = _outcome_convention_known(table, evidence.source)
-    judge_columns: dict[int, str] = {}
-    for index, (token, name, anonymous) in _judge_columns(
-        table, infer_named=evidence.source == "eepro"
-    ).items():
-        cell = table.headers[index]
-        jid = (
-            judge_id(event, name=name)
-            if not anonymous
-            else judge_id(event, anonymous_number=int(token.removeprefix("anon-")))
-        )
-        judge_columns[index] = jid
-        record = Judge(
-            judge_id=jid,
-            event_id=event,
-            name_raw=name,
-            initials=_text(cell) or None,
-            anonymous=anonymous,
-            wsdc_id=None,
-            **_provenance(evidence, now, run_id),
-        )
-        prior = judges.get(jid)
-        if prior is None or evidence.precedence > prior[1].precedence:
-            judges[jid] = record, evidence
+    judge_columns = _collect_judges(event, evidence, table, now, run_id, judges)
     competitor_columns = [
         index
         for index, header in enumerate(headers)
@@ -575,6 +619,21 @@ def _project_table(
                 candidate = EntryFacts(
                     identifier, contest, event, role, bib, canonical_name, evidence, {round_}
                 )
+                if canonical_name and paired_names(canonical_name):
+                    findings.append(
+                        Finding(
+                            kind="paired_name",
+                            subject_kind="entry",
+                            subject_id=identifier,
+                            severity="warning",
+                            summary="Paired name retained without individual identity attribution",
+                            evidence={
+                                "snapshot_id": evidence.snapshot_id,
+                                "name_raw": canonical_name,
+                                "reason": "paired_name_ownership_unresolved",
+                            },
+                        )
+                    )
                 previous = entries.get(identifier)
                 if previous is None:
                     entries[identifier] = candidate
@@ -797,10 +856,10 @@ def _record_partner(entry: EntryFacts, partner: EntryFacts) -> None:
 def _evidence(conn: sqlite3.Connection, event: str) -> list[Evidence]:
     result: list[Evidence] = []
     for row in conn.execute(
-        """SELECT o.kind,o.payload_json,o.snapshot_id,o.parser_version,w.source,s.fetched_at,w.kind
+        """SELECT o.kind,o.payload_json,o.snapshot_id,o.parser_version,w.source,COALESCE(s.observed_at,s.fetched_at),w.kind
         FROM observations o JOIN watches w USING(watch_id) JOIN snapshots s USING(snapshot_id)
         JOIN source_event_map m ON m.source=w.source AND m.source_ref=o.scope_id
-        WHERE o.scope_kind='source_event' AND m.event_id=? ORDER BY s.fetched_at,s.snapshot_id,o.seq""",
+        WHERE o.scope_kind='source_event' AND m.event_id=? ORDER BY COALESCE(s.observed_at,s.fetched_at),s.snapshot_id,o.seq""",
         (event,),
     ):
         payload = decode_payload(str(row[0]), str(row[1]))
@@ -1012,6 +1071,8 @@ def _competitors(
     normalized_header = header.casefold().strip()
     normalized_contest = contest_name.casefold()
     if normalized_header in {"am", "pro"}:
+        if paired_names(name):
+            return (("couple", name),)
         if "follower" in normalized_contest:
             role = "follower" if normalized_header == "am" else "leader"
         elif "leader" in normalized_contest:
@@ -1028,6 +1089,8 @@ def _competitors(
         pair = re.split(r"\s+and\s+", name, maxsplit=1, flags=re.IGNORECASE)
         if len(pair) == 2 and all(part.strip() for part in pair):
             return (("leader", pair[0].strip()), ("follower", pair[1].strip()))
+    if paired_names(name):
+        return (("couple", name),)
     resolved_role = _role(header, contest_name, count, position)
     return ((resolved_role, name),) if resolved_role is not None else ()
 
@@ -1127,8 +1190,23 @@ def _known_mark(raw: str) -> bool:
         return False
 
 
-def _unsupported_eepro_numeric_prelim(evidence: Evidence, table: ResultTable) -> bool:
-    if evidence.source != "eepro" or _round_type(evidence.sheet.round_name_raw) == "final":
+def _unsupported_scoring(evidence: Evidence, table: ResultTable) -> bool:
+    if evidence.source == "wdr":
+        # The literal method is evidence, not a conversion into callback/rank marks.
+        method = evidence.sheet.scoring_method_raw
+        return (
+            (method or table.heading_raw) == "Average Raw Scores"
+            or any(_text(cell).casefold() == "solo" for cell in table.headers)
+            or bool(
+                method
+                and method
+                not in {
+                    "Placement Order",
+                    "Sum of Yes(10) / Alt 1(4.5) 2(4.3) 3(4.2) / No(0)",
+                }
+            )
+        )
+    if evidence.source != "eepro":
         return False
     headers = [_text(cell).casefold() for cell in table.headers]
     if not {"avg", "place"} <= set(headers):

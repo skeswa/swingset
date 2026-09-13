@@ -1,0 +1,98 @@
+{
+  "baseline": "/var/lib/swingset/baseline",
+  "candidate": "/var/lib/swingset/candidates/cand_a9a87deb3ee34dac",
+  "checks": {
+    "accuracy_expansion_held": true,
+    "baseline_matches": true,
+    "callback_marks_source_facts_unchanged": true,
+    "callbacks_source_facts_unchanged": true,
+    "contests_source_facts_unchanged": true,
+    "correction_only": true,
+    "coverage_source_facts_unchanged": true,
+    "dancers_source_facts_unchanged": true,
+    "entries_defaults_have_accepted_assertions": true,
+    "entries_no_new_default_ids": true,
+    "entries_source_facts_unchanged": true,
+    "events_source_facts_unchanged": true,
+    "final_marks_source_facts_unchanged": true,
+    "heats_source_facts_unchanged": true,
+    "journal_metadata_matches": true,
+    "judges_defaults_have_accepted_assertions": true,
+    "judges_no_new_default_ids": true,
+    "judges_source_facts_unchanged": true,
+    "link_candidates_source_facts_unchanged": true,
+    "placements_source_facts_unchanged": true,
+    "registry_placements_source_facts_unchanged": true,
+    "review_queue_source_facts_unchanged": true,
+    "rounds_source_facts_unchanged": true,
+    "snapshots_source_facts_unchanged": true
+  },
+  "counts": {
+    "new_entries_default_ids": 34959,
+    "new_judges_default_ids": 0,
+    "old_entries_default_ids": 36715,
+    "old_judges_default_ids": 0
+  },
+  "network_requests": 0,
+  "passed": true,
+  "release_policy": {
+    "accuracy_expansions": "withheld_pending_H17",
+    "baseline_commit": "7cfcf4ec5dbc994d91f3e4d816f43b3abe16637b",
+    "default_join_counts": {
+      "accepted_legacy": 34959,
+      "current_decision_withholds": 170,
+      "printed_source_identity_unavailable": 1504,
+      "source_reference_unavailable": 82
+    },
+    "detected_at": "2026-09-13T07:08:57.942256+00:00",
+    "input_bundle_hash": "e1b9d9b082b461cb706deae88647c0282be93bd9b8bbbd6e5c52c1b326b73c4b",
+    "input_file_hashes": {
+      "config/hosts.toml": "6c0b8d7b34e1c4a068374c59d0f41d52459f0113883b9868a6750c2753123122",
+      "config/sources.toml": "276a2bca3c4dea77525d8f241a83531a2fd908fcb5071dddca494e1ba850ff27",
+      "link/weights.toml": "dfcb30d69d7ba24518294f1facb2a1e1912b23ba332494eb8103445c59234174",
+      "overrides/event_aliases.csv": "3fb16a5e6eab2923e3d157341f80bef4a5a5d5685e4f2288e304d79be074570d",
+      "overrides/identity_overrides.csv": "e1487f143891001bc7ddb16cfe6e32003e1ac95628fcaa3a03849e3806f6a246",
+      "overrides/nicknames.csv": "468106077a4b1aac34289b705b16e38f7bc29de28376d5db052d84a3c5e50dcf",
+      "overrides/series_aliases.csv": "92366188e4295b901772dbe1cc3e1f12116fab46be9765a577a8845e31815642",
+      "overrides/source_urls.csv": "cce22c27665b53c67291a41dc18e99989b6b3eab4fe817aeb5e902e6f251e9a1",
+      "overrides/suppressions.csv": "2362faa4e3e099c1d307b9a72182e016f60818ab067135be75feb53bccd61fd9",
+      "versions.json": "b8352bd366fd10fff32b0c9c33c2411fc8e20a747b906a9b94a66ef4060f2f3e"
+    },
+    "legacy_policy": "Published baseline support may remain unassessed; no revocation, new join, or removal authority is permitted.",
+    "mode": "correction_only",
+    "pending_findings": {
+      "parse_failure": 1,
+      "parse_warning": 26
+    },
+    "pending_work": {
+      "link": 2240,
+      "parse": 461,
+      "project": 30079
+    },
+    "revisions": {
+      "canonical": 518,
+      "dancers": 35614,
+      "findings": 2922,
+      "identity_decisions": 1,
+      "links": 15025,
+      "observations": 31679,
+      "snapshots": 64774,
+      "source_event_map": 10,
+      "source_events": 317
+    },
+    "support_withdrawals": {
+      "reasons": {
+        "support_checks": 30186
+      },
+      "removed_rows": {},
+      "withdrawn_claims": {}
+    },
+    "token": {
+      "admission_digest": "4f527e109a7b2f9f1668a43215a550f10010ce0a7e80943a5a5143aa88d2e562",
+      "decision_policy": "identity-decisions-v1",
+      "journal_digest": "e1487f143891001bc7ddb16cfe6e32003e1ac95628fcaa3a03849e3806f6a246",
+      "journal_generation": 1,
+      "release_version": "identity-release-v1"
+    }
+  }
+}

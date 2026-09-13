@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import pyarrow as pa
 
+from swingset.model.schema import COVERAGE_PUBLIC_COLUMNS, PUBLIC_SCOPE_COLUMNS, PUBLIC_SCOPE_TABLES
+
 S = pa.string()
 I8, I16, I32 = pa.int8(), pa.int16(), pa.int32()
 F32 = pa.float32()
@@ -34,6 +36,11 @@ SCHEMAS: dict[str, pa.Schema] = {
             ("year", I16),
             ("start_date", DATE),
             ("end_date", DATE),
+            ("event_month", S),
+            ("date_precision", S),
+            ("held", S),
+            ("coverage_tier", S),
+            ("history_source", LS),
             ("city", S),
             ("region", S),
             ("country", S),
@@ -200,6 +207,12 @@ SCHEMAS: dict[str, pa.Schema] = {
             ("status", S),
             ("confidence", F32),
             ("constraints_applied", LS),
+            ("source_ref_ids", LS),
+            ("decision_ids", LS),
+            ("acceptance_policy", S),
+            ("acceptance_state", S),
+            ("journal_digest", S),
+            ("journal_generation", pa.int64()),
             ("asserted_at", TS),
             ("run_id", S),
         ],
@@ -265,10 +278,86 @@ SCHEMAS: dict[str, pa.Schema] = {
             ("parser", S),
             ("parser_version", S),
             ("parse_status", S),
+            ("via", S),
+            ("captured_at", TS),
+            ("archive_url", S),
+            ("observed_at", TS),
+        ],
+        provenance=False,
+    ),
+    "coverage": schema(
+        [
+            ("year", I16),
+            ("source", S),
+            ("via", S),
+            ("events", I32),
+            ("contests", I32),
+            ("rounds", I32),
+            ("entries", pa.int64()),
+            ("events_registry_only", I32),
+            ("events_index_only", I32),
+            ("events_sheets_partial", I32),
+            ("events_sheets_complete", I32),
+            ("events_day_precision", I32),
+            ("events_listed_only", I32),
+            ("events_accepted", pa.bool_()),
+            ("expected_rounds", I32),
+            ("parsed_rounds", I32),
+            ("unresolved_findings", I32),
+            ("last_changed_at", TS),
         ],
         provenance=False,
     ),
 }
+
+# Public freshness is calculated from the pinned release and never written into
+# canonical projection rows or their immutable generation payloads.
+for _table in PUBLIC_SCOPE_TABLES:
+    SCHEMAS[_table] = (
+        SCHEMAS[_table]
+        .append(pa.field("scope_status", S))
+        .append(pa.field("evidence_observed_at", TS))
+    )
+
+for _name, _type in [
+    ("scope_kind", S),
+    ("scope_id", S),
+    ("scope_status", S),
+    ("scope_reasons", LS),
+    ("missing_scopes", LS),
+    ("discovered_units", pa.int64()),
+    ("acquired_units", pa.int64()),
+    ("interpreted_units", pa.int64()),
+    ("mapped_units", pa.int64()),
+    ("withheld_units", pa.int64()),
+    ("unavailable_units", pa.int64()),
+    ("unassessed_units", pa.int64()),
+    ("resolved_identities", pa.int64()),
+    ("identity_subjects", pa.int64()),
+    ("withheld_identities", pa.int64()),
+    ("withheld_scopes", pa.int64()),
+    ("unavailable_scopes", pa.int64()),
+    ("discovery_denominator", pa.int64()),
+    ("discovery_universe", S),
+    ("acquisition_denominator", pa.int64()),
+    ("interpretation_denominator", pa.int64()),
+    ("mapping_denominator", pa.int64()),
+    ("evidence_cutoff", TS),
+    ("evidence_observed_at", TS),
+    ("usable_verified_at", TS),
+    ("health_as_of", TS),
+    ("method", S),
+    ("population", S),
+    ("uncertainty", S),
+]:
+    SCHEMAS["coverage"] = SCHEMAS["coverage"].append(pa.field(_name, _type))
+
+
+RELEASE_FIELDS: dict[str, tuple[str, ...]] = {
+    **{table: tuple(sorted(PUBLIC_SCOPE_COLUMNS)) for table in PUBLIC_SCOPE_TABLES},
+    "coverage": tuple(sorted(COVERAGE_PUBLIC_COLUMNS)),
+}
+
 
 PRIMARY_KEYS: dict[str, tuple[str, ...]] = {
     "events": ("event_id",),
@@ -295,4 +384,5 @@ PRIMARY_KEYS: dict[str, tuple[str, ...]] = {
     "review_queue": ("item_id",),
     "changelog": ("changed_at", "table", "record_key", "field"),
     "snapshots": ("snapshot_id",),
+    "coverage": ("scope_kind", "scope_id", "source", "via"),
 }

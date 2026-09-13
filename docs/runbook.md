@@ -4,6 +4,14 @@ Start with `dryRun = true`. A token does not enable publication. The
 [implementation status](implementation-status.md) distinguishes local verification
 from the live acceptance work still required by the plan.
 
+On 2026-09-13 UTC H1/H2 were deployed and the controlled G1 probe passed:
+an identical not-found response advanced cursor 29029 to 29030. Its source
+pause is cleared. V1 through V4 corrections are published and H16 is deployed.
+Scheduled workers remain held by `/var/lib/swingset/operator-hold` during v2
+acceptance. The
+[v2 operating receipt](v2-progress.md#g1-operating-receipt) records the
+verification, active runtime, and recovery checkpoint.
+
 ## Development and VM setup
 
 ```sh
@@ -44,11 +52,13 @@ overrides are captured from `services.swingset.overridesDir` every cycle.
 The manifest records the clean repository revision or an explicit uncommitted
 source-store identity. Local development falls back to a digest of the Python
 sources. A code identity change invalidates the build; parser and projector
-changes still require their respective version bumps.
+changes still require their respective version bumps. Captured runtime recipes
+also detect changed bytes when a manual version stays the same.
 
 ## Commands and logs
 
-Every writing command uses the same state lock. A timer overlap exits 0 with
+Data-writing commands use the same state lock. H13 pause and resume commands
+use the separate bounded control path described below. A timer overlap exits 0 with
 `skipped-overlap`. Manual mutations wait up to `--lock-timeout` (60 seconds by
 default); a timeout exits nonzero and applies no change. Backup waits for the
 writer and the service retries failures after 60 seconds.
@@ -67,7 +77,53 @@ counts, stages, host pauses, errors, and the graceful-stop flag. A hard kill can
 lose the final run log; SQLite transactions and already durable artifacts remain
 the recovery source.
 
+H14 adds a `scheduler` section to doctor and summary. `initial_objectives`
+contains policy targets; `observed_host_usage` retains all actual daily debits,
+including requests before H14. `observed_attributed_service` counts requests
+issued under the new policy. Offline attempt counts do not establish completed
+requirements. Request wall ages include operator pauses.
+
+Optional `[scheduling]` settings in `config/sources.toml` tune cycle shares and
+pressure thresholds under the [scheduling contract](../design/scheduling.md).
+Defaults reserve 30 seconds for reconciliation, 300 for acquisition and 390 for
+offline work in a 720-second cycle. Builds use offline time before collection
+borrows it. Host budgets and request floors remain independently enforced.
+
 ## Tokens and enabling publication
+
+For a reviewed correction while unrelated parsing is blocked, use
+`swingset build --correction-only` with the usual state, config, and override
+paths. It reads the acknowledged public baseline, accepts current correction
+inputs, and builds a local candidate without source requests. Inspect its
+manifest, card, and changed Parquet rows, then use
+`swingset publish --correction-only` under the existing publication authorization.
+The latter repeats the build and rechecks current inputs immediately before
+the Hub commit. Pending parse/project/link work remains queued.
+
+`doctor --json` reports admission states, the accepted identity journal, pending
+reference migrations, and the latest publication receipt with correction latency.
+Never resubmit a `REJECTED` candidate; accept corrected inputs and rebuild. A
+pending intent with an uncertain network outcome is reconciled before any new
+submission. An unlanded intent remains held while `RESTORE_PENDING` exists.
+
+H10 adds public identity acceptance metadata before schema 1.0. Until H17 has
+approved expansion, defaults may only retain supported IDs from the published
+baseline. Judges without WSDC numbers remain named records with null IDs.
+
+On schema 14, doctor derives unfinished projection and linking from captured
+inputs and materialized generations. A missing queue row does not clear that
+work. Migration leaves existing output unmaterialized until its actual work
+completes; this is expected replay work, not evidence that the public dataset
+lost rows. Runtime code and schema bytes are captured with the input bundle,
+so a deployment may require replay without a manual version change. Host
+allocations and request budgets remain separate from interpretation recipes.
+
+Doctor's build materialization records describe durable local candidates.
+Publication still requires its confirmed receipt. A candidate with missing or
+corrupt files is rebuilt, including when its `BUILT` marker survives. The
+H16 normal build selects compatible retained generations even when other
+derivations remain unfinished. Current corrections, revocations, and the
+acknowledged baseline still fence publication.
 
 The owner creates `skeswa/swingset` (public dataset) and
 `skeswa/swingset-archive` (private dataset). Provision a write token for both in
@@ -105,10 +161,20 @@ restore also accepts older checkpoints whose files were uploaded separately.
 sudo -u swingset swingset pause --all
 sudo -u swingset swingset pause --host scoring.dance --reason 'operator request'
 sudo -u swingset swingset pause --source eepro --until 2026-10-01T00:00:00Z
+sudo -u swingset swingset pause --kind round_observations --reason 'review parser' --wait 60
 sudo -u swingset swingset resume --all
 ```
 
-A pause waits behind an active cycle. To stop immediately:
+With H13, a pause persists at the next bounded admission boundary while the
+cycle retains its process lock. The receipt reports `pausing` while matching
+admitted work drains, then `paused`. `--wait` waits for that drain; a wait timeout
+retains the persisted pause. A control-servicing timeout means no change was
+persisted. Doctor reports the pause ID, reason, expiry and exact resume selector.
+Worker write phases have a 45-second limit inside the default 60-second control
+bound. A deadline failure rolls back output and remains visible for review or
+explicit retry. Earlier deployed runtimes still wait behind the cycle lock.
+
+To stop the scheduled worker immediately:
 
 ```sh
 sudo systemctl stop swingset-cycle.timer
@@ -129,12 +195,64 @@ as `design/backfill.md` describes.
 Rebuild the service to install config changes. Override CSV changes need no
 rebuild: the next cycle validates, captures and accepts them transactionally.
 Malformed headers, identities, dates, URLs and duplicate policy keys are rejected
-before acceptance. Removing an override file invalidates its consumers too. Pending parse,
-projection, and link work can still drain while fetching is disabled or paused.
+before acceptance. Removing an override file invalidates its consumers too.
+Disabling fetching or pausing a host permits offline work. Under H13, an all,
+source or kind pause also holds matching derivations and shared publication;
+unrelated eligible work continues. A valid held candidate is not rejected, and
+an in-flight commit must reconcile its receipt before its pause is fully drained.
 
 Before stopping the VM, stop cycle and backup timers and services, then use
 `orb stop swingset` on the Mac. Start it with `orb start swingset`; inspect logs
 and `doctor` before resuming collection.
+
+For a maintenance hold that survives deployment and reboot, create the persistent
+marker before stopping the services:
+
+```sh
+sudo touch /var/lib/swingset/operator-hold
+sudo systemctl stop swingset-cycle.timer swingset-backup.timer swingset-summary.timer
+sudo systemctl stop swingset-cycle.service swingset-backup.service swingset-summary.service
+```
+
+All three service units require that `operator-hold` be absent before starting,
+including their environment setup. The marker is relative to the configured
+`services.swingset.stateDir`; substitute that path if it differs. NixOS activation
+leaves the marker in place. Timers may become active after activation or reboot,
+but their service starts are skipped while the marker exists. This does not stop
+a unit already running: wait for the explicit service stops above to finish.
+
+When first installing this guard, bridge activation with runtime drop-ins after
+creating the marker and stopping the units above:
+
+```sh
+for unit in swingset-cycle swingset-backup swingset-summary; do
+  sudo install -d "/run/systemd/system/$unit.service.d"
+  printf '%s\n' '[Unit]' 'ConditionPathExists=!/var/lib/swingset/operator-hold' |
+    sudo tee "/run/systemd/system/$unit.service.d/v2-hold.conf" >/dev/null
+done
+sudo systemctl daemon-reload
+sudo systemctl cat swingset-cycle.service swingset-backup.service swingset-summary.service
+```
+
+Verify all three effective units show the negative condition before activation.
+On this host, runtime masks in `/run/systemd/system` did not override the units
+in `/etc/systemd/system`; the services remained loaded. Runtime drop-ins supply
+the condition to those loaded units. These drop-ins disappear on reboot, so
+complete the declarative activation and verify the generated units contain the
+guard before rebooting. Do not edit the generated `/etc/systemd/system`
+directory. After that verification, the temporary `v2-hold.conf` drop-ins can be
+removed and systemd reloaded while the persistent marker remains in place.
+
+Doctor and explicitly invoked local commands remain available while held. The
+marker guards these systemd services; it does not authorize manual publication or
+remote backup. After the maintenance review permits normal operation, remove the
+marker, clear any runtime masks, and start the timers:
+
+```sh
+sudo rm /var/lib/swingset/operator-hold
+sudo systemctl unmask --runtime swingset-cycle.service swingset-backup.service swingset-summary.service swingset-cycle.timer swingset-backup.timer swingset-summary.timer
+sudo systemctl start swingset-cycle.timer swingset-backup.timer swingset-summary.timer
+```
 
 ## Reparse and registry work
 

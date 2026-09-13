@@ -204,6 +204,16 @@ def main() -> int:
            OR (f.role IS NOT NULL AND f.role!='follower')
            OR (c.role IS NOT NULL AND c.role!='couple')"""
     )
+    integrity["unsupported_default_joins"] = rows(
+        """SELECT 'entry' subject_kind,count(*) n FROM entries e
+        WHERE e.wsdc_id IS NOT NULL AND (e.link_status!='confirmed' OR NOT EXISTS (
+          SELECT 1 FROM identity_links l WHERE l.subject_kind='entry'
+          AND l.subject_id=e.entry_id AND l.status='confirmed' AND l.wsdc_id=e.wsdc_id))
+        UNION ALL SELECT 'judge',count(*) FROM judges j
+        WHERE j.wsdc_id IS NOT NULL AND NOT EXISTS (
+          SELECT 1 FROM identity_links l WHERE l.subject_kind='judge'
+          AND l.subject_id=j.judge_id AND l.status='confirmed' AND l.wsdc_id=j.wsdc_id)"""
+    )
     integrity["placement_sequence_errors"] = scalar(
         """SELECT count(*) FROM (
         SELECT round_id,count(*) n,count(distinct place) unique_places,min(place) lo,max(place) hi

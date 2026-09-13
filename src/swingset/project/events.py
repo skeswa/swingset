@@ -2,8 +2,10 @@
 
 import re
 import sqlite3
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, replace
 from datetime import UTC, date, datetime, timedelta
+from typing import Any
 
 from swingset.model.canonical import Event
 from swingset.model.ids import event_id, series_id
@@ -37,12 +39,29 @@ class SourceEventEvidence:
         return specificity, self.fetched_at, self.snapshot_id
 
 
-def project_calendar(conn: sqlite3.Connection, scope_id: str, now: str, run_id: str) -> Projection:
+def project_calendar(
+    conn: sqlite3.Connection,
+    scope_id: str,
+    now: str,
+    run_id: str,
+    *,
+    continuity: Sequence[Mapping[str, Any]] | None = None,
+) -> Projection:
+    prior_events = (
+        continuity
+        if continuity is not None
+        else [
+            dict(row)
+            for row in conn.execute(
+                "SELECT event_id,series_id,event_month,name,held FROM events WHERE held='held' AND series_id LIKE 'wsdc-%'"
+            )
+        ]
+    )
     current: dict[str, tuple[CalendarRow, sqlite3.Row]] = {}
     for row in conn.execute(
-        """SELECT o.kind,o.payload_json,o.snapshot_id,o.parser_version,w.source,s.fetched_at
+        """SELECT o.kind,o.payload_json,o.snapshot_id,o.parser_version,w.source,COALESCE(s.observed_at,s.fetched_at)
         FROM observations o JOIN watches w USING(watch_id) JOIN snapshots s USING(snapshot_id)
-        WHERE o.scope_kind='calendar' AND o.scope_id=? ORDER BY s.fetched_at,s.snapshot_id,o.seq""",
+        WHERE o.scope_kind='calendar' AND o.scope_id=? ORDER BY COALESCE(s.observed_at,s.fetched_at),s.snapshot_id,o.seq""",
         (scope_id,),
     ):
         payload = decode_payload(str(row[0]), str(row[1]))
@@ -64,10 +83,30 @@ def project_calendar(conn: sqlite3.Connection, scope_id: str, now: str, run_id: 
             or any("trial" in item.casefold() for item in payload.row_classes)
             else "registry"
         )
+        from swingset.model.ids import series_slug
+        from swingset.project.history import _next_month
+
+        registry_events = [
+            item
+            for item in prior_events
+            if item.get("held") == "held"
+            and str(item["series_id"]).startswith("wsdc-")
+            and series_slug(str(item["name"])) == series_slug(payload.name_raw)
+            and str(item["event_month"])
+            in {end.strftime("%Y-%m"), _next_month(end.strftime("%Y-%m"))}
+        ]
+        registry_event = registry_events[0] if len(registry_events) == 1 else None
         result.append(
             Event(
-                event_id=event_id(end, payload.name_raw, occurrences[base]),
-                series_id=series_id(payload.name_raw),
+                event_id=str(registry_event["event_id"])
+                if registry_event
+                else event_id(end, payload.name_raw, occurrences[base]),
+                series_id=str(registry_event["series_id"])
+                if registry_event
+                else series_id(payload.name_raw),
+                event_month=str(registry_event["event_month"])
+                if registry_event
+                else end.strftime("%Y-%m"),
                 name=payload.name_raw,
                 year=end.year,
                 start_date=start.isoformat(),
@@ -77,6 +116,15 @@ def project_calendar(conn: sqlite3.Connection, scope_id: str, now: str, run_id: 
                 country=payload.country_code_raw,
                 website=payload.website,
                 wsdc_status=status,
+                held="held"
+                if registry_event
+                else "cancelled"
+                if any(
+                    "cancel" in item.casefold() or "hiatus" in item.casefold()
+                    for item in (payload.name_raw, *payload.row_classes)
+                )
+                else "listed",
+                history_source=("calendar",),
                 sources=(str(row[4]),),
                 live_window_start=(
                     datetime.combine(start, datetime.min.time(), UTC) - timedelta(hours=36)
@@ -226,9 +274,9 @@ def _replace_date_contradiction(
 
 def _source_event_evidence(conn: sqlite3.Connection) -> list[SourceEventEvidence]:
     result: list[SourceEventEvidence] = []
-    for row in conn.execute("""SELECT o.kind,o.payload_json,o.scope_id,o.snapshot_id,o.parser_version,w.source,s.fetched_at,w.parser
+    for row in conn.execute("""SELECT o.kind,o.payload_json,o.scope_id,o.snapshot_id,o.parser_version,w.source,COALESCE(s.observed_at,s.fetched_at),w.parser
         FROM observations o JOIN watches w USING(watch_id) JOIN snapshots s USING(snapshot_id)
-        WHERE o.scope_kind='source_index' ORDER BY s.fetched_at,s.snapshot_id,o.seq"""):
+        WHERE o.scope_kind='source_index' ORDER BY COALESCE(s.observed_at,s.fetched_at),s.snapshot_id,o.seq"""):
         payload = decode_payload(str(row[0]), str(row[1]))
         if isinstance(payload, SourceEventRow):
             result.append(

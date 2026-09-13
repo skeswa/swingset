@@ -183,11 +183,21 @@ def test_zero_budget_accepts_inputs_but_starts_no_network_or_stage(tmp_path, ove
         assert '"stopped": true' in saved
 
 
-def test_existing_downstream_work_skips_fetch_batch(tmp_path, overrides):
+def test_existing_downstream_work_does_not_starve_collection(tmp_path, overrides, calendar_config):
     clock = FakeClock()
 
-    def forbidden(_request):
-        raise AssertionError("cycle fetched before draining existing downstream work")
+    def handler(request):
+        assert (
+            db.connection.execute(
+                "SELECT count(*) FROM pending_work WHERE stage='link' AND unit_id='missing'"
+            ).fetchone()[0]
+            == 1
+        )
+        return (
+            httpx.Response(404)
+            if request.url.path == "/robots.txt"
+            else httpx.Response(200, content=FIXTURE)
+        )
 
     with open_database(tmp_path) as db:
         db.connection.execute(
@@ -195,11 +205,75 @@ def test_existing_downstream_work_skips_fetch_batch(tmp_path, overrides):
         )
         result = run_cycle(
             db,
-            config_dir=Path("config"),
+            config_dir=calendar_config,
             overrides_dir=overrides,
             clock=clock,
-            transport=httpx.MockTransport(forbidden),
+            transport=httpx.MockTransport(handler),
         )
-        assert result["checked"] == 0
+        assert result["checked"] == 1
         assert "link" in result["stages"]
         assert db.connection.execute("SELECT COUNT(*) FROM pending_work").fetchone()[0] == 0
+
+
+def test_settled_build_receives_offline_time_before_acquisition_borrows(
+    tmp_path, overrides, calendar_config, monkeypatch
+):
+    from swingset.schedule import cycle
+    from swingset.schedule.watches import upsert_watch
+    from swingset.sources.base import WatchSpec
+
+    clock = FakeClock()
+    actions = []
+
+    def handler(request):
+        actions.append("http")
+        return (
+            httpx.Response(404)
+            if request.url.path == "/robots.txt"
+            else httpx.Response(200, content=FIXTURE)
+        )
+
+    original_build = cycle.build
+
+    def timed_build(*args, **kwargs):
+        actions.append("build")
+        clock.sleep(2)
+        return original_build(*args, **kwargs)
+
+    monkeypatch.setattr(cycle, "build", timed_build)
+    with open_database(tmp_path) as db:
+        for n in range(20):
+            upsert_watch(
+                db.connection,
+                WatchSpec(
+                    "",
+                    "wsdc_calendar",
+                    "index",
+                    "GET",
+                    f"https://worldsdc.com/events/{n}",
+                    "wsdc_calendar.events",
+                ),
+                clock.now(),
+            )
+        result = run_cycle(
+            db,
+            config_dir=calendar_config,
+            overrides_dir=overrides,
+            clock=clock,
+            budget=60,
+            transport=httpx.MockTransport(handler),
+        )
+        assert not result["failed"]
+        assert result["candidate_id"]
+        first_build = actions.index("build")
+        assert "http" in actions[:first_build]
+        assert "http" in actions[first_build + 1 :]
+        assert result["scheduler"]["phase_seconds"]["offline"] >= 2
+        repeated = db.connection.execute(
+            "SELECT unit_kind,unit_id,count(*) AS attempts,count(DISTINCT input_fingerprint) AS inputs "
+            "FROM work_attempts WHERE run_id=? AND stage='project' "
+            "GROUP BY unit_kind,unit_id HAVING count(*)>1",
+            (result["run_id"],),
+        ).fetchall()
+        assert repeated
+        assert all(row["attempts"] == row["inputs"] for row in repeated)

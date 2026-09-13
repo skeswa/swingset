@@ -1,6 +1,8 @@
 import sqlite3
 from pathlib import Path
 
+import pytest
+
 from swingset.model.canonical import (
     Callback,
     CallbackMark,
@@ -295,10 +297,15 @@ def test_full_event_projection_and_round_union(tmp_path: Path) -> None:
         assert len(records(projected, FinalMark)) == 1
 
 
-def test_real_eepro_numeric_prelim_is_retained_raw_but_not_projected(tmp_path: Path) -> None:
+@pytest.mark.parametrize("finals", [False, True])
+def test_real_eepro_numeric_scores_are_retained_raw_but_not_projected(
+    tmp_path: Path, finals: bool
+) -> None:
     page = EEProRoundPage()
     body = Path(
-        "src/swingset/sources/eepro/fixtures/round-aa-summerhummer2026-2026-09-09.body"
+        "src/swingset/admission/fixtures/eepro-numeric-finals.body"
+        if finals
+        else "src/swingset/sources/eepro/fixtures/round-aa-summerhummer2026-2026-09-09.body"
     ).read_bytes()
     parsed = page.parse(
         page.extract(body),
@@ -314,7 +321,10 @@ def test_real_eepro_numeric_prelim_is_retained_raw_but_not_projected(tmp_path: P
     )
     raw = parsed.observations[0].payload
     assert isinstance(raw, RoundSheet)
-    assert raw.tables[0].rows[0].cells[1].text == "97"
+    assert raw.tables[0].rows[0].cells[1].text == ("94" if finals else "97")
+    assert raw.scoring_method_raw == "Avg"
+    if finals:
+        assert raw.round_name_raw == "Finals"
 
     with open_database(tmp_path, lock=False) as db:
         seed(db.connection)
@@ -324,10 +334,116 @@ def test_real_eepro_numeric_prelim_is_retained_raw_but_not_projected(tmp_path: P
         assert isinstance(contest, Contest) and contest.parse_status == "unsupported"
         assert not records(projected, Round)
         assert not records(projected, Entry)
-        assert not records(projected, Judge)
+        assert records(projected, Judge)
+        assert all(
+            judge.name_raw and not judge.anonymous and judge.wsdc_id is None
+            for judge in records(projected, Judge)
+        )
         assert not records(projected, CallbackMark)
         assert not records(projected, Placement)
         assert not records(projected, FinalMark)
+
+
+def test_real_wdr_numeric_and_solo_contests_remain_raw_and_unsupported(tmp_path: Path) -> None:
+    page = RoundsPage()
+    body = Path("src/swingset/admission/fixtures/wdr-numeric.body").read_bytes()
+    parsed = page.parse(
+        page.extract(body),
+        ParseContext(
+            "snap",
+            "watch",
+            "https://example.test/rounds",
+            "wdr",
+            page.kind,
+            "wdr:example",
+            "2026-09-13T00:00:00Z",
+        ),
+    )
+    unsupported = [
+        o.payload
+        for o in parsed.observations
+        if o.payload.scoring_method_raw == "Average Raw Scores"
+        or any(cell.text == "Solo" for table in o.payload.tables for cell in table.headers)
+    ]
+    assert len(unsupported) == 7  # Six numeric divisions and a separately typed Solo contest.
+    assert any(
+        cell.text == "94.79"
+        for item in unsupported
+        for table in item.tables
+        for row in table.rows
+        for cell in row.cells
+    )
+    assert any(
+        cell.text == "Gold"
+        for item in unsupported
+        for table in item.tables
+        for row in table.rows
+        for cell in row.cells
+    )
+    with open_database(tmp_path, lock=False) as db:
+        seed(db.connection)
+        db.connection.execute("DELETE FROM source_event_map")
+        db.connection.execute(
+            "INSERT INTO source_event_map(source,source_ref,event_id,match_method,match_confidence) VALUES ('wdr','wdr:example',?,'override',1)",
+            (EVENT,),
+        )
+        for i, payload in enumerate(unsupported):
+            add(
+                db.connection,
+                f"w{i}",
+                f"s{i}",
+                payload,
+                "2026-09-13T00:00:00Z",
+                source="wdr",
+                source_ref="wdr:example",
+                parser="wdr.rounds",
+            )
+        projected = project_event(db.connection, EVENT, "2026-09-13T00:00:00Z", "run_a")
+        assert len(records(projected, Contest)) == 7
+        assert all(row.parse_status == "unsupported" for row in records(projected, Contest))
+        assert len(records(projected, Judge)) == 18
+        assert all(
+            judge.name_raw and not judge.anonymous and judge.wsdc_id is None
+            for judge in records(projected, Judge)
+        )
+        assert all(isinstance(row, (Contest, Judge)) for row in projected.rows)
+        assert len(projected.findings) == 7
+
+
+def test_unsupported_scoring_does_not_invent_anonymous_judge_records(tmp_path: Path) -> None:
+    table = ResultTable(
+        "Finals",
+        (
+            Cell("Bib"),
+            Cell("Leader"),
+            Cell("J1"),
+            Cell("J2", (("title", "Jane Doe"),)),
+            Cell("Avg"),
+            Cell("Place"),
+        ),
+        (
+            ResultRow(
+                (Cell("7"), Cell("A Person"), Cell("97"), Cell("94"), Cell("95.5"), Cell("1"))
+            ),
+        ),
+    )
+    raw = RoundSheet(
+        "round_sheet",
+        "eepro:hummer",
+        "Finals",
+        "All American",
+        "Finals",
+        (table,),
+        scoring_method_raw="Avg",
+    )
+    with open_database(tmp_path) as db:
+        seed(db.connection)
+        add(db.connection, "numeric", "numeric", raw, "2026-09-13T00:00:00Z")
+        projected = project_event(db.connection, EVENT, "2026-09-13T00:00:00Z", "run_a")
+        assert [
+            (row.name_raw, row.anonymous, row.wsdc_id) for row in records(projected, Judge)
+        ] == [("Jane Doe", False, None)]
+        assert all(isinstance(row, (Contest, Judge)) for row in projected.rows)
 
 
 def test_wdr_unknown_callback_values_remain_only_in_evidence(tmp_path: Path) -> None:
@@ -702,3 +818,53 @@ def test_real_eepro_finals_project_named_judges_and_entry_roles(tmp_path: Path) 
     assert strictly_by_name["Gabe Ofordu and Annie Ogren"].bib == "661"
     judges = [judge for judge in records(projection, Judge) if isinstance(judge, Judge)]
     assert any(judge.name_raw == "Arjay Centeno" and not judge.anonymous for judge in judges)
+
+
+def test_scoringdance_strictly_prelim_preserves_partner_without_wsdc_id(tmp_path: Path) -> None:
+    from swingset.sources.scoringdance.adapter import RoundPage
+
+    body = b"""<meta property="og:title" content="Strictly Intermediate prelim - Test Event">
+    <table class="table"><tr><th>Bib Number</th><th></th><th></th>
+    <th title="Judge One">J1</th><th>Sum</th></tr>
+    <tr data-state="CB"><td>254</td><td><a data-wsdc="26781">Sandile Keswa</a></td>
+    <td>Lynne Yun</td><td>Yes</td><td>10</td></tr>
+    <tr><td>255</td><td><a data-wsdc="12345">Other Leader</a></td>
+    <td>Other Follower</td><td>No</td><td>0</td></tr></table>"""
+    parser = RoundPage()
+    parsed = parser.parse(
+        parser.extract(body),
+        ParseContext(
+            "strictly",
+            "strictly",
+            "https://scoring.dance/enUS/events/272/results/4914.html",
+            "scoringdance",
+            "round",
+            "scoringdance:272",
+            "2026-09-13T00:00:00Z",
+        ),
+    )
+    with open_database(tmp_path) as db:
+        seed(db.connection)
+        db.connection.execute(
+            "INSERT INTO source_event_map(source,source_ref,event_id,match_method,match_confidence) "
+            "VALUES ('scoringdance','scoringdance:272',?,'override',1)",
+            (EVENT,),
+        )
+        add(
+            db.connection,
+            "strictly",
+            "strictly",
+            parsed.observations[0].payload,
+            "2026-09-13T00:00:00Z",
+            source="scoringdance",
+            source_ref="scoringdance:272",
+            parser="scoringdance.round",
+        )
+        projection = project_event(db.connection, EVENT, "2026-09-13T00:00:00Z", "run_a")
+        entries = {row.name_raw: row for row in records(projection, Entry)}
+        assert entries["Sandile Keswa"].partner_name_raw == "Lynne Yun"
+        assert entries["Lynne Yun"].partner_name_raw == "Sandile Keswa"
+        assert entries["Lynne Yun"].role == "follower"
+        outcomes = {row.entry_id: row.outcome for row in records(projection, Callback)}
+        assert outcomes[entries["Lynne Yun"].entry_id] == "promoted"
+        assert outcomes[entries["Other Follower"].entry_id] == "eliminated"

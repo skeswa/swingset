@@ -1,0 +1,57 @@
+{
+  "comparison": "FileRow native URL keys; sequence shifts are not changed source files",
+  "added_files": [
+    {
+      "source_event_ref": "eepro:adc2025",
+      "url": "https://eepro.com/results/adc2025/ctstcountryswingfinals.html",
+      "baseline_watch": null,
+      "current_watch": "9dd8e5e2d7b4929a"
+    },
+    {
+      "source_event_ref": "eepro:adc2026",
+      "url": "https://eepro.com/results/adc2026/ctstcountryswingfinals.html",
+      "baseline_watch": null,
+      "current_watch": "4206caf83c5140e6"
+    },
+    {
+      "source_event_ref": "eepro:adc2026",
+      "url": "https://eepro.com/results/adc2026/ctstcountryswingprelims.html",
+      "baseline_watch": null,
+      "current_watch": "29cb5a5de573eac0"
+    },
+    {
+      "source_event_ref": "eepro:adc2026",
+      "url": "https://eepro.com/results/adc2026/divisional_scoring_analysis_dancehall-championships.pdf",
+      "baseline_watch": null,
+      "current_watch": null
+    },
+    {
+      "source_event_ref": "eepro:njhustle2025",
+      "url": "https://eepro.com/results/njhustle2025/proamsalsawcsbachata.html",
+      "baseline_watch": null,
+      "current_watch": "dc43d2a1264754cf"
+    },
+    {
+      "source_event_ref": "eepro:njhustle2026",
+      "url": "https://eepro.com/results/njhustle2026/proamsalsawcsbachata.html",
+      "baseline_watch": null,
+      "current_watch": "15e48c4d227845a8"
+    },
+    {
+      "source_event_ref": "eepro:worlds2025",
+      "url": "https://eepro.com/results/worlds2025/dancehallshowdownfinals.html",
+      "baseline_watch": null,
+      "current_watch": "df693417d9a0ab77"
+    },
+    {
+      "source_event_ref": "eepro:worlds2025",
+      "url": "https://eepro.com/results/worlds2025/dancehallshowdownprelims.html",
+      "baseline_watch": null,
+      "current_watch": "5f26ff699e205d06"
+    }
+  ],
+  "removed_files": [],
+  "changed_existing_files": [],
+  "freedomswing2019_watch_count": 0,
+  "database_mutations": 0
+}

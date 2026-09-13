@@ -1,0 +1,173 @@
+{
+  "format": "h17-frozen-source-mismatch-current-public-check-v1",
+  "checked_at": "2026-09-13T13:37:56.757038+00:00",
+  "mode": "read_only",
+  "network_requests": 0,
+  "baseline": "/var/lib/swingset/candidates/cand_7f8cf9bcbf7e4a60",
+  "published": {
+    "commit": "81121dcc7d62a1db9e76ee1c49a6b90e1f4c5653",
+    "correction_detected_at": "2026-09-13T07:08:57.942256+00:00",
+    "correction_latency_seconds": 5882.166571,
+    "latency_is_upper_bound": false,
+    "verified_at": "2026-09-13T08:47:00.108827+00:00"
+  },
+  "release_policy": {
+    "mode": "settled",
+    "accuracy_expansions": "withheld_pending_H17",
+    "token": {
+      "admission_digest": "b6e899905ff31f2fd16d19ab87daeb8b49247e86e1ca8902f571235f0cccfea0",
+      "decision_policy": "identity-decisions-v1",
+      "journal_digest": "e1487f143891001bc7ddb16cfe6e32003e1ac95628fcaa3a03849e3806f6a246",
+      "journal_generation": 1,
+      "release_version": "identity-release-v1"
+    }
+  },
+  "entries": [
+    {
+      "entry_id": "2025-08-uptown-swing/intermediate-jj/L-134",
+      "contest_id": "2025-08-uptown-swing/intermediate-jj",
+      "event_id": "2025-08-uptown-swing",
+      "role": "leader",
+      "bib": "134",
+      "name_raw": "Peter Jonsson",
+      "name_norm": "peter jonsson",
+      "partner_name_raw": null,
+      "city_raw": null,
+      "country_raw": null,
+      "wsdc_id": null,
+      "link_status": "unmatched",
+      "link_confidence": 0,
+      "partner_entry_id": null,
+      "rounds_danced": [
+        "prelim",
+        "semifinal"
+      ],
+      "best_round": "semifinal",
+      "source": "scoringdance",
+      "snapshot_id": "snap_20260913T013118Z_af95d4aa069c",
+      "parser_version": "3",
+      "first_seen_at": "2026-09-13 01:46:08.238460+00:00",
+      "last_seen_at": "2026-09-13 01:46:08.238460+00:00",
+      "run_id": "run_20260913T014607Z"
+    },
+    {
+      "entry_id": "2026-04-nordic-wcs-championships/intermediate-jj/L-142",
+      "contest_id": "2026-04-nordic-wcs-championships/intermediate-jj",
+      "event_id": "2026-04-nordic-wcs-championships",
+      "role": "leader",
+      "bib": "142",
+      "name_raw": "Peter Jonsson",
+      "name_norm": "peter jonsson",
+      "partner_name_raw": null,
+      "city_raw": null,
+      "country_raw": null,
+      "wsdc_id": null,
+      "link_status": "unmatched",
+      "link_confidence": 0,
+      "partner_entry_id": null,
+      "rounds_danced": [
+        "prelim"
+      ],
+      "best_round": "prelim",
+      "source": "scoringdance",
+      "snapshot_id": "snap_20260913T031354Z_41aec19f1c79",
+      "parser_version": "3",
+      "first_seen_at": "2026-09-13 03:16:12.439676+00:00",
+      "last_seen_at": "2026-09-13 03:16:12.439676+00:00",
+      "run_id": "run_20260913T031607Z"
+    }
+  ],
+  "identity_links": [
+    {
+      "link_id": "529a47182435a037",
+      "subject_kind": "entry",
+      "subject_id": "2026-04-nordic-wcs-championships/intermediate-jj/L-142",
+      "wsdc_id": null,
+      "method": "none",
+      "status": "unmatched",
+      "confidence": 0,
+      "constraints_applied": [
+        "contest_role_unique"
+      ],
+      "source_ref_ids": [
+        "bbedb289eb8ea8d6653a1e4b6dda2ed370a6dacafff51a04fd25a516481c3f9a"
+      ],
+      "decision_ids": [],
+      "acceptance_policy": "identity-decisions-v1",
+      "acceptance_state": "revoked",
+      "journal_digest": "e1487f143891001bc7ddb16cfe6e32003e1ac95628fcaa3a03849e3806f6a246",
+      "journal_generation": 1,
+      "asserted_at": "2026-09-13 08:25:35.296589+00:00",
+      "run_id": "run_20260913T080824Z"
+    },
+    {
+      "link_id": "80ac86c9d6bba1e3",
+      "subject_kind": "entry",
+      "subject_id": "2025-08-uptown-swing/intermediate-jj/L-134",
+      "wsdc_id": null,
+      "method": "none",
+      "status": "unmatched",
+      "confidence": 0,
+      "constraints_applied": [
+        "contest_role_unique"
+      ],
+      "source_ref_ids": [
+        "a4defe6afbe413a0b98da6aa24ef2b2b55e38b8f3d1d18b3115a775bbc752acf"
+      ],
+      "decision_ids": [],
+      "acceptance_policy": "identity-decisions-v1",
+      "acceptance_state": "revoked",
+      "journal_digest": "e1487f143891001bc7ddb16cfe6e32003e1ac95628fcaa3a03849e3806f6a246",
+      "journal_generation": 1,
+      "asserted_at": "2026-09-13 08:23:45.144340+00:00",
+      "run_id": "run_20260913T080824Z"
+    }
+  ],
+  "retained_source_refs": [
+    {
+      "ref_id": "bbedb289eb8ea8d6653a1e4b6dda2ed370a6dacafff51a04fd25a516481c3f9a",
+      "source": "scoringdance",
+      "source_event": "scoringdance:407",
+      "contest": "5829#0",
+      "round": "0",
+      "participant": "entry:leader:bib:142",
+      "subject_kind": "entry",
+      "locator_json": "{\"bib\": \"142\", \"column\": 1, \"role\": \"leader\", \"row\": 50, \"source_wsdc_id\": 19920, \"table\": 0, \"url\": \"https://scoring.dance/enUS/events/407/results/5829.html\"}",
+      "created_at": "2026-09-13T08:25:35.296589+00:00"
+    },
+    {
+      "ref_id": "a4defe6afbe413a0b98da6aa24ef2b2b55e38b8f3d1d18b3115a775bbc752acf",
+      "source": "scoringdance",
+      "source_event": "scoringdance:292",
+      "contest": "4226#0",
+      "round": "0",
+      "participant": "entry:leader:bib:134",
+      "subject_kind": "entry",
+      "locator_json": "{\"bib\": \"134\", \"column\": 1, \"role\": \"leader\", \"row\": 20, \"source_wsdc_id\": 19920, \"table\": 0, \"url\": \"https://scoring.dance/enUS/events/292/results/4226.html\"}",
+      "created_at": "2026-09-13T08:23:45.144340+00:00"
+    }
+  ],
+  "retained_bindings": [
+    {
+      "binding_id": "89992b7f3a6793b64c7084fdfa5d7cc5cb30506f47ee4263d556dd1fce3c1a8b",
+      "ref_id": "bbedb289eb8ea8d6653a1e4b6dda2ed370a6dacafff51a04fd25a516481c3f9a",
+      "subject_kind": "entry",
+      "subject_id": "2026-04-nordic-wcs-championships/intermediate-jj/L-142",
+      "event_id": "2026-04-nordic-wcs-championships",
+      "snapshot_id": "snap_20260913T031354Z_41aec19f1c79",
+      "semantic_hash": "e7559d50e4c02feea71f5d396f7d47f5268557d0afc14ee45d5ca8dd5d49f3ce",
+      "bound_at": "2026-09-13T08:25:35.296589+00:00"
+    },
+    {
+      "binding_id": "1472e43fbe1512e202762560ef7e1355a604114a466decef3adad3277719b4ee",
+      "ref_id": "a4defe6afbe413a0b98da6aa24ef2b2b55e38b8f3d1d18b3115a775bbc752acf",
+      "subject_kind": "entry",
+      "subject_id": "2025-08-uptown-swing/intermediate-jj/L-134",
+      "event_id": "2025-08-uptown-swing",
+      "snapshot_id": "snap_20260913T013118Z_af95d4aa069c",
+      "semantic_hash": "1ff8508142c2ea9ca11ce6d0935ea4d156ee743acf024d4d2b3f008464ca10c8",
+      "bound_at": "2026-09-13T08:23:45.144340+00:00"
+    }
+  ],
+  "conclusion": "Both frozen source_id23980 assertions disagree with their cited raw source ID19920. Current V4 public defaults and assertion IDs are already null/unmatched with revoked acceptance. This is source-provenance evidence, not a human identity adjudication."
+}

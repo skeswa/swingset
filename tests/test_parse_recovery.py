@@ -65,3 +65,47 @@ def test_registry_invalid_parse_is_published_failure_and_forces_clean_retry(
             == "invalid_response"
         )
         client.close()
+
+
+def test_failed_new_extractor_never_relabels_old_empty_extract_as_current(tmp_path, monkeypatch):
+    import swingset.schedule.parse as module
+    from swingset.sources.base import ExtractError, WatchSpec
+    from swingset.sources.wsdc_calendar.adapter import EventsPage
+    from swingset.state.work import WorkUnit
+
+    clock = FakeClock()
+
+    class BrokenPage(EventsPage):
+        EXTRACT_VERSION = 100
+        PARSER_VERSION = 100
+        attempts = 0
+
+        def extract(self, body):
+            self.attempts += 1
+            raise ExtractError("new layout not yet supported")
+
+    page = BrokenPage()
+    with open_database(tmp_path) as database:
+        conn = database.connection
+        archive = Archive(tmp_path)
+        run_id = database.start_run(clock.now())
+        spec = WatchSpec(
+            "", "wsdc_calendar", "index", "GET", "https://worldsdc.com/events/", EventsPage.kind
+        )
+        upsert_watch(conn, spec, clock.now())
+        body_sha = archive.store_body(b"new actual body")
+        old_extract = archive.store_extract([])
+        conn.execute(
+            "INSERT INTO snapshots(snapshot_id,watch_id,method,url,fetched_at,http_status,body_sha256,body_bytes,content_changed,run_id,classification,extract_sha256,extract_version,parser_version,extract_status) VALUES ('s',?,'GET',?, ?,200,?,15,1,?,'Ok',?,'1','1','ok')",
+            (spec.watch_id, spec.url, clock.now().isoformat(), body_sha, run_id, old_extract),
+        )
+        monkeypatch.setattr(module, "get_page_kind", lambda _: page)
+        for _ in range(2):
+            assert parse_snapshot(
+                database, archive, WorkUnit("parse", "snapshot", "s"), clock, run_id
+            ).failed
+        assert page.attempts == 2
+        assert (
+            conn.execute("SELECT extract_sha256 FROM snapshots WHERE snapshot_id='s'").fetchone()[0]
+            is None
+        )

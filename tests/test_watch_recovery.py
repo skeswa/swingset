@@ -7,7 +7,9 @@ from swingset.sources.base import WatchSpec
 from swingset.state.db import open_database
 
 
-def test_wdr_requires_thirty_distinct_daily_unavailable_checks_before_gone(tmp_path) -> None:
+def test_wdr_requires_thirty_distinct_daily_checks_before_infrequent_unavailable_recheck(
+    tmp_path,
+) -> None:
     started = datetime(2026, 1, 1, tzinfo=UTC)
     config = Config({"example.test": HostConfig()}, {"wdr": SourceConfig(True)})
     spec = WatchSpec("", "wdr", "event", "GET", "https://example.test/routeInfo.json", "wdr.rounds")
@@ -69,4 +71,9 @@ def test_wdr_requires_thirty_distinct_daily_unavailable_checks_before_gone(tmp_p
             database.connection.execute(
                 "SELECT state,next_check_at FROM watches WHERE watch_id=?", (spec.watch_id,)
             ).fetchone()
-        ) == ("gone", None)
+        ) == (
+            "gone",
+            (
+                started + timedelta(days=29, seconds=config.scheduler.unavailable_recheck_seconds)
+            ).isoformat(),
+        )

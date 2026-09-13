@@ -1,0 +1,20 @@
+{
+  "checkpoint": "/var/lib/swingset/checkpoints/h15-before-h16-20260913",
+  "checkpoint_manifest_sha256": "700b2adc01db9eefc5c0c7ba35fddabfbc3aa00b6ed6f4900543b4e4a54ae444",
+  "driver_sha256": "8ed4b2384fb946100934a14b57025b6cc6272fb7927632eaede5c19eb2519f50",
+  "evidence_files": {
+    "backup.json": "d7188f357d99f79c80cb2277dd335539840be8cb2305ef34c41162991c69793f",
+    "private-verification.json": "4941e52a6f65f843737215570f037881b6f7a788a917fc624584cf45f294a6ba",
+    "v4-verification.json": "290b2302c65ce84b4483c4f2b6104cebcc9ba68b5e132f6c674bbaed410f8b2a"
+  },
+  "format": "h16-operational-gate-v1",
+  "private_backup_commit": "c656e88c775b23ae5879661924d57fa1f93cfa7d",
+  "private_backup_receipt": "backup.json",
+  "private_backup_verified": true,
+  "source_receipt_sha256": "3930dbc9f6023250a5253043ade60bd3fc90c57bda27e2c64f8520aa4c588a92",
+  "v4_commit": "81121dcc7d62a1db9e76ee1c49a6b90e1f4c5653",
+  "v4_manifest_sha256": "87ac286a1ae452f09f7e5cea646f260ac34035f3d05bb83de17c7d9cc8f08884",
+  "v4_verified": true,
+  "verification_basis": "retained verified receipts and current local baseline hashes",
+  "verified_at": "2026-09-13T16:06:22.714477+00:00"
+}

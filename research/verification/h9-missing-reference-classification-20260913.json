@@ -1,0 +1,4530 @@
+{
+  "counts": {
+    "mixed_person_cell_only": 82
+  },
+  "source_counts": {
+    "eepro": 82
+  },
+  "subjects": [
+    {
+      "subject_id": "2026-07-wild-wild-westie/intermediate-jj/L-844",
+      "name_raw": "Gabriel Diaz",
+      "role": "leader",
+      "bib": "844",
+      "wsdc_id": 25531,
+      "source": "eepro",
+      "snapshot_id": "snap_20260910T025659Z_c44e29f98a14",
+      "category": "mixed_person_cell_only",
+      "matches": [
+        {
+          "contest": "Jack & Jill Intermediate",
+          "round": "/results/www2026/jjfinals.html#3",
+          "table": 0,
+          "row": 11,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Arjay Centeno",
+            "Alan Annicella",
+            "Dalena Lee",
+            "Eric Byers",
+            "Joel Torgeson",
+            "Kris Swearingen",
+            "Thomas Carter",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "12",
+            "Gabriel Diaz and Alesia Haxhia",
+            "8",
+            "14",
+            "8",
+            "11",
+            "3",
+            "10",
+            "13",
+            "844/140",
+            "3-8-8-10-11-13-14"
+          ],
+          "matched_cell": "Gabriel Diaz and Alesia Haxhia",
+          "exact": false,
+          "paired": true
+        }
+      ]
+    },
+    {
+      "subject_id": "2026-07-wild-wild-westie/newcomer-jj/L-847",
+      "name_raw": "Samantha Hoffmann",
+      "role": "leader",
+      "bib": "847",
+      "wsdc_id": 24279,
+      "source": "eepro",
+      "snapshot_id": "snap_20260910T025659Z_c44e29f98a14",
+      "category": "mixed_person_cell_only",
+      "matches": [
+        {
+          "contest": "Jack & Jill Newcomer",
+          "round": "/results/www2026/jjfinals.html#5",
+          "table": 0,
+          "row": 1,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Alan Annicella",
+            "Dalena Lee",
+            "Joel Torgeson",
+            "Kay Newhouse",
+            "Kris Swearingen",
+            "Margie Tuttle",
+            "Thomas Carter",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "2",
+            "Samantha Hoffmann and Brenda Nansubuga",
+            "3",
+            "3",
+            "2",
+            "1",
+            "1",
+            "11",
+            "2",
+            "847/487",
+            "1-1-2-2-3-3-11"
+          ],
+          "matched_cell": "Samantha Hoffmann and Brenda Nansubuga",
+          "exact": false,
+          "paired": true
+        }
+      ]
+    },
+    {
+      "subject_id": "2025-07-dance-mardi-gras/newcomer-jj/L-263",
+      "name_raw": "Zander Adkins",
+      "role": "leader",
+      "bib": "263",
+      "wsdc_id": 26290,
+      "source": "eepro",
+      "snapshot_id": "snap_20260910T032050Z_fe17fb6373e3",
+      "category": "mixed_person_cell_only",
+      "matches": [
+        {
+          "contest": "Jack & Jill WSDC Newcomer",
+          "round": "/results/dmg2025/jjfinals.html#3",
+          "table": 0,
+          "row": 0,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Bryan Jordan",
+            "Byron Bellew",
+            "Michael Keilbasa",
+            "Sebastian Quinones",
+            "Tammy Clark Duke",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "1",
+            "Zander Adkins and BeLynn Buckley",
+            "2",
+            "1",
+            "1",
+            "1",
+            "1",
+            "263/120",
+            "1-1-1-1-2"
+          ],
+          "matched_cell": "Zander Adkins and BeLynn Buckley",
+          "exact": false,
+          "paired": true
+        }
+      ]
+    },
+    {
+      "subject_id": "2025-07-dance-mardi-gras/newcomer-jj/F-120",
+      "name_raw": "BeLynn Buckley",
+      "role": "follower",
+      "bib": "120",
+      "wsdc_id": 26293,
+      "source": "eepro",
+      "snapshot_id": "snap_20260910T032050Z_fe17fb6373e3",
+      "category": "mixed_person_cell_only",
+      "matches": [
+        {
+          "contest": "Jack & Jill WSDC Newcomer",
+          "round": "/results/dmg2025/jjfinals.html#3",
+          "table": 0,
+          "row": 0,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Bryan Jordan",
+            "Byron Bellew",
+            "Michael Keilbasa",
+            "Sebastian Quinones",
+            "Tammy Clark Duke",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "1",
+            "Zander Adkins and BeLynn Buckley",
+            "2",
+            "1",
+            "1",
+            "1",
+            "1",
+            "263/120",
+            "1-1-1-1-2"
+          ],
+          "matched_cell": "Zander Adkins and BeLynn Buckley",
+          "exact": false,
+          "paired": true
+        }
+      ]
+    },
+    {
+      "subject_id": "2025-07-dance-mardi-gras/newcomer-jj/L-169",
+      "name_raw": "Jonathan Yake",
+      "role": "leader",
+      "bib": "169",
+      "wsdc_id": 26291,
+      "source": "eepro",
+      "snapshot_id": "snap_20260910T032050Z_fe17fb6373e3",
+      "category": "mixed_person_cell_only",
+      "matches": [
+        {
+          "contest": "Jack & Jill WSDC Newcomer",
+          "round": "/results/dmg2025/jjfinals.html#3",
+          "table": 0,
+          "row": 1,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Bryan Jordan",
+            "Byron Bellew",
+            "Michael Keilbasa",
+            "Sebastian Quinones",
+            "Tammy Clark Duke",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "2",
+            "Jonathan Yake and Tara Dixon",
+            "1",
+            "2",
+            "5",
+            "2",
+            "3",
+            "169/244",
+            "1-2-2-3-5"
+          ],
+          "matched_cell": "Jonathan Yake and Tara Dixon",
+          "exact": false,
+          "paired": true
+        }
+      ]
+    },
+    {
+      "subject_id": "2025-07-dance-mardi-gras/newcomer-jj/F-244",
+      "name_raw": "Tara Dixon",
+      "role": "follower",
+      "bib": "244",
+      "wsdc_id": 26294,
+      "source": "eepro",
+      "snapshot_id": "snap_20260910T032050Z_fe17fb6373e3",
+      "category": "mixed_person_cell_only",
+      "matches": [
+        {
+          "contest": "Jack & Jill WSDC Newcomer",
+          "round": "/results/dmg2025/jjfinals.html#3",
+          "table": 0,
+          "row": 1,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Bryan Jordan",
+            "Byron Bellew",
+            "Michael Keilbasa",
+            "Sebastian Quinones",
+            "Tammy Clark Duke",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "2",
+            "Jonathan Yake and Tara Dixon",
+            "1",
+            "2",
+            "5",
+            "2",
+            "3",
+            "169/244",
+            "1-2-2-3-5"
+          ],
+          "matched_cell": "Jonathan Yake and Tara Dixon",
+          "exact": false,
+          "paired": true
+        }
+      ]
+    },
+    {
+      "subject_id": "2025-07-dance-mardi-gras/newcomer-jj/L-283",
+      "name_raw": "Seth Relampagos",
+      "role": "leader",
+      "bib": "283",
+      "wsdc_id": 26292,
+      "source": "eepro",
+      "snapshot_id": "snap_20260910T032050Z_fe17fb6373e3",
+      "category": "mixed_person_cell_only",
+      "matches": [
+        {
+          "contest": "Jack & Jill WSDC Newcomer",
+          "round": "/results/dmg2025/jjfinals.html#3",
+          "table": 0,
+          "row": 2,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Bryan Jordan",
+            "Byron Bellew",
+            "Michael Keilbasa",
+            "Sebastian Quinones",
+            "Tammy Clark Duke",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "3",
+            "Seth Relampagos and Kailey Kennedy",
+            "4",
+            "3",
+            "2",
+            "4",
+            "2",
+            "283/174",
+            "2-2-3-4-4"
+          ],
+          "matched_cell": "Seth Relampagos and Kailey Kennedy",
+          "exact": false,
+          "paired": true
+        }
+      ]
+    },
+    {
+      "subject_id": "2025-07-dance-mardi-gras/newcomer-jj/F-174",
+      "name_raw": "Kailey Kennedy",
+      "role": "follower",
+      "bib": "174",
+      "wsdc_id": 26295,
+      "source": "eepro",
+      "snapshot_id": "snap_20260910T032050Z_fe17fb6373e3",
+      "category": "mixed_person_cell_only",
+      "matches": [
+        {
+          "contest": "Jack & Jill WSDC Newcomer",
+          "round": "/results/dmg2025/jjfinals.html#3",
+          "table": 0,
+          "row": 2,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Bryan Jordan",
+            "Byron Bellew",
+            "Michael Keilbasa",
+            "Sebastian Quinones",
+            "Tammy Clark Duke",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "3",
+            "Seth Relampagos and Kailey Kennedy",
+            "4",
+            "3",
+            "2",
+            "4",
+            "2",
+            "283/174",
+            "2-2-3-4-4"
+          ],
+          "matched_cell": "Seth Relampagos and Kailey Kennedy",
+          "exact": false,
+          "paired": true
+        }
+      ]
+    },
+    {
+      "subject_id": "2026-04-tulsa-spring-swing/allstar-jj/F-202",
+      "name_raw": "Maria Bileychik",
+      "role": "follower",
+      "bib": "202",
+      "wsdc_id": 12183,
+      "source": "eepro",
+      "snapshot_id": "snap_20260910T032508Z_4387d376bc4a",
+      "category": "mixed_person_cell_only",
+      "matches": [
+        {
+          "contest": "Jack & Jill All Star",
+          "round": "/results/tulsa2026/jjfinals.html#1",
+          "table": 0,
+          "row": 0,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Chelsea Murrey",
+            "Terry Roseborough",
+            "Kris Swearingen",
+            "Bryan Jordan",
+            "Katie Slater",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "1",
+            "Ben Clemons and Maria Bileychik",
+            "1",
+            "4",
+            "2",
+            "1",
+            "1",
+            "248/202",
+            "1-1-1-2-4"
+          ],
+          "matched_cell": "Ben Clemons and Maria Bileychik",
+          "exact": false,
+          "paired": true
+        },
+        {
+          "contest": "Wild Card Invitational Draw",
+          "round": "/results/tulsa2026/jjfinals.html#6",
+          "table": 0,
+          "row": 8,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Chelsea Murrey",
+            "Christina White",
+            "Tim Acosta",
+            "Jordan Simms",
+            "Adela Su",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "9",
+            "Bryan Jordan and Maria Bileychik",
+            "8",
+            "6",
+            "9",
+            "9",
+            "9",
+            "",
+            "6-8-9-9-9"
+          ],
+          "matched_cell": "Bryan Jordan and Maria Bileychik",
+          "exact": false,
+          "paired": true
+        }
+      ]
+    },
+    {
+      "subject_id": "2026-04-tulsa-spring-swing/allstar-jj/L-336",
+      "name_raw": "Matthew Mueller",
+      "role": "leader",
+      "bib": "336",
+      "wsdc_id": 20078,
+      "source": "eepro",
+      "snapshot_id": "snap_20260910T032508Z_4387d376bc4a",
+      "category": "mixed_person_cell_only",
+      "matches": [
+        {
+          "contest": "Jack & Jill All Star",
+          "round": "/results/tulsa2026/jjfinals.html#1",
+          "table": 0,
+          "row": 1,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Chelsea Murrey",
+            "Terry Roseborough",
+            "Kris Swearingen",
+            "Bryan Jordan",
+            "Katie Slater",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "2",
+            "Matthew Mueller and Noelle Hoeppner",
+            "2",
+            "2",
+            "7",
+            "2",
+            "4",
+            "336/384",
+            "2-2-2-4-7"
+          ],
+          "matched_cell": "Matthew Mueller and Noelle Hoeppner",
+          "exact": false,
+          "paired": true
+        }
+      ]
+    },
+    {
+      "subject_id": "2026-04-tulsa-spring-swing/allstar-jj/F-384",
+      "name_raw": "Noelle Hoeppner",
+      "role": "follower",
+      "bib": "384",
+      "wsdc_id": 17182,
+      "source": "eepro",
+      "snapshot_id": "snap_20260910T032508Z_4387d376bc4a",
+      "category": "mixed_person_cell_only",
+      "matches": [
+        {
+          "contest": "Jack & Jill All Star",
+          "round": "/results/tulsa2026/jjfinals.html#1",
+          "table": 0,
+          "row": 1,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Chelsea Murrey",
+            "Terry Roseborough",
+            "Kris Swearingen",
+            "Bryan Jordan",
+            "Katie Slater",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "2",
+            "Matthew Mueller and Noelle Hoeppner",
+            "2",
+            "2",
+            "7",
+            "2",
+            "4",
+            "336/384",
+            "2-2-2-4-7"
+          ],
+          "matched_cell": "Matthew Mueller and Noelle Hoeppner",
+          "exact": false,
+          "paired": true
+        },
+        {
+          "contest": "Wild Card Invitational Draw",
+          "round": "/results/tulsa2026/jjfinals.html#6",
+          "table": 0,
+          "row": 2,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Chelsea Murrey",
+            "Christina White",
+            "Tim Acosta",
+            "Jordan Simms",
+            "Adela Su",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "3",
+            "Benji Schwimmer and Noelle Hoeppner",
+            "1",
+            "2",
+            "3",
+            "3",
+            "4",
+            "",
+            "1-2-3-3-4"
+          ],
+          "matched_cell": "Benji Schwimmer and Noelle Hoeppner",
+          "exact": false,
+          "paired": true
+        }
+      ]
+    },
+    {
+      "subject_id": "2026-04-tulsa-spring-swing/allstar-jj/L-385",
+      "name_raw": "Duane Erwin",
+      "role": "leader",
+      "bib": "385",
+      "wsdc_id": 20137,
+      "source": "eepro",
+      "snapshot_id": "snap_20260910T032508Z_4387d376bc4a",
+      "category": "mixed_person_cell_only",
+      "matches": [
+        {
+          "contest": "Jack & Jill All Star",
+          "round": "/results/tulsa2026/jjfinals.html#1",
+          "table": 0,
+          "row": 2,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Chelsea Murrey",
+            "Terry Roseborough",
+            "Kris Swearingen",
+            "Bryan Jordan",
+            "Katie Slater",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "3",
+            "Duane Erwin and Lily Auclair",
+            "3",
+            "3",
+            "3",
+            "3",
+            "3",
+            "385/375",
+            "3-3-3-3-3"
+          ],
+          "matched_cell": "Duane Erwin and Lily Auclair",
+          "exact": false,
+          "paired": true
+        },
+        {
+          "contest": "Jack & Jill All Star",
+          "round": "/results/tulsa2026/jjfinals.html#1",
+          "table": 0,
+          "row": 6,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Chelsea Murrey",
+            "Terry Roseborough",
+            "Kris Swearingen",
+            "Bryan Jordan",
+            "Katie Slater",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "7",
+            "Duane Erwin and Adela Su",
+            "7",
+            "8",
+            "5",
+            "6",
+            "8",
+            "385/275",
+            "5-6-7-8-8"
+          ],
+          "matched_cell": "Duane Erwin and Adela Su",
+          "exact": false,
+          "paired": true
+        }
+      ]
+    },
+    {
+      "subject_id": "2026-04-tulsa-spring-swing/allstar-jj/F-375",
+      "name_raw": "Lily Auclair",
+      "role": "follower",
+      "bib": "375",
+      "wsdc_id": 14081,
+      "source": "eepro",
+      "snapshot_id": "snap_20260910T032508Z_4387d376bc4a",
+      "category": "mixed_person_cell_only",
+      "matches": [
+        {
+          "contest": "Jack & Jill All Star",
+          "round": "/results/tulsa2026/jjfinals.html#1",
+          "table": 0,
+          "row": 2,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Chelsea Murrey",
+            "Terry Roseborough",
+            "Kris Swearingen",
+            "Bryan Jordan",
+            "Katie Slater",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "3",
+            "Duane Erwin and Lily Auclair",
+            "3",
+            "3",
+            "3",
+            "3",
+            "3",
+            "385/375",
+            "3-3-3-3-3"
+          ],
+          "matched_cell": "Duane Erwin and Lily Auclair",
+          "exact": false,
+          "paired": true
+        },
+        {
+          "contest": "Wild Card Invitational Draw",
+          "round": "/results/tulsa2026/jjfinals.html#6",
+          "table": 0,
+          "row": 3,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Chelsea Murrey",
+            "Christina White",
+            "Tim Acosta",
+            "Jordan Simms",
+            "Adela Su",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "4",
+            "Kris Swearingen and Lily Auclair",
+            "6",
+            "4",
+            "2",
+            "2",
+            "5",
+            "",
+            "2-2-4-5-6"
+          ],
+          "matched_cell": "Kris Swearingen and Lily Auclair",
+          "exact": false,
+          "paired": true
+        }
+      ]
+    },
+    {
+      "subject_id": "2026-04-swingover/novice-jj/F-374",
+      "name_raw": "Audrey Uspensky",
+      "role": "follower",
+      "bib": "374",
+      "wsdc_id": 24782,
+      "source": "eepro",
+      "snapshot_id": "snap_20260910T032807Z_2a385989d981",
+      "category": "mixed_person_cell_only",
+      "matches": [
+        {
+          "contest": "Jack & Jill Novice",
+          "round": "/results/swingover2026/jjfinals.html#8",
+          "table": 0,
+          "row": 12,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Annmarie Marker",
+            "Florencia Diaz",
+            "Lyla Ruth",
+            "Keerigan Rudd",
+            "Markus Smith",
+            "Philippe Amar",
+            "Tren Veal",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "13",
+            "Goose Bonvegna-Heasley and Audrey Uspensky",
+            "12",
+            "6",
+            "11",
+            "14",
+            "6",
+            "10",
+            "13",
+            "710/374",
+            "6-6-10-11-12-13-14"
+          ],
+          "matched_cell": "Goose Bonvegna-Heasley and Audrey Uspensky",
+          "exact": false,
+          "paired": true
+        }
+      ]
+    },
+    {
+      "subject_id": "2026-01-austin-swing-dance-championships/advanced-jj/F-462",
+      "name_raw": "Una Kacavenda",
+      "role": "follower",
+      "bib": "462",
+      "wsdc_id": 24516,
+      "source": "eepro",
+      "snapshot_id": "snap_20260910T035314Z_869249e49e75",
+      "category": "mixed_person_cell_only",
+      "matches": [
+        {
+          "contest": "Jack & Jill Advanced",
+          "round": "/results/asdc2026/jjfinals.html#0",
+          "table": 0,
+          "row": 4,
+          "headers": [
+            "Place",
+            "Competitor",
+            "David Appel",
+            "Gary McIntyre",
+            "JT Anderson",
+            "Laureen Baldovi",
+            "Susan Kirklin",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "5",
+            "Nolan Whitely and Una Kacavenda",
+            "8",
+            "5",
+            "2",
+            "5",
+            "7",
+            "428/462",
+            "2-5-5-7-8"
+          ],
+          "matched_cell": "Nolan Whitely and Una Kacavenda",
+          "exact": false,
+          "paired": true
+        }
+      ]
+    },
+    {
+      "subject_id": "2026-01-austin-swing-dance-championships/novice-jj/L-498",
+      "name_raw": "Jeremiah Steph",
+      "role": "leader",
+      "bib": "498",
+      "wsdc_id": 23760,
+      "source": "eepro",
+      "snapshot_id": "snap_20260910T035314Z_869249e49e75",
+      "category": "mixed_person_cell_only",
+      "matches": [
+        {
+          "contest": "Jack & Jill Novice",
+          "round": "/results/asdc2026/jjfinals.html#5",
+          "table": 0,
+          "row": 2,
+          "headers": [
+            "Place",
+            "Competitor",
+            "David Appel",
+            "Gary McIntyre",
+            "Jeanne DeGeyter",
+            "Laureen Baldovi",
+            "PJ Turner",
+            "Sebastian Quinones",
+            "Susan Kirklin",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "3",
+            "Jeremiah Steph and Alaynah Schaff",
+            "7",
+            "4",
+            "7",
+            "7",
+            "2",
+            "4",
+            "4",
+            "498/178",
+            "2-4-4-4-7-7-7"
+          ],
+          "matched_cell": "Jeremiah Steph and Alaynah Schaff",
+          "exact": false,
+          "paired": true
+        }
+      ]
+    },
+    {
+      "subject_id": "2026-02-swing-crush/advanced-jj/L-319",
+      "name_raw": "William McGregor",
+      "role": "leader",
+      "bib": "319",
+      "wsdc_id": 24514,
+      "source": "eepro",
+      "snapshot_id": "snap_20260910T035512Z_2d3703cb86bd",
+      "category": "mixed_person_cell_only",
+      "matches": [
+        {
+          "contest": "Jack & Jill Advanced",
+          "round": "/results/swingcrush2026/jjfinals.html#0",
+          "table": 0,
+          "row": 2,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Gary Mcintyre",
+            "Hugo Miguez",
+            "Joel Torgeson",
+            "Michael Kielbasa",
+            "Karla Catana",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "3",
+            "William McGregor and Willow Vander Kooi",
+            "2",
+            "6",
+            "1",
+            "5",
+            "3",
+            "319/372",
+            "1-2-3-5-6"
+          ],
+          "matched_cell": "William McGregor and Willow Vander Kooi",
+          "exact": false,
+          "paired": true
+        }
+      ]
+    },
+    {
+      "subject_id": "2025-08-arizona-dance-classic/allstar-jj/L-771",
+      "name_raw": "Branden Strong",
+      "role": "leader",
+      "bib": "771",
+      "wsdc_id": 16369,
+      "source": "eepro",
+      "snapshot_id": "snap_20260910T035609Z_ef10fd92350c",
+      "category": "mixed_person_cell_only",
+      "matches": [
+        {
+          "contest": "Jack & Jill WSDC All Stars",
+          "round": "/results/adc2025/jjfinals.html#2",
+          "table": 0,
+          "row": 0,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Laureen Baldovi",
+            "Carrie Lucas",
+            "Jesse Dickson",
+            "Lannie Sullivan",
+            "Tim Perez",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "1",
+            "Branden Strong and Shayla Bouise",
+            "1",
+            "4",
+            "4",
+            "1",
+            "1",
+            "771/769",
+            "1-1-1-4-4"
+          ],
+          "matched_cell": "Branden Strong and Shayla Bouise",
+          "exact": false,
+          "paired": true
+        }
+      ]
+    },
+    {
+      "subject_id": "2025-08-arizona-dance-classic/allstar-jj/F-769",
+      "name_raw": "Shayla Bouise",
+      "role": "follower",
+      "bib": "769",
+      "wsdc_id": 17737,
+      "source": "eepro",
+      "snapshot_id": "snap_20260910T035609Z_ef10fd92350c",
+      "category": "mixed_person_cell_only",
+      "matches": [
+        {
+          "contest": "Jack & Jill WSDC All Stars",
+          "round": "/results/adc2025/jjfinals.html#2",
+          "table": 0,
+          "row": 0,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Laureen Baldovi",
+            "Carrie Lucas",
+            "Jesse Dickson",
+            "Lannie Sullivan",
+            "Tim Perez",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "1",
+            "Branden Strong and Shayla Bouise",
+            "1",
+            "4",
+            "4",
+            "1",
+            "1",
+            "771/769",
+            "1-1-1-4-4"
+          ],
+          "matched_cell": "Branden Strong and Shayla Bouise",
+          "exact": false,
+          "paired": true
+        }
+      ]
+    },
+    {
+      "subject_id": "2025-08-arizona-dance-classic/allstar-jj/L-775",
+      "name_raw": "Jaden Pfeiffer",
+      "role": "leader",
+      "bib": "775",
+      "wsdc_id": 14601,
+      "source": "eepro",
+      "snapshot_id": "snap_20260910T035609Z_ef10fd92350c",
+      "category": "mixed_person_cell_only",
+      "matches": [
+        {
+          "contest": "Jack & Jill WSDC All Stars",
+          "round": "/results/adc2025/jjfinals.html#2",
+          "table": 0,
+          "row": 1,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Laureen Baldovi",
+            "Carrie Lucas",
+            "Jesse Dickson",
+            "Lannie Sullivan",
+            "Tim Perez",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "2",
+            "Jaden Pfeiffer and Mackenzie Keister",
+            "2",
+            "1",
+            "1",
+            "2",
+            "2",
+            "775/770",
+            "1-1-2-2-2"
+          ],
+          "matched_cell": "Jaden Pfeiffer and Mackenzie Keister",
+          "exact": false,
+          "paired": true
+        }
+      ]
+    },
+    {
+      "subject_id": "2025-08-arizona-dance-classic/allstar-jj/F-770",
+      "name_raw": "Mackenzie Keister",
+      "role": "follower",
+      "bib": "770",
+      "wsdc_id": 20700,
+      "source": "eepro",
+      "snapshot_id": "snap_20260910T035609Z_ef10fd92350c",
+      "category": "mixed_person_cell_only",
+      "matches": [
+        {
+          "contest": "Jack & Jill WSDC All Stars",
+          "round": "/results/adc2025/jjfinals.html#2",
+          "table": 0,
+          "row": 1,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Laureen Baldovi",
+            "Carrie Lucas",
+            "Jesse Dickson",
+            "Lannie Sullivan",
+            "Tim Perez",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "2",
+            "Jaden Pfeiffer and Mackenzie Keister",
+            "2",
+            "1",
+            "1",
+            "2",
+            "2",
+            "775/770",
+            "1-1-2-2-2"
+          ],
+          "matched_cell": "Jaden Pfeiffer and Mackenzie Keister",
+          "exact": false,
+          "paired": true
+        }
+      ]
+    },
+    {
+      "subject_id": "2025-08-arizona-dance-classic/allstar-jj/L-973",
+      "name_raw": "Gabriel Sebastian",
+      "role": "leader",
+      "bib": "973",
+      "wsdc_id": 20573,
+      "source": "eepro",
+      "snapshot_id": "snap_20260910T035609Z_ef10fd92350c",
+      "category": "mixed_person_cell_only",
+      "matches": [
+        {
+          "contest": "Jack & Jill All American",
+          "round": "/results/adc2025/jjfinals.html#0",
+          "table": 0,
+          "row": 5,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Michael Kielbasa",
+            "Jesse Dickson",
+            "Lannie Sullivan",
+            "Rachele Eads",
+            "Melisaa Stirton",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "6",
+            "Gabriel Sebastian and Leia Navratil",
+            "9",
+            "5",
+            "5",
+            "6",
+            "5",
+            "973/529",
+            "5-5-5-6-9"
+          ],
+          "matched_cell": "Gabriel Sebastian and Leia Navratil",
+          "exact": false,
+          "paired": true
+        },
+        {
+          "contest": "Jack & Jill WSDC All Stars",
+          "round": "/results/adc2025/jjfinals.html#2",
+          "table": 0,
+          "row": 2,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Laureen Baldovi",
+            "Carrie Lucas",
+            "Jesse Dickson",
+            "Lannie Sullivan",
+            "Tim Perez",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "3",
+            "Gabriel Sebastian and Caroline Skaar",
+            "3",
+            "2",
+            "2",
+            "3",
+            "4",
+            "973/773",
+            "2-2-3-3-4"
+          ],
+          "matched_cell": "Gabriel Sebastian and Caroline Skaar",
+          "exact": false,
+          "paired": true
+        }
+      ]
+    },
+    {
+      "subject_id": "2025-07-wild-wild-westie/advanced-jj/L-89",
+      "name_raw": "Julio Alvarez",
+      "role": "leader",
+      "bib": "89",
+      "wsdc_id": 20188,
+      "source": "eepro",
+      "snapshot_id": "snap_20260910T043912Z_a260513bbb56",
+      "category": "mixed_person_cell_only",
+      "matches": [
+        {
+          "contest": "Jack & Jill Advanced",
+          "round": "/results/www2025/jjfinals.html#0",
+          "table": 0,
+          "row": 1,
+          "headers": [
+            "Place",
+            "Competitor",
+            "ARJAY CENTENO",
+            "MARIA BILEYCHIK",
+            "MARKUS SMITH",
+            "TALETHA RIVAS",
+            "TREN VEAL",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "2",
+            "Julio Alvarez and Gaby Sandoval",
+            "11",
+            "1",
+            "1",
+            "2",
+            "4",
+            "89/152",
+            "1-1-2-4-11"
+          ],
+          "matched_cell": "Julio Alvarez and Gaby Sandoval",
+          "exact": false,
+          "paired": true
+        }
+      ]
+    },
+    {
+      "subject_id": "2025-07-wild-wild-westie/allstar-jj/F-823",
+      "name_raw": "Rachel Shook",
+      "role": "follower",
+      "bib": "823",
+      "wsdc_id": 14489,
+      "source": "eepro",
+      "snapshot_id": "snap_20260910T043912Z_a260513bbb56",
+      "category": "mixed_person_cell_only",
+      "matches": [
+        {
+          "contest": "Jack & Jill All Star",
+          "round": "/results/www2025/jjfinals.html#1",
+          "table": 0,
+          "row": 3,
+          "headers": [
+            "Place",
+            "Competitor",
+            "BEN MORRIS",
+            "BRYN ANDERSON",
+            "CAMEO MCHENRY",
+            "CHANTELLE PIANETTA",
+            "JOHN KIRKCONNEL",
+            "KP RUTLAND",
+            "LISA PICARD",
+            "NICOLE RAMIREZ",
+            "THIBAULT RAMIREZ",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "4",
+            "Joseph Tong and Rachel Shook",
+            "6",
+            "4",
+            "5",
+            "4",
+            "3",
+            "4",
+            "6",
+            "4",
+            "7",
+            "176/823",
+            "3-4-4-4-4-5-6-6-7"
+          ],
+          "matched_cell": "Joseph Tong and Rachel Shook",
+          "exact": false,
+          "paired": true
+        }
+      ]
+    },
+    {
+      "subject_id": "2025-01-derby-city-swing/allstar-jj/L-253",
+      "name_raw": "Sheven Kekoolani",
+      "role": "leader",
+      "bib": "253",
+      "wsdc_id": 7258,
+      "source": "eepro",
+      "snapshot_id": "snap_20260910T043934Z_9a0491ee3846",
+      "category": "mixed_person_cell_only",
+      "matches": [
+        {
+          "contest": "Jack & Jill All Star",
+          "round": "/results/derby2025/jjfinals.html#1",
+          "table": 0,
+          "row": 0,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Jason Marker",
+            "PJ Turner",
+            "Eric Byers",
+            "Sophy Kdep",
+            "Jake Haning",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "1",
+            "Sheven Kekoolani and Hailey Toro",
+            "2",
+            "1",
+            "4",
+            "1",
+            "1",
+            "253/107",
+            "1-1-1-2-4"
+          ],
+          "matched_cell": "Sheven Kekoolani and Hailey Toro",
+          "exact": false,
+          "paired": true
+        },
+        {
+          "contest": "Jack & Jill Sophisticated",
+          "round": "/results/derby2025/jjfinals.html#7",
+          "table": 0,
+          "row": 1,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Matt Auclair",
+            "Jason Marker",
+            "Jesse Lopez",
+            "Sebastian Quinones",
+            "Sophy Kdep",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "2",
+            "Sheven Kekoolani and Dallas Radcliffe",
+            "1",
+            "2",
+            "2",
+            "2",
+            "1",
+            "253/239",
+            "1-1-2-2-2"
+          ],
+          "matched_cell": "Sheven Kekoolani and Dallas Radcliffe",
+          "exact": false,
+          "paired": true
+        }
+      ]
+    },
+    {
+      "subject_id": "2025-01-derby-city-swing/allstar-jj/F-107",
+      "name_raw": "Hailey Toro",
+      "role": "follower",
+      "bib": "107",
+      "wsdc_id": 10224,
+      "source": "eepro",
+      "snapshot_id": "snap_20260910T043934Z_9a0491ee3846",
+      "category": "mixed_person_cell_only",
+      "matches": [
+        {
+          "contest": "Jack & Jill All Star",
+          "round": "/results/derby2025/jjfinals.html#1",
+          "table": 0,
+          "row": 0,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Jason Marker",
+            "PJ Turner",
+            "Eric Byers",
+            "Sophy Kdep",
+            "Jake Haning",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "1",
+            "Sheven Kekoolani and Hailey Toro",
+            "2",
+            "1",
+            "4",
+            "1",
+            "1",
+            "253/107",
+            "1-1-1-2-4"
+          ],
+          "matched_cell": "Sheven Kekoolani and Hailey Toro",
+          "exact": false,
+          "paired": true
+        },
+        {
+          "contest": "Jack & Jill Intermediate",
+          "round": "/results/derby2025/jjfinals.html#2",
+          "table": 0,
+          "row": 6,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Matt Auclair",
+            "Jason Marker",
+            "Jesse Lopez",
+            "Sebastian Quinones",
+            "Sophy Kdep",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "7",
+            "Hailey Toro and Jessica Wolf",
+            "7",
+            "7",
+            "7",
+            "5",
+            "8",
+            "107/372",
+            "5-7-7-7-8"
+          ],
+          "matched_cell": "Hailey Toro and Jessica Wolf",
+          "exact": false,
+          "paired": true
+        }
+      ]
+    },
+    {
+      "subject_id": "2025-01-derby-city-swing/allstar-jj/L-367",
+      "name_raw": "Sebastian Quinones",
+      "role": "leader",
+      "bib": "367",
+      "wsdc_id": 11759,
+      "source": "eepro",
+      "snapshot_id": "snap_20260910T043934Z_9a0491ee3846",
+      "category": "mixed_person_cell_only",
+      "matches": [
+        {
+          "contest": "Jack & Jill All Star",
+          "round": "/results/derby2025/jjfinals.html#1",
+          "table": 0,
+          "row": 1,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Jason Marker",
+            "PJ Turner",
+            "Eric Byers",
+            "Sophy Kdep",
+            "Jake Haning",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "2",
+            "Sebastian Quinones and Adela Su",
+            "1",
+            "2",
+            "1",
+            "7",
+            "6",
+            "367/185",
+            "1-1-2-6-7"
+          ],
+          "matched_cell": "Sebastian Quinones and Adela Su",
+          "exact": false,
+          "paired": true
+        }
+      ]
+    },
+    {
+      "subject_id": "2025-01-derby-city-swing/allstar-jj/F-185",
+      "name_raw": "Adela Su",
+      "role": "follower",
+      "bib": "185",
+      "wsdc_id": 6616,
+      "source": "eepro",
+      "snapshot_id": "snap_20260910T043934Z_9a0491ee3846",
+      "category": "mixed_person_cell_only",
+      "matches": [
+        {
+          "contest": "Jack & Jill All Star",
+          "round": "/results/derby2025/jjfinals.html#1",
+          "table": 0,
+          "row": 1,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Jason Marker",
+            "PJ Turner",
+            "Eric Byers",
+            "Sophy Kdep",
+            "Jake Haning",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "2",
+            "Sebastian Quinones and Adela Su",
+            "1",
+            "2",
+            "1",
+            "7",
+            "6",
+            "367/185",
+            "1-1-2-6-7"
+          ],
+          "matched_cell": "Sebastian Quinones and Adela Su",
+          "exact": false,
+          "paired": true
+        },
+        {
+          "contest": "Jack & Jill Masters Open",
+          "round": "/results/derby2025/jjfinals.html#4",
+          "table": 0,
+          "row": 1,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Matt Auclair",
+            "Jason Marker",
+            "Jesse Lopez",
+            "Sebastian Quinones",
+            "Sophy Kdep",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "2",
+            "Mengu Gungor and Adela Su",
+            "4",
+            "2",
+            "2",
+            "1",
+            "4",
+            "149/185",
+            "1-2-2-4-4"
+          ],
+          "matched_cell": "Mengu Gungor and Adela Su",
+          "exact": false,
+          "paired": true
+        },
+        {
+          "contest": "Jack & Jill Sophisticated",
+          "round": "/results/derby2025/jjfinals.html#7",
+          "table": 0,
+          "row": 2,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Matt Auclair",
+            "Jason Marker",
+            "Jesse Lopez",
+            "Sebastian Quinones",
+            "Sophy Kdep",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "3",
+            "Eddie Nunez and Adela Su",
+            "4",
+            "3",
+            "3",
+            "4",
+            "4",
+            "198/185",
+            "3-3-4-4-4"
+          ],
+          "matched_cell": "Eddie Nunez and Adela Su",
+          "exact": false,
+          "paired": true
+        }
+      ]
+    },
+    {
+      "subject_id": "2026-07-phoenix-of-july/allstar-jj/L-55",
+      "name_raw": "Mathias Mendillo",
+      "role": "leader",
+      "bib": "55",
+      "wsdc_id": 22890,
+      "source": "eepro",
+      "snapshot_id": "snap_20260910T044014Z_9d9d5f73c530",
+      "category": "mixed_person_cell_only",
+      "matches": [
+        {
+          "contest": "Jack & Jill All Star",
+          "round": "/results/phoenix2026/jjfinals.html#1",
+          "table": 0,
+          "row": 7,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Yvonne Antonacci",
+            "Dani Canziani",
+            "Sharole Negrete",
+            "Jeannie Tucker",
+            "Gary Jobst",
+            "Fred Price",
+            "Laurie Schwimmer",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "8",
+            "Mathias Mendillo and Krista Young",
+            "7",
+            "5",
+            "4",
+            "7",
+            "10",
+            "6",
+            "11",
+            "55/973",
+            "4-5-6-7-7-10-11"
+          ],
+          "matched_cell": "Mathias Mendillo and Krista Young",
+          "exact": false,
+          "paired": true
+        }
+      ]
+    },
+    {
+      "subject_id": "2026-07-phoenix-of-july/champion-jj/L-1060",
+      "name_raw": "Robert Royston",
+      "role": "leader",
+      "bib": "1060",
+      "wsdc_id": 764,
+      "source": "eepro",
+      "snapshot_id": "snap_20260910T044014Z_9d9d5f73c530",
+      "category": "mixed_person_cell_only",
+      "matches": [
+        {
+          "contest": "Jack & Jill Champions",
+          "round": "/results/phoenix2026/jjfinals.html#2",
+          "table": 0,
+          "row": 0,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Yvonne Antonacci",
+            "Dani Canziani",
+            "Sharole Negrete",
+            "Jeannie Tucker",
+            "Gary Jobst",
+            "Fred Price",
+            "Bryan Keith Jordan",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "1",
+            "Robert Royston and Mackenzie Keister",
+            "1",
+            "3",
+            "1",
+            "1",
+            "1",
+            "1",
+            "1",
+            "1060/1043",
+            "1-1-1-1-1-1-3"
+          ],
+          "matched_cell": "Robert Royston and Mackenzie Keister",
+          "exact": false,
+          "paired": true
+        }
+      ]
+    },
+    {
+      "subject_id": "2026-07-phoenix-of-july/champion-jj/F-1043",
+      "name_raw": "Mackenzie Keister",
+      "role": "follower",
+      "bib": "1043",
+      "wsdc_id": 20700,
+      "source": "eepro",
+      "snapshot_id": "snap_20260910T044014Z_9d9d5f73c530",
+      "category": "mixed_person_cell_only",
+      "matches": [
+        {
+          "contest": "Jack & Jill Champions",
+          "round": "/results/phoenix2026/jjfinals.html#2",
+          "table": 0,
+          "row": 0,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Yvonne Antonacci",
+            "Dani Canziani",
+            "Sharole Negrete",
+            "Jeannie Tucker",
+            "Gary Jobst",
+            "Fred Price",
+            "Bryan Keith Jordan",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "1",
+            "Robert Royston and Mackenzie Keister",
+            "1",
+            "3",
+            "1",
+            "1",
+            "1",
+            "1",
+            "1",
+            "1060/1043",
+            "1-1-1-1-1-1-3"
+          ],
+          "matched_cell": "Robert Royston and Mackenzie Keister",
+          "exact": false,
+          "paired": true
+        },
+        {
+          "contest": "Jack & Jill Champions",
+          "round": "/results/phoenix2026/jjfinals.html#2",
+          "table": 0,
+          "row": 5,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Yvonne Antonacci",
+            "Dani Canziani",
+            "Sharole Negrete",
+            "Jeannie Tucker",
+            "Gary Jobst",
+            "Fred Price",
+            "Bryan Keith Jordan",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "6",
+            "Za Thomaier and Mackenzie Keister",
+            "6",
+            "8",
+            "11",
+            "4",
+            "8",
+            "7",
+            "3",
+            "1916/1043",
+            "3-4-6-7-8-8-11"
+          ],
+          "matched_cell": "Za Thomaier and Mackenzie Keister",
+          "exact": false,
+          "paired": true
+        }
+      ]
+    },
+    {
+      "subject_id": "2026-07-phoenix-of-july/champion-jj/L-772",
+      "name_raw": "PJ Turner",
+      "role": "leader",
+      "bib": "772",
+      "wsdc_id": 4152,
+      "source": "eepro",
+      "snapshot_id": "snap_20260910T044014Z_9d9d5f73c530",
+      "category": "mixed_person_cell_only",
+      "matches": [
+        {
+          "contest": "Jack & Jill Champions",
+          "round": "/results/phoenix2026/jjfinals.html#2",
+          "table": 0,
+          "row": 1,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Yvonne Antonacci",
+            "Dani Canziani",
+            "Sharole Negrete",
+            "Jeannie Tucker",
+            "Gary Jobst",
+            "Fred Price",
+            "Bryan Keith Jordan",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "2",
+            "PJ Turner and Melissa Rutz",
+            "2",
+            "2",
+            "2",
+            "2",
+            "4",
+            "2",
+            "4",
+            "772/11",
+            "2-2-2-2-2-4-4"
+          ],
+          "matched_cell": "PJ Turner and Melissa Rutz",
+          "exact": false,
+          "paired": true
+        }
+      ]
+    },
+    {
+      "subject_id": "2026-07-phoenix-of-july/champion-jj/F-11",
+      "name_raw": "Melissa Rutz",
+      "role": "follower",
+      "bib": "11",
+      "wsdc_id": 3138,
+      "source": "eepro",
+      "snapshot_id": "snap_20260910T044014Z_9d9d5f73c530",
+      "category": "mixed_person_cell_only",
+      "matches": [
+        {
+          "contest": "Jack & Jill Champions",
+          "round": "/results/phoenix2026/jjfinals.html#2",
+          "table": 0,
+          "row": 1,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Yvonne Antonacci",
+            "Dani Canziani",
+            "Sharole Negrete",
+            "Jeannie Tucker",
+            "Gary Jobst",
+            "Fred Price",
+            "Bryan Keith Jordan",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "2",
+            "PJ Turner and Melissa Rutz",
+            "2",
+            "2",
+            "2",
+            "2",
+            "4",
+            "2",
+            "4",
+            "772/11",
+            "2-2-2-2-2-4-4"
+          ],
+          "matched_cell": "PJ Turner and Melissa Rutz",
+          "exact": false,
+          "paired": true
+        }
+      ]
+    },
+    {
+      "subject_id": "2026-07-phoenix-of-july/champion-jj/L-1",
+      "name_raw": "Michael Kielbasa",
+      "role": "leader",
+      "bib": "1",
+      "wsdc_id": 3685,
+      "source": "eepro",
+      "snapshot_id": "snap_20260910T044014Z_9d9d5f73c530",
+      "category": "mixed_person_cell_only",
+      "matches": [
+        {
+          "contest": "Jack & Jill Champions",
+          "round": "/results/phoenix2026/jjfinals.html#2",
+          "table": 0,
+          "row": 2,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Yvonne Antonacci",
+            "Dani Canziani",
+            "Sharole Negrete",
+            "Jeannie Tucker",
+            "Gary Jobst",
+            "Fred Price",
+            "Bryan Keith Jordan",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "3",
+            "Michael Kielbasa and Elizabeth Spann",
+            "3",
+            "1",
+            "3",
+            "3",
+            "5",
+            "11",
+            "5",
+            "1/928",
+            "1-3-3-3-5-5-11"
+          ],
+          "matched_cell": "Michael Kielbasa and Elizabeth Spann",
+          "exact": false,
+          "paired": true
+        }
+      ]
+    },
+    {
+      "subject_id": "2026-07-phoenix-of-july/champion-jj/F-928",
+      "name_raw": "Elizabeth Spann",
+      "role": "follower",
+      "bib": "928",
+      "wsdc_id": 10719,
+      "source": "eepro",
+      "snapshot_id": "snap_20260910T044014Z_9d9d5f73c530",
+      "category": "mixed_person_cell_only",
+      "matches": [
+        {
+          "contest": "Jack & Jill Champions",
+          "round": "/results/phoenix2026/jjfinals.html#2",
+          "table": 0,
+          "row": 2,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Yvonne Antonacci",
+            "Dani Canziani",
+            "Sharole Negrete",
+            "Jeannie Tucker",
+            "Gary Jobst",
+            "Fred Price",
+            "Bryan Keith Jordan",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "3",
+            "Michael Kielbasa and Elizabeth Spann",
+            "3",
+            "1",
+            "3",
+            "3",
+            "5",
+            "11",
+            "5",
+            "1/928",
+            "1-3-3-3-5-5-11"
+          ],
+          "matched_cell": "Michael Kielbasa and Elizabeth Spann",
+          "exact": false,
+          "paired": true
+        }
+      ]
+    },
+    {
+      "subject_id": "2026-07-phoenix-of-july/champion-jj/L-1930",
+      "name_raw": "Hugo Miguez",
+      "role": "leader",
+      "bib": "1930",
+      "wsdc_id": 7299,
+      "source": "eepro",
+      "snapshot_id": "snap_20260910T044014Z_9d9d5f73c530",
+      "category": "mixed_person_cell_only",
+      "matches": [
+        {
+          "contest": "Jack & Jill Champions",
+          "round": "/results/phoenix2026/jjfinals.html#2",
+          "table": 0,
+          "row": 3,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Yvonne Antonacci",
+            "Dani Canziani",
+            "Sharole Negrete",
+            "Jeannie Tucker",
+            "Gary Jobst",
+            "Fred Price",
+            "Bryan Keith Jordan",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "4",
+            "Hugo Miguez and Larisa Tingle",
+            "5",
+            "6",
+            "4",
+            "5",
+            "3",
+            "4",
+            "2",
+            "1930/10",
+            "2-3-4-4-5-5-6"
+          ],
+          "matched_cell": "Hugo Miguez and Larisa Tingle",
+          "exact": false,
+          "paired": true
+        }
+      ]
+    },
+    {
+      "subject_id": "2026-07-phoenix-of-july/champion-jj/L-1918",
+      "name_raw": "Ryan Boz",
+      "role": "leader",
+      "bib": "1918",
+      "wsdc_id": 11486,
+      "source": "eepro",
+      "snapshot_id": "snap_20260910T044014Z_9d9d5f73c530",
+      "category": "mixed_person_cell_only",
+      "matches": [
+        {
+          "contest": "Jack & Jill Champions",
+          "round": "/results/phoenix2026/jjfinals.html#2",
+          "table": 0,
+          "row": 4,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Yvonne Antonacci",
+            "Dani Canziani",
+            "Sharole Negrete",
+            "Jeannie Tucker",
+            "Gary Jobst",
+            "Fred Price",
+            "Bryan Keith Jordan",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "5",
+            "Ryan Boz and Stacy Kay",
+            "7",
+            "5",
+            "5",
+            "6",
+            "9",
+            "6",
+            "9",
+            "1918/14",
+            "5-5-6-6-7-9-9"
+          ],
+          "matched_cell": "Ryan Boz and Stacy Kay",
+          "exact": false,
+          "paired": true
+        }
+      ]
+    },
+    {
+      "subject_id": "2026-06-jack-jill-o-rama/advanced-jj/F-870",
+      "name_raw": "Irina Amzashvili",
+      "role": "follower",
+      "bib": "870",
+      "wsdc_id": 16216,
+      "source": "eepro",
+      "snapshot_id": "snap_20260910T044215Z_232b9cba39cd",
+      "category": "mixed_person_cell_only",
+      "matches": [
+        {
+          "contest": "Jack & Jill Advanced (WSDC)",
+          "round": "/results/jjorama2026/wsdcjjfinals.html#0",
+          "table": 0,
+          "row": 3,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Brandi Guild",
+            "Bryn Anderson",
+            "Cameo McHenry",
+            "Deon Harrell",
+            "Nicole Ramirez",
+            "Sarah Vann Drake",
+            "Victoria Henk",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "4",
+            "Vincent DeRise and Irina Amzashvili",
+            "4",
+            "5",
+            "9",
+            "9",
+            "4",
+            "3",
+            "5",
+            "145/870",
+            "3-4-4-5-5-9-9"
+          ],
+          "matched_cell": "Vincent DeRise and Irina Amzashvili",
+          "exact": false,
+          "paired": true
+        }
+      ]
+    },
+    {
+      "subject_id": "2026-06-jack-jill-o-rama/intermediate-jj/F-791",
+      "name_raw": "Suzy Ackerman",
+      "role": "follower",
+      "bib": "791",
+      "wsdc_id": 22086,
+      "source": "eepro",
+      "snapshot_id": "snap_20260910T044215Z_232b9cba39cd",
+      "category": "mixed_person_cell_only",
+      "matches": [
+        {
+          "contest": "Jack & Jill Intermediate (WSDC)",
+          "round": "/results/jjorama2026/wsdcjjfinals.html#3",
+          "table": 0,
+          "row": 10,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Brandi Guild",
+            "Deon Harrell",
+            "John Lindo",
+            "Kristen Wallace",
+            "Maddy Skinner",
+            "Regina Shpigel",
+            "Jeff Wingo",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "11",
+            "Bobby Martinez and Suzy Ackerman",
+            "10",
+            "3",
+            "4",
+            "11",
+            "10",
+            "13",
+            "7",
+            "560/791",
+            "3-4-7-10-10-11-13"
+          ],
+          "matched_cell": "Bobby Martinez and Suzy Ackerman",
+          "exact": false,
+          "paired": true
+        }
+      ]
+    },
+    {
+      "subject_id": "2026-07-big-apple-dance-festival/advanced-jj/F-289",
+      "name_raw": "Bekah Breaux",
+      "role": "follower",
+      "bib": "289",
+      "wsdc_id": 16918,
+      "source": "eepro",
+      "snapshot_id": "snap_20260910T044258Z_0f47de14cc3e",
+      "category": "mixed_person_cell_only",
+      "matches": [
+        {
+          "contest": "Jack & Jill WSDC Advanced",
+          "round": "/results/bigapple2026/jjfinals.html#0",
+          "table": 0,
+          "row": 1,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Matt Auclair",
+            "Dario Haxhia",
+            "Alec Grant",
+            "Omaid Karimi",
+            "Aaron Mitchell",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "2",
+            "Orian Breaux and Bekah Breaux",
+            "3",
+            "4",
+            "1",
+            "1",
+            "2",
+            "243/289",
+            "1-1-2-3-4"
+          ],
+          "matched_cell": "Orian Breaux and Bekah Breaux",
+          "exact": false,
+          "paired": true
+        }
+      ]
+    },
+    {
+      "subject_id": "2026-07-big-apple-dance-festival/advanced-jj/L-299",
+      "name_raw": "River Peterson",
+      "role": "leader",
+      "bib": "299",
+      "wsdc_id": 13312,
+      "source": "eepro",
+      "snapshot_id": "snap_20260910T044258Z_0f47de14cc3e",
+      "category": "mixed_person_cell_only",
+      "matches": [
+        {
+          "contest": "Jack & Jill WSDC Advanced",
+          "round": "/results/bigapple2026/jjfinals.html#0",
+          "table": 0,
+          "row": 2,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Matt Auclair",
+            "Dario Haxhia",
+            "Alec Grant",
+            "Omaid Karimi",
+            "Aaron Mitchell",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "3",
+            "River Peterson and Heather Lombardi",
+            "2",
+            "3",
+            "2",
+            "4",
+            "1",
+            "299/276",
+            "1-2-2-3-4"
+          ],
+          "matched_cell": "River Peterson and Heather Lombardi",
+          "exact": false,
+          "paired": true
+        }
+      ]
+    },
+    {
+      "subject_id": "2026-07-big-apple-dance-festival/advanced-jj/F-276",
+      "name_raw": "Heather Lombardi",
+      "role": "follower",
+      "bib": "276",
+      "wsdc_id": 9767,
+      "source": "eepro",
+      "snapshot_id": "snap_20260910T044258Z_0f47de14cc3e",
+      "category": "mixed_person_cell_only",
+      "matches": [
+        {
+          "contest": "Jack & Jill WSDC Advanced",
+          "round": "/results/bigapple2026/jjfinals.html#0",
+          "table": 0,
+          "row": 2,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Matt Auclair",
+            "Dario Haxhia",
+            "Alec Grant",
+            "Omaid Karimi",
+            "Aaron Mitchell",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "3",
+            "River Peterson and Heather Lombardi",
+            "2",
+            "3",
+            "2",
+            "4",
+            "1",
+            "299/276",
+            "1-2-2-3-4"
+          ],
+          "matched_cell": "River Peterson and Heather Lombardi",
+          "exact": false,
+          "paired": true
+        },
+        {
+          "contest": "Jack & Jill WSDC Novice",
+          "round": "/results/bigapple2026/jjfinals.html#3",
+          "table": 0,
+          "row": 2,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Matt Auclair",
+            "Sascha Newburg",
+            "Ariana Virgillio",
+            "Joe Miller",
+            "Omaid Karimi",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "3",
+            "Heather Lombardi and Erica Lin",
+            "4",
+            "5",
+            "5",
+            "2",
+            "2",
+            "276/339",
+            "2-2-4-5-5"
+          ],
+          "matched_cell": "Heather Lombardi and Erica Lin",
+          "exact": false,
+          "paired": true
+        }
+      ]
+    },
+    {
+      "subject_id": "2025-04-swingover/champion-jj/L-name-hugo-miguez",
+      "name_raw": "Hugo Miguez",
+      "role": "leader",
+      "bib": null,
+      "wsdc_id": 7299,
+      "source": "eepro",
+      "snapshot_id": "snap_20260910T050227Z_01044864eff0",
+      "category": "mixed_person_cell_only",
+      "matches": [
+        {
+          "contest": "Jack & Jill Champions",
+          "round": "/results/swingover2025/jjfinals.html#2",
+          "table": 0,
+          "row": 0,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Nicole Ramirez",
+            "Annmarie Marker",
+            "Tren Veal",
+            "Stacy Kay",
+            "Colleen Uspensky",
+            "Mia Primavera",
+            "Derek Leyva",
+            "Jen Deluca",
+            "Karla Catana",
+            "Nicole Zwerlein",
+            "Patty Vo",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "1",
+            "Hugo Miguez and Nicole Ramirez",
+            "10",
+            "1",
+            "2",
+            "1",
+            "1",
+            "1",
+            "1",
+            "2",
+            "1",
+            "1",
+            "1",
+            "",
+            "1-1-1-1-1-1-1-1-2-2-10"
+          ],
+          "matched_cell": "Hugo Miguez and Nicole Ramirez",
+          "exact": false,
+          "paired": true
+        }
+      ]
+    },
+    {
+      "subject_id": "2025-04-swingover/champion-jj/F-name-nicole-ramirez",
+      "name_raw": "Nicole Ramirez",
+      "role": "follower",
+      "bib": null,
+      "wsdc_id": 6207,
+      "source": "eepro",
+      "snapshot_id": "snap_20260910T050227Z_01044864eff0",
+      "category": "mixed_person_cell_only",
+      "matches": [
+        {
+          "contest": "Jack & Jill Champions",
+          "round": "/results/swingover2025/jjfinals.html#2",
+          "table": 0,
+          "row": 0,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Nicole Ramirez",
+            "Annmarie Marker",
+            "Tren Veal",
+            "Stacy Kay",
+            "Colleen Uspensky",
+            "Mia Primavera",
+            "Derek Leyva",
+            "Jen Deluca",
+            "Karla Catana",
+            "Nicole Zwerlein",
+            "Patty Vo",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "1",
+            "Hugo Miguez and Nicole Ramirez",
+            "10",
+            "1",
+            "2",
+            "1",
+            "1",
+            "1",
+            "1",
+            "2",
+            "1",
+            "1",
+            "1",
+            "",
+            "1-1-1-1-1-1-1-1-2-2-10"
+          ],
+          "matched_cell": "Hugo Miguez and Nicole Ramirez",
+          "exact": false,
+          "paired": true
+        }
+      ]
+    },
+    {
+      "subject_id": "2025-04-swingover/champion-jj/L-name-robert-royston",
+      "name_raw": "Robert Royston",
+      "role": "leader",
+      "bib": null,
+      "wsdc_id": 764,
+      "source": "eepro",
+      "snapshot_id": "snap_20260910T050227Z_01044864eff0",
+      "category": "mixed_person_cell_only",
+      "matches": [
+        {
+          "contest": "Jack & Jill Champions",
+          "round": "/results/swingover2025/jjfinals.html#2",
+          "table": 0,
+          "row": 1,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Nicole Ramirez",
+            "Annmarie Marker",
+            "Tren Veal",
+            "Stacy Kay",
+            "Colleen Uspensky",
+            "Mia Primavera",
+            "Derek Leyva",
+            "Jen Deluca",
+            "Karla Catana",
+            "Nicole Zwerlein",
+            "Patty Vo",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "2",
+            "Robert Royston and Tren Veal",
+            "1",
+            "2",
+            "10",
+            "2",
+            "2",
+            "2",
+            "3",
+            "3",
+            "2",
+            "4",
+            "2",
+            "",
+            "1-2-2-2-2-2-2-3-3-4-10"
+          ],
+          "matched_cell": "Robert Royston and Tren Veal",
+          "exact": false,
+          "paired": true
+        }
+      ]
+    },
+    {
+      "subject_id": "2025-04-swingover/champion-jj/L-name-thibault-ramirez",
+      "name_raw": "Thibault Ramirez",
+      "role": "leader",
+      "bib": null,
+      "wsdc_id": 10672,
+      "source": "eepro",
+      "snapshot_id": "snap_20260910T050227Z_01044864eff0",
+      "category": "mixed_person_cell_only",
+      "matches": [
+        {
+          "contest": "Jack & Jill Champions",
+          "round": "/results/swingover2025/jjfinals.html#2",
+          "table": 0,
+          "row": 2,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Nicole Ramirez",
+            "Annmarie Marker",
+            "Tren Veal",
+            "Stacy Kay",
+            "Colleen Uspensky",
+            "Mia Primavera",
+            "Derek Leyva",
+            "Jen Deluca",
+            "Karla Catana",
+            "Nicole Zwerlein",
+            "Patty Vo",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "3",
+            "Thibault Ramirez and Annmarie Marker",
+            "2",
+            "10",
+            "7",
+            "5",
+            "4",
+            "3",
+            "4",
+            "4",
+            "4",
+            "2",
+            "4",
+            "",
+            "2-2-3-4-4-4-4-4-5-7-10"
+          ],
+          "matched_cell": "Thibault Ramirez and Annmarie Marker",
+          "exact": false,
+          "paired": true
+        },
+        {
+          "contest": "Jack & Jill Champions",
+          "round": "/results/swingover2025/jjfinals.html#2",
+          "table": 0,
+          "row": 6,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Nicole Ramirez",
+            "Annmarie Marker",
+            "Tren Veal",
+            "Stacy Kay",
+            "Colleen Uspensky",
+            "Mia Primavera",
+            "Derek Leyva",
+            "Jen Deluca",
+            "Karla Catana",
+            "Nicole Zwerlein",
+            "Patty Vo",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "7",
+            "Thibault Ramirez and Colleen Uspensky",
+            "7",
+            "6",
+            "3",
+            "6",
+            "10",
+            "7",
+            "7",
+            "5",
+            "6",
+            "5",
+            "7",
+            "",
+            "3-5-5-6-6-6-7-7-7-7-10"
+          ],
+          "matched_cell": "Thibault Ramirez and Colleen Uspensky",
+          "exact": false,
+          "paired": true
+        }
+      ]
+    },
+    {
+      "subject_id": "2025-04-swingover/champion-jj/F-name-annmarie-marker",
+      "name_raw": "Annmarie Marker",
+      "role": "follower",
+      "bib": null,
+      "wsdc_id": 3827,
+      "source": "eepro",
+      "snapshot_id": "snap_20260910T050227Z_01044864eff0",
+      "category": "mixed_person_cell_only",
+      "matches": [
+        {
+          "contest": "Jack & Jill Champions",
+          "round": "/results/swingover2025/jjfinals.html#2",
+          "table": 0,
+          "row": 2,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Nicole Ramirez",
+            "Annmarie Marker",
+            "Tren Veal",
+            "Stacy Kay",
+            "Colleen Uspensky",
+            "Mia Primavera",
+            "Derek Leyva",
+            "Jen Deluca",
+            "Karla Catana",
+            "Nicole Zwerlein",
+            "Patty Vo",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "3",
+            "Thibault Ramirez and Annmarie Marker",
+            "2",
+            "10",
+            "7",
+            "5",
+            "4",
+            "3",
+            "4",
+            "4",
+            "4",
+            "2",
+            "4",
+            "",
+            "2-2-3-4-4-4-4-4-5-7-10"
+          ],
+          "matched_cell": "Thibault Ramirez and Annmarie Marker",
+          "exact": false,
+          "paired": true
+        }
+      ]
+    },
+    {
+      "subject_id": "2025-08-swing-fling/advanced-jj/L-167",
+      "name_raw": "Jared Reedy",
+      "role": "leader",
+      "bib": "167",
+      "wsdc_id": 22280,
+      "source": "eepro",
+      "snapshot_id": "snap_20260910T050322Z_491197760083",
+      "category": "mixed_person_cell_only",
+      "matches": [
+        {
+          "contest": "Jack & Jill Advanced",
+          "round": "/results/swingfling2025/jjfinals.html#0",
+          "table": 0,
+          "row": 7,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Alyssa Lundgren",
+            "Guigo Sortica",
+            "Melodie Paletta",
+            "Robin Smith",
+            "Sharole Negrete",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "8",
+            "Jared Reedy and Lucy Walsh",
+            "9",
+            "9",
+            "8",
+            "8",
+            "6",
+            "167/411",
+            "6-8-8-9-9"
+          ],
+          "matched_cell": "Jared Reedy and Lucy Walsh",
+          "exact": false,
+          "paired": true
+        }
+      ]
+    },
+    {
+      "subject_id": "2025-08-swing-fling/novice-jj/L-531",
+      "name_raw": "Jonathan Fuller",
+      "role": "leader",
+      "bib": "531",
+      "wsdc_id": 24299,
+      "source": "eepro",
+      "snapshot_id": "snap_20260910T050322Z_491197760083",
+      "category": "mixed_person_cell_only",
+      "matches": [
+        {
+          "contest": "Jack & Jill Newcomer",
+          "round": "/results/swingfling2025/jjfinals.html#5",
+          "table": 0,
+          "row": 7,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Anni Hellwagen",
+            "Glenn Ball",
+            "Heejung Jung",
+            "Kyle Fitzgerald",
+            "Miquel Men\u00e9ndez",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "8",
+            "Rick Leach and Jonathan Fuller",
+            "7",
+            "3",
+            "9",
+            "8",
+            "3",
+            "529/101",
+            "3-3-7-8-9"
+          ],
+          "matched_cell": "Rick Leach and Jonathan Fuller",
+          "exact": false,
+          "paired": true
+        },
+        {
+          "contest": "Jack & Jill Novice",
+          "round": "/results/swingfling2025/jjfinals.html#6",
+          "table": 0,
+          "row": 10,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Alyssa Lundgren",
+            "Arjay Centeno",
+            "Heejung Jung",
+            "Ken Roesel",
+            "Kyle Fitzgerald",
+            "Robin Smith",
+            "Sharole Negrete",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "11",
+            "Jonathan Fuller and Malissa Petersen",
+            "3",
+            "5",
+            "3",
+            "11",
+            "13",
+            "10",
+            "13",
+            "531/478",
+            "3-3-5-10-11-13-13"
+          ],
+          "matched_cell": "Jonathan Fuller and Malissa Petersen",
+          "exact": false,
+          "paired": true
+        }
+      ]
+    },
+    {
+      "subject_id": "2025-06-jack-jill-o-rama/novice-jj/F-289",
+      "name_raw": "Cj Brookshire",
+      "role": "follower",
+      "bib": "289",
+      "wsdc_id": 25867,
+      "source": "eepro",
+      "snapshot_id": "snap_20260910T050358Z_10dba9734834",
+      "category": "mixed_person_cell_only",
+      "matches": [
+        {
+          "contest": "Jack & Jill Novice (WSDC)",
+          "round": "/results/jjorama2025/wsdcjjfinals.html#5",
+          "table": 0,
+          "row": 3,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Keerigan Rudd",
+            "Maddy Skinner",
+            "Mia Pastor",
+            "Regina Shpigel",
+            "Robert Royston",
+            "Tracy Wang",
+            "Zac Skinner",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "4",
+            "Harrison Fang and Cj Brookshire",
+            "4",
+            "8",
+            "4",
+            "10",
+            "16",
+            "4",
+            "1",
+            "602/289",
+            "1-4-4-4-8-10-16"
+          ],
+          "matched_cell": "Harrison Fang and Cj Brookshire",
+          "exact": false,
+          "paired": true
+        }
+      ]
+    },
+    {
+      "subject_id": "2026-01-derby-city-swing/allstar-jj/L-228",
+      "name_raw": "Brad Wendt",
+      "role": "leader",
+      "bib": "228",
+      "wsdc_id": 19549,
+      "source": "eepro",
+      "snapshot_id": "snap_20260910T050513Z_16d01d064530",
+      "category": "mixed_person_cell_only",
+      "matches": [
+        {
+          "contest": "Jack & Jill All Star",
+          "round": "/results/derby2026/jjfinals.html#1",
+          "table": 0,
+          "row": 0,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Eric Byers",
+            "Eric Nava",
+            "Mario Robau",
+            "Rachel Mercedes",
+            "Sophy Kdep",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "1",
+            "Brad Wendt and Rachel Bowlby",
+            "4",
+            "3",
+            "2",
+            "1",
+            "1",
+            "228/224",
+            "1-1-2-3-4"
+          ],
+          "matched_cell": "Brad Wendt and Rachel Bowlby",
+          "exact": false,
+          "paired": true
+        }
+      ]
+    },
+    {
+      "subject_id": "2026-01-derby-city-swing/allstar-jj/F-224",
+      "name_raw": "Rachel Bowlby",
+      "role": "follower",
+      "bib": "224",
+      "wsdc_id": 20259,
+      "source": "eepro",
+      "snapshot_id": "snap_20260910T050513Z_16d01d064530",
+      "category": "mixed_person_cell_only",
+      "matches": [
+        {
+          "contest": "Jack & Jill Advanced",
+          "round": "/results/derby2026/jjfinals.html#0",
+          "table": 0,
+          "row": 1,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Eric Byers",
+            "Jason Miklic",
+            "Michael Kielbasa",
+            "Rachel Mercedes",
+            "Sophy Kdep",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "2",
+            "Rachel Bowlby and Hunter Hobbs",
+            "1",
+            "4",
+            "2",
+            "1",
+            "5",
+            "224/123",
+            "1-1-2-4-5"
+          ],
+          "matched_cell": "Rachel Bowlby and Hunter Hobbs",
+          "exact": false,
+          "paired": true
+        },
+        {
+          "contest": "Jack & Jill All Star",
+          "round": "/results/derby2026/jjfinals.html#1",
+          "table": 0,
+          "row": 0,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Eric Byers",
+            "Eric Nava",
+            "Mario Robau",
+            "Rachel Mercedes",
+            "Sophy Kdep",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "1",
+            "Brad Wendt and Rachel Bowlby",
+            "4",
+            "3",
+            "2",
+            "1",
+            "1",
+            "228/224",
+            "1-1-2-3-4"
+          ],
+          "matched_cell": "Brad Wendt and Rachel Bowlby",
+          "exact": false,
+          "paired": true
+        }
+      ]
+    },
+    {
+      "subject_id": "2026-01-derby-city-swing/allstar-jj/L-273",
+      "name_raw": "Brad Gallow",
+      "role": "leader",
+      "bib": "273",
+      "wsdc_id": 12509,
+      "source": "eepro",
+      "snapshot_id": "snap_20260910T050513Z_16d01d064530",
+      "category": "mixed_person_cell_only",
+      "matches": [
+        {
+          "contest": "Jack & Jill All Star",
+          "round": "/results/derby2026/jjfinals.html#1",
+          "table": 0,
+          "row": 1,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Eric Byers",
+            "Eric Nava",
+            "Mario Robau",
+            "Rachel Mercedes",
+            "Sophy Kdep",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "2",
+            "Brad Gallow and Abigail Roach",
+            "1",
+            "2",
+            "3",
+            "2",
+            "3",
+            "273/230",
+            "1-2-2-3-3"
+          ],
+          "matched_cell": "Brad Gallow and Abigail Roach",
+          "exact": false,
+          "paired": true
+        }
+      ]
+    },
+    {
+      "subject_id": "2026-01-derby-city-swing/allstar-jj/F-230",
+      "name_raw": "Abigail Roach",
+      "role": "follower",
+      "bib": "230",
+      "wsdc_id": 21287,
+      "source": "eepro",
+      "snapshot_id": "snap_20260910T050513Z_16d01d064530",
+      "category": "mixed_person_cell_only",
+      "matches": [
+        {
+          "contest": "Jack & Jill All Star",
+          "round": "/results/derby2026/jjfinals.html#1",
+          "table": 0,
+          "row": 1,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Eric Byers",
+            "Eric Nava",
+            "Mario Robau",
+            "Rachel Mercedes",
+            "Sophy Kdep",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "2",
+            "Brad Gallow and Abigail Roach",
+            "1",
+            "2",
+            "3",
+            "2",
+            "3",
+            "273/230",
+            "1-2-2-3-3"
+          ],
+          "matched_cell": "Brad Gallow and Abigail Roach",
+          "exact": false,
+          "paired": true
+        },
+        {
+          "contest": "Jack & Jill Intermediate",
+          "round": "/results/derby2026/jjfinals.html#2",
+          "table": 0,
+          "row": 4,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Eric Byers",
+            "Jason Miklic",
+            "Michael Kielbasa",
+            "Rachel Mercedes",
+            "Sophy Kdep",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "5",
+            "Abigail Roach and Esther McCrystal",
+            "6",
+            "5",
+            "5",
+            "6",
+            "3",
+            "230/175",
+            "3-5-5-6-6"
+          ],
+          "matched_cell": "Abigail Roach and Esther McCrystal",
+          "exact": false,
+          "paired": true
+        }
+      ]
+    },
+    {
+      "subject_id": "2026-01-derby-city-swing/allstar-jj/L-248",
+      "name_raw": "Lamarr Williford",
+      "role": "leader",
+      "bib": "248",
+      "wsdc_id": 9437,
+      "source": "eepro",
+      "snapshot_id": "snap_20260910T050513Z_16d01d064530",
+      "category": "mixed_person_cell_only",
+      "matches": [
+        {
+          "contest": "Jack & Jill All Star",
+          "round": "/results/derby2026/jjfinals.html#1",
+          "table": 0,
+          "row": 2,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Eric Byers",
+            "Eric Nava",
+            "Mario Robau",
+            "Rachel Mercedes",
+            "Sophy Kdep",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "3",
+            "Lamarr Williford and Dallas Radcliffe",
+            "3",
+            "1",
+            "1",
+            "3",
+            "4",
+            "248/264",
+            "1-1-3-3-4"
+          ],
+          "matched_cell": "Lamarr Williford and Dallas Radcliffe",
+          "exact": false,
+          "paired": true
+        }
+      ]
+    },
+    {
+      "subject_id": "2026-01-derby-city-swing/allstar-jj/F-264",
+      "name_raw": "Dallas Radcliffe",
+      "role": "follower",
+      "bib": "264",
+      "wsdc_id": 5168,
+      "source": "eepro",
+      "snapshot_id": "snap_20260910T050513Z_16d01d064530",
+      "category": "mixed_person_cell_only",
+      "matches": [
+        {
+          "contest": "Jack & Jill All Star",
+          "round": "/results/derby2026/jjfinals.html#1",
+          "table": 0,
+          "row": 2,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Eric Byers",
+            "Eric Nava",
+            "Mario Robau",
+            "Rachel Mercedes",
+            "Sophy Kdep",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "3",
+            "Lamarr Williford and Dallas Radcliffe",
+            "3",
+            "1",
+            "1",
+            "3",
+            "4",
+            "248/264",
+            "1-1-3-3-4"
+          ],
+          "matched_cell": "Lamarr Williford and Dallas Radcliffe",
+          "exact": false,
+          "paired": true
+        },
+        {
+          "contest": "Jack & Jill Sophisticated",
+          "round": "/results/derby2026/jjfinals.html#7",
+          "table": 0,
+          "row": 0,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Eric Byers",
+            "Jason Miklic",
+            "Michael Kielbasa",
+            "Sophy Kdep",
+            "Tina Hebert",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "1",
+            "Duane Erwin and Dallas Radcliffe",
+            "1",
+            "1",
+            "1",
+            "2",
+            "1",
+            "211/264",
+            "1-1-1-1-2"
+          ],
+          "matched_cell": "Duane Erwin and Dallas Radcliffe",
+          "exact": false,
+          "paired": true
+        }
+      ]
+    },
+    {
+      "subject_id": "2025-01-austin-swing-dance-championships/intermediate-jj/L-366",
+      "name_raw": "Ryan Osbourn",
+      "role": "leader",
+      "bib": "366",
+      "wsdc_id": 22376,
+      "source": "eepro",
+      "snapshot_id": "snap_20260910T050718Z_50518948ca91",
+      "category": "mixed_person_cell_only",
+      "matches": [
+        {
+          "contest": "Jack & Jill Intermediate",
+          "round": "/results/asdc2025/jjfinals.html#2",
+          "table": 0,
+          "row": 1,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Gary",
+            "PJ",
+            "Jeanne",
+            "Leo",
+            "Haley",
+            "Maria",
+            "Felicia",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "2",
+            "Ryan Osbourn and Stephanie Dierks",
+            "3",
+            "2",
+            "10",
+            "1",
+            "1",
+            "9",
+            "6",
+            "366/180",
+            "1-1-2-3-6-9-10"
+          ],
+          "matched_cell": "Ryan Osbourn and Stephanie Dierks",
+          "exact": false,
+          "paired": true
+        }
+      ]
+    },
+    {
+      "subject_id": "2026-01-ucwdc-country-dance-world-championships/allstar-jj/L-840",
+      "name_raw": "PAITON HEBERT",
+      "role": "leader",
+      "bib": "840",
+      "wsdc_id": 9139,
+      "source": "eepro",
+      "snapshot_id": "snap_20260910T051056Z_96403ace93f5",
+      "category": "mixed_person_cell_only",
+      "matches": [
+        {
+          "contest": "Jack & Jill All Star",
+          "round": "/results/worlds2025/wsdcjjfinals.html#1",
+          "table": 0,
+          "row": 0,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Jeremy Bryan",
+            "Rachele Eads",
+            "Gary Mcintyre",
+            "Susan Kirklin",
+            "Dawn Laura",
+            "Nino Diguillo",
+            "Michael Eads",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "1",
+            "PAITON HEBERT and MIA PASTOR",
+            "1",
+            "2",
+            "1",
+            "2",
+            "1",
+            "1",
+            "2",
+            "840/940",
+            "1-1-1-1-2-2-2"
+          ],
+          "matched_cell": "PAITON HEBERT and MIA PASTOR",
+          "exact": false,
+          "paired": true
+        }
+      ]
+    },
+    {
+      "subject_id": "2026-01-ucwdc-country-dance-world-championships/allstar-jj/F-940",
+      "name_raw": "MIA PASTOR",
+      "role": "follower",
+      "bib": "940",
+      "wsdc_id": 12424,
+      "source": "eepro",
+      "snapshot_id": "snap_20260910T051056Z_96403ace93f5",
+      "category": "mixed_person_cell_only",
+      "matches": [
+        {
+          "contest": "Jack & Jill All Star",
+          "round": "/results/worlds2025/wsdcjjfinals.html#1",
+          "table": 0,
+          "row": 0,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Jeremy Bryan",
+            "Rachele Eads",
+            "Gary Mcintyre",
+            "Susan Kirklin",
+            "Dawn Laura",
+            "Nino Diguillo",
+            "Michael Eads",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "1",
+            "PAITON HEBERT and MIA PASTOR",
+            "1",
+            "2",
+            "1",
+            "2",
+            "1",
+            "1",
+            "2",
+            "840/940",
+            "1-1-1-1-2-2-2"
+          ],
+          "matched_cell": "PAITON HEBERT and MIA PASTOR",
+          "exact": false,
+          "paired": true
+        }
+      ]
+    },
+    {
+      "subject_id": "2026-01-ucwdc-country-dance-world-championships/allstar-jj/L-702",
+      "name_raw": "TRENTEN JACKSON",
+      "role": "leader",
+      "bib": "702",
+      "wsdc_id": 22004,
+      "source": "eepro",
+      "snapshot_id": "snap_20260910T051056Z_96403ace93f5",
+      "category": "mixed_person_cell_only",
+      "matches": [
+        {
+          "contest": "Jack & Jill All Star",
+          "round": "/results/worlds2025/wsdcjjfinals.html#1",
+          "table": 0,
+          "row": 1,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Jeremy Bryan",
+            "Rachele Eads",
+            "Gary Mcintyre",
+            "Susan Kirklin",
+            "Dawn Laura",
+            "Nino Diguillo",
+            "Michael Eads",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "2",
+            "TRENTEN JACKSON and CAROLINE SKAAR",
+            "3",
+            "1",
+            "2",
+            "1",
+            "3",
+            "2",
+            "1",
+            "702/924",
+            "1-1-1-2-2-3-3"
+          ],
+          "matched_cell": "TRENTEN JACKSON and CAROLINE SKAAR",
+          "exact": false,
+          "paired": true
+        }
+      ]
+    },
+    {
+      "subject_id": "2026-01-ucwdc-country-dance-world-championships/allstar-jj/L-872",
+      "name_raw": "CHAZ FRANKENBERRY",
+      "role": "leader",
+      "bib": "872",
+      "wsdc_id": 20187,
+      "source": "eepro",
+      "snapshot_id": "snap_20260910T051056Z_96403ace93f5",
+      "category": "mixed_person_cell_only",
+      "matches": [
+        {
+          "contest": "Jack & Jill All Star",
+          "round": "/results/worlds2025/wsdcjjfinals.html#1",
+          "table": 0,
+          "row": 2,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Jeremy Bryan",
+            "Rachele Eads",
+            "Gary Mcintyre",
+            "Susan Kirklin",
+            "Dawn Laura",
+            "Nino Diguillo",
+            "Michael Eads",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "3",
+            "CHAZ FRANKENBERRY and SIERRA BURFORD",
+            "2",
+            "3",
+            "3",
+            "3",
+            "4",
+            "4",
+            "5",
+            "872/892",
+            "2-3-3-3-4-4-5"
+          ],
+          "matched_cell": "CHAZ FRANKENBERRY and SIERRA BURFORD",
+          "exact": false,
+          "paired": true
+        }
+      ]
+    },
+    {
+      "subject_id": "2026-01-ucwdc-country-dance-world-championships/allstar-jj/F-892",
+      "name_raw": "SIERRA BURFORD",
+      "role": "follower",
+      "bib": "892",
+      "wsdc_id": 20830,
+      "source": "eepro",
+      "snapshot_id": "snap_20260910T051056Z_96403ace93f5",
+      "category": "mixed_person_cell_only",
+      "matches": [
+        {
+          "contest": "Jack & Jill All Star",
+          "round": "/results/worlds2025/wsdcjjfinals.html#1",
+          "table": 0,
+          "row": 2,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Jeremy Bryan",
+            "Rachele Eads",
+            "Gary Mcintyre",
+            "Susan Kirklin",
+            "Dawn Laura",
+            "Nino Diguillo",
+            "Michael Eads",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "3",
+            "CHAZ FRANKENBERRY and SIERRA BURFORD",
+            "2",
+            "3",
+            "3",
+            "3",
+            "4",
+            "4",
+            "5",
+            "872/892",
+            "2-3-3-3-4-4-5"
+          ],
+          "matched_cell": "CHAZ FRANKENBERRY and SIERRA BURFORD",
+          "exact": false,
+          "paired": true
+        },
+        {
+          "contest": "Jack & Jill All Star",
+          "round": "/results/worlds2025/wsdcjjfinals.html#1",
+          "table": 0,
+          "row": 4,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Jeremy Bryan",
+            "Rachele Eads",
+            "Gary Mcintyre",
+            "Susan Kirklin",
+            "Dawn Laura",
+            "Nino Diguillo",
+            "Michael Eads",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "5",
+            "AUGIE LEIJA and SIERRA BURFORD",
+            "7",
+            "5",
+            "4",
+            "5",
+            "5",
+            "5",
+            "3",
+            "896/892",
+            "3-4-5-5-5-5-7"
+          ],
+          "matched_cell": "AUGIE LEIJA and SIERRA BURFORD",
+          "exact": false,
+          "paired": true
+        }
+      ]
+    },
+    {
+      "subject_id": "2025-03-novice-invitational/intermediate-jj/L-693",
+      "name_raw": "Matthew Dotson",
+      "role": "leader",
+      "bib": "693",
+      "wsdc_id": 24067,
+      "source": "eepro",
+      "snapshot_id": "snap_20260911T033155Z_75439f7ef4db",
+      "category": "mixed_person_cell_only",
+      "matches": [
+        {
+          "contest": "Jack & Jill Intermediate",
+          "round": "/results/ni2025/jjfinals.html#2",
+          "table": 0,
+          "row": 5,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Kellese Key",
+            "Glenn Ball",
+            "Kyle Redd",
+            "Maria Bileychik",
+            "Shayla Bouise",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "6",
+            "Matthew Dotson and Angeline Sullivan",
+            "2",
+            "5",
+            "7",
+            "9",
+            "6",
+            "693/899",
+            "2-5-6-7-9"
+          ],
+          "matched_cell": "Matthew Dotson and Angeline Sullivan",
+          "exact": false,
+          "paired": true
+        }
+      ]
+    },
+    {
+      "subject_id": "2026-05-michigan-classic/novice-jj/F-57",
+      "name_raw": "Tiffany Ellender",
+      "role": "follower",
+      "bib": "57",
+      "wsdc_id": 5198,
+      "source": "eepro",
+      "snapshot_id": "snap_20260911T033424Z_57146af871b0",
+      "category": "mixed_person_cell_only",
+      "matches": [
+        {
+          "contest": "Jack & Jill Novice",
+          "round": "/results/michiganclassic2026/jjfinals.html#6",
+          "table": 0,
+          "row": 5,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Lamarr Williford",
+            "Lara Deni",
+            "Laureen Baldovi",
+            "Margie Tuttle",
+            "Ryan Dobbins",
+            "Sharole Lashe Negrete",
+            "Susan Kirklin",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "6",
+            "Persephone Mueller and Tiffany Ellender",
+            "3",
+            "8",
+            "1",
+            "6",
+            "8",
+            "12",
+            "2",
+            "470/57",
+            "1-2-3-6-8-8-12"
+          ],
+          "matched_cell": "Persephone Mueller and Tiffany Ellender",
+          "exact": false,
+          "paired": true
+        }
+      ]
+    },
+    {
+      "subject_id": "2026-05-michigan-classic/novice-jj/L-337",
+      "name_raw": "Jade Savoia",
+      "role": "leader",
+      "bib": "337",
+      "wsdc_id": 25814,
+      "source": "eepro",
+      "snapshot_id": "snap_20260911T033424Z_57146af871b0",
+      "category": "mixed_person_cell_only",
+      "matches": [
+        {
+          "contest": "Jack & Jill Novice",
+          "round": "/results/michiganclassic2026/jjfinals.html#6",
+          "table": 0,
+          "row": 3,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Lamarr Williford",
+            "Lara Deni",
+            "Laureen Baldovi",
+            "Margie Tuttle",
+            "Ryan Dobbins",
+            "Sharole Lashe Negrete",
+            "Susan Kirklin",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "4",
+            "Jade Savoia and Tyler Doss",
+            "5",
+            "1",
+            "12",
+            "7",
+            "12",
+            "3",
+            "1",
+            "337/282",
+            "1-1-3-5-7-12-12"
+          ],
+          "matched_cell": "Jade Savoia and Tyler Doss",
+          "exact": false,
+          "paired": true
+        }
+      ]
+    },
+    {
+      "subject_id": "2026-05-michigan-classic/champion-jj/L-name-kyle-fitzgerald",
+      "name_raw": "Kyle FitzGerald",
+      "role": "leader",
+      "bib": null,
+      "wsdc_id": 7918,
+      "source": "eepro",
+      "snapshot_id": "snap_20260911T033424Z_57146af871b0",
+      "category": "mixed_person_cell_only",
+      "matches": [
+        {
+          "contest": "Jack & Jill Champions",
+          "round": "/results/michiganclassic2026/jjfinals.html#2",
+          "table": 0,
+          "row": 0,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Joanna Swanson",
+            "Adela Su",
+            "Sharole Lashe Negrete",
+            "Stacy O'Leyar",
+            "Stephanie Risser",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "1",
+            "Kyle FitzGerald and Susan Kirklin",
+            "1",
+            "1",
+            "1",
+            "1",
+            "2",
+            "",
+            "1-1-1-1-2"
+          ],
+          "matched_cell": "Kyle FitzGerald and Susan Kirklin",
+          "exact": false,
+          "paired": true
+        }
+      ]
+    },
+    {
+      "subject_id": "2026-05-michigan-classic/champion-jj/F-name-susan-kirklin",
+      "name_raw": "Susan Kirklin",
+      "role": "follower",
+      "bib": null,
+      "wsdc_id": 3041,
+      "source": "eepro",
+      "snapshot_id": "snap_20260911T033424Z_57146af871b0",
+      "category": "mixed_person_cell_only",
+      "matches": [
+        {
+          "contest": "Jack & Jill Champions",
+          "round": "/results/michiganclassic2026/jjfinals.html#2",
+          "table": 0,
+          "row": 0,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Joanna Swanson",
+            "Adela Su",
+            "Sharole Lashe Negrete",
+            "Stacy O'Leyar",
+            "Stephanie Risser",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "1",
+            "Kyle FitzGerald and Susan Kirklin",
+            "1",
+            "1",
+            "1",
+            "1",
+            "2",
+            "",
+            "1-1-1-1-2"
+          ],
+          "matched_cell": "Kyle FitzGerald and Susan Kirklin",
+          "exact": false,
+          "paired": true
+        }
+      ]
+    },
+    {
+      "subject_id": "2026-05-michigan-classic/champion-jj/L-name-gary-mcintyre",
+      "name_raw": "Gary Mcintyre",
+      "role": "leader",
+      "bib": null,
+      "wsdc_id": 1537,
+      "source": "eepro",
+      "snapshot_id": "snap_20260911T033424Z_57146af871b0",
+      "category": "mixed_person_cell_only",
+      "matches": [
+        {
+          "contest": "Jack & Jill Champions",
+          "round": "/results/michiganclassic2026/jjfinals.html#2",
+          "table": 0,
+          "row": 1,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Joanna Swanson",
+            "Adela Su",
+            "Sharole Lashe Negrete",
+            "Stacy O'Leyar",
+            "Stephanie Risser",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "2",
+            "Gary Mcintyre and Melodie Paletta",
+            "7",
+            "5",
+            "2",
+            "3",
+            "3",
+            "",
+            "2-3-3-5-7"
+          ],
+          "matched_cell": "Gary Mcintyre and Melodie Paletta",
+          "exact": false,
+          "paired": true
+        },
+        {
+          "contest": "Jack & Jill Champions",
+          "round": "/results/michiganclassic2026/jjfinals.html#2",
+          "table": 0,
+          "row": 6,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Joanna Swanson",
+            "Adela Su",
+            "Sharole Lashe Negrete",
+            "Stacy O'Leyar",
+            "Stephanie Risser",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "7",
+            "Gary Mcintyre and Laureen Baldovi",
+            "6",
+            "7",
+            "4",
+            "5",
+            "7",
+            "",
+            "4-5-6-7-7"
+          ],
+          "matched_cell": "Gary Mcintyre and Laureen Baldovi",
+          "exact": false,
+          "paired": true
+        }
+      ]
+    },
+    {
+      "subject_id": "2026-05-michigan-classic/champion-jj/F-name-melodie-paletta",
+      "name_raw": "Melodie Paletta",
+      "role": "follower",
+      "bib": null,
+      "wsdc_id": 16285,
+      "source": "eepro",
+      "snapshot_id": "snap_20260911T033424Z_57146af871b0",
+      "category": "mixed_person_cell_only",
+      "matches": [
+        {
+          "contest": "Jack & Jill Champions",
+          "round": "/results/michiganclassic2026/jjfinals.html#2",
+          "table": 0,
+          "row": 1,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Joanna Swanson",
+            "Adela Su",
+            "Sharole Lashe Negrete",
+            "Stacy O'Leyar",
+            "Stephanie Risser",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "2",
+            "Gary Mcintyre and Melodie Paletta",
+            "7",
+            "5",
+            "2",
+            "3",
+            "3",
+            "",
+            "2-3-3-5-7"
+          ],
+          "matched_cell": "Gary Mcintyre and Melodie Paletta",
+          "exact": false,
+          "paired": true
+        }
+      ]
+    },
+    {
+      "subject_id": "2026-05-michigan-classic/champion-jj/L-name-robert-cordoba",
+      "name_raw": "Robert Cordoba",
+      "role": "leader",
+      "bib": null,
+      "wsdc_id": 178,
+      "source": "eepro",
+      "snapshot_id": "snap_20260911T033424Z_57146af871b0",
+      "category": "mixed_person_cell_only",
+      "matches": [
+        {
+          "contest": "Jack & Jill Champions",
+          "round": "/results/michiganclassic2026/jjfinals.html#2",
+          "table": 0,
+          "row": 2,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Joanna Swanson",
+            "Adela Su",
+            "Sharole Lashe Negrete",
+            "Stacy O'Leyar",
+            "Stephanie Risser",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "3",
+            "Robert Cordoba and Alexis Garrish",
+            "2",
+            "2",
+            "7",
+            "4",
+            "4",
+            "",
+            "2-2-4-4-7"
+          ],
+          "matched_cell": "Robert Cordoba and Alexis Garrish",
+          "exact": false,
+          "paired": true
+        }
+      ]
+    },
+    {
+      "subject_id": "2026-05-michigan-classic/champion-jj/F-name-alexis-garrish",
+      "name_raw": "Alexis Garrish",
+      "role": "follower",
+      "bib": null,
+      "wsdc_id": 9362,
+      "source": "eepro",
+      "snapshot_id": "snap_20260911T033424Z_57146af871b0",
+      "category": "mixed_person_cell_only",
+      "matches": [
+        {
+          "contest": "Jack & Jill Champions",
+          "round": "/results/michiganclassic2026/jjfinals.html#2",
+          "table": 0,
+          "row": 2,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Joanna Swanson",
+            "Adela Su",
+            "Sharole Lashe Negrete",
+            "Stacy O'Leyar",
+            "Stephanie Risser",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "3",
+            "Robert Cordoba and Alexis Garrish",
+            "2",
+            "2",
+            "7",
+            "4",
+            "4",
+            "",
+            "2-2-4-4-7"
+          ],
+          "matched_cell": "Robert Cordoba and Alexis Garrish",
+          "exact": false,
+          "paired": true
+        }
+      ]
+    },
+    {
+      "subject_id": "2025-04-tulsa-spring-swing/advanced-jj/L-402",
+      "name_raw": "Matthew Mueller",
+      "role": "leader",
+      "bib": "402",
+      "wsdc_id": 20078,
+      "source": "eepro",
+      "snapshot_id": "snap_20260912T163231Z_3b5ab60a8800",
+      "category": "mixed_person_cell_only",
+      "matches": [
+        {
+          "contest": "Jack & Jill Advanced",
+          "round": "/results/tulsa2025/jjfinals.html#0",
+          "table": 0,
+          "row": 0,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Bryan Jordan",
+            "Kris Swearingen",
+            "Trose Roseborough",
+            "Austin Murrey",
+            "Chelsea Murrey",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "1",
+            "Matthew Mueller and Trinity Madden",
+            "1",
+            "1",
+            "1",
+            "4",
+            "1",
+            "402/396",
+            "1-1-1-1-4"
+          ],
+          "matched_cell": "Matthew Mueller and Trinity Madden",
+          "exact": false,
+          "paired": true
+        }
+      ]
+    },
+    {
+      "subject_id": "2025-04-tulsa-spring-swing/advanced-jj/F-396",
+      "name_raw": "Trinity Madden",
+      "role": "follower",
+      "bib": "396",
+      "wsdc_id": 21991,
+      "source": "eepro",
+      "snapshot_id": "snap_20260912T163231Z_3b5ab60a8800",
+      "category": "mixed_person_cell_only",
+      "matches": [
+        {
+          "contest": "Jack & Jill Advanced",
+          "round": "/results/tulsa2025/jjfinals.html#0",
+          "table": 0,
+          "row": 0,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Bryan Jordan",
+            "Kris Swearingen",
+            "Trose Roseborough",
+            "Austin Murrey",
+            "Chelsea Murrey",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "1",
+            "Matthew Mueller and Trinity Madden",
+            "1",
+            "1",
+            "1",
+            "4",
+            "1",
+            "402/396",
+            "1-1-1-1-4"
+          ],
+          "matched_cell": "Matthew Mueller and Trinity Madden",
+          "exact": false,
+          "paired": true
+        }
+      ]
+    },
+    {
+      "subject_id": "2025-04-tulsa-spring-swing/advanced-jj/L-415",
+      "name_raw": "Tim Acosta",
+      "role": "leader",
+      "bib": "415",
+      "wsdc_id": 8248,
+      "source": "eepro",
+      "snapshot_id": "snap_20260912T163231Z_3b5ab60a8800",
+      "category": "mixed_person_cell_only",
+      "matches": [
+        {
+          "contest": "Jack & Jill Advanced",
+          "round": "/results/tulsa2025/jjfinals.html#0",
+          "table": 0,
+          "row": 1,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Bryan Jordan",
+            "Kris Swearingen",
+            "Trose Roseborough",
+            "Austin Murrey",
+            "Chelsea Murrey",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "2",
+            "Tim Acosta and Jordan Sims",
+            "3",
+            "2",
+            "2",
+            "3",
+            "3",
+            "415/154",
+            "2-2-3-3-3"
+          ],
+          "matched_cell": "Tim Acosta and Jordan Sims",
+          "exact": false,
+          "paired": true
+        },
+        {
+          "contest": "Jack & Jill Advanced",
+          "round": "/results/tulsa2025/jjfinals.html#0",
+          "table": 0,
+          "row": 6,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Bryan Jordan",
+            "Kris Swearingen",
+            "Trose Roseborough",
+            "Austin Murrey",
+            "Chelsea Murrey",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "7",
+            "Tim Acosta and Liz Calloway",
+            "7",
+            "7",
+            "7",
+            "6",
+            "7",
+            "415/334",
+            "6-7-7-7-7"
+          ],
+          "matched_cell": "Tim Acosta and Liz Calloway",
+          "exact": false,
+          "paired": true
+        },
+        {
+          "contest": "Jack & Jill Invitational",
+          "round": "/results/tulsa2025/jjfinals.html#3",
+          "table": 0,
+          "row": 3,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Invitational Judge 1",
+            "Invitational Judge 2",
+            "Invitational Judge 3",
+            "Invitational Judge 4",
+            "Invitational Judge 5",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "4",
+            "Tim Acosta and Maria and Matt",
+            "1",
+            "3",
+            "6",
+            "4",
+            "1",
+            "",
+            "1-1-3-4-6"
+          ],
+          "matched_cell": "Tim Acosta and Maria and Matt",
+          "exact": false,
+          "paired": true
+        },
+        {
+          "contest": "Jack & Jill Masters",
+          "round": "/results/tulsa2025/jjfinals.html#4",
+          "table": 0,
+          "row": 3,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Ben Clemons",
+            "Bryan Jordan",
+            "Maria Bileychik",
+            "Felicia Hoeppner",
+            "Bella Viramontes",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "4",
+            "Tim Acosta and Diana Burkholder",
+            "4",
+            "3",
+            "3",
+            "3",
+            "4",
+            "415/143",
+            "3-3-3-4-4"
+          ],
+          "matched_cell": "Tim Acosta and Diana Burkholder",
+          "exact": false,
+          "paired": true
+        }
+      ]
+    },
+    {
+      "subject_id": "2025-04-tulsa-spring-swing/advanced-jj/F-154",
+      "name_raw": "Jordan Sims",
+      "role": "follower",
+      "bib": "154",
+      "wsdc_id": 8257,
+      "source": "eepro",
+      "snapshot_id": "snap_20260912T163231Z_3b5ab60a8800",
+      "category": "mixed_person_cell_only",
+      "matches": [
+        {
+          "contest": "Jack & Jill Advanced",
+          "round": "/results/tulsa2025/jjfinals.html#0",
+          "table": 0,
+          "row": 1,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Bryan Jordan",
+            "Kris Swearingen",
+            "Trose Roseborough",
+            "Austin Murrey",
+            "Chelsea Murrey",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "2",
+            "Tim Acosta and Jordan Sims",
+            "3",
+            "2",
+            "2",
+            "3",
+            "3",
+            "415/154",
+            "2-2-3-3-3"
+          ],
+          "matched_cell": "Tim Acosta and Jordan Sims",
+          "exact": false,
+          "paired": true
+        },
+        {
+          "contest": "Jack & Jill Invitational",
+          "round": "/results/tulsa2025/jjfinals.html#3",
+          "table": 0,
+          "row": 6,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Invitational Judge 1",
+            "Invitational Judge 2",
+            "Invitational Judge 3",
+            "Invitational Judge 4",
+            "Invitational Judge 5",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "7",
+            "Jordan Sims and Bella and Felicia",
+            "7",
+            "7",
+            "7",
+            "5",
+            "7",
+            "",
+            "5-7-7-7-7"
+          ],
+          "matched_cell": "Jordan Sims and Bella and Felicia",
+          "exact": false,
+          "paired": true
+        }
+      ]
+    },
+    {
+      "subject_id": "2025-04-tulsa-spring-swing/advanced-jj/L-372",
+      "name_raw": "Luke Reeves",
+      "role": "leader",
+      "bib": "372",
+      "wsdc_id": 17070,
+      "source": "eepro",
+      "snapshot_id": "snap_20260912T163231Z_3b5ab60a8800",
+      "category": "mixed_person_cell_only",
+      "matches": [
+        {
+          "contest": "Jack & Jill Advanced",
+          "round": "/results/tulsa2025/jjfinals.html#0",
+          "table": 0,
+          "row": 2,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Bryan Jordan",
+            "Kris Swearingen",
+            "Trose Roseborough",
+            "Austin Murrey",
+            "Chelsea Murrey",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "3",
+            "Luke Reeves and Yvonne Dodson",
+            "5",
+            "3",
+            "3",
+            "1",
+            "2",
+            "372/321",
+            "1-2-3-3-5"
+          ],
+          "matched_cell": "Luke Reeves and Yvonne Dodson",
+          "exact": false,
+          "paired": true
+        }
+      ]
+    },
+    {
+      "subject_id": "2025-04-tulsa-spring-swing/advanced-jj/F-321",
+      "name_raw": "Yvonne Dodson",
+      "role": "follower",
+      "bib": "321",
+      "wsdc_id": 5486,
+      "source": "eepro",
+      "snapshot_id": "snap_20260912T163231Z_3b5ab60a8800",
+      "category": "mixed_person_cell_only",
+      "matches": [
+        {
+          "contest": "Jack & Jill Advanced",
+          "round": "/results/tulsa2025/jjfinals.html#0",
+          "table": 0,
+          "row": 2,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Bryan Jordan",
+            "Kris Swearingen",
+            "Trose Roseborough",
+            "Austin Murrey",
+            "Chelsea Murrey",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "3",
+            "Luke Reeves and Yvonne Dodson",
+            "5",
+            "3",
+            "3",
+            "1",
+            "2",
+            "372/321",
+            "1-2-3-3-5"
+          ],
+          "matched_cell": "Luke Reeves and Yvonne Dodson",
+          "exact": false,
+          "paired": true
+        },
+        {
+          "contest": "Jack & Jill Masters",
+          "round": "/results/tulsa2025/jjfinals.html#4",
+          "table": 0,
+          "row": 1,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Ben Clemons",
+            "Bryan Jordan",
+            "Maria Bileychik",
+            "Felicia Hoeppner",
+            "Bella Viramontes",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "2",
+            "Rick Brunson and Yvonne Dodson",
+            "3",
+            "2",
+            "4",
+            "2",
+            "2",
+            "133/321",
+            "2-2-2-3-4"
+          ],
+          "matched_cell": "Rick Brunson and Yvonne Dodson",
+          "exact": false,
+          "paired": true
+        }
+      ]
+    },
+    {
+      "subject_id": "2025-04-tulsa-spring-swing/allstar-jj/L-124",
+      "name_raw": "CJ Caraway",
+      "role": "leader",
+      "bib": "124",
+      "wsdc_id": 7517,
+      "source": "eepro",
+      "snapshot_id": "snap_20260912T163231Z_3b5ab60a8800",
+      "category": "mixed_person_cell_only",
+      "matches": [
+        {
+          "contest": "Jack & Jill All Star",
+          "round": "/results/tulsa2025/jjfinals.html#1",
+          "table": 0,
+          "row": 0,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Doug Rousar",
+            "Kris Swearingen",
+            "Trose Roseborough",
+            "Austin Murrey",
+            "Chelsea Murrey",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "1",
+            "CJ Caraway and Sharell Weeams",
+            "1",
+            "1",
+            "1",
+            "1",
+            "1",
+            "124/136",
+            "1-1-1-1-1"
+          ],
+          "matched_cell": "CJ Caraway and Sharell Weeams",
+          "exact": false,
+          "paired": true
+        },
+        {
+          "contest": "Jack & Jill All Star",
+          "round": "/results/tulsa2025/jjfinals.html#1",
+          "table": 0,
+          "row": 7,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Doug Rousar",
+            "Kris Swearingen",
+            "Trose Roseborough",
+            "Austin Murrey",
+            "Chelsea Murrey",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "8",
+            "CJ Caraway and Bella Viramontes",
+            "6",
+            "5",
+            "9",
+            "8",
+            "8",
+            "124/160",
+            "5-6-8-8-9"
+          ],
+          "matched_cell": "CJ Caraway and Bella Viramontes",
+          "exact": false,
+          "paired": true
+        }
+      ]
+    },
+    {
+      "subject_id": "2025-04-tulsa-spring-swing/allstar-jj/F-136",
+      "name_raw": "Sharell Weeams",
+      "role": "follower",
+      "bib": "136",
+      "wsdc_id": 8262,
+      "source": "eepro",
+      "snapshot_id": "snap_20260912T163231Z_3b5ab60a8800",
+      "category": "mixed_person_cell_only",
+      "matches": [
+        {
+          "contest": "Jack & Jill All Star",
+          "round": "/results/tulsa2025/jjfinals.html#1",
+          "table": 0,
+          "row": 0,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Doug Rousar",
+            "Kris Swearingen",
+            "Trose Roseborough",
+            "Austin Murrey",
+            "Chelsea Murrey",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "1",
+            "CJ Caraway and Sharell Weeams",
+            "1",
+            "1",
+            "1",
+            "1",
+            "1",
+            "124/136",
+            "1-1-1-1-1"
+          ],
+          "matched_cell": "CJ Caraway and Sharell Weeams",
+          "exact": false,
+          "paired": true
+        },
+        {
+          "contest": "Jack & Jill Invitational",
+          "round": "/results/tulsa2025/jjfinals.html#3",
+          "table": 0,
+          "row": 0,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Invitational Judge 1",
+            "Invitational Judge 2",
+            "Invitational Judge 3",
+            "Invitational Judge 4",
+            "Invitational Judge 5",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "1",
+            "Sharell Weeams and David and TRose",
+            "5",
+            "1",
+            "2",
+            "1",
+            "6",
+            "",
+            "1-1-2-5-6"
+          ],
+          "matched_cell": "Sharell Weeams and David and TRose",
+          "exact": false,
+          "paired": true
+        }
+      ]
+    },
+    {
+      "subject_id": "2025-04-tulsa-spring-swing/allstar-jj/L-318",
+      "name_raw": "Jonathan Wolfgram",
+      "role": "leader",
+      "bib": "318",
+      "wsdc_id": 18451,
+      "source": "eepro",
+      "snapshot_id": "snap_20260912T163231Z_3b5ab60a8800",
+      "category": "mixed_person_cell_only",
+      "matches": [
+        {
+          "contest": "Jack & Jill All Star",
+          "round": "/results/tulsa2025/jjfinals.html#1",
+          "table": 0,
+          "row": 1,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Doug Rousar",
+            "Kris Swearingen",
+            "Trose Roseborough",
+            "Austin Murrey",
+            "Chelsea Murrey",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "2",
+            "Jonathan Wolfgram and Lily Auclair",
+            "3",
+            "2",
+            "2",
+            "6",
+            "2",
+            "318/305",
+            "2-2-2-3-6"
+          ],
+          "matched_cell": "Jonathan Wolfgram and Lily Auclair",
+          "exact": false,
+          "paired": true
+        },
+        {
+          "contest": "Jack & Jill All Star",
+          "round": "/results/tulsa2025/jjfinals.html#1",
+          "table": 0,
+          "row": 4,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Doug Rousar",
+            "Kris Swearingen",
+            "Trose Roseborough",
+            "Austin Murrey",
+            "Chelsea Murrey",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "5",
+            "Jonathan Wolfgram and Susan Brown",
+            "5",
+            "4",
+            "3",
+            "5",
+            "5",
+            "318/345",
+            "3-4-5-5-5"
+          ],
+          "matched_cell": "Jonathan Wolfgram and Susan Brown",
+          "exact": false,
+          "paired": true
+        }
+      ]
+    },
+    {
+      "subject_id": "2025-04-tulsa-spring-swing/allstar-jj/F-305",
+      "name_raw": "Lily Auclair",
+      "role": "follower",
+      "bib": "305",
+      "wsdc_id": 14081,
+      "source": "eepro",
+      "snapshot_id": "snap_20260912T163231Z_3b5ab60a8800",
+      "category": "mixed_person_cell_only",
+      "matches": [
+        {
+          "contest": "Jack & Jill All Star",
+          "round": "/results/tulsa2025/jjfinals.html#1",
+          "table": 0,
+          "row": 1,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Doug Rousar",
+            "Kris Swearingen",
+            "Trose Roseborough",
+            "Austin Murrey",
+            "Chelsea Murrey",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "2",
+            "Jonathan Wolfgram and Lily Auclair",
+            "3",
+            "2",
+            "2",
+            "6",
+            "2",
+            "318/305",
+            "2-2-2-3-6"
+          ],
+          "matched_cell": "Jonathan Wolfgram and Lily Auclair",
+          "exact": false,
+          "paired": true
+        }
+      ]
+    },
+    {
+      "subject_id": "2025-04-tulsa-spring-swing/allstar-jj/F-326",
+      "name_raw": "Julie Auclair",
+      "role": "follower",
+      "bib": "326",
+      "wsdc_id": 11308,
+      "source": "eepro",
+      "snapshot_id": "snap_20260912T163231Z_3b5ab60a8800",
+      "category": "mixed_person_cell_only",
+      "matches": [
+        {
+          "contest": "Jack & Jill All Star",
+          "round": "/results/tulsa2025/jjfinals.html#1",
+          "table": 0,
+          "row": 2,
+          "headers": [
+            "Place",
+            "Competitor",
+            "Doug Rousar",
+            "Kris Swearingen",
+            "Trose Roseborough",
+            "Austin Murrey",
+            "Chelsea Murrey",
+            "BIB",
+            "Marks Sorted"
+          ],
+          "cells": [
+            "3",
+            "Ben Clemons and Julie Auclair",
+            "2",
+            "3",
+            "5",
+            "7",
+            "4",
+            "353/326",
+            "2-3-4-5-7"
+          ],
+          "matched_cell": "Ben Clemons and Julie Auclair",
+          "exact": false,
+          "paired": true
+        }
+      ]
+    }
+  ]
+}

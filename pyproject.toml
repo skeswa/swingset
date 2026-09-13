@@ -18,6 +18,7 @@ dependencies = [
   "scipy>=1.15",
   "nameparser>=1.1",
   "huggingface-hub>=0.34",
+  "pypdf>=6.18.1",
 ]
 
 [project.scripts]

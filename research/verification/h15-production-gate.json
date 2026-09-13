@@ -1,0 +1,19 @@
+{
+  "checkpoint": "/var/lib/swingset/checkpoints/h14-before-h15-20260913",
+  "checkpoint_manifest_sha256": "f1ade4f3db6a29cf329c01de43db4540e0bd3d6768030fc7ff5fe56d9a275268",
+  "driver_sha256": "c6e75bf8ba76460301fdfab235a28ea26213f7e2aa85c81771afe2da631d436a",
+  "evidence_files": {
+    "backup.json": "5b324cb4de18568c924ed8692f69f3bd0d292f8b54565e8f1de039a80e056243",
+    "private-verification.json": "d3fd79aedb5dffbf9835050141311ac7eea2214a3b5f9f8545e746251175a504",
+    "v4-verification.json": "290b2302c65ce84b4483c4f2b6104cebcc9ba68b5e132f6c674bbaed410f8b2a"
+  },
+  "format": "h15-operational-gate-v1",
+  "private_backup_commit": "a845bd78006fbc30f7bdf6ad1580d35fdec71a8c",
+  "private_backup_receipt": "backup.json",
+  "private_backup_verified": true,
+  "source_receipt_sha256": "be7001a7e3bd3bc496f40513662cb5b561217b55cf37a3e11255fa84deea1c8c",
+  "v4_commit": "81121dcc7d62a1db9e76ee1c49a6b90e1f4c5653",
+  "v4_manifest_sha256": "87ac286a1ae452f09f7e5cea646f260ac34035f3d05bb83de17c7d9cc8f08884",
+  "v4_verified": true,
+  "verified_at": "2026-09-13T11:03:09.487264+00:00"
+}

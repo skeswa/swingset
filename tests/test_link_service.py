@@ -1,6 +1,5 @@
 from datetime import UTC, datetime
 from types import MappingProxyType
-from unittest.mock import patch
 
 import pytest
 
@@ -11,12 +10,12 @@ from swingset.model.ids import observation_id
 from swingset.model.observations import encode_payload
 from swingset.project.process import process_unit
 from swingset.schedule.watches import upsert_watch
-from swingset.sources.records import DancerLookup
+from swingset.sources.records import Cell, DancerLookup, ResultRow, ResultTable, RoundSheet
 from swingset.sources.records import RegistryPlacement as RawPlacement
 from swingset.sources.wsdc_registry import DancerPage
 from swingset.sources.wsdc_registry.adapter import SOURCE as REGISTRY_SOURCE
 from swingset.state.db import open_database
-from swingset.state.work import WorkUnit, enqueue
+from swingset.state.work import WorkUnit, bump_revision, enqueue
 
 
 class Bundle:
@@ -56,7 +55,53 @@ def entry(conn: object, entry_id: str, contest: str, bib: str, name: str = "Alex
     )
 
 
+def owned_source_sheet(conn, rows, *, contest="c1", snapshot="owned-source"):
+    """Explicit synthetic owned cells; no event-wide name-to-ID injection."""
+    conn.execute(
+        "INSERT OR IGNORE INTO runs(run_id,started_at,dry_run) VALUES ('run','2026-01-05',1)"
+    )
+    source_ref = "scoringdance:event"
+    conn.execute(
+        "INSERT OR IGNORE INTO source_event_map VALUES ('scoringdance',?,'event','override',1)",
+        (source_ref,),
+    )
+    conn.execute(
+        "INSERT INTO watches(watch_id,source,kind,method,url,parser,source_ref,state) VALUES (?,'scoringdance','round','GET',?,'scoringdance.round',?,'live')",
+        (snapshot, f"https://example/{snapshot}", source_ref),
+    )
+    conn.execute(
+        "INSERT INTO snapshots(snapshot_id,watch_id,method,url,fetched_at,http_status,body_bytes,content_changed,run_id,classification) VALUES (?,?,'GET',?,'2026-01-05',200,1,1,'run','Ok')",
+        (snapshot, snapshot, f"https://example/{snapshot}"),
+    )
+    table = ResultTable(
+        "prelim",
+        (Cell("Bib"), Cell("Leader")),
+        tuple(
+            ResultRow(
+                (
+                    Cell(bib),
+                    Cell(name, (("data-wsdc", str(number)),)) if number is not None else Cell(name),
+                )
+            )
+            for bib, name, number in rows
+        ),
+    )
+    payload = RoundSheet("round_sheet", source_ref, contest, "Novice J&J", "Prelim", (table,))
+    conn.execute(
+        "INSERT INTO observations VALUES (?,?,?,'round_sheet','source_event',?,0,'1','1',?)",
+        (snapshot, snapshot, snapshot, source_ref, encode_payload(payload)),
+    )
+    for bib, _name, _number in rows:
+        conn.execute(
+            "UPDATE entries SET snapshot_id=?,source='scoringdance' WHERE contest_id=? AND bib=?",
+            (snapshot, contest, bib),
+        )
+
+
 def run(db: object, bundle: Bundle) -> None:
+    db.connection.execute(
+        "INSERT OR IGNORE INTO runs(run_id,started_at,dry_run) VALUES ('run','2026-01-05',1)"
+    )
     with db.transaction() as conn:
         enqueue(conn, (WorkUnit("link", "event", "event"),), enqueued_at="2026-01-05T00:00:00Z")
     link_event(db, "event", bundle, FakeClock(datetime(2026, 1, 5, tzinfo=UTC)), "run")  # type: ignore[arg-type]
@@ -75,28 +120,6 @@ def test_same_bib_across_contests_does_not_merge_identities(tmp_path) -> None:
         assert tuple(rows[1]) == (None, "none")
 
 
-def test_manual_none_and_manual_id_win(tmp_path) -> None:
-    with open_database(tmp_path, lock=False) as db:
-        seed(db.connection)
-        entry(db.connection, "event/c1/L-7", "c1", "7")
-        overrides = [
-            {
-                "entry_id": "event/c1/L-7",
-                "wsdc_id": "NONE",
-                "reason": "review",
-                "author": "test",
-                "date": "2026-01-05",
-            }
-        ]
-        run(db, Bundle(overrides))
-        row = db.connection.execute("SELECT wsdc_id,method,status FROM identity_links").fetchone()
-        assert tuple(row) == (None, "manual", "confirmed")
-        overrides[0]["wsdc_id"] = "2"
-        run(db, Bundle(overrides))
-        row = db.connection.execute("SELECT wsdc_id,method FROM identity_links").fetchone()
-        assert tuple(row) == (2, "manual")
-
-
 def test_registry_addition_reaches_previously_unmatched_entry(tmp_path) -> None:
     with open_database(tmp_path, lock=False) as db:
         seed(db.connection)
@@ -111,6 +134,9 @@ def test_registry_addition_reaches_previously_unmatched_entry(tmp_path) -> None:
         db.connection.execute(
             "INSERT INTO dancers(wsdc_id,first_name,last_name,name_norm,is_pro,primary_role,leader_required_level,leader_allowed_level,follower_required_level,follower_allowed_level,leader_highest_level,leader_highest_points,follower_highest_level,follower_highest_points,recent_year,registry_internal_id,registry_fetched_at,source,snapshot_id,parser_version,first_seen_at,last_seen_at,run_id) VALUES (3,'New','Person','new person',0,'leader','novice','advanced','novice','advanced','novice',1,'novice',1,2026,3,'t','test','snap','1','t','t','run')"
         )
+        # Model the registry writer's semantic revision alongside this direct
+        # fixture insertion; queue timestamps alone are no longer inputs.
+        bump_revision(db.connection, "dancers")
         run(db, Bundle())
         row = db.connection.execute("SELECT wsdc_id,status FROM identity_links").fetchone()
         assert tuple(row) == (3, "probable")
@@ -141,6 +167,7 @@ def test_later_registry_finalist_confirms_unmatched_entry_without_inventing_poin
                 "SELECT wsdc_id,status FROM identity_links WHERE subject_id='event/c1/F-7'"
             ).fetchone()
         ) == (None, "unmatched")
+        assert db.connection.execute("SELECT COUNT(*) FROM link_candidates").fetchone()[0] == 0
 
         spec = REGISTRY_SOURCE.watch(3)
         upsert_watch(db.connection, spec, now)
@@ -224,8 +251,9 @@ def test_source_id_can_link_same_dancer_across_contests(tmp_path) -> None:
         seed(db.connection)
         entry(db.connection, "event/c1/L-7", "c1", "7")
         entry(db.connection, "event/c2/L-8", "c2", "8")
-        with patch("swingset.link.service._source_ids", return_value={"alex lee": 1}):
-            run(db, Bundle())
+        owned_source_sheet(db.connection, [("7", "Alex Lee", 1)], contest="c1", snapshot="first")
+        owned_source_sheet(db.connection, [("8", "Alex Lee", 1)], contest="c2", snapshot="second")
+        run(db, Bundle())
         ids = [row[0] for row in db.connection.execute("SELECT wsdc_id FROM identity_links")]
         assert ids.count(1) == 2
 
@@ -356,21 +384,48 @@ def test_registry_points_use_each_roles_prelim_field_and_dance_style(tmp_path) -
         )
 
 
-def test_manual_override_beats_source_id(tmp_path) -> None:
-    with open_database(tmp_path, lock=False) as db:
+def test_identical_names_use_their_own_printed_cells_and_do_not_borrow_ids(tmp_path):
+    with open_database(tmp_path) as db:
         seed(db.connection)
-        entry(db.connection, "event/c1/L-7", "c1", "7")
-        override = [
-            {
-                "entry_id": "event/c1/L-7",
-                "wsdc_id": "2",
-                "reason": "review",
-                "author": "test",
-                "date": "2026-01-05",
-            }
-        ]
-        with patch("swingset.link.service._source_ids", return_value={"alex lee": 1}):
-            run(db, Bundle(override))
-        assert tuple(
-            db.connection.execute("SELECT wsdc_id,method FROM identity_links").fetchone()
-        ) == (2, "manual")
+        for bib in ("7", "8", "9"):
+            entry(db.connection, f"entry-{bib}", "c1", bib)
+        owned_source_sheet(
+            db.connection, [("7", "Alex Lee", 1), ("8", "Alex Lee", 2), ("9", "Alex Lee", None)]
+        )
+        run(db, Bundle())
+        rows = {
+            row[0]: tuple(row[1:])
+            for row in db.connection.execute("SELECT entry_id,wsdc_id,link_status FROM entries")
+        }
+        assert rows["entry-7"] == (1, "confirmed")
+        assert rows["entry-8"] == (2, "confirmed")
+        assert rows["entry-9"][0] is None
+        assert (
+            db.connection.execute(
+                "SELECT method FROM identity_links WHERE subject_id='entry-9'"
+            ).fetchone()[0]
+            != "source_id"
+        )
+
+
+def test_conflicting_owned_printed_ids_withhold_and_retain_both_source_signals(tmp_path):
+    with open_database(tmp_path) as db:
+        seed(db.connection)
+        entry(db.connection, "entry", "c1", "7")
+        owned_source_sheet(db.connection, [("7", "Alex Lee", 1), ("7", "Alex Lee", 2)])
+        run(db, Bundle())
+        assert db.connection.execute("SELECT wsdc_id,link_status FROM entries").fetchone()[:] == (
+            None,
+            "unmatched",
+        )
+        links = db.connection.execute("SELECT wsdc_id,status FROM identity_links").fetchone()
+        assert tuple(links) == (None, "unmatched")
+        candidates = db.connection.execute(
+            "SELECT wsdc_id,score,source_id_confirms,chosen FROM link_candidates ORDER BY wsdc_id"
+        ).fetchall()
+        assert [tuple(row) for row in candidates] == [(1, 1.0, 1, 0), (2, 1.0, 1, 0)]
+        evidence = db.connection.execute(
+            "SELECT evidence_json FROM findings WHERE kind='identity_decision' AND closed_at IS NULL"
+        ).fetchone()[0]
+        assert "contradictory_printed_source_identities" in evidence
+        assert '"printed_wsdc_ids":[1,2]' in evidence

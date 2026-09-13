@@ -1,0 +1,62 @@
+{
+  "provenance": "research/verification/2026-09-12/missing-data/issues.json",
+  "note": "Audit counterexamples transcribed from archived issues, not newly fetched source bodies.",
+  "registry": {
+    "wsdc_id": 26843,
+    "name_raw": "Lynne Yun",
+    "primary_role": "follower",
+    "recent_year": 2026,
+    "leader_required_level": "none",
+    "leader_allowed_level": "none",
+    "follower_required_level": "novice",
+    "follower_allowed_level": "novice"
+  },
+  "paired": [
+    {
+      "subject_id": "2026-02-swing-crush/hi-lo-j-j-hi-lead-lo-follow/L-291",
+      "name_raw": "Gabi Wasserman and Lynne Yun",
+      "contest": "Hi-Lo J&J Hi Lead Lo Follow",
+      "bib": "291"
+    },
+    {
+      "subject_id": "2026-06-jack-jill-o-rama/all-american-60s-era-j-j/L-22",
+      "name_raw": "Ben McHenry and Lynne Yun",
+      "contest": "All American 60s Era J&J",
+      "bib": "22"
+    }
+  ],
+  "unrestricted": [
+    {
+      "contest": "ProAm New-Nov",
+      "event": "Atlanta Swing Classic 2025",
+      "bib": "940"
+    },
+    {
+      "contest": "ProAm New/Nov",
+      "event": "Northeast Swing Classic 2025",
+      "bib": "175"
+    },
+    {
+      "contest": "ProAm New/Nov",
+      "event": "MADjam 2026",
+      "bib": "975"
+    },
+    {
+      "contest": "Spooky All American",
+      "event": "SASS 2025",
+      "bib": "110"
+    }
+  ],
+  "archived_issues": [
+    {
+      "body": "Found while investigating Lynne Yun (WSDC 26843). Reviewed code `2089803d379ef4233ee45a49193ce97befcf0911`; published baseline `ec6b7bbb84be9e5252d55c6bb1eae3feef05dd5b`.\n\nHer record was absent from the partial registry mirror (sweep cursor 3297). A normal gated lookup succeeded: snapshot `snap_20260911T041431Z_9ae4a83cd7c2`, SHA-256 `9ae4a83cd7c24315e0768edb08d269a85fc7bca3f3964d3c7b1a0ba29273c11d`. It identifies Lynne Yun, 26843, primary follower, required/allowed Novice, 7 points. The body parses and projects successfully.\n\nLocal replay reveals false individual associations once this missing dancer enters the mirror:\n\n- `2026-02-swing-crush/hi-lo-j-j-hi-lead-lo-follow/L-291`: name `Gabi Wasserman and Lynne Yun`, role `leader` -> wsdc_id 26843, probable, score 0.9000000000000001.\n- `2026-06-jack-jill-o-rama/all-american-60s-era-j-j/L-22`: name `Ben McHenry and Lynne Yun`, role `leader` -> same incorrect individual assignment.\n\n`generate_candidates` uses token-set similarity, so a single dancer contained in a two-person string gets similarity 1.0. Role mismatch is merely a small score reduction; `division=none` matches the dancer's inactive leader level, producing a publishable 0.9 score. The earlier source projection retained a paired name under a leader entry; neither layer protects individual identity ownership.\n\n- [ ] Preserve pair ownership explicitly when a source cell contains both names; infer individual role only from adequate source evidence.\n- [ ] Prevent a mixed-person name from becoming a probable/confirmed individual solely through token-set containment.\n- [ ] Retain legitimate compound individual names and explicit individual source-ID evidence with suitable regression cases.\n- [ ] Review existing mixed-name entries for false links and issue findings where role attribution remains unresolved.\n- [ ] Bump affected parser/projector/linker versions, replay, and inspect the published changes.\n\nThe two false associations above are from an isolated replay, not a reviewed public release. The newly fetched registry snapshot is queued in production for normal processing; this is a general defect beyond Lynne.\n",
+      "number": 17,
+      "title": "Prevent paired source names from linking to the wrong individual role"
+    },
+    {
+      "body": "Found while investigating Lynne Yun (WSDC 26843). Reviewed code `2089803d379ef4233ee45a49193ce97befcf0911`; published baseline `ec6b7bbb84be9e5252d55c6bb1eae3feef05dd5b`.\n\nHer record was absent from the partial registry mirror (sweep cursor 3297). A normal gated lookup succeeded: snapshot `snap_20260911T041431Z_9ae4a83cd7c2`, SHA-256 `9ae4a83cd7c24315e0768edb08d269a85fc7bca3f3964d3c7b1a0ba29273c11d`. It identifies Lynne Yun, 26843, primary follower, required/allowed Novice, 7 points. The body parses and projects successfully.\n\nAfter importing this real registry record into a local copy and replaying 14 events, 15 of 19 individual-name entries link (14 probable, one registry-confirmed), but four remain unmatched despite exact names.\n\n`link/candidates.py:_division_ok` includes `none` as numeric level 0. Non-level contests with `division=none` are therefore deemed incompatible with a Novice follower. `link/score.py` reduces the exact-name score to 0.08; assignment requires 0.5. Reproduced for:\n\n- Atlanta Swing Classic 2025 ProAm New-Nov follower, bib 940.\n- Northeast Swing Classic 2025 ProAm New/Nov follower, bib 175.\n- MADjam 2026 ProAm New/Nov follower, bib 975.\n- SASS 2025 Spooky All American follower, bib 110.\n\n- [ ] Distinguish an unrestricted/unspecified contest division from an actual eligibility level; omit unsupported eligibility evidence instead of treating it as level zero.\n- [ ] Preserve rejection of genuine known division mismatches and appropriate handling of unknown dancer levels.\n- [ ] Add regression cases using the captured registry evidence and these non-level contest shapes.\n- [ ] Bump linker version, replay, review identity changes, and publish verified corrections.\n\nScope is identity eligibility; do not invent a Novice classification for the source contests.\n",
+      "number": 16,
+      "title": "Fix identity eligibility for unrestricted contest divisions"
+    }
+  ]
+}

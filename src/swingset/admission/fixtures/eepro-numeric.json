@@ -1,0 +1,18 @@
+{
+  "archive_url": null,
+  "body_sha256": "a9ae19fdf33e9bdb343269d35640c09caea4de66affbdf5022c3f2244d941448",
+  "captured_at": "2026-09-09T15:05:26.934080+00:00",
+  "child_count": 0,
+  "extract_sha256": "fe8dff1013dfa04440507b59712c2be676e391878492efd29cd23336c4ad3ca4",
+  "extract_version": "3",
+  "observation_count": 1,
+  "observed_at": "2026-09-09T15:05:26.934080+00:00",
+  "page_kind": "eepro.round",
+  "parser_version": "6",
+  "report_digest": "96f94811263ee4303d5382563df8292077febdc915722d91fbf4c34ba15604a9",
+  "snapshot_id": "snap_20260909T150526Z_a9ae19fdf33e",
+  "state_root": "/var/lib/swingset/checkpoints/v2-v1-published-20260913T0543Z",
+  "url": "https://eepro.com/results/summerhummer2026/aa.html",
+  "via": "origin",
+  "watch_id": "b0d858447aef6cbd"
+}

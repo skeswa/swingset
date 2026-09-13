@@ -43,7 +43,7 @@ These are defaults. A playbook may override intervals for its host in
 its section 6 (danceconvention.net does, because each poll is 1.67 MB).
 | `archived` | after cooling | 90 days | Only to catch late corrections and link rot. |
 | `sealed` | event ended more than two years ago, or the origin is dead, after a successful parse | none | Never refetched; reparse from the archive still works. See [backfill](backfill.md#scheduling). |
-| `gone` | 3 consecutive 404s | none | Kept for provenance. |
+| `gone` | 3 consecutive 404s | 90 days | Kept for provenance; a genuinely new parent relationship can reactivate it. |
 | `paused` | host or source paused | resumes at `paused_until` | Overrides the others. |
 
 Index pages (EEPro event list, scoring.dance recent list, DCN upcoming
@@ -60,9 +60,9 @@ after each event. These policies support multiple overlapping events.
 
 Backfill watches (historical events found in platform archives or the
 Wayback CDX) have state `backfill`. When `archive_url` is set the fetch
-goes to the Wayback Machine, not the origin. They are fetched only when
-no other watch is due in the current run, newest event first, one page
-at a time within the normal politeness rules. A watch whose event ended
+goes to the Wayback Machine, not the origin. An eligible historical offer
+receives the old-work acquisition share, newest event first, one page
+at a time within the normal politeness rules and year-acceptance gates. A watch whose event ended
 more than two years ago, or whose origin is dead, becomes `sealed` after
 a successful parse and is never fetched again; younger ones behave like
 `archived`. Order, capture selection, and origin fallback are owned by
@@ -103,14 +103,81 @@ Discovery never deletes watches.
 
 ## Work order
 
-Choose watches by priority, then `next_check_at`: live, cooling, index,
-upcoming, archived, registry, backfill. The sweep sits below archived
-work. Registry lookups use POST form data but otherwise use the same
-watch, gate, archive, and recovery path. Source policy supplies registry
-sweep, probe, trickle, and confirmation schedules.
+Reconciliation and supported corrections run first. The initial 720-second
+cycle reserves 30 seconds for reconciliation, 300 for acquisition, and 390
+for offline work, including building. Unused allocations can be borrowed.
+These shares are operating objectives, not permission to exceed a host
+limit or the 45-second semantic write deadline. A zero budget still accepts
+inputs and starts no work.
 
-The cycle drains existing downstream work before fetching another batch,
-as [operations](operations.md#cycle) specifies. This is separate from
-watch priority; pending parse and projection work is not another polling
-state. Manual operator pauses are described in
+Acquisition divides each host's existing request allowance between new,
+current, identity, and old eligible demand. Initial percentages are:
+
+| Host                | New | Current | Identity | Old |
+| ------------------- | --: | ------: | -------: | --: |
+| scoring.dance       |  50 |      25 |       10 |  15 |
+| points.worldsdc.com |  10 |       0 |       70 |  20 |
+| web.archive.org     |  50 |      10 |       20 |  20 |
+| Other hosts         |  40 |      30 |       20 |  10 |
+
+The picker uses actual issued requests divided by class weight. Empty
+classes lend their share; host service rotates independently. A class
+without service for 24 hours is promoted when it is eligible. This is a
+class-service objective, not a per-watch completion deadline. Pause time
+does not earn credits or extra capacity. Existing daily usage remains
+charged after restart, resume, or a policy change. Historical acquisition
+requires the dispatcher's year, parent, capture, and admission checks;
+an existing archive watch does not bypass those checks. The four exact
+phase-one event-list kinds retain their inventory exception.
+
+Within offline work, durable service sequence rotates both stage and unit
+kind. A continual parse or mapping backlog cannot consume every turn.
+The existing unit ordering, retry fingerprint, deadline, and control scope
+still determine eligibility. Service records an attempted unit; it never
+claims that an output committed successfully.
+
+A cycle excludes an already attempted input fingerprint, rather than the
+whole unit. Later parses can add inputs to a shared projection and let it
+run again in that cycle. Repeating the same bytes and recipe does not unlock
+a blocked attempt. Once offline work settles, saved interpretation and a
+build receive offline time before unused time is lent back to collection.
+Cycle receipts report actual phase time separately from configured shares.
+
+Acquisition pauses when pending parse work reaches 1,000 items or 128 MiB
+of distinct retained bodies, or total pending work reaches 10,000 items.
+Two actual requests per cycle remain available for explicitly identified
+identity dependencies. Ordinary unfetched rounds do not receive that
+reserve. Robots, redirects, retries, and failed issued requests consume
+it. One response can cross a threshold; these are admission high-water
+marks, not hard limits on an unknown response size. Offline work continues.
+
+`[scheduling]` in `config/sources.toml` configures cycle shares, the service
+gap, high-water marks, repair request count, and watch recovery clocks.
+Changing these settings captures a new input bundle without relabeling
+source interpretations. The measured load and the distinction between
+observations and initial objectives are in
+[the H14 shadow report](../research/h14-shadow-load-2026-09-13.md).
+
+Dateless watches get three metadata recovery attempts, then a 30-day
+recheck. Expected unpublished results retain their bounded daily window;
+persistently unavailable watches move to a 90-day clock. Repeating the
+same parent link does not reset these clocks. A newly observed parent-child
+relationship or actual recovered dates can reactivate the watch without
+inventing dates. Manual operator pauses remain separate, as described in
 [operations](operations.md#locks-and-operator-commands).
+
+## Registry verification consumers (H2)
+
+Sweep and probe completion consume usable verification outcomes. A probe
+requires a usable check strictly after its start; an identical response can
+finish it without a new claim snapshot. A failed or still-uninterpreted check
+receives a retry within 15 minutes instead of the annual profile interval;
+parse failure backoff and host gates still apply. Discovery preserves a
+current attempt's retry delay.
+
+The daily 100-profile trickle selects missing or oldest usable verification
+first, with a 365-day stale boundary. Successful identical checks rotate
+profiles out of that selection without changing `registry_fetched_at`.
+Weekly new-ID discovery continues after the 30-day intensive window. A new
+projected dancer invalidates links for all retained events, including old
+unresolved entries with no candidate-index edge.

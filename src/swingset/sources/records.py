@@ -100,6 +100,7 @@ class RoundSheet:
     round_name_raw: str
     tables: tuple[ResultTable, ...]
     event_name_raw: str | None = None
+    scoring_method_raw: str | None = None
 
 
 @dataclass(frozen=True)

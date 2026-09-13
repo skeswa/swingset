@@ -1,0 +1,7 @@
+{
+  "commit": "2dd1c31510aec7ce10d752403cf5901f8a375636",
+  "manifest_hash": "28b08a723746f40490aa071951fb4071da9f96f29ede2d282a5cefc189a835cf",
+  "checkpoint": "/var/lib/swingset/checkpoints/v2-v4-published-cand_7f8cf9bcbf7e4a60",
+  "files": 64907,
+  "finished_at": "2026-09-13T09:06:01.655424+00:00"
+}

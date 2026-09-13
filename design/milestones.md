@@ -18,7 +18,9 @@ The phase-by-phase detail, per-host budgets, and the operator
 conversation that precedes M2 are in [scraping plan](scraping-plan.md).
 
 v1 is M0 through M3b. The work packages, their order, and the VM they
-run in are in [implementation plan](implementation-plan.md).
+run in are in [implementation plan](implementation-plan.md). M6 and the
+self-healing revisions are ordered by
+[implementation plan v2](implementation-plan-v2.md).
 
 Judge linking ships with the canonical model in M2. Offline weight
 fitting and event-site link scanning follow v1; they are not prerequisites

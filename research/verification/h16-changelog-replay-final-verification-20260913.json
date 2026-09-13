@@ -1,0 +1,99 @@
+{
+  "format": "offline-derivation-replay-final-verification-v1",
+  "checked_at": "2026-09-13T19:20:38.456409+00:00",
+  "scratch": "/var/tmp/swingset-h16-changelog-replay",
+  "source": "/nix/store/093lylp4naslq5yb2mygbkkgkbsar3ym-source",
+  "source_receipt_sha256": "3930dbc9f6023250a5253043ade60bd3fc90c57bda27e2c64f8520aa4c588a92",
+  "driver_sha256": "aa248cafb7349c4247cb7106a10a4cea810dc8874d4cc87a8dd48cbe687477fe",
+  "marker_sha256": "f1e869c0844943b28c0d6f58e8af1b601e72c244984d998bcce1c72ca5821591",
+  "input_bundle_hash": "9370ccc35058661037c78b2dbcea797932dce1e4211638826149661a4e37e683",
+  "final_receipt_path": "/var/tmp/swingset-h16-changelog-replay-012.json",
+  "final_receipt_sha256": "279a4662066594d5aa5a80dcc6c9de8daa03863c38d6b8ea4dcacf202b5265c1",
+  "current": true,
+  "unfinished_by_stage": {
+    "project": 0,
+    "link": 0
+  },
+  "counts": [
+    [
+      "link",
+      "succeeded",
+      2541
+    ],
+    [
+      "project",
+      "succeeded",
+      32445
+    ]
+  ],
+  "materialized_by_stage": [
+    [
+      "link",
+      2541
+    ],
+    [
+      "project",
+      32445
+    ]
+  ],
+  "generation_count": 34986,
+  "foreign_key_violations": [],
+  "inherited_open_runs_unchanged": [
+    [
+      "run_20260910T134707Z",
+      "2026-09-10T13:47:07.049634Z",
+      null
+    ],
+    [
+      "run_20260910T141607Z",
+      "2026-09-10T14:16:07.058830Z",
+      null
+    ],
+    [
+      "run_20260910T144507Z",
+      "2026-09-10T14:45:07.062100Z",
+      null
+    ],
+    [
+      "run_20260913T035033Z",
+      "2026-09-13T03:50:45.149373+00:00",
+      null
+    ],
+    [
+      "run_20260913T050412Z",
+      "2026-09-13T05:04:12.815395Z",
+      null
+    ],
+    [
+      "run_20260913T053144Z",
+      "2026-09-13T05:31:44.082001Z",
+      null
+    ],
+    [
+      "run_20260913T055216Z",
+      "2026-09-13T05:52:16.766220Z",
+      null
+    ]
+  ],
+  "unfinished_replay_runs": 0,
+  "writer_lock_released_and_independently_verified": true,
+  "production_units": {
+    "swingset-cycle.service": "inactive",
+    "swingset-cycle.timer": "inactive",
+    "swingset-backup.service": "inactive",
+    "swingset-backup.timer": "inactive",
+    "swingset-summary.service": "inactive",
+    "swingset-summary.timer": "inactive"
+  },
+  "active_system": "/nix/store/r29kapzbjk0ch5h0vkk288jd47dvg90j-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+  "persistent_system": "/nix/store/r29kapzbjk0ch5h0vkk288jd47dvg90j-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+  "production_baseline": "/var/lib/swingset/candidates/cand_7f8cf9bcbf7e4a60",
+  "production_schema": 14,
+  "production_materialized_pointers": 0,
+  "build_executed": false,
+  "production_mutated": false,
+  "published": false,
+  "network_requests": 0,
+  "elapsed_seconds": 3.9164991889847443,
+  "passed": true
+}

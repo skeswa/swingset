@@ -226,6 +226,11 @@ URL and an `observed_at`.
   Hits are not fetched automatically; they become suggested
   `source_urls.csv` rows in the review queue, as the live link scan
   already does ([long tail](../docs/sources/long-tail.md)).
+- Filtered event-site query receipts use `source = event_sites` in
+  `archive_queries` and `archive_captures`. They must not use a platform
+  source such as `eepro`: origin fallback treats completed platform queries
+  as searches over all 200-status captures, and a PDF or path filter cannot
+  prove that other archive copies are absent.
 
 ### Selecting a capture
 
@@ -372,7 +377,7 @@ copyright; the facts-not-sheets position is unchanged.
 | WP15 Platform archive backfill | EEPro, scoring.dance, DCN, WDR captures newest first; gap findings                                                                                                                                                                                       | the coverage table shows archive versus origin counts per year                                                                                           |
 | WP16 Origin gap fill           | EEPro operator conversation about pre-2018 slugs; scoring.dance and DCN gap rules; event-site override rows from CDX PDF hits through the review queue                                                                                                   | no origin request is made for a page the archive holds; gaps listed in the card                                                                          |
 
-Order: WP11, then WP12 and WP13 together; these three are phase 1 and
+Order within this document: WP11, then WP12 and WP13 together; these three are phase 1 and
 M6's foundation, and no phase 2 package starts for a year until that
 year's event list is accepted. Then WP15 because it publishes the most
 rows soonest, then WP14, then WP16. WP14 can run in parallel with WP15

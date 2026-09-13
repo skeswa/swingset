@@ -83,21 +83,27 @@ _STYLES = {
 
 
 def project_dancer(conn: sqlite3.Connection, scope_id: str, now: str, run_id: str) -> Projection:
-    row = conn.execute(
-        """SELECT o.kind,o.payload_json,o.snapshot_id,o.parser_version,w.source,s.fetched_at
+    evidence_rows = conn.execute(
+        """SELECT o.kind,o.payload_json,o.snapshot_id,o.parser_version,w.source,COALESCE(s.observed_at,s.fetched_at)
         FROM observations o JOIN watches w USING(watch_id) JOIN snapshots s USING(snapshot_id)
-        WHERE o.scope_kind='dancer' AND o.scope_id=? ORDER BY s.fetched_at DESC,s.snapshot_id DESC LIMIT 1""",
+        WHERE o.scope_kind='dancer' AND o.scope_id=? ORDER BY COALESCE(s.observed_at,s.fetched_at) DESC,s.snapshot_id DESC""",
         (scope_id,),
-    ).fetchone()
-    if row is None:
+    ).fetchall()
+    found = []
+    for evidence_row in evidence_rows:
+        observation = decode_payload(str(evidence_row[0]), str(evidence_row[1]))
+        if (
+            isinstance(observation, DancerLookup)
+            and observation.outcome == "found"
+            and observation.wsdc_id is not None
+        ):
+            found.append((observation, evidence_row))
+    if not found:
         return Projection()
-    payload = decode_payload(str(row[0]), str(row[1]))
-    if (
-        not isinstance(payload, DancerLookup)
-        or payload.outcome != "found"
-        or payload.wsdc_id is None
-    ):
-        return Projection()
+    # A later lookup absence never retracts a found identity. Under enforced
+    # admission each accepted registry snapshot remains available here.
+    payload, row = found[0]
+    assert payload.wsdc_id is not None
     first, last = payload.first_name or "", payload.last_name or ""
     provenance: ProvenanceValues = {
         "source": str(row[4]),
@@ -178,7 +184,9 @@ def project_dancer(conn: sqlite3.Connection, scope_id: str, now: str, run_id: st
         )
     ]
     placement_rows: dict[tuple[object, ...], list[RegistryPlacement]] = {}
-    for placement in payload.placements:
+    for placement, claim_row in (
+        (placement, evidence) for lookup, evidence in found for placement in lookup.placements
+    ):
         division = placement_division(placement.division_raw)
         if division is None:
             continue
@@ -191,6 +199,11 @@ def project_dancer(conn: sqlite3.Connection, scope_id: str, now: str, run_id: st
             )
         except ValueError:
             month = placement.event_month_raw
+        claim_provenance: ProvenanceValues = {
+            **provenance,
+            "snapshot_id": str(claim_row[2]),
+            "parser_version": str(claim_row[3]),
+        }
         canonical = RegistryPlacement(
             wsdc_id=payload.wsdc_id,
             role=role(placement.role_raw),
@@ -207,9 +220,14 @@ def project_dancer(conn: sqlite3.Connection, scope_id: str, now: str, run_id: st
             event_id=None,
             result=placement.result_raw,
             points=placement.points,
-            **provenance,
+            **claim_provenance,
         )
-        placement_rows.setdefault(canonical.key(), []).append(canonical)
+        prior_claims = placement_rows.setdefault(canonical.key(), [])
+        # Present corrections supersede an older claim with the same native
+        # key; omission has no authority. Conflicts within one snapshot remain
+        # conflicts and are never settled by row order.
+        if not prior_claims or prior_claims[0].snapshot_id == canonical.snapshot_id:
+            prior_claims.append(canonical)
     for key, candidates in placement_rows.items():
         claims = {(item.result, item.points) for item in candidates}
         if len(claims) == 1:

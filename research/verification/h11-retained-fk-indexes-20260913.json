@@ -1,0 +1,299 @@
+{
+  "db_bytes_after": 1493680128,
+  "db_bytes_before": 1403138048,
+  "delete_20_most_marked_entries_seconds": 0.001675806997809559,
+  "foreign_key_errors": [],
+  "live_mutations": 0,
+  "migration_seconds": 1.4053261590015609,
+  "network_requests": 0,
+  "query_plans": [
+    {
+      "columns": [
+        "parent_watch_id"
+      ],
+      "plan": [
+        "SEARCH watches USING COVERING INDEX watches_parent_watch_id_fk_idx (parent_watch_id=?)"
+      ],
+      "table": "watches"
+    },
+    {
+      "columns": [
+        "run_id"
+      ],
+      "plan": [
+        "SEARCH snapshots USING COVERING INDEX snapshots_run_id_fk_idx (run_id=?)"
+      ],
+      "table": "snapshots"
+    },
+    {
+      "columns": [
+        "watch_id"
+      ],
+      "plan": [
+        "SEARCH snapshots USING COVERING INDEX snapshots_watch_idx (watch_id=?)"
+      ],
+      "table": "snapshots"
+    },
+    {
+      "columns": [
+        "snapshot_id"
+      ],
+      "plan": [
+        "SEARCH observations USING COVERING INDEX observations_snapshot_id_fk_idx (snapshot_id=?)"
+      ],
+      "table": "observations"
+    },
+    {
+      "columns": [
+        "watch_id"
+      ],
+      "plan": [
+        "SEARCH observations USING COVERING INDEX observations_watch_idx (watch_id=?)"
+      ],
+      "table": "observations"
+    },
+    {
+      "columns": [
+        "run_id"
+      ],
+      "plan": [
+        "SEARCH findings USING COVERING INDEX findings_run_id_fk_idx (run_id=?)"
+      ],
+      "table": "findings"
+    },
+    {
+      "columns": [
+        "snapshot_id"
+      ],
+      "plan": [
+        "SEARCH findings USING COVERING INDEX findings_snapshot_id_fk_idx (snapshot_id=?)"
+      ],
+      "table": "findings"
+    },
+    {
+      "columns": [
+        "watch_id"
+      ],
+      "plan": [
+        "SEARCH findings USING COVERING INDEX findings_watch_id_fk_idx (watch_id=?)"
+      ],
+      "table": "findings"
+    },
+    {
+      "columns": [
+        "event_id"
+      ],
+      "plan": [
+        "SEARCH contests USING COVERING INDEX contests_event_idx (event_id=?)"
+      ],
+      "table": "contests"
+    },
+    {
+      "columns": [
+        "contest_id"
+      ],
+      "plan": [
+        "SEARCH rounds USING COVERING INDEX rounds_contest_idx (contest_id=?)"
+      ],
+      "table": "rounds"
+    },
+    {
+      "columns": [
+        "event_id"
+      ],
+      "plan": [
+        "SEARCH entries USING COVERING INDEX entries_event_idx (event_id=?)"
+      ],
+      "table": "entries"
+    },
+    {
+      "columns": [
+        "contest_id"
+      ],
+      "plan": [
+        "SEARCH entries USING COVERING INDEX entries_contest_id_fk_idx (contest_id=?)"
+      ],
+      "table": "entries"
+    },
+    {
+      "columns": [
+        "event_id"
+      ],
+      "plan": [
+        "SEARCH judges USING COVERING INDEX judges_event_idx (event_id=?)"
+      ],
+      "table": "judges"
+    },
+    {
+      "columns": [
+        "entry_id"
+      ],
+      "plan": [
+        "SEARCH heats USING COVERING INDEX heats_entry_id_fk_idx (entry_id=?)"
+      ],
+      "table": "heats"
+    },
+    {
+      "columns": [
+        "round_id"
+      ],
+      "plan": [
+        "SEARCH heats USING COVERING INDEX heats_round_id_fk_idx (round_id=?)"
+      ],
+      "table": "heats"
+    },
+    {
+      "columns": [
+        "judge_id"
+      ],
+      "plan": [
+        "SEARCH callback_marks USING COVERING INDEX callback_marks_judge_id_fk_idx (judge_id=?)"
+      ],
+      "table": "callback_marks"
+    },
+    {
+      "columns": [
+        "entry_id"
+      ],
+      "plan": [
+        "SEARCH callback_marks USING COVERING INDEX callback_marks_entry_id_fk_idx (entry_id=?)"
+      ],
+      "table": "callback_marks"
+    },
+    {
+      "columns": [
+        "round_id"
+      ],
+      "plan": [
+        "SEARCH callback_marks USING COVERING INDEX sqlite_autoindex_callback_marks_1 (round_id=?)"
+      ],
+      "table": "callback_marks"
+    },
+    {
+      "columns": [
+        "entry_id"
+      ],
+      "plan": [
+        "SEARCH callbacks USING COVERING INDEX callbacks_entry_id_fk_idx (entry_id=?)"
+      ],
+      "table": "callbacks"
+    },
+    {
+      "columns": [
+        "round_id"
+      ],
+      "plan": [
+        "SEARCH callbacks USING COVERING INDEX sqlite_autoindex_callbacks_1 (round_id=?)"
+      ],
+      "table": "callbacks"
+    },
+    {
+      "columns": [
+        "event_id"
+      ],
+      "plan": [
+        "SEARCH placements USING COVERING INDEX placements_event_id_fk_idx (event_id=?)"
+      ],
+      "table": "placements"
+    },
+    {
+      "columns": [
+        "contest_id"
+      ],
+      "plan": [
+        "SEARCH placements USING COVERING INDEX placements_contest_id_fk_idx (contest_id=?)"
+      ],
+      "table": "placements"
+    },
+    {
+      "columns": [
+        "round_id"
+      ],
+      "plan": [
+        "SEARCH placements USING COVERING INDEX placements_round_id_fk_idx (round_id=?)"
+      ],
+      "table": "placements"
+    },
+    {
+      "columns": [
+        "judge_id"
+      ],
+      "plan": [
+        "SEARCH final_marks USING COVERING INDEX final_marks_judge_id_fk_idx (judge_id=?)"
+      ],
+      "table": "final_marks"
+    },
+    {
+      "columns": [
+        "placement_id"
+      ],
+      "plan": [
+        "SEARCH final_marks USING COVERING INDEX final_marks_placement_id_fk_idx (placement_id=?)"
+      ],
+      "table": "final_marks"
+    },
+    {
+      "columns": [
+        "round_id"
+      ],
+      "plan": [
+        "SEARCH final_marks USING COVERING INDEX sqlite_autoindex_final_marks_1 (round_id=?)"
+      ],
+      "table": "final_marks"
+    },
+    {
+      "columns": [
+        "event_id"
+      ],
+      "plan": [
+        "SEARCH registry_placements USING COVERING INDEX registry_placements_event_id_fk_idx (event_id=?)"
+      ],
+      "table": "registry_placements"
+    },
+    {
+      "columns": [
+        "wsdc_id"
+      ],
+      "plan": [
+        "SEARCH registry_placements USING COVERING INDEX sqlite_autoindex_registry_placements_1 (wsdc_id=?)"
+      ],
+      "table": "registry_placements"
+    },
+    {
+      "columns": [
+        "snapshot_id"
+      ],
+      "plan": [
+        "SEARCH registry_verifications USING COVERING INDEX registry_verifications_snapshot_id_fk_idx (snapshot_id=?)"
+      ],
+      "table": "registry_verifications"
+    },
+    {
+      "columns": [
+        "watch_id"
+      ],
+      "plan": [
+        "SEARCH registry_verifications USING COVERING INDEX registry_verification_watch (watch_id=?)"
+      ],
+      "table": "registry_verifications"
+    },
+    {
+      "columns": [
+        "cohort_id"
+      ],
+      "plan": [
+        "SEARCH requirement_cohort_members USING COVERING INDEX sqlite_autoindex_requirement_cohort_members_1 (cohort_id=?)"
+      ],
+      "table": "requirement_cohort_members"
+    }
+  ],
+  "rollback_restored_counts": true,
+  "rolled_back_removed_counts": {
+    "callback_marks": 700,
+    "callbacks": 40,
+    "entries": 20,
+    "heats": 0
+  },
+  "schema_version": 7,
+  "state": "/var/tmp/swingset-h11-review"
+}

@@ -16,11 +16,17 @@ from .base import (
 def sources() -> tuple[Source, ...]:
     from .eepro import SOURCE as eepro
     from .scoringdance import SOURCE as scoringdance
+    from .steprightsolutions import SOURCE as stepright
+    from .swingdancecouncil import SOURCE as council
     from .wdr import SOURCE as wdr
     from .wsdc_calendar import SOURCE as calendar
+    from .wsdc_newsletter import SOURCE as newsletter
     from .wsdc_registry import SOURCE as registry
 
-    return tuple(cast(Source, item) for item in (calendar, registry, eepro, scoringdance, wdr))
+    return tuple(
+        cast(Source, item)
+        for item in (calendar, registry, eepro, scoringdance, wdr, council, newsletter, stepright)
+    )
 
 
 def get_page_kind(name: str) -> PageKind:

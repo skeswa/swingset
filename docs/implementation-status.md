@@ -1,5 +1,12 @@
 # v1 implementation status
 
+For current v2 work, deployment, and the successful live G1 receipt, see
+[v2 progress](v2-progress.md). Stage V1 of the v2 plan is complete at public
+commit `7cfcf4ec5dbc994d91f3e4d816f43b3abe16637b`; V3 is complete at public commit
+`4653f3a3a6076d3af474c28f7bd0e93998ca0a9c`. V2 and V4 are complete at public commit
+`81121dcc7d62a1db9e76ee1c49a6b90e1f4c5653`; V5 infrastructure and V6 are in progress. The v1 receipts
+below retain their original observation dates.
+
 Checked 2026-09-11 UTC. This records evidence against
 [the implementation plan](../design/implementation-plan.md); it does not
 replace its done criteria. The original implementation was split into 12

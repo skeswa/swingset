@@ -1,0 +1,15 @@
+{
+  "reviewer": "Codex coordinator",
+  "reviewed_at": "2026-09-13T08:45:04.658463+00:00",
+  "candidate": "/var/lib/swingset/candidates/cand_7f8cf9bcbf7e4a60",
+  "expected_parent": "4653f3a3a6076d3af474c28f7bd0e93998ca0a9c",
+  "checks": 57,
+  "evidence_sha256": {
+    "acceptance.json": "1590d184b83951940bbd174c4bc1b9447744d3c21451af0fac8f8fe67190db7c",
+    "integrity.json": "591d17338b9ec460be6c020307fb40cb55f1422e491f31a545c7abee07cc26bf",
+    "replay.json": "2ae514863dca9d24842f8935f962cbda9d96786c46a61d0d2b5d1a890c2a100e",
+    "auditor-files.json": "82bc801c960f45dea0d3685725b186d35e2ff21de4d44770efe48e549d43bcf6",
+    "build-memory-monitor.json": "0118de2ac6a81c2d3e04ae23aba9e599445b4b1614026343d301a051e0e6b9a3"
+  },
+  "decision": "Publish the reviewed V2/V4 candidate under prior user authorization; no year acceptance, repair activation or identity expansion"
+}

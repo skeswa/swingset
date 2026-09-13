@@ -27,7 +27,13 @@ class CheckpointError(RuntimeError):
 
 
 EXCLUDED_TOP_LEVEL = {".cache", "venv", "uv-cache", "checkpoints"}
-EXCLUDED_NAMES = {"state.lock", "state.sqlite-wal", "state.sqlite-shm", "RESTORE_PENDING"}
+EXCLUDED_NAMES = {
+    "state.lock",
+    "control.lock",
+    "state.sqlite-wal",
+    "state.sqlite-shm",
+    "RESTORE_PENDING",
+}
 
 
 def _artifact_closure(
@@ -47,6 +53,38 @@ def _artifact_closure(
                 included.add(state_dir / "blobs" / "sha256" / digest[:2] / digest[2:4] / digest)
             if extract:
                 included.add(state_dir / "extracts" / str(extract))
+    if "source_generations" in table_names:
+        for generation_id, manifest_json in connection.execute(
+            "SELECT generation_id,manifest_json FROM source_generations ORDER BY generation_id"
+        ):
+            try:
+                manifest = json.loads(manifest_json)
+            except (TypeError, ValueError) as exc:
+                raise CheckpointError(
+                    f"invalid generation artifact manifest: {generation_id}"
+                ) from exc
+            if not isinstance(manifest, list) or any(
+                not isinstance(item, dict) for item in manifest
+            ):
+                raise CheckpointError(f"invalid generation artifact manifest: {generation_id}")
+            for item in manifest:
+                for field in ("body_sha256", "extract_sha256"):
+                    value = item.get(field)
+                    if value is None:
+                        continue
+                    if (
+                        not isinstance(value, str)
+                        or len(value) != 64
+                        or any(char not in "0123456789abcdef" for char in value)
+                    ):
+                        raise CheckpointError(
+                            f"invalid generation artifact digest: {generation_id}"
+                        )
+                    included.add(
+                        state_dir / "blobs" / "sha256" / value[:2] / value[2:4] / value
+                        if field == "body_sha256"
+                        else state_dir / "extracts" / value
+                    )
     if "hosts" in table_names:
         for (body,) in connection.execute(
             "SELECT robots_sha256 FROM hosts WHERE robots_sha256 IS NOT NULL"
@@ -135,6 +173,7 @@ def create_checkpoint(
     versions: dict[str, str],
     input_bundle_hash: str | None,
 ) -> Checkpoint:
+    _check_database_schema(connection, schema_version)
     if destination.exists():
         raise CheckpointError(f"checkpoint destination exists: {destination}")
     temporary = destination.with_name(f".{destination.name}.tmp-{uuid.uuid4().hex}")
@@ -148,7 +187,13 @@ def create_checkpoint(
         finally:
             copied.close()
         included_candidates = _referenced_candidates(state_dir)
-        included_artifacts = _artifact_closure(state_dir, connection, included_candidates)
+        # Controls may append while the one data writer is checkpointing. Resolve
+        # every database reference from the copied point-in-time database.
+        snapshot = sqlite3.connect(f"{database.resolve().as_uri()}?mode=ro&immutable=1", uri=True)
+        try:
+            included_artifacts = _artifact_closure(state_dir, snapshot, included_candidates)
+        finally:
+            snapshot.close()
         for source in state_dir.rglob("*"):
             if not source.is_file() or source.name in EXCLUDED_NAMES:
                 continue
@@ -209,7 +254,7 @@ def verify_checkpoint(checkpoint: Path, *, maximum_schema_version: int) -> dict[
     actual = {
         path.relative_to(checkpoint).as_posix()
         for path in checkpoint.rglob("*")
-        if path.is_file() and path.name != "checkpoint.json"
+        if path.is_file() and path != checkpoint / "checkpoint.json"
     }
     if actual != set(expected):
         missing = set(expected) - actual
@@ -221,8 +266,11 @@ def verify_checkpoint(checkpoint: Path, *, maximum_schema_version: int) -> dict[
         path = checkpoint / relative
         if path.stat().st_size != int(record["size"]) or sha256_file(path) != record["sha256"]:
             raise CheckpointError(f"checkpoint file failed verification: {relative}")
-    connection = sqlite3.connect(checkpoint / "state.sqlite")
+    connection = sqlite3.connect(
+        (checkpoint / "state.sqlite").resolve().as_uri() + "?mode=ro&immutable=1", uri=True
+    )
     try:
+        _check_database_schema(connection, int(manifest["schema_version"]))
         integrity = connection.execute("PRAGMA integrity_check").fetchone()
         foreign_keys = connection.execute("PRAGMA foreign_key_check").fetchall()
         if integrity is None or integrity[0] != "ok" or foreign_keys:
@@ -245,18 +293,40 @@ def verify_checkpoint(checkpoint: Path, *, maximum_schema_version: int) -> dict[
     return manifest
 
 
+def _check_database_schema(connection: sqlite3.Connection, declared: int) -> None:
+    """A manifest cannot disguise a newer state database as an older schema."""
+    actual = int(connection.execute("PRAGMA user_version").fetchone()[0])
+    has_meta = connection.execute(
+        "SELECT 1 FROM sqlite_master WHERE type='table' AND name='meta'"
+    ).fetchone()
+    metadata = (
+        connection.execute("SELECT value FROM meta WHERE key='schema_version'").fetchone()
+        if has_meta
+        else None
+    )
+    if actual and actual != declared:
+        raise CheckpointError(
+            f"declared checkpoint schema {declared} differs from database schema {actual}"
+        )
+    if metadata is not None and int(metadata[0]) != declared:
+        raise CheckpointError("checkpoint schema differs from database metadata")
+
+
 def restore_checkpoint(checkpoint: Path, state_dir: Path, *, maximum_schema_version: int) -> None:
+    from swingset.state.control_lock import control_lock
+
     if state_dir.exists() and any(state_dir.iterdir()):
         raise CheckpointError("restore target must be empty")
     state_dir.mkdir(parents=True, exist_ok=True)
-    durable_write(state_dir / "RESTORE_PENDING", b"verification pending\n")
-    _install_checkpoint(checkpoint, state_dir, maximum_schema_version=maximum_schema_version)
+    with control_lock(state_dir):
+        durable_write(state_dir / "RESTORE_PENDING", b"verification pending\n")
+        _install_checkpoint(checkpoint, state_dir, maximum_schema_version=maximum_schema_version)
 
 
 def _install_checkpoint(checkpoint: Path, state_dir: Path, *, maximum_schema_version: int) -> None:
     manifest = verify_checkpoint(checkpoint, maximum_schema_version=maximum_schema_version)
     for source in checkpoint.rglob("*"):
-        if source.is_file() and source.name != "checkpoint.json":
+        if source.is_file() and source != checkpoint / "checkpoint.json":
             _copy_file(source, state_dir / source.relative_to(checkpoint))
     baseline = manifest.get("baseline_candidate")
     if baseline is not None:
@@ -273,9 +343,15 @@ def restore_from_checkpoint(
     clock: Clock,
     *,
     lock_timeout: float,
-    maximum_schema_version: int = 1,
+    maximum_schema_version: int | None = None,
 ) -> None:
     """Install, remotely verify, and activate a checkpoint under the writer lock."""
+    from swingset.state.control_lock import control_lock
+
+    if maximum_schema_version is None:
+        from swingset.state.db import SCHEMA_VERSION
+
+        maximum_schema_version = SCHEMA_VERSION
     state_dir.mkdir(parents=True, exist_ok=True)
     lock_path = state_dir / "state.lock"
     lock_file = lock_path.open("a+b")
@@ -291,23 +367,30 @@ def restore_from_checkpoint(
                         f"state writer lock timed out after {lock_timeout:g} seconds"
                     ) from error
                 clock.sleep(0.1)
-        marker = state_dir / "RESTORE_PENDING"
-        existing = [path for path in state_dir.iterdir() if path != lock_path]
-        if existing and not marker.is_file():
-            raise CheckpointError("restore target contains an active or unmarked state")
-        if marker.is_file():
-            for path in existing:
-                if path == marker:
-                    continue
-                if path.is_dir() and not path.is_symlink():
-                    shutil.rmtree(path)
-                else:
-                    path.unlink()
-        else:
-            durable_write(marker, b"verification pending\n")
-        _install_checkpoint(checkpoint, state_dir, maximum_schema_version=maximum_schema_version)
-        verify_restored_public(state_dir, hub)
-        activate_restored_state(state_dir)
+        with control_lock(state_dir, timeout=lock_timeout):
+            marker = state_dir / "RESTORE_PENDING"
+            existing = [
+                path
+                for path in state_dir.iterdir()
+                if path.name not in {"state.lock", "control.lock"}
+            ]
+            if existing and not marker.is_file():
+                raise CheckpointError("restore target contains an active or unmarked state")
+            if marker.is_file():
+                for path in existing:
+                    if path == marker:
+                        continue
+                    if path.is_dir() and not path.is_symlink():
+                        shutil.rmtree(path)
+                    else:
+                        path.unlink()
+            else:
+                durable_write(marker, b"verification pending\n")
+            _install_checkpoint(
+                checkpoint, state_dir, maximum_schema_version=maximum_schema_version
+            )
+            verify_restored_public(state_dir, hub)
+            activate_restored_state(state_dir)
     finally:
         fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
         lock_file.close()

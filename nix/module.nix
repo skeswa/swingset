@@ -78,6 +78,7 @@ in
     environment.systemPackages = [ cfg.package ];
     systemd.services.swingset-cycle = {
       description = "Collect and materialize swingset evidence";
+      unitConfig.ConditionPathExists = "!${cfg.stateDir}/operator-hold";
       after = [ "network-online.target" ];
       wants = [ "network-online.target" ];
       environment = env;
@@ -98,6 +99,7 @@ in
     };
     systemd.services.swingset-backup = {
       description = "Checkpoint complete swingset state";
+      unitConfig.ConditionPathExists = "!${cfg.stateDir}/operator-hold";
       environment = env;
       serviceConfig = common // {
         Type = "oneshot";
@@ -120,6 +122,7 @@ in
     };
     systemd.services.swingset-summary = {
       description = "swingset daily journal digest";
+      unitConfig.ConditionPathExists = "!${cfg.stateDir}/operator-hold";
       environment = env;
       serviceConfig = common // {
         Type = "oneshot";

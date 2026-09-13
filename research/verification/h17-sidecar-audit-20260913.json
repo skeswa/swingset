@@ -1,0 +1,42 @@
+{
+  "files_sha256": {
+    "proposals-accepted-020-059.json": "a5ec3d8839f978e83c241707e51beb5acb0a66d1d8c27dae4519d931a6291ebd",
+    "proposals-accepted-060-089.json": "13e15bbed816a6ffb07cc0b607dfe2455d63a44f683c508dc891166ed8cae322",
+    "proposals-accepted-090-119.json": "ed72d8d7894b4a6a2bec343f8d331ca48740cefb233534d61419202089ffce77",
+    "proposals-accepted-120-137.json": "efefeada0c5dcda7a6a591c584229e278d86f41cebf64abaf5c308a34dd783d3",
+    "proposals-unresolved-000-029.json": "f0d08a47e2f294de19366b0cf93fc0490c0df091c1856734e6ae4821fb09fc7f",
+    "proposals-unresolved-030-069.json": "f7a43574a85662d2b1337092b827d289447934a0b0431dd8890cc9cf920bc16b",
+    "proposals-unresolved-070-109.json": "df631d55fb60ec9538e476a76c849d9ea65e50e28448d7cc87fae4233ff90fe6",
+    "proposals-unresolved-110-136.json": "138b84fa4e35849029600b9be30fb7de1892b0eaf1cae9a9747492aea90e58a3",
+    "proposals.json": "57cf2f6da50c9d6e1035a109542395f96cbd9e45868699a250fc7f236a5b8d2c"
+  },
+  "subjects": 275,
+  "coverage": {
+    "accepted": {
+      "count": 138,
+      "first": 0,
+      "last": 137
+    },
+    "unresolved": {
+      "count": 137,
+      "first": 0,
+      "last": 136
+    }
+  },
+  "counts": {
+    "('accepted', 'proposal')": 94,
+    "('accepted', 'abstention')": 44,
+    "('unresolved', 'abstention')": 110,
+    "('unresolved', 'proposal')": 27
+  },
+  "unique_artifacts": 848,
+  "source_locators_verified": 619,
+  "errors": [],
+  "source_headers_verified": 619,
+  "registry_citations_verified": 882,
+  "citation_errors": [],
+  "subject_id_duplicates": [],
+  "preserved_file_hashes_verified": 114,
+  "preservation_errors": [],
+  "semantic_review": "All sidecar rationales and human next checks retain provisional/abstention framing. Cross-contest, role, date and locator limitations are explicit. No verified person identity or gold-label claim endorsed."
+}

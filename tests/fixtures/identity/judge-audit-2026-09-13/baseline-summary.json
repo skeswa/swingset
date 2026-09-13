@@ -1,0 +1,8 @@
+{
+  "baseline_commit": "997945b6bd8c48b950faa397051aa892f53d7935",
+  "table": "data/judges/judges.parquet",
+  "sha256": "dc512f3c6c7dbf4db753a0265559e72dac2d74cc5adc21ff93876db065d19526",
+  "rows": 4919,
+  "default_wsdc_ids": 0,
+  "method": "Read retained local baseline parquet through OrbStack; no Hub request."
+}

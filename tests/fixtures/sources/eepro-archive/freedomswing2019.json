@@ -1,0 +1,12 @@
+{
+  "url": "http://eepro.com/results/freedomswing2019/",
+  "archive_url": "https://web.archive.org/web/20190716024152id_/http://eepro.com/results/freedomswing2019/",
+  "captured_at": "2019-07-16T02:41:52+00:00",
+  "fetched_at": "2026-09-13T05:50:54.517116+00:00",
+  "body_sha256": "0f124c6527204e027f9b0d2fc5cf141908a7d99b1a951e91267dcfc56b3fbe1c",
+  "body_bytes": 1977,
+  "http_status": 200,
+  "via": "wayback",
+  "retained_cdx": "research/verification/2026-09-11/cdx_eepro_results_all.json",
+  "receipt": "research/workflow-output/v2-phase1/wp11-eepro2019/receipt.json"
+}

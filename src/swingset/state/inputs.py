@@ -11,8 +11,10 @@ from types import MappingProxyType
 from swingset.clock import Clock
 from swingset.config import Config, parse_history_start, parse_hosts, parse_sources
 from swingset.fetch.archive import canonical, digest, durable_write
+from swingset.schedule.fair_policy import parse_scheduler
 from swingset.state.db import Database
 from swingset.state.override_validation import validate_override
+from swingset.state.recipes import capture_runtime, captured_recipe_inputs
 from swingset.state.work import WorkUnit, accept_inputs
 
 
@@ -22,6 +24,8 @@ class InputBundle:
     path: Path
     files: Mapping[str, bytes]
     config: Config
+    config_dir: Path | None = None
+    overrides_dir: Path | None = None
 
     def csv(self, name: str) -> list[dict[str, str]]:
         body = self.files.get(f"overrides/{name}", b"")
@@ -53,10 +57,12 @@ def capture(
         tomllib.loads(body.decode())
         files["link/weights.toml"] = body
     files["versions.json"] = canonical(versions)
+    files.update(capture_runtime())
     config = Config(
         parse_hosts(files["config/hosts.toml"]),
         parse_sources(files["config/sources.toml"]),
         parse_history_start(files["config/sources.toml"]),
+        parse_scheduler(files["config/sources.toml"]),
     )
     hashes = {name: digest(body) for name, body in files.items()}
     bundle_digest = digest(canonical(hashes))
@@ -68,7 +74,14 @@ def capture(
         elif digest(path.read_bytes()) != hashes[name]:
             raise ValueError(f"corrupt captured input: {path}")
     durable_write(target / "manifest.json", canonical(hashes))
-    return InputBundle(bundle_digest, target, MappingProxyType(files), config)
+    return InputBundle(
+        bundle_digest,
+        target,
+        MappingProxyType(files),
+        config,
+        config_dir.resolve(),
+        overrides_dir.resolve(),
+    )
 
 
 def accept(database: Database, bundle: InputBundle, clock: Clock) -> set[str]:
@@ -81,12 +94,31 @@ def accept(database: Database, bundle: InputBundle, clock: Clock) -> set[str]:
             units.append(WorkUnit("project", "map", "all"))
         return units
 
-    digests = bundle.file_hashes
+    # The runtime has one accepted identity. Its complete bytes remain in the
+    # bundle; accepting hundreds of files must not invalidate every scope once
+    # per file. Fetch scheduling is excluded from interpretation policy.
+    digests = {
+        name: value
+        for name, value in bundle.file_hashes.items()
+        if not name.startswith(("runtime/", "recipes/"))
+    }
+    digests.update(
+        captured_recipe_inputs(bundle.files, history_start=bundle.config.history_start.isoformat())
+    )
+    digests["policy/inventory_year"] = digest(canonical(clock.now().year))
     # Separate version keys permit extractor-only invalidation.
     versions: dict[str, str] = json.loads(bundle.files["versions.json"])
     del digests["versions.json"]
     digests.update({f"version/{name}": value for name, value in versions.items()})
     with database.transaction() as conn:
+        from swingset.state.identity_journal import accept_journal
+
+        accept_journal(
+            conn,
+            bundle.files.get("overrides/identity_overrides.csv", b""),
+            bundle_digest=bundle.digest,
+            now=clock.now().isoformat(),
+        )
         # Deleting an optional override is a correction too. Record its absence
         # and invalidate its consumers instead of retaining the previous policy.
         for row in conn.execute("SELECT input_name FROM accepted_inputs WHERE consumer='pipeline'"):
@@ -96,8 +128,20 @@ def accept(database: Database, bundle: InputBundle, clock: Clock) -> set[str]:
         changed = accept_inputs(
             database, "pipeline", digests, affected, accepted_at=clock.now().isoformat()
         )
+        if changed & {"overrides/identity_overrides.csv", "overrides/suppressions.csv"}:
+            from swingset.state.correction_age import record_pending
+
+            record_pending(conn, database.state_dir, now=clock.now().isoformat())
+            conn.execute(
+                "INSERT INTO meta(key,value) VALUES ('correction_detected_at',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+                (clock.now().isoformat(),),
+            )
         conn.execute(
             "INSERT INTO meta(key,value) VALUES ('input_bundle_hash',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",
             (bundle.digest,),
         )
+        from swingset.state.derivations import available, refresh
+
+        if available(conn):
+            refresh(conn, clock.now())
     return changed

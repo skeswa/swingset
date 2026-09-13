@@ -19,6 +19,7 @@ from ..base import (
     WatchSpec,
     watch_has_success,
 )
+from ..interpretation import declared
 from ..records import AwardRow, AwardSheet, Cell, ResultRow, ResultTable, RoundSheet
 
 _UUID = re.compile(r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
@@ -44,7 +45,7 @@ def _json(body: bytes) -> JsonValue:
 class RoundsPage:
     kind = "wdr.rounds"
     EXTRACT_VERSION = 1
-    PARSER_VERSION = 2
+    PARSER_VERSION = 3
     change_mode = "validators"
 
     def extract(self, body: bytes) -> JsonValue:
@@ -55,6 +56,7 @@ class RoundsPage:
             raise ExtractError("WDR scoresData.results is missing")
         return scores
 
+    @declared
     def parse(self, extract: JsonValue, ctx: ParseContext) -> ParseResult:
         if not isinstance(extract, dict) or not isinstance(extract.get("results"), list):
             raise ExtractError("WDR rounds extract is invalid")
@@ -152,6 +154,7 @@ class RoundsPage:
                 round_label,
                 tuple(tables),
                 event_name,
+                str(raw["roundSubHeader"]) if raw.get("roundSubHeader") is not None else None,
             )
             output.append(Observation(ObservationScope("source_event", ref), payload.kind, payload))
             if "final" in round_label.casefold() and tables:
@@ -190,6 +193,7 @@ class AwardsPage:
             raise ExtractError("WDR awardsData.results is missing")
         return awards
 
+    @declared
     def parse(self, extract: JsonValue, ctx: ParseContext) -> ParseResult:
         if not isinstance(extract, dict) or not isinstance(extract.get("results"), list):
             raise ExtractError("WDR awards extract is invalid")

@@ -1,0 +1,436 @@
+{
+  "checked_at": "2026-09-13T05:38:54.948521+00:00",
+  "baseline": "/var/lib/swingset/baseline",
+  "candidate": "/var/lib/swingset/candidates/cand_6627a6c9aa324e34",
+  "state_dir": "/var/lib/swingset",
+  "publication_verified": false,
+  "baseline_file_hashes": {
+    "data/entries/entries.parquet": "74b2b982377d147bd7dbebb984bbda4f1476112b5a6bdf724199ae783872262b",
+    "data/judges/judges.parquet": "dc512f3c6c7dbf4db753a0265559e72dac2d74cc5adc21ff93876db065d19526",
+    "data/placements/placements.parquet": "e6e4415694592441f3361f30937e3b2032b12326564fb4a0e8f69658e19c3694",
+    "data/contests/contests.parquet": "69904cd8a6022231b0a22a513773ca254cc69be57eda71e02cf901256d2aaec9",
+    "data/identity_links/identity_links.parquet": "69d40914b7ba232df287eee9342934295765dcab839d2bac1facf81341acce35",
+    "data/link_candidates/link_candidates.parquet": "ff6ea9234a1ff0765faad5941dfd013bad5df1e0b4d20f43a2f3bd43350fc26e",
+    "data/callback_marks/year=2019.parquet": "09e1547d62f56103aa928d9916db1e0e2a36384b3d74355450ca0e25a696598c",
+    "data/callback_marks/year=2020.parquet": "5ebf6d52bc44c4532b0c644cc7cf999532110f257f20e573ddaaea3293647a5b",
+    "data/callback_marks/year=2021.parquet": "031a7aed65672dd34816784b2fd47735ce87aea5ef4ed153ad18af05fa1e8750",
+    "data/callback_marks/year=2022.parquet": "1f8d01e40af880e000efd92ba1553b1cd223e65beb36d5660fb2e00681183e86",
+    "data/callback_marks/year=2023.parquet": "50445479d9ae3bfc08d9dd5a65a473081effa1c2b3d22d39070c77420185fdb4",
+    "data/callback_marks/year=2024.parquet": "c8f4462ba7146d809dbbc7d711af2ed7ff8d447d595fa0a28effe0039c19df75",
+    "data/callback_marks/year=2025.parquet": "de4fddd899e8c5e4d5dbde10a052fd0795f69ff9a1a45eb5046db6a2c1e84be2",
+    "data/callback_marks/year=2026.parquet": "f55880ab4c432e66de4f572518ffb8de8dd884d66aeb07b8196d10175ed34894"
+  },
+  "candidate_file_hashes": {
+    "data/entries/entries.parquet": "22bbaac2f30df18c8be161e8ab385d8a575df152aea53b2576521b1b45abd2b9",
+    "data/judges/judges.parquet": "6f8bb9a9b6e26bc0f5a42b2af8befcd2b07ec6124b07042e5bbef19d9484f052",
+    "data/placements/placements.parquet": "89142da8b75af6c3806d8838844408e883c108cc4337046590a63289ae793f68",
+    "data/contests/contests.parquet": "ce4b7e88311649b24e3555eb8fbc2c1be75fc26ef5d08de3d2875f2ce774567f",
+    "data/identity_links/identity_links.parquet": "6bdb9c02d9f9372dd813dddcb12015e40b776287d33baaeba4f8029021f5c80b",
+    "data/link_candidates/link_candidates.parquet": "f84b2a04b68a69d82bc3ddd513d5c9ab93e51224b4039addaf980332f8d983de",
+    "data/callback_marks/year=2019.parquet": "09e1547d62f56103aa928d9916db1e0e2a36384b3d74355450ca0e25a696598c",
+    "data/callback_marks/year=2020.parquet": "5ebf6d52bc44c4532b0c644cc7cf999532110f257f20e573ddaaea3293647a5b",
+    "data/callback_marks/year=2021.parquet": "031a7aed65672dd34816784b2fd47735ce87aea5ef4ed153ad18af05fa1e8750",
+    "data/callback_marks/year=2022.parquet": "1f8d01e40af880e000efd92ba1553b1cd223e65beb36d5660fb2e00681183e86",
+    "data/callback_marks/year=2023.parquet": "76b68bc2d9cb6d9b15422578a34a45a018cad3f957be651d80c189e6db02c9eb",
+    "data/callback_marks/year=2024.parquet": "c8f4462ba7146d809dbbc7d711af2ed7ff8d447d595fa0a28effe0039c19df75",
+    "data/callback_marks/year=2025.parquet": "b43d7fcc829dbca45cc164b3d15a5f7c1d003db89ffa4640fe134d20a64f375a",
+    "data/callback_marks/year=2026.parquet": "d3de662be98fa19af0b4e07a4b60be716dd0fd3b2f4c64e789c5e67c050b05f6"
+  },
+  "checks": {
+    "candidate_manifest_receipt_matches": true,
+    "candidate_baseline_matches": true,
+    "candidate_uses_v1_restriction": true,
+    "audited_candidate_files_match_manifest": true,
+    "settled": true,
+    "pair_291_baseline_wrong_join": true,
+    "pair_291_preserved_without_individual_join": true,
+    "pair_291_source_supported": true,
+    "pair_291_source_provenance_preserved": true,
+    "pair_291_placement_observations_preserved": true,
+    "pair_291_raw_callback_marks_preserved": true,
+    "pair_22_baseline_wrong_join": true,
+    "pair_22_preserved_without_individual_join": true,
+    "pair_22_source_supported": true,
+    "pair_22_source_provenance_preserved": true,
+    "pair_22_placement_observations_preserved": true,
+    "pair_22_raw_callback_marks_preserved": true,
+    "unrestricted_2025-10-atlanta-swing-classic/jj-proam-follower-new-nov/F-940": true,
+    "unrestricted_2025-11-northeast-swing-clasic/jj-proam-new-nov-follower/F-175": true,
+    "unrestricted_2026-03-madjam/jj-proam-new-nov-follower/F-975": true,
+    "unrestricted_2025-10-sass/jj-spooky-all-american/F-110": true,
+    "judge_rows_preserved_and_ids_withheld": true,
+    "no_unsupported_default_entry_ids": true,
+    "no_stale_placement_ids": true,
+    "no_default_join_expansions": true,
+    "all_state_expansions_withheld_in_candidate": true,
+    "retained_default_joins_unchanged": true
+  },
+  "paired": [
+    {
+      "old_entry": [
+        {
+          "entry_id": "2026-02-swing-crush/hi-lo-j-j-hi-lead-lo-follow/L-291",
+          "contest_id": "2026-02-swing-crush/hi-lo-j-j-hi-lead-lo-follow",
+          "bib": "291",
+          "role": "leader",
+          "name_raw": "Gabi Wasserman and Lynne Yun",
+          "wsdc_id": 26843,
+          "link_status": "probable",
+          "rounds_danced": [
+            "prelim"
+          ],
+          "best_round": "prelim",
+          "snapshot_id": "snap_20260910T035507Z_10bd27defbfd"
+        }
+      ],
+      "new_entry": [
+        {
+          "entry_id": "2026-02-swing-crush/hi-lo-j-j-hi-lead-lo-follow/C-291",
+          "contest_id": "2026-02-swing-crush/hi-lo-j-j-hi-lead-lo-follow",
+          "bib": "291",
+          "role": "couple",
+          "name_raw": "Gabi Wasserman and Lynne Yun",
+          "wsdc_id": null,
+          "link_status": "unmatched",
+          "rounds_danced": [
+            "prelim"
+          ],
+          "best_round": "prelim",
+          "snapshot_id": "snap_20260910T035507Z_10bd27defbfd"
+        }
+      ],
+      "source": {
+        "snapshot_id": "snap_20260910T035507Z_10bd27defbfd",
+        "url": "https://eepro.com/results/swingcrush2026/hilo.html",
+        "body_sha256": "10bd27defbfdf580b9a3be1d764d5d962a907b033b6e777b31d4b1cc0f3ebe3a",
+        "matching_source_rows": [
+          [
+            "",
+            "Gabi Wasserman and Lynne Yun",
+            "N",
+            "N",
+            "Y",
+            "N",
+            "N",
+            "291",
+            "1-0-4",
+            "10",
+            "",
+            ""
+          ]
+        ],
+        "available": true,
+        "body_bytes": 27430
+      },
+      "baseline_placements": [],
+      "current_placements": [],
+      "baseline_callback_marks": [
+        {
+          "round_id": "2026-02-swing-crush/hi-lo-j-j-hi-lead-lo-follow/prelim",
+          "judge_id": "2026-02-swing-crush/judge/ben-clemons",
+          "mark_raw": "N"
+        },
+        {
+          "round_id": "2026-02-swing-crush/hi-lo-j-j-hi-lead-lo-follow/prelim",
+          "judge_id": "2026-02-swing-crush/judge/karla-catana",
+          "mark_raw": "N"
+        },
+        {
+          "round_id": "2026-02-swing-crush/hi-lo-j-j-hi-lead-lo-follow/prelim",
+          "judge_id": "2026-02-swing-crush/judge/tashina-king",
+          "mark_raw": "N"
+        },
+        {
+          "round_id": "2026-02-swing-crush/hi-lo-j-j-hi-lead-lo-follow/prelim",
+          "judge_id": "2026-02-swing-crush/judge/tracy-wang",
+          "mark_raw": "N"
+        },
+        {
+          "round_id": "2026-02-swing-crush/hi-lo-j-j-hi-lead-lo-follow/prelim",
+          "judge_id": "2026-02-swing-crush/judge/tren-veal",
+          "mark_raw": "N"
+        }
+      ],
+      "current_callback_marks": [
+        {
+          "round_id": "2026-02-swing-crush/hi-lo-j-j-hi-lead-lo-follow/prelim",
+          "judge_id": "2026-02-swing-crush/judge/ben-clemons",
+          "mark_raw": "N"
+        },
+        {
+          "round_id": "2026-02-swing-crush/hi-lo-j-j-hi-lead-lo-follow/prelim",
+          "judge_id": "2026-02-swing-crush/judge/karla-catana",
+          "mark_raw": "N"
+        },
+        {
+          "round_id": "2026-02-swing-crush/hi-lo-j-j-hi-lead-lo-follow/prelim",
+          "judge_id": "2026-02-swing-crush/judge/tashina-king",
+          "mark_raw": "N"
+        },
+        {
+          "round_id": "2026-02-swing-crush/hi-lo-j-j-hi-lead-lo-follow/prelim",
+          "judge_id": "2026-02-swing-crush/judge/tracy-wang",
+          "mark_raw": "N"
+        },
+        {
+          "round_id": "2026-02-swing-crush/hi-lo-j-j-hi-lead-lo-follow/prelim",
+          "judge_id": "2026-02-swing-crush/judge/tren-veal",
+          "mark_raw": "N"
+        }
+      ],
+      "placement_note": "These audited rows are prelims; empty placement lists do not assert a finals result."
+    },
+    {
+      "old_entry": [
+        {
+          "entry_id": "2026-06-jack-jill-o-rama/all-american-60s-era-j-j/L-22",
+          "contest_id": "2026-06-jack-jill-o-rama/all-american-60s-era-j-j",
+          "bib": "22",
+          "role": "leader",
+          "name_raw": "Ben McHenry and Lynne Yun",
+          "wsdc_id": 26843,
+          "link_status": "probable",
+          "rounds_danced": [
+            "prelim"
+          ],
+          "best_round": "prelim",
+          "snapshot_id": "snap_20260910T044231Z_2c0d0a4f4c03"
+        }
+      ],
+      "new_entry": [
+        {
+          "entry_id": "2026-06-jack-jill-o-rama/all-american-60s-era-j-j/C-22",
+          "contest_id": "2026-06-jack-jill-o-rama/all-american-60s-era-j-j",
+          "bib": "22",
+          "role": "couple",
+          "name_raw": "Ben McHenry and Lynne Yun",
+          "wsdc_id": null,
+          "link_status": "unmatched",
+          "rounds_danced": [
+            "prelim"
+          ],
+          "best_round": "prelim",
+          "snapshot_id": "snap_20260910T044231Z_2c0d0a4f4c03"
+        }
+      ],
+      "source": {
+        "snapshot_id": "snap_20260910T044231Z_2c0d0a4f4c03",
+        "url": "https://eepro.com/results/jjorama2026/nonwsdcjjprelims.html",
+        "body_sha256": "2c0d0a4f4c03f30aca80a28d638e040553906a2cba77524f274d18cd050cc3cc",
+        "matching_source_rows": [
+          [
+            "",
+            "Ben McHenry and Lynne Yun",
+            "N",
+            "N",
+            "N",
+            "N",
+            "N",
+            "N",
+            "N",
+            "22",
+            "0-0-7",
+            "0",
+            "",
+            ""
+          ]
+        ],
+        "available": true,
+        "body_bytes": 169788
+      },
+      "baseline_placements": [],
+      "current_placements": [],
+      "baseline_callback_marks": [
+        {
+          "round_id": "2026-06-jack-jill-o-rama/all-american-60s-era-j-j/prelim",
+          "judge_id": "2026-06-jack-jill-o-rama/judge/courtney-adair",
+          "mark_raw": "N"
+        },
+        {
+          "round_id": "2026-06-jack-jill-o-rama/all-american-60s-era-j-j/prelim",
+          "judge_id": "2026-06-jack-jill-o-rama/judge/john-kirkconnell",
+          "mark_raw": "N"
+        },
+        {
+          "round_id": "2026-06-jack-jill-o-rama/all-american-60s-era-j-j/prelim",
+          "judge_id": "2026-06-jack-jill-o-rama/judge/kay-newhouse",
+          "mark_raw": "N"
+        },
+        {
+          "round_id": "2026-06-jack-jill-o-rama/all-american-60s-era-j-j/prelim",
+          "judge_id": "2026-06-jack-jill-o-rama/judge/mark-scheuffele",
+          "mark_raw": "N"
+        },
+        {
+          "round_id": "2026-06-jack-jill-o-rama/all-american-60s-era-j-j/prelim",
+          "judge_id": "2026-06-jack-jill-o-rama/judge/martin-parker",
+          "mark_raw": "N"
+        },
+        {
+          "round_id": "2026-06-jack-jill-o-rama/all-american-60s-era-j-j/prelim",
+          "judge_id": "2026-06-jack-jill-o-rama/judge/mary-ann-nunez",
+          "mark_raw": "N"
+        },
+        {
+          "round_id": "2026-06-jack-jill-o-rama/all-american-60s-era-j-j/prelim",
+          "judge_id": "2026-06-jack-jill-o-rama/judge/sharlot-bott",
+          "mark_raw": "N"
+        }
+      ],
+      "current_callback_marks": [
+        {
+          "round_id": "2026-06-jack-jill-o-rama/all-american-60s-era-j-j/prelim",
+          "judge_id": "2026-06-jack-jill-o-rama/judge/courtney-adair",
+          "mark_raw": "N"
+        },
+        {
+          "round_id": "2026-06-jack-jill-o-rama/all-american-60s-era-j-j/prelim",
+          "judge_id": "2026-06-jack-jill-o-rama/judge/john-kirkconnell",
+          "mark_raw": "N"
+        },
+        {
+          "round_id": "2026-06-jack-jill-o-rama/all-american-60s-era-j-j/prelim",
+          "judge_id": "2026-06-jack-jill-o-rama/judge/kay-newhouse",
+          "mark_raw": "N"
+        },
+        {
+          "round_id": "2026-06-jack-jill-o-rama/all-american-60s-era-j-j/prelim",
+          "judge_id": "2026-06-jack-jill-o-rama/judge/mark-scheuffele",
+          "mark_raw": "N"
+        },
+        {
+          "round_id": "2026-06-jack-jill-o-rama/all-american-60s-era-j-j/prelim",
+          "judge_id": "2026-06-jack-jill-o-rama/judge/martin-parker",
+          "mark_raw": "N"
+        },
+        {
+          "round_id": "2026-06-jack-jill-o-rama/all-american-60s-era-j-j/prelim",
+          "judge_id": "2026-06-jack-jill-o-rama/judge/mary-ann-nunez",
+          "mark_raw": "N"
+        },
+        {
+          "round_id": "2026-06-jack-jill-o-rama/all-american-60s-era-j-j/prelim",
+          "judge_id": "2026-06-jack-jill-o-rama/judge/sharlot-bott",
+          "mark_raw": "N"
+        }
+      ],
+      "placement_note": "These audited rows are prelims; empty placement lists do not assert a finals result."
+    }
+  ],
+  "unrestricted": [
+    {
+      "baseline": [
+        {
+          "entry_id": "2025-10-atlanta-swing-classic/jj-proam-follower-new-nov/F-940",
+          "wsdc_id": null,
+          "link_status": "unmatched",
+          "link_confidence": 0.0
+        }
+      ],
+      "current": [
+        {
+          "entry_id": "2025-10-atlanta-swing-classic/jj-proam-follower-new-nov/F-940",
+          "name_raw": "Lynne Yun",
+          "role": "follower",
+          "wsdc_id": null,
+          "link_status": "probable",
+          "division": "none",
+          "score": 1.0,
+          "division_ok": null
+        }
+      ]
+    },
+    {
+      "baseline": [
+        {
+          "entry_id": "2025-11-northeast-swing-clasic/jj-proam-new-nov-follower/F-175",
+          "wsdc_id": null,
+          "link_status": "unmatched",
+          "link_confidence": 0.0
+        }
+      ],
+      "current": [
+        {
+          "entry_id": "2025-11-northeast-swing-clasic/jj-proam-new-nov-follower/F-175",
+          "name_raw": "Lynne Yun",
+          "role": "follower",
+          "wsdc_id": null,
+          "link_status": "probable",
+          "division": "none",
+          "score": 1.0,
+          "division_ok": null
+        }
+      ]
+    },
+    {
+      "baseline": [
+        {
+          "entry_id": "2026-03-madjam/jj-proam-new-nov-follower/F-975",
+          "wsdc_id": null,
+          "link_status": "unmatched",
+          "link_confidence": 0.0
+        }
+      ],
+      "current": [
+        {
+          "entry_id": "2026-03-madjam/jj-proam-new-nov-follower/F-975",
+          "name_raw": "Lynne Yun",
+          "role": "follower",
+          "wsdc_id": null,
+          "link_status": "probable",
+          "division": "none",
+          "score": 1.0,
+          "division_ok": null
+        }
+      ]
+    },
+    {
+      "baseline": [
+        {
+          "entry_id": "2025-10-sass/jj-spooky-all-american/F-110",
+          "wsdc_id": null,
+          "link_status": "unmatched",
+          "link_confidence": 0.0
+        }
+      ],
+      "current": [
+        {
+          "entry_id": "2025-10-sass/jj-spooky-all-american/F-110",
+          "name_raw": "Lynne Yun",
+          "role": "follower",
+          "wsdc_id": null,
+          "link_status": "probable",
+          "division": "none",
+          "score": 1.0,
+          "division_ok": null
+        }
+      ]
+    }
+  ],
+  "baseline_commit": "997945b6bd8c48b950faa397051aa892f53d7935",
+  "candidate_identity": {
+    "candidate_id": "cand_6627a6c9aa324e34",
+    "manifest_sha256": "0d8083b4b149475c63325a3632a036af963e08ad6e62f6dfec5b509a1f4119a6",
+    "content_hash": "5c29abc99d9eeed88870178a524fecc0daec7b8c018e1a345dcf477b09c92a29",
+    "publication_policy": "v1_baseline_default_joins_v1",
+    "input_bundle_hash": "df3db965b0e50406c0a06f6c416547825baed8353e5bafaeb06cad7804103c3d",
+    "repository_commit": "source-sha256:41ca4dd36da74d7bcc7b81f0279b8a44186b57db3ddad4e1373cfe839787111c"
+  },
+  "pending_work": [],
+  "judges": {
+    "baseline_rows": 4919,
+    "current_rows": 4919,
+    "baseline_default_ids": 0,
+    "current_default_ids": 0
+  },
+  "default_joins": {
+    "baseline_entry_ids": 58246,
+    "current_entry_ids": 36715,
+    "unsupported": [],
+    "stale_placements": [],
+    "expansions": [],
+    "expected_withheld_state_expansions": 251
+  },
+  "candidate_edges": 94102,
+  "passed": true
+}

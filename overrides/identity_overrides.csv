@@ -1,1 +1,1 @@
-entry_id,wsdc_id,reason,author,date
+decision_id,source,source_event,contest,round,participant,wsdc_id,decision,evidence,reason,author,date,supersedes

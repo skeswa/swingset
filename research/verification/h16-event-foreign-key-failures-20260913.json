@@ -1,0 +1,153 @@
+{
+  "isolated_copy": "/var/tmp/swingset-h16-fk-reproduction",
+  "no_latch_reset": true,
+  "original": "/var/tmp/swingset-h16-optimized-replay",
+  "results": [
+    {
+      "event": "2023-10-augsburg-westie-station",
+      "exception": "IntegrityError",
+      "message": "FOREIGN KEY constraint failed",
+      "statement": {
+        "parameters": [
+          "scoringdance",
+          "snap_20260913T030413Z_715aff5261bf",
+          "3",
+          "2026-09-13T13:49:48.688390Z",
+          "2026-09-13T13:49:48.688390Z",
+          "run_20260913T134948Z",
+          "2023-10-augsburg-westie-station/novice-jj",
+          "2023-10-augsburg-westie-station",
+          "Novice Jack&Jill",
+          "novice",
+          "none",
+          "jack_and_jill",
+          "random_partner",
+          "wcs",
+          1,
+          "[]",
+          "parsed",
+          "1266#0"
+        ],
+        "sql": "INSERT INTO contests (source,snapshot_id,parser_version,first_seen_at,last_seen_at,run_id,contest_id,event_id,name_raw,division,age_division,contest_type,partner_mode,dance_style,wsdc_points_eligible,combined_from,parse_status,source_contest_ref) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT (contest_id) DO UPDATE SET source=excluded.source,snapshot_id=excluded.snapshot_id,parser_version=excluded.parser_version,first_seen_at=excluded.first_seen_at,last_seen_at=excluded.last_seen_at,run_id=excluded.run_id,event_id=excluded.event_id,name_raw=excluded.name_raw,division=excluded.division,age_division=excluded.age_division,contest_type=excluded.contest_type,partner_mode=excluded.partner_mode,dance_style=excluded.dance_style,wsdc_points_eligible=excluded.wsdc_points_eligible,combined_from=excluded.combined_from,parse_status=excluded.parse_status,source_contest_ref=excluded.source_contest_ref"
+      },
+      "traceback": "Traceback (most recent call last):\n  File \"<stdin>\", line 40, in <module>\n  File \"/nix/store/dihx01r68nq8nqxzm1dlgrzl5qrjw583-source/src/swingset/project/process.py\", line 84, in process_unit\n    else _dispatch(conn, unit, bundle, now, run_id, selection=captured)\n         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/nix/store/dihx01r68nq8nqxzm1dlgrzl5qrjw583-source/src/swingset/project/process.py\", line 164, in _dispatch\n    return _replace_event(conn, unit.unit_id, now, run_id)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/nix/store/dihx01r68nq8nqxzm1dlgrzl5qrjw583-source/src/swingset/project/process.py\", line 212, in _replace_event\n    return replace_scope(\n           ^^^^^^^^^^^^^^\n  File \"/nix/store/dihx01r68nq8nqxzm1dlgrzl5qrjw583-source/src/swingset/project/writer.py\", line 97, in replace_scope\n    changed |= _upsert(conn, table, record)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/nix/store/dihx01r68nq8nqxzm1dlgrzl5qrjw583-source/src/swingset/project/writer.py\", line 175, in _upsert\n    conn.execute(\n  File \"<stdin>\", line 23, in execute\nsqlite3.IntegrityError: FOREIGN KEY constraint failed\n"
+    },
+    {
+      "event": "2024-07-saunaswing",
+      "exception": "IntegrityError",
+      "message": "FOREIGN KEY constraint failed",
+      "statement": {
+        "parameters": [
+          "scoringdance",
+          "snap_20260912T155137Z_f4ae010839c1",
+          "3",
+          "2026-09-13T13:49:49.023612Z",
+          "2026-09-13T13:49:49.023612Z",
+          "run_20260913T134948Z",
+          "2024-07-saunaswing/novice-jj",
+          "2024-07-saunaswing",
+          "Novice Jack&Jill",
+          "novice",
+          "none",
+          "jack_and_jill",
+          "random_partner",
+          "wcs",
+          1,
+          "[]",
+          "parsed",
+          "2086#0"
+        ],
+        "sql": "INSERT INTO contests (source,snapshot_id,parser_version,first_seen_at,last_seen_at,run_id,contest_id,event_id,name_raw,division,age_division,contest_type,partner_mode,dance_style,wsdc_points_eligible,combined_from,parse_status,source_contest_ref) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT (contest_id) DO UPDATE SET source=excluded.source,snapshot_id=excluded.snapshot_id,parser_version=excluded.parser_version,first_seen_at=excluded.first_seen_at,last_seen_at=excluded.last_seen_at,run_id=excluded.run_id,event_id=excluded.event_id,name_raw=excluded.name_raw,division=excluded.division,age_division=excluded.age_division,contest_type=excluded.contest_type,partner_mode=excluded.partner_mode,dance_style=excluded.dance_style,wsdc_points_eligible=excluded.wsdc_points_eligible,combined_from=excluded.combined_from,parse_status=excluded.parse_status,source_contest_ref=excluded.source_contest_ref"
+      },
+      "traceback": "Traceback (most recent call last):\n  File \"<stdin>\", line 40, in <module>\n  File \"/nix/store/dihx01r68nq8nqxzm1dlgrzl5qrjw583-source/src/swingset/project/process.py\", line 84, in process_unit\n    else _dispatch(conn, unit, bundle, now, run_id, selection=captured)\n         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/nix/store/dihx01r68nq8nqxzm1dlgrzl5qrjw583-source/src/swingset/project/process.py\", line 164, in _dispatch\n    return _replace_event(conn, unit.unit_id, now, run_id)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/nix/store/dihx01r68nq8nqxzm1dlgrzl5qrjw583-source/src/swingset/project/process.py\", line 212, in _replace_event\n    return replace_scope(\n           ^^^^^^^^^^^^^^\n  File \"/nix/store/dihx01r68nq8nqxzm1dlgrzl5qrjw583-source/src/swingset/project/writer.py\", line 97, in replace_scope\n    changed |= _upsert(conn, table, record)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/nix/store/dihx01r68nq8nqxzm1dlgrzl5qrjw583-source/src/swingset/project/writer.py\", line 175, in _upsert\n    conn.execute(\n  File \"<stdin>\", line 23, in execute\nsqlite3.IntegrityError: FOREIGN KEY constraint failed\n"
+    },
+    {
+      "event": "2024-09-mooseland-swing",
+      "exception": "IntegrityError",
+      "message": "FOREIGN KEY constraint failed",
+      "statement": {
+        "parameters": [
+          "scoringdance",
+          "snap_20260912T162003Z_7358cfe6e4f0",
+          "3",
+          "2026-09-13T13:49:49.058729Z",
+          "2026-09-13T13:49:49.058729Z",
+          "run_20260913T134948Z",
+          "2024-09-mooseland-swing/novice-jj",
+          "2024-09-mooseland-swing",
+          "Novice Jack&Jill",
+          "novice",
+          "none",
+          "jack_and_jill",
+          "random_partner",
+          "wcs",
+          1,
+          "[]",
+          "parsed",
+          "2389#0"
+        ],
+        "sql": "INSERT INTO contests (source,snapshot_id,parser_version,first_seen_at,last_seen_at,run_id,contest_id,event_id,name_raw,division,age_division,contest_type,partner_mode,dance_style,wsdc_points_eligible,combined_from,parse_status,source_contest_ref) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT (contest_id) DO UPDATE SET source=excluded.source,snapshot_id=excluded.snapshot_id,parser_version=excluded.parser_version,first_seen_at=excluded.first_seen_at,last_seen_at=excluded.last_seen_at,run_id=excluded.run_id,event_id=excluded.event_id,name_raw=excluded.name_raw,division=excluded.division,age_division=excluded.age_division,contest_type=excluded.contest_type,partner_mode=excluded.partner_mode,dance_style=excluded.dance_style,wsdc_points_eligible=excluded.wsdc_points_eligible,combined_from=excluded.combined_from,parse_status=excluded.parse_status,source_contest_ref=excluded.source_contest_ref"
+      },
+      "traceback": "Traceback (most recent call last):\n  File \"<stdin>\", line 40, in <module>\n  File \"/nix/store/dihx01r68nq8nqxzm1dlgrzl5qrjw583-source/src/swingset/project/process.py\", line 84, in process_unit\n    else _dispatch(conn, unit, bundle, now, run_id, selection=captured)\n         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/nix/store/dihx01r68nq8nqxzm1dlgrzl5qrjw583-source/src/swingset/project/process.py\", line 164, in _dispatch\n    return _replace_event(conn, unit.unit_id, now, run_id)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/nix/store/dihx01r68nq8nqxzm1dlgrzl5qrjw583-source/src/swingset/project/process.py\", line 212, in _replace_event\n    return replace_scope(\n           ^^^^^^^^^^^^^^\n  File \"/nix/store/dihx01r68nq8nqxzm1dlgrzl5qrjw583-source/src/swingset/project/writer.py\", line 97, in replace_scope\n    changed |= _upsert(conn, table, record)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/nix/store/dihx01r68nq8nqxzm1dlgrzl5qrjw583-source/src/swingset/project/writer.py\", line 175, in _upsert\n    conn.execute(\n  File \"<stdin>\", line 23, in execute\nsqlite3.IntegrityError: FOREIGN KEY constraint failed\n"
+    },
+    {
+      "event": "2024-09-retaliation-swing",
+      "exception": "IntegrityError",
+      "message": "FOREIGN KEY constraint failed",
+      "statement": {
+        "parameters": [
+          "scoringdance",
+          "snap_20260912T151903Z_d9f0dda3fbfc",
+          "3",
+          "2026-09-13T13:49:49.100782Z",
+          "2026-09-13T13:49:49.100782Z",
+          "run_20260913T134948Z",
+          "2024-09-retaliation-swing/newcomer-jj",
+          "2024-09-retaliation-swing",
+          "Newcomer Jack&Jill",
+          "newcomer",
+          "none",
+          "jack_and_jill",
+          "random_partner",
+          "wcs",
+          1,
+          "[]",
+          "parsed",
+          "2357#0"
+        ],
+        "sql": "INSERT INTO contests (source,snapshot_id,parser_version,first_seen_at,last_seen_at,run_id,contest_id,event_id,name_raw,division,age_division,contest_type,partner_mode,dance_style,wsdc_points_eligible,combined_from,parse_status,source_contest_ref) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT (contest_id) DO UPDATE SET source=excluded.source,snapshot_id=excluded.snapshot_id,parser_version=excluded.parser_version,first_seen_at=excluded.first_seen_at,last_seen_at=excluded.last_seen_at,run_id=excluded.run_id,event_id=excluded.event_id,name_raw=excluded.name_raw,division=excluded.division,age_division=excluded.age_division,contest_type=excluded.contest_type,partner_mode=excluded.partner_mode,dance_style=excluded.dance_style,wsdc_points_eligible=excluded.wsdc_points_eligible,combined_from=excluded.combined_from,parse_status=excluded.parse_status,source_contest_ref=excluded.source_contest_ref"
+      },
+      "traceback": "Traceback (most recent call last):\n  File \"<stdin>\", line 40, in <module>\n  File \"/nix/store/dihx01r68nq8nqxzm1dlgrzl5qrjw583-source/src/swingset/project/process.py\", line 84, in process_unit\n    else _dispatch(conn, unit, bundle, now, run_id, selection=captured)\n         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/nix/store/dihx01r68nq8nqxzm1dlgrzl5qrjw583-source/src/swingset/project/process.py\", line 164, in _dispatch\n    return _replace_event(conn, unit.unit_id, now, run_id)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/nix/store/dihx01r68nq8nqxzm1dlgrzl5qrjw583-source/src/swingset/project/process.py\", line 212, in _replace_event\n    return replace_scope(\n           ^^^^^^^^^^^^^^\n  File \"/nix/store/dihx01r68nq8nqxzm1dlgrzl5qrjw583-source/src/swingset/project/writer.py\", line 97, in replace_scope\n    changed |= _upsert(conn, table, record)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/nix/store/dihx01r68nq8nqxzm1dlgrzl5qrjw583-source/src/swingset/project/writer.py\", line 175, in _upsert\n    conn.execute(\n  File \"<stdin>\", line 23, in execute\nsqlite3.IntegrityError: FOREIGN KEY constraint failed\n"
+    },
+    {
+      "event": "2025-12-new-year-s-swing-fling",
+      "exception": "IntegrityError",
+      "message": "FOREIGN KEY constraint failed",
+      "statement": {
+        "parameters": [
+          "scoringdance",
+          "snap_20260913T031144Z_6b069400db48",
+          "3",
+          "2026-09-13T13:49:49.158078Z",
+          "2026-09-13T13:49:49.158078Z",
+          "run_20260913T134948Z",
+          "2025-12-new-year-s-swing-fling/advanced-jj",
+          "2025-12-new-year-s-swing-fling",
+          "Advanced Jack&Jill",
+          "advanced",
+          "none",
+          "jack_and_jill",
+          "random_partner",
+          "wcs",
+          1,
+          "[]",
+          "parsed",
+          "5032#0"
+        ],
+        "sql": "INSERT INTO contests (source,snapshot_id,parser_version,first_seen_at,last_seen_at,run_id,contest_id,event_id,name_raw,division,age_division,contest_type,partner_mode,dance_style,wsdc_points_eligible,combined_from,parse_status,source_contest_ref) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT (contest_id) DO UPDATE SET source=excluded.source,snapshot_id=excluded.snapshot_id,parser_version=excluded.parser_version,first_seen_at=excluded.first_seen_at,last_seen_at=excluded.last_seen_at,run_id=excluded.run_id,event_id=excluded.event_id,name_raw=excluded.name_raw,division=excluded.division,age_division=excluded.age_division,contest_type=excluded.contest_type,partner_mode=excluded.partner_mode,dance_style=excluded.dance_style,wsdc_points_eligible=excluded.wsdc_points_eligible,combined_from=excluded.combined_from,parse_status=excluded.parse_status,source_contest_ref=excluded.source_contest_ref"
+      },
+      "traceback": "Traceback (most recent call last):\n  File \"<stdin>\", line 40, in <module>\n  File \"/nix/store/dihx01r68nq8nqxzm1dlgrzl5qrjw583-source/src/swingset/project/process.py\", line 84, in process_unit\n    else _dispatch(conn, unit, bundle, now, run_id, selection=captured)\n         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/nix/store/dihx01r68nq8nqxzm1dlgrzl5qrjw583-source/src/swingset/project/process.py\", line 164, in _dispatch\n    return _replace_event(conn, unit.unit_id, now, run_id)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/nix/store/dihx01r68nq8nqxzm1dlgrzl5qrjw583-source/src/swingset/project/process.py\", line 212, in _replace_event\n    return replace_scope(\n           ^^^^^^^^^^^^^^\n  File \"/nix/store/dihx01r68nq8nqxzm1dlgrzl5qrjw583-source/src/swingset/project/writer.py\", line 97, in replace_scope\n    changed |= _upsert(conn, table, record)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/nix/store/dihx01r68nq8nqxzm1dlgrzl5qrjw583-source/src/swingset/project/writer.py\", line 175, in _upsert\n    conn.execute(\n  File \"<stdin>\", line 23, in execute\nsqlite3.IntegrityError: FOREIGN KEY constraint failed\n"
+    }
+  ],
+  "rollback_only": true
+}

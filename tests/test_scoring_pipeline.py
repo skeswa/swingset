@@ -64,3 +64,18 @@ def test_archived_scoringdance_event_runs_end_to_end(tmp_path: Path) -> None:
             == 236
         )
         assert result.get("candidate_id")
+        assert not result.get("failed")
+        # Shadow-only source output remains private. Link/history column patches
+        # cannot manufacture public facts after their source-owned base is omitted.
+        import pyarrow.parquet as pq
+
+        candidate = database.state_dir / "candidates" / result["candidate_id"]
+        for table, required in (
+            ("entries", ("event_id", "contest_id")),
+            ("placements", ("event_id", "contest_id", "place")),
+        ):
+            for file in (candidate / "data" / table).rglob("*.parquet"):
+                for batch in pq.ParquetFile(file).iter_batches(columns=required):
+                    assert all(
+                        batch.column(index).null_count == 0 for index in range(len(required))
+                    )

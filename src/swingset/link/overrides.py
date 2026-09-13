@@ -1,29 +1,9 @@
-"""Identity override CSV parsing."""
+"""Read a journal for review; acceptance and resolution live in state policy."""
 
-import csv
-from dataclasses import dataclass
 from pathlib import Path
 
-
-@dataclass(frozen=True)
-class IdentityOverride:
-    entry_id: str
-    wsdc_id: int | None
-    reason: str
-    author: str
-    date: str
+from swingset.state.identity_journal import Decision, parse_journal
 
 
-def load_overrides(path: Path) -> dict[str, IdentityOverride]:
-    result: dict[str, IdentityOverride] = {}
-    with path.open(newline="", encoding="utf-8") as handle:
-        for row in csv.DictReader(handle):
-            raw = row["wsdc_id"].strip()
-            result[row["entry_id"]] = IdentityOverride(
-                row["entry_id"],
-                None if raw.upper() == "NONE" else int(raw),
-                row["reason"],
-                row["author"],
-                row["date"],
-            )
-    return result
+def load_overrides(path: Path) -> tuple[Decision, ...]:
+    return parse_journal(path.read_bytes())

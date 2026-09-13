@@ -1,0 +1,405 @@
+{
+  "admission": {
+    "accepted_units": 31276,
+    "available": true,
+    "generations": [
+      {
+        "count": 72,
+        "oldest_created_at": "2026-09-13T07:46:21.752584+00:00",
+        "page_kind": "eepro.autoindex",
+        "state": "accepted"
+      },
+      {
+        "count": 1,
+        "oldest_created_at": "2026-09-13T07:48:42.626685+00:00",
+        "page_kind": "eepro.index",
+        "state": "accepted"
+      },
+      {
+        "count": 438,
+        "oldest_created_at": "2026-09-13T07:46:03.290675+00:00",
+        "page_kind": "eepro.round",
+        "state": "accepted"
+      },
+      {
+        "count": 2,
+        "oldest_created_at": "2026-09-13T07:46:14.071569+00:00",
+        "page_kind": "eepro.round",
+        "state": "needs_review"
+      },
+      {
+        "count": 7,
+        "oldest_created_at": "2026-09-13T07:46:10.497324+00:00",
+        "page_kind": "eepro.round",
+        "state": "waiting_for_inputs"
+      },
+      {
+        "count": 310,
+        "oldest_created_at": "2026-09-13T07:48:42.931331+00:00",
+        "page_kind": "scoringdance.event",
+        "state": "accepted"
+      },
+      {
+        "count": 74,
+        "oldest_created_at": "2026-09-13T07:48:42.959258+00:00",
+        "page_kind": "scoringdance.event",
+        "state": "needs_review"
+      },
+      {
+        "count": 1,
+        "oldest_created_at": "2026-09-13T07:48:44.745841+00:00",
+        "page_kind": "scoringdance.event",
+        "state": "superseded"
+      },
+      {
+        "count": 1,
+        "oldest_created_at": "2026-09-13T07:48:42.900093+00:00",
+        "page_kind": "scoringdance.recent",
+        "state": "accepted"
+      },
+      {
+        "count": 1395,
+        "oldest_created_at": "2026-09-13T07:48:45.406556+00:00",
+        "page_kind": "scoringdance.round",
+        "state": "accepted"
+      },
+      {
+        "count": 238,
+        "oldest_created_at": "2026-09-13T07:48:45.735429+00:00",
+        "page_kind": "scoringdance.round",
+        "state": "needs_review"
+      },
+      {
+        "count": 1,
+        "oldest_created_at": "2026-09-13T07:48:42.663787+00:00",
+        "page_kind": "scoringdance.sitemap",
+        "state": "accepted"
+      },
+      {
+        "count": 111,
+        "oldest_created_at": "2026-09-13T07:45:49.047654+00:00",
+        "page_kind": "swingdancecouncil.events",
+        "state": "needs_review"
+      },
+      {
+        "count": 12,
+        "oldest_created_at": "2026-09-13T07:46:01.976917+00:00",
+        "page_kind": "wdr.rounds",
+        "state": "accepted"
+      },
+      {
+        "count": 1,
+        "oldest_created_at": "2026-09-13T07:46:04.006995+00:00",
+        "page_kind": "wdr.rounds",
+        "state": "needs_review"
+      },
+      {
+        "count": 379,
+        "oldest_created_at": "2026-09-13T07:45:49.226046+00:00",
+        "page_kind": "wsdc_calendar.events",
+        "state": "needs_review"
+      },
+      {
+        "count": 84,
+        "oldest_created_at": "2026-09-13T07:45:49.904076+00:00",
+        "page_kind": "wsdc_newsletter.events",
+        "state": "needs_review"
+      },
+      {
+        "count": 3,
+        "oldest_created_at": "2026-09-13T07:45:49.917487+00:00",
+        "page_kind": "wsdc_newsletter.index",
+        "state": "needs_review"
+      },
+      {
+        "count": 29046,
+        "oldest_created_at": "2026-09-13T07:46:22.116318+00:00",
+        "page_kind": "wsdc_registry.dancer",
+        "state": "accepted"
+      },
+      {
+        "count": 2,
+        "oldest_created_at": "2026-09-13T07:48:21.851872+00:00",
+        "page_kind": "wsdc_registry.dancer",
+        "state": "needs_review"
+      },
+      {
+        "count": 11,
+        "oldest_created_at": "2026-09-13T07:46:23.599748+00:00",
+        "page_kind": "wsdc_registry.dancer",
+        "state": "superseded"
+      }
+    ],
+    "legacy_unassessed": 336,
+    "policies": [
+      {
+        "contract_version": "5",
+        "mode": "enforce",
+        "page_kind": "eepro.autoindex",
+        "policy_revision": "review:d4c361539145fe7bc822d5890f8dd5cd4fbf49baedf891f626458cb3662ecc17",
+        "reviewed_at": "2026-09-13T07:46:01.934863+00:00",
+        "reviewed_by": "Codex coordinator"
+      },
+      {
+        "contract_version": "4",
+        "mode": "enforce",
+        "page_kind": "eepro.index",
+        "policy_revision": "review:be84fe3ea6be5dbd1169a3a3edddf007b2c56b744e729afadcbe902613f2dcad",
+        "reviewed_at": "2026-09-13T07:45:52.589388+00:00",
+        "reviewed_by": "Codex coordinator"
+      },
+      {
+        "contract_version": "4",
+        "mode": "enforce",
+        "page_kind": "eepro.round",
+        "policy_revision": "review:bc865d422e52fb98b77e21cc8bb24ca884f6b8f213e4c1dc90eb925d7072a74e",
+        "reviewed_at": "2026-09-13T07:45:53.910145+00:00",
+        "reviewed_by": "Codex coordinator"
+      },
+      {
+        "contract_version": "4",
+        "mode": "enforce",
+        "page_kind": "scoringdance.event",
+        "policy_revision": "review:f9cb356932fb269b2703305821f1145ae24adbb60e6856513a5d83cecff89fe7",
+        "reviewed_at": "2026-09-13T07:45:57.759356+00:00",
+        "reviewed_by": "Codex coordinator"
+      },
+      {
+        "contract_version": "4",
+        "mode": "enforce",
+        "page_kind": "scoringdance.recent",
+        "policy_revision": "review:636e85e8987417e4cc9b795044784855ec060cd9ddc6d8c8d7270451266a239c",
+        "reviewed_at": "2026-09-13T07:45:56.488550+00:00",
+        "reviewed_by": "Codex coordinator"
+      },
+      {
+        "contract_version": "4",
+        "mode": "enforce",
+        "page_kind": "scoringdance.round",
+        "policy_revision": "review:584918cee66a7e938919b5e7134624f8bf7769eb6a8c6f98a469fe28ef7fae2d",
+        "reviewed_at": "2026-09-13T07:45:59.028718+00:00",
+        "reviewed_by": "Codex coordinator"
+      },
+      {
+        "contract_version": "4",
+        "mode": "enforce",
+        "page_kind": "scoringdance.sitemap",
+        "policy_revision": "review:fdbe429659f4da0c55d8fc64427994a7b6088cd483d6013038b33faabca8b75d",
+        "reviewed_at": "2026-09-13T07:45:55.212565+00:00",
+        "reviewed_by": "Codex coordinator"
+      },
+      {
+        "contract_version": "unassessed",
+        "mode": "shadow",
+        "page_kind": "swingdancecouncil.events",
+        "policy_revision": "shadow:unassessed",
+        "reviewed_at": null,
+        "reviewed_by": null
+      },
+      {
+        "contract_version": "4",
+        "mode": "enforce",
+        "page_kind": "wdr.rounds",
+        "policy_revision": "review:11d39fe305d591d1e5cbf8917fe7babaa56150d25c7cec27e5e39309c6d16cb8",
+        "reviewed_at": "2026-09-13T07:46:00.514345+00:00",
+        "reviewed_by": "Codex coordinator"
+      },
+      {
+        "contract_version": "unassessed",
+        "mode": "shadow",
+        "page_kind": "wsdc_calendar.events",
+        "policy_revision": "shadow:unassessed",
+        "reviewed_at": null,
+        "reviewed_by": null
+      },
+      {
+        "contract_version": "unassessed",
+        "mode": "shadow",
+        "page_kind": "wsdc_newsletter.events",
+        "policy_revision": "shadow:unassessed",
+        "reviewed_at": null,
+        "reviewed_by": null
+      },
+      {
+        "contract_version": "unassessed",
+        "mode": "shadow",
+        "page_kind": "wsdc_newsletter.index",
+        "policy_revision": "shadow:unassessed",
+        "reviewed_at": null,
+        "reviewed_by": null
+      },
+      {
+        "contract_version": "4",
+        "mode": "enforce",
+        "page_kind": "wsdc_registry.dancer",
+        "policy_revision": "review:ba8184f948a151c9ee38bb31085d2fc6b9d62f9449acf3531d7e8d9b6cf54f80",
+        "reviewed_at": "2026-09-13T07:45:50.479278+00:00",
+        "reviewed_by": "Codex coordinator"
+      }
+    ]
+  },
+  "build": {
+    "candidate": "/var/lib/swingset/candidates/cand_7f8cf9bcbf7e4a60",
+    "elapsed_seconds": 146.32717765000416,
+    "manifest_hash": "87ac286a1ae452f09f7e5cea646f260ac34035f3d05bb83de17c7d9cc8f08884",
+    "release_policy": {
+      "accuracy_expansions": "withheld_pending_H17",
+      "baseline_commit": "4653f3a3a6076d3af474c28f7bd0e93998ca0a9c",
+      "default_join_counts": {
+        "accepted": 29294,
+        "accepted_legacy": 5661,
+        "accuracy_gate_pending": 262,
+        "current_decision_withholds": 4,
+        "source_reference_unavailable": 82
+      },
+      "detected_at": "2026-09-13T07:08:57.942256+00:00",
+      "input_bundle_hash": "184923097435f167078a7743568eb5d6a3b962b1b40542c106164ef71b6eba78",
+      "input_file_hashes": {
+        "config/hosts.toml": "6c0b8d7b34e1c4a068374c59d0f41d52459f0113883b9868a6750c2753123122",
+        "config/sources.toml": "276a2bca3c4dea77525d8f241a83531a2fd908fcb5071dddca494e1ba850ff27",
+        "link/weights.toml": "dfcb30d69d7ba24518294f1facb2a1e1912b23ba332494eb8103445c59234174",
+        "overrides/event_aliases.csv": "3fb16a5e6eab2923e3d157341f80bef4a5a5d5685e4f2288e304d79be074570d",
+        "overrides/identity_overrides.csv": "e1487f143891001bc7ddb16cfe6e32003e1ac95628fcaa3a03849e3806f6a246",
+        "overrides/nicknames.csv": "468106077a4b1aac34289b705b16e38f7bc29de28376d5db052d84a3c5e50dcf",
+        "overrides/series_aliases.csv": "92366188e4295b901772dbe1cc3e1f12116fab46be9765a577a8845e31815642",
+        "overrides/source_urls.csv": "cce22c27665b53c67291a41dc18e99989b6b3eab4fe817aeb5e902e6f251e9a1",
+        "overrides/suppressions.csv": "2362faa4e3e099c1d307b9a72182e016f60818ab067135be75feb53bccd61fd9",
+        "versions.json": "55c53e5f958347a7704fbceb02f63fd8e00ac942c4c43ccf898defef934b834c"
+      },
+      "legacy_policy": "Published baseline support may remain unassessed; no revocation, new join, or removal authority is permitted.",
+      "mode": "settled",
+      "revisions": {
+        "canonical": 606,
+        "dancers": 35616,
+        "findings": 3398,
+        "identity_decisions": 1,
+        "links": 16445,
+        "observations": 33683,
+        "snapshots": 65225,
+        "source_event_map": 10,
+        "source_events": 317
+      },
+      "support_withdrawals": {
+        "reasons": {
+          "support_checks": 30253
+        },
+        "removed_rows": {},
+        "withdrawn_claims": {}
+      },
+      "token": {
+        "admission_digest": "b6e899905ff31f2fd16d19ab87daeb8b49247e86e1ca8902f571235f0cccfea0",
+        "decision_policy": "identity-decisions-v1",
+        "journal_digest": "e1487f143891001bc7ddb16cfe6e32003e1ac95628fcaa3a03849e3806f6a246",
+        "journal_generation": 1,
+        "release_version": "identity-release-v1"
+      }
+    },
+    "row_counts": {
+      "callback_marks": 484141,
+      "callbacks": 98481,
+      "changelog": 9814323,
+      "contests": 2644,
+      "coverage": 66,
+      "dancers": 27784,
+      "entries": 93820,
+      "events": 2541,
+      "final_marks": 121623,
+      "heats": 0,
+      "identity_links": 98751,
+      "judges": 4931,
+      "link_candidates": 92499,
+      "placements": 20236,
+      "registry_placements": 197990,
+      "review_queue": 30481,
+      "rounds": 4279,
+      "snapshots": 31821
+    }
+  },
+  "changed_inputs": [
+    "version/repository"
+  ],
+  "elapsed_seconds": 165.59397928600083,
+  "expected_parent": "4653f3a3a6076d3af474c28f7bd0e93998ca0a9c",
+  "finished_at": "2026-09-13T08:41:27.160929+00:00",
+  "network_requests": 0,
+  "new_acquisition_watches": 0,
+  "open_findings": {
+    "acquisition_gate": 7,
+    "admission_blocked": 329,
+    "ambiguous_entry": 135,
+    "conflict": 875,
+    "event_alias": 39,
+    "identity_decision": 289,
+    "missing_identity": 1,
+    "paired_name": 22683,
+    "parse_failure": 5,
+    "parse_gap": 235,
+    "parse_warning": 88,
+    "phase1_incomplete": 17,
+    "registry_diff": 1231,
+    "series_alias": 924,
+    "unknown_enum": 3324
+  },
+  "phase1_import": {
+    "imported": 0,
+    "parse_failures": 4
+  },
+  "policies": {
+    "eepro.autoindex": "d4c361539145fe7bc822d5890f8dd5cd4fbf49baedf891f626458cb3662ecc17",
+    "eepro.index": "be84fe3ea6be5dbd1169a3a3edddf007b2c56b744e729afadcbe902613f2dcad",
+    "eepro.round": "bc865d422e52fb98b77e21cc8bb24ca884f6b8f213e4c1dc90eb925d7072a74e",
+    "scoringdance.event": "f9cb356932fb269b2703305821f1145ae24adbb60e6856513a5d83cecff89fe7",
+    "scoringdance.recent": "636e85e8987417e4cc9b795044784855ec060cd9ddc6d8c8d7270451266a239c",
+    "scoringdance.round": "584918cee66a7e938919b5e7134624f8bf7769eb6a8c6f98a469fe28ef7fae2d",
+    "scoringdance.sitemap": "fdbe429659f4da0c55d8fc64427994a7b6088cd483d6013038b33faabca8b75d",
+    "wdr.rounds": "11d39fe305d591d1e5cbf8917fe7babaa56150d25c7cec27e5e39309c6d16cb8",
+    "wsdc_registry.dancer": "ba8184f948a151c9ee38bb31085d2fc6b9d62f9449acf3531d7e8d9b6cf54f80"
+  },
+  "published": false,
+  "resumed_from": {
+    "receipt": "/var/lib/swingset/operations/v2-v4-admission-20260913/attempts/run_20260913T080824Z.json",
+    "run_id": "run_20260913T080824Z",
+    "sha256": "417b5d4004aef1c2b32e1bf9cf06528e091f4b23b9503d46349f80e45b4f78a4",
+    "source": "/nix/store/lz99diyqwf6f95i8ggvx3ji0lvrjpfxd-source"
+  },
+  "run_id": "run_20260913T083841Z",
+  "source": "/nix/store/acbgadnny89l7kp459im2lx6bp2ll39q-source",
+  "stages": {
+    "link": {
+      "elapsed_seconds": 329.39128139201785,
+      "gated_new_rounds": [],
+      "parse_failures": {},
+      "processed": 2541,
+      "reused_completed_stage_from": "run_20260913T080824Z"
+    },
+    "parse": {
+      "elapsed_seconds": 187.72032367801876,
+      "gated_new_rounds": [
+        "15e48c4d227845a8",
+        "4206caf83c5140e6",
+        "29cb5a5de573eac0",
+        "9dd8e5e2d7b4929a",
+        "dc43d2a1264754cf",
+        "df693417d9a0ab77",
+        "5f26ff699e205d06"
+      ],
+      "parse_failures": {
+        "eepro": 0,
+        "scoringdance": 2,
+        "wdr": 0,
+        "wsdc_calendar": 0,
+        "wsdc_registry": 0
+      },
+      "processed": 31613,
+      "reused_completed_stage_from": "run_20260913T080824Z"
+    },
+    "project": {
+      "elapsed_seconds": 752.9731711979839,
+      "gated_new_rounds": [],
+      "parse_failures": {},
+      "processed": 29695,
+      "reused_completed_stage_from": "run_20260913T080824Z"
+    }
+  },
+  "state": "/var/lib/swingset"
+}

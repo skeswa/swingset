@@ -10,9 +10,10 @@ from swingset.model.ids import snapshot_id as make_snapshot_id
 from swingset.model.ids import watch_id as make_watch_id
 from swingset.schedule.confirmation import awaiting_first_number
 from swingset.schedule.watches import upsert_watch
-from swingset.sources.wsdc_registry.adapter import SOURCE
+from swingset.sources.wsdc_registry.adapter import SOURCE, DancerPage
 from swingset.state.db import Database
 from swingset.state.findings import Finding, replace_findings
+from swingset.state.verification import usable_verification
 from swingset.state.work import bump_revision
 
 
@@ -57,8 +58,17 @@ def discover_registry(database: Database, now: datetime, *, batch_size: int = 35
             ).fetchone()
             if trickle is None or trickle[0] != day:
                 for row in conn.execute(
-                    "SELECT wsdc_id FROM dancers WHERE registry_fetched_at<? ORDER BY registry_fetched_at LIMIT 100",
-                    ((now - timedelta(days=365)).isoformat(),),
+                    "SELECT d.wsdc_id,MAX(julianday(v.checked_at)) AS verified_at FROM dancers d "
+                    "LEFT JOIN watches w ON w.source='wsdc_registry' AND w.source_ref='wsdc:'||d.wsdc_id "
+                    "LEFT JOIN registry_verifications v ON v.watch_id=w.watch_id AND v.usable=1 "
+                    "AND v.extract_version=? AND v.parser_version=? "
+                    "GROUP BY d.wsdc_id HAVING verified_at IS NULL OR verified_at<julianday(?) "
+                    "ORDER BY verified_at,d.wsdc_id LIMIT 100",
+                    (
+                        str(DancerPage.EXTRACT_VERSION),
+                        str(DancerPage.PARSER_VERSION),
+                        (now - timedelta(days=365)).isoformat(),
+                    ),
                 ).fetchall():
                     spec = SOURCE.watch(int(row[0]))
                     count += upsert_watch(conn, spec, now)
@@ -111,14 +121,22 @@ def _discover_probe(database: Database, now: datetime, batch_size: int) -> int:
     for wsdc_id in range(int(current), int(current) + min(batch_size, 20)):
         spec = SOURCE.watch(wsdc_id)
         count += upsert_watch(conn, spec, now)
-        checked = conn.execute(
-            "SELECT last_checked_at FROM watches WHERE watch_id=?", (spec.watch_id,)
-        ).fetchone()[0]
+        schedule = conn.execute(
+            "SELECT last_checked_at,next_check_at FROM watches WHERE watch_id=?", (spec.watch_id,)
+        ).fetchone()
+        checked = schedule[0]
         if checked is None or datetime.fromisoformat(checked) <= datetime.fromisoformat(started):
             conn.execute(
                 "UPDATE watches SET next_check_at=? WHERE watch_id=?",
                 (now.isoformat(), spec.watch_id),
             )
+        elif _lookup_outcome(conn, wsdc_id, not_before=datetime.fromisoformat(started)) is None:
+            retry_limit = now + timedelta(minutes=15)
+            if schedule[1] is None or datetime.fromisoformat(schedule[1]) > retry_limit:
+                conn.execute(
+                    "UPDATE watches SET next_check_at=? WHERE watch_id=?",
+                    (retry_limit.isoformat(), spec.watch_id),
+                )
         conn.execute(
             "UPDATE watches SET priority=5,notes='probe' WHERE watch_id=?", (spec.watch_id,)
         )
@@ -126,19 +144,12 @@ def _discover_probe(database: Database, now: datetime, batch_size: int) -> int:
 
 
 def _lookup_outcome(conn: Any, wsdc_id: int, *, not_before: datetime | None = None) -> str | None:
-    from swingset.model.observations import decode_payload
-
-    found = conn.execute(
-        "SELECT o.kind,o.payload_json,s.fetched_at FROM observations o "
-        "JOIN snapshots s USING(snapshot_id) WHERE o.scope_kind='dancer' AND o.scope_id=? "
-        "ORDER BY o.snapshot_id DESC LIMIT 1",
-        (str(wsdc_id),),
-    ).fetchone()
-    if not found or (not_before is not None and datetime.fromisoformat(found[2]) <= not_before):
+    verification = usable_verification(conn, SOURCE.watch(wsdc_id).watch_id)
+    if verification is None or (
+        not_before is not None and datetime.fromisoformat(verification["checked_at"]) <= not_before
+    ):
         return None
-    payload = decode_payload(found[0], found[1])
-    outcome = getattr(payload, "outcome", None)
-    return str(outcome) if outcome is not None else None
+    return str(verification["outcome"])
 
 
 def _comparison_bound(database: Database) -> int | None:

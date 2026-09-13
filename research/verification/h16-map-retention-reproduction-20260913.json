@@ -1,0 +1,72 @@
+{
+  "checkpoint": "/var/lib/swingset/checkpoints/h15-before-h16-20260913",
+  "elapsed_seconds": 8.37428487505531,
+  "event_changes": {
+    "2023-10-augsburg-westie-station": {},
+    "2024-07-saunaswing": {
+      "history_source": [
+        "[\"newsletter\", \"platform\"]",
+        "[\"newsletter\",\"platform\"]"
+      ],
+      "sources": [
+        "[\"scoringdance\", \"wsdc_newsletter\"]",
+        "[\"scoringdance\",\"wsdc_newsletter\"]"
+      ]
+    },
+    "2024-09-mooseland-swing": {
+      "history_source": [
+        "[\"calendar\", \"newsletter\", \"platform\"]",
+        "[\"calendar\",\"newsletter\",\"platform\"]"
+      ],
+      "sources": [
+        "[\"scoringdance\", \"wsdc_calendar\", \"wsdc_newsletter\"]",
+        "[\"scoringdance\",\"wsdc_calendar\",\"wsdc_newsletter\"]"
+      ]
+    },
+    "2024-09-retaliation-swing": {
+      "history_source": [
+        "[\"newsletter\", \"platform\"]",
+        "[\"newsletter\",\"platform\"]"
+      ],
+      "sources": [
+        "[\"scoringdance\", \"wsdc_newsletter\"]",
+        "[\"scoringdance\",\"wsdc_newsletter\"]"
+      ]
+    },
+    "2025-12-new-year-s-swing-fling": {}
+  },
+  "events": [
+    {
+      "changed": false,
+      "contests": 3,
+      "event_id": "2023-10-augsburg-westie-station"
+    },
+    {
+      "changed": false,
+      "contests": 4,
+      "event_id": "2024-07-saunaswing"
+    },
+    {
+      "changed": false,
+      "contests": 5,
+      "event_id": "2024-09-mooseland-swing"
+    },
+    {
+      "changed": false,
+      "contests": 7,
+      "event_id": "2024-09-retaliation-swing"
+    },
+    {
+      "changed": false,
+      "contests": 7,
+      "event_id": "2025-12-new-year-s-swing-fling"
+    }
+  ],
+  "first_map_changed": true,
+  "foreign_key_check": [],
+  "identical_map_output": true,
+  "rollback_only": true,
+  "runtime_overlay": "project/map.py",
+  "scratch": "/var/tmp/swingset-h16-map-final-reproduction",
+  "second_map_changed": false
+}

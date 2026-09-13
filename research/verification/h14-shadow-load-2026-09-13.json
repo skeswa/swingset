@@ -1,0 +1,1177 @@
+{
+  "accepted_config_sha256": {
+    "config/hosts.toml": "6c0b8d7b34e1c4a068374c59d0f41d52459f0113883b9868a6750c2753123122",
+    "config/sources.toml": "276a2bca3c4dea77525d8f241a83531a2fd908fcb5071dddca494e1ba850ff27"
+  },
+  "accepted_history_years": [],
+  "archive_capture_catalog": [
+    {
+      "captures": 32,
+      "declared_capture_bytes": 927111,
+      "source": "wsdc_calendar",
+      "urls": 3
+    }
+  ],
+  "archive_queries": [
+    {
+      "complete": 5,
+      "declared_pages": 5,
+      "queries": 5,
+      "retained_pages": 5,
+      "source": "wsdc_calendar",
+      "year": 2024
+    },
+    {
+      "complete": 5,
+      "declared_pages": 5,
+      "queries": 5,
+      "retained_pages": 5,
+      "source": "wsdc_calendar",
+      "year": 2025
+    },
+    {
+      "complete": 5,
+      "declared_pages": 5,
+      "queries": 5,
+      "retained_pages": 5,
+      "source": "wsdc_calendar",
+      "year": 2026
+    }
+  ],
+  "class_basis": "Shadow categories only: local evidence; unchecked without retained snapshot; confirmation note; probe/sweep; registry or archived/backfill/sealed/gone; dateless non-index; remaining current refresh. Not runtime eligibility or an accepted schedule.",
+  "dateless_nonregistry_nonindex": [
+    {
+      "due": 0,
+      "host": "local_artifact",
+      "kind": "registry_dump",
+      "retained": 1,
+      "source": "crosscheck"
+    },
+    {
+      "due": 64,
+      "host": "scoring.dance",
+      "kind": "event",
+      "retained": 64,
+      "source": "scoringdance"
+    }
+  ],
+  "due_age_seconds": {
+    "eepro.com": {
+      "count": 1,
+      "maximum": 21384.251175,
+      "p50": 21384.251175,
+      "p95": 21384.251175
+    },
+    "points.worldsdc.com": {
+      "count": 188,
+      "maximum": 242233.510328,
+      "p50": 193832.782108,
+      "p95": 242233.510328
+    },
+    "scoring.dance": {
+      "count": 4244,
+      "maximum": 261680.198206,
+      "p50": 238081.458567,
+      "p95": 238082.75703
+    }
+  },
+  "enabled_sources": {
+    "eepro": true,
+    "scoringdance": true,
+    "wdr": true,
+    "wsdc_calendar": true,
+    "wsdc_registry": true
+  },
+  "event_inventory": [
+    {
+      "count": 57,
+      "coverage_tier": "index_only",
+      "year": 2010
+    },
+    {
+      "count": 37,
+      "coverage_tier": "registry_only",
+      "year": 2010
+    },
+    {
+      "count": 32,
+      "coverage_tier": "index_only",
+      "year": 2011
+    },
+    {
+      "count": 55,
+      "coverage_tier": "registry_only",
+      "year": 2011
+    },
+    {
+      "count": 73,
+      "coverage_tier": "index_only",
+      "year": 2012
+    },
+    {
+      "count": 31,
+      "coverage_tier": "registry_only",
+      "year": 2012
+    },
+    {
+      "count": 77,
+      "coverage_tier": "index_only",
+      "year": 2013
+    },
+    {
+      "count": 37,
+      "coverage_tier": "registry_only",
+      "year": 2013
+    },
+    {
+      "count": 65,
+      "coverage_tier": "index_only",
+      "year": 2014
+    },
+    {
+      "count": 60,
+      "coverage_tier": "registry_only",
+      "year": 2014
+    },
+    {
+      "count": 109,
+      "coverage_tier": "index_only",
+      "year": 2015
+    },
+    {
+      "count": 30,
+      "coverage_tier": "registry_only",
+      "year": 2015
+    },
+    {
+      "count": 125,
+      "coverage_tier": "index_only",
+      "year": 2016
+    },
+    {
+      "count": 26,
+      "coverage_tier": "registry_only",
+      "year": 2016
+    },
+    {
+      "count": 157,
+      "coverage_tier": "index_only",
+      "year": 2017
+    },
+    {
+      "count": 6,
+      "coverage_tier": "registry_only",
+      "year": 2017
+    },
+    {
+      "count": 158,
+      "coverage_tier": "index_only",
+      "year": 2018
+    },
+    {
+      "count": 2,
+      "coverage_tier": "registry_only",
+      "year": 2018
+    },
+    {
+      "count": 1,
+      "coverage_tier": "sheets_partial",
+      "year": 2018
+    },
+    {
+      "count": 168,
+      "coverage_tier": "index_only",
+      "year": 2019
+    },
+    {
+      "count": 4,
+      "coverage_tier": "registry_only",
+      "year": 2019
+    },
+    {
+      "count": 1,
+      "coverage_tier": "sheets_partial",
+      "year": 2019
+    },
+    {
+      "count": 108,
+      "coverage_tier": "index_only",
+      "year": 2020
+    },
+    {
+      "count": 3,
+      "coverage_tier": "registry_only",
+      "year": 2020
+    },
+    {
+      "count": 3,
+      "coverage_tier": "sheets_partial",
+      "year": 2020
+    },
+    {
+      "count": 73,
+      "coverage_tier": "index_only",
+      "year": 2021
+    },
+    {
+      "count": 1,
+      "coverage_tier": "registry_only",
+      "year": 2021
+    },
+    {
+      "count": 1,
+      "coverage_tier": "sheets_partial",
+      "year": 2021
+    },
+    {
+      "count": 116,
+      "coverage_tier": "index_only",
+      "year": 2022
+    },
+    {
+      "count": 3,
+      "coverage_tier": "registry_only",
+      "year": 2022
+    },
+    {
+      "count": 2,
+      "coverage_tier": "sheets_partial",
+      "year": 2022
+    },
+    {
+      "count": 139,
+      "coverage_tier": "index_only",
+      "year": 2023
+    },
+    {
+      "count": 10,
+      "coverage_tier": "registry_only",
+      "year": 2023
+    },
+    {
+      "count": 9,
+      "coverage_tier": "sheets_partial",
+      "year": 2023
+    },
+    {
+      "count": 159,
+      "coverage_tier": "index_only",
+      "year": 2024
+    },
+    {
+      "count": 7,
+      "coverage_tier": "registry_only",
+      "year": 2024
+    },
+    {
+      "count": 22,
+      "coverage_tier": "sheets_partial",
+      "year": 2024
+    },
+    {
+      "count": 138,
+      "coverage_tier": "index_only",
+      "year": 2025
+    },
+    {
+      "count": 33,
+      "coverage_tier": "registry_only",
+      "year": 2025
+    },
+    {
+      "count": 74,
+      "coverage_tier": "sheets_partial",
+      "year": 2025
+    },
+    {
+      "count": 112,
+      "coverage_tier": "index_only",
+      "year": 2026
+    },
+    {
+      "count": 39,
+      "coverage_tier": "registry_only",
+      "year": 2026
+    },
+    {
+      "count": 65,
+      "coverage_tier": "sheets_partial",
+      "year": 2026
+    },
+    {
+      "count": 108,
+      "coverage_tier": "index_only",
+      "year": 2027
+    },
+    {
+      "count": 3,
+      "coverage_tier": "index_only",
+      "year": 2028
+    },
+    {
+      "count": 1,
+      "coverage_tier": "index_only",
+      "year": 2029
+    },
+    {
+      "count": 1,
+      "coverage_tier": "index_only",
+      "year": 2030
+    }
+  ],
+  "format": "h14-shadow-load-v1",
+  "host_budget_days": [
+    {
+      "bytes": 266069,
+      "day": "2026-09-09",
+      "host": "eepro.com",
+      "requests": 20
+    },
+    {
+      "bytes": 99514,
+      "day": "2026-09-09",
+      "host": "points.worldsdc.com",
+      "requests": 9
+    },
+    {
+      "bytes": 4980983,
+      "day": "2026-09-09",
+      "host": "scores.worlddanceregistry.com",
+      "requests": 28
+    },
+    {
+      "bytes": 938234,
+      "day": "2026-09-09",
+      "host": "scoring.dance",
+      "requests": 14
+    },
+    {
+      "bytes": 501002,
+      "day": "2026-09-09",
+      "host": "worldsdc.com",
+      "requests": 3
+    },
+    {
+      "bytes": 14241130,
+      "day": "2026-09-10",
+      "host": "eepro.com",
+      "requests": 600
+    },
+    {
+      "bytes": 26887306,
+      "day": "2026-09-10",
+      "host": "points.worldsdc.com",
+      "requests": 3906
+    },
+    {
+      "bytes": 0,
+      "day": "2026-09-10",
+      "host": "scores.worlddanceregistry.com",
+      "requests": 3
+    },
+    {
+      "bytes": 55229268,
+      "day": "2026-09-10",
+      "host": "scoring.dance",
+      "requests": 800
+    },
+    {
+      "bytes": 250664,
+      "day": "2026-09-10",
+      "host": "worldsdc.com",
+      "requests": 2
+    },
+    {
+      "bytes": 2293077,
+      "day": "2026-09-11",
+      "host": "eepro.com",
+      "requests": 85
+    },
+    {
+      "bytes": 46757795,
+      "day": "2026-09-11",
+      "host": "points.worldsdc.com",
+      "requests": 7906
+    },
+    {
+      "bytes": 1838026,
+      "day": "2026-09-11",
+      "host": "scoring.dance",
+      "requests": 61
+    },
+    {
+      "bytes": 243800,
+      "day": "2026-09-12",
+      "host": "eepro.com",
+      "requests": 23
+    },
+    {
+      "bytes": 73458153,
+      "day": "2026-09-12",
+      "host": "points.worldsdc.com",
+      "requests": 17712
+    },
+    {
+      "bytes": 243,
+      "day": "2026-09-12",
+      "host": "scores.worlddanceregistry.com",
+      "requests": 3
+    },
+    {
+      "bytes": 46296806,
+      "day": "2026-09-12",
+      "host": "scoring.dance",
+      "requests": 800
+    },
+    {
+      "bytes": 251136,
+      "day": "2026-09-12",
+      "host": "worldsdc.com",
+      "requests": 2
+    },
+    {
+      "bytes": 54326,
+      "day": "2026-09-13",
+      "host": "eepro.com",
+      "requests": 2
+    },
+    {
+      "bytes": 44276,
+      "day": "2026-09-13",
+      "host": "points.worldsdc.com",
+      "requests": 6
+    },
+    {
+      "bytes": 54530203,
+      "day": "2026-09-13",
+      "host": "scoring.dance",
+      "requests": 725
+    },
+    {
+      "bytes": 13463052,
+      "day": "2026-09-13",
+      "host": "web.archive.org",
+      "requests": 200
+    },
+    {
+      "bytes": 91584,
+      "day": "2026-09-13",
+      "host": "worldsdc.com",
+      "requests": 3
+    },
+    {
+      "bytes": 14838987,
+      "day": "2026-09-13",
+      "host": "www.worldsdc.com",
+      "requests": 57
+    }
+  ],
+  "host_pauses": [
+    {
+      "host": "eepro.com",
+      "next_allowed_at": "2026-09-13T03:14:09.814060+00:00",
+      "pause_reason": null,
+      "paused_until": null
+    },
+    {
+      "host": "points.worldsdc.com",
+      "next_allowed_at": "2026-09-13T04:26:18.516125+00:00",
+      "pause_reason": null,
+      "paused_until": null
+    },
+    {
+      "host": "scores.worlddanceregistry.com",
+      "next_allowed_at": "2026-09-12T14:58:09.458436+00:00",
+      "pause_reason": null,
+      "paused_until": null
+    },
+    {
+      "host": "scoring.dance",
+      "next_allowed_at": "2026-09-13T04:15:56.016671+00:00",
+      "pause_reason": null,
+      "paused_until": null
+    },
+    {
+      "host": "web.archive.org",
+      "next_allowed_at": "2026-09-13T05:54:47.860261+00:00",
+      "pause_reason": null,
+      "paused_until": null
+    },
+    {
+      "host": "worldsdc.com",
+      "next_allowed_at": "2026-09-13T05:29:04.879593+00:00",
+      "pause_reason": null,
+      "paused_until": null
+    },
+    {
+      "host": "www.worldsdc.com",
+      "next_allowed_at": "2026-09-13T05:34:57.655005+00:00",
+      "pause_reason": null,
+      "paused_until": null
+    }
+  ],
+  "host_policy": {
+    "danceconvention.net": {
+      "cooling_interval": "12h",
+      "daily_byte_budget": "300MB",
+      "daily_request_budget": 200,
+      "index_interval_weekday": "24h",
+      "index_interval_weekend": "6h",
+      "live_interval": "30m",
+      "min_gap_seconds": 10
+    },
+    "eepro.com": {
+      "cooling_interval": "6h",
+      "daily_request_budget": 600,
+      "index_interval_weekday": "6h",
+      "index_interval_weekend": "1h",
+      "live_interval": "15m",
+      "min_gap_seconds": 5,
+      "round_cooling_interval": "24h",
+      "round_live_interval": "12h"
+    },
+    "points.worldsdc.com": {
+      "daily_request_budget": 1500,
+      "min_gap_seconds": 2,
+      "sweep_daily_request_budget": 20000
+    },
+    "scores.worlddanceregistry.com": {
+      "cooling_interval": "6h",
+      "daily_request_budget": 400,
+      "live_interval": "15m",
+      "min_gap_seconds": 5
+    },
+    "scoring.dance": {
+      "challenge_pause": "24h",
+      "cooling_interval": "6h",
+      "daily_request_budget": 800,
+      "index_interval_weekday": "6h",
+      "index_interval_weekend": "1h",
+      "live_interval": "15m",
+      "min_gap_seconds": 5,
+      "round_cooling_interval": "24h",
+      "round_live_interval": "4h"
+    },
+    "web.archive.org": {
+      "daily_request_budget": 200,
+      "min_gap_seconds": 10
+    },
+    "worldsdc.com": {
+      "daily_request_budget": 10,
+      "index_interval": "24h",
+      "min_gap_seconds": 5
+    },
+    "www.worldsdc.com": {
+      "basis": "default host policy",
+      "daily_request_budget": 200,
+      "min_gap_seconds": 5
+    }
+  },
+  "immutable_checkpoint": false,
+  "input_bundle_hash": "184923097435f167078a7743568eb5d6a3b962b1b40542c106164ef71b6eba78",
+  "observed_request_costs": {
+    "eepro.com": {
+      "accounted_body_bytes": 17098402,
+      "mean_accounted_bytes_per_request": 23422.468493150685,
+      "recorded_host_days": 5,
+      "requests": 730
+    },
+    "points.worldsdc.com": {
+      "accounted_body_bytes": 147247044,
+      "mean_accounted_bytes_per_request": 4984.835099360168,
+      "recorded_host_days": 5,
+      "requests": 29539
+    },
+    "scores.worlddanceregistry.com": {
+      "accounted_body_bytes": 4981226,
+      "mean_accounted_bytes_per_request": 146506.64705882352,
+      "recorded_host_days": 3,
+      "requests": 34
+    },
+    "scoring.dance": {
+      "accounted_body_bytes": 158832537,
+      "mean_accounted_bytes_per_request": 66180.22375,
+      "recorded_host_days": 5,
+      "requests": 2400
+    },
+    "web.archive.org": {
+      "accounted_body_bytes": 13463052,
+      "mean_accounted_bytes_per_request": 67315.26,
+      "recorded_host_days": 1,
+      "requests": 200
+    },
+    "worldsdc.com": {
+      "accounted_body_bytes": 1094386,
+      "mean_accounted_bytes_per_request": 109438.6,
+      "recorded_host_days": 4,
+      "requests": 10
+    },
+    "www.worldsdc.com": {
+      "accounted_body_bytes": 14838987,
+      "mean_accounted_bytes_per_request": 260333.1052631579,
+      "recorded_host_days": 1,
+      "requests": 57
+    }
+  },
+  "operator_hold_file": true,
+  "operator_pauses": [],
+  "pending_parse_bytes": {
+    "distinct_body_bytes": 0,
+    "referenced_body_bytes": 0,
+    "snapshots": 0
+  },
+  "pending_work": [],
+  "proposed_class_demand": [
+    {
+      "class": "current_event_refresh",
+      "due": 1,
+      "host": "eepro.com",
+      "retained": 29
+    },
+    {
+      "class": "old_evidence_refresh",
+      "due": 0,
+      "host": "eepro.com",
+      "retained": 491
+    },
+    {
+      "class": "local_evidence",
+      "due": 0,
+      "host": "local_artifact",
+      "retained": 1
+    },
+    {
+      "class": "identity_confirmation",
+      "due": 168,
+      "host": "points.worldsdc.com",
+      "retained": 175
+    },
+    {
+      "class": "old_evidence_refresh",
+      "due": 0,
+      "host": "points.worldsdc.com",
+      "retained": 1
+    },
+    {
+      "class": "registry_discovery",
+      "due": 20,
+      "host": "points.worldsdc.com",
+      "retained": 28872
+    },
+    {
+      "class": "current_event_refresh",
+      "due": 0,
+      "host": "scores.worlddanceregistry.com",
+      "retained": 2
+    },
+    {
+      "class": "old_evidence_refresh",
+      "due": 0,
+      "host": "scores.worlddanceregistry.com",
+      "retained": 24
+    },
+    {
+      "class": "current_event_refresh",
+      "due": 54,
+      "host": "scoring.dance",
+      "retained": 54
+    },
+    {
+      "class": "metadata_recovery",
+      "due": 64,
+      "host": "scoring.dance",
+      "retained": 64
+    },
+    {
+      "class": "newly_discovered",
+      "due": 3757,
+      "host": "scoring.dance",
+      "retained": 3757
+    },
+    {
+      "class": "old_evidence_refresh",
+      "due": 369,
+      "host": "scoring.dance",
+      "retained": 1900
+    },
+    {
+      "class": "old_evidence_refresh",
+      "due": 0,
+      "host": "web.archive.org",
+      "retained": 16
+    },
+    {
+      "class": "current_event_refresh",
+      "due": 0,
+      "host": "worldsdc.com",
+      "retained": 1
+    },
+    {
+      "class": "newly_discovered",
+      "due": 0,
+      "host": "www.worldsdc.com",
+      "retained": 1
+    },
+    {
+      "class": "old_evidence_refresh",
+      "due": 0,
+      "host": "www.worldsdc.com",
+      "retained": 29
+    }
+  ],
+  "read_seconds": 0.5508223020005971,
+  "registry_watch_note_prefixes": {
+    "": 1,
+    "confirmation": 175,
+    "probe": 20,
+    "sweep": 28852
+  },
+  "request_cost_window": {
+    "first_day": "2026-09-07",
+    "last_day": "2026-09-13",
+    "last_day_partial": true
+  },
+  "requirements": [
+    {
+      "count": 7,
+      "kind": "acquisition_gate",
+      "state": "needs_review"
+    },
+    {
+      "count": 329,
+      "kind": "admission_blocked",
+      "state": "needs_review"
+    },
+    {
+      "count": 135,
+      "kind": "ambiguous_entry",
+      "state": "needs_review"
+    },
+    {
+      "count": 875,
+      "kind": "conflict",
+      "state": "needs_review"
+    },
+    {
+      "count": 39,
+      "kind": "event_alias",
+      "state": "needs_review"
+    },
+    {
+      "count": 2673,
+      "kind": "first_point_reconsideration",
+      "state": "waiting_for_source"
+    },
+    {
+      "count": 289,
+      "kind": "identity_decision",
+      "state": "needs_review"
+    },
+    {
+      "count": 1,
+      "kind": "missing_identity",
+      "state": "needs_review"
+    },
+    {
+      "count": 22683,
+      "kind": "paired_name",
+      "state": "needs_review"
+    },
+    {
+      "count": 5,
+      "kind": "parse_failure",
+      "state": "needs_review"
+    },
+    {
+      "count": 235,
+      "kind": "parse_gap",
+      "state": "needs_review"
+    },
+    {
+      "count": 88,
+      "kind": "parse_warning",
+      "state": "needs_review"
+    },
+    {
+      "count": 17,
+      "kind": "phase1_incomplete",
+      "state": "needs_review"
+    },
+    {
+      "count": 1231,
+      "kind": "registry_diff",
+      "state": "needs_review"
+    },
+    {
+      "count": 3764,
+      "kind": "round_observations",
+      "state": "ready"
+    },
+    {
+      "count": 924,
+      "kind": "series_alias",
+      "state": "needs_review"
+    },
+    {
+      "count": 64,
+      "kind": "source_event_mapping",
+      "state": "needs_review"
+    },
+    {
+      "count": 6,
+      "kind": "source_id_checked",
+      "state": "ready"
+    },
+    {
+      "count": 3324,
+      "kind": "unknown_enum",
+      "state": "needs_review"
+    }
+  ],
+  "retained_claim_body_bytes": {
+    "eepro.com": {
+      "count": 520,
+      "maximum": 291405,
+      "p50": 15442,
+      "p95": 158883
+    },
+    "local_artifact": {
+      "count": 3,
+      "maximum": 39527376,
+      "p50": 39527376,
+      "p95": 39527376
+    },
+    "points.worldsdc.com": {
+      "count": 29059,
+      "maximum": 109136,
+      "p50": 2879,
+      "p95": 13662
+    },
+    "scores.worlddanceregistry.com": {
+      "count": 26,
+      "maximum": 820454,
+      "p50": 8651,
+      "p95": 571380
+    },
+    "scoring.dance": {
+      "count": 2020,
+      "maximum": 11439675,
+      "p50": 59878,
+      "p95": 136451
+    },
+    "web.archive.org": {
+      "count": 163,
+      "maximum": 267906,
+      "p50": 72014,
+      "p95": 196071
+    },
+    "worldsdc.com": {
+      "count": 1,
+      "maximum": 250338,
+      "p50": 250338,
+      "p95": 250338
+    },
+    "www.worldsdc.com": {
+      "count": 29,
+      "maximum": 976048,
+      "p50": 465668,
+      "p95": 802829
+    }
+  },
+  "runtime_imports": false,
+  "schema": 11,
+  "semantic_writes": 0,
+  "snapshot_at": "2026-09-13T10:10:31.249133+00:00",
+  "source_requests": 0,
+  "state": "/var/lib/swingset",
+  "watch_demand": [
+    {
+      "disabled_source": 0,
+      "due_before_operator_host_budget_gates": 0,
+      "host": "eepro.com",
+      "kind": "autoindex",
+      "retained": 67,
+      "source": "eepro",
+      "state": "archived",
+      "unchecked": 0,
+      "via_archive": 0
+    },
+    {
+      "disabled_source": 0,
+      "due_before_operator_host_budget_gates": 0,
+      "host": "eepro.com",
+      "kind": "autoindex",
+      "retained": 1,
+      "source": "eepro",
+      "state": "cooling",
+      "unchecked": 0,
+      "via_archive": 0
+    },
+    {
+      "disabled_source": 0,
+      "due_before_operator_host_budget_gates": 0,
+      "host": "eepro.com",
+      "kind": "autoindex",
+      "retained": 4,
+      "source": "eepro",
+      "state": "dormant",
+      "unchecked": 0,
+      "via_archive": 0
+    },
+    {
+      "disabled_source": 0,
+      "due_before_operator_host_budget_gates": 1,
+      "host": "eepro.com",
+      "kind": "index",
+      "retained": 1,
+      "source": "eepro",
+      "state": "live",
+      "unchecked": 0,
+      "via_archive": 0
+    },
+    {
+      "disabled_source": 0,
+      "due_before_operator_host_budget_gates": 0,
+      "host": "eepro.com",
+      "kind": "round",
+      "retained": 424,
+      "source": "eepro",
+      "state": "archived",
+      "unchecked": 0,
+      "via_archive": 0
+    },
+    {
+      "disabled_source": 0,
+      "due_before_operator_host_budget_gates": 0,
+      "host": "eepro.com",
+      "kind": "round",
+      "retained": 5,
+      "source": "eepro",
+      "state": "cooling",
+      "unchecked": 0,
+      "via_archive": 0
+    },
+    {
+      "disabled_source": 0,
+      "due_before_operator_host_budget_gates": 0,
+      "host": "eepro.com",
+      "kind": "round",
+      "retained": 18,
+      "source": "eepro",
+      "state": "dormant",
+      "unchecked": 0,
+      "via_archive": 0
+    },
+    {
+      "disabled_source": 1,
+      "due_before_operator_host_budget_gates": 0,
+      "host": "local_artifact",
+      "kind": "registry_dump",
+      "retained": 1,
+      "source": "crosscheck",
+      "state": "archived",
+      "unchecked": 1,
+      "via_archive": 0
+    },
+    {
+      "disabled_source": 0,
+      "due_before_operator_host_budget_gates": 0,
+      "host": "points.worldsdc.com",
+      "kind": "dancer",
+      "retained": 4,
+      "source": "wsdc_registry",
+      "state": "archived",
+      "unchecked": 0,
+      "via_archive": 0
+    },
+    {
+      "disabled_source": 0,
+      "due_before_operator_host_budget_gates": 188,
+      "host": "points.worldsdc.com",
+      "kind": "dancer",
+      "retained": 29044,
+      "source": "wsdc_registry",
+      "state": "registry",
+      "unchecked": 0,
+      "via_archive": 0
+    },
+    {
+      "disabled_source": 0,
+      "due_before_operator_host_budget_gates": 0,
+      "host": "scores.worlddanceregistry.com",
+      "kind": "event",
+      "retained": 12,
+      "source": "wdr",
+      "state": "archived",
+      "unchecked": 0,
+      "via_archive": 0
+    },
+    {
+      "disabled_source": 0,
+      "due_before_operator_host_budget_gates": 0,
+      "host": "scores.worlddanceregistry.com",
+      "kind": "event",
+      "retained": 1,
+      "source": "wdr",
+      "state": "cooling",
+      "unchecked": 0,
+      "via_archive": 0
+    },
+    {
+      "disabled_source": 0,
+      "due_before_operator_host_budget_gates": 0,
+      "host": "scores.worlddanceregistry.com",
+      "kind": "json",
+      "retained": 12,
+      "source": "wdr",
+      "state": "archived",
+      "unchecked": 0,
+      "via_archive": 0
+    },
+    {
+      "disabled_source": 0,
+      "due_before_operator_host_budget_gates": 0,
+      "host": "scores.worlddanceregistry.com",
+      "kind": "json",
+      "retained": 1,
+      "source": "wdr",
+      "state": "cooling",
+      "unchecked": 0,
+      "via_archive": 0
+    },
+    {
+      "disabled_source": 0,
+      "due_before_operator_host_budget_gates": 0,
+      "host": "scoring.dance",
+      "kind": "event",
+      "retained": 312,
+      "source": "scoringdance",
+      "state": "archived",
+      "unchecked": 0,
+      "via_archive": 0
+    },
+    {
+      "disabled_source": 0,
+      "due_before_operator_host_budget_gates": 7,
+      "host": "scoring.dance",
+      "kind": "event",
+      "retained": 7,
+      "source": "scoringdance",
+      "state": "cooling",
+      "unchecked": 0,
+      "via_archive": 0
+    },
+    {
+      "disabled_source": 0,
+      "due_before_operator_host_budget_gates": 64,
+      "host": "scoring.dance",
+      "kind": "event",
+      "retained": 64,
+      "source": "scoringdance",
+      "state": "live",
+      "unchecked": 0,
+      "via_archive": 0
+    },
+    {
+      "disabled_source": 0,
+      "due_before_operator_host_budget_gates": 2,
+      "host": "scoring.dance",
+      "kind": "index",
+      "retained": 2,
+      "source": "scoringdance",
+      "state": "live",
+      "unchecked": 0,
+      "via_archive": 0
+    },
+    {
+      "disabled_source": 0,
+      "due_before_operator_host_budget_gates": 369,
+      "host": "scoring.dance",
+      "kind": "round",
+      "retained": 1588,
+      "source": "scoringdance",
+      "state": "archived",
+      "unchecked": 0,
+      "via_archive": 0
+    },
+    {
+      "disabled_source": 0,
+      "due_before_operator_host_budget_gates": 12,
+      "host": "scoring.dance",
+      "kind": "round",
+      "retained": 12,
+      "source": "scoringdance",
+      "state": "cooling",
+      "unchecked": 0,
+      "via_archive": 0
+    },
+    {
+      "disabled_source": 0,
+      "due_before_operator_host_budget_gates": 33,
+      "host": "scoring.dance",
+      "kind": "round",
+      "retained": 33,
+      "source": "scoringdance",
+      "state": "dormant",
+      "unchecked": 0,
+      "via_archive": 0
+    },
+    {
+      "disabled_source": 0,
+      "due_before_operator_host_budget_gates": 3757,
+      "host": "scoring.dance",
+      "kind": "round",
+      "retained": 3757,
+      "source": "scoringdance",
+      "state": "live",
+      "unchecked": 3757,
+      "via_archive": 0
+    },
+    {
+      "disabled_source": 6,
+      "due_before_operator_host_budget_gates": 0,
+      "host": "web.archive.org",
+      "kind": "index",
+      "retained": 6,
+      "source": "swingdancecouncil",
+      "state": "sealed",
+      "unchecked": 6,
+      "via_archive": 6
+    },
+    {
+      "disabled_source": 0,
+      "due_before_operator_host_budget_gates": 0,
+      "host": "web.archive.org",
+      "kind": "index",
+      "retained": 10,
+      "source": "wsdc_calendar",
+      "state": "sealed",
+      "unchecked": 10,
+      "via_archive": 10
+    },
+    {
+      "disabled_source": 0,
+      "due_before_operator_host_budget_gates": 0,
+      "host": "worldsdc.com",
+      "kind": "index",
+      "retained": 1,
+      "source": "wsdc_calendar",
+      "state": "live",
+      "unchecked": 0,
+      "via_archive": 0
+    },
+    {
+      "disabled_source": 30,
+      "due_before_operator_host_budget_gates": 0,
+      "host": "www.worldsdc.com",
+      "kind": "index",
+      "retained": 30,
+      "source": "wsdc_newsletter",
+      "state": "sealed",
+      "unchecked": 30,
+      "via_archive": 0
+    }
+  ],
+  "watch_total": 35417,
+  "work_attempts": []
+}

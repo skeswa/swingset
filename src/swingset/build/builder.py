@@ -7,8 +7,10 @@ import math
 import os
 import shutil
 import sqlite3
+import tempfile
 import uuid
-from collections.abc import Callable, Iterator, Mapping, Sequence
+from collections.abc import Callable, Iterable, Iterator, Mapping, Sequence
+from contextlib import closing
 from dataclasses import dataclass, replace
 from datetime import UTC, date, datetime
 from enum import StrEnum
@@ -18,7 +20,9 @@ from typing import Any, overload
 import pyarrow as pa
 import pyarrow.parquet as pq
 
+from swingset.build.changelog import changes, generated_delta, sort_key
 from swingset.build.files import canonical_json, durable_write, fsync_dir, sha256_file
+from swingset.build.suppression import SuppressionPolicy, apply_suppressions
 from swingset.model import enums
 from swingset.model.history import HISTORY_START, in_history
 
@@ -40,6 +44,7 @@ PUBLISHED_TABLES = (
     "review_queue",
     "changelog",
     "snapshots",
+    "coverage",
 )
 DATASET_LICENSE = b"Open Data Commons Attribution License (ODC-By) v1.0\nhttps://opendatacommons.org/licenses/by/1-0/\n"
 
@@ -53,6 +58,7 @@ class BuildInput:
     captured_file_hashes: Mapping[str, str]
     input_bundle_hash: str
     history_start: date = HISTORY_START
+    release_policy: Mapping[str, Any] | None = None
 
 
 @dataclass(frozen=True)
@@ -65,6 +71,7 @@ class BuildMetadata:
     card: bytes
     built_at: datetime | None = None
     candidate_id: str | None = None
+    input_paths: Mapping[str, str] | None = None
 
 
 @dataclass(frozen=True)
@@ -134,6 +141,7 @@ def _fingerprint(data: BuildInput, meta: BuildMetadata) -> str:
             "versions": meta.versions,
             "card": hashlib.sha256(meta.card).hexdigest(),
             "bundle": data.input_bundle_hash,
+            "release_policy": data.release_policy,
         }
     )
 
@@ -149,10 +157,34 @@ def _validate(rows: Mapping[str, list[dict[str, Any]]], history_start: date) -> 
         start, end = row.get("start_date"), row.get("end_date")
         if start is not None and end is not None and start > end:
             raise BuildError(f"event {row.get('event_id')} starts after it ends")
-        if not in_history(history_start, end_date=end, start_date=start, year=row.get("year")):
+        month = row.get("event_month")
+        if month is not None:
+            try:
+                month_date = date.fromisoformat(f"{month}-01")
+            except ValueError as error:
+                raise BuildError(f"invalid event month: {month!r}") from error
+            if len(str(month)) != 7:
+                raise BuildError(f"invalid event month: {month!r}")
+        else:
+            month_date = None
+        if not in_history(
+            history_start, end_date=end, start_date=start or month_date, year=row.get("year")
+        ):
             raise BuildError(
                 f"event {row.get('event_id')} ended before the history start {history_start}"
             )
+        precision = row.get("date_precision")
+        if precision == "day" and (start is None or end is None):
+            raise BuildError(f"day-precision event {row.get('event_id')} needs both dates")
+        if precision == "month" and (start is not None or end is not None or month is None):
+            raise BuildError(f"month-precision event {row.get('event_id')} has inconsistent dates")
+        for field, allowed_values in {
+            "date_precision": {"day", "month"},
+            "held": {"held", "listed", "cancelled"},
+            "coverage_tier": {"registry_only", "index_only", "sheets_partial", "sheets_complete"},
+        }.items():
+            if row.get(field) is not None and row[field] not in allowed_values:
+                raise BuildError(f"unknown events.{field}: {row[field]!r}")
     entry_ids = {row["entry_id"] for row in rows.get("entries", [])}
     round_ids = {row["round_id"] for row in rows.get("rounds", [])}
     judge_ids = {row["judge_id"] for row in rows.get("judges", [])}
@@ -202,7 +234,34 @@ def _validate(rows: Mapping[str, list[dict[str, Any]]], history_start: date) -> 
             places
         ):
             raise BuildError(f"placements are not contiguous and unique for {round_id}")
-    allowed = {"confirmed", "probable"}
+    allowed = {"confirmed"}
+    confirmed_judges = {
+        (row.get("subject_id"), row.get("wsdc_id"))
+        for row in rows.get("identity_links", [])
+        if row.get("subject_kind") == "judge" and row.get("status") == "confirmed"
+    }
+    for row in rows.get("judges", []):
+        if (
+            row.get("wsdc_id") is not None
+            and (row.get("judge_id"), row["wsdc_id"]) not in confirmed_judges
+        ):
+            raise BuildError(
+                f"linked judge {row.get('judge_id')} lacks a confirmed identity assertion"
+            )
+    entries_by_id = {row["entry_id"]: row for row in rows.get("entries", [])}
+    for row in rows.get("placements", []):
+        for role in ("leader", "follower"):
+            dancer = row.get(f"{role}_wsdc_id")
+            entry = entries_by_id.get(row.get(f"{role}_entry_id"))
+            if dancer is not None and (
+                entry is None
+                or entry.get("wsdc_id") != dancer
+                or entry.get("link_status") != "confirmed"
+                or entry.get("role") != role
+            ):
+                raise BuildError(
+                    f"placement {row.get('placement_id')} has an unsupported {role} identity"
+                )
     bib_links: dict[tuple[Any, Any, Any], Any] = {}
     for row in rows.get("entries", []):
         wsdc_id = row.get("wsdc_id")
@@ -215,51 +274,6 @@ def _validate(rows: Mapping[str, list[dict[str, Any]]], history_start: date) -> 
                 raise BuildError(f"bib {key!r} maps to multiple WSDC ids")
 
 
-def apply_suppressions(
-    rows: Mapping[str, list[dict[str, Any]]], suppressions: Sequence[Mapping[str, Any]]
-) -> None:
-    ids = {int(item["wsdc_id"]) for item in suppressions if item.get("wsdc_id") not in (None, "")}
-    names = {str(item["name_norm"]).casefold() for item in suppressions if item.get("name_norm")}
-    suppressed_subjects: set[str] = set()
-    for table in ("entries", "judges", "dancers"):
-        for row in rows.get(table, []):
-            row_names = {str(row.get(key, "")).casefold() for key in ("name_norm", "name_raw")}
-            if row.get("wsdc_id") in ids or bool(row_names & names):
-                subject = row.get("entry_id") or row.get("judge_id")
-                if subject:
-                    suppressed_subjects.add(str(subject))
-                for key in (
-                    "name_raw",
-                    "name_norm",
-                    "first_name",
-                    "last_name",
-                    "wsdc_id",
-                    "city_raw",
-                    "country_raw",
-                ):
-                    if key in row:
-                        row[key] = None
-                if "link_status" in row:
-                    row["link_status"] = "suppressed"
-    rows.get("link_candidates", [])[:] = [
-        row
-        for row in rows.get("link_candidates", [])
-        if str(row.get("subject_id")) not in suppressed_subjects and row.get("wsdc_id") not in ids
-    ]
-    rows.get("identity_links", [])[:] = [
-        row
-        for row in rows.get("identity_links", [])
-        if str(row.get("subject_id")) not in suppressed_subjects
-    ]
-    for table_rows in rows.values():
-        for row in table_rows:
-            for key, value in tuple(row.items()):
-                if "wsdc_id" in key and value in ids:
-                    row[key] = None
-                if "name" in key and isinstance(value, str) and value.casefold() in names:
-                    row[key] = None
-
-
 def _changelog(
     current: Mapping[str, list[dict[str, Any]]],
     baseline: Path | None,
@@ -268,59 +282,19 @@ def _changelog(
     changed_at: datetime,
     run_id: str,
 ) -> list[dict[str, Any]]:
-    if baseline is None:
-        old: dict[str, list[dict[str, Any]]] = {}
-    else:
-        old = {}
-        for table in current:
-            if table == "changelog":
-                continue
-            files = list((baseline / "data" / table).glob("*.parquet"))
-            old[table] = pq.read_table(files).to_pylist() if files else []
-    delta: list[dict[str, Any]] = []
-    for table, new_rows in current.items():
-        if table == "changelog" or table not in keys:
-            continue
-        key_fields = keys[table]
-        before = {_row_key(row, key_fields): row for row in old.get(table, [])}
-        after = {_row_key(row, key_fields): row for row in new_rows}
-        for row_key in sorted(before.keys() | after.keys(), key=repr):
-            old_row, new_row = before.get(row_key), after.get(row_key)
-            fields: Sequence[str | None]
-            if old_row is None or new_row is None:
-                fields = [None]
-            else:
-                fields = sorted(
-                    field
-                    for field in old_row.keys() | new_row.keys()
-                    if old_row.get(field) != new_row.get(field)
-                )
-            for field in fields:
-                old_value = old_row if field is None else old_row.get(field) if old_row else None
-                new_value = new_row if field is None else new_row.get(field) if new_row else None
-                reason = (
-                    "suppression"
-                    if (new_row and new_row.get("link_status") == "suppressed")
-                    else "new_source_data"
-                )
-                delta.append(
-                    {
-                        "changed_at": changed_at,
-                        "run_id": run_id,
-                        "table": table,
-                        "record_key": json.dumps(row_key, default=str),
-                        "field": field,
-                        "old_value": json.dumps(old_value, sort_keys=True, default=str),
-                        "new_value": json.dumps(new_value, sort_keys=True, default=str),
-                        "change_type": "added"
-                        if old_row is None
-                        else "removed"
-                        if new_row is None
-                        else "updated",
-                        "reason": reason,
-                    }
-                )
-    return delta
+    # Compatibility helper for callers explicitly requesting an eager result.
+    # Candidate builds use changes()/generated_delta() directly.
+    with tempfile.TemporaryDirectory(prefix="swingset-changelog-") as directory:
+        return list(
+            changes(
+                current,
+                baseline,
+                keys,
+                changed_at=changed_at,
+                run_id=run_id,
+                scratch=Path(directory) / "comparison.sqlite",
+            )
+        )
 
 
 class ParquetRows(Sequence[Mapping[str, Any]]):
@@ -386,25 +360,40 @@ def _sorted_parquet_rows(paths: Sequence[Path]) -> Iterator[dict[str, Any]]:
             yield from batch.to_pylist()
 
 
-def _table_rows(table: pa.Table) -> Iterator[dict[str, Any]]:
-    for batch in table.to_batches(max_chunksize=8192):
-        yield from batch.to_pylist()
+def _typed_rows(rows: Iterable[dict[str, Any]], schema: pa.Schema) -> Iterator[dict[str, Any]]:
+    # The old eager Arrow table normalized timestamps and null fields before
+    # merging with retained history. Preserve that boundary in bounded batches.
+    pending: list[dict[str, Any]] = []
+    for row in rows:
+        pending.append(row)
+        if len(pending) == 8192:
+            yield from pa.Table.from_pylist(pending, schema=schema).to_pylist()
+            pending.clear()
+    if pending:
+        yield from pa.Table.from_pylist(pending, schema=schema).to_pylist()
 
 
 def _sortable_key(row: Mapping[str, Any], keys: tuple[str, ...]) -> str:
     # This is the ordering used by every published build. In particular,
     # record_key is itself JSON, so Arrow's typed string ordering is different.
-    return json.dumps(tuple(row.get(key) for key in keys), default=str)
+    return sort_key(row, keys)
 
 
 def _write_changelog(
-    history: Sequence[Path], delta: pa.Table, path: Path, schema: pa.Schema, keys: tuple[str, ...]
+    history: Sequence[Path],
+    delta: Iterable[dict[str, Any]],
+    path: Path,
+    schema: pa.Schema,
+    keys: tuple[str, ...],
+    suppression: SuppressionPolicy | None = None,
 ) -> int:
     """Merge sorted changelog runs without materializing history in memory."""
     sources: list[Iterator[dict[str, Any]]] = []
     if history:
         sources.append(_sorted_parquet_rows(history))
-    sources.append(_table_rows(delta))
+    sources.append(_typed_rows(delta, schema))
+    if suppression is not None:
+        sources = [suppression.filter_changelog(source) for source in sources]
     heap: list[tuple[str, int, dict[str, Any], Iterator[dict[str, Any]]]] = []
     for source_number, source in enumerate(sources):
         if row := next(source, None):
@@ -442,6 +431,7 @@ def build_candidate(
     *,
     suppressions: Sequence[Mapping[str, Any]] = (),
     card_renderer: Callable[[BuildInput], bytes] | None = None,
+    rows_finalizer: Callable[[dict[str, list[dict[str, Any]]]], None] | None = None,
 ) -> BuildResult:
     state_dir.mkdir(parents=True, exist_ok=True)
     baseline, baseline_commit, baseline_content = _baseline(state_dir)
@@ -450,13 +440,25 @@ def build_candidate(
     candidates.mkdir(exist_ok=True)
     for existing in candidates.iterdir():
         record = existing / "BUILT"
-        if record.is_file():
+        if record.is_file() and not (existing / "REJECTED").exists():
             value = json.loads(record.read_text())
             if (
                 value["build_fingerprint"] == fingerprint
                 and value.get("baseline_commit") == baseline_commit
                 and value.get("expected_parent") == meta.expected_parent
             ):
+                from swingset.publish.safety import (
+                    StaleCandidateError,
+                    reject_candidate,
+                    verify_candidate_files,
+                )
+
+                try:
+                    verify_candidate_files(existing)
+                except (OSError, ValueError, KeyError, StaleCandidateError) as error:
+                    if not (existing / "PUBLISHED").exists():
+                        reject_candidate(existing, f"cached candidate artifact is invalid: {error}")
+                    continue
                 return BuildResult(
                     existing.name,
                     existing,
@@ -471,64 +473,85 @@ def build_candidate(
     temporary.mkdir()
     try:
         rows = {name: [dict(row) for row in data.tables.get(name, ())] for name in PUBLISHED_TABLES}
-        apply_suppressions(rows, suppressions)
-        _validate(rows, data.history_start)
+        suppression = apply_suppressions(rows, suppressions)
+        history = sorted((baseline / "data" / "changelog").glob("*.parquet")) if baseline else []
         build_time = meta.built_at or datetime.now(UTC)
-        rows["changelog"] = _changelog(
-            rows, baseline, data.primary_keys, changed_at=build_time, run_id=meta.run_id
-        )
-        hashes: dict[str, str] = {}
-        row_counts = {name: len(value) for name, value in rows.items()}
-        for table_name in PUBLISHED_TABLES:
-            schema = data.schemas[table_name]
-            ordered = sorted(
-                rows[table_name],
-                key=lambda row: json.dumps(
-                    tuple(row.get(k) for k in data.primary_keys[table_name]), default=str
-                ),
-            )
-            table = pa.Table.from_pylist(ordered, schema=schema)
-            history: list[Path] = []
-            if table_name == "changelog":
-                history = (
-                    sorted((baseline / "data" / "changelog").glob("*.parquet")) if baseline else []
-                )
-            if not table.schema.equals(schema, check_metadata=True):
-                raise BuildError(f"schema mismatch for {table_name}")
-            table_dir = temporary / "data" / table_name
-            table_dir.mkdir(parents=True)
-            if table_name == "changelog":
-                path = table_dir / "changelog.parquet"
-                row_counts[table_name] = _write_changelog(
-                    history,
-                    table,
-                    path,
-                    schema,
-                    data.primary_keys[table_name],
-                )
-                hashes[path.relative_to(temporary).as_posix()] = sha256_file(path)
-            elif table_name in {"callback_marks", "final_marks"} and ordered:
-                contest_events = {
-                    row["contest_id"]: row.get("event_id") for row in rows["contests"]
-                }
-                event_years = {row["event_id"]: row.get("year") for row in rows["events"]}
-                round_years = {
-                    row["round_id"]: event_years.get(contest_events.get(row.get("contest_id")))
-                    for row in rows["rounds"]
-                }
-                years = sorted({round_years.get(row.get("round_id")) for row in ordered}, key=str)
-                for year in years:
-                    partition = [
-                        row for row in ordered if round_years.get(row.get("round_id")) == year
-                    ]
-                    partition_table = pa.Table.from_pylist(partition, schema=schema)
-                    path = table_dir / f"year={year if year is not None else 'unknown'}.parquet"
-                    _write_parquet(partition_table, path)
-                    hashes[path.relative_to(temporary).as_posix()] = sha256_file(path)
+        with generated_delta(temporary / "delta.sqlite", data.primary_keys["changelog"]) as delta:
+            for _pass in range(32):
+                discovered = suppression.discover_history(_sorted_parquet_rows(history))
+                suppression.apply(rows)
+                if rows_finalizer is not None:
+                    rows_finalizer(rows)
+                with closing(
+                    changes(
+                        rows,
+                        baseline,
+                        data.primary_keys,
+                        changed_at=build_time,
+                        run_id=meta.run_id,
+                        scratch=temporary / "comparison.sqlite",
+                    )
+                ) as comparison:
+                    delta.replace(comparison)
+                discovered |= suppression.discover_history(delta)
+                if not discovered:
+                    break
             else:
-                path = table_dir / f"{table_name}.parquet"
-                _write_parquet(table, path)
-                hashes[path.relative_to(temporary).as_posix()] = sha256_file(path)
+                raise BuildError("suppression history did not converge within 32 passes")
+            _validate(rows, data.history_start)
+            hashes: dict[str, str] = {}
+            row_counts = {name: len(value) for name, value in rows.items()}
+            for table_name in PUBLISHED_TABLES:
+                schema = data.schemas[table_name]
+                if table_name == "changelog":
+                    table_dir = temporary / "data" / table_name
+                    table_dir.mkdir(parents=True)
+                    path = table_dir / "changelog.parquet"
+                    row_counts[table_name] = _write_changelog(
+                        history,
+                        delta.sorted_rows(),
+                        path,
+                        schema,
+                        data.primary_keys[table_name],
+                        suppression,
+                    )
+                    hashes[path.relative_to(temporary).as_posix()] = sha256_file(path)
+                    continue
+                ordered = sorted(
+                    rows[table_name],
+                    key=lambda row: json.dumps(
+                        tuple(row.get(k) for k in data.primary_keys[table_name]), default=str
+                    ),
+                )
+                table = pa.Table.from_pylist(ordered, schema=schema)
+                if not table.schema.equals(schema, check_metadata=True):
+                    raise BuildError(f"schema mismatch for {table_name}")
+                table_dir = temporary / "data" / table_name
+                table_dir.mkdir(parents=True)
+                if table_name in {"callback_marks", "final_marks"} and ordered:
+                    contest_events = {
+                        row["contest_id"]: row.get("event_id") for row in rows["contests"]
+                    }
+                    event_years = {row["event_id"]: row.get("year") for row in rows["events"]}
+                    round_years = {
+                        row["round_id"]: event_years.get(contest_events.get(row.get("contest_id")))
+                        for row in rows["rounds"]
+                    }
+                    years = sorted(
+                        {round_years.get(row.get("round_id")) for row in ordered}, key=str
+                    )
+                    for year in years:
+                        partition = [
+                            row for row in ordered if round_years.get(row.get("round_id")) == year
+                        ]
+                        partition_table = pa.Table.from_pylist(partition, schema=schema)
+                        path = table_dir / f"year={year if year is not None else 'unknown'}.parquet"
+                        _write_parquet(partition_table, path)
+                        hashes[path.relative_to(temporary).as_posix()] = sha256_file(path)
+                else:
+                    path = table_dir / f"{table_name}.parquet"
+                    _write_parquet(table, path)
+                    hashes[path.relative_to(temporary).as_posix()] = sha256_file(path)
         # Counts and coverage must describe the final rows, including the
         # generated changelog and applied suppressions.
         card_rows: dict[str, Sequence[Mapping[str, Any]]] = dict(rows)
@@ -550,6 +573,7 @@ def build_candidate(
             "files": semantic_files,
             "schema_version": meta.schema_version,
             "versions": meta.versions,
+            "correction_token": data.release_policy.get("token") if data.release_policy else None,
         }
         content_hash = _hash_json(semantic)
         built_at = build_time.isoformat()
@@ -587,6 +611,7 @@ def build_candidate(
             "expected_parent": meta.expected_parent,
             "baseline_commit": baseline_commit,
             "input_bundle_hash": data.input_bundle_hash,
+            "release_policy": data.release_policy,
             "files": hashes,
         }
         manifest_path = temporary / "_meta" / "manifest.json"
@@ -601,6 +626,7 @@ def build_candidate(
             "content_hash": content_hash,
             "manifest_hash": manifest_hash,
             "changed": content_hash != baseline_content,
+            "input_paths": meta.input_paths,
         }
         durable_write(temporary / "BUILT", canonical_json(built_record))
         fsync_dir(temporary)

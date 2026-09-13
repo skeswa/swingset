@@ -1,0 +1,22 @@
+{
+  "archive_url": null,
+  "body_sha256": "3e342cde93d4bf735269a1637ad7d1e6a6bb71263508d4772ff4bc2eafe4ac5c",
+  "captured_at": "2026-09-09T15:05:19.109252+00:00",
+  "child_count": 0,
+  "extract_sha256": "33eedfc9c670d867505b0e7044593e32897b53f15396698ed9a4c2f79b74a43d",
+  "extract_version": "1",
+  "observation_count": 50,
+  "observed_at": "2026-09-09T15:05:19.109252+00:00",
+  "page_kind": "wdr.rounds",
+  "parser_version": "2",
+  "report_digest": "6a69b31bef3e3cf499348be6d8bed38e62cb25029831ba9cfeb2031ecf8f43df",
+  "snapshot_id": "snap_20260909T150519Z_3e342cde93d4",
+  "state_root": "/var/lib/swingset/checkpoints/v2-v1-published-20260913T0543Z",
+  "state_roots": [
+    "/var/lib/swingset/checkpoints/v2-v1-published-20260913T0543Z",
+    "/var/tmp/swingset-phase1-intake"
+  ],
+  "url": "https://scores.worlddanceregistry.com/3ac5b6cd-17f3-11f0-9a29-0aa72bbce9ea/rounds/routeInfo.json",
+  "via": "origin",
+  "watch_id": "dfd9ff7c05f9cf7d"
+}

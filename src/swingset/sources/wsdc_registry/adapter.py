@@ -17,6 +17,7 @@ from ..base import (
     ParseWarning,
     WatchSpec,
 )
+from ..interpretation import declared
 from ..records import DancerLookup, RegistryPlacement
 
 VERIFIED_MISS_SHA256 = "8437bd0ef46a19c9a7c294c53e0429b40e76ebbd5fe9fd73a9025752495ddb1c"
@@ -51,6 +52,7 @@ class DancerPage:
             raise ExtractError("registry response is not an object")
         return value
 
+    @declared
     def parse(self, extract: JsonValue, ctx: ParseContext) -> ParseResult:
         if not isinstance(extract, dict):
             raise ExtractError("registry extract is not an object")

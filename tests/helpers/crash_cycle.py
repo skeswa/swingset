@@ -6,6 +6,7 @@ import os
 import signal
 import sys
 import time
+from datetime import datetime
 from pathlib import Path
 
 import httpx
@@ -30,10 +31,15 @@ def transaction(self, **kwargs):
     boundary = count
     if fault == f"before:{boundary}":
         os._exit(91)
-    with original(self, **kwargs) as conn:
-        yield conn
-    if fault == f"after:{boundary}":
-        os._exit(91)
+    try:
+        with original(self, **kwargs) as conn:
+            yield conn
+    finally:
+        # A deferred request now deliberately rolls back its speculative
+        # admission. Its rollback boundary needs the same crash coverage as a
+        # successful commit; neither should disappear from the trace.
+        if fault == f"after:{boundary}":
+            os._exit(91)
 
 
 Database.transaction = transaction
@@ -67,4 +73,39 @@ with open_database(state) as db:
         transport=httpx.MockTransport(handler),
         should_stop=lambda: stopped,
     )
-    print(json.dumps({"transactions": count, "stopped": result["stopped"]}), flush=True)
+    recovery_cycles = 0
+    # H12 preserves a restart deadline instead of immediately retrying a crashed
+    # unit. Exercise that durable boundary with the injected clock, then require
+    # the same fully committed belief as an uninterrupted run.
+    if fault == "none":
+        for _ in range(3):
+            retries = db.connection.execute(
+                "SELECT retry_at FROM work_attempts a WHERE outcome IN ('interrupted','transient') "
+                "AND retry_at IS NOT NULL AND EXISTS (SELECT 1 FROM pending_work p "
+                "WHERE p.stage=a.stage AND p.unit_kind=a.unit_kind AND p.unit_id=a.unit_id) "
+                "AND attempt_id=(SELECT max(b.attempt_id) FROM work_attempts b "
+                "WHERE b.stage=a.stage AND b.unit_kind=a.unit_kind AND b.unit_id=a.unit_id)"
+            ).fetchall()
+            if not retries:
+                break
+            retry_at = max(datetime.fromisoformat(row[0]) for row in retries)
+            clock.sleep(max(0, (retry_at - clock.now()).total_seconds()))
+            result = run_cycle(
+                db,
+                config_dir=config,
+                overrides_dir=overrides,
+                clock=clock,
+                transport=httpx.MockTransport(handler),
+                should_stop=lambda: stopped,
+            )
+            recovery_cycles += 1
+    print(
+        json.dumps(
+            {
+                "transactions": count,
+                "stopped": result["stopped"],
+                "recovery_cycles": recovery_cycles,
+            }
+        ),
+        flush=True,
+    )

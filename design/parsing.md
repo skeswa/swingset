@@ -123,6 +123,15 @@ inventory names parser output, before canonical projection.
   enum: `yes`, `alt1`, `alt2`, `alt3`, `no`.
 - Names are stored exactly as printed in `name_raw`. Normalization is a
   separate step.
+- Explicit paired names require individual ownership evidence before a
+  single-person identity can attach. Existing supported Jack and Jill
+  layouts split the printed pair using their established role order. Other
+  layouts retain a couple, the original name, and a `paired_name` finding
+  with reason `paired_name_ownership_unresolved`; punctuation normalization
+  must not erase that boundary. A retained pair is not an individual subject.
+- An unrestricted or unspecified contest division remains `none` or
+  `open`; it is not inferred to be Newcomer or another skill level. Identity
+  scoring treats that division evidence as unavailable.
 - The DCN Nuxt payload is evaluated by a `node` subprocess from nixpkgs
   running a small fixed script (`sources/dcn/nuxt_eval.js`) that defines
   `window`, evaluates the payload, and prints JSON to stdout. The
@@ -154,3 +163,96 @@ Fixtures are committed, not downloaded during tests. If a suppression
 request names a person in a fixture, re-record it from a different event
 and update its expected output; the runbook covers this case. Research
 verification keeping headers only does not change the fixture contract.
+
+Newsletter parsing preserves PDF layout columns and wrapped event names. The
+captured Volume 6 issue yields 37 sidebar listings and four dated New Events
+approvals. Unrecovered colour semantics emit `newsletter_colour_unverified`;
+sidebar rows retain `newsletter_status_colour_unverified`, with the registry
+fallback defined by backfill. Quarter-only approvals remain review findings,
+unknown layouts do not authorize empty replacement, and malformed printed
+dates fail with a stable reason. Other newsletter layouts remain unverified.
+
+## Source admission (H6 and H7)
+
+`ParseResult.interpretation` carries pure field accounting and coverage beside
+observations. Contracted adapters use `sources/interpretation.py`; the evidence
+layer independently checks archived structure, body and extract hashes, ordered
+input slots, versions, and pagination. Contracts live in `admission/`, with
+registry and round accounting separated from policy and persistence.
+
+Every relevant field is handled, excluded with a reason, or unknown. Critical
+unknowns block selection. Noncritical unknowns remain in the report. Source row
+counts are checked against interpreted rows; listed child identifiers are
+checked independently of whether child pages have been acquired. Ragged,
+role-specific judge panels are retained without filling a rectangular matrix.
+An empty output or `legitimate_empty` flag supplies no terminal witness.
+
+Contract 4 covers registry lookups, EEPro indexes and round sheets,
+scoring.dance indexes and round sheets, and WDR rounds. Other page kinds remain
+explicitly unassessed. Verified empty presentation columns and source aggregate
+columns have explicit exclusions. `RoundSheet.scoring_method_raw` retains the
+literal EEPro `Avg` header or WDR `roundSubHeader`; it does not add a canonical
+scoring method. EEPro numeric contests, including finals, WDR `Average Raw Scores`,
+and WDR's explicit `Solo` category are marked unsupported with a finding and
+emit no canonical results. Their raw judge scores, averages, medals, and rows
+remain evidence. WDR `#` is a source-order ordinal, not a placement. Unknown
+methods, typed cells, and callback/mark codes still block. WDR `S<n>` outcomes
+and generic paired-finals bib ownership remain excluded, unverified findings;
+their retained documents receive no removal authority.
+
+EEPro autoindex uses contract 5. Its independent body witness enumerates raw
+DOM file hrefs, including PDFs, and compares their count and order with
+FileRows and HTML child watches. Truncated visible labels cannot hide a file.
+The extractor derives file names from href paths. Other page kinds remain on
+contract 4; a new autoindex review cannot silently approve another contract.
+
+Blocked-admission finding summaries include stable reason codes from the
+stored generation report and latest selection decision. Staging-only guards
+such as `non_authoritative_row_loss` remain visible. Private exception text
+and paths are excluded from those public summaries.
+WDR updates also require unchanged witnesses for all previously selected raw
+rows, including duplicate counts and column context. This is checked during
+staging and again inside selection: retaining old observations alone would
+not prevent a newer panel from omitting their projected facts. Changed or
+missing rows require explicit review or revocation of the old evidence.
+
+The ordinary parser stages immutable evidence before replacement. Policies
+default to `shadow`: reports add no admission pointer or removal authority and
+the existing parse behavior continues. `paused` retains staged evidence without
+promotion. `enforce` requires a recorded external review of that exact contract
+and corpus digest, including a passing control. A report alone cannot activate
+a policy. A contract change creates new reports and a new version; old failed
+reports remain unchanged.
+
+The admission transaction checks the desired input fingerprint, previous
+accepted generation, current snapshot and recipe, intact complete manifest,
+and pending-work token. It commits observation replacement, both old and new
+scope invalidations, the accepted pointer, and token-specific completion
+together. A stale snapshot can complete only its own obsolete work; newer
+snapshot or requeued-input work remains pending. An interrupted transaction
+exposes the old complete generation; replay after commit is idempotent.
+
+EEPro and scoring.dance round documents may retire only claims owned by their
+watch. Registry lookups, WDR rounds, and historical event discovery grant no
+deletion authority. Their observations
+remain by snapshot; the latest present registry claim corrects the same native
+key while omitted historical placements and prior found identities survive.
+Archived index captures use `watch_id/snapshot_id` units so a later capture
+cannot retire another year's evidence. Explicit revocation withdraws proven
+inadmissible claims and restores an assessed predecessor when available.
+
+The read-only review command is:
+
+```
+python research/assess_source_admission.py --state RETAINED_STATE \
+  --state PHASE1_STATE --output NEW_REVIEW_DIRECTORY --cutoff UTC_TIME
+```
+
+It writes every report, a digest receipt, and an HTML index linking exact
+example bodies and extracts. Shared snapshots are assessed once with both
+state roots recorded. It does not migrate, fetch, promote, or fabricate review.
+After an external review, `record_corpus_review` verifies the supplied digest;
+`activate_contract` enables that page kind and queues retained parse work.
+`pause_contract` preserves the last accepted output. Manual-extraction callers
+must supply their reviewed and observed sentinel to `evaluate`; an absent or
+changed acknowledgment cannot promote the candidate.

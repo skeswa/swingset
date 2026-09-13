@@ -1,0 +1,17 @@
+{
+  "at": "2026-09-13T10:48:27.139802+00:00",
+  "input_bundle": "184923097435f167078a7743568eb5d6a3b962b1b40542c106164ef71b6eba78",
+  "limitations": "Single current-state timing; no requests or main-database writes. Does not establish throughput or service-gap performance.",
+  "mode": "readonly_retained_demand_empty_temp_attribution",
+  "policy_sha256": "9b198db3089d293f4f9b0932e26dc10c9ce8d72f9d9891a92223d703a2b42a64",
+  "schema": 12,
+  "script_sha256": "3294c7fa7067ca8add93149618bc63fea1bade41097954fb935aea190f748411",
+  "seconds": 0.3713669909629971,
+  "selection": {
+    "category": "current",
+    "host": "scoring.dance",
+    "key": "0b8b23fb1337c793"
+  },
+  "state": "/var/lib/swingset",
+  "watch_count": 35417
+}

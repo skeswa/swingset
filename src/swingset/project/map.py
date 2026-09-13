@@ -12,8 +12,10 @@ from typing import Protocol
 from swingset.model.canonical import Event
 from swingset.model.ids import event_id, series_id
 from swingset.normalize.events import event_dates_overlap, normalize_event_name
+from swingset.state.work import WorkUnit
 
 from .contests import project_event
+from .materialization import helper_recipe, materializing
 from .registry_events import reconcile_registry_events
 from .writer import Projection, replace_scope, replace_source_event_map
 
@@ -24,6 +26,19 @@ class InputBundleLike(Protocol):
 
 
 def project_map(
+    conn: sqlite3.Connection, bundle: InputBundleLike, now: str, run_id: str, projector_version: int
+) -> bool:
+    with materializing(
+        conn,
+        WorkUnit("project", "map", "all"),
+        now=now,
+        run_id=run_id,
+        recipe=helper_recipe(conn, bundle.files, "project"),
+    ):
+        return _project_map(conn, bundle, now, run_id, projector_version)
+
+
+def _project_map(
     conn: sqlite3.Connection, bundle: InputBundleLike, now: str, run_id: str, projector_version: int
 ) -> bool:
     overrides: dict[tuple[str, str], str] = {}
@@ -88,15 +103,6 @@ def project_map(
                 run_id=run_id,
             )
         )
-    replace_scope(
-        conn,
-        scope_kind="override_events",
-        scope_id="all",
-        projection=Projection(tuple(placeholder_events)),
-        run_id=run_id,
-        projected_at=now,
-        enqueue_links=False,
-    )
     for source_row in conn.execute(
         "SELECT source,source_ref,name_raw,start_date,end_date,snapshot_id,parser_version FROM source_events"
     ):
@@ -137,17 +143,27 @@ def project_map(
                     run_id=run_id,
                 )
             )
+    override_event_ids = {event.event_id for event in placeholder_events}
     desired_unknown_ids = {event.event_id for event in unknown}
+    mapped_event_ids = {row[2] for row in mapped}
     retained_unknown = list(unknown)
     retiring_unknown_ids: set[str] = set()
     for row in conn.execute(
-        """SELECT e.* FROM canonical_scope_rows c JOIN events e
+        """SELECT DISTINCT e.* FROM canonical_scope_rows c JOIN events e
         ON c.table_name='events' AND c.record_key=json_array(e.event_id)
-        WHERE c.scope_kind='unmatched_source_events' AND c.scope_id='all'"""
+        WHERE c.scope_kind IN ('unmatched_source_events','override_events') AND c.scope_id='all'"""
     ):
         stored = _stored_event(row)
         if stored.event_id not in desired_unknown_ids:
             retained_unknown.append(stored)
+            if stored.event_id in override_event_ids:
+                continue
+            if stored.event_id in mapped_event_ids:
+                # Registry enrichment can make a source-created occurrence match
+                # itself. Its mapping still needs this scope's event ownership.
+                unknown.append(stored)
+                desired_unknown_ids.add(stored.event_id)
+                continue
             owner_count = conn.execute(
                 "SELECT count(*) FROM canonical_scope_rows WHERE table_name='events' "
                 "AND record_key=json_array(?)",
@@ -164,6 +180,15 @@ def project_map(
         projected_at=now,
         enqueue_links=False,
     )
+    replace_scope(
+        conn,
+        scope_kind="override_events",
+        scope_id="all",
+        projection=Projection(tuple(placeholder_events)),
+        run_id=run_id,
+        projected_at=now,
+        enqueue_links=False,
+    )
     before = [
         tuple(row)
         for row in conn.execute(
@@ -172,18 +197,25 @@ def project_map(
     ]
     affected = replace_source_event_map(conn, tuple(mapped))
     for event in affected:
-        replace_scope(
+        with materializing(
             conn,
-            scope_kind="event",
-            scope_id=event,
-            projection=project_event(conn, event, now, run_id),
+            WorkUnit("project", "event", event),
+            now=now,
             run_id=run_id,
-            projected_at=now,
-        )
-        conn.execute(
-            "DELETE FROM pending_work WHERE stage='project' AND unit_kind='event' AND unit_id=?",
-            (event,),
-        )
+            recipe=helper_recipe(conn, bundle.files, "project"),
+        ):
+            replace_scope(
+                conn,
+                scope_kind="event",
+                scope_id=event,
+                projection=project_event(conn, event, now, run_id),
+                run_id=run_id,
+                projected_at=now,
+            )
+            conn.execute(
+                "DELETE FROM pending_work WHERE stage='project' AND unit_kind='event' AND unit_id=?",
+                (event,),
+            )
     registry_changed = reconcile_registry_events(
         conn,
         reconciled_at=now,
@@ -209,8 +241,13 @@ def _stored_event(row: sqlite3.Row) -> Event:
         series_id=str(row["series_id"]),
         name=str(row["name"]),
         year=int(row["year"]),
-        start_date=str(row["start_date"]),
-        end_date=str(row["end_date"]),
+        start_date=row["start_date"],
+        end_date=row["end_date"],
+        event_month=str(row["event_month"]),
+        date_precision=str(row["date_precision"]),
+        held=str(row["held"]),
+        coverage_tier=str(row["coverage_tier"]),
+        history_source=tuple(json.loads(row["history_source"])),
         city=None if row["city"] is None else str(row["city"]),
         region=None if row["region"] is None else str(row["region"]),
         country=None if row["country"] is None else str(row["country"]),
