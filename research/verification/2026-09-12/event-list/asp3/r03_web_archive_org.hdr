@@ -1,0 +1,35 @@
+Server: nginx
+Date: Sun, 13 Sep 2026 02:20:33 GMT
+Content-Type: text/html
+Transfer-Encoding: chunked
+Connection: close
+x-archive-orig-server: Microsoft-IIS/5.0
+x-archive-orig-date: Sat, 21 Sep 2013 03:27:13 GMT
+x-archive-orig-microsoftofficewebserver: 5.0_Pub
+x-archive-orig-connection: Keep-Alive
+x-archive-orig-content-length: 54328
+x-archive-orig-set-cookie: ASPSESSIONIDACRTDRRT=JLAFNKDAHEPJMHOBNIFJBJMH; path=/
+x-archive-orig-cache-control: private
+cache-control: max-age=1800
+memento-datetime: Sat, 21 Sep 2013 03:27:13 GMT
+link: <http://www.swingdancecouncil.com/ActiveServerPages/UpcomingEvents.asp>; rel="original", <https://web.archive.org/web/timemap/link/http://www.swingdancecouncil.com/ActiveServerPages/UpcomingEvents.asp>; rel="timemap"; type="application/link-format", <https://web.archive.org/web/http://www.swingdancecouncil.com/ActiveServerPages/UpcomingEvents.asp>; rel="timegate", <https://web.archive.org/web/20020606130207/http://www.swingdancecouncil.com:80/ActiveServerPages/UpcomingEvents.asp>; rel="first memento"; datetime="Thu, 06 Jun 2002 13:02:07 GMT", <https://web.archive.org/web/20121228025805/http://www.swingdancecouncil.com:80/ActiveServerPages/UpcomingEvents.asp>; rel="prev memento"; datetime="Fri, 28 Dec 2012 02:58:05 GMT", <https://web.archive.org/web/20130921032713/http://www.swingdancecouncil.com/ActiveServerPages/UpcomingEvents.asp>; rel="memento"; datetime="Sat, 21 Sep 2013 03:27:13 GMT", <https://web.archive.org/web/20140808060727/http://www.swingdancecouncil.com/ActiveServerPages/UpcomingEvents.asp/>; rel="next memento"; datetime="Fri, 08 Aug 2014 06:07:27 GMT", <https://web.archive.org/web/20250815122700/http://swingdancecouncil.com/ActiveServerPages/UpcomingEvents.asp>; rel="last memento"; datetime="Fri, 15 Aug 2025 12:27:00 GMT"
+content-security-policy: default-src 'self' 'unsafe-eval' 'unsafe-inline' data: blob: archive.org web.archive.org web-static.archive.org wayback-api.archive.org athena.archive.org analytics.archive.org pragma.archivelab.org wwwb-events.archive.org
+x-archive-src: SURV-20130921022813-crawl453/SURV-20130921032400-00025.warc.gz
+server-timing: captures_list;dur=0.392471, exclusion.robots;dur=0.059403, exclusion.robots.policy;dur=0.051152, esindex;dur=0.007802, cdx.remote;dur=17.298548, LoadShardBlock;dur=110.983361, PetaboxLoader3.datanode;dur=124.268369, PetaboxLoader3.resolve;dur=354.502920, load_resource;dur=383.141513
+x-app-server: wwwb-app233-dc8
+x-ts: 200
+x-tr: 532
+server-timing: TR;dur=0,Tw;dur=0,Tc;dur=1
+set-cookie: wb-p-SERVER=wwwb-app233; path=/
+cache-control: private
+X-location: All
+X-AS: 3356
+X-RL: 0
+X-NA: 0
+X-Page-Cache: MISS
+Server-Timing: MISS
+X-NID: LEVEL3
+Referrer-Policy: no-referrer-when-downgrade
+Permissions-Policy: interest-cohort=()
+X-sd: 0
+Content-Encoding: gzip

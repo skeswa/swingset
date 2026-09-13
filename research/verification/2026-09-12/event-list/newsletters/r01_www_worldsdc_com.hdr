@@ -1,0 +1,23 @@
+Date: Sun, 13 Sep 2026 02:24:22 GMT
+Content-Type: application/pdf
+Content-Length: 688296
+Connection: close
+Accept-Ranges: bytes
+content-security-policy: default-src 'self' 'unsafe-inline' 'unsafe-eval' data: https:;
+etag: "a80a8-652032389120b"
+last-modified: Sun, 17 May 2026 13:08:14 GMT
+permissions-policy: geolocation=(), camera=(), microphone=()
+referrer-policy: strict-origin-when-cross-origin
+Server: cloudflare
+x-content-type-options: nosniff
+x-frame-options: SAMEORIGIN
+x-wp-hardening: v 2025-09-24
+x-wp-tuning: v 2026-09-12
+Cache-Control: max-age=86400
+cf-cache-status: MISS
+Server-Timing: cfCacheStatus;desc="MISS"
+Server-Timing: cfEdge;dur=134,cfOrigin;dur=373
+Report-To: {"group":"cf-nel","max_age":604800,"endpoints":[{"url":"https://a.nel.cloudflare.com/report/v4?s=5e%2BG9Kk%2B0UZTY2qWlSFdY0%2Femj24If9vr05Py%2BN1aHuUa9XPhnAZ0Vlowuafq9ZKL4fL0zWeSKsMDubiNhiBPk9v%2Fyaz3nWmj9Ketin3EsnukoXy1vRSEX3nHExwDWMkmSd8"}]}
+Nel: {"report_to":"cf-nel","success_fraction":0.0,"max_age":604800}
+CF-RAY: a3a3b1fb3d42e755-DEN
+alt-svc: h3=":443"; ma=86400

@@ -1,0 +1,35 @@
+Server: nginx
+Date: Sun, 13 Sep 2026 02:23:23 GMT
+Content-Type: text/html
+Transfer-Encoding: chunked
+Connection: close
+x-archive-orig-server: Microsoft-IIS/5.0
+x-archive-orig-date: Fri, 02 Mar 2012 00:08:17 GMT
+x-archive-orig-microsoftofficewebserver: 5.0_Pub
+x-archive-orig-connection: Keep-Alive
+x-archive-orig-content-length: 6766
+x-archive-orig-set-cookie: ASPSESSIONIDQQABTDSB=HEINDMCCJGDFMLNADCKCNPEH; path=/
+x-archive-orig-cache-control: private
+cache-control: max-age=1800
+memento-datetime: Fri, 02 Mar 2012 00:08:18 GMT
+link: <http://swingdancecouncil.com:80/ActiveServerPages/NonRegUpcomingEvents.asp>; rel="original", <https://web.archive.org/web/timemap/link/http://swingdancecouncil.com:80/ActiveServerPages/NonRegUpcomingEvents.asp>; rel="timemap"; type="application/link-format", <https://web.archive.org/web/http://swingdancecouncil.com:80/ActiveServerPages/NonRegUpcomingEvents.asp>; rel="timegate", <https://web.archive.org/web/20040611130410/http://swingdancecouncil.com:80/ActiveServerPages/NonRegUpcomingEvents.asp>; rel="first memento"; datetime="Fri, 11 Jun 2004 13:04:10 GMT", <https://web.archive.org/web/20111106012921/http://www.swingdancecouncil.com/ActiveServerPages/NonRegUpcomingEvents.asp>; rel="prev memento"; datetime="Sun, 06 Nov 2011 01:29:21 GMT", <https://web.archive.org/web/20120302000818/http://swingdancecouncil.com:80/ActiveServerPages/NonRegUpcomingEvents.asp>; rel="memento"; datetime="Fri, 02 Mar 2012 00:08:18 GMT", <https://web.archive.org/web/20120420173653/http://www.swingdancecouncil.com:80/ActiveServerPages/NonRegUpcomingEvents.asp>; rel="next memento"; datetime="Fri, 20 Apr 2012 17:36:53 GMT", <https://web.archive.org/web/20190612063644/http://www.swingdancecouncil.com:80/ActiveServerPages/NonRegUpcomingEvents.asp>; rel="last memento"; datetime="Wed, 12 Jun 2019 06:36:44 GMT"
+content-security-policy: default-src 'self' 'unsafe-eval' 'unsafe-inline' data: blob: archive.org web.archive.org web-static.archive.org wayback-api.archive.org athena.archive.org analytics.archive.org pragma.archivelab.org wwwb-events.archive.org
+x-archive-src: alexa20120302-22/51_26_20120302000744_crawl103.arc.gz
+server-timing: captures_list;dur=0.570256, exclusion.robots;dur=0.072848, exclusion.robots.policy;dur=0.064186, esindex;dur=0.007818, cdx.remote;dur=13.350452, LoadShardBlock;dur=210.765710, PetaboxLoader3.resolve;dur=94.360198, PetaboxLoader3.datanode;dur=209.644042, load_resource;dur=138.642109
+x-app-server: wwwb-app253-dc8
+x-ts: 200
+x-tr: 381
+server-timing: TR;dur=0,Tw;dur=0,Tc;dur=1
+set-cookie: wb-p-SERVER=wwwb-app253; path=/
+cache-control: private
+X-location: All
+X-AS: 3356
+X-RL: 0
+X-NA: 0
+X-Page-Cache: MISS
+Server-Timing: MISS
+X-NID: LEVEL3
+Referrer-Policy: no-referrer-when-downgrade
+Permissions-Policy: interest-cohort=()
+X-sd: 0
+Content-Encoding: gzip

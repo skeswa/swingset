@@ -1,0 +1,32 @@
+Server: nginx
+Date: Sun, 13 Sep 2026 02:24:14 GMT
+Content-Type: text/html; charset=UTF-8
+Transfer-Encoding: chunked
+Connection: close
+x-archive-orig-date: Tue, 06 Jun 2017 18:08:40 GMT
+x-archive-orig-server: Apache
+x-archive-orig-vary: Accept-Encoding
+x-archive-orig-connection: close
+cache-control: max-age=1800
+memento-datetime: Tue, 06 Jun 2017 18:08:40 GMT
+link: <https://www.worldsdc.com/event-calendar/>; rel="original", <https://web.archive.org/web/timemap/link/https://www.worldsdc.com/event-calendar/>; rel="timemap"; type="application/link-format", <https://web.archive.org/web/https://www.worldsdc.com/event-calendar/>; rel="timegate", <https://web.archive.org/web/20160710053118/http://www.worldsdc.com:80/event-calendar/>; rel="first memento"; datetime="Sun, 10 Jul 2016 05:31:18 GMT", <https://web.archive.org/web/20170405010232/http://www.worldsdc.com/event-calendar/>; rel="prev memento"; datetime="Wed, 05 Apr 2017 01:02:32 GMT", <https://web.archive.org/web/20170606180840/https://www.worldsdc.com/event-calendar/>; rel="memento"; datetime="Tue, 06 Jun 2017 18:08:40 GMT", <https://web.archive.org/web/20170915230612/http://www.worldsdc.com:80/event-calendar/>; rel="next memento"; datetime="Fri, 15 Sep 2017 23:06:12 GMT", <https://web.archive.org/web/20220927051335/https://www.worldsdc.com/event-calendar/>; rel="last memento"; datetime="Tue, 27 Sep 2022 05:13:35 GMT"
+content-security-policy: default-src 'self' 'unsafe-eval' 'unsafe-inline' data: blob: archive.org web.archive.org web-static.archive.org wayback-api.archive.org athena.archive.org analytics.archive.org pragma.archivelab.org wwwb-events.archive.org
+x-archive-src: WIDE-20170606175444-crawl421/WIDE-20170606180451-00200.warc.gz
+server-timing: captures_list;dur=0.726702, exclusion.robots;dur=0.073672, exclusion.robots.policy;dur=0.057251, esindex;dur=0.010437, cdx.remote;dur=16.538957, LoadShardBlock;dur=146.610425, PetaboxLoader3.datanode;dur=98.168757, PetaboxLoader3.resolve;dur=38.554027, load_resource;dur=70.831331
+x-app-server: wwwb-app206-dc6
+x-ts: 200
+x-tr: 251
+server-timing: TR;dur=0,Tw;dur=0,Tc;dur=0
+set-cookie: wb-p-SERVER=wwwb-app206; path=/
+cache-control: private
+X-location: All
+X-AS: 3356
+X-RL: 0
+X-NA: 0
+X-Page-Cache: MISS
+Server-Timing: MISS
+X-NID: LEVEL3
+Referrer-Policy: no-referrer-when-downgrade
+Permissions-Policy: interest-cohort=()
+X-sd: 0
+Content-Encoding: gzip

@@ -1,0 +1,22 @@
+Server: nginx
+Date: Sun, 13 Sep 2026 02:20:57 GMT
+Content-Type: application/json
+Transfer-Encoding: chunked
+Connection: close
+server-timing: exclusion.robots;dur=0.080786, exclusion.robots.policy;dur=0.061721, esindex;dur=0.006336
+x-app-server: wwwb-app235-dc6
+x-ts: 200
+x-tr: 1328
+server-timing: TR;dur=0,Tw;dur=0,Tc;dur=1
+set-cookie: wb-cdx-SERVER=wwwb-app235; path=/
+X-location: cdx
+X-RL: 0
+X-NA: 0
+X-Page-Cache: BYPASS
+Server-Timing: BYPASS
+X-NID: LEVEL3
+Referrer-Policy: no-referrer-when-downgrade
+Permissions-Policy: interest-cohort=()
+X-sd: 0
+X-be: wb_cdx_pygwb
+Content-Encoding: gzip

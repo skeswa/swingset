@@ -1,0 +1,33 @@
+Server: nginx
+Date: Sun, 13 Sep 2026 02:12:08 GMT
+Content-Type: text/html
+Transfer-Encoding: chunked
+Connection: close
+x-archive-orig-date: Mon, 07 Sep 2015 00:13:13 GMT
+x-archive-orig-last-modified: Thu, 14 Mar 2013 19:42:09 GMT
+x-archive-orig-accept-ranges: bytes
+x-archive-orig-content-length: 9056
+x-archive-orig-connection: close
+cache-control: max-age=1800
+memento-datetime: Mon, 07 Sep 2015 00:13:13 GMT
+link: <http://www.swingdancecouncil.com/Newsletter/2013/201301Newsletter.htm>; rel="original", <https://web.archive.org/web/timemap/link/http://www.swingdancecouncil.com/Newsletter/2013/201301Newsletter.htm>; rel="timemap"; type="application/link-format", <https://web.archive.org/web/http://www.swingdancecouncil.com/Newsletter/2013/201301Newsletter.htm>; rel="timegate", <https://web.archive.org/web/20150907001313/http://www.swingdancecouncil.com/Newsletter/2013/201301Newsletter.htm>; rel="first memento"; datetime="Mon, 07 Sep 2015 00:13:13 GMT", <https://web.archive.org/web/20150907001313/http://www.swingdancecouncil.com/Newsletter/2013/201301Newsletter.htm>; rel="memento"; datetime="Mon, 07 Sep 2015 00:13:13 GMT", <https://web.archive.org/web/20150907001313/http://www.swingdancecouncil.com/Newsletter/2013/201301Newsletter.htm>; rel="last memento"; datetime="Mon, 07 Sep 2015 00:13:13 GMT"
+content-security-policy: default-src 'self' 'unsafe-eval' 'unsafe-inline' data: blob: archive.org web.archive.org web-static.archive.org wayback-api.archive.org athena.archive.org analytics.archive.org pragma.archivelab.org wwwb-events.archive.org
+x-archive-src: WIDE-20150906234111-crawl836/WIDE-20150907001031-00798.warc.gz
+server-timing: captures_list;dur=0.555934, exclusion.robots;dur=0.061266, exclusion.robots.policy;dur=0.051021, esindex;dur=0.007873, cdx.remote;dur=7.320875, LoadShardBlock;dur=252.897241, PetaboxLoader3.resolve;dur=56.784577, PetaboxLoader3.datanode;dur=272.368961, load_resource;dur=138.106884
+x-app-server: wwwb-app218-dc8
+x-ts: 200
+x-tr: 413
+server-timing: TR;dur=0,Tw;dur=0,Tc;dur=0
+set-cookie: wb-p-SERVER=wwwb-app218; path=/
+cache-control: private
+X-location: All
+X-AS: 3356
+X-RL: 0
+X-NA: 0
+X-Page-Cache: MISS
+Server-Timing: MISS
+X-NID: LEVEL3
+Referrer-Policy: no-referrer-when-downgrade
+Permissions-Policy: interest-cohort=()
+X-sd: 0
+Content-Encoding: gzip

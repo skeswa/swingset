@@ -1,0 +1,1 @@
+200 38387 2.86s https://web.archive.org/cdx/search/cdx?url=worldsdc.com&matchType=domain&output=json&fl=timestamp,original,statuscode&from=2016&to=2023&filter=statuscode:200&filter=original:.*(event|calendar|Event).*&filter=!original:.*(wp-content|wp-json|\.css|\.js|\.png|\.jpg).*&collapse=timestamp:6&limit=5000

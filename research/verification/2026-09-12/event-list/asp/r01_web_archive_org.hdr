@@ -1,0 +1,23 @@
+Server: nginx
+Date: Sun, 13 Sep 2026 02:11:28 GMT
+Content-Type: text/plain; charset=utf-8
+Content-Length: 0
+Connection: close
+x-archive-redirect-reason: found capture at 20120825221508
+location: https://web.archive.org/web/20120825221508id_/http://swingdancecouncil.com/ActiveServerPages/UpcomingEvents.asp
+server-timing: captures_list;dur=0.469235, exclusion.robots;dur=0.050491, exclusion.robots.policy;dur=0.042573, esindex;dur=0.006425, cdx.remote;dur=6.841940, LoadShardBlock;dur=103.773767, PetaboxLoader3.datanode;dur=84.311869, PetaboxLoader3.resolve;dur=8.179352
+x-app-server: wwwb-app222-dc8
+x-ts: 302
+x-tr: 135
+server-timing: TR;dur=0,Tw;dur=0,Tc;dur=0
+set-cookie: wb-p-SERVER=wwwb-app222; path=/
+X-location: All
+X-AS: 3356
+X-RL: 0
+X-NA: 0
+X-Page-Cache: MISS
+Server-Timing: MISS
+X-NID: LEVEL3
+Referrer-Policy: no-referrer-when-downgrade
+Permissions-Policy: interest-cohort=()
+X-sd: 0

@@ -1,16 +1,57 @@
 # Historical backfill from 2010-01-01
 
-Status: draft v0.1, 2026-09-11. Owner of the backfill contract: this
-document. Evidence: `research/wayback-coverage-2026-09-11.md`.
+Status: draft v0.2, 2026-09-12. Owner of the backfill contract: this
+document. Evidence: `research/wayback-coverage-2026-09-11.md` and
+`research/event-list-sources-2026-09-12.md`.
 
 `swingset` tabulates events and results from **2010-01-01** onward. Most
 of that history is no longer on the sites that first published it, and
 what is still there should not be re-crawled. So history is read from
 the Internet Archive's Wayback Machine first, from the WSDC registry for
 the event list, and from the origin sites only for gaps the archive
-cannot fill. This document says what the start date means, where each
-year's data comes from, how the Wayback transport works, how it stays
-polite, and how the work is ordered and measured.
+cannot fill. This document says what the start date means, why the
+event list is finished before any score sheet, where each year's data
+comes from, how the Wayback transport works, how it stays polite, and
+how the work is ordered and measured.
+
+## Events first
+
+The event list is the spine of every other table: contests, rounds,
+entries, placements, and registry links all hang off an `events` row.
+A wrong or missing row there is wrong everywhere below it, and a row
+added later changes ids downstream. So backfill runs in two phases per
+year, and phase 2 never starts for a year until phase 1 is accepted for
+it.
+
+**Phase 1, the event list.** One `events` row per WSDC event edition
+that ended in the year, with these four properties:
+
+| Property             | Source of truth                                                                                | Acceptance                                                                                                       |
+| -------------------- | ---------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| The edition was held | a registry occurrence (points were awarded); failing that, a parsed score sheet                | every registry occurrence in the year has exactly one `events` row                                               |
+| Start and end dates  | a listing published before or during the event (calendar, old WSDC site, newsletter, platform) | every edition a listing dates carries `date_precision = day`; the rest are `month` and counted in the card       |
+| Series identity      | the registry series id, through `series_aliases.csv` for every printed name                    | no listing row in the year is left unresolved; each unresolved name is a finding until a human adds an alias     |
+| Status               | listing type and flags (registry, trial, cancelled, hiatus) and newsletter approval notices    | every listing-only edition (no occurrence) carries `held = listed` or `held = cancelled`, never silently dropped |
+
+Acceptance is per year, recorded in the `coverage` table as
+`events_accepted = true`, and is the owner's call after the findings for
+that year are empty. Editions that awarded no points and appeared on no
+listing cannot be found by any source and are out of scope by
+construction; the card says so.
+
+**Phase 2, score sheets.** Platform and event-site backfill for the
+year, as the rest of this document describes. Every sheet attaches to an
+accepted `events` row; a sheet whose event has no row opens a finding
+instead of creating one, because a row created from a sheet has no
+registry identity and would need renaming later.
+
+Why this order: the registry sweep showed that 138,280 of 159,115
+registry placements since 2010 had no `event_id` and that no `events`
+row existed for 2010 to 2017
+(`research/missing-data-2026-09-12.md`). Filling sheets under those
+conditions would attach results to rows that later merge, split, or
+change id. Fixing the list first makes every later step attach to a
+stable key.
 
 ## The start-date rule
 
@@ -35,19 +76,23 @@ Why 2010: registry data before then is thin (74 occurrences in 2009,
 under 40 a year before 2003), the earliest archived round sheets we can
 find start in 2009, and the owner set the date.
 
-## What exists for each era (verified 2026-09-11)
+## What exists for each era (verified 2026-09-11 and 2026-09-12)
 
-| Era          | Event list                                                                                          | Score sheets                                                                                                                                                                  | Notes                                     |
-| ------------ | --------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- |
-| 2010 to 2012 | registry occurrences (80 to 91 a year); no calendar captures                                        | Step Right Solutions round pages in the archive for 4 to 6 US West Coast events a year; event-site PDFs in the archive where they were linked                                 | Most events will be registry-only         |
-| 2013 to 2016 | registry (106 to 135 a year); calendar captures only from late 2016                                 | Step Right for 13 to 17 events a year (US West Coast, Canada, France, Singapore); event-site PDFs; EEPro's origin still serves old slugs but the archive has none before 2018 |                                           |
-| 2017 to 2020 | registry (146 to 153 a year, 31 in 2020); calendar captures in 2019 and 2020, none in 2017 and 2018 | EEPro archive from 2018 (8 to 16 slugs a year); DCN event pages from 2017; Step Right until 2019; event-site PDFs                                                             | Ask the EEPro operator for pre-2018 slugs |
-| 2021 to 2025 | registry; calendar captures (2 months in 2021, none in 2022, 4 to 5 a year after)                   | scoring.dance archive from 2021-06; EEPro and DCN archives; WDR from 2022; our own archive from 2026-09                                                                       |                                           |
+| Era          | Event list                                                                                                                                                                | Score sheets                                                                                                                                                                                                 | Notes                                                                              |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------- |
+| 2010 to 2016 | registry occurrences (80 to 135 a year); `swingdancecouncil.com` "Member Registry Events" captures, 31 between 2009-02 and 2016-02, each listing the next 11 to 16 months | Step Right Solutions round pages in the archive for 4 to 17 events a year; event-site PDFs in the archive where they were linked; EEPro's origin still serves old slugs but the archive has none before 2018 | Day precision for nearly every edition; the 2011-03 to 2011-06 patch is month-only |
+| 2016-07 on   | `worldsdc.com/events/` captures (4 months in 2016)                                                                                                                        |                                                                                                                                                                                                              | 2016 rows use a fourth date format, `10th November, 2016 To 13th November, 2016`   |
+| 2017 to 2018 | registry (148, 146); WSDC newsletter sidebars, one issue per quarter; the 2016-11 calendar capture reaches into 2017                                                      | EEPro archive from 2018 (8 to 16 slugs a year); DCN event pages from 2017; Step Right until 2019; event-site PDFs                                                                                            | No archived `worldsdc.com` page with rows in either year                           |
+| 2019 to 2021 | registry (153, 31, 26); calendar captures; newsletters                                                                                                                    | as above                                                                                                                                                                                                     | Cancellation flags decide `held`                                                   |
+| 2022         | registry (92); `/event-list/`, `/print-event-list/`, `/event-calendar/`, `/events-map/` captures (14 months, 2021-04 to 2022-12); newsletters                             | scoring.dance archive from 2021-06; EEPro and DCN archives; WDR from 2022                                                                                                                                    | `/events/` itself has no 2022 capture                                              |
+| 2023 to 2025 | registry; calendar captures (4 to 5 a year); newsletters to 2024-05; our own daily fetch from 2026-09                                                                     | as above; our own archive from 2026-09                                                                                                                                                                       |                                                                                    |
 
 The Wayback Machine holds no copy of `worldsdc.com` before 2016-10-30.
-Whether the WSDC calendar lived on another domain earlier is
-**unverified**. Step Right Solutions' origin returns empty pages today;
-the archive is the only copy of its 1,685 round pages.
+Before that the list lived at
+`swingdancecouncil.com/ActiveServerPages/UpcomingEvents.asp`, which
+returned 404 from 2016-03 and redirects since 2017. Step Right
+Solutions' origin returns empty pages today; the archive is the only
+copy of its 1,685 round pages.
 
 Expected outcome, stated in the card as coverage tiers per event:
 
@@ -63,55 +108,89 @@ the most common tier.
 
 ## Event enumeration for history
 
-Discovery for history extends [scheduling](scheduling.md#discovery)
-with three sources of event rows, applied in this precedence:
+This is phase 1. Discovery for history extends
+[scheduling](scheduling.md#discovery) with these inputs, applied in
+this order for each year, oldest year first:
 
-1. **Calendar captures.** Each archived capture of
-   `worldsdc.com/events/` is a `wsdc_calendar.events` snapshot fetched
-   through the Wayback transport, one per month with a capture, oldest
-   first. Rows become calendar observations exactly as live rows do, so
-   `project_map` needs no new input kind. Coverage has holes (no
-   captures in 2017, 2018, and 2022), which the next two sources fill.
-2. **Platform indexes from the archive.** EEPro `event.php` captures,
-   scoring.dance `recent` and sitemap captures, DCN `eventsarchive`
-   captures, and the Step Right events index. These produce
-   `source_events` with the platform's own dates.
-3. **Registry occurrences.** A new projection, `project/registry_events.py`
-   extended, seeds one `events` row per registry occurrence (series id
-   plus month) on or after the start date that no calendar or platform
-   row already matches by series slug and month. The row has
-   `series_id = wsdc-<id>`, `event_id = <yyyy-mm>-<series slug>`,
-   `name` from the registry, `wsdc_status = registry`,
-   `date_precision = month`, null `start_date` and `end_date`,
-   `event_month` set, `website` from the registry URL, and city and
-   country parsed from the registry location (dirty; kept raw as well).
-   When a calendar or platform row later supplies dates for the same
-   slug and month, the row is upgraded to `date_precision = day` under
-   the same `event_id`, so ids never change.
+1. **Series.** One canonical series per registry `event.id`
+   (`series_id = wsdc-<id>`, name and website from the registry).
+   `series_aliases.csv` maps every printed name seen in any listing
+   (old WSDC site, calendar captures, newsletters, platform indexes) to
+   a series id, since the registry prints today's name for every year
+   and listings abbreviate, rename, and upper-case. A listing name with
+   no alias and no exact normalized match opens a `series_alias` finding
+   with the suggested row; nothing is merged by guess. A series that
+   never earned a point (a trial event that folded, a cancelled series)
+   is created from the listing with `series_id = listed-<slug>` and
+   upgraded to `wsdc-<id>` if the registry ever names it.
+2. **Registry occurrences.** `project/registry_events.py` seeds one
+   `events` row per occurrence (series id plus month) on or after the
+   start date: `event_id = <yyyy-mm>-<series slug>`, `held = held`,
+   `wsdc_status = registry`, `date_precision = month`, null
+   `start_date` and `end_date`, `event_month` set, `website` from the
+   registry URL, and city and country parsed from the registry location
+   (dirty; kept raw as well). This is the floor: 1,886 rows since
+   2010-01.
+3. **Dated listings**, each a snapshot read through the Wayback
+   transport or from the live site, oldest first:
+   - `swingdancecouncil.com/ActiveServerPages/UpcomingEvents.asp`
+     captures (2009 to 2016), parser `swingdancecouncil.events`: date
+     text in three shapes (`Aug. 23 - 26*, 2012`, `Nov. 29-Dec. 2, 2012`,
+     `July TBD, 2013`), name, `City, ST` or `City, Country`, contacts. No
+     type column. Its sibling `NonRegUpcomingEvents.asp` lists
+     non-registry member events and is read the same way with
+     `wsdc_status = trial` as the default.
+   - `worldsdc.com` captures of `/events/` and, for months it lacks,
+     `/event-list/`, `/print-event-list/`, `/event-calendar/`, and
+     `/events-map/`, all parsed by `wsdc_calendar.events`, which gains
+     the 2016 date format. Captures whose HTML holds no rows (2017
+     forms and map widgets) are recorded as empty, not as errors.
+   - WSDC newsletter PDFs (`worldsdc.com/newsletter/`, 28 issues,
+     2016-12 to 2024-05), parser `wsdc_newsletter.events`: the
+     "Upcoming Registry Events" sidebar (name, dates) and the "New
+     Registry Events" box (name, approval quarter). Trial events are
+     marked by colour only, so `wsdc_status` from a newsletter is
+     `registry` unless the colour is recovered (**unverified** how).
+   - Platform indexes from the archive: EEPro `event.php`, scoring.dance
+     `recent` and sitemap, DCN `eventsarchive`, and the Step Right events
+     index, as `source_events` with the platform's own dates.
+     Each listing row resolves to a series through step 1 and attaches
+     to the occurrence whose registry month is the listing's end month
+     or the month after it (the rule below). The row is upgraded to
+     `date_precision = day` under the same `event_id`, so ids never
+     change. Later listings override earlier ones for dates and place,
+     by `observed_at`.
+4. **Listing-only editions.** A listing row with no occurrence within
+   that window becomes an `events` row with `held = listed`, or
+   `held = cancelled` when the calendar flag or a hiatus name says so.
+   It keeps the listing's dates and type. These rows are published; they
+   are what makes 2020 and 2021 honest.
 
-The registry month is believed to be the month results were reported,
-not necessarily the end-date month ([data model](data-model.md#identifiers),
-**unverified**). When they differ, the same edition appears as two
-events one month apart. The map unit detects a registry-seeded event
-whose slug matches a dated event in the adjacent month and opens an
-`event_alias` finding with a suggested `event_aliases.csv` row; it does
-not merge automatically. The bootstrap sweep answers how often this
-happens; if it is common, the rule becomes automatic and is recorded
-here.
+**The month rule.** The registry month is the end month for 180 of 204
+occurrences since 2019 that match a dated calendar edition by name, and
+the month after for the other 24 (nearly all European events, so the
+month results were entered, **unverified** cause). None was earlier. So
+an occurrence in month M matches a dated edition of the same series
+ending in M or M minus 1, never M plus 1, and the match is automatic. A
+series with two dated editions inside that window opens an
+`event_alias` finding rather than choosing. `event_aliases.csv` remains
+the override for anything the rule gets wrong.
 
 ## Data model changes
 
 Schema is pre-1.0 until M6 closes, so these land without ceremony.
 
-| Table                                | Change                                                                                                                                                                                                                                                                  |
-| ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `events`                             | `start_date`, `end_date` nullable; new `event_month` (string `yyyy-mm`, not null), `date_precision` enum `day` or `month`, `coverage_tier` enum from the table above, `history_source` list (which of calendar, platform, registry, steprightsolutions named the event) |
-| `snapshots` (internal and published) | `via` enum `origin`, `wayback`, `manual`; `captured_at` timestamp (Memento datetime for `wayback`, equal to `fetched_at` otherwise); `archive_url`; `observed_at` = `captured_at`                                                                                       |
-| `archive_captures` (internal, new)   | `source`, `url`, `timestamp`, `digest`, `status`, `mimetype`, `length`, `queried_at`, `cdx_query_id`; the CDX index we hold for each source, so selection can be redone without asking the archive again                                                                |
-| `coverage` (published, new)          | one row per `year`, `source`, `via`: events, contests, rounds, entries, and events per tier; built from current state; this is the card's coverage table                                                                                                                |
-| `contests.source` / `source` enum    | new value `steprightsolutions`                                                                                                                                                                                                                                          |
-| `rounds.callback_legend`             | Step Right uses `legacy_3` (marks `1`, `2`, `3`)                                                                                                                                                                                                                        |
-| `judges`                             | round rosters with `anonymous = true` marks: Step Right names the panel but shuffles the columns, so marks attach to `anon-<n>` judge ids while named judges are recorded on the round with `marks_attributed = false`                                                  |
+| Table                                | Change                                                                                                                                                                                                                                                                                                                                                        |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `events`                             | `start_date`, `end_date` nullable; new `event_month` (string `yyyy-mm`, not null), `date_precision` enum `day` or `month`, `held` enum `held`, `listed`, `cancelled`, `coverage_tier` enum from the table above, `history_source` list (which of `registry`, `calendar`, `swingdancecouncil`, `newsletter`, `platform`, `steprightsolutions` named the event) |
+| `series_aliases.csv` (override, new) | `printed_name`, `series_id`, `source`, `note`; reviewed by hand, never written by the pipeline; lives beside `event_aliases.csv` ([repository layout](repository-layout.md))                                                                                                                                                                                  |
+| `coverage`                           | also `events_accepted` per year (phase 1 sign-off), `events_day_precision`, `events_listed_only`                                                                                                                                                                                                                                                              |
+| `snapshots` (internal and published) | `via` enum `origin`, `wayback`, `manual`; `captured_at` timestamp (Memento datetime for `wayback`, equal to `fetched_at` otherwise); `archive_url`; `observed_at` = `captured_at`                                                                                                                                                                             |
+| `archive_captures` (internal, new)   | `source`, `url`, `timestamp`, `digest`, `status`, `mimetype`, `length`, `queried_at`, `cdx_query_id`; the CDX index we hold for each source, so selection can be redone without asking the archive again                                                                                                                                                      |
+| `coverage` (published, new)          | one row per `year`, `source`, `via`: events, contests, rounds, entries, and events per tier; built from current state; this is the card's coverage table                                                                                                                                                                                                      |
+| `contests.source` / `source` enum    | new value `steprightsolutions`                                                                                                                                                                                                                                                                                                                                |
+| `rounds.callback_legend`             | Step Right uses `legacy_3` (marks `1`, `2`, `3`)                                                                                                                                                                                                                                                                                                              |
+| `judges`                             | round rosters with `anonymous = true` marks: Step Right names the panel but shuffles the columns, so marks attach to `anon-<n>` judge ids while named judges are recorded on the round with `marks_attributed = false`                                                                                                                                        |
 
 Evidence time. [Architecture](architecture.md#observations-and-projections)
 resolves conflicts by later `fetched_at`. For history that is wrong: a
@@ -236,8 +315,15 @@ spent on a page the archive has.
   round pages, so gaps are known before rounds are spent on them.
 - Priority 6, below registry work. A cycle takes backfill fetches only
   when no other watch is due and the wall-clock budget has more than two
-  minutes left. Calendar captures are the exception: they are index work
-  (priority 2) because everything downstream needs the event list.
+  minutes left. Event-list captures (old WSDC site, calendar paths,
+  newsletters) are the exception: they are index work (priority 2)
+  because everything downstream needs the event list, and they are all
+  fetched before any phase 2 watch for the same year is created. The
+  whole of phase 1 is about 130 archive reads and 28 PDFs, one day of
+  the archive budget.
+- Phase 2 watches for a year are created only when `events_accepted`
+  is true for that year. Until then the year's sheets are not fetched,
+  however cheap they are.
 - New state `sealed`: a watch whose event ended more than two years ago,
   or whose origin host is marked dead in its playbook, is never fetched
   again after a successful parse. Reparsing from the archive is
@@ -277,18 +363,21 @@ copyright; the facts-not-sheets position is unchanged.
 
 ## Work packages
 
-| WP                             | Scope                                                                                                                                                                                                             | Done when                                                                                                                                               |
-| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| WP11 Wayback transport         | `fetch/wayback.py`: CDX paging into `archive_captures`, capture selection, `id_` fetch through the gate, Memento headers, `via`, `captured_at`, `observed_at` in conflict and ownership rules; the `sealed` state | offline tests with recorded CDX and body fixtures; one real EEPro 2019 event read end to end from the archive; `doctor` shows the archive host's budget |
-| WP12 History events            | `history_start`; nullable dates, `event_month`, `date_precision`, `coverage_tier`, `history_source`; registry-seeded events; adjacent-month alias finding; `coverage` table and card section                      | every registry occurrence since 2010 has an `events` row; coverage table published; the bootstrap sweep's month-vs-date question answered               |
-| WP13 Calendar history          | calendar captures as index snapshots, oldest first                                                                                                                                                                | every calendar capture month is parsed; 2019 to 2026 events carry day precision where a capture listed them                                             |
-| WP14 Step Right Solutions      | `sources/steprightsolutions/`: index, event, round parsers with `legacy_3` marks and anonymous judge columns; the playbook's open items answered from fixtures                                                    | all 2009 to 2016 events with round pages parse or carry a finding                                                                                       |
-| WP15 Platform archive backfill | EEPro, scoring.dance, DCN, WDR captures newest first; gap findings                                                                                                                                                | the coverage table shows archive versus origin counts per year                                                                                          |
-| WP16 Origin gap fill           | EEPro operator conversation about pre-2018 slugs; scoring.dance and DCN gap rules; event-site override rows from CDX PDF hits through the review queue                                                            | no origin request is made for a page the archive holds; gaps listed in the card                                                                         |
+| WP                             | Scope                                                                                                                                                                                                                                                    | Done when                                                                                                                                                |
+| ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| WP11 Wayback transport         | `fetch/wayback.py`: CDX paging into `archive_captures`, capture selection, `id_` fetch through the gate, Memento headers, `via`, `captured_at`, `observed_at` in conflict and ownership rules; the `sealed` state                                        | offline tests with recorded CDX and body fixtures; one real EEPro 2019 event read end to end from the archive; `doctor` shows the archive host's budget  |
+| WP12 History events            | `history_start`; nullable dates, `event_month`, `date_precision`, `held`, `coverage_tier`, `history_source`; series and `series_aliases.csv`; registry-seeded events; the automatic month rule; `coverage` table with `events_accepted` and card section | every registry occurrence since 2010 has exactly one `events` row; coverage table published; unresolved names surface as findings                        |
+| WP13 Event-list history        | old WSDC site captures (`swingdancecouncil.events` parser), calendar captures of all five `worldsdc.com` paths including the 2016 date format, newsletter PDFs (`wsdc_newsletter.events` parser), all as index snapshots, oldest first                   | every capture and issue is parsed or recorded empty; each year 2010 to 2026 carries day precision wherever a listing dated it; phase 1 accepted per year |
+| WP14 Step Right Solutions      | `sources/steprightsolutions/`: index, event, round parsers with `legacy_3` marks and anonymous judge columns; the playbook's open items answered from fixtures                                                                                           | all 2009 to 2016 events with round pages parse or carry a finding                                                                                        |
+| WP15 Platform archive backfill | EEPro, scoring.dance, DCN, WDR captures newest first; gap findings                                                                                                                                                                                       | the coverage table shows archive versus origin counts per year                                                                                           |
+| WP16 Origin gap fill           | EEPro operator conversation about pre-2018 slugs; scoring.dance and DCN gap rules; event-site override rows from CDX PDF hits through the review queue                                                                                                   | no origin request is made for a page the archive holds; gaps listed in the card                                                                          |
 
-Order: WP11, WP12, WP13 together (they are M6's foundation), then WP15
-because it publishes the most rows soonest, then WP14, then WP16. WP14
-can run in parallel with WP15 since it touches only new modules.
+Order: WP11, then WP12 and WP13 together; these three are phase 1 and
+M6's foundation, and no phase 2 package starts for a year until that
+year's event list is accepted. Then WP15 because it publishes the most
+rows soonest, then WP14, then WP16. WP14 can run in parallel with WP15
+since it touches only new modules. Parsers for WP14 to WP16 may be
+written earlier; their watches are not.
 
 ## Things to verify
 
@@ -297,7 +386,17 @@ can run in parallel with WP15 since it touches only new modules.
 - Whether DCN `roundscores/*.pdf` files are in the archive at all.
 - The meaning of the `X-RL` and `X-NA` response headers from the archive.
 - The Internet Archive's terms wording, read by hand (issue #20).
-- How often the registry month differs from the end-date month (issue #22).
-- Whether an older WSDC domain carried the calendar before 2016.
+- The month rule was measured on 2019 to 2026 only; whether the
+  one-month-late share holds for 2010 to 2018 (issue #22).
+- The `*` after some dates on the old WSDC site, and whether that
+  page's default window was fixed or chosen by the crawler.
+- The horizon of the 2016-11 calendar capture and of the 2009-08 and
+  2010-02 old-site captures, which decide whether 2010-01 and 2017 are
+  fully dated.
+- Whether every newsletter issue carries the sidebar (four of four
+  checked do), how to recover the purple trial-event marking from the
+  PDF, and whether Vol 24 and Vol 28 exist under other URLs.
+- Whether `research/build_events.py` parses the 2021 to 2022
+  `/event-list/` captures unchanged.
 - EEPro: which slugs before 2018 the origin still serves (from the
   operator, not by probing; issue #21).

@@ -80,7 +80,11 @@ with a 200 capture (2026-09-11): 2016: 4, 2017: 0, 2018: 0, 2019: 7,
 2020: 5, 2021: 2, 2022: 0, 2023: 4, 2024: 5, 2025: 5, 2026: 4. No
 capture of `worldsdc.com` exists before 2016-10-30. Editions the
 captures miss come from registry occurrences at month precision
-(`design/backfill.md`). Gaps of more than about five months lose
+(`design/backfill.md`). Other paths (`/event-list/`, `/print-event-list/`,
+`/event-calendar/`, `/events-map/`) have captures in 2021 and 2022, the
+2016 captures use a fourth date format, and before 2016-02 the list lived
+at `swingdancecouncil.com/ActiveServerPages/UpcomingEvents.asp`; see
+`research/event-list-sources-2026-09-12.md`. Gaps of more than about five months lose
 short-lived listings (**unverified** gap size).
 
 ## 11. Load estimate

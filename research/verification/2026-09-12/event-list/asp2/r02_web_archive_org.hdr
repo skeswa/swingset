@@ -1,0 +1,33 @@
+Server: nginx
+Date: Sun, 13 Sep 2026 02:13:19 GMT
+Content-Type: text/html
+Transfer-Encoding: chunked
+Connection: close
+x-archive-orig-date: Wed, 03 Feb 2016 11:17:15 GMT
+x-archive-orig-cache-control: private
+x-archive-orig-set-cookie: ASPSESSIONIDSQQSSQRB=PCBNNAPADEMDCJDCMLJKMOBM; path=/
+x-archive-orig-connection: close
+x-archive-orig-set-cookie: TS0194eee0=017643f9b210325b727c480ce9ee934f389897c9df484a34a9089c991c4bec470d3ae1da893665b71ca2de85a7fb71b3ebe8e7e17f; Path=/
+cache-control: max-age=1800
+memento-datetime: Wed, 03 Feb 2016 11:17:24 GMT
+link: <http://www.swingdancecouncil.com/ActiveServerPages/UpcomingEvents.asp>; rel="original", <https://web.archive.org/web/timemap/link/http://www.swingdancecouncil.com/ActiveServerPages/UpcomingEvents.asp>; rel="timemap"; type="application/link-format", <https://web.archive.org/web/http://www.swingdancecouncil.com/ActiveServerPages/UpcomingEvents.asp>; rel="timegate", <https://web.archive.org/web/20020606130207/http://www.swingdancecouncil.com:80/ActiveServerPages/UpcomingEvents.asp>; rel="first memento"; datetime="Thu, 06 Jun 2002 13:02:07 GMT", <https://web.archive.org/web/20160130175317/http://www.swingdancecouncil.com/ActiveServerPages/UpcomingEvents.asp>; rel="prev memento"; datetime="Sat, 30 Jan 2016 17:53:17 GMT", <https://web.archive.org/web/20160203111724/http://www.swingdancecouncil.com/ActiveServerPages/UpcomingEvents.asp>; rel="memento"; datetime="Wed, 03 Feb 2016 11:17:24 GMT", <https://web.archive.org/web/20160304230705/http://www.swingdancecouncil.com/ActiveServerPages/UpcomingEvents.asp>; rel="next memento"; datetime="Fri, 04 Mar 2016 23:07:05 GMT", <https://web.archive.org/web/20250815122700/http://swingdancecouncil.com/ActiveServerPages/UpcomingEvents.asp>; rel="last memento"; datetime="Fri, 15 Aug 2025 12:27:00 GMT"
+content-security-policy: default-src 'self' 'unsafe-eval' 'unsafe-inline' data: blob: archive.org web.archive.org web-static.archive.org wayback-api.archive.org athena.archive.org analytics.archive.org pragma.archivelab.org wwwb-events.archive.org
+x-archive-src: SURV-20160203104452-crawl817/SURV-20160203111518-01701.warc.gz
+server-timing: captures_list;dur=0.442397, exclusion.robots;dur=0.056363, exclusion.robots.policy;dur=0.048814, esindex;dur=0.007202, cdx.remote;dur=7.760541, LoadShardBlock;dur=97.317622, PetaboxLoader3.datanode;dur=57.564545, PetaboxLoader3.resolve;dur=310.910201, load_resource;dur=329.262030
+x-app-server: wwwb-app218-dc8
+x-ts: 200
+x-tr: 453
+server-timing: TR;dur=0,Tw;dur=0,Tc;dur=0
+set-cookie: wb-p-SERVER=wwwb-app218; path=/
+cache-control: private
+X-location: All
+X-AS: 3356
+X-RL: 0
+X-NA: 0
+X-Page-Cache: MISS
+Server-Timing: MISS
+X-NID: LEVEL3
+Referrer-Policy: no-referrer-when-downgrade
+Permissions-Policy: interest-cohort=()
+X-sd: 0
+Content-Encoding: gzip

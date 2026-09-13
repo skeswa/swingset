@@ -1,0 +1,27 @@
+Date: Sun, 13 Sep 2026 02:13:21 GMT
+Content-Type: application/json; charset=UTF-8
+Transfer-Encoding: chunked
+Connection: close
+access-control-allow-headers: Authorization, X-WP-Nonce, Content-Disposition, Content-MD5, Content-Type, Mcp-Protocol-Version, Mcp-Session-Id
+access-control-expose-headers: X-WP-Total, X-WP-TotalPages, Link, Jet-Query-Total, Jet-Query-Pages
+allow: GET
+content-security-policy: default-src 'self' 'unsafe-inline' 'unsafe-eval' data: https:;
+link: <https://worldsdc.com/wp-json/>; rel="https://api.w.org/"
+permissions-policy: geolocation=(), camera=(), microphone=()
+referrer-policy: strict-origin-when-cross-origin
+Server: cloudflare
+vary: Origin
+x-content-type-options: nosniff
+x-content-type-options: nosniff
+x-frame-options: SAMEORIGIN
+x-robots-tag: noindex
+x-wp-hardening: v 2025-09-24
+x-wp-tuning: v 2026-09-12
+cf-cache-status: DYNAMIC
+Server-Timing: cfCacheStatus;desc="DYNAMIC"
+Server-Timing: cfEdge;dur=7,cfOrigin;dur=265
+Report-To: {"group":"cf-nel","max_age":604800,"endpoints":[{"url":"https://a.nel.cloudflare.com/report/v4?s=zS0NT2yiu2t4CzY3lfD2vLrwFXYRjYePUNlrawv6tbUMxlrXrtIBpI%2B6J71%2Fmng0mbkHprMgeb4uHdv3QwyXGk4Stp2MiBmUYeWONWpkzBpfv5fXMPluPmhHWh8vYuE%3D"}]}
+Nel: {"report_to":"cf-nel","success_fraction":0.0,"max_age":604800}
+Content-Encoding: gzip
+CF-RAY: a3a3a1d6ca32fa0d-DEN
+alt-svc: h3=":443"; ma=86400

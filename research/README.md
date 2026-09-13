@@ -17,6 +17,7 @@ written policy, not that every registry row followed it.
 - [Curated-dataset architecture research, 2026-09-12](curated-datasets-state-of-the-art-2026-09-12.md): production comparators, current matching research, and evidence-backed refinements to the self-healing proposal.
 - [Systemic missing-data diagnosis, 2026-09-12](self-healing-2026-09-12.md): automatic recovery boundaries, reproduced registry and judge defects, and the repair order.
 - [Missing-data report after the registry sweep, 2026-09-12](missing-data-2026-09-12.md): pinned publication, collection backlog, historical and identity gaps, reference reconciliation, and reproducible inventories.
+- [Event-list sources 2010 to today, 2026-09-12](event-list-sources-2026-09-12.md): the pre-2016 WSDC domain's archived event page, other archived `worldsdc.com` paths, newsletter sidebars, the registry-month offset, and how to assemble one edition list per year.
 
 - [First-pass audit, 2026-09-10](data-quality-2026-09-10.md): pinned baseline and defects.
 - [Correction release](data-quality-repair-2026-09-10.md): repairs, measured changes, publication verification, and remaining limits.

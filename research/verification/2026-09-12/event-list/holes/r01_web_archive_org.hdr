@@ -1,0 +1,40 @@
+Server: nginx
+Date: Sun, 13 Sep 2026 02:22:22 GMT
+Content-Type: text/html; charset=UTF-8
+Transfer-Encoding: chunked
+Connection: close
+x-archive-orig-date: Mon, 16 May 2022 16:19:49 GMT
+x-archive-orig-x-crawler-content-length: 13561
+x-archive-orig-content-length: 72892
+x-archive-orig-connection: keep-alive
+x-archive-orig-server: Apache
+x-archive-orig-x-powered-by: PHP/7.4.10
+x-archive-orig-link: <https://www.worldsdc.com/wp-json/>; rel="https://api.w.org/", <https://www.worldsdc.com/wp-json/wp/v2/pages/276>; rel="alternate"; type="application/json", <https://www.worldsdc.com/?p=276>; rel=shortlink
+x-archive-orig-x-frame-options: SAMEORIGIN
+x-archive-orig-x-mod-pagespeed: 1.13.35.2-0
+x-archive-orig-vary: Accept-Encoding
+x-archive-orig-x-crawler-content-encoding: gzip
+x-archive-orig-cache-control: max-age=0, no-cache, s-maxage=10
+cache-control: max-age=1800
+memento-datetime: Mon, 16 May 2022 16:19:49 GMT
+link: <https://www.worldsdc.com/event-list/>; rel="original", <https://web.archive.org/web/timemap/link/https://www.worldsdc.com/event-list/>; rel="timemap"; type="application/link-format", <https://web.archive.org/web/https://www.worldsdc.com/event-list/>; rel="timegate", <https://web.archive.org/web/20210415152123/https://www.worldsdc.com/event-list/>; rel="first memento"; datetime="Thu, 15 Apr 2021 15:21:23 GMT", <https://web.archive.org/web/20220327150002/https://www.worldsdc.com/event-list/>; rel="prev memento"; datetime="Sun, 27 Mar 2022 15:00:02 GMT", <https://web.archive.org/web/20220516161949/https://www.worldsdc.com/event-list/>; rel="memento"; datetime="Mon, 16 May 2022 16:19:49 GMT", <https://web.archive.org/web/20220810090708/https://www.worldsdc.com/event-list/>; rel="next memento"; datetime="Wed, 10 Aug 2022 09:07:08 GMT", <https://web.archive.org/web/20260521133133/https://www.worldsdc.com/event-list/>; rel="last memento"; datetime="Thu, 21 May 2026 13:31:33 GMT"
+content-security-policy: default-src 'self' 'unsafe-eval' 'unsafe-inline' data: blob: archive.org web.archive.org web-static.archive.org wayback-api.archive.org athena.archive.org analytics.archive.org pragma.archivelab.org wwwb-events.archive.org
+x-archive-src: CC-MAIN-2022-21-1652662510138.6-0024/CC-MAIN-20220516140911-20220516170911-00489.warc.gz
+server-timing: captures_list;dur=0.397962, exclusion.robots;dur=0.037740, exclusion.robots.policy;dur=0.029424, esindex;dur=0.007789, cdx.remote;dur=6.696338, LoadShardBlock;dur=133.064553, PetaboxLoader3.datanode;dur=118.616439, PetaboxLoader3.resolve;dur=348.099753, load_resource;dur=391.095268
+x-app-server: wwwb-app204-dc6
+x-ts: 200
+x-tr: 544
+server-timing: TR;dur=0,Tw;dur=0,Tc;dur=0
+set-cookie: wb-p-SERVER=wwwb-app204; path=/
+cache-control: private
+X-location: All
+X-AS: 3356
+X-RL: 0
+X-NA: 0
+X-Page-Cache: MISS
+Server-Timing: MISS
+X-NID: LEVEL3
+Referrer-Policy: no-referrer-when-downgrade
+Permissions-Policy: interest-cohort=()
+X-sd: 0
+Content-Encoding: gzip
