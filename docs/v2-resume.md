@@ -1,10 +1,11 @@
 # v2 resume handoff
 
-Owner requested pause on 2026-09-13 UTC, then authorized only completion of
-the paused H16 scratch replay. Replay and verification are now complete; work
-is stopped at that boundary. Build, deployment,
-production initialization, publication, acquisition and future package work
-remain paused and require a new instruction.
+Owner paused production steps after the current scratch build on 2026-09-15
+UTC, intending to resume later with a stronger network connection. The new
+frozen scratch replay completed and passed independent verification. Its full
+build failed again at the 45-second final completion transaction. Evidence and
+state are preserved; no further build, deployment or production action is
+running. Wait for the owner to resume before continuing release work.
 No commit or push was requested or performed.
 
 ## Completed and current
@@ -58,14 +59,104 @@ Complete receipt-chain accounting is
 Independent verification is
 `research/verification/h16-changelog-replay-final-verification-20260913.json`, SHA
 `f2ba01d5e2d0355fd9a9780d6264e47e9e4b6f3341de32250cc66ddb5b35f349`.
-The original pause accounting remains unchanged. No build state was created,
-and production remains schema14 with zero materialized pointers and the same
+The original pause accounting remains unchanged. Production remains schema14
+with zero materialized pointers and the same
 public baseline. All six ordinary units remain inactive.
 
-Stop there. Only after a new instruction, use `/var/tmp/h16-changelog-build-driver.py` with the exact source,
+On 2026-09-14, the 093 full build created candidate
+`cand_d80b9025652f4e10` in `/var/tmp/swingset-h16-changelog-build` but failed
+durable completion. Preserve that state and its failed receipt; a `BUILT`
+file alone does not establish accepted build completion. The process reported
+5,562,844 KiB maximum RSS; the monitor did not terminate it. The journal
+identifies repeated closure validation inside the 45-second completion
+transaction. See `research/verification/h16-changelog-build-20260914.json`
+and its resource/journal evidence. Production remains unchanged.
+
+The corrected release source is
+`/nix/store/2d5q3lgljfkmm78hf44g954lzwx79yhv-source`, receipt
+`f8f24c2d8b839bbfcd25bf87e551e9f2777d1236f89ed84da16c3c07d4d75b9f`,
+system
+`/nix/store/86p1plylmwlna3ympba52g26pwvmjv0i-nixos-system-swingset-lxc-25.11.20260630.b6018f8`.
+Independent verification checked all 633 frozen files and service bindings.
+All 1,199 frozen tests passed in 294.78 seconds; Ruff and mypy165 passed.
+The final working-copy suite passed 1,400 tests, but that evolving tree is not
+the release source. Evidence is
+`research/verification/h16-closure-frozen-runtime-validation-20260914.json`.
+
+The new scratch is `/var/tmp/swingset-h16-closure-replay`, marker SHA
+`d3c8385032c6ba66baea1afffe53bec5ad5bd1dacb269a5b56f8a3c2eeeb0377`.
+Replay 001 began on 2026-09-14 at 21:52:47 UTC, using the frozen configuration
+and overrides. Its actual accepted bundle is
+`558bb5f4e88b47fe80a691254d3b21ac9e491296e80bb18f4599b64a88bfe9c0`.
+The history agent owns replay writes and captures each finished receipt under
+`research/verification/h16-closure-replay-NNN-20260914.json`.
+Invocations 001–011 have exited successfully. The replay is current with
+34,986 successful scopes: all 32,445 projection scopes and 2,541 event-link
+scopes. No failed or abandoned attempts were recorded. The final receipt is
+`h16-closure-replay-011-20260914.json`, SHA
+`53d7e8006bd492e6fcae2ed3d4f888d7ea3ae716f3375bb7188a43287a724bd5`.
+Its unfinished inventory is empty. Total invocation time was 5,956.95 seconds
+(99.28 minutes); orchestration interruptions added wall-clock gaps. The finite
+local supervisor stopped without launching 012. Independent read-only final
+verification passed in 10.45 seconds: no unfinished work, all attempts
+successful, all admissions settled, no foreign-key violations, quick-check
+passed and writer lock released. Its receipt is
+`research/verification/h16-closure-replay-final-verification-20260914.json`, SHA
+`44319b29c4a9345ea91f16bd84f2799d4316b6935e19a1d379b1c480347e6c21`.
+A diagnostic copy completed the build transaction in 38.82 seconds, but it
+is not release acceptance. The new replay and its actual full build/audit
+must pass before any deployment. Preserve all older replay/build specimens.
+
+The actual 2d5 full build then failed on 2026-09-15 UTC after 387.66 seconds.
+State `/var/tmp/swingset-h16-closure-build` and candidate files
+`cand_95d350f1e29a4e19` must be preserved. The final `_certify` call reached
+closure support reconstruction and exceeded the ordinary 45-second write
+bound. The completion transaction rolled back. This is not an accepted build;
+no substantive candidate audit ran and the candidate is not publishable.
+Process maximum RSS was 4,831,260 KiB (about 4.61 GiB); the monitor did not
+terminate it. The earlier isolated 38.82-second diagnostic was insufficient
+for the full-build conditions. Do not treat a stronger network connection as
+a fix for this local validation deadline.
+
+Exact evidence:
+
+- `research/verification/h16-closure-build-20260915.json`, SHA
+  `c56a4009b28fa41fd8f2ba847ebfc3cdd9ada0f42e54c5f13f5082973d5043e5`.
+- `research/verification/h16-closure-build-resources-20260915.json`, SHA
+  `15ac6339e916c53a8eaf7db9051e7b8ffb8542ec078629c4835e4bf6722f109a`.
+- `research/verification/h16-closure-build-journal-20260915.log`, SHA
+  `1653363380b28019b6f4af959e186fb9eef5b96d62b245b4d137d3419d966e09`.
+
+Independent failure inspection confirmed candidate manifest
+`7ce49736b44da6e0afc007a2da9d8692008f29daff9a3e06ee65926eb5991168`,
+no committed build generation/artifact output and no `PUBLISHED` marker.
+All 34,986 project/link scopes remain current; no worker or unsettled admission
+remains and the writer lock is free. See
+`research/verification/h16-closure-build-failure-verification-20260915.json`.
+Its separate sidecar addendum preserves the strict filesystem check that
+noticed an empty WAL created by the read-only SQLite connection. Main database
+metadata was unchanged; no sidecar was deleted to alter the evidence.
+The final pause receipt is `research/verification/h16-closure-pause-20260915.json`,
+SHA `8c4fa20510b768885714be5ba6601f687f104a407028ac27b4f95609e3583337`.
+
+On resume, address completion performance under full-build conditions before
+another release attempt. Any changed runtime needs its own frozen acceptance
+chain. Preserve the completed replay and both failed builds as evidence.
+Do not extend the transaction deadline or claim diagnostic completion as
+release acceptance.
+
+The current working copy also includes pending Monterey parser and alias
+changes from a separate investigation. They are not part of this original-scope
+H16 release. The new 2d5 source extends the reviewed 093 package with only
+the validated performance fix and uses its frozen override files during input
+capture. The Monterey acceptance and later event-completion extension remain
+separate outstanding work; preserve those working-copy changes.
+
+The resumed release uses `/var/tmp/h16-changelog-build-driver.py` with the exact source,
 receipt, bundle and actual final replay receipt. Its defaults name an old pin,
-so override all three values. Create the new independent build state
-`/var/tmp/swingset-h16-changelog-build`; do not add baseline artifacts to the
+so override all three values. The failed independent build state
+`/var/tmp/swingset-h16-changelog-build` must be preserved; choose a new state
+after the next frozen replay. Do not add baseline artifacts to the
 replay. Run `/var/tmp/h16-changelog-build-monitor.py` with the build unit.
 The VM cap is 8 GiB; stop cleanly above 6 GiB anonymous memory. Do not overlap
 other heavy VM jobs. Audit the resulting actual candidate serially with
@@ -80,10 +171,38 @@ and fill the initializer gate from actual receipts. The initializer is
 Its operations guide is `/tmp/h16-live-initialize.md`; examples naming old
 pins must be replaced with the actual reviewed values above.
 
-The new production release driver is
+The previous production release driver is
 `/var/tmp/h16-changelog-production-release-driver.py`, SHA
 `0c78189606d69f9388e24620d8e8a781bc3730f1937b5c727cfa17ffd83a2bdd`.
-Its reviewed guide is `/tmp/h16-changelog-production-release.md`.
+It names 093 and must not run for 2d5. The reviewed new driver is
+`/tmp/h16-closure-production-release.py`, SHA
+`9da822db06cd1fcb4d0119706b7c91bc6e128e1447414b817f6b91ff703a51ca`;
+its 34 guards passed against the frozen mirror. The new deployment driver is
+`/tmp/h16-closure-switch-20260914.py`, SHA
+`94ceacce56d3f24d2fadbc0a3d9d59cee0acd6fd32537e61e113441aeada7985`;
+its four mocked activation/hold tests passed. Both target
+`/var/lib/swingset/operations/h16-closure-release-20260914` and remain
+unexecuted. Their exact files have been staged in the private operation
+directory with mode0600 and service ownership; no production preflight or
+activation ran. Exact scripts, tests and coordinator review are retained under
+`research/verification/h16-closure-*20260914*`.
+
+The copied operational gate/evidence are prepared locally at
+`/tmp/h16-closure-operation-preparation-20260914`; gate SHA
+`2ed8c721a07efa12cca325e8f3a048417f82b5c72f4197370fe8bfd52d731d7a`.
+This records the retained backup verification and new source, without claiming
+a fresh remote check or a passed production preflight. The exact gate/helper
+and nested evidence were staged privately; the staging receipt is
+`research/verification/h16-closure-operation-staging-20260915.json`.
+
+The reviewed production initializer supervisor is
+`/tmp/h16-initializer-supervisor-v2.py`, SHA
+`2f6c6f88604db55342bc9d3adbfee9b789143846815cc6380768d26ebb952cae`,
+also staged as `supervise-initialization.py` in the private operation directory.
+All 44 mocked boundary tests passed, including independent interruption review.
+It is unexecuted and requires an actual initialization gate/marker. Its v1
+predecessor remains retained as preparation evidence, not the executable choice.
+No initialization gate or marker exists for this new production release.
 It requires actual production initialization, build and independent audit.
 Publication credentials come only from the existing private service environment.
 

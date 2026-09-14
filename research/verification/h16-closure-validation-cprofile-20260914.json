@@ -1,0 +1,169 @@
+{
+  "candidate": "/var/tmp/swingset-h16-changelog-build/candidates/cand_d80b9025652f4e10",
+  "candidate_manifest_sha256": "64bc83883b90a13b93d6f4bbf0e96ead810bb9e3eb919c5f2bb83d07434d0994",
+  "closure_file": "/Users/skeswa/repos/skeswa/swingset/src/swingset/build/closure.py",
+  "closure_file_sha256": "5573f5a0ebd41b3b7320ab5fb15e2ae09d26c045449516fc1c92b5ebeed94668",
+  "diagnostic_only": true,
+  "format": "h16-readonly-closure-validation-profile-v1",
+  "hydrate_seconds": 2.1196161989937536,
+  "inputs_accepted": false,
+  "max_rss_kib": 2489336,
+  "network_requests": 0,
+  "production_mutated": false,
+  "profile_top_cumulative": [
+    {
+      "calls": 1,
+      "cumulative_seconds": 16.867691777,
+      "function": "('/Users/skeswa/repos/skeswa/swingset/src/swingset/build/closure.py', 254, 'validate')",
+      "self_seconds": 0.566737993
+    },
+    {
+      "calls": 1,
+      "cumulative_seconds": 6.246175153,
+      "function": "('/nix/store/093lylp4naslq5yb2mygbkkgkbsar3ym-source/src/swingset/build/closure_support.py', 51, 'support')",
+      "self_seconds": 0.43220739
+    },
+    {
+      "calls": 62176,
+      "cumulative_seconds": 5.2506655140000005,
+      "function": "('/nix/store/093lylp4naslq5yb2mygbkkgkbsar3ym-source/src/swingset/build/closure_support.py', 14, '_accepted')",
+      "self_seconds": 0.101391796
+    },
+    {
+      "calls": 69972,
+      "cumulative_seconds": 5.046574925000001,
+      "function": "('/Users/skeswa/repos/skeswa/swingset/src/swingset/build/closure.py', 82, 'add')",
+      "self_seconds": 0.254625888
+    },
+    {
+      "calls": 226059,
+      "cumulative_seconds": 4.7220937130000005,
+      "function": "('/nix/store/s5rij9y3vb4gxbh0iqz3k0ndmsac7h02-python3-3.12.13/lib/python3.12/json/__init__.py', 299, 'loads')",
+      "self_seconds": 0.082360391
+    },
+    {
+      "calls": 226059,
+      "cumulative_seconds": 4.601587616000001,
+      "function": "('/nix/store/s5rij9y3vb4gxbh0iqz3k0ndmsac7h02-python3-3.12.13/lib/python3.12/json/decoder.py', 333, 'decode')",
+      "self_seconds": 0.59119158
+    },
+    {
+      "calls": 815189,
+      "cumulative_seconds": 4.455938010000001,
+      "function": "('/nix/store/s5rij9y3vb4gxbh0iqz3k0ndmsac7h02-python3-3.12.13/lib/python3.12/json/decoder.py', 344, 'raw_decode')",
+      "self_seconds": 4.416747539
+    },
+    {
+      "calls": 348068,
+      "cumulative_seconds": 4.1923501530000005,
+      "function": "('~', 0, \"<method 'execute' of 'sqlite3.Connection' objects>\")",
+      "self_seconds": 4.1923501530000005
+    },
+    {
+      "calls": 1,
+      "cumulative_seconds": 4.104188012,
+      "function": "('/nix/store/093lylp4naslq5yb2mygbkkgkbsar3ym-source/src/swingset/build/closure_support.py', 124, 'validate_support')",
+      "self_seconds": 0.217810475
+    },
+    {
+      "calls": 1115206,
+      "cumulative_seconds": 3.9504098400000003,
+      "function": "('/nix/store/093lylp4naslq5yb2mygbkkgkbsar3ym-source/src/swingset/build/closure_manifest.py', 89, 'leaves')",
+      "self_seconds": 0.562181269
+    },
+    {
+      "calls": 655373,
+      "cumulative_seconds": 3.390090128,
+      "function": "('/nix/store/093lylp4naslq5yb2mygbkkgkbsar3ym-source/src/swingset/build/closure_manifest.py', 25, 'members')",
+      "self_seconds": 0.674750976
+    },
+    {
+      "calls": 67752,
+      "cumulative_seconds": 1.894732335,
+      "function": "('/nix/store/093lylp4naslq5yb2mygbkkgkbsar3ym-source/src/swingset/build/closure_support.py', 33, '_observations')",
+      "self_seconds": 0.105516947
+    },
+    {
+      "calls": 36478,
+      "cumulative_seconds": 1.410221763,
+      "function": "('/nix/store/093lylp4naslq5yb2mygbkkgkbsar3ym-source/src/swingset/build/closure_manifest.py', 17, 'canonical')",
+      "self_seconds": 0.008730394
+    },
+    {
+      "calls": 36478,
+      "cumulative_seconds": 1.4014913690000002,
+      "function": "('/nix/store/s5rij9y3vb4gxbh0iqz3k0ndmsac7h02-python3-3.12.13/lib/python3.12/json/__init__.py', 183, 'dumps')",
+      "self_seconds": 0.022209732000000003
+    },
+    {
+      "calls": 36478,
+      "cumulative_seconds": 1.374367343,
+      "function": "('/nix/store/s5rij9y3vb4gxbh0iqz3k0ndmsac7h02-python3-3.12.13/lib/python3.12/json/encoder.py', 183, 'encode')",
+      "self_seconds": 0.018117406000000003
+    },
+    {
+      "calls": 36478,
+      "cumulative_seconds": 1.347366158,
+      "function": "('/nix/store/s5rij9y3vb4gxbh0iqz3k0ndmsac7h02-python3-3.12.13/lib/python3.12/json/encoder.py', 205, 'iterencode')",
+      "self_seconds": 1.347366158
+    },
+    {
+      "calls": 68381,
+      "cumulative_seconds": 0.921139535,
+      "function": "('~', 0, \"<method 'blobopen' of 'sqlite3.Connection' objects>\")",
+      "self_seconds": 0.921139535
+    },
+    {
+      "calls": 2,
+      "cumulative_seconds": 0.6644690670000001,
+      "function": "('/nix/store/093lylp4naslq5yb2mygbkkgkbsar3ym-source/src/swingset/build/closure_manifest.py', 21, 'digest')",
+      "self_seconds": 0.003662353
+    },
+    {
+      "calls": 34986,
+      "cumulative_seconds": 0.647315846,
+      "function": "('/nix/store/093lylp4naslq5yb2mygbkkgkbsar3ym-source/src/swingset/build/closure_manifest.py', 103, 'generation')",
+      "self_seconds": 0.048633935
+    },
+    {
+      "calls": 277826,
+      "cumulative_seconds": 0.524008706,
+      "function": "('~', 0, \"<method 'read' of 'sqlite3.Blob' objects>\")",
+      "self_seconds": 0.524008706
+    },
+    {
+      "calls": 348064,
+      "cumulative_seconds": 0.39551396200000005,
+      "function": "('~', 0, \"<method 'fetchone' of 'sqlite3.Cursor' objects>\")",
+      "self_seconds": 0.39551396200000005
+    },
+    {
+      "calls": 2611547,
+      "cumulative_seconds": 0.25316356300000004,
+      "function": "('~', 0, \"<method 'get' of 'dict' objects>\")",
+      "self_seconds": 0.25316356300000004
+    },
+    {
+      "calls": 116338,
+      "cumulative_seconds": 0.18374316000000002,
+      "function": "('~', 0, '<built-in method builtins.any>')",
+      "self_seconds": 0.037860573
+    },
+    {
+      "calls": 104859,
+      "cumulative_seconds": 0.13624481700000002,
+      "function": "('~', 0, '<built-in method _hashlib.openssl_sha256>')",
+      "self_seconds": 0.13624481700000002
+    },
+    {
+      "calls": 930704,
+      "cumulative_seconds": 0.132017997,
+      "function": "('/Users/skeswa/repos/skeswa/swingset/src/swingset/build/closure.py', 294, '<genexpr>')",
+      "self_seconds": 0.08674548500000001
+    }
+  ],
+  "selected_generations": 34986,
+  "state": "/var/tmp/swingset-h16-changelog-build",
+  "validate_seconds": 16.975766966992524,
+  "validation_passed": true
+}

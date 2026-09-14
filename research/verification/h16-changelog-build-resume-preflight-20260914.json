@@ -1,0 +1,22 @@
+{
+  "checked_at": "2026-09-14T21:08:40.560450+00:00",
+  "passed": true,
+  "verified_hashes": {
+    "/nix/store/093lylp4naslq5yb2mygbkkgkbsar3ym-source/h16-source.json": "3930dbc9f6023250a5253043ade60bd3fc90c57bda27e2c64f8520aa4c588a92",
+    "/var/tmp/h16-changelog-build-driver.py": "f0a78d6524e5af9228c8391a9e3585210c9a64a4e1bfbaabafd57bb4b9ce1fbe",
+    "/var/tmp/h16-changelog-build-monitor.py": "452d75f1023a0085cfdc7c14da0df2142f125ca2c2dbebfc1bf81b8e8bf5cf7f",
+    "/var/tmp/h16-changelog-audit-driver.py": "9de88bd2b5d988a00ee0529504e301b23c93eaf5018485a3f6f4db0deb2deebf",
+    "/var/tmp/swingset-h16-changelog-replay-012.json": "279a4662066594d5aa5a80dcc6c9de8daa03863c38d6b8ea4dcacf202b5265c1",
+    "/var/tmp/swingset-h16-changelog-replay/offline-derivation-scratch.json": "f1e869c0844943b28c0d6f58e8af1b601e72c244984d998bcce1c72ca5821591"
+  },
+  "units": {
+    "swingset-cycle.service": "inactive",
+    "swingset-cycle.timer": "inactive",
+    "swingset-backup.service": "inactive",
+    "swingset-backup.timer": "inactive",
+    "swingset-summary.service": "inactive",
+    "swingset-summary.timer": "inactive"
+  },
+  "replay_lock_available": true,
+  "active_system": "/nix/store/r29kapzbjk0ch5h0vkk288jd47dvg90j-nixos-system-swingset-lxc-25.11.20260630.b6018f8"
+}

@@ -1,0 +1,19 @@
+{
+  "format": "h16-closure-replay-supervisor-v1",
+  "scope": "existing frozen scratch project/link replay only",
+  "source": "/nix/store/2d5q3lgljfkmm78hf44g954lzwx79yhv-source",
+  "source_receipt_sha256": "f8f24c2d8b839bbfcd25bf87e551e9f2777d1236f89ed84da16c3c07d4d75b9f",
+  "scratch": "/var/tmp/swingset-h16-closure-replay",
+  "input_bundle_hash": "558bb5f4e88b47fe80a691254d3b21ac9e491296e80bb18f4599b64a88bfe9c0",
+  "started_with_existing_invocation": 8,
+  "last_permitted_invocation": 12,
+  "worker_seconds": 600,
+  "external_seconds": 900,
+  "source_requests": 0,
+  "files": {
+    "research/verification/supervise_h16_closure_replay_20260914.py": "2f7810a159c6307a2a22bbf7b901eb64bb9233e8e4faa14e2c6f11bbcf6f88bc",
+    "research/verification/h16_closure_replay_operation_20260914.py": "3d616ea87bd0837e1fb8bdd6ece2d47b6ffa0714230a8a6941d2c64cd9cb6e1f",
+    "research/verification/monitor_h16_closure_replay_20260914.py": "da73cea091955c97435df0f490e56bc058a865d8140b8a2b6a95a9eaf631ccbc"
+  },
+  "limit_behavior": "A cap reached before current proof raises a supervisor-limit diagnostic and requires coordinator continuation; it does not mean replay completed."
+}

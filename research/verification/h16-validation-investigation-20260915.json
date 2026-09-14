@@ -1,0 +1,252 @@
+{
+  "accepted_support_receipts": 35445,
+  "at": "2026-09-16T00:05:11.560347+00:00",
+  "build_executed": false,
+  "candidate_manifest_sha256": "7ce49736b44da6e0afc007a2da9d8692008f29daff9a3e06ee65926eb5991168",
+  "connection_total_changes": 0,
+  "database_after": {
+    "state.sqlite": {
+      "mtime_ns": 1789430887206367453,
+      "size": 4788547584
+    },
+    "state.sqlite-shm": {
+      "mtime_ns": 1789431308699734799,
+      "size": 32768
+    },
+    "state.sqlite-wal": {
+      "mtime_ns": 1789431308698907045,
+      "size": 0
+    }
+  },
+  "database_before": {
+    "state.sqlite": {
+      "mtime_ns": 1789430887206367453,
+      "size": 4788547584
+    },
+    "state.sqlite-shm": {
+      "mtime_ns": 1789431308699734799,
+      "size": 32768
+    },
+    "state.sqlite-wal": {
+      "mtime_ns": 1789431308698907045,
+      "size": 0
+    }
+  },
+  "database_unchanged": true,
+  "diagnostic_only": true,
+  "elapsed_seconds": 49.4345394190168,
+  "format": "h16-readonly-validation-investigation-v1",
+  "hydrate_seconds": 2.201512934989296,
+  "inventory": {
+    "dependency_sets": 68380,
+    "selected": 34986,
+    "source_support": 58169
+  },
+  "max_rss_kib": 1648160,
+  "network_requests": 0,
+  "passed": true,
+  "passes": [
+    {
+      "index": 1,
+      "passed": true,
+      "seconds": 15.13878057297552
+    },
+    {
+      "index": 2,
+      "passed": true,
+      "seconds": 10.301518853986636
+    },
+    {
+      "index": 3,
+      "passed": true,
+      "seconds": 9.339179434988182
+    }
+  ],
+  "production_mutated": false,
+  "profile_top_cumulative": [
+    {
+      "calls": 1,
+      "cumulative_seconds": 12.25505796,
+      "function": "('/nix/store/2d5q3lgljfkmm78hf44g954lzwx79yhv-source/src/swingset/build/closure.py', 254, 'validate')",
+      "self_seconds": 0.33040710300000004
+    },
+    {
+      "calls": 1,
+      "cumulative_seconds": 5.6098489670000005,
+      "function": "('/nix/store/2d5q3lgljfkmm78hf44g954lzwx79yhv-source/src/swingset/build/closure_support.py', 55, 'support')",
+      "self_seconds": 1.0697891270000002
+    },
+    {
+      "calls": 190614,
+      "cumulative_seconds": 4.213488594,
+      "function": "('/nix/store/s5rij9y3vb4gxbh0iqz3k0ndmsac7h02-python3-3.12.13/lib/python3.12/json/__init__.py', 299, 'loads')",
+      "self_seconds": 0.069056108
+    },
+    {
+      "calls": 190614,
+      "cumulative_seconds": 4.112051542000001,
+      "function": "('/nix/store/s5rij9y3vb4gxbh0iqz3k0ndmsac7h02-python3-3.12.13/lib/python3.12/json/decoder.py', 333, 'decode')",
+      "self_seconds": 0.701966077
+    },
+    {
+      "calls": 779746,
+      "cumulative_seconds": 3.849279913,
+      "function": "('/nix/store/s5rij9y3vb4gxbh0iqz3k0ndmsac7h02-python3-3.12.13/lib/python3.12/json/decoder.py', 344, 'raw_decode')",
+      "self_seconds": 3.8128486560000003
+    },
+    {
+      "calls": 69972,
+      "cumulative_seconds": 3.567861681,
+      "function": "('/nix/store/2d5q3lgljfkmm78hf44g954lzwx79yhv-source/src/swingset/build/closure.py', 82, 'add')",
+      "self_seconds": 0.257559794
+    },
+    {
+      "calls": 62176,
+      "cumulative_seconds": 3.2976275370000003,
+      "function": "('/nix/store/2d5q3lgljfkmm78hf44g954lzwx79yhv-source/src/swingset/build/closure_support.py', 14, '_accepted')",
+      "self_seconds": 0.050808333000000004
+    },
+    {
+      "calls": 1115206,
+      "cumulative_seconds": 2.777225772,
+      "function": "('/nix/store/2d5q3lgljfkmm78hf44g954lzwx79yhv-source/src/swingset/build/closure_manifest.py', 89, 'leaves')",
+      "self_seconds": 0.706965348
+    },
+    {
+      "calls": 655373,
+      "cumulative_seconds": 2.066063508,
+      "function": "('/nix/store/2d5q3lgljfkmm78hf44g954lzwx79yhv-source/src/swingset/build/closure_manifest.py', 25, 'members')",
+      "self_seconds": 0.694401755
+    },
+    {
+      "calls": 1,
+      "cumulative_seconds": 1.874370225,
+      "function": "('/nix/store/2d5q3lgljfkmm78hf44g954lzwx79yhv-source/src/swingset/build/closure_support.py', 126, 'validate_support')",
+      "self_seconds": 0.199974602
+    },
+    {
+      "calls": 67752,
+      "cumulative_seconds": 1.6269716870000002,
+      "function": "('/nix/store/2d5q3lgljfkmm78hf44g954lzwx79yhv-source/src/swingset/build/closure_support.py', 35, '_observations')",
+      "self_seconds": 0.09105394300000001
+    },
+    {
+      "calls": 36478,
+      "cumulative_seconds": 1.342577192,
+      "function": "('/nix/store/2d5q3lgljfkmm78hf44g954lzwx79yhv-source/src/swingset/build/closure_manifest.py', 17, 'canonical')",
+      "self_seconds": 0.008104568000000001
+    },
+    {
+      "calls": 36478,
+      "cumulative_seconds": 1.334472624,
+      "function": "('/nix/store/s5rij9y3vb4gxbh0iqz3k0ndmsac7h02-python3-3.12.13/lib/python3.12/json/__init__.py', 183, 'dumps')",
+      "self_seconds": 0.021694114
+    },
+    {
+      "calls": 36478,
+      "cumulative_seconds": 1.308456266,
+      "function": "('/nix/store/s5rij9y3vb4gxbh0iqz3k0ndmsac7h02-python3-3.12.13/lib/python3.12/json/encoder.py', 183, 'encode')",
+      "self_seconds": 0.0170651
+    },
+    {
+      "calls": 36478,
+      "cumulative_seconds": 1.28346913,
+      "function": "('/nix/store/s5rij9y3vb4gxbh0iqz3k0ndmsac7h02-python3-3.12.13/lib/python3.12/json/encoder.py', 205, 'iterencode')",
+      "self_seconds": 1.28346913
+    },
+    {
+      "calls": 223716,
+      "cumulative_seconds": 1.1080347080000001,
+      "function": "('~', 0, \"<method 'execute' of 'sqlite3.Connection' objects>\")",
+      "self_seconds": 1.1080347080000001
+    },
+    {
+      "calls": 2,
+      "cumulative_seconds": 0.6345262500000001,
+      "function": "('/nix/store/2d5q3lgljfkmm78hf44g954lzwx79yhv-source/src/swingset/build/closure_manifest.py', 21, 'digest')",
+      "self_seconds": 0.004699712
+    },
+    {
+      "calls": 34986,
+      "cumulative_seconds": 0.341032383,
+      "function": "('/nix/store/2d5q3lgljfkmm78hf44g954lzwx79yhv-source/src/swingset/build/closure_manifest.py', 103, 'generation')",
+      "self_seconds": 0.051575412
+    },
+    {
+      "calls": 223712,
+      "cumulative_seconds": 0.251376019,
+      "function": "('~', 0, \"<method 'fetchone' of 'sqlite3.Cursor' objects>\")",
+      "self_seconds": 0.251376019
+    },
+    {
+      "calls": 2611547,
+      "cumulative_seconds": 0.23956369900000002,
+      "function": "('~', 0, \"<method 'get' of 'dict' objects>\")",
+      "self_seconds": 0.23956369900000002
+    },
+    {
+      "calls": 116338,
+      "cumulative_seconds": 0.193315536,
+      "function": "('~', 0, '<built-in method builtins.any>')",
+      "self_seconds": 0.042055839000000005
+    },
+    {
+      "calls": 930704,
+      "cumulative_seconds": 0.137378566,
+      "function": "('/nix/store/2d5q3lgljfkmm78hf44g954lzwx79yhv-source/src/swingset/build/closure.py', 294, '<genexpr>')",
+      "self_seconds": 0.092289407
+    },
+    {
+      "calls": 104859,
+      "cumulative_seconds": 0.127095762,
+      "function": "('~', 0, '<built-in method _hashlib.openssl_sha256>')",
+      "self_seconds": 0.127095762
+    },
+    {
+      "calls": 2679654,
+      "cumulative_seconds": 0.11180379700000001,
+      "function": "('~', 0, '<built-in method builtins.len>')",
+      "self_seconds": 0.11180379700000001
+    },
+    {
+      "calls": 68381,
+      "cumulative_seconds": 0.093973108,
+      "function": "('~', 0, \"<method 'blobopen' of 'sqlite3.Connection' objects>\")",
+      "self_seconds": 0.093973108
+    },
+    {
+      "calls": 277826,
+      "cumulative_seconds": 0.07616257600000001,
+      "function": "('~', 0, \"<method 'read' of 'sqlite3.Blob' objects>\")",
+      "self_seconds": 0.07616257600000001
+    },
+    {
+      "calls": 70532,
+      "cumulative_seconds": 0.07331427,
+      "function": "('~', 0, \"<method 'update' of '_hashlib.HASH' objects>\")",
+      "self_seconds": 0.07331427
+    },
+    {
+      "calls": 1244506,
+      "cumulative_seconds": 0.067069526,
+      "function": "('~', 0, \"<method 'isspace' of 'str' objects>\")",
+      "self_seconds": 0.067069526
+    },
+    {
+      "calls": 68381,
+      "cumulative_seconds": 0.063126928,
+      "function": "('/nix/store/s5rij9y3vb4gxbh0iqz3k0ndmsac7h02-python3-3.12.13/lib/python3.12/json/decoder.py', 285, '__init__')",
+      "self_seconds": 0.063126928
+    },
+    {
+      "calls": 381228,
+      "cumulative_seconds": 0.058661281,
+      "function": "('~', 0, \"<method 'match' of 're.Pattern' objects>\")",
+      "self_seconds": 0.058661281
+    }
+  ],
+  "script_sha256": "70771a1e6a04778cfec8e16453b8570849498e90b4980c9473997be0f3e3e7ea",
+  "source": "/nix/store/2d5q3lgljfkmm78hf44g954lzwx79yhv-source",
+  "source_receipt_sha256": "f8f24c2d8b839bbfcd25bf87e551e9f2777d1236f89ed84da16c3c07d4d75b9f",
+  "state": "/var/tmp/swingset-h16-closure-build"
+}

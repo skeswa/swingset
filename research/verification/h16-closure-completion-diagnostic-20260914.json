@@ -1,0 +1,19 @@
+{
+  "closure_file_sha256": "5573f5a0ebd41b3b7320ab5fb15e2ae09d26c045449516fc1c92b5ebeed94668",
+  "completion_before": false,
+  "diagnostic_only": true,
+  "elapsed_seconds": 73.71181731397519,
+  "error": {
+    "message": "atomic write exceeded 45 seconds; output rolled back",
+    "type": "WriteDeadlineExceeded"
+  },
+  "format": "h16-completion-diagnostic-v1",
+  "inputs_accepted": false,
+  "max_rss_kib": 2774560,
+  "network_requests": 0,
+  "passed": false,
+  "predecessor": "/var/tmp/swingset-h16-changelog-build",
+  "production_mutated": false,
+  "select_seconds": 17.30524586699903,
+  "state": "/var/tmp/swingset-h16-closure-completion-diagnostic"
+}

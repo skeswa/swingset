@@ -1,0 +1,16 @@
+{
+  "baseline": "/var/tmp/swingset-h16-closure-build/candidates/cand_7f8cf9bcbf7e4a60",
+  "baseline_commit": "81121dcc7d62a1db9e76ee1c49a6b90e1f4c5653",
+  "elapsed_seconds": 387.6589895510115,
+  "error": {
+    "message": "atomic write exceeded 45 seconds; output rolled back",
+    "type": "WriteDeadlineExceeded"
+  },
+  "max_rss_kib": 4831260,
+  "network_requests": 0,
+  "passed": false,
+  "published": false,
+  "replay_receipt_sha256": "53d7e8006bd492e6fcae2ed3d4f888d7ea3ae716f3375bb7188a43287a724bd5",
+  "source": "/nix/store/2d5q3lgljfkmm78hf44g954lzwx79yhv-source",
+  "state": "/var/tmp/swingset-h16-closure-build"
+}

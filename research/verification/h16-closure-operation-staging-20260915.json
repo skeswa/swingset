@@ -1,0 +1,21 @@
+{
+  "activated": false,
+  "database_changed": false,
+  "files": {
+    "accept_h16.py": "8ed4b2384fb946100934a14b57025b6cc6272fb7927632eaede5c19eb2519f50",
+    "audit.py": "9de88bd2b5d988a00ee0529504e301b23c93eaf5018485a3f6f4db0deb2deebf",
+    "backup.json": "d7188f357d99f79c80cb2277dd335539840be8cb2305ef34c41162991c69793f",
+    "gate.json": "2ed8c721a07efa12cca325e8f3a048417f82b5c72f4197370fe8bfd52d731d7a",
+    "initialize.py": "b54c02a15c3d86a603bef4d6926e66bde4cf1ef9d23f273aa5db771d3a99d233",
+    "private-verification.json": "4941e52a6f65f843737215570f037881b6f7a788a917fc624584cf45f294a6ba",
+    "release.py": "9da822db06cd1fcb4d0119706b7c91bc6e128e1447414b817f6b91ff703a51ca",
+    "supervise-initialization.py": "2f6c6f88604db55342bc9d3adbfee9b789143846815cc6380768d26ebb952cae",
+    "switch.py": "94ceacce56d3f24d2fadbc0a3d9d59cee0acd6fd32537e61e113441aeada7985",
+    "v4-verification.json": "290b2302c65ce84b4483c4f2b6104cebcc9ba68b5e132f6c674bbaed410f8b2a"
+  },
+  "format": "h16-private-operation-staging-v1",
+  "operation_directory": "/var/lib/swingset/operations/h16-closure-release-20260914",
+  "published": false,
+  "staged_at": "2026-09-15T00:06:47.114684+00:00",
+  "staged_only": true
+}

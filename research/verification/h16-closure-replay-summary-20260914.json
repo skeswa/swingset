@@ -1,0 +1,279 @@
+{
+  "all_invocations_exit_zero": true,
+  "attempt_outcomes": {
+    "succeeded": 34986
+  },
+  "cgroup_peak_memory_bytes": 3039576064,
+  "final_verification": "research/verification/h16-closure-replay-final-verification-20260914.json",
+  "final_verification_sha256": "44319b29c4a9345ea91f16bd84f2799d4316b6935e19a1d379b1c480347e6c21",
+  "final_verifier_sha256": "dd2b7cddd74c68fb1c54467959403bb767679606cc34891210a2698cdcfbb9c9",
+  "format": "h16-closure-replay-summary-v1",
+  "generation_count": 34986,
+  "inherited_unfinished_runs_unchanged": true,
+  "input_bundle_hash": "558bb5f4e88b47fe80a691254d3b21ac9e491296e80bb18f4599b64a88bfe9c0",
+  "invocations": [
+    {
+      "completed": 28547,
+      "elapsed_seconds": 550.0110476799891,
+      "generation_count": 28547,
+      "invocation": 1,
+      "receipt": "research/verification/h16-closure-replay-001-20260914.json",
+      "run_id": "run_20260914T215247Z",
+      "sha256": "20742637bd8729f3fda089f9c7aec0446d93dc81bb35d2e1c0b2fb1a8355ffee",
+      "status": "bounded_stop"
+    },
+    {
+      "completed": 3948,
+      "elapsed_seconds": 550.3606337140081,
+      "generation_count": 32495,
+      "invocation": 2,
+      "receipt": "research/verification/h16-closure-replay-002-20260914.json",
+      "run_id": "run_20260914T220259Z",
+      "sha256": "888cc058e767dbe96a8bb2b25507da5489ed81d01b008b3452592cb546eb385b",
+      "status": "bounded_stop"
+    },
+    {
+      "completed": 296,
+      "elapsed_seconds": 550.1522722829832,
+      "generation_count": 32791,
+      "invocation": 3,
+      "receipt": "research/verification/h16-closure-replay-003-20260914.json",
+      "run_id": "run_20260914T221228Z",
+      "sha256": "acb76dd77c7290ad8fb37fd2182e563879dfc35c6ce528048ee0b997c56bb45e",
+      "status": "bounded_stop"
+    },
+    {
+      "completed": 299,
+      "elapsed_seconds": 550.24312650098,
+      "generation_count": 33090,
+      "invocation": 4,
+      "receipt": "research/verification/h16-closure-replay-004-20260914.json",
+      "run_id": "run_20260914T222201Z",
+      "sha256": "221ee0f2c10c5161656506dafb57ae3d08b3403563e2e2714ed990295227b6dd",
+      "status": "bounded_stop"
+    },
+    {
+      "completed": 293,
+      "elapsed_seconds": 550.7336805110099,
+      "generation_count": 33383,
+      "invocation": 5,
+      "receipt": "research/verification/h16-closure-replay-005-20260914.json",
+      "run_id": "run_20260914T223131Z",
+      "sha256": "6ed9ab31e860410e7c89bb7914828d424711c7a012c7a52e0d0bba4839f0fe89",
+      "status": "bounded_stop"
+    },
+    {
+      "completed": 294,
+      "elapsed_seconds": 550.6675886700395,
+      "generation_count": 33677,
+      "invocation": 6,
+      "receipt": "research/verification/h16-closure-replay-006-20260914.json",
+      "run_id": "run_20260914T224114Z",
+      "sha256": "c9e324062fd0695876ed67195c6747d2221755124fc22f412c3c03f00c983413",
+      "status": "bounded_stop"
+    },
+    {
+      "completed": 292,
+      "elapsed_seconds": 550.8436042559915,
+      "generation_count": 33969,
+      "invocation": 7,
+      "receipt": "research/verification/h16-closure-replay-007-20260914.json",
+      "run_id": "run_20260914T225130Z",
+      "sha256": "c04ce0cf9ef529caff9e66fb5a21167121f593639f3f2e20c2e2d4885fe0a156",
+      "status": "bounded_stop"
+    },
+    {
+      "completed": 291,
+      "elapsed_seconds": 550.0726932990365,
+      "generation_count": 34260,
+      "invocation": 8,
+      "receipt": "research/verification/h16-closure-replay-008-20260914.json",
+      "run_id": "run_20260914T232622Z",
+      "sha256": "b53b53dfef39bca860cb8502394df462a67c7a366ac718efff1e380a2848fda7",
+      "status": "bounded_stop"
+    },
+    {
+      "completed": 267,
+      "elapsed_seconds": 551.092828261957,
+      "generation_count": 34527,
+      "invocation": 9,
+      "receipt": "research/verification/h16-closure-replay-009-20260914.json",
+      "run_id": "run_20260914T233548Z",
+      "sha256": "26d62cfdb2a8b796369320bf6acc5fd1841703c71cca5f3a33ddb7f8e09d869e",
+      "status": "bounded_stop"
+    },
+    {
+      "completed": 235,
+      "elapsed_seconds": 552.7553107209969,
+      "generation_count": 34762,
+      "invocation": 10,
+      "receipt": "research/verification/h16-closure-replay-010-20260914.json",
+      "run_id": "run_20260914T234632Z",
+      "sha256": "fccb393810e04359d310c90c49402cd8f0ca4ee2d018e89b43176895eeda07c1",
+      "status": "bounded_stop"
+    },
+    {
+      "completed": 224,
+      "elapsed_seconds": 450.02133256796515,
+      "generation_count": 34986,
+      "invocation": 11,
+      "receipt": "research/verification/h16-closure-replay-011-20260914.json",
+      "run_id": "run_20260914T235555Z",
+      "sha256": "53d7e8006bd492e6fcae2ed3d4f888d7ea3ae716f3375bb7188a43287a724bd5",
+      "status": "current"
+    }
+  ],
+  "limits": [
+    "Scratch initialization only; production initialization and full ordinary scratch build/audit remain separate.",
+    "Invocation gaps include user interruption; elapsed worker time is not total wall time.",
+    "Supervisorv1 startup receipt race stopped only local monitoring; v2 resumed existing009 without duplicate workers or resetting attempts."
+  ],
+  "marker_sha256": "d3c8385032c6ba66baea1afffe53bec5ad5bd1dacb269a5b56f8a3c2eeeb0377",
+  "materialized_by_scope": {
+    "link/event": 2541,
+    "project/calendar": 2,
+    "project/dancer": 29048,
+    "project/event": 2541,
+    "project/history": 1,
+    "project/inventory": 1,
+    "project/map": 1,
+    "project/source_event": 467,
+    "project/source_index": 384
+  },
+  "memory_measurement": "systemd cgroup MemoryPeak, including cache; not process RSS",
+  "network_requests": 0,
+  "parse_executed": false,
+  "production_mutated": false,
+  "published": false,
+  "resource_samples_file": "research/verification/h16-closure-replay-resource-samples-20260914.jsonl",
+  "resource_samples_sha256": "dc282553c365f9dc8baebcaa22776b6d053954349dbbded56d35b4c90bfe43f6",
+  "resource_units": {
+    "swingset-h16-closure-replay-001.service": {
+      "ActiveState": "active",
+      "CPUUsageNSec": "445333400000",
+      "ExecMainStatus": "0",
+      "InvocationID": "cd7c377e5dde456fa85a25e98da2b193",
+      "MainPID": "0",
+      "MemoryCurrent": "[not set]",
+      "MemoryPeak": "1018593280",
+      "Result": "success",
+      "SubState": "exited"
+    },
+    "swingset-h16-closure-replay-002.service": {
+      "ActiveState": "active",
+      "CPUUsageNSec": "536877050000",
+      "ExecMainStatus": "0",
+      "InvocationID": "079a90662ed24195ade7c232e856a99b",
+      "MainPID": "0",
+      "MemoryCurrent": "[not set]",
+      "MemoryPeak": "3039576064",
+      "Result": "success",
+      "SubState": "exited"
+    },
+    "swingset-h16-closure-replay-003.service": {
+      "ActiveState": "active",
+      "CPUUsageNSec": "548910096000",
+      "ExecMainStatus": "0",
+      "InvocationID": "6235fb88fc4f4133b68a2932c7933b0b",
+      "MainPID": "0",
+      "MemoryCurrent": "[not set]",
+      "MemoryPeak": "613376000",
+      "Result": "success",
+      "SubState": "exited"
+    },
+    "swingset-h16-closure-replay-004.service": {
+      "ActiveState": "active",
+      "CPUUsageNSec": "549031382000",
+      "ExecMainStatus": "0",
+      "InvocationID": "385a88bd6d7947b689021b59bff39242",
+      "MainPID": "0",
+      "MemoryCurrent": "[not set]",
+      "MemoryPeak": "618295296",
+      "Result": "success",
+      "SubState": "exited"
+    },
+    "swingset-h16-closure-replay-005.service": {
+      "ActiveState": "active",
+      "CPUUsageNSec": "549445224000",
+      "ExecMainStatus": "0",
+      "InvocationID": "e8095139e3594b5798c895a5436b0cdf",
+      "MainPID": "0",
+      "MemoryCurrent": "[not set]",
+      "MemoryPeak": "627843072",
+      "Result": "success",
+      "SubState": "exited"
+    },
+    "swingset-h16-closure-replay-006.service": {
+      "ActiveState": "active",
+      "CPUUsageNSec": "549237266000",
+      "ExecMainStatus": "0",
+      "InvocationID": "64e1ecce38cb46fca8b8c2b82b70a98c",
+      "MainPID": "0",
+      "MemoryCurrent": "[not set]",
+      "MemoryPeak": "526131200",
+      "Result": "success",
+      "SubState": "exited"
+    },
+    "swingset-h16-closure-replay-007.service": {
+      "ActiveState": "active",
+      "CPUUsageNSec": "549518744000",
+      "ExecMainStatus": "0",
+      "InvocationID": "a251c1ea538046ca9fed993f7b35795b",
+      "MainPID": "0",
+      "MemoryCurrent": "[not set]",
+      "MemoryPeak": "626970624",
+      "Result": "success",
+      "SubState": "exited"
+    },
+    "swingset-h16-closure-replay-008.service": {
+      "ActiveState": "active",
+      "CPUUsageNSec": "548880844000",
+      "ExecMainStatus": "0",
+      "InvocationID": "9beb157bb8ac4a55b7d88fefee7f3226",
+      "MainPID": "0",
+      "MemoryCurrent": "[not set]",
+      "MemoryPeak": "980348928",
+      "Result": "success",
+      "SubState": "exited"
+    },
+    "swingset-h16-closure-replay-009.service": {
+      "ActiveState": "active",
+      "CPUUsageNSec": "549075462000",
+      "ExecMainStatus": "0",
+      "InvocationID": "0640f2ec2ce64afa99f0e676254c5403",
+      "MainPID": "0",
+      "MemoryCurrent": "[not set]",
+      "MemoryPeak": "641646592",
+      "Result": "success",
+      "SubState": "exited"
+    },
+    "swingset-h16-closure-replay-010.service": {
+      "ActiveState": "active",
+      "CPUUsageNSec": "550173050000",
+      "ExecMainStatus": "0",
+      "InvocationID": "f384bd860eef4f3c985e50d8fbf58ad5",
+      "MainPID": "0",
+      "MemoryCurrent": "[not set]",
+      "MemoryPeak": "979599360",
+      "Result": "success",
+      "SubState": "exited"
+    },
+    "swingset-h16-closure-replay-011.service": {
+      "ActiveState": "active",
+      "CPUUsageNSec": "449180177000",
+      "ExecMainStatus": "0",
+      "InvocationID": "6e145b76ffc54406be1dc5cb4be15a2b",
+      "MainPID": "0",
+      "MemoryCurrent": "[not set]",
+      "MemoryPeak": "728526848",
+      "Result": "success",
+      "SubState": "exited"
+    }
+  },
+  "scratch": "/var/tmp/swingset-h16-closure-replay",
+  "source": "/nix/store/2d5q3lgljfkmm78hf44g954lzwx79yhv-source",
+  "source_receipt_sha256": "f8f24c2d8b839bbfcd25bf87e551e9f2777d1236f89ed84da16c3c07d4d75b9f",
+  "status": "current",
+  "sum_worker_invocation_elapsed_seconds": 5956.954118464957,
+  "unfinished_by_scope": {}
+}

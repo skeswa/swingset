@@ -1,0 +1,55 @@
+{
+  "evidence": {
+    "frozen_mypy": {
+      "exit_code": 0,
+      "path": "research/verification/h16-closure-frozen-mypy-002-20260914.log",
+      "sha256": "df86812c0a8c7711f4dab059ea18beb077187eb508f5008a7ca54daea41c291d"
+    },
+    "frozen_pytest": {
+      "exit_code": 0,
+      "path": "research/verification/h16-closure-frozen-tests-003-20260914.log",
+      "sha256": "991ffc9ea2ec478ffba5304f69bd3d255b5fd5f4669da6c7f273731184e17156"
+    },
+    "frozen_ruff": {
+      "exit_code": 0,
+      "path": "research/verification/h16-closure-frozen-ruff-002-20260914.log",
+      "sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+    },
+    "independent_source_verification": {
+      "path": "research/verification/h16-closure-frozen-independent-verification-002-20260914.json",
+      "sha256": "8270979ced47f6310fb82ebbde1e9e3267e35406c9fb1231c63908e8c75607e4"
+    },
+    "nix_build": {
+      "exit_code": 0,
+      "path": "research/verification/h16-closure-nix-build-003-20260914.log",
+      "sha256": "272a7563dabb28a505e7e1fac56f5b8b1b96b27380a6e0ec729f2390c4b5814b"
+    },
+    "worktree_pytest": {
+      "exit_code": 0,
+      "path": "research/verification/h16-closure-final-worktree-tests-20260914.log",
+      "sha256": "191312dfe4d4d7b4a2a097c26f0715c40b0259e6c2f2b4523fd0c38518048300"
+    }
+  },
+  "format": "h16-closure-frozen-runtime-validation-v1",
+  "limitations": [
+    "No deployment, production initialization, release build, or publication acceptance is established by this receipt.",
+    "Early host-mirror test attempts were interrupted after copied read-only file permissions caused setup failures. Corrected mirror permissions changed no frozen-source bytes.",
+    "Worktree contains pending changes outside the frozen release; its whole-tree mypy check has an existing Monterey adapter error, so only frozen-source mypy is accepted."
+  ],
+  "mypy_source_files": 165,
+  "passed": true,
+  "recorded_at": "2026-09-14T21:53:47.351741+00:00",
+  "source": "/nix/store/2d5q3lgljfkmm78hf44g954lzwx79yhv-source",
+  "source_receipt_sha256": "f8f24c2d8b839bbfcd25bf87e551e9f2777d1236f89ed84da16c3c07d4d75b9f",
+  "system": "/nix/store/86p1plylmwlna3ympba52g26pwvmjv0i-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+  "tests": {
+    "frozen": {
+      "passed": 1199,
+      "seconds": 294.78
+    },
+    "worktree": {
+      "passed": 1400,
+      "seconds": 287.98
+    }
+  }
+}

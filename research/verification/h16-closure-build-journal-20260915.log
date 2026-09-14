@@ -1,0 +1,50 @@
+2026-09-15T00:05:28+00:00 swingset systemd[1]: Started [systemd-run] /var/lib/swingset/venv/bin/python /var/tmp/h16-changelog-build-driver.py --replay /var/tmp/swingset-h16-closure-replay --replay-receipt /var/tmp/swingset-h16-closure-replay-011.json --state /var/tmp/swingset-h16-closure-build --output /var/tmp/swingset-h16-closure-build.json --source /nix/store/2d5q3lgljfkmm78hf44g954lzwx79yhv-source --source-receipt-sha256 f8f24c2d8b839bbfcd25bf87e551e9f2777d1236f89ed84da16c3c07d4d75b9f --bundle-digest 558bb5f4e88b47fe80a691254d3b21ac9e491296e80bb18f4599b64a88bfe9c0.
+2026-09-15T00:11:57+00:00 swingset python[90328]: Traceback (most recent call last):
+2026-09-15T00:11:57+00:00 swingset python[90328]:   File "/nix/store/2d5q3lgljfkmm78hf44g954lzwx79yhv-source/src/swingset/state/write_deadline.py", line 57, in bounded_write
+2026-09-15T00:11:57+00:00 swingset python[90328]:     yield
+2026-09-15T00:11:57+00:00 swingset python[90328]:   File "/nix/store/2d5q3lgljfkmm78hf44g954lzwx79yhv-source/src/swingset/state/db.py", line 68, in transaction
+2026-09-15T00:11:57+00:00 swingset python[90328]:     yield self.connection
+2026-09-15T00:11:57+00:00 swingset python[90328]:   File "/nix/store/2d5q3lgljfkmm78hf44g954lzwx79yhv-source/src/swingset/build/generations.py", line 94, in complete
+2026-09-15T00:11:57+00:00 swingset python[90328]:     derivations.complete(
+2026-09-15T00:11:57+00:00 swingset python[90328]:   File "/nix/store/2d5q3lgljfkmm78hf44g954lzwx79yhv-source/src/swingset/state/derivations.py", line 375, in complete
+2026-09-15T00:11:57+00:00 swingset python[90328]:     _certify(conn, selection)
+2026-09-15T00:11:57+00:00 swingset python[90328]:   File "/nix/store/2d5q3lgljfkmm78hf44g954lzwx79yhv-source/src/swingset/state/derivations.py", line 418, in _certify
+2026-09-15T00:11:57+00:00 swingset python[90328]:     fresh = desired(
+2026-09-15T00:11:57+00:00 swingset python[90328]:             ^^^^^^^^
+2026-09-15T00:11:57+00:00 swingset python[90328]:   File "/nix/store/2d5q3lgljfkmm78hf44g954lzwx79yhv-source/src/swingset/state/derivations.py", line 115, in desired
+2026-09-15T00:11:57+00:00 swingset python[90328]:     validate(conn, pinned)
+2026-09-15T00:11:57+00:00 swingset python[90328]:   File "/nix/store/2d5q3lgljfkmm78hf44g954lzwx79yhv-source/src/swingset/build/closure.py", line 301, in validate
+2026-09-15T00:11:57+00:00 swingset python[90328]:     expected_support = support(
+2026-09-15T00:11:57+00:00 swingset python[90328]:                        ^^^^^^^^
+2026-09-15T00:11:57+00:00 swingset python[90328]:   File "/nix/store/2d5q3lgljfkmm78hf44g954lzwx79yhv-source/src/swingset/build/closure_support.py", line 68, in support
+2026-09-15T00:11:57+00:00 swingset python[90328]:     row = _accepted(conn, identifier)
+2026-09-15T00:11:57+00:00 swingset python[90328]:           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-09-15T00:11:57+00:00 swingset python[90328]:   File "/nix/store/2d5q3lgljfkmm78hf44g954lzwx79yhv-source/src/swingset/build/closure_support.py", line 20, in _accepted
+2026-09-15T00:11:57+00:00 swingset python[90328]:     row = conn.execute(
+2026-09-15T00:11:57+00:00 swingset python[90328]:           ^^^^^^^^^^^^^
+2026-09-15T00:11:57+00:00 swingset python[90328]: sqlite3.OperationalError: interrupted
+2026-09-15T00:11:57+00:00 swingset python[90328]: The above exception was the direct cause of the following exception:
+2026-09-15T00:11:57+00:00 swingset python[90328]: Traceback (most recent call last):
+2026-09-15T00:11:57+00:00 swingset python[90328]:   File "/var/tmp/h16-changelog-build-driver.py", line 149, in <module>
+2026-09-15T00:11:57+00:00 swingset python[90328]:     main()
+2026-09-15T00:11:57+00:00 swingset python[90328]:   File "/var/tmp/h16-changelog-build-driver.py", line 112, in main
+2026-09-15T00:11:57+00:00 swingset python[90328]:     result = build_release(db, bundle, clock, run, remote=None, correction_only=False)
+2026-09-15T00:11:57+00:00 swingset python[90328]:              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-09-15T00:11:57+00:00 swingset python[90328]:   File "/nix/store/2d5q3lgljfkmm78hf44g954lzwx79yhv-source/src/swingset/build/service.py", line 266, in build_release
+2026-09-15T00:11:57+00:00 swingset python[90328]:     generations.complete(database, selection, result, now=clock.now(), run_id=run_id)
+2026-09-15T00:11:57+00:00 swingset python[90328]:   File "/nix/store/2d5q3lgljfkmm78hf44g954lzwx79yhv-source/src/swingset/build/generations.py", line 76, in complete
+2026-09-15T00:11:57+00:00 swingset python[90328]:     with database.transaction() as conn:
+2026-09-15T00:11:57+00:00 swingset python[90328]:          ^^^^^^^^^^^^^^^^^^^^^^
+2026-09-15T00:11:57+00:00 swingset python[90328]:   File "/nix/store/s5rij9y3vb4gxbh0iqz3k0ndmsac7h02-python3-3.12.13/lib/python3.12/contextlib.py", line 158, in __exit__
+2026-09-15T00:11:57+00:00 swingset python[90328]:     self.gen.throw(value)
+2026-09-15T00:11:57+00:00 swingset python[90328]:   File "/nix/store/2d5q3lgljfkmm78hf44g954lzwx79yhv-source/src/swingset/state/db.py", line 66, in transaction
+2026-09-15T00:11:57+00:00 swingset python[90328]:     with boundary:
+2026-09-15T00:11:57+00:00 swingset python[90328]:          ^^^^^^^^
+2026-09-15T00:11:57+00:00 swingset python[90328]:   File "/nix/store/s5rij9y3vb4gxbh0iqz3k0ndmsac7h02-python3-3.12.13/lib/python3.12/contextlib.py", line 158, in __exit__
+2026-09-15T00:11:57+00:00 swingset python[90328]:     self.gen.throw(value)
+2026-09-15T00:11:57+00:00 swingset python[90328]:   File "/nix/store/2d5q3lgljfkmm78hf44g954lzwx79yhv-source/src/swingset/state/write_deadline.py", line 62, in bounded_write
+2026-09-15T00:11:57+00:00 swingset python[90328]:     raise WriteDeadlineExceeded(
+2026-09-15T00:11:57+00:00 swingset python[90328]: swingset.state.write_deadline.WriteDeadlineExceeded: atomic write exceeded 45 seconds; output rolled back
+2026-09-15T00:12:02+00:00 swingset systemd[1]: swingset-h16-closure-build.service: Main process exited, code=exited, status=1/FAILURE
+2026-09-15T00:12:02+00:00 swingset systemd[1]: swingset-h16-closure-build.service: Failed with result 'exit-code'.
+2026-09-15T00:12:02+00:00 swingset systemd[1]: swingset-h16-closure-build.service: Consumed 6min 36.587s CPU time, 6.4G memory peak, 15.2G read from disk, 14.2G written to disk.

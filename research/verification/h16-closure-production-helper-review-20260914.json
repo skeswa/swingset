@@ -1,0 +1,60 @@
+{
+  "checks": {
+    "frozen_overrides_required_by_input_gate": true,
+    "ordinary_admission_and_publication_guards_preserved": true,
+    "release_only_source_receipt_bundle_changed": true,
+    "scheduled_units_remain_held": true,
+    "switch_only_source_receipt_system_ops_changed": true
+  },
+  "evidence": {
+    "h16-closure-production-release-guards.log": {
+      "path": "research/verification/h16-closure-production-release-guards-20260914.log",
+      "sha256": "de1588ae15f007b2fcb8429cdf41a73d487596874fad03420e7734fa20d67d28"
+    },
+    "h16-closure-production-release-preparation.json": {
+      "path": "research/verification/h16-closure-production-release-preparation-20260914.json",
+      "sha256": "d5fe7b140de62e195f9ea963a4754eb984c3e58e1cc6471ec7dccb5acab48726"
+    },
+    "h16-closure-production-release.md": {
+      "path": "research/verification/h16-closure-production-release-20260914.md",
+      "sha256": "ac6bda08759cbae98027f79035dd6c3f89d357c328df51cfc05dcba5e4ad7cc6"
+    },
+    "h16-closure-production-release.py": {
+      "path": "research/verification/h16-closure-production-release-20260914.py",
+      "sha256": "9da822db06cd1fcb4d0119706b7c91bc6e128e1447414b817f6b91ff703a51ca"
+    },
+    "h16-closure-switch-20260914.py": {
+      "path": "research/verification/h16-closure-switch-20260914.py",
+      "sha256": "94ceacce56d3f24d2fadbc0a3d9d59cee0acd6fd32537e61e113441aeada7985"
+    },
+    "test_h16_closure_production_release.py": {
+      "path": "research/verification/test_h16_closure_production_release-20260914.py",
+      "sha256": "0042525e0be78a6ae48e130b5760347f8759dce0a187e81a9d3fa2623917bd93"
+    },
+    "test_h16_closure_switch_20260914.py": {
+      "path": "research/verification/test_h16_closure_switch_20260914.py",
+      "sha256": "0d76c058d12d7e52d123d4832e6faff1facbe1fbd56fcc4bc77659ae791ba1ad"
+    }
+  },
+  "executed": false,
+  "format": "h16-closure-production-helper-coordinator-review-v1",
+  "input_bundle_hash": "558bb5f4e88b47fe80a691254d3b21ac9e491296e80bb18f4599b64a88bfe9c0",
+  "pending": [
+    "Successful same-pin scratch replay/build/substantive audit",
+    "Fresh production preflight and system activation",
+    "Actual production acceptance/initialization/build/audit before publication"
+  ],
+  "prepared_only": true,
+  "release_tests": {
+    "passed": 34,
+    "seconds": 14.71
+  },
+  "reviewed_at": "2026-09-14T21:57:36.291309+00:00",
+  "reviewed_by": "Codex coordinator",
+  "source": "/nix/store/2d5q3lgljfkmm78hf44g954lzwx79yhv-source",
+  "source_receipt_sha256": "f8f24c2d8b839bbfcd25bf87e551e9f2777d1236f89ed84da16c3c07d4d75b9f",
+  "switch_tests": {
+    "passed": 4,
+    "seconds": 4.89
+  }
+}

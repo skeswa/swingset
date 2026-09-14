@@ -1,0 +1,19 @@
+{
+  "files": {
+    "/tmp/h16-initializer-supervisor-tests.log": "fd60d5a5f43779c1507a78a95d3085eccdfb1c2897ddc9015c7bcd82f87feaf9",
+    "/tmp/h16-initializer-supervisor.md": "04a53dc42a0c04f74c77dea1724808850a362f8ae5c53239cf139c15a2c42b4a",
+    "/tmp/h16-initializer-supervisor.py": "810479b1db1cdda88620d11b227b184ff813191cb98bd5ec14b2b13c317149e4",
+    "/tmp/h16-live-initialize.py": "b54c02a15c3d86a603bef4d6926e66bde4cf1ef9d23f273aa5db771d3a99d233",
+    "/tmp/test_h16_initializer_supervisor.py": "7acd8179d6ed1ac3cfff69499e60c50636e13e806373c09f04f08dab8878ff95"
+  },
+  "format": "h16-initializer-supervisor-preparation-v1",
+  "offline_only": true,
+  "prepared_at": "2026-09-14T23:57:02.834050+00:00",
+  "production_executed": false,
+  "runtime_changed": false,
+  "tests": {
+    "mocked_command_and_file_boundaries": true,
+    "passed": 40,
+    "seconds": 0.13
+  }
+}

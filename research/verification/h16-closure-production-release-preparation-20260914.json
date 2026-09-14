@@ -1,0 +1,53 @@
+{
+  "format": "h16-release-driver-preparation-v1",
+  "status": "prepared_not_executed",
+  "original_driver": "/tmp/h16-changelog-production-release.py",
+  "original_driver_sha256": "0c78189606d69f9388e24620d8e8a781bc3730f1937b5c727cfa17ffd83a2bdd",
+  "new_driver": "/tmp/h16-closure-production-release.py",
+  "new_driver_sha256": "9da822db06cd1fcb4d0119706b7c91bc6e128e1447414b817f6b91ff703a51ca",
+  "original_tests": "/tmp/test_h16_changelog_production_release.py",
+  "original_tests_sha256": "6b527d729535a281cb8b894954a5f30747f014a925e04231d1d2b33e895c9ab6",
+  "new_tests": "/tmp/test_h16_closure_production_release.py",
+  "new_tests_sha256": "0042525e0be78a6ae48e130b5760347f8759dce0a187e81a9d3fa2623917bd93",
+  "driver_changes": [
+    {
+      "old": "/nix/store/093lylp4naslq5yb2mygbkkgkbsar3ym-source",
+      "new": "/nix/store/2d5q3lgljfkmm78hf44g954lzwx79yhv-source"
+    },
+    {
+      "old": "3930dbc9f6023250a5253043ade60bd3fc90c57bda27e2c64f8520aa4c588a92",
+      "new": "f8f24c2d8b839bbfcd25bf87e551e9f2777d1236f89ed84da16c3c07d4d75b9f"
+    },
+    {
+      "old": "9370ccc35058661037c78b2dbcea797932dce1e4211638826149661a4e37e683",
+      "new": "558bb5f4e88b47fe80a691254d3b21ac9e491296e80bb18f4599b64a88bfe9c0"
+    }
+  ],
+  "only_source_receipt_bundle_assignments_changed": true,
+  "tests_only_driver_path_changed": true,
+  "production_execution": false,
+  "runtime_edits": false,
+  "docs_edits": false,
+  "test_environment": {
+    "cwd": "/tmp/swingset-h16-closure-frozen-tests",
+    "PYTHONPATH": "/tmp/swingset-h16-closure-frozen-tests/src:/tmp/swingset-h16-closure-frozen-tests",
+    "pytest": "/Users/skeswa/repos/skeswa/swingset/.venv/bin/pytest"
+  },
+  "only_three_literal_replacements_byte_verified": true,
+  "guard_tests": {
+    "status": "passed",
+    "passed": 34,
+    "elapsed_seconds": 14.71,
+    "log": "/tmp/h16-closure-production-release-guards.log",
+    "log_sha256": "de1588ae15f007b2fcb8429cdf41a73d487596874fad03420e7734fa20d67d28",
+    "command": "PYTHONPATH=/tmp/swingset-h16-closure-frozen-tests/src:/tmp/swingset-h16-closure-frozen-tests /Users/skeswa/repos/skeswa/swingset/.venv/bin/pytest -q /tmp/test_h16_closure_production_release.py"
+  },
+  "guide": "/tmp/h16-closure-production-release.md",
+  "guide_sha256": "ac6bda08759cbae98027f79035dd6c3f89d357c328df51cfc05dcba5e4ad7cc6",
+  "original_guide_sha256": "ee283ddd59cef00e0e55f87a452c336883ea47b72b042b6e30ef2937c7ae9b0a",
+  "diff": "/tmp/h16-closure-production-release.diff",
+  "diff_sha256": "f006d048089686c45c401c87845da99c6f0202ebcf9fd2a9a8eea8cf63a3fbb8",
+  "operation_directory": "/var/lib/swingset/operations/h16-closure-release-20260914",
+  "production_executed": false,
+  "vm_jobs_started": false
+}

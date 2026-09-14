@@ -7,10 +7,16 @@ are complete at `81121dcc7d62a1db9e76ee1c49a6b90e1f4c5653`.
 V5 infrastructure and V6 are in progress. Scheduled workers remain held.
 The [accepted plan](../design/implementation-plan-v2.md) owns the gates.
 
-The owner requested a pause on 2026-09-13 UTC, then authorized only completion
-of the H16 scratch replay. All 34,986 scopes are now current with zero failures;
-independent verification passed and the writer lock is released. Work stopped
-after replay verification; build and all later work remain paused.
+The owner paused production steps after the current scratch build on
+2026-09-15 UTC, intending to resume with a stronger network connection.
+The new 2d5 source passes 1,199 frozen tests, lint, type checks and Nix build;
+all 34,986 scratch scopes are current and independent verification passed.
+Its full build stayed within memory limits but again exceeded the 45-second
+completion deadline during final closure certification and rolled back.
+The isolated 38.82-second diagnostic did not establish enough margin for the
+full build. No accepted build, substantive candidate audit, deployment,
+production initialization or publication followed. Work is paused after
+retaining the failure evidence; the remaining blocker is local computation.
 [Resume notes](v2-resume.md) preserve the handoff.
 
 ## Work graph

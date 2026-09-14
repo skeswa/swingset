@@ -1,0 +1,19 @@
+{
+  "closure_file_sha256": "5573f5a0ebd41b3b7320ab5fb15e2ae09d26c045449516fc1c92b5ebeed94668",
+  "complete_seconds": 38.820695405011065,
+  "completion_after": true,
+  "completion_before": false,
+  "diagnostic_only": true,
+  "elapsed_seconds": 68.81235607800772,
+  "format": "h16-completion-diagnostic-v1",
+  "generations_file_sha256": "3508fbc303a44ffb56963a4c7db7f5875cda8cccff8771077d5495f1254edeb9",
+  "inputs_accepted": false,
+  "max_rss_kib": 1938388,
+  "network_requests": 0,
+  "passed": true,
+  "predecessor": "/var/tmp/swingset-h16-changelog-build",
+  "production_mutated": false,
+  "select_seconds": 17.377764008997474,
+  "state": "/var/tmp/swingset-h16-closure-completion-diagnostic-003",
+  "support_file_sha256": "fa6c6b37d7b6d71e7e7ba4d2ea775db41567d4883120cb1d8c33b7192ea079f1"
+}

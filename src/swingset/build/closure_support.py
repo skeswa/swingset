@@ -11,27 +11,31 @@ from typing import Any
 from .closure_manifest import ClosureError, canonical, digest
 
 
-def _accepted(conn: sqlite3.Connection, identifier: str) -> sqlite3.Row | None:
+def _accepted(
+    conn: sqlite3.Connection, identifier: str, *, include_result: bool = True
+) -> sqlite3.Row | None:
+    # Validation only needs the receipt. Fetching every potentially large parse
+    # result here would copy it again before support() actually interprets it.
+    result = ",g.result_json" if include_result else ""
     row = conn.execute(
-        "SELECT * FROM source_generations WHERE generation_id=?", (identifier,)
-    ).fetchone()
-    if row is None or row["state"] == "revoked":
-        return None
-    accepted = conn.execute(
-        "SELECT 1 FROM admission_decisions WHERE generation_id=? AND state='accepted' LIMIT 1",
+        "SELECT g.generation_id,g.input_fingerprint,g.contract_version,g.page_kind,"
+        "g.created_at,g.recipe_json,g.report_json" + result + " "
+        "FROM source_generations g JOIN admission_policies p ON p.page_kind=g.page_kind "
+        "AND p.contract_version=g.contract_version "
+        "WHERE g.generation_id=? AND g.state!='revoked' AND EXISTS "
+        "(SELECT 1 FROM admission_decisions d WHERE d.generation_id=g.generation_id AND d.state='accepted')",
         (identifier,),
     ).fetchone()
-    policy = conn.execute(
-        "SELECT contract_version FROM admission_policies WHERE page_kind=?", (row["page_kind"],)
-    ).fetchone()
-    if accepted is None or policy is None or policy[0] != row["contract_version"]:
+    if row is None:
         return None
     report = json.loads(row["report_json"])
     return None if report.get("failures") else row
 
 
-def _observations(row: sqlite3.Row) -> Iterator[dict[str, Any]]:
-    recipe = json.loads(row["recipe_json"])
+def _observations(
+    row: sqlite3.Row, *, recipe: Mapping[str, Any] | None = None
+) -> Iterator[dict[str, Any]]:
+    recipe = json.loads(row["recipe_json"]) if recipe is None else recipe
     snapshot = recipe["context"]["snapshot_id"]
     for seq, observation in enumerate(json.loads(row["result_json"])["observations"]):
         scope = observation["scope"]
@@ -59,15 +63,22 @@ def support(
 
     selected = {str(item["key"]): dict(item) for item in observations}
     matches: dict[tuple[Any, ...], list[str]] = {}
-    source_rows: dict[str, sqlite3.Row] = {}
+    receipts: dict[str, dict[str, Any]] = {}
     for identifier in sorted(sources):
         row = _accepted(conn, identifier)
         if row is None or datetime.fromisoformat(row["created_at"]) > datetime.fromisoformat(
             cutoff
         ):
             continue
-        source_rows[identifier] = row
-        for observation in _observations(row):
+        recipe = json.loads(row["recipe_json"])
+        receipts[identifier] = {
+            "generation_id": identifier,
+            "input_fingerprint": row["input_fingerprint"],
+            "contract_version": row["contract_version"],
+            "page_kind": row["page_kind"],
+            "recipe": recipe,
+        }
+        for observation in _observations(row, recipe=recipe):
             key = (
                 observation["snapshot_id"],
                 tuple(observation["scope"]),
@@ -100,16 +111,7 @@ def support(
         state = "accepted" if accepted else "legacy_unassessed"
         if (str(observation["snapshot_id"]), str(observation["parser_version"])) in revoked:
             state = "revoked"
-        source_receipts = [
-            {
-                "generation_id": value,
-                "input_fingerprint": source_rows[value]["input_fingerprint"],
-                "contract_version": source_rows[value]["contract_version"],
-                "page_kind": source_rows[value]["page_kind"],
-                "recipe": json.loads(source_rows[value]["recipe_json"]),
-            }
-            for value in accepted
-        ]
+        source_receipts = [receipts[value] for value in accepted]
         result.append(
             {
                 **observation,
@@ -144,7 +146,7 @@ def validate_support(conn: sqlite3.Connection, evidence: Iterable[Mapping[str, A
             if identifier in checked:
                 continue
             checked.add(identifier)
-            source = _accepted(conn, identifier)
+            source = _accepted(conn, identifier, include_result=False)
             if (
                 source is None
                 or source["input_fingerprint"] != receipt["input_fingerprint"]

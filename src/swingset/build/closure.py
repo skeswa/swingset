@@ -72,7 +72,7 @@ class _Selection:
     def __init__(self, conn: sqlite3.Connection, cutoff: str):
         self.conn, self.cutoff = conn, _time(cutoff)
         self.selected: dict[tuple[str, str, str], dict[str, Any]] = {}
-        self.sets: set[str] = set()
+        self.continuity_sets: set[str] = set()
         self.observations: dict[str, dict[str, Any]] = {}
         self.sources: set[str] = set()
         self.identifiers: set[str] = set()
@@ -118,14 +118,18 @@ class _Selection:
                 self.observations[str(dependency["key"])] = dependency
             elif kind == "source_selection" and dependency.get("generation_id"):
                 self.sources.add(str(dependency["generation_id"]))
-        self.sets.update(self.traversed)
         continuity = item["recipe"].get("continuity", {}).get("dependency_set_id")
         if continuity:
             # Historical support is retained, but is not another selected scope.
             for _ in members(self.conn, continuity):
                 pass
-            self.sets.add(continuity)
+            self.continuity_sets.add(continuity)
         self.active.remove(identifier)
+
+    def dependency_sets(self) -> set[str]:
+        # Traversal already accumulates every ordinary set. Combining this on
+        # each generation would repeatedly copy the entire growing graph.
+        return set(self.traversed) | self.continuity_sets
 
 
 def _policy(conn: sqlite3.Connection) -> tuple[dict[str, Any], ...]:
@@ -180,7 +184,7 @@ def select(
             candidate.selected = dict(chosen.selected)
             candidate.identifiers = set(chosen.identifiers)
             candidate.traversed = set(chosen.traversed)
-            candidate.sets = set(chosen.sets)
+            candidate.continuity_sets = set(chosen.continuity_sets)
             candidate.observations = dict(chosen.observations)
             candidate.sources = set(chosen.sources)
             try:
@@ -239,7 +243,7 @@ def select(
         tuple(inventory),
         evidence,
         _policy(conn),
-        tuple(sorted(chosen.sets)),
+        tuple(sorted(chosen.dependency_sets())),
         _baseline(baseline),
         _revocations(conn),
     )
@@ -263,14 +267,17 @@ def validate(conn: sqlite3.Connection, value: ReleaseClosure | Mapping[str, Any]
         raise ClosureError("duplicate_selected_generation")
     graph = _Selection(conn, manifest["cutoff"])
     for row in selected:
-        if generation(conn, row["generation_id"]) != row:
-            raise ClosureError("selected_generation_receipt_mismatch")
         graph.add(row["generation_id"])
+        # add() loads the complete immutable receipt, including generations
+        # reached recursively. Compare that same verified row without a second
+        # SQLite read and recipe decode for every selected generation.
+        if graph.selected.get(_scope(row)) != row:
+            raise ClosureError("selected_generation_receipt_mismatch")
     if {row["generation_id"] for row in graph.selected.values()} != {
         row["generation_id"] for row in selected
     }:
         raise ClosureError("selected_dependency_omitted")
-    if sorted(graph.sets) != manifest["dependency_sets"]:
+    if sorted(graph.dependency_sets()) != manifest["dependency_sets"]:
         raise ClosureError("selected_dependency_manifest_omitted")
     if list(_policy(conn)) != manifest["policies"]:
         raise ClosureError("selected_acceptance_policy_changed")

@@ -1,0 +1,38 @@
+--- /tmp/h16-initializer-supervisor.py
++++ /tmp/h16-initializer-supervisor-v2.py
+@@ -207,10 +207,11 @@
+                     raise ValueError('initializer output must be new')
+             cmd = command(args, unit, output)
+             write_new(directory / f'batch-{number:03}-start.json', {'at': now(), 'unit': unit, 'command': cmd})
+-            process = backend.launch(cmd, directory / f'initializer-{number:03}.log')
++            process = None
+             code = None
+             batch = {'number': number, 'unit': unit, 'output': str(output), 'started_at': now()}
+             try:
++                process = backend.launch(cmd, directory / f'initializer-{number:03}.log')
+                 deadline = time.monotonic() + 1740
+                 while code is None:
+                     code = backend.wait(process, 20)
+@@ -232,18 +233,18 @@
+                 batch['completed'] = receipt['completed']
+             except BaseException as error:
+                 batch['error'] = {'type': type(error).__name__, 'message': str(error)}
+-                # Stop even if systemd-run itself died while its service is still active.
++                # The unit may exist even when launch was interrupted before returning a process.
+                 backend.stop(unit)
+                 stop_deadline = time.monotonic() + 210
+                 while time.monotonic() < stop_deadline:
+-                    if code is None:
++                    if process is not None and code is None:
+                         code = backend.wait(process, 20)
+                     try:
+                         batch['settled'] = backend.settled(unit)
+-                        if code is not None:
++                        if process is None or code is not None:
+                             break
+                     except (ValueError, BlockingIOError):
+-                        if code is not None:
++                        if process is None or code is not None:
+                             time.sleep(20)
+                 batch['stop_exit_code'] = code
+                 raise

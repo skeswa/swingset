@@ -1,0 +1,30 @@
+{
+  "candidate_accepted": false,
+  "candidate_publication_audited": false,
+  "confirmed_failure_facts": {
+    "all_project_link_current": true,
+    "correct_source_bundle": true,
+    "exact_candidate_manifest": true,
+    "no_completed_build": true,
+    "not_published": true,
+    "reported_failed_deadline": true,
+    "worker_stopped": true,
+    "writer_lock_free": true
+  },
+  "connection_total_changes": 0,
+  "database_file_metadata_unchanged": true,
+  "format": "h16-failure-verification-filesystem-addendum-v1",
+  "further_replay_build_or_recovery_performed": false,
+  "new_sidecar": {
+    "created_by": "Ordinary SQLite mode=ro opening a WAL-mode scratch database may create empty WAL/SHM sidecars. This reader used mode=ro to preserve visibility of any existing committed WAL.",
+    "name": "state.sqlite-wal",
+    "removed": false,
+    "size": 0
+  },
+  "production_changes": false,
+  "runtime_changes": false,
+  "scope": "Explain strict sidecar metadata mismatch without altering original receipt or scratch files.",
+  "strict_filesystem_inventory_check": "failed: empty WAL exists after reader although absent before; original report remains unchanged",
+  "verification_script_sha256": "2f3ff3ba1a7da0baa995e3e3904d0d84d316a6a5167cbf1726d1fd5560f3cf36",
+  "verification_sha256": "5d9793e32b9d6d391372c6d841db397ff48a8d9bff25890869c66747a64b241b"
+}

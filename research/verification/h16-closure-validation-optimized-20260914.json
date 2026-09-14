@@ -1,0 +1,17 @@
+{
+  "candidate": "/var/tmp/swingset-h16-changelog-build/candidates/cand_d80b9025652f4e10",
+  "candidate_manifest_sha256": "64bc83883b90a13b93d6f4bbf0e96ead810bb9e3eb919c5f2bb83d07434d0994",
+  "closure_file": "/Users/skeswa/repos/skeswa/swingset/src/swingset/build/closure.py",
+  "closure_file_sha256": "5573f5a0ebd41b3b7320ab5fb15e2ae09d26c045449516fc1c92b5ebeed94668",
+  "diagnostic_only": true,
+  "format": "h16-readonly-closure-validation-profile-v1",
+  "hydrate_seconds": 2.036520001012832,
+  "inputs_accepted": false,
+  "max_rss_kib": 2489140,
+  "network_requests": 0,
+  "production_mutated": false,
+  "selected_generations": 34986,
+  "state": "/var/tmp/swingset-h16-changelog-build",
+  "validate_seconds": 11.800961239030585,
+  "validation_passed": true
+}

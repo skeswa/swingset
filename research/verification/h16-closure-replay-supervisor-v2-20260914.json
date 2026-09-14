@@ -1,0 +1,9 @@
+{
+  "format": "h16-closure-replay-supervisor-revision-v1",
+  "previous_receipt_sha256": "9cf4b67f2a9f5734925e711fc03241401d4b5bf1b6ac89321d880eb8c2f2b996",
+  "change": "Allow a new unit receipt to remain absent until the frozen driver creates it; resume existing009, cap012 unchanged. No worker/policy changes.",
+  "files": {
+    "research/verification/supervise_h16_closure_replay_20260914_v2.py": "7b07030ee3bbe68d7317313f5ffe29aeb7b70ed4c4d439a0bb25ce6c1fcd875f",
+    "research/verification/monitor_h16_closure_replay_20260914_v2.py": "29c3b1adac26e375cb2202be7692e28a7def04c4cf15ea342058f39bf48b1c67"
+  }
+}

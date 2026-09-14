@@ -1,0 +1,61 @@
+Sep 14 21:08:58 swingset systemd[1]: Started [systemd-run] /var/lib/swingset/venv/bin/python /var/tmp/h16-changelog-build-driver.py --replay /var/tmp/swingset-h16-changelog-replay --replay-receipt /var/tmp/swingset-h16-changelog-replay-012.json --state /var/tmp/swingset-h16-changelog-build --output /var/tmp/swingset-h16-changelog-build.json --source /nix/store/093lylp4naslq5yb2mygbkkgkbsar3ym-source --source-receipt-sha256 3930dbc9f6023250a5253043ade60bd3fc90c57bda27e2c64f8520aa4c588a92 --bundle-digest 9370ccc35058661037c78b2dbcea797932dce1e4211638826149661a4e37e683.
+Sep 14 21:16:20 swingset python[87774]: Traceback (most recent call last):
+Sep 14 21:16:20 swingset python[87774]:   File "/nix/store/093lylp4naslq5yb2mygbkkgkbsar3ym-source/src/swingset/state/write_deadline.py", line 57, in bounded_write
+Sep 14 21:16:20 swingset python[87774]:     yield
+Sep 14 21:16:20 swingset python[87774]:   File "/nix/store/093lylp4naslq5yb2mygbkkgkbsar3ym-source/src/swingset/state/db.py", line 68, in transaction
+Sep 14 21:16:20 swingset python[87774]:     yield self.connection
+Sep 14 21:16:20 swingset python[87774]:   File "/nix/store/093lylp4naslq5yb2mygbkkgkbsar3ym-source/src/swingset/build/generations.py", line 92, in complete
+Sep 14 21:16:20 swingset python[87774]:     derivations.complete(
+Sep 14 21:16:20 swingset python[87774]:   File "/nix/store/093lylp4naslq5yb2mygbkkgkbsar3ym-source/src/swingset/state/derivations.py", line 286, in complete
+Sep 14 21:16:20 swingset python[87774]:     current = desired(
+Sep 14 21:16:20 swingset python[87774]:               ^^^^^^^^
+Sep 14 21:16:20 swingset python[87774]:   File "/nix/store/093lylp4naslq5yb2mygbkkgkbsar3ym-source/src/swingset/state/derivations.py", line 115, in desired
+Sep 14 21:16:20 swingset python[87774]:     validate(conn, pinned)
+Sep 14 21:16:20 swingset python[87774]:   File "/nix/store/093lylp4naslq5yb2mygbkkgkbsar3ym-source/src/swingset/build/closure.py", line 268, in validate
+Sep 14 21:16:20 swingset python[87774]:     graph.add(row["generation_id"])
+Sep 14 21:16:20 swingset python[87774]:   File "/nix/store/093lylp4naslq5yb2mygbkkgkbsar3ym-source/src/swingset/build/closure.py", line 107, in add
+Sep 14 21:16:20 swingset python[87774]:     self.add(str(dependency["generation_id"]))
+Sep 14 21:16:20 swingset python[87774]:   File "/nix/store/093lylp4naslq5yb2mygbkkgkbsar3ym-source/src/swingset/build/closure.py", line 107, in add
+Sep 14 21:16:20 swingset python[87774]:     self.add(str(dependency["generation_id"]))
+Sep 14 21:16:20 swingset python[87774]:   File "/nix/store/093lylp4naslq5yb2mygbkkgkbsar3ym-source/src/swingset/build/closure.py", line 107, in add
+Sep 14 21:16:20 swingset python[87774]:     self.add(str(dependency["generation_id"]))
+Sep 14 21:16:20 swingset python[87774]:   [Previous line repeated 1 more time]
+Sep 14 21:16:20 swingset python[87774]:   File "/nix/store/093lylp4naslq5yb2mygbkkgkbsar3ym-source/src/swingset/build/closure.py", line 102, in add
+Sep 14 21:16:20 swingset python[87774]:     for dependency in leaves(self.conn, item["dependency_set_id"], visited=self.traversed):
+Sep 14 21:16:20 swingset python[87774]:                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Sep 14 21:16:20 swingset python[87774]:   File "/nix/store/093lylp4naslq5yb2mygbkkgkbsar3ym-source/src/swingset/build/closure_manifest.py", line 98, in leaves
+Sep 14 21:16:20 swingset python[87774]:     yield from leaves(conn, str(item["fingerprint"]), visited=seen)
+Sep 14 21:16:20 swingset python[87774]:   File "/nix/store/093lylp4naslq5yb2mygbkkgkbsar3ym-source/src/swingset/build/closure_manifest.py", line 96, in leaves
+Sep 14 21:16:20 swingset python[87774]:     for item in members(conn, identifier):
+Sep 14 21:16:20 swingset python[87774]:                 ^^^^^^^^^^^^^^^^^^^^^^^^^
+Sep 14 21:16:20 swingset python[87774]:   File "/nix/store/093lylp4naslq5yb2mygbkkgkbsar3ym-source/src/swingset/build/closure_manifest.py", line 25, in members
+Sep 14 21:16:20 swingset python[87774]:     def members(conn: sqlite3.Connection, identifier: str) -> Iterator[dict[str, Any]]:
+Sep 14 21:16:20 swingset python[87774]:     
+Sep 14 21:16:20 swingset python[87774]:   File "/nix/store/093lylp4naslq5yb2mygbkkgkbsar3ym-source/src/swingset/state/write_deadline.py", line 46, in timeout
+Sep 14 21:16:20 swingset python[87774]:     raise _Expired()
+Sep 14 21:16:20 swingset python[87774]: swingset.state.write_deadline._Expired
+Sep 14 21:16:20 swingset python[87774]: The above exception was the direct cause of the following exception:
+Sep 14 21:16:20 swingset python[87774]: Traceback (most recent call last):
+Sep 14 21:16:20 swingset python[87774]:   File "/var/tmp/h16-changelog-build-driver.py", line 149, in <module>
+Sep 14 21:16:20 swingset python[87774]:     main()
+Sep 14 21:16:20 swingset python[87774]:   File "/var/tmp/h16-changelog-build-driver.py", line 112, in main
+Sep 14 21:16:20 swingset python[87774]:     result = build_release(db, bundle, clock, run, remote=None, correction_only=False)
+Sep 14 21:16:20 swingset python[87774]:              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Sep 14 21:16:20 swingset python[87774]:   File "/nix/store/093lylp4naslq5yb2mygbkkgkbsar3ym-source/src/swingset/build/service.py", line 266, in build_release
+Sep 14 21:16:20 swingset python[87774]:     generations.complete(database, selection, result, now=clock.now(), run_id=run_id)
+Sep 14 21:16:20 swingset python[87774]:   File "/nix/store/093lylp4naslq5yb2mygbkkgkbsar3ym-source/src/swingset/build/generations.py", line 76, in complete
+Sep 14 21:16:20 swingset python[87774]:     with database.transaction() as conn:
+Sep 14 21:16:20 swingset python[87774]:          ^^^^^^^^^^^^^^^^^^^^^^
+Sep 14 21:16:20 swingset python[87774]:   File "/nix/store/s5rij9y3vb4gxbh0iqz3k0ndmsac7h02-python3-3.12.13/lib/python3.12/contextlib.py", line 158, in __exit__
+Sep 14 21:16:20 swingset python[87774]:     self.gen.throw(value)
+Sep 14 21:16:20 swingset python[87774]:   File "/nix/store/093lylp4naslq5yb2mygbkkgkbsar3ym-source/src/swingset/state/db.py", line 66, in transaction
+Sep 14 21:16:20 swingset python[87774]:     with boundary:
+Sep 14 21:16:20 swingset python[87774]:          ^^^^^^^^
+Sep 14 21:16:20 swingset python[87774]:   File "/nix/store/s5rij9y3vb4gxbh0iqz3k0ndmsac7h02-python3-3.12.13/lib/python3.12/contextlib.py", line 158, in __exit__
+Sep 14 21:16:20 swingset python[87774]:     self.gen.throw(value)
+Sep 14 21:16:20 swingset python[87774]:   File "/nix/store/093lylp4naslq5yb2mygbkkgkbsar3ym-source/src/swingset/state/write_deadline.py", line 62, in bounded_write
+Sep 14 21:16:20 swingset python[87774]:     raise WriteDeadlineExceeded(
+Sep 14 21:16:20 swingset python[87774]: swingset.state.write_deadline.WriteDeadlineExceeded: atomic write exceeded 45 seconds; output rolled back
+Sep 14 21:16:23 swingset systemd[1]: swingset-h16-changelog-build.service: Main process exited, code=exited, status=1/FAILURE
+Sep 14 21:16:23 swingset systemd[1]: swingset-h16-changelog-build.service: Failed with result 'exit-code'.
+Sep 14 21:16:23 swingset systemd[1]: swingset-h16-changelog-build.service: Consumed 7min 28.474s CPU time, 6.4G memory peak, 16.8G read from disk, 14.1G written to disk.

@@ -1,0 +1,38 @@
+{
+  "acceptance_audit_executed": false,
+  "active_system": "/nix/store/r29kapzbjk0ch5h0vkk288jd47dvg90j-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+  "build": {
+    "error": "WriteDeadlineExceeded at final closure certification",
+    "passed": false,
+    "path": "research/verification/h16-closure-build-20260915.json",
+    "sha256": "c56a4009b28fa41fd8f2ba847ebfc3cdd9ada0f42e54c5f13f5082973d5043e5"
+  },
+  "format": "h16-closure-paused-release-v1",
+  "network_requests_this_verification": 0,
+  "new_source_deployed": false,
+  "next_step_on_resume": "Resolve full-build completion performance before accepted build/audit or production release.",
+  "operator_hold_present": true,
+  "owner_instruction": "Hold production steps following this scratch build until later with a stronger network connection.",
+  "persistent_system": "/nix/store/r29kapzbjk0ch5h0vkk288jd47dvg90j-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+  "production_initialization_executed": false,
+  "production_operation_files_staged_only": true,
+  "public_commit": "81121dcc7d62a1db9e76ee1c49a6b90e1f4c5653",
+  "publication_executed": false,
+  "recorded_at": "2026-09-15T00:16:15.476412+00:00",
+  "replay": {
+    "completed_scopes": 34986,
+    "path": "research/verification/h16-closure-replay-011-20260914.json",
+    "sha256": "53d7e8006bd492e6fcae2ed3d4f888d7ea3ae716f3375bb7188a43287a724bd5",
+    "status": "current"
+  },
+  "source": "/nix/store/2d5q3lgljfkmm78hf44g954lzwx79yhv-source",
+  "status": "paused_after_failed_scratch_build",
+  "unit_states": {
+    "swingset-backup.service": "inactive",
+    "swingset-backup.timer": "inactive",
+    "swingset-cycle.service": "inactive",
+    "swingset-cycle.timer": "inactive",
+    "swingset-summary.service": "inactive",
+    "swingset-summary.timer": "inactive"
+  }
+}

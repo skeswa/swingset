@@ -1,0 +1,101 @@
+{
+  "acceptance_audit_executed": false,
+  "accepted_bundle": "558bb5f4e88b47fe80a691254d3b21ac9e491296e80bb18f4599b64a88bfe9c0",
+  "build_generation_count": 0,
+  "built_manifest_hash": "7ce49736b44da6e0afc007a2da9d8692008f29daff9a3e06ee65926eb5991168",
+  "candidate": "/var/tmp/swingset-h16-closure-build/candidates/cand_95d350f1e29a4e19",
+  "candidate_artifact_row_count": 0,
+  "candidate_id": "cand_95d350f1e29a4e19",
+  "checks": {
+    "all_project_link_current": true,
+    "correct_source_bundle": true,
+    "exact_candidate_manifest": true,
+    "no_completed_build": true,
+    "not_published": true,
+    "readonly_database_unchanged": false,
+    "reported_failed_deadline": true,
+    "worker_stopped": true,
+    "writer_lock_free": true
+  },
+  "connection_total_changes": 0,
+  "content_hash": "fd4897f84e7f0fb0aba4f60299a3d8f26056e4674b97440f9013e21e80ea6e9d",
+  "currentness_assessed": true,
+  "currentness_seconds": 4.829927971994039,
+  "database_after": {
+    "state.sqlite": {
+      "mtime_ns": 1789430887206367453,
+      "size": 4788547584
+    },
+    "state.sqlite-wal": {
+      "mtime_ns": 1789431308698907045,
+      "size": 0
+    }
+  },
+  "database_before": {
+    "state.sqlite": {
+      "mtime_ns": 1789430887206367453,
+      "size": 4788547584
+    }
+  },
+  "durable_candidate_completion": false,
+  "exclusive_writer_lock_acquired": true,
+  "failed_build_receipt": {
+    "baseline": "/var/tmp/swingset-h16-closure-build/candidates/cand_7f8cf9bcbf7e4a60",
+    "baseline_commit": "81121dcc7d62a1db9e76ee1c49a6b90e1f4c5653",
+    "elapsed_seconds": 387.6589895510115,
+    "error": {
+      "message": "atomic write exceeded 45 seconds; output rolled back",
+      "type": "WriteDeadlineExceeded"
+    },
+    "max_rss_kib": 4831260,
+    "network_requests": 0,
+    "passed": false,
+    "published": false,
+    "replay_receipt_sha256": "53d7e8006bd492e6fcae2ed3d4f888d7ea3ae716f3375bb7188a43287a724bd5",
+    "source": "/nix/store/2d5q3lgljfkmm78hf44g954lzwx79yhv-source",
+    "state": "/var/tmp/swingset-h16-closure-build"
+  },
+  "failed_build_receipt_sha256": "c56a4009b28fa41fd8f2ba847ebfc3cdd9ada0f42e54c5f13f5082973d5043e5",
+  "failure_verified": false,
+  "format": "h16-build-failure-independent-verification-v1",
+  "input_bundle_hash": "558bb5f4e88b47fe80a691254d3b21ac9e491296e80bb18f4599b64a88bfe9c0",
+  "limitations": [
+    "Failure-state verification only: candidate file closure, public data correctness, publication eligibility, and performance acceptance were not audited.",
+    "No retries, run cleanup, builds, or acceptance performed."
+  ],
+  "manifest_sha256": "7ce49736b44da6e0afc007a2da9d8692008f29daff9a3e06ee65926eb5991168",
+  "materialized_scope_counts": {
+    "link": 2541,
+    "project": 32445
+  },
+  "network_requests": 0,
+  "null_project_link_pointers": 0,
+  "production_changes": false,
+  "published_marker_exists": false,
+  "rejected_marker_exists": false,
+  "running_attempts": 0,
+  "schema_version": 14,
+  "source": "/nix/store/2d5q3lgljfkmm78hf44g954lzwx79yhv-source",
+  "source_receipt_sha256": "f8f24c2d8b839bbfcd25bf87e551e9f2777d1236f89ed84da16c3c07d4d75b9f",
+  "state": "/var/tmp/swingset-h16-closure-build",
+  "unfinished_project_link": {},
+  "unit_after": {
+    "ActiveState": "failed",
+    "ExecMainStatus": "1",
+    "LoadState": "loaded",
+    "MainPID": "0",
+    "Result": "exit-code",
+    "SubState": "failed"
+  },
+  "unit_before": {
+    "ActiveState": "failed",
+    "ExecMainStatus": "1",
+    "LoadState": "loaded",
+    "MainPID": "0",
+    "Result": "exit-code",
+    "SubState": "failed"
+  },
+  "unsettled_admissions": 0,
+  "verified_at": "2026-09-15T00:15:08.694150+00:00",
+  "writer_lock_released": true
+}

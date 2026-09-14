@@ -1,0 +1,27 @@
+{
+  "files": {
+    "/tmp/h16-initializer-supervisor-v2-full-tests.log": "0d6e79638398efbdb3b5ec037b43c15cba3750a9721cff963fd20908dc798f4e",
+    "/tmp/h16-initializer-supervisor-v2.diff": "f8fae0623cee80443ba49acfce68b5f693de5afbb39cc7c24349368df3f80d86",
+    "/tmp/h16-initializer-supervisor-v2.md": "8987c90485f7a19e1a873bd88f649eae429bd06500b5018720c21efc91c3260c",
+    "/tmp/h16-initializer-supervisor-v2.py": "2f6c6f88604db55342bc9d3adbfee9b789143846815cc6380768d26ebb952cae",
+    "/tmp/test_h16_initializer_supervisor_v2.py": "c915cf2009b31ff8ce898adc5c3720ac8c9ef395cf4061d2384d2e0e17a44f4d",
+    "/tmp/test_h16_supervisor_launch_review_v2.py": "51aeaaa87e950f757b7691aa63dd8b480aa908df48287501b3a7183f6cc140a6"
+  },
+  "format": "h16-initializer-supervisor-preparation-v2",
+  "offline_only": true,
+  "prepared_at": "2026-09-15T00:00:14.459490+00:00",
+  "production_executed": false,
+  "runtime_changed": false,
+  "tests": {
+    "includes_independent_launch_interruption_regression": true,
+    "passed": 44,
+    "seconds": 0.2
+  },
+  "v1_file_preservation": {
+    "/tmp/h16-initializer-supervisor-tests.log": true,
+    "/tmp/h16-initializer-supervisor.md": true,
+    "/tmp/h16-initializer-supervisor.py": true,
+    "/tmp/h16-live-initialize.py": true,
+    "/tmp/test_h16_initializer_supervisor.py": true
+  }
+}

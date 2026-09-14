@@ -1,0 +1,24 @@
+{
+  "checks": {
+    "finite_cap_is_not_current": true,
+    "only_verified_current_allows_success": true,
+    "original_initializer_unchanged": true,
+    "root_and_worker_no_bytecode_environment_reviewed": true,
+    "run_only_no_input_acceptance_or_control_changes": true,
+    "same_authority_and_private_receipts_required": true,
+    "v1_launch_interruption_gap_closed": true
+  },
+  "executed": false,
+  "format": "h16-initializer-supervisor-coordinator-review-v1",
+  "initializer_sha256": "b54c02a15c3d86a603bef4d6926e66bde4cf1ef9d23f273aa5db771d3a99d233",
+  "pending": "Actual scratch acceptance, deployment, production acceptance and initialized gate/marker are required before execution.",
+  "reviewed_at": "2026-09-15T00:01:37.433468+00:00",
+  "reviewed_by": "Codex coordinator with independent registry_verification review",
+  "supervisor": "/tmp/h16-initializer-supervisor-v2.py",
+  "supervisor_sha256": "2f6c6f88604db55342bc9d3adbfee9b789143846815cc6380768d26ebb952cae",
+  "tests": {
+    "independently_repeated": true,
+    "passed": 44,
+    "seconds": 0.2
+  }
+}

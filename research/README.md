@@ -5,6 +5,7 @@ are recorded per artifact; historical findings are not kept up to date.
 
 ## Deployment research
 
+- [Object storage on Dokploy, 2026-09-14](dokploy-object-storage-2026-09-14.md): managed buckets, self-hosted S3 templates, volume backups, current MinIO fork changes, and implications for the retained page archive.
 - [Executable Dokploy migration plan](../design/dokploy-migration-plan.md): implementation decisions, module contracts, automated acceptance gates, resumable transfer, and recovery. Start here to implement the migration.
 - [PostgreSQL migration implementation plan, 2026-09-14](postgres-migration-plan-2026-09-14.md): schema inventory findings, isolated PostgreSQL experiments, query and trigger port, validated import, coordinated checkpoints, and Dokploy cutover sequence.
 - [Dokploy migration review, 2026-09-14](dokploy-migration-2026-09-14.md): current runtime and state architecture, Dokploy capabilities, proposed container deployment, capacity, and migration acceptance checks for sandile.dev.

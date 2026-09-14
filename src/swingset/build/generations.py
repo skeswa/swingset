@@ -15,7 +15,7 @@ from swingset.state.db import Database
 from swingset.state.work import WorkUnit
 
 from .builder import BuildError, BuildResult
-from .closure import ClosureError, ReleaseClosure, hydrate, retain, validate
+from .closure import ClosureError, ReleaseClosure, hydrate, retain
 from .identity_policy import correction_token
 
 
@@ -83,7 +83,9 @@ def complete(
                 raise SupersededWorkError("build input bundle changed before completion")
             pinned = selection.context.get("release_closure")
             if pinned is not None:
-                validate(conn, pinned)
+                # complete() below fully validates desired closure inputs before
+                # writing output, after rows, and again when certifying. Proof
+                # retention shares that transaction and rolls back on failure.
                 retain(conn, pinned)
                 if correction_token(conn, closure=pinned) != selection.context.get(
                     "correction_token"
