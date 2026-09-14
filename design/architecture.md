@@ -24,6 +24,14 @@ Every stage is a CLI subcommand and uses the same work and recovery
 rules as a cycle. [Operations](operations.md#cycle) owns cycle ordering;
 [local state](state.md) owns persistence and invalidation.
 
+Event completion deepens the scheduler module. Callers still request one next
+watch; the module owns event grouping, turn rotation, protected acquisition
+shares, and selection reasons. The fetch module retains every request gate.
+Completion reports reuse parent relationships, source evidence, stage outputs,
+and release receipts. They introduce neither a second fetching loop nor a
+second canonical matching map. [Scheduling](scheduling.md#event-completion)
+owns this accepted extension; it is not yet implemented or operating-verified.
+
 ## Observations and projections
 
 A watch owns its current observation set. An EEPro round yields a
@@ -74,15 +82,16 @@ or revision counters.
 
 ## Module boundaries
 
-| Owner           | Contract                                                                                                         |
-| --------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `sources/`      | Pure extract and parse functions, watch seeds, source polling policy; see [parsing](parsing.md#source-interface) |
-| `project/`      | Pure map and scope projections, plus the transactional writer                                                    |
-| `link/`         | Per-event assignment and identity assertions; writes only link-owned fields and tables                           |
-| `state/work.py` | Accept changed inputs, enqueue affected units, and commit a unit's output and completion together                |
-| `build/`        | Read a settled database and captured files; produce immutable publication contents                               |
-| `publish/`      | Own candidate markers, remote commit acknowledgment, and baseline promotion                                      |
-| `backup/`       | Copy the complete recoverable state and verify it on restore                                                     |
+| Owner           | Contract                                                                                                                                                                              |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `sources/`      | Pure extract and parse functions, watch seeds, source polling policy; see [parsing](parsing.md#source-interface)                                                                      |
+| `schedule/`     | Host and class fairness, durable turns for source events, and page selection through the existing `next_watch(...)` interface; see [event completion](scheduling.md#event-completion) |
+| `project/`      | Pure map and scope projections, plus the transactional writer                                                                                                                         |
+| `link/`         | Per-event assignment and identity assertions; writes only link-owned fields and tables                                                                                                |
+| `state/work.py` | Accept changed inputs, enqueue affected units, and commit a unit's output and completion together                                                                                     |
+| `build/`        | Read a settled database and captured files; produce immutable publication contents                                                                                                    |
+| `publish/`      | Own candidate markers, remote commit acknowledgment, and baseline promotion                                                                                                           |
+| `backup/`       | Copy the complete recoverable state and verify it on restore                                                                                                                          |
 
 `project_map(index_obs, calendar_obs, aliases, source_urls)` returns a
 `SourceEventMap`. `project(scope, observations, context)` returns a

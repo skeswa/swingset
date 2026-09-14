@@ -58,15 +58,15 @@ three, L is a weekend or more. Sizes for the backfill packages are
 estimates made here; the rollout's sizes are the rollout's. Update the
 Status column in the same change that finishes a stage.
 
-| Stage | Work                                   | Depends on                             | Done when                                                                                                                                                                                      | Size                                                  | Status      |
-| ----- | -------------------------------------- | -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- | ----------- |
-| V1    | H1, H2, H3, H4, H5                     | none                                   | Each revision's scenarios pass; G1 passes, including its fallback if needed; a correction release removes the audit's known wrong dancer joins and preserves withheld judge IDs                | 5 S                                                   | complete    |
-| V2    | WP11, then WP12 and WP13 together      | none                                   | Every registry occurrence since 2010 has one `events` row; the `coverage` table is published; each year 2010 to 2026 is `events_accepted` or has open findings naming why not                  | 3 M                                                   | complete    |
-| V3    | H8, H9, H10                            | V1                                     | The override file is the journal; `probable` links no longer populate default `wsdc_id`; a correction-only release exists and has been exercised once against the live dataset                 | 3 M                                                   | complete    |
-| V4    | H6, then H7                            | V1                                     | Shadow reports over the v1 archive and the phase 1 captures are reviewed; admission is enforced for registry lookups, scoring indexes, and round sheets; v1 evidence is bootstrapped as legacy | 2 M                                                   | complete    |
-| V5    | WP15, then WP14 and WP16, year by year | V2, V3, V4                             | Each year's sheets are fetched newest first, admitted under H7, linked under H10, and published with archive versus origin counts in `coverage`; gaps are findings, not silent absences        | 2 M, 1 S, plus three to six weeks of archive fetching | in progress |
-| V6    | H11, H12, H13, H14, H15, H16, H17      | V3, V4; H11 and H17 may start any time | Each revision's scenarios pass; doctor shows the requirement inventory; the backfill backlog and live weekends share budget under H14 without either starving                                  | 6 M, 1 S                                              | in progress |
-| V7    | H18                                    | V5, V6                                 | Each requirement kind is enabled one at a time and passes its scenarios under retries, crashes, and reordered work; the restore drill passes with outstanding repairs                          | L                                                     | not started |
+| Stage | Work                                                      | Depends on                             | Done when                                                                                                                                                                                            | Size                                                  | Status      |
+| ----- | --------------------------------------------------------- | -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- | ----------- |
+| V1    | H1, H2, H3, H4, H5                                        | none                                   | Each revision's scenarios pass; G1 passes, including its fallback if needed; a correction release removes the audit's known wrong dancer joins and preserves withheld judge IDs                      | 5 S                                                   | complete    |
+| V2    | WP11, then WP12 and WP13 together                         | none                                   | Every registry occurrence since 2010 has one `events` row; the `coverage` table is published; each year 2010 to 2026 is `events_accepted` or has open findings naming why not                        | 3 M                                                   | complete    |
+| V3    | H8, H9, H10                                               | V1                                     | The override file is the journal; `probable` links no longer populate default `wsdc_id`; a correction-only release exists and has been exercised once against the live dataset                       | 3 M                                                   | complete    |
+| V4    | H6, then H7                                               | V1                                     | Shadow reports over the v1 archive and the phase 1 captures are reviewed; admission is enforced for registry lookups, scoring indexes, and round sheets; v1 evidence is bootstrapped as legacy       | 2 M                                                   | complete    |
+| V5    | WP15, then WP14 and WP16, year by year                    | V2, V3, V4                             | New events enter newest first; admitted events receive bounded turns under H14. Sheets pass H7 and H10 and publish with archive versus origin coverage; gaps remain explicit                         | 2 M, 1 S, plus three to six weeks of archive fetching | in progress |
+| V6    | H11–H17, including the H14/H16 event-completion extension | V3, V4; H11 and H17 may start any time | Original and extension scenarios pass; doctor explains unfinished events; listed pages receive bounded service under continuous discovery; releases report completion separately from local progress | 6 M, 1 S originally; extension estimate pending       | in progress |
+| V7    | H18                                                       | V5, V6                                 | Each requirement kind is enabled one at a time and passes its scenarios under retries, crashes, and reordered work; the restore drill passes with outstanding repairs                                | L                                                     | not started |
 
 Every stage ends with a published dataset that is strictly better than
 the last, as [milestones](milestones.md) requires. V1 publishes
@@ -75,6 +75,37 @@ publishes the safe identity schema; the schema is still pre-1.0 under
 [publishing](publishing.md#commit-strategy), so this needs a card note
 and no tag. V5 publishes one year at a time. M6 is done when V5 is done;
 the schema is declared 1.0 then.
+
+### Event completion follow-up in V6
+
+Added 2026-09-14 after the [Monterey investigation](../research/monterey-missing-data-2026-09-13.md).
+This extends H14 scheduling and H16 coverage; it does not reopen V1–V4 or
+invalidate completed receipts for their original scope. The
+[rollout extension](self-healing-rollout.md#event-completion-extension) owns
+its scope, internal sequence, and new acceptance scenarios.
+
+Land source-event enumeration, bounded turns, and local completion reporting
+first, on the existing H11–H14 support. Then add protected listed-page capacity,
+controlled index expansion, and explainable service history. Extend release
+coverage through H15/H16 in a subsequent candidate. Existing frozen candidates
+and completed publications retain their original scope and evidence.
+
+V5 retains its current prerequisites, year-acceptance, source-admission,
+archive-first, and host gates. Preparing this scheduler extension does not add a
+new blanket gate ahead of V5. Eligible V5 work uses the existing policy until
+the extension is deployed; it cannot claim the new guarantees before acceptance.
+Afterward, newest-first admission feeds fair turns for already-waiting events.
+V5 and V6 progress remains subject to the recorded operator hold.
+
+V6 is not done until the extension's fake-clock scenarios and measured cohort
+service pass, and the new coverage is published with truthful gaps. V7 still
+depends on V5 and V6; H18 must restore and resume unfinished event turns as well
+as its existing repair work. No stage is newly activated by this plan update.
+
+The original V6 size excludes this follow-up. Estimate the additional work after
+the first inventory and rotation rehearsal; record operating observation time
+separately. The calendar below remains the original planning baseline, not a
+revised completion promise.
 
 ## 4. What runs in parallel
 
@@ -146,7 +177,9 @@ could make alone. Each names the contract that records it.
 ## 8. Calendar
 
 Weekend counts are estimates from the sizes above at the project's
-weekend cadence. They are for planning, not commitments.
+weekend cadence. They are for planning, not commitments. These original
+estimates exclude the event-completion follow-up; update them after its
+inventory rehearsal, rather than assuming that the extension costs no time.
 
 | Weekends | Stage                                 | Result                                                                  |
 | -------- | ------------------------------------- | ----------------------------------------------------------------------- |
@@ -158,11 +191,12 @@ weekend cadence. They are for planning, not commitments.
 
 ## 9. Risks and what changes the order
 
-| Risk                                                                                                            | Response                                                                                                   |
-| --------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| The sweep finishes before V1                                                                                    | Section 5, G1 fallback                                                                                     |
-| Archive rate limits are tighter than the 200 to 400 requests a day assumed; the `X-RL` header is **unverified** | V5 stretches; nothing else moves, because V6 does not wait for V5                                          |
-| The EEPro operator conversation (issue #21) has no answer when V5 reaches WP16                                  | Skip WP16 for EEPro; the year publishes with its EEPro gaps listed in the card, as backfill already allows |
-| H6 shadow reports show a v1 page kind fails its contract broadly                                                | Fix the parser under V4 before H7; V5 waits, because that kind would fail on history too                   |
-| H10 reduces linked coverage more than expected                                                                  | Expected and accepted; the reduction is the point. Do not tune thresholds to restore it; H17 measures it   |
-| A V6 revision is needed sooner, such as H14 because live weekends starve the backfill                           | Pull that revision forward; its dependencies in the rollout table still hold                               |
+| Risk                                                                                                            | Response                                                                                                                                                             |
+| --------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| The sweep finishes before V1                                                                                    | Section 5, G1 fallback                                                                                                                                               |
+| Archive rate limits are tighter than the 200 to 400 requests a day assumed; the `X-RL` header is **unverified** | V5 stretches; nothing else moves, because V6 does not wait for V5                                                                                                    |
+| The EEPro operator conversation (issue #21) has no answer when V5 reaches WP16                                  | Skip WP16 for EEPro; the year publishes with its EEPro gaps listed in the card, as backfill already allows                                                           |
+| H6 shadow reports show a v1 page kind fails its contract broadly                                                | Fix the parser under V4 before H7; V5 waits, because that kind would fail on history too                                                                             |
+| H10 reduces linked coverage more than expected                                                                  | Expected and accepted; the reduction is the point. Do not tune thresholds to restore it; H17 measures it                                                             |
+| New discovery outruns result acquisition, or event-level service misses its measured objective                  | Prioritize the V6 event-completion extension, reduce discretionary index expansion within existing limits, and report overload; do not raise host budgets to hide it |
+| A V6 revision is needed sooner, such as H14 because live weekends starve the backfill                           | Pull that revision forward; its dependencies in the rollout table still hold                                                                                         |

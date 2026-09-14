@@ -347,7 +347,8 @@ otherwise; fetching an old capture today does not make its facts newer.
 **`coverage`**
 
 The public key is `scope_kind`, `scope_id`, `source`, `via`. `scope_kind`
-is `source`, `year`, or `event`; source rows have a null year. The internal
+is `source`, `year`, or `event`. The pending event-completion extension adds
+`source_event` as specified below. Source rows have a null year. The internal
 SQLite table remains keyed by year, source, and transport. Release construction
 adds scope rows and metadata without changing canonical fact generations.
 
@@ -397,6 +398,39 @@ withheld identity joins without changing source names or inventing timestamps.
 Year acceptance records an owner and the digest of the reviewed event
 inventory. A changed inventory or an open year finding withholds acceptance.
 Repeated counting preserves `last_changed_at` when the counts are unchanged.
+
+### Event completion coverage
+
+Accepted H14/H16 extension, implementation pending. Extend `coverage` with
+`scope_kind='source_event'`, `scope_id=source_ref`, and nullable `event_id`.
+Keep the existing `source` and `via` key columns. An unresolved canonical map
+must not make the source event disappear. Year is null unless source evidence
+supports it. Event and year aggregates must deduplicate shared requests and
+must not sum overlapping transports or source-event populations as unique pages.
+
+Source-event rows carry `enumeration_id`, `enumeration_snapshot_ids`,
+`enumeration_complete`, and `listed_pages`, `acquired_pages`,
+`interpreted_pages`, `represented_pages`, `unavailable_pages`, and
+`unsupported_pages`. Each page count refers to the same pinned enumeration;
+page counts are not round counts. Incomplete enumeration counts describe only
+known links, with unknown total discovery coverage. Unavailable and unsupported
+outcomes account for gaps and do not inflate success counts. A prior retained
+interpretation can remain usable while a newer interpretation is blocked;
+state which evidence supports each count under the release cutoff.
+
+`represented_pages` counts enumerated pages supporting selected result facts
+in the acknowledged release. It does not establish that every field or identity
+from those pages was published. Existing identity counts, `scope_reasons`, and
+`missing_scopes` retain that distinction. Mapping status is explicit and never
+inferred from a nonzero acquired count. A fully acquired event can still have
+unsupported interpretation, withheld identities, or no published results.
+
+Pin the enumeration with the release's support inventory. Parent changes after
+the cutoff belong to the next release. Local reports may show newer progress
+beside the last acknowledged release, but cannot advance public completion
+without a publication receipt. An archived parent, failed fetch, admitted
+retirement, or unresolved alias cannot masquerade as complete sheet coverage.
+This extension uses the existing coverage table, not a competing public dataset.
 
 ## Relationships
 

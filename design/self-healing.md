@@ -350,6 +350,21 @@ maximum service-gap objective for each eligible kind. Set shares from measured
 load in shadow operation; do not raise host limits to compensate for wasted
 work. Global cycle time also needs fair allocation across hosts and kinds.
 
+Class fairness alone does not establish event completion. Within a host and
+class, give source events bounded, durable turns and protect acquisition of
+already-listed result pages from discretionary index expansion. New discoveries
+cannot repeatedly displace waiting events. Group by source reference before
+canonical mapping; a name mismatch cannot block otherwise eligible collection.
+
+Pin each event enumeration to its admitted parent evidence. Derive progress
+from acquired artifacts, interpretations, identity decisions, and acknowledged
+release support; account for unavailable and unsupported pages separately.
+Retain pending children when a parent is archived or unchanged. Failure makes
+the affected page wait while independent work proceeds. Report event service
+and successful progress separately, with blockers and wall versus eligible age.
+[Scheduling](scheduling.md#event-completion) owns the accepted H14 extension;
+its new guarantees remain pending implementation and operating acceptance.
+
 Date-less pages receive a bounded metadata-recovery policy, not indefinite live
 event polling. Gone or unpublished pages move to infrequent rechecks or an
 explicit `unavailable` state with a future trigger. New parent links can

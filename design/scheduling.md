@@ -61,8 +61,10 @@ after each event. These policies support multiple overlapping events.
 Backfill watches (historical events found in platform archives or the
 Wayback CDX) have state `backfill`. When `archive_url` is set the fetch
 goes to the Wayback Machine, not the origin. An eligible historical offer
-receives the old-work acquisition share, newest event first, one page
-at a time within the normal politeness rules and year-acceptance gates. A watch whose event ended
+receives the old-work acquisition share, one page at a time within normal
+politeness rules and year-acceptance gates. New events enter newest first;
+under the event-completion extension, already-waiting events receive bounded
+turns before fresh arrivals can displace them. A watch whose event ended
 more than two years ago, or whose origin is dead, becomes `sealed` after
 a successful parse and is never fetched again; younger ones behave like
 `archived`. Order, capture selection, and origin fallback are owned by
@@ -99,7 +101,10 @@ fine.
    and WDR links create watches; other hits become suggested override
    rows in the review queue. Event sites use the default host settings.
 
-Discovery never deletes watches.
+Discovery never deletes watches. Discovering a results link creates a pending
+request; it does not establish that the sheet has been acquired or interpreted.
+The event's [completion inventory](#event-completion) survives changes to its
+parent's polling state.
 
 ## Work order
 
@@ -123,7 +128,9 @@ current, identity, and old eligible demand. Initial percentages are:
 The picker uses actual issued requests divided by class weight. Empty
 classes lend their share; host service rotates independently. A class
 without service for 24 hours is promoted when it is eligible. This is a
-class-service objective, not a per-watch completion deadline. Pause time
+class-service objective, not a per-watch completion deadline. The
+[event-completion extension](#event-completion) adds service within each class.
+Pause time
 does not earn credits or extra capacity. Existing daily usage remains
 charged after restart, resume, or a policy change. Historical acquisition
 requires the dispatcher's year, parent, capture, and admission checks;
@@ -165,6 +172,124 @@ same parent link does not reset these clocks. A newly observed parent-child
 relationship or actual recovered dates can reactivate the watch without
 inventing dates. Manual operator pauses remain separate, as described in
 [operations](operations.md#locks-and-operator-commands).
+
+## Event completion
+
+Accepted extension, 2026-09-13; implementation and operating acceptance are
+pending. Existing H14 class fairness does not satisfy this extension. The
+[Monterey investigation](../research/monterey-missing-data-2026-09-13.md)
+found 33 discovered round pages with no fetch attempt. This contract makes
+finishing discovered work a scheduling objective without increasing host limits.
+
+### Inventory and completion
+
+Group work by `(source, source_ref)`, before canonical event matching. A typo,
+ambiguous alias, or missing registry connection must not prevent an otherwise
+eligible source request. Historical year and source-admission gates still apply.
+The existing matching map remains the sole owner of canonical event identity.
+
+An event enumeration pins the admitted parent snapshot or snapshots, their
+interpretation generation, and the distinct listed page requests. Pagination
+must finish before the enumeration is labeled complete. An incomplete index
+still establishes a finite set of known links; it does not establish that all
+links are known. An event payload containing results directly can satisfy work
+without child requests. Count request pages separately from rounds: one page
+can contain several rounds, and a round can require several pages.
+
+Derive acquired, interpreted, and release-represented membership from retained
+artifacts, admitted interpretations, and acknowledged release support. Report
+mapping and identity blockers separately. No independent `complete` flag can
+override those facts. A missing or corrupt artifact reopens the affected stage.
+An unchanged poll, retry, scheduling turn, or inventory scan is not completion
+progress. A supported unavailable or unsupported outcome accounts for a gap;
+it does not count as an acquired, interpreted, or published result.
+
+A changed index creates a new enumeration. Preserve the previous denominator,
+show added and removed members, reuse still-valid evidence, and retain the
+waiting age of existing work. Removed links require the source's admitted
+removal authority; a smaller or failed index cannot silently erase obligations.
+All known pages accounted for is not a claim of complete competition history.
+
+### Selection and protected capacity
+
+Selection follows host allowance, work class, source event, then missing page.
+Keep the existing host and class fairness. Within an eligible class, events
+receive bounded turns measured in issued HTTP requests. Rotate among events
+after each turn and persist the position across cycles and restarts. Continuing
+an event within its turn reduces scattered partial coverage; a large event
+cannot keep the host until it finishes. New arrivals join behind already
+waiting events. Skipped or blocked events keep their place for future eligible
+service, but do not stop the current rotation. No preference for small events
+may indefinitely postpone a large one.
+
+Within new work, reserve a positive share for acquiring already-listed result
+pages. Discretionary expansion into additional event indexes uses the remaining
+share. Either side can borrow capacity when the other has no eligible work.
+Index discovery and result acquisition cannot both claim the same debit.
+Retain essential platform discovery and current-event checks under their
+existing class allowances. When unfinished source events exceed a configured
+watermark, defer discretionary event-index expansion; do not delete its watches
+or stop processing links from an already acquired index. When the count falls
+below the watermark, expansion becomes eligible again.
+
+All eligible listed pages receive turns regardless of whether their event is
+recent, partly acquired, or never started. Historical offers join the old-work
+rotation only after the backfill dispatcher admits them. Its year, capture,
+archive-first, and per-host event limits remain effective. Newest-first order
+chooses among newly admitted historical events; it cannot repeatedly displace
+an older event already waiting for its turn.
+
+The implementation must capture positive, bounded event-turn sizes, the listed
+page share, the unfinished-event watermark, and event service-gap objectives
+in scheduler policy. Initial values require shadow measurement against the
+retained backlog and finite fake-clock acceptance tests; they are not yet
+measured operating guarantees. Shares divide existing allowances. Retries,
+redirects, robots checks, and failed issued requests consume the same turn and
+host debit. A shared request is charged to one selected event; its evidence
+can advance every enumeration that references it. The fetch gate rechecks all
+limits and controls before each request, even within a turn.
+
+### Failure, pause, and recovery
+
+A failed page retains its evidence, outcome, and next eligible action or retry
+time. Continue with independent pages and events. A fully blocked event uses
+no request allocation until work becomes eligible. Parsing and publication
+failures remain visible without forcing successful pages to be downloaded again.
+
+An archived, sealed, gone, or unchanged parent never clears unfinished child
+work. Reconstruct lost queue hints from admitted enumerations and retained
+parent relationships without making a new source request or resetting retry
+delays. Explicit retirement remains visible and is not successful completion.
+
+Persist rotation and issued service with the existing request accounting;
+recovery cannot refund issued requests or grant a fresh turn by restarting.
+Progress commits with the stage output it describes. Budget resets and resume
+preserve pending membership, turn position, cooldowns, and completed work.
+Operator holds remain effective and earn no extra requests or accumulated burst.
+
+### Reporting and acceptance
+
+For each source event, report the enumeration and completeness label, stage
+counts, first discovery, last successful progress, missing pages, current
+blockers, and next eligible action. Keep wall age and eligible service age
+separate. Pause, exhausted budget, host cooldown, retry delay, and downstream
+backpressure must be distinguishable. Legacy eligible age is unknown unless
+the transition history supports it; migration time is not first discovery.
+
+Record why a turn was selected and the policy, enumeration, and service position
+used. Retain blocker transitions and per-cycle summaries rather than writing
+one skipped-work record for every page on every scan. These receipts must
+explain an event's wait within the recorded interval. Repeated failures may
+consume service but must not reset a no-progress alarm. An operator hold
+suppresses eligible-work alarms while wall age and the hold remain visible.
+
+For a fixed set of eligible events and sufficient allocated capacity, fake-clock
+tests must demonstrate service within a declared finite bound and eventual
+completion of retrievable, supported pages. Continuous new arrivals cannot
+displace existing waiting events. This is conditional on host availability,
+controls, and stage support; it is not an unconditional wall-clock deadline.
+The full scenarios and staged rollout are owned by
+[H14's extension](self-healing-rollout.md#event-completion-extension).
 
 ## Registry verification consumers (H2)
 

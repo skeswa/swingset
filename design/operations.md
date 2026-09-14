@@ -297,6 +297,36 @@ is the long-running job.
   stage, pending candidate, restore status, last backup commit and
   time, review size, and last acknowledged publish SHA.
 
+## Event completion reporting (H14 extension)
+
+Accepted design, implementation pending. Doctor and summary expose the
+[source-event inventory](scheduling.md#event-completion) using the same
+consistent, read-only snapshot as other progress reports. Show source reference,
+nullable canonical event, enumeration evidence and completeness, listed page
+count, acquired and interpreted counts, and pages represented in the last
+acknowledged release. Round and identity counts retain their own units.
+
+For every unfinished event, show first discovery, last successful progress,
+wall age, eligible service age or unknown, missing pages, current blockers, and
+next eligible action. Distinguish budget exhaustion and next reset, operator
+hold, host cooldown, retry wait, parsing backpressure, unsupported interpretation,
+mapping review, and awaiting publication. Report all applicable blockers;
+being selected or repeatedly attempted is not successful progress.
+
+A drill-down explains the last turn's selection reason, policy and enumeration,
+issued requests, and blocker transitions. Summaries show events finished,
+reopened, explicitly retired, and still waiting without counting failed attempts
+or reduced denominators as completed work. Keep unknown scheduling history
+explicit rather than reconstructing decisions from today's policy.
+
+Alert when an event exceeds its configured eligible service-gap or no-progress
+objective. Wall age continues during pauses and exhausted budgets; eligible age
+excludes intervals when no next request could pass the relevant gates. The
+operator marker in the runbook counts as a hold even when `operator_pauses` is
+empty. Holds suppress eligible-work alarms, not stale-status or evidence-age
+reporting. Report overload when admitted demand exceeds measured service;
+never promise an ETA for an unbounded or blocked population.
+
 ## Requirement reporting in shadow (H11)
 
 Doctor adds a local requirement inventory with `--json`, `--watch`,

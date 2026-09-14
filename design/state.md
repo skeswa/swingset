@@ -272,6 +272,41 @@ work requirement; its output still has to commit. Doctor counts durable
 running rows even before a unit has its first finding. Legacy running mirrors
 are deduplicated. This records attempt state, not operating-system liveness.
 
+## Event completion persistence (H14 extension)
+
+Accepted design, implementation pending. [Scheduling](scheduling.md#event-completion)
+owns eligibility and rotation; this section owns their durable support.
+
+Reuse `scheduler_parent_links`, watches, admitted source generations, request
+accounting, work attempts, and release manifests. Persist an enumeration's
+source reference, supporting parent snapshot and interpretation IDs, membership
+digest, distinct request members, pagination-completeness label, and predecessor.
+Membership uses source request identity, not canonical event IDs. A changed
+alias cannot reset discovery age or discard pending requests. Retain admitted
+removals and additions as transitions; reconstruct missing work hints from this
+support. A parent pointer alone is not a complete enumeration witness.
+
+Per host, class, and source event, retain turn position, issued turn usage,
+first-known discovery, service and successful-progress times, blocker changes,
+and the captured policy identity. Tie turn usage to `scheduler_requests` in the
+same transaction as the host debit, including requests that fail. A crash after
+issuance cannot refund usage. Shared pages have one debit owner and can support
+several event enumerations. Derived counters are rebuildable views, never the
+authority for successful completion.
+
+Progress times advance with verified stage-output changes. Failure, an unchanged
+poll, queue recreation, or a policy reload cannot reset them. Record enough
+blocker transitions to compute eligible time; leave unsupported legacy history
+unknown. Selection receipts identify the event, enumeration, policy, turn, and
+reason. Aggregate unchanged blockers per cycle to avoid an unbounded record per
+skipped page. Backups and restores preserve these records with the evidence.
+
+Bootstrap enumeration membership from retained admitted parents without source
+requests. Recover discovery and progress times only from supporting records.
+Migration creates pending work or explicit uncertainty, never successful fetches,
+new host capacity, or inferred historical scheduling decisions. Published counts
+come from the selected release, as defined by [coverage](data-model.md#event-completion-coverage).
+
 ## Derivation generations (H15)
 
 Migration 14 adds a scope catalog, immutable derivation generations, retained

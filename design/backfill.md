@@ -297,7 +297,7 @@ playbook and these limits:
 | Host                            | Rule                                                                                                                                                                                                                                                                                                                                 |
 | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `eepro.com`                     | Old slugs are still served (`/results/liberty2018/` returned 200 on 2026-09-11) but `event.php` lists only 2024 on and year indexes do not exist. Ask the operator for the slug list, or for the API, before fetching anything older than the archive holds. Then one event per cycle, conditional GETs, within the playbook budget. |
-| `scoring.dance`                 | One event per cycle from the sitemap ids the archive lacks, newest first. The site starts in 2021; nothing older exists there.                                                                                                                                                                                                       |
+| `scoring.dance`                 | One event per cycle from the sitemap ids the archive lacks; admit new events newest first and rotate already-waiting events under H14. The site starts in 2021; nothing older exists there.                                                                                                                                          |
 | `danceconvention.net`           | `eventsarchive:loadyear?year=<yyyy>` once per year of history, then at most one event page per day, PDFs only for rounds whose archive copy is missing.                                                                                                                                                                              |
 | `scores.worlddanceregistry.com` | No index exists; overrides only. Nothing before 2022.                                                                                                                                                                                                                                                                                |
 | `steprightsolutions.com`        | Never. The origin is dead; every gap stays a gap.                                                                                                                                                                                                                                                                                    |
@@ -314,18 +314,20 @@ spent on a page the archive has.
   set, exactly as [scheduling](scheduling.md#watch-states-and-intervals)
   reserves. Watch ids hash the original URL, so a page later seen live
   and a page seen in the archive are one watch.
-- Order: newest year first; within a year, sources by number of events
-  the archive holds for that year (largest first) so each week of
-  backfill publishes the most rows; within a source, event pages before
-  round pages, so gaps are known before rounds are spent on them.
-- Priority 6, below registry work. A cycle takes backfill fetches only
-  when no other watch is due and the wall-clock budget has more than two
-  minutes left. Event-list captures (old WSDC site, calendar paths,
-  newsletters) are the exception: they are index work (priority 2)
-  because everything downstream needs the event list, and they are all
-  fetched before any phase 2 watch for the same year is created. The
-  whole of phase 1 is about 130 archive reads and 28 PDFs, one day of
-  the archive budget.
+- Admit new work newest year first; within a year, prefer sources with
+  more known archived events. Read an event's index before its listed rounds.
+  Once admitted, unfinished events receive the bounded turns and protected
+  service in [scheduling](scheduling.md#event-completion). Newer arrivals
+  cannot repeatedly displace older waiting events. Origin's one-event-per-cycle
+  limit, DCN's daily event limit, and archive-first selection still apply;
+  rotate at the next eligible cycle when a host limit prevents an in-cycle turn.
+- Backfill keeps priority 6 as a policy label, but receives the reserved
+  old-work acquisition share while other classes have due work. The former
+  idle-only rule is superseded by H14's host and cycle allocations. Event-list
+  captures (old WSDC site, calendar paths, newsletters) retain their index-work
+  exception (priority 2), and phase 1 still precedes phase 2 for each year.
+  The original estimate of about 130 archive reads and 28 PDFs is a planning
+  estimate, not a measured completion guarantee.
 - Phase 2 watches for a year are created only when `events_accepted`
   is true for that year. Until then the year's sheets are not fetched,
   however cheap they are.
@@ -374,7 +376,7 @@ copyright; the facts-not-sheets position is unchanged.
 | WP12 History events            | `history_start`; nullable dates, `event_month`, `date_precision`, `held`, `coverage_tier`, `history_source`; series and `series_aliases.csv`; registry-seeded events; the automatic month rule; `coverage` table with `events_accepted` and card section | every registry occurrence since 2010 has exactly one `events` row; coverage table published; unresolved names surface as findings                        |
 | WP13 Event-list history        | old WSDC site captures (`swingdancecouncil.events` parser), calendar captures of all five `worldsdc.com` paths including the 2016 date format, newsletter PDFs (`wsdc_newsletter.events` parser), all as index snapshots, oldest first                   | every capture and issue is parsed or recorded empty; each year 2010 to 2026 carries day precision wherever a listing dated it; phase 1 accepted per year |
 | WP14 Step Right Solutions      | `sources/steprightsolutions/`: index, event, round parsers with `legacy_3` marks and anonymous judge columns; the playbook's open items answered from fixtures                                                                                           | all 2009 to 2016 events with round pages parse or carry a finding                                                                                        |
-| WP15 Platform archive backfill | EEPro, scoring.dance, DCN, WDR captures newest first; gap findings                                                                                                                                                                                       | the coverage table shows archive versus origin counts per year                                                                                           |
+| WP15 Platform archive backfill | EEPro, scoring.dance, DCN, WDR captures admitted newest first; bounded turns for waiting events; gap findings                                                                                                                                            | the coverage table shows archive versus origin counts per year                                                                                           |
 | WP16 Origin gap fill           | EEPro operator conversation about pre-2018 slugs; scoring.dance and DCN gap rules; event-site override rows from CDX PDF hits through the review queue                                                                                                   | no origin request is made for a page the archive holds; gaps listed in the card                                                                          |
 
 Order within this document: WP11, then WP12 and WP13 together; these three are phase 1 and

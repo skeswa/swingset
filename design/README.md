@@ -29,7 +29,7 @@ documents.
 | [self-healing rollout](self-healing-rollout.md)     | Revisions H1 to H18 with dependencies and sizes, migration steps, and the scenarios that gate each; sequenced by implementation plan v2             |
 | [local state](state.md)                             | SQLite schema, captured inputs, invalidation, durable work, state directory                                                                         |
 | [fetching](fetching.md)                             | Identity, politeness rules, change detection, raw archive                                                                                           |
-| [scheduling](scheduling.md)                         | Watches, polling states and intervals, discovery, backfill                                                                                          |
+| [scheduling](scheduling.md)                         | Watches, polling states, discovery, event completion, fair service, and backfill                                                                    |
 | [backfill](backfill.md)                             | History from 2010-01-01: start-date rule, event list first, per-era sources, Wayback transport, capture selection, origin gap rules, coverage tiers |
 | [parsing](parsing.md)                               | Parser contract, parsers to build, parsing rules, fixtures                                                                                          |
 | [data model](data-model.md)                         | Identifiers and every published table                                                                                                               |
@@ -44,6 +44,7 @@ documents.
 | [scraping plan](scraping-plan.md)                   | Phase-by-phase plan for the fetch and parse side, per-host budgets, operator conversation                                                           |
 | [implementation plan](implementation-plan.md)       | v1 scope (M0 to M3b), the OrbStack NixOS VM, toolchain decisions, work packages, order, and done criteria                                           |
 | [implementation plan v2](implementation-plan-v2.md) | The accepted order for history and self-healing: stages V1 to V7, gates between the two streams, and the calendar                                   |
+| [Dokploy migration plan](dokploy-migration-plan.md) | PostgreSQL port, exact import and recovery contracts, automated checks, container operation, and migration under the existing hold                  |
 | [open questions](open-questions.md)                 | Decisions still open and facts to verify                                                                                                            |
 | [decision log](decision-log.md)                     | Index of decisions from the design review                                                                                                           |
 | [WSDC rules](wsdc-rules.md)                         | Callback legends, points tiers, level thresholds we encode                                                                                          |
