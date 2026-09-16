@@ -10,7 +10,7 @@ from typing import Any
 
 from swingset.clock import Clock
 from swingset.fetch.archive import Archive, canonical, durable_write
-from swingset.history.catalog import Target, load_catalog, save_catalog
+from swingset.history.catalog import Target, load_catalog, retained_evidence_path, save_catalog
 from swingset.history.closure import synchronize_year_findings, year_gaps
 from swingset.model.history import HISTORY_START
 from swingset.schedule.parse import parse_snapshot
@@ -69,11 +69,9 @@ def export_evidence(
     catalog_inputs = []
     repository = repository or Path(__file__).resolve().parents[3]
     for relative in sorted({row["catalog_evidence"] for row in catalog["targets"]}):
-        if not relative.startswith("research/verification/"):
+        if not relative.startswith(("research/verification/", "journal/evidence/")):
             continue
-        path = (repository / relative).resolve()
-        if not path.is_relative_to(repository.resolve()):
-            raise ValueError("catalog evidence path escapes the repository")
+        path = retained_evidence_path(repository, relative)
         catalog_inputs.append(
             {"path": relative, "body_sha256": destination.store_body(path.read_bytes())}
         )

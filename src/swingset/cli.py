@@ -759,7 +759,7 @@ def main(argv: list[str] | None = None) -> int:
 
         text = enums_markdown()
         if args.write:
-            Path("docs/enums.md").write_text(text)
+            Path("docs/reference/enums.md").write_text(text)
         else:
             print(text)
         return 0

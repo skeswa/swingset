@@ -13,7 +13,7 @@ from swingset.fetch.archive import Archive, canonical
 from swingset.sources import get_page_kind
 
 MODULE = importlib.util.spec_from_file_location(
-    "v4_history_checks", Path(__file__).parents[1] / "research/v4_history_checks.py"
+    "v4_history_checks", Path(__file__).parents[1] / "journal/tools/releases/v4_history_checks.py"
 )
 assert MODULE is not None and MODULE.loader is not None
 history = importlib.util.module_from_spec(MODULE)

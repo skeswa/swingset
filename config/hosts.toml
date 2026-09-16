@@ -1,17 +1,17 @@
-# Defaults: design/fetching.md, Politeness rules. Each block cites its owner.
-# docs/sources/wsdc-calendar.md §6, lines 48–51.
+# Defaults: docs/reference/fetching.md, Politeness rules. Each block cites its owner.
+# docs/reference/sources/wsdc-calendar.md §6.
 [hosts."worldsdc.com"]
 min_gap_seconds = 5
 daily_request_budget = 10
 index_interval = "24h"
 
-# docs/sources/wsdc-registry.md §6, lines 36–38; 2s applies only to sweep.
+# docs/reference/sources/wsdc-registry.md §6; 2s applies only to sweep.
 [hosts."points.worldsdc.com"]
 min_gap_seconds = 2
 daily_request_budget = 1500
 sweep_daily_request_budget = 20000
 
-# docs/sources/eepro.md §6, lines 77–85.
+# docs/reference/sources/eepro.md §6.
 [hosts."eepro.com"]
 min_gap_seconds = 5
 daily_request_budget = 600
@@ -22,7 +22,7 @@ cooling_interval = "6h"
 round_live_interval = "12h"
 round_cooling_interval = "24h"
 
-# docs/sources/scoring-dance.md §6, lines 77–86.
+# docs/reference/sources/scoring-dance.md §6.
 [hosts."scoring.dance"]
 min_gap_seconds = 5
 daily_request_budget = 800
@@ -34,14 +34,14 @@ round_live_interval = "4h"
 round_cooling_interval = "24h"
 challenge_pause = "24h"
 
-# docs/sources/world-dance-registry.md §6, lines 75–79.
+# docs/reference/sources/world-dance-registry.md §6.
 [hosts."scores.worlddanceregistry.com"]
 min_gap_seconds = 5
 daily_request_budget = 400
 live_interval = "15m"
 cooling_interval = "6h"
 
-# docs/sources/danceconvention.md §6, lines 70–77; adapter deferred to v1.1.
+# docs/reference/sources/danceconvention.md §6; adapter deferred to v1.1.
 [hosts."danceconvention.net"]
 min_gap_seconds = 10
 daily_request_budget = 200
@@ -51,7 +51,7 @@ index_interval_weekday = "24h"
 live_interval = "30m"
 cooling_interval = "12h"
 
-# design/fetching.md, Archive: reserved Wayback transport, initially 10s.
+# docs/reference/fetching.md, Archive: reserved Wayback transport, initially 10s.
 [hosts."web.archive.org"]
 min_gap_seconds = 10
 daily_request_budget = 200

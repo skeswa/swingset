@@ -26,8 +26,10 @@ def operation(tmp_path, monkeypatch):
     checkpoint = tmp_path / "checkpoint"
     shutil.copytree(root / "src", source / "src", ignore=shutil.ignore_patterns("__pycache__"))
     shutil.copytree(root / "config", source / "config")
-    (source / "research").mkdir()
-    shutil.copyfile(root / "research/accept_h11.py", source / "research/accept_h11.py")
+    (source / "journal/tools/runtime").mkdir(parents=True)
+    shutil.copyfile(
+        root / "journal/tools/runtime/accept_h11.py", source / "journal/tools/runtime/accept_h11.py"
+    )
     with monkeypatch.context() as old:
         old.setattr(db_module, "SCHEMA_VERSION", 14)
         with open_database(state) as db:
@@ -135,7 +137,9 @@ def operation(tmp_path, monkeypatch):
     gate_path = ops / "gate.json"
     gate_path.write_text(json.dumps(gate))
     monkeypatch.setattr(db_module, "__file__", str(source / "src/swingset/state/db.py"))
-    monkeypatch.setattr(driver.prior, "__file__", str(source / "research/accept_h11.py"))
+    monkeypatch.setattr(
+        driver.prior, "__file__", str(source / "journal/tools/runtime/accept_h11.py")
+    )
     monkeypatch.setattr(driver.prior, "system_hold", lambda _: {"test_fixture_hold": True})
     monkeypatch.setenv("PYTHONPATH", str(source / "src") + ":" + str(source))
     return SimpleNamespace(

@@ -10,7 +10,8 @@ import duckdb
 import pytest
 
 spec = importlib.util.spec_from_file_location(
-    "v4_candidate_acceptance", Path(__file__).parents[1] / "research/v4_candidate_acceptance.py"
+    "v4_candidate_acceptance",
+    Path(__file__).parents[1] / "journal/tools/releases/v4_candidate_acceptance.py",
 )
 assert spec is not None and spec.loader is not None
 module = importlib.util.module_from_spec(spec)

@@ -10,7 +10,7 @@ import pytest
 
 
 def module(name):
-    path = Path(__file__).parents[1] / "research" / f"{name}.py"
+    path = Path(__file__).parents[1] / "journal/tools/runtime" / f"{name}.py"
     spec = importlib.util.spec_from_file_location(name, path)
     assert spec and spec.loader
     loaded = importlib.util.module_from_spec(spec)
@@ -35,13 +35,13 @@ def test_h11_assembler_preserves_v4_memoryfix_and_excludes_unreviewed_work(tmp_p
     write(base, "src/swingset/schedule/cycle.py", "V4 cycle\n")
     write(reviewed, "src/swingset/build/builder.py", "unreviewed builder edit\n")
     write(reviewed, "src/swingset/schedule/repairs.py", "future H12\n")
-    write(reviewed, "research/fixture_runner.py", "future fixture runner\n")
+    write(reviewed, "journal/tools/admission/fixture_runner.py", "future fixture runner\n")
     result = assembler.assemble(base, reviewed, output)
     assert result["build_runtime_preserved"]
     assert (output / "src/swingset/build/builder.py").read_text() == "V4 memory fix\n"
     assert (output / "src/swingset/schedule/cycle.py").read_text() == "V4 cycle\n"
     assert not (output / "src/swingset/schedule/repairs.py").exists()
-    assert not (output / "research/fixture_runner.py").exists()
+    assert not (output / "journal/tools/admission/fixture_runner.py").exists()
     assert set(result["changed"]) == set(assembler.OVERLAYS)
     assert json.loads((output / "h11-source.json").read_text()) == result
 

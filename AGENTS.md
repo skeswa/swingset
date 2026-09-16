@@ -50,17 +50,37 @@ separate revision from what was pushed.
 - The remote is `origin` (`git@github.com:skeswa/swingset.git`); the
   default branch is `main`, and `trunk()` resolves to `main@origin`.
 
-## Repository layout
+## Repository layout and documentation
 
-- `design/` holds the design documents. `design/README.md` is the index.
-  Keep them in the style described there: terse, exhaustive, high-school
-  readable, with unverified facts marked.
-- `research/` holds one-off research artifacts and the scripts that
-  rebuild them. Do not edit generated CSVs by hand; see
-  `research/README.md`.
+- `docs/README.md` is the reader's entry point. `docs/overview.md` and
+  `docs/how-it-works/` explain the project from the top down.
+- `docs/guides/` holds task instructions. `docs/reference/README.md` lists
+  the owner of each exact rule. `docs/plans/` holds active implementation plans.
+- `docs/status.md` is the single current status summary. Distinguish implemented,
+  tested, deployed, and published work; link to dated evidence.
+- `journal/` holds investigations, dated outcomes, and formal project decisions.
+- `journal/tools/` holds research tools grouped by purpose. `journal/evidence/`
+  holds captured inputs, reports, and frozen scripts grouped by topic and run.
+  Do not edit retained evidence or generated CSVs by hand; see `journal/evidence/README.md`.
 - `src/swingset/` holds the pipeline; `tests/` holds offline tests.
-- `nix/` holds the service module and VM configuration. `docs/runbook.md`
-  covers operation; `docs/implementation-status.md` records acceptance gaps.
+- `nix/` holds the service module and VM configuration. Start operating work
+  at `docs/guides/operation.md` and read the current status and linked handoff.
+
+## Keep docs and decisions current
+
+- Update affected docs in the same change, without waiting to be asked.
+  Cover behavior, commands, architecture, and status; fix stale links and claims
+  you encounter. Support status changes with evidence.
+- Record every decision and its reason in `journal/decisions/` in the same
+  change, including routine implementation choices. Use its `README.md` and
+  template; keep small records brief and update the index. Chat, code comments,
+  and change descriptions do not replace the log.
+- Record explicit acceptance; an agent recommendation stays proposed.
+  Preserve accepted reasoning; use a new record for a changed choice and link
+  both records. Put research and conclusions in `journal/investigations/`.
+- Write tersely at a high-school reading level for readers with minimal context.
+  Explain the purpose first, then link to detail. Give each rule one home,
+  mark unverified facts, and keep history in the journal. See `docs/writing.md`.
 
 ## Formatting
 
@@ -73,14 +93,13 @@ machine. Bump them deliberately and re-run fmt, and keep the ruff pin in
 step with the one in `uv.lock`.
 
 Captured and machine-written files are never reformatted: `flake.lock`,
-`uv.lock`, every `fixtures/` directory, `research/verification/`, and
-`research/workflow-output/` are listed in `.prettierignore`, which oxfmt
-reads. Add to that list rather than hand-formatting around it.
+`uv.lock`, every `fixtures/` directory, and retained `journal/evidence/` bundles
+are listed in `.prettierignore`, which oxfmt reads. Add to that list rather than hand-formatting around it.
 
 ## Scraping etiquette
 
 Any code or research that touches third-party sites must follow
-`design/fetching.md`: one request in flight per host, a floor of five
+`docs/reference/fetching.md`: one request in flight per host, a floor of five
 seconds between requests to the same host, conditional requests where
 the server supports them, and the project User-Agent
 `swingset/<version> (+https://github.com/skeswa/swingset)`.

@@ -19,6 +19,26 @@ COUNCIL_PATHS = frozenset(
 )
 
 
+def retained_evidence_path(repository: Path, relative: str) -> Path:
+    """Find retained evidence, including old paths in immutable manifests."""
+    root = repository.resolve()
+    path = (root / relative).resolve()
+    if not path.is_relative_to(root):
+        raise ValueError("catalog evidence path escapes the repository")
+    if path.is_file() or not relative.startswith("research/"):
+        return path
+    aliases = json.loads((root / "journal/evidence/paths.json").read_bytes())
+    if aliases.get("version") != 1:
+        raise ValueError("unsupported evidence path map")
+    entry = aliases["files"][relative]
+    path = root.joinpath(entry["path"]).resolve()
+    if not path.is_relative_to(root / "journal/evidence"):
+        raise ValueError("relocated evidence path escapes journal evidence")
+    if hashlib.sha256(path.read_bytes()).hexdigest() != entry["sha256"]:
+        raise ValueError("relocated evidence does not match its retained hash")
+    return path
+
+
 @dataclass(frozen=True)
 class Target:
     source: str
@@ -38,7 +58,7 @@ class Target:
 
 
 def retained_catalog(repository: Path) -> tuple[Target, ...]:
-    evidence = repository / "research/verification/2026-09-12/event-list"
+    evidence = repository / "journal/evidence/collection/event-list-2026-09-12"
     inputs = [
         (evidence / "asp/r00_web_archive_org.json", "swingdancecouncil"),
         (evidence / "asp3/r05_web_archive_org.json", "wsdc_calendar"),

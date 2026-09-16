@@ -1,0 +1,56 @@
+# 2026 investigations
+
+[Browse by topic](../README.md). Dates in each record describe its evidence.
+A missing original date is not inferred from file modification time.
+
+- 2026-09-15: [Why full-build validation exceeded its deadline (H16)](h16-validation-investigation-2026-09-15.md).
+- 2026-09-15: [Release handoff after the build timeout](2026-09-15-release-handoff.md).
+- 2026-09-14: [PostgreSQL and Dokploy migration plan](postgres-migration-plan-2026-09-14.md).
+- 2026-09-14: [Measuring release completion time (H16)](h16-closure-performance-2026-09-14.md).
+- 2026-09-14: [Object storage on Dokploy](dokploy-object-storage-2026-09-14.md).
+- 2026-09-14: [Swingset on Dokploy: migration review](dokploy-migration-2026-09-14.md).
+- 2026-09-13: [Planning collection from platform archives (WP15)](wp15-platform-backfill-2026-09-13.md).
+- 2026-09-13: [Keeping named judges when their person ID is unknown (V4)](v4-judge-continuity-2026-09-13.md).
+- 2026-09-13: [Reviewing identity matches to withdraw (V3)](v3-identity-withdrawals-2026-09-13.md).
+- 2026-09-13: [Publishing identity corrections (V3)](v3-correction-2026-09-13.md).
+- 2026-09-13: [Publishing the event inventory and source checks (V2/V4)](v2-v4-publication-2026-09-13.md).
+- 2026-09-13: [Preparing historical source parsers (V2)](v2-parser-preparation-2026-09-13.md).
+- 2026-09-13: [Preparing the source-fixture exception runner](v2-new-source-fixture-runner-2026-09-13.md).
+- 2026-09-13: [Proposing a bounded source-fixture exception](v2-new-source-fixture-proposal-2026-09-13.md).
+- 2026-09-13: [Checking the first identity correction release (V1)](v1-correction-2026-09-13.md).
+- 2026-09-13: [Newsletter event-list empty review, 2026-09-13](newsletter-empty-review-2026-09-13.md).
+- 2026-09-13: [Monterey missing-data investigation — 2026-09-13](monterey-missing-data-2026-09-13.md).
+- 2026-09-13: [Reviewing evidence for judge identities (H3)](judge-acceptance-2026-09-13.md).
+- 2026-09-13: [Replaying source admission on isolated state (H7)](h7-contract4-replay-2026-09-13.md).
+- 2026-09-13: [Checking revised EEPro file-index rules (H6/H7)](h6-h7-autoindex-contract5-2026-09-13.md).
+- 2026-09-13: [Reviewing source interpretation rules (H6)](h6-contract4-review-2026-09-13.md).
+- 2026-09-13: [Reviewing the revised EEPro file-index rules (H6)](h6-autoindex-contract5-review-2026-09-13.md).
+- 2026-09-13: [Checking source interpretations before enforcement (H6)](h6-admission-shadow-2026-09-13.md).
+- 2026-09-13: [Preparing a representative identity review (H17)](h17-review-packet-2026-09-13.md).
+- 2026-09-13: [Checking the evidence needed for a release (H16)](h16-acceptance-2026-09-13.md).
+- 2026-09-13: [Measuring selection of local work (H15)](h15-offline-selection-profile-2026-09-13.md).
+- 2026-09-13: [Checking saved outputs and their inputs (H15)](h15-acceptance-2026-09-13.md).
+- 2026-09-13: [Measuring scheduled work without activating it (H14)](h14-shadow-load-2026-09-13.md).
+- 2026-09-13: [Checking fair scheduling (H14)](h14-acceptance-2026-09-13.md).
+- 2026-09-13: [Finding files inside nested checkpoint manifests (H13)](h13-checkpoint-closure-fix-2026-09-13.md).
+- 2026-09-13: [Checking pause controls and status reports (H13)](h13-acceptance-2026-09-13.md).
+- 2026-09-13: [Checking that backups include saved output files (H12)](h12-generation-closure-2026-09-13.md).
+- 2026-09-13: [Checking isolated work and retries (H12)](h12-acceptance-2026-09-13.md).
+- 2026-09-13: [Measuring the missing-work inventory (H11)](h11-retained-inventory-2026-09-13.md).
+- 2026-09-13: [Checking the missing-work inventory (H11)](h11-acceptance-2026-09-13.md).
+- 2026-09-12: [Does Swingset repair missing data automatically?](self-healing-2026-09-12.md).
+- 2026-09-12: [Missing data after the first registry sweep](missing-data-2026-09-12.md).
+- 2026-09-12: [Sources for a complete list of WSDC events, 2010 to today](event-list-sources-2026-09-12.md).
+- 2026-09-12: [Reliable curation of scraped datasets](curated-datasets-state-of-the-art-2026-09-12.md).
+- 2026-09-11: [WSDC rules history audit](wsdc-rules-audit-2026-09-11.md).
+- 2026-09-11: [Auditing written WSDC rules, 2024–2026](wsdc-audit-recent-2026-09-11.md).
+- 2026-09-11: [Auditing written WSDC rules, 2018–2023](wsdc-audit-middle-2026-09-11.md).
+- 2026-09-11: [Auditing written WSDC rules through 2017](wsdc-audit-early-2026-09-11.md).
+- 2026-09-11: [What the Wayback Machine holds for a 2010 start](wayback-coverage-2026-09-11.md).
+- 2026-09-10: [First-pass quality corrections](data-quality-repair-2026-09-10.md).
+- 2026-09-10: [First-pass data quality audit](data-quality-2026-09-10.md).
+- 2026-09-10: [Initial deployment handoff](2026-09-10-deployment-handoff.md).
+- [Scraping techniques for swingset](scraping-techniques.md).
+- [Rehearsing the registry probe (G1)](registry-g1-rehearsal.md).
+- [Prior art: registry scrapes and analyses](prior-art-registry-analyses.md).
+- 2026-09-15: [Reorganizing the documentation for new readers](2026-09-15-documentation-reorganization/README.md).

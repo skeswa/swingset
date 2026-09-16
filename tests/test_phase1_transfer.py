@@ -1,3 +1,4 @@
+import hashlib
 import json
 from pathlib import Path
 
@@ -19,8 +20,9 @@ from swingset.state.db import open_database
 from swingset.state.work import WorkUnit
 
 
+@pytest.mark.parametrize("layout", ["legacy", "journal", "relocated"])
 def test_repeat_import_preserves_live_watch_and_evidence_and_never_rewinds_budget(
-    tmp_path, monkeypatch
+    tmp_path, monkeypatch, layout
 ):
     clock = FakeClock()
     config = Config({}, {"wsdc_calendar": SourceConfig(True)})
@@ -30,11 +32,31 @@ def test_repeat_import_preserves_live_watch_and_evidence_and_never_rewinds_budge
         url,
         "wsdc_calendar.events",
         "20161113141128",
-        catalog_evidence="research/verification/cdx.json",
+        catalog_evidence=(
+            "journal/evidence/collection/cdx.json"
+            if layout == "journal"
+            else "research/verification/cdx.json"
+        ),
     )
-    evidence_path = tmp_path / target.catalog_evidence
+    evidence_path = tmp_path / (
+        "journal/evidence/collection/cdx.json" if layout == "relocated" else target.catalog_evidence
+    )
     evidence_path.parent.mkdir(parents=True)
     evidence_path.write_text("[]")
+    if layout == "relocated":
+        (tmp_path / "journal/evidence/paths.json").write_text(
+            json.dumps(
+                {
+                    "version": 1,
+                    "files": {
+                        target.catalog_evidence: {
+                            "path": str(evidence_path.relative_to(tmp_path)),
+                            "sha256": hashlib.sha256(b"[]").hexdigest(),
+                        }
+                    },
+                }
+            )
+        )
     fixture = Path("src/swingset/sources/wsdc_calendar/fixtures")
     archived_body = (fixture / "calendar-20161113.html").read_bytes()
     source_path, live_path, package = (tmp_path / name for name in ("source", "live", "export"))
@@ -69,6 +91,7 @@ def test_repeat_import_preserves_live_watch_and_evidence_and_never_rewinds_budge
         )
         export_evidence(source, package, repository=tmp_path)
     manifest = json.loads((package / "phase1-export.json").read_bytes())
+    assert manifest["catalog_inputs"][0]["path"] == target.catalog_evidence
     assert Archive(package).read_body(manifest["catalog_inputs"][0]["body_sha256"]) == b"[]"
     with open_database(live_path) as live:
         conn = live.connection

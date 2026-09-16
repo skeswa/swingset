@@ -34,8 +34,10 @@ def operation(tmp_path, monkeypatch):
     driver = module("accept_h13")
     shutil.copytree(root / "src", source / "src", ignore=shutil.ignore_patterns("__pycache__"))
     shutil.copytree(root / "config", source / "config")
-    (source / "research").mkdir()
-    shutil.copyfile(root / "research/accept_h11.py", source / "research/accept_h11.py")
+    (source / "journal/tools/runtime").mkdir(parents=True)
+    shutil.copyfile(
+        root / "journal/tools/runtime/accept_h11.py", source / "journal/tools/runtime/accept_h11.py"
+    )
     runtime = source / "src/swingset/state/db.py"
     runtime.write_text(re.sub(r"SCHEMA_VERSION = \d+", "SCHEMA_VERSION = 12", runtime.read_text()))
     for path in (source / "src/swingset/state/migrations").glob("*.sql"):
@@ -82,7 +84,9 @@ def operation(tmp_path, monkeypatch):
     source_hash = driver.prior.digest(source / "h13-source.json")
     monkeypatch.setattr(db_module, "SCHEMA_VERSION", 12)
     monkeypatch.setattr(db_module, "__file__", str(runtime))
-    monkeypatch.setattr(driver.prior, "__file__", str(source / "research/accept_h11.py"))
+    monkeypatch.setattr(
+        driver.prior, "__file__", str(source / "journal/tools/runtime/accept_h11.py")
+    )
     monkeypatch.setattr(driver.prior, "system_hold", lambda _: {"test_held": True})
     monkeypatch.setenv("PYTHONPATH", str(source / "src") + ":" + str(source))
     evidence = tmp_path / "backup.json"

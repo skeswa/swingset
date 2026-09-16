@@ -51,7 +51,7 @@ def parse_scheduler(body: bytes) -> SchedulerConfig:
 
 
 def shares(host: str) -> dict[str, int]:
-    # Initial objectives in research/h14-shadow-load-2026-09-13.md. An empty
+    # Initial objectives in journal/investigations/2026/h14-shadow-load-2026-09-13.md. An empty
     # eligible class lends its reservation; weights never increase host limits.
     weights = {
         "scoring.dance": (50, 25, 10, 15),

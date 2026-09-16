@@ -14,7 +14,7 @@ from swingset.state.db import open_database
 from swingset.state.work import WorkUnit, enqueue
 
 MODULE = importlib.util.spec_from_file_location(
-    "bootstrap_parse", Path(__file__).parents[1] / "research/bootstrap_parse.py"
+    "bootstrap_parse", Path(__file__).parents[1] / "journal/tools/admission/bootstrap_parse.py"
 )
 assert MODULE is not None and MODULE.loader is not None
 bootstrap_parse = importlib.util.module_from_spec(MODULE)

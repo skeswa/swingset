@@ -1,0 +1,13 @@
+# Source interpretation checks evidence
+
+Review a parser’s interpretation before it can replace saved evidence.
+
+[All evidence](../README.md) · [Investigations](../../investigations/collection.md)
+
+| Bundle                                  | What it supports                                                                                                       |
+| --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| [fixture-exception](fixture-exception/) | [Proposing a bounded source-fixture exception](../../investigations/2026/v2-new-source-fixture-proposal-2026-09-13.md) |
+| [source-checks](source-checks/)         | [Reviewing source interpretation rules (H6)](../../investigations/2026/h6-contract4-review-2026-09-13.md)              |
+
+These are dated captures, reports, and frozen scripts. Their internal paths
+refer to the original checkout. See the [path map](../paths.json) for relocated files.

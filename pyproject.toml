@@ -32,16 +32,16 @@ packages = ["src/swingset"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["src"]
+pythonpath = ["src", "."]
 
 [tool.ruff]
 target-version = "py312"
 line-length = 100
 # Existing one-off research scripts predate the runtime lint policy.
 extend-exclude = [
-  "research/build_events.py",
-  "research/build_results_sources.py",
-  "research/verification",
+  "journal/tools/collection/build_events.py",
+  "journal/tools/collection/build_results_sources.py",
+  "journal/evidence",
 ]
 
 [tool.ruff.lint]

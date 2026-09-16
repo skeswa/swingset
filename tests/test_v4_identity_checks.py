@@ -16,7 +16,7 @@ from swingset.state.identity_journal import token
 from swingset.state.identity_references import ReferenceReader
 
 spec = importlib.util.spec_from_file_location(
-    "v4_identity_checks", Path(__file__).parents[1] / "research" / "v4_identity_checks.py"
+    "v4_identity_checks", Path(__file__).parents[1] / "journal/tools/releases/v4_identity_checks.py"
 )
 assert spec is not None and spec.loader is not None
 audit_module = importlib.util.module_from_spec(spec)

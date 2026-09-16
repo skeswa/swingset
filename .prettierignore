@@ -4,6 +4,10 @@ flake.lock
 uv.lock
 # Captured HTTP bodies and their metadata; byte-exact copies of source pages.
 **/fixtures/
-# Research artifacts: cached sources, archive indexes, and workflow output.
-research/verification/
-research/workflow-output/
+# Retained journal evidence: captures, receipts, manifests, and workflow output.
+journal/evidence/*/*
+!journal/evidence/*/README.md
+journal/evidence/paths.json
+
+# Generated enum reference; refresh with swingset enums --write.
+docs/reference/enums.md

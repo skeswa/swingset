@@ -18,11 +18,14 @@ from swingset.fetch.client import USER_AGENT
 from swingset.state.db import open_database
 
 REPO = Path(__file__).resolve().parents[1]
-MANIFEST = REPO / "research/v2-new-source-fixture-targets-2026-09-13.json"
+MANIFEST = (
+    REPO
+    / "journal/evidence/admission/fixture-exception/v2-new-source-fixture-targets-2026-09-13.json"
+)
 sys.path.insert(0, str(REPO))
 try:
-    exception = importlib.import_module("research.fixture_exception")
-    transport = importlib.import_module("research.fixture_transport")
+    exception = importlib.import_module("journal.tools.admission.fixture_exception")
+    transport = importlib.import_module("journal.tools.admission.fixture_transport")
 finally:
     sys.path.pop(0)
 APPROVAL, HOST, MANIFEST_SHA = exception.APPROVAL, exception.HOST, exception.MANIFEST_SHA
@@ -92,7 +95,7 @@ def test_dry_run_does_not_open_state_or_request(tmp_path):
         [
             sys.executable,
             "-m",
-            "research.fixture_exception",
+            "journal.tools.admission.fixture_exception",
             "--manifest",
             str(MANIFEST),
             "--state",
@@ -335,8 +338,8 @@ def test_real_process_crash_leaves_conservative_budget_and_no_facts(setup, tmp_p
 import json, os, sys
 from pathlib import Path
 import httpx
-from research.fixture_exception import accounting_connection, read_manifest
-from research.fixture_transport import FixtureRunner
+from journal.tools.admission.fixture_exception import accounting_connection, read_manifest
+from journal.tools.admission.fixture_transport import FixtureRunner
 from swingset.clock import FakeClock
 from swingset.config import Config
 state, output, auth, manifest, repo = map(Path, sys.argv[1:])
@@ -401,7 +404,7 @@ def test_execute_without_authorization_never_opens_state(tmp_path):
         [
             sys.executable,
             "-m",
-            "research.fixture_exception",
+            "journal.tools.admission.fixture_exception",
             "--manifest",
             str(MANIFEST),
             "--state",

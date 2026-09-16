@@ -1,0 +1,20 @@
+# Worker state, controls, and scheduling
+
+Find investigations of unfinished work, retries, pause controls, saved outputs, and scheduling.
+
+[All investigations](README.md) · [Current status](../../docs/status.md)
+
+- [Checking the missing-work inventory (H11)](2026/h11-acceptance-2026-09-13.md) — 2026-09-13.
+- [Preparing the missing-work inventory deployment (H11)](undated/h11-deployment-preparation.md) — date and scope in record.
+- [Measuring the missing-work inventory (H11)](2026/h11-retained-inventory-2026-09-13.md) — 2026-09-13.
+- [Checking isolated work and retries (H12)](2026/h12-acceptance-2026-09-13.md) — 2026-09-13.
+- [Preparing work-isolation migration checks (H12)](undated/h12-deployment-preparation.md) — date and scope in record.
+- [Checking that backups include saved output files (H12)](2026/h12-generation-closure-2026-09-13.md) — 2026-09-13.
+- [Checking pause controls and status reports (H13)](2026/h13-acceptance-2026-09-13.md) — 2026-09-13.
+- [Finding files inside nested checkpoint manifests (H13)](2026/h13-checkpoint-closure-fix-2026-09-13.md) — 2026-09-13.
+- [Preparing pause-control migration checks (H13)](undated/h13-deployment-preparation.md) — date and scope in record.
+- [Checking fair scheduling (H14)](2026/h14-acceptance-2026-09-13.md) — 2026-09-13.
+- [Preparing scheduler migration checks (H14)](undated/h14-deployment-preparation.md) — date and scope in record.
+- [Measuring scheduled work without activating it (H14)](2026/h14-shadow-load-2026-09-13.md) — 2026-09-13.
+- [Checking saved outputs and their inputs (H15)](2026/h15-acceptance-2026-09-13.md) — 2026-09-13.
+- [Measuring selection of local work (H15)](2026/h15-offline-selection-profile-2026-09-13.md) — 2026-09-13.

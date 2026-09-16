@@ -1,6 +1,6 @@
 """Exact newsletter bodies reviewed as having no registry-event listings.
 
-Review evidence: research/newsletter-empty-review-2026-09-13.md.
+Review evidence: journal/investigations/2026/newsletter-empty-review-2026-09-13.md.
 Unknown or changed bodies never inherit an empty classification.
 """
 

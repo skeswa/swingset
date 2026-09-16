@@ -1,6 +1,6 @@
 """The history start date: the earliest point from which swingset traces events.
 
-`design/backfill.md#the-start-date-rule` owns the contract. Events that
+`docs/reference/backfill.md#the-start-date-rule` owns the contract. Events that
 ended before the start date get no rows; the registry mirror stays whole
 and earlier registry placements keep a null event id. The default below
 is the project's enshrined start. `config/sources.toml` may restate it

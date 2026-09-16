@@ -10,7 +10,7 @@ import pytest
 
 def load_research(name):
     spec = importlib.util.spec_from_file_location(
-        name, Path(__file__).parents[1] / "research" / f"{name}.py"
+        name, Path(__file__).parents[1] / "journal/tools/runtime" / f"{name}.py"
     )
     assert spec is not None and spec.loader is not None
     module = importlib.util.module_from_spec(spec)

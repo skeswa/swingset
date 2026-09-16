@@ -16,7 +16,7 @@ from swingset.state.db import open_database
 def arranged(tmp_path, monkeypatch):
     monkeypatch.syspath_prepend(str(Path(__file__).parents[1]))
     global replay
-    from research import replay_derivations as replay
+    from journal.tools.runtime import replay_derivations as replay
 
     generator = fixture_source.__wrapped__(tmp_path)
     f = next(generator)
