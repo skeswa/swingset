@@ -225,6 +225,10 @@ def test_source_result_blob_change_forces_actual_witness_reconstruction(release_
     rowid = f.conn.execute(
         "SELECT rowid FROM source_generations WHERE generation_id=?", (source["generation_id"],)
     ).fetchone()[0]
+    # SQLite refuses incremental writes to any column in a table with an
+    # expression index. Remove the unrelated retirement lookup index before
+    # caching the witness so this corruption still bypasses UPDATE triggers.
+    f.conn.execute("DROP INDEX source_generations_retained_source")
     with f.db.transaction(), validation_scope(f.conn):
         closure.validate(f.conn, manifest)
         with f.conn.blobopen("source_generations", "result_json", rowid, readonly=False) as blob:

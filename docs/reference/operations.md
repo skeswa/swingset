@@ -391,7 +391,8 @@ those subtotals as fleet totals. `event_accounting_report.report()` accepts
 The existing outer doctor catalog is unchanged. Historical receipts distinguish
 membership changes, reopening, and restored availability without inventing
 successful operations. Latest and last definite assessments are shown; historical
-reopening totals and whole-event retirement remain explicitly unassessed. Pagination is still
+lifetime reopening totals remain unknown. Recorded transitions are available
+through bounded history pages. Pagination is still
 unknown, so local accounting is not whole-event completeness or publication.
 See [D-0034](../../journal/decisions/0034-record-bounded-event-accounting.md).
 
@@ -411,8 +412,11 @@ watch-authoritative replacement, supported prior ownership, and no surviving
 independent claim. An admitted child result can preserve a page after an index
 omits it. Auxiliary removal lists are not proof. Reports expose the observation
 window and latest historical withdrawal receipt; missing or invalid evidence
-remains unassessed. A whole-event retirement flag and complete retirement history
-stay unknown, even when all known predecessor obligations were withdrawn.
+remains unassessed. Whole source-event retirement additionally requires a verified
+complete bounded declaration domain and authoritative omission of the event.
+An empty declared event remains active. Current withdrawal proof and immutable
+recorded history are separate; see the [retirement and history contract](data-model.md#recorded-source-event-history-and-retirement).
+A page-withdrawal edge alone never establishes event retirement.
 
 The edge shares the progress budget and H13 artifact controls. Leftover-budget
 exhaustion receives a fresh opportunity; a proof too large for a fresh allowance

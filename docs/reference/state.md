@@ -366,6 +366,13 @@ summaries and the observation cursor. See [acquisition timing](event-timing.md)
 for interval coverage, invalidation and unknown history. Timing is diagnostic;
 it cannot authorize requests or establish event completion.
 
+Schema 27 adds immutable `source_event_retirement_receipts` and
+`source_event_retirement_proofs`. One withdrawn enumeration records one semantic
+retirement; later verification can record a different proof without inventing
+another transition. Current reports require fresh domain and admission fences.
+Restore preserves receipts while invalidating current proof freshness. See the
+[retirement contract](data-model.md#recorded-source-event-history-and-retirement).
+
 ### Local enumeration and verification interfaces
 
 Migration 16 adds `source_event_inventory` current pointers, immutable

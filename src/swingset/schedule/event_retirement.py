@@ -7,7 +7,7 @@ import sqlite3
 from datetime import datetime, timedelta
 from typing import Any
 
-from swingset.admission.event_retirement import FORMAT, verify_edge
+from swingset.admission.event_retirement import EVENT_FORMAT, FORMAT, verify_edge, verify_event
 from swingset.admission.page_evidence import Session
 from swingset.fetch.archive import canonical, digest
 
@@ -78,6 +78,13 @@ def observe(
         successor_id=batch["enumeration_id"],
         successor_members=members,
     )
+    if session.conn.execute(
+        "SELECT 1 FROM sqlite_master WHERE name='source_event_retirement_receipts'"
+    ).fetchone():
+        value["whole_event"] = verify_event(
+            session, source=batch["source"], source_ref=batch["source_ref"], page_edge=value
+        )
+        value["whole_event"]["source_revision"] = batch.get("gap_revision")
     retry = session.exhausted() and not fresh_budget
     batch["retirement"] = dict(
         value=value,
@@ -129,7 +136,115 @@ def persist(conn: sqlite3.Connection, batch: dict[str, Any]) -> int:
             encoded(proof),
         ),
     )
+    _persist_event(conn, batch, value, saved["observed_at"])
     return written.rowcount
+
+
+def _persist_event(
+    conn: sqlite3.Connection, batch: dict[str, Any], value: dict[str, Any], observed_at: str
+) -> None:
+    whole = value.get("whole_event", {})
+    if whole.get("retired") is not True:
+        return
+    current = conn.execute(
+        "SELECT revision FROM event_gap_revisions WHERE source=?", (batch["source"],)
+    ).fetchone()
+    if whole.get("source_revision") != (current[0] if current else 0):
+        return
+    proof = whole["proof"]
+    if (
+        proof["admission_high_water"]
+        != conn.execute("SELECT coalesce(max(decision_id),0) FROM admission_decisions").fetchone()[
+            0
+        ]
+    ):
+        return
+    conn.execute(
+        "INSERT INTO source_event_retirement_proofs VALUES(?,?) ON CONFLICT(proof_digest) DO NOTHING",
+        (whole["proof_digest"], encoded(proof)),
+    )
+    conn.execute(
+        "INSERT INTO source_event_retirement_receipts(source,source_ref,enumeration_id,predecessor_id,generation_id,decision_id,observed_at,policy_digest,proof_digest,proof_json) "
+        "VALUES(?,?,?,?,?,?,?,?,?,?) ON CONFLICT(source,source_ref,enumeration_id) DO NOTHING",
+        (
+            batch["source"],
+            batch["source_ref"],
+            batch["enumeration_id"],
+            value["predecessor_id"],
+            proof["replacement"]["generation_id"],
+            proof["replacement"]["decision_id"],
+            observed_at,
+            batch["token"]["policy_digest"],
+            whole["proof_digest"],
+            encoded(proof),
+        ),
+    )
+
+
+def _event_status(
+    session: Session, value: dict[str, Any], source: str, source_ref: str
+) -> dict[str, Any]:
+    whole = value.get("whole_event")
+    unknown = dict(whole_event_retired=None, whole_event_reason="whole_event_proof_unassessed")
+    if not isinstance(whole, dict) or whole.get("format") != EVENT_FORMAT:
+        return unknown
+    revisions = session.read(
+        "SELECT revision FROM event_gap_revisions WHERE source=?", (source,), ("revision",), cap=1
+    )
+    if type(whole.get("source_revision")) is not int or whole["source_revision"] != (
+        revisions[0]["revision"] if revisions else 0
+    ):
+        return {**unknown, "whole_event_reason": "source_declaration_domain_changed"}
+    if whole.get("retired") is not True:
+        return {
+            **unknown,
+            "whole_event_retired": False if whole.get("retired") is False else None,
+            "whole_event_reason": whole.get("reason"),
+        }
+    proof = whole["proof"]
+    admissions = session.read(
+        "SELECT coalesce(max(decision_id),0) AS high_water FROM admission_decisions",
+        (),
+        ("high_water",),
+        cap=1,
+    )
+    if (
+        type(proof.get("admission_high_water")) is not int
+        or proof["admission_high_water"] != admissions[0]["high_water"]
+    ):
+        return {**unknown, "whole_event_reason": "admitted_declaration_domain_changed"}
+    fingerprint = digest(canonical(proof))
+    if (
+        proof["format"] != EVENT_FORMAT
+        or proof["source"] != source
+        or proof["source_ref"] != source_ref
+        or proof["source_revision"] != whole["source_revision"]
+        or proof["successor_id"] != value["successor_id"]
+        or proof["predecessor_id"] != value["predecessor_id"]
+        or proof["page_proof_digest"] != value["proof_digest"]
+        or fingerprint != whole["proof_digest"]
+    ):
+        raise ValueError("whole_event_proof_invalid")
+    rows = session.read(
+        "SELECT proof_json FROM source_event_retirement_proofs WHERE proof_digest=?",
+        (fingerprint,),
+        ("proof_json",),
+        cap=1,
+    )
+    receipts = session.read(
+        "SELECT receipt_id FROM source_event_retirement_receipts WHERE source=? AND source_ref=? AND enumeration_id=?",
+        (source, source_ref, value["successor_id"]),
+        ("receipt_id",),
+        cap=1,
+    )
+    if not rows or json.loads(rows[0]["proof_json"]) != proof or not receipts:
+        raise ValueError("whole_event_receipt_missing_or_invalid")
+    return dict(
+        whole_event_retired=True,
+        whole_event_reason=None,
+        whole_event_receipt_id=receipts[0]["receipt_id"],
+        whole_event_proof_digest=fingerprint,
+    )
 
 
 def report(
@@ -236,7 +351,7 @@ def report(
             "proof_digest": value.get("proof_digest") if assessment == "verified" else None,
             "observed_at": row["observed_at"],
             "valid_until": row["valid_until"],
-            "whole_event_retired": None,
+            **_event_status(session, value, source, source_ref),
             "complete_retirement_history": False,
         }
     except ERRORS as exc:

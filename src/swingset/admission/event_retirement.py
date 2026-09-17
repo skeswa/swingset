@@ -253,3 +253,112 @@ def verify_edge(
         }
     except (BudgetExceeded, ValueError, KeyError, TypeError, RecursionError) as exc:
         return {**result, "reason": str(exc)}
+
+
+EVENT_FORMAT = "whole-source-event-retirement-v1"
+
+
+def verify_event(
+    session: Session, *, source: str, source_ref: str, page_edge: dict[str, Any]
+) -> dict[str, Any]:
+    """Disprove all retained independent declarations within a bounded full domain.
+
+    A page withdrawal and an empty declared group do not withdraw an event.
+    If the complete admitted source domain exceeds this session, stay unknown.
+    """
+    result: dict[str, Any] = dict(format=EVENT_FORMAT, retired=None, reason=None, proof=None)
+    if (
+        page_edge["assessment"] != "verified"
+        or not page_edge["all_predecessor_obligations_retired"]
+    ):
+        return {**result, "reason": "predecessor_page_withdrawal_unproven"}
+    try:
+        edge_proof = page_edge["proof"]
+        parents = _Parents(session, source)
+        replacement = parents.get(
+            edge_proof["replacement"]["generation_id"], edge_proof["replacement"]["decision_id"]
+        )
+        if source_ref in replacement["declarations"]:
+            return {**result, "retired": False, "reason": "replacement_still_declares_event"}
+        cap = min(MEMBERS, session.limits.candidates)
+        source_expression = (
+            "CASE WHEN json_valid(g.recipe_json) THEN "
+            "CASE WHEN json_type(g.recipe_json,'$.context.source')='text' "
+            "THEN json_extract(g.recipe_json,'$.context.source') END END"
+        )
+        rows = session.read(
+            "SELECT g.generation_id,min(d.decision_id) AS decision_id FROM source_generations g "
+            "JOIN admission_decisions d USING(generation_id) "
+            f"WHERE ({source_expression}=? OR {source_expression} IS NULL) AND d.state='accepted' "
+            "AND (julianday(d.decided_at)<=julianday(?) OR julianday(d.decided_at) IS NULL) "
+            "GROUP BY g.generation_id ORDER BY decision_id LIMIT ?",
+            (source, session.cutoff.isoformat(), cap),
+            ("generation_id", "decision_id"),
+            cap=cap,
+        )
+        if len(rows) >= cap:
+            raise BudgetExceeded("event_retirement_source_domain_budget")
+        claims: dict[str, dict[str, Any]] = {}
+        domain = []
+        own_prior_declaration = False
+        replacement_seen = False
+        for row in rows:
+            item = parents.get(row["generation_id"], row["decision_id"])
+            inputs = session.read(
+                "SELECT outcome FROM event_enumeration_inputs WHERE generation_id=?",
+                (row["generation_id"],),
+                ("outcome",),
+                cap=1,
+            )
+            if not inputs or inputs[0]["outcome"] not in {"processed", "ignored_non_event_parent"}:
+                raise ValueError("event_retirement_bootstrap_unassessed")
+            value = item["value"]
+            domain.append(item["binding"])
+            unit = value["unit_key"]
+            if source_ref in item["declarations"]:
+                claims[unit] = item["binding"]
+                own_prior_declaration = own_prior_declaration or (
+                    unit == replacement["value"]["unit_key"]
+                    and item["decision"] < replacement["decision"]
+                )
+            elif (
+                value["removal_authority"] == "watch"
+                and value["report"]["proposed_removal"] == "watch"
+            ):
+                claims.pop(unit, None)
+            if row["generation_id"] == replacement["value"]["generation_id"]:
+                replacement_seen = True
+        if not own_prior_declaration or not replacement_seen:
+            raise ValueError("event_retirement_prior_declaration_unproven")
+        if claims:
+            return {**result, "retired": False, "reason": "independent_event_declaration_survives"}
+        revisions = session.read(
+            "SELECT revision FROM event_gap_revisions WHERE source=?",
+            (source,),
+            ("revision",),
+            cap=1,
+        )
+        admissions = session.read(
+            "SELECT coalesce(max(decision_id),0) AS high_water FROM admission_decisions",
+            (),
+            ("high_water",),
+            cap=1,
+        )
+        proof = dict(
+            format=EVENT_FORMAT,
+            source=source,
+            source_ref=source_ref,
+            source_revision=revisions[0]["revision"] if revisions else 0,
+            admission_high_water=admissions[0]["high_water"],
+            predecessor_id=page_edge["predecessor_id"],
+            successor_id=page_edge["successor_id"],
+            replacement=replacement["binding"],
+            page_proof_digest=page_edge["proof_digest"],
+            admitted_source_domain=domain,
+            scope="complete_retained_admitted_source_declarations_at_verification",
+        )
+        if len(canonical(proof)) > session.limits.json_bytes:
+            raise BudgetExceeded("event_retirement_proof_json_budget")
+        return {**result, "retired": True, "proof": proof, "proof_digest": digest(canonical(proof))}
+    except (BudgetExceeded, ValueError, KeyError, TypeError, RecursionError) as exc:
+        return {**result, "reason": str(exc)}

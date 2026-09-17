@@ -42,6 +42,7 @@ def report(
         supported=accounting.available(conn),
         events=[],
         counts=dict(locally_accounted=0, unfinished=0, unassessed=0),
+        state_counts=dict(locally_accounted=0, waiting=0, explicitly_retired=0, unassessed=0),
         legacy_unenumerated=0,
         coverage_complete=False,
         next_cursor=None,
@@ -88,6 +89,7 @@ def report(
             if number == 0:
                 result["events"].append(dict(catalog_rowid=key[0], **accounting.unknown(str(exc))))
                 result["counts"]["unassessed"] += 1
+                result["state_counts"]["unassessed"] += 1
                 last = key[0]
             break
         item = {**subject, "catalog_rowid": key[0], **accounting.unknown("enumeration_unassessed")}
@@ -150,12 +152,34 @@ def report(
                 cap=1,
             )
             item["last_definite_assessment"] = definite[0] if definite else None
+            item["recorded_history"] = {
+                "source": subject["source"],
+                "source_ref": subject["source_ref"],
+                "streams": [
+                    "accounting",
+                    "enumerations",
+                    "page_retirement",
+                    "source_event_retirement",
+                ],
+                "pagination": "event_history.report; pin through from the first page",
+                "complete_lifetime_history": False,
+            }
             item["historical_reopening_total"] = None
             item["historical_count_assessment"] = "unassessed; latest transition only"
         except accounting.ERRORS as exc:
             item.update(accounting.unknown(str(exc)))
+        item["current_state"] = (
+            "explicitly_retired"
+            if item.get("page_retirement", {}).get("whole_event_retired") is True
+            else {
+                "locally_accounted": "locally_accounted",
+                "unfinished": "waiting",
+                "unassessed": "unassessed",
+            }[item["assessment"]]
+        )
         result["events"].append(item)
         result["counts"][item["assessment"]] += 1
+        result["state_counts"][item["current_state"]] += 1
         last = key[0]
         if session.exhausted():
             break

@@ -496,6 +496,46 @@ candidate reuse, and publication. These local stage counts neither select
 output nor establish published completion. Doctor reads published coverage only from a verified,
 acknowledged baseline with a matching closure receipt. Overlapping transport
 rows are not added together.
+## Recorded source-event history and retirement
+
+Whole source-event retirement requires more than removing its listed pages.
+An admitted replacement must have watch removal authority, omit a previously
+declared event, and withdraw its predecessor's known page obligations. A bounded
+check of the complete retained accepted source domain must also disprove every
+independent event declaration. Empty declared groups remain declarations.
+Missing evidence, pending enumeration bootstrap, an exhausted domain check or
+an unproven immediate withdrawal edge leave whole-event retirement unknown.
+
+Schema 27 stores immutable source-event retirement receipts separately from
+current verification proofs. A changed source domain, admission journal,
+enumeration or policy invalidates the current claim; the historical receipt
+remains. Reverification of the same withdrawal creates no additional retirement
+transition. Retirement never records successful acquisition, interpretation or
+acknowledged publication. Sources whose retained domain exceeds the verification
+budget remain unassessed, rather than receiving a sampled absence claim.
+
+Fleet catalog pages report `current_state` and page-scoped `state_counts` as
+`locally_accounted`, `waiting`, `explicitly_retired`, or `unassessed`. The existing
+accounting assessment stays separate. `locally_accounted` can include supported
+gap classifications; it does not assert full interpretation or publication.
+Historical `reopened` transitions stay in immutable accounting receipts.
+
+`swingset.schedule.event_history.report` returns bounded pages of recorded
+accounting, enumeration, page-retirement or source-event-retirement history.
+Pin the returned `through` value on the first page, then pass `next_cursor` as
+`after`. Each page contains at most 100 records and counts only those records.
+`reached_high_water` means that pinned recorded stream has been read through;
+it does not assert complete lifetime history. The first recorded time, unknown
+legacy history, and unobserved transitions are explicit. This metadata-only
+report neither opens artifacts nor performs network requests or mutations.
+Pagination cursors belong to the same retained database and its physical
+backup/restore lineage; do not reuse them after rebuilding tables or other
+maintenance that changes SQLite row IDs.
+
+```sh
+python -m swingset.schedule.event_history --state /var/lib/swingset --source eepro --source-ref eepro:test --stream accounting --limit 100
+```
+
 The history streams are `accounting`, `enumerations`, `page_retirement` and
 `source_event_retirement`. Ordinary doctor fleet refreshes remain bounded
 catalog samples; requesting history is a separate paginated read. Missing older
