@@ -1,0 +1,114 @@
+{
+  "format": "exact-dcn-origin-score-pdf-fixture-scope-v1",
+  "recorded_at": "2026-09-17T18:15:27.106329+00:00",
+  "status": "standing_owner_authority_recorded_runner_and_current_gates_pending",
+  "authority": {
+    "path": "journal/decisions/0087-authorize-remaining-v2-acquisition-and-operations.md",
+    "sha256": "84ad7a85d2a260b1ffab9ad07bbfe52ce04dbc2b2f0bee687ba51c05c566f498"
+  },
+  "purpose": "Acquire at most two source-printed score PDFs for offline preliminary/final parser controls after the exact Archive metadata lookups returned no capture rows. No ordinary source kind or historical year is activated.",
+  "source_event_ref": "dcn:1546230",
+  "selected_contest": {
+    "id": "2196606",
+    "name_raw": "Jack'n'Jill Newcomer"
+  },
+  "targets": [
+    {
+      "id": "dcn-riga-newcomer-finals-3451330",
+      "source": "dcn",
+      "url": "https://danceconvention.net/eventdirector/en/roundscores/3451330.pdf",
+      "printed_href": "/eventdirector/en/roundscores/3451330.pdf",
+      "source_round": "Finals"
+    },
+    {
+      "id": "dcn-riga-newcomer-prelims-3451331",
+      "source": "dcn",
+      "url": "https://danceconvention.net/eventdirector/en/roundscores/3451331.pdf",
+      "printed_href": "/eventdirector/en/roundscores/3451331.pdf",
+      "source_round": "Prelims",
+      "source_role_tables": [
+        "leaders",
+        "followers"
+      ]
+    }
+  ],
+  "locator_evidence": {
+    "html_path": "journal/evidence/admission/dcn-results-body-2026-09-17/quarantine/bodies/487b38c2ff264e62bf2e6de8e2b24cd5aff2ceab40856a56c1ac8539a4aad573",
+    "html_sha256": "487b38c2ff264e62bf2e6de8e2b24cd5aff2ceab40856a56c1ac8539a4aad573",
+    "context_path": "journal/evidence/admission/dcn-score-pdf-lookup-proposal-2026-09-17/locator-context.json",
+    "context_sha256": "714ba4f9ba7e94d4a0327c82ad510420de5005157e6fd2886efaf4d5523df209"
+  },
+  "archive_first_evidence": {
+    "receipt_path": "journal/evidence/admission/dcn-score-pdf-lookup-2026-09-17/quarantine/receipt.json",
+    "receipt_sha256": "4927ca01a88d9ad5ebaa38d613c16ee8a941c0873a726902b13f00e2c30c6e3a",
+    "independent_review_path": "journal/evidence/admission/dcn-score-pdf-lookup-2026-09-17/independent-review-001/checks.json",
+    "independent_review_sha256": "1d6964a1a49849498035492f90eb686617326cb2c8ab68360cb5b07418a4370e",
+    "metadata_finished_at": "2026-09-17T18:10:04.806094+00:00",
+    "queries": "Exact HTTPS original URLs,2018-2026,HTTP200,collapse=digest; each probe reports1 page; each page0 is[] newline.",
+    "page0_sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+    "interpretation": "No capture rows in these exact responses; not proof never archived and not a new search scope."
+  },
+  "robots": {
+    "initial_url": "https://danceconvention.net/robots.txt",
+    "single_allowed_redirect_url": "https://danceconvention.net/eventdirector/robots.txt",
+    "max_redirects": 1,
+    "redirect_statuses": [
+      301,
+      302,
+      303,
+      307,
+      308
+    ],
+    "redirect_scope": "Only initial robots GET may redirect once to this exact same-host HTTPS path with no query, fragment or credentials. No PDF or second robots redirect allowed.",
+    "cache": "Honor at-most24hour refresh. Reuse only verified exact-host/path policy evidence not future-dated, with retained body and original status. A304 needs the exact conditional representation; missing proof stops.",
+    "policy": "Protego swingset group or wildcard; respect stricter crawl-delay.5xx/unreachable disallows; standard robots4xx behavior and host403/429 challenge/cooldown rules remain authoritative."
+  },
+  "limits": {
+    "pdf_body_requests": 2,
+    "total_http_requests_including_robots_redirect": 4,
+    "robots_http_requests": 2,
+    "max_pdf_redirects": 0,
+    "max_robots_redirects": 1,
+    "archive_requests": 0,
+    "metadata_requests": 0,
+    "additional_origin_urls": 0,
+    "automatic_retries": 0,
+    "automatic_alternatives": 0,
+    "automatic_child_requests": 0,
+    "max_received_bytes_per_response": 2097152,
+    "max_total_received_bytes": 8388608,
+    "max_elapsed_seconds": 900,
+    "min_completion_to_dispatch_seconds": 10,
+    "max_in_flight": 1,
+    "shared_origin_daily_request_budget": 200,
+    "shared_origin_daily_byte_budget": 300000000,
+    "max_events_per_origin_day": 1
+  },
+  "transport": {
+    "user_agent": "swingset/<runtime version> (+https://github.com/skeswa/swingset)",
+    "accept_encoding": "gzip",
+    "cookie_storage": false,
+    "cookie_sending": false,
+    "conditional_get": "Use exact retained representation validators where supported. No unrelated URL validators;304 without verified corresponding body stops. No HEAD.",
+    "body_measurement": "Bound decoded response-body bytes exposed by iter_bytes fixed64KiB chunks; transport/decompressor buffering is not measured. Round available capacity down to complete chunks; count all delivered bytes, never slice, never extraEOFprobe at cap; keep full reservation on incomplete response.",
+    "observation": "via=origin; observed_at and captured_at equal actual successful response fetched_at. Retain full original/request/final URLs, rawheaders, bodyhash, dispatch/completion UTC+monotonic and paidUTCday. Do not assign archived2019 capture time or event2018 date to current origin body."
+  },
+  "execution_gates": [
+    "New independently reviewed origin-specific fixed-manifest transport and preparer; no relabeled Archive runner or Archive Gate policy.",
+    "Recheck actual runtime/schema/system/public baseline and complete packet closure. Intended initial binding is deployed source003/schema28 unless separately reviewed after deployment.",
+    "Coordinator serialization, operator hold, six ordinary units inactive, writer/control/H13 admissions; no production observations, watches, queue or input acceptance.",
+    "Explicit source-gate binding for fixture-only policy must be resolved before execution: maintained sources.toml omits dcn and Config.enabled defaultsFalse. Do not silently bypass absent/disabled source or activate ordinary kind.",
+    "Read actual danceconvention.net paid usage, host pauses/deadlines, retained robots/validator evidence and spacing authority. Unknown legacy paid spacing stays blocked pending separate reviewed coordinator baseline.",
+    "Reserve no capacity during preparation; debit actual shared200request/300MB daily ledger with stricter current limits and one-event/day DCN origin rule; never raise budgets, refundpaidwork or clearpause.",
+    "Robots must allow each target at dispatch. Preserve at least10seconds completion-to-dispatch monotonic plus any stricter host/robots requirement across redirects and failures.",
+    "Fresh single-use quarantine; abort on unapproved redirects, unexpected status/content, malformedrobots, loss of hold/control, cooldown or anyrequest/byte/timebound. No retry, alternate, child or additionalmetadata.",
+    "Independently audit retained acquisition before source-parser interpretation. HTML/error/changedPDF remains a finding; no assumedscorelayout or canonical admission."
+  ],
+  "reference_runtime": {
+    "source": "/nix/store/dx0cyzvd8d91rf29v21sakbr7l5bwxnz-source",
+    "source_receipt_sha256": "60cdfe64004a0ba5a9aee207bcb089d6d4c81f5ca58169ccdb88a5dfab8146d6",
+    "schema": 28,
+    "published_commit": "2a6c7dc744fb36eabb5163c0a527d787d3721f4f"
+  },
+  "network_requests_during_preparation": 0
+}

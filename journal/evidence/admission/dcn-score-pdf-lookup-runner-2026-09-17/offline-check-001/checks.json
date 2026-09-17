@@ -1,0 +1,77 @@
+{
+  "format": "exact-dcn-score-pdf-metadata-offline-check-v1",
+  "recorded_at": "2026-09-17T18:05:46.827637+00:00",
+  "passed": true,
+  "before": {
+    "journal/tools/admission/build_dcn_score_pdf_lookup.py": "44faa2978430bf750481a59d17c2859d07338a1874f554dacbbb896fd1128a13",
+    "journal/tools/admission/dcn_score_pdf_lookup_checks.py": "d589d0cbe73bc8a91ac0a63075b22522dbefeacf095b8264db531beaf4467cbb",
+    "journal/tools/admission/build_dcn_results_lookup.py": "e50c7af20d83c16136ac37b74f35040fa92155b0ae9922fb4751bf2c39288fc1",
+    "journal/decisions/0087-authorize-remaining-v2-acquisition-and-operations.md": "84ad7a85d2a260b1ffab9ad07bbfe52ce04dbc2b2f0bee687ba51c05c566f498"
+  },
+  "after": {
+    "journal/tools/admission/build_dcn_score_pdf_lookup.py": "44faa2978430bf750481a59d17c2859d07338a1874f554dacbbb896fd1128a13",
+    "journal/tools/admission/dcn_score_pdf_lookup_checks.py": "d589d0cbe73bc8a91ac0a63075b22522dbefeacf095b8264db531beaf4467cbb",
+    "journal/tools/admission/build_dcn_results_lookup.py": "e50c7af20d83c16136ac37b74f35040fa92155b0ae9922fb4751bf2c39288fc1",
+    "journal/decisions/0087-authorize-remaining-v2-acquisition-and-operations.md": "84ad7a85d2a260b1ffab9ad07bbfe52ce04dbc2b2f0bee687ba51c05c566f498"
+  },
+  "checks": [
+    {
+      "name": "build",
+      "command": [
+        ".venv/bin/python",
+        "journal/tools/admission/build_dcn_score_pdf_lookup.py",
+        "--source",
+        "/tmp/swingset-extension-freeze-20260917-003",
+        "/Users/skeswa/repos/skeswa/swingset/journal/evidence/admission/dcn-score-pdf-lookup-runner-2026-09-17/packet-001"
+      ],
+      "exit_code": 0,
+      "log_sha256": "8ace879ff46f71b99cb2b542fb09d55b9a152df643923eeb25d4c7a76e49dca4"
+    },
+    {
+      "name": "pytest",
+      "command": [
+        ".venv/bin/python",
+        "-m",
+        "pytest",
+        "-c",
+        "/dev/null",
+        "-p",
+        "no:cacheprovider",
+        "-q",
+        "journal/tools/admission/dcn_score_pdf_lookup_checks.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "f96513fe7f5690ae60d497d0a0c288d7750e48bc475a3d8c0b9b7545a882a473"
+    },
+    {
+      "name": "ruff",
+      "command": [
+        ".venv/bin/ruff",
+        "check",
+        "journal/tools/admission/build_dcn_score_pdf_lookup.py",
+        "journal/tools/admission/dcn_score_pdf_lookup_checks.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+    },
+    {
+      "name": "mypy",
+      "command": [
+        ".venv/bin/mypy",
+        "journal/tools/admission/build_dcn_score_pdf_lookup.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "5d4b6d285b77932e3d08212c3b4974d0a803f98ec60408ac6ccf6a063fa6c19e"
+    }
+  ],
+  "packet": "journal/evidence/admission/dcn-score-pdf-lookup-runner-2026-09-17/packet-001",
+  "packet_receipt_sha256": "0e3c547af30a4e8cfb2f425087f883904869a95f718cbb15595165f5adca510d",
+  "driver_sha256": "b3e50815456113d44eb96885199c4d6caddef65d408a7ee9d85e3803cb1dd80d",
+  "helper_manifest_sha256": "2ad23ab7bfd923bf0d9fe7afed49b1410867c187f8f473aeefb73d427c1a1059",
+  "runtime_source": "/nix/store/dx0cyzvd8d91rf29v21sakbr7l5bwxnz-source",
+  "runtime_receipt_sha256": "60cdfe64004a0ba5a9aee207bcb089d6d4c81f5ca58169ccdb88a5dfab8146d6",
+  "runtime_schema": 28,
+  "network_requests": 0,
+  "production_operations": 0,
+  "scope": "61 offline checks, fixed two-URL CDX plan only, D0087 standing authority, no PDF/body requests or runtime input acceptance. Independent review and coordinator preparation remain required."
+}

@@ -1,0 +1,12 @@
+{
+  "format": "exact-dcn-score-pdf-proposal-preparation-v1",
+  "passed": true,
+  "body_sha256": "487b38c2ff264e62bf2e6de8e2b24cd5aff2ceab40856a56c1ac8539a4aad573",
+  "proposal_sha256": "806f9450d2d487fcbb8fc09ec4966cb685eee16099f1dd80c16757ca2b2aa18e",
+  "context_sha256": "714ba4f9ba7e94d4a0327c82ad510420de5005157e6fd2886efaf4d5523df209",
+  "script_sha256": "ebd47e6b585839ea3512c44075934d9b3a7d1a3de53dd67419e8cc7020e5f496",
+  "printed_locator_count": 2,
+  "metadata_url_count": 4,
+  "network_requests": 0,
+  "production_operations": 0
+}

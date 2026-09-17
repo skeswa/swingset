@@ -1,0 +1,31 @@
+{
+  "format": "exact-dcn-score-pdf-metadata-build-v1",
+  "builder_sha256": "44faa2978430bf750481a59d17c2859d07338a1874f554dacbbb896fd1128a13",
+  "builder_dependency_sha256": "e50c7af20d83c16136ac37b74f35040fa92155b0ae9922fb4751bf2c39288fc1",
+  "runtime_source": "/nix/store/dx0cyzvd8d91rf29v21sakbr7l5bwxnz-source",
+  "runtime_receipt_sha256": "60cdfe64004a0ba5a9aee207bcb089d6d4c81f5ca58169ccdb88a5dfab8146d6",
+  "base_packet_receipt_sha256": "645d5d364c2ac261ec847cc47c44818e6afe4ff165d12d054a106938a13cf97d",
+  "proposal_sha256": "806f9450d2d487fcbb8fc09ec4966cb685eee16099f1dd80c16757ca2b2aa18e",
+  "manifest_canonical_sha256": "f25df5f025ccd81ed95c6e0a87ecb952ff7fd26baceb064b68c512bafb6711ac",
+  "driver_sha256": "b3e50815456113d44eb96885199c4d6caddef65d408a7ee9d85e3803cb1dd80d",
+  "helper_manifest_sha256": "2ad23ab7bfd923bf0d9fe7afed49b1410867c187f8f473aeefb73d427c1a1059",
+  "files": {
+    "dcn-score-pdf-lookup-h13-001.py": "b3e50815456113d44eb96885199c4d6caddef65d408a7ee9d85e3803cb1dd80d",
+    "helper-closure/authority.md": "84ad7a85d2a260b1ffab9ad07bbfe52ce04dbc2b2f0bee687ba51c05c566f498",
+    "helper-closure/closure.json": "2ad23ab7bfd923bf0d9fe7afed49b1410867c187f8f473aeefb73d427c1a1059",
+    "helper-closure/evidence/acquisition-audit.json": "cb94bddd6d8aa3f3654905f127bbb3f89fdf36813b8d5813b90e39d00ffdf078",
+    "helper-closure/evidence/acquisition-receipt.json": "18efd8529a048fa548a0e388d56dcee808cfe5cf75877245bf5bd5a77ad58e5f",
+    "helper-closure/evidence/locator-context.json": "714ba4f9ba7e94d4a0327c82ad510420de5005157e6fd2886efaf4d5523df209",
+    "helper-closure/evidence/riga-results.html": "487b38c2ff264e62bf2e6de8e2b24cd5aff2ceab40856a56c1ac8539a4aad573",
+    "helper-closure/fixture_helpers/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "helper-closure/fixture_helpers/fixture_exception.py": "67be565c9d119a9781377d48f3218aa39ab9b126addeb9285f767afec2b74f72",
+    "helper-closure/fixture_helpers/fixture_transport.py": "4ff935cd38da1afad44ed891b77a57b96ff2a7b7d505966266fd1a3be6636928",
+    "helper-closure/proposal.json": "f25df5f025ccd81ed95c6e0a87ecb952ff7fd26baceb064b68c512bafb6711ac",
+    "helper-closure/source-proposal.json": "806f9450d2d487fcbb8fc09ec4966cb685eee16099f1dd80c16757ca2b2aa18e",
+    "prepare_fixture_exception.py": "0730c8237b1c90bac7a7d1faddf6edea64a53bc0207acab14d2dae6bd002131e"
+  },
+  "network_requests": 0,
+  "executed": false,
+  "owner_approval_reference": "journal/decisions/0087-authorize-remaining-v2-acquisition-and-operations.md",
+  "authority_sha256": "84ad7a85d2a260b1ffab9ad07bbfe52ce04dbc2b2f0bee687ba51c05c566f498"
+}

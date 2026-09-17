@@ -1,0 +1,66 @@
+{
+  "format": "exact-dcn-score-pdf-locator-context-v1",
+  "recorded_at": "2026-09-17T17:49:38.980372+00:00",
+  "body_path": "journal/evidence/admission/dcn-results-body-2026-09-17/quarantine/bodies/487b38c2ff264e62bf2e6de8e2b24cd5aff2ceab40856a56c1ac8539a4aad573",
+  "body_sha256": "487b38c2ff264e62bf2e6de8e2b24cd5aff2ceab40856a56c1ac8539a4aad573",
+  "independent_acquisition_review": "journal/evidence/admission/dcn-results-body-2026-09-17/independent-review-001/checks.json",
+  "independent_acquisition_review_sha256": "cb94bddd6d8aa3f3654905f127bbb3f89fdf36813b8d5813b90e39d00ffdf078",
+  "acquisition_receipt": "journal/evidence/admission/dcn-results-body-2026-09-17/quarantine/receipt.json",
+  "acquisition_receipt_sha256": "18efd8529a048fa548a0e388d56dcee808cfe5cf75877245bf5bd5a77ad58e5f",
+  "observed_memento": "2019-07-19T20:49:19+00:00",
+  "requested_original_url": "https://danceconvention.net/eventdirector/en/eventpage/1546230-riga-summer-swing/results",
+  "printed_canonical_url": "https://danceconvention.net/eventdirector/en/eventpage/1546230-riga-summer-swing-2018/results",
+  "printed_title": "Riga Summer Swing 2018",
+  "printed_desktop_heading": "Riga Summer Swing 2018 8/9/18 - 8/13/18, Riga, Latvia",
+  "selected_contest": "Jack'n'Jill Newcomer",
+  "locators": [
+    {
+      "printed_href": "/eventdirector/en/roundscores/3451330.pdf",
+      "original_url": "https://danceconvention.net/eventdirector/en/roundscores/3451330.pdf",
+      "link_text": "Round scores (PDF)",
+      "container_tables": [
+        {
+          "legend": "Finals",
+          "headers": [
+            "Bib",
+            "Names",
+            "Placement"
+          ],
+          "data_rows": 9
+        }
+      ]
+    },
+    {
+      "printed_href": "/eventdirector/en/roundscores/3451331.pdf",
+      "original_url": "https://danceconvention.net/eventdirector/en/roundscores/3451331.pdf",
+      "link_text": "Round scores (PDF)",
+      "container_tables": [
+        {
+          "legend": "Prelims - leaders",
+          "headers": [
+            "Bib",
+            "Names",
+            "Placement"
+          ],
+          "data_rows": 0
+        },
+        {
+          "legend": "Prelims - followers",
+          "headers": [
+            "Bib",
+            "Names",
+            "Placement"
+          ],
+          "data_rows": 8
+        }
+      ]
+    }
+  ],
+  "limits": [
+    "The source prints these two URLs under the selected Newcomer contest. Other contests are only selectors, not captured results.",
+    "Finals has9 rows; prelim leaders table is empty and followers table has8 rows. These HTML counts do not prove complete participation, marks, promotions, or PDF semantics.",
+    "Canonical URL adds the source-printed2018 slug; no alias or alternate query is authorized.",
+    "This is offline locator evidence, not PDF capture evidence, source-kind admission, or year acceptance."
+  ],
+  "network_requests": 0
+}

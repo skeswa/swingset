@@ -1,0 +1,42 @@
+{
+  "format": "dcn-score-pdf-metadata-runner-independent-review-v1",
+  "recorded_at": "2026-09-17T18:07:13.986336+00:00",
+  "reviewer": "unsupported",
+  "passed": true,
+  "packet": "/tmp/swingset-dcn-score-pdf-lookup-20260917-dev003",
+  "build_receipt_sha256": "0e3c547af30a4e8cfb2f425087f883904869a95f718cbb15595165f5adca510d",
+  "files": {
+    "journal/tools/admission/build_dcn_score_pdf_lookup.py": "44faa2978430bf750481a59d17c2859d07338a1874f554dacbbb896fd1128a13",
+    "journal/tools/admission/dcn_score_pdf_lookup_checks.py": "d589d0cbe73bc8a91ac0a63075b22522dbefeacf095b8264db531beaf4467cbb",
+    "journal/tools/admission/build_dcn_results_lookup.py": "e50c7af20d83c16136ac37b74f35040fa92155b0ae9922fb4751bf2c39288fc1"
+  },
+  "runtime_source": "/nix/store/dx0cyzvd8d91rf29v21sakbr7l5bwxnz-source",
+  "runtime_receipt_sha256": "60cdfe64004a0ba5a9aee207bcb089d6d4c81f5ca58169ccdb88a5dfab8146d6",
+  "proposal_sha256": "806f9450d2d487fcbb8fc09ec4966cb685eee16099f1dd80c16757ca2b2aa18e",
+  "authority_reference": "journal/decisions/0087-authorize-remaining-v2-acquisition-and-operations.md",
+  "authority_sha256": "84ad7a85d2a260b1ffab9ad07bbfe52ce04dbc2b2f0bee687ba51c05c566f498",
+  "manifest_canonical_sha256": "f25df5f025ccd81ed95c6e0a87ecb952ff7fd26baceb064b68c512bafb6711ac",
+  "driver_sha256": "b3e50815456113d44eb96885199c4d6caddef65d408a7ee9d85e3803cb1dd80d",
+  "closure_sha256": "2ad23ab7bfd923bf0d9fe7afed49b1410867c187f8f473aeefb73d427c1a1059",
+  "checks": {
+    "pytest": "61 passed in 3.82s",
+    "ruff": "passed",
+    "mypy": "1 source file passed",
+    "deterministic_rebuild": "complete generated file and build receipt equality"
+  },
+  "reviewed": [
+    "Two exact source-printed original PDF locators; four fixed CDX URLs and robots only, no bodies/origin/PDF/redirect/retry/alternate/child requests.",
+    "Each probe independently conditions only its own page0; empty first query permits second through all ordinary gates. Malformed or blocked later query preserves first query evidence.",
+    "Sealed HTML, acquisition audit/receipt, locator context and D0087 authority; exact authority reference required in execution authorization.",
+    "Source003/schema28, both schema markers, baseline, hold, restore checks across writer lock, H13 scope/host controls and single-use quarantine retained.",
+    "Shared UTC paid request/byte accounting, stricter configured and robots floors, completion-monotonic spacing, full incomplete reservations and exact application-exposed chunk accounting preserved.",
+    "Max5HTTP,2MiBresponse,8MiBaggregate,900seconds; aggregate exhaustion may retain paid grant without HTTP but never increases capacity."
+  ],
+  "limits": [
+    "Review and mocked tests only; current production prestate, actual remaining capacity and fresh execution gate remain coordinator checks.",
+    "Metadata acquisition is not PDF interpretation, source-kind activation, year acceptance or publication.",
+    "Response body bytes are measured at iter_raw boundary; transport buffering is not measured."
+  ],
+  "network_requests": 0,
+  "production_operations": 0
+}

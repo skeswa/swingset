@@ -1,0 +1,116 @@
+{
+  "format": "exact-dcn-score-pdf-cdx-proposal-v1",
+  "status": "proposed_requires_separate_owner_decision",
+  "purpose": "Locate Archive capture metadata for the two score-PDF URLs printed in the independently audited Riga Newcomer results HTML. No PDF or archived body is requested.",
+  "locator_evidence": {
+    "path": "journal/evidence/admission/dcn-results-body-2026-09-17/quarantine/bodies/487b38c2ff264e62bf2e6de8e2b24cd5aff2ceab40856a56c1ac8539a4aad573",
+    "sha256": "487b38c2ff264e62bf2e6de8e2b24cd5aff2ceab40856a56c1ac8539a4aad573",
+    "independent_review": "journal/evidence/admission/dcn-results-body-2026-09-17/independent-review-001/checks.json",
+    "independent_review_sha256": "cb94bddd6d8aa3f3654905f127bbb3f89fdf36813b8d5813b90e39d00ffdf078",
+    "acquisition_receipt": "journal/evidence/admission/dcn-results-body-2026-09-17/quarantine/receipt.json",
+    "acquisition_receipt_sha256": "18efd8529a048fa548a0e388d56dcee808cfe5cf75877245bf5bd5a77ad58e5f",
+    "context_path": "journal/evidence/admission/dcn-score-pdf-lookup-proposal-2026-09-17/locator-context.json",
+    "context_sha256": "714ba4f9ba7e94d4a0327c82ad510420de5005157e6fd2886efaf4d5523df209"
+  },
+  "metadata_queries": [
+    {
+      "id": "dcn-riga-newcomer-finals-3451330",
+      "source": "dcn",
+      "original_url": "https://danceconvention.net/eventdirector/en/roundscores/3451330.pdf",
+      "printed_href": "/eventdirector/en/roundscores/3451330.pdf",
+      "source_container_tables": [
+        {
+          "legend": "Finals",
+          "headers": [
+            "Bib",
+            "Names",
+            "Placement"
+          ],
+          "data_rows": 9
+        }
+      ],
+      "probe_url": "https://web.archive.org/cdx/search/cdx?url=https%3A%2F%2Fdanceconvention.net%2Feventdirector%2Fen%2Froundscores%2F3451330.pdf&matchType=exact&from=2018&to=2026&filter=statuscode%3A200&collapse=digest&showNumPages=true",
+      "page0_url": "https://web.archive.org/cdx/search/cdx?url=https%3A%2F%2Fdanceconvention.net%2Feventdirector%2Fen%2Froundscores%2F3451330.pdf&matchType=exact&from=2018&to=2026&filter=statuscode%3A200&collapse=digest&output=json&fl=timestamp%2Coriginal%2Cdigest%2Cmimetype%2Clength&page=0",
+      "max_pages": 1,
+      "page0_condition": "Only if this exact URL probe reports one or more pages; further pages remain unexamined."
+    },
+    {
+      "id": "dcn-riga-newcomer-prelims-3451331",
+      "source": "dcn",
+      "original_url": "https://danceconvention.net/eventdirector/en/roundscores/3451331.pdf",
+      "printed_href": "/eventdirector/en/roundscores/3451331.pdf",
+      "source_container_tables": [
+        {
+          "legend": "Prelims - leaders",
+          "headers": [
+            "Bib",
+            "Names",
+            "Placement"
+          ],
+          "data_rows": 0
+        },
+        {
+          "legend": "Prelims - followers",
+          "headers": [
+            "Bib",
+            "Names",
+            "Placement"
+          ],
+          "data_rows": 8
+        }
+      ],
+      "probe_url": "https://web.archive.org/cdx/search/cdx?url=https%3A%2F%2Fdanceconvention.net%2Feventdirector%2Fen%2Froundscores%2F3451331.pdf&matchType=exact&from=2018&to=2026&filter=statuscode%3A200&collapse=digest&showNumPages=true",
+      "page0_url": "https://web.archive.org/cdx/search/cdx?url=https%3A%2F%2Fdanceconvention.net%2Feventdirector%2Fen%2Froundscores%2F3451331.pdf&matchType=exact&from=2018&to=2026&filter=statuscode%3A200&collapse=digest&output=json&fl=timestamp%2Coriginal%2Cdigest%2Cmimetype%2Clength&page=0",
+      "max_pages": 1,
+      "page0_condition": "Only if this exact URL probe reports one or more pages; further pages remain unexamined."
+    }
+  ],
+  "query_semantics": "Exact original URLs only, captures2018\u20132026, successful HTTP200 captures collapsed by digest. No MIME filter: retain actual CDX mimetype for independent review instead of assuming the unacquired PDF response type. No wildcard, alternate scheme/host/slug, session suffix, range expansion or additional query.",
+  "limits": {
+    "metadata_requests": 4,
+    "metadata_queries": 2,
+    "max_pages_per_query": 1,
+    "total_http_requests_including_robots": 5,
+    "robots_requests": 1,
+    "max_redirects": 0,
+    "archived_body_requests": 0,
+    "pdf_requests": 0,
+    "origin_requests": 0,
+    "additional_queries": 0,
+    "automatic_retries": 0,
+    "automatic_alternatives": 0,
+    "automatic_child_requests": 0,
+    "max_received_bytes_per_response": 2097152,
+    "max_total_received_bytes": 8388608,
+    "max_elapsed_seconds": 900,
+    "min_completion_to_dispatch_seconds": 10,
+    "max_in_flight": 1,
+    "shared_archive_daily_request_budget": 200
+  },
+  "byte_measurement": "Response body bytes exposed by the bounded streaming consumer; transport buffering is not measured. Total8MiB is a stricter aggregate ceiling than five full2MiB responses; stop when remaining capacity cannot fund a request. Incomplete responses keep their reservation; no sliced chunks or extra EOF probe.",
+  "execution_gates": [
+    "Specific owner decision for this exact proposal; D0069 authorized a different completed metadata lookup and D0073 authorized only the acquired Riga HTML body.",
+    "New independently reviewed fixed-manifest two-query runner and fresh single-use metadata quarantine; existing one-query runner cannot execute this proposal unchanged.",
+    "Bind exact then-current source/runtime/schema/system/public baseline and retained locator/audit hashes; prepare against frozen003 schema28 unless a later runtime is separately reviewed.",
+    "Coordinator serialization under writer/control gates with operator hold and six ordinary units inactive. Preserve H13 controls, source/host gates, robots, cooldowns, one in flight, project User-Agent, conditional requests where supported, and at least10seconds from completed exchange to next dispatch using monotonic time or any stricter active rule.",
+    "Recheck and debit actual shared Archive UTC-day capacity at execution. No budget increase, refund, spacing reset or production initialization.",
+    "Stop without retries, redirects or alternative queries on unexpected response, hold/control/host refusal, malformed page count, response/aggregate/time capacity or robots denial. An empty probe skips only its own page0; the other exact approved query may proceed through ordinary gates."
+  ],
+  "reference_runtime": {
+    "source": "/nix/store/dx0cyzvd8d91rf29v21sakbr7l5bwxnz-source",
+    "source_receipt_sha256": "60cdfe64004a0ba5a9aee207bcb089d6d4c81f5ca58169ccdb88a5dfab8146d6",
+    "schema": 28,
+    "published_commit": "2a6c7dc744fb36eabb5163c0a527d787d3721f4f"
+  },
+  "last_observed_budget": {
+    "path": "journal/evidence/admission/dcn-results-body-2026-09-17/production-after.json",
+    "sha256": "6a23dea490f9ca12e0078ff9b073de614b1e7bbc132540e75deaae02da8fc65a",
+    "observed_at": "2026-09-17T17:44:37.704811+00:00",
+    "requests_used": 15,
+    "request_budget": 200,
+    "remaining_at_observation": 185,
+    "capacity_reserved": 0
+  },
+  "afterward": "Independently audit retained metadata. Any PDF acquisition requires a separate exact capture proposal and owner decision. Missing rows or unexamined pages remain gaps; no guessed IDs, observations, watches, source-kind activation, historical-year acceptance or public publication follows.",
+  "network_requests_during_preparation": 0
+}

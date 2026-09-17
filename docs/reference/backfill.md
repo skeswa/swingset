@@ -418,9 +418,10 @@ written earlier; their watches are not.
 - The horizon of the 2016-11 calendar capture and of the 2009-08 and
   2010-02 old-site captures, which decide whether 2010-01 and 2017 are
   fully dated.
-- Whether every newsletter issue carries the sidebar (four of four
-  checked do), how to recover the purple trial-event marking from the
-  PDF, and whether Vol 24 and Vol 28 exist under other URLs.
+- Newsletter layout and colour coverage beyond the reviewed bodies and
+  exact rows. Retained policy-only issues are explicitly reviewed empty;
+  five colour readings are implemented locally, with other rows still
+  unverified. Whether Vol 24 and Vol 28 exist under other URLs remains open.
 - Whether `journal/tools/collection/build_events.py` parses the 2021 to 2022
   `/event-list/` captures unchanged.
 - EEPro: which slugs before 2018 the origin still serves (from the

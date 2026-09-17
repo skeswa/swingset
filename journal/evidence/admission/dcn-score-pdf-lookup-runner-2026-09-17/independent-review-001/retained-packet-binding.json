@@ -1,0 +1,10 @@
+{
+  "format": "reviewed-packet-retention-binding-v1",
+  "retained_packet": "journal/evidence/admission/dcn-score-pdf-lookup-runner-2026-09-17/packet-001",
+  "reviewed_packet": "/tmp/swingset-dcn-score-pdf-lookup-20260917-dev003",
+  "build_receipt_sha256": "0e3c547af30a4e8cfb2f425087f883904869a95f718cbb15595165f5adca510d",
+  "files_verified": 14,
+  "byte_exact": true,
+  "no_extra_files_or_symlinks": true,
+  "network_requests": 0
+}
