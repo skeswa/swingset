@@ -1,0 +1,41 @@
+{
+  "acceptance": "Preparation only; coordinator allowlist review required before assembly.",
+  "assembly_executed": false,
+  "at": "2026-09-16T16:40:45.369304+00:00",
+  "base": "/nix/store/4c4q8rkiz6jqizcy93bid6cz8mfvp20b-source",
+  "base_receipt_sha256": "71dc14101ca19880f3addfa2dc0073dbe50bce0e4e2be27d7bc91811b6d1e338",
+  "checks": {
+    "four_python_syntax_checks": true,
+    "pyproject_only_transform_against_retained_host_mirror": true,
+    "standalone_test_ast_equals_reviewed_main_function": true
+  },
+  "format": "h16-event-preservation-preparation-v1",
+  "new_immutable_source": null,
+  "prepared_file_sha256": {
+    "assemble-source.py": "897088fb6692d1def6fdaffbba6f5d540ade813b22d87645ee82d7a76484b7f1",
+    "preparation.md": "16913c4d215d5dfe7de3fcd8866dc3b9e8812babfd6bb99365607298b2e809e6",
+    "reviewed-input-hashes.json": "3970973f47b5f70b6e7a7dcb8313ed5c2ecc87549f5b6b25e58d6c56e9933bb2",
+    "test_event_preservation_release.py": "09d3181a8b6e47595548b0f6b5fc0cf2ba985af506497cb5fc5e2612cee45879",
+    "validate-frozen.py": "1ad7504865cb40b295ec6d76305c7ec2444e0e816b1816d6d66d8ad892ba55b4",
+    "verify-source.py": "ba78ec5d51629b46fe1849c90ca4de371e69d2255fbc6066ad632bb4cf365512"
+  },
+  "production_mutated": false,
+  "reviewed_destinations": [
+    "src/swingset/project/map.py",
+    "src/swingset/build/closure_rows.py",
+    "tests/test_map_event_retention.py",
+    "tests/build/test_closure_event_alternatives.py",
+    "tests/build/test_event_preservation_release.py",
+    "pyproject.toml"
+  ],
+  "runtime_overlay": [
+    "src/swingset/project/map.py",
+    "src/swingset/build/closure_rows.py"
+  ],
+  "standalone_test": {
+    "environment": "current main runtime; not a frozen-source acceptance result",
+    "passed": 1,
+    "seconds": 1.19
+  },
+  "vm_jobs_executed": false
+}

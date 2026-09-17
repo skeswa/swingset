@@ -1,0 +1,248 @@
+{
+  "at": "2026-09-16T20:29:27.180683+00:00",
+  "database_writes": false,
+  "tables": {
+    "accepted_inputs": {
+      "actual": {
+        "count": 48,
+        "sha256": "e76c985711abb70ca4bf557ea75a294f88766c8953bc30faf43bab638337161d"
+      },
+      "equals_preflight": true,
+      "equals_verified_checkpoint": true
+    },
+    "pending_work": {
+      "actual": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "equals_preflight": true,
+      "equals_verified_checkpoint": true
+    },
+    "work_generations": {
+      "actual": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "equals_preflight": true,
+      "equals_verified_checkpoint": true
+    },
+    "work_attempts": {
+      "actual": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "equals_preflight": true,
+      "equals_verified_checkpoint": true
+    },
+    "operator_pauses": {
+      "actual": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "equals_preflight": true,
+      "equals_verified_checkpoint": true
+    },
+    "control_state": {
+      "actual": {
+        "count": 1,
+        "sha256": "f109b002d2f351fa534341fcb7d18145d187efd8a47fc21539f8395a7a85d0d6"
+      },
+      "equals_preflight": true,
+      "equals_verified_checkpoint": true
+    },
+    "control_events": {
+      "actual": {
+        "count": 2,
+        "sha256": "c5352b1e711796963fa7114976b01fa92c08147d0565ed4b5ee82f026017abd7"
+      },
+      "equals_preflight": true,
+      "equals_verified_checkpoint": true
+    },
+    "execution_admissions": {
+      "actual": {
+        "count": 1,
+        "sha256": "2c77b20031353169a68a2e4dc9e19482aebd1b7059ae38376a6704463de53d16"
+      },
+      "equals_preflight": true,
+      "equals_verified_checkpoint": true
+    },
+    "runs": {
+      "actual": {
+        "count": 1979,
+        "sha256": "e9d10ec510453be9b0292513afab2a1d38ac8b6ae497881c3a500d6456ed39c0"
+      },
+      "equals_preflight": true,
+      "equals_verified_checkpoint": true
+    }
+  },
+  "passed": true,
+  "meta": {
+    "actual": {
+      "count": 13,
+      "sha256": "0fda765ad2802aa703a5eac254607267f0cd6d404ee5cfb4b1c784d4333ae93d"
+    },
+    "equals_preflight": true,
+    "equals_verified_checkpoint": true
+  },
+  "recipe_runtime_rows": 0,
+  "input_bundle_hash": "184923097435f167078a7743568eb5d6a3b962b1b40542c106164ef71b6eba78",
+  "schema": 14,
+  "marker_sha256": "dad425983041d0a27ab2eae1127db1fc9aeec4a401f50d678d6fe87e176baece",
+  "marker": {
+    "checkpoint": "/var/lib/swingset/checkpoints/h15-before-h16-20260913",
+    "checkpoint_manifest_sha256": "700b2adc01db9eefc5c0c7ba35fddabfbc3aa00b6ed6f4900543b4e4a54ae444",
+    "controls": {
+      "control_events": {
+        "count": 2,
+        "sha256": "c5352b1e711796963fa7114976b01fa92c08147d0565ed4b5ee82f026017abd7"
+      },
+      "control_state": {
+        "count": 1,
+        "sha256": "f109b002d2f351fa534341fcb7d18145d187efd8a47fc21539f8395a7a85d0d6"
+      },
+      "operator_pauses": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    "created_at": "2026-09-16T20:24:31.028950+00:00",
+    "driver_sha256": "c3259a023436e2cc3ee56e1ad83f3170b455f42187ff71421eeac25387bf96d7",
+    "extract_cache_invalidated": true,
+    "format": "h16-production-initialization-v1",
+    "gate_sha256": "00da07082f1cea7a20a6d3e04849e7e2bac8aa4eae8b2ad8d344da9951cc5af6",
+    "input_bundle_hash": "fe99b47cd65eb909abc7c9ebd64d9ace9524393e5af8cd4d9368c55317ce3c6a",
+    "preflight_baseline": {
+      "commit": "81121dcc7d62a1db9e76ee1c49a6b90e1f4c5653",
+      "manifest_sha256": "87ac286a1ae452f09f7e5cea646f260ac34035f3d05bb83de17c7d9cc8f08884"
+    },
+    "prepared_input_authority": {
+      "accepted_inputs": {
+        "count": 51,
+        "sha256": "66709be07136e3a3faf302a37a071542158f00f0b45b970daa8d44832fcdda34"
+      },
+      "bundle": {
+        "count": 1,
+        "sha256": "947ee989e3d840714b721fffd52b16742f6f936e9e247e94c7aeb45a718f9785"
+      }
+    },
+    "previous_input_bundle_hash": "184923097435f167078a7743568eb5d6a3b962b1b40542c106164ef71b6eba78",
+    "protected": {
+      "identity_revision": {
+        "count": 1,
+        "sha256": "01696fb924e76049aac7145bf93c9e18cc33481831df50cc23c6e25987e780f6"
+      },
+      "journal_meta": {
+        "count": 1,
+        "sha256": "686c7edf9eaba966ec7331768b4115f519870218a482d2a3ee1985c9a36f5a29"
+      },
+      "schema": 14,
+      "schema_objects": {
+        "count": 509,
+        "sha256": "1704633774a26a8a386ec978a97a55bbc17174f30c6e9e49b8557c0ab660c936"
+      },
+      "tables": {
+        "admission_decisions": {
+          "count": 31610,
+          "sha256": "c755c03e3f01fb9f54df68e7d54908c368cea665d0d853dfa934968063a924fd"
+        },
+        "admission_policies": {
+          "count": 13,
+          "sha256": "300651d0a2eeb9ad91696c7f49bb0a22b067a322fd8f67644d4dd2c8b483090a"
+        },
+        "admission_reviews": {
+          "count": 9,
+          "sha256": "ab1f192a4e9e4e6dfe3bcb296af1d682b71a37ce85deaba3e8c349d4416394a3"
+        },
+        "archive_captures": {
+          "count": 32,
+          "sha256": "4b8c72d093dd415fe2d7a9c89359af379c019f9e313e2854b8b305e6009bfa2b"
+        },
+        "archive_queries": {
+          "count": 15,
+          "sha256": "672868210f8a15815829f1c7563bd68c33125249dfac67be520c2db737c52c87"
+        },
+        "cursors": {
+          "count": 4,
+          "sha256": "1c53a23629f72d89ac1ca90d804f3d530d8edf7e3c2d1b6dceebcedf29b33cc7"
+        },
+        "history_acceptance": {
+          "count": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "host_budget": {
+          "count": 24,
+          "sha256": "c94690d546cddb7fe55c013200e83ea0a14b5219c1f04e51592d5c29df1535ec"
+        },
+        "hosts": {
+          "count": 7,
+          "sha256": "a3390bfbc66fe018dfbf24ef8b82db3ffb610a3ab24fbe7a608cb8e4e406949c"
+        },
+        "identity_decisions": {
+          "count": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "identity_journal_acceptances": {
+          "count": 1,
+          "sha256": "a1d71b31f92e3e463680ef7712d479dfea52ad426de2190765af1b2596d7e27c"
+        },
+        "identity_reference_migrations": {
+          "count": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "observations": {
+          "count": 58169,
+          "sha256": "d110d12fe8c4e70411816a7f445fafc433f6291ef0363f672897947bf07d782c"
+        },
+        "registry_verifications": {
+          "count": 29060,
+          "sha256": "5adebc5eaef388f0fc91f92a6a897ba9d713e43a2db507a671d6c62e0fac6b4a"
+        },
+        "scheduler_parent_links": {
+          "count": 6274,
+          "sha256": "be424046d9075b68cd42d307fcc36afdf76042aa8fd8df90917a10e60e42d299"
+        },
+        "scheduler_requests": {
+          "count": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "scheduler_watch_state": {
+          "count": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "snapshots": {
+          "count": 31821,
+          "sha256": "878ce523e4db95bb37610c7a3ad5543b5749a2188bf6c5666d459ec57af68148"
+        },
+        "source_generations": {
+          "count": 32189,
+          "sha256": "0fc6bf7a29227180d2d4ce6cada193a338ad4328bf708e7bb4e700cf91a8082a"
+        },
+        "source_units": {
+          "count": 31805,
+          "sha256": "7bf6c130e33bad5c237d1fd9489cb4634c15c71f280eea8a46e87f179858a7c4"
+        }
+      },
+      "watches_except_extract_cache": {
+        "count": 35417,
+        "sha256": "e9451a1302f6a1f50833ce2e514da79d0266d9d7d3058b79790aaa79b1d54ea3"
+      }
+    },
+    "source": "/nix/store/z689qy41inndill3d92ym8im852x3649-source",
+    "source_receipt_sha256": "0c3a391aca5c32381ab10daa22adfdde44cda76ab26b68df002f9822ad4945fb",
+    "state": "/var/lib/swingset",
+    "watch_extract_versions": {
+      "count": 35417,
+      "sha256": "7f62a79ac3eb2e1edebdeac65956b22e5099efd55067e5c97553e607228dbf17"
+    }
+  },
+  "control_lock": {
+    "inode": 6400127,
+    "uid": 0,
+    "gid": 0,
+    "mode": "0o100644",
+    "size": 0,
+    "mtime_ns": 1789294718137880989
+  },
+  "writer_lock_released": true,
+  "seconds": 0.040902305976487696
+}

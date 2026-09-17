@@ -1,0 +1,112 @@
+{
+  "admission_states": {
+    "settled": 34987
+  },
+  "attempt_outcomes": {
+    "succeeded": 34986
+  },
+  "connection_total_changes": 0,
+  "database_files_after": {
+    "state.sqlite": {
+      "mtime_ns": 1789583615629164420,
+      "size": 4570456064
+    },
+    "state.sqlite-shm": {
+      "mtime_ns": 1789583650931755940,
+      "size": 32768
+    },
+    "state.sqlite-wal": {
+      "mtime_ns": 1789583627265359376,
+      "size": 138436152
+    }
+  },
+  "database_files_before": {
+    "state.sqlite": {
+      "mtime_ns": 1789583615629164420,
+      "size": 4570456064
+    },
+    "state.sqlite-shm": {
+      "mtime_ns": 1789583629187987172,
+      "size": 32768
+    },
+    "state.sqlite-wal": {
+      "mtime_ns": 1789583627265359376,
+      "size": 138436152
+    }
+  },
+  "elapsed_seconds": 11.053752070991322,
+  "foreign_key_violations": 0,
+  "format": "h16-event-preservation-replay-final-verification-v1",
+  "generation_count": 34986,
+  "inherited_unfinished_runs": [
+    [
+      "run_20260910T134707Z",
+      "2026-09-10T13:47:07.049634Z",
+      null
+    ],
+    [
+      "run_20260910T141607Z",
+      "2026-09-10T14:16:07.058830Z",
+      null
+    ],
+    [
+      "run_20260910T144507Z",
+      "2026-09-10T14:45:07.062100Z",
+      null
+    ],
+    [
+      "run_20260913T035033Z",
+      "2026-09-13T03:50:45.149373+00:00",
+      null
+    ],
+    [
+      "run_20260913T050412Z",
+      "2026-09-13T05:04:12.815395Z",
+      null
+    ],
+    [
+      "run_20260913T053144Z",
+      "2026-09-13T05:31:44.082001Z",
+      null
+    ],
+    [
+      "run_20260913T055216Z",
+      "2026-09-13T05:52:16.766220Z",
+      null
+    ]
+  ],
+  "inherited_unfinished_runs_unchanged": true,
+  "input_binding_sha256": "6f4838f6b6f03972e169d413c1540e87629510e9b461e821dea16f94aacb5127",
+  "input_bundle_hash": "fe99b47cd65eb909abc7c9ebd64d9ace9524393e5af8cd4d9368c55317ce3c6a",
+  "lock_exclusive_acquired": true,
+  "main_database_metadata_unchanged": true,
+  "marker_sha256": "a2eb6255beddabe1917808da3916e219433fb9bf7fc85dd6427d9e28bad1a1e2",
+  "materialized_by_scope": {
+    "link/event": 2541,
+    "project/calendar": 2,
+    "project/dancer": 29048,
+    "project/event": 2541,
+    "project/history": 1,
+    "project/inventory": 1,
+    "project/map": 1,
+    "project/source_event": 467,
+    "project/source_index": 384
+  },
+  "network_requests": 0,
+  "parse_executed": false,
+  "passed": true,
+  "published": false,
+  "quick_check": [
+    "ok"
+  ],
+  "replay_receipt": "/var/tmp/swingset-h16-event-preservation-replay-012.json",
+  "replay_receipt_sha256": "1b2ea424e6a4380a98c8f4bdc34d8a4328d0004e4f75231ec33ef2ba2275af0c",
+  "schema": 14,
+  "scratch": "/var/tmp/swingset-h16-event-preservation-replay",
+  "script_sha256": "a59832bf2a5f7dc15483e7b8505e013ac13e0eb4b1617d03e168057a1a8fdd2d",
+  "source": "/nix/store/z689qy41inndill3d92ym8im852x3649-source",
+  "source_receipt_sha256": "0c3a391aca5c32381ab10daa22adfdde44cda76ab26b68df002f9822ad4945fb",
+  "supervisor_receipt_sha256": "b2aff6ccd6ac68e4fcda28fe5f0ded0798a88381d5e8b01d6dde55d6dfda880a",
+  "unfinished_by_scope": {},
+  "verified_at": "2026-09-16T18:34:10.920879+00:00"
+}

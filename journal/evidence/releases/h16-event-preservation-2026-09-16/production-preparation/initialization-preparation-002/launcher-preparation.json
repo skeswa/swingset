@@ -1,0 +1,114 @@
+{
+  "format": "h16-initialization-prepare-002-launcher-preparation-v1",
+  "executed": false,
+  "staged": false,
+  "old_launcher_sha256": "eb31c6d150df40b86ad430677c5967d7703dd06f07adc9ed68143b0599170dcd",
+  "new_launcher_sha256": "87954f8775ec13d2f66f184ee67571d165185e56f838f6001499753589c2a392",
+  "new_gate_sha256": "00da07082f1cea7a20a6d3e04849e7e2bac8aa4eae8b2ad8d344da9951cc5af6",
+  "coordinator_review_sha256": "6ed770cc8723f2a47ef584a8ceb2bcdef84254d57412649d03e86afa98b08f92",
+  "gate_changes": {
+    "driver_sha256": {
+      "before": "b54c02a15c3d86a603bef4d6926e66bde4cf1ef9d23f273aa5db771d3a99d233",
+      "after": "c3259a023436e2cc3ee56e1ad83f3170b455f42187ff71421eeac25387bf96d7"
+    },
+    "prepared_at": {
+      "before": "2026-09-16T20:04:02.083827+00:00",
+      "after": "2026-09-16T20:19:44.105799+00:00"
+    },
+    "preparation_basis": {
+      "before": "Exact passed scratch replay/build/audit and actual read-only production acceptance. Prepared for coordinator review; no initialization executed.",
+      "after": "Exact original source/bundle/checkpoint/replay/build/audit/production-acceptance authority retained. Initializer002 treats the absent legacy runtime-recipe row as None and therefore invalidates the cache when accepting the rehearsed recipe. Existing retained-manifest policy comparison and protected-state/authority checks remain unchanged. Failed001 created no marker and did not change accepted inputs, work, controls or metadata. No retry execution claimed."
+    },
+    "operational_driver_revision": {
+      "before": null,
+      "after": {
+        "previous_gate_sha256": "45c7abb4843ba7e90c2a93f6326dba939d2f8a321f407dcbd7fecee99582c4da",
+        "previous_driver_sha256": "b54c02a15c3d86a603bef4d6926e66bde4cf1ef9d23f273aa5db771d3a99d233",
+        "failed_prepare_sha256": "2cb4d802abb286cec265bdccb4977578b7aa425c991658b209a9e6a454e4fcfe",
+        "failure_preservation_sha256": "d655675aab668e6600f79865f6e0443a560ae551ae81e785c11010570b7dd54b",
+        "runtime_source_unchanged": true
+      }
+    }
+  },
+  "helpers": {
+    "legacy-runtime-fix/initialize-002.py": {
+      "target": "initialize-002.py",
+      "sha256": "c3259a023436e2cc3ee56e1ad83f3170b455f42187ff71421eeac25387bf96d7"
+    },
+    "supervise-initialization-002.py": {
+      "target": "supervise-initialization-002.py",
+      "sha256": "7d2746bd079a0e0fb608ae666f4cec2146ab23561c46e2d808f0f2ba2216324f"
+    },
+    "monitoring/guard-initialization-003.py": {
+      "target": "monitoring/guard-initialization-003.py",
+      "sha256": "b39cedadd065dad76eb5a47f0c5de3dd39a737895a7198bb7a48a75f5ea1623b"
+    },
+    "final-verification/verify-initialization-002.py": {
+      "target": "final-verification/verify-initialization-002.py",
+      "sha256": "de8708f555c34a97afcdae2085c266eac3d4e1230e6879d4069cd8a7bd7410db"
+    }
+  },
+  "literal_replacements": [
+    [
+      "INPUT = PREP / 'initialization-preparation'",
+      "INPUT = PREP / 'initialization-preparation-002'"
+    ],
+    [
+      "h16-event-preservation-initialization-prepare-20260916",
+      "h16-event-preservation-initialization-prepare-002-20260916"
+    ],
+    [
+      "swingset-h16-event-preservation-initialization-prepare.service",
+      "swingset-h16-event-preservation-initialization-prepare-002.service"
+    ],
+    [
+      "45c7abb4843ba7e90c2a93f6326dba939d2f8a321f407dcbd7fecee99582c4da",
+      "00da07082f1cea7a20a6d3e04849e7e2bac8aa4eae8b2ad8d344da9951cc5af6"
+    ],
+    [
+      "0ec45915e60e83d5201afd4de526cf0a28b53b57c82ca89c9021ece9e044ffcd",
+      "6ed770cc8723f2a47ef584a8ceb2bcdef84254d57412649d03e86afa98b08f92"
+    ],
+    [
+      "b54c02a15c3d86a603bef4d6926e66bde4cf1ef9d23f273aa5db771d3a99d233",
+      "c3259a023436e2cc3ee56e1ad83f3170b455f42187ff71421eeac25387bf96d7"
+    ],
+    [
+      "initialization-gate.json",
+      "initialization-gate-002.json"
+    ],
+    [
+      "initialization-marker.json",
+      "initialization-marker-002.json"
+    ],
+    [
+      "prepare-001.json",
+      "prepare-002.json"
+    ],
+    [
+      "initialization-prepare-review.json",
+      "initialization-prepare-review-002.json"
+    ],
+    [
+      "'initialize.py'",
+      "'initialize-002.py'"
+    ]
+  ],
+  "additional_launcher_changes": [
+    "Validate four exact helper inputs and refuse all preexisting new target paths before staging.",
+    "Exclusively copy four helpers to their versioned private service-owned0600 paths, fsync and verify exact bytes/owner/mode.",
+    "Check initializer source before staging; worker executes only privately staged initialize-002.py prepare.",
+    "Record staged helper bindings in launch/final receipt."
+  ],
+  "unchanged": [
+    "source and bundle authority",
+    "all16 nested evidence",
+    "environment",
+    "bounded service and memory guard",
+    "prepare-only worker mode",
+    "directwait and error handling",
+    "all ordinary holds",
+    "no run/anchor execution"
+  ],
+  "diff_sha256": "69eeb9caeb80fb7222bfdb965e6de8c89636e4e3d5e4d89e53772b0fa8f1ff36"
+}

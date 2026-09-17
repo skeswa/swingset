@@ -14,6 +14,7 @@ from test_platform_backfill import fixture as fixture
 from swingset.clock import FakeClock
 from swingset.fetch.archive import Archive
 from swingset.fetch.client import FetchClient
+from swingset.schedule.event_pressure import bootstrap as bootstrap_pressure
 from swingset.schedule.watches import upsert_watch
 from swingset.sources.base import WatchSpec
 from swingset.sources.eepro.adapter import AutoIndexPage
@@ -37,6 +38,10 @@ def reviewed_index(fixture):
     generation, report = corpus.stage(corpus.snapshot("gate-control", body), body=body)
     assert not report.failures
     corpus.review(generation)
+    # These tests exercise invalidation after request selection. Settle the
+    # independent expansion metadata gate as an ordinary cycle does first.
+    while fixture.conn.execute("SELECT 1 FROM event_pressure_dirty LIMIT 1").fetchone():
+        bootstrap_pressure(fixture.db, fixture.config, now=fixture.clock.now())
     return corpus.page
 
 

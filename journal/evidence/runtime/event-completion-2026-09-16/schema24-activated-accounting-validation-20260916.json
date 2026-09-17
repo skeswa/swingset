@@ -1,0 +1,47 @@
+{
+  "format": "swingset.local-activated-accounting-checks.v1",
+  "recorded_at": "2026-09-16T22:06:12.680859+00:00",
+  "status": "passed",
+  "schema_version": 24,
+  "hash_timing": "Captured after terminal tests, before parent-coordinated formatting; parent will retain post-format validation separately.",
+  "runs": [
+    {
+      "log": "schema24-activated-accounting-focused-20260916.log",
+      "sha256": "ab00e0077f3120daf18c1dd9503446975a856dd3c7c087a3f65c754021310c25",
+      "command": ".venv/bin/python -m pytest -q tests/test_event_accounting_restore.py",
+      "exit_code": 0,
+      "passed": 5,
+      "duration": "1.32s",
+      "terminal_summary": "5 passed in 1.32s"
+    },
+    {
+      "log": "schema24-activated-accounting-related-20260916.log",
+      "sha256": "60f0c69569606c8eee484cbb26991ec2aed2971de817d36aff1ad3c71250fa07",
+      "command": ".venv/bin/python -m pytest -q tests/test_event_accounting_restore.py tests/test_event_completion_restore.py tests/test_event_gaps.py tests/test_event_retirement.py",
+      "exit_code": 0,
+      "passed": 80,
+      "duration": "6.74s",
+      "terminal_summary": "80 passed in 6.74s"
+    }
+  ],
+  "files": {
+    "tests/test_event_accounting_restore.py": "e8711e340ceaad867dd13979040fdca265f07f327f36a359f7ad8efe9aea6e1d",
+    "tests/test_event_completion_restore.py": "5991efbe274e5b735843269bb9b1a48c0c7f3662e88fc1c36daf5ee6f38ecef6",
+    "tests/test_event_accounting.py": "92c54423d346adc047cf076b4da9caabc8778d748685b33c9065841a1f77a7a9",
+    "tests/test_event_enumerations.py": "a816b96ee34dbe57a3cd8b8f5987ed4e80c951db957cc7133846ac4174585b6a",
+    "tests/test_event_gaps.py": "83e88043292530be7a3a305a8ff7d48c3b67c549a1a57cbb97d065efd8c7055e",
+    "tests/test_event_pressure.py": "cc3d53d0fea9631927be75d57abbf791bbd82d1734d40d9738d4bcc4bb5eaf5a",
+    "tests/test_event_progress.py": "fec452b520e4338d0b9b89bf182f1be18d8f7d5f02c7e56dedc99957cd67c0b8",
+    "src/swingset/backup/checkpoint.py": "6a99bc62a0ee49e7a91a59f38efe9fec87dbdb0a87cc640eb2dc635aab62f2ce",
+    "src/swingset/state/db.py": "869f17648d5dec786c42a7298840799771bec4275c3370c39f54d8f2966cbd28",
+    "src/swingset/schedule/event_progress.py": "66cfe342c2adb4a8297229e92738e41873b9d4b08d96c939a5ba5191319bf057",
+    "src/swingset/schedule/event_accounting.py": "88616c5533617ecd46e28b3ece2b5f3fa94894a3b407d2fd8d50a982049fcb02",
+    "src/swingset/schedule/event_accounting_report.py": "fe1271930b74a7ac5cf9ecc1a7d8202f4e655f2b6700bd6a77b08b6e4c19c428",
+    "src/swingset/schedule/event_gaps.py": "7eff52ec96aff7e89608ab89ceb20118ec4aa3ee46979ea3758f872d4d5c2dcb",
+    "src/swingset/schedule/event_retirement.py": "902e8f125e03ac44db650affaa270cfd5845409ff81bf9e99ca85931e1261dd9"
+  },
+  "limits": [
+    "Current schema24 checkpoint activation carrying progress/accounting/retirement/gap state; no historical schema21-23 migration acceptance.",
+    "MockTransport fetch/parse/accept and actual disposable checkpoint activation; no whole run_cycle, linking, build, publication, production recovery, remote Hub or network throughput."
+  ]
+}

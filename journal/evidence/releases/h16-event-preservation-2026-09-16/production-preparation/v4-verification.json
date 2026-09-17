@@ -1,0 +1,17 @@
+{
+  "state": "published",
+  "candidate_id": "cand_7f8cf9bcbf7e4a60",
+  "commit": "81121dcc7d62a1db9e76ee1c49a6b90e1f4c5653",
+  "candidate": "/var/lib/swingset/candidates/cand_7f8cf9bcbf7e4a60",
+  "manifest_hash": "87ac286a1ae452f09f7e5cea646f260ac34035f3d05bb83de17c7d9cc8f08884",
+  "expected_parent": "4653f3a3a6076d3af474c28f7bd0e93998ca0a9c",
+  "finished_at": "2026-09-13T08:47:00.123766+00:00",
+  "source": "/nix/store/acbgadnny89l7kp459im2lx6bp2ll39q-source",
+  "publication_receipt": {
+    "commit": "81121dcc7d62a1db9e76ee1c49a6b90e1f4c5653",
+    "correction_detected_at": "2026-09-13T07:08:57.942256+00:00",
+    "correction_latency_seconds": 5882.166571,
+    "latency_is_upper_bound": false,
+    "verified_at": "2026-09-13T08:47:00.108827+00:00"
+  }
+}

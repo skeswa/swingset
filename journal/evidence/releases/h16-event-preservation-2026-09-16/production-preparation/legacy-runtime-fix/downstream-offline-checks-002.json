@@ -1,0 +1,57 @@
+{
+  "adaptation_manifest_sha256": "07ca4235954388074c3d3cca01d67e09f883d510274f32c6a0d25ec1e22f86ba",
+  "all_original_and_adapted_hashes_unchanged": true,
+  "at": "2026-09-16T20:15:35.695774+00:00",
+  "checks": [
+    {
+      "PYTHONPATH": "/Users/skeswa/.cache/swingset-h16-event-preservation-tests-20260916/src:/Users/skeswa/.cache/swingset-h16-event-preservation-tests-20260916",
+      "argv": [
+        "/Users/skeswa/repos/skeswa/swingset/.venv/bin/python",
+        "-m",
+        "pytest",
+        "-q",
+        "-p",
+        "no:cacheprovider",
+        "-c",
+        "/Users/skeswa/.cache/swingset-h16-event-preservation-tests-20260916/pyproject.toml",
+        "-o",
+        "pythonpath=src . tests",
+        "/Users/skeswa/repos/skeswa/swingset/journal/evidence/releases/h16-event-preservation-2026-09-16/production-preparation/test_production_release.py",
+        "/Users/skeswa/repos/skeswa/swingset/journal/evidence/releases/h16-event-preservation-2026-09-16/production-preparation/test_live_initialize_002.py",
+        "/Users/skeswa/repos/skeswa/swingset/journal/evidence/releases/h16-event-preservation-2026-09-16/production-preparation/test_initializer_supervisor_002.py",
+        "/Users/skeswa/repos/skeswa/swingset/journal/evidence/releases/h16-event-preservation-2026-09-16/production-preparation/test_supervisor_launch_review_002.py",
+        "/Users/skeswa/repos/skeswa/swingset/journal/evidence/releases/h16-event-preservation-2026-09-16/production-preparation/test_activate_system.py",
+        "/Users/skeswa/repos/skeswa/swingset/journal/evidence/releases/h16-event-preservation-2026-09-16/production-preparation/monitoring/test_memory_guard_003.py",
+        "/Users/skeswa/repos/skeswa/swingset/journal/evidence/releases/h16-event-preservation-2026-09-16/production-preparation/final-verification/test_verify_initialization_002.py"
+      ],
+      "cwd": "/Users/skeswa/.cache/swingset-h16-event-preservation-tests-20260916",
+      "exit_code": 0,
+      "log": "downstream-tests-002.log",
+      "log_sha256": "5381812860bc84576164d078bd39621775d33d252a08e320ccd7b9f48d1d5273",
+      "seconds": 22.960865375003777
+    },
+    {
+      "PYTHONPATH": "/Users/skeswa/.cache/swingset-h16-event-preservation-tests-20260916/src:/Users/skeswa/.cache/swingset-h16-event-preservation-tests-20260916",
+      "argv": [
+        "/Users/skeswa/repos/skeswa/swingset/.venv/bin/ruff",
+        "check",
+        "--select",
+        "F",
+        "/Users/skeswa/repos/skeswa/swingset/journal/evidence/releases/h16-event-preservation-2026-09-16/production-preparation/supervise-initialization-002.py",
+        "/Users/skeswa/repos/skeswa/swingset/journal/evidence/releases/h16-event-preservation-2026-09-16/production-preparation/monitoring/guard-initialization-003.py",
+        "/Users/skeswa/repos/skeswa/swingset/journal/evidence/releases/h16-event-preservation-2026-09-16/production-preparation/final-verification/verify-initialization-002.py"
+      ],
+      "cwd": "/Users/skeswa/.cache/swingset-h16-event-preservation-tests-20260916",
+      "exit_code": 0,
+      "log": "downstream-runtime-pyflakes-002.log",
+      "log_sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18",
+      "seconds": 0.032521459041163325
+    }
+  ],
+  "format": "h16-initializer002-downstream-offline-checks-v1",
+  "passed": true,
+  "prior_check_note": "001 invoked resolved base interpreter without pytest; rerun preserves venv entry point. Legacy copied launch-review test has preexisting unused pathlib.Path import; left byte-identical except import target. Runtime Pyflakes excludes tests.",
+  "private_staging_executed": false,
+  "production_state_read": false,
+  "vm_jobs_started": false
+}

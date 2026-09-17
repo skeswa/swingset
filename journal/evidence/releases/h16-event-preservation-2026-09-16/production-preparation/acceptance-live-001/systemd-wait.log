@@ -1,0 +1,7 @@
+Running as unit: swingset-h16-event-preservation-production-acceptance.service; invocation ID: 405aa5d5ae7148d2b20d8f4169d383b5
+          Finished with result: success
+Main processes terminated with: code=exited, status=0/SUCCESS
+               Service runtime: 1min 44.383s
+             CPU time consumed: 1min 46.091s
+                   Memory peak: 6.2G (swap: 0B)
+                      IO Bytes: read 10.1G, written 1.7G

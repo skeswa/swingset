@@ -1,0 +1,66 @@
+{
+  "format": "h16-production-initialization-terminal-coordinator-review-v1",
+  "at": "2026-09-16T22:19:08.371479+00:00",
+  "reviewed_by": "root coordinator",
+  "passed": true,
+  "files": {
+    "initialization-reviewed-002-live/supervision/initializer-001.json": "ff4f86e1c4fef8818006467d388e3cbfd14593cffeab7cf28d5c069f64fd9d44",
+    "initialization-reviewed-002-live/supervision/initializer-001.resources.jsonl": "056de3a12e6842d9870b6e3f5e699b13db135ba5f803541a5f01c8a19e0b07af",
+    "initialization-reviewed-002-live/supervision/initializer-002.json": "7b601ab1ab5129ea6efd42650d46213c5006a7187702e61348e74f21f8f1d3a4",
+    "initialization-reviewed-002-live/supervision/initializer-002.resources.jsonl": "d9673a91104b067c7a381d99c1f180df126e65d1b0f9b4132046946b6912f650",
+    "initialization-reviewed-002-live/supervision/initializer-003.json": "cec567c4f38b2c1f0a5b4bb5b05dd2fc1c3d0cfb9c23413a8b5eb87593a0c06b",
+    "initialization-reviewed-002-live/supervision/initializer-003.resources.jsonl": "048e0440de1a1df09de8c12a366a2f81609b31f924251767ecb9f2c0d3e60062",
+    "initialization-reviewed-002-live/supervision/initializer-004.json": "b2a09c5ecefd450dfee0a7b96fd9167ff1da6a328fed7447d77cde0d1f2a03ce",
+    "initialization-reviewed-002-live/supervision/initializer-004.resources.jsonl": "31f2d7bfba0d797f78ff955c493c88290e02638bb31b42ca92e3ebeb389bd76f",
+    "initialization-reviewed-002-live/supervision/initializer-005.json": "1839edf417739e92ca2d262ee11c0e78fbce005be9d30f63f3e1e58db70414c9",
+    "initialization-reviewed-002-live/supervision/initializer-005.resources.jsonl": "a76195e423d439e3371131ae43656f2eb150efae98561dc641b9cc38d9677447",
+    "initialization-reviewed-002-live/supervision/initializer-006.json": "aa1a820c943926e487aa7c07049109dbb60ac3cbedba41b5857a43731acb5be2",
+    "initialization-reviewed-002-live/supervision/initializer-006.resources.jsonl": "a55212423ae0ac7a6154243490c4776aa6eb63f3a31ed866e1abc0416f1e9fee",
+    "initialization-reviewed-002-live/supervision/initializer-007.json": "ab00fa40b3b7b587fd5d87c1b287e0d8abead90720f1b5e8b0f24a29ff9694cc",
+    "initialization-reviewed-002-live/supervision/initializer-007.resources.jsonl": "a52db0c049429e59d4a857891a74e96344c74d1d8379ee0ae4294e01b8c43e31",
+    "initialization-reviewed-002-live/supervision/preflight.json": "a6f40b151bf77c73c277afd75b67cf1519ad2435e572f5dc9282d845e5234154",
+    "initialization-reviewed-002-live/supervision/final.json": "542fd9bc89eb48dd8dc3bd2d916127cb291db36b2429e3aaf03222e0facc0d5c",
+    "final-verifier-002-command.json": "f2dac4be121da32f40e5ae1e3cc67ae3463cb1d351c007c956263f425a2be42d",
+    "initialization-reviewed-002-live/launcher/execution.json": "fe8ced58ca2fddffc337fb1920f55acc48e16cc66de76b3ca3d88093c9317d02"
+  },
+  "completed": 34986,
+  "batches": 7,
+  "resource_log_observations": [
+    {
+      "batch": 1,
+      "samples": 220,
+      "top_level_anonymous_peak": 1779904512
+    },
+    {
+      "batch": 2,
+      "samples": 219,
+      "top_level_anonymous_peak": 1168859136
+    },
+    {
+      "batch": 3,
+      "samples": 220,
+      "top_level_anonymous_peak": 1562161152
+    },
+    {
+      "batch": 4,
+      "samples": 219,
+      "top_level_anonymous_peak": 1240748032
+    },
+    {
+      "batch": 5,
+      "samples": 219,
+      "top_level_anonymous_peak": 1168859136
+    },
+    {
+      "batch": 6,
+      "samples": 219,
+      "top_level_anonymous_peak": 1348997120
+    },
+    {
+      "batch": 7,
+      "samples": 205,
+      "top_level_anonymous_peak": 1177956352
+    }
+  ],
+  "review": "Independently read exact VM and retained preflight/final/current receipt. All batches settled with released writer locks, successful scoped attempts, unchanged controls/source/parse authority and baseline, no requests/parse/build/publication. Exact verifier002 command binds actual final artifacts plus successful prepare003 and anchor003. Resource guard exits cleanly. Authorize independent final verification only; production build waits for its successful actual proof."
+}

@@ -1,0 +1,14 @@
+{
+  "format": "h16-build-coordinator-audit-gate-v1",
+  "at": "2026-09-16T19:50:23.628278+00:00",
+  "passed": true,
+  "source": "/nix/store/z689qy41inndill3d92ym8im852x3649-source",
+  "source_receipt_sha256": "0c3a391aca5c32381ab10daa22adfdde44cda76ab26b68df002f9822ad4945fb",
+  "build_receipt_sha256": "59a2e82b5cc8dfe0a4451b679fa89c0dcf84aa59ee944ee8c1d7b9efa37c61a3",
+  "build_orchestration_sha256": "f13c3411fd2e1ff7a05aec073990293d5602eddbf4ae634d71deb7b7ee9f310b",
+  "resources_sha256": "81f444dd36eb471707a51f95f1b5d2285eaebf21bc88eebc8c24bbfb685cdc07",
+  "candidate_id": "cand_2a6ff4c91cc64ee4",
+  "manifest_hash": "2c23cd4be4995cfef4645cd553a745c05bfc0b2e495d3c08e772dd765be474c1",
+  "next_authorized_action": "independent scratch candidate audit only",
+  "review": "Durable ordinary build and semantic preflight passed from exact final replay receipt. Direct systemd wait exit0 and retained monitoring accepted. Counts are not substantive preservation acceptance."
+}

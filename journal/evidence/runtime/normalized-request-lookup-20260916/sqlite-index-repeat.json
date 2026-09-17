@@ -1,0 +1,42 @@
+{
+  "sqlite_version": "3.50.4",
+  "cases": [
+    {
+      "case": "plain read without UDF",
+      "result": [
+        [
+          "one",
+          "GET",
+          "https://EXAMPLE.com:443/a#fragment",
+          null
+        ]
+      ]
+    },
+    {
+      "case": "unrelated write without UDF",
+      "result": []
+    },
+    {
+      "case": "snapshot write without UDF",
+      "error": "unknown function: request_key_v1()"
+    },
+    {
+      "case": "integrity check without UDF",
+      "error": "unknown function: request_key_v1()"
+    }
+  ],
+  "query_plan": [
+    [
+      3,
+      0,
+      61,
+      "SEARCH s USING INDEX request_lookup (<expr>=?)"
+    ]
+  ],
+  "matching_aliases": [
+    [
+      "one"
+    ]
+  ],
+  "stored_column_alter_error": "cannot add a STORED column"
+}

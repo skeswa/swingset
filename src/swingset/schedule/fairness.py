@@ -21,6 +21,8 @@ from swingset.state.control_scopes import for_watch
 from swingset.state.controls import ActionScope, matching_pauses
 from swingset.state.work import WorkUnit, next_work
 
+from .event_capacity import Selection as CapacitySelection
+from .event_turns import Selection
 from .fair_policy import shares
 
 
@@ -35,6 +37,8 @@ class WatchChoice:
     repair: bool = False
     archive: bool = False
     history: bool = False
+    turn: Selection | None = None
+    capacity: CapacitySelection | None = None
 
 
 @dataclass(frozen=True)
@@ -139,14 +143,37 @@ def report(conn: sqlite3.Connection, config: Config, *, now: datetime) -> dict[s
     }
 
 
-def request_permitted(conn: sqlite3.Connection, config: Config) -> bool:
+def request_denial(
+    conn: sqlite3.Connection,
+    config: Config,
+    *,
+    watch_id: str | None = None,
+    host: str | None = None,
+    now: datetime | None = None,
+) -> str | None:
     """Called before the durable host debit, including for robots and redirects."""
-    if not backpressure(conn, config)["active"]:
-        return True
     service = _service.get()
-    if service is None or not service.choice.repair:
-        return False
-    return _repair_capacity(conn, config, service.run_id)
+    if backpressure(conn, config)["active"] and (
+        service is None
+        or not service.choice.repair
+        or not _repair_capacity(conn, config, service.run_id)
+    ):
+        return "pending work backpressure"
+    if now is not None:
+        from .event_pressure import request_denial as expansion_denial
+
+        return expansion_denial(
+            conn,
+            config,
+            watch_id=watch_id or (service.choice.watch_id if service else None),
+            host=host or (service.choice.host if service else None),
+            now=now,
+        )
+    return None
+
+
+def request_permitted(conn: sqlite3.Connection, config: Config, **kwargs: Any) -> bool:
+    return request_denial(conn, config, **kwargs) is None
 
 
 def _repair_capacity(conn: sqlite3.Connection, config: Config, run_id: str) -> bool:
@@ -187,6 +214,15 @@ def record_request(
             now.isoformat(),
         ),
     )
+    if service:
+        from .event_capacity import record as record_capacity
+        from .event_turns import record
+
+        record(conn, service.choice, action_id=action_id, now=now)
+        record_capacity(conn, service.choice, action_id=action_id)
+    from .event_pressure import record_started
+
+    record_started(conn, config, watch_id=watch_id, host=host, now=now)
 
 
 def _choices(conn: sqlite3.Connection, config: Config, now: datetime) -> Iterator[WatchChoice]:
@@ -294,6 +330,9 @@ def _eligible(
     extra_choices: Iterable[WatchChoice],
     run_id: str | None,
 ) -> Iterator[tuple[WatchChoice, float]]:
+    from .event_pressure import request_denial as expansion_denial
+
+    host_decisions: dict[str, dict[str, Any]] = {}
     pressure = bool(backpressure(conn, config)["active"])
     if pressure and run_id is not None and not _repair_capacity(conn, config, run_id):
         return
@@ -302,9 +341,40 @@ def _eligible(
         if choice.key in seen:
             continue
         seen.add(choice.key)
+        if expansion_denial(
+            conn,
+            config,
+            watch_id=choice.watch_id,
+            host=choice.host,
+            now=now,
+            host_decisions=host_decisions,
+        ):
+            continue
         delay = _delay(conn, config, choice, now, pressure)
         if delay is not None:
             yield choice, delay
+
+
+def prepare_event_turns(
+    conn: sqlite3.Connection,
+    config: Config,
+    *,
+    now: datetime,
+    exclude: Collection[str] = (),
+    extra_choices: Iterable[WatchChoice] = (),
+    run_id: str | None = None,
+) -> None:
+    from .event_pressure import sync
+    from .event_turns import prepare
+
+    sync(conn, config, now=now)
+
+    choices = [
+        choice
+        for choice, delay in _eligible(conn, config, now, exclude, extra_choices, run_id)
+        if delay <= 0
+    ]
+    prepare(conn, config, choices, now=now)
 
 
 def next_watch(
@@ -350,7 +420,18 @@ def next_watch(
         host_age = (now - host_latest.get(choice.host, choice.due_at)).total_seconds()
         return (-age if overdue else 0, -host_age, weighted, choice.due_at, choice.key)
 
-    return min(candidates, key=rank)
+    winner = min(candidates, key=rank)
+    from .event_capacity import choose
+
+    group = sorted(
+        (
+            choice
+            for choice in candidates
+            if (choice.host, choice.category) == (winner.host, winner.category)
+        ),
+        key=rank,
+    )
+    return choose(conn, config, group)
 
 
 def next_delay(

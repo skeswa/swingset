@@ -1,0 +1,39 @@
+{
+  "captured_at": "2026-09-16T21:53:30Z",
+  "code_revision": {
+    "basis": "jj --ignore-working-copy log; dirty working source is pinned separately by file hashes",
+    "change_id": "xuunkpyokqpxqwtxmpqkrolpomppvpvu",
+    "commit_id": "0aca4c5d05cc1e4573f7eedf37e2342ecbf1ed14"
+  },
+  "environment": {
+    "httpx": "0.28.1",
+    "python": "3.12.13 (main, Mar  3 2026, 12:39:30) [Clang 21.1.7 ]",
+    "sqlite": "3.50.4"
+  },
+  "file_sha256": {
+    "candidate-limit-reproduction.py": "b22d0de9b8387d2b13c1771489a95400a3c7331ae3fdd1d7fab563c6ec8af7e8",
+    "candidate-limit-results.json": "c94dd9eeeb2f2bcb6733e10891818aa2319feed8dc282174fc94130fbf0f3015",
+    "sqlite-index-options.json": "34a3e74a1360b6b44f4946e92208bf68c75025c8f4a5bc1c7b0231efb585ce6f"
+  },
+  "format": "normalized-request-lookup-investigation-v1",
+  "limits": [
+    "Disposable local fixtures only; no network or retained production state.",
+    "Observed milliseconds are synthetic fixture timings, not retained-state throughput.",
+    "No normalized lookup implementation or migration was added.",
+    "Source/test hashes captured after probes while coordinator kept source/tests frozen."
+  ],
+  "purpose": "read-only investigation; not implemented or operating acceptance",
+  "reproduction_command": "PYTHONPATH=tests:src .venv/bin/python /tmp/swingset-normalized-lookup-investigation.py > /tmp/swingset-normalized-lookup-investigation.json",
+  "source_file_sha256": {
+    "src/swingset/admission/evidence_budget.py": "7f921cc9d44b232ce15fe53e893f2d8750aa94114b5bdcdcc7f06af1716bba39",
+    "src/swingset/admission/page_evidence.py": "d153cdf03a95b14eb51812cc5c2c4c4925dfeac90c284baa7210c1ec477f0a87",
+    "src/swingset/admission/unavailable_evidence.py": "bee6e8d4e6b5a3614864f6f099b70cc4abd228a2eea36409b4d4f724cbebe187",
+    "src/swingset/schedule/event_evidence.py": "8c4985b90c794ca6518da77961f083858ef891a2b0e5d307c4a9b3f1a877d76d",
+    "src/swingset/schedule/event_gaps.py": "7eff52ec96aff7e89608ab89ceb20118ec4aa3ee46979ea3758f872d4d5c2dcb",
+    "src/swingset/state/db.py": "869f17648d5dec786c42a7298840799771bec4275c3370c39f54d8f2966cbd28",
+    "src/swingset/state/migrations/0024_event_gaps.sql": "a1b4bde0f0fed19d3da2052ecaeb63d80f7a1f4c7a459eb4052159ae802a248d",
+    "tests/test_admission.py": "2e004e5cf35d6279c4ca809c65eb812538598c7d5d4bdadc891d68b37d2102e5",
+    "tests/test_event_enumerations.py": "a816b96ee34dbe57a3cd8b8f5987ed4e80c951db957cc7133846ac4174585b6a",
+    "tests/test_event_gaps.py": "83e88043292530be7a3a305a8ff7d48c3b67c549a1a57cbb97d065efd8c7055e"
+  }
+}

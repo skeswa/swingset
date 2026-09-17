@@ -1,0 +1,36 @@
+{
+  "authorized": true,
+  "driver_sha256": "f8cd9ec23953600d3c9445a765df97eb894fd5363cea3f1136446c67a4f902cc",
+  "format": "h16-production-release-v1-gate",
+  "initialization_gate": {
+    "path": "/var/lib/swingset/operations/h16-event-preservation-release-20260916/initialization-gate-002.json",
+    "sha256": "00da07082f1cea7a20a6d3e04849e7e2bac8aa4eae8b2ad8d344da9951cc5af6"
+  },
+  "initialization_marker": {
+    "path": "/var/lib/swingset/operations/h16-event-preservation-release-20260916/initialization-marker-002.json",
+    "sha256": "dad425983041d0a27ab2eae1127db1fc9aeec4a401f50d678d6fe87e176baece"
+  },
+  "initialization_receipt": {
+    "path": "/var/lib/swingset/operations/h16-event-preservation-release-20260916/supervision-reviewed-002/initializer-007.json",
+    "sha256": "ab00fa40b3b7b587fd5d87c1b287e0d8abead90720f1b5e8b0f24a29ff9694cc"
+  },
+  "initialization_verification": {
+    "path": "/var/lib/swingset/operations/h16-event-preservation-release-20260916/initialization-verification-002.json",
+    "sha256": "dfd48d5550118410ecaab2ebd0e40ae132ab9b789ed948ea1474b9b7d7e33157"
+  },
+  "initializer_driver": {
+    "path": "/var/lib/swingset/operations/h16-event-preservation-release-20260916/initialize-002.py",
+    "sha256": "c3259a023436e2cc3ee56e1ad83f3170b455f42187ff71421eeac25387bf96d7"
+  },
+  "input_bundle_hash": "fe99b47cd65eb909abc7c9ebd64d9ace9524393e5af8cd4d9368c55317ce3c6a",
+  "mode": "build",
+  "prepared_verification_anchor": {
+    "path": "/var/lib/swingset/operations/h16-event-preservation-release-20260916/initialization-anchor-003.json",
+    "sha256": "2bff03bce51be83ed62315274adbc07d0a5396d7b10e74a214bf9b0fb0421654"
+  },
+  "reviewed_at": "2026-09-16T22:20:59.843058+00:00",
+  "reviewed_by": "Codex root coordinator; independently reviewed actual current initialization and final verifier under explicit owner authorization",
+  "source": "/nix/store/z689qy41inndill3d92ym8im852x3649-source",
+  "source_receipt_sha256": "0c3a391aca5c32381ab10daa22adfdde44cda76ab26b68df002f9822ad4945fb",
+  "state": "/var/lib/swingset"
+}

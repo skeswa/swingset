@@ -1,0 +1,29 @@
+I001 [*] Import block is un-sorted or un-formatted
+  --> tests/test_event_fixture_inventory.py:3:1
+   |
+ 1 |   """Retained scoring.dance fixtures exercise enumeration and real stage loss."""
+ 2 |
+ 3 | / from pathlib import Path
+ 4 | |
+ 5 | | from swingset.fetch.archive import Archive
+ 6 | | from swingset.schedule.event_enumerations import bootstrap
+ 7 | | from swingset.schedule.event_inventory import inventory
+ 8 | | from swingset.schedule.watches import upsert_watch
+ 9 | | from swingset.sources.base import WatchSpec
+10 | | from swingset.state.db import open_database
+11 | | from test_admission import Corpus
+   | |_________________________________^
+help: Organize imports
+   |
+4  |
+5  + from test_admission import Corpus
+6  +
+7  | from swingset.fetch.archive import Archive
+--------------------------------------------------------------------------------
+12 | from swingset.state.db import open_database
+   - from test_admission import Corpus
+13 |
+   |
+
+Found 1 error.
+[*] 1 fixable with the `--fix` option.

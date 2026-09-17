@@ -1,0 +1,92 @@
+{
+  "at": "2026-09-16T20:11:53.797474+00:00",
+  "database_writes": false,
+  "tables": {
+    "accepted_inputs": {
+      "actual": {
+        "count": 48,
+        "sha256": "e76c985711abb70ca4bf557ea75a294f88766c8953bc30faf43bab638337161d"
+      },
+      "equals_preflight": true,
+      "equals_verified_checkpoint": true
+    },
+    "pending_work": {
+      "actual": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "equals_preflight": true,
+      "equals_verified_checkpoint": true
+    },
+    "work_generations": {
+      "actual": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "equals_preflight": true,
+      "equals_verified_checkpoint": true
+    },
+    "work_attempts": {
+      "actual": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "equals_preflight": true,
+      "equals_verified_checkpoint": true
+    },
+    "operator_pauses": {
+      "actual": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "equals_preflight": true,
+      "equals_verified_checkpoint": true
+    },
+    "control_state": {
+      "actual": {
+        "count": 1,
+        "sha256": "f109b002d2f351fa534341fcb7d18145d187efd8a47fc21539f8395a7a85d0d6"
+      },
+      "equals_preflight": true,
+      "equals_verified_checkpoint": true
+    },
+    "control_events": {
+      "actual": {
+        "count": 2,
+        "sha256": "c5352b1e711796963fa7114976b01fa92c08147d0565ed4b5ee82f026017abd7"
+      },
+      "equals_preflight": true,
+      "equals_verified_checkpoint": true
+    },
+    "execution_admissions": {
+      "actual": {
+        "count": 1,
+        "sha256": "2c77b20031353169a68a2e4dc9e19482aebd1b7059ae38376a6704463de53d16"
+      },
+      "equals_preflight": true,
+      "equals_verified_checkpoint": true
+    },
+    "runs": {
+      "actual": {
+        "count": 1979,
+        "sha256": "e9d10ec510453be9b0292513afab2a1d38ac8b6ae497881c3a500d6456ed39c0"
+      },
+      "equals_preflight": true,
+      "equals_verified_checkpoint": true
+    }
+  },
+  "passed": true,
+  "meta": {
+    "actual": {
+      "count": 13,
+      "sha256": "0fda765ad2802aa703a5eac254607267f0cd6d404ee5cfb4b1c784d4333ae93d"
+    },
+    "equals_preflight": true,
+    "equals_verified_checkpoint": true
+  },
+  "recipe_runtime_rows": 0,
+  "input_bundle_hash": "184923097435f167078a7743568eb5d6a3b962b1b40542c106164ef71b6eba78",
+  "schema": 14,
+  "writer_lock_released": true,
+  "seconds": 0.010476873954758048
+}

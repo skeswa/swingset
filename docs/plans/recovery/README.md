@@ -62,8 +62,13 @@ Historical discovery extends through the separate [backfill plan](../../referenc
 
 ## Event completion extension
 
-Accepted addition to H14 and H16, recorded 2026-09-14. Implementation and
-operating acceptance are pending. Existing completion receipts for the original
+Accepted addition to H14 and H16, recorded 2026-09-14. Enumeration, event turns,
+expansion controls, artifact diagnostics, blocker history, and bounded progress
+observations are implemented and tested locally. Bounded fleet accounting,
+immediate-edge retirement proofs, and verified unavailable-page accounting also
+pass local tests. Eligible-time reporting, unsupported-page classification,
+deployment, and operating acceptance remain pending. See [current status](../../status.md).
+Existing completion receipts for the original
 H14 scope remain valid; class fairness alone does not satisfy these additional
 scenarios. This work stays in V6, with no renumbering of H1 to H18.
 

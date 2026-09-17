@@ -1,0 +1,21 @@
+2026-09-16T22:21:53+00:00 swingset systemd[1]: Starting [systemd-run] /var/lib/swingset/venv/bin/python /var/lib/swingset/operations/h16-event-preservation-release-20260916/production-release.py build --gate /var/lib/swingset/operations/h16-event-preservation-release-20260916/production-build-gate-001.json --output /var/lib/swingset/operations/h16-event-preservation-release-20260916/production-build-001.json...
+2026-09-16T22:21:53+00:00 swingset systemd[1]: Started [systemd-run] /var/lib/swingset/venv/bin/python /var/lib/swingset/operations/h16-event-preservation-release-20260916/production-release.py build --gate /var/lib/swingset/operations/h16-event-preservation-release-20260916/production-build-gate-001.json --output /var/lib/swingset/operations/h16-event-preservation-release-20260916/production-build-001.json.
+2026-09-16T22:22:10+00:00 swingset python[109135]: Traceback (most recent call last):
+2026-09-16T22:22:10+00:00 swingset python[109135]:   File "/var/lib/swingset/operations/h16-event-preservation-release-20260916/production-release.py", line 353, in <module>
+2026-09-16T22:22:10+00:00 swingset python[109135]:     main()
+2026-09-16T22:22:10+00:00 swingset python[109135]:   File "/var/lib/swingset/operations/h16-event-preservation-release-20260916/production-release.py", line 292, in main
+2026-09-16T22:22:10+00:00 swingset python[109135]:     protected_paths.add(ref(args.gate,value))
+2026-09-16T22:22:10+00:00 swingset python[109135]:                         ^^^^^^^^^^^^^^^^^^^^
+2026-09-16T22:22:10+00:00 swingset python[109135]:   File "/var/lib/swingset/operations/h16-event-preservation-release-20260916/production-release.py", line 61, in ref
+2026-09-16T22:22:10+00:00 swingset python[109135]:     require(sha(target) == record['sha256'], 'reviewed evidence bytes changed: ' + str(target))
+2026-09-16T22:22:10+00:00 swingset python[109135]:             ^^^^^^^^^^^
+2026-09-16T22:22:10+00:00 swingset python[109135]:   File "/var/lib/swingset/operations/h16-event-preservation-release-20260916/production-release.py", line 47, in sha
+2026-09-16T22:22:10+00:00 swingset python[109135]:     with Path(path).open('rb') as stream:
+2026-09-16T22:22:10+00:00 swingset python[109135]:          ^^^^^^^^^^^^^^^^^^^^^
+2026-09-16T22:22:10+00:00 swingset python[109135]:   File "/nix/store/s5rij9y3vb4gxbh0iqz3k0ndmsac7h02-python3-3.12.13/lib/python3.12/pathlib.py", line 1013, in open
+2026-09-16T22:22:10+00:00 swingset python[109135]:     return io.open(self, mode, buffering, encoding, errors, newline)
+2026-09-16T22:22:10+00:00 swingset python[109135]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-09-16T22:22:10+00:00 swingset python[109135]: PermissionError: [Errno 13] Permission denied: '/var/lib/swingset/operations/h16-event-preservation-release-20260916/initialization-verification-002.json'
+2026-09-16T22:22:10+00:00 swingset systemd[1]: swingset-h16-production-build-reviewed-001.service: Main process exited, code=exited, status=1/FAILURE
+2026-09-16T22:22:10+00:00 swingset systemd[1]: swingset-h16-production-build-reviewed-001.service: Failed with result 'exit-code'.
+2026-09-16T22:22:10+00:00 swingset systemd[1]: swingset-h16-production-build-reviewed-001.service: Consumed 17.511s CPU time, 3.3G memory peak, 1.7G read from disk.

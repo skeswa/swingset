@@ -32,7 +32,9 @@ packages = ["src/swingset"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["src", "."]
+pythonpath = ["src", ".", "tests"]
+# Pytest's default excludes directories named build, including our build tests.
+norecursedirs = [".*", "__pycache__", "fixtures"]
 
 [tool.ruff]
 target-version = "py312"

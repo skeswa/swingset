@@ -4,6 +4,12 @@ Find investigations of unfinished work, retries, pause controls, saved outputs, 
 
 [All investigations](README.md) · [Current status](../../docs/status.md)
 
+- [Event accounting after checkpoint activation](2026/event-accounting-activated-restore-2026-09-16.md) — 2026-09-16; actual schema 24 activation and resumed accounting, with rejected and changed support controls.
+- [Normalized request lookup](2026/normalized-request-lookup-2026-09-16.md) — 2026-09-16; reproduced candidate crowding and proposed portable index options, not implemented.
+- [Proving explicit page retirement](2026/event-page-retirement-proof-2026-09-16.md) — 2026-09-16; bounded immediate-edge proof, whole-event retirement unknown.
+- [Observed event completion and fleet accounting](2026/event-fleet-accounting-2026-09-16.md) — 2026-09-16; first bounded local increment, retirement deferred.
+- [Retained event pages and bounded turns](2026/event-completion-2026-09-16.md) — 2026-09-16.
+- [Preparing bounded event-index expansion](2026/event-expansion-watermark-2026-09-16.md) — 2026-09-16; proposed design, not implemented.
 - [Checking the missing-work inventory (H11)](2026/h11-acceptance-2026-09-13.md) — 2026-09-13.
 - [Preparing the missing-work inventory deployment (H11)](undated/h11-deployment-preparation.md) — date and scope in record.
 - [Measuring the missing-work inventory (H11)](2026/h11-retained-inventory-2026-09-13.md) — 2026-09-13.

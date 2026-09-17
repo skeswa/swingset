@@ -181,18 +181,24 @@ def _candidate(
     return spec, capture, "eligible"
 
 
-def offer(
+def offers(
     database: Database,
     config: Config,
     clock: Clock,
     *,
     plan: PlatformPlan | None = None,
     run_id: str | None = None,
-) -> WatchSpec | None:
-    """Offer one locally admissible historical page without advancing any pointer."""
+) -> tuple[WatchSpec, ...]:
+    """Expose the finite eligible plan to ordinary rotation without scheduling it.
+
+    Plan order admits newer events first. All waiting candidates remain visible
+    together, so that order cannot override an already enrolled event turn.
+    Dispatch repeats the year, parent, capture, and source gates before mutation.
+    """
     plan = plan or retained_plan(database.connection, history_start=config.history_start)
     options = [(item, _candidate(database, config, clock, item, plan)) for item in plan.pages]
     archive_sources = {item.page.source for item, (spec, _, _) in options if spec is not None}
+    result: dict[str, WatchSpec] = {}
     for item, (spec, _, reason) in options:
         if (
             spec is None
@@ -203,8 +209,20 @@ def offer(
 
             spec, _, _ = candidate(database, config, clock, item, plan, run_id=run_id)
         if spec is not None:
-            return spec
-    return None
+            result.setdefault(spec.watch_id, spec)
+    return tuple(result.values())
+
+
+def offer(
+    database: Database,
+    config: Config,
+    clock: Clock,
+    *,
+    plan: PlatformPlan | None = None,
+    run_id: str | None = None,
+) -> WatchSpec | None:
+    """Compatibility for callers requesting only the plan's first candidate."""
+    return next(iter(offers(database, config, clock, plan=plan, run_id=run_id)), None)
 
 
 def dispatch_one(

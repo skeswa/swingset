@@ -1,6 +1,7 @@
 """Future WP16 migration acceptance uses real offline schema14 evidence only."""
 
 import json
+import re
 import shutil
 import sqlite3
 from contextlib import closing, contextmanager
@@ -25,6 +26,8 @@ def operation(tmp_path, monkeypatch):
     source = tmp_path / "source"
     checkpoint = tmp_path / "checkpoint"
     shutil.copytree(root / "src", source / "src", ignore=shutil.ignore_patterns("__pycache__"))
+    runtime = source / "src/swingset/state/db.py"
+    runtime.write_text(re.sub(r"SCHEMA_VERSION = \d+", "SCHEMA_VERSION = 15", runtime.read_text()))
     shutil.copytree(root / "config", source / "config")
     (source / "journal/tools/runtime").mkdir(parents=True)
     shutil.copyfile(
@@ -137,6 +140,7 @@ def operation(tmp_path, monkeypatch):
     gate_path = ops / "gate.json"
     gate_path.write_text(json.dumps(gate))
     monkeypatch.setattr(db_module, "__file__", str(source / "src/swingset/state/db.py"))
+    monkeypatch.setattr(db_module, "SCHEMA_VERSION", 15)
     monkeypatch.setattr(
         driver.prior, "__file__", str(source / "journal/tools/runtime/accept_h11.py")
     )

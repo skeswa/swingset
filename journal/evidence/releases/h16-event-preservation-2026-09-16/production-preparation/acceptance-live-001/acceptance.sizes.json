@@ -1,0 +1,9 @@
+{
+  "assessment_page_size": 256,
+  "checkpoint_bytes_unverified": 5348328085,
+  "checkpoint_files_unverified": 68121,
+  "database_bytes": 2646597632,
+  "doctor_output_policy": "one full settled report plus fresh-process digest; ops output only",
+  "source_bytes": 21129945,
+  "source_files": 638
+}

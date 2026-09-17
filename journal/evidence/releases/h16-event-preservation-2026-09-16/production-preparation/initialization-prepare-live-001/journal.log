@@ -1,0 +1,15 @@
+2026-09-16T20:07:32+00:00 swingset systemd[1]: Starting [systemd-run] /var/lib/swingset/venv/bin/python /var/lib/swingset/operations/h16-event-preservation-release-20260916/initialize.py prepare --gate /var/lib/swingset/operations/h16-event-preservation-release-20260916/initialization-gate.json --marker /var/lib/swingset/operations/h16-event-preservation-release-20260916/initialization-marker.json --output /var/lib/swingset/operations/h16-event-preservation-release-20260916/prepare-001.json...
+2026-09-16T20:07:32+00:00 swingset systemd[1]: Started [systemd-run] /var/lib/swingset/venv/bin/python /var/lib/swingset/operations/h16-event-preservation-release-20260916/initialize.py prepare --gate /var/lib/swingset/operations/h16-event-preservation-release-20260916/initialization-gate.json --marker /var/lib/swingset/operations/h16-event-preservation-release-20260916/initialization-marker.json --output /var/lib/swingset/operations/h16-event-preservation-release-20260916/prepare-001.json.
+2026-09-16T20:09:00+00:00 swingset python[100322]: Traceback (most recent call last):
+2026-09-16T20:09:00+00:00 swingset python[100322]:   File "/var/lib/swingset/operations/h16-event-preservation-release-20260916/initialize.py", line 515, in <module>
+2026-09-16T20:09:00+00:00 swingset python[100322]:     main()
+2026-09-16T20:09:00+00:00 swingset python[100322]:   File "/var/lib/swingset/operations/h16-event-preservation-release-20260916/initialize.py", line 501, in main
+2026-09-16T20:09:00+00:00 swingset python[100322]:     receipt.update(prepare(gate,source,args.gate,marker))
+2026-09-16T20:09:00+00:00 swingset python[100322]:                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-09-16T20:09:00+00:00 swingset python[100322]:   File "/var/lib/swingset/operations/h16-event-preservation-release-20260916/initialize.py", line 257, in prepare
+2026-09-16T20:09:00+00:00 swingset python[100322]:     prior_recipe=conn.execute("SELECT digest FROM accepted_inputs WHERE consumer='pipeline' AND input_name='recipe/runtime'").fetchone()[0]
+2026-09-16T20:09:00+00:00 swingset python[100322]:                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^
+2026-09-16T20:09:00+00:00 swingset python[100322]: TypeError: 'NoneType' object is not subscriptable
+2026-09-16T20:09:00+00:00 swingset systemd[1]: swingset-h16-event-preservation-initialization-prepare.service: Main process exited, code=exited, status=1/FAILURE
+2026-09-16T20:09:00+00:00 swingset systemd[1]: swingset-h16-event-preservation-initialization-prepare.service: Failed with result 'exit-code'.
+2026-09-16T20:09:00+00:00 swingset systemd[1]: swingset-h16-event-preservation-initialization-prepare.service: Consumed 1min 28.309s CPU time, 6.3G memory peak, 11.9G read from disk, 1.5G written to disk.

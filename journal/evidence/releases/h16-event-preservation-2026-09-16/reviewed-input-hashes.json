@@ -1,0 +1,8 @@
+{
+  "pyproject.toml": "304f978e63fd86a6e50e52fe3a66d984c6d37e8c3673f74021b662a3d646de2e",
+  "src/swingset/build/closure_rows.py": "982f8b4eb1bdd96ad8473882b312242ec4a45b3cf0c68bc4a0426de2683798e7",
+  "src/swingset/project/map.py": "5f6a5a349751e2db339605a6e10f72e142c65c6334e01c460317c6accc1efbfb",
+  "tests/build/test_closure_event_alternatives.py": "a51493bbcc45a7846ec1ecd9f3e18b8edbb8e2e2c9f30f29f85baff04261df61",
+  "tests/build/test_event_preservation_release.py": "09d3181a8b6e47595548b0f6b5fc0cf2ba985af506497cb5fc5e2612cee45879",
+  "tests/test_map_event_retention.py": "a7a43e11186d236412d009e5fa6550de204bc7f1909d135efaeb64438b8cb931"
+}

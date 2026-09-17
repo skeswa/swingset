@@ -1,0 +1,867 @@
+{
+  "at": "2026-09-16T16:17:00.984287+00:00",
+  "connection_total_changes": 0,
+  "elapsed_seconds": 0.3424889110028744,
+  "events": [
+    {
+      "event_id": "2020-01-municorn-swing",
+      "mapping": [
+        {
+          "event_id": "2020-01-municorn-swing",
+          "match_confidence": 0.5,
+          "match_method": "name_date",
+          "source": "scoringdance",
+          "source_ref": "scoringdance:29"
+        }
+      ],
+      "new": [],
+      "new_judges": [
+        {
+          "n": 0
+        }
+      ],
+      "old": [
+        {
+          "event_id": "2020-01-municorn-swing",
+          "event_month": "2020-01",
+          "name": "Municorn Swing 2020",
+          "series_id": "wsdc-291",
+          "snapshot_id": "snap_20260913T053303Z_220a0f22f0f6",
+          "source": "wsdc_newsletter",
+          "year": 2020
+        }
+      ],
+      "old_judges": [
+        {
+          "n": 25
+        }
+      ],
+      "scope": [
+        {
+          "desired_fingerprint": "7a174b447eaa0c45aafca5a18330893a0c3b7331e4dfed7d891c3abb0150b70d",
+          "event_rows": [],
+          "materialized_generation_id": "dg_636625791584e18e115edab3edabd0510daa3e43926d8bb7568ae9d0e96103b9",
+          "materialized_signature": "9c2ddc8df4ec93c37b6e57a5136dbd8f38c4a8263da4f403fb4da2075e645fd3",
+          "output_tables": [
+            {
+              "n": 159,
+              "table_name": "entries"
+            },
+            {
+              "n": 184,
+              "table_name": "identity_link_resolutions"
+            },
+            {
+              "n": 184,
+              "table_name": "identity_links"
+            },
+            {
+              "n": 25,
+              "table_name": "judges"
+            },
+            {
+              "n": 167,
+              "table_name": "link_candidates"
+            },
+            {
+              "n": 44,
+              "table_name": "placements"
+            }
+          ],
+          "registered_at": "2026-09-13T11:47:27.044+00:00",
+          "stage": "link",
+          "unit_id": "2020-01-municorn-swing",
+          "unit_kind": "event"
+        },
+        {
+          "desired_fingerprint": "d9b2c5e8165b5f067c43545b058849eb67fb544a13ae4252e7e45f2a5cf648f0",
+          "event_rows": [],
+          "materialized_generation_id": "dg_5a8cf5f182266cf2b314560741e821f07add34c57faa50548bcce50a95fb0fe1",
+          "materialized_signature": "4b1334151205c86507443795dda115c68692f500093794c8f34ac2924de46526",
+          "output_tables": [
+            {
+              "n": 525,
+              "table_name": "callback_marks"
+            },
+            {
+              "n": 175,
+              "table_name": "callbacks"
+            },
+            {
+              "n": 6,
+              "table_name": "contests"
+            },
+            {
+              "n": 159,
+              "table_name": "entries"
+            },
+            {
+              "n": 289,
+              "table_name": "final_marks"
+            },
+            {
+              "n": 25,
+              "table_name": "judges"
+            },
+            {
+              "n": 44,
+              "table_name": "placements"
+            },
+            {
+              "n": 11,
+              "table_name": "rounds"
+            }
+          ],
+          "registered_at": "2026-09-13T11:47:26.952+00:00",
+          "stage": "project",
+          "unit_id": "2020-01-municorn-swing",
+          "unit_kind": "event"
+        }
+      ],
+      "state": [
+        {
+          "event_id": "2020-01-municorn-swing",
+          "event_month": "2020-01",
+          "name": "Municorn Swing 2020",
+          "series_id": "slug-municorn-swing",
+          "snapshot_id": "snap_20260910T053616Z_9da6c4e877af",
+          "source": "scoringdance",
+          "year": 2020
+        }
+      ],
+      "state_judges": [
+        {
+          "n": 25
+        }
+      ]
+    }
+  ],
+  "judge_totals": [
+    {
+      "named": 4931,
+      "side": "old",
+      "total": 4931
+    },
+    {
+      "named": 3418,
+      "side": "new",
+      "total": 3418
+    }
+  ],
+  "missing_judge_observations": [
+    {
+      "rows": [
+        {
+          "extract_version": "3",
+          "kind": "round_sheet",
+          "observation_id": "7e39d7f72e4d023a",
+          "parser_version": "3",
+          "scope_id": "scoringdance:29",
+          "scope_kind": "source_event"
+        }
+      ],
+      "snapshot_id": "snap_20260913T020438Z_d4cc63df1ba0"
+    },
+    {
+      "rows": [
+        {
+          "extract_version": "3",
+          "kind": "round_sheet",
+          "observation_id": "40a4966b55889f1e",
+          "parser_version": "3",
+          "scope_id": "scoringdance:29",
+          "scope_kind": "source_event"
+        },
+        {
+          "extract_version": "3",
+          "kind": "round_sheet",
+          "observation_id": "d39c5555c6113f7a",
+          "parser_version": "3",
+          "scope_id": "scoringdance:29",
+          "scope_kind": "source_event"
+        }
+      ],
+      "snapshot_id": "snap_20260913T020443Z_d7dbddfea07d"
+    },
+    {
+      "rows": [
+        {
+          "extract_version": "3",
+          "kind": "round_sheet",
+          "observation_id": "6c8e2917be49127f",
+          "parser_version": "3",
+          "scope_id": "scoringdance:29",
+          "scope_kind": "source_event"
+        }
+      ],
+      "snapshot_id": "snap_20260913T020448Z_43ed4bee1f84"
+    },
+    {
+      "rows": [
+        {
+          "extract_version": "3",
+          "kind": "round_sheet",
+          "observation_id": "b050654b102d9747",
+          "parser_version": "3",
+          "scope_id": "scoringdance:29",
+          "scope_kind": "source_event"
+        }
+      ],
+      "snapshot_id": "snap_20260913T020454Z_34da2da70cc9"
+    },
+    {
+      "rows": [
+        {
+          "extract_version": "3",
+          "kind": "round_sheet",
+          "observation_id": "5165a6ace93a822c",
+          "parser_version": "3",
+          "scope_id": "scoringdance:29",
+          "scope_kind": "source_event"
+        }
+      ],
+      "snapshot_id": "snap_20260913T020458Z_f8dc1be163ca"
+    }
+  ],
+  "missing_judges_by_event": [
+    {
+      "event_id": "2024-08-swingtime-denver",
+      "n": 72,
+      "source": "scoringdance"
+    },
+    {
+      "event_id": "2024-10-scandinavian-open-wcs-snow",
+      "n": 56,
+      "source": "scoringdance"
+    },
+    {
+      "event_id": "2026-04-asia-wcs-open",
+      "n": 56,
+      "source": "scoringdance"
+    },
+    {
+      "event_id": "2025-04-city-of-angels",
+      "n": 49,
+      "source": "scoringdance"
+    },
+    {
+      "event_id": "2022-06-d-town-swing",
+      "n": 44,
+      "source": "scoringdance"
+    },
+    {
+      "event_id": "2026-03-uk-west-coast-swing-championships",
+      "n": 44,
+      "source": "scoringdance"
+    },
+    {
+      "event_id": "2025-09-finnfest",
+      "n": 41,
+      "source": "scoringdance"
+    },
+    {
+      "event_id": "2025-05-nordic-wcs-championships",
+      "n": 40,
+      "source": "scoringdance"
+    },
+    {
+      "event_id": "2025-02-rose-city-swing",
+      "n": 39,
+      "source": "scoringdance"
+    },
+    {
+      "event_id": "2025-03-king-swing",
+      "n": 39,
+      "source": "scoringdance"
+    },
+    {
+      "event_id": "2024-09-midland-swing-open",
+      "n": 38,
+      "source": "scoringdance"
+    },
+    {
+      "event_id": "2026-03-westie-spring-thing",
+      "n": 38,
+      "source": "scoringdance"
+    },
+    {
+      "event_id": "2026-04-nordic-wcs-championships",
+      "n": 38,
+      "source": "scoringdance"
+    },
+    {
+      "event_id": "2026-03-king-swing",
+      "n": 37,
+      "source": "scoringdance"
+    },
+    {
+      "event_id": "2025-10-augsburg-westie-station",
+      "n": 34,
+      "source": "scoringdance"
+    },
+    {
+      "event_id": "2025-10-swingside-invitational",
+      "n": 34,
+      "source": "scoringdance"
+    },
+    {
+      "event_id": "2026-03-west-in-lyon",
+      "n": 33,
+      "source": "scoringdance"
+    },
+    {
+      "event_id": "2026-07-swinglab-berlin",
+      "n": 31,
+      "source": "scoringdance"
+    },
+    {
+      "event_id": "2026-02-swingtzerland",
+      "n": 29,
+      "source": "scoringdance"
+    },
+    {
+      "event_id": "2025-06-barock-swing-ludwigsburg",
+      "n": 28,
+      "source": "scoringdance"
+    },
+    {
+      "event_id": "2025-08-uptown-swing",
+      "n": 28,
+      "source": "scoringdance"
+    },
+    {
+      "event_id": "2025-12-westie-gala",
+      "n": 28,
+      "source": "scoringdance"
+    },
+    {
+      "event_id": "2023-09-finnfest",
+      "n": 27,
+      "source": "scoringdance"
+    },
+    {
+      "event_id": "2025-11-westie-pink-city",
+      "n": 27,
+      "source": "scoringdance"
+    },
+    {
+      "event_id": "2025-11-westie-s-angels",
+      "n": 27,
+      "source": "scoringdance"
+    },
+    {
+      "event_id": "2026-04-swing-in-capital",
+      "n": 27,
+      "source": "scoringdance"
+    },
+    {
+      "event_id": "2023-06-hungarian-open",
+      "n": 26,
+      "source": "scoringdance"
+    },
+    {
+      "event_id": "2023-12-berlin-swing-revolution",
+      "n": 26,
+      "source": "scoringdance"
+    },
+    {
+      "event_id": "2025-02-valentine-swing",
+      "n": 26,
+      "source": "scoringdance"
+    },
+    {
+      "event_id": "2025-06-baltic-swing",
+      "n": 26,
+      "source": "scoringdance"
+    }
+  ],
+  "missing_judges_examples": [
+    {
+      "event_id": "2020-01-municorn-swing",
+      "judge_id": "2020-01-municorn-swing/judge/anna-brinckmann",
+      "name_raw": "Anna Brinckmann",
+      "snapshot_id": "snap_20260913T020448Z_43ed4bee1f84",
+      "source": "scoringdance",
+      "wsdc_id": null
+    },
+    {
+      "event_id": "2020-01-municorn-swing",
+      "judge_id": "2020-01-municorn-swing/judge/ben-mchenry",
+      "name_raw": "Ben McHenry",
+      "snapshot_id": "snap_20260913T020458Z_f8dc1be163ca",
+      "source": "scoringdance",
+      "wsdc_id": null
+    },
+    {
+      "event_id": "2020-01-municorn-swing",
+      "judge_id": "2020-01-municorn-swing/judge/cameo-mchenry",
+      "name_raw": "Cameo McHenry",
+      "snapshot_id": "snap_20260913T020458Z_f8dc1be163ca",
+      "source": "scoringdance",
+      "wsdc_id": null
+    },
+    {
+      "event_id": "2020-01-municorn-swing",
+      "judge_id": "2020-01-municorn-swing/judge/camille-fumanal",
+      "name_raw": "Camille Fumanal",
+      "snapshot_id": "snap_20260913T020454Z_34da2da70cc9",
+      "source": "scoringdance",
+      "wsdc_id": null
+    },
+    {
+      "event_id": "2020-01-municorn-swing",
+      "judge_id": "2020-01-municorn-swing/judge/christian-kaller",
+      "name_raw": "Christian Kaller",
+      "snapshot_id": "snap_20260913T020443Z_d7dbddfea07d",
+      "source": "scoringdance",
+      "wsdc_id": null
+    },
+    {
+      "event_id": "2020-01-municorn-swing",
+      "judge_id": "2020-01-municorn-swing/judge/chuck-brown-chiefjudge",
+      "name_raw": "Chuck Brown (Chiefjudge)",
+      "snapshot_id": "snap_20260913T020458Z_f8dc1be163ca",
+      "source": "scoringdance",
+      "wsdc_id": null
+    },
+    {
+      "event_id": "2020-01-municorn-swing",
+      "judge_id": "2020-01-municorn-swing/judge/cliff-pereira",
+      "name_raw": "Cliff Pereira",
+      "snapshot_id": "snap_20260913T020458Z_f8dc1be163ca",
+      "source": "scoringdance",
+      "wsdc_id": null
+    },
+    {
+      "event_id": "2020-01-municorn-swing",
+      "judge_id": "2020-01-municorn-swing/judge/cornelia-pluss",
+      "name_raw": "Cornelia Pl\u00fcss",
+      "snapshot_id": "snap_20260913T020438Z_d4cc63df1ba0",
+      "source": "scoringdance",
+      "wsdc_id": null
+    }
+  ],
+  "occurrence_mismatch_count": [
+    {
+      "n": 208
+    }
+  ],
+  "occurrence_mismatches": [
+    {
+      "event_month": "2019-01",
+      "events": [
+        null
+      ],
+      "n": 0,
+      "series_id": "wsdc-289"
+    },
+    {
+      "event_month": "2019-03",
+      "events": [
+        null
+      ],
+      "n": 0,
+      "series_id": "wsdc-186"
+    },
+    {
+      "event_month": "2019-11",
+      "events": [
+        null
+      ],
+      "n": 0,
+      "series_id": "wsdc-236"
+    },
+    {
+      "event_month": "2019-12",
+      "events": [
+        null
+      ],
+      "n": 0,
+      "series_id": "wsdc-271"
+    },
+    {
+      "event_month": "2020-01",
+      "events": [
+        null
+      ],
+      "n": 0,
+      "series_id": "wsdc-291"
+    },
+    {
+      "event_month": "2021-09",
+      "events": [
+        null
+      ],
+      "n": 0,
+      "series_id": "wsdc-165"
+    },
+    {
+      "event_month": "2021-11",
+      "events": [
+        null
+      ],
+      "n": 0,
+      "series_id": "wsdc-236"
+    },
+    {
+      "event_month": "2022-03",
+      "events": [
+        null
+      ],
+      "n": 0,
+      "series_id": "wsdc-314"
+    },
+    {
+      "event_month": "2022-04",
+      "events": [
+        null
+      ],
+      "n": 0,
+      "series_id": "wsdc-203"
+    },
+    {
+      "event_month": "2022-05",
+      "events": [
+        null
+      ],
+      "n": 0,
+      "series_id": "wsdc-253"
+    },
+    {
+      "event_month": "2022-06",
+      "events": [
+        null
+      ],
+      "n": 0,
+      "series_id": "wsdc-220"
+    },
+    {
+      "event_month": "2022-06",
+      "events": [
+        null
+      ],
+      "n": 0,
+      "series_id": "wsdc-222"
+    },
+    {
+      "event_month": "2022-08",
+      "events": [
+        null
+      ],
+      "n": 0,
+      "series_id": "wsdc-264"
+    },
+    {
+      "event_month": "2022-09",
+      "events": [
+        null
+      ],
+      "n": 0,
+      "series_id": "wsdc-233"
+    },
+    {
+      "event_month": "2022-09",
+      "events": [
+        null
+      ],
+      "n": 0,
+      "series_id": "wsdc-254"
+    },
+    {
+      "event_month": "2022-10",
+      "events": [
+        null
+      ],
+      "n": 0,
+      "series_id": "wsdc-165"
+    },
+    {
+      "event_month": "2022-10",
+      "events": [
+        null
+      ],
+      "n": 0,
+      "series_id": "wsdc-236"
+    },
+    {
+      "event_month": "2022-12",
+      "events": [
+        null
+      ],
+      "n": 0,
+      "series_id": "wsdc-271"
+    },
+    {
+      "event_month": "2023-01",
+      "events": [
+        null
+      ],
+      "n": 0,
+      "series_id": "wsdc-240"
+    },
+    {
+      "event_month": "2023-02",
+      "events": [
+        null
+      ],
+      "n": 0,
+      "series_id": "wsdc-310"
+    },
+    {
+      "event_month": "2023-03",
+      "events": [
+        null
+      ],
+      "n": 0,
+      "series_id": "wsdc-197"
+    },
+    {
+      "event_month": "2023-03",
+      "events": [
+        null
+      ],
+      "n": 0,
+      "series_id": "wsdc-314"
+    },
+    {
+      "event_month": "2023-04",
+      "events": [
+        null
+      ],
+      "n": 0,
+      "series_id": "wsdc-203"
+    },
+    {
+      "event_month": "2023-05",
+      "events": [
+        null
+      ],
+      "n": 0,
+      "series_id": "wsdc-253"
+    },
+    {
+      "event_month": "2023-05",
+      "events": [
+        null
+      ],
+      "n": 0,
+      "series_id": "wsdc-311"
+    },
+    {
+      "event_month": "2023-06",
+      "events": [
+        null
+      ],
+      "n": 0,
+      "series_id": "wsdc-206"
+    },
+    {
+      "event_month": "2023-06",
+      "events": [
+        null
+      ],
+      "n": 0,
+      "series_id": "wsdc-222"
+    },
+    {
+      "event_month": "2023-06",
+      "events": [
+        null
+      ],
+      "n": 0,
+      "series_id": "wsdc-25"
+    },
+    {
+      "event_month": "2023-07",
+      "events": [
+        null
+      ],
+      "n": 0,
+      "series_id": "wsdc-256"
+    },
+    {
+      "event_month": "2023-08",
+      "events": [
+        null
+      ],
+      "n": 0,
+      "series_id": "wsdc-264"
+    }
+  ],
+  "passed": true,
+  "read_only": true,
+  "registry_mismatch_count": [
+    {
+      "n": 22201
+    }
+  ],
+  "registry_mismatch_examples": [
+    {
+      "canonical_month": null,
+      "event_id": null,
+      "event_month": "2019-01-01",
+      "event_series": null,
+      "name": null,
+      "series_id": "wsdc-289"
+    },
+    {
+      "canonical_month": null,
+      "event_id": null,
+      "event_month": "2019-03-01",
+      "event_series": null,
+      "name": null,
+      "series_id": "wsdc-186"
+    },
+    {
+      "canonical_month": null,
+      "event_id": null,
+      "event_month": "2019-11-01",
+      "event_series": null,
+      "name": null,
+      "series_id": "wsdc-236"
+    },
+    {
+      "canonical_month": null,
+      "event_id": null,
+      "event_month": "2019-12-01",
+      "event_series": null,
+      "name": null,
+      "series_id": "wsdc-271"
+    },
+    {
+      "canonical_month": null,
+      "event_id": null,
+      "event_month": "2020-01-01",
+      "event_series": null,
+      "name": null,
+      "series_id": "wsdc-291"
+    },
+    {
+      "canonical_month": null,
+      "event_id": null,
+      "event_month": "2021-09-01",
+      "event_series": null,
+      "name": null,
+      "series_id": "wsdc-165"
+    },
+    {
+      "canonical_month": null,
+      "event_id": null,
+      "event_month": "2021-11-01",
+      "event_series": null,
+      "name": null,
+      "series_id": "wsdc-236"
+    },
+    {
+      "canonical_month": null,
+      "event_id": null,
+      "event_month": "2022-03-01",
+      "event_series": null,
+      "name": null,
+      "series_id": "wsdc-314"
+    },
+    {
+      "canonical_month": null,
+      "event_id": null,
+      "event_month": "2022-04-01",
+      "event_series": null,
+      "name": null,
+      "series_id": "wsdc-203"
+    },
+    {
+      "canonical_month": null,
+      "event_id": null,
+      "event_month": "2022-05-01",
+      "event_series": null,
+      "name": null,
+      "series_id": "wsdc-253"
+    },
+    {
+      "canonical_month": null,
+      "event_id": null,
+      "event_month": "2022-06-01",
+      "event_series": null,
+      "name": null,
+      "series_id": "wsdc-220"
+    },
+    {
+      "canonical_month": null,
+      "event_id": null,
+      "event_month": "2022-06-01",
+      "event_series": null,
+      "name": null,
+      "series_id": "wsdc-222"
+    },
+    {
+      "canonical_month": null,
+      "event_id": null,
+      "event_month": "2022-08-01",
+      "event_series": null,
+      "name": null,
+      "series_id": "wsdc-264"
+    },
+    {
+      "canonical_month": null,
+      "event_id": null,
+      "event_month": "2022-09-01",
+      "event_series": null,
+      "name": null,
+      "series_id": "wsdc-233"
+    },
+    {
+      "canonical_month": null,
+      "event_id": null,
+      "event_month": "2022-09-01",
+      "event_series": null,
+      "name": null,
+      "series_id": "wsdc-254"
+    },
+    {
+      "canonical_month": null,
+      "event_id": null,
+      "event_month": "2022-10-01",
+      "event_series": null,
+      "name": null,
+      "series_id": "wsdc-165"
+    },
+    {
+      "canonical_month": null,
+      "event_id": null,
+      "event_month": "2022-10-01",
+      "event_series": null,
+      "name": null,
+      "series_id": "wsdc-236"
+    },
+    {
+      "canonical_month": null,
+      "event_id": null,
+      "event_month": "2022-12-01",
+      "event_series": null,
+      "name": null,
+      "series_id": "wsdc-271"
+    },
+    {
+      "canonical_month": null,
+      "event_id": null,
+      "event_month": "2023-01-01",
+      "event_series": null,
+      "name": null,
+      "series_id": "wsdc-240"
+    },
+    {
+      "canonical_month": null,
+      "event_id": null,
+      "event_month": "2023-02-01",
+      "event_series": null,
+      "name": null,
+      "series_id": "wsdc-310"
+    }
+  ],
+  "same_name_snapshot_different_id": [],
+  "state_totals": {
+    "events": 2541,
+    "judges": 4931,
+    "registry_placements": 197990,
+    "source_event_map": 404
+  }
+}

@@ -318,7 +318,106 @@ is the long-running job.
 
 ## Event completion reporting (H14 extension)
 
-Accepted design, implementation pending. Doctor and summary expose the
+Accepted design; the local catalog, single-event artifact drill-down, recorded
+request-service history, bounded blocker-change observations, and acknowledged
+release coverage are implemented in the working source. Recorded successful
+outputs, sampled verified progress, and bounded release-local stage counts are
+also implemented locally. Bounded sampled event accounting is implemented locally;
+instantaneous fleet verification, complete progress history, eligible time, and
+eligible-work alarms remain pending. The catalog
+does not hash every artifact during ordinary doctor refreshes; use
+`--source SOURCE --source-event SOURCE_REF` for a fresh local check. Unknown
+values remain null. Deployment is tracked in [current status](../status.md).
+
+The drill-down's service history reports all recorded event-owned request
+charges by actual host, the persisted turn and policy, capacity use and
+borrowing, and up to 20 recent requests. Shared requests belong to their selected
+event owner. Outcomes and last issuance explain attempts; they do not establish
+successful progress or current eligibility. Legacy intervals without receipts
+remain unknown. See [D-0014](../../journal/decisions/0014-explain-recorded-event-service.md).
+
+Its `request_blockers` section shows current watch timing, applicable operator
+pauses, source configuration, actual request-host cooldowns and daily allowances,
+and parsing or work backpressure. Overlapping blockers stay visible. The
+assessment is explicitly incomplete: historical dispatch, capture, robots,
+request-chain limits, and other gates still govern execution. The report never
+acquires a host grant or changes a retry time. See
+[D-0017](../../journal/decisions/0017-report-current-event-blockers.md).
+
+`blocker_history` retains observed changes with their policy, enumeration,
+control revision, and input bundle. A refresh samples at most eight events by
+default, with bounded member and watch sets; unassessed history stays explicit.
+Samples do not prove that a blocker remained present or absent between checks.
+`publication` reads a single acknowledged baseline, verifies its files and
+closure receipt, and reports its own pinned enumeration. A newer local
+enumeration cannot advance these published counts. Legacy receipts without
+the required binding remain unknown.
+
+`progress_history` separates successful output operations from qualified
+observed progress. Output facts commit with the new successful snapshot or
+accepted interpretation; failures and unchanged polls add none. Progress also
+requires a fresh missing baseline, unchanged enumeration, and a later operation
+whose exact artifacts verify. Operation time and observation time are separate.
+Restoring old files alone establishes availability, not new operation progress.
+
+The observer shares one resource budget across at most eight events per refresh,
+verifies enumeration content with a 128-member limit, and visits at most 32
+members per event. Larger enumerations and exhausted scans remain unassessed.
+Event and page cursors preserve later work's opportunity to receive a fresh
+budget. Parent support is checked through the same session after pages are
+observed positive. The observer does not infer continuous eligibility or replace
+the fresh inventory drill-down's completion checks.
+Historical success before recording began remains unknown.
+
+The nested `accounting` report classifies known enumerations as
+`locally_accounted`, `unfinished`, or `unassessed` from full bounded membership
+and fresh page and parent observations. Each known page must be interpreted or
+have a verified unavailable-origin response; all required parents must remain
+usable. A page is definitely unfinished only when both page outcomes are false.
+Otherwise an unresolved branch remains unknown. A definite missing page or parent
+establishes unfinished work even when other counts remain unknown. Legacy and oversized
+enumerations remain unassessed. The report reads metadata only and shows the
+oldest contributing check and earliest expiry: unrecorded file loss is detected
+on subsequent verification, not during ordinary catalog reporting.
+
+Accounting counts describe one catalog page. `coverage_complete=false` and
+`next_cursor` identify truncation or metadata-budget exhaustion; never present
+those subtotals as fleet totals. `event_accounting_report.report()` accepts
+`after_event` and `limit` (1–100) inside the caller's query-only transaction.
+The existing outer doctor catalog is unchanged. Historical receipts distinguish
+membership changes, reopening, and restored availability without inventing
+successful operations. Latest and last definite assessments are shown; historical
+reopening totals and whole-event retirement remain explicitly unassessed. Pagination is still
+unknown, so local accounting is not whole-event completeness or publication.
+See [D-0034](../../journal/decisions/0034-record-bounded-event-accounting.md).
+
+Unavailable observations retain the exact response support checked by the shared
+release verifier. They do not increase acquired or interpreted counts and never
+produce successful-progress receipts. Reports show unavailable and page-accounted
+subtotals separately. A changed same-source snapshot domain invalidates gap
+observations, including undeclared aliases; metadata-only reports still do not
+detect unrecorded file loss before the next verification. Unknown unavailable
+evidence cannot turn a missing interpretation into definite unfinished work.
+Parent checks receive priority after every page has a fresh accounting branch.
+See [D-0037](../../journal/decisions/0037-account-for-supported-unavailable-page-gaps.md).
+
+Each accounting event's `page_retirement` reports the current immediate predecessor
+edge separately. Verified normalized page IDs require an ordered, exact accepted
+watch-authoritative replacement, supported prior ownership, and no surviving
+independent claim. An admitted child result can preserve a page after an index
+omits it. Auxiliary removal lists are not proof. Reports expose the observation
+window and latest historical withdrawal receipt; missing or invalid evidence
+remains unassessed. A whole-event retirement flag and complete retirement history
+stay unknown, even when all known predecessor obligations were withdrawn.
+
+The edge shares the progress budget and H13 artifact controls. Leftover-budget
+exhaustion receives a fresh opportunity; a proof too large for a fresh allowance
+yields back to page work. Repeated checks, policy reloads, and restored proof files
+do not add another withdrawal receipt. The metadata-only report does not detect
+unrecorded artifact loss until another verification. See
+[D-0035](../../journal/decisions/0035-prove-immediate-event-page-retirements.md).
+
+The complete reporting contract follows. Doctor and summary expose the
 [source-event inventory](scheduling.md#event-completion) using the same
 consistent, read-only snapshot as other progress reports. Show source reference,
 nullable canonical event, enumeration evidence and completeness, listed page

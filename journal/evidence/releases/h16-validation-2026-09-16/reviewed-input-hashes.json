@@ -1,0 +1,7 @@
+{
+  "pyproject.toml": "edebdee326872904ebfb41995de03d3523ef2b933ef47682913f1fa262c65c2e",
+  "src/swingset/build/closure.py": "61c9b2299f944eba455f173af9d353ecb39152cba8ab1b0c93933feee9850dbc",
+  "src/swingset/build/closure_validation.py": "5562d5a67d3156174e8c7b75cea069e68f5a64eecc4467170eedbf23b901578d",
+  "src/swingset/build/generations.py": "83ec42ad48834166c168c792586d124a169583ce18af4b7427fce436bd265078",
+  "tests/build/test_closure_validation_scope.py": "6450d76c1817d5b82bb60e49bf081f74348cf359de0f3a6839a3af50e64a9535"
+}

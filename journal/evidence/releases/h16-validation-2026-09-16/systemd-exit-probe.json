@@ -1,0 +1,29 @@
+{
+  "after_five_seconds": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "LoadState=not-found\nActiveState=inactive\nSubState=dead\nMainPID=0\nResult=success\nExecMainStatus=0\n"
+  },
+  "argv": [
+    "systemd-run",
+    "--wait",
+    "--unit=swingset-h16-proof-exit-probe.service",
+    "--property=Type=exec",
+    "/run/current-system/sw/bin/true"
+  ],
+  "at": "2026-09-16T14:39:35.854835+00:00",
+  "before": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "LoadState=not-found\nActiveState=inactive\nSubState=dead\nMainPID=0\nResult=success\nExecMainStatus=0\n"
+  },
+  "immediate": {
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": "LoadState=not-found\nActiveState=inactive\nSubState=dead\nMainPID=0\nResult=success\nExecMainStatus=0\n"
+  },
+  "purpose": "Tiny isolated success-exit/GC probe; no worker or production changes",
+  "wait_exit_code": 0,
+  "wait_stderr": "Running as unit: swingset-h16-proof-exit-probe.service\n          Finished with result: success\nMain processes terminated with: code=exited, status=0/SUCCESS\n               Service runtime: 4ms\n             CPU time consumed: 5ms\n                   Memory peak: 4.5M (swap: 0B)\n                      IO Bytes: read 3.6M\n",
+  "wait_stdout": ""
+}

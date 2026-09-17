@@ -1,0 +1,11 @@
+{"output": "/var/lib/swingset/operations/h16-event-preservation-release-20260916/initialization-anchor-002.json", "sha256": "1c6d181c60b570f4af23fa2b0ffe1911ead968ee9b5744defcd4fe2a022788be", "passed": false, "error": {"type": "ValueError", "message": "main database or WAL bytes changed during inspection"}}
+Traceback (most recent call last):
+  File "/var/lib/swingset/operations/h16-event-preservation-release-20260916/final-verification/verify-initialization-002.py", line 278, in <module>
+    main()
+  File "/var/lib/swingset/operations/h16-event-preservation-release-20260916/final-verification/verify-initialization-002.py", line 272, in main
+    execute(args)
+  File "/var/lib/swingset/operations/h16-event-preservation-release-20260916/final-verification/verify-initialization-002.py", line 242, in execute
+    require(before == report["database_files_after"], "main database or WAL bytes changed during inspection")
+  File "/var/lib/swingset/operations/h16-event-preservation-release-20260916/final-verification/verify-initialization-002.py", line 40, in require
+    raise ValueError(reason)
+ValueError: main database or WAL bytes changed during inspection

@@ -1,0 +1,58 @@
+{
+  "format": "h16-event-preservation-production-preparation-v1",
+  "prepared_at": "2026-09-16T18:01:29.283761+00:00",
+  "status": "prepared_not_executed",
+  "source": "/nix/store/z689qy41inndill3d92ym8im852x3649-source",
+  "source_receipt_sha256": "0c3a391aca5c32381ab10daa22adfdde44cda76ab26b68df002f9822ad4945fb",
+  "input_bundle_hash": "fe99b47cd65eb909abc7c9ebd64d9ace9524393e5af8cd4d9368c55317ce3c6a",
+  "system": "/nix/store/sx7lpr80cx0n9vzsi3cwz9nxawqc4p1i-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+  "operations": "/var/lib/swingset/operations/h16-event-preservation-release-20260916",
+  "literal_only_adaptations_verified": true,
+  "initializer_unchanged": true,
+  "files": {
+    "README.md": "5749ee219095c641a2cad4ccd385fc5a7fb51e9692f181def15ff4377f55c20a",
+    "activate-system.py": "db4cd1a26e3f1c593570316759b779e44f98cf1d691b1b32872a35416e81cf2e",
+    "adaptation-manifest.json": "32fba2bb8f06d50a0fc083904e0dd61aaf2664c43f16a229d1e4a4efc522959f",
+    "initialize.py": "b54c02a15c3d86a603bef4d6926e66bde4cf1ef9d23f273aa5db771d3a99d233",
+    "offline-guards-001.json": "5f359b9480a22af7e41af793b6401a871ae56d14d3806db6f5133930c178e813",
+    "offline-guards-001.log": "331f1aa8751be6ac5471d99206362d8675b3c4a1953d8cf9daae0e7c9ecd6dcf",
+    "production-release.py": "f8cd9ec23953600d3c9445a765df97eb894fd5363cea3f1136446c67a4f902cc",
+    "supervise-initialization.py": "9d48562395750244fb64c8420390c3402c8af2aea2019e46bb66577c1b3c4312",
+    "test_activate_system.py": "fec93ef4aaa64ab2754883d39e06fdc8ac7f9f1d1c5cd41c42923ced109e95d2",
+    "test_initializer_supervisor.py": "61eb25f2b9359bed51f052318a7e395e8b49829032c6171fc9bc7922b5a8a98d",
+    "test_live_initialize.py": "047b9569b825a889a0932e4a8f55b55780ce56ee48efd9f2b84f5b918743e008",
+    "test_production_release.py": "83849bf4c1cc28c423132d8047c5a67a6cff64f1caf2f4ea39bd47daea8b5a85",
+    "test_supervisor_launch_review.py": "304d9c2bfc957b6af4da7454261ffee86551e1b45a2e2c2e7029472752dc5b0e"
+  },
+  "retained_reference_files": {
+    "/Users/skeswa/repos/skeswa/swingset/journal/evidence/releases/h16-event-preservation-2026-09-16/source-verification.json": "caf919039f87d05dd5ba4c8c095b1d055e55e947eeeb09eb9a4fb69aa7986b39",
+    "/Users/skeswa/repos/skeswa/swingset/journal/evidence/releases/h16-event-preservation-2026-09-16/frozen-validation.json": "4600e1959d9e43b0e8eaeed895de48dce0f0c80375e54cc26faa7abe10654e7d",
+    "/Users/skeswa/repos/skeswa/swingset/journal/evidence/releases/h16-event-preservation-2026-09-16/system-binding-verification.json": "f11e9e8436a28fe164dab2c24123dc7df70529c49538c424b5889b5430b2a7ed",
+    "/Users/skeswa/repos/skeswa/swingset/journal/evidence/releases/h16-event-preservation-2026-09-16/replay-input-binding.json": "6f4838f6b6f03972e169d413c1540e87629510e9b461e821dea16f94aacb5127",
+    "/Users/skeswa/repos/skeswa/swingset/journal/evidence/releases/h16-event-preservation-2026-09-16/build-audit-preparation.json": "6d8b00df7067eac52f09c4f1dfdd1fbadcb64140232e068f5d02cbb19e950c3d",
+    "/tmp/h16-closure-operation-preparation-20260914/gate.json": "2ed8c721a07efa12cca325e8f3a048417f82b5c72f4197370fe8bfd52d731d7a",
+    "/tmp/h16-closure-operation-preparation-20260914/backup.json": "d7188f357d99f79c80cb2277dd335539840be8cb2305ef34c41162991c69793f",
+    "/tmp/h16-closure-operation-preparation-20260914/private-verification.json": "4941e52a6f65f843737215570f037881b6f7a788a917fc624584cf45f294a6ba",
+    "/tmp/h16-closure-operation-preparation-20260914/v4-verification.json": "290b2302c65ce84b4483c4f2b6104cebcc9ba68b5e132f6c674bbaed410f8b2a"
+  },
+  "offline_guards": {
+    "passed": 105,
+    "seconds": 3.4,
+    "receipt": "offline-guards-001.json"
+  },
+  "authorization": "Owner explicitly authorized deployment/publication after H16 completes; coordinator owns concrete execution gates.",
+  "unresolved": [
+    "same_pin_replay_current_and_lock_release",
+    "same_pin_durable_build_and_substantive_audit",
+    "live_predecessor_holds_baseline_and_checkpoint_equality",
+    "actual_production_acceptance_gate_and_marker",
+    "production_initialization_currentness",
+    "production_build_and_audit",
+    "remote_parent_credentials_and_publication_acknowledgment"
+  ],
+  "production_executed": false,
+  "vm_jobs_started": false,
+  "network_requests": 0,
+  "runtime_source_edits": false,
+  "executable_gates_created": false
+}

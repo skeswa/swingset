@@ -1,0 +1,23 @@
+{
+  "format": "h16-legacy-initializer-coordinator-review-v1",
+  "at": "2026-09-16T20:20:04.814220+00:00",
+  "reviewer": "root coordinator",
+  "files": {
+    "legacy-runtime-fix/initialize-002.py": "c3259a023436e2cc3ee56e1ad83f3170b455f42187ff71421eeac25387bf96d7",
+    "supervise-initialization-002.py": "7d2746bd079a0e0fb608ae666f4cec2146ab23561c46e2d808f0f2ba2216324f",
+    "monitoring/guard-initialization-003.py": "b39cedadd065dad76eb5a47f0c5de3dd39a737895a7198bb7a48a75f5ea1623b",
+    "final-verification/verify-initialization-002.py": "de8708f555c34a97afcdae2085c266eac3d4e1230e6879d4069cd8a7bd7410db",
+    "legacy-runtime-fix/offline-checks-001.json": "1b734e9700211bf290cf0179ef92d0375999d017181c94551afaf769a6c7f030",
+    "legacy-runtime-fix/downstream-adaptation-001.json": "07ca4235954388074c3d3cca01d67e09f883d510274f32c6a0d25ec1e22f86ba",
+    "legacy-runtime-fix/downstream-offline-checks-002.json": "6d49c7a211f9cde91b2ecabfd2a9ac34cad46d58ca085f27c5d06503687894c8"
+  },
+  "review": {
+    "initializer_delta": "Only absent prior recipe lookup changes to None; normal capture/accept invalidation remains authoritative.",
+    "downstream_delta": "All eight recorded literal adaptations independently reproduced; old and new file hashes verified.",
+    "validation": "7 real frozen-runtime legacy/input tests and 180 downstream guard tests passed; runtime lint passed.",
+    "source_bundle_checkpoint_unchanged": true,
+    "failed_attempt_retained": true
+  },
+  "authorized_next": "Prepare distinct gate002/launcher002 for review, then stage exact new helpers and execute prepare only after gate/launcher review.",
+  "production_retry_executed": false
+}

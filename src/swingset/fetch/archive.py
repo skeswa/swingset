@@ -97,6 +97,30 @@ class Archive:
             self.recovery.recover("body", sha256, path)
             return self._body(path, sha256)
 
+    def verify_body(self, sha256: str) -> None:
+        """Verify gzip contents and digest in bounded-memory reads, without returning bytes.
+
+        Recovery follows read_body's exact-digest contract. Chunking bounds
+        memory, not the total bytes read or time spent verifying an artifact.
+        """
+        path = self.blob_path(sha256)
+        try:
+            self._verify_body(path, sha256)
+        except (OSError, ValueError, EOFError, zlib.error):
+            if self.recovery is None:
+                raise
+            self.recovery.recover("body", sha256, path)
+            self._verify_body(path, sha256)
+
+    @staticmethod
+    def _verify_body(path: Path, sha256: str) -> None:
+        checksum = hashlib.sha256()
+        with path.open("rb") as raw, gzip.GzipFile(fileobj=raw, mode="rb") as stream:
+            while chunk := stream.read(64 * 1024):
+                checksum.update(chunk)
+        if checksum.hexdigest() != sha256:
+            raise ValueError(f"corrupt blob: {sha256}")
+
     @staticmethod
     def _body(path: Path, sha256: str) -> bytes:
         body = gzip.decompress(path.read_bytes())

@@ -14,7 +14,7 @@ from typing import IO, Self
 from swingset.clock import Clock, SystemClock
 from swingset.model.ids import run_id as make_run_id
 
-SCHEMA_VERSION = 15
+SCHEMA_VERSION = 24
 
 
 class DatabaseLockedError(RuntimeError):

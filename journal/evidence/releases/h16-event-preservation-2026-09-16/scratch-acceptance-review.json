@@ -1,0 +1,23 @@
+{
+  "format": "h16-scratch-acceptance-coordinator-review-v1",
+  "at": "2026-09-16T19:52:31.718003+00:00",
+  "passed": true,
+  "reviewed_by": "Codex coordinator",
+  "source": "/nix/store/z689qy41inndill3d92ym8im852x3649-source",
+  "source_receipt_sha256": "0c3a391aca5c32381ab10daa22adfdde44cda76ab26b68df002f9822ad4945fb",
+  "candidate_id": "cand_2a6ff4c91cc64ee4",
+  "manifest_hash": "2c23cd4be4995cfef4645cd553a745c05bfc0b2e495d3c08e772dd765be474c1",
+  "evidence_sha256": {
+    "replay-final-verification.json": "b05e18004e7a275d482205c840932efce39535b8f251002ade75553d4ddf4b1c",
+    "replay-coordinator-review.json": "179eee4d2cc88f33d78247f7d99176e3bc0897df318db09e11c04a6ea5c35a65",
+    "build-result.json": "59a2e82b5cc8dfe0a4451b679fa89c0dcf84aa59ee944ee8c1d7b9efa37c61a3",
+    "build-orchestration.json": "f13c3411fd2e1ff7a05aec073990293d5602eddbf4ae634d71deb7b7ee9f310b",
+    "audit-result.json": "862a880eaf2d0263b5f35ed8733c90bd21a818c3eab3a0929c875ef24fb7b81d",
+    "audit-orchestration.json": "574653ea36d1bfcdfadb8ab4dd51e64dc0f37995fc972838354981c84c6c2b43",
+    "audit-resources.json": "6581d6d0b7647a006a756939bf813850037f4eeaf002ce010a8525e0f205b326"
+  },
+  "checks_passed": 54,
+  "next_authorized_action": "production preflight under D-0029; review actual live protected-state and baseline evidence before activation",
+  "production_acceptance": false,
+  "published": false
+}

@@ -1,0 +1,162 @@
+[
+  {
+    "name": "supervision/preflight.json",
+    "sha256": "a6f40b151bf77c73c277afd75b67cf1519ad2435e572f5dc9282d845e5234154"
+  },
+  {
+    "name": "supervision/batch-001-start.json",
+    "sha256": "1f8b7dfb4cd106b883d4d0fbdbe758ea96b707d03fca50130a44f23ed7550363"
+  },
+  {
+    "name": "supervision/initializer-001.resources.jsonl",
+    "sha256": "056de3a12e6842d9870b6e3f5e699b13db135ba5f803541a5f01c8a19e0b07af"
+  },
+  {
+    "name": "supervision/initializer-001.log",
+    "sha256": "b9cfab40a19496fc89bd4ff08eb5a0330980cfd525c7a7cc5d0d6439dd7c6bc5"
+  },
+  {
+    "name": "supervision/initializer-001.json",
+    "sha256": "ff4f86e1c4fef8818006467d388e3cbfd14593cffeab7cf28d5c069f64fd9d44"
+  },
+  {
+    "name": "supervision/batch-001-final.json",
+    "sha256": "0c3218fc346fa4e253e27914895e92927924054f426bb6ceed62d5a415e88b2d"
+  },
+  {
+    "name": "supervision/batch-002-start.json",
+    "sha256": "61f706e950acb9ceb4688c6fad6ae8ed27152f7dfe88367262d66bac758b827f"
+  },
+  {
+    "name": "supervision/initializer-002.resources.jsonl",
+    "sha256": "d9673a91104b067c7a381d99c1f180df126e65d1b0f9b4132046946b6912f650"
+  },
+  {
+    "name": "supervision/initializer-002.log",
+    "sha256": "d360fa364a28297ffd40e4c7cb81f9320b217c8c5b6577778f6b64ce1d1a5943"
+  },
+  {
+    "name": "supervision/initializer-002.json",
+    "sha256": "7b601ab1ab5129ea6efd42650d46213c5006a7187702e61348e74f21f8f1d3a4"
+  },
+  {
+    "name": "supervision/batch-002-final.json",
+    "sha256": "8740771698ab4b0fd1a9cf8ca0b7953164341476fbe86077f948601458d51433"
+  },
+  {
+    "name": "supervision/batch-003-start.json",
+    "sha256": "a01eb2acaad85e860c2f0e78061c4e099ff40dc53760b91184756459d9e31c97"
+  },
+  {
+    "name": "supervision/initializer-003.resources.jsonl",
+    "sha256": "048e0440de1a1df09de8c12a366a2f81609b31f924251767ecb9f2c0d3e60062"
+  },
+  {
+    "name": "supervision/initializer-003.log",
+    "sha256": "e7a037161c73001d612a9c438eedf88736373c885b9c6cff8ea7b83eaf987cc7"
+  },
+  {
+    "name": "supervision/initializer-003.json",
+    "sha256": "cec567c4f38b2c1f0a5b4bb5b05dd2fc1c3d0cfb9c23413a8b5eb87593a0c06b"
+  },
+  {
+    "name": "supervision/batch-003-final.json",
+    "sha256": "d124073dedd3283c848fc04395c085280326e094a6729689b01bacd6074484e1"
+  },
+  {
+    "name": "supervision/batch-004-start.json",
+    "sha256": "8523cfc6a08ee835b2c7d9c7dbb35ebec8d5c85f6382ff8f1d05ab393093b334"
+  },
+  {
+    "name": "supervision/initializer-004.resources.jsonl",
+    "sha256": "31f2d7bfba0d797f78ff955c493c88290e02638bb31b42ca92e3ebeb389bd76f"
+  },
+  {
+    "name": "supervision/initializer-004.log",
+    "sha256": "6dba09df3ec6ca8e9a4965e848f238d24a2ad2480fd19472bc60d472da56bc12"
+  },
+  {
+    "name": "supervision/initializer-004.json",
+    "sha256": "b2a09c5ecefd450dfee0a7b96fd9167ff1da6a328fed7447d77cde0d1f2a03ce"
+  },
+  {
+    "name": "supervision/batch-004-final.json",
+    "sha256": "d69750f9ce0bb1b9ae83afd035b1188daada9b812e8cfa49981034e19400168a"
+  },
+  {
+    "name": "supervision/batch-005-start.json",
+    "sha256": "defca7d1570e282dccd9de05638b7802423b38f879244b944f49fc512b0f9dc4"
+  },
+  {
+    "name": "supervision/initializer-005.resources.jsonl",
+    "sha256": "a76195e423d439e3371131ae43656f2eb150efae98561dc641b9cc38d9677447"
+  },
+  {
+    "name": "supervision/initializer-005.log",
+    "sha256": "428222660cfd1ea3baed136f3dd1b0853f51024e7da84d0d2bc3b0ee018241b4"
+  },
+  {
+    "name": "supervision/initializer-005.json",
+    "sha256": "1839edf417739e92ca2d262ee11c0e78fbce005be9d30f63f3e1e58db70414c9"
+  },
+  {
+    "name": "supervision/batch-005-final.json",
+    "sha256": "209483a120fa0478b3ffa1e5b1a178ca2ae33c0737dc2f7f1e0f56ac26bae302"
+  },
+  {
+    "name": "supervision/batch-006-start.json",
+    "sha256": "8247dc89825f054ba6c1e3865fd35aa82057af03e6623604949d45841a6bdb35"
+  },
+  {
+    "name": "supervision/initializer-006.resources.jsonl",
+    "sha256": "a55212423ae0ac7a6154243490c4776aa6eb63f3a31ed866e1abc0416f1e9fee"
+  },
+  {
+    "name": "supervision/initializer-006.log",
+    "sha256": "36f64ce4917e20a79d5c5b07788cdc4c3784ea64855c16ff270164fa258ccdc9"
+  },
+  {
+    "name": "supervision/initializer-006.json",
+    "sha256": "aa1a820c943926e487aa7c07049109dbb60ac3cbedba41b5857a43731acb5be2"
+  },
+  {
+    "name": "supervision/batch-006-final.json",
+    "sha256": "b192740dceb76fd6adafd3f51413cde9f6a498f60c4d218c292aa23698dec0e4"
+  },
+  {
+    "name": "supervision/batch-007-start.json",
+    "sha256": "a172590429c8ae5f2a262c5f108aa2dc0ba7890fb71bb338c303c63c77040e4a"
+  },
+  {
+    "name": "supervision/initializer-007.resources.jsonl",
+    "sha256": "a52db0c049429e59d4a857891a74e96344c74d1d8379ee0ae4294e01b8c43e31"
+  },
+  {
+    "name": "supervision/initializer-007.log",
+    "sha256": "8dce632d19b42d954f49686a4ac03c3838134c43d53e077008e6af86cc43d7c3"
+  },
+  {
+    "name": "supervision/initializer-007.json",
+    "sha256": "ab00fa40b3b7b587fd5d87c1b287e0d8abead90720f1b5e8b0f24a29ff9694cc"
+  },
+  {
+    "name": "supervision/batch-007-final.json",
+    "sha256": "00e5dd98964c29355ab3bed7bcee4b2eb3257efa7b3404f2ee7c8a9fad330f66"
+  },
+  {
+    "name": "supervision/final.json",
+    "sha256": "542fd9bc89eb48dd8dc3bd2d916127cb291db36b2429e3aaf03222e0facc0d5c"
+  },
+  {
+    "name": "launcher/intent.json",
+    "sha256": "bbcbbb60ac754aa28e5687b6cf216e4f22dc13ff266c8cadb5e3034d51875210"
+  },
+  {
+    "name": "launcher/run.log",
+    "sha256": "b0e10fcaa9f73ecd15ce26d2075b21b81ba3ae461930fd1b407dc227a2c7ed80"
+  },
+  {
+    "name": "launcher/execution.json",
+    "sha256": "fe8ced58ca2fddffc337fb1920f55acc48e16cc66de76b3ca3d88093c9317d02"
+  }
+]

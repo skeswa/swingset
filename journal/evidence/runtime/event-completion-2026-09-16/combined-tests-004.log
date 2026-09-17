@@ -1,0 +1,380 @@
+........................................................................ [  4%]
+........................................................................ [  9%]
+........................................................................ [ 13%]
+........................................................................ [ 18%]
+.F...................................................................... [ 22%]
+........................................................................ [ 27%]
+........................................................................ [ 31%]
+........................................................................ [ 36%]
+........................................................................ [ 41%]
+...................................................................FF... [ 45%]
+........................................................................ [ 50%]
+........................................................................ [ 54%]
+.........................................F........................FFF... [ 59%]
+........................................................................ [ 63%]
+........................................................................ [ 68%]
+........................................................................ [ 72%]
+........................................................................ [ 77%]
+........................................................................ [ 82%]
+........................................................................ [ 86%]
+........................................................................ [ 91%]
+........................................................................ [ 95%]
+...................................................................      [100%]
+=================================== FAILURES ===================================
+_____ test_all_pause_blocks_build_and_derivation_but_preserves_bookkeeping _____
+
+tmp_path = PosixPath('/private/var/folders/kc/94jncx6s6pqc8g2g4f2kyvtr0000gn/T/pytest-of-skeswa/pytest-956/test_all_pause_blocks_build_an0')
+configuration = (PosixPath('/private/var/folders/kc/94jncx6s6pqc8g2g4f2kyvtr0000gn/T/pytest-of-skeswa/pytest-956/test_all_pause_blocks...ar/folders/kc/94jncx6s6pqc8g2g4f2kyvtr0000gn/T/pytest-of-skeswa/pytest-956/test_all_pause_blocks_build_an0/overrides'))
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x113ad29c0>
+
+    def test_all_pause_blocks_build_and_derivation_but_preserves_bookkeeping(
+        tmp_path, configuration, monkeypatch
+    ):
+        config, overrides = configuration
+        clock = FakeClock()
+        built = []
+        monkeypatch.setattr(
+            "swingset.build.service.build_release", lambda *_args, **_kwargs: built.append(True)
+        )
+    
+        def forbidden(_request):
+            raise AssertionError("paused request")
+    
+        with open_database(tmp_path / "state") as db:
+            change_control(
+                db.state_dir,
+                selector=Selector("all", "all"),
+                paused=True,
+                actor="operator",
+                reason="maintenance",
+                now=clock.now(),
+            )
+            result = run_cycle(
+                db,
+                config_dir=config,
+                overrides_dir=overrides,
+                clock=clock,
+                transport=httpx.MockTransport(forbidden),
+            )
+            assert not result["failed"]
+            assert built == [] and result["stages"] == []
+>           assert result["held_operations"][0]["action"] == "build"
+E           AssertionError: assert 'event_pressure_refresh' == 'build'
+E             
+E             - build
+E             + event_pressure_refresh
+
+tests/test_cycle_controls.py:147: AssertionError
+----------------------------- Captured stderr call -----------------------------
+event="cycle" run_id="run_20260101T000000Z" dry_run=true checked=0 changed=0 not_modified=0 nonce_unchanged=0 stopped=false failed=false stages=[] bytes_by_host={} recovered_admissions=0 interrupted_attempts=0 held_operations=[{"action": "event_pressure_refresh", "reason": "operator_pause", "pauses": [{"scope_kind": "all", "scope_id": "all", "until_at": null, "reason": "maintenance", "pause_id": "pause_77d985f8244f4f7c985c7670fc7ed415", "actor": "operator", "control_revision": 1, "created_at": "2026-01-01T00:00:00+00:00", "resume_selector": "--all", "paused_duration_seconds": 0.0}]}, {"action": "build", "reason": "operator_pause", "pauses": [{"scope_kind": "all", "scope_id": "all", "until_at": null, "reason": "maintenance", "pause_id": "pause_77d985f8244f4f7c985c7670fc7ed415", "actor": "operator", "control_revision": 1, "created_at": "2026-01-01T00:00:00+00:00", "resume_selector": "--all", "paused_duration_seconds": 0.0}]}] accepted_inputs=["config/hosts.toml", "config/sources.toml", "link/weights.toml", "overrides/event_aliases.csv", "overrides/identity_overrides.csv", "overrides/nicknames.csv", "overrides/series_aliases.csv", "overrides/source_urls.csv", "overrides/suppressions.csv", "policy/history_start", "policy/inventory_year", "recipe/runtime", "version/extract/eepro.autoindex", "version/extract/eepro.index", "version/extract/eepro.round", "version/extract/scoringdance.event", "version/extract/scoringdance.recent", "version/extract/scoringdance.round", "version/extract/scoringdance.sitemap", "version/extract/steprightsolutions.event", "version/extract/steprightsolutions.index", "version/extract/steprightsolutions.round", "version/extract/swingdancecouncil.events", "version/extract/wdr.awards", "version/extract/wdr.rounds", "version/extract/wsdc_calendar.events", "version/extract/wsdc_newsletter.events", "version/extract/wsdc_newsletter.index", "version/extract/wsdc_registry.dancer", "version/linker", "version/package", "version/parser/eepro.autoindex", "version/parser/eepro.index", "version/parser/eepro.round", "version/parser/scoringdance.event", "version/parser/scoringdance.recent", "version/parser/scoringdance.round", "version/parser/scoringdance.sitemap", "version/parser/steprightsolutions.event", "version/parser/steprightsolutions.index", "version/parser/steprightsolutions.round", "version/parser/swingdancecouncil.events", "version/parser/wdr.awards", "version/parser/wdr.rounds", "version/parser/wsdc_calendar.events", "version/parser/wsdc_newsletter.events", "version/parser/wsdc_newsletter.index", "version/parser/wsdc_registry.dancer", "version/projector", "version/repository", "version/schema"] event_enumerations={"admissions_scanned": 0, "legacy_watches_scanned": 0, "enumerations_created": 0, "errors": [], "admission_cursor": 0, "legacy_cursor": 0, "may_have_more": false} event_pressure_bootstrap={"supported": true, "processed": 0, "metadata_pending": false} requirements_scanned=0 registry_verification={"oldest_usable_verification_age_seconds": null, "unknown_watches": 0, "stale_watches": 0, "alert": false} scheduler={"allocation": {"reconciliation_seconds": 30.0, "acquisition_seconds": 300.0, "offline_seconds": 390.0}, "phase_seconds": {"reconciliation": 0.0, "acquisition": 0.0, "offline": 0.0}, "backpressure_before": {"active": false, "reasons": [], "pending": {}, "pending_parse_bytes": 0, "repair_requests_per_cycle": 2}, "backpressure_after": {"active": false, "reasons": [], "pending": {}, "pending_parse_bytes": 0, "repair_requests_per_cycle": 2}} unit_failures=[] held_units=[] parse_errors={} restored_artifacts=[] paused_hosts=[] controls={"supported": true, "state": "paused", "control_revision": 1, "pauses": [{"scope_kind": "all", "scope_id": "all", "until_at": null, "reason": "maintenance", "pause_id": "pause_77d985f8244f4f7c985c7670fc7ed415", "actor": "operator", "control_revision": 1, "created_at": "2026-01-01T00:00:00+00:00", "resume_selector": "--all", "paused_duration_seconds": 0.0}], "draining_attempts": [], "active_attempts": 0, "stuck_drain": false, "expired_pauses": [], "snapshot_at": "2026-01-01T00:00:00+00:00"} duration_seconds=0.0 finished_at="2026-01-01T00:00:00+00:00"
+___ test_sustained_current_demand_services_old_work_using_actual_http_debits ___
+
+tmp_path = PosixPath('/private/var/folders/kc/94jncx6s6pqc8g2g4f2kyvtr0000gn/T/pytest-of-skeswa/pytest-956/test_sustained_current_demand_0')
+
+    def test_sustained_current_demand_services_old_work_using_actual_http_debits(tmp_path):
+        import httpx
+    
+        from swingset.fetch.client import FetchClient
+        from swingset.schedule.fairness import next_watch, servicing
+        from swingset.sources.scoringdance.adapter import EventPage
+    
+        clock = FakeClock()
+        with open_database(tmp_path) as db:
+            current, old = event_watch("current"), event_watch("old")
+            archive, run, body = seed_snapshots(db, clock, (current, old))
+            db.connection.execute(
+                "UPDATE watches SET state='archived' WHERE watch_id=?", (old.watch_id,)
+            )
+            cached_robots(db.connection, archive, clock, "scoring.dance")
+            fetcher = FetchClient(
+                db.connection,
+                config(),
+                clock,
+                archive,
+                transport=httpx.MockTransport(lambda _: httpx.Response(200, content=body)),
+                random_value=lambda: 0,
+            )
+            service = []
+            try:
+                for _ in range(100):
+                    choice = next_watch(db.connection, config(), now=clock.now())
+>                   assert choice is not None
+E                   assert None is not None
+
+tests/test_h14_acceptance.py:321: AssertionError
+______ test_midday_migration_usage_is_not_new_capacity_or_catchup_credit _______
+
+tmp_path = PosixPath('/private/var/folders/kc/94jncx6s6pqc8g2g4f2kyvtr0000gn/T/pytest-of-skeswa/pytest-956/test_midday_migration_usage_is0')
+
+    def test_midday_migration_usage_is_not_new_capacity_or_catchup_credit(tmp_path):
+        import httpx
+    
+        from swingset.fetch.client import FetchClient
+        from swingset.schedule.fairness import WatchChoice, next_watch, servicing
+        from swingset.sources.scoringdance.adapter import EventPage
+        from swingset.state.controls import ActionScope
+    
+        clock = FakeClock()
+        with open_database(tmp_path) as db:
+            spec = event_watch("old")
+            archive, run, body = seed_snapshots(db, clock, (spec,))
+            db.connection.execute(
+                "UPDATE watches SET state='archived',next_check_at=?",
+                ((clock.now() - timedelta(days=60)).isoformat(),),
+            )
+            cached_robots(db.connection, archive, clock, "scoring.dance")
+            db.connection.executemany(
+                "INSERT INTO host_budget VALUES (?,?,?,0)",
+                [
+                    ("scoring.dance", clock.now().date().isoformat(), 725),
+                    ("web.archive.org", clock.now().date().isoformat(), 200),
+                ],
+            )
+            archived = WatchChoice(
+                "archive-virtual",
+                None,
+                "web.archive.org",
+                "old",
+                ActionScope(),
+                clock.now() - timedelta(days=60),
+                archive=True,
+            )
+            calls = []
+            fetcher = FetchClient(
+                db.connection,
+                config(),
+                clock,
+                archive,
+                transport=httpx.MockTransport(
+                    lambda request: (
+                        calls.append((str(request.url), clock.now()))
+                        or httpx.Response(200, content=body)
+                    )
+                ),
+                random_value=lambda: 0,
+            )
+            try:
+                for _ in range(75):
+                    choice = next_watch(
+                        db.connection, config(), now=clock.now(), extra_choices=(archived,)
+                    )
+>                   assert choice and choice.watch_id == spec.watch_id
+E                   assert (None)
+
+tests/test_h14_acceptance.py:395: AssertionError
+___ test_three_failed_distinct_archive_captures_allow_proved_origin_fallback ___
+
+origin = namespace(db=<swingset.state.db.Database object at 0x113369610>, conn=<sqlite3.Connection object at 0x11237f5b0>, cloc...2019/', timestamp='20190301000000', digest='digest-2', mimetype='text/html', length=100, status=200))),), findings=()))
+
+    def test_three_failed_distinct_archive_captures_allow_proved_origin_fallback(origin):
+        from test_platform_backfill import CAPTURES, failed_snapshot, recorder
+    
+        captures = CAPTURES
+        origin.conn.executemany(
+            "INSERT INTO archive_captures VALUES (?,?,?,?,200,?,?,?,'retained')",
+            [
+                (
+                    "eepro",
+                    c.url,
+                    c.timestamp,
+                    c.digest,
+                    c.mimetype,
+                    c.length,
+                    origin.clock.now().isoformat(),
+                )
+                for c in captures
+            ],
+        )
+        origin.plan = PlatformPlan((PlannedPage(EVENT, origin.plan.pages[0].page, captures[:3]),), ())
+        for number, capture in enumerate(captures[:3]):
+            selected = dispatch_one(
+                origin.db,
+                origin.config,
+                origin.clock,
+                origin.run,
+                deadline=origin.clock.now() + timedelta(minutes=10),
+                fetcher=recorder(),
+                plan=origin.plan,
+                allocated=True,
+            )
+            assert selected.capture == capture
+            failed_snapshot(origin, selected.watch_id, capture, number)
+        calls = []
+    
+        def response(request):
+            calls.append(str(request.url))
+            return (
+                httpx.Response(404)
+                if request.url.path == "/robots.txt"
+                else httpx.Response(200, content=BODY)
+            )
+    
+        fetched = run(origin, response)
+>       assert fetched.capture is None and fetched.result.snapshot_id
+E       AssertionError: assert (None is None and None)
+E        +  where None = Dispatch(reason='dispatched', watch_id='9dd72ddcd1052f5e', capture=None, result=FetchResult(classification=Classificat...one), snapshot_id=None, changed=False, body_bytes=0, nonce_unchanged=False, skipped='event pressure metadata pending')).capture
+E        +  and   None = FetchResult(classification=Classification(outcome=<Outcome.INVALID: 'Invalid'>, retry_after=None), snapshot_id=None, changed=False, body_bytes=0, nonce_unchanged=False, skipped='event pressure metadata pending').snapshot_id
+E        +    where FetchResult(classification=Classification(outcome=<Outcome.INVALID: 'Invalid'>, retry_after=None), snapshot_id=None, changed=False, body_bytes=0, nonce_unchanged=False, skipped='event pressure metadata pending') = Dispatch(reason='dispatched', watch_id='9dd72ddcd1052f5e', capture=None, result=FetchResult(classification=Classificat...one), snapshot_id=None, changed=False, body_bytes=0, nonce_unchanged=False, skipped='event pressure metadata pending')).result
+
+tests/test_history_origin_dispatch.py:777: AssertionError
+_ test_invalidation_during_host_wait_prevents_http_and_request_charge[DELETE FROM history_acceptance-history_year_unaccepted] _
+
+fixture = namespace(db=<swingset.state.db.Database object at 0x11361dee0>, conn=<sqlite3.Connection object at 0x11237f2e0>, cloc...ressure_low=80, event_pressure_max_age_seconds=86400, event_pressure_refresh_events=8, event_pressure_probe_pages=32)))
+invalidation = 'DELETE FROM history_acceptance'
+reason = 'history_year_unaccepted'
+
+    @pytest.mark.parametrize(
+        "invalidation,reason",
+        [
+            ("DELETE FROM history_acceptance", "history_year_unaccepted"),
+            (
+                "UPDATE admission_policies SET mode='paused' WHERE page_kind='eepro.autoindex'",
+                "history_contract_not_enforced",
+            ),
+        ],
+    )
+    def test_invalidation_during_host_wait_prevents_http_and_request_charge(
+        fixture, invalidation, reason
+    ):
+        page = reviewed_index(fixture)
+        accept(fixture)
+        target = spec()
+        upsert_watch(fixture.conn, target, fixture.clock.now())
+        archive = Archive(fixture.db.state_dir)
+        sha = archive.store_body(b"User-agent: *\nAllow: /\n")
+        fixture.conn.execute(
+            "INSERT INTO hosts(host,next_allowed_at,robots_sha256,robots_status,robots_fetched_at) VALUES ('web.archive.org',?,?,200,?)",
+            (
+                (fixture.clock.now() + timedelta(seconds=10)).isoformat(),
+                sha,
+                fixture.clock.now().isoformat(),
+            ),
+        )
+    
+        class InvalidatingClock(FakeClock):
+            def sleep(self, seconds):
+                super().sleep(seconds)
+                fixture.conn.execute(invalidation)
+    
+        clock = InvalidatingClock(fixture.clock.now())
+        client = FetchClient(
+            fixture.conn,
+            fixture.config,
+            clock,
+            archive,
+            transport=httpx.MockTransport(lambda _: pytest.fail("request must stop after wait")),
+        )
+        try:
+            result = client.fetch(target.watch_id, page, fixture.run)
+>           assert result.skipped == reason
+E           AssertionError: assert 'event pressu...adata pending' == 'history_year_unaccepted'
+E             
+E             - history_year_unaccepted
+E             + event pressure metadata pending
+
+tests/test_history_shared_gates.py:193: AssertionError
+_ test_invalidation_during_host_wait_prevents_http_and_request_charge[UPDATE admission_policies SET mode='paused' WHERE page_kind='eepro.autoindex'-history_contract_not_enforced] _
+
+fixture = namespace(db=<swingset.state.db.Database object at 0x11371eba0>, conn=<sqlite3.Connection object at 0x11237e2f0>, cloc...ressure_low=80, event_pressure_max_age_seconds=86400, event_pressure_refresh_events=8, event_pressure_probe_pages=32)))
+invalidation = "UPDATE admission_policies SET mode='paused' WHERE page_kind='eepro.autoindex'"
+reason = 'history_contract_not_enforced'
+
+    @pytest.mark.parametrize(
+        "invalidation,reason",
+        [
+            ("DELETE FROM history_acceptance", "history_year_unaccepted"),
+            (
+                "UPDATE admission_policies SET mode='paused' WHERE page_kind='eepro.autoindex'",
+                "history_contract_not_enforced",
+            ),
+        ],
+    )
+    def test_invalidation_during_host_wait_prevents_http_and_request_charge(
+        fixture, invalidation, reason
+    ):
+        page = reviewed_index(fixture)
+        accept(fixture)
+        target = spec()
+        upsert_watch(fixture.conn, target, fixture.clock.now())
+        archive = Archive(fixture.db.state_dir)
+        sha = archive.store_body(b"User-agent: *\nAllow: /\n")
+        fixture.conn.execute(
+            "INSERT INTO hosts(host,next_allowed_at,robots_sha256,robots_status,robots_fetched_at) VALUES ('web.archive.org',?,?,200,?)",
+            (
+                (fixture.clock.now() + timedelta(seconds=10)).isoformat(),
+                sha,
+                fixture.clock.now().isoformat(),
+            ),
+        )
+    
+        class InvalidatingClock(FakeClock):
+            def sleep(self, seconds):
+                super().sleep(seconds)
+                fixture.conn.execute(invalidation)
+    
+        clock = InvalidatingClock(fixture.clock.now())
+        client = FetchClient(
+            fixture.conn,
+            fixture.config,
+            clock,
+            archive,
+            transport=httpx.MockTransport(lambda _: pytest.fail("request must stop after wait")),
+        )
+        try:
+            result = client.fetch(target.watch_id, page, fixture.run)
+>           assert result.skipped == reason
+E           AssertionError: assert 'event pressu...adata pending' == 'history_cont..._not_enforced'
+E             
+E             - history_contract_not_enforced
+E             + event pressure metadata pending
+
+tests/test_history_shared_gates.py:193: AssertionError
+__________ test_policy_invalidation_on_redirect_stops_before_next_hop __________
+
+fixture = namespace(db=<swingset.state.db.Database object at 0x112d516d0>, conn=<sqlite3.Connection object at 0x113a825c0>, cloc...ressure_low=80, event_pressure_max_age_seconds=86400, event_pressure_refresh_events=8, event_pressure_probe_pages=32)))
+
+    def test_policy_invalidation_on_redirect_stops_before_next_hop(fixture):
+        page = reviewed_index(fixture)
+        accept(fixture)
+        target = spec()
+        upsert_watch(fixture.conn, target, fixture.clock.now())
+        archive = Archive(fixture.db.state_dir)
+        sha = archive.store_body(b"User-agent: *\nAllow: /\n")
+        fixture.conn.execute(
+            "INSERT INTO hosts(host,robots_sha256,robots_status,robots_fetched_at) VALUES ('web.archive.org',?,200,?)",
+            (sha, fixture.clock.now().isoformat()),
+        )
+        calls = []
+    
+        def handler(request):
+            calls.append(str(request.url))
+            fixture.conn.execute(
+                "UPDATE admission_policies SET mode='paused' WHERE page_kind='eepro.autoindex'"
+            )
+            return httpx.Response(
+                302, headers={"location": target.archive_url.replace("201905", "201906")}
+            )
+    
+        client = FetchClient(
+            fixture.conn, fixture.config, fixture.clock, archive, transport=httpx.MockTransport(handler)
+        )
+        try:
+>           assert (
+                client.fetch(target.watch_id, page, fixture.run).skipped
+                == "history_contract_not_enforced"
+            )
+E           AssertionError: assert 'event pressu...adata pending' == 'history_cont..._not_enforced'
+E             
+E             - history_contract_not_enforced
+E             + event pressure metadata pending
+
+tests/test_history_shared_gates.py:226: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_cycle_controls.py::test_all_pause_blocks_build_and_derivation_but_preserves_bookkeeping
+FAILED tests/test_h14_acceptance.py::test_sustained_current_demand_services_old_work_using_actual_http_debits
+FAILED tests/test_h14_acceptance.py::test_midday_migration_usage_is_not_new_capacity_or_catchup_credit
+FAILED tests/test_history_origin_dispatch.py::test_three_failed_distinct_archive_captures_allow_proved_origin_fallback
+FAILED tests/test_history_shared_gates.py::test_invalidation_during_host_wait_prevents_http_and_request_charge[DELETE FROM history_acceptance-history_year_unaccepted]
+FAILED tests/test_history_shared_gates.py::test_invalidation_during_host_wait_prevents_http_and_request_charge[UPDATE admission_policies SET mode='paused' WHERE page_kind='eepro.autoindex'-history_contract_not_enforced]
+FAILED tests/test_history_shared_gates.py::test_policy_invalidation_on_redirect_stops_before_next_hop
+7 failed, 1572 passed in 340.70s (0:05:40)

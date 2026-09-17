@@ -1,0 +1,10 @@
+{
+  "format": "h16-deployment-coordinator-review-v1",
+  "at": "2026-09-16T19:59:48.140216+00:00",
+  "passed": true,
+  "deployment_sha256": "342be820b7a4e4e1e7a354288fabf74f17e2d80253ed0e38f0a7ccecca5b9678",
+  "orchestration_sha256": "99602e2d9949f0854483b5c7aa34c577809ea1a818e306ee8add431ce7b8424b",
+  "next_authorized_action": "Read-only frozen H16 acceptance with --execute and fresh acceptance.json; initialization remains after actual acceptance review.",
+  "active_system_independently_read": "/nix/store/sx7lpr80cx0n9vzsi3cwz9nxawqc4p1i-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+  "reviewed_by": "Codex coordinator"
+}

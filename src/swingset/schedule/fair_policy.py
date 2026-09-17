@@ -24,6 +24,13 @@ class SchedulerConfig:
     metadata_recovery_attempts: int = 3
     metadata_recheck_seconds: float = 2592000
     unavailable_recheck_seconds: float = 7776000
+    event_turn_requests: int = 4
+    listed_page_percent: int = 50
+    event_pressure_high: int = 100
+    event_pressure_low: int = 80
+    event_pressure_max_age_seconds: float = 86400
+    event_pressure_refresh_events: int = 8
+    event_pressure_probe_pages: int = 32
 
     def __post_init__(self) -> None:
         for field in fields(self):
@@ -37,6 +44,14 @@ class SchedulerConfig:
                 raise ValueError(f"scheduling {field.name} must be positive and finite")
             if field.type == "int" and not isinstance(value, int):
                 raise ValueError(f"scheduling {field.name} must be an integer")
+        if self.event_turn_requests > 64:
+            raise ValueError("event_turn_requests must be between 1 and 64")
+        if self.listed_page_percent >= 100:
+            raise ValueError("listed_page_percent must be between 1 and 99")
+        if self.event_pressure_low >= self.event_pressure_high:
+            raise ValueError("event_pressure_low must be below event_pressure_high")
+        if self.event_pressure_refresh_events > 100 or self.event_pressure_probe_pages > 32:
+            raise ValueError("event pressure refresh must be at most 100 and page bound at most 32")
         if not math.isclose(
             self.reconciliation_share + self.acquisition_share + self.offline_share, 1
         ):

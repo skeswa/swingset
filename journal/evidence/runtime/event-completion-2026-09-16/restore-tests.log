@@ -1,0 +1,6 @@
+Local offline checkpoint regression; no activation or H18 acceptance claim.
+Command: .venv/bin/pytest -q tests/test_event_completion_restore.py
+Test SHA256: 77e2d85177c90ddbe0f4334c8c4d56ad557df44c605250fc1d7f93c482f9cb2d
+..                                                                       [100%]
+2 passed in 0.84s
+Exit code: 0

@@ -1,0 +1,18 @@
+{
+  "src/swingset/project/map.py": [
+    "3fb7b5a69c9d1a1dc3fae4ef4be67fe91443e9a94653447da9b57f4e9345b7c3",
+    "3fb7b5a69c9d1a1dc3fae4ef4be67fe91443e9a94653447da9b57f4e9345b7c3"
+  ],
+  "src/swingset/project/history.py": [
+    "6fb2ac914ef43715f84df06dcb3d280607d8f3af7f68029652ea9668bda37a9b",
+    "6fb2ac914ef43715f84df06dcb3d280607d8f3af7f68029652ea9668bda37a9b"
+  ],
+  "src/swingset/project/materialization.py": [
+    "1fd5a7b134478b2ca3ee41a72168832fd3703d10a1ae91c6d2afd85a048a7639",
+    "1fd5a7b134478b2ca3ee41a72168832fd3703d10a1ae91c6d2afd85a048a7639"
+  ],
+  "src/swingset/build/closure_rows.py": [
+    "3ee27fd86c734683e5b417b4483462dace2ee6bff462be0e1acfcb59e0b9b47f",
+    "3ee27fd86c734683e5b417b4483462dace2ee6bff462be0e1acfcb59e0b9b47f"
+  ]
+}

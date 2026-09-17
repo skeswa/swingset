@@ -1,0 +1,24 @@
+2026-09-16T16:13:37+00:00 swingset systemd[1]: Starting [systemd-run] /var/lib/swingset/venv/bin/python /var/tmp/h16-changelog-build-monitor.py --unit swingset-h16-proof-audit.service --output /var/tmp/swingset-h16-proof-audit-resources.json --max-seconds 2100...
+2026-09-16T16:13:37+00:00 swingset systemd[1]: Started [systemd-run] /var/lib/swingset/venv/bin/python /var/tmp/h16-changelog-build-monitor.py --unit swingset-h16-proof-audit.service --output /var/tmp/swingset-h16-proof-audit-resources.json --max-seconds 2100.
+2026-09-16T16:14:02+00:00 swingset python[94868]: {
+2026-09-16T16:14:02+00:00 swingset python[94868]:   "format": "h16-build-resource-observation-v1",
+2026-09-16T16:14:02+00:00 swingset python[94868]:   "unit": "swingset-h16-proof-audit.service",
+2026-09-16T16:14:02+00:00 swingset python[94868]:   "started_at": "2026-09-16T16:13:37.424395+00:00",
+2026-09-16T16:14:02+00:00 swingset python[94868]:   "peak_rss_kib": 1825812,
+2026-09-16T16:14:02+00:00 swingset python[94868]:   "peak_anon_kib": 1732456,
+2026-09-16T16:14:02+00:00 swingset python[94868]:   "terminated_reason": null,
+2026-09-16T16:14:02+00:00 swingset python[94868]:   "finished_at": "2026-09-16T16:14:02.469230+00:00",
+2026-09-16T16:14:02+00:00 swingset python[94868]:   "elapsed_seconds": 25.044553069979884,
+2026-09-16T16:14:02+00:00 swingset python[94868]:   "final": {
+2026-09-16T16:14:02+00:00 swingset python[94868]:     "ActiveState": "failed",
+2026-09-16T16:14:02+00:00 swingset python[94868]:     "SubState": "failed",
+2026-09-16T16:14:02+00:00 swingset python[94868]:     "MainPID": "0",
+2026-09-16T16:14:02+00:00 swingset python[94868]:     "Result": "exit-code",
+2026-09-16T16:14:02+00:00 swingset python[94868]:     "ExecMainCode": "1",
+2026-09-16T16:14:02+00:00 swingset python[94868]:     "ExecMainStatus": "1",
+2026-09-16T16:14:02+00:00 swingset python[94868]:     "MemoryCurrent": "[not set]",
+2026-09-16T16:14:02+00:00 swingset python[94868]:     "MemoryPeak": "3346051072"
+2026-09-16T16:14:02+00:00 swingset python[94868]:   }
+2026-09-16T16:14:02+00:00 swingset python[94868]: }
+2026-09-16T16:14:02+00:00 swingset systemd[1]: swingset-h16-proof-audit-monitor.service: Deactivated successfully.
+2026-09-16T16:14:02+00:00 swingset systemd[1]: swingset-h16-proof-audit-monitor.service: Consumed 38ms CPU time, 10.9M memory peak, 2.9M read from disk, 24K written to disk.

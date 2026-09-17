@@ -1,0 +1,35 @@
+--- /Users/skeswa/repos/skeswa/swingset/journal/tools/admission/fixture_exception.py
++++ /private/tmp/swingset-fixture-h13-002-20260916/helper-closure/fixture_helpers/fixture_exception.py
+@@ -16,7 +16,6 @@
+ from swingset.clock import SystemClock
+ from swingset.config import load_config
+ from swingset.fetch.archive import canonical, digest
+-from swingset.history.catalog import retained_evidence_path
+ 
+ MANIFEST_SHA = "c51d9810073d5e49c4a1044e30de97bd4409f3ad4c4a109aa6a2fa31dc51dd93"
+ APPROVAL = "approved_new_source_fixture_exception_only"
+@@ -25,6 +24,15 @@
+ 
+ class FixtureStopped(RuntimeError):
+     """A prerequisite or hard acquisition boundary was not satisfied."""
++
++
++def retained_evidence_path(repository: Path, relative: str) -> Path:
++    """Read only this hash-pinned helper closure's retained historical evidence."""
++    base = Path(__file__).resolve().parents[1]
++    candidate = (base / relative).resolve(strict=True)
++    if not candidate.is_relative_to(base):
++        raise FixtureStopped("retained evidence escapes reviewed helper closure")
++    return candidate
+ 
+ 
+ def read_manifest(path: Path, repository: Path) -> dict[str, Any]:
+@@ -177,7 +185,7 @@
+             )
+         )
+         return
+-    from journal.tools.admission.fixture_transport import FixtureRunner
++    from fixture_helpers.fixture_transport import FixtureRunner
+ 
+     clock = SystemClock()
+     authorization = authorize(

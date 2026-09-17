@@ -4,14 +4,17 @@ from __future__ import annotations
 
 import json
 from dataclasses import replace
+from typing import Any
 
 from swingset.clock import Clock
+from swingset.fetch.archive import Archive
 from swingset.publish.card import render_card
 from swingset.publish.service import Hub, expected_parent
 from swingset.state.db import Database
 from swingset.state.inputs import InputBundle
 
 from .builder import BuildError, BuildInput, BuildMetadata, BuildResult, build_candidate
+from .event_artifacts import artifact_source
 from .identity_policy import apply_identity_policy, baseline_tables, correction_token
 from .input import read_build_input, read_selected_input
 from .schema import PRIMARY_KEYS, SCHEMAS
@@ -28,7 +31,8 @@ def correction_needed(database: Database, bundle: InputBundle) -> bool:
         from .closure import ClosureError, validate
 
         try:
-            validate(database.connection, policy["closure"])
+            with artifact_source(database.connection, Archive(database.state_dir)):
+                validate(database.connection, policy["closure"])
         except (ClosureError, KeyError):
             return True
     return bool(
@@ -53,7 +57,10 @@ def build_release(
 ) -> BuildResult:
     baseline_link = database.state_dir / "baseline"
     baseline = baseline_link.resolve() if baseline_link.is_symlink() else None
-    with database.transaction(immediate=False) as conn:
+    with (
+        database.transaction(immediate=False) as conn,
+        artifact_source(conn, Archive(database.state_dir), clock=clock),
+    ):
         accepted = conn.execute("SELECT value FROM meta WHERE key='input_bundle_hash'").fetchone()
         if accepted is None or accepted[0] != bundle.digest:
             raise BuildError("release inputs have not been accepted")
@@ -198,6 +205,11 @@ def build_release(
                 if pinned_manifest is not None
                 else None
             )
+            previous_source_events = [
+                dict(row)
+                for row in data.tables.get("coverage", ())
+                if row.get("scope_kind") == "source_event"
+            ]
             data = enrich_coverage(
                 conn,
                 data,
@@ -205,6 +217,38 @@ def build_release(
                 closure=coverage_closure,
                 selected_mapping=selected_mapping,
             )
+            if pinned_manifest is not None and pinned_manifest.get("event_coverage") is not None:
+                from .event_coverage import rows as event_rows
+
+                data = replace(
+                    data,
+                    tables={
+                        **data.tables,
+                        "coverage": [
+                            *data.tables.get("coverage", ()),
+                            *event_rows(
+                                pinned_manifest["event_coverage"],
+                                selected_mapping=selected_mapping or (),
+                                schemas=SCHEMAS,
+                            ),
+                        ],
+                    },
+                )
+            elif correction_only:
+                for row in previous_source_events:
+                    row["represented_pages"] = None
+                    row["selected_interpreted_pages"] = None
+                    row["scope_reasons"] = sorted(
+                        set(row.get("scope_reasons") or ())
+                        | {"correction_only_event_support_unassessed"}
+                    )
+                data = replace(
+                    data,
+                    tables={
+                        **data.tables,
+                        "coverage": [*data.tables.get("coverage", ()), *previous_source_events],
+                    },
+                )
     if reused is not None:
         if selection is not None:
             generations.complete(database, selection, reused, now=clock.now(), run_id=run_id)
@@ -254,13 +298,20 @@ def build_release(
     )
     from .coverage import refresh_identity_counts
 
+    def finalize_rows(rows: dict[str, list[dict[str, Any]]]) -> None:
+        refresh_identity_counts(rows)
+        if pinned_manifest is not None and pinned_manifest.get("event_coverage") is not None:
+            from .event_coverage import finalize
+
+            finalize(rows, pinned_manifest["event_coverage"])
+
     result = build_candidate(
         database.state_dir,
         data,
         meta,
         suppressions=bundle.csv("suppressions.csv"),
         card_renderer=render_card,
-        rows_finalizer=refresh_identity_counts,
+        rows_finalizer=finalize_rows,
     )
     if selection is not None:
         generations.complete(database, selection, result, now=clock.now(), run_id=run_id)

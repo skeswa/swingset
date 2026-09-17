@@ -7,6 +7,7 @@ import shutil
 import sqlite3
 import uuid
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -397,7 +398,31 @@ def restore_from_checkpoint(
 
 
 def activate_restored_state(state_dir: Path) -> None:
+    """Activate verified state while the caller owns the exclusive restore locks."""
     marker = state_dir / "RESTORE_PENDING"
+    if not marker.is_file():
+        raise CheckpointError("restore marker is missing")
+    # Restoring bytes is not a new check of their scheduling observations.
+    # Fence these disposable hints before removing the restore barrier. A crash
+    # between commit and unlink may increment twice on retry; both are safe.
+    connection = sqlite3.connect(
+        (state_dir / "state.sqlite").resolve().as_uri() + "?mode=rw", uri=True
+    )
+    connection.row_factory = sqlite3.Row
+    try:
+        with connection:
+            if connection.execute(
+                "SELECT 1 FROM sqlite_master WHERE type='table' AND name='event_pressure_state'"
+            ).fetchone():
+                from swingset.state.controls import recover_admissions
+
+                connection.execute("BEGIN IMMEDIATE")
+                # Restored workers cannot still own these admissions. Preserve
+                # publication uncertainty while releasing the stale write fence.
+                recover_admissions(connection, now=datetime.now(UTC))
+                connection.execute("UPDATE event_pressure_state SET epoch=epoch+1")
+    finally:
+        connection.close()
     marker.unlink()
     fsync_dir(state_dir)
 

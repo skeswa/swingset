@@ -1,0 +1,14 @@
+{
+  "format": "h16-initialization-prepare-coordinator-review-v1",
+  "at": "2026-09-16T20:05:23.483234+00:00",
+  "passed": true,
+  "reviewed_by": "Codex coordinator",
+  "acceptance_sha256": "d9bcde097dd694e0c9ec0de28b048a140c8a1f59eb32180a2e5491587bdb5c4f",
+  "acceptance_orchestration_sha256": "1376e51e40d0eb2de84e0bfb1e187159f51b59009d61123457393be68eca78bd",
+  "initialization_gate_sha256": "45c7abb4843ba7e90c2a93f6326dba939d2f8a321f407dcbd7fecee99582c4da",
+  "initializer_driver_sha256": "b54c02a15c3d86a603bef4d6926e66bde4cf1ef9d23f273aa5db771d3a99d233",
+  "source_receipt_sha256": "0c3a391aca5c32381ab10daa22adfdde44cda76ab26b68df002f9822ad4945fb",
+  "input_bundle_hash": "fe99b47cd65eb909abc7c9ebd64d9ace9524393e5af8cd4d9368c55317ce3c6a",
+  "next_authorized_action": "Stage exact reviewed initialization gate and run initialize.py prepare only, using frozen config/overrides. Verify/stage all exact nested evidence. Retain new immutable marker and prepare-001.json. No run until post-prepare anchor review.",
+  "authorization": "Owner D-0029; preparation accepts only the exact rehearsed runtime bundle and reconstructs its pending work, not new source or identity policies."
+}

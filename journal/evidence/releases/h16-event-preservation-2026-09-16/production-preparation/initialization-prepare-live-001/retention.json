@@ -1,0 +1,16 @@
+{
+  "format": "h16-prepare-failure-closed-capture-retention-v1",
+  "remote": "/var/tmp/h16-event-preservation-initialization-prepare-20260916",
+  "files": {
+    "launch.json": "d4cf9338ab03f538140b1026248a992450e8d51ffa0dbecb7e2ab5a73ff96187",
+    "systemd-wait.log": "382dcfd48120d34326245f0a4881166f54a4b4c87fa04f76f1f6f869bf7bcac5",
+    "resources.jsonl": "0dba91b98a69b5b53e57a816da8f180b694065db661536e2a4d54eb1b1a84018",
+    "prepare-001.json": "2cb4d802abb286cec265bdccb4977578b7aa425c991658b209a9e6a454e4fcfe",
+    "journal.log": "8482caa22a13eff0ef5a72d8cb65edfd234d035c8c9abea9b2426135bc06d300",
+    "orchestration.json": "ce88b382e4deb18ddd911aeafcb5f1d7cb3efb2e246e59f658e613e646325c88",
+    "failure-inspection.json": "915402fc8ce11b315a500c51cdc9870ba76b358d1f1399c5a337a66fa501644f",
+    "failure-preservation.json": "d655675aab668e6600f79865f6e0443a560ae551ae81e785c11010570b7dd54b"
+  },
+  "marker_exists": false,
+  "copied_after_launcher_exit": true
+}

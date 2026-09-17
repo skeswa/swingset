@@ -97,7 +97,11 @@ def _validate_candidate(
                     "candidate files await durable build completion; retry build"
                 )
             try:
-                validate(conn, selected_closure)
+                from swingset.build.event_artifacts import artifact_source
+                from swingset.fetch.archive import Archive
+
+                with artifact_source(conn, Archive(state_dir)):
+                    validate(conn, selected_closure)
             except ClosureError as exc:
                 raise StaleCandidateError(f"selected release closure changed: {exc}") from exc
         if policy["token"] != correction_token(conn, closure=selected_closure):

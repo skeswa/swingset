@@ -1,0 +1,38 @@
+[
+  {
+    "name": "launch.json",
+    "sha256": "97d2111613b4fa2f82fcb1bcffedcb38d78981aa4ac424a181f8afa8cbb389be"
+  },
+  {
+    "name": "systemd-wait.log",
+    "sha256": "7335828a1817096250091e1bee3260833ea2bcf5107031dfb402ae788fdfe963"
+  },
+  {
+    "name": "resources.jsonl",
+    "sha256": "53aeb1f8c9252d8c7306fd68e6b0557190aa246c48489f217a1baec6bc9b2e26"
+  },
+  {
+    "name": "prepare-002.json",
+    "sha256": "0cb00d4c7661c74394dcdee0fa95fe5b1ff4a206f43fe153f64ca41eff9472d8"
+  },
+  {
+    "name": "initialization-marker-002.json",
+    "sha256": "dad425983041d0a27ab2eae1127db1fc9aeec4a401f50d678d6fe87e176baece"
+  },
+  {
+    "name": "journal.log",
+    "sha256": "d30bdb48120edcda7b079b220d1120f46bd59938326276a6fdac7dd8859d9a48"
+  },
+  {
+    "name": "orchestration.json",
+    "sha256": "a70bdd60cea33cfddad1d66d1aec5d572cf01cdcd191bce986fc7c2ae3aa7e15"
+  },
+  {
+    "name": "failure-preservation.json",
+    "sha256": "329572fbac089bc702966e6a106f454dfd538f988c7310ccda686089bc29f31b"
+  },
+  {
+    "name": "h16-event-preservation-control-lock-repair-20260916.json",
+    "sha256": "17cd96a85db85ba067fe19e8d58a6cc02a2bbc1ef4e71f1a1511373c1eb54563"
+  }
+]

@@ -1,0 +1,15 @@
+{
+  "format": "h16-initialization-verifier-coordinator-review-v1",
+  "at": "2026-09-16T20:03:20.249540+00:00",
+  "passed": true,
+  "reviewed_by": "Codex coordinator",
+  "script_sha256": "77a093da0dbbdf701f59c50bd837cd90b45553b108cbc62bf2caab81f44f4b65",
+  "offline_checks_sha256": "790300b799f27c9e594253a4001c0f70468091cb2ec199f0c8959b17b790f48e",
+  "tests_passed": 53,
+  "scope": "Approved for private staging. Anchor only after actual prepare; final verify only after one supervisor session current. Exact same script hash binds both modes. Separate per-invocation coordinator authority and actual gate/marker/prepare/anchor/supervision hashes remain required.",
+  "review": "Read complete implementation and initializer receipt shapes. Normal production ro/query-only snapshot under exclusive writer lock, zero connection changes and main/WAL metadata unchanged, exact post-prepare parse tokens and inherited runs, independent pending scopes and batch accounting. Immutable mode only for exact pinned predecessor checkpoint. No input acceptance or worker calls.",
+  "limitations": [
+    "One supervisor session without continuation marker. A clean-cap multi-session continuation needs separately reviewed verifier extension.",
+    "File metadata plus zero SQLite changes support read-only verification; no assertion of retained continuous resource sampling from this verifier."
+  ]
+}

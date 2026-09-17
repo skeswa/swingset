@@ -1,0 +1,3943 @@
+{
+  "at": "2026-09-16T15:01:36.008103+00:00",
+  "checkpoint": "/var/lib/swingset/checkpoints/h15-before-h16-20260913",
+  "checkpoint_database_sha256_from_earlier_verified_preparation": "d81b2e459471c25c430a57c2a4d096180f1094e57c1b8b1e896d66774f12e8dc",
+  "checkpoint_manifest_sha256": "700b2adc01db9eefc5c0c7ba35fddabfbc3aa00b6ed6f4900543b4e4a54ae444",
+  "database_rehashed": false,
+  "elapsed_seconds": 0.052714719029609114,
+  "format": "event-watch-demand-observation-v1",
+  "groups": [
+    {
+      "has_snapshot": true,
+      "host": "eepro.com",
+      "never_checked_or_retained": false,
+      "parser": "eepro.autoindex",
+      "purpose": "event_index",
+      "source": "eepro",
+      "watch_state": "archived",
+      "watches": 67
+    },
+    {
+      "has_snapshot": true,
+      "host": "eepro.com",
+      "never_checked_or_retained": false,
+      "parser": "eepro.autoindex",
+      "purpose": "event_index",
+      "source": "eepro",
+      "watch_state": "cooling",
+      "watches": 1
+    },
+    {
+      "has_snapshot": true,
+      "host": "eepro.com",
+      "never_checked_or_retained": false,
+      "parser": "eepro.autoindex",
+      "purpose": "event_index",
+      "source": "eepro",
+      "watch_state": "dormant",
+      "watches": 4
+    },
+    {
+      "has_snapshot": true,
+      "host": "eepro.com",
+      "never_checked_or_retained": false,
+      "parser": "eepro.round",
+      "purpose": "result",
+      "source": "eepro",
+      "watch_state": "archived",
+      "watches": 424
+    },
+    {
+      "has_snapshot": true,
+      "host": "eepro.com",
+      "never_checked_or_retained": false,
+      "parser": "eepro.round",
+      "purpose": "result",
+      "source": "eepro",
+      "watch_state": "cooling",
+      "watches": 5
+    },
+    {
+      "has_snapshot": true,
+      "host": "eepro.com",
+      "never_checked_or_retained": false,
+      "parser": "eepro.round",
+      "purpose": "result",
+      "source": "eepro",
+      "watch_state": "dormant",
+      "watches": 18
+    },
+    {
+      "has_snapshot": true,
+      "host": "scoring.dance",
+      "never_checked_or_retained": false,
+      "parser": "scoringdance.event",
+      "purpose": "event_index",
+      "source": "scoringdance",
+      "watch_state": "archived",
+      "watches": 312
+    },
+    {
+      "has_snapshot": true,
+      "host": "scoring.dance",
+      "never_checked_or_retained": false,
+      "parser": "scoringdance.event",
+      "purpose": "event_index",
+      "source": "scoringdance",
+      "watch_state": "cooling",
+      "watches": 7
+    },
+    {
+      "has_snapshot": true,
+      "host": "scoring.dance",
+      "never_checked_or_retained": false,
+      "parser": "scoringdance.event",
+      "purpose": "event_index",
+      "source": "scoringdance",
+      "watch_state": "live",
+      "watches": 64
+    },
+    {
+      "has_snapshot": true,
+      "host": "scoring.dance",
+      "never_checked_or_retained": false,
+      "parser": "scoringdance.round",
+      "purpose": "result",
+      "source": "scoringdance",
+      "watch_state": "archived",
+      "watches": 1588
+    },
+    {
+      "has_snapshot": true,
+      "host": "scoring.dance",
+      "never_checked_or_retained": false,
+      "parser": "scoringdance.round",
+      "purpose": "result",
+      "source": "scoringdance",
+      "watch_state": "cooling",
+      "watches": 12
+    },
+    {
+      "has_snapshot": true,
+      "host": "scoring.dance",
+      "never_checked_or_retained": false,
+      "parser": "scoringdance.round",
+      "purpose": "result",
+      "source": "scoringdance",
+      "watch_state": "dormant",
+      "watches": 33
+    },
+    {
+      "has_snapshot": false,
+      "host": "scoring.dance",
+      "never_checked_or_retained": true,
+      "parser": "scoringdance.round",
+      "purpose": "result",
+      "source": "scoringdance",
+      "watch_state": "live",
+      "watches": 3757
+    },
+    {
+      "has_snapshot": true,
+      "host": "scores.worlddanceregistry.com",
+      "never_checked_or_retained": false,
+      "parser": "wdr.awards",
+      "purpose": "result",
+      "source": "wdr",
+      "watch_state": "archived",
+      "watches": 12
+    },
+    {
+      "has_snapshot": true,
+      "host": "scores.worlddanceregistry.com",
+      "never_checked_or_retained": false,
+      "parser": "wdr.awards",
+      "purpose": "result",
+      "source": "wdr",
+      "watch_state": "cooling",
+      "watches": 1
+    },
+    {
+      "has_snapshot": true,
+      "host": "scores.worlddanceregistry.com",
+      "never_checked_or_retained": false,
+      "parser": "wdr.rounds",
+      "purpose": "result",
+      "source": "wdr",
+      "watch_state": "archived",
+      "watches": 12
+    },
+    {
+      "has_snapshot": true,
+      "host": "scores.worlddanceregistry.com",
+      "never_checked_or_retained": false,
+      "parser": "wdr.rounds",
+      "purpose": "result",
+      "source": "wdr",
+      "watch_state": "cooling",
+      "watches": 1
+    }
+  ],
+  "immutable_open": true,
+  "limits": [
+    "Watch rows can share one request; these are not distinct-request counts.",
+    "Source references are not canonical events.",
+    "No artifact, admission, current eligibility, historical year gate, or completion verification.",
+    "This checkpoint predates the new extension; no operating performance or service guarantees are inferred.",
+    "The database hash was verified by replay preparation earlier in this session; this bounded observation checks only unchanged metadata."
+  ],
+  "main_database_metadata_unchanged": true,
+  "network_requests": 0,
+  "production_mutated": false,
+  "query_only": true,
+  "script_sha256": "4ceb3c35f9adf88fedb965e5176241d790d30dd69faa09dc2da2ef9570ab71b8",
+  "source_event_reference_count": 468,
+  "source_events": [
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 7,
+      "source": "eepro",
+      "source_ref": "eepro:adc2025",
+      "unattempted_result_watches": 0,
+      "watches": 8
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 3,
+      "source": "eepro",
+      "source_ref": "eepro:adc2026",
+      "unattempted_result_watches": 0,
+      "watches": 4
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 7,
+      "source": "eepro",
+      "source_ref": "eepro:asc2025",
+      "unattempted_result_watches": 0,
+      "watches": 8
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 7,
+      "source": "eepro",
+      "source_ref": "eepro:asdc2025",
+      "unattempted_result_watches": 0,
+      "watches": 8
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 7,
+      "source": "eepro",
+      "source_ref": "eepro:asdc2026",
+      "unattempted_result_watches": 0,
+      "watches": 8
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 2,
+      "source": "eepro",
+      "source_ref": "eepro:bigapple2025",
+      "unattempted_result_watches": 0,
+      "watches": 3
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 2,
+      "source": "eepro",
+      "source_ref": "eepro:bigapple2026",
+      "unattempted_result_watches": 0,
+      "watches": 3
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 10,
+      "source": "eepro",
+      "source_ref": "eepro:btp2025",
+      "unattempted_result_watches": 0,
+      "watches": 11
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 10,
+      "source": "eepro",
+      "source_ref": "eepro:btp2026",
+      "unattempted_result_watches": 0,
+      "watches": 11
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 4,
+      "source": "eepro",
+      "source_ref": "eepro:capital2025",
+      "unattempted_result_watches": 0,
+      "watches": 5
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 6,
+      "source": "eepro",
+      "source_ref": "eepro:capital2026",
+      "unattempted_result_watches": 0,
+      "watches": 7
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 6,
+      "source": "eepro",
+      "source_ref": "eepro:countdown2025",
+      "unattempted_result_watches": 0,
+      "watches": 7
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 6,
+      "source": "eepro",
+      "source_ref": "eepro:dcsx2025",
+      "unattempted_result_watches": 0,
+      "watches": 7
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 5,
+      "source": "eepro",
+      "source_ref": "eepro:derby2025",
+      "unattempted_result_watches": 0,
+      "watches": 6
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 5,
+      "source": "eepro",
+      "source_ref": "eepro:derby2026",
+      "unattempted_result_watches": 0,
+      "watches": 6
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 6,
+      "source": "eepro",
+      "source_ref": "eepro:discoamerica2025",
+      "unattempted_result_watches": 0,
+      "watches": 7
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 6,
+      "source": "eepro",
+      "source_ref": "eepro:discoamerica2026",
+      "unattempted_result_watches": 0,
+      "watches": 7
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 5,
+      "source": "eepro",
+      "source_ref": "eepro:dmg2025",
+      "unattempted_result_watches": 0,
+      "watches": 6
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 5,
+      "source": "eepro",
+      "source_ref": "eepro:flowfest2026",
+      "unattempted_result_watches": 0,
+      "watches": 6
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 7,
+      "source": "eepro",
+      "source_ref": "eepro:freedom2025",
+      "unattempted_result_watches": 0,
+      "watches": 8
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 6,
+      "source": "eepro",
+      "source_ref": "eepro:freedom2026",
+      "unattempted_result_watches": 0,
+      "watches": 7
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 8,
+      "source": "eepro",
+      "source_ref": "eepro:gateway2026",
+      "unattempted_result_watches": 0,
+      "watches": 9
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 10,
+      "source": "eepro",
+      "source_ref": "eepro:grandnationals2025",
+      "unattempted_result_watches": 0,
+      "watches": 11
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 10,
+      "source": "eepro",
+      "source_ref": "eepro:grandnationals2026",
+      "unattempted_result_watches": 0,
+      "watches": 11
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 5,
+      "source": "eepro",
+      "source_ref": "eepro:hst2025",
+      "unattempted_result_watches": 0,
+      "watches": 6
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 5,
+      "source": "eepro",
+      "source_ref": "eepro:htown2026",
+      "unattempted_result_watches": 0,
+      "watches": 6
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 6,
+      "source": "eepro",
+      "source_ref": "eepro:jjorama2025",
+      "unattempted_result_watches": 0,
+      "watches": 7
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 6,
+      "source": "eepro",
+      "source_ref": "eepro:jjorama2026",
+      "unattempted_result_watches": 0,
+      "watches": 7
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 12,
+      "source": "eepro",
+      "source_ref": "eepro:libertyswing2025",
+      "unattempted_result_watches": 0,
+      "watches": 13
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 8,
+      "source": "eepro",
+      "source_ref": "eepro:libertyswing2026",
+      "unattempted_result_watches": 0,
+      "watches": 9
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 8,
+      "source": "eepro",
+      "source_ref": "eepro:madjam2026",
+      "unattempted_result_watches": 0,
+      "watches": 9
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 7,
+      "source": "eepro",
+      "source_ref": "eepro:michiganclassic2025",
+      "unattempted_result_watches": 0,
+      "watches": 8
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 6,
+      "source": "eepro",
+      "source_ref": "eepro:michiganclassic2026",
+      "unattempted_result_watches": 0,
+      "watches": 7
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 14,
+      "source": "eepro",
+      "source_ref": "eepro:mm2025",
+      "unattempted_result_watches": 0,
+      "watches": 15
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 6,
+      "source": "eepro",
+      "source_ref": "eepro:mwf2025",
+      "unattempted_result_watches": 0,
+      "watches": 7
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 6,
+      "source": "eepro",
+      "source_ref": "eepro:mwf2026",
+      "unattempted_result_watches": 0,
+      "watches": 7
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 3,
+      "source": "eepro",
+      "source_ref": "eepro:ne2025",
+      "unattempted_result_watches": 0,
+      "watches": 4
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 5,
+      "source": "eepro",
+      "source_ref": "eepro:ni2025",
+      "unattempted_result_watches": 0,
+      "watches": 6
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 9,
+      "source": "eepro",
+      "source_ref": "eepro:njhustle2025",
+      "unattempted_result_watches": 0,
+      "watches": 10
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 9,
+      "source": "eepro",
+      "source_ref": "eepro:njhustle2026",
+      "unattempted_result_watches": 0,
+      "watches": 10
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 7,
+      "source": "eepro",
+      "source_ref": "eepro:nsc2025",
+      "unattempted_result_watches": 0,
+      "watches": 8
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 6,
+      "source": "eepro",
+      "source_ref": "eepro:orangeblossom2025",
+      "unattempted_result_watches": 0,
+      "watches": 7
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 6,
+      "source": "eepro",
+      "source_ref": "eepro:orangeblossom2026",
+      "unattempted_result_watches": 0,
+      "watches": 7
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 6,
+      "source": "eepro",
+      "source_ref": "eepro:parisswingclassic2026",
+      "unattempted_result_watches": 0,
+      "watches": 7
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 5,
+      "source": "eepro",
+      "source_ref": "eepro:phillyswing2025",
+      "unattempted_result_watches": 0,
+      "watches": 6
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 7,
+      "source": "eepro",
+      "source_ref": "eepro:phoenix2025",
+      "unattempted_result_watches": 0,
+      "watches": 8
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 10,
+      "source": "eepro",
+      "source_ref": "eepro:phoenix2026",
+      "unattempted_result_watches": 0,
+      "watches": 11
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 6,
+      "source": "eepro",
+      "source_ref": "eepro:sass2025",
+      "unattempted_result_watches": 0,
+      "watches": 7
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 2,
+      "source": "eepro",
+      "source_ref": "eepro:sis2025",
+      "unattempted_result_watches": 0,
+      "watches": 3
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 2,
+      "source": "eepro",
+      "source_ref": "eepro:sis2026",
+      "unattempted_result_watches": 0,
+      "watches": 3
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 7,
+      "source": "eepro",
+      "source_ref": "eepro:spotlight2025",
+      "unattempted_result_watches": 0,
+      "watches": 8
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 5,
+      "source": "eepro",
+      "source_ref": "eepro:summerhummer2025",
+      "unattempted_result_watches": 0,
+      "watches": 6
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 5,
+      "source": "eepro",
+      "source_ref": "eepro:summerhummer2026",
+      "unattempted_result_watches": 0,
+      "watches": 6
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 5,
+      "source": "eepro",
+      "source_ref": "eepro:swingcouver2025",
+      "unattempted_result_watches": 0,
+      "watches": 6
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 5,
+      "source": "eepro",
+      "source_ref": "eepro:swingcrush2025",
+      "unattempted_result_watches": 0,
+      "watches": 6
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 5,
+      "source": "eepro",
+      "source_ref": "eepro:swingcrush2026",
+      "unattempted_result_watches": 0,
+      "watches": 6
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 8,
+      "source": "eepro",
+      "source_ref": "eepro:swingfling2025",
+      "unattempted_result_watches": 0,
+      "watches": 9
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 6,
+      "source": "eepro",
+      "source_ref": "eepro:swingfling2026",
+      "unattempted_result_watches": 0,
+      "watches": 7
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 5,
+      "source": "eepro",
+      "source_ref": "eepro:swinglebell2025",
+      "unattempted_result_watches": 0,
+      "watches": 6
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 6,
+      "source": "eepro",
+      "source_ref": "eepro:swingover2025",
+      "unattempted_result_watches": 0,
+      "watches": 7
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 6,
+      "source": "eepro",
+      "source_ref": "eepro:swingover2026",
+      "unattempted_result_watches": 0,
+      "watches": 7
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 4,
+      "source": "eepro",
+      "source_ref": "eepro:swingtacular2025",
+      "unattempted_result_watches": 0,
+      "watches": 5
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 4,
+      "source": "eepro",
+      "source_ref": "eepro:swingtacular2026",
+      "unattempted_result_watches": 0,
+      "watches": 5
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 5,
+      "source": "eepro",
+      "source_ref": "eepro:swingtime2025",
+      "unattempted_result_watches": 0,
+      "watches": 6
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 13,
+      "source": "eepro",
+      "source_ref": "eepro:theopen2025",
+      "unattempted_result_watches": 0,
+      "watches": 14
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 7,
+      "source": "eepro",
+      "source_ref": "eepro:tulsa2025",
+      "unattempted_result_watches": 0,
+      "watches": 8
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 7,
+      "source": "eepro",
+      "source_ref": "eepro:tulsa2026",
+      "unattempted_result_watches": 0,
+      "watches": 8
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 3,
+      "source": "eepro",
+      "source_ref": "eepro:westieweekend2025",
+      "unattempted_result_watches": 0,
+      "watches": 4
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 3,
+      "source": "eepro",
+      "source_ref": "eepro:westieweekend2026",
+      "unattempted_result_watches": 0,
+      "watches": 4
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 6,
+      "source": "eepro",
+      "source_ref": "eepro:worlds2025",
+      "unattempted_result_watches": 0,
+      "watches": 7
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 5,
+      "source": "eepro",
+      "source_ref": "eepro:www2025",
+      "unattempted_result_watches": 0,
+      "watches": 6
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 5,
+      "source": "eepro",
+      "source_ref": "eepro:www2026",
+      "unattempted_result_watches": 0,
+      "watches": 6
+    },
+    {
+      "never_checked_or_retained": 11,
+      "result_watches": 11,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:10",
+      "unattempted_result_watches": 11,
+      "watches": 12
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 27,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:100",
+      "unattempted_result_watches": 0,
+      "watches": 28
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 6,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:101",
+      "unattempted_result_watches": 0,
+      "watches": 7
+    },
+    {
+      "never_checked_or_retained": 4,
+      "result_watches": 4,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:102",
+      "unattempted_result_watches": 4,
+      "watches": 5
+    },
+    {
+      "never_checked_or_retained": 25,
+      "result_watches": 25,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:103",
+      "unattempted_result_watches": 25,
+      "watches": 26
+    },
+    {
+      "never_checked_or_retained": 15,
+      "result_watches": 15,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:104",
+      "unattempted_result_watches": 15,
+      "watches": 16
+    },
+    {
+      "never_checked_or_retained": 16,
+      "result_watches": 16,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:105",
+      "unattempted_result_watches": 16,
+      "watches": 17
+    },
+    {
+      "never_checked_or_retained": 31,
+      "result_watches": 31,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:106",
+      "unattempted_result_watches": 31,
+      "watches": 32
+    },
+    {
+      "never_checked_or_retained": 4,
+      "result_watches": 4,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:107",
+      "unattempted_result_watches": 4,
+      "watches": 5
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 28,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:108",
+      "unattempted_result_watches": 0,
+      "watches": 29
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 0,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:109",
+      "unattempted_result_watches": 0,
+      "watches": 1
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 0,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:11",
+      "unattempted_result_watches": 0,
+      "watches": 1
+    },
+    {
+      "never_checked_or_retained": 2,
+      "result_watches": 16,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:110",
+      "unattempted_result_watches": 2,
+      "watches": 17
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 0,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:111",
+      "unattempted_result_watches": 0,
+      "watches": 1
+    },
+    {
+      "never_checked_or_retained": 22,
+      "result_watches": 22,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:112",
+      "unattempted_result_watches": 22,
+      "watches": 23
+    },
+    {
+      "never_checked_or_retained": 23,
+      "result_watches": 23,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:113",
+      "unattempted_result_watches": 23,
+      "watches": 24
+    },
+    {
+      "never_checked_or_retained": 14,
+      "result_watches": 14,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:114",
+      "unattempted_result_watches": 14,
+      "watches": 15
+    },
+    {
+      "never_checked_or_retained": 20,
+      "result_watches": 20,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:115",
+      "unattempted_result_watches": 20,
+      "watches": 21
+    },
+    {
+      "never_checked_or_retained": 29,
+      "result_watches": 29,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:116",
+      "unattempted_result_watches": 29,
+      "watches": 30
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 4,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:117",
+      "unattempted_result_watches": 0,
+      "watches": 5
+    },
+    {
+      "never_checked_or_retained": 3,
+      "result_watches": 3,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:118",
+      "unattempted_result_watches": 3,
+      "watches": 4
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 12,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:119",
+      "unattempted_result_watches": 0,
+      "watches": 13
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 0,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:12",
+      "unattempted_result_watches": 0,
+      "watches": 1
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 0,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:120",
+      "unattempted_result_watches": 0,
+      "watches": 1
+    },
+    {
+      "never_checked_or_retained": 37,
+      "result_watches": 37,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:121",
+      "unattempted_result_watches": 37,
+      "watches": 38
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 17,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:122",
+      "unattempted_result_watches": 0,
+      "watches": 18
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 0,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:123",
+      "unattempted_result_watches": 0,
+      "watches": 1
+    },
+    {
+      "never_checked_or_retained": 9,
+      "result_watches": 9,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:124",
+      "unattempted_result_watches": 9,
+      "watches": 10
+    },
+    {
+      "never_checked_or_retained": 14,
+      "result_watches": 14,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:125",
+      "unattempted_result_watches": 14,
+      "watches": 15
+    },
+    {
+      "never_checked_or_retained": 31,
+      "result_watches": 31,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:126",
+      "unattempted_result_watches": 31,
+      "watches": 32
+    },
+    {
+      "never_checked_or_retained": 17,
+      "result_watches": 17,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:127",
+      "unattempted_result_watches": 17,
+      "watches": 18
+    },
+    {
+      "never_checked_or_retained": 8,
+      "result_watches": 8,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:128",
+      "unattempted_result_watches": 8,
+      "watches": 9
+    },
+    {
+      "never_checked_or_retained": 20,
+      "result_watches": 20,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:129",
+      "unattempted_result_watches": 20,
+      "watches": 21
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 0,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:13",
+      "unattempted_result_watches": 0,
+      "watches": 1
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 21,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:130",
+      "unattempted_result_watches": 0,
+      "watches": 22
+    },
+    {
+      "never_checked_or_retained": 24,
+      "result_watches": 24,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:131",
+      "unattempted_result_watches": 24,
+      "watches": 25
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 2,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:132",
+      "unattempted_result_watches": 0,
+      "watches": 3
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 15,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:133",
+      "unattempted_result_watches": 0,
+      "watches": 16
+    },
+    {
+      "never_checked_or_retained": 23,
+      "result_watches": 23,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:134",
+      "unattempted_result_watches": 23,
+      "watches": 24
+    },
+    {
+      "never_checked_or_retained": 29,
+      "result_watches": 29,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:135",
+      "unattempted_result_watches": 29,
+      "watches": 30
+    },
+    {
+      "never_checked_or_retained": 17,
+      "result_watches": 17,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:136",
+      "unattempted_result_watches": 17,
+      "watches": 18
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 8,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:137",
+      "unattempted_result_watches": 0,
+      "watches": 9
+    },
+    {
+      "never_checked_or_retained": 11,
+      "result_watches": 11,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:138",
+      "unattempted_result_watches": 11,
+      "watches": 12
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 27,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:139",
+      "unattempted_result_watches": 0,
+      "watches": 28
+    },
+    {
+      "never_checked_or_retained": 4,
+      "result_watches": 4,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:14",
+      "unattempted_result_watches": 4,
+      "watches": 5
+    },
+    {
+      "never_checked_or_retained": 15,
+      "result_watches": 15,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:140",
+      "unattempted_result_watches": 15,
+      "watches": 16
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 50,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:141",
+      "unattempted_result_watches": 0,
+      "watches": 51
+    },
+    {
+      "never_checked_or_retained": 17,
+      "result_watches": 17,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:142",
+      "unattempted_result_watches": 17,
+      "watches": 18
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 3,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:143",
+      "unattempted_result_watches": 0,
+      "watches": 4
+    },
+    {
+      "never_checked_or_retained": 25,
+      "result_watches": 25,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:144",
+      "unattempted_result_watches": 25,
+      "watches": 26
+    },
+    {
+      "never_checked_or_retained": 13,
+      "result_watches": 13,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:145",
+      "unattempted_result_watches": 13,
+      "watches": 14
+    },
+    {
+      "never_checked_or_retained": 23,
+      "result_watches": 23,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:146",
+      "unattempted_result_watches": 23,
+      "watches": 24
+    },
+    {
+      "never_checked_or_retained": 11,
+      "result_watches": 11,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:147",
+      "unattempted_result_watches": 11,
+      "watches": 12
+    },
+    {
+      "never_checked_or_retained": 7,
+      "result_watches": 7,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:148",
+      "unattempted_result_watches": 7,
+      "watches": 8
+    },
+    {
+      "never_checked_or_retained": 27,
+      "result_watches": 27,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:149",
+      "unattempted_result_watches": 27,
+      "watches": 28
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 0,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:15",
+      "unattempted_result_watches": 0,
+      "watches": 1
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 25,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:150",
+      "unattempted_result_watches": 0,
+      "watches": 26
+    },
+    {
+      "never_checked_or_retained": 6,
+      "result_watches": 6,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:151",
+      "unattempted_result_watches": 6,
+      "watches": 7
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 9,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:152",
+      "unattempted_result_watches": 0,
+      "watches": 10
+    },
+    {
+      "never_checked_or_retained": 3,
+      "result_watches": 3,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:153",
+      "unattempted_result_watches": 3,
+      "watches": 4
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 13,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:154",
+      "unattempted_result_watches": 0,
+      "watches": 14
+    },
+    {
+      "never_checked_or_retained": 8,
+      "result_watches": 8,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:155",
+      "unattempted_result_watches": 8,
+      "watches": 9
+    },
+    {
+      "never_checked_or_retained": 35,
+      "result_watches": 35,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:156",
+      "unattempted_result_watches": 35,
+      "watches": 36
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 28,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:157",
+      "unattempted_result_watches": 0,
+      "watches": 29
+    },
+    {
+      "never_checked_or_retained": 15,
+      "result_watches": 15,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:158",
+      "unattempted_result_watches": 15,
+      "watches": 16
+    },
+    {
+      "never_checked_or_retained": 21,
+      "result_watches": 21,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:159",
+      "unattempted_result_watches": 21,
+      "watches": 22
+    },
+    {
+      "never_checked_or_retained": 6,
+      "result_watches": 6,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:16",
+      "unattempted_result_watches": 6,
+      "watches": 7
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 24,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:160",
+      "unattempted_result_watches": 0,
+      "watches": 25
+    },
+    {
+      "never_checked_or_retained": 2,
+      "result_watches": 2,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:161",
+      "unattempted_result_watches": 2,
+      "watches": 3
+    },
+    {
+      "never_checked_or_retained": 11,
+      "result_watches": 11,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:163",
+      "unattempted_result_watches": 11,
+      "watches": 12
+    },
+    {
+      "never_checked_or_retained": 21,
+      "result_watches": 21,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:164",
+      "unattempted_result_watches": 21,
+      "watches": 22
+    },
+    {
+      "never_checked_or_retained": 16,
+      "result_watches": 16,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:165",
+      "unattempted_result_watches": 16,
+      "watches": 17
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 3,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:166",
+      "unattempted_result_watches": 0,
+      "watches": 4
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 4,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:167",
+      "unattempted_result_watches": 0,
+      "watches": 5
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 3,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:168",
+      "unattempted_result_watches": 0,
+      "watches": 4
+    },
+    {
+      "never_checked_or_retained": 4,
+      "result_watches": 4,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:169",
+      "unattempted_result_watches": 4,
+      "watches": 5
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 0,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:17",
+      "unattempted_result_watches": 0,
+      "watches": 1
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 3,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:170",
+      "unattempted_result_watches": 0,
+      "watches": 4
+    },
+    {
+      "never_checked_or_retained": 4,
+      "result_watches": 4,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:171",
+      "unattempted_result_watches": 4,
+      "watches": 5
+    },
+    {
+      "never_checked_or_retained": 23,
+      "result_watches": 23,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:172",
+      "unattempted_result_watches": 23,
+      "watches": 24
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 24,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:173",
+      "unattempted_result_watches": 0,
+      "watches": 25
+    },
+    {
+      "never_checked_or_retained": 30,
+      "result_watches": 30,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:175",
+      "unattempted_result_watches": 30,
+      "watches": 31
+    },
+    {
+      "never_checked_or_retained": 23,
+      "result_watches": 23,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:176",
+      "unattempted_result_watches": 23,
+      "watches": 24
+    },
+    {
+      "never_checked_or_retained": 21,
+      "result_watches": 21,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:177",
+      "unattempted_result_watches": 21,
+      "watches": 22
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 0,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:179",
+      "unattempted_result_watches": 0,
+      "watches": 1
+    },
+    {
+      "never_checked_or_retained": 8,
+      "result_watches": 8,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:18",
+      "unattempted_result_watches": 8,
+      "watches": 9
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 6,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:180",
+      "unattempted_result_watches": 0,
+      "watches": 7
+    },
+    {
+      "never_checked_or_retained": 28,
+      "result_watches": 28,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:181",
+      "unattempted_result_watches": 28,
+      "watches": 29
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 29,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:182",
+      "unattempted_result_watches": 0,
+      "watches": 30
+    },
+    {
+      "never_checked_or_retained": 3,
+      "result_watches": 3,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:183",
+      "unattempted_result_watches": 3,
+      "watches": 4
+    },
+    {
+      "never_checked_or_retained": 3,
+      "result_watches": 3,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:184",
+      "unattempted_result_watches": 3,
+      "watches": 4
+    },
+    {
+      "never_checked_or_retained": 20,
+      "result_watches": 20,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:185",
+      "unattempted_result_watches": 20,
+      "watches": 21
+    },
+    {
+      "never_checked_or_retained": 28,
+      "result_watches": 28,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:186",
+      "unattempted_result_watches": 28,
+      "watches": 29
+    },
+    {
+      "never_checked_or_retained": 14,
+      "result_watches": 14,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:187",
+      "unattempted_result_watches": 14,
+      "watches": 15
+    },
+    {
+      "never_checked_or_retained": 32,
+      "result_watches": 32,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:188",
+      "unattempted_result_watches": 32,
+      "watches": 33
+    },
+    {
+      "never_checked_or_retained": 28,
+      "result_watches": 28,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:189",
+      "unattempted_result_watches": 28,
+      "watches": 29
+    },
+    {
+      "never_checked_or_retained": 19,
+      "result_watches": 19,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:19",
+      "unattempted_result_watches": 19,
+      "watches": 20
+    },
+    {
+      "never_checked_or_retained": 42,
+      "result_watches": 42,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:190",
+      "unattempted_result_watches": 42,
+      "watches": 43
+    },
+    {
+      "never_checked_or_retained": 16,
+      "result_watches": 16,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:191",
+      "unattempted_result_watches": 16,
+      "watches": 17
+    },
+    {
+      "never_checked_or_retained": 26,
+      "result_watches": 26,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:192",
+      "unattempted_result_watches": 26,
+      "watches": 27
+    },
+    {
+      "never_checked_or_retained": 32,
+      "result_watches": 32,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:193",
+      "unattempted_result_watches": 32,
+      "watches": 33
+    },
+    {
+      "never_checked_or_retained": 21,
+      "result_watches": 21,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:195",
+      "unattempted_result_watches": 21,
+      "watches": 22
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 18,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:196",
+      "unattempted_result_watches": 0,
+      "watches": 19
+    },
+    {
+      "never_checked_or_retained": 3,
+      "result_watches": 3,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:197",
+      "unattempted_result_watches": 3,
+      "watches": 4
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 5,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:198",
+      "unattempted_result_watches": 0,
+      "watches": 6
+    },
+    {
+      "never_checked_or_retained": 21,
+      "result_watches": 21,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:199",
+      "unattempted_result_watches": 21,
+      "watches": 22
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 0,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:2",
+      "unattempted_result_watches": 0,
+      "watches": 1
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 0,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:20",
+      "unattempted_result_watches": 0,
+      "watches": 1
+    },
+    {
+      "never_checked_or_retained": 17,
+      "result_watches": 17,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:200",
+      "unattempted_result_watches": 17,
+      "watches": 18
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 29,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:201",
+      "unattempted_result_watches": 0,
+      "watches": 30
+    },
+    {
+      "never_checked_or_retained": 2,
+      "result_watches": 2,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:202",
+      "unattempted_result_watches": 2,
+      "watches": 3
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 6,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:203",
+      "unattempted_result_watches": 0,
+      "watches": 7
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 11,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:205",
+      "unattempted_result_watches": 0,
+      "watches": 12
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 26,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:206",
+      "unattempted_result_watches": 0,
+      "watches": 27
+    },
+    {
+      "never_checked_or_retained": 25,
+      "result_watches": 25,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:207",
+      "unattempted_result_watches": 25,
+      "watches": 26
+    },
+    {
+      "never_checked_or_retained": 3,
+      "result_watches": 3,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:209",
+      "unattempted_result_watches": 3,
+      "watches": 4
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 0,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:21",
+      "unattempted_result_watches": 0,
+      "watches": 1
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 0,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:210",
+      "unattempted_result_watches": 0,
+      "watches": 1
+    },
+    {
+      "never_checked_or_retained": 26,
+      "result_watches": 26,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:211",
+      "unattempted_result_watches": 26,
+      "watches": 27
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 0,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:212",
+      "unattempted_result_watches": 0,
+      "watches": 1
+    },
+    {
+      "never_checked_or_retained": 10,
+      "result_watches": 10,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:214",
+      "unattempted_result_watches": 10,
+      "watches": 11
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 3,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:215",
+      "unattempted_result_watches": 0,
+      "watches": 4
+    },
+    {
+      "never_checked_or_retained": 5,
+      "result_watches": 5,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:216",
+      "unattempted_result_watches": 5,
+      "watches": 6
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 0,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:217",
+      "unattempted_result_watches": 0,
+      "watches": 1
+    },
+    {
+      "never_checked_or_retained": 4,
+      "result_watches": 4,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:218",
+      "unattempted_result_watches": 4,
+      "watches": 5
+    },
+    {
+      "never_checked_or_retained": 3,
+      "result_watches": 3,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:219",
+      "unattempted_result_watches": 3,
+      "watches": 4
+    },
+    {
+      "never_checked_or_retained": 18,
+      "result_watches": 18,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:22",
+      "unattempted_result_watches": 18,
+      "watches": 19
+    },
+    {
+      "never_checked_or_retained": 3,
+      "result_watches": 3,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:220",
+      "unattempted_result_watches": 3,
+      "watches": 4
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 9,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:222",
+      "unattempted_result_watches": 0,
+      "watches": 10
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 14,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:223",
+      "unattempted_result_watches": 0,
+      "watches": 15
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 16,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:224",
+      "unattempted_result_watches": 0,
+      "watches": 17
+    },
+    {
+      "never_checked_or_retained": 14,
+      "result_watches": 14,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:225",
+      "unattempted_result_watches": 14,
+      "watches": 15
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 0,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:226",
+      "unattempted_result_watches": 0,
+      "watches": 1
+    },
+    {
+      "never_checked_or_retained": 3,
+      "result_watches": 3,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:227",
+      "unattempted_result_watches": 3,
+      "watches": 4
+    },
+    {
+      "never_checked_or_retained": 20,
+      "result_watches": 20,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:228",
+      "unattempted_result_watches": 20,
+      "watches": 21
+    },
+    {
+      "never_checked_or_retained": 20,
+      "result_watches": 20,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:229",
+      "unattempted_result_watches": 20,
+      "watches": 21
+    },
+    {
+      "never_checked_or_retained": 23,
+      "result_watches": 23,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:23",
+      "unattempted_result_watches": 23,
+      "watches": 24
+    },
+    {
+      "never_checked_or_retained": 19,
+      "result_watches": 19,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:230",
+      "unattempted_result_watches": 19,
+      "watches": 20
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 13,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:231",
+      "unattempted_result_watches": 0,
+      "watches": 14
+    },
+    {
+      "never_checked_or_retained": 17,
+      "result_watches": 17,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:233",
+      "unattempted_result_watches": 17,
+      "watches": 18
+    },
+    {
+      "never_checked_or_retained": 17,
+      "result_watches": 17,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:236",
+      "unattempted_result_watches": 17,
+      "watches": 18
+    },
+    {
+      "never_checked_or_retained": 10,
+      "result_watches": 10,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:238",
+      "unattempted_result_watches": 10,
+      "watches": 11
+    },
+    {
+      "never_checked_or_retained": 28,
+      "result_watches": 28,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:239",
+      "unattempted_result_watches": 28,
+      "watches": 29
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 0,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:24",
+      "unattempted_result_watches": 0,
+      "watches": 1
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 37,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:240",
+      "unattempted_result_watches": 0,
+      "watches": 38
+    },
+    {
+      "never_checked_or_retained": 16,
+      "result_watches": 16,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:241",
+      "unattempted_result_watches": 16,
+      "watches": 17
+    },
+    {
+      "never_checked_or_retained": 39,
+      "result_watches": 39,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:242",
+      "unattempted_result_watches": 39,
+      "watches": 40
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 20,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:244",
+      "unattempted_result_watches": 0,
+      "watches": 21
+    },
+    {
+      "never_checked_or_retained": 19,
+      "result_watches": 19,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:245",
+      "unattempted_result_watches": 19,
+      "watches": 20
+    },
+    {
+      "never_checked_or_retained": 11,
+      "result_watches": 11,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:246",
+      "unattempted_result_watches": 11,
+      "watches": 12
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 14,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:247",
+      "unattempted_result_watches": 0,
+      "watches": 15
+    },
+    {
+      "never_checked_or_retained": 14,
+      "result_watches": 14,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:248",
+      "unattempted_result_watches": 14,
+      "watches": 15
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 29,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:249",
+      "unattempted_result_watches": 0,
+      "watches": 30
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 23,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:25",
+      "unattempted_result_watches": 0,
+      "watches": 24
+    },
+    {
+      "never_checked_or_retained": 23,
+      "result_watches": 23,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:250",
+      "unattempted_result_watches": 23,
+      "watches": 24
+    },
+    {
+      "never_checked_or_retained": 18,
+      "result_watches": 18,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:251",
+      "unattempted_result_watches": 18,
+      "watches": 19
+    },
+    {
+      "never_checked_or_retained": 30,
+      "result_watches": 30,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:252",
+      "unattempted_result_watches": 30,
+      "watches": 31
+    },
+    {
+      "never_checked_or_retained": 3,
+      "result_watches": 3,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:253",
+      "unattempted_result_watches": 3,
+      "watches": 4
+    },
+    {
+      "never_checked_or_retained": 16,
+      "result_watches": 16,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:254",
+      "unattempted_result_watches": 16,
+      "watches": 17
+    },
+    {
+      "never_checked_or_retained": 23,
+      "result_watches": 23,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:255",
+      "unattempted_result_watches": 23,
+      "watches": 24
+    },
+    {
+      "never_checked_or_retained": 7,
+      "result_watches": 7,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:260",
+      "unattempted_result_watches": 7,
+      "watches": 8
+    },
+    {
+      "never_checked_or_retained": 13,
+      "result_watches": 13,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:261",
+      "unattempted_result_watches": 13,
+      "watches": 14
+    },
+    {
+      "never_checked_or_retained": 12,
+      "result_watches": 12,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:262",
+      "unattempted_result_watches": 12,
+      "watches": 13
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 15,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:263",
+      "unattempted_result_watches": 0,
+      "watches": 16
+    },
+    {
+      "never_checked_or_retained": 3,
+      "result_watches": 3,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:265",
+      "unattempted_result_watches": 3,
+      "watches": 4
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 0,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:266",
+      "unattempted_result_watches": 0,
+      "watches": 1
+    },
+    {
+      "never_checked_or_retained": 13,
+      "result_watches": 13,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:267",
+      "unattempted_result_watches": 13,
+      "watches": 14
+    },
+    {
+      "never_checked_or_retained": 16,
+      "result_watches": 16,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:268",
+      "unattempted_result_watches": 16,
+      "watches": 17
+    },
+    {
+      "never_checked_or_retained": 13,
+      "result_watches": 13,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:27",
+      "unattempted_result_watches": 13,
+      "watches": 14
+    },
+    {
+      "never_checked_or_retained": 22,
+      "result_watches": 22,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:270",
+      "unattempted_result_watches": 22,
+      "watches": 23
+    },
+    {
+      "never_checked_or_retained": 33,
+      "result_watches": 33,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:272",
+      "unattempted_result_watches": 33,
+      "watches": 34
+    },
+    {
+      "never_checked_or_retained": 38,
+      "result_watches": 38,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:274",
+      "unattempted_result_watches": 38,
+      "watches": 39
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 16,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:276",
+      "unattempted_result_watches": 0,
+      "watches": 17
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 22,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:277",
+      "unattempted_result_watches": 0,
+      "watches": 23
+    },
+    {
+      "never_checked_or_retained": 13,
+      "result_watches": 13,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:278",
+      "unattempted_result_watches": 13,
+      "watches": 14
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 0,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:28",
+      "unattempted_result_watches": 0,
+      "watches": 1
+    },
+    {
+      "never_checked_or_retained": 31,
+      "result_watches": 31,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:280",
+      "unattempted_result_watches": 31,
+      "watches": 32
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 3,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:282",
+      "unattempted_result_watches": 0,
+      "watches": 4
+    },
+    {
+      "never_checked_or_retained": 5,
+      "result_watches": 5,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:283",
+      "unattempted_result_watches": 5,
+      "watches": 6
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 0,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:284",
+      "unattempted_result_watches": 0,
+      "watches": 1
+    },
+    {
+      "never_checked_or_retained": 18,
+      "result_watches": 18,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:285",
+      "unattempted_result_watches": 18,
+      "watches": 19
+    },
+    {
+      "never_checked_or_retained": 23,
+      "result_watches": 23,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:286",
+      "unattempted_result_watches": 23,
+      "watches": 24
+    },
+    {
+      "never_checked_or_retained": 12,
+      "result_watches": 12,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:287",
+      "unattempted_result_watches": 12,
+      "watches": 13
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 11,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:29",
+      "unattempted_result_watches": 0,
+      "watches": 12
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 4,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:290",
+      "unattempted_result_watches": 0,
+      "watches": 5
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 22,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:291",
+      "unattempted_result_watches": 0,
+      "watches": 23
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 16,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:292",
+      "unattempted_result_watches": 0,
+      "watches": 17
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 0,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:293",
+      "unattempted_result_watches": 0,
+      "watches": 1
+    },
+    {
+      "never_checked_or_retained": 25,
+      "result_watches": 25,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:295",
+      "unattempted_result_watches": 25,
+      "watches": 26
+    },
+    {
+      "never_checked_or_retained": 12,
+      "result_watches": 12,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:296",
+      "unattempted_result_watches": 12,
+      "watches": 13
+    },
+    {
+      "never_checked_or_retained": 29,
+      "result_watches": 29,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:297",
+      "unattempted_result_watches": 29,
+      "watches": 30
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 0,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:3",
+      "unattempted_result_watches": 0,
+      "watches": 1
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 0,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:30",
+      "unattempted_result_watches": 0,
+      "watches": 1
+    },
+    {
+      "never_checked_or_retained": 6,
+      "result_watches": 6,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:302",
+      "unattempted_result_watches": 6,
+      "watches": 7
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 0,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:303",
+      "unattempted_result_watches": 0,
+      "watches": 1
+    },
+    {
+      "never_checked_or_retained": 31,
+      "result_watches": 31,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:304",
+      "unattempted_result_watches": 31,
+      "watches": 32
+    },
+    {
+      "never_checked_or_retained": 21,
+      "result_watches": 21,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:306",
+      "unattempted_result_watches": 21,
+      "watches": 22
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 26,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:309",
+      "unattempted_result_watches": 0,
+      "watches": 27
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 6,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:31",
+      "unattempted_result_watches": 0,
+      "watches": 7
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 19,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:310",
+      "unattempted_result_watches": 0,
+      "watches": 20
+    },
+    {
+      "never_checked_or_retained": 24,
+      "result_watches": 24,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:312",
+      "unattempted_result_watches": 24,
+      "watches": 25
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 16,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:313",
+      "unattempted_result_watches": 0,
+      "watches": 17
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 27,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:314",
+      "unattempted_result_watches": 0,
+      "watches": 28
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 33,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:315",
+      "unattempted_result_watches": 0,
+      "watches": 34
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 20,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:316",
+      "unattempted_result_watches": 0,
+      "watches": 21
+    },
+    {
+      "never_checked_or_retained": 16,
+      "result_watches": 16,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:317",
+      "unattempted_result_watches": 16,
+      "watches": 17
+    },
+    {
+      "never_checked_or_retained": 27,
+      "result_watches": 27,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:318",
+      "unattempted_result_watches": 27,
+      "watches": 28
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 53,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:319",
+      "unattempted_result_watches": 0,
+      "watches": 54
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 0,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:32",
+      "unattempted_result_watches": 0,
+      "watches": 1
+    },
+    {
+      "never_checked_or_retained": 21,
+      "result_watches": 21,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:320",
+      "unattempted_result_watches": 21,
+      "watches": 22
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 18,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:321",
+      "unattempted_result_watches": 0,
+      "watches": 19
+    },
+    {
+      "never_checked_or_retained": 30,
+      "result_watches": 30,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:323",
+      "unattempted_result_watches": 30,
+      "watches": 31
+    },
+    {
+      "never_checked_or_retained": 25,
+      "result_watches": 25,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:324",
+      "unattempted_result_watches": 25,
+      "watches": 26
+    },
+    {
+      "never_checked_or_retained": 21,
+      "result_watches": 21,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:325",
+      "unattempted_result_watches": 21,
+      "watches": 22
+    },
+    {
+      "never_checked_or_retained": 28,
+      "result_watches": 28,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:327",
+      "unattempted_result_watches": 28,
+      "watches": 29
+    },
+    {
+      "never_checked_or_retained": 12,
+      "result_watches": 12,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:328",
+      "unattempted_result_watches": 12,
+      "watches": 13
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 0,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:33",
+      "unattempted_result_watches": 0,
+      "watches": 1
+    },
+    {
+      "never_checked_or_retained": 9,
+      "result_watches": 9,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:330",
+      "unattempted_result_watches": 9,
+      "watches": 10
+    },
+    {
+      "never_checked_or_retained": 27,
+      "result_watches": 27,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:332",
+      "unattempted_result_watches": 27,
+      "watches": 28
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 21,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:333",
+      "unattempted_result_watches": 0,
+      "watches": 22
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 19,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:334",
+      "unattempted_result_watches": 0,
+      "watches": 20
+    },
+    {
+      "never_checked_or_retained": 16,
+      "result_watches": 16,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:335",
+      "unattempted_result_watches": 16,
+      "watches": 17
+    },
+    {
+      "never_checked_or_retained": 22,
+      "result_watches": 22,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:336",
+      "unattempted_result_watches": 22,
+      "watches": 23
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 30,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:337",
+      "unattempted_result_watches": 0,
+      "watches": 31
+    },
+    {
+      "never_checked_or_retained": 21,
+      "result_watches": 21,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:338",
+      "unattempted_result_watches": 21,
+      "watches": 22
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 15,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:339",
+      "unattempted_result_watches": 0,
+      "watches": 16
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 0,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:34",
+      "unattempted_result_watches": 0,
+      "watches": 1
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 29,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:340",
+      "unattempted_result_watches": 0,
+      "watches": 30
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 20,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:342",
+      "unattempted_result_watches": 0,
+      "watches": 21
+    },
+    {
+      "never_checked_or_retained": 4,
+      "result_watches": 4,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:345",
+      "unattempted_result_watches": 4,
+      "watches": 5
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 5,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:346",
+      "unattempted_result_watches": 0,
+      "watches": 6
+    },
+    {
+      "never_checked_or_retained": 15,
+      "result_watches": 15,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:347",
+      "unattempted_result_watches": 15,
+      "watches": 16
+    },
+    {
+      "never_checked_or_retained": 43,
+      "result_watches": 43,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:349",
+      "unattempted_result_watches": 43,
+      "watches": 44
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 0,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:35",
+      "unattempted_result_watches": 0,
+      "watches": 1
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 0,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:350",
+      "unattempted_result_watches": 0,
+      "watches": 1
+    },
+    {
+      "never_checked_or_retained": 3,
+      "result_watches": 3,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:351",
+      "unattempted_result_watches": 3,
+      "watches": 4
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 19,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:352",
+      "unattempted_result_watches": 0,
+      "watches": 20
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 29,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:354",
+      "unattempted_result_watches": 0,
+      "watches": 30
+    },
+    {
+      "never_checked_or_retained": 3,
+      "result_watches": 3,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:355",
+      "unattempted_result_watches": 3,
+      "watches": 4
+    },
+    {
+      "never_checked_or_retained": 16,
+      "result_watches": 16,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:356",
+      "unattempted_result_watches": 16,
+      "watches": 17
+    },
+    {
+      "never_checked_or_retained": 15,
+      "result_watches": 15,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:357",
+      "unattempted_result_watches": 15,
+      "watches": 16
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 0,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:36",
+      "unattempted_result_watches": 0,
+      "watches": 1
+    },
+    {
+      "never_checked_or_retained": 17,
+      "result_watches": 17,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:360",
+      "unattempted_result_watches": 17,
+      "watches": 18
+    },
+    {
+      "never_checked_or_retained": 17,
+      "result_watches": 17,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:361",
+      "unattempted_result_watches": 17,
+      "watches": 18
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 14,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:362",
+      "unattempted_result_watches": 0,
+      "watches": 15
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 9,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:363",
+      "unattempted_result_watches": 0,
+      "watches": 10
+    },
+    {
+      "never_checked_or_retained": 20,
+      "result_watches": 20,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:364",
+      "unattempted_result_watches": 20,
+      "watches": 21
+    },
+    {
+      "never_checked_or_retained": 21,
+      "result_watches": 21,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:365",
+      "unattempted_result_watches": 21,
+      "watches": 22
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 15,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:366",
+      "unattempted_result_watches": 0,
+      "watches": 16
+    },
+    {
+      "never_checked_or_retained": 12,
+      "result_watches": 12,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:368",
+      "unattempted_result_watches": 12,
+      "watches": 13
+    },
+    {
+      "never_checked_or_retained": 13,
+      "result_watches": 13,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:369",
+      "unattempted_result_watches": 13,
+      "watches": 14
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 0,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:37",
+      "unattempted_result_watches": 0,
+      "watches": 1
+    },
+    {
+      "never_checked_or_retained": 20,
+      "result_watches": 20,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:370",
+      "unattempted_result_watches": 20,
+      "watches": 21
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 12,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:372",
+      "unattempted_result_watches": 0,
+      "watches": 13
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 14,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:373",
+      "unattempted_result_watches": 0,
+      "watches": 15
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 0,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:375",
+      "unattempted_result_watches": 0,
+      "watches": 1
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 20,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:376",
+      "unattempted_result_watches": 0,
+      "watches": 21
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 31,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:378",
+      "unattempted_result_watches": 0,
+      "watches": 32
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 0,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:379",
+      "unattempted_result_watches": 0,
+      "watches": 1
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 0,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:38",
+      "unattempted_result_watches": 0,
+      "watches": 1
+    },
+    {
+      "never_checked_or_retained": 21,
+      "result_watches": 21,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:380",
+      "unattempted_result_watches": 21,
+      "watches": 22
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 20,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:381",
+      "unattempted_result_watches": 0,
+      "watches": 21
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 31,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:382",
+      "unattempted_result_watches": 0,
+      "watches": 32
+    },
+    {
+      "never_checked_or_retained": 25,
+      "result_watches": 25,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:383",
+      "unattempted_result_watches": 25,
+      "watches": 26
+    },
+    {
+      "never_checked_or_retained": 20,
+      "result_watches": 20,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:384",
+      "unattempted_result_watches": 20,
+      "watches": 21
+    },
+    {
+      "never_checked_or_retained": 20,
+      "result_watches": 20,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:387",
+      "unattempted_result_watches": 20,
+      "watches": 21
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 0,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:388",
+      "unattempted_result_watches": 0,
+      "watches": 1
+    },
+    {
+      "never_checked_or_retained": 22,
+      "result_watches": 22,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:389",
+      "unattempted_result_watches": 22,
+      "watches": 23
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 0,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:39",
+      "unattempted_result_watches": 0,
+      "watches": 1
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 36,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:391",
+      "unattempted_result_watches": 0,
+      "watches": 37
+    },
+    {
+      "never_checked_or_retained": 28,
+      "result_watches": 28,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:392",
+      "unattempted_result_watches": 28,
+      "watches": 29
+    },
+    {
+      "never_checked_or_retained": 17,
+      "result_watches": 17,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:393",
+      "unattempted_result_watches": 17,
+      "watches": 18
+    },
+    {
+      "never_checked_or_retained": 19,
+      "result_watches": 19,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:394",
+      "unattempted_result_watches": 19,
+      "watches": 20
+    },
+    {
+      "never_checked_or_retained": 21,
+      "result_watches": 21,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:395",
+      "unattempted_result_watches": 21,
+      "watches": 22
+    },
+    {
+      "never_checked_or_retained": 20,
+      "result_watches": 20,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:396",
+      "unattempted_result_watches": 20,
+      "watches": 21
+    },
+    {
+      "never_checked_or_retained": 12,
+      "result_watches": 12,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:398",
+      "unattempted_result_watches": 12,
+      "watches": 13
+    },
+    {
+      "never_checked_or_retained": 13,
+      "result_watches": 13,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:399",
+      "unattempted_result_watches": 13,
+      "watches": 14
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 0,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:4",
+      "unattempted_result_watches": 0,
+      "watches": 1
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 0,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:40",
+      "unattempted_result_watches": 0,
+      "watches": 1
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 0,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:400",
+      "unattempted_result_watches": 0,
+      "watches": 1
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 0,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:402",
+      "unattempted_result_watches": 0,
+      "watches": 1
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 21,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:403",
+      "unattempted_result_watches": 0,
+      "watches": 22
+    },
+    {
+      "never_checked_or_retained": 17,
+      "result_watches": 17,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:404",
+      "unattempted_result_watches": 17,
+      "watches": 18
+    },
+    {
+      "never_checked_or_retained": 14,
+      "result_watches": 14,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:405",
+      "unattempted_result_watches": 14,
+      "watches": 15
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 0,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:406",
+      "unattempted_result_watches": 0,
+      "watches": 1
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 30,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:407",
+      "unattempted_result_watches": 0,
+      "watches": 31
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 0,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:408",
+      "unattempted_result_watches": 0,
+      "watches": 1
+    },
+    {
+      "never_checked_or_retained": 22,
+      "result_watches": 22,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:409",
+      "unattempted_result_watches": 22,
+      "watches": 23
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 0,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:41",
+      "unattempted_result_watches": 0,
+      "watches": 1
+    },
+    {
+      "never_checked_or_retained": 16,
+      "result_watches": 16,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:410",
+      "unattempted_result_watches": 16,
+      "watches": 17
+    },
+    {
+      "never_checked_or_retained": 26,
+      "result_watches": 26,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:412",
+      "unattempted_result_watches": 26,
+      "watches": 27
+    },
+    {
+      "never_checked_or_retained": 1,
+      "result_watches": 1,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:413",
+      "unattempted_result_watches": 1,
+      "watches": 2
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 0,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:414",
+      "unattempted_result_watches": 0,
+      "watches": 1
+    },
+    {
+      "never_checked_or_retained": 16,
+      "result_watches": 16,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:415",
+      "unattempted_result_watches": 16,
+      "watches": 17
+    },
+    {
+      "never_checked_or_retained": 20,
+      "result_watches": 20,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:416",
+      "unattempted_result_watches": 20,
+      "watches": 21
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 0,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:417",
+      "unattempted_result_watches": 0,
+      "watches": 1
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 12,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:418",
+      "unattempted_result_watches": 0,
+      "watches": 13
+    },
+    {
+      "never_checked_or_retained": 14,
+      "result_watches": 14,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:419",
+      "unattempted_result_watches": 14,
+      "watches": 15
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 0,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:42",
+      "unattempted_result_watches": 0,
+      "watches": 1
+    },
+    {
+      "never_checked_or_retained": 14,
+      "result_watches": 14,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:420",
+      "unattempted_result_watches": 14,
+      "watches": 15
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 0,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:421",
+      "unattempted_result_watches": 0,
+      "watches": 1
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 13,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:422",
+      "unattempted_result_watches": 0,
+      "watches": 14
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 0,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:423",
+      "unattempted_result_watches": 0,
+      "watches": 1
+    },
+    {
+      "never_checked_or_retained": 14,
+      "result_watches": 14,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:424",
+      "unattempted_result_watches": 14,
+      "watches": 15
+    },
+    {
+      "never_checked_or_retained": 38,
+      "result_watches": 38,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:425",
+      "unattempted_result_watches": 38,
+      "watches": 39
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 0,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:426",
+      "unattempted_result_watches": 0,
+      "watches": 1
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 0,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:428",
+      "unattempted_result_watches": 0,
+      "watches": 1
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 0,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:429",
+      "unattempted_result_watches": 0,
+      "watches": 1
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 0,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:430",
+      "unattempted_result_watches": 0,
+      "watches": 1
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 0,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:431",
+      "unattempted_result_watches": 0,
+      "watches": 1
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 0,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:432",
+      "unattempted_result_watches": 0,
+      "watches": 1
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 0,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:433",
+      "unattempted_result_watches": 0,
+      "watches": 1
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 0,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:434",
+      "unattempted_result_watches": 0,
+      "watches": 1
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 0,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:435",
+      "unattempted_result_watches": 0,
+      "watches": 1
+    },
+    {
+      "never_checked_or_retained": 24,
+      "result_watches": 24,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:436",
+      "unattempted_result_watches": 24,
+      "watches": 25
+    },
+    {
+      "never_checked_or_retained": 17,
+      "result_watches": 17,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:437",
+      "unattempted_result_watches": 17,
+      "watches": 18
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 0,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:438",
+      "unattempted_result_watches": 0,
+      "watches": 1
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 0,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:439",
+      "unattempted_result_watches": 0,
+      "watches": 1
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 23,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:44",
+      "unattempted_result_watches": 0,
+      "watches": 24
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 0,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:440",
+      "unattempted_result_watches": 0,
+      "watches": 1
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 0,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:441",
+      "unattempted_result_watches": 0,
+      "watches": 1
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 0,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:442",
+      "unattempted_result_watches": 0,
+      "watches": 1
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 0,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:443",
+      "unattempted_result_watches": 0,
+      "watches": 1
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 0,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:444",
+      "unattempted_result_watches": 0,
+      "watches": 1
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 10,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:45",
+      "unattempted_result_watches": 0,
+      "watches": 11
+    },
+    {
+      "never_checked_or_retained": 26,
+      "result_watches": 26,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:46",
+      "unattempted_result_watches": 26,
+      "watches": 27
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 0,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:47",
+      "unattempted_result_watches": 0,
+      "watches": 1
+    },
+    {
+      "never_checked_or_retained": 12,
+      "result_watches": 12,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:48",
+      "unattempted_result_watches": 12,
+      "watches": 13
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 0,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:49",
+      "unattempted_result_watches": 0,
+      "watches": 1
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 1,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:5",
+      "unattempted_result_watches": 0,
+      "watches": 2
+    },
+    {
+      "never_checked_or_retained": 20,
+      "result_watches": 20,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:50",
+      "unattempted_result_watches": 20,
+      "watches": 21
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 28,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:51",
+      "unattempted_result_watches": 0,
+      "watches": 29
+    },
+    {
+      "never_checked_or_retained": 14,
+      "result_watches": 14,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:52",
+      "unattempted_result_watches": 14,
+      "watches": 15
+    },
+    {
+      "never_checked_or_retained": 18,
+      "result_watches": 18,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:53",
+      "unattempted_result_watches": 18,
+      "watches": 19
+    },
+    {
+      "never_checked_or_retained": 15,
+      "result_watches": 15,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:54",
+      "unattempted_result_watches": 15,
+      "watches": 16
+    },
+    {
+      "never_checked_or_retained": 17,
+      "result_watches": 17,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:55",
+      "unattempted_result_watches": 17,
+      "watches": 18
+    },
+    {
+      "never_checked_or_retained": 15,
+      "result_watches": 15,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:56",
+      "unattempted_result_watches": 15,
+      "watches": 16
+    },
+    {
+      "never_checked_or_retained": 14,
+      "result_watches": 14,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:57",
+      "unattempted_result_watches": 14,
+      "watches": 15
+    },
+    {
+      "never_checked_or_retained": 25,
+      "result_watches": 25,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:58",
+      "unattempted_result_watches": 25,
+      "watches": 26
+    },
+    {
+      "never_checked_or_retained": 4,
+      "result_watches": 4,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:59",
+      "unattempted_result_watches": 4,
+      "watches": 5
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 0,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:6",
+      "unattempted_result_watches": 0,
+      "watches": 1
+    },
+    {
+      "never_checked_or_retained": 2,
+      "result_watches": 2,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:60",
+      "unattempted_result_watches": 2,
+      "watches": 3
+    },
+    {
+      "never_checked_or_retained": 15,
+      "result_watches": 15,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:61",
+      "unattempted_result_watches": 15,
+      "watches": 16
+    },
+    {
+      "never_checked_or_retained": 16,
+      "result_watches": 16,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:62",
+      "unattempted_result_watches": 16,
+      "watches": 17
+    },
+    {
+      "never_checked_or_retained": 6,
+      "result_watches": 6,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:63",
+      "unattempted_result_watches": 6,
+      "watches": 7
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 0,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:64",
+      "unattempted_result_watches": 0,
+      "watches": 1
+    },
+    {
+      "never_checked_or_retained": 18,
+      "result_watches": 18,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:65",
+      "unattempted_result_watches": 18,
+      "watches": 19
+    },
+    {
+      "never_checked_or_retained": 13,
+      "result_watches": 13,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:66",
+      "unattempted_result_watches": 13,
+      "watches": 14
+    },
+    {
+      "never_checked_or_retained": 10,
+      "result_watches": 10,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:67",
+      "unattempted_result_watches": 10,
+      "watches": 11
+    },
+    {
+      "never_checked_or_retained": 16,
+      "result_watches": 16,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:68",
+      "unattempted_result_watches": 16,
+      "watches": 17
+    },
+    {
+      "never_checked_or_retained": 6,
+      "result_watches": 6,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:69",
+      "unattempted_result_watches": 6,
+      "watches": 7
+    },
+    {
+      "never_checked_or_retained": 21,
+      "result_watches": 21,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:7",
+      "unattempted_result_watches": 21,
+      "watches": 22
+    },
+    {
+      "never_checked_or_retained": 15,
+      "result_watches": 15,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:70",
+      "unattempted_result_watches": 15,
+      "watches": 16
+    },
+    {
+      "never_checked_or_retained": 22,
+      "result_watches": 22,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:71",
+      "unattempted_result_watches": 22,
+      "watches": 23
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 0,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:72",
+      "unattempted_result_watches": 0,
+      "watches": 1
+    },
+    {
+      "never_checked_or_retained": 19,
+      "result_watches": 19,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:73",
+      "unattempted_result_watches": 19,
+      "watches": 20
+    },
+    {
+      "never_checked_or_retained": 17,
+      "result_watches": 17,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:74",
+      "unattempted_result_watches": 17,
+      "watches": 18
+    },
+    {
+      "never_checked_or_retained": 10,
+      "result_watches": 10,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:75",
+      "unattempted_result_watches": 10,
+      "watches": 11
+    },
+    {
+      "never_checked_or_retained": 20,
+      "result_watches": 20,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:76",
+      "unattempted_result_watches": 20,
+      "watches": 21
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 0,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:77",
+      "unattempted_result_watches": 0,
+      "watches": 1
+    },
+    {
+      "never_checked_or_retained": 13,
+      "result_watches": 13,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:78",
+      "unattempted_result_watches": 13,
+      "watches": 14
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 19,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:79",
+      "unattempted_result_watches": 0,
+      "watches": 20
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 0,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:8",
+      "unattempted_result_watches": 0,
+      "watches": 1
+    },
+    {
+      "never_checked_or_retained": 19,
+      "result_watches": 19,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:80",
+      "unattempted_result_watches": 19,
+      "watches": 20
+    },
+    {
+      "never_checked_or_retained": 7,
+      "result_watches": 7,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:81",
+      "unattempted_result_watches": 7,
+      "watches": 8
+    },
+    {
+      "never_checked_or_retained": 16,
+      "result_watches": 16,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:82",
+      "unattempted_result_watches": 16,
+      "watches": 17
+    },
+    {
+      "never_checked_or_retained": 19,
+      "result_watches": 19,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:83",
+      "unattempted_result_watches": 19,
+      "watches": 20
+    },
+    {
+      "never_checked_or_retained": 30,
+      "result_watches": 30,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:84",
+      "unattempted_result_watches": 30,
+      "watches": 31
+    },
+    {
+      "never_checked_or_retained": 14,
+      "result_watches": 14,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:85",
+      "unattempted_result_watches": 14,
+      "watches": 15
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 15,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:86",
+      "unattempted_result_watches": 0,
+      "watches": 16
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 0,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:87",
+      "unattempted_result_watches": 0,
+      "watches": 1
+    },
+    {
+      "never_checked_or_retained": 26,
+      "result_watches": 26,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:88",
+      "unattempted_result_watches": 26,
+      "watches": 27
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 10,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:89",
+      "unattempted_result_watches": 0,
+      "watches": 11
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 5,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:9",
+      "unattempted_result_watches": 0,
+      "watches": 6
+    },
+    {
+      "never_checked_or_retained": 15,
+      "result_watches": 15,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:90",
+      "unattempted_result_watches": 15,
+      "watches": 16
+    },
+    {
+      "never_checked_or_retained": 25,
+      "result_watches": 25,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:91",
+      "unattempted_result_watches": 25,
+      "watches": 26
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 21,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:92",
+      "unattempted_result_watches": 0,
+      "watches": 22
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 16,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:93",
+      "unattempted_result_watches": 0,
+      "watches": 17
+    },
+    {
+      "never_checked_or_retained": 18,
+      "result_watches": 18,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:94",
+      "unattempted_result_watches": 18,
+      "watches": 19
+    },
+    {
+      "never_checked_or_retained": 22,
+      "result_watches": 22,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:95",
+      "unattempted_result_watches": 22,
+      "watches": 23
+    },
+    {
+      "never_checked_or_retained": 23,
+      "result_watches": 23,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:96",
+      "unattempted_result_watches": 23,
+      "watches": 24
+    },
+    {
+      "never_checked_or_retained": 6,
+      "result_watches": 6,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:97",
+      "unattempted_result_watches": 6,
+      "watches": 7
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 15,
+      "source": "scoringdance",
+      "source_ref": "scoringdance:98",
+      "unattempted_result_watches": 0,
+      "watches": 16
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 2,
+      "source": "wdr",
+      "source_ref": "wdr:00cf1615-fb0d-11f0-9a29-0aa72bbce9ea",
+      "unattempted_result_watches": 0,
+      "watches": 2
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 2,
+      "source": "wdr",
+      "source_ref": "wdr:163ba964-df59-11ef-9a29-0aa72bbce9ea",
+      "unattempted_result_watches": 0,
+      "watches": 2
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 2,
+      "source": "wdr",
+      "source_ref": "wdr:1bfd3bb1-4262-11f0-9a29-0aa72bbce9ea",
+      "unattempted_result_watches": 0,
+      "watches": 2
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 2,
+      "source": "wdr",
+      "source_ref": "wdr:3ac5b6cd-17f3-11f0-9a29-0aa72bbce9ea",
+      "unattempted_result_watches": 0,
+      "watches": 2
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 2,
+      "source": "wdr",
+      "source_ref": "wdr:82823d87-cacf-11f0-9a29-0aa72bbce9ea",
+      "unattempted_result_watches": 0,
+      "watches": 2
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 2,
+      "source": "wdr",
+      "source_ref": "wdr:82889a58-f8bd-11ef-9a29-0aa72bbce9ea",
+      "unattempted_result_watches": 0,
+      "watches": 2
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 2,
+      "source": "wdr",
+      "source_ref": "wdr:98011277-01cd-11f1-9a29-0aa72bbce9ea",
+      "unattempted_result_watches": 0,
+      "watches": 2
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 2,
+      "source": "wdr",
+      "source_ref": "wdr:a5dd75a4-87d2-11ef-9a29-0aa72bbce9ea",
+      "unattempted_result_watches": 0,
+      "watches": 2
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 2,
+      "source": "wdr",
+      "source_ref": "wdr:b558d0af-1243-11f1-9a29-0aa72bbce9ea",
+      "unattempted_result_watches": 0,
+      "watches": 2
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 2,
+      "source": "wdr",
+      "source_ref": "wdr:cb9e5ea8-3180-11f0-9a29-0aa72bbce9ea",
+      "unattempted_result_watches": 0,
+      "watches": 2
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 2,
+      "source": "wdr",
+      "source_ref": "wdr:d9163563-3b50-11f0-9a29-0aa72bbce9ea",
+      "unattempted_result_watches": 0,
+      "watches": 2
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 2,
+      "source": "wdr",
+      "source_ref": "wdr:e9a42d05-efec-11f0-9a29-0aa72bbce9ea",
+      "unattempted_result_watches": 0,
+      "watches": 2
+    },
+    {
+      "never_checked_or_retained": 0,
+      "result_watches": 2,
+      "source": "wdr",
+      "source_ref": "wdr:fe9b06d3-4273-11f0-9a29-0aa72bbce9ea",
+      "unattempted_result_watches": 0,
+      "watches": 2
+    }
+  ],
+  "source_taxonomy_sha256": "79f966e328db9a5c5a5cf22da9796c7ffa02bcad0d2df3fffbe6c2fd79050d52",
+  "watch_count": 6318
+}

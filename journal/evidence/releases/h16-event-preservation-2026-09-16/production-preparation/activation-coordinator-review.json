@@ -1,0 +1,14 @@
+{
+  "format": "h16-production-activation-coordinator-review-v1",
+  "at": "2026-09-16T19:56:56.486593+00:00",
+  "passed": true,
+  "authorization": "Owner D-0029",
+  "reviewed_by": "Codex coordinator",
+  "preflight_sha256": "3999c52e966407116568a6b4438618af837219e11feed8db33d8b812dc23f575",
+  "preflight_orchestration_sha256": "d9d90179df5abb53ccfbf444bed9e439644518b326db3ca4d7d35bc79ff28cbb",
+  "gate_sha256": "98ae2f20f838f5e14a24854b8870d557511f994dfc8c95e9b79e0a1b462c0004",
+  "scratch_acceptance_review_sha256": "14fc10b57b01518d802fd3340aca6e683a4d22bba0f137b697fc9a0e7fe6c198",
+  "activation_driver_sha256": "db4cd1a26e3f1c593570316759b779e44f98cf1d691b1b32872a35416e81cf2e",
+  "next_authorized_action": "Activate exact reviewed system using staged activate-system.py; retain operator hold and stop all six ordinary units. Require actual successful deployment receipt before production acceptance.",
+  "preflight_passed_false_explanation": "The preflight receipt passed flag remains false until --execute acceptance; preflight_passed=true is the intended preflight result."
+}

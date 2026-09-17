@@ -1,0 +1,11 @@
+{
+  "format": "h16-post-prepare-coordinator-review-v1",
+  "at": "2026-09-16T20:32:53.886817+00:00",
+  "passed": true,
+  "prepare_sha256": "3194b019cddadf35e1c029257a41f35ab183611086a3c03a2371c5e61b36061f",
+  "marker_sha256": "dad425983041d0a27ab2eae1127db1fc9aeec4a401f50d678d6fe87e176baece",
+  "gate_sha256": "00da07082f1cea7a20a6d3e04849e7e2bac8aa4eae8b2ad8d344da9951cc5af6",
+  "verifier_sha256": "de8708f555c34a97afcdae2085c266eac3d4e1230e6879d4069cd8a7bd7410db",
+  "review": "Root read raw actual successful prepare003 receipt independently; exact frozen bundle/source/marker/gate, no derivation attempts, no source/parse/build/publication execution.",
+  "authorized_next": "Execute independent read-only post-prepare anchor; guarded run waits for anchor review."
+}

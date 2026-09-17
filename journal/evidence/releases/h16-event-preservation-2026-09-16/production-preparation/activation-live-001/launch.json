@@ -1,0 +1,15 @@
+{
+  "acceptance_executed": false,
+  "argv": [
+    "/var/lib/swingset/venv/bin/python",
+    "/var/lib/swingset/operations/h16-event-preservation-release-20260916/activate-system.py"
+  ],
+  "coordinator_review_sha256": "081d347703d648d94d76df3552e44ad448856acd2c68983b8a2ff2176e34d626",
+  "driver_sha256": "db4cd1a26e3f1c593570316759b779e44f98cf1d691b1b32872a35416e81cf2e",
+  "format": "h16-production-activation-orchestration-v1",
+  "initializer_executed": false,
+  "passed": false,
+  "published": false,
+  "script_sha256": "1890114a00a726885318c0c1d09bce3771ce916c2c847155bd37abcff4a6e75c",
+  "started_at": "2026-09-16T19:58:27.712714+00:00"
+}

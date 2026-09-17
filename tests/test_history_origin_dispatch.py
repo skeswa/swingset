@@ -682,6 +682,7 @@ def test_schema15_adds_only_empty_intent_receipts_preserving_prior_evidence(tmp_
                     "SELECT key,value FROM meta WHERE key!='schema_version'"
                 )
             )
+    monkeypatch.setattr(db_module, "SCHEMA_VERSION", 15)
     with db_module.open_database(tmp_path) as database:
         assert database.connection.execute("PRAGMA user_version").fetchone()[0] == 15
         assert {

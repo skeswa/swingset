@@ -1,0 +1,31 @@
+--- 
++++ 
+@@ -89,11 +89,17 @@
+     exec(compile(data,str(path),'exec'),module.__dict__)
+     return module
+ 
+-def memory_sample(current,guard):
++def memory_sample(current,guard,unit,sample):
+     pid=int(current.get('MainPID','0'));group=current.get('ControlGroup')
+     require(not pid or group,'live worker lacks cgroup telemetry')
+     if group:
+-        value=guard.anonymous_bytes(group)
++        try:
++            value=guard.anonymous_bytes(group)
++        except FileNotFoundError:
++            after=status(unit)
++            require(after.get('MainPID')=='0' and (after.get('ActiveState') in ('inactive','failed') or after.get('LoadState')=='not-found'),'live worker lost cgroup telemetry')
++            sample.update(after);sample['telemetry']='cgroup_removed_after_exit'
++            return None
+         require(value<6*1024**3,'anonymous memory reached 6GiB')
+         return value
+     require(current.get('ActiveState')!='active' or current.get('SubState')=='exited','active worker lacks cgroup telemetry')
+@@ -133,7 +139,7 @@
+             while process.poll() is None:
+                 current=status(unit);elapsed=time.monotonic()-started
+                 sample={'at':datetime.now(UTC).isoformat(),'elapsed_seconds':elapsed,**current}
+-                memory=memory_sample(current,guard)
++                memory=memory_sample(current,guard,unit,sample)
+                 if memory is not None:
+                     sample['anonymous_bytes']=memory;peak=max(peak,memory)
+                     if current.get('MainPID','0')!='0':seen=True

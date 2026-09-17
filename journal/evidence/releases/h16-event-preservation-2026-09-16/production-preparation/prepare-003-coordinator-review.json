@@ -1,0 +1,11 @@
+{
+  "format": "h16-initialization-retry-coordinator-review-v1",
+  "at": "2026-09-16T20:31:38.101171+00:00",
+  "passed": true,
+  "launcher_sha256": "ba470ab005d5d2044d9075ed074a80a501ebc1e935a1f6f6dd4d5bd6400037a2",
+  "marker_sha256": "dad425983041d0a27ab2eae1127db1fc9aeec4a401f50d678d6fe87e176baece",
+  "failed_prepare_sha256": "0cb00d4c7661c74394dcdee0fa95fe5b1ff4a206f43fe153f64ca41eff9472d8",
+  "ownership_repair_sha256": "17cd96a85db85ba067fe19e8d58a6cc02a2bbc1ef4e71f1a1511373c1eb54563",
+  "review": "Root independently read exact marker/failed receipt and same repaired inode6400127 uid996 gid995 mode0600; launcher delta preserves existing reviewed helpers/gate/marker and creates only new result/capture/unit.",
+  "authorized_next": "Execute prepare003 only, then review successful raw receipt before read-only anchor."
+}

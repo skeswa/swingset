@@ -1,0 +1,134 @@
+--- /Users/skeswa/repos/skeswa/swingset/journal/evidence/admission/fixture-exception/fixture-exception-h13-driver-20260913.py
++++ /private/tmp/swingset-fixture-h13-002-20260916/fixture-exception-h13-002.py
+@@ -13,11 +13,47 @@
+ import signal
+ import time
+ import sys
++import os
+ from pathlib import Path
+ from uuid import uuid4
+ 
+-from research import fixture_exception as existing
+-from research.fixture_transport import FixtureRunner
++HELPER_ROOT = Path(__file__).resolve().parent / "helper-closure"
++HELPER_MANIFEST_SHA = "f8e0557026bc3bcfbd06624071bbc98ab7c7a46983fd6e3117d34140d6b16db3"
++FROZEN_SOURCE = Path("/nix/store/z689qy41inndill3d92ym8im852x3649-source")
++FROZEN_RECEIPT_SHA = "0c3a391aca5c32381ab10daa22adfdde44cda76ab26b68df002f9822ad4945fb"
++
++
++def verify_helpers(root=HELPER_ROOT):
++    if root.is_symlink():
++        raise RuntimeError("helper closure root is a symlink")
++    root = root.resolve(strict=True)
++    children = tuple(root.rglob("*"))
++    if any(path.is_symlink() for path in children):
++        raise RuntimeError("helper closure contains a symlink")
++    manifest = root / "closure.json"
++    if hashlib.sha256(manifest.read_bytes()).hexdigest() != HELPER_MANIFEST_SHA:
++        raise RuntimeError("reviewed helper manifest differs")
++    receipt = json.loads(manifest.read_bytes())
++    if receipt.get("format") != "fixture-helper-closure-v1":
++        raise RuntimeError("unknown helper closure")
++    for name, expected in receipt["files"].items():
++        path = (root / name).resolve(strict=True)
++        if Path(name).is_absolute() or not path.is_relative_to(root):
++            raise RuntimeError("helper path escapes closure")
++        if hashlib.sha256(path.read_bytes()).hexdigest() != expected:
++            raise RuntimeError("reviewed helper file differs: " + name)
++    actual = {str(path.relative_to(root)) for path in children if path.is_file()}
++    declared = set(receipt["files"]) | {"closure.json"}
++    if actual != declared:
++        raise RuntimeError("undeclared helper file")
++    return root
++
++
++verify_helpers()
++sys.dont_write_bytecode = True
++sys.path.insert(0, str(HELPER_ROOT))
++from fixture_helpers import fixture_exception as existing
++from fixture_helpers.fixture_transport import FixtureRunner
+ from swingset.fetch.politeness import Gate, Grant, Paused
+ from swingset.state.controls import ActionScope, ControlPaused, admission, operation, settle
+ from swingset.state.db import Database
+@@ -62,6 +98,7 @@
+         super().__init__(runner.conn,runner.config,runner.clock)
+         self.runner=runner;self.action=None;self.request_day=None
+     def acquire(self,host,**kwargs):
++        if not (self.runner.state/'operator-hold').is_file():return Paused('scheduled-service hold must remain present')
+         action='fixture_request_'+uuid4().hex
+         acquired=False
+         try:
+@@ -122,6 +159,7 @@
+                     settle(conn,action,now=self.clock.now(),outcome='failed_before_retention')
+                 self.gate.action=None;self.gate.request_day=None
+     def _request(self,client,initial,purpose):
++        if not (self.state/'operator-hold').is_file():raise existing.FixtureStopped('scheduled-service hold must remain present')
+         prior=self.kind
+         if purpose!='robots':
+             self.kind='round_observations' if purpose in {'srs-round507','srs-round508'} else 'source_event_mapping'
+@@ -162,16 +200,19 @@
+             location=getattr(module,'__file__',None)
+             if location is None or Path(location).resolve() not in {expected.with_suffix('.py'),expected/'__init__.py'}:
+                 raise existing.FixtureStopped('mixed imported runtime: '+name)
+-        elif name in {'research.fixture_exception','research.fixture_transport'}:
+-            if Path(module.__file__).resolve()!=source/'research'/(name.split('.')[-1]+'.py'):
++        elif name == 'fixture_helpers' or name.startswith('fixture_helpers.'):
++            expected=HELPER_ROOT/Path(*name.split('.'))
++            if Path(module.__file__).resolve() not in {expected.with_suffix('.py'),expected/'__init__.py'}:
+                 raise existing.FixtureStopped('mixed imported fixture module: '+name)
+ 
+ def execution_gate(path,expected,repo):
+     if digest(path)!=expected:raise existing.FixtureStopped('execution gate hash differs')
+     gate=json.loads(path.read_bytes())
+-    if gate.get('format')!='fixture-h13-coordinator-v1' or gate.get('driver_sha256')!=digest(__file__):raise existing.FixtureStopped('reviewed copied driver differs')
++    if gate.get('format')!='fixture-h13-coordinator-v2' or gate.get('driver_sha256')!=digest(__file__):raise existing.FixtureStopped('reviewed copied driver differs')
+     source=Path(gate['source']).resolve(strict=True)
+-    if not str(source).startswith('/nix/store/') or Path(existing.__file__).resolve()!=source/'research/fixture_exception.py':raise existing.FixtureStopped('exact frozen runtime required')
++    if source != FROZEN_SOURCE or gate.get('source_receipt_sha256') != FROZEN_RECEIPT_SHA:raise existing.FixtureStopped('exact frozen runtime required')
++    if gate.get('helper_manifest_sha256') != HELPER_MANIFEST_SHA or Path(gate.get('helper_root','')).resolve() != HELPER_ROOT:raise existing.FixtureStopped('reviewed helper closure differs')
++    verify_helpers()
+     verify_imports(source,repo)
+     receipt=source/gate['source_receipt']
+     if Path(gate['source_receipt']).is_absolute() or '..' in Path(gate['source_receipt']).parts or digest(receipt)!=gate['source_receipt_sha256']:raise existing.FixtureStopped('reviewed source receipt differs')
+@@ -211,7 +252,15 @@
+         raise existing.FixtureStopped('execution state differs')
+     return state
+ 
++def verify_database(conn,selected,gate):
++    baseline=(selected/'baseline').resolve(strict=True)
++    if str(baseline)!=gate['baseline_path'] or digest(baseline/'PUBLISHED')!=gate['published_sha256'] or digest(baseline/'_meta/manifest.json')!=gate['manifest_sha256']:raise existing.FixtureStopped('verified publication baseline changed')
++    import swingset.state.db as db_module
++    schema=int(conn.execute("SELECT value FROM meta WHERE key='schema_version'").fetchone()[0])
++    if schema!=14 or schema!=gate['schema'] or schema!=db_module.SCHEMA_VERSION:raise existing.FixtureStopped('exact runtime schema required; migration forbidden')
++
+ def main():
++    os.umask(0o077)
+     args=parse_arguments(sys.argv[1:])
+     original_argv=sys.argv[:]
+     if not args.execute:
+@@ -223,20 +272,18 @@
+     # One effective parse; the original CLI receives only canonical unique options.
+     repo=args.repo
+     gate=execution_gate(args.execution_gate,args.execution_gate_sha256,repo)
+-    state=verify_state(args.state,gate)
++    verify_state(args.state,gate)
+     original_accounting=existing.accounting_connection
+     @contextlib.contextmanager
+     def verified_accounting(selected):
+         selected=verify_state(selected,gate)
+         with accounting_connection(selected) as conn:
++            if not (selected/'operator-hold').is_file():raise existing.FixtureStopped('scheduled-service hold must remain present')
++            verify_helpers()
+             verify_imports(Path(gate['source']).resolve(),repo)
+-            baseline=(selected/'baseline').resolve(strict=True)
+-            if str(baseline)!=gate['baseline_path'] or digest(baseline/'PUBLISHED')!=gate['published_sha256'] or digest(baseline/'_meta/manifest.json')!=gate['manifest_sha256']:raise existing.FixtureStopped('verified publication baseline changed')
+-            import swingset.state.db as db_module
+-            schema=int(conn.execute("SELECT value FROM meta WHERE key='schema_version'").fetchone()[0])
+-            if schema!=gate['schema'] or schema!=db_module.SCHEMA_VERSION:raise existing.FixtureStopped('exact runtime schema required; migration forbidden')
++            verify_database(conn,selected,gate)
+             yield conn
+-    import research.fixture_transport as transport
++    import fixture_helpers.fixture_transport as transport
+     original_runner=transport.FixtureRunner
+     existing.accounting_connection=verified_accounting;transport.FixtureRunner=ControlledFixtureRunner
+     try:

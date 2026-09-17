@@ -1,0 +1,29 @@
+{
+  "started_at": "2026-09-16T20:30:09.677863+00:00",
+  "diagnostic_sha256": "329572fbac089bc702966e6a106f454dfd538f988c7310ccda686089bc29f31b",
+  "database_writes": false,
+  "lock_replaced": false,
+  "passed": true,
+  "before": {
+    "inode": 6400127,
+    "device": 53,
+    "uid": 0,
+    "gid": 0,
+    "mode": "0o644",
+    "size": 0,
+    "mtime_ns": 1789294718137880989,
+    "ctime_ns": 1789294718137880989
+  },
+  "after": {
+    "inode": 6400127,
+    "device": 53,
+    "uid": 996,
+    "gid": 995,
+    "mode": "0o600",
+    "size": 0,
+    "mtime_ns": 1789294718137880989,
+    "ctime_ns": 1789590609676796875
+  },
+  "locks_released": true,
+  "finished_at": "2026-09-16T20:30:09.685316+00:00"
+}

@@ -1,0 +1,55 @@
+{
+  "compiled": true,
+  "created_at": "2026-09-16T21:26:04.281736+00:00",
+  "driver_sha256": "81357b33c8862bdc4bdd2d84f2479a7913a9d783b00b435910cc2328bdcf69f7",
+  "executed": false,
+  "files": {
+    "REVIEW.md": "c05dc93e3c973100e86b8de7f8e6c82c75184f9db1115cb968ff5af9eaf4e88e",
+    "driver-delta.patch": "d550f397ef0968ba1dc21e06b1cc8db7890d61fc59d30a920a7f2919df6cbcfc",
+    "exception-helper-delta.patch": "ffbef0abec34de4a7b37b3f9ef91c225671aa762c349c8705c3cfc949879aced",
+    "fixture-exception-h13-002.py": "81357b33c8862bdc4bdd2d84f2479a7913a9d783b00b435910cc2328bdcf69f7",
+    "handling-helper-delta.patch": "6f2ddb935acd4ed0918b430d33ea4327b455437a60033140647affde41f55092",
+    "helper-closure/closure.json": "f8e0557026bc3bcfbd06624071bbc98ab7c7a46983fd6e3117d34140d6b16db3",
+    "helper-closure/fixture_helpers/__init__.py": "52653ca36ce3711b8bdd5d30ddfa437ff9488cb97ffc43ada0fefb8fd0d55a3c",
+    "helper-closure/fixture_helpers/fixture_exception.py": "82321170f50747285cc661e3a7d6a91c4ad260b6fe2c6471c33c7eee1e545f47",
+    "helper-closure/fixture_helpers/fixture_transport.py": "5e873a4ccc711ef3c668246862ac6a4a33be0a90dd998a4b896af09c2e55a97a",
+    "helper-closure/proposal.json": "6269cc9837ca9e4eb9913270194b1e1622a5dc5b7e0d1d715e3b04fb5bb34eab",
+    "helper-closure/research/verification/2026-09-11/cdx_dcn_eventpage_2013_2018_first50.json": "389a671edfa6bd3bc6e6fa7db147942197ae16a8bec91e7e9a83ae45a7c70472",
+    "helper-closure/research/verification/2026-09-11/cdx_steprightsolutions_html_all.json": "b9562bc37c62b14161dafd34c570ad55e229a1dff44a833e573f7bf84bf77b46",
+    "offline-pyflakes-002.log": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18",
+    "offline-tests-003.log": "00bea51a96a07ac033a848c8fa079e49269dd58196c1ccfc7a331fd13aeea9cf",
+    "tests/test_fixture_exception.py": "fc0fa6cc2b82c402a31f400d31cac82e1ffa16eb15f31ec89278f8a5d33ad692",
+    "tests/test_fixture_h13_002.py": "8ba2111e74485c9dbcf9c9832ef74e581dab169d2ff883a781968a33ac463f48"
+  },
+  "format": "fixture-h13-offline-preparation-v2",
+  "helper_manifest_sha256": "f8e0557026bc3bcfbd06624071bbc98ab7c7a46983fd6e3117d34140d6b16db3",
+  "helper_originals": {
+    "driver": {
+      "path": "/Users/skeswa/repos/skeswa/swingset/journal/evidence/admission/fixture-exception/fixture-exception-h13-driver-20260913.py",
+      "sha256": "e9fc5dbb988ecee61099c9d5a046e6caa34c58f18849eaa54ff94de656af1f9c"
+    },
+    "exception-helper": {
+      "path": "/Users/skeswa/repos/skeswa/swingset/journal/tools/admission/fixture_exception.py",
+      "sha256": "dbe8f517e57951a22dd335ea76c25811140af90b5fdebdfe666df11039597e24"
+    },
+    "handling-helper": {
+      "path": "/Users/skeswa/repos/skeswa/swingset/journal/tools/admission/fixture_transport.py",
+      "sha256": "6dba2c3e26cc75b22b29f7f851618222ff6a25e02cd47507b57345bf806fa4a0"
+    }
+  },
+  "network_requests": 0,
+  "offline_tests": {
+    "log": "offline-tests-003.log",
+    "passed": 63,
+    "seconds": 2.08,
+    "sha256": "00bea51a96a07ac033a848c8fa079e49269dd58196c1ccfc7a331fd13aeea9cf"
+  },
+  "owner_authorization_created": false,
+  "pyflakes_passed": true,
+  "schema": 14,
+  "source": "/nix/store/z689qy41inndill3d92ym8im852x3649-source",
+  "source_receipt_files_verified": 638,
+  "source_receipt_sha256": "0c3a391aca5c32381ab10daa22adfdde44cda76ab26b68df002f9822ad4945fb",
+  "staged": false,
+  "vm_actions": 0
+}

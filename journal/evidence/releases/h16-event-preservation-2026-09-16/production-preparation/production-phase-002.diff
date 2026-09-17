@@ -1,0 +1,84 @@
+--- 
++++ 
+@@ -8,6 +8,7 @@
+ import signal
+ import subprocess
+ import time
++import types
+ from datetime import UTC, datetime
+ from pathlib import Path
+ 
+@@ -78,6 +79,26 @@
+         require(gate.get('source')==str(SOURCE) and gate.get('driver_sha256')==RELEASE_SHA,'wrong frozen release authority')
+ 
+ 
++GUARD_SHA = 'b39cedadd065dad76eb5a47f0c5de3dd39a737895a7198bb7a48a75f5ea1623b'
++
++def load_guard(path):
++    safe_file(path)
++    data=path.read_bytes()
++    require(hashlib.sha256(data).hexdigest()==GUARD_SHA,'reviewed serial/memory guard changed')
++    module=types.ModuleType('reviewed_phase_guard');module.__file__=str(path)
++    exec(compile(data,str(path),'exec'),module.__dict__)
++    return module
++
++def memory_sample(current,guard):
++    pid=int(current.get('MainPID','0'));group=current.get('ControlGroup')
++    require(not pid or group,'live worker lacks cgroup telemetry')
++    if group:
++        value=guard.anonymous_bytes(group)
++        require(value<6*1024**3,'anonymous memory reached 6GiB')
++        return value
++    require(current.get('ActiveState')!='active' or current.get('SubState')=='exited','active worker lacks cgroup telemetry')
++    return None
++
+ def main():
+     p=argparse.ArgumentParser(description=__doc__)
+     p.add_argument('phase',choices=('build','audit','publish'))
+@@ -94,13 +115,13 @@
+     capture=Path('/var/tmp/h16-production-'+args.phase+'-'+args.label)
+     unit='swingset-h16-production-'+args.phase+'-'+args.label+'.service'
+     require(status(unit)['LoadState']=='not-found','unit already exists')
+-    active=subprocess.run(['systemctl','list-units','--all','--state=active,activating,deactivating','--no-legend','--plain','swingset-h16*.service'],capture_output=True,text=True,check=True,timeout=15)
+-    require(not active.stdout.strip(),'another H16 unit is active')
++    guard=load_guard(OPS/'monitoring/guard-initialization-003.py')
++    guard.no_other_workers()
+     held();capture.mkdir(mode=0o700)
+     owner=pwd.getpwnam('swingset');os.chown(capture,owner.pw_uid,owner.pw_gid)
+     output=capture/'audit.json' if args.phase=='audit' else args.output
+     argv=command(args,unit,output)
+-    report={'phase':args.phase,'started_at':datetime.now(UTC).isoformat(),'argv':argv,'script_sha256':sha(Path(__file__)),'driver_sha256':sha(driver),'gate_sha256':args.gate_sha256,'passed':False}
++    report={'phase':args.phase,'started_at':datetime.now(UTC).isoformat(),'argv':argv,'script_sha256':sha(Path(__file__)),'driver_sha256':sha(driver),'gate_sha256':args.gate_sha256,'guard_sha256':GUARD_SHA,'worker_runtime_seconds':RUNTIME,'monitor_deadline_seconds':RUNTIME+STOP+60,'passed':False}
+     save(capture/'intent.json',report)
+     def interrupted(*_):
+         raise KeyboardInterrupt('phase launcher interrupted')
+@@ -112,16 +133,11 @@
+             while process.poll() is None:
+                 current=status(unit);elapsed=time.monotonic()-started
+                 sample={'at':datetime.now(UTC).isoformat(),'elapsed_seconds':elapsed,**current}
+-                group=current.get('ControlGroup')
+-                if group and current.get('MainPID','0')!='0':
+-                    seen=True;memory=Path('/sys/fs/cgroup')/group.lstrip('/')/'memory.stat'
+-                    require(memory.is_file(),'live memory telemetry missing')
+-                    values={line.split()[0]:int(line.split()[1]) for line in memory.read_text().splitlines()}
+-                    require('anon' in values,'anonymous telemetry missing')
+-                    sample['anonymous_bytes']=values['anon'];peak=max(peak,values['anon'])
+-                    require(values['anon']<=6*1024**3,'anonymous memory above 6GiB')
+-                else:
+-                    require(elapsed<=30 or process.poll() is not None or seen,'unit failed to start within30s')
++                memory=memory_sample(current,guard)
++                if memory is not None:
++                    sample['anonymous_bytes']=memory;peak=max(peak,memory)
++                    if current.get('MainPID','0')!='0':seen=True
++                require(elapsed<=30 or process.poll() is not None or seen,'unit failed to start within30s')
+                 with (capture/'resources.jsonl').open('a') as stream:
+                     stream.write(json.dumps(sample,sort_keys=True)+'\n');stream.flush();os.fsync(stream.fileno())
+                 held();require(elapsed<RUNTIME+STOP+60,'monitor deadline exceeded')
+@@ -129,6 +145,7 @@
+                 except subprocess.TimeoutExpired:pass
+             report['direct_exit_code']=process.returncode
+             require(process.returncode==0,'phase worker failed')
++        require(seen,'no live worker telemetry was observed')
+         result=json.loads(output.read_bytes());require(result.get('passed') is True,'phase receipt failed')
+         if args.phase=='audit':
+             require(result.get('state')==str(STATE) and result.get('candidate')==str(args.candidate),'audit target differs')

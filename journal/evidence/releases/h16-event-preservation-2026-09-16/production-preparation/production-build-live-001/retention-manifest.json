@@ -1,0 +1,22 @@
+[
+  {
+    "name": "intent.json",
+    "sha256": "22d286ee70efff3092ea4b25672055db3e9e142f5e3696ff290a86f1fd2062bc"
+  },
+  {
+    "name": "systemd-wait.log",
+    "sha256": "28efbe02d1164bd7fe00838705d397978639f4d56026cc280d492e488158ff37"
+  },
+  {
+    "name": "resources.jsonl",
+    "sha256": "78361744e5f373747d5d280ff256d7b2d8645501ea21fe15263944aae89d4e77"
+  },
+  {
+    "name": "journal.log",
+    "sha256": "0324c9f906871a7055b603c0424dbf6723e9eae676c92e6cdcaac09ebb2da01f"
+  },
+  {
+    "name": "execution.json",
+    "sha256": "d26d206a5e0d4eaf7ab0397359373fc393f5eb67cae553f167f13da592cc9fc8"
+  }
+]

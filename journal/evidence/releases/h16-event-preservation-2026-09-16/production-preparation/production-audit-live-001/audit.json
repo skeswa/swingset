@@ -1,0 +1,205 @@
+{
+  "baseline_commit": "81121dcc7d62a1db9e76ee1c49a6b90e1f4c5653",
+  "candidate": "/var/lib/swingset/candidates/cand_8f31cad7226643ae",
+  "candidate_id": "cand_8f31cad7226643ae",
+  "checks": {
+    "accepted_assertions_have_confirmation_method_and_references": true,
+    "accepted_assertions_have_default_ids": true,
+    "accepted_identities_match_retained_support": true,
+    "all_17_years_disclosed": true,
+    "all_baseline_named_judges_preserved": true,
+    "all_legacy_coverage_year_transitions_accounted": true,
+    "baseline_66_coverage_year_rows": true,
+    "baseline_entry_id_count": true,
+    "baseline_named_judge_count": true,
+    "compact_private_proof_only": true,
+    "coverage_counts_match_emitted_facts": true,
+    "coverage_cutoff_matches": true,
+    "coverage_denominator_chain": true,
+    "default_ids_have_accepted_assertions": true,
+    "durable_build_completion": true,
+    "entries_no_new_or_replaced_default_ids": true,
+    "honest_discovery_denominator": true,
+    "identity_baseline_commit_matches": true,
+    "identity_expansions_remain_withheld": true,
+    "identity_state_journal_matches_release": true,
+    "judges_no_new_or_replaced_default_ids": true,
+    "named_null_id_judges_preserved_where_source_persists": true,
+    "no_orphans": true,
+    "no_unreviewed_year_acceptance": true,
+    "nonempty_structural_closure": true,
+    "one_event_per_retained_occurrence": true,
+    "ordinary_closure": true,
+    "placement_follower_identity_and_points_supported": true,
+    "placement_identity_flags_supported": true,
+    "placement_leader_identity_and_points_supported": true,
+    "public_assertion_acceptance_fields_match_release": true,
+    "public_assertions_have_structural_subjects": true,
+    "public_identity_assertions_respect_decisions": true,
+    "registry_points_to_matching_occurrence": true,
+    "row_count_callback_marks": true,
+    "row_count_callbacks": true,
+    "row_count_changelog": true,
+    "row_count_contests": true,
+    "row_count_coverage": true,
+    "row_count_dancers": true,
+    "row_count_entries": true,
+    "row_count_events": true,
+    "row_count_final_marks": true,
+    "row_count_heats": true,
+    "row_count_identity_links": true,
+    "row_count_judges": true,
+    "row_count_link_candidates": true,
+    "row_count_placements": true,
+    "row_count_registry_placements": true,
+    "row_count_review_queue": true,
+    "row_count_rounds": true,
+    "row_count_snapshots": true,
+    "unique_keys": true,
+    "unique_public_assertion_per_subject": true
+  },
+  "details": {
+    "coverage_schema_transition": {
+      "baseline_year_rows": 66,
+      "removed_year_rows": 0,
+      "retained_year_rows": 66,
+      "unaccounted_count": 0,
+      "unaccounted_examples": []
+    },
+    "default_entry_ids": {
+      "new": 34955,
+      "old": 34955
+    },
+    "identity": {
+      "accepted_assertions_have_confirmation_method_and_references": {
+        "examples": [],
+        "violations": 0
+      },
+      "accepted_assertions_have_default_ids": {
+        "examples": [],
+        "violations": 0
+      },
+      "accepted_identities_match_retained_support": {
+        "checked": 34955,
+        "examples": [],
+        "violations": 0
+      },
+      "default_ids_have_accepted_assertions": {
+        "examples": [],
+        "violations": 0
+      },
+      "entries_no_new_or_replaced_default_ids": {
+        "examples": [],
+        "violations": 0
+      },
+      "judges_no_new_or_replaced_default_ids": {
+        "examples": [],
+        "violations": 0
+      },
+      "named_null_id_judges_preserved_where_source_persists": {
+        "examples": [],
+        "interpretation": "Missing or changed names with retained source bindings require explicit review of remapping, source correction, or suppression; absence of a registry number alone never permits deletion.",
+        "retained": 4931,
+        "violations": 0
+      },
+      "placement_follower_identity_and_points_supported": {
+        "examples": [],
+        "violations": 0
+      },
+      "placement_identity_flags_supported": {
+        "examples": [],
+        "violations": 0
+      },
+      "placement_leader_identity_and_points_supported": {
+        "examples": [],
+        "violations": 0
+      },
+      "public_assertion_acceptance_fields_match_release": {
+        "examples": [],
+        "violations": 0
+      },
+      "public_assertions_have_structural_subjects": {
+        "examples": [],
+        "violations": 0
+      },
+      "public_identity_assertions_respect_decisions": {
+        "checked": 69917,
+        "examples": [],
+        "violations": 0
+      },
+      "unique_public_assertion_per_subject": {
+        "examples": [],
+        "violations": 0
+      }
+    },
+    "retained_registry_occurrences": 1888,
+    "selected_generation_count": 34986,
+    "source_support_count": 58169,
+    "structure": {
+      "duplicates": {
+        "callback_marks": 0,
+        "callbacks": 0,
+        "changelog": 0,
+        "contests": 0,
+        "coverage": 0,
+        "dancers": 0,
+        "entries": 0,
+        "events": 0,
+        "final_marks": 0,
+        "heats": 0,
+        "identity_links": 0,
+        "judges": 0,
+        "link_candidates": 0,
+        "placements": 0,
+        "registry_placements": 0,
+        "review_queue": 0,
+        "rounds": 0,
+        "snapshots": 0
+      },
+      "missing_references": {
+        "callback_marks.entry_id": 0,
+        "callback_marks.judge_id": 0,
+        "callback_marks.round_id": 0,
+        "callback_marks.snapshot_id": 0,
+        "callbacks.entry_id": 0,
+        "callbacks.round_id": 0,
+        "callbacks.snapshot_id": 0,
+        "contests.event_id": 0,
+        "contests.snapshot_id": 0,
+        "dancers.snapshot_id": 0,
+        "entries.contest_id": 0,
+        "entries.event_id": 0,
+        "entries.partner_entry_id": 0,
+        "entries.snapshot_id": 0,
+        "events.snapshot_id": 0,
+        "final_marks.judge_id": 0,
+        "final_marks.placement_id": 0,
+        "final_marks.round_id": 0,
+        "final_marks.snapshot_id": 0,
+        "heats.entry_id": 0,
+        "heats.round_id": 0,
+        "heats.snapshot_id": 0,
+        "judges.event_id": 0,
+        "judges.snapshot_id": 0,
+        "placements.contest_id": 0,
+        "placements.couple_entry_id": 0,
+        "placements.event_id": 0,
+        "placements.follower_entry_id": 0,
+        "placements.leader_entry_id": 0,
+        "placements.round_id": 0,
+        "placements.snapshot_id": 0,
+        "registry_placements.event_id": 0,
+        "registry_placements.snapshot_id": 0,
+        "registry_placements.wsdc_id": 0,
+        "rounds.contest_id": 0,
+        "rounds.snapshot_id": 0
+      }
+    }
+  },
+  "elapsed_seconds": 25.014794846007135,
+  "manifest_hash": "6ff950afb842c2e2f1fc24c937df6633c890309bc9c6189b8706a4884eadc5a6",
+  "max_rss_kib": 1867640,
+  "network_requests": 0,
+  "passed": true,
+  "state": "/var/lib/swingset"
+}

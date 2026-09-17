@@ -1,0 +1,17 @@
+{
+  "argv": [
+    "/var/lib/swingset/venv/bin/python",
+    "/var/lib/swingset/operations/h16-event-preservation-release-20260916/run-production-phase-003.py",
+    "build",
+    "--label",
+    "reviewed-001",
+    "--gate",
+    "/var/lib/swingset/operations/h16-event-preservation-release-20260916/production-build-gate-001.json",
+    "--gate-sha256",
+    "ae511f0734be86aa1210a7f7a0b46064d984ee78e9206ab8e9a3bb565bb3fec4",
+    "--output",
+    "/var/lib/swingset/operations/h16-event-preservation-release-20260916/production-build-001.json"
+  ],
+  "launcher_sha256": "19ac3c6023844642dc3ae353c0c8113dc32f80288336e1b758e42bde264d79c9",
+  "execute_after_coordinator_review": true
+}

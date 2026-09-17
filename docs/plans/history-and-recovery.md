@@ -97,7 +97,9 @@ archive-first, and host gates. Preparing this scheduler extension does not add a
 new blanket gate ahead of V5. Eligible V5 work uses the existing policy until
 the extension is deployed; it cannot claim the new guarantees before acceptance.
 Afterward, newest-first admission feeds fair turns for already-waiting events.
-V5 and V6 progress remains subject to the recorded operator hold.
+On 2026-09-16 the owner authorized production deployment and publication after
+H16 validation, withdrawing the earlier network-related deferral. Follow
+[current status](../status.md) for the runtime hold and release gates.
 
 V6 is not done until the extension's fake-clock scenarios and measured cohort
 service pass, and the new coverage is published with truthful gaps. V7 still
@@ -131,7 +133,7 @@ published every year.
 | ---- | ----------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
 | G1   | H1 and H2 are deployed to the writer before the registry sweep completes                                                | doctor's sweep cursor against the 27,039-ID dump                            |
 | G2   | A year's phase 2 watches are created only when that year is `events_accepted`                                           | the `coverage` table, per [backfill](../reference/backfill.md#events-first) |
-| G3   | No phase 2 watch is created for any year until H7 and H10 are deployed                                                  | this plan's Status column                                                   |
+| G3   | No phase 2 watch is created for any year until H7 and H10 are deployed                                                  | [current status](../status.md) and its dated deployment evidence            |
 | G4   | A year publishes only after its admission failures are reviewed and every guard failure is a finding or a fixed parser  | the year's findings are empty or explained in the card                      |
 | G5   | A requirement kind is activated under H18 only after its pause, resume, and doctor output are demonstrated and recorded | the rollout's migration steps 6 and 7                                       |
 
@@ -167,10 +169,9 @@ could make alone. Each names the contract that records it.
 - One jj change per revision or package, described with its H or WP
   number in the summary line, its contracts updated in the same change,
   and its scenarios as tests. Commit and push when asked.
-- A stage is finished by one further change that updates this plan's
-  Status column and [implementation status](../../journal/archive/v1-implementation-evidence.md)
-  with the evidence: scenarios run, deployment time, and the public
-  commit of the dataset it published.
+- A stage is finished by one further change that updates [current status](../status.md)
+  and links dated journal evidence: scenarios run, deployment time, and the
+  public commit of the dataset it published.
 - The formatter runs before every commit: `mise run fmt`.
 - Nothing in this plan authorizes a live request outside the politeness
   rules in [fetching](../reference/fetching.md#politeness-rules) or the archive

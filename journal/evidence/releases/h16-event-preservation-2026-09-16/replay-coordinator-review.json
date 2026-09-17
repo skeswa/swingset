@@ -1,0 +1,21 @@
+{
+  "format": "h16-replay-coordinator-review-v1",
+  "at": "2026-09-16T19:41:03.054098+00:00",
+  "passed": true,
+  "source": "/nix/store/z689qy41inndill3d92ym8im852x3649-source",
+  "source_receipt_sha256": "0c3a391aca5c32381ab10daa22adfdde44cda76ab26b68df002f9822ad4945fb",
+  "evidence_sha256": {
+    "replay-final-verification.json": "b05e18004e7a275d482205c840932efce39535b8f251002ade75553d4ddf4b1c",
+    "replay-supervisor.json": "b2aff6ccd6ac68e4fcda28fe5f0ded0798a88381d5e8b01d6dde55d6dfda880a",
+    "replay-terminal-resource-verification.json": "e12a4b68c97504800c0b3f453d5f18a5487e5175372c43b3b6e27e7bea2870cc",
+    "log-path-replacement-incident.json": "2c6ad7943e74f45a799309fba045fae9670b026c07ea1c2126ac6a2b17a7e381",
+    "replay-resource-samples.jsonl": "30759a25c509e163445431692b8c25717b07c84883413b717732ec24a974f3bb",
+    "replay-resource-supplement.jsonl": "9b0158359268ae86c0774ba33b3536a074b9e38568b19c1dd8c47d28e6d917b5",
+    "launch-proof-build-audit.py": "f03c55fbc6d33515b4fddd0f51e68bea286d705ee715f528c87014193ba44980",
+    "swingset-h16-event-preservation-replay-012.json": "1b2ea424e6a4380a98c8f4bdc34d8a4328d0004e4f75231ec33ef2ba2275af0c"
+  },
+  "next_authorized_action": "scratch build only; independent build review before audit",
+  "resource_gap_disposition": "Detailed samples absent between 17:51:41 and 18:02:47 UTC. Final systemd lifetime total MemoryPeak for every invocation independently bounds anonymous memory below 6 GiB. All workers exited successfully; original supervisor guard remained active; complete terminal state verified independently. This gap does not require replay repetition. Do not claim uninterrupted retained detailed sampling.",
+  "possible_cause": "Root jj workspace update-stale and merge operations occurred during replay. Exact cause of the open path replacement is unconfirmed. Avoid version-control mutations of live evidence paths; use VM-local append-only evidence for further long operations.",
+  "production_authorization": "Owner authorized production after H16 scratch acceptance; build acceptance and live preflight remain outstanding."
+}

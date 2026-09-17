@@ -1,0 +1,15 @@
+{
+  "format": "h16-production-audit-coordinator-review-v1",
+  "at": "2026-09-16T22:35:22.211173+00:00",
+  "reviewed_by": "root coordinator",
+  "passed": true,
+  "audit": {
+    "path": "/var/lib/swingset/operations/h16-event-preservation-release-20260916/production-audit-001.json",
+    "sha256": "447cdf421482c35e8d619c1b4672ab31a74b93708b06dbdafc85421665e31560"
+  },
+  "execution": {
+    "path": "/var/tmp/h16-production-audit-reviewed-001/execution.json",
+    "sha256": "815215c5528f0356815e939813b5559f4e8d59548b5267d0ad7cbba203b12555"
+  },
+  "review": "Root independently read exact production audit and launch execution receipts. All54checks true,4931baseline named/null-ID judges preserved,34955default entry IDs unchanged,1888retained registry occurrences associated,66legacy coverage-year rows retained and17years disclosed, no duplicates/orphans/identity violations. Exact candidate/manifest/V4parent match accepted build002. Reviewed audit executable9de88 hash and phase003 launch provenance,25.01s audit/26.16stotal, directexit0, observedliveunit/settled final state and1736572928byte sampled anon peak. Accept candidate for owner-authorized publication; next actual gate binds this successful audit and production build."
+}

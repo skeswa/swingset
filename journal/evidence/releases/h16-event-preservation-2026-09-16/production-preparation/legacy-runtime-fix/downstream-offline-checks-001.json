@@ -1,0 +1,61 @@
+{
+  "adaptation_manifest_sha256": "07ca4235954388074c3d3cca01d67e09f883d510274f32c6a0d25ec1e22f86ba",
+  "all_original_and_adapted_hashes_unchanged": true,
+  "at": "2026-09-16T20:14:40.681711+00:00",
+  "checks": [
+    {
+      "PYTHONPATH": "/Users/skeswa/.cache/swingset-h16-event-preservation-tests-20260916/src:/Users/skeswa/.cache/swingset-h16-event-preservation-tests-20260916",
+      "argv": [
+        "/nix/store/dc32b3k2d65lk9aig1j4jkq0v2vnzbin-python3-3.12.13/bin/python3.12",
+        "-m",
+        "pytest",
+        "-q",
+        "-p",
+        "no:cacheprovider",
+        "-c",
+        "/Users/skeswa/.cache/swingset-h16-event-preservation-tests-20260916/pyproject.toml",
+        "-o",
+        "pythonpath=src . tests",
+        "/Users/skeswa/repos/skeswa/swingset/journal/evidence/releases/h16-event-preservation-2026-09-16/production-preparation/test_production_release.py",
+        "/Users/skeswa/repos/skeswa/swingset/journal/evidence/releases/h16-event-preservation-2026-09-16/production-preparation/test_live_initialize_002.py",
+        "/Users/skeswa/repos/skeswa/swingset/journal/evidence/releases/h16-event-preservation-2026-09-16/production-preparation/test_initializer_supervisor_002.py",
+        "/Users/skeswa/repos/skeswa/swingset/journal/evidence/releases/h16-event-preservation-2026-09-16/production-preparation/test_supervisor_launch_review_002.py",
+        "/Users/skeswa/repos/skeswa/swingset/journal/evidence/releases/h16-event-preservation-2026-09-16/production-preparation/test_activate_system.py",
+        "/Users/skeswa/repos/skeswa/swingset/journal/evidence/releases/h16-event-preservation-2026-09-16/production-preparation/monitoring/test_memory_guard_003.py",
+        "/Users/skeswa/repos/skeswa/swingset/journal/evidence/releases/h16-event-preservation-2026-09-16/production-preparation/final-verification/test_verify_initialization_002.py"
+      ],
+      "cwd": "/Users/skeswa/.cache/swingset-h16-event-preservation-tests-20260916",
+      "exit_code": 1,
+      "log": "downstream-tests-001.log",
+      "log_sha256": "a9cf08e01ea8b4683c862d5fd3b40aba9d31c5c369361723cd90cb36d8c8bce4",
+      "seconds": 0.01364999997895211
+    },
+    {
+      "PYTHONPATH": "/Users/skeswa/.cache/swingset-h16-event-preservation-tests-20260916/src:/Users/skeswa/.cache/swingset-h16-event-preservation-tests-20260916",
+      "argv": [
+        "/Users/skeswa/repos/skeswa/swingset/.venv/bin/ruff",
+        "check",
+        "--select",
+        "F",
+        "/Users/skeswa/repos/skeswa/swingset/journal/evidence/releases/h16-event-preservation-2026-09-16/production-preparation/supervise-initialization-002.py",
+        "/Users/skeswa/repos/skeswa/swingset/journal/evidence/releases/h16-event-preservation-2026-09-16/production-preparation/monitoring/guard-initialization-003.py",
+        "/Users/skeswa/repos/skeswa/swingset/journal/evidence/releases/h16-event-preservation-2026-09-16/production-preparation/final-verification/verify-initialization-002.py",
+        "/Users/skeswa/repos/skeswa/swingset/journal/evidence/releases/h16-event-preservation-2026-09-16/production-preparation/test_live_initialize_002.py",
+        "/Users/skeswa/repos/skeswa/swingset/journal/evidence/releases/h16-event-preservation-2026-09-16/production-preparation/test_initializer_supervisor_002.py",
+        "/Users/skeswa/repos/skeswa/swingset/journal/evidence/releases/h16-event-preservation-2026-09-16/production-preparation/test_supervisor_launch_review_002.py",
+        "/Users/skeswa/repos/skeswa/swingset/journal/evidence/releases/h16-event-preservation-2026-09-16/production-preparation/monitoring/test_memory_guard_003.py",
+        "/Users/skeswa/repos/skeswa/swingset/journal/evidence/releases/h16-event-preservation-2026-09-16/production-preparation/final-verification/test_verify_initialization_002.py"
+      ],
+      "cwd": "/Users/skeswa/.cache/swingset-h16-event-preservation-tests-20260916",
+      "exit_code": 1,
+      "log": "downstream-pyflakes-001.log",
+      "log_sha256": "7561e4652f3470b12dd1338f9be69c281bbd3f3aafa6936f0497c399bee76ca0",
+      "seconds": 0.014981916057877243
+    }
+  ],
+  "format": "h16-initializer002-downstream-offline-checks-v1",
+  "passed": false,
+  "private_staging_executed": false,
+  "production_state_read": false,
+  "vm_jobs_started": false
+}

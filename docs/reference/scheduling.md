@@ -77,7 +77,11 @@ goes to the Wayback Machine, not the origin. An eligible historical offer
 receives the old-work acquisition share, one page at a time within normal
 politeness rules and year-acceptance gates. New events enter newest first;
 under the event-completion extension, already-waiting events receive bounded
-turns before fresh arrivals can displace them. A watch whose event ended
+turns before fresh arrivals can displace them. The local implementation exposes
+all eligible candidates from the finite retained historical plan to that
+rotation together. Offering candidates creates no watches or request debits;
+dispatch repeats the year, source, parent, and capture gates for the selected
+page. A watch whose event ended
 more than two years ago, or whose origin is dead, becomes `sealed` after
 a successful parse and is never fetched again; younger ones behave like
 `archived`. Order, capture selection, and origin fallback are owned by
@@ -188,8 +192,15 @@ inventing dates. Manual operator pauses remain separate, as described in
 
 ## Event completion
 
-Accepted extension, 2026-09-13; implementation and operating acceptance are
-pending. Existing H14 class fairness does not satisfy this extension. The
+Accepted extension, 2026-09-13. Retained enumeration, bounded event turns,
+protected listed-page capacity, and a local artifact drill-down are implemented
+in the working source. Conservative expansion controls, blocker history, and
+bounded progress observations and sampled local accounting transitions are also
+implemented locally. Immediate-edge page retirement proofs are also implemented;
+whole-event retirement, complete retirement history, eligible-time reporting, and
+operating acceptance remain pending.
+Existing H14 class fairness alone does not satisfy
+this extension. The
 [Monterey investigation](../../journal/investigations/2026/monterey-missing-data-2026-09-13.md)
 found 33 discovered round pages with no fetch attempt. This contract makes
 finishing discovered work a scheduling objective without increasing host limits.
@@ -225,6 +236,15 @@ All known pages accounted for is not a claim of complete competition history.
 
 ### Selection and protected capacity
 
+The first implementation uses a four-request target, configurable through
+`event_turn_requests` from 1 to 64. An already selected fetch may finish its
+bounded redirect, retry, and robots chain, which can issue up to 80 requests.
+The absolute turn bound is therefore `target + 79`, or 83 at the default.
+Every actual request consumes the turn and its actual host's existing debit.
+Rotation happens before the next fetch selection. These are unmeasured shadow
+defaults, not accepted operating guarantees; see
+[D-0010](../../journal/decisions/0010-bounded-event-turns.md).
+
 Selection follows host allowance, work class, source event, then missing page.
 Keep the existing host and class fairness. Within an eligible class, events
 receive bounded turns measured in issued HTTP requests. Rotate among events
@@ -238,12 +258,39 @@ may indefinitely postpone a large one.
 Within new work, reserve a positive share for acquiring already-listed result
 pages. Discretionary expansion into additional event indexes uses the remaining
 share. Either side can borrow capacity when the other has no eligible work.
+The working implementation starts `listed_page_percent` at 50, configurable
+from 1 through 99. Durable credit accounts for actual issued requests while
+both sides compete; borrowing creates no new repayment debt. The target is
+unmeasured and can deviate over one bounded fetch chain. It does not change
+which watches belong to the existing new-work class. See
+[D-0012](../../journal/decisions/0012-protect-listed-page-capacity.md).
 Index discovery and result acquisition cannot both claim the same debit.
 Retain essential platform discovery and current-event checks under their
 existing class allowances. When unfinished source events exceed a configured
 watermark, defer discretionary event-index expansion; do not delete its watches
 or stop processing links from an already acquired index. When the count falls
 below the watermark, expansion becomes eligible again.
+
+The local implementation observes started source events per request host. An
+unfetched event index alone does not count as started. The initial thresholds
+defer additional event indexes above 100 unresolved events and reopen below
+80; between them, the previous decision survives. These proposed values have
+not received operating acceptance. Essential discovery and started-event
+continuations still use their ordinary request gates.
+
+Each cycle can refresh eight events, at most 32 distinct page requests per
+probe. Checks bound returned rows, JSON, artifact bytes, and cooperative elapsed
+time. Partial, expired, changed, unsupported, or oversized observations retain
+pressure. Observations expire 24 hours after the earliest contributing check;
+restoration invalidates them before activation. No observation grants stage
+completion or publication. Doctor exposes the stored observations and gate
+decision without refreshing them.
+
+An oversized event may remain unresolved indefinitely. Historical host
+associations also remain, so moving a URL may over-defer its old host. SQL and
+filesystem calls have no hard deadline. See
+[D-0018](../../journal/decisions/0018-gate-expansion-with-conservative-observations.md)
+for the bounds and limitations.
 
 All eligible listed pages receive turns regardless of whether their event is
 recent, partly acquired, or never started. Historical offers join the old-work
@@ -274,6 +321,20 @@ work. Reconstruct lost queue hints from admitted enumerations and retained
 parent relationships without making a new source request or resetting retry
 delays. Explicit retirement remains visible and is not successful completion.
 
+The local implementation reconstructs missing parse hints for currently
+declared member watches whose selected successful snapshot remains pending.
+It consults retained attempts and same-unit admission receipts, preserving
+terminal decisions and retry deadlines. A failed parse requires an explicit
+retry newer than its latest own attempt before its hint can be reconstructed.
+The cycle scans at most 100 candidates
+within a shared 2 MiB metadata allowance and a cooperative two-second deadline.
+A frozen snapshot-row high-water and disposable cursor bound each pass.
+Reconstruction reads no artifacts and starts no operation; normal pause and
+retry gates still govern execution. It does not establish global event-stage
+absence, and undeclared normalized aliases remain outside this initial scan.
+Implementation and acceptance evidence are tracked in
+[current status](../status.md).
+
 Persist rotation and issued service with the existing request accounting;
 recovery cannot refund issued requests or grant a fresh turn by restarting.
 Progress commits with the stage output it describes. Budget resets and resume
@@ -295,6 +356,14 @@ one skipped-work record for every page on every scan. These receipts must
 explain an event's wait within the recorded interval. Repeated failures may
 consume service but must not reset a no-progress alarm. An operator hold
 suppresses eligible-work alarms while wall age and the hold remain visible.
+
+The current local observation slice retains changes in sampled blocker facts
+and per-refresh counts. It rotates through eight events with 64-member and
+64-watch bounds. Oversized events remain unassessed. Diagnostic bookkeeping can
+record a source or global pause without starting paused source work. The last
+saved change is not proof that its conditions held continuously afterward;
+eligible service age remains unknown. See
+[D-0019](../../journal/decisions/0019-retain-observed-event-blocker-changes.md).
 
 For a fixed set of eligible events and sufficient allocated capacity, fake-clock
 tests must demonstrate service within a declared finite bound and eventual

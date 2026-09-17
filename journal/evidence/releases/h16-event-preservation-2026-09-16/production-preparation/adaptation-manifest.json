@@ -1,0 +1,188 @@
+{
+  "format": "h16-production-preparation-adaptations-v1",
+  "prepared_only": true,
+  "production_executed": false,
+  "source": "/nix/store/z689qy41inndill3d92ym8im852x3649-source",
+  "source_receipt_sha256": "0c3a391aca5c32381ab10daa22adfdde44cda76ab26b68df002f9822ad4945fb",
+  "input_bundle_hash": "fe99b47cd65eb909abc7c9ebd64d9ace9524393e5af8cd4d9368c55317ce3c6a",
+  "system": "/nix/store/sx7lpr80cx0n9vzsi3cwz9nxawqc4p1i-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+  "operations": "/var/lib/swingset/operations/h16-event-preservation-release-20260916",
+  "files": [
+    {
+      "original": "/tmp/h16-closure-production-release.py",
+      "original_sha256": "9da822db06cd1fcb4d0119706b7c91bc6e128e1447414b817f6b91ff703a51ca",
+      "prepared": "production-release.py",
+      "sha256": "f8cd9ec23953600d3c9445a765df97eb894fd5363cea3f1136446c67a4f902cc",
+      "literal_replacements": [
+        {
+          "old": "/nix/store/2d5q3lgljfkmm78hf44g954lzwx79yhv-source",
+          "new": "/nix/store/z689qy41inndill3d92ym8im852x3649-source",
+          "occurrences": 1
+        },
+        {
+          "old": "f8f24c2d8b839bbfcd25bf87e551e9f2777d1236f89ed84da16c3c07d4d75b9f",
+          "new": "0c3a391aca5c32381ab10daa22adfdde44cda76ab26b68df002f9822ad4945fb",
+          "occurrences": 1
+        },
+        {
+          "old": "558bb5f4e88b47fe80a691254d3b21ac9e491296e80bb18f4599b64a88bfe9c0",
+          "new": "fe99b47cd65eb909abc7c9ebd64d9ace9524393e5af8cd4d9368c55317ce3c6a",
+          "occurrences": 1
+        }
+      ]
+    },
+    {
+      "original": "/tmp/h16-initializer-supervisor-v2.py",
+      "original_sha256": "2f6c6f88604db55342bc9d3adbfee9b789143846815cc6380768d26ebb952cae",
+      "prepared": "supervise-initialization.py",
+      "sha256": "9d48562395750244fb64c8420390c3402c8af2aea2019e46bb66577c1b3c4312",
+      "literal_replacements": [
+        {
+          "old": "/nix/store/2d5q3lgljfkmm78hf44g954lzwx79yhv-source",
+          "new": "/nix/store/z689qy41inndill3d92ym8im852x3649-source",
+          "occurrences": 1
+        },
+        {
+          "old": "f8f24c2d8b839bbfcd25bf87e551e9f2777d1236f89ed84da16c3c07d4d75b9f",
+          "new": "0c3a391aca5c32381ab10daa22adfdde44cda76ab26b68df002f9822ad4945fb",
+          "occurrences": 1
+        },
+        {
+          "old": "558bb5f4e88b47fe80a691254d3b21ac9e491296e80bb18f4599b64a88bfe9c0",
+          "new": "fe99b47cd65eb909abc7c9ebd64d9ace9524393e5af8cd4d9368c55317ce3c6a",
+          "occurrences": 1
+        },
+        {
+          "old": "operations/h16-closure-release-20260914",
+          "new": "operations/h16-event-preservation-release-20260916",
+          "occurrences": 1
+        }
+      ]
+    },
+    {
+      "original": "/tmp/h16-live-initialize.py",
+      "original_sha256": "b54c02a15c3d86a603bef4d6926e66bde4cf1ef9d23f273aa5db771d3a99d233",
+      "prepared": "initialize.py",
+      "sha256": "b54c02a15c3d86a603bef4d6926e66bde4cf1ef9d23f273aa5db771d3a99d233",
+      "literal_replacements": []
+    },
+    {
+      "original": "/tmp/h16-closure-switch-20260914.py",
+      "original_sha256": "94ceacce56d3f24d2fadbc0a3d9d59cee0acd6fd32537e61e113441aeada7985",
+      "prepared": "activate-system.py",
+      "sha256": "db4cd1a26e3f1c593570316759b779e44f98cf1d691b1b32872a35416e81cf2e",
+      "literal_replacements": [
+        {
+          "old": "/nix/store/2d5q3lgljfkmm78hf44g954lzwx79yhv-source",
+          "new": "/nix/store/z689qy41inndill3d92ym8im852x3649-source",
+          "occurrences": 1
+        },
+        {
+          "old": "f8f24c2d8b839bbfcd25bf87e551e9f2777d1236f89ed84da16c3c07d4d75b9f",
+          "new": "0c3a391aca5c32381ab10daa22adfdde44cda76ab26b68df002f9822ad4945fb",
+          "occurrences": 1
+        },
+        {
+          "old": "/nix/store/86p1plylmwlna3ympba52g26pwvmjv0i-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+          "new": "/nix/store/sx7lpr80cx0n9vzsi3cwz9nxawqc4p1i-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+          "occurrences": 1
+        },
+        {
+          "old": "operations/h16-closure-release-20260914",
+          "new": "operations/h16-event-preservation-release-20260916",
+          "occurrences": 1
+        }
+      ]
+    },
+    {
+      "original": "/tmp/test_h16_closure_production_release.py",
+      "original_sha256": "0042525e0be78a6ae48e130b5760347f8759dce0a187e81a9d3fa2623917bd93",
+      "prepared": "test_production_release.py",
+      "sha256": "83849bf4c1cc28c423132d8047c5a67a6cff64f1caf2f4ea39bd47daea8b5a85",
+      "literal_replacements": [
+        {
+          "old": "/tmp/h16-closure-production-release.py",
+          "new": "/Users/skeswa/repos/skeswa/swingset/journal/evidence/releases/h16-event-preservation-2026-09-16/production-preparation/production-release.py",
+          "occurrences": 1
+        }
+      ]
+    },
+    {
+      "original": "/tmp/test_h16_initializer_supervisor_v2.py",
+      "original_sha256": "c915cf2009b31ff8ce898adc5c3720ac8c9ef395cf4061d2384d2e0e17a44f4d",
+      "prepared": "test_initializer_supervisor.py",
+      "sha256": "61eb25f2b9359bed51f052318a7e395e8b49829032c6171fc9bc7922b5a8a98d",
+      "literal_replacements": [
+        {
+          "old": "/tmp/h16-initializer-supervisor-v2.py",
+          "new": "/Users/skeswa/repos/skeswa/swingset/journal/evidence/releases/h16-event-preservation-2026-09-16/production-preparation/supervise-initialization.py",
+          "occurrences": 1
+        }
+      ]
+    },
+    {
+      "original": "/tmp/test_h16_supervisor_launch_review_v2.py",
+      "original_sha256": "51aeaaa87e950f757b7691aa63dd8b480aa908df48287501b3a7183f6cc140a6",
+      "prepared": "test_supervisor_launch_review.py",
+      "sha256": "304d9c2bfc957b6af4da7454261ffee86551e1b45a2e2c2e7029472752dc5b0e",
+      "literal_replacements": [
+        {
+          "old": "/tmp/h16-initializer-supervisor-v2.py",
+          "new": "/Users/skeswa/repos/skeswa/swingset/journal/evidence/releases/h16-event-preservation-2026-09-16/production-preparation/supervise-initialization.py",
+          "occurrences": 1
+        }
+      ]
+    },
+    {
+      "original": "/tmp/test_h16_live_initialize.py",
+      "original_sha256": "18b30e3cad0ea0a0c5870b5afb6018ea185f9351a2509adc211ddde4fa2f9a67",
+      "prepared": "test_live_initialize.py",
+      "sha256": "047b9569b825a889a0932e4a8f55b55780ce56ee48efd9f2b84f5b918743e008",
+      "literal_replacements": [
+        {
+          "old": "/tmp/h16-live-initialize.py",
+          "new": "/Users/skeswa/repos/skeswa/swingset/journal/evidence/releases/h16-event-preservation-2026-09-16/production-preparation/initialize.py",
+          "occurrences": 1
+        }
+      ]
+    },
+    {
+      "original": "/tmp/test_h16_closure_switch_20260914.py",
+      "original_sha256": "0d76c058d12d7e52d123d4832e6faff1facbe1fbd56fcc4bc77659ae791ba1ad",
+      "prepared": "test_activate_system.py",
+      "sha256": "fec93ef4aaa64ab2754883d39e06fdc8ac7f9f1d1c5cd41c42923ced109e95d2",
+      "literal_replacements": [
+        {
+          "old": "/nix/store/2d5q3lgljfkmm78hf44g954lzwx79yhv-source",
+          "new": "/nix/store/z689qy41inndill3d92ym8im852x3649-source",
+          "occurrences": 1
+        },
+        {
+          "old": "f8f24c2d8b839bbfcd25bf87e551e9f2777d1236f89ed84da16c3c07d4d75b9f",
+          "new": "0c3a391aca5c32381ab10daa22adfdde44cda76ab26b68df002f9822ad4945fb",
+          "occurrences": 1
+        },
+        {
+          "old": "/nix/store/86p1plylmwlna3ympba52g26pwvmjv0i-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+          "new": "/nix/store/sx7lpr80cx0n9vzsi3cwz9nxawqc4p1i-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+          "occurrences": 1
+        },
+        {
+          "old": "operations/h16-closure-release-20260914",
+          "new": "operations/h16-event-preservation-release-20260916",
+          "occurrences": 1
+        },
+        {
+          "old": "/tmp/h16-closure-switch-20260914.py",
+          "new": "/Users/skeswa/repos/skeswa/swingset/journal/evidence/releases/h16-event-preservation-2026-09-16/production-preparation/activate-system.py",
+          "occurrences": 1
+        },
+        {
+          "old": "94ceacce56d3f24d2fadbc0a3d9d59cee0acd6fd32537e61e113441aeada7985",
+          "new": "db4cd1a26e3f1c593570316759b779e44f98cf1d691b1b32872a35416e81cf2e",
+          "occurrences": 1
+        }
+      ]
+    }
+  ]
+}

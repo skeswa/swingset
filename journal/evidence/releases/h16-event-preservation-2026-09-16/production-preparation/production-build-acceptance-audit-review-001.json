@@ -1,0 +1,19 @@
+{
+  "format": "h16-production-build-acceptance-audit-review-v1",
+  "at": "2026-09-16T22:33:40.290809+00:00",
+  "reviewed_by": "root coordinator",
+  "passed": true,
+  "build_receipt": {
+    "path": "/var/lib/swingset/operations/h16-event-preservation-release-20260916/production-build-002.json",
+    "sha256": "f0b61a6adf804bcba992d3d6a8c1210f513887d63bec6e3b5b56bc8754b0f48c"
+  },
+  "execution": {
+    "path": "/var/tmp/h16-production-build-reviewed-002/execution.json",
+    "sha256": "d9845909ba9df858fa021a836f96622712bce7599d1f546e6c9e2b91004e68b9"
+  },
+  "candidate": "/var/lib/swingset/candidates/cand_8f31cad7226643ae",
+  "manifest_hash": "6ff950afb842c2e2f1fc24c937df6633c890309bc9c6189b8706a4884eadc5a6",
+  "baseline": "/var/lib/swingset/candidates/cand_7f8cf9bcbf7e4a60",
+  "expected_parent": "81121dcc7d62a1db9e76ee1c49a6b90e1f4c5653",
+  "review": "Root independently read live build and execution receipts and actual baseline resolution. Exact source/bundle/gate/driver pins, successful semantic publication preflight, all five preservation flags, zero requests/parse/derivation/input acceptance, no publication. Directexit0, settled unit, observed live resource samples, peak5477404672bytes under6GiB. Accept build and authorize exact independently reviewed audit driver through phase003 with new reviewed-001 unit/private capture and production-audit-001 output. Publication remains conditional on actual audit success."
+}

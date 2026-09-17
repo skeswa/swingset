@@ -1,0 +1,40 @@
+{
+  "format": "h16-initialization-memory-guard-preparation-v1",
+  "at": "2026-09-16T19:50:21.598144+00:00",
+  "executed_in_vm": false,
+  "production_state_read": false,
+  "production_acceptance": false,
+  "source_files": {
+    "journal/evidence/releases/h16-event-preservation-2026-09-16/production-preparation/monitoring/guard-initialization.py": "bf3722506621efe306a7b1cd764b7f1dd1a52a42ce66ffda7125397ac1cc3f7d",
+    "journal/evidence/releases/h16-event-preservation-2026-09-16/production-preparation/monitoring/test_memory_guard.py": "6d3a78d3faccb216b49851139b0774ebe4f1ff07835bbf1b114255ced84b0963",
+    "journal/evidence/releases/h16-event-preservation-2026-09-16/production-preparation/supervise-initialization.py": "9d48562395750244fb64c8420390c3402c8af2aea2019e46bb66577c1b3c4312"
+  },
+  "checks": [
+    {
+      "path": "offline-tests-001.log",
+      "command": [
+        ".venv/bin/pytest",
+        "-q",
+        "-o",
+        "pythonpath=src . tests",
+        "journal/evidence/releases/h16-event-preservation-2026-09-16/production-preparation/monitoring/test_memory_guard.py",
+        "journal/evidence/releases/h16-event-preservation-2026-09-16/production-preparation/test_initializer_supervisor.py"
+      ],
+      "exit_code": 0,
+      "sha256": "6a1903a3b865e301c7b3ded3555a0e2ba0153634af46c82d2324f6fdfd4e01f3"
+    },
+    {
+      "path": "offline-pyflakes-001.log",
+      "command": [
+        ".venv/bin/ruff",
+        "check",
+        "--select",
+        "F",
+        "journal/evidence/releases/h16-event-preservation-2026-09-16/production-preparation/monitoring"
+      ],
+      "exit_code": 0,
+      "sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+    }
+  ],
+  "passed": true
+}

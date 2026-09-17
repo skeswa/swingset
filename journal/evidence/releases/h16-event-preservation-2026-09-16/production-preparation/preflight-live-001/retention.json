@@ -1,0 +1,14 @@
+{
+  "format": "h16-preflight-closed-capture-retention-v1",
+  "remote": "/var/tmp/h16-event-preservation-production-preflight-20260916",
+  "files": {
+    "launch.json": "1e93ff8ac3ffd45721a8a69e6036632b65faa02b8b9346748b27278184df2820",
+    "systemd-wait.log": "b4f5dc9c0f5b533bbb55a107b73b461a1183a140de94a4bb66900b22ff7dd92d",
+    "resources.jsonl": "aca2ee4016521b335d5c676254a0bc27da5e1729696f88e6b7b6445431eea39c",
+    "preflight.json": "3999c52e966407116568a6b4438618af837219e11feed8db33d8b812dc23f575",
+    "preflight.sizes.json": "6b01ef524185ca8ab026ca54321c986d3060d57257f191e3456ae1d8f67ddfc0",
+    "journal.log": "00f3a419b6b759851c17120a1204149e8c87b00d61be033d8063755405c46109",
+    "orchestration.json": "d9d90179df5abb53ccfbf444bed9e439644518b326db3ca4d7d35bc79ff28cbb"
+  },
+  "copied_after_launcher_exit": true
+}

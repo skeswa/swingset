@@ -1,0 +1,19 @@
+{
+  "format": "h16-production-release-final-coordinator-acceptance-v1",
+  "at": "2026-09-16T22:40:18.213938+00:00",
+  "reviewed_by": "root coordinator",
+  "passed": true,
+  "commit": "2a6c7dc744fb36eabb5163c0a527d787d3721f4f",
+  "candidate": "/var/lib/swingset/candidates/cand_8f31cad7226643ae",
+  "manifest_hash": "6ff950afb842c2e2f1fc24c937df6633c890309bc9c6189b8706a4884eadc5a6",
+  "verified_at": "2026-09-16T22:37:24.934598+00:00",
+  "publication_receipt": {
+    "path": "journal/evidence/releases/h16-event-preservation-2026-09-16/production-preparation/production-publish-live-001/receipt.json",
+    "sha256": "32c9c36ccd7d95c967e65115fcc07f6d32354f63d95b03cd37ce54a5b30324c1"
+  },
+  "execution": {
+    "path": "journal/evidence/releases/h16-event-preservation-2026-09-16/production-preparation/production-publish-live-001/execution.json",
+    "sha256": "45312e22da0c82b8c96c7903a5f5f9f2e144d507b4a3016d87aa4e65c7bcc3cd"
+  },
+  "review": "Root independently read live VM publication/launcher receipts and exact retained bytes. Confirmed acknowledged verified remote commit, candidate and manifest; independently resolved production baseline and read matching PUBLISHED/manifest. Active and persistent system remain exact reviewedsx7source, operatorholdpresent, allsixordinaryunitsinactive, allfivepreservationchecks true. Successful directexit and settledunit, observedliveguard and1.60GBsampledpeak. Accept original frozen schema14 H16 deployment/initialization/build/audit/publication as complete. This does not accept newer schema24 runtime deployment, V5year acquisition, human H17 evaluation, V6extension operating completion or V7activation. Publication network request count is not instrumented."
+}

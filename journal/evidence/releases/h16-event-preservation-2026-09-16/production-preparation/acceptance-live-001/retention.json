@@ -1,0 +1,16 @@
+{
+  "format": "h16-acceptance-closed-capture-retention-v1",
+  "remote": "/var/tmp/h16-event-preservation-production-acceptance-20260916",
+  "files": {
+    "launch.json": "09429df5c02adfe875fb333f7c0879de4b2a48c00164aee9a8d95714969de469",
+    "systemd-wait.log": "a7dab2d3cc7b96e9b9ede6b6a63bf3dbd702be8d54f5b0a6c7e41f1bfb73c9f6",
+    "resources.jsonl": "83dbe22804f0074adfab22c35bbe2e08267592e949d21a7acf502193dbb2149d",
+    "acceptance.json": "d9bcde097dd694e0c9ec0de28b048a140c8a1f59eb32180a2e5491587bdb5c4f",
+    "acceptance.sizes.json": "6b01ef524185ca8ab026ca54321c986d3060d57257f191e3456ae1d8f67ddfc0",
+    "acceptance.doctor.json": "7e7f6b8e844ff28c1d9ac96d010189b20ef72e391b5165c4fa91c08e7f4ce393",
+    "acceptance.doctor.txt": "d061948aa04322271bce10887d32d271cc16f905fba7aa52a5651a45ecab94d6",
+    "journal.log": "674aebb7eff70da27591ac9c630c4619104145b12fb882a3ac7edb55846da7ce",
+    "orchestration.json": "1376e51e40d0eb2de84e0bfb1e187159f51b59009d61123457393be68eca78bd"
+  },
+  "copied_after_launcher_exit": true
+}

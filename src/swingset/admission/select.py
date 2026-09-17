@@ -198,7 +198,24 @@ def admit_generation(
         if after_write is not None:
             after_write(conn)
         complete_token(conn, ctx.snapshot_id, attempt.work_token)
-        return _decide(conn, generation_id, "accepted", "contract_passed", now, revision)
+        state = _decide(conn, generation_id, "accepted", "contract_passed", now, revision)
+        from swingset.state.event_progress import interpreted
+
+        decision = conn.execute(
+            "SELECT decision_id FROM admission_decisions WHERE generation_id=? ORDER BY decision_id DESC LIMIT 1",
+            (generation_id,),
+        ).fetchone()
+        interpreted(
+            conn,
+            source=ctx.source,
+            parser=ctx.kind,
+            watch_id=ctx.watch_id,
+            generation_id=generation_id,
+            decision_id=decision[0],
+            occurred_at=now,
+            run_id=run_id,
+        )
+        return state
 
 
 def _decide(

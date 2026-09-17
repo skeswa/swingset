@@ -1,0 +1,12 @@
+{
+  "format": "h16-activation-closed-capture-retention-v1",
+  "remote": "/var/tmp/h16-event-preservation-production-activation-20260916",
+  "files": {
+    "launch.json": "f604f35f82de00f0418e254b7864d3f0ae9dac962a9fcefad32e27dbab58de27",
+    "activation.log": "e3ed7a4e401c12f9621eadd5fadb582d40178a5cca3360c39ee58c3cfe13222b",
+    "deployment-intent.json": "8b9e744b37dde3517e67bbf9df21df9cd23fae47bff9064960ef5a21c31f429d",
+    "deployment.json": "342be820b7a4e4e1e7a354288fabf74f17e2d80253ed0e38f0a7ccecca5b9678",
+    "orchestration.json": "99602e2d9949f0854483b5c7aa34c577809ea1a818e306ee8add431ce7b8424b"
+  },
+  "copied_after_launcher_exit": true
+}

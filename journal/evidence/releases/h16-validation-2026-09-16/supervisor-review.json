@@ -1,0 +1,31 @@
+{
+  "at": "2026-09-16T14:24:01.038021+00:00",
+  "checkpoint_read_only_preflight": {
+    "connection": "mode=ro&immutable=1",
+    "inherited_unfinished_runs": 7,
+    "max_attempt_id": 0,
+    "path": "/var/lib/swingset/checkpoints/h15-before-h16-20260913",
+    "work_attempt_outcomes": {}
+  },
+  "files": {
+    "supervise-proof-replay.py": "c335451fdab8f2b93bc266de935025555d4881b91e3863c679930a89ff983f36",
+    "supervisor-mock-tests-002.log": "ed99af7a6997d18e240d2a78ad38cf830ba0925aff7bd448ce7bb0c4ef878034",
+    "supervisor-mock-tests-003.log": "45c951752c3241bdcdbf8481ea7b30e3d788bda19a639d5b053b6268705a3968",
+    "supervisor-mock-tests.log": "905e33e707b2430e9175db747732cb220accb82a8d91948225e5ef7800436d8c",
+    "test-proof-replay-supervisor.py": "f261f580a2e7e827a085ca0415a7718947a110314cba0e84ee0239d7cb98ad3c"
+  },
+  "format": "h16-proof-replay-supervisor-review-v1",
+  "frozen_new_module_collection": {
+    "cases": 22,
+    "module": "tests/build/test_closure_validation_scope.py",
+    "remaining_cases": 1177,
+    "total_frozen_passing": 1199
+  },
+  "initial_test_error": "Host python3 is 3.9 and lacks datetime.UTC. Failed before mocks. Project .venv Python passed all final tests.",
+  "mock_seconds": 0.029,
+  "mock_tests": 16,
+  "passed": true,
+  "production_actions": false,
+  "replay_launched_at_review": false,
+  "systemd_semantics": "Explicit Type=exec with RemainAfterExit=yes; accepts active/exited only when MainPID=0, Result=success and exit=0; RuntimeMaxSec=900 applies. No Type=oneshot."
+}

@@ -1,0 +1,152 @@
+{
+  "adaptations": [
+    {
+      "exact_literal_delta_verified": true,
+      "literal_replacements": [
+        {
+          "after": "c3259a023436e2cc3ee56e1ad83f3170b455f42187ff71421eeac25387bf96d7",
+          "before": "b54c02a15c3d86a603bef4d6926e66bde4cf1ef9d23f273aa5db771d3a99d233",
+          "count": 1
+        }
+      ],
+      "new": "/Users/skeswa/repos/skeswa/swingset/journal/evidence/releases/h16-event-preservation-2026-09-16/production-preparation/supervise-initialization-002.py",
+      "new_sha256": "7d2746bd079a0e0fb608ae666f4cec2146ab23561c46e2d808f0f2ba2216324f",
+      "predecessor": "/Users/skeswa/repos/skeswa/swingset/journal/evidence/releases/h16-event-preservation-2026-09-16/production-preparation/supervise-initialization.py",
+      "predecessor_sha256": "9d48562395750244fb64c8420390c3402c8af2aea2019e46bb66577c1b3c4312"
+    },
+    {
+      "exact_literal_delta_verified": true,
+      "literal_replacements": [
+        {
+          "after": "7d2746bd079a0e0fb608ae666f4cec2146ab23561c46e2d808f0f2ba2216324f",
+          "before": "9d48562395750244fb64c8420390c3402c8af2aea2019e46bb66577c1b3c4312",
+          "count": 1
+        }
+      ],
+      "new": "/Users/skeswa/repos/skeswa/swingset/journal/evidence/releases/h16-event-preservation-2026-09-16/production-preparation/monitoring/guard-initialization-003.py",
+      "new_sha256": "b39cedadd065dad76eb5a47f0c5de3dd39a737895a7198bb7a48a75f5ea1623b",
+      "predecessor": "/Users/skeswa/repos/skeswa/swingset/journal/evidence/releases/h16-event-preservation-2026-09-16/production-preparation/monitoring/guard-initialization-002.py",
+      "predecessor_sha256": "530db5fd4e140c0ecf205954feb4e27815165b240f0ed38671e8095fb2a3d9c1"
+    },
+    {
+      "exact_literal_delta_verified": true,
+      "literal_replacements": [
+        {
+          "after": "c3259a023436e2cc3ee56e1ad83f3170b455f42187ff71421eeac25387bf96d7",
+          "before": "b54c02a15c3d86a603bef4d6926e66bde4cf1ef9d23f273aa5db771d3a99d233",
+          "count": 1
+        },
+        {
+          "after": "7d2746bd079a0e0fb608ae666f4cec2146ab23561c46e2d808f0f2ba2216324f",
+          "before": "9d48562395750244fb64c8420390c3402c8af2aea2019e46bb66577c1b3c4312",
+          "count": 1
+        },
+        {
+          "after": "OPS / \"initialize-002.py\"",
+          "before": "OPS / \"initialize.py\"",
+          "count": 1
+        },
+        {
+          "after": "OPS / \"supervise-initialization-002.py\"",
+          "before": "OPS / \"supervise-initialization.py\"",
+          "count": 1
+        }
+      ],
+      "new": "/Users/skeswa/repos/skeswa/swingset/journal/evidence/releases/h16-event-preservation-2026-09-16/production-preparation/final-verification/verify-initialization-002.py",
+      "new_sha256": "de8708f555c34a97afcdae2085c266eac3d4e1230e6879d4069cd8a7bd7410db",
+      "predecessor": "/Users/skeswa/repos/skeswa/swingset/journal/evidence/releases/h16-event-preservation-2026-09-16/production-preparation/final-verification/verify-initialization.py",
+      "predecessor_sha256": "77a093da0dbbdf701f59c50bd837cd90b45553b108cbc62bf2caab81f44f4b65"
+    },
+    {
+      "exact_literal_delta_verified": true,
+      "literal_replacements": [
+        {
+          "after": "/Users/skeswa/repos/skeswa/swingset/journal/evidence/releases/h16-event-preservation-2026-09-16/production-preparation/legacy-runtime-fix/initialize-002.py",
+          "before": "/Users/skeswa/repos/skeswa/swingset/journal/evidence/releases/h16-event-preservation-2026-09-16/production-preparation/initialize.py",
+          "count": 1
+        }
+      ],
+      "new": "/Users/skeswa/repos/skeswa/swingset/journal/evidence/releases/h16-event-preservation-2026-09-16/production-preparation/test_live_initialize_002.py",
+      "new_sha256": "ade2f52df1f22c36c60d559fd3497473e9b2018746e7e561e538b6399f0e3142",
+      "predecessor": "/Users/skeswa/repos/skeswa/swingset/journal/evidence/releases/h16-event-preservation-2026-09-16/production-preparation/test_live_initialize.py",
+      "predecessor_sha256": "047b9569b825a889a0932e4a8f55b55780ce56ee48efd9f2b84f5b918743e008"
+    },
+    {
+      "exact_literal_delta_verified": true,
+      "literal_replacements": [
+        {
+          "after": "supervise-initialization-002.py",
+          "before": "supervise-initialization.py",
+          "count": 1
+        }
+      ],
+      "new": "/Users/skeswa/repos/skeswa/swingset/journal/evidence/releases/h16-event-preservation-2026-09-16/production-preparation/test_initializer_supervisor_002.py",
+      "new_sha256": "cb9ce51f34a2612be62c16f6594a327bd26c1dbdf3b53ffba1163190eeb33fca",
+      "predecessor": "/Users/skeswa/repos/skeswa/swingset/journal/evidence/releases/h16-event-preservation-2026-09-16/production-preparation/test_initializer_supervisor.py",
+      "predecessor_sha256": "61eb25f2b9359bed51f052318a7e395e8b49829032c6171fc9bc7922b5a8a98d"
+    },
+    {
+      "exact_literal_delta_verified": true,
+      "literal_replacements": [
+        {
+          "after": "supervise-initialization-002.py",
+          "before": "supervise-initialization.py",
+          "count": 1
+        }
+      ],
+      "new": "/Users/skeswa/repos/skeswa/swingset/journal/evidence/releases/h16-event-preservation-2026-09-16/production-preparation/test_supervisor_launch_review_002.py",
+      "new_sha256": "f1bee5ab8c1d67b5f6e33852dd7a2016841069aeceba21dadc9248247326f111",
+      "predecessor": "/Users/skeswa/repos/skeswa/swingset/journal/evidence/releases/h16-event-preservation-2026-09-16/production-preparation/test_supervisor_launch_review.py",
+      "predecessor_sha256": "304d9c2bfc957b6af4da7454261ffee86551e1b45a2e2c2e7029472752dc5b0e"
+    },
+    {
+      "exact_literal_delta_verified": true,
+      "literal_replacements": [
+        {
+          "after": "guard-initialization-003.py",
+          "before": "guard-initialization-002.py",
+          "count": 1
+        },
+        {
+          "after": "supervise-initialization-002.py",
+          "before": "supervise-initialization.py",
+          "count": 1
+        }
+      ],
+      "new": "/Users/skeswa/repos/skeswa/swingset/journal/evidence/releases/h16-event-preservation-2026-09-16/production-preparation/monitoring/test_memory_guard_003.py",
+      "new_sha256": "873482d54cffa4b4eba031b6d624cbb0c88be68d033ceabc57444d888e42aeeb",
+      "predecessor": "/Users/skeswa/repos/skeswa/swingset/journal/evidence/releases/h16-event-preservation-2026-09-16/production-preparation/monitoring/test_memory_guard_002.py",
+      "predecessor_sha256": "8e5f3878c6cf6d01f310883a75a2612560095d950ca53c24987a3fd88920b602"
+    },
+    {
+      "exact_literal_delta_verified": true,
+      "literal_replacements": [
+        {
+          "after": "verify-initialization-002.py",
+          "before": "verify-initialization.py",
+          "count": 1
+        },
+        {
+          "after": "supervise-initialization-002.py",
+          "before": "supervise-initialization.py",
+          "count": 1
+        }
+      ],
+      "new": "/Users/skeswa/repos/skeswa/swingset/journal/evidence/releases/h16-event-preservation-2026-09-16/production-preparation/final-verification/test_verify_initialization_002.py",
+      "new_sha256": "75549d7888c87d17c68ff8ce66eea3dd187a3f036772a193474f536305a4e271",
+      "predecessor": "/Users/skeswa/repos/skeswa/swingset/journal/evidence/releases/h16-event-preservation-2026-09-16/production-preparation/final-verification/test_verify_initialization.py",
+      "predecessor_sha256": "010a43f29e5cd16e916b25ede85e07548dbe3591cd9c5c60a5865ed47b76e646"
+    }
+  ],
+  "at": "2026-09-16T20:14:05.532195+00:00",
+  "format": "h16-initializer002-downstream-rebinding-v1",
+  "initializer": {
+    "path": "/Users/skeswa/repos/skeswa/swingset/journal/evidence/releases/h16-event-preservation-2026-09-16/production-preparation/legacy-runtime-fix/initialize-002.py",
+    "sha256": "c3259a023436e2cc3ee56e1ad83f3170b455f42187ff71421eeac25387bf96d7"
+  },
+  "prepared_only": true,
+  "private_staging_executed": false,
+  "production_executed": false,
+  "source_bundle_checkpoint_changed": false,
+  "unchanged_production_release_sha256": "f8cd9ec23953600d3c9445a765df97eb894fd5363cea3f1136446c67a4f902cc"
+}

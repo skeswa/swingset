@@ -1,0 +1,44 @@
+{
+  "format": "h16-initialization-memory-guard-preparation-v2",
+  "at": "2026-09-16T19:54:26.034622+00:00",
+  "executed_in_vm": false,
+  "production_state_read": false,
+  "production_acceptance": false,
+  "version001_source_files_unchanged": true,
+  "source_files": {
+    "journal/evidence/releases/h16-event-preservation-2026-09-16/production-preparation/monitoring/guard-initialization-002.py": "530db5fd4e140c0ecf205954feb4e27815165b240f0ed38671e8095fb2a3d9c1",
+    "journal/evidence/releases/h16-event-preservation-2026-09-16/production-preparation/monitoring/test_memory_guard_002.py": "8e5f3878c6cf6d01f310883a75a2612560095d950ca53c24987a3fd88920b602",
+    "journal/evidence/releases/h16-event-preservation-2026-09-16/production-preparation/monitoring/review-addendum-002.md": "86d8bcf8bc24c348d9ab73b0749a0a4d7c0c3169128086dc12ceaf8bbe5d7bb8",
+    "journal/evidence/releases/h16-event-preservation-2026-09-16/production-preparation/supervise-initialization.py": "9d48562395750244fb64c8420390c3402c8af2aea2019e46bb66577c1b3c4312",
+    "journal/evidence/releases/h16-event-preservation-2026-09-16/production-preparation/replay-terminal-resource-verification.json": "e12a4b68c97504800c0b3f453d5f18a5487e5175372c43b3b6e27e7bea2870cc"
+  },
+  "checks": [
+    {
+      "path": "offline-tests-002.log",
+      "command": [
+        ".venv/bin/pytest",
+        "-q",
+        "-o",
+        "pythonpath=src . tests",
+        "journal/evidence/releases/h16-event-preservation-2026-09-16/production-preparation/monitoring/test_memory_guard_002.py",
+        "journal/evidence/releases/h16-event-preservation-2026-09-16/production-preparation/test_initializer_supervisor.py"
+      ],
+      "exit_code": 0,
+      "sha256": "ec0fa40dc6a97271e7a8709d0d8944d1131b461c559a26da108167ed52644293"
+    },
+    {
+      "path": "offline-pyflakes-002.log",
+      "command": [
+        ".venv/bin/ruff",
+        "check",
+        "--select",
+        "F",
+        "journal/evidence/releases/h16-event-preservation-2026-09-16/production-preparation/monitoring/guard-initialization-002.py",
+        "journal/evidence/releases/h16-event-preservation-2026-09-16/production-preparation/monitoring/test_memory_guard_002.py"
+      ],
+      "exit_code": 0,
+      "sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+    }
+  ],
+  "passed": true
+}

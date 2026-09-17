@@ -144,7 +144,7 @@ def test_all_pause_blocks_build_and_derivation_but_preserves_bookkeeping(
         )
         assert not result["failed"]
         assert built == [] and result["stages"] == []
-        assert result["held_operations"][0]["action"] == "build"
+        assert "build" in {item["action"] for item in result["held_operations"]}
         assert result["controls"]["state"] == "paused"
         assert result["accepted_inputs"]
         assert db.connection.execute("SELECT count(*) FROM watches").fetchone()[0] > 0

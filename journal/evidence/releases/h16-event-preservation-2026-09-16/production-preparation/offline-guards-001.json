@@ -1,0 +1,22 @@
+{
+  "format": "h16-production-preparation-offline-tests-v1",
+  "command": [
+    "/Users/skeswa/repos/skeswa/swingset/.venv/bin/pytest",
+    "-q",
+    "-p",
+    "no:cacheprovider",
+    "/Users/skeswa/repos/skeswa/swingset/journal/evidence/releases/h16-event-preservation-2026-09-16/production-preparation/test_production_release.py",
+    "/Users/skeswa/repos/skeswa/swingset/journal/evidence/releases/h16-event-preservation-2026-09-16/production-preparation/test_live_initialize.py",
+    "/Users/skeswa/repos/skeswa/swingset/journal/evidence/releases/h16-event-preservation-2026-09-16/production-preparation/test_initializer_supervisor.py",
+    "/Users/skeswa/repos/skeswa/swingset/journal/evidence/releases/h16-event-preservation-2026-09-16/production-preparation/test_supervisor_launch_review.py",
+    "/Users/skeswa/repos/skeswa/swingset/journal/evidence/releases/h16-event-preservation-2026-09-16/production-preparation/test_activate_system.py"
+  ],
+  "cwd": "/Users/skeswa/.cache/swingset-h16-event-preservation-tests-20260916",
+  "PYTHONPATH": "/Users/skeswa/.cache/swingset-h16-event-preservation-tests-20260916/src:/Users/skeswa/.cache/swingset-h16-event-preservation-tests-20260916",
+  "PYTHONDONTWRITEBYTECODE": "1",
+  "exit_code": 0,
+  "seconds": 3.714925584,
+  "log_sha256": "331f1aa8751be6ac5471d99206362d8675b3c4a1953d8cf9daae0e7c9ecd6dcf",
+  "production_executed": false,
+  "vm_jobs_started": false
+}

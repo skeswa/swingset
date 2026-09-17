@@ -1,0 +1,14 @@
+{
+  "at": "2026-09-16T16:48:12.123924+00:00",
+  "command": [
+    ".venv/bin/pytest",
+    "-q",
+    "tests/test_event_completion_restore.py::test_activated_restore_resumes_paid_turn_and_converges_with_uninterrupted_state"
+  ],
+  "exit_code": 0,
+  "test_sha256": "798aed8d51efe834c2bc34d82f095f046c305efd5ada895551685542f0ae3a95",
+  "test_unchanged": true,
+  "log_sha256": "f2a45cbc5aaa6742241de5697798fbb8dc26378d32fcfbe415d4b07f6683b38d",
+  "scope": "offline restored/uninterrupted inventory and projected-results convergence; no cycle/link/build/publication acceptance",
+  "production_mutated": false
+}

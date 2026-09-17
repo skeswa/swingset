@@ -60,6 +60,10 @@ def parser() -> argparse.ArgumentParser:
             command.add_argument("--watch", action="store_true")
             command.add_argument("--interval", type=float, default=5.0)
             command.add_argument("--source")
+            command.add_argument(
+                "--source-event",
+                help="Verify one source event's local page evidence; requires --source",
+            )
             command.add_argument("--kind")
             command.add_argument("--requirement")
             command.add_argument("--since", type=datetime.fromisoformat)
@@ -132,6 +136,8 @@ def hub() -> Hub:
 
 
 def doctor(args: argparse.Namespace) -> dict[str, Any]:
+    if getattr(args, "source_event", None) and not getattr(args, "source", None):
+        raise ValueError("--source-event requires --source")
     config = load_config(args.config)
     result: dict[str, Any] = {
         "version": __version__,
@@ -153,6 +159,18 @@ def doctor(args: argparse.Namespace) -> dict[str, Any]:
             from swingset.state.controls import status as control_status
 
             result["scheduler"] = scheduling_report(conn, config, now=now)
+            from swingset.fetch.archive import Archive
+            from swingset.schedule.event_report import report as event_report
+
+            result["event_inventory"] = event_report(
+                conn,
+                Archive(args.state),
+                now=now,
+                source=getattr(args, "source", None),
+                source_ref=getattr(args, "source_event", None),
+                operator_hold=(args.state / "operator-hold").is_file(),
+                config=config,
+            )
             from swingset.state.publication_report import publication_report
 
             result["publication"] = publication_report(conn, args.state, now)
@@ -256,6 +274,7 @@ def daily_summary(result: dict[str, Any]) -> None:
         operator_pauses=result.get("operator_pauses", []),
         controls=result.get("controls"),
         scheduler=result.get("scheduler"),
+        event_inventory=result.get("event_inventory"),
         watches=result.get("watches", []),
         links=result.get("link_statuses", []),
         review_queue_size=result.get("review_queue_size", 0),

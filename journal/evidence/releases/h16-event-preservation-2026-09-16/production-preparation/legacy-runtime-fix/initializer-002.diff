@@ -1,0 +1,12 @@
+--- initialize.py
++++ initialize-002.py
+@@ -254,7 +254,8 @@
+             prior_bundle=conn.execute("SELECT value FROM meta WHERE key='input_bundle_hash'").fetchone()[0]
+             basis=protected(conn)
+             control_basis=controls(conn)
+-            prior_recipe=conn.execute("SELECT digest FROM accepted_inputs WHERE consumer='pipeline' AND input_name='recipe/runtime'").fetchone()[0]
++            prior_recipe_row=conn.execute("SELECT digest FROM accepted_inputs WHERE consumer='pipeline' AND input_name='recipe/runtime'").fetchone()
++            prior_recipe=None if prior_recipe_row is None else prior_recipe_row[0]
+             cache=query_digest(conn,'SELECT watch_id,extract_version FROM watches ORDER BY watch_id')
+         bundle=capture_bundle(gate,source)
+         old_manifest=json.loads((STATE/'inputs'/prior_bundle/'manifest.json').read_bytes())

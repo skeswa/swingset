@@ -1,0 +1,242 @@
+........................................................................ [  3%]
+........................................................................ [  7%]
+........................................................................ [ 11%]
+........................................................................ [ 14%]
+........................................................................ [ 18%]
+........................................................................ [ 22%]
+........................................................................ [ 26%]
+........................................................F............... [ 29%]
+........................................................................ [ 33%]
+........................................................................ [ 37%]
+........................................................................ [ 40%]
+F....................................................................... [ 44%]
+........................................................................ [ 48%]
+........................................................................ [ 52%]
+........................................................................ [ 55%]
+........................................................................ [ 59%]
+.............F.......................................................... [ 63%]
+........................................................................ [ 67%]
+........................................................................ [ 70%]
+........................................................................ [ 74%]
+........................................................................ [ 78%]
+........................................................................ [ 81%]
+........................................................................ [ 85%]
+........................................................................ [ 89%]
+........................................................................ [ 93%]
+........................................................................ [ 96%]
+.............................................................            [100%]
+=================================== FAILURES ===================================
+__________ test_paused_cycle_observes_blockers_and_doctor_only_reads ___________
+
+event = namespace(db=<swingset.state.db.Database object at 0x112998c80>, conn=<sqlite3.Connection object at 0x1122d2980>, corp...source_ref='eepro:test', archive_url=None, notes=None), archive=<swingset.fetch.archive.Archive object at 0x112998d10>)
+overrides = PosixPath('/private/var/folders/kc/94jncx6s6pqc8g2g4f2kyvtr0000gn/T/pytest-of-skeswa/pytest-1052/test_paused_cycle_observes_blo0/overrides')
+tmp_path = PosixPath('/private/var/folders/kc/94jncx6s6pqc8g2g4f2kyvtr0000gn/T/pytest-of-skeswa/pytest-1052/test_paused_cycle_observes_blo0')
+
+    def test_paused_cycle_observes_blockers_and_doctor_only_reads(event, overrides, tmp_path):
+        f = event
+        admit_parent(f, ["one.htm"])
+        config = tmp_path / "config"
+        shutil.copytree("config", config)
+        (config / "sources.toml").write_text("[sources.wsdc_calendar]\nenabled=false\n")
+        change_control(
+            f.db.state_dir,
+            selector=Selector("all", "all"),
+            paused=True,
+            actor="test",
+            reason="maintenance",
+            now=f.corpus.clock.now(),
+        )
+        snapshots = f.conn.execute("SELECT count(*) FROM snapshots").fetchone()[0]
+        result = run_cycle(
+            f.db,
+            config_dir=config,
+            overrides_dir=overrides,
+            clock=f.corpus.clock,
+            budget=1,
+            transport=httpx.MockTransport(lambda _: pytest.fail("paused observation fetched")),
+        )
+        assert not result["failed"]
+        observed = result["event_blocker_observations"]
+        assert observed["scanned_events"] >= 1
+        assert observed["reason_counts"]["operator_pause"] >= 1
+        assert any(row["action"] == "event_pressure_refresh" for row in result["held_operations"])
+        assert f.conn.execute("SELECT count(*) FROM snapshots").fetchone()[0] == snapshots
+        assert not f.conn.execute("SELECT 1 FROM host_budget WHERE requests>0").fetchone()
+        changes = f.conn.total_changes
+        f.conn.execute("PRAGMA query_only=ON")
+        try:
+>           value = report(
+                f.conn, f.archive, source="eepro", source_ref="eepro:test", now=f.corpus.clock.now()
+            )
+
+tests/test_event_blocker_cycle.py:49: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/swingset/schedule/event_report.py:82: in report
+    result["detail"] = inventory(conn, archive, source=source, source_ref=source_ref, now=now)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/swingset/schedule/event_inventory.py:221: in inventory
+    session = Session(conn, archive, cutoff=now, now=now, limits=limits)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/swingset/admission/page_evidence.py:350: in __init__
+    self._check_snapshot()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <swingset.admission.page_evidence.Session object at 0x112882d20>
+
+    def _check_snapshot(self) -> None:
+        if (
+            not self.conn.in_transaction
+            or self.conn.execute("PRAGMA query_only").fetchone()[0] != 1
+        ):
+>           raise ValueError("caller must own a query-only read transaction")
+E           ValueError: caller must own a query-only read transaction
+
+src/swingset/admission/page_evidence.py:364: ValueError
+----------------------------- Captured stderr call -----------------------------
+event="cycle" run_id="run_20260101T000001Z" dry_run=true checked=0 changed=0 not_modified=0 nonce_unchanged=0 stopped=false failed=false stages=[] bytes_by_host={} recovered_admissions=0 interrupted_attempts=0 held_operations=[{"action": "event_pressure_refresh", "reason": "operator_pause", "pauses": [{"scope_kind": "all", "scope_id": "all", "until_at": null, "reason": "maintenance", "pause_id": "pause_780d527e142040cb80f8f0607194e29e", "actor": "test", "control_revision": 1, "created_at": "2026-01-01T00:00:01+00:00", "resume_selector": "--all", "paused_duration_seconds": 0.0}]}, {"action": "event_progress_refresh", "reason": "operator_pause", "pauses": [{"scope_kind": "all", "scope_id": "all", "until_at": null, "reason": "maintenance", "pause_id": "pause_780d527e142040cb80f8f0607194e29e", "actor": "test", "control_revision": 1, "created_at": "2026-01-01T00:00:01+00:00", "resume_selector": "--all", "paused_duration_seconds": 0.0}]}, {"action": "build", "reason": "operator_pause", "pauses": [{"scope_kind": "all", "scope_id": "all", "until_at": null, "reason": "maintenance", "pause_id": "pause_780d527e142040cb80f8f0607194e29e", "actor": "test", "control_revision": 1, "created_at": "2026-01-01T00:00:01+00:00", "resume_selector": "--all", "paused_duration_seconds": 0.0}]}] accepted_inputs=["config/hosts.toml", "config/sources.toml", "link/weights.toml", "overrides/event_aliases.csv", "overrides/identity_overrides.csv", "overrides/nicknames.csv", "overrides/series_aliases.csv", "overrides/source_urls.csv", "overrides/suppressions.csv", "policy/history_start", "policy/inventory_year", "recipe/runtime", "version/extract/eepro.autoindex", "version/extract/eepro.index", "version/extract/eepro.round", "version/extract/scoringdance.event", "version/extract/scoringdance.recent", "version/extract/scoringdance.round", "version/extract/scoringdance.sitemap", "version/extract/steprightsolutions.event", "version/extract/steprightsolutions.index", "version/extract/steprightsolutions.round", "version/extract/swingdancecouncil.events", "version/extract/wdr.awards", "version/extract/wdr.rounds", "version/extract/wsdc_calendar.events", "version/extract/wsdc_newsletter.events", "version/extract/wsdc_newsletter.index", "version/extract/wsdc_registry.dancer", "version/linker", "version/package", "version/parser/eepro.autoindex", "version/parser/eepro.index", "version/parser/eepro.round", "version/parser/scoringdance.event", "version/parser/scoringdance.recent", "version/parser/scoringdance.round", "version/parser/scoringdance.sitemap", "version/parser/steprightsolutions.event", "version/parser/steprightsolutions.index", "version/parser/steprightsolutions.round", "version/parser/swingdancecouncil.events", "version/parser/wdr.awards", "version/parser/wdr.rounds", "version/parser/wsdc_calendar.events", "version/parser/wsdc_newsletter.events", "version/parser/wsdc_newsletter.index", "version/parser/wsdc_registry.dancer", "version/projector", "version/repository", "version/schema"] event_enumerations={"admissions_scanned": 1, "legacy_watches_scanned": 3, "enumerations_created": 1, "errors": [], "admission_cursor": 1, "legacy_cursor": 3, "may_have_more": false} parse_hint_recovery={"supported": true, "scanned": 0, "enqueued": 0, "unassessed": 0, "reasons": {}, "pass_complete": true} event_pressure_bootstrap={"supported": true, "processed": 3, "metadata_pending": false} event_blocker_observations={"supported": true, "run_id": "run_20260101T000001Z", "observed_at": "2026-01-01T00:00:01+00:00", "scanned_events": 1, "changed_events": 1, "catalog_events": 1, "unobserved_events": 0, "unassessed_events": 0, "incomplete_observation_coverage": false, "incomplete_gate_assessment": true, "reason_counts": {"operator_pause": 1, "source_disabled": 1}, "catalog_pass": 1, "pass_finished": true, "basis": "this bounded sample only; gaps between samples remain unknown", "refresh_id": 1} requirements_scanned=3 registry_verification={"oldest_usable_verification_age_seconds": null, "unknown_watches": 0, "stale_watches": 0, "alert": false} scheduler={"allocation": {"reconciliation_seconds": 0.041666666666666664, "acquisition_seconds": 0.4166666666666667, "offline_seconds": 0.5416666666666666}, "phase_seconds": {"reconciliation": 0.0, "acquisition": 0.0, "offline": 0.0}, "backpressure_before": {"active": false, "reasons": [], "pending": {"parse": 1, "project": 2}, "pending_parse_bytes": 101, "repair_requests_per_cycle": 2}, "backpressure_after": {"active": false, "reasons": [], "pending": {"parse": 1, "project": 2}, "pending_parse_bytes": 101, "repair_requests_per_cycle": 2}} unit_failures=[] held_units=[{"stage": "parse", "unit_kind": "snapshot", "unit_id": "parent-0", "pauses": [{"scope_kind": "all", "scope_id": "all", "until_at": null, "reason": "maintenance", "pause_id": "pause_780d527e142040cb80f8f0607194e29e", "actor": "test", "control_revision": 1, "created_at": "2026-01-01T00:00:01+00:00", "resume_selector": "--all", "paused_duration_seconds": 0.0}]}, {"stage": "project", "unit_kind": "inventory", "unit_id": "all", "pauses": [{"scope_kind": "all", "scope_id": "all", "until_at": null, "reason": "maintenance", "pause_id": "pause_780d527e142040cb80f8f0607194e29e", "actor": "test", "control_revision": 1, "created_at": "2026-01-01T00:00:01+00:00", "resume_selector": "--all", "paused_duration_seconds": 0.0}]}, {"stage": "project", "unit_kind": "map", "unit_id": "all", "pauses": [{"scope_kind": "all", "scope_id": "all", "until_at": null, "reason": "maintenance", "pause_id": "pause_780d527e142040cb80f8f0607194e29e", "actor": "test", "control_revision": 1, "created_at": "2026-01-01T00:00:01+00:00", "resume_selector": "--all", "paused_duration_seconds": 0.0}]}, {"stage": "project", "unit_kind": "source_event", "unit_id": "eepro:test", "pauses": [{"scope_kind": "all", "scope_id": "all", "until_at": null, "reason": "maintenance", "pause_id": "pause_780d527e142040cb80f8f0607194e29e", "actor": "test", "control_revision": 1, "created_at": "2026-01-01T00:00:01+00:00", "resume_selector": "--all", "paused_duration_seconds": 0.0}]}, {"stage": "project", "unit_kind": "history", "unit_id": "all", "pauses": [{"scope_kind": "all", "scope_id": "all", "until_at": null, "reason": "maintenance", "pause_id": "pause_780d527e142040cb80f8f0607194e29e", "actor": "test", "control_revision": 1, "created_at": "2026-01-01T00:00:01+00:00", "resume_selector": "--all", "paused_duration_seconds": 0.0}]}] parse_errors={} restored_artifacts=[] paused_hosts=[] controls={"supported": true, "state": "paused", "control_revision": 1, "pauses": [{"scope_kind": "all", "scope_id": "all", "until_at": null, "reason": "maintenance", "pause_id": "pause_780d527e142040cb80f8f0607194e29e", "actor": "test", "control_revision": 1, "created_at": "2026-01-01T00:00:01+00:00", "resume_selector": "--all", "paused_duration_seconds": 0.0}], "draining_attempts": [], "active_attempts": 0, "stuck_drain": false, "expired_pauses": [], "snapshot_at": "2026-01-01T00:00:01+00:00"} duration_seconds=0.0 finished_at="2026-01-01T00:00:01+00:00"
+_ test_only_explicit_event_drilldown_reads_service_and_preserves_stage_unknowns _
+
+event = namespace(db=<swingset.state.db.Database object at 0x112a2eed0>, conn=<sqlite3.Connection object at 0x1128eab60>, corp...source_ref='eepro:test', archive_url=None, notes=None), archive=<swingset.fetch.archive.Archive object at 0x1136c10d0>)
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x1136c3170>
+
+    def test_only_explicit_event_drilldown_reads_service_and_preserves_stage_unknowns(
+        event, monkeypatch
+    ):
+        f = event
+        admit_parent(f, ["one.htm"])
+        finish_bootstrap(f)
+        clock, run = f.corpus.clock, f.corpus.run
+        config = Config({"eepro.com": HostConfig()}, {"eepro": SourceConfig(True)})
+        children = {
+            row[0] for row in f.conn.execute("SELECT watch_id FROM watches WHERE parser='eepro.round'")
+        }
+        excluded = {row[0] for row in f.conn.execute("SELECT watch_id FROM watches")} - children
+        with f.db.transaction() as conn:
+            prepare_event_turns(conn, config, now=clock.now(), exclude=excluded, run_id=run)
+        choice = next_watch(f.conn, config, now=clock.now(), exclude=excluded, run_id=run)
+        gate = Gate(f.conn, config, clock)
+        with servicing(choice, run_id=run):
+            grant, action = issue(
+                f.db,
+                gate,
+                clock,
+                host=choice.host,
+                source="eepro",
+                watch=SimpleNamespace(watch_id=choice.key, kind="round"),
+                page_kind="eepro.round",
+                crawl_delay=0,
+                sweep=False,
+            )
+        assert isinstance(grant, Grant)
+        # A debit whose outcome is still active is attempted service, not acquisition.
+>       detail = event_report.report(
+            f.conn, f.archive, source="eepro", source_ref="eepro:test", now=clock.now()
+        )["detail"]
+
+tests/test_event_service.py:228: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/swingset/schedule/event_report.py:82: in report
+    result["detail"] = inventory(conn, archive, source=source, source_ref=source_ref, now=now)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/swingset/schedule/event_inventory.py:221: in inventory
+    session = Session(conn, archive, cutoff=now, now=now, limits=limits)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/swingset/admission/page_evidence.py:350: in __init__
+    self._check_snapshot()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <swingset.admission.page_evidence.Session object at 0x112bb70e0>
+
+    def _check_snapshot(self) -> None:
+        if (
+            not self.conn.in_transaction
+            or self.conn.execute("PRAGMA query_only").fetchone()[0] != 1
+        ):
+>           raise ValueError("caller must own a query-only read transaction")
+E           ValueError: caller must own a query-only read transaction
+
+src/swingset/admission/page_evidence.py:364: ValueError
+__ test_cycle_reconciles_retained_event_site_suggestion_without_source_calls ___
+
+fixture = namespace(db=<swingset.state.db.Database object at 0x112a07500>, conn=<sqlite3.Connection object at 0x1127ebe20>, cloc...ressure_low=80, event_pressure_max_age_seconds=86400, event_pressure_refresh_events=8, event_pressure_probe_pages=32)))
+tmp_path = PosixPath('/private/var/folders/kc/94jncx6s6pqc8g2g4f2kyvtr0000gn/T/pytest-of-skeswa/pytest-1052/test_cycle_reconciles_retained0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x112a06e40>
+
+    def test_cycle_reconciles_retained_event_site_suggestion_without_source_calls(
+        fixture, tmp_path, monkeypatch
+    ):
+        import httpx
+        from test_history_cycle import prepare_cycle
+    
+        from swingset.history import backfill
+        from swingset.schedule import cycle
+    
+        fixture.conn.execute("UPDATE events SET website=?", (SITE.website,))
+        config_dir, overrides_dir, _ = prepare_cycle(fixture, tmp_path, monkeypatch)
+        retained(fixture)
+        monkeypatch.setattr(backfill, "offer", lambda *args, **kwargs: None)
+>       result = cycle.run_cycle(
+            fixture.db,
+            config_dir=config_dir,
+            overrides_dir=overrides_dir,
+            clock=fixture.clock,
+            budget=30,
+            transport=httpx.MockTransport(lambda _: pytest.fail("review attempted source acquisition")),
+        )
+
+tests/test_history_event_sites.py:366: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/swingset/schedule/cycle.py:547: in run_cycle
+    acquisition(min(deadline, clock.now() + timedelta(seconds=split.acquisition_seconds)))
+src/swingset/schedule/cycle.py:444: in acquisition
+    historical = dispatch_one(
+src/swingset/history/backfill.py:348: in dispatch_one
+    result = fetcher.fetch(
+src/swingset/fetch/client.py:389: in fetch
+    return self._fetch(watch_id, page_kind, run_id, deadline=deadline, sweep=sweep)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/swingset/fetch/client.py:441: in _fetch
+    response, outcome, skipped = self._request(
+src/swingset/fetch/client.py:162: in _request
+    rules = self.robots.policy(url, get_robots)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/swingset/fetch/robots.py:40: in policy
+    response = fetch(f"{parsed.scheme}://{parsed.netloc}/robots.txt")
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/swingset/fetch/client.py:144: in get_robots
+    response, _, deferred = self._request(
+src/swingset/fetch/client.py:213: in _request
+    response = self.http.request(
+.venv/lib/python3.12/site-packages/httpx/_client.py:825: in request
+    return self.send(request, auth=auth, follow_redirects=follow_redirects)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.12/site-packages/httpx/_client.py:914: in send
+    response = self._send_handling_auth(
+.venv/lib/python3.12/site-packages/httpx/_client.py:942: in _send_handling_auth
+    response = self._send_handling_redirects(
+.venv/lib/python3.12/site-packages/httpx/_client.py:979: in _send_handling_redirects
+    response = self._send_single_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.12/site-packages/httpx/_client.py:1014: in _send_single_request
+    response = transport.handle_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.12/site-packages/httpx/_transports/mock.py:24: in handle_request
+    response = self.handler(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+_ = <Request('GET', 'https://web.archive.org/robots.txt')>
+
+>       transport=httpx.MockTransport(lambda _: pytest.fail("review attempted source acquisition")),
+                                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+E   Failed: review attempted source acquisition
+
+tests/test_history_event_sites.py:372: Failed
+----------------------------- Captured stderr call -----------------------------
+event="cycle" run_id="run_20260101T000000Z-3" dry_run=true checked=0 changed=0 not_modified=0 nonce_unchanged=0 stopped=false failed=false stages=[] bytes_by_host={} recovered_admissions=0 interrupted_attempts=0 held_operations=[] accepted_inputs=[] event_enumerations={"admissions_scanned": 0, "legacy_watches_scanned": 3, "enumerations_created": 0, "errors": [], "admission_cursor": 0, "legacy_cursor": 4, "may_have_more": false} parse_hint_recovery={"supported": true, "scanned": 0, "enqueued": 0, "unassessed": 0, "reasons": {}, "pass_complete": true} event_pressure_bootstrap={"supported": true, "processed": 2, "metadata_pending": false} event_blocker_observations={"supported": true, "run_id": "run_20260101T000000Z-3", "observed_at": "2026-01-01T00:00:00+00:00", "scanned_events": 3, "changed_events": 3, "catalog_events": 3, "unobserved_events": 0, "unassessed_events": 3, "incomplete_observation_coverage": true, "incomplete_gate_assessment": true, "reason_counts": {"watch_unscheduled": 2}, "catalog_pass": 1, "pass_finished": true, "basis": "this bounded sample only; gaps between samples remain unknown", "refresh_id": 1} requirements_scanned=2 event_sites_reviewed=1 registry_verification={"oldest_usable_verification_age_seconds": null, "unknown_watches": 0, "stale_watches": 0, "alert": false} scheduler={"allocation": {"reconciliation_seconds": 1.25, "acquisition_seconds": 12.5, "offline_seconds": 16.25}, "phase_seconds": {"reconciliation": 0.0, "acquisition": 0.0, "offline": 0.0}, "backpressure_before": {"active": false, "reasons": [], "pending": {}, "pending_parse_bytes": 0, "repair_requests_per_cycle": 2}} event_pressure_refresh={"supported": true, "refreshed": 1, "discarded": 0, "partial": 0, "budget_exhausted": false} event_progress_refresh={"supported": true, "scanned_events": 3, "checked_pages": 0, "qualified_progress": 0, "discarded_events": 0, "unknown_pages": 0, "unassessed_events": 3, "reason_counts": {"enumeration_or_invalidation_tracking_unavailable": 3}, "incomplete_observation_coverage": true, "parent_support": "unassessed_by_progress_observer", "budget_exhausted": false} unit_failures=[] controls={"supported": true, "state": "running", "control_revision": 0, "pauses": [], "draining_attempts": [], "active_attempts": 1, "stuck_drain": false, "expired_pauses": [], "snapshot_at": "2026-01-01T00:00:00+00:00"} duration_seconds=0.0 finished_at="2026-01-01T00:00:00+00:00"
+=========================== short test summary info ============================
+FAILED tests/test_event_blocker_cycle.py::test_paused_cycle_observes_blockers_and_doctor_only_reads
+FAILED tests/test_event_service.py::test_only_explicit_event_drilldown_reads_service_and_preserves_stage_unknowns
+FAILED tests/test_history_event_sites.py::test_cycle_reconciles_retained_event_site_suggestion_without_source_calls
+3 failed, 1930 passed in 464.36s (0:07:44)

@@ -1,0 +1,8 @@
+{
+  "command": "PYTHONPATH=src .venv/bin/python journal/evidence/runtime/normalized-request-lookup-20260916/sqlite-index-probe.py > /tmp/swingset-sqlite-index-repeat.json",
+  "format": "normalized-lookup-sqlite-repeat-v1",
+  "limits": "Disposable database only; compatibility experiment, not implementation.",
+  "matches_original_bytes": true,
+  "result_sha256": "34a3e74a1360b6b44f4946e92208bf68c75025c8f4a5bc1c7b0231efb585ce6f",
+  "script_sha256": "ef58572349a75610a12c24ba0267e6343c51db40766487a0eacd0c46b1425dc2"
+}

@@ -4,6 +4,14 @@
 > original work. See [current status](../../../docs/status.md) before acting.
 > [Project journal](../../README.md)
 
+2026-09-16 authorization update: the owner withdrew the network-related hold
+on production deployment and publication. Proceed after the corrected frozen
+H16 replay, scratch build, and independent audit pass. The runtime hold remains
+an interlock during the controlled operation. See
+[D-0029](../../decisions/0029-resume-h16-production-release-after-validation.md)
+and [current validation](h16-proof-reuse-2026-09-16.md) for the repaired source;
+the older source pins and pause below remain historical evidence.
+
 Owner paused production steps after the current scratch build on 2026-09-15
 UTC, intending to resume later with a stronger network connection. The new
 frozen scratch replay completed and passed independent verification. Its full

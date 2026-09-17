@@ -1,0 +1,30 @@
+{"supervisor_passed": true, "invocations": 1, "status": "current", "error": null}
+.{"supervisor_passed": false, "invocations": 1, "status": null, "error": {"type": "ValueError", "message": "Current receipt has unfinished or unknown scopes"}}
+.{"supervisor_passed": false, "invocations": 20, "status": null, "error": {"type": "RuntimeError", "message": "Finite 20-invocation limit reached; no further worker authorized"}}
+..{"supervisor_passed": false, "invocations": 0, "status": null, "error": {"type": "ValueError", "message": "blocked"}}
+.{"supervisor_passed": false, "invocations": 1, "status": null, "error": {"type": "ValueError", "message": "Bounded invocation made no durable progress"}}
+.{"supervisor_passed": false, "invocations": 0, "status": null, "error": {"type": "ValueError", "message": "Checkpoint has running attempts requiring review"}}
+.{"unit": "scratch.service", "service": {"SubState": "exited", "ActiveState": "active", "MainPID": "0", "Result": "success", "ExecMainStatus": "0"}, "anon": null, "status": "current", "completed": null}
+.{"unit": "scratch.service", "service": {"SubState": "exited", "ActiveState": "active", "MainPID": "0", "Result": "success", "ExecMainStatus": "0"}, "anon": null, "status": "current", "completed": null}
+.{"unit": "scratch.service", "service": {"SubState": "exited", "ActiveState": "active", "MainPID": "0", "Result": "exit-code", "ExecMainStatus": "1"}, "anon": null, "status": "current", "completed": null}
+.{"unit": "scratch.service", "service": {"SubState": "exited", "ActiveState": "active", "MainPID": "0", "Result": "success", "ExecMainStatus": "0"}, "anon": null, "status": "current", "completed": null}
+{"unit": "scratch.service", "service": {"SubState": "exited", "ActiveState": "active", "MainPID": "0", "Result": "success", "ExecMainStatus": "0"}, "anon": null, "status": "current", "completed": null}
+{"unit": "scratch.service", "service": {"SubState": "exited", "ActiveState": "active", "MainPID": "0", "Result": "success", "ExecMainStatus": "0"}, "anon": null, "status": "current", "completed": null}
+{"unit": "scratch.service", "service": {"SubState": "exited", "ActiveState": "active", "MainPID": "0", "Result": "success", "ExecMainStatus": "0"}, "anon": null, "status": "current", "completed": null}
+{"unit": "scratch.service", "service": {"SubState": "exited", "ActiveState": "active", "MainPID": "0", "Result": "success", "ExecMainStatus": "0"}, "anon": null, "status": "current", "completed": null}
+.{"unit": "scratch.service", "service": {"SubState": "exited", "ActiveState": "active", "MainPID": "0", "Result": "success", "ExecMainStatus": "0"}, "anon": null, "status": null, "completed": null}
+.{"unit": "scratch.service", "service": {"SubState": "exited", "ActiveState": "active", "MainPID": "0", "Result": "success", "ExecMainStatus": "0"}, "anon": null, "status": "current", "completed": null}
+{"unit": "scratch.service", "service": {"SubState": "exited", "ActiveState": "active", "MainPID": "0", "Result": "success", "ExecMainStatus": "0"}, "anon": null, "status": "current", "completed": null}
+{"unit": "scratch.service", "service": {"SubState": "exited", "ActiveState": "active", "MainPID": "0", "Result": "success", "ExecMainStatus": "0"}, "anon": null, "status": "current", "completed": null}
+{"unit": "scratch.service", "service": {"SubState": "exited", "ActiveState": "active", "MainPID": "0", "Result": "success", "ExecMainStatus": "0"}, "anon": null, "status": "current", "completed": null}
+{"unit": "scratch.service", "service": {"SubState": "exited", "ActiveState": "active", "MainPID": "0", "Result": "success", "ExecMainStatus": "0"}, "anon": null, "status": "current", "completed": null}
+{"unit": "scratch.service", "service": {"SubState": "exited", "ActiveState": "active", "MainPID": "0", "Result": "success", "ExecMainStatus": "0"}, "anon": null, "status": "current", "completed": null}
+.{"unit": "scratch.service", "service": {"SubState": "exited", "ActiveState": "active", "MainPID": "0", "Result": "success", "ExecMainStatus": "0"}, "anon": null, "status": "interrupted", "completed": null}
+{"unit": "scratch.service", "service": {"SubState": "exited", "ActiveState": "active", "MainPID": "0", "Result": "success", "ExecMainStatus": "0"}, "anon": null, "status": "no_runnable_progress", "completed": null}
+{"unit": "scratch.service", "service": {"SubState": "exited", "ActiveState": "active", "MainPID": "0", "Result": "success", "ExecMainStatus": "0"}, "anon": null, "status": "running", "completed": null}
+{"unit": "scratch.service", "service": {"SubState": "exited", "ActiveState": "active", "MainPID": "0", "Result": "success", "ExecMainStatus": "0"}, "anon": null, "status": "starting", "completed": null}
+.
+----------------------------------------------------------------------
+Ran 14 tests in 0.027s
+
+OK

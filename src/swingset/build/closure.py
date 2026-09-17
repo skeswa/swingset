@@ -36,6 +36,7 @@ class ReleaseClosure:
     dependency_sets: tuple[str, ...]
     baseline: Mapping[str, Any] | None = None
     revocation_digest: str = ""
+    event_coverage: Mapping[str, Any] | None = None
 
     @property
     def semantic_fingerprint(self) -> str:
@@ -65,6 +66,8 @@ class ReleaseClosure:
             "baseline": self.baseline,
             "revocation_digest": self.revocation_digest,
         }
+        if self.event_coverage is not None:
+            value["event_coverage"] = dict(self.event_coverage)
         return {**value, "digest": digest(value)}
 
 
@@ -237,6 +240,8 @@ def select(
     from .closure_support import support
 
     evidence = support(conn, chosen.observations.values(), chosen.sources, cutoff=at)
+    from .event_coverage import capture as capture_events
+
     result = ReleaseClosure(
         at,
         tuple(sorted(chosen.selected.values(), key=_scope)),
@@ -246,6 +251,7 @@ def select(
         tuple(sorted(chosen.dependency_sets())),
         _baseline(baseline),
         _revocations(conn),
+        capture_events(conn, cutoff=at, selected_support=evidence),
     )
     assert len(selected_ids) == len(result.selected)
     return result
@@ -253,11 +259,22 @@ def select(
 
 def validate(conn: sqlite3.Connection, value: ReleaseClosure | Mapping[str, Any]) -> None:
     """Check the pinned graph; newer work and source selections are irrelevant."""
+    from .closure_validation import remember, unchanged
+
     manifest = value.manifest() if isinstance(value, ReleaseClosure) else hydrate(conn, value)
     if manifest.get("format") != "release-closure-v1" or digest(
         {k: v for k, v in manifest.items() if k != "digest"}
     ) != manifest.get("digest"):
         raise ClosureError("closure_manifest_digest_mismatch")
+    from .event_local_coverage import check_artifacts
+
+    local_budget = (
+        check_artifacts(conn, manifest["event_coverage"])
+        if manifest.get("event_coverage") is not None
+        else None
+    )
+    if unchanged(conn, str(manifest["digest"])):
+        return
     if manifest.get("revocation_digest") != _revocations(conn):
         raise ClosureError("selected_source_support_revoked")
     selected = manifest["selected"]
@@ -303,6 +320,15 @@ def validate(conn: sqlite3.Connection, value: ReleaseClosure | Mapping[str, Any]
     )
     if list(expected_support) != supported:
         raise ClosureError("selected_source_admission_witness_mismatch")
+    if manifest.get("event_coverage") is not None:
+        from .event_coverage import validate as validate_events
+
+        if manifest["event_coverage"]["cutoff"] != manifest["cutoff"]:
+            raise ClosureError("event_coverage_cutoff_mismatch")
+        validate_events(
+            conn, manifest["event_coverage"], selected_support=supported, local_budget=local_budget
+        )
+    remember(conn, manifest, graph.sources)
 
 
 def _revocations(conn: sqlite3.Connection) -> str:
@@ -332,6 +358,11 @@ def public_manifest(value: ReleaseClosure | Mapping[str, Any]) -> dict[str, Any]
         "inventory_digest": digest(manifest["inventory"]),
         "baseline": manifest["baseline"],
     }
+    if manifest.get("event_coverage") is not None:
+        public["event_coverage"] = {
+            "digest": manifest["event_coverage"]["digest"],
+            "omitted_subjects": manifest["event_coverage"]["omitted_subjects"],
+        }
     return {**public, "digest": digest(public)}
 
 

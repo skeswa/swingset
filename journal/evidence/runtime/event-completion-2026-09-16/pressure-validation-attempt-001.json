@@ -1,0 +1,22 @@
+{
+  "started_at": "2026-09-16T15:52:55.924933+00:00",
+  "finished_at": "2026-09-16T15:58:37.924160+00:00",
+  "checks": [
+    {
+      "path": "journal/evidence/runtime/event-completion-2026-09-16/combined-tests-004.log",
+      "exit_code": 1,
+      "sha256": "cdc4df2e566760e792a58d13eeba83fab166c9d2f8d100ef4907128d05db8bda"
+    },
+    {
+      "path": "journal/evidence/runtime/event-completion-2026-09-16/combined-ruff-005.log",
+      "exit_code": 0,
+      "sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+    },
+    {
+      "path": "journal/evidence/runtime/event-completion-2026-09-16/combined-mypy-004.log",
+      "exit_code": 0,
+      "sha256": "00ba2ab9dd03863df8645024fb737cd25f56157fde88245fab148390dbbe795a"
+    }
+  ],
+  "scope": "schema19 conservative event expansion implementation; local checks only"
+}

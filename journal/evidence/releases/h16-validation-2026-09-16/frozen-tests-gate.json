@@ -1,0 +1,36 @@
+{
+  "acceptance": "Exact frozen source tests and source/system bindings only; fresh replay, candidate build and audit remain required.",
+  "at": "2026-09-16T14:21:10.171292+00:00",
+  "evidence_sha256": {
+    "frozen-mypy.log": "1d912ad9a40019f54ac8367f16d41aba6b15eb6127b2941995717ddcb8606bbe",
+    "frozen-ruff.log": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18",
+    "frozen-source-and-mirror-verification.json": "89ac578930ca6822a1c4ad828b91d726db1f2f72e2e276742e8138e47c995111",
+    "frozen-tests.log": "dba1507d0b2b4af2ee53a0b0d84435030a478c4876b5ee41ba89ac75f6f7c6cf",
+    "host-mirror-verification.json": "05613f27673eb021c2652f5c2fb3187c81f265936c507b94c10418b1a246bdba"
+  },
+  "format": "h16-proof-frozen-validation-v1",
+  "generated_caches_excluded": true,
+  "mirror": "/Users/skeswa/.cache/swingset-h16-proof-tests-20260916",
+  "mypy": {
+    "exit_code": 0,
+    "passed": true,
+    "source_files": 166
+  },
+  "passed": true,
+  "post_test_receipt_files_verified": 636,
+  "production_mutated": false,
+  "ruff": {
+    "exit_code": 0,
+    "passed": true
+  },
+  "source": "/nix/store/4c4q8rkiz6jqizcy93bid6cz8mfvp20b-source",
+  "source_receipt_sha256": "71dc14101ca19880f3addfa2dc0073dbe50bce0e4e2be27d7bc91811b6d1e338",
+  "system": "/nix/store/nxvnvfrzdn4xj82im2hlj0pa42ck2zqn-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+  "tests": {
+    "command": "PYTHONPATH=<mirror>/src <workspace>/.venv/bin/pytest -q",
+    "exit_code": 0,
+    "passed": 1199,
+    "seconds": 274.62,
+    "working_directory": "/Users/skeswa/.cache/swingset-h16-proof-tests-20260916"
+  }
+}

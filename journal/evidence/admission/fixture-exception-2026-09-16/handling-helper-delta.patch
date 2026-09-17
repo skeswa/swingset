@@ -1,0 +1,11 @@
+--- /Users/skeswa/repos/skeswa/swingset/journal/tools/admission/fixture_transport.py
++++ /private/tmp/swingset-fixture-h13-002-20260916/helper-closure/fixture_helpers/fixture_transport.py
+@@ -15,7 +15,7 @@
+ import httpx
+ from protego import Protego
+ 
+-from journal.tools.admission.fixture_exception import (
++from fixture_helpers.fixture_exception import (
+     HOST,
+     MANIFEST_SHA,
+     FixtureStopped,

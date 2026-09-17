@@ -1,0 +1,12 @@
+{
+  "all_file_bytes_match": true,
+  "at": "2026-09-16T14:13:28.612567+00:00",
+  "exact_inventory": true,
+  "files": 636,
+  "format": "h16-proof-host-mirror-verification-v1",
+  "generated_caches_excluded": false,
+  "mirror": "/Users/skeswa/.cache/swingset-h16-proof-tests-20260916",
+  "passed": true,
+  "tests_executed": false,
+  "vm_verification_sha256": "89ac578930ca6822a1c4ad828b91d726db1f2f72e2e276742e8138e47c995111"
+}

@@ -30,6 +30,7 @@ from swingset.schedule.fairness import (
     next_delay,
     next_offline,
     next_watch,
+    prepare_event_turns,
     record_offline_service,
     servicing,
 )
@@ -177,6 +178,38 @@ def run_cycle(
     try:
         bundle = capture(config_dir, overrides_dir, database.state_dir, versions())
         summary["accepted_inputs"] = sorted(accept(database, bundle, clock))
+        from swingset.schedule.event_enumerations import bootstrap as bootstrap_events
+
+        if not stop():
+            summary["event_enumerations"] = bootstrap_events(database, now=clock.now())
+            from swingset.state.work import recover_parse_hints
+
+            # Reconstruct disposable queue hints from retained metadata. Normal
+            # derivation controls still govern execution of recovered work.
+            recovery_now = clock.now()
+            recovery_seconds = min(2.0, (deadline - recovery_now).total_seconds())
+            if recovery_seconds > 0 and not should_stop():
+                summary["parse_hint_recovery"] = recover_parse_hints(
+                    database,
+                    now=recovery_now,
+                    wall_seconds=recovery_seconds,
+                )
+            from swingset.schedule.event_pressure import bootstrap as bootstrap_pressure
+
+            summary["event_pressure_bootstrap"] = bootstrap_pressure(
+                database, bundle.config, now=clock.now()
+            )
+            from swingset.schedule.event_blocker_history import refresh as observe_event_blockers
+
+            # Diagnostic bookkeeping may observe a pause without starting
+            # paused acquisition, artifact verification, or derivation work.
+            summary["event_blocker_observations"] = observe_event_blockers(
+                database,
+                bundle.config,
+                now=clock.now(),
+                run_id=run_id,
+                operator_hold=(database.state_dir / "operator-hold").is_file(),
+            )
         from swingset.state.requirements import scan
         from swingset.state.verification import verification_summary
 
@@ -252,6 +285,70 @@ def run_cycle(
             discover(database, bundle, clock.now())
             if bundle.config.enabled("wsdc_registry"):
                 discover_registry(database, clock.now())
+        if not stop():
+            from swingset.schedule.event_pressure import refresh as refresh_pressure
+            from swingset.state.controls import ActionScope
+
+            try:
+                with operation(
+                    database,
+                    action_id="event_pressure_" + uuid4().hex,
+                    action_kind="project",
+                    scope=ActionScope(
+                        all_sources=True,
+                        kinds=frozenset(
+                            {
+                                "work_attempt",
+                                "archive_artifact",
+                                "admission_blocked",
+                                "parse_failure",
+                            }
+                        ),
+                    ),
+                    clock=clock,
+                    run_id=run_id,
+                ):
+                    summary["event_pressure_refresh"] = refresh_pressure(
+                        database,
+                        Archive(database.state_dir),
+                        bundle.config,
+                        now=clock.now(),
+                        wall_seconds=min(5.0, max(0.0, (deadline - clock.now()).total_seconds())),
+                    )
+            except ControlPaused as exc:
+                held("event_pressure_refresh", exc)
+        if not stop():
+            from swingset.schedule.event_progress import refresh as refresh_progress
+
+            try:
+                with operation(
+                    database,
+                    action_id="event_progress_" + uuid4().hex,
+                    action_kind="project",
+                    scope=ActionScope(
+                        all_sources=True,
+                        kinds=frozenset(
+                            {
+                                "work_attempt",
+                                "archive_artifact",
+                                "admission_blocked",
+                                "parse_failure",
+                            }
+                        ),
+                    ),
+                    clock=clock,
+                    run_id=run_id,
+                ):
+                    summary["event_progress_refresh"] = refresh_progress(
+                        database,
+                        Archive(database.state_dir),
+                        bundle.config,
+                        now=clock.now(),
+                        run_id=run_id,
+                        wall_seconds=min(5.0, max(0.0, (deadline - clock.now()).total_seconds())),
+                    )
+            except ControlPaused as exc:
+                held("event_progress_refresh", exc)
         visited_watches: set[str] = set()
         attempted_inputs: dict[WorkUnit, set[str]] = {}
 
@@ -277,17 +374,21 @@ def run_cycle(
             return fetcher
 
         def acquisition(until: datetime) -> bool:
-            from swingset.history.backfill import dispatch_one, offer
+            from swingset.history.backfill import dispatch_one, offers
 
             began = clock.now()
             issued = False
-            offered = offer(database, bundle.config, clock, run_id=run_id) if not stop() else None
-            extra: tuple[WatchChoice, ...] = ()
-            if offered is not None and offered.watch_id not in visited_watches:
+            offered_pages = (
+                offers(database, bundle.config, clock, run_id=run_id) if not stop() else ()
+            )
+            extra: list[WatchChoice] = []
+            for offered in offered_pages:
+                if offered.watch_id in visited_watches:
+                    continue
                 from urllib.parse import urlsplit
 
                 offered_host = urlsplit(offered.archive_url or offered.url).hostname or ""
-                extra = (
+                extra.append(
                     WatchChoice(
                         key=offered.watch_id,
                         watch_id=None,
@@ -304,9 +405,18 @@ def run_cycle(
                         due_at=clock.now(),
                         archive=bool(offered.archive_url),
                         history=True,
-                    ),
+                    )
                 )
             while not stop() and clock.now() < until:
+                with database.transaction() as conn:
+                    prepare_event_turns(
+                        conn,
+                        bundle.config,
+                        now=clock.now(),
+                        exclude=visited_watches,
+                        extra_choices=extra,
+                        run_id=run_id,
+                    )
                 choice = next_watch(
                     database.connection,
                     bundle.config,

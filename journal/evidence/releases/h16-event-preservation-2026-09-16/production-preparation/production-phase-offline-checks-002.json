@@ -1,0 +1,8 @@
+{
+  "execution_authorized_by_this_receipt": false,
+  "validation": "20 mocked/local guard tests passed in 0.25s; no VM phase executed",
+  "files": {
+    "run-production-phase-002.py": "601f7988253faf11703a71d72f1aa39b435b6431eeaf04141a9ca6a64c286e9e",
+    "test_production_phase_launcher_002.py": "47342b91635a5441c7be3601f7685e98110c4bdc5c49ef7a11f24a305a17a4ea"
+  }
+}

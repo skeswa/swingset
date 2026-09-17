@@ -1,0 +1,41 @@
+{
+  "checkpoint": "/var/lib/swingset/checkpoints/h15-before-h16-20260913",
+  "checkpoint_manifest_sha256": "700b2adc01db9eefc5c0c7ba35fddabfbc3aa00b6ed6f4900543b4e4a54ae444",
+  "coordinator_reviewed_at": "2026-09-16T19:41:03.054098+00:00",
+  "coordinator_reviewed_by": "Codex coordinator, retained replay-coordinator-review.json",
+  "driver_sha256": "8ed4b2384fb946100934a14b57025b6cc6272fb7927632eaede5c19eb2519f50",
+  "evidence_files": {
+    "backup.json": "d7188f357d99f79c80cb2277dd335539840be8cb2305ef34c41162991c69793f",
+    "private-verification.json": "4941e52a6f65f843737215570f037881b6f7a788a917fc624584cf45f294a6ba",
+    "v4-verification.json": "290b2302c65ce84b4483c4f2b6104cebcc9ba68b5e132f6c674bbaed410f8b2a",
+    "replay-coordinator-review.json": "179eee4d2cc88f33d78247f7d99176e3bc0897df318db09e11c04a6ea5c35a65",
+    "replay-final-verification.json": "b05e18004e7a275d482205c840932efce39535b8f251002ade75553d4ddf4b1c",
+    "replay-supervisor.json": "b2aff6ccd6ac68e4fcda28fe5f0ded0798a88381d5e8b01d6dde55d6dfda880a",
+    "replay-terminal-resource-verification.json": "e12a4b68c97504800c0b3f453d5f18a5487e5175372c43b3b6e27e7bea2870cc",
+    "log-path-replacement-incident.json": "2c6ad7943e74f45a799309fba045fae9670b026c07ea1c2126ac6a2b17a7e381",
+    "replay-resource-samples.jsonl": "30759a25c509e163445431692b8c25717b07c84883413b717732ec24a974f3bb",
+    "replay-resource-supplement.jsonl": "9b0158359268ae86c0774ba33b3536a074b9e38568b19c1dd8c47d28e6d917b5",
+    "launch-proof-build-audit.py": "f03c55fbc6d33515b4fddd0f51e68bea286d705ee715f528c87014193ba44980",
+    "swingset-h16-event-preservation-replay-012.json": "1b2ea424e6a4380a98c8f4bdc34d8a4328d0004e4f75231ec33ef2ba2275af0c"
+  },
+  "format": "h16-operational-gate-v1",
+  "private_backup_commit": "c656e88c775b23ae5879661924d57fa1f93cfa7d",
+  "private_backup_receipt": "backup.json",
+  "private_backup_verified": true,
+  "source_receipt_sha256": "0c3a391aca5c32381ab10daa22adfdde44cda76ab26b68df002f9822ad4945fb",
+  "v4_commit": "81121dcc7d62a1db9e76ee1c49a6b90e1f4c5653",
+  "v4_manifest_sha256": "87ac286a1ae452f09f7e5cea646f260ac34035f3d05bb83de17c7d9cc8f08884",
+  "v4_verified": true,
+  "verification_basis": "Retained verified private-backup and V4 receipts; exact same-pin replay coordinator review; no fresh remote verification or live protected-state scan during preparation.",
+  "verified_at": "2026-09-13T16:06:22.714477+00:00",
+  "coordinator_review_scope": "Replay accepted; production gate preparation and private staging authorized; scratch build/audit acceptance pending at preparation.",
+  "coordinator_replay_review": {
+    "path": "replay-coordinator-review.json",
+    "sha256": "179eee4d2cc88f33d78247f7d99176e3bc0897df318db09e11c04a6ea5c35a65"
+  },
+  "prepared_at": "2026-09-16T19:43:11.542876+00:00",
+  "scratch_acceptance_at_preparation": {
+    "build": false,
+    "audit": false
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "at": "2026-09-16T16:42:04.060422+00:00",
+  "base": "/nix/store/4c4q8rkiz6jqizcy93bid6cz8mfvp20b-source",
+  "base_receipt_sha256": "71dc14101ca19880f3addfa2dc0073dbe50bce0e4e2be27d7bc91811b6d1e338",
+  "changed": [
+    "h16-source.json",
+    "provenance/h16-before-event-preservation.json",
+    "pyproject.toml",
+    "src/swingset/build/closure_rows.py",
+    "src/swingset/project/map.py",
+    "tests/build/test_closure_event_alternatives.py",
+    "tests/build/test_event_preservation_release.py",
+    "tests/test_map_event_retention.py"
+  ],
+  "files": 639,
+  "format": "h16-event-preservation-source-verification-v1",
+  "mirror": "/Users/skeswa/.cache/swingset-h16-event-preservation-tests-20260916",
+  "passed": true,
+  "production_mutated": false,
+  "source": "/nix/store/z689qy41inndill3d92ym8im852x3649-source",
+  "source_receipt_sha256": "0c3a391aca5c32381ab10daa22adfdde44cda76ab26b68df002f9822ad4945fb",
+  "tests_executed": false,
+  "verification_script_sha256": "ba78ec5d51629b46fe1849c90ca4de371e69d2255fbc6066ad632bb4cf365512"
+}

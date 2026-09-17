@@ -125,6 +125,13 @@ def _project_map(
             )
             generated = event_id(end, str(source_row[2]))
             mapped.append((*key, generated, "name_date", 0.5))
+            existing = _inventory_event(conn, generated)
+            if existing is not None:
+                # A source listing can collide with a registry-enriched edition
+                # even when status or dates prevent a name/date match. Keep the
+                # occurrence's reporting month, metadata and evidence intact.
+                unknown.append(_stored_event(existing))
+                continue
             unknown.append(
                 Event(
                     event_id=generated,
@@ -232,6 +239,19 @@ def _project_map(
         enqueue_links=False,
     )
     return premap_unknown_changed or registry_changed or unknown_changed or before != sorted(mapped)
+
+
+def _inventory_event(conn: sqlite3.Connection, identifier: str) -> sqlite3.Row | None:
+    # Match materialization.output_rows(inventory): history enrichment or its
+    # durable ownership makes this an inventory record, not a provisional map row.
+    row: sqlite3.Row | None = conn.execute(
+        "SELECT * FROM events WHERE event_id=? AND (history_source!='[]' OR EXISTS "
+        "(SELECT 1 FROM canonical_scope_rows c WHERE c.scope_kind='history' "
+        "AND c.scope_id='all' AND c.table_name='events' "
+        "AND c.record_key=json_array(events.event_id)))",
+        (identifier,),
+    ).fetchone()
+    return row
 
 
 def _stored_event(row: sqlite3.Row) -> Event:

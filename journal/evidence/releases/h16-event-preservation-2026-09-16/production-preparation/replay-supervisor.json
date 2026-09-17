@@ -1,0 +1,104 @@
+{
+  "at": "2026-09-16T16:49:52.529222+00:00",
+  "baseline_attempt_id": 0,
+  "checkpoint": "/var/lib/swingset/checkpoints/h15-before-h16-20260913",
+  "checkpoint_manifest_sha256": "700b2adc01db9eefc5c0c7ba35fddabfbc3aa00b6ed6f4900543b4e4a54ae444",
+  "finished_at": "2026-09-16T18:33:48.050372+00:00",
+  "format": "h16-event-preservation-replay-supervisor-v1",
+  "frozen_tests_sha256": "644592dd50b7f344e64e04f3541e40d6d857777a2079ba75208cbca5eacb375c",
+  "input_bundle_hash": "fe99b47cd65eb909abc7c9ebd64d9ace9524393e5af8cd4d9368c55317ce3c6a",
+  "invocations": [
+    {
+      "completed": 29180,
+      "generation_count": 29180,
+      "number": 1,
+      "receipt_sha256": "a7262b463dd7f70c21bcdf9c3edd25324810ada896962bb4dc9eadce65bcd6ca",
+      "status": "bounded_stop"
+    },
+    {
+      "completed": 3317,
+      "generation_count": 32497,
+      "number": 2,
+      "receipt_sha256": "f34cbd3a2f9dcf8d75fc2e0d5bad2eaee919922d896b5b3879078bb64a08dc3a",
+      "status": "bounded_stop"
+    },
+    {
+      "completed": 296,
+      "generation_count": 32793,
+      "number": 3,
+      "receipt_sha256": "d4086af57329db0ae2c3ea3e50fbd9918221eff7a25b12a95b23e1ad058f5c6e",
+      "status": "bounded_stop"
+    },
+    {
+      "completed": 291,
+      "generation_count": 33084,
+      "number": 4,
+      "receipt_sha256": "5016a8a0a685a77f6045445d1abb5b0109f5448ebc50c8ccd65c582c56d868aa",
+      "status": "bounded_stop"
+    },
+    {
+      "completed": 302,
+      "generation_count": 33386,
+      "number": 5,
+      "receipt_sha256": "5eb2fa3de77c2d781e1a5493b558d2e0b0593e697a7d5f6fcbf506dcaefafec8",
+      "status": "bounded_stop"
+    },
+    {
+      "completed": 304,
+      "generation_count": 33690,
+      "number": 6,
+      "receipt_sha256": "0eb53943f56912b12adf236ce680c2f03b2d582f1b06a8bc9416f155a0c76e13",
+      "status": "bounded_stop"
+    },
+    {
+      "completed": 265,
+      "generation_count": 33955,
+      "number": 7,
+      "receipt_sha256": "1445395badbf45aedd8674c3d97750081aeee7efb18aecb9292cb379cd8df2af",
+      "status": "bounded_stop"
+    },
+    {
+      "completed": 268,
+      "generation_count": 34223,
+      "number": 8,
+      "receipt_sha256": "9fd9711ef20c2f7cc744975f435df84ba12f3544575d259e60b1e834af6e2931",
+      "status": "bounded_stop"
+    },
+    {
+      "completed": 261,
+      "generation_count": 34484,
+      "number": 9,
+      "receipt_sha256": "7dd50e7299ebd5bf20b7bb4ec897282c64390372e1c241ed7c9ae6ca4a05800e",
+      "status": "bounded_stop"
+    },
+    {
+      "completed": 234,
+      "generation_count": 34718,
+      "number": 10,
+      "receipt_sha256": "7f0b38068d71157371f411d35a257729211502b63c9dcfb29b07dd38c85390aa",
+      "status": "bounded_stop"
+    },
+    {
+      "completed": 253,
+      "generation_count": 34971,
+      "number": 11,
+      "receipt_sha256": "e7021bd01910339882bc89af497f147adaa18022e8fa3c37f38d279931ab6646",
+      "status": "bounded_stop"
+    },
+    {
+      "completed": 15,
+      "generation_count": 34986,
+      "number": 12,
+      "receipt_sha256": "1b2ea424e6a4380a98c8f4bdc34d8a4328d0004e4f75231ec33ef2ba2275af0c",
+      "status": "current"
+    }
+  ],
+  "max_invocations": 20,
+  "passed": true,
+  "production_mutated": false,
+  "scratch": "/var/tmp/swingset-h16-event-preservation-replay",
+  "script_sha256": "c6597528f9c6f884afb6760eb75c3f4d1a405913d042e5d5c7206b3d2b04a109",
+  "source": "/nix/store/z689qy41inndill3d92ym8im852x3649-source",
+  "source_receipt_sha256": "0c3a391aca5c32381ab10daa22adfdde44cda76ab26b68df002f9822ad4945fb",
+  "status": "current"
+}

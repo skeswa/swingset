@@ -1,0 +1,7 @@
+Running as unit: swingset-h16-event-preservation-initialization-prepare-003.service
+          Finished with result: success
+Main processes terminated with: code=exited, status=0/SUCCESS
+               Service runtime: 34.067s
+             CPU time consumed: 34.573s
+                   Memory peak: 3.9G (swap: 0B)
+                      IO Bytes: read 4.3G, written 767.9M

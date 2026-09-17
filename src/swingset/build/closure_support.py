@@ -159,13 +159,16 @@ def support_token(manifest: Mapping[str, Any]) -> str:
     """Excludes selection pointers, work state, and evidence arriving later."""
     if manifest.get("format") == "release-closure-public-v1":
         return str(manifest["support_token"])
-    return digest(
-        {
-            "policies": manifest["policies"],
-            "source_support": manifest["source_support"],
-            "revocations": manifest.get("revocation_digest"),
-        }
-    )
+    value = {
+        "policies": manifest["policies"],
+        "source_support": manifest["source_support"],
+        "revocations": manifest.get("revocation_digest"),
+    }
+    if manifest.get("event_coverage") is not None:
+        from .event_coverage import semantic_token
+
+        value["event_coverage"] = semantic_token(manifest["event_coverage"])
+    return digest(value)
 
 
 def interpretation_lookup(manifest: Mapping[str, Any]) -> dict[tuple[str, str], dict[str, Any]]:

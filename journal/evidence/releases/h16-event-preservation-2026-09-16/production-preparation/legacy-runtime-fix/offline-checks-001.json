@@ -1,0 +1,45 @@
+{
+  "format": "h16-legacy-runtime-preparation-fix-v1",
+  "at": "2026-09-16T20:14:46.172053+00:00",
+  "original_driver_sha256": "b54c02a15c3d86a603bef4d6926e66bde4cf1ef9d23f273aa5db771d3a99d233",
+  "driver_sha256": "c3259a023436e2cc3ee56e1ad83f3170b455f42187ff71421eeac25387bf96d7",
+  "test_sha256": "7059953c391ef8bcc44f480cd8e751f18399d5070ef1e2507675130df7343e60",
+  "frozen_source": "/Users/skeswa/.cache/swingset-h16-event-preservation-tests-20260916",
+  "frozen_inputs_sha256": "f40b337f537bdf4ae7494410035dd12717970e57ffd8adf93c3a2006fc9f5775",
+  "runtime_schema": 14,
+  "checks": [
+    {
+      "path": "offline-tests-001.log",
+      "argv": [
+        "/Users/skeswa/repos/skeswa/swingset/.venv/bin/pytest",
+        "-q",
+        "-c",
+        "/Users/skeswa/.cache/swingset-h16-event-preservation-tests-20260916/pyproject.toml",
+        "-o",
+        "pythonpath=/Users/skeswa/.cache/swingset-h16-event-preservation-tests-20260916/src /Users/skeswa/.cache/swingset-h16-event-preservation-tests-20260916 /Users/skeswa/.cache/swingset-h16-event-preservation-tests-20260916/tests",
+        "/Users/skeswa/repos/skeswa/swingset/journal/evidence/releases/h16-event-preservation-2026-09-16/production-preparation/legacy-runtime-fix/test_legacy_runtime.py",
+        "/Users/skeswa/.cache/swingset-h16-event-preservation-tests-20260916/tests/test_inputs.py"
+      ],
+      "cwd": "/Users/skeswa/.cache/swingset-h16-event-preservation-tests-20260916",
+      "exit_code": 0,
+      "sha256": "4f49f36d6aaf1f1c42e65b43b1a11acfc0dab006b71420758da0e826b85a5e43"
+    },
+    {
+      "path": "offline-pyflakes-001.log",
+      "argv": [
+        "/Users/skeswa/repos/skeswa/swingset/.venv/bin/ruff",
+        "check",
+        "--select",
+        "F",
+        "/Users/skeswa/repos/skeswa/swingset/journal/evidence/releases/h16-event-preservation-2026-09-16/production-preparation/legacy-runtime-fix"
+      ],
+      "cwd": "/Users/skeswa/.cache/swingset-h16-event-preservation-tests-20260916",
+      "exit_code": 0,
+      "sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+    }
+  ],
+  "passed": true,
+  "production_state_accessed": false,
+  "driver_executed_in_vm": false,
+  "external_preflight": "mocked fixture; real frozen capture, accept, transaction, marker and protection checks"
+}

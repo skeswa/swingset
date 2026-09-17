@@ -1,0 +1,51 @@
+{
+  "format": "event-completion-additional-acceptance-v1",
+  "started_at": "2026-09-16T22:05:48.034086+00:00",
+  "finished_at": "2026-09-16T22:06:05.879280+00:00",
+  "prior_full_validation": {
+    "path": "journal/evidence/runtime/event-completion-2026-09-16/event-recovery-validation-012.json",
+    "sha256": "360bb8296aa6447a308c25e43565b43dce02a732654f9c8df4564b5178a8765a",
+    "tests": 2063
+  },
+  "new_tests_sha256": {
+    "tests/test_event_completion_cohort.py": "974d8314f3245f8db5132ce49add42d3b4c409d2fd16c91b266add864437925b",
+    "tests/test_event_accounting_restore.py": "e8711e340ceaad867dd13979040fdca265f07f327f36a359f7ad8efe9aea6e1d"
+  },
+  "checks": [
+    {
+      "path": "journal/evidence/runtime/event-completion-2026-09-16/new-acceptance-tests-001.log",
+      "argv": [
+        ".venv/bin/pytest",
+        "-q",
+        "-s",
+        "tests/test_event_completion_cohort.py",
+        "tests/test_event_accounting_restore.py"
+      ],
+      "exit_code": 0,
+      "sha256": "fc693aa10bc703d861339776fcac0565649507d278469772a325406d1bbab3a5"
+    },
+    {
+      "path": "journal/evidence/runtime/event-completion-2026-09-16/new-acceptance-ruff-001.log",
+      "argv": [
+        ".venv/bin/ruff",
+        "check",
+        "src",
+        "tests"
+      ],
+      "exit_code": 0,
+      "sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+    },
+    {
+      "path": "journal/evidence/runtime/event-completion-2026-09-16/new-acceptance-mypy-001.log",
+      "argv": [
+        ".venv/bin/mypy",
+        "src/swingset"
+      ],
+      "exit_code": 0,
+      "sha256": "e9e3f983435bfbb35239a6fd85a9d3aa9bc07b4982002aa1d064040fbab67d88"
+    }
+  ],
+  "source_and_existing_tests_unchanged": true,
+  "passed": true,
+  "scope": "Post-format independent six additional offline tests: actual33-page acquisition/admission/accounting under continuous arrivals/current refresh/pause/watermark drain, plus current-schema24 activated restore accounting/progress/retirement/gaps. No network, historical-schema migration, fullcycle/link/build/publication or operating acceptance."
+}

@@ -1,0 +1,27 @@
+2026-09-16T20:23:04+00:00 swingset systemd[1]: Starting [systemd-run] /var/lib/swingset/venv/bin/python /var/lib/swingset/operations/h16-event-preservation-release-20260916/initialize-002.py prepare --gate /var/lib/swingset/operations/h16-event-preservation-release-20260916/initialization-gate-002.json --marker /var/lib/swingset/operations/h16-event-preservation-release-20260916/initialization-marker-002.json --output /var/lib/swingset/operations/h16-event-preservation-release-20260916/prepare-002.json...
+2026-09-16T20:23:04+00:00 swingset systemd[1]: Started [systemd-run] /var/lib/swingset/venv/bin/python /var/lib/swingset/operations/h16-event-preservation-release-20260916/initialize-002.py prepare --gate /var/lib/swingset/operations/h16-event-preservation-release-20260916/initialization-gate-002.json --marker /var/lib/swingset/operations/h16-event-preservation-release-20260916/initialization-marker-002.json --output /var/lib/swingset/operations/h16-event-preservation-release-20260916/prepare-002.json.
+2026-09-16T20:24:31+00:00 swingset python[100468]: Traceback (most recent call last):
+2026-09-16T20:24:31+00:00 swingset python[100468]:   File "/var/lib/swingset/operations/h16-event-preservation-release-20260916/initialize-002.py", line 516, in <module>
+2026-09-16T20:24:31+00:00 swingset python[100468]:     main()
+2026-09-16T20:24:31+00:00 swingset python[100468]:   File "/var/lib/swingset/operations/h16-event-preservation-release-20260916/initialize-002.py", line 502, in main
+2026-09-16T20:24:31+00:00 swingset python[100468]:     receipt.update(prepare(gate,source,args.gate,marker))
+2026-09-16T20:24:31+00:00 swingset python[100468]:                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-09-16T20:24:31+00:00 swingset python[100468]:   File "/var/lib/swingset/operations/h16-event-preservation-release-20260916/initialize-002.py", line 271, in prepare
+2026-09-16T20:24:31+00:00 swingset python[100468]:     with open_database(STATE,lock=False) as db:
+2026-09-16T20:24:31+00:00 swingset python[100468]:          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-09-16T20:24:31+00:00 swingset python[100468]:   File "/nix/store/z689qy41inndill3d92ym8im852x3649-source/src/swingset/state/db.py", line 166, in open_database
+2026-09-16T20:24:31+00:00 swingset python[100468]:     with control_lock(state_dir, timeout=60 if lock_timeout is None else lock_timeout):
+2026-09-16T20:24:31+00:00 swingset python[100468]:          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-09-16T20:24:31+00:00 swingset python[100468]:   File "/nix/store/s5rij9y3vb4gxbh0iqz3k0ndmsac7h02-python3-3.12.13/lib/python3.12/contextlib.py", line 137, in __enter__
+2026-09-16T20:24:31+00:00 swingset python[100468]:     return next(self.gen)
+2026-09-16T20:24:31+00:00 swingset python[100468]:            ^^^^^^^^^^^^^^
+2026-09-16T20:24:31+00:00 swingset python[100468]:   File "/nix/store/z689qy41inndill3d92ym8im852x3649-source/src/swingset/state/control_lock.py", line 28, in control_lock
+2026-09-16T20:24:31+00:00 swingset python[100468]:     with (state_dir / "control.lock").open("a+b") as handle:
+2026-09-16T20:24:31+00:00 swingset python[100468]:          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-09-16T20:24:31+00:00 swingset python[100468]:   File "/nix/store/s5rij9y3vb4gxbh0iqz3k0ndmsac7h02-python3-3.12.13/lib/python3.12/pathlib.py", line 1013, in open
+2026-09-16T20:24:31+00:00 swingset python[100468]:     return io.open(self, mode, buffering, encoding, errors, newline)
+2026-09-16T20:24:31+00:00 swingset python[100468]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-09-16T20:24:31+00:00 swingset python[100468]: PermissionError: [Errno 13] Permission denied: '/var/lib/swingset/control.lock'
+2026-09-16T20:24:31+00:00 swingset systemd[1]: swingset-h16-event-preservation-initialization-prepare-002.service: Main process exited, code=exited, status=1/FAILURE
+2026-09-16T20:24:31+00:00 swingset systemd[1]: swingset-h16-event-preservation-initialization-prepare-002.service: Failed with result 'exit-code'.
+2026-09-16T20:24:31+00:00 swingset systemd[1]: swingset-h16-event-preservation-initialization-prepare-002.service: Consumed 1min 26.769s CPU time, 6.3G memory peak, 12.2G read from disk, 1.4G written to disk.

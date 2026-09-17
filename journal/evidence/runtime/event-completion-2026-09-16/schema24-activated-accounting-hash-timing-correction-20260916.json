@@ -1,0 +1,9 @@
+{
+  "format": "swingset.evidence-correction.v1",
+  "recorded_at": "2026-09-16T22:07:00.199892+00:00",
+  "corrects": "schema24-activated-accounting-validation-20260916.json",
+  "corrected_receipt_sha256": "0d0769022ab84c8a7fe04e994885735be38ea315a762db2923c745b3303b6f36",
+  "field": "hash_timing",
+  "replacement": "Terminal logs came from the earlier pre-format test runs. File hashes were captured at 2026-09-16T22:06:12.680859+00:00, AFTER parent-coordinated fmt009 completed at 22:05:26 UTC. These hashes do not by themselves bind the earlier test executions. Parent independent post-format validation supplies final execution binding.",
+  "test_sha256": "e8711e340ceaad867dd13979040fdca265f07f327f36a359f7ad8efe9aea6e1d"
+}

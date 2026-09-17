@@ -1,0 +1,5 @@
+2026-09-16T16:41:02+00:00 swingset systemd[1]: Starting [systemd-run] /var/lib/swingset/venv/bin/python /Users/skeswa/repos/skeswa/swingset/journal/evidence/releases/h16-event-preservation-2026-09-16/reconstruct-closure-diagnostic.py...
+2026-09-16T16:41:02+00:00 swingset systemd[1]: Started [systemd-run] /var/lib/swingset/venv/bin/python /Users/skeswa/repos/skeswa/swingset/journal/evidence/releases/h16-event-preservation-2026-09-16/reconstruct-closure-diagnostic.py.
+2026-09-16T16:42:19+00:00 swingset python[95043]: {"output": "/var/tmp/swingset-h16-event-preservation-diagnostic.json", "passed": true, "diagnostic_only": true, "release_acceptance": false, "error": null}
+2026-09-16T16:42:20+00:00 swingset systemd[1]: swingset-h16-event-preservation-diagnostic.service: Deactivated successfully.
+2026-09-16T16:42:20+00:00 swingset systemd[1]: swingset-h16-event-preservation-diagnostic.service: Consumed 1min 19.505s CPU time, 5G memory peak, 4G read from disk, 2.2G written to disk.

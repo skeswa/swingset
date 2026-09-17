@@ -1,0 +1,17 @@
+{
+  "audit_launched": false,
+  "base_launcher_sha256": "3ed2731f20e67d0f45e2f0c1262dff0e3e2135597cf00eb570926201795af6da",
+  "binding": {
+    "input_bundle_hash": "fe99b47cd65eb909abc7c9ebd64d9ace9524393e5af8cd4d9368c55317ce3c6a",
+    "marker_sha256": "a2eb6255beddabe1917808da3916e219433fb9bf7fc85dd6427d9e28bad1a1e2",
+    "scratch": "/var/tmp/swingset-h16-event-preservation-replay",
+    "source": "/nix/store/z689qy41inndill3d92ym8im852x3649-source",
+    "source_receipt_sha256": "0c3a391aca5c32381ab10daa22adfdde44cda76ab26b68df002f9822ad4945fb"
+  },
+  "build_launched": false,
+  "build_state": "/var/tmp/swingset-h16-event-preservation-build",
+  "input_binding_sha256": "6f4838f6b6f03972e169d413c1540e87629510e9b461e821dea16f94aacb5127",
+  "launcher_sha256": "f03c55fbc6d33515b4fddd0f51e68bea286d705ee715f528c87014193ba44980",
+  "prepared_only": true,
+  "review": "Only exact source, receipt, accepted bundle, scratch marker, isolated unit/state/output prefixes and evidence folder differ from reviewed prior launcher. Bound35min worker/6GiB anon monitor/direct --wait exit authority retained. Independent replay pass gate required for build; separate build pass gate required for audit. No execution."
+}

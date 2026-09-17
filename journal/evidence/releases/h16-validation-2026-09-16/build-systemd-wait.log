@@ -1,0 +1,7 @@
+Running as unit: swingset-h16-proof-build.service
+          Finished with result: success
+Main processes terminated with: code=exited, status=0/SUCCESS
+               Service runtime: 6min 9.281s
+             CPU time consumed: 6min 10.096s
+                   Memory peak: 6.4G (swap: 0B)
+                      IO Bytes: read 14.9G, written 14.7G

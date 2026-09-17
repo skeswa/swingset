@@ -1,0 +1,12 @@
+{
+  "at": "2026-09-16T16:49:19.250547+00:00",
+  "passed": true,
+  "source": "/nix/store/z689qy41inndill3d92ym8im852x3649-source",
+  "source_receipt_sha256": "0c3a391aca5c32381ab10daa22adfdde44cda76ab26b68df002f9822ad4945fb",
+  "frozen_validation_sha256": "4600e1959d9e43b0e8eaeed895de48dce0f0c80375e54cc26faa7abe10654e7d",
+  "system_binding_sha256": "f11e9e8436a28fe164dab2c24123dc7df70529c49538c424b5889b5430b2a7ed",
+  "replay_preparation_sha256": "61a3aeb9b0c7b6e5f8719544e4c0c98266a4f3e21a17dab7bfdcac129229b3da",
+  "collected_tests": 1333,
+  "collected_build_tests": 129,
+  "scope": "Coordinator-reviewed exact-source test and system gate. Authorizes prepared scratch replay and independent final verification only. Production remains held; build/audit require subsequent replay review."
+}

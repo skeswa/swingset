@@ -1,0 +1,164 @@
+{
+  "activation_executed": false,
+  "build_executed": false,
+  "checkpoint_opened": false,
+  "current_systems": {
+    "/nix/var/nix/profiles/system": "/nix/store/r29kapzbjk0ch5h0vkk288jd47dvg90j-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+    "/run/current-system": "/nix/store/r29kapzbjk0ch5h0vkk288jd47dvg90j-nixos-system-swingset-lxc-25.11.20260630.b6018f8"
+  },
+  "destination": "/var/lib/swingset/operations/h16-event-preservation-release-20260916",
+  "directory_mode": "0700",
+  "finished_at": "2026-09-16T19:44:32.890018+00:00",
+  "format": "h16-private-staging-v1",
+  "gate_sha256": "98ae2f20f838f5e14a24854b8870d557511f994dfc8c95e9b79e0a1b462c0004",
+  "initializer_executed": false,
+  "manifest_sha256": "4d8c591592c44a64b393f839d51c2575258a9787871ca3f07459feda0285ace8",
+  "operator_hold": true,
+  "ordinary_units": {
+    "swingset-backup.service": "inactive",
+    "swingset-backup.timer": "inactive",
+    "swingset-cycle.service": "inactive",
+    "swingset-cycle.timer": "inactive",
+    "swingset-summary.service": "inactive",
+    "swingset-summary.timer": "inactive"
+  },
+  "passed": true,
+  "preflight_executed": false,
+  "production_database_opened": false,
+  "published": false,
+  "remote_verification_performed": false,
+  "script_sha256": "c36fb4934b4a79d086c2d62052f77b4c528ae8c7b72c2d45c84402d0781f1d6b",
+  "source": "/nix/store/z689qy41inndill3d92ym8im852x3649-source",
+  "source_files": 638,
+  "source_receipt_sha256": "0c3a391aca5c32381ab10daa22adfdde44cda76ab26b68df002f9822ad4945fb",
+  "staged_files": {
+    "accept_h16.py": {
+      "gid": 995,
+      "mode": "0600",
+      "sha256": "8ed4b2384fb946100934a14b57025b6cc6272fb7927632eaede5c19eb2519f50",
+      "uid": 996
+    },
+    "activate-system.py": {
+      "gid": 995,
+      "mode": "0600",
+      "sha256": "db4cd1a26e3f1c593570316759b779e44f98cf1d691b1b32872a35416e81cf2e",
+      "uid": 996
+    },
+    "backup.json": {
+      "gid": 995,
+      "mode": "0600",
+      "sha256": "d7188f357d99f79c80cb2277dd335539840be8cb2305ef34c41162991c69793f",
+      "uid": 996
+    },
+    "gate.json": {
+      "gid": 995,
+      "mode": "0600",
+      "sha256": "98ae2f20f838f5e14a24854b8870d557511f994dfc8c95e9b79e0a1b462c0004",
+      "uid": 996
+    },
+    "initialize.py": {
+      "gid": 995,
+      "mode": "0600",
+      "sha256": "b54c02a15c3d86a603bef4d6926e66bde4cf1ef9d23f273aa5db771d3a99d233",
+      "uid": 996
+    },
+    "launch-proof-build-audit.py": {
+      "gid": 995,
+      "mode": "0600",
+      "sha256": "f03c55fbc6d33515b4fddd0f51e68bea286d705ee715f528c87014193ba44980",
+      "uid": 996
+    },
+    "log-path-replacement-incident.json": {
+      "gid": 995,
+      "mode": "0600",
+      "sha256": "2c6ad7943e74f45a799309fba045fae9670b026c07ea1c2126ac6a2b17a7e381",
+      "uid": 996
+    },
+    "private-verification.json": {
+      "gid": 995,
+      "mode": "0600",
+      "sha256": "4941e52a6f65f843737215570f037881b6f7a788a917fc624584cf45f294a6ba",
+      "uid": 996
+    },
+    "production-release.py": {
+      "gid": 995,
+      "mode": "0600",
+      "sha256": "f8cd9ec23953600d3c9445a765df97eb894fd5363cea3f1136446c67a4f902cc",
+      "uid": 996
+    },
+    "replay-coordinator-review.json": {
+      "gid": 995,
+      "mode": "0600",
+      "sha256": "179eee4d2cc88f33d78247f7d99176e3bc0897df318db09e11c04a6ea5c35a65",
+      "uid": 996
+    },
+    "replay-final-verification.json": {
+      "gid": 995,
+      "mode": "0600",
+      "sha256": "b05e18004e7a275d482205c840932efce39535b8f251002ade75553d4ddf4b1c",
+      "uid": 996
+    },
+    "replay-resource-samples.jsonl": {
+      "gid": 995,
+      "mode": "0600",
+      "sha256": "30759a25c509e163445431692b8c25717b07c84883413b717732ec24a974f3bb",
+      "uid": 996
+    },
+    "replay-resource-supplement.jsonl": {
+      "gid": 995,
+      "mode": "0600",
+      "sha256": "9b0158359268ae86c0774ba33b3536a074b9e38568b19c1dd8c47d28e6d917b5",
+      "uid": 996
+    },
+    "replay-supervisor.json": {
+      "gid": 995,
+      "mode": "0600",
+      "sha256": "b2aff6ccd6ac68e4fcda28fe5f0ded0798a88381d5e8b01d6dde55d6dfda880a",
+      "uid": 996
+    },
+    "replay-terminal-resource-verification.json": {
+      "gid": 995,
+      "mode": "0600",
+      "sha256": "e12a4b68c97504800c0b3f453d5f18a5487e5175372c43b3b6e27e7bea2870cc",
+      "uid": 996
+    },
+    "supervise-initialization.py": {
+      "gid": 995,
+      "mode": "0600",
+      "sha256": "9d48562395750244fb64c8420390c3402c8af2aea2019e46bb66577c1b3c4312",
+      "uid": 996
+    },
+    "swingset-h16-event-preservation-replay-012.json": {
+      "gid": 995,
+      "mode": "0600",
+      "sha256": "1b2ea424e6a4380a98c8f4bdc34d8a4328d0004e4f75231ec33ef2ba2275af0c",
+      "uid": 996
+    },
+    "v4-verification.json": {
+      "gid": 995,
+      "mode": "0600",
+      "sha256": "290b2302c65ce84b4483c4f2b6104cebcc9ba68b5e132f6c674bbaed410f8b2a",
+      "uid": 996
+    }
+  },
+  "started_at": "2026-09-16T19:44:32.729740+00:00",
+  "system": "/nix/store/sx7lpr80cx0n9vzsi3cwz9nxawqc4p1i-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+  "system_units": {
+    "backup": {
+      "path": "/nix/store/sx7lpr80cx0n9vzsi3cwz9nxawqc4p1i-nixos-system-swingset-lxc-25.11.20260630.b6018f8/etc/systemd/system/swingset-backup.service",
+      "sha256": "025c71e80cb4c154611afe0b0d6d58ac24bc21f66a1ebd1b18dc0dbbcc4e082a"
+    },
+    "cycle": {
+      "path": "/nix/store/sx7lpr80cx0n9vzsi3cwz9nxawqc4p1i-nixos-system-swingset-lxc-25.11.20260630.b6018f8/etc/systemd/system/swingset-cycle.service",
+      "sha256": "18969b78b259439987002336a4bd925d81de6e92739f25d827d77e4d79b0b3d9"
+    },
+    "summary": {
+      "path": "/nix/store/sx7lpr80cx0n9vzsi3cwz9nxawqc4p1i-nixos-system-swingset-lxc-25.11.20260630.b6018f8/etc/systemd/system/swingset-summary.service",
+      "sha256": "0c15073b83ba1cf6fb6157d91df0fa516ad5887f59ab57c6f3eb675e27740cb0"
+    }
+  },
+  "wrapper": {
+    "path": "/nix/store/kclnsxg5zfr1cyqrpsqlzrh9wqr0gmld-swingset/bin/swingset",
+    "sha256": "34df8ad5bedcd36369b225d0e611bce294229b91a18b03b00bd56b208e311edf"
+  }
+}

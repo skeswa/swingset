@@ -1,0 +1,7 @@
+Running as unit: swingset-h16-init-reviewed-002-007.service
+          Finished with result: success
+Main processes terminated with: code=exited, status=0/SUCCESS
+               Service runtime: 13min 31.768s
+             CPU time consumed: 13min 28.161s
+                   Memory peak: 3.2G (swap: 0B)
+                      IO Bytes: read 4.3G, written 1.9G

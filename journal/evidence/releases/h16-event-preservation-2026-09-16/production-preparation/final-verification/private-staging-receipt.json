@@ -1,0 +1,39 @@
+{
+  "at": "2026-09-16T20:04:25.642497+00:00",
+  "coordinator_review_sha256": "7a34692d274bff317873ed4d2f5fff83bfa109233828a43b6879a57753fec51f",
+  "destination": "/var/lib/swingset/operations/h16-event-preservation-release-20260916/final-verification",
+  "directory": {
+    "gid": 995,
+    "mode": "0o700",
+    "uid": 996
+  },
+  "files": {
+    "coordinator-review.json": {
+      "gid": 995,
+      "mode": "0o600",
+      "sha256": "7a34692d274bff317873ed4d2f5fff83bfa109233828a43b6879a57753fec51f",
+      "size": 1388,
+      "uid": 996
+    },
+    "offline-checks-001.json": {
+      "gid": 995,
+      "mode": "0o600",
+      "sha256": "790300b799f27c9e594253a4001c0f70468091cb2ec199f0c8959b17b790f48e",
+      "size": 1281,
+      "uid": 996
+    },
+    "verify-initialization.py": {
+      "gid": 995,
+      "mode": "0o600",
+      "sha256": "77a093da0dbbdf701f59c50bd837cd90b45553b108cbc62bf2caab81f44f4b65",
+      "size": 19821,
+      "uid": 996
+    }
+  },
+  "format": "h16-initialization-verifier-private-staging-v1",
+  "passed": true,
+  "production_database_modified": false,
+  "production_database_read": false,
+  "source": "/Users/skeswa/repos/skeswa/swingset/journal/evidence/releases/h16-event-preservation-2026-09-16/production-preparation/final-verification",
+  "verifier_executed": false
+}

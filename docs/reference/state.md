@@ -293,7 +293,8 @@ are deduplicated. This records attempt state, not operating-system liveness.
 
 ## Event completion persistence (H14 extension)
 
-Accepted design, implementation pending. [Scheduling](scheduling.md#event-completion)
+Accepted design; local enumeration and inventory implementation is covered by
+offline tests. Deployment and complete extension acceptance remain pending. [Scheduling](scheduling.md#event-completion)
 owns eligibility and rotation; this section owns their durable support.
 
 Reuse `scheduler_parent_links`, watches, admitted source generations, request
@@ -325,6 +326,69 @@ requests. Recover discovery and progress times only from supporting records.
 Migration creates pending work or explicit uncertainty, never successful fetches,
 new host capacity, or inferred historical scheduling decisions. Published counts
 come from the selected release, as defined by [coverage](data-model.md#event-completion-coverage).
+
+Schema 22 adds replaceable `event_accounting_support_observations` for bounded
+parent checks and immutable, change-only `event_accounting_receipts` for observed
+assessment changes. They share progress policy and invalidation fences. They
+record neither a completion authority nor historical timestamps before recording
+began. Checkpoints retain them; normal restore activation invalidates fresh hints
+without deleting the historical receipts. These tables do not authorize retirement. See [reporting semantics](operations.md#event-completion-reporting-h14-extension).
+
+Schema 23 adds `event_retirement_observations` for one current enumeration edge
+and immutable `event_retirement_receipts` for verified source-owned page
+withdrawals. The proof digest excludes observation time and observer policy;
+repeated checks cannot duplicate the same withdrawal. Current observations share
+progress fences and expiry, while backups preserve historical receipts. A
+withdrawal receipt neither deletes data nor establishes whole-event retirement.
+
+Schema 24 adds replaceable `event_gap_observations` for explicit unavailable-origin
+responses and `event_gap_revisions` for source-wide snapshot-domain invalidation.
+Gap records retain exact support metadata and a digest, share progress policy,
+enumeration, epoch and TTL, and also require the captured source revision.
+They are separate from acquired/interpreted stage operations and successful
+progress receipts. Snapshot changes and watch source moves/deletion invalidate
+the affected source domains; rare support metadata rewrites and watch source changes also invalidate
+positive stage observations through the ordinary global epoch. Ordinary new
+snapshots preserve missing-to-success qualification. Backups retain these tables;
+normal restore activation invalidates their freshness through the existing epoch.
+
+### Local enumeration and verification interfaces
+
+Migration 16 adds `source_event_inventory` current pointers, immutable
+`source_event_enumerations`, `source_event_enumeration_members`, indexed
+`source_event_member_watches`, and `event_enumeration_inputs` bootstrap receipts.
+None stores an authoritative acquired, interpreted, or complete flag.
+
+`event_enumerations.bootstrap(database, now=..., limit=100)` processes at most
+100 accepted decisions and 100 legacy watches. Parent evidence, membership,
+transitions, and cursors commit together. Failed parent validation records an
+explicit error without partial membership. Non-event inputs advance the cursor
+with an ignored reason. Registry and calendar inputs are skipped without decoding
+their large payloads. Source event membership follows actual parser purpose,
+including EEPro autoindex and WDR awards JSON watches. Unknown legacy event or
+round parsers remain explicitly unassessed; known discovery parsers cannot
+become event groups merely through a mislabeled watch kind. Bootstrap makes no requests or watch scheduling changes.
+
+`memberships(conn, watch_ids)` returns current source/reference/enumeration/request
+associations through an index. It does not certify evidence or request eligibility;
+blocked and revoked obligations remain visible.
+
+`event_inventory.inventory(conn, archive, source=..., source_ref=..., now=...)`
+uses the caller's read snapshot and an Archive without recovery. It returns
+listed, acquired, interpreted, and observed unavailable distinct-page counts; supporting generations;
+member blockers; predecessor and membership changes; verification time and basis;
+and explicit pagination uncertainty. It hashes the actual local body and extract
+files sequentially. Subsequent calls recheck bytes, so file loss reopens stages.
+`known_pages_accounted_for` requires nonempty known membership and usable parent
+and page evidence; it is not whole-event completeness or publication. No current
+adapter proves whole-event pagination. Published count, eligible-service age,
+and historical successful-progress time remain unknown in this local view.
+
+Legacy-only events have unknown denominators. Older schemas return
+`event_inventory_schema_unavailable` without migration. Canonical mappings are
+reporting metadata and never change membership identity or discovery age.
+[D-0009](../../journal/decisions/0009-retained-source-event-enumerations.md)
+records the implementation choice and its limits.
 
 ## Derivation generations (H15)
 

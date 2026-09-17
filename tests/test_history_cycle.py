@@ -351,3 +351,62 @@ def test_blocked_capture_token_does_not_starve_older_complete_capture(
     assert fixture.conn.execute(
         "SELECT 1 FROM pending_work WHERE stage='parse' AND unit_id=?", (first_snapshot,)
     ).fetchone()
+
+
+def test_historical_candidates_compete_together_before_offline_phase(
+    fixture, tmp_path, monkeypatch
+):
+    from test_platform_backfill import EVENT
+
+    config_dir, overrides_dir, target = prepare_cycle(fixture, tmp_path, monkeypatch)
+    second_url = "https://eepro.com/results/other2019/"
+    fixture.conn.execute(
+        "INSERT INTO source_event_map VALUES ('eepro','eepro:other2019',?,'explicit',1)",
+        (EVENT.event_id,),
+    )
+    fixture.conn.execute(
+        "INSERT INTO archive_captures VALUES ('eepro',?,'20190501000000','second',200,'text/html',100,?,'retained')",
+        (second_url, fixture.clock.now().isoformat()),
+    )
+    accept(fixture)
+    real_prepare, enrolled = cycle.prepare_event_turns, []
+
+    def prepare(*args, **kwargs):
+        enrolled.append({choice.key for choice in kwargs["extra_choices"]})
+        return real_prepare(*args, **kwargs)
+
+    monkeypatch.setattr(cycle, "prepare_event_turns", prepare)
+    real_parse, parsed = derive.parse_snapshot, []
+    requests = []
+
+    def parse(*args, **kwargs):
+        # Both admitted offers use the first acquisition allocation. The old
+        # first-only offer reached interpretation before offering the second.
+        assert len(requests) == 2
+        parsed.append(args[2].unit_id)
+        return real_parse(*args, **kwargs)
+
+    monkeypatch.setattr(derive, "parse_snapshot", parse)
+    body = Path("tests/fixtures/sources/eepro-archive/freedomswing2019.html").read_bytes()
+
+    def handler(request):
+        assert request.url.host == "web.archive.org"
+        if request.url.path == "/robots.txt":
+            return httpx.Response(404)
+        requests.append(str(request.url))
+        return httpx.Response(200, content=body)
+
+    result = cycle.run_cycle(
+        fixture.db,
+        config_dir=config_dir,
+        overrides_dir=overrides_dir,
+        clock=fixture.clock,
+        transport=httpx.MockTransport(handler),
+        budget=120,
+        should_stop=lambda: bool(parsed),
+    )
+    assert result["checked"] == 2 and len(parsed) == 1
+    assert len(enrolled[0]) == 2 and target.watch_id in enrolled[0]
+    assert any(second_url in request for request in requests)
+    assert fixture.conn.execute("SELECT count(*) FROM scheduler_event_requests").fetchone()[0] == 3
+    assert fixture.conn.execute("SELECT sum(requests) FROM host_budget").fetchone()[0] == 3

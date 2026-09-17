@@ -1,0 +1,98 @@
+{
+  "elapsed_seconds": 25.044553069979884,
+  "final": {
+    "ActiveState": "failed",
+    "ExecMainCode": "1",
+    "ExecMainStatus": "1",
+    "MainPID": "0",
+    "MemoryCurrent": "[not set]",
+    "MemoryPeak": "3346051072",
+    "Result": "exit-code",
+    "SubState": "failed"
+  },
+  "finished_at": "2026-09-16T16:14:02.469230+00:00",
+  "format": "h16-build-resource-observation-v1",
+  "peak_anon_kib": 1732456,
+  "peak_rss_kib": 1825812,
+  "samples": [
+    {
+      "ActiveState": "active",
+      "ExecMainCode": "0",
+      "ExecMainStatus": "0",
+      "MainPID": "94848",
+      "MemoryCurrent": "204886016",
+      "MemoryPeak": "204890112",
+      "Result": "success",
+      "SubState": "running",
+      "anon_kib": 32276,
+      "elapsed_seconds": 0.0033180659520439804,
+      "rss_kib": 101112
+    },
+    {
+      "ActiveState": "active",
+      "ExecMainCode": "0",
+      "ExecMainStatus": "0",
+      "MainPID": "94848",
+      "MemoryCurrent": "2220408832",
+      "MemoryPeak": "3182563328",
+      "Result": "success",
+      "SubState": "running",
+      "anon_kib": 1434172,
+      "elapsed_seconds": 5.0101410479983315,
+      "rss_kib": 1528348
+    },
+    {
+      "ActiveState": "active",
+      "ExecMainCode": "0",
+      "ExecMainStatus": "0",
+      "MainPID": "94848",
+      "MemoryCurrent": "2736156672",
+      "MemoryPeak": "3182563328",
+      "Result": "success",
+      "SubState": "running",
+      "anon_kib": 1204540,
+      "elapsed_seconds": 10.019986968953162,
+      "rss_kib": 1297896
+    },
+    {
+      "ActiveState": "active",
+      "ExecMainCode": "0",
+      "ExecMainStatus": "0",
+      "MainPID": "94848",
+      "MemoryCurrent": "3282153472",
+      "MemoryPeak": "3306926080",
+      "Result": "success",
+      "SubState": "running",
+      "anon_kib": 1732456,
+      "elapsed_seconds": 15.029464345949236,
+      "rss_kib": 1825812
+    },
+    {
+      "ActiveState": "active",
+      "ExecMainCode": "0",
+      "ExecMainStatus": "0",
+      "MainPID": "94848",
+      "MemoryCurrent": "2321055744",
+      "MemoryPeak": "3346051072",
+      "Result": "success",
+      "SubState": "running",
+      "anon_kib": 450068,
+      "elapsed_seconds": 20.03531677799765,
+      "rss_kib": 544300
+    },
+    {
+      "ActiveState": "failed",
+      "ExecMainCode": "1",
+      "ExecMainStatus": "1",
+      "MainPID": "0",
+      "MemoryCurrent": "[not set]",
+      "MemoryPeak": "3346051072",
+      "Result": "exit-code",
+      "SubState": "failed",
+      "elapsed_seconds": 25.044553069979884
+    }
+  ],
+  "started_at": "2026-09-16T16:13:37.424395+00:00",
+  "terminated_reason": null,
+  "unit": "swingset-h16-proof-audit.service"
+}

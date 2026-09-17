@@ -8,6 +8,7 @@ from collections.abc import Mapping
 from datetime import datetime
 from typing import Any
 
+from swingset.fetch.archive import Archive
 from swingset.publish.safety import reject_candidate, verify_candidate_files
 from swingset.state import derivations
 from swingset.state.attempts import SupersededWorkError
@@ -16,6 +17,8 @@ from swingset.state.work import WorkUnit
 
 from .builder import BuildError, BuildResult
 from .closure import ClosureError, ReleaseClosure, hydrate, retain
+from .closure_validation import validation_scope
+from .event_artifacts import artifact_source
 from .identity_policy import correction_token
 
 
@@ -73,7 +76,11 @@ def complete(
     # Hash potentially large files outside the short SQLite write transaction.
     verify_candidate_files(result.path)
     try:
-        with database.transaction() as conn:
+        with (
+            database.transaction() as conn,
+            validation_scope(conn),
+            artifact_source(conn, Archive(database.state_dir)),
+        ):
             if baseline_commit(database) != selection.context["baseline_commit"]:
                 raise SupersededWorkError("build baseline changed before completion")
             accepted = conn.execute(

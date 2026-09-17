@@ -1,0 +1,93 @@
+{
+  "all_baseline_judges_preserved": true,
+  "at": "2026-09-16T16:41:02.397229+00:00",
+  "base_source": "/nix/store/4c4q8rkiz6jqizcy93bid6cz8mfvp20b-source",
+  "baseline_judges": 4931,
+  "candidate": "/var/tmp/swingset-h16-proof-build/candidates/cand_cbbeeadd90634cc9",
+  "candidate_manifest_sha256": "cf0deef44cc7a71099fea643431b5f899e0e2f42b79f2ec8435074e4ed7c0c08",
+  "database_total_changes": 0,
+  "diagnostic_only": true,
+  "elapsed_seconds": 76.94375033804681,
+  "event_omission_count": 0,
+  "event_omission_examples": [],
+  "finished_at": "2026-09-16T16:42:19.340981+00:00",
+  "format": "h16-event-preservation-reconstruction-diagnostic-v1",
+  "judge_difference_count": 0,
+  "judge_differences": [],
+  "network_requests": 0,
+  "override_module": "swingset.build.closure_rows",
+  "override_path": "/Users/skeswa/repos/skeswa/swingset/journal/evidence/releases/h16-event-preservation-2026-09-16/closure_rows.diagnostic.py",
+  "override_sha256": "982f8b4eb1bdd96ad8473882b312242ec4a45b3cf0c68bc4a0426de2683798e7",
+  "passed": true,
+  "private_closure_digest": "545008d8578294c60d3a8c3343335f9ec3a333093afe78b194c4defddda62769",
+  "production_mutated": false,
+  "reconstructed_judges": 4931,
+  "reconstruction_counts": {
+    "legacy_owned_values_not_published": 908,
+    "legacy_unassessed_retained": 73902
+  },
+  "release_acceptance": false,
+  "remaining_occurrence_mismatches": 47,
+  "remaining_registry_mismatch_rows": 22201,
+  "replay_file_stamps_after": {
+    "/var/tmp/swingset-h16-proof-build/state.sqlite": {
+      "mtime_ns": 1789575126046230830,
+      "size": 5009973248
+    },
+    "/var/tmp/swingset-h16-proof-build/state.sqlite-wal": {
+      "mtime_ns": 1789575220714943363,
+      "size": 0
+    },
+    "/var/tmp/swingset-h16-proof-replay/state.sqlite": {
+      "mtime_ns": 1789574623986504314,
+      "size": 4571521024
+    },
+    "/var/tmp/swingset-h16-proof-replay/state.sqlite-wal": {
+      "mtime_ns": 1789574638131387770,
+      "size": 158673592
+    }
+  },
+  "replay_file_stamps_before": {
+    "/var/tmp/swingset-h16-proof-build/state.sqlite": {
+      "mtime_ns": 1789575126046230830,
+      "size": 5009973248
+    },
+    "/var/tmp/swingset-h16-proof-build/state.sqlite-wal": {
+      "mtime_ns": 1789575220714943363,
+      "size": 0
+    },
+    "/var/tmp/swingset-h16-proof-replay/state.sqlite": {
+      "mtime_ns": 1789574623986504314,
+      "size": 4571521024
+    },
+    "/var/tmp/swingset-h16-proof-replay/state.sqlite-wal": {
+      "mtime_ns": 1789574638131387770,
+      "size": 158673592
+    }
+  },
+  "replay_schema_version": 14,
+  "row_counts": {
+    "callback_marks": 484141,
+    "callbacks": 98481,
+    "contests": 2644,
+    "coverage": 66,
+    "dancers": 27784,
+    "entries": 93820,
+    "events": 2541,
+    "final_marks": 121623,
+    "identity_link_resolutions": 98751,
+    "identity_links": 98751,
+    "judges": 4931,
+    "link_candidates": 92499,
+    "placements": 20236,
+    "registry_placements": 197990,
+    "rounds": 4279,
+    "series": 288,
+    "source_event_map": 404,
+    "source_events": 83
+  },
+  "scope_limit": "Only closure_rows overridden; map/history/link generations remain old. This diagnostic cannot accept a release.",
+  "selected_generations": 34986,
+  "selected_source_support": 58169,
+  "source_receipt_sha256": "71dc14101ca19880f3addfa2dc0073dbe50bce0e4e2be27d7bc91811b6d1e338"
+}

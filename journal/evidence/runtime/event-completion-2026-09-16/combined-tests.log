@@ -1,0 +1,1065 @@
+........................................................................ [  4%]
+........................................................................ [  9%]
+........................................................................ [ 14%]
+........................................................................ [ 19%]
+........................................................................ [ 24%]
+........................................................................ [ 29%]
+........................................................................ [ 34%]
+........................................................................ [ 39%]
+........................................................................ [ 44%]
+........................................................................ [ 49%]
+.....................................................F.................. [ 54%]
+........................................................................ [ 59%]
+........................................................................ [ 64%]
+........................................................................ [ 69%]
+........................................................................ [ 74%]
+........................................................................ [ 79%]
+........................................................................ [ 84%]
+.............................................F.......................... [ 89%]
+........................................................................ [ 94%]
+.............................................FF.....FFFFF...FF.FFFFFFFFF [ 99%]
+FFF......                                                                [100%]
+=================================== FAILURES ===================================
+___ test_schema15_adds_only_empty_intent_receipts_preserving_prior_evidence ____
+
+tmp_path = PosixPath('/private/var/folders/kc/94jncx6s6pqc8g2g4f2kyvtr0000gn/T/pytest-of-skeswa/pytest-918/test_schema15_adds_only_empty_0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x1171d9970>
+
+    def test_schema15_adds_only_empty_intent_receipts_preserving_prior_evidence(tmp_path, monkeypatch):
+        from swingset.clock import FakeClock
+        from swingset.schedule.watches import upsert_watch
+        from swingset.sources.base import WatchSpec
+        from swingset.state import db as db_module
+    
+        clock = FakeClock()
+        with monkeypatch.context() as old:
+            old.setattr(db_module, "SCHEMA_VERSION", 14)
+            with db_module.open_database(tmp_path) as database:
+                database.start_run(clock.now())
+                upsert_watch(
+                    database.connection,
+                    WatchSpec(
+                        "",
+                        "eepro",
+                        "autoindex",
+                        "GET",
+                        URL,
+                        "eepro.autoindex",
+                        source_ref=EVENT.source_ref,
+                    ),
+                    clock.now(),
+                )
+                database.connection.execute(
+                    "UPDATE watches SET notes='existing operator evidence',state='paused',next_check_at=NULL"
+                )
+                names = [
+                    row[0]
+                    for row in database.connection.execute(
+                        "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name"
+                    )
+                ]
+                before = {
+                    name: sorted(
+                        tuple(row) for row in database.connection.execute(f'SELECT * FROM "{name}"')
+                    )
+                    for name in names
+                    if name != "meta"
+                }
+                meta = dict(
+                    database.connection.execute(
+                        "SELECT key,value FROM meta WHERE key!='schema_version'"
+                    )
+                )
+        with db_module.open_database(tmp_path) as database:
+>           assert database.connection.execute("PRAGMA user_version").fetchone()[0] == 15
+E           assert 17 == 15
+
+tests/test_history_origin_dispatch.py:686: AssertionError
+______________ test_every_foreign_key_child_lookup_uses_an_index _______________
+
+tmp_path = PosixPath('/private/var/folders/kc/94jncx6s6pqc8g2g4f2kyvtr0000gn/T/pytest-of-skeswa/pytest-918/test_every_foreign_key_child_l0')
+
+    def test_every_foreign_key_child_lookup_uses_an_index(tmp_path):
+        """SQLite checks these child columns for every parent row being deleted."""
+        with open_database(tmp_path) as db:
+            conn = db.connection
+            tables = [
+                row[0] for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")
+            ]
+            checked = 0
+            for table in tables:
+                foreign_keys = {}
+                for row in conn.execute(f"PRAGMA foreign_key_list({table})"):
+                    foreign_keys.setdefault(row[0], []).append((row[1], row[3]))
+                for group in foreign_keys.values():
+                    columns = [column for _, column in sorted(group)]
+                    where = " AND ".join(f"{column}=?" for column in columns)
+                    plans = [
+                        row[3]
+                        for row in conn.execute(
+                            f"EXPLAIN QUERY PLAN SELECT rowid FROM {table} WHERE {where}",
+                            ["example"] * len(columns),
+                        )
+                    ]
+>                   assert all(not plan.startswith("SCAN") for plan in plans), (table, columns, plans)
+E                   AssertionError: ('source_event_inventory', ['enumeration_id'], ['SCAN source_event_inventory'])
+E                   assert False
+E                    +  where False = all(<generator object test_every_foreign_key_child_lookup_uses_an_index.<locals>.<genexpr> at 0x117abdbe0>)
+
+tests/test_requirement_performance.py:200: AssertionError
+________ test_default_preflight_keeps_schema_and_all_evidence_unchanged ________
+
+operation = namespace(state=PosixPath('/private/var/folders/kc/94jncx6s6pqc8g2g4f2kyvtr0000gn/T/pytest-of-skeswa/pytest-918/test_d..._preflight_keeps_s0/ops/acceptance.json'), expected='91c403565b63fe3c808907658640985c6512eba08ecf1a3c70d5e42600bb25de')
+
+    def test_default_preflight_keeps_schema_and_all_evidence_unchanged(operation):
+        f = operation
+        with open_database(f.state, lock=False, read_only=True) as db:
+            before = driver.protected_state(db.connection)
+>       receipt = run(f)
+                  ^^^^^^
+
+tests/test_wp16_operational_preparation.py:165: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_wp16_operational_preparation.py:156: in run
+    return driver.run(
+journal/tools/runtime/accept_wp16.py:490: in run
+    else preflight(state, source, gate, expected_receipt)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+journal/tools/runtime/accept_wp16.py:314: in preflight
+    receipt = prerequisites(state, source, gate_path, expected_receipt)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+journal/tools/runtime/accept_wp16.py:273: in prerequisites
+    verify_runtime(source, gate, expected_receipt)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+source = PosixPath('/private/var/folders/kc/94jncx6s6pqc8g2g4f2kyvtr0000gn/T/pytest-of-skeswa/pytest-918/test_default_preflight_keeps_s0/source')
+gate = {'format': 'wp16-operational-gate-v1', 'h16_release_verified': True, 'verified_at': '2026-09-13T19:03:00+00:00', 'driver_sha256': '1d9b1a424c21fc9eb0a4e212ad16b9f212d2f2dcdeb39339bb301bd91e951038', ...}
+expected_receipt = '91c403565b63fe3c808907658640985c6512eba08ecf1a3c70d5e42600bb25de'
+
+    def verify_runtime(source: Path, gate: dict[str, Any], expected_receipt: str) -> None:
+        receipt = source / SOURCE_RECEIPT
+        if (
+            gate.get("source_receipt_sha256") != expected_receipt
+            or prior.digest(receipt) != expected_receipt
+        ):
+            raise ValueError("frozen WP16 source receipt differs")
+        assembly = json.loads(receipt.read_bytes())
+        if (
+            assembly.get("format") != "wp16-reviewed-source-v1"
+            or assembly.get("schema") != 15
+            or assembly.get("acquisition_enabled") is not False
+            or assembly.get("repairs_activated") is not False
+        ):
+            raise ValueError("reviewed schema15 source without activation required")
+        prior.verify_files(source, assembly["files"])
+        actual = {
+            p.relative_to(source).as_posix()
+            for p in source.rglob("*")
+            if p.is_file() and "__pycache__" not in p.parts and p != receipt
+        }
+        if actual != set(assembly["files"]):
+            raise ValueError("frozen source closure differs")
+        if (
+            db_module.SCHEMA_VERSION != 15
+            or Path(db_module.__file__).resolve() != (source / "src/swingset/state/db.py").resolve()
+            or Path(prior.__file__).resolve()
+            != (source / "journal/tools/runtime/accept_h11.py").resolve()
+        ):
+>           raise ValueError("runtime and helper must come from exact frozen schema15 source")
+E           ValueError: runtime and helper must come from exact frozen schema15 source
+
+journal/tools/runtime/accept_wp16.py:146: ValueError
+_______ test_migration_only_preserves_authority_and_fresh_doctor_matches _______
+
+operation = namespace(state=PosixPath('/private/var/folders/kc/94jncx6s6pqc8g2g4f2kyvtr0000gn/T/pytest-of-skeswa/pytest-918/test_m...on_only_preserves_0/ops/acceptance.json'), expected='91c403565b63fe3c808907658640985c6512eba08ecf1a3c70d5e42600bb25de')
+
+    def test_migration_only_preserves_authority_and_fresh_doctor_matches(operation):
+        f = operation
+>       result = run(f, execute=True)
+                 ^^^^^^^^^^^^^^^^^^^^
+
+tests/test_wp16_operational_preparation.py:177: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_wp16_operational_preparation.py:156: in run
+    return driver.run(
+journal/tools/runtime/accept_wp16.py:490: in run
+    else preflight(state, source, gate, expected_receipt)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+journal/tools/runtime/accept_wp16.py:314: in preflight
+    receipt = prerequisites(state, source, gate_path, expected_receipt)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+journal/tools/runtime/accept_wp16.py:273: in prerequisites
+    verify_runtime(source, gate, expected_receipt)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+source = PosixPath('/private/var/folders/kc/94jncx6s6pqc8g2g4f2kyvtr0000gn/T/pytest-of-skeswa/pytest-918/test_migration_only_preserves_0/source')
+gate = {'format': 'wp16-operational-gate-v1', 'h16_release_verified': True, 'verified_at': '2026-09-13T19:03:00+00:00', 'driver_sha256': '1d9b1a424c21fc9eb0a4e212ad16b9f212d2f2dcdeb39339bb301bd91e951038', ...}
+expected_receipt = '91c403565b63fe3c808907658640985c6512eba08ecf1a3c70d5e42600bb25de'
+
+    def verify_runtime(source: Path, gate: dict[str, Any], expected_receipt: str) -> None:
+        receipt = source / SOURCE_RECEIPT
+        if (
+            gate.get("source_receipt_sha256") != expected_receipt
+            or prior.digest(receipt) != expected_receipt
+        ):
+            raise ValueError("frozen WP16 source receipt differs")
+        assembly = json.loads(receipt.read_bytes())
+        if (
+            assembly.get("format") != "wp16-reviewed-source-v1"
+            or assembly.get("schema") != 15
+            or assembly.get("acquisition_enabled") is not False
+            or assembly.get("repairs_activated") is not False
+        ):
+            raise ValueError("reviewed schema15 source without activation required")
+        prior.verify_files(source, assembly["files"])
+        actual = {
+            p.relative_to(source).as_posix()
+            for p in source.rglob("*")
+            if p.is_file() and "__pycache__" not in p.parts and p != receipt
+        }
+        if actual != set(assembly["files"]):
+            raise ValueError("frozen source closure differs")
+        if (
+            db_module.SCHEMA_VERSION != 15
+            or Path(db_module.__file__).resolve() != (source / "src/swingset/state/db.py").resolve()
+            or Path(prior.__file__).resolve()
+            != (source / "journal/tools/runtime/accept_h11.py").resolve()
+        ):
+>           raise ValueError("runtime and helper must come from exact frozen schema15 source")
+E           ValueError: runtime and helper must come from exact frozen schema15 source
+
+journal/tools/runtime/accept_wp16.py:146: ValueError
+__________ test_preflight_detects_changed_live_authority[host_budget] __________
+
+operation = namespace(state=PosixPath('/private/var/folders/kc/94jncx6s6pqc8g2g4f2kyvtr0000gn/T/pytest-of-skeswa/pytest-918/test_p...ht_detects_changed0/ops/acceptance.json'), expected='91c403565b63fe3c808907658640985c6512eba08ecf1a3c70d5e42600bb25de')
+kind = 'host_budget'
+
+    @pytest.mark.parametrize(
+        "kind", ["host_budget", "accepted_inputs", "identity_revision", "control", "schema"]
+    )
+    def test_preflight_detects_changed_live_authority(operation, kind):
+        f = operation
+        with closing(sqlite3.connect(f.state / "state.sqlite")) as conn:
+            conn.execute(
+                {
+                    "host_budget": "UPDATE host_budget SET requests=199",
+                    "accepted_inputs": "UPDATE accepted_inputs SET digest='changed'",
+                    "identity_revision": "UPDATE revisions SET value=value+1 WHERE name='identity_decisions'",
+                    "control": "UPDATE operator_pauses SET reason='changed'",
+                    "schema": "CREATE INDEX unreviewed_schema_object ON pending_work(stage)",
+                }[kind]
+            )
+            conn.commit()
+>       with pytest.raises(ValueError, match="diverged"):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: Regex pattern did not match.
+E         Expected regex: 'diverged'
+E         Actual message: 'runtime and helper must come from exact frozen schema15 source'
+
+tests/test_wp16_operational_preparation.py:226: AssertionError
+________ test_preflight_detects_changed_live_authority[accepted_inputs] ________
+
+operation = namespace(state=PosixPath('/private/var/folders/kc/94jncx6s6pqc8g2g4f2kyvtr0000gn/T/pytest-of-skeswa/pytest-918/test_p...ht_detects_changed1/ops/acceptance.json'), expected='91c403565b63fe3c808907658640985c6512eba08ecf1a3c70d5e42600bb25de')
+kind = 'accepted_inputs'
+
+    @pytest.mark.parametrize(
+        "kind", ["host_budget", "accepted_inputs", "identity_revision", "control", "schema"]
+    )
+    def test_preflight_detects_changed_live_authority(operation, kind):
+        f = operation
+        with closing(sqlite3.connect(f.state / "state.sqlite")) as conn:
+            conn.execute(
+                {
+                    "host_budget": "UPDATE host_budget SET requests=199",
+                    "accepted_inputs": "UPDATE accepted_inputs SET digest='changed'",
+                    "identity_revision": "UPDATE revisions SET value=value+1 WHERE name='identity_decisions'",
+                    "control": "UPDATE operator_pauses SET reason='changed'",
+                    "schema": "CREATE INDEX unreviewed_schema_object ON pending_work(stage)",
+                }[kind]
+            )
+            conn.commit()
+>       with pytest.raises(ValueError, match="diverged"):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: Regex pattern did not match.
+E         Expected regex: 'diverged'
+E         Actual message: 'runtime and helper must come from exact frozen schema15 source'
+
+tests/test_wp16_operational_preparation.py:226: AssertionError
+_______ test_preflight_detects_changed_live_authority[identity_revision] _______
+
+operation = namespace(state=PosixPath('/private/var/folders/kc/94jncx6s6pqc8g2g4f2kyvtr0000gn/T/pytest-of-skeswa/pytest-918/test_p...ht_detects_changed2/ops/acceptance.json'), expected='91c403565b63fe3c808907658640985c6512eba08ecf1a3c70d5e42600bb25de')
+kind = 'identity_revision'
+
+    @pytest.mark.parametrize(
+        "kind", ["host_budget", "accepted_inputs", "identity_revision", "control", "schema"]
+    )
+    def test_preflight_detects_changed_live_authority(operation, kind):
+        f = operation
+        with closing(sqlite3.connect(f.state / "state.sqlite")) as conn:
+            conn.execute(
+                {
+                    "host_budget": "UPDATE host_budget SET requests=199",
+                    "accepted_inputs": "UPDATE accepted_inputs SET digest='changed'",
+                    "identity_revision": "UPDATE revisions SET value=value+1 WHERE name='identity_decisions'",
+                    "control": "UPDATE operator_pauses SET reason='changed'",
+                    "schema": "CREATE INDEX unreviewed_schema_object ON pending_work(stage)",
+                }[kind]
+            )
+            conn.commit()
+>       with pytest.raises(ValueError, match="diverged"):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: Regex pattern did not match.
+E         Expected regex: 'diverged'
+E         Actual message: 'runtime and helper must come from exact frozen schema15 source'
+
+tests/test_wp16_operational_preparation.py:226: AssertionError
+____________ test_preflight_detects_changed_live_authority[control] ____________
+
+operation = namespace(state=PosixPath('/private/var/folders/kc/94jncx6s6pqc8g2g4f2kyvtr0000gn/T/pytest-of-skeswa/pytest-918/test_p...ht_detects_changed3/ops/acceptance.json'), expected='91c403565b63fe3c808907658640985c6512eba08ecf1a3c70d5e42600bb25de')
+kind = 'control'
+
+    @pytest.mark.parametrize(
+        "kind", ["host_budget", "accepted_inputs", "identity_revision", "control", "schema"]
+    )
+    def test_preflight_detects_changed_live_authority(operation, kind):
+        f = operation
+        with closing(sqlite3.connect(f.state / "state.sqlite")) as conn:
+            conn.execute(
+                {
+                    "host_budget": "UPDATE host_budget SET requests=199",
+                    "accepted_inputs": "UPDATE accepted_inputs SET digest='changed'",
+                    "identity_revision": "UPDATE revisions SET value=value+1 WHERE name='identity_decisions'",
+                    "control": "UPDATE operator_pauses SET reason='changed'",
+                    "schema": "CREATE INDEX unreviewed_schema_object ON pending_work(stage)",
+                }[kind]
+            )
+            conn.commit()
+>       with pytest.raises(ValueError, match="diverged"):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: Regex pattern did not match.
+E         Expected regex: 'diverged'
+E         Actual message: 'runtime and helper must come from exact frozen schema15 source'
+
+tests/test_wp16_operational_preparation.py:226: AssertionError
+____________ test_preflight_detects_changed_live_authority[schema] _____________
+
+operation = namespace(state=PosixPath('/private/var/folders/kc/94jncx6s6pqc8g2g4f2kyvtr0000gn/T/pytest-of-skeswa/pytest-918/test_p...ht_detects_changed4/ops/acceptance.json'), expected='91c403565b63fe3c808907658640985c6512eba08ecf1a3c70d5e42600bb25de')
+kind = 'schema'
+
+    @pytest.mark.parametrize(
+        "kind", ["host_budget", "accepted_inputs", "identity_revision", "control", "schema"]
+    )
+    def test_preflight_detects_changed_live_authority(operation, kind):
+        f = operation
+        with closing(sqlite3.connect(f.state / "state.sqlite")) as conn:
+            conn.execute(
+                {
+                    "host_budget": "UPDATE host_budget SET requests=199",
+                    "accepted_inputs": "UPDATE accepted_inputs SET digest='changed'",
+                    "identity_revision": "UPDATE revisions SET value=value+1 WHERE name='identity_decisions'",
+                    "control": "UPDATE operator_pauses SET reason='changed'",
+                    "schema": "CREATE INDEX unreviewed_schema_object ON pending_work(stage)",
+                }[kind]
+            )
+            conn.commit()
+>       with pytest.raises(ValueError, match="diverged"):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: Regex pattern did not match.
+E         Expected regex: 'diverged'
+E         Actual message: 'runtime and helper must come from exact frozen schema15 source'
+
+tests/test_wp16_operational_preparation.py:226: AssertionError
+_________ test_public_baseline_requires_completed_h16_closure_receipt __________
+
+operation = namespace(state=PosixPath('/private/var/folders/kc/94jncx6s6pqc8g2g4f2kyvtr0000gn/T/pytest-of-skeswa/pytest-918/test_p...baseline_requires_0/ops/acceptance.json'), expected='91c403565b63fe3c808907658640985c6512eba08ecf1a3c70d5e42600bb25de')
+
+    def test_public_baseline_requires_completed_h16_closure_receipt(operation):
+        f = operation
+        path = f.state / "baseline/PUBLISHED"
+        data = json.loads(path.read_bytes())
+        data.pop("verified_at")
+        path.write_text(json.dumps(data))
+>       with pytest.raises(ValueError, match="completed H16"):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: Regex pattern did not match.
+E         Expected regex: 'completed H16'
+E         Actual message: 'runtime and helper must come from exact frozen schema15 source'
+
+tests/test_wp16_operational_preparation.py:261: AssertionError
+______________ test_new_tables_must_remain_empty_after_migration _______________
+
+operation = namespace(state=PosixPath('/private/var/folders/kc/94jncx6s6pqc8g2g4f2kyvtr0000gn/T/pytest-of-skeswa/pytest-918/test_n...les_must_remain_em0/ops/acceptance.json'), expected='91c403565b63fe3c808907658640985c6512eba08ecf1a3c70d5e42600bb25de')
+
+    def test_new_tables_must_remain_empty_after_migration(operation):
+        f = operation
+        with open_database(f.state, lock=False, read_only=True) as db:
+            before = driver.protected_state(db.connection)
+        with open_database(f.state) as db:
+>           driver.verify_migration(db.connection, before, f.source)
+
+tests/test_wp16_operational_preparation.py:270: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+conn = <sqlite3.Connection object at 0x1170715d0>
+before = {'schema': 14, 'schema_meta': '14', 'columns': {'accepted_inputs': ['consumer', 'input_name', 'digest'], 'admission_de...ission_reviews': {'count': 0, 'sha256': 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'}, ...}, ...}
+source = PosixPath('/private/var/folders/kc/94jncx6s6pqc8g2g4f2kyvtr0000gn/T/pytest-of-skeswa/pytest-918/test_new_tables_must_remain_em0/source')
+
+    def verify_migration(
+        conn: sqlite3.Connection, before: dict[str, Any], source: Path
+    ) -> dict[str, Any]:
+        after = protected_state(conn)
+        if after["schema"] != 15 or after["schema_meta"] != "15":
+>           raise ValueError("only schema14→15 migration is authorized")
+E           ValueError: only schema14→15 migration is authorized
+
+journal/tools/runtime/accept_wp16.py:96: ValueError
+___________ test_missing_nested_checkpoint_manifest_is_not_excluded ____________
+
+operation = namespace(state=PosixPath('/private/var/folders/kc/94jncx6s6pqc8g2g4f2kyvtr0000gn/T/pytest-of-skeswa/pytest-918/test_m..._nested_checkpoint0/ops/acceptance.json'), expected='91c403565b63fe3c808907658640985c6512eba08ecf1a3c70d5e42600bb25de')
+
+    def test_missing_nested_checkpoint_manifest_is_not_excluded(operation):
+        f = operation
+        nested = f.checkpoint / "inputs" / "retained" / "checkpoint.json"
+        nested.parent.mkdir(parents=True)
+        nested.write_text("{}")
+        # An extra nested manifest is real retained content, unlike only the root
+        # checkpoint manifest. It must never be skipped by a basename filter.
+>       with pytest.raises(ValueError, match="checkpoint closure"):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: Regex pattern did not match.
+E         Expected regex: 'checkpoint closure'
+E         Actual message: 'runtime and helper must come from exact frozen schema15 source'
+
+tests/test_wp16_operational_preparation.py:297: AssertionError
+_______ test_schema_object_mutation_is_rejected_even_with_unchanged_rows _______
+
+operation = namespace(state=PosixPath('/private/var/folders/kc/94jncx6s6pqc8g2g4f2kyvtr0000gn/T/pytest-of-skeswa/pytest-918/test_s...object_mutation_is0/ops/acceptance.json'), expected='91c403565b63fe3c808907658640985c6512eba08ecf1a3c70d5e42600bb25de')
+
+    def test_schema_object_mutation_is_rejected_even_with_unchanged_rows(operation):
+        f = operation
+        with open_database(f.state, lock=False, read_only=True) as db:
+            before = driver.protected_state(db.connection)
+        with open_database(f.state) as db:
+            db.connection.execute("DROP INDEX history_origin_requests_day")
+>           with pytest.raises(ValueError, match="schema objects"):
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           AssertionError: Regex pattern did not match.
+E             Expected regex: 'schema objects'
+E             Actual message: 'only schema14→15 migration is authorized'
+
+tests/test_wp16_operational_preparation.py:307: AssertionError
+____ test_committed_migration_resumes_from_immutable_intent_without_writer _____
+
+operation = namespace(state=PosixPath('/private/var/folders/kc/94jncx6s6pqc8g2g4f2kyvtr0000gn/T/pytest-of-skeswa/pytest-918/test_c...ed_migration_resum0/ops/acceptance.json'), expected='91c403565b63fe3c808907658640985c6512eba08ecf1a3c70d5e42600bb25de')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x1172383b0>
+
+    def test_committed_migration_resumes_from_immutable_intent_without_writer(operation, monkeypatch):
+        f = operation
+>       intent = failed_after_commit(f, monkeypatch)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_wp16_operational_preparation.py:331: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_wp16_operational_preparation.py:319: in failed_after_commit
+    driver.run(
+journal/tools/runtime/accept_wp16.py:490: in run
+    else preflight(state, source, gate, expected_receipt)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+journal/tools/runtime/accept_wp16.py:314: in preflight
+    receipt = prerequisites(state, source, gate_path, expected_receipt)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+journal/tools/runtime/accept_wp16.py:273: in prerequisites
+    verify_runtime(source, gate, expected_receipt)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+source = PosixPath('/private/var/folders/kc/94jncx6s6pqc8g2g4f2kyvtr0000gn/T/pytest-of-skeswa/pytest-918/test_committed_migration_resum0/source')
+gate = {'format': 'wp16-operational-gate-v1', 'h16_release_verified': True, 'verified_at': '2026-09-13T19:03:00+00:00', 'driver_sha256': '1d9b1a424c21fc9eb0a4e212ad16b9f212d2f2dcdeb39339bb301bd91e951038', ...}
+expected_receipt = '91c403565b63fe3c808907658640985c6512eba08ecf1a3c70d5e42600bb25de'
+
+    def verify_runtime(source: Path, gate: dict[str, Any], expected_receipt: str) -> None:
+        receipt = source / SOURCE_RECEIPT
+        if (
+            gate.get("source_receipt_sha256") != expected_receipt
+            or prior.digest(receipt) != expected_receipt
+        ):
+            raise ValueError("frozen WP16 source receipt differs")
+        assembly = json.loads(receipt.read_bytes())
+        if (
+            assembly.get("format") != "wp16-reviewed-source-v1"
+            or assembly.get("schema") != 15
+            or assembly.get("acquisition_enabled") is not False
+            or assembly.get("repairs_activated") is not False
+        ):
+            raise ValueError("reviewed schema15 source without activation required")
+        prior.verify_files(source, assembly["files"])
+        actual = {
+            p.relative_to(source).as_posix()
+            for p in source.rglob("*")
+            if p.is_file() and "__pycache__" not in p.parts and p != receipt
+        }
+        if actual != set(assembly["files"]):
+            raise ValueError("frozen source closure differs")
+        if (
+            db_module.SCHEMA_VERSION != 15
+            or Path(db_module.__file__).resolve() != (source / "src/swingset/state/db.py").resolve()
+            or Path(prior.__file__).resolve()
+            != (source / "journal/tools/runtime/accept_h11.py").resolve()
+        ):
+>           raise ValueError("runtime and helper must come from exact frozen schema15 source")
+E           ValueError: runtime and helper must come from exact frozen schema15 source
+
+journal/tools/runtime/accept_wp16.py:146: ValueError
+_ test_resume_cannot_bless_changes_after_interrupted_migration[accepted_inputs] _
+
+operation = namespace(state=PosixPath('/private/var/folders/kc/94jncx6s6pqc8g2g4f2kyvtr0000gn/T/pytest-of-skeswa/pytest-918/test_r...cannot_bless_chang0/ops/acceptance.json'), expected='91c403565b63fe3c808907658640985c6512eba08ecf1a3c70d5e42600bb25de')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x11688bec0>
+change = 'accepted_inputs'
+
+    @pytest.mark.parametrize("change", ["accepted_inputs", "new_evidence"])
+    def test_resume_cannot_bless_changes_after_interrupted_migration(operation, monkeypatch, change):
+        f = operation
+>       intent = failed_after_commit(f, monkeypatch)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_wp16_operational_preparation.py:366: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_wp16_operational_preparation.py:319: in failed_after_commit
+    driver.run(
+journal/tools/runtime/accept_wp16.py:490: in run
+    else preflight(state, source, gate, expected_receipt)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+journal/tools/runtime/accept_wp16.py:314: in preflight
+    receipt = prerequisites(state, source, gate_path, expected_receipt)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+journal/tools/runtime/accept_wp16.py:273: in prerequisites
+    verify_runtime(source, gate, expected_receipt)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+source = PosixPath('/private/var/folders/kc/94jncx6s6pqc8g2g4f2kyvtr0000gn/T/pytest-of-skeswa/pytest-918/test_resume_cannot_bless_chang0/source')
+gate = {'format': 'wp16-operational-gate-v1', 'h16_release_verified': True, 'verified_at': '2026-09-13T19:03:00+00:00', 'driver_sha256': '1d9b1a424c21fc9eb0a4e212ad16b9f212d2f2dcdeb39339bb301bd91e951038', ...}
+expected_receipt = '91c403565b63fe3c808907658640985c6512eba08ecf1a3c70d5e42600bb25de'
+
+    def verify_runtime(source: Path, gate: dict[str, Any], expected_receipt: str) -> None:
+        receipt = source / SOURCE_RECEIPT
+        if (
+            gate.get("source_receipt_sha256") != expected_receipt
+            or prior.digest(receipt) != expected_receipt
+        ):
+            raise ValueError("frozen WP16 source receipt differs")
+        assembly = json.loads(receipt.read_bytes())
+        if (
+            assembly.get("format") != "wp16-reviewed-source-v1"
+            or assembly.get("schema") != 15
+            or assembly.get("acquisition_enabled") is not False
+            or assembly.get("repairs_activated") is not False
+        ):
+            raise ValueError("reviewed schema15 source without activation required")
+        prior.verify_files(source, assembly["files"])
+        actual = {
+            p.relative_to(source).as_posix()
+            for p in source.rglob("*")
+            if p.is_file() and "__pycache__" not in p.parts and p != receipt
+        }
+        if actual != set(assembly["files"]):
+            raise ValueError("frozen source closure differs")
+        if (
+            db_module.SCHEMA_VERSION != 15
+            or Path(db_module.__file__).resolve() != (source / "src/swingset/state/db.py").resolve()
+            or Path(prior.__file__).resolve()
+            != (source / "journal/tools/runtime/accept_h11.py").resolve()
+        ):
+>           raise ValueError("runtime and helper must come from exact frozen schema15 source")
+E           ValueError: runtime and helper must come from exact frozen schema15 source
+
+journal/tools/runtime/accept_wp16.py:146: ValueError
+__ test_resume_cannot_bless_changes_after_interrupted_migration[new_evidence] __
+
+operation = namespace(state=PosixPath('/private/var/folders/kc/94jncx6s6pqc8g2g4f2kyvtr0000gn/T/pytest-of-skeswa/pytest-918/test_r...cannot_bless_chang1/ops/acceptance.json'), expected='91c403565b63fe3c808907658640985c6512eba08ecf1a3c70d5e42600bb25de')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x118851d90>
+change = 'new_evidence'
+
+    @pytest.mark.parametrize("change", ["accepted_inputs", "new_evidence"])
+    def test_resume_cannot_bless_changes_after_interrupted_migration(operation, monkeypatch, change):
+        f = operation
+>       intent = failed_after_commit(f, monkeypatch)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_wp16_operational_preparation.py:366: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_wp16_operational_preparation.py:319: in failed_after_commit
+    driver.run(
+journal/tools/runtime/accept_wp16.py:490: in run
+    else preflight(state, source, gate, expected_receipt)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+journal/tools/runtime/accept_wp16.py:314: in preflight
+    receipt = prerequisites(state, source, gate_path, expected_receipt)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+journal/tools/runtime/accept_wp16.py:273: in prerequisites
+    verify_runtime(source, gate, expected_receipt)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+source = PosixPath('/private/var/folders/kc/94jncx6s6pqc8g2g4f2kyvtr0000gn/T/pytest-of-skeswa/pytest-918/test_resume_cannot_bless_chang1/source')
+gate = {'format': 'wp16-operational-gate-v1', 'h16_release_verified': True, 'verified_at': '2026-09-13T19:03:00+00:00', 'driver_sha256': '1d9b1a424c21fc9eb0a4e212ad16b9f212d2f2dcdeb39339bb301bd91e951038', ...}
+expected_receipt = '91c403565b63fe3c808907658640985c6512eba08ecf1a3c70d5e42600bb25de'
+
+    def verify_runtime(source: Path, gate: dict[str, Any], expected_receipt: str) -> None:
+        receipt = source / SOURCE_RECEIPT
+        if (
+            gate.get("source_receipt_sha256") != expected_receipt
+            or prior.digest(receipt) != expected_receipt
+        ):
+            raise ValueError("frozen WP16 source receipt differs")
+        assembly = json.loads(receipt.read_bytes())
+        if (
+            assembly.get("format") != "wp16-reviewed-source-v1"
+            or assembly.get("schema") != 15
+            or assembly.get("acquisition_enabled") is not False
+            or assembly.get("repairs_activated") is not False
+        ):
+            raise ValueError("reviewed schema15 source without activation required")
+        prior.verify_files(source, assembly["files"])
+        actual = {
+            p.relative_to(source).as_posix()
+            for p in source.rglob("*")
+            if p.is_file() and "__pycache__" not in p.parts and p != receipt
+        }
+        if actual != set(assembly["files"]):
+            raise ValueError("frozen source closure differs")
+        if (
+            db_module.SCHEMA_VERSION != 15
+            or Path(db_module.__file__).resolve() != (source / "src/swingset/state/db.py").resolve()
+            or Path(prior.__file__).resolve()
+            != (source / "journal/tools/runtime/accept_h11.py").resolve()
+        ):
+>           raise ValueError("runtime and helper must come from exact frozen schema15 source")
+E           ValueError: runtime and helper must come from exact frozen schema15 source
+
+journal/tools/runtime/accept_wp16.py:146: ValueError
+_ test_checkpoint_same_candidate_name_different_baseline_bytes_rejected[_meta/manifest.json] _
+
+operation = namespace(state=PosixPath('/private/var/folders/kc/94jncx6s6pqc8g2g4f2kyvtr0000gn/T/pytest-of-skeswa/pytest-918/test_c...int_same_candidate0/ops/acceptance.json'), expected='91c403565b63fe3c808907658640985c6512eba08ecf1a3c70d5e42600bb25de')
+name = '_meta/manifest.json'
+
+    @pytest.mark.parametrize("name", ["_meta/manifest.json", "PUBLISHED"])
+    def test_checkpoint_same_candidate_name_different_baseline_bytes_rejected(operation, name):
+        f = operation
+        checkpoint_path = f.checkpoint / "checkpoint.json"
+        checkpoint = json.loads(checkpoint_path.read_bytes())
+        candidate = checkpoint["baseline_candidate"]
+        relative = f"candidates/{candidate}/{name}"
+        path = f.checkpoint / relative
+        value = json.loads(path.read_bytes())
+        if name == "PUBLISHED":
+            value["commit"] = "different-retained-publication"
+        else:
+            value["release_policy"]["closure"]["digest"] = "different-retained-manifest"
+        path.write_text(json.dumps(value))
+        checkpoint["files"][relative] = {
+            "size": path.stat().st_size,
+            "sha256": driver.prior.digest(path),
+        }
+        checkpoint_path.write_text(json.dumps(checkpoint))
+        checkpoint_hash = driver.prior.digest(checkpoint_path)
+        gate = json.loads(f.gate.read_bytes())
+        gate["checkpoint_manifest_sha256"] = checkpoint_hash
+        for receipt_key, hash_field in [
+            ("private_backup_receipt", "manifest_hash"),
+            ("private_verification_receipt", "manifest_sha256"),
+        ]:
+            evidence_path = f.gate.parent / gate[receipt_key]
+            evidence = json.loads(evidence_path.read_bytes())
+            evidence[hash_field] = checkpoint_hash
+            evidence_path.write_text(json.dumps(evidence))
+            gate["evidence_files"][evidence_path.name] = driver.prior.digest(evidence_path)
+        f.gate.write_text(json.dumps(gate))
+>       with pytest.raises(ValueError, match="baseline|public|manifest|checkpoint"):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: Regex pattern did not match.
+E         Expected regex: 'baseline|public|manifest|checkpoint'
+E         Actual message: 'runtime and helper must come from exact frozen schema15 source'
+
+tests/test_wp16_operational_preparation.py:419: AssertionError
+_ test_checkpoint_same_candidate_name_different_baseline_bytes_rejected[PUBLISHED] _
+
+operation = namespace(state=PosixPath('/private/var/folders/kc/94jncx6s6pqc8g2g4f2kyvtr0000gn/T/pytest-of-skeswa/pytest-918/test_c...int_same_candidate1/ops/acceptance.json'), expected='91c403565b63fe3c808907658640985c6512eba08ecf1a3c70d5e42600bb25de')
+name = 'PUBLISHED'
+
+    @pytest.mark.parametrize("name", ["_meta/manifest.json", "PUBLISHED"])
+    def test_checkpoint_same_candidate_name_different_baseline_bytes_rejected(operation, name):
+        f = operation
+        checkpoint_path = f.checkpoint / "checkpoint.json"
+        checkpoint = json.loads(checkpoint_path.read_bytes())
+        candidate = checkpoint["baseline_candidate"]
+        relative = f"candidates/{candidate}/{name}"
+        path = f.checkpoint / relative
+        value = json.loads(path.read_bytes())
+        if name == "PUBLISHED":
+            value["commit"] = "different-retained-publication"
+        else:
+            value["release_policy"]["closure"]["digest"] = "different-retained-manifest"
+        path.write_text(json.dumps(value))
+        checkpoint["files"][relative] = {
+            "size": path.stat().st_size,
+            "sha256": driver.prior.digest(path),
+        }
+        checkpoint_path.write_text(json.dumps(checkpoint))
+        checkpoint_hash = driver.prior.digest(checkpoint_path)
+        gate = json.loads(f.gate.read_bytes())
+        gate["checkpoint_manifest_sha256"] = checkpoint_hash
+        for receipt_key, hash_field in [
+            ("private_backup_receipt", "manifest_hash"),
+            ("private_verification_receipt", "manifest_sha256"),
+        ]:
+            evidence_path = f.gate.parent / gate[receipt_key]
+            evidence = json.loads(evidence_path.read_bytes())
+            evidence[hash_field] = checkpoint_hash
+            evidence_path.write_text(json.dumps(evidence))
+            gate["evidence_files"][evidence_path.name] = driver.prior.digest(evidence_path)
+        f.gate.write_text(json.dumps(gate))
+>       with pytest.raises(ValueError, match="baseline|public|manifest|checkpoint"):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: Regex pattern did not match.
+E         Expected regex: 'baseline|public|manifest|checkpoint'
+E         Actual message: 'runtime and helper must come from exact frozen schema15 source'
+
+tests/test_wp16_operational_preparation.py:419: AssertionError
+_________ test_resume_intent_cannot_select_unreviewed_authority[hash] __________
+
+operation = namespace(state=PosixPath('/private/var/folders/kc/94jncx6s6pqc8g2g4f2kyvtr0000gn/T/pytest-of-skeswa/pytest-918/test_r...intent_cannot_sele0/ops/acceptance.json'), expected='91c403565b63fe3c808907658640985c6512eba08ecf1a3c70d5e42600bb25de')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x1170aca40>
+change = 'hash'
+
+    @pytest.mark.parametrize("change", ["hash", "source", "preimage", "schema14", "missing_execute"])
+    def test_resume_intent_cannot_select_unreviewed_authority(operation, monkeypatch, change):
+        f = operation
+>       intent = failed_after_commit(f, monkeypatch)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_wp16_operational_preparation.py:426: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_wp16_operational_preparation.py:319: in failed_after_commit
+    driver.run(
+journal/tools/runtime/accept_wp16.py:490: in run
+    else preflight(state, source, gate, expected_receipt)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+journal/tools/runtime/accept_wp16.py:314: in preflight
+    receipt = prerequisites(state, source, gate_path, expected_receipt)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+journal/tools/runtime/accept_wp16.py:273: in prerequisites
+    verify_runtime(source, gate, expected_receipt)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+source = PosixPath('/private/var/folders/kc/94jncx6s6pqc8g2g4f2kyvtr0000gn/T/pytest-of-skeswa/pytest-918/test_resume_intent_cannot_sele0/source')
+gate = {'format': 'wp16-operational-gate-v1', 'h16_release_verified': True, 'verified_at': '2026-09-13T19:03:00+00:00', 'driver_sha256': '1d9b1a424c21fc9eb0a4e212ad16b9f212d2f2dcdeb39339bb301bd91e951038', ...}
+expected_receipt = '91c403565b63fe3c808907658640985c6512eba08ecf1a3c70d5e42600bb25de'
+
+    def verify_runtime(source: Path, gate: dict[str, Any], expected_receipt: str) -> None:
+        receipt = source / SOURCE_RECEIPT
+        if (
+            gate.get("source_receipt_sha256") != expected_receipt
+            or prior.digest(receipt) != expected_receipt
+        ):
+            raise ValueError("frozen WP16 source receipt differs")
+        assembly = json.loads(receipt.read_bytes())
+        if (
+            assembly.get("format") != "wp16-reviewed-source-v1"
+            or assembly.get("schema") != 15
+            or assembly.get("acquisition_enabled") is not False
+            or assembly.get("repairs_activated") is not False
+        ):
+            raise ValueError("reviewed schema15 source without activation required")
+        prior.verify_files(source, assembly["files"])
+        actual = {
+            p.relative_to(source).as_posix()
+            for p in source.rglob("*")
+            if p.is_file() and "__pycache__" not in p.parts and p != receipt
+        }
+        if actual != set(assembly["files"]):
+            raise ValueError("frozen source closure differs")
+        if (
+            db_module.SCHEMA_VERSION != 15
+            or Path(db_module.__file__).resolve() != (source / "src/swingset/state/db.py").resolve()
+            or Path(prior.__file__).resolve()
+            != (source / "journal/tools/runtime/accept_h11.py").resolve()
+        ):
+>           raise ValueError("runtime and helper must come from exact frozen schema15 source")
+E           ValueError: runtime and helper must come from exact frozen schema15 source
+
+journal/tools/runtime/accept_wp16.py:146: ValueError
+________ test_resume_intent_cannot_select_unreviewed_authority[source] _________
+
+operation = namespace(state=PosixPath('/private/var/folders/kc/94jncx6s6pqc8g2g4f2kyvtr0000gn/T/pytest-of-skeswa/pytest-918/test_r...intent_cannot_sele1/ops/acceptance.json'), expected='91c403565b63fe3c808907658640985c6512eba08ecf1a3c70d5e42600bb25de')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x11763d130>
+change = 'source'
+
+    @pytest.mark.parametrize("change", ["hash", "source", "preimage", "schema14", "missing_execute"])
+    def test_resume_intent_cannot_select_unreviewed_authority(operation, monkeypatch, change):
+        f = operation
+>       intent = failed_after_commit(f, monkeypatch)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_wp16_operational_preparation.py:426: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_wp16_operational_preparation.py:319: in failed_after_commit
+    driver.run(
+journal/tools/runtime/accept_wp16.py:490: in run
+    else preflight(state, source, gate, expected_receipt)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+journal/tools/runtime/accept_wp16.py:314: in preflight
+    receipt = prerequisites(state, source, gate_path, expected_receipt)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+journal/tools/runtime/accept_wp16.py:273: in prerequisites
+    verify_runtime(source, gate, expected_receipt)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+source = PosixPath('/private/var/folders/kc/94jncx6s6pqc8g2g4f2kyvtr0000gn/T/pytest-of-skeswa/pytest-918/test_resume_intent_cannot_sele1/source')
+gate = {'format': 'wp16-operational-gate-v1', 'h16_release_verified': True, 'verified_at': '2026-09-13T19:03:00+00:00', 'driver_sha256': '1d9b1a424c21fc9eb0a4e212ad16b9f212d2f2dcdeb39339bb301bd91e951038', ...}
+expected_receipt = '91c403565b63fe3c808907658640985c6512eba08ecf1a3c70d5e42600bb25de'
+
+    def verify_runtime(source: Path, gate: dict[str, Any], expected_receipt: str) -> None:
+        receipt = source / SOURCE_RECEIPT
+        if (
+            gate.get("source_receipt_sha256") != expected_receipt
+            or prior.digest(receipt) != expected_receipt
+        ):
+            raise ValueError("frozen WP16 source receipt differs")
+        assembly = json.loads(receipt.read_bytes())
+        if (
+            assembly.get("format") != "wp16-reviewed-source-v1"
+            or assembly.get("schema") != 15
+            or assembly.get("acquisition_enabled") is not False
+            or assembly.get("repairs_activated") is not False
+        ):
+            raise ValueError("reviewed schema15 source without activation required")
+        prior.verify_files(source, assembly["files"])
+        actual = {
+            p.relative_to(source).as_posix()
+            for p in source.rglob("*")
+            if p.is_file() and "__pycache__" not in p.parts and p != receipt
+        }
+        if actual != set(assembly["files"]):
+            raise ValueError("frozen source closure differs")
+        if (
+            db_module.SCHEMA_VERSION != 15
+            or Path(db_module.__file__).resolve() != (source / "src/swingset/state/db.py").resolve()
+            or Path(prior.__file__).resolve()
+            != (source / "journal/tools/runtime/accept_h11.py").resolve()
+        ):
+>           raise ValueError("runtime and helper must come from exact frozen schema15 source")
+E           ValueError: runtime and helper must come from exact frozen schema15 source
+
+journal/tools/runtime/accept_wp16.py:146: ValueError
+_______ test_resume_intent_cannot_select_unreviewed_authority[preimage] ________
+
+operation = namespace(state=PosixPath('/private/var/folders/kc/94jncx6s6pqc8g2g4f2kyvtr0000gn/T/pytest-of-skeswa/pytest-918/test_r...intent_cannot_sele2/ops/acceptance.json'), expected='91c403565b63fe3c808907658640985c6512eba08ecf1a3c70d5e42600bb25de')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x117e1ab40>
+change = 'preimage'
+
+    @pytest.mark.parametrize("change", ["hash", "source", "preimage", "schema14", "missing_execute"])
+    def test_resume_intent_cannot_select_unreviewed_authority(operation, monkeypatch, change):
+        f = operation
+>       intent = failed_after_commit(f, monkeypatch)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_wp16_operational_preparation.py:426: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_wp16_operational_preparation.py:319: in failed_after_commit
+    driver.run(
+journal/tools/runtime/accept_wp16.py:490: in run
+    else preflight(state, source, gate, expected_receipt)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+journal/tools/runtime/accept_wp16.py:314: in preflight
+    receipt = prerequisites(state, source, gate_path, expected_receipt)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+journal/tools/runtime/accept_wp16.py:273: in prerequisites
+    verify_runtime(source, gate, expected_receipt)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+source = PosixPath('/private/var/folders/kc/94jncx6s6pqc8g2g4f2kyvtr0000gn/T/pytest-of-skeswa/pytest-918/test_resume_intent_cannot_sele2/source')
+gate = {'format': 'wp16-operational-gate-v1', 'h16_release_verified': True, 'verified_at': '2026-09-13T19:03:00+00:00', 'driver_sha256': '1d9b1a424c21fc9eb0a4e212ad16b9f212d2f2dcdeb39339bb301bd91e951038', ...}
+expected_receipt = '91c403565b63fe3c808907658640985c6512eba08ecf1a3c70d5e42600bb25de'
+
+    def verify_runtime(source: Path, gate: dict[str, Any], expected_receipt: str) -> None:
+        receipt = source / SOURCE_RECEIPT
+        if (
+            gate.get("source_receipt_sha256") != expected_receipt
+            or prior.digest(receipt) != expected_receipt
+        ):
+            raise ValueError("frozen WP16 source receipt differs")
+        assembly = json.loads(receipt.read_bytes())
+        if (
+            assembly.get("format") != "wp16-reviewed-source-v1"
+            or assembly.get("schema") != 15
+            or assembly.get("acquisition_enabled") is not False
+            or assembly.get("repairs_activated") is not False
+        ):
+            raise ValueError("reviewed schema15 source without activation required")
+        prior.verify_files(source, assembly["files"])
+        actual = {
+            p.relative_to(source).as_posix()
+            for p in source.rglob("*")
+            if p.is_file() and "__pycache__" not in p.parts and p != receipt
+        }
+        if actual != set(assembly["files"]):
+            raise ValueError("frozen source closure differs")
+        if (
+            db_module.SCHEMA_VERSION != 15
+            or Path(db_module.__file__).resolve() != (source / "src/swingset/state/db.py").resolve()
+            or Path(prior.__file__).resolve()
+            != (source / "journal/tools/runtime/accept_h11.py").resolve()
+        ):
+>           raise ValueError("runtime and helper must come from exact frozen schema15 source")
+E           ValueError: runtime and helper must come from exact frozen schema15 source
+
+journal/tools/runtime/accept_wp16.py:146: ValueError
+_______ test_resume_intent_cannot_select_unreviewed_authority[schema14] ________
+
+operation = namespace(state=PosixPath('/private/var/folders/kc/94jncx6s6pqc8g2g4f2kyvtr0000gn/T/pytest-of-skeswa/pytest-918/test_r...intent_cannot_sele3/ops/acceptance.json'), expected='91c403565b63fe3c808907658640985c6512eba08ecf1a3c70d5e42600bb25de')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x118853650>
+change = 'schema14'
+
+    @pytest.mark.parametrize("change", ["hash", "source", "preimage", "schema14", "missing_execute"])
+    def test_resume_intent_cannot_select_unreviewed_authority(operation, monkeypatch, change):
+        f = operation
+>       intent = failed_after_commit(f, monkeypatch)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_wp16_operational_preparation.py:426: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_wp16_operational_preparation.py:319: in failed_after_commit
+    driver.run(
+journal/tools/runtime/accept_wp16.py:490: in run
+    else preflight(state, source, gate, expected_receipt)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+journal/tools/runtime/accept_wp16.py:314: in preflight
+    receipt = prerequisites(state, source, gate_path, expected_receipt)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+journal/tools/runtime/accept_wp16.py:273: in prerequisites
+    verify_runtime(source, gate, expected_receipt)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+source = PosixPath('/private/var/folders/kc/94jncx6s6pqc8g2g4f2kyvtr0000gn/T/pytest-of-skeswa/pytest-918/test_resume_intent_cannot_sele3/source')
+gate = {'format': 'wp16-operational-gate-v1', 'h16_release_verified': True, 'verified_at': '2026-09-13T19:03:00+00:00', 'driver_sha256': '1d9b1a424c21fc9eb0a4e212ad16b9f212d2f2dcdeb39339bb301bd91e951038', ...}
+expected_receipt = '91c403565b63fe3c808907658640985c6512eba08ecf1a3c70d5e42600bb25de'
+
+    def verify_runtime(source: Path, gate: dict[str, Any], expected_receipt: str) -> None:
+        receipt = source / SOURCE_RECEIPT
+        if (
+            gate.get("source_receipt_sha256") != expected_receipt
+            or prior.digest(receipt) != expected_receipt
+        ):
+            raise ValueError("frozen WP16 source receipt differs")
+        assembly = json.loads(receipt.read_bytes())
+        if (
+            assembly.get("format") != "wp16-reviewed-source-v1"
+            or assembly.get("schema") != 15
+            or assembly.get("acquisition_enabled") is not False
+            or assembly.get("repairs_activated") is not False
+        ):
+            raise ValueError("reviewed schema15 source without activation required")
+        prior.verify_files(source, assembly["files"])
+        actual = {
+            p.relative_to(source).as_posix()
+            for p in source.rglob("*")
+            if p.is_file() and "__pycache__" not in p.parts and p != receipt
+        }
+        if actual != set(assembly["files"]):
+            raise ValueError("frozen source closure differs")
+        if (
+            db_module.SCHEMA_VERSION != 15
+            or Path(db_module.__file__).resolve() != (source / "src/swingset/state/db.py").resolve()
+            or Path(prior.__file__).resolve()
+            != (source / "journal/tools/runtime/accept_h11.py").resolve()
+        ):
+>           raise ValueError("runtime and helper must come from exact frozen schema15 source")
+E           ValueError: runtime and helper must come from exact frozen schema15 source
+
+journal/tools/runtime/accept_wp16.py:146: ValueError
+____ test_resume_intent_cannot_select_unreviewed_authority[missing_execute] ____
+
+operation = namespace(state=PosixPath('/private/var/folders/kc/94jncx6s6pqc8g2g4f2kyvtr0000gn/T/pytest-of-skeswa/pytest-918/test_r...intent_cannot_sele4/ops/acceptance.json'), expected='91c403565b63fe3c808907658640985c6512eba08ecf1a3c70d5e42600bb25de')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x1168890a0>
+change = 'missing_execute'
+
+    @pytest.mark.parametrize("change", ["hash", "source", "preimage", "schema14", "missing_execute"])
+    def test_resume_intent_cannot_select_unreviewed_authority(operation, monkeypatch, change):
+        f = operation
+>       intent = failed_after_commit(f, monkeypatch)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_wp16_operational_preparation.py:426: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_wp16_operational_preparation.py:319: in failed_after_commit
+    driver.run(
+journal/tools/runtime/accept_wp16.py:490: in run
+    else preflight(state, source, gate, expected_receipt)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+journal/tools/runtime/accept_wp16.py:314: in preflight
+    receipt = prerequisites(state, source, gate_path, expected_receipt)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+journal/tools/runtime/accept_wp16.py:273: in prerequisites
+    verify_runtime(source, gate, expected_receipt)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+source = PosixPath('/private/var/folders/kc/94jncx6s6pqc8g2g4f2kyvtr0000gn/T/pytest-of-skeswa/pytest-918/test_resume_intent_cannot_sele4/source')
+gate = {'format': 'wp16-operational-gate-v1', 'h16_release_verified': True, 'verified_at': '2026-09-13T19:03:00+00:00', 'driver_sha256': '1d9b1a424c21fc9eb0a4e212ad16b9f212d2f2dcdeb39339bb301bd91e951038', ...}
+expected_receipt = '91c403565b63fe3c808907658640985c6512eba08ecf1a3c70d5e42600bb25de'
+
+    def verify_runtime(source: Path, gate: dict[str, Any], expected_receipt: str) -> None:
+        receipt = source / SOURCE_RECEIPT
+        if (
+            gate.get("source_receipt_sha256") != expected_receipt
+            or prior.digest(receipt) != expected_receipt
+        ):
+            raise ValueError("frozen WP16 source receipt differs")
+        assembly = json.loads(receipt.read_bytes())
+        if (
+            assembly.get("format") != "wp16-reviewed-source-v1"
+            or assembly.get("schema") != 15
+            or assembly.get("acquisition_enabled") is not False
+            or assembly.get("repairs_activated") is not False
+        ):
+            raise ValueError("reviewed schema15 source without activation required")
+        prior.verify_files(source, assembly["files"])
+        actual = {
+            p.relative_to(source).as_posix()
+            for p in source.rglob("*")
+            if p.is_file() and "__pycache__" not in p.parts and p != receipt
+        }
+        if actual != set(assembly["files"]):
+            raise ValueError("frozen source closure differs")
+        if (
+            db_module.SCHEMA_VERSION != 15
+            or Path(db_module.__file__).resolve() != (source / "src/swingset/state/db.py").resolve()
+            or Path(prior.__file__).resolve()
+            != (source / "journal/tools/runtime/accept_h11.py").resolve()
+        ):
+>           raise ValueError("runtime and helper must come from exact frozen schema15 source")
+E           ValueError: runtime and helper must come from exact frozen schema15 source
+
+journal/tools/runtime/accept_wp16.py:146: ValueError
+=========================== short test summary info ============================
+FAILED tests/test_history_origin_dispatch.py::test_schema15_adds_only_empty_intent_receipts_preserving_prior_evidence
+FAILED tests/test_requirement_performance.py::test_every_foreign_key_child_lookup_uses_an_index
+FAILED tests/test_wp16_operational_preparation.py::test_default_preflight_keeps_schema_and_all_evidence_unchanged
+FAILED tests/test_wp16_operational_preparation.py::test_migration_only_preserves_authority_and_fresh_doctor_matches
+FAILED tests/test_wp16_operational_preparation.py::test_preflight_detects_changed_live_authority[host_budget]
+FAILED tests/test_wp16_operational_preparation.py::test_preflight_detects_changed_live_authority[accepted_inputs]
+FAILED tests/test_wp16_operational_preparation.py::test_preflight_detects_changed_live_authority[identity_revision]
+FAILED tests/test_wp16_operational_preparation.py::test_preflight_detects_changed_live_authority[control]
+FAILED tests/test_wp16_operational_preparation.py::test_preflight_detects_changed_live_authority[schema]
+FAILED tests/test_wp16_operational_preparation.py::test_public_baseline_requires_completed_h16_closure_receipt
+FAILED tests/test_wp16_operational_preparation.py::test_new_tables_must_remain_empty_after_migration
+FAILED tests/test_wp16_operational_preparation.py::test_missing_nested_checkpoint_manifest_is_not_excluded
+FAILED tests/test_wp16_operational_preparation.py::test_schema_object_mutation_is_rejected_even_with_unchanged_rows
+FAILED tests/test_wp16_operational_preparation.py::test_committed_migration_resumes_from_immutable_intent_without_writer
+FAILED tests/test_wp16_operational_preparation.py::test_resume_cannot_bless_changes_after_interrupted_migration[accepted_inputs]
+FAILED tests/test_wp16_operational_preparation.py::test_resume_cannot_bless_changes_after_interrupted_migration[new_evidence]
+FAILED tests/test_wp16_operational_preparation.py::test_checkpoint_same_candidate_name_different_baseline_bytes_rejected[_meta/manifest.json]
+FAILED tests/test_wp16_operational_preparation.py::test_checkpoint_same_candidate_name_different_baseline_bytes_rejected[PUBLISHED]
+FAILED tests/test_wp16_operational_preparation.py::test_resume_intent_cannot_select_unreviewed_authority[hash]
+FAILED tests/test_wp16_operational_preparation.py::test_resume_intent_cannot_select_unreviewed_authority[source]
+FAILED tests/test_wp16_operational_preparation.py::test_resume_intent_cannot_select_unreviewed_authority[preimage]
+FAILED tests/test_wp16_operational_preparation.py::test_resume_intent_cannot_select_unreviewed_authority[schema14]
+FAILED tests/test_wp16_operational_preparation.py::test_resume_intent_cannot_select_unreviewed_authority[missing_execute]
+23 failed, 1426 passed in 317.68s (0:05:17)

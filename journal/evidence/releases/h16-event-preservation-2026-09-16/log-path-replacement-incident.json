@@ -1,0 +1,31 @@
+{
+  "acceptance_decision": "pending_parent_review",
+  "cause": "unconfirmed: pathname replaced while supervisor retained its open descriptor",
+  "effects": {
+    "full_sample_gap": true,
+    "gap_bytes_recovered": false,
+    "stdout_summaries_retained_in_tool_outputs": true,
+    "supervisor_guard_disabled": false,
+    "worker_receipts_and_journals_still_retained": true,
+    "worker_stopped": false
+  },
+  "format": "h16-replay-log-path-replacement-incident-v1",
+  "last_retained_full_sample_at": "2026-09-16T17:51:41.576261+00:00",
+  "observed_at": "2026-09-16T18:04:26.227276+00:00",
+  "observer_script_sha256": "a8f0c07439a86618cba460228095b0731ef2efe65996fad6989a62394aeb71c4",
+  "open_fd": {
+    "errno": 2,
+    "error": "[Errno 2] No such file or directory: '/proc/96374/fd/3'",
+    "error_type": "FileNotFoundError",
+    "fdinfo": "pos:\t582153\nflags:\t02400001\nmnt_id:\t219\nino:\t43137\n",
+    "readable": false,
+    "target": "/Users/skeswa/repos/skeswa/swingset/journal/evidence/releases/h16-event-preservation-2026-09-16/replay-resource-samples.jsonl (deleted)"
+  },
+  "original_path_bytes": 483522,
+  "original_path_sha256": "30759a25c509e163445431692b8c25717b07c84883413b717732ec24a974f3bb",
+  "original_samples_path": "/Users/skeswa/repos/skeswa/swingset/journal/evidence/releases/h16-event-preservation-2026-09-16/replay-resource-samples.jsonl",
+  "original_supervisor_pid": 96374,
+  "state_modified_by_diagnostic": false,
+  "supplement_started_at": "2026-09-16T18:02:47.246739+00:00",
+  "supplement_vm_path": "/var/tmp/swingset-h16-event-preservation-replay-resource-supplement.jsonl"
+}

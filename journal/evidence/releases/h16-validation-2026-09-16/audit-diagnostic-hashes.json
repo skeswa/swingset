@@ -1,0 +1,8 @@
+{
+  "audit-row-diagnostic.json": "e4c92e1cb9e9f5a3de03542aa46837eef81506914071a98b81d2a4ef538f7e0f",
+  "event-ownership-diagnostic-002.json": "faef0379ea053ec559af50b2a183d1f8592c88a89204936b0b565cac557cb484",
+  "event-ownership-diagnostic-003.json": "e8894e165da231301de48e9682d22bb34a815def4679ec8305333fffa1cc0363",
+  "judge-binding-gap.json": "2c06fc6f9f1cc9be81104307697b4471a092540cdfa455291cca64f7bcaf7138",
+  "diagnostic-source-equality.json": "98aa8dc35d8d324e7b692aecacb057f60e7b9e831e1385e74d6ef215b069ea34",
+  "audit-failure-diagnosis.md": "2f44bc70931a9fccb51a13b595e044a1f8b6f1ec7d8ffb89dbf01961b7f0ca00"
+}

@@ -1,0 +1,49 @@
+{
+  "format": "h16-production-initialization-gate-v1",
+  "state": "/var/lib/swingset",
+  "stages": [
+    "project",
+    "link"
+  ],
+  "capture_accept_authorized": true,
+  "driver_sha256": "c3259a023436e2cc3ee56e1ad83f3170b455f42187ff71421eeac25387bf96d7",
+  "source": "/nix/store/z689qy41inndill3d92ym8im852x3649-source",
+  "source_receipt_sha256": "0c3a391aca5c32381ab10daa22adfdde44cda76ab26b68df002f9822ad4945fb",
+  "input_bundle_hash": "fe99b47cd65eb909abc7c9ebd64d9ace9524393e5af8cd4d9368c55317ce3c6a",
+  "config": "/nix/store/z689qy41inndill3d92ym8im852x3649-source/config",
+  "overrides": "/nix/store/z689qy41inndill3d92ym8im852x3649-source/overrides",
+  "receipts": {
+    "production_acceptance": "acceptance.json",
+    "preflight_gate": "gate.json",
+    "scratch_replay": "swingset-h16-event-preservation-replay-012.json",
+    "scratch_build": "scratch-build.json",
+    "scratch_audit": "scratch-audit.json"
+  },
+  "evidence_files": {
+    "backup.json": "d7188f357d99f79c80cb2277dd335539840be8cb2305ef34c41162991c69793f",
+    "private-verification.json": "4941e52a6f65f843737215570f037881b6f7a788a917fc624584cf45f294a6ba",
+    "v4-verification.json": "290b2302c65ce84b4483c4f2b6104cebcc9ba68b5e132f6c674bbaed410f8b2a",
+    "replay-coordinator-review.json": "179eee4d2cc88f33d78247f7d99176e3bc0897df318db09e11c04a6ea5c35a65",
+    "replay-final-verification.json": "b05e18004e7a275d482205c840932efce39535b8f251002ade75553d4ddf4b1c",
+    "replay-supervisor.json": "b2aff6ccd6ac68e4fcda28fe5f0ded0798a88381d5e8b01d6dde55d6dfda880a",
+    "replay-terminal-resource-verification.json": "e12a4b68c97504800c0b3f453d5f18a5487e5175372c43b3b6e27e7bea2870cc",
+    "log-path-replacement-incident.json": "2c6ad7943e74f45a799309fba045fae9670b026c07ea1c2126ac6a2b17a7e381",
+    "replay-resource-samples.jsonl": "30759a25c509e163445431692b8c25717b07c84883413b717732ec24a974f3bb",
+    "replay-resource-supplement.jsonl": "9b0158359268ae86c0774ba33b3536a074b9e38568b19c1dd8c47d28e6d917b5",
+    "launch-proof-build-audit.py": "f03c55fbc6d33515b4fddd0f51e68bea286d705ee715f528c87014193ba44980",
+    "swingset-h16-event-preservation-replay-012.json": "1b2ea424e6a4380a98c8f4bdc34d8a4328d0004e4f75231ec33ef2ba2275af0c",
+    "gate.json": "98ae2f20f838f5e14a24854b8870d557511f994dfc8c95e9b79e0a1b462c0004",
+    "acceptance.json": "d9bcde097dd694e0c9ec0de28b048a140c8a1f59eb32180a2e5491587bdb5c4f",
+    "scratch-build.json": "59a2e82b5cc8dfe0a4451b679fa89c0dcf84aa59ee944ee8c1d7b9efa37c61a3",
+    "scratch-audit.json": "862a880eaf2d0263b5f35ed8733c90bd21a818c3eab3a0929c875ef24fb7b81d"
+  },
+  "prepared_at": "2026-09-16T20:19:44.105799+00:00",
+  "preparation_basis": "Exact original source/bundle/checkpoint/replay/build/audit/production-acceptance authority retained. Initializer002 treats the absent legacy runtime-recipe row as None and therefore invalidates the cache when accepting the rehearsed recipe. Existing retained-manifest policy comparison and protected-state/authority checks remain unchanged. Failed001 created no marker and did not change accepted inputs, work, controls or metadata. No retry execution claimed.",
+  "operational_driver_revision": {
+    "previous_gate_sha256": "45c7abb4843ba7e90c2a93f6326dba939d2f8a321f407dcbd7fecee99582c4da",
+    "previous_driver_sha256": "b54c02a15c3d86a603bef4d6926e66bde4cf1ef9d23f273aa5db771d3a99d233",
+    "failed_prepare_sha256": "2cb4d802abb286cec265bdccb4977578b7aa425c991658b209a9e6a454e4fcfe",
+    "failure_preservation_sha256": "d655675aab668e6600f79865f6e0443a560ae551ae81e785c11010570b7dd54b",
+    "runtime_source_unchanged": true
+  }
+}

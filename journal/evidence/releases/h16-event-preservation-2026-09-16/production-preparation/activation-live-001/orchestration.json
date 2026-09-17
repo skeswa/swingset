@@ -1,0 +1,20 @@
+{
+  "acceptance_executed": false,
+  "active_system": "/nix/store/sx7lpr80cx0n9vzsi3cwz9nxawqc4p1i-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+  "argv": [
+    "/var/lib/swingset/venv/bin/python",
+    "/var/lib/swingset/operations/h16-event-preservation-release-20260916/activate-system.py"
+  ],
+  "coordinator_review_sha256": "081d347703d648d94d76df3552e44ad448856acd2c68983b8a2ff2176e34d626",
+  "deployment_sha256": "342be820b7a4e4e1e7a354288fabf74f17e2d80253ed0e38f0a7ccecca5b9678",
+  "driver_exit_code": 0,
+  "driver_sha256": "db4cd1a26e3f1c593570316759b779e44f98cf1d691b1b32872a35416e81cf2e",
+  "finished_at": "2026-09-16T19:58:29.562484+00:00",
+  "format": "h16-production-activation-orchestration-v1",
+  "initializer_executed": false,
+  "passed": true,
+  "persistent_system": "/nix/store/sx7lpr80cx0n9vzsi3cwz9nxawqc4p1i-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+  "published": false,
+  "script_sha256": "1890114a00a726885318c0c1d09bce3771ce916c2c847155bd37abcff4a6e75c",
+  "started_at": "2026-09-16T19:58:27.712714+00:00"
+}

@@ -1,0 +1,18 @@
+F401 [*] `pathlib.Path` imported but unused
+ --> /Users/skeswa/repos/skeswa/swingset/journal/evidence/releases/h16-event-preservation-2026-09-16/production-preparation/test_supervisor_launch_review_002.py:2:21
+  |
+1 | import importlib.util
+2 | from pathlib import Path
+  |                     ^^^^
+3 | from types import SimpleNamespace
+4 | import pytest
+  |
+help: Remove unused import: `pathlib.Path`
+  |
+1 | import importlib.util
+  - from pathlib import Path
+2 | from types import SimpleNamespace
+  |
+
+Found 1 error.
+[*] 1 fixable with the `--fix` option.

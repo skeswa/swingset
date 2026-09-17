@@ -1,0 +1,44 @@
+{
+  "driver": {
+    "path": "fixture-exception-h13-002.py",
+    "sha256": "81357b33c8862bdc4bdd2d84f2479a7913a9d783b00b435910cc2328bdcf69f7"
+  },
+  "engineering_preparation_accepted": true,
+  "executed": false,
+  "execution_approved": false,
+  "format": "fixture-h13-root-review-v1",
+  "helper_manifest": {
+    "path": "helper-closure/closure.json",
+    "sha256": "f8e0557026bc3bcfbd06624071bbc98ab7c7a46983fd6e3117d34140d6b16db3"
+  },
+  "independent_tests": {
+    "log": "root-independent-tests-002.log",
+    "passed": 63,
+    "seconds": 2.09,
+    "sha256": "3c3542b35890bfac5c3b005e5242615d3325f7914a91b347970f2f4f4bb7ed35"
+  },
+  "owner_acquisition_approval": "pending",
+  "prior_receipt": {
+    "modified": false,
+    "path": "review-receipt-002.json",
+    "sha256": "22b2b4d25caa840dcb92d7fd1d358c8f487d2b7822834a136467ec6860a50dc8"
+  },
+  "production_changes": false,
+  "recorded_at": "2026-09-16T21:28:03.820076+00:00",
+  "remaining_prerequisites": [
+    "Explicit owner fixture exception approval",
+    "Actual current authorization window and exact coordinator gate",
+    "VM staging separately authorized",
+    "Writer ownership without overlap with production workers",
+    "Recheck publication baseline, runtime pins and shared archive quota"
+  ],
+  "retention": {
+    "byte_exact_copy_verified": true,
+    "source": "/tmp/swingset-fixture-h13-002-20260916",
+    "source_file_count": 28
+  },
+  "review_source": "Coordinator reported independent literal driver/helper diff review and rerun of all63 offline tests, then authorized retaining this packet; owner acquisition approval remains pending.",
+  "reviewer": "root coordinator",
+  "schema": 14,
+  "staged": false
+}

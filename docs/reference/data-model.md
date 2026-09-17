@@ -405,7 +405,8 @@ Repeated counting preserves `last_changed_at` when the counts are unchanged.
 
 ### Event completion coverage
 
-Accepted H14/H16 extension, implementation pending. Extend `coverage` with
+Accepted H14/H16 extension; a limited slice is implemented locally and has not
+been deployed or published. The target extends `coverage` with
 `scope_kind='source_event'`, `scope_id=source_ref`, and nullable `event_id`.
 Keep the existing `source` and `via` key columns. An unresolved canonical map
 must not make the source event disappear. Year is null unless source evidence
@@ -435,6 +436,41 @@ beside the last acknowledged release, but cannot advance public completion
 without a publication receipt. An archived parent, failed fetch, admitted
 retirement, or unresolved alias cannot masquerade as complete sheet coverage.
 This extension uses the existing coverage table, not a competing public dataset.
+
+The current local implementation pins enumeration membership and its parent
+support into the release dependency manifest, semantic fingerprint, and closure
+proof. It emits `listed_pages`, `selected_interpreted_pages` (the selected
+support subset), and `represented_pages` after result suppression. A shared
+bounded verifier can also establish acquired and interpreted totals for the
+pinned enumeration. Each total remains null unless every member is assessed;
+`acquisition_unknown_pages` and `interpretation_unknown_pages` count unassessed
+members. Capture currently examines at most 32 distinct requests across the
+witness under one cumulative budget. Unsupported classifications, unknown
+pagination, and legacy denominators remain explicit gaps.
+
+Version-two local witnesses also count explicit unavailable-origin observations.
+Any usable origin or archive acquisition takes precedence. Otherwise the bounded
+search must cover every matching snapshot under the cutoff, and the latest
+origin response must be `Gone` or `ExpectedUnavailable` with an error status and
+a verified retained body. `Gone` requires HTTP 404 or 410. Conflicting latest
+outcomes, incomplete searches, invalid timestamps, or unverifiable supporting
+bodies leave the count null. Archive failures alone cannot establish origin
+unavailability. Stored expected-unavailable classifications retain their
+historical meaning; current watch success history does not rewrite them.
+
+Zero means no qualifying unavailable observation among the fully assessed
+members. It does not claim those pages were available. The exact response
+metadata and body remain dependencies at every validation boundary. Older
+version-one witnesses remain valid with unavailable counts unknown.
+
+Local observations pin exact support and their capture and validation policy.
+`usable_verified_at` records the artifact check time separately from the source
+cutoff. Later evidence does not rewrite an old observation. Positive artifacts
+are checked again at every validation boundary, including cached completion,
+candidate reuse, and publication. These local stage counts neither select
+output nor establish published completion. Doctor reads published coverage only from a verified,
+acknowledged baseline with a matching closure receipt. Overlapping transport
+rows are not added together.
 
 ## Relationships
 

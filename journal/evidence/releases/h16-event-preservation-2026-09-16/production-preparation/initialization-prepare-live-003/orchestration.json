@@ -1,0 +1,82 @@
+{
+  "changed_inputs": [
+    "policy/history_start",
+    "policy/inventory_year",
+    "recipe/runtime",
+    "version/repository"
+  ],
+  "coordinator_review_sha256": "6ed770cc8723f2a47ef584a8ceb2bcdef84254d57412649d03e86afa98b08f92",
+  "driver_sha256": "c3259a023436e2cc3ee56e1ad83f3170b455f42187ff71421eeac25387bf96d7",
+  "existing_marker_sha256": "dad425983041d0a27ab2eae1127db1fc9aeec4a401f50d678d6fe87e176baece",
+  "extract_cache_invalidated": true,
+  "final_unit": {
+    "ActiveState": "inactive",
+    "ControlGroup": "",
+    "ExecMainStatus": "0",
+    "LoadState": "not-found",
+    "MainPID": "0",
+    "MemoryCurrent": "[not set]",
+    "MemoryPeak": "[not set]",
+    "Result": "success",
+    "SubState": "dead"
+  },
+  "finished_at": "2026-09-16T20:32:06.973688+00:00",
+  "format": "h16-initialization-prepare-orchestration-v1",
+  "gate_sha256": "00da07082f1cea7a20a6d3e04849e7e2bac8aa4eae8b2ad8d344da9951cc5af6",
+  "marker_sha256": "dad425983041d0a27ab2eae1127db1fc9aeec4a401f50d678d6fe87e176baece",
+  "nested_evidence_verified": 16,
+  "passed": true,
+  "peak_sampled_anonymous_bytes": 1104068608,
+  "prepare_sha256": "3194b019cddadf35e1c029257a41f35ab183611086a3c03a2371c5e61b36061f",
+  "published": false,
+  "resource_samples": 4,
+  "run_executed": false,
+  "script_sha256": "ba470ab005d5d2044d9075ed074a80a501ebc1e935a1f6f6dd4d5bd6400037a2",
+  "started_at": "2026-09-16T20:31:32.853849+00:00",
+  "systemd_wait_exit_code": 0,
+  "verified_existing_helpers": {
+    "final-verification/verify-initialization-002.py": {
+      "sha256": "de8708f555c34a97afcdae2085c266eac3d4e1230e6879d4069cd8a7bd7410db",
+      "target": "final-verification/verify-initialization-002.py"
+    },
+    "legacy-runtime-fix/initialize-002.py": {
+      "sha256": "c3259a023436e2cc3ee56e1ad83f3170b455f42187ff71421eeac25387bf96d7",
+      "target": "initialize-002.py"
+    },
+    "monitoring/guard-initialization-003.py": {
+      "sha256": "b39cedadd065dad76eb5a47f0c5de3dd39a737895a7198bb7a48a75f5ea1623b",
+      "target": "monitoring/guard-initialization-003.py"
+    },
+    "supervise-initialization-002.py": {
+      "sha256": "7d2746bd079a0e0fb608ae666f4cec2146ab23561c46e2d808f0f2ba2216324f",
+      "target": "supervise-initialization-002.py"
+    }
+  },
+  "worker_argv": [
+    "systemd-run",
+    "--wait",
+    "--unit=swingset-h16-event-preservation-initialization-prepare-003.service",
+    "--property=Type=exec",
+    "--property=User=swingset",
+    "--property=Group=swingset",
+    "--property=UMask=0077",
+    "--property=WorkingDirectory=/nix/store/z689qy41inndill3d92ym8im852x3649-source",
+    "--property=RuntimeMaxSec=1500",
+    "--property=TimeoutStopSec=180",
+    "--property=MemoryAccounting=yes",
+    "--property=KillSignal=SIGTERM",
+    "--setenv=PYTHONPATH=/nix/store/z689qy41inndill3d92ym8im852x3649-source/src:/nix/store/z689qy41inndill3d92ym8im852x3649-source",
+    "--setenv=SWINGSET_REVISION=uncommitted:z689qy41inndill3d92ym8im852x3649-source",
+    "--setenv=PYTHONDONTWRITEBYTECODE=1",
+    "--setenv=LD_LIBRARY_PATH=/nix/store/x03dxqva88ax4w45hyms977zv3f8a8i9-gcc-14.3.0-lib/lib:/nix/store/5zq11bibj72nvrhlx9fm0xl0xhxd6388-zlib-1.3.2/lib",
+    "/var/lib/swingset/venv/bin/python",
+    "/var/lib/swingset/operations/h16-event-preservation-release-20260916/initialize-002.py",
+    "prepare",
+    "--gate",
+    "/var/lib/swingset/operations/h16-event-preservation-release-20260916/initialization-gate-002.json",
+    "--marker",
+    "/var/lib/swingset/operations/h16-event-preservation-release-20260916/initialization-marker-002.json",
+    "--output",
+    "/var/lib/swingset/operations/h16-event-preservation-release-20260916/prepare-003.json"
+  ]
+}

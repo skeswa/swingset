@@ -1,0 +1,8 @@
+{
+  "verified": true,
+  "private": true,
+  "commit": "c656e88c775b23ae5879661924d57fa1f93cfa7d",
+  "manifest_sha256": "700b2adc01db9eefc5c0c7ba35fddabfbc3aa00b6ed6f4900543b4e4a54ae444",
+  "verified_at": "2026-09-13T11:56:42.543766+00:00",
+  "basis": "remote repository head and immutable checkpoint manifest"
+}

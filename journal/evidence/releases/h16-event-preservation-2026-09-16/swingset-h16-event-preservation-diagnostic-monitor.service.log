@@ -1,0 +1,24 @@
+2026-09-16T16:41:02+00:00 swingset systemd[1]: Starting [systemd-run] /var/lib/swingset/venv/bin/python /var/tmp/h16-changelog-build-monitor.py --unit swingset-h16-event-preservation-diagnostic.service --output /var/tmp/swingset-h16-event-preservation-diagnostic-resources.json --max-seconds 900...
+2026-09-16T16:41:02+00:00 swingset systemd[1]: Started [systemd-run] /var/lib/swingset/venv/bin/python /var/tmp/h16-changelog-build-monitor.py --unit swingset-h16-event-preservation-diagnostic.service --output /var/tmp/swingset-h16-event-preservation-diagnostic-resources.json --max-seconds 900.
+2026-09-16T16:42:22+00:00 swingset python[95060]: {
+2026-09-16T16:42:22+00:00 swingset python[95060]:   "format": "h16-build-resource-observation-v1",
+2026-09-16T16:42:22+00:00 swingset python[95060]:   "unit": "swingset-h16-event-preservation-diagnostic.service",
+2026-09-16T16:42:22+00:00 swingset python[95060]:   "started_at": "2026-09-16T16:41:02.614921+00:00",
+2026-09-16T16:42:22+00:00 swingset python[95060]:   "peak_rss_kib": 1448560,
+2026-09-16T16:42:22+00:00 swingset python[95060]:   "peak_anon_kib": 1398752,
+2026-09-16T16:42:22+00:00 swingset python[95060]:   "terminated_reason": null,
+2026-09-16T16:42:22+00:00 swingset python[95060]:   "finished_at": "2026-09-16T16:42:22.749017+00:00",
+2026-09-16T16:42:22+00:00 swingset python[95060]:   "elapsed_seconds": 80.13370902294992,
+2026-09-16T16:42:22+00:00 swingset python[95060]:   "final": {
+2026-09-16T16:42:22+00:00 swingset python[95060]:     "ActiveState": "inactive",
+2026-09-16T16:42:22+00:00 swingset python[95060]:     "SubState": "dead",
+2026-09-16T16:42:22+00:00 swingset python[95060]:     "MainPID": "0",
+2026-09-16T16:42:22+00:00 swingset python[95060]:     "Result": "success",
+2026-09-16T16:42:22+00:00 swingset python[95060]:     "ExecMainCode": "0",
+2026-09-16T16:42:22+00:00 swingset python[95060]:     "ExecMainStatus": "0",
+2026-09-16T16:42:22+00:00 swingset python[95060]:     "MemoryCurrent": "[not set]",
+2026-09-16T16:42:22+00:00 swingset python[95060]:     "MemoryPeak": "[not set]"
+2026-09-16T16:42:22+00:00 swingset python[95060]:   }
+2026-09-16T16:42:22+00:00 swingset python[95060]: }
+2026-09-16T16:42:22+00:00 swingset systemd[1]: swingset-h16-event-preservation-diagnostic-monitor.service: Deactivated successfully.
+2026-09-16T16:42:22+00:00 swingset systemd[1]: swingset-h16-event-preservation-diagnostic-monitor.service: Consumed 78ms CPU time, 15.4M memory peak, 7.7M read from disk, 100K written to disk.

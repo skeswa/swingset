@@ -1,0 +1,27 @@
+{
+  "adapter_executed": false,
+  "at": "2026-09-16T19:55:19.364084+00:00",
+  "directory": "/var/lib/swingset/operations/h16-event-preservation-release-20260916/monitoring",
+  "directory_mode": "0o700",
+  "files": [
+    {
+      "bytes": 9915,
+      "gid": 995,
+      "mode": "0o600",
+      "path": "/var/lib/swingset/operations/h16-event-preservation-release-20260916/monitoring/guard-initialization-002.py",
+      "sha256": "530db5fd4e140c0ecf205954feb4e27815165b240f0ed38671e8095fb2a3d9c1",
+      "uid": 996
+    },
+    {
+      "bytes": 2334,
+      "gid": 995,
+      "mode": "0o600",
+      "path": "/var/lib/swingset/operations/h16-event-preservation-release-20260916/monitoring/offline-checks-002.json",
+      "sha256": "f5b090fb8930fd3366b68cbe3b8da7701582e1c7b10365c1b8e581d753faa3da",
+      "uid": 996
+    }
+  ],
+  "format": "h16-memory-guard-private-staging-v2",
+  "production_state_database_accessed": false,
+  "workload_started": false
+}

@@ -24,6 +24,15 @@ def enqueue(conn: sqlite3.Connection, units: Iterable[WorkUnit], *, enqueued_at:
     )
 
 
+def recover_parse_hints(
+    database: Database, *, now: datetime, limit: int = 100, wall_seconds: float = 2.0
+) -> dict[str, object]:
+    """Bounded reconstruction for exact pending snapshots on declared event watches."""
+    from .parse_recovery import reconcile
+
+    return reconcile(database, now=now, limit=limit, wall_seconds=wall_seconds)
+
+
 def accept_inputs(
     database: Database,
     consumer: str,

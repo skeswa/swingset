@@ -228,7 +228,8 @@ class RoundPage(SitemapPage):
                 and len(headers) > 2
                 and isinstance(headers[2], dict)
                 and not headers[2].get("text")
-                and not headers[2].get("attributes", {}).get("title")
+                and isinstance(header_attributes := headers[2].get("attributes", {}), dict)
+                and not header_attributes.get("title")
             )
             if len(headers) > 1 and isinstance(headers[1], dict):
                 headers[1]["text"] = "Leader" if is_final or table_number == 0 else "Follower"

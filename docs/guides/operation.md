@@ -25,6 +25,11 @@ sudo systemctl status swingset-cycle
 
 When running the CLI outside the installed service, pass absolute `--config`
 and `--overrides` paths if the current directory is not the checkout.
+Run state and control commands as the service user. Both `state.lock` and
+`control.lock` need that user's read/write access. If a retained lock has the
+wrong owner, stop ordinary jobs and inspect it before repair; never delete or
+replace a lock file to fix permissions. See the
+[H16 ownership repair](../../journal/decisions/0033-repair-production-control-lock-ownership.md).
 `doctor` reads without taking the writer lock. `runs/*.json` holds per-cycle
 counts, stages, host pauses, errors, and the graceful-stop flag. A hard kill can
 lose the final run log; SQLite transactions and already durable artifacts remain
@@ -35,6 +40,25 @@ contains policy targets; `observed_host_usage` retains all actual daily debits,
 including requests before H14. `observed_attributed_service` counts requests
 issued under the new policy. Offline attempt counts do not establish completed
 requirements. Request wall ages include operator pauses.
+
+The event-completion increment adds an `event_inventory` catalog. Its listed
+page counts describe retained enumeration membership; they do not establish
+that the files remain available or that results were published. For a fresh
+local check of one event, use its source and source reference from the catalog:
+
+```sh
+swingset doctor --source SOURCE --source-event SOURCE_REF --json
+```
+
+The drill-down verifies the event's retained artifacts without downloading or
+restoring files. Missing or corrupt files reopen their local stage. It shows
+unknown pagination, publication, and eligible-service history explicitly.
+It also shows recorded turns and request charges, plus current pause, retry,
+host-budget and backlog facts. These facts can explain waiting; they do not
+grant permission to fetch or reconstruct past eligibility.
+`summary` accepts the same filter. The report also shows the operator-hold
+marker. See [current status](../status.md) before expecting these fields on the
+deployed worker.
 
 Optional `[scheduling]` settings in `config/sources.toml` tune cycle shares and
 pressure thresholds under the [scheduling contract](../reference/scheduling.md).

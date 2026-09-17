@@ -1,0 +1,985 @@
+{
+  "connection_total_changes": 0,
+  "elapsed_seconds": 3.053962745005265,
+  "judge_loss_distribution": [
+    [
+      1513,
+      1513,
+      52
+    ]
+  ],
+  "missing_baseline_events": 164,
+  "missing_baseline_events_without_rejected_event": [],
+  "missing_judge_events_without_event_rejection": [],
+  "passed": true,
+  "public_event_count": 2377,
+  "read_only": true,
+  "rejected_event_row_count": 164,
+  "rejected_events_in_public": [],
+  "rejected_examples": [
+    {
+      "baseline_differences": {
+        "history_source": {
+          "baseline": [
+            "calendar"
+          ],
+          "selected": "[\"calendar\"]"
+        },
+        "sources": {
+          "baseline": [
+            "wsdc_calendar"
+          ],
+          "selected": "[\"wsdc_calendar\"]"
+        },
+        "wsdc_status": {
+          "baseline": "unknown",
+          "selected": "registry"
+        }
+      },
+      "generation": {
+        "created_at": "2026-09-16T14:24:28.324894+00:00",
+        "dependency_set_id": "990e04744c526de1355c26d2b55596f6474939774be52733b370af2694734ca5",
+        "generation_id": "dg_1a8f09af972d19c41b6c041ab8dddd16b2f1435f2cc0abff76050d06516b3504",
+        "input_fingerprint": "5175ffe5153a34f27f29f3558d18216bfac6a0078a3418c9eb40d36bf2a33e5b",
+        "output_digest": "b8b57b64e2119a0e382c10c133c9a98f4b61cac0b7f1eb5f718ec3fbb9d8f745",
+        "previous_generation_id": null,
+        "recipe": {
+          "context": {},
+          "continuity": {
+            "dependency_set_id": "ea0ff78650db60b7e2964bebd1aefe7202568b90414ce22243686a8a9dc94fb7",
+            "previous_generation_id": null
+          },
+          "inputs": {
+            "overrides/event_aliases.csv": "3fb16a5e6eab2923e3d157341f80bef4a5a5d5685e4f2288e304d79be074570d",
+            "overrides/series_aliases.csv": "92366188e4295b901772dbe1cc3e1f12116fab46be9765a577a8845e31815642",
+            "overrides/source_urls.csv": "cce22c27665b53c67291a41dc18e99989b6b3eab4fe817aeb5e902e6f251e9a1",
+            "policy/history_start": "8bb80a810b48355047d206a2fd83a2929b7b2e1ec71c487d43fa951e3bdbba56",
+            "policy/inventory_year": "158a323a7ba44870f23d96f1516dd70aa48e9a72db4ebb026b0a89e212a208ab",
+            "recipe/runtime": "d6d265b25c93b2739f4464f69f05eeba6f171568a8d668ef2616e9c494d23390"
+          }
+        },
+        "row_count": 169,
+        "run_id": "run_20260916T142427Z",
+        "stage": "project",
+        "unit_id": "wsdc",
+        "unit_kind": "calendar"
+      },
+      "in_public": false,
+      "legacy_matches": false,
+      "payload": {
+        "city": "Washington",
+        "country": "USA",
+        "coverage_tier": "index_only",
+        "date_precision": "day",
+        "end_date": "2026-11-22",
+        "event_id": "2026-11-dc-swing-experience-dcsx",
+        "event_month": "2026-11",
+        "held": "listed",
+        "history_source": "[\"calendar\"]",
+        "live_window_end": "2026-11-24T00:00:00+00:00",
+        "live_window_start": "2026-11-17T12:00:00+00:00",
+        "name": "DC Swing eXperience (DCSX)",
+        "parser_version": "3",
+        "region": "DC., VA",
+        "series_id": "slug-dc-swing-experience-dcsx",
+        "snapshot_id": "de51b1e142624d9a854864ae05264d1b",
+        "source": "wsdc_calendar",
+        "sources": "[\"wsdc_calendar\"]",
+        "start_date": "2026-11-19",
+        "website": "http://www.dcswingexperience.com",
+        "wsdc_status": "registry",
+        "year": 2026
+      },
+      "support_state": "legacy_unassessed"
+    },
+    {
+      "baseline_differences": {
+        "history_source": {
+          "baseline": [
+            "calendar"
+          ],
+          "selected": "[\"calendar\"]"
+        },
+        "sources": {
+          "baseline": [
+            "wsdc_calendar"
+          ],
+          "selected": "[\"wsdc_calendar\"]"
+        },
+        "wsdc_status": {
+          "baseline": "unknown",
+          "selected": "registry"
+        }
+      },
+      "generation": {
+        "created_at": "2026-09-16T14:24:28.324894+00:00",
+        "dependency_set_id": "990e04744c526de1355c26d2b55596f6474939774be52733b370af2694734ca5",
+        "generation_id": "dg_1a8f09af972d19c41b6c041ab8dddd16b2f1435f2cc0abff76050d06516b3504",
+        "input_fingerprint": "5175ffe5153a34f27f29f3558d18216bfac6a0078a3418c9eb40d36bf2a33e5b",
+        "output_digest": "b8b57b64e2119a0e382c10c133c9a98f4b61cac0b7f1eb5f718ec3fbb9d8f745",
+        "previous_generation_id": null,
+        "recipe": {
+          "context": {},
+          "continuity": {
+            "dependency_set_id": "ea0ff78650db60b7e2964bebd1aefe7202568b90414ce22243686a8a9dc94fb7",
+            "previous_generation_id": null
+          },
+          "inputs": {
+            "overrides/event_aliases.csv": "3fb16a5e6eab2923e3d157341f80bef4a5a5d5685e4f2288e304d79be074570d",
+            "overrides/series_aliases.csv": "92366188e4295b901772dbe1cc3e1f12116fab46be9765a577a8845e31815642",
+            "overrides/source_urls.csv": "cce22c27665b53c67291a41dc18e99989b6b3eab4fe817aeb5e902e6f251e9a1",
+            "policy/history_start": "8bb80a810b48355047d206a2fd83a2929b7b2e1ec71c487d43fa951e3bdbba56",
+            "policy/inventory_year": "158a323a7ba44870f23d96f1516dd70aa48e9a72db4ebb026b0a89e212a208ab",
+            "recipe/runtime": "d6d265b25c93b2739f4464f69f05eeba6f171568a8d668ef2616e9c494d23390"
+          }
+        },
+        "row_count": 169,
+        "run_id": "run_20260916T142427Z",
+        "stage": "project",
+        "unit_id": "wsdc",
+        "unit_kind": "calendar"
+      },
+      "in_public": false,
+      "legacy_matches": false,
+      "payload": {
+        "city": "Warsaw",
+        "country": "POL",
+        "coverage_tier": "index_only",
+        "date_precision": "day",
+        "end_date": "2026-11-02",
+        "event_id": "2026-11-warsaw-halloween-swing",
+        "event_month": "2026-11",
+        "held": "listed",
+        "history_source": "[\"calendar\"]",
+        "live_window_end": "2026-11-04T00:00:00+00:00",
+        "live_window_start": "2026-10-27T12:00:00+00:00",
+        "name": "Warsaw Halloween Swing",
+        "parser_version": "3",
+        "region": null,
+        "series_id": "slug-warsaw-halloween-swing",
+        "snapshot_id": "de51b1e142624d9a854864ae05264d1b",
+        "source": "wsdc_calendar",
+        "sources": "[\"wsdc_calendar\"]",
+        "start_date": "2026-10-29",
+        "website": "http://www.warsawhalloweenswing.com",
+        "wsdc_status": "registry",
+        "year": 2026
+      },
+      "support_state": "legacy_unassessed"
+    },
+    {
+      "baseline_differences": {
+        "history_source": {
+          "baseline": [
+            "calendar"
+          ],
+          "selected": "[\"calendar\"]"
+        },
+        "sources": {
+          "baseline": [
+            "wsdc_calendar"
+          ],
+          "selected": "[\"wsdc_calendar\"]"
+        },
+        "wsdc_status": {
+          "baseline": "unknown",
+          "selected": "registry"
+        }
+      },
+      "generation": {
+        "created_at": "2026-09-16T14:24:28.324894+00:00",
+        "dependency_set_id": "990e04744c526de1355c26d2b55596f6474939774be52733b370af2694734ca5",
+        "generation_id": "dg_1a8f09af972d19c41b6c041ab8dddd16b2f1435f2cc0abff76050d06516b3504",
+        "input_fingerprint": "5175ffe5153a34f27f29f3558d18216bfac6a0078a3418c9eb40d36bf2a33e5b",
+        "output_digest": "b8b57b64e2119a0e382c10c133c9a98f4b61cac0b7f1eb5f718ec3fbb9d8f745",
+        "previous_generation_id": null,
+        "recipe": {
+          "context": {},
+          "continuity": {
+            "dependency_set_id": "ea0ff78650db60b7e2964bebd1aefe7202568b90414ce22243686a8a9dc94fb7",
+            "previous_generation_id": null
+          },
+          "inputs": {
+            "overrides/event_aliases.csv": "3fb16a5e6eab2923e3d157341f80bef4a5a5d5685e4f2288e304d79be074570d",
+            "overrides/series_aliases.csv": "92366188e4295b901772dbe1cc3e1f12116fab46be9765a577a8845e31815642",
+            "overrides/source_urls.csv": "cce22c27665b53c67291a41dc18e99989b6b3eab4fe817aeb5e902e6f251e9a1",
+            "policy/history_start": "8bb80a810b48355047d206a2fd83a2929b7b2e1ec71c487d43fa951e3bdbba56",
+            "policy/inventory_year": "158a323a7ba44870f23d96f1516dd70aa48e9a72db4ebb026b0a89e212a208ab",
+            "recipe/runtime": "d6d265b25c93b2739f4464f69f05eeba6f171568a8d668ef2616e9c494d23390"
+          }
+        },
+        "row_count": 169,
+        "run_id": "run_20260916T142427Z",
+        "stage": "project",
+        "unit_id": "wsdc",
+        "unit_kind": "calendar"
+      },
+      "in_public": false,
+      "legacy_matches": false,
+      "payload": {
+        "city": "Orlando",
+        "country": "USA",
+        "coverage_tier": "index_only",
+        "date_precision": "day",
+        "end_date": "2027-01-03",
+        "event_id": "2027-01-floorplay-swing-vacation",
+        "event_month": "2027-01",
+        "held": "listed",
+        "history_source": "[\"calendar\"]",
+        "live_window_end": "2027-01-05T00:00:00+00:00",
+        "live_window_start": "2026-12-28T12:00:00+00:00",
+        "name": "Floorplay Swing Vacation",
+        "parser_version": "3",
+        "region": "Florida",
+        "series_id": "slug-floorplay-swing-vacation",
+        "snapshot_id": "de51b1e142624d9a854864ae05264d1b",
+        "source": "wsdc_calendar",
+        "sources": "[\"wsdc_calendar\"]",
+        "start_date": "2026-12-30",
+        "website": "http://www.floorplayswingvacation.com",
+        "wsdc_status": "registry",
+        "year": 2027
+      },
+      "support_state": "legacy_unassessed"
+    },
+    {
+      "baseline_differences": {
+        "end_date": {
+          "baseline": "2019-03-17",
+          "selected": "2019-03-15"
+        },
+        "held": {
+          "baseline": "held",
+          "selected": "listed"
+        },
+        "history_source": {
+          "baseline": [
+            "calendar",
+            "newsletter",
+            "platform",
+            "registry"
+          ],
+          "selected": "[]"
+        },
+        "parser_version": {
+          "baseline": "6",
+          "selected": "3"
+        },
+        "series_id": {
+          "baseline": "wsdc-186",
+          "selected": "slug-west-in-lyon"
+        },
+        "snapshot_id": {
+          "baseline": "snap_20260913T053010Z_478d7ddb5edd",
+          "selected": "snap_20260910T063137Z_e0675a82a0a1"
+        },
+        "source": {
+          "baseline": "wsdc_newsletter",
+          "selected": "scoringdance"
+        },
+        "sources": {
+          "baseline": [
+            "scoringdance",
+            "wsdc_calendar",
+            "wsdc_newsletter"
+          ],
+          "selected": "[\"scoringdance\"]"
+        },
+        "start_date": {
+          "baseline": "2019-03-14",
+          "selected": "2019-03-15"
+        }
+      },
+      "generation": {
+        "created_at": "2026-09-16T14:35:16.741375+00:00",
+        "dependency_set_id": "c457a7a7932d3cd981328339b9f0c8b4c0dbdd8768a87e6e75903c6a3b8fa29a",
+        "generation_id": "dg_3f7e85b70c428d5434f4f4d8da780a27b758cc8385e0d4f6469c3e29309b0a07",
+        "input_fingerprint": "207f15b33db61eb2061a0e065058d63e63bbfe2bb3f44334a989b033293f72b8",
+        "output_digest": "1e5ad905e9aa03acb7b9efe4229cd0d4916955c901c5b8ade53f4fe7e41de8b9",
+        "previous_generation_id": null,
+        "recipe": {
+          "context": {},
+          "continuity": {
+            "dependency_set_id": "399201862257347a677f192ec068b3e6c78709e240208882dcf7bd78527e6082",
+            "previous_generation_id": null
+          },
+          "inputs": {
+            "overrides/event_aliases.csv": "3fb16a5e6eab2923e3d157341f80bef4a5a5d5685e4f2288e304d79be074570d",
+            "overrides/series_aliases.csv": "92366188e4295b901772dbe1cc3e1f12116fab46be9765a577a8845e31815642",
+            "overrides/source_urls.csv": "cce22c27665b53c67291a41dc18e99989b6b3eab4fe817aeb5e902e6f251e9a1",
+            "policy/history_start": "8bb80a810b48355047d206a2fd83a2929b7b2e1ec71c487d43fa951e3bdbba56",
+            "policy/inventory_year": "158a323a7ba44870f23d96f1516dd70aa48e9a72db4ebb026b0a89e212a208ab",
+            "recipe/runtime": "d6d265b25c93b2739f4464f69f05eeba6f171568a8d668ef2616e9c494d23390"
+          }
+        },
+        "row_count": 808,
+        "run_id": "run_20260916T143347Z",
+        "stage": "project",
+        "unit_id": "all",
+        "unit_kind": "map"
+      },
+      "in_public": false,
+      "legacy_matches": false,
+      "payload": {
+        "city": null,
+        "country": null,
+        "coverage_tier": "index_only",
+        "date_precision": "day",
+        "end_date": "2019-03-15",
+        "event_id": "2019-03-west-in-lyon",
+        "event_month": "2019-03",
+        "held": "listed",
+        "history_source": "[]",
+        "live_window_end": null,
+        "live_window_start": null,
+        "name": "West in Lyon 2019",
+        "parser_version": "3",
+        "region": null,
+        "series_id": "slug-west-in-lyon",
+        "snapshot_id": "snap_20260910T063137Z_e0675a82a0a1",
+        "source": "scoringdance",
+        "sources": "[\"scoringdance\"]",
+        "start_date": "2019-03-15",
+        "website": null,
+        "wsdc_status": "unknown",
+        "year": 2019
+      },
+      "support_state": "legacy_unassessed"
+    },
+    {
+      "baseline_differences": {
+        "event_month": {
+          "baseline": "2019-11",
+          "selected": "2019-10"
+        },
+        "held": {
+          "baseline": "held",
+          "selected": "listed"
+        },
+        "history_source": {
+          "baseline": [],
+          "selected": "[]"
+        },
+        "series_id": {
+          "baseline": "wsdc-236",
+          "selected": "slug-warsaw-halloween-swing"
+        },
+        "sources": {
+          "baseline": [
+            "scoringdance"
+          ],
+          "selected": "[\"scoringdance\"]"
+        }
+      },
+      "generation": {
+        "created_at": "2026-09-16T14:35:16.741375+00:00",
+        "dependency_set_id": "c457a7a7932d3cd981328339b9f0c8b4c0dbdd8768a87e6e75903c6a3b8fa29a",
+        "generation_id": "dg_3f7e85b70c428d5434f4f4d8da780a27b758cc8385e0d4f6469c3e29309b0a07",
+        "input_fingerprint": "207f15b33db61eb2061a0e065058d63e63bbfe2bb3f44334a989b033293f72b8",
+        "output_digest": "1e5ad905e9aa03acb7b9efe4229cd0d4916955c901c5b8ade53f4fe7e41de8b9",
+        "previous_generation_id": null,
+        "recipe": {
+          "context": {},
+          "continuity": {
+            "dependency_set_id": "399201862257347a677f192ec068b3e6c78709e240208882dcf7bd78527e6082",
+            "previous_generation_id": null
+          },
+          "inputs": {
+            "overrides/event_aliases.csv": "3fb16a5e6eab2923e3d157341f80bef4a5a5d5685e4f2288e304d79be074570d",
+            "overrides/series_aliases.csv": "92366188e4295b901772dbe1cc3e1f12116fab46be9765a577a8845e31815642",
+            "overrides/source_urls.csv": "cce22c27665b53c67291a41dc18e99989b6b3eab4fe817aeb5e902e6f251e9a1",
+            "policy/history_start": "8bb80a810b48355047d206a2fd83a2929b7b2e1ec71c487d43fa951e3bdbba56",
+            "policy/inventory_year": "158a323a7ba44870f23d96f1516dd70aa48e9a72db4ebb026b0a89e212a208ab",
+            "recipe/runtime": "d6d265b25c93b2739f4464f69f05eeba6f171568a8d668ef2616e9c494d23390"
+          }
+        },
+        "row_count": 808,
+        "run_id": "run_20260916T143347Z",
+        "stage": "project",
+        "unit_id": "all",
+        "unit_kind": "map"
+      },
+      "in_public": false,
+      "legacy_matches": false,
+      "payload": {
+        "city": null,
+        "country": null,
+        "coverage_tier": "index_only",
+        "date_precision": "day",
+        "end_date": "2019-10-31",
+        "event_id": "2019-10-warsaw-halloween-swing",
+        "event_month": "2019-10",
+        "held": "listed",
+        "history_source": "[]",
+        "live_window_end": null,
+        "live_window_start": null,
+        "name": "Warsaw Halloween Swing 2019",
+        "parser_version": "3",
+        "region": null,
+        "series_id": "slug-warsaw-halloween-swing",
+        "snapshot_id": "snap_20260910T060413Z_941582b00781",
+        "source": "scoringdance",
+        "sources": "[\"scoringdance\"]",
+        "start_date": "2019-10-31",
+        "website": null,
+        "wsdc_status": "unknown",
+        "year": 2019
+      },
+      "support_state": "legacy_unassessed"
+    },
+    {
+      "baseline_differences": {
+        "end_date": {
+          "baseline": "2019-12-15",
+          "selected": "2019-12-12"
+        },
+        "held": {
+          "baseline": "held",
+          "selected": "listed"
+        },
+        "history_source": {
+          "baseline": [
+            "calendar",
+            "newsletter",
+            "platform",
+            "registry"
+          ],
+          "selected": "[]"
+        },
+        "parser_version": {
+          "baseline": "6",
+          "selected": "3"
+        },
+        "series_id": {
+          "baseline": "wsdc-271",
+          "selected": "slug-berlin-swing-revolution"
+        },
+        "snapshot_id": {
+          "baseline": "snap_20260913T053204Z_ea0a1cfa6f68",
+          "selected": "snap_20260910T063332Z_d93946681fe5"
+        },
+        "source": {
+          "baseline": "wsdc_newsletter",
+          "selected": "scoringdance"
+        },
+        "sources": {
+          "baseline": [
+            "scoringdance",
+            "wsdc_calendar",
+            "wsdc_newsletter"
+          ],
+          "selected": "[\"scoringdance\"]"
+        }
+      },
+      "generation": {
+        "created_at": "2026-09-16T14:35:16.741375+00:00",
+        "dependency_set_id": "c457a7a7932d3cd981328339b9f0c8b4c0dbdd8768a87e6e75903c6a3b8fa29a",
+        "generation_id": "dg_3f7e85b70c428d5434f4f4d8da780a27b758cc8385e0d4f6469c3e29309b0a07",
+        "input_fingerprint": "207f15b33db61eb2061a0e065058d63e63bbfe2bb3f44334a989b033293f72b8",
+        "output_digest": "1e5ad905e9aa03acb7b9efe4229cd0d4916955c901c5b8ade53f4fe7e41de8b9",
+        "previous_generation_id": null,
+        "recipe": {
+          "context": {},
+          "continuity": {
+            "dependency_set_id": "399201862257347a677f192ec068b3e6c78709e240208882dcf7bd78527e6082",
+            "previous_generation_id": null
+          },
+          "inputs": {
+            "overrides/event_aliases.csv": "3fb16a5e6eab2923e3d157341f80bef4a5a5d5685e4f2288e304d79be074570d",
+            "overrides/series_aliases.csv": "92366188e4295b901772dbe1cc3e1f12116fab46be9765a577a8845e31815642",
+            "overrides/source_urls.csv": "cce22c27665b53c67291a41dc18e99989b6b3eab4fe817aeb5e902e6f251e9a1",
+            "policy/history_start": "8bb80a810b48355047d206a2fd83a2929b7b2e1ec71c487d43fa951e3bdbba56",
+            "policy/inventory_year": "158a323a7ba44870f23d96f1516dd70aa48e9a72db4ebb026b0a89e212a208ab",
+            "recipe/runtime": "d6d265b25c93b2739f4464f69f05eeba6f171568a8d668ef2616e9c494d23390"
+          }
+        },
+        "row_count": 808,
+        "run_id": "run_20260916T143347Z",
+        "stage": "project",
+        "unit_id": "all",
+        "unit_kind": "map"
+      },
+      "in_public": false,
+      "legacy_matches": false,
+      "payload": {
+        "city": null,
+        "country": null,
+        "coverage_tier": "index_only",
+        "date_precision": "day",
+        "end_date": "2019-12-12",
+        "event_id": "2019-12-berlin-swing-revolution",
+        "event_month": "2019-12",
+        "held": "listed",
+        "history_source": "[]",
+        "live_window_end": null,
+        "live_window_start": null,
+        "name": "Berlin Swing Revolution 2019",
+        "parser_version": "3",
+        "region": null,
+        "series_id": "slug-berlin-swing-revolution",
+        "snapshot_id": "snap_20260910T063332Z_d93946681fe5",
+        "source": "scoringdance",
+        "sources": "[\"scoringdance\"]",
+        "start_date": "2019-12-12",
+        "website": null,
+        "wsdc_status": "unknown",
+        "year": 2019
+      },
+      "support_state": "legacy_unassessed"
+    },
+    {
+      "baseline_differences": {
+        "coverage_tier": {
+          "baseline": "sheets_partial",
+          "selected": "index_only"
+        },
+        "end_date": {
+          "baseline": "2020-01-26",
+          "selected": "2020-01-23"
+        },
+        "held": {
+          "baseline": "held",
+          "selected": "listed"
+        },
+        "history_source": {
+          "baseline": [
+            "calendar",
+            "newsletter",
+            "platform",
+            "registry"
+          ],
+          "selected": "[]"
+        },
+        "parser_version": {
+          "baseline": "6",
+          "selected": "3"
+        },
+        "series_id": {
+          "baseline": "wsdc-291",
+          "selected": "slug-municorn-swing"
+        },
+        "snapshot_id": {
+          "baseline": "snap_20260913T053303Z_220a0f22f0f6",
+          "selected": "snap_20260910T053616Z_9da6c4e877af"
+        },
+        "source": {
+          "baseline": "wsdc_newsletter",
+          "selected": "scoringdance"
+        },
+        "sources": {
+          "baseline": [
+            "scoringdance",
+            "wsdc_calendar",
+            "wsdc_newsletter"
+          ],
+          "selected": "[\"scoringdance\"]"
+        }
+      },
+      "generation": {
+        "created_at": "2026-09-16T14:35:16.741375+00:00",
+        "dependency_set_id": "c457a7a7932d3cd981328339b9f0c8b4c0dbdd8768a87e6e75903c6a3b8fa29a",
+        "generation_id": "dg_3f7e85b70c428d5434f4f4d8da780a27b758cc8385e0d4f6469c3e29309b0a07",
+        "input_fingerprint": "207f15b33db61eb2061a0e065058d63e63bbfe2bb3f44334a989b033293f72b8",
+        "output_digest": "1e5ad905e9aa03acb7b9efe4229cd0d4916955c901c5b8ade53f4fe7e41de8b9",
+        "previous_generation_id": null,
+        "recipe": {
+          "context": {},
+          "continuity": {
+            "dependency_set_id": "399201862257347a677f192ec068b3e6c78709e240208882dcf7bd78527e6082",
+            "previous_generation_id": null
+          },
+          "inputs": {
+            "overrides/event_aliases.csv": "3fb16a5e6eab2923e3d157341f80bef4a5a5d5685e4f2288e304d79be074570d",
+            "overrides/series_aliases.csv": "92366188e4295b901772dbe1cc3e1f12116fab46be9765a577a8845e31815642",
+            "overrides/source_urls.csv": "cce22c27665b53c67291a41dc18e99989b6b3eab4fe817aeb5e902e6f251e9a1",
+            "policy/history_start": "8bb80a810b48355047d206a2fd83a2929b7b2e1ec71c487d43fa951e3bdbba56",
+            "policy/inventory_year": "158a323a7ba44870f23d96f1516dd70aa48e9a72db4ebb026b0a89e212a208ab",
+            "recipe/runtime": "d6d265b25c93b2739f4464f69f05eeba6f171568a8d668ef2616e9c494d23390"
+          }
+        },
+        "row_count": 808,
+        "run_id": "run_20260916T143347Z",
+        "stage": "project",
+        "unit_id": "all",
+        "unit_kind": "map"
+      },
+      "in_public": false,
+      "legacy_matches": false,
+      "payload": {
+        "city": null,
+        "country": null,
+        "coverage_tier": "index_only",
+        "date_precision": "day",
+        "end_date": "2020-01-23",
+        "event_id": "2020-01-municorn-swing",
+        "event_month": "2020-01",
+        "held": "listed",
+        "history_source": "[]",
+        "live_window_end": null,
+        "live_window_start": null,
+        "name": "Municorn Swing 2020",
+        "parser_version": "3",
+        "region": null,
+        "series_id": "slug-municorn-swing",
+        "snapshot_id": "snap_20260910T053616Z_9da6c4e877af",
+        "source": "scoringdance",
+        "sources": "[\"scoringdance\"]",
+        "start_date": "2020-01-23",
+        "website": null,
+        "wsdc_status": "unknown",
+        "year": 2020
+      },
+      "support_state": "legacy_unassessed"
+    },
+    {
+      "baseline_differences": {
+        "coverage_tier": {
+          "baseline": "sheets_partial",
+          "selected": "index_only"
+        },
+        "held": {
+          "baseline": "held",
+          "selected": "listed"
+        },
+        "history_source": {
+          "baseline": [
+            "calendar",
+            "platform",
+            "registry"
+          ],
+          "selected": "[]"
+        },
+        "series_id": {
+          "baseline": "wsdc-165",
+          "selected": "slug-midland-swing-open"
+        },
+        "sources": {
+          "baseline": [
+            "scoringdance",
+            "wsdc_calendar"
+          ],
+          "selected": "[\"scoringdance\"]"
+        },
+        "website": {
+          "baseline": "https://scoring.dance/enUS/events/45/results/",
+          "selected": null
+        }
+      },
+      "generation": {
+        "created_at": "2026-09-16T14:35:16.741375+00:00",
+        "dependency_set_id": "c457a7a7932d3cd981328339b9f0c8b4c0dbdd8768a87e6e75903c6a3b8fa29a",
+        "generation_id": "dg_3f7e85b70c428d5434f4f4d8da780a27b758cc8385e0d4f6469c3e29309b0a07",
+        "input_fingerprint": "207f15b33db61eb2061a0e065058d63e63bbfe2bb3f44334a989b033293f72b8",
+        "output_digest": "1e5ad905e9aa03acb7b9efe4229cd0d4916955c901c5b8ade53f4fe7e41de8b9",
+        "previous_generation_id": null,
+        "recipe": {
+          "context": {},
+          "continuity": {
+            "dependency_set_id": "399201862257347a677f192ec068b3e6c78709e240208882dcf7bd78527e6082",
+            "previous_generation_id": null
+          },
+          "inputs": {
+            "overrides/event_aliases.csv": "3fb16a5e6eab2923e3d157341f80bef4a5a5d5685e4f2288e304d79be074570d",
+            "overrides/series_aliases.csv": "92366188e4295b901772dbe1cc3e1f12116fab46be9765a577a8845e31815642",
+            "overrides/source_urls.csv": "cce22c27665b53c67291a41dc18e99989b6b3eab4fe817aeb5e902e6f251e9a1",
+            "policy/history_start": "8bb80a810b48355047d206a2fd83a2929b7b2e1ec71c487d43fa951e3bdbba56",
+            "policy/inventory_year": "158a323a7ba44870f23d96f1516dd70aa48e9a72db4ebb026b0a89e212a208ab",
+            "recipe/runtime": "d6d265b25c93b2739f4464f69f05eeba6f171568a8d668ef2616e9c494d23390"
+          }
+        },
+        "row_count": 808,
+        "run_id": "run_20260916T143347Z",
+        "stage": "project",
+        "unit_id": "all",
+        "unit_kind": "map"
+      },
+      "in_public": false,
+      "legacy_matches": false,
+      "payload": {
+        "city": null,
+        "country": null,
+        "coverage_tier": "index_only",
+        "date_precision": "day",
+        "end_date": "2021-09-23",
+        "event_id": "2021-09-midland-swing-open",
+        "event_month": "2021-09",
+        "held": "listed",
+        "history_source": "[]",
+        "live_window_end": null,
+        "live_window_start": null,
+        "name": "Midland Swing Open 2021",
+        "parser_version": "3",
+        "region": null,
+        "series_id": "slug-midland-swing-open",
+        "snapshot_id": "snap_20260910T053746Z_1f5de8152084",
+        "source": "scoringdance",
+        "sources": "[\"scoringdance\"]",
+        "start_date": "2021-09-23",
+        "website": null,
+        "wsdc_status": "unknown",
+        "year": 2021
+      },
+      "support_state": "legacy_unassessed"
+    }
+  ],
+  "rejected_unique_events": 164,
+  "rejection_by_unit_kind": {
+    "calendar": 3,
+    "map": 161
+  },
+  "rejection_fields": {
+    "coverage_tier": 52,
+    "end_date": 34,
+    "event_month": 23,
+    "held": 161,
+    "history_source": 164,
+    "parser_version": 34,
+    "series_id": 161,
+    "snapshot_id": 34,
+    "source": 34,
+    "sources": 164,
+    "start_date": 6,
+    "website": 111,
+    "wsdc_status": 3
+  },
+  "selected_event_count": 2541,
+  "state_registry_nulls": 22201,
+  "state_target_registry": [
+    {
+      "event_id": null,
+      "event_month": "2020-01-01",
+      "n": 54,
+      "series_id": "wsdc-291"
+    }
+  ],
+  "target_scope_ownership": [
+    {
+      "record_key": "[\"2020-01-municorn-swing\"]",
+      "scope_id": "all",
+      "scope_kind": "unmatched_source_events",
+      "table_name": "events"
+    },
+    {
+      "record_key": "[\"2020-01-municorn-swing\"]",
+      "scope_id": "all",
+      "scope_kind": "history",
+      "table_name": "events"
+    }
+  ],
+  "target_selected_event_rows": [
+    {
+      "baseline_differences": {},
+      "generation": {
+        "created_at": "2026-09-16T14:41:23.128985+00:00",
+        "dependency_set_id": "2bcaddb8a0f590c50d88c9940f669c08991d2ff6a905aec37d67bd268b0cb197",
+        "generation_id": "dg_eaff7a987b6505fe924526bec0d0e9f5fe5c5ec04555bacf4cfa95305eeb6933",
+        "input_fingerprint": "5bd6886ad13fe8ae82859f793be84cb75e9251ae9248c6a81b7f993eb4f4039b",
+        "output_digest": "c31a6c40e84770323b84d598faab6c0cfd696f16efa4e0c9f1d5c2c180652975",
+        "previous_generation_id": null,
+        "recipe": {
+          "context": {},
+          "continuity": {},
+          "inputs": {
+            "overrides/event_aliases.csv": "3fb16a5e6eab2923e3d157341f80bef4a5a5d5685e4f2288e304d79be074570d",
+            "overrides/series_aliases.csv": "92366188e4295b901772dbe1cc3e1f12116fab46be9765a577a8845e31815642",
+            "overrides/source_urls.csv": "cce22c27665b53c67291a41dc18e99989b6b3eab4fe817aeb5e902e6f251e9a1",
+            "policy/history_start": "8bb80a810b48355047d206a2fd83a2929b7b2e1ec71c487d43fa951e3bdbba56",
+            "policy/inventory_year": "158a323a7ba44870f23d96f1516dd70aa48e9a72db4ebb026b0a89e212a208ab",
+            "recipe/runtime": "d6d265b25c93b2739f4464f69f05eeba6f171568a8d668ef2616e9c494d23390"
+          }
+        },
+        "row_count": 200597,
+        "run_id": "run_20260916T143347Z",
+        "stage": "project",
+        "unit_id": "all",
+        "unit_kind": "history"
+      },
+      "in_public": false,
+      "legacy_matches": null,
+      "payload": {
+        "coverage_tier": "sheets_partial",
+        "event_id": "2020-01-municorn-swing"
+      },
+      "support_state": "not_required"
+    },
+    {
+      "baseline_differences": {
+        "history_source": {
+          "baseline": [
+            "calendar",
+            "newsletter",
+            "platform",
+            "registry"
+          ],
+          "selected": "[\"calendar\", \"newsletter\", \"platform\", \"registry\"]"
+        },
+        "sources": {
+          "baseline": [
+            "scoringdance",
+            "wsdc_calendar",
+            "wsdc_newsletter"
+          ],
+          "selected": "[\"scoringdance\", \"wsdc_calendar\", \"wsdc_newsletter\"]"
+        }
+      },
+      "generation": {
+        "created_at": "2026-09-16T14:34:59.896007+00:00",
+        "dependency_set_id": "4cc1403a38ef82b42bdb74ac65405f9623c18e2b78ac3090a37560a022f97129",
+        "generation_id": "dg_63021dc9385f4af64051562fb8313f7a4e76f000a52223779968d6bef81f8e50",
+        "input_fingerprint": "2f780008df0cbadfb7eebfc50df62c39b7c87c82bcc39dd946335c2d71034dee",
+        "output_digest": "3ddfe70008ab0fc12c6cd736834fb348b26c6831913c3c0bf98034940825cc77",
+        "previous_generation_id": null,
+        "recipe": {
+          "context": {},
+          "continuity": {
+            "dependency_set_id": "6bbf121242c169aaa15718cdc531779521912665bf6cb42231618d756fc12f1f",
+            "previous_generation_id": null
+          },
+          "inputs": {
+            "overrides/event_aliases.csv": "3fb16a5e6eab2923e3d157341f80bef4a5a5d5685e4f2288e304d79be074570d",
+            "overrides/series_aliases.csv": "92366188e4295b901772dbe1cc3e1f12116fab46be9765a577a8845e31815642",
+            "overrides/source_urls.csv": "cce22c27665b53c67291a41dc18e99989b6b3eab4fe817aeb5e902e6f251e9a1",
+            "policy/history_start": "8bb80a810b48355047d206a2fd83a2929b7b2e1ec71c487d43fa951e3bdbba56",
+            "policy/inventory_year": "158a323a7ba44870f23d96f1516dd70aa48e9a72db4ebb026b0a89e212a208ab",
+            "recipe/runtime": "d6d265b25c93b2739f4464f69f05eeba6f171568a8d668ef2616e9c494d23390"
+          }
+        },
+        "row_count": 2660,
+        "run_id": "run_20260916T143347Z",
+        "stage": "project",
+        "unit_id": "all",
+        "unit_kind": "inventory"
+      },
+      "in_public": false,
+      "legacy_matches": true,
+      "payload": {
+        "city": null,
+        "country": null,
+        "date_precision": "day",
+        "end_date": "2020-01-26",
+        "event_id": "2020-01-municorn-swing",
+        "event_month": "2020-01",
+        "held": "held",
+        "history_source": "[\"calendar\", \"newsletter\", \"platform\", \"registry\"]",
+        "live_window_end": null,
+        "live_window_start": null,
+        "name": "Municorn Swing 2020",
+        "parser_version": "6",
+        "region": null,
+        "series_id": "wsdc-291",
+        "snapshot_id": "snap_20260913T053303Z_220a0f22f0f6",
+        "source": "wsdc_newsletter",
+        "sources": "[\"scoringdance\", \"wsdc_calendar\", \"wsdc_newsletter\"]",
+        "start_date": "2020-01-23",
+        "website": null,
+        "wsdc_status": "unknown",
+        "year": 2020
+      },
+      "support_state": "legacy_unassessed"
+    },
+    {
+      "baseline_differences": {
+        "coverage_tier": {
+          "baseline": "sheets_partial",
+          "selected": "index_only"
+        },
+        "end_date": {
+          "baseline": "2020-01-26",
+          "selected": "2020-01-23"
+        },
+        "held": {
+          "baseline": "held",
+          "selected": "listed"
+        },
+        "history_source": {
+          "baseline": [
+            "calendar",
+            "newsletter",
+            "platform",
+            "registry"
+          ],
+          "selected": "[]"
+        },
+        "parser_version": {
+          "baseline": "6",
+          "selected": "3"
+        },
+        "series_id": {
+          "baseline": "wsdc-291",
+          "selected": "slug-municorn-swing"
+        },
+        "snapshot_id": {
+          "baseline": "snap_20260913T053303Z_220a0f22f0f6",
+          "selected": "snap_20260910T053616Z_9da6c4e877af"
+        },
+        "source": {
+          "baseline": "wsdc_newsletter",
+          "selected": "scoringdance"
+        },
+        "sources": {
+          "baseline": [
+            "scoringdance",
+            "wsdc_calendar",
+            "wsdc_newsletter"
+          ],
+          "selected": "[\"scoringdance\"]"
+        }
+      },
+      "generation": {
+        "created_at": "2026-09-16T14:35:16.741375+00:00",
+        "dependency_set_id": "c457a7a7932d3cd981328339b9f0c8b4c0dbdd8768a87e6e75903c6a3b8fa29a",
+        "generation_id": "dg_3f7e85b70c428d5434f4f4d8da780a27b758cc8385e0d4f6469c3e29309b0a07",
+        "input_fingerprint": "207f15b33db61eb2061a0e065058d63e63bbfe2bb3f44334a989b033293f72b8",
+        "output_digest": "1e5ad905e9aa03acb7b9efe4229cd0d4916955c901c5b8ade53f4fe7e41de8b9",
+        "previous_generation_id": null,
+        "recipe": {
+          "context": {},
+          "continuity": {
+            "dependency_set_id": "399201862257347a677f192ec068b3e6c78709e240208882dcf7bd78527e6082",
+            "previous_generation_id": null
+          },
+          "inputs": {
+            "overrides/event_aliases.csv": "3fb16a5e6eab2923e3d157341f80bef4a5a5d5685e4f2288e304d79be074570d",
+            "overrides/series_aliases.csv": "92366188e4295b901772dbe1cc3e1f12116fab46be9765a577a8845e31815642",
+            "overrides/source_urls.csv": "cce22c27665b53c67291a41dc18e99989b6b3eab4fe817aeb5e902e6f251e9a1",
+            "policy/history_start": "8bb80a810b48355047d206a2fd83a2929b7b2e1ec71c487d43fa951e3bdbba56",
+            "policy/inventory_year": "158a323a7ba44870f23d96f1516dd70aa48e9a72db4ebb026b0a89e212a208ab",
+            "recipe/runtime": "d6d265b25c93b2739f4464f69f05eeba6f171568a8d668ef2616e9c494d23390"
+          }
+        },
+        "row_count": 808,
+        "run_id": "run_20260916T143347Z",
+        "stage": "project",
+        "unit_id": "all",
+        "unit_kind": "map"
+      },
+      "in_public": false,
+      "legacy_matches": false,
+      "payload": {
+        "city": null,
+        "country": null,
+        "coverage_tier": "index_only",
+        "date_precision": "day",
+        "end_date": "2020-01-23",
+        "event_id": "2020-01-municorn-swing",
+        "event_month": "2020-01",
+        "held": "listed",
+        "history_source": "[]",
+        "live_window_end": null,
+        "live_window_start": null,
+        "name": "Municorn Swing 2020",
+        "parser_version": "3",
+        "region": null,
+        "series_id": "slug-municorn-swing",
+        "snapshot_id": "snap_20260910T053616Z_9da6c4e877af",
+        "source": "scoringdance",
+        "sources": "[\"scoringdance\"]",
+        "start_date": "2020-01-23",
+        "website": null,
+        "wsdc_status": "unknown",
+        "year": 2020
+      },
+      "support_state": "legacy_unassessed"
+    }
+  ]
+}

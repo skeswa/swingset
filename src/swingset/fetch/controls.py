@@ -8,7 +8,7 @@ from swingset.clock import Clock
 from swingset.fetch.classify import Classification
 from swingset.fetch.limits import RequestContext
 from swingset.fetch.politeness import Gate, Grant, Paused, Wait
-from swingset.schedule.fairness import record_request, request_permitted
+from swingset.schedule.fairness import record_request, request_denial
 from swingset.state.control_scopes import for_watch
 from swingset.state.controls import ControlPaused, admission, settle
 from swingset.state.db import Database
@@ -55,8 +55,14 @@ def issue(
                 reason = context.check(database.connection, request_url or "", clock.now())
                 if reason:
                     raise _NotIssued(Paused(reason))
-            if not request_permitted(database.connection, gate.config):
-                raise _NotIssued(Paused("pending work backpressure"))
+            if reason := request_denial(
+                database.connection,
+                gate.config,
+                watch_id=getattr(watch, "watch_id", None),
+                host=host,
+                now=clock.now(),
+            ):
+                raise _NotIssued(Paused(reason))
             from swingset.history.origin_dispatch import record_request as record_origin_request
             from swingset.history.origin_dispatch import request_gate
 

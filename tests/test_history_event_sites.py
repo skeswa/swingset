@@ -362,7 +362,7 @@ def test_cycle_reconciles_retained_event_site_suggestion_without_source_calls(
     fixture.conn.execute("UPDATE events SET website=?", (SITE.website,))
     config_dir, overrides_dir, _ = prepare_cycle(fixture, tmp_path, monkeypatch)
     retained(fixture)
-    monkeypatch.setattr(backfill, "offer", lambda *args, **kwargs: None)
+    monkeypatch.setattr(backfill, "offers", lambda *args, **kwargs: ())
     result = cycle.run_cycle(
         fixture.db,
         config_dir=config_dir,

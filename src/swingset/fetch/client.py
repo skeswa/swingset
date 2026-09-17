@@ -586,6 +586,12 @@ class FetchClient:
                     ),
                 )
                 conn.execute("UPDATE revisions SET value=value+1 WHERE name='snapshots'")
+                if outcome.outcome in (Outcome.OK, Outcome.NOT_MODIFIED):
+                    from swingset.state.event_progress import acquired
+
+                    acquired(
+                        conn, snapshot_id=snapshot_id, source=watch.source, parser=watch.parser
+                    )
                 if queue_parse:
                     conn.execute(
                         "INSERT OR IGNORE INTO pending_work(stage,unit_kind,unit_id,enqueued_at) VALUES ('parse','snapshot',?,?)",

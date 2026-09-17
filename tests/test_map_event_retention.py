@@ -168,3 +168,82 @@ def test_removed_override_can_keep_its_enriched_target_by_source_match(enriched_
         ).fetchone()[0]
         == 1
     )
+
+
+@pytest.mark.parametrize("status", ["unknown", "registry"])
+@pytest.mark.parametrize("backing", ["history_source", "history_owner"])
+def test_generated_id_collision_preserves_inventory_and_registry_month(
+    enriched_source_event, status, backing
+):
+    from swingset.project.history import finalize_history
+
+    db, event, bundle = enriched_source_event
+    conn = db.connection
+    # The listing's July ID and dates differ from the registry reporting month.
+    # Neither unknown status nor a non-overlapping date grants overwrite authority.
+    conn.execute(
+        "UPDATE events SET series_id='wsdc-291',event_month='2024-08',"
+        "start_date='2024-07-20',end_date='2024-07-21',wsdc_status=?",
+        (status,),
+    )
+    if backing == "history_owner":
+        conn.execute("UPDATE events SET history_source='[]'")
+        conn.execute(
+            "INSERT INTO canonical_scope_rows VALUES ('history','all','events',json_array(?))",
+            (event.event_id,),
+        )
+    conn.execute(
+        "INSERT INTO dancers(wsdc_id,first_name,last_name,name_norm,is_pro,primary_role,"
+        "leader_required_level,leader_allowed_level,follower_required_level,follower_allowed_level,"
+        "leader_highest_level,leader_highest_points,follower_highest_level,follower_highest_points,"
+        "recent_year,registry_internal_id,registry_fetched_at,source,snapshot_id,parser_version,"
+        "first_seen_at,last_seen_at,run_id) VALUES (1,'Test','Dancer','test dancer',0,'leader',"
+        "'novice','novice','novice','novice','novice',1,'novice',0,2024,1,?,'wsdc_registry',"
+        "'registry','1',?,?,'test')",
+        (NOW, NOW, NOW),
+    )
+    conn.execute(
+        "INSERT INTO registry_placements VALUES (1,'leader','wcs','novice','wsdc-291',"
+        "'SaunaSwing','2024-08-01',?,'1',1,'wsdc_registry','registry','1',?,?,'test')",
+        (event.event_id, NOW, NOW),
+    )
+    before = dict(conn.execute("SELECT * FROM events").fetchone())
+    with db.transaction():
+        assert project_map(conn, bundle, NOW, "test", 19)
+        finalize_history(conn, now=NOW)
+    assert dict(conn.execute("SELECT * FROM events").fetchone()) == before
+    assert conn.execute("SELECT event_id FROM registry_placements").fetchone()[0] == event.event_id
+    assert (
+        conn.execute("SELECT event_id FROM source_event_map WHERE source_ref='137'").fetchone()[0]
+        == event.event_id
+    )
+    assert conn.execute(
+        "SELECT 1 FROM canonical_scope_rows WHERE scope_kind='unmatched_source_events' "
+        "AND record_key=json_array(?)",
+        (event.event_id,),
+    ).fetchone()
+    unit = WorkUnit("project", "map", "all")
+    output = list(output_rows(conn, unit))
+    count = conn.execute("SELECT count(*) FROM derivation_generations").fetchone()[0]
+    with db.transaction():
+        assert not project_map(conn, bundle, "2026-09-14T00:00:00Z", "test", 19)
+        finalize_history(conn, now="2026-09-14T00:00:00Z")
+    assert list(output_rows(conn, unit)) == output
+    assert conn.execute("SELECT count(*) FROM derivation_generations").fetchone()[0] == count
+    assert conn.execute("SELECT event_id FROM registry_placements").fetchone()[0] == event.event_id
+    assert not conn.execute("PRAGMA foreign_key_check").fetchall()
+
+
+def test_provisional_source_only_collision_still_refreshes_listing(enriched_source_event):
+    db, event, bundle = enriched_source_event
+    conn = db.connection
+    conn.execute("UPDATE events SET wsdc_status='unknown',history_source='[]',held='listed'")
+    conn.execute(
+        "UPDATE source_events SET end_date='2024-07-05',snapshot_id='new-listing' WHERE source_ref='137'"
+    )
+    with db.transaction():
+        project_map(conn, bundle, NOW, "test", 19)
+    row = conn.execute("SELECT * FROM events WHERE event_id=?", (event.event_id,)).fetchone()
+    assert row["end_date"] == "2024-07-05"
+    assert row["snapshot_id"] == "new-listing"
+    assert row["source"] == "scoringdance"

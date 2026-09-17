@@ -1,0 +1,18 @@
+[
+  {
+    "name": "command.json",
+    "sha256": "03dc5e51758310598cc31175f21cb56ef055907cc1009bebd1db8329c30d3068"
+  },
+  {
+    "name": "run.log",
+    "sha256": "b6a370d3029090c314615197162c60e843e923f1cfe2121188796114db13933b"
+  },
+  {
+    "name": "initialization-anchor-003.json",
+    "sha256": "2bff03bce51be83ed62315274adbc07d0a5396d7b10e74a214bf9b0fb0421654"
+  },
+  {
+    "name": "execution.json",
+    "sha256": "f01ccf5d49f372739ea5e322b617d1f358b10f9cffabefa4691f9d1e29360561"
+  }
+]

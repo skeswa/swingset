@@ -3,6 +3,18 @@
 [Browse by topic](../README.md). Dates in each record describe its evidence.
 A missing original date is not inferred from file modification time.
 
+- 2026-09-16: [Missing historical parser fixtures and unsupported-page meanings](historical-parser-evidence-gaps-2026-09-16.md).
+- 2026-09-16: [Publishing the verified H16 production release](h16-production-release-2026-09-16.md).
+- 2026-09-16: [Completing a 33-page event under competing work](event-completion-cohort-2026-09-16.md).
+- 2026-09-16: [Activating restored event accounting](event-accounting-activated-restore-2026-09-16.md).
+- 2026-09-16: [Accounting for verified unavailable pages](event-unavailable-accounting-2026-09-16.md).
+- 2026-09-16: [Investigating bounded normalized-request lookup](normalized-request-lookup-2026-09-16.md).
+- 2026-09-16: [Retained event pages and bounded turns](event-completion-2026-09-16.md).
+- 2026-09-16: [Counting retained unavailable responses](event-unavailable-coverage-2026-09-16.md).
+- 2026-09-16: [Verifying immediate page retirements](event-page-retirement-proof-2026-09-16.md).
+- 2026-09-16: [Observing fleet completion](event-fleet-accounting-2026-09-16.md).
+- 2026-09-16: [Reducing repeated release validation](h16-proof-reuse-2026-09-16.md).
+- 2026-09-16: [Making local validation checks run independently](local-validation-checks-2026-09-16.md).
 - 2026-09-15: [Why full-build validation exceeded its deadline (H16)](h16-validation-investigation-2026-09-15.md).
 - 2026-09-15: [Release handoff after the build timeout](2026-09-15-release-handoff.md).
 - 2026-09-14: [PostgreSQL and Dokploy migration plan](postgres-migration-plan-2026-09-14.md).

@@ -1,0 +1,15 @@
+{
+  "driver_sha256": "db4cd1a26e3f1c593570316759b779e44f98cf1d691b1b32872a35416e81cf2e",
+  "evidence": {
+    "gate.json": "98ae2f20f838f5e14a24854b8870d557511f994dfc8c95e9b79e0a1b462c0004",
+    "preflight.json": "3999c52e966407116568a6b4438618af837219e11feed8db33d8b812dc23f575",
+    "scratch-audit.json": "862a880eaf2d0263b5f35ed8733c90bd21a818c3eab3a0929c875ef24fb7b81d",
+    "scratch-build.json": "59a2e82b5cc8dfe0a4451b679fa89c0dcf84aa59ee944ee8c1d7b9efa37c61a3"
+  },
+  "passed": false,
+  "previous_system": "/nix/store/r29kapzbjk0ch5h0vkk288jd47dvg90j-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+  "source": "/nix/store/z689qy41inndill3d92ym8im852x3649-source",
+  "source_receipt_sha256": "0c3a391aca5c32381ab10daa22adfdde44cda76ab26b68df002f9822ad4945fb",
+  "started_at": "2026-09-16T19:58:27.764853+00:00",
+  "system": "/nix/store/sx7lpr80cx0n9vzsi3cwz9nxawqc4p1i-nixos-system-swingset-lxc-25.11.20260630.b6018f8"
+}

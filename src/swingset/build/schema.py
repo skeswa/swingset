@@ -6,6 +6,8 @@ import pyarrow as pa
 
 from swingset.model.schema import COVERAGE_PUBLIC_COLUMNS, PUBLIC_SCOPE_COLUMNS, PUBLIC_SCOPE_TABLES
 
+from .event_coverage import PUBLIC_FIELDS as EVENT_COVERAGE_FIELDS
+
 S = pa.string()
 I8, I16, I32 = pa.int8(), pa.int16(), pa.int32()
 F32 = pa.float32()
@@ -353,9 +355,15 @@ for _name, _type in [
     SCHEMAS["coverage"] = SCHEMAS["coverage"].append(pa.field(_name, _type))
 
 
+for _name, _kind in EVENT_COVERAGE_FIELDS.items():
+    SCHEMAS["coverage"] = SCHEMAS["coverage"].append(
+        pa.field(_name, {"string": S, "strings": LS, "int": pa.int64(), "bool": pa.bool_()}[_kind])
+    )
+
+
 RELEASE_FIELDS: dict[str, tuple[str, ...]] = {
     **{table: tuple(sorted(PUBLIC_SCOPE_COLUMNS)) for table in PUBLIC_SCOPE_TABLES},
-    "coverage": tuple(sorted(COVERAGE_PUBLIC_COLUMNS)),
+    "coverage": tuple(sorted(COVERAGE_PUBLIC_COLUMNS | EVENT_COVERAGE_FIELDS.keys())),
 }
 
 

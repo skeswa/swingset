@@ -1,0 +1,25 @@
+{"turn": 1, "share": 50, "issued": 128, "cohort_pages": 64, "events_served": 64}
+{"turn": 1, "share": 50, "issued": 256, "cohort_pages": 128, "events_served": 128}
+{"turn": 1, "share": 50, "issued": 384, "cohort_pages": 192, "events_served": 192}
+{"turn": 1, "share": 50, "issued": 512, "cohort_pages": 256, "events_served": 218}
+{"turn": 4, "share": 50, "issued": 128, "cohort_pages": 64, "events_served": 16}
+{"turn": 4, "share": 50, "issued": 256, "cohort_pages": 128, "events_served": 33}
+{"turn": 4, "share": 50, "issued": 384, "cohort_pages": 192, "events_served": 49}
+{"turn": 4, "share": 50, "issued": 512, "cohort_pages": 256, "events_served": 65}
+{"turn": 8, "share": 50, "issued": 128, "cohort_pages": 64, "events_served": 8}
+{"turn": 8, "share": 50, "issued": 256, "cohort_pages": 128, "events_served": 16}
+{"turn": 8, "share": 50, "issued": 384, "cohort_pages": 192, "events_served": 25}
+{"turn": 8, "share": 50, "issued": 512, "cohort_pages": 256, "events_served": 33}
+{"turn": 1, "share": 75, "issued": 128, "cohort_pages": 96, "events_served": 96}
+{"turn": 1, "share": 75, "issued": 256, "cohort_pages": 192, "events_served": 192}
+{"turn": 1, "share": 75, "issued": 384, "cohort_pages": 288, "events_served": 218}
+{"turn": 1, "share": 75, "issued": 512, "cohort_pages": 384, "events_served": 218}
+{"turn": 4, "share": 75, "issued": 128, "cohort_pages": 96, "events_served": 25}
+{"turn": 4, "share": 75, "issued": 256, "cohort_pages": 192, "events_served": 49}
+{"turn": 4, "share": 75, "issued": 384, "cohort_pages": 288, "events_served": 73}
+{"turn": 4, "share": 75, "issued": 512, "cohort_pages": 384, "events_served": 98}
+{"turn": 8, "share": 75, "issued": 128, "cohort_pages": 96, "events_served": 12}
+{"turn": 8, "share": 75, "issued": 256, "cohort_pages": 192, "events_served": 25}
+{"turn": 8, "share": 75, "issued": 384, "cohort_pages": 288, "events_served": 37}
+{"turn": 8, "share": 75, "issued": 512, "cohort_pages": 384, "events_served": 49}
+{"output": "journal/evidence/runtime/event-completion-2026-09-16/ready-backlog-shadow-001.json", "passed": true, "sha256": "4ddbdcf901fc1983f0adfd2ea8bc1a18516256a8ee199f12f56ceb7e7e37f6dd"}

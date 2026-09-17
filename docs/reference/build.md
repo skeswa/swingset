@@ -132,6 +132,14 @@ manifest contains opaque generation IDs and proof hashes; source locators,
 recipes, and private policy notes remain in local immutable storage. Publication
 requires both the verified file closure and the durable build-generation receipt.
 
+Completion validates the pinned closure before output, after output rows, and
+before certification. Within that transaction it may reuse a full validation
+only after rechecking the supplied manifest and hashing the exact supporting
+database evidence. A changed digest requires full validation again. This
+operation-local proof retains no decoded source payloads and does not replace
+baseline, input-bundle, correction-policy, or candidate-file checks. The ordinary
+write deadline remains unchanged.
+
 Reuse a release while selected evidence, corrections, and material health
 status remain unchanged. Public health advances once per UTC day, initially,
 and immediately when material status changes. A successful unchanged poll

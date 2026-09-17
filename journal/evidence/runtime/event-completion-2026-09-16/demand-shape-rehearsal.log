@@ -1,0 +1,17 @@
+{"requests": 1, "cohort_pages": 1, "events_finished": 0}
+{"requests": 501, "cohort_pages": 251, "events_finished": 11}
+{"requests": 1001, "cohort_pages": 501, "events_finished": 17}
+{"requests": 1501, "cohort_pages": 751, "events_finished": 24}
+{"requests": 2001, "cohort_pages": 1001, "events_finished": 27}
+{"requests": 2501, "cohort_pages": 1251, "events_finished": 32}
+{"requests": 3001, "cohort_pages": 1501, "events_finished": 40}
+{"requests": 3501, "cohort_pages": 1751, "events_finished": 43}
+{"requests": 4001, "cohort_pages": 2001, "events_finished": 48}
+{"requests": 4501, "cohort_pages": 2251, "events_finished": 56}
+{"requests": 5001, "cohort_pages": 2501, "events_finished": 72}
+{"requests": 5501, "cohort_pages": 2751, "events_finished": 94}
+{"requests": 6001, "cohort_pages": 3001, "events_finished": 119}
+{"requests": 6501, "cohort_pages": 3251, "events_finished": 140}
+{"requests": 7001, "cohort_pages": 3501, "events_finished": 174}
+{"requests": 7501, "cohort_pages": 3751, "events_finished": 215}
+{"output": "/Users/skeswa/repos/skeswa/swingset/journal/evidence/runtime/event-completion-2026-09-16/demand-shape-rehearsal.json", "sha256": "41f6c53446680f56dcd54c4d3ecbaee28c6b293be030e1741e89fe7824b7bf5d", "requests": 7513, "cohort": 218, "seconds": 67.11818287498318}

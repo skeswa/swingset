@@ -1,0 +1,26 @@
+{
+  "at": "2026-09-16T16:47:51.668812+00:00",
+  "binding_mock_tests": 4,
+  "checkpoint": "/var/lib/swingset/checkpoints/h15-before-h16-20260913",
+  "checkpoint_database_sha256": "d81b2e459471c25c430a57c2a4d096180f1094e57c1b8b1e896d66774f12e8dc",
+  "checkpoint_manifest_sha256": "700b2adc01db9eefc5c0c7ba35fddabfbc3aa00b6ed6f4900543b4e4a54ae444",
+  "file_hashes": {
+    "nix-build-002.json": "59e4e33a3dc40929e6354bfe94f9ea6e04f79d6e88e81646d2864686927b76d9",
+    "nix-build-002.log": "54b3d839d514c51c3f71ddf0123299640fa51dac98ff8db5ca1ad7e8fbe7be02",
+    "replay-binding-mock-checks-001.log": "af55efa5c3ceb122f8184c380aa405d3f3b4e7e0c1e892773d0eff31d0645c8a",
+    "replay-mock-checks-001.log": "80da4fbebb91b18e50d1629f51fc10a0d88f7ad46d7505f6b1c53e8cacb3663e",
+    "supervise-proof-replay.py": "c6597528f9c6f884afb6760eb75c3f4d1a405913d042e5d5c7206b3d2b04a109",
+    "system-binding-verification.json": "f11e9e8436a28fe164dab2c24123dc7df70529c49538c424b5889b5430b2a7ed",
+    "test-proof-replay-supervisor.py": "f261f580a2e7e827a085ca0415a7718947a110314cba0e84ee0239d7cb98ad3c",
+    "test-proof-replay-verifier-binding.py": "dbf11982521fc5b7d7c0294bd296023092bb6279befc57fc29d2057709677ad0",
+    "verify-proof-replay.py": "a59832bf2a5f7dc15483e7b8505e013ac13e0eb4b1617d03e168057a1a8fdd2d"
+  },
+  "passed": true,
+  "prepared_only": true,
+  "replay_launched": false,
+  "required_next_gate": "Root supplies exact frozen-test passed gate path/hash; no scratch initialization before it.",
+  "scratch": "/var/tmp/swingset-h16-event-preservation-replay",
+  "source": "/nix/store/z689qy41inndill3d92ym8im852x3649-source",
+  "source_receipt_sha256": "0c3a391aca5c32381ab10daa22adfdde44cda76ab26b68df002f9822ad4945fb",
+  "supervisor_mock_tests": 16
+}

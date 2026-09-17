@@ -777,6 +777,34 @@ def test_allocated_offer_is_read_only_and_ignores_ordinary_backlog(fixture):
     assert fixture.conn.execute("SELECT count(*) FROM pending_work").fetchone()[0] == 1
 
 
+def test_all_historical_offers_are_visible_without_creating_controls(fixture):
+    from swingset.history.backfill import offer, offers
+
+    review_contract(fixture)
+    other = KnownEvent(
+        EVENT.event_id, "eepro", "eepro:other2019", 2019, EVENT.event_month, EVENT.end_date
+    )
+    fixture.conn.execute(
+        "INSERT INTO source_event_map VALUES (?,?,?,'explicit',1)",
+        (other.source, other.source_ref, other.event_id),
+    )
+    accept(fixture)
+    other_capture = Capture(
+        "https://eepro.com/results/other2019/", "20190501000000", "other", "text/html", 100
+    )
+    plan = plan_platform((EVENT, other), (("eepro", CAPTURES[0]), ("eepro", other_capture)))
+    before = fixture.conn.total_changes
+    candidates = offers(fixture.db, fixture.config, fixture.clock, plan=plan)
+    assert {page.source_ref for page in candidates} == {EVENT.source_ref, other.source_ref}
+    assert offer(fixture.db, fixture.config, fixture.clock, plan=plan) == candidates[0]
+    assert fixture.conn.total_changes == before
+    assert not fixture.conn.execute("SELECT 1 FROM watches").fetchone()
+    # Merely exposing more candidates grants neither year acceptance nor a
+    # capture pointer. Every offered page still passes the original gate.
+    fixture.conn.execute("DELETE FROM history_acceptance")
+    assert offers(fixture.db, fixture.config, fixture.clock, plan=plan) == ()
+
+
 def test_pause_after_offer_prevents_allocated_capture_advancement(fixture):
     from swingset.history.backfill import offer
     from swingset.state.controls import Selector, change_control

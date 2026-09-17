@@ -1,0 +1,32 @@
+{
+  "activated": false,
+  "active_after": {
+    "/nix/var/nix/profiles/system": "/nix/store/r29kapzbjk0ch5h0vkk288jd47dvg90j-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+    "/run/current-system": "/nix/store/r29kapzbjk0ch5h0vkk288jd47dvg90j-nixos-system-swingset-lxc-25.11.20260630.b6018f8"
+  },
+  "active_before": {
+    "/nix/var/nix/profiles/system": "/nix/store/r29kapzbjk0ch5h0vkk288jd47dvg90j-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+    "/run/current-system": "/nix/store/r29kapzbjk0ch5h0vkk288jd47dvg90j-nixos-system-swingset-lxc-25.11.20260630.b6018f8"
+  },
+  "argv": [
+    "nix",
+    "--extra-experimental-features",
+    "nix-command flakes",
+    "build",
+    "--impure",
+    "--offline",
+    "--no-update-lock-file",
+    "--no-link",
+    "--print-out-paths",
+    "path:/nix/store/z689qy41inndill3d92ym8im852x3649-source#nixosConfigurations.orb.config.system.build.toplevel"
+  ],
+  "at": "2026-09-16T16:44:49.193571+00:00",
+  "elapsed_seconds": 8.085198939021211,
+  "exit_code": 0,
+  "format": "h16-event-preservation-nixos-build-v1",
+  "passed": true,
+  "script_sha256": "42c1d56f85f17dc24f7b673875102fed0c9731bc7768580a0bbf80d6a288a3a5",
+  "source": "/nix/store/z689qy41inndill3d92ym8im852x3649-source",
+  "source_receipt_sha256": "0c3a391aca5c32381ab10daa22adfdde44cda76ab26b68df002f9822ad4945fb",
+  "system": "/nix/store/sx7lpr80cx0n9vzsi3cwz9nxawqc4p1i-nixos-system-swingset-lxc-25.11.20260630.b6018f8"
+}

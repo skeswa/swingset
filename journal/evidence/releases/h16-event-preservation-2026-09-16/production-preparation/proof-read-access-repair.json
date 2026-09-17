@@ -1,0 +1,66 @@
+{
+  "started_at": "2026-09-16T22:25:02.741166+00:00",
+  "database_writes": false,
+  "files": [
+    {
+      "path": "/var/lib/swingset/operations/h16-event-preservation-release-20260916/initialization-verification-002.json",
+      "before": {
+        "inode": 8229891,
+        "device": 53,
+        "uid": 0,
+        "gid": 0,
+        "mode": "0o600",
+        "size": 6594,
+        "mtime_ns": 1789597159243327210
+      },
+      "after": {
+        "inode": 8229891,
+        "device": 53,
+        "uid": 0,
+        "gid": 995,
+        "mode": "0o640",
+        "size": 6594,
+        "mtime_ns": 1789597159243327210
+      },
+      "sha256": "dfd48d5550118410ecaab2ebd0e40ae132ab9b789ed948ea1474b9b7d7e33157"
+    },
+    {
+      "path": "/var/lib/swingset/operations/h16-event-preservation-release-20260916/initialization-anchor-003.json",
+      "before": {
+        "inode": 8193946,
+        "device": 53,
+        "uid": 0,
+        "gid": 0,
+        "mode": "0o600",
+        "size": 5046,
+        "mtime_ns": 1789590886520291028
+      },
+      "after": {
+        "inode": 8193946,
+        "device": 53,
+        "uid": 0,
+        "gid": 995,
+        "mode": "0o640",
+        "size": 5046,
+        "mtime_ns": 1789590886520291028
+      },
+      "sha256": "2bff03bce51be83ed62315274adbc07d0a5396d7b10e74a214bf9b0fb0421654"
+    }
+  ],
+  "passed": true,
+  "service_probe": {
+    "uid": 996,
+    "gid": 995,
+    "all_refs_readable_and_exact": true,
+    "refs": [
+      "/var/lib/swingset/operations/h16-event-preservation-release-20260916/initialization-gate-002.json",
+      "/var/lib/swingset/operations/h16-event-preservation-release-20260916/initialization-marker-002.json",
+      "/var/lib/swingset/operations/h16-event-preservation-release-20260916/supervision-reviewed-002/initializer-007.json",
+      "/var/lib/swingset/operations/h16-event-preservation-release-20260916/initialization-verification-002.json",
+      "/var/lib/swingset/operations/h16-event-preservation-release-20260916/initialize-002.py",
+      "/var/lib/swingset/operations/h16-event-preservation-release-20260916/initialization-anchor-003.json"
+    ]
+  },
+  "writer_lock_released": true,
+  "finished_at": "2026-09-16T22:25:02.761344+00:00"
+}

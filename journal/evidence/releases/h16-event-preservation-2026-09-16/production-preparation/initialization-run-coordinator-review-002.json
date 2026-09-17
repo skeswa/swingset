@@ -1,0 +1,17 @@
+{
+  "format": "h16-initialization-run-coordinator-review-v1",
+  "at": "2026-09-16T20:35:41.595706+00:00",
+  "passed": true,
+  "anchor_sha256": "2bff03bce51be83ed62315274adbc07d0a5396d7b10e74a214bf9b0fb0421654",
+  "prepare_sha256": "3194b019cddadf35e1c029257a41f35ab183611086a3c03a2371c5e61b36061f",
+  "marker_sha256": "dad425983041d0a27ab2eae1127db1fc9aeec4a401f50d678d6fe87e176baece",
+  "gate_sha256": "00da07082f1cea7a20a6d3e04849e7e2bac8aa4eae8b2ad8d344da9951cc5af6",
+  "driver_sha256": "c3259a023436e2cc3ee56e1ad83f3170b455f42187ff71421eeac25387bf96d7",
+  "supervisor_sha256": "7d2746bd079a0e0fb608ae666f4cec2146ab23561c46e2d808f0f2ba2216324f",
+  "guard_sha256": "b39cedadd065dad76eb5a47f0c5de3dd39a737895a7198bb7a48a75f5ea1623b",
+  "review": "Root independently read successful anchor; exact bindings, all protection checks, 31821 queued parse tokens with zero attempts, seven inherited unfinished runs, zero database changes, unchanged main/WAL metadata.",
+  "authorized_next": "Run guarded project/link initialization only in reviewed-002 session, at most12 bounded900-second invocations; one heavy job;6GiB anonymous-memory guard; private VM-local logs; final current result requires independent verification before build.",
+  "session": "reviewed-002",
+  "max_invocations": 12,
+  "published": false
+}

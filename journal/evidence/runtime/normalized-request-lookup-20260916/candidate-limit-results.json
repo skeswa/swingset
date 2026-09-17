@@ -1,0 +1,61 @@
+[
+  {
+    "label": "exact origin Gone404 alone",
+    "snapshot_count": 1,
+    "acquired": false,
+    "interpreted": false,
+    "unavailable": true,
+    "snapshots_exhausted": true,
+    "reasons": {},
+    "loaded_rows": 2,
+    "elapsed_seconds": 0.000997
+  },
+  {
+    "label": "same exact404 plus63 unrelated snapshots",
+    "snapshot_count": 64,
+    "acquired": false,
+    "interpreted": false,
+    "unavailable": true,
+    "snapshots_exhausted": true,
+    "reasons": {},
+    "loaded_rows": 65,
+    "elapsed_seconds": 0.00217
+  },
+  {
+    "label": "same exact404 plus64 unrelated snapshots",
+    "snapshot_count": 65,
+    "acquired": null,
+    "interpreted": null,
+    "unavailable": null,
+    "snapshots_exhausted": false,
+    "reasons": {
+      "snapshot_candidate_budget": 1
+    },
+    "loaded_rows": 65,
+    "elapsed_seconds": 0.001728
+  },
+  {
+    "label": "usable normalized alias older than64 unrelated snapshots",
+    "snapshot_count": 66,
+    "acquired": null,
+    "interpreted": null,
+    "unavailable": null,
+    "snapshots_exhausted": false,
+    "reasons": {
+      "snapshot_candidate_budget": 1
+    },
+    "loaded_rows": 65,
+    "elapsed_seconds": 0.001683
+  },
+  {
+    "label": "same alias now inside complete63candidate source pass",
+    "snapshot_count": 64,
+    "acquired": true,
+    "interpreted": false,
+    "unavailable": false,
+    "snapshots_exhausted": true,
+    "reasons": {},
+    "loaded_rows": 64,
+    "elapsed_seconds": 0.001883
+  }
+]

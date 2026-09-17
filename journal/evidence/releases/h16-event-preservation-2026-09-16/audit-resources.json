@@ -1,0 +1,111 @@
+{
+  "elapsed_seconds": 30.067131805000827,
+  "final": {
+    "ActiveState": "inactive",
+    "ExecMainCode": "0",
+    "ExecMainStatus": "0",
+    "MainPID": "0",
+    "MemoryCurrent": "[not set]",
+    "MemoryPeak": "[not set]",
+    "Result": "success",
+    "SubState": "dead"
+  },
+  "finished_at": "2026-09-16T19:51:22.777169+00:00",
+  "format": "h16-build-resource-observation-v1",
+  "peak_anon_kib": 1605860,
+  "peak_rss_kib": 1699944,
+  "samples": [
+    {
+      "ActiveState": "active",
+      "ExecMainCode": "0",
+      "ExecMainStatus": "0",
+      "MainPID": "99745",
+      "MemoryCurrent": "202272768",
+      "MemoryPeak": "202276864",
+      "Result": "success",
+      "SubState": "running",
+      "anon_kib": 32268,
+      "elapsed_seconds": 0.005449627002235502,
+      "rss_kib": 101012
+    },
+    {
+      "ActiveState": "active",
+      "ExecMainCode": "0",
+      "ExecMainStatus": "0",
+      "MainPID": "99745",
+      "MemoryCurrent": "2130800640",
+      "MemoryPeak": "3290984448",
+      "Result": "success",
+      "SubState": "running",
+      "anon_kib": 1347132,
+      "elapsed_seconds": 5.015453031985089,
+      "rss_kib": 1441216
+    },
+    {
+      "ActiveState": "active",
+      "ExecMainCode": "0",
+      "ExecMainStatus": "0",
+      "MainPID": "99745",
+      "MemoryCurrent": "2184011776",
+      "MemoryPeak": "3290984448",
+      "Result": "success",
+      "SubState": "running",
+      "anon_kib": 1276120,
+      "elapsed_seconds": 10.027568950026762,
+      "rss_kib": 1370204
+    },
+    {
+      "ActiveState": "active",
+      "ExecMainCode": "0",
+      "ExecMainStatus": "0",
+      "MainPID": "99745",
+      "MemoryCurrent": "2522324992",
+      "MemoryPeak": "3290984448",
+      "Result": "success",
+      "SubState": "running",
+      "anon_kib": 1605860,
+      "elapsed_seconds": 15.03552034002496,
+      "rss_kib": 1699944
+    },
+    {
+      "ActiveState": "active",
+      "ExecMainCode": "0",
+      "ExecMainStatus": "0",
+      "MainPID": "99745",
+      "MemoryCurrent": "1388060672",
+      "MemoryPeak": "3290984448",
+      "Result": "success",
+      "SubState": "running",
+      "anon_kib": 496760,
+      "elapsed_seconds": 20.046524941979442,
+      "rss_kib": 591612
+    },
+    {
+      "ActiveState": "active",
+      "ExecMainCode": "0",
+      "ExecMainStatus": "0",
+      "MainPID": "99745",
+      "MemoryCurrent": "1524445184",
+      "MemoryPeak": "3290984448",
+      "Result": "success",
+      "SubState": "running",
+      "anon_kib": 451204,
+      "elapsed_seconds": 25.056311818014365,
+      "rss_kib": 546056
+    },
+    {
+      "ActiveState": "inactive",
+      "ExecMainCode": "0",
+      "ExecMainStatus": "0",
+      "MainPID": "0",
+      "MemoryCurrent": "[not set]",
+      "MemoryPeak": "[not set]",
+      "Result": "success",
+      "SubState": "dead",
+      "elapsed_seconds": 30.067131805000827
+    }
+  ],
+  "started_at": "2026-09-16T19:50:52.708874+00:00",
+  "terminated_reason": null,
+  "unit": "swingset-h16-event-preservation-audit.service"
+}

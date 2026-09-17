@@ -1,0 +1,8 @@
+Traceback (most recent call last):
+  File "/Users/skeswa/repos/skeswa/swingset/journal/evidence/releases/h16-validation-2026-09-16/test-proof-replay-supervisor.py", line 14, in <module>
+    spec.loader.exec_module(supervisor)
+  File "<frozen importlib._bootstrap_external>", line 850, in exec_module
+  File "<frozen importlib._bootstrap>", line 228, in _call_with_frames_removed
+  File "/Users/skeswa/repos/skeswa/swingset/journal/evidence/releases/h16-validation-2026-09-16/supervise-proof-replay.py", line 11, in <module>
+    from datetime import UTC, datetime
+ImportError: cannot import name 'UTC' from 'datetime' (/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/datetime.py)

@@ -1,0 +1,35 @@
+{
+  "connection_total_changes": 0,
+  "elapsed_seconds": 0.3106874639634043,
+  "missing": 1513,
+  "read_only": true,
+  "with_bindings": 1512,
+  "without_bindings": [
+    {
+      "event_id": "2024-03-5280-westival",
+      "indexed_judge_names": [
+        "bib number",
+        "leader",
+        "follower",
+        "ginger pickerel",
+        "thibaut ramirez",
+        "nicole ramirez",
+        "jakub jakoubek",
+        "emeline rochefeuille",
+        "jim tigges chiefjudge",
+        "placement"
+      ],
+      "judge_id": "2024-03-5280-westival/judge/unknown",
+      "name_raw": "---",
+      "snapshot_id": "snap_20260910T070933Z_679524f63d82",
+      "snapshot_metadata": [
+        [
+          "scoringdance:122",
+          "https://scoring.dance/enUS/events/122/results/1714.html"
+        ]
+      ],
+      "source": "scoringdance",
+      "wsdc_id": null
+    }
+  ]
+}
