@@ -45,6 +45,9 @@ separate revision from what was pushed.
 - Never force-push. `jj git push` refuses non-fast-forward moves of
   `main` by default; leave it that way.
 - Never edit `.jj/` or `.git/` by hand.
+- Once per clone, run `jj config set --repo snapshot.max-new-file-size 16MiB`.
+  Retained evidence and fixtures exceed jj's 1 MiB default, and without this
+  setting jj refuses to snapshot them and warns on every command (D-0092).
 - Commit messages: short summary line, blank line, body in plain
   sentences. End with the attribution trailers the session asks for.
 - The remote is `origin` (`git@github.com:skeswa/swingset.git`); the
