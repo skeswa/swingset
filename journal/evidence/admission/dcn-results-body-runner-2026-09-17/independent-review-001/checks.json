@@ -1,0 +1,73 @@
+{
+  "format": "exact-dcn-results-body-runner-independent-review-v1",
+  "recorded_at": "2026-09-17T17:39:15.058010+00:00",
+  "reviewer": "history_gates",
+  "files": {
+    "journal/tools/admission/build_dcn_results_body.py": "31339ea7413a8708b68b33e7b0edd29a581a4ca8371428cac3a0011ad0a5eba6",
+    "journal/tools/admission/dcn_results_body_checks.py": "4afc75e371af57e58413e00f6368f2b63c4302115aab942073cceed4fe5cacc6",
+    "journal/tools/admission/build_dcn_results_lookup.py": "25f8501a38049b911971d9dac508bc3d92faa936aadc55ccddd6ce9ebd570ee5"
+  },
+  "packet": "/tmp/swingset-dcn-results-body-20260917-dev003",
+  "build_receipt_sha256": "5c4187ad87a404d0299affa897dcdadc06024f96dca0b6bc6a69862b8778c5f4",
+  "driver_sha256": "103206f27c25f45b43807ef4ab467392b411e9ba51355e4de6ef11a1047227dd",
+  "helper_manifest_sha256": "20ba00fb5e54186edc83eb95a9e74f3fb57e0d1bf45804b1a84191282b132508",
+  "runtime_source": "/nix/store/dx0cyzvd8d91rf29v21sakbr7l5bwxnz-source",
+  "runtime_receipt_sha256": "60cdfe64004a0ba5a9aee207bcb089d6d4c81f5ca58169ccdb88a5dfab8146d6",
+  "checks": [
+    {
+      "command": [
+        ".venv/bin/python",
+        "-m",
+        "pytest",
+        "-c",
+        "/dev/null",
+        "-p",
+        "no:cacheprovider",
+        "-q",
+        "journal/tools/admission/dcn_results_body_checks.py"
+      ],
+      "exit_code": 0,
+      "stdout": "..............................................                           [100%]\n46 passed in 2.85s\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        ".venv/bin/ruff",
+        "check",
+        "journal/tools/admission/build_dcn_results_body.py",
+        "journal/tools/admission/dcn_results_body_checks.py"
+      ],
+      "exit_code": 0,
+      "stdout": "All checks passed!\n",
+      "stderr": ""
+    }
+  ],
+  "rebuild": {
+    "command": [
+      ".venv/bin/python",
+      "journal/tools/admission/build_dcn_results_body.py",
+      "--source",
+      "/tmp/swingset-extension-freeze-20260917-003",
+      "/var/folders/kc/94jncx6s6pqc8g2g4f2kyvtr0000gn/T/dcn-body-independent-8ovinmy4/packet"
+    ],
+    "path": "/var/folders/kc/94jncx6s6pqc8g2g4f2kyvtr0000gn/T/dcn-body-independent-8ovinmy4/packet",
+    "complete_receipt_equal": true,
+    "all_generated_files_equal": true
+  },
+  "findings": [
+    {
+      "finding": "capture helper could fall back to requested replay URL when Memento absent and label requested timestamp as observed.",
+      "resolution": "Explicit nonempty exact Memento required; missing, malformed or mismatched header stops incomplete retaining body and paid debit with no retry. Dedicated regression passes.",
+      "status": "resolved"
+    }
+  ],
+  "scope": [
+    "Exact one Riga HTML body+robots ceiling2HTTP; no CDX/redirect/retry/PDF/origin/children.",
+    "Base reviewed source003 wrapper/accounting/spacing preserved; exact row and reviewed proposal sealed in closure.",
+    "No live operation, new policy, year acceptance or publication is authorized by these local checks."
+  ],
+  "remaining_blockers": [],
+  "passed": true,
+  "network_requests": 0,
+  "production_operations": 0
+}

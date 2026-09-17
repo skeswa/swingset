@@ -1,0 +1,25 @@
+{
+  "base_file": "real-riga-results-20190719204919.html",
+  "changes": [
+    {
+      "field": "member_name",
+      "old": "Erwin Dirckx",
+      "new": "Erwin Revised"
+    },
+    {
+      "field": "placement",
+      "old": "<strong>11-14</strong>",
+      "new": "<strong>11-15</strong>"
+    },
+    {
+      "field": "pdf_locator",
+      "old": "roundscores/3451330.pdf",
+      "new": "roundscores/3451332.pdf"
+    },
+    {
+      "field": "bib",
+      "old": ">391</div>",
+      "new": ">392</div>"
+    }
+  ]
+}

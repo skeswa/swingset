@@ -1,0 +1,55 @@
+{
+  "format": "exact-dcn-results-cdx-proposal-v1",
+  "status": "proposed_requires_separate_owner_decision",
+  "purpose": "Locate archived captures for the one actual legacy results-tab locator; no body or PDF request follows.",
+  "original_url": "https://danceconvention.net/eventdirector/en/eventpage/1546230-riga-summer-swing/results",
+  "printed_href": "/eventdirector/en/eventpage/1546230-riga-summer-swing/results;jsessionid=6577d0b8-34a1-344e-8a77-a954723e3613",
+  "normalization": "Remove only the trailing archived ;jsessionid routing suffix; the original href remains retained.",
+  "locator_evidence": {
+    "path": "journal/evidence/admission/fixture-exception-2026-09-17/quarantine/bodies/c30d80cb4f6fae81e886c13aaa43c46ff68f9949ff219c5c77c3daa79104e03f",
+    "sha256": "c30d80cb4f6fae81e886c13aaa43c46ff68f9949ff219c5c77c3daa79104e03f",
+    "selector": "a[href] with text Contest results"
+  },
+  "existing_capture_evidence": [
+    {
+      "path": "journal/evidence/collection/wayback-2026-09-11/cdx_dcn_eventpage_2013_2018_first50.json",
+      "sha256": "389a671edfa6bd3bc6e6fa7db147942197ae16a8bec91e7e9a83ae45a7c70472",
+      "data_rows": 5,
+      "results_or_pdf_rows": 0
+    },
+    {
+      "path": "journal/evidence/collection/wayback-2026-09-11/cdx_dcn_eventdirector_to_2017.json",
+      "sha256": "a667d8eb3a0545912d3b790bc45c2b3177d0f6d980f112d912926aa6bf649988",
+      "data_rows": 26,
+      "results_or_pdf_rows": 0
+    }
+  ],
+  "probe_url": "https://web.archive.org/cdx/search/cdx?url=https%3A%2F%2Fdanceconvention.net%2Feventdirector%2Fen%2Feventpage%2F1546230-riga-summer-swing%2Fresults&matchType=exact&from=2018&to=2026&filter=statuscode%3A200&filter=mimetype%3Atext%2Fhtml&collapse=digest&showNumPages=true",
+  "page0_url": "https://web.archive.org/cdx/search/cdx?url=https%3A%2F%2Fdanceconvention.net%2Feventdirector%2Fen%2Feventpage%2F1546230-riga-summer-swing%2Fresults&matchType=exact&from=2018&to=2026&filter=statuscode%3A200&filter=mimetype%3Atext%2Fhtml&collapse=digest&output=json&fl=timestamp%2Coriginal%2Cdigest%2Cmimetype%2Clength&page=0",
+  "page0_condition": "Only if the probe reports one or more pages; retain further pages unexamined.",
+  "limits": {
+    "metadata_requests": 2,
+    "max_pages": 1,
+    "total_http_requests_including_robots": 3,
+    "max_redirects": 0,
+    "archived_body_requests": 0,
+    "pdf_requests": 0,
+    "origin_requests": 0,
+    "additional_queries": 0,
+    "automatic_retries": 0,
+    "automatic_alternatives": 0,
+    "max_received_bytes_per_response": 2097152,
+    "max_total_received_bytes": 4194304,
+    "max_elapsed_seconds": 900,
+    "min_completion_to_dispatch_seconds": 10,
+    "max_in_flight": 1,
+    "shared_archive_daily_request_budget": 200
+  },
+  "execution_gates": [
+    "Specific owner approval; D0053 and D0060 do not authorize this query.",
+    "New exact-manifest driver bound to actual deployed schema/runtime and baseline, preserving H13, hold, robots and shared budget.",
+    "Use the reviewed completion plus monotonic floor; coordinator serializes with all worker operations.",
+    "Fresh separate single-use quarantine; no production observations, watches, year acceptance, policy activation or publication."
+  ],
+  "afterward": "Independently review returned locators. Any results-body or PDF acquisition needs its own exact proposal and decision; no URLs are guessed."
+}

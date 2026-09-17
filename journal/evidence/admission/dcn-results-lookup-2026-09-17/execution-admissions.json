@@ -1,0 +1,47 @@
+[
+  {
+    "action_id": "fixture_request_9fdef6e6342147549c3379f8c330e07e",
+    "action_kind": "request",
+    "admitted_at": "2026-09-17T17:16:50.873068+00:00",
+    "control_revision": 2,
+    "run_id": null,
+    "work_attempt_id": null,
+    "candidate_id": null,
+    "host": "web.archive.org",
+    "all_sources": 0,
+    "all_kinds": 0,
+    "state": "settled",
+    "settled_at": "2026-09-17T17:16:51.340199+00:00",
+    "outcome": "Gone"
+  },
+  {
+    "action_id": "fixture_request_d52de5030d6847a3ba38b7da09290b7e",
+    "action_kind": "request",
+    "admitted_at": "2026-09-17T17:17:01.340390+00:00",
+    "control_revision": 2,
+    "run_id": null,
+    "work_attempt_id": null,
+    "candidate_id": null,
+    "host": "web.archive.org",
+    "all_sources": 0,
+    "all_kinds": 0,
+    "state": "settled",
+    "settled_at": "2026-09-17T17:17:01.764690+00:00",
+    "outcome": "Ok"
+  },
+  {
+    "action_id": "fixture_request_93992b9d667e40608b1e7aa925c4573c",
+    "action_kind": "request",
+    "admitted_at": "2026-09-17T17:17:11.764583+00:00",
+    "control_revision": 2,
+    "run_id": null,
+    "work_attempt_id": null,
+    "candidate_id": null,
+    "host": "web.archive.org",
+    "all_sources": 0,
+    "all_kinds": 0,
+    "state": "settled",
+    "settled_at": "2026-09-17T17:17:13.769730+00:00",
+    "outcome": "Ok"
+  }
+]

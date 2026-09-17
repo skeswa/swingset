@@ -1,0 +1,72 @@
+{
+  "format": "dcn-results-lookup-independent-review-v1",
+  "recorded_at": "2026-09-17T17:11:20.325095+00:00",
+  "reviewer": "history_gates",
+  "source": "/tmp/swingset-extension-freeze-20260917-003",
+  "source_receipt_sha256": "60cdfe64004a0ba5a9aee207bcb089d6d4c81f5ca58169ccdb88a5dfab8146d6",
+  "packet": "/tmp/swingset-dcn-results-lookup-20260917-dev007",
+  "packet_build_receipt_sha256": "645d5d364c2ac261ec847cc47c44818e6afe4ff165d12d054a106938a13cf97d",
+  "driver_sha256": "606b95e653e212d2ddb88afea3da77bb4da606068ce609de45d93cdce8b49d80",
+  "helper_manifest_sha256": "09b6ee0bf55c83bbd3ad29fb42b2d5dbee0050ce4d7cf81ce7e74b569ab92e71",
+  "files": {
+    "journal/tools/admission/build_dcn_results_lookup.py": "25f8501a38049b911971d9dac508bc3d92faa936aadc55ccddd6ce9ebd570ee5",
+    "journal/tools/admission/dcn_results_lookup_checks.py": "3f8d22363199203257f1db573dc818d38dc78a6e5189512063263d8426b26235"
+  },
+  "files_unchanged": true,
+  "checks": [
+    {
+      "command": [
+        ".venv/bin/python",
+        "-m",
+        "pytest",
+        "-c",
+        "/dev/null",
+        "-p",
+        "no:cacheprovider",
+        "-q",
+        "journal/tools/admission/dcn_results_lookup_checks.py"
+      ],
+      "exit_code": 0,
+      "stdout": "...............................................                          [100%]\n47 passed in 3.56s\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        ".venv/bin/ruff",
+        "check",
+        "journal/tools/admission/build_dcn_results_lookup.py",
+        "journal/tools/admission/dcn_results_lookup_checks.py"
+      ],
+      "exit_code": 0,
+      "stdout": "All checks passed!\n",
+      "stderr": ""
+    }
+  ],
+  "rebuild": {
+    "path": "/var/folders/kc/94jncx6s6pqc8g2g4f2kyvtr0000gn/T/swingset-dcn-lookup-reviewed-afcbeqob/packet",
+    "complete_receipt_equal": true,
+    "generated_files_equal": true
+  },
+  "findings": [
+    {
+      "finding": "Preparer/executor checked only schema metadata and restore marker only before writer lock.",
+      "resolution": "Both schema markers must be28; RESTORE_PENDING is rechecked after lock. Two adversarial regressions pass.",
+      "status": "resolved"
+    },
+    {
+      "finding": "Non-aligned capacity could truncate an exposed chunk, and an interrupted response refunded unknown remaining reservation.",
+      "resolution": "Round capacity down to64KiB multiples, retain each exposed chunk whole, no extraEOF probe atcap, retain full reserve on incomplete exchange; explicit application-byte metric with wire buffering unknown.",
+      "status": "resolved"
+    },
+    {
+      "finding": "Chunk delivered at deadline was omitted before timeout.",
+      "resolution": "Retain/count chunk before deadline check; preserve full incomplete reservation; regression passes.",
+      "status": "resolved"
+    }
+  ],
+  "remaining_blockers": [],
+  "network_requests": 0,
+  "production_operations": 0,
+  "scope": "Independent offline review; execution and capture review remain coordinator-owned.",
+  "passed": true
+}

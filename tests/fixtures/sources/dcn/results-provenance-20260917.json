@@ -1,0 +1,11 @@
+{
+  "file": "real-riga-results-20190719204919.html",
+  "body_sha256": "487b38c2ff264e62bf2e6de8e2b24cd5aff2ceab40856a56c1ac8539a4aad573",
+  "original_url": "https://danceconvention.net/eventdirector/en/eventpage/1546230-riga-summer-swing/results",
+  "captured_at": "2019-07-19T20:49:19+00:00",
+  "receipt_path": "journal/evidence/admission/dcn-results-body-2026-09-17/quarantine/receipt.json",
+  "receipt_sha256": "18efd8529a048fa548a0e388d56dcee808cfe5cf75877245bf5bd5a77ad58e5f",
+  "independent_review_path": "journal/evidence/admission/dcn-results-body-2026-09-17/independent-review-001/checks.json",
+  "independent_review_sha256": "cb94bddd6d8aa3f3654905f127bbb3f89fdf36813b8d5813b90e39d00ffdf078",
+  "owner_approval": "journal/decisions/0073-approve-exact-riga-results-html-fixture.md"
+}

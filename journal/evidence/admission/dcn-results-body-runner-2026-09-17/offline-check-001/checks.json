@@ -1,0 +1,18 @@
+{
+  "format": "exact-riga-body-offline-check-v1",
+  "packet": "/tmp/swingset-dcn-results-body-20260917-dev003",
+  "build_receipt_sha256": "5c4187ad87a404d0299affa897dcdadc06024f96dca0b6bc6a69862b8778c5f4",
+  "source_receipt_sha256": "60cdfe64004a0ba5a9aee207bcb089d6d4c81f5ca58169ccdb88a5dfab8146d6",
+  "checks": {
+    "pytest": "46 passed in 2.84s",
+    "ruff": "passed"
+  },
+  "files": {
+    "journal/tools/admission/build_dcn_results_body.py": "31339ea7413a8708b68b33e7b0edd29a581a4ca8371428cac3a0011ad0a5eba6",
+    "journal/tools/admission/dcn_results_body_checks.py": "4afc75e371af57e58413e00f6368f2b63c4302115aab942073cceed4fe5cacc6",
+    "journal/tools/admission/build_dcn_results_lookup.py": "25f8501a38049b911971d9dac508bc3d92faa936aadc55ccddd6ce9ebd570ee5"
+  },
+  "network_requests": 0,
+  "production_applied": false,
+  "review": "author checks; independent review pending"
+}

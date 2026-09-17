@@ -1,0 +1,64 @@
+{
+  "format": "dcn-results-lookup-capture-independent-review-v1",
+  "recorded_at": "2026-09-17T17:23:47.792683+00:00",
+  "reviewer": "history_gates",
+  "passed": true,
+  "files": {
+    "journal/evidence/admission/dcn-results-lookup-2026-09-17/production-after.json": "ed6e7a3ad499dc74ce338990236de9e0a45758d42f15ebdf8b1a45b48462309b",
+    "journal/evidence/admission/dcn-results-lookup-2026-09-17/service.log": "81bc8697690407ee887f20c2a231fac7d249eb6201f5f531b6e615d616f2aa60",
+    "journal/evidence/admission/dcn-results-lookup-2026-09-17/execution-admissions.json": "cda743a38c6974b9f453963882c3ff605f86f0bb3902e0ea4f2fd75d5c03dfae",
+    "journal/evidence/admission/dcn-results-lookup-2026-09-17/quarantine/authorization.json": "abfe531079e54b3a1012708f5ec3d18f0638a82707e7080f07a8094d3afcdbcf",
+    "journal/evidence/admission/dcn-results-lookup-2026-09-17/quarantine/manifest.json": "ad3f8584d2f540bab4967c36e1730e91e364f2aeeef19cf40273e3deb5bfe0f6",
+    "journal/evidence/admission/dcn-results-lookup-2026-09-17/quarantine/receipt.json": "5425f245cdfa04786bbe35cfbbc99abab089fc3ca0bad6992d7131db55ec842e",
+    "journal/evidence/admission/dcn-results-lookup-2026-09-17/quarantine/bodies/1d1acd4975aefcfc548237fa2e6e4a572f2941b168899b2f4b3ce612637774ad": "1d1acd4975aefcfc548237fa2e6e4a572f2941b168899b2f4b3ce612637774ad",
+    "journal/evidence/admission/dcn-results-lookup-2026-09-17/quarantine/bodies/4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+    "journal/evidence/admission/dcn-results-lookup-2026-09-17/quarantine/bodies/55f7d9e99b8e2d4e0e193b2f0275501e6d9c1ebd29cadbea6a0da48a8587e3e0": "55f7d9e99b8e2d4e0e193b2f0275501e6d9c1ebd29cadbea6a0da48a8587e3e0",
+    "journal/evidence/admission/dcn-results-lookup-2026-09-17/packet/build-receipt.json": "645d5d364c2ac261ec847cc47c44818e6afe4ff165d12d054a106938a13cf97d",
+    "journal/evidence/admission/dcn-results-lookup-2026-09-17/packet/authorization.json": "820a4aca7e1dcd6a2b4d1f056d12be65357f1661e38f91a5b89ffcc960f9002d",
+    "journal/evidence/admission/dcn-results-lookup-2026-09-17/packet/dcn-results-lookup-h13-001.py": "606b95e653e212d2ddb88afea3da77bb4da606068ce609de45d93cdce8b49d80",
+    "journal/evidence/admission/dcn-results-lookup-2026-09-17/packet/execution-gate.json": "be80478a4af5d946eb2d420d0c9f140fcd06c926aa12d4a1b096f423050ebf93",
+    "journal/evidence/admission/dcn-results-lookup-2026-09-17/packet/execute.sh": "c4554e11c1ccdbd8488ef57b2fd2e9fe2f82bb3706fb0a7ec4247579d031934e",
+    "journal/evidence/admission/dcn-results-lookup-2026-09-17/packet/prepare_fixture_exception.py": "8ea2794bd2570587ee9799dbb0ece226bf1cc0cfab7766a7bfec5bcaf207c938",
+    "journal/evidence/admission/dcn-results-lookup-2026-09-17/packet/preparation-receipt.json": "6e5cb6a72c36b86c2afb2244c715538fa0afeea57e1b6fae06c9f2d2c765c5d5",
+    "journal/evidence/admission/dcn-results-lookup-2026-09-17/packet/helper-closure/source-proposal.json": "c982f5124b396783eff8b4565600358127667e85f51a96a94255190e4a26734c",
+    "journal/evidence/admission/dcn-results-lookup-2026-09-17/packet/helper-closure/closure.json": "09b6ee0bf55c83bbd3ad29fb42b2d5dbee0050ce4d7cf81ce7e74b569ab92e71",
+    "journal/evidence/admission/dcn-results-lookup-2026-09-17/packet/helper-closure/proposal.json": "ad3f8584d2f540bab4967c36e1730e91e364f2aeeef19cf40273e3deb5bfe0f6",
+    "journal/evidence/admission/dcn-results-lookup-2026-09-17/packet/helper-closure/fixture_helpers/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "journal/evidence/admission/dcn-results-lookup-2026-09-17/packet/helper-closure/fixture_helpers/fixture_exception.py": "d9f0cb63740a53c7aad4d069b84394b505e19b65e4b7eae0d88190abd0959b5d",
+    "journal/evidence/admission/dcn-results-lookup-2026-09-17/packet/helper-closure/fixture_helpers/fixture_transport.py": "84ae0514a81dd1d34bb539b607fb3d31e8c94601be0618b6e9e738716b41c64d"
+  },
+  "requests": 3,
+  "accounted_response_body_bytes": 369,
+  "completion_to_dispatch_seconds": [
+    10.02095618302701,
+    10.024278328986838
+  ],
+  "paid_requests_before": 10,
+  "paid_requests_after": 13,
+  "paid_bytes_before": 2934701,
+  "paid_bytes_after": 2935070,
+  "all_request_admissions_settled": true,
+  "source_schema": 28,
+  "hold_preserved": true,
+  "six_ordinary_units_inactive": true,
+  "baseline_unchanged": true,
+  "capture_rows": [
+    {
+      "timestamp": "20190719204919",
+      "original": "https://danceconvention.net/eventdirector/en/eventpage/1546230-riga-summer-swing/results",
+      "digest": "4EU7SEVHMTLTWY2WZZWXHJHUBZOO2I7T",
+      "mimetype": "text/html",
+      "length": "4805"
+    }
+  ],
+  "further_reported_cdx_pages": 0,
+  "production_facts_or_watches_created": 0,
+  "limits": [
+    "Independent audit of retained coordinator exports; no fresh live query.",
+    "Body byte metric is bytes exposed by iter_raw; transport buffering is not measured.",
+    "CDX length is metadata, not an acquired body size or semantic validation.",
+    "No results body, PDF, interpretation, year acceptance or source-kind activation follows."
+  ],
+  "network_requests_by_reviewer": 0,
+  "production_operations_by_reviewer": 0
+}

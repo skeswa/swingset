@@ -1,0 +1,55 @@
+{
+  "format": "exact-dcn-results-body-proposal-v1",
+  "status": "proposed_requires_separate_owner_decision",
+  "purpose": "Acquire one evidenced archived Riga results-tab HTML body for offline parsing and score-locator review. The contents and presence of score links remain unknown.",
+  "target": {
+    "source": "dcn",
+    "kind": "results_fixture",
+    "original_url": "https://danceconvention.net/eventdirector/en/eventpage/1546230-riga-summer-swing/results",
+    "capture": "20190719204919",
+    "archive_url": "https://web.archive.org/web/20190719204919id_/https://danceconvention.net/eventdirector/en/eventpage/1546230-riga-summer-swing/results",
+    "cdx_digest": "4EU7SEVHMTLTWY2WZZWXHJHUBZOO2I7T",
+    "cdx_mimetype": "text/html",
+    "cdx_length_metadata": 4805
+  },
+  "locator_evidence": {
+    "path": "journal/evidence/admission/dcn-results-lookup-2026-09-17/quarantine/bodies/1d1acd4975aefcfc548237fa2e6e4a572f2941b168899b2f4b3ce612637774ad",
+    "sha256": "1d1acd4975aefcfc548237fa2e6e4a572f2941b168899b2f4b3ce612637774ad",
+    "independent_review": "journal/evidence/admission/dcn-results-lookup-2026-09-17/independent-review-001/checks.json",
+    "independent_review_sha256": "3deecf6dce88d47c8f0db832dc0f07c7855428177d2bf44b4f2d83f06abccb07",
+    "metadata_only": true
+  },
+  "limits": {
+    "total_http_requests_including_robots": 2,
+    "archived_body_requests": 1,
+    "robots_requests": 1,
+    "metadata_requests": 0,
+    "max_redirects": 0,
+    "pdf_requests": 0,
+    "origin_requests": 0,
+    "automatic_retries": 0,
+    "automatic_alternatives": 0,
+    "automatic_child_requests": 0,
+    "max_received_bytes_per_response": 2097152,
+    "max_total_received_bytes": 4194304,
+    "max_elapsed_seconds": 900,
+    "min_completion_to_dispatch_seconds": 10,
+    "max_in_flight": 1,
+    "shared_archive_daily_request_budget": 200
+  },
+  "byte_measurement": "Response body bytes exposed by the bounded streaming consumer; transport buffering is not measured. Retain the full reservation for incomplete responses, no chunk slicing or extra EOF probe at capacity.",
+  "execution_gates": [
+    "Specific owner approval for this exact body; D0069 authorized metadata only.",
+    "New independently reviewed fixed-manifest driver bound to actual deployed schema/runtime, baseline and current state; prepared against frozen003 schema28 unless separately reviewed.",
+    "Coordinator serialization with ordinary hold, six ordinary units inactive, normal H13 controls, host/robots policy and shared paid budget; no initialization or relaxation of spacing authority.",
+    "Fresh actual remaining budget check; at least ten seconds from completed exchange to dispatch using monotonic time, or any stricter active rule.",
+    "New separate single-use quarantine; abort on redirect, failure or exhausted limit without retry or alternate request."
+  ],
+  "reference_runtime": {
+    "source": "/nix/store/dx0cyzvd8d91rf29v21sakbr7l5bwxnz-source",
+    "source_receipt_sha256": "60cdfe64004a0ba5a9aee207bcb089d6d4c81f5ca58169ccdb88a5dfab8146d6",
+    "schema": 28,
+    "published_commit": "2a6c7dc744fb36eabb5163c0a527d787d3721f4f"
+  },
+  "afterward": "Retain raw body and independently audit acquisition before offline parser review. Printed score or PDF locators remain evidence only: no requests to those URLs, no watches, observations, year acceptance, page-kind activation or publication. Additional fixtures need separate exact proposals."
+}
