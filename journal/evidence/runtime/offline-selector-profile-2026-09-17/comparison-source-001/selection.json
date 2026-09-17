@@ -1,0 +1,11 @@
+{
+  "source": "/private/tmp/swingset-selector-freeze-20260917-001",
+  "receipt_sha256": "acfe304af71280843a2087b4e415118d81aaa8800a58e48620fbfe3ca018df41",
+  "changed_files": {
+    "src/swingset/state/derivation_query.py": "169ffe67a7bd3299044a16b0a62685b3a34d5574bbba8215922eb5d79c9db3b7",
+    "src/swingset/state/derivations.py": "0a13d0413224feeb32e278fa296e7a778c9dc5e9df7e76f79de66a1b5e544ac6",
+    "src/swingset/schedule/fairness.py": "dd4de2b6dfac2f8afb7e8a373c76b66e877fc2b96a6cc6e95218d0dda7e6f17b"
+  },
+  "independent_pytest": "31 passed in 4.25s: selector_currentness_cache, derivation_certificates, fairness",
+  "deployment": false
+}

@@ -150,9 +150,10 @@ def request_denial(
     watch_id: str | None = None,
     host: str | None = None,
     now: datetime | None = None,
+    independent: bool = False,
 ) -> str | None:
     """Called before the durable host debit, including for robots and redirects."""
-    service = _service.get()
+    service = None if independent else _service.get()
     if backpressure(conn, config)["active"] and (
         service is None
         or not service.choice.repair
@@ -456,12 +457,19 @@ def next_offline(
     allowed: Callable[[WorkUnit], bool] | None = None,
     exclude: Collection[WorkUnit] = (),
 ) -> WorkUnit | None:
-    from swingset.state.derivation_query import query
+    from swingset.state.derivation_query import read_snapshot
 
-    # All stage/kind candidates share one unchanged read snapshot. The cache
-    # still invalidates on writes and is disabled in mutable transactions.
-    with query(conn):
-        return _next_offline(conn, now=now, allowed=allowed, exclude=exclude)
+    # All stage/kind candidates share one owned read snapshot and bounded
+    # currentness answers. Caller-owned mutable transactions remain uncached.
+    owns_snapshot = not conn.in_transaction
+    with read_snapshot(conn):
+        return _next_offline(
+            conn,
+            now=now,
+            allowed=allowed,
+            exclude=exclude,
+            shared_link_precheck=owns_snapshot,
+        )
 
 
 def _next_offline(
@@ -470,10 +478,12 @@ def _next_offline(
     now: datetime,
     allowed: Callable[[WorkUnit], bool] | None = None,
     exclude: Collection[WorkUnit] = (),
+    shared_link_precheck: bool = False,
 ) -> WorkUnit | None:
     from swingset.state.derivations import available, known_units
 
-    if available(conn):
+    derived = available(conn)
+    if derived:
         kinds = {
             (str(row[0]), str(row[1]))
             for row in conn.execute(
@@ -523,6 +533,15 @@ def _next_offline(
             "CASE p.unit_kind WHEN 'map' THEN 0 WHEN 'history' THEN 2 ELSE 1 END,p.unit_kind"
         ).fetchall()
     for stage, kind, _ in groups:
+        if derived and shared_link_precheck and stage == "link":
+            from swingset.state.derivation_readiness import all_dancers_current
+
+            # Every ordinary link needs this same database-defined cohort. Check
+            # it before candidate currentness expands per-event dependencies.
+            # Caller transactions (including consistency groups) keep the full
+            # existing path; a true answer never bypasses per-event checks.
+            if not all_dancers_current(conn):
+                continue
 
         def group_allowed(unit: WorkUnit, kind: str = kind) -> bool:
             return bool(unit.unit_kind == kind and (allowed is None or allowed(unit)))

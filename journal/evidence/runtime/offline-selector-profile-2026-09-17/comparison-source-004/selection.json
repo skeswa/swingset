@@ -1,0 +1,13 @@
+{
+  "source": "/private/tmp/swingset-selector-freeze-20260917-004",
+  "receipt_sha256": "469dfda9bcd6b5b00aca83d470a1eac3182e6301d56698427c09e72e1a146b33",
+  "changed_files": {
+    "src/swingset/state/derivation_query.py": "169ffe67a7bd3299044a16b0a62685b3a34d5574bbba8215922eb5d79c9db3b7",
+    "src/swingset/state/derivations.py": "79a1de06c5682c0f2f4f767ef79ab52b87c1ddf8ffc457dcba81e0b4bbc40775",
+    "src/swingset/schedule/fairness.py": "88c6a90d4cfc7fcce33d86637fedd41698448ad65908c8175d24ca8e7d70ef34",
+    "src/swingset/state/derivation_readiness.py": "c98a262aef4bb3b38c0932adf73b38c1b8c5c869d4dc57484e9d9c73f4ad6058",
+    "src/swingset/state/derivation_dependencies.py": "1d074c9e91db21c826a4e65fe2ae284f1423c7e8115985cabcc270c5fa604454"
+  },
+  "independent_pytest": "40 passed in5.88s before coordinated formatting; integrated candidate004 full validation running separately",
+  "deployed": false
+}

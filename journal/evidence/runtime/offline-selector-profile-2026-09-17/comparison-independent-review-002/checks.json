@@ -1,0 +1,14 @@
+{
+  "format": "selector-comparison-independent-review-v1",
+  "helper_sha256": "fca976dd3bd20d0f19e66b0382ee3582d6a4e15812799984d6eef8b9924e1478",
+  "source_receipt_sha256": "af3b182f84fe647bcbf8de29d00b016aeff9305c6f65300b7af7c938685d4084",
+  "parent_source_receipt_sha256": "60cdfe64004a0ba5a9aee207bcb089d6d4c81f5ca58169ccdb88a5dfab8146d6",
+  "tests": "4 profiler tests passed against comparison002 module",
+  "source_inventory_files": 2221,
+  "source_inventory_verified": true,
+  "only_four_declared_runtime_files_differ": true,
+  "helper_only_receipt_constant_diff": true,
+  "network_requests": 0,
+  "production_applied": false,
+  "review_result": "no remaining blocker"
+}

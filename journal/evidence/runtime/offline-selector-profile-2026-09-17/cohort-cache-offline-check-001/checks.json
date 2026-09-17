@@ -1,0 +1,27 @@
+{
+  "format": "cohort-readiness-cache-offline-check-v1",
+  "files": {
+    "src/swingset/state/derivation_readiness.py": "1abf8c3a7156a5ebe0f776733f2b864e061eefa6315f6245e0cd0c954edd6136",
+    "tests/test_dancer_readiness_cache.py": "333b8f95187abefd42d410065c0755c4eaba80f7323fa485c304ee9d60b6a1e1"
+  },
+  "checks": [
+    {
+      "command": "pytest tests/test_dancer_readiness_cache.py tests/test_dancer_readiness.py tests/test_selector_currentness_cache.py",
+      "result": "35 passed in 6.75s"
+    },
+    {
+      "command": "pytest tests/test_fairness.py tests/test_h15_acceptance.py tests/test_manual_derivation_controls.py tests/test_derivation_certificates.py",
+      "result": "46 passed in 10.69s"
+    },
+    {
+      "command": "ruff check src/swingset/state/derivation_readiness.py tests/test_dancer_readiness_cache.py",
+      "result": "passed"
+    },
+    {
+      "command": "mypy src/swingset/state/derivation_readiness.py",
+      "result": "passed 1 source file"
+    }
+  ],
+  "production_applied": false,
+  "network_requests": 0
+}

@@ -1,0 +1,565 @@
+{
+  "status": "python_alarm_timeout",
+  "limit_seconds": 30.0,
+  "baseline_query_only": 0,
+  "instrumentation": "cProfile and current/desired/ready counters; no SQL trace callback; not uninstrumented throughput",
+  "elapsed_seconds": 30.01314612501301,
+  "derivation_calls": [
+    {
+      "function": "current",
+      "stage": "link",
+      "kind": "event",
+      "calls": 2154,
+      "false": 2153,
+      "seconds": 16.27071109501412
+    },
+    {
+      "function": "current",
+      "stage": "project",
+      "kind": "calendar",
+      "calls": 4,
+      "false": 2,
+      "seconds": 0.8518648060271516
+    },
+    {
+      "function": "current",
+      "stage": "project",
+      "kind": "dancer",
+      "calls": 1,
+      "false": 1,
+      "seconds": 0.0006408860208466649
+    },
+    {
+      "function": "current",
+      "stage": "project",
+      "kind": "event",
+      "calls": 2541,
+      "false": 2541,
+      "seconds": 1.6584089858224615
+    },
+    {
+      "function": "current",
+      "stage": "project",
+      "kind": "history",
+      "calls": 1,
+      "false": 1,
+      "seconds": 1.163003847002983
+    },
+    {
+      "function": "current",
+      "stage": "project",
+      "kind": "inventory",
+      "calls": 2,
+      "false": 2,
+      "seconds": 3.6930964560015127
+    },
+    {
+      "function": "current",
+      "stage": "project",
+      "kind": "map",
+      "calls": 3009,
+      "false": 3009,
+      "seconds": 0.05375495500629768
+    },
+    {
+      "function": "current",
+      "stage": "project",
+      "kind": "source_event",
+      "calls": 467,
+      "false": 467,
+      "seconds": 0.34385468752589077
+    },
+    {
+      "function": "desired",
+      "stage": "link",
+      "kind": "event",
+      "calls": 2154,
+      "false": 0,
+      "seconds": 15.823584043362644
+    },
+    {
+      "function": "desired",
+      "stage": "project",
+      "kind": "calendar",
+      "calls": 2,
+      "false": 0,
+      "seconds": 0.7969395729596727
+    },
+    {
+      "function": "desired",
+      "stage": "project",
+      "kind": "dancer",
+      "calls": 1,
+      "false": 0,
+      "seconds": 0.00035804801154881716
+    },
+    {
+      "function": "desired",
+      "stage": "project",
+      "kind": "event",
+      "calls": 2541,
+      "false": 0,
+      "seconds": 1.303364085557405
+    },
+    {
+      "function": "desired",
+      "stage": "project",
+      "kind": "history",
+      "calls": 1,
+      "false": 0,
+      "seconds": 1.1618084100191481
+    },
+    {
+      "function": "desired",
+      "stage": "project",
+      "kind": "inventory",
+      "calls": 1,
+      "false": 0,
+      "seconds": 3.590237525990233
+    },
+    {
+      "function": "desired",
+      "stage": "project",
+      "kind": "map",
+      "calls": 1,
+      "false": 0,
+      "seconds": 0.02046368399169296
+    },
+    {
+      "function": "desired",
+      "stage": "project",
+      "kind": "source_event",
+      "calls": 467,
+      "false": 0,
+      "seconds": 0.27946053992491215
+    },
+    {
+      "function": "ready",
+      "stage": "link",
+      "kind": "event",
+      "calls": 2153,
+      "false": 2153,
+      "seconds": 1.8477591080009006
+    },
+    {
+      "function": "ready",
+      "stage": "project",
+      "kind": "event",
+      "calls": 2541,
+      "false": 2541,
+      "seconds": 0.05408664763672277
+    },
+    {
+      "function": "ready",
+      "stage": "project",
+      "kind": "history",
+      "calls": 1,
+      "false": 1,
+      "seconds": 0.5907765399897471
+    },
+    {
+      "function": "ready",
+      "stage": "project",
+      "kind": "inventory",
+      "calls": 1,
+      "false": 1,
+      "seconds": 0.2616307759890333
+    },
+    {
+      "function": "ready",
+      "stage": "project",
+      "kind": "map",
+      "calls": 1,
+      "false": 1,
+      "seconds": 6.558396853506565e-05
+    },
+    {
+      "function": "ready",
+      "stage": "project",
+      "kind": "source_event",
+      "calls": 467,
+      "false": 467,
+      "seconds": 0.026699110574554652
+    }
+  ],
+  "dancer_readiness_modes": {
+    "transaction=True;query_only=1": 1
+  },
+  "profile_top_cumulative": [
+    {
+      "file": "/var/lib/swingset/operations/v2-continuation-20260917/profile-selector-comparison-003.py",
+      "line": 190,
+      "function": "<lambda>",
+      "primitive_calls": 1,
+      "calls": 1,
+      "own_seconds": 5.708e-06,
+      "cumulative_seconds": 30.003130162
+    },
+    {
+      "file": "/nix/store/1b9vivp2g9yxf2wraadvxxh0lb3k1mm1-swingset-selector-freeze-20260917-003/src/swingset/schedule/fairness.py",
+      "line": 453,
+      "function": "next_offline",
+      "primitive_calls": 1,
+      "calls": 1,
+      "own_seconds": 7.001e-06,
+      "cumulative_seconds": 30.003124454
+    },
+    {
+      "file": "/nix/store/1b9vivp2g9yxf2wraadvxxh0lb3k1mm1-swingset-selector-freeze-20260917-003/src/swingset/schedule/fairness.py",
+      "line": 468,
+      "function": "_next_offline",
+      "primitive_calls": 1,
+      "calls": 1,
+      "own_seconds": 0.047263224,
+      "cumulative_seconds": 30.00013286
+    },
+    {
+      "file": "/nix/store/1b9vivp2g9yxf2wraadvxxh0lb3k1mm1-swingset-selector-freeze-20260917-003/src/swingset/state/work.py",
+      "line": 85,
+      "function": "next_work",
+      "primitive_calls": 6,
+      "calls": 6,
+      "own_seconds": 0.006139528,
+      "cumulative_seconds": 26.021865269000003
+    },
+    {
+      "file": "/var/lib/swingset/operations/v2-continuation-20260917/profile-selector-comparison-003.py",
+      "line": 76,
+      "function": "wrapped",
+      "primitive_calls": 10329,
+      "calls": 18511,
+      "own_seconds": 0.027623671000000002,
+      "cumulative_seconds": 25.937214359000002
+    },
+    {
+      "file": "/nix/store/1b9vivp2g9yxf2wraadvxxh0lb3k1mm1-swingset-selector-freeze-20260917-003/src/swingset/state/derivation_query.py",
+      "line": 66,
+      "function": "currentness",
+      "primitive_calls": 10331,
+      "calls": 10333,
+      "own_seconds": 0.032862316,
+      "cumulative_seconds": 25.797882195000003
+    },
+    {
+      "file": "/nix/store/1b9vivp2g9yxf2wraadvxxh0lb3k1mm1-swingset-selector-freeze-20260917-003/src/swingset/state/derivations.py",
+      "line": 379,
+      "function": "current",
+      "primitive_calls": 8179,
+      "calls": 8179,
+      "own_seconds": 0.011903788,
+      "cumulative_seconds": 24.028861552000002
+    },
+    {
+      "file": "/nix/store/1b9vivp2g9yxf2wraadvxxh0lb3k1mm1-swingset-selector-freeze-20260917-003/src/swingset/state/derivations.py",
+      "line": 391,
+      "function": "<lambda>",
+      "primitive_calls": 5170,
+      "calls": 5170,
+      "own_seconds": 0.158787209,
+      "cumulative_seconds": 23.928506431000002
+    },
+    {
+      "file": "/nix/store/1b9vivp2g9yxf2wraadvxxh0lb3k1mm1-swingset-selector-freeze-20260917-003/src/swingset/state/derivations.py",
+      "line": 396,
+      "function": "_current",
+      "primitive_calls": 5170,
+      "calls": 5170,
+      "own_seconds": 0.025890399,
+      "cumulative_seconds": 23.769719222000003
+    },
+    {
+      "file": "/nix/store/1b9vivp2g9yxf2wraadvxxh0lb3k1mm1-swingset-selector-freeze-20260917-003/src/swingset/state/derivations.py",
+      "line": 490,
+      "function": "candidate_units",
+      "primitive_calls": 5170,
+      "calls": 5170,
+      "own_seconds": 0.025328775,
+      "cumulative_seconds": 23.214636034
+    },
+    {
+      "file": "/nix/store/1b9vivp2g9yxf2wraadvxxh0lb3k1mm1-swingset-selector-freeze-20260917-003/src/swingset/state/derivations.py",
+      "line": 99,
+      "function": "desired",
+      "primitive_calls": 5168,
+      "calls": 5168,
+      "own_seconds": 0.141246737,
+      "cumulative_seconds": 22.967328439000003
+    },
+    {
+      "file": "/nix/store/1b9vivp2g9yxf2wraadvxxh0lb3k1mm1-swingset-selector-freeze-20260917-003/src/swingset/state/derivation_dependencies.py",
+      "line": 284,
+      "function": "dependencies",
+      "primitive_calls": 5168,
+      "calls": 5168,
+      "own_seconds": 5.226726996,
+      "cumulative_seconds": 21.897863494000003
+    },
+    {
+      "file": "/nix/store/1b9vivp2g9yxf2wraadvxxh0lb3k1mm1-swingset-selector-freeze-20260917-003/src/swingset/state/derivation_dependencies.py",
+      "line": 300,
+      "function": "<genexpr>",
+      "primitive_calls": 62648876,
+      "calls": 62648876,
+      "own_seconds": 8.314924474,
+      "cumulative_seconds": 8.314924474
+    },
+    {
+      "file": "~",
+      "line": 0,
+      "function": "<method 'execute' of 'sqlite3.Connection' objects>",
+      "primitive_calls": 241412,
+      "calls": 241412,
+      "own_seconds": 7.014352388000001,
+      "cumulative_seconds": 7.084170108
+    },
+    {
+      "file": "/nix/store/1b9vivp2g9yxf2wraadvxxh0lb3k1mm1-swingset-selector-freeze-20260917-003/src/swingset/state/derivation_query.py",
+      "line": 108,
+      "function": "memo",
+      "primitive_calls": 24530,
+      "calls": 24532,
+      "own_seconds": 0.071072601,
+      "cumulative_seconds": 5.091614027
+    },
+    {
+      "file": "/nix/store/1b9vivp2g9yxf2wraadvxxh0lb3k1mm1-swingset-selector-freeze-20260917-003/src/swingset/state/derivations.py",
+      "line": 475,
+      "function": "known_units",
+      "primitive_calls": 199373,
+      "calls": 199373,
+      "own_seconds": 0.011984857000000002,
+      "cumulative_seconds": 3.942745663
+    },
+    {
+      "file": "~",
+      "line": 0,
+      "function": "<method 'update' of 'set' objects>",
+      "primitive_calls": 1,
+      "calls": 7,
+      "own_seconds": 0.008449341,
+      "cumulative_seconds": 3.930412313
+    },
+    {
+      "file": "/nix/store/1b9vivp2g9yxf2wraadvxxh0lb3k1mm1-swingset-selector-freeze-20260917-003/src/swingset/state/derivation_dependencies.py",
+      "line": 29,
+      "function": "scopes",
+      "primitive_calls": 264265,
+      "calls": 264265,
+      "own_seconds": 0.007944319,
+      "cumulative_seconds": 3.9302592460000003
+    },
+    {
+      "file": "/nix/store/1b9vivp2g9yxf2wraadvxxh0lb3k1mm1-swingset-selector-freeze-20260917-003/src/swingset/schedule/fairness.py",
+      "line": 484,
+      "function": "<genexpr>",
+      "primitive_calls": 34987,
+      "calls": 34987,
+      "own_seconds": 0.0019745870000000003,
+      "cumulative_seconds": 3.928470609
+    },
+    {
+      "file": "/nix/store/1b9vivp2g9yxf2wraadvxxh0lb3k1mm1-swingset-selector-freeze-20260917-003/src/swingset/state/derivation_dependencies.py",
+      "line": 30,
+      "function": "<lambda>",
+      "primitive_calls": 2,
+      "calls": 2,
+      "own_seconds": 0.003439478,
+      "cumulative_seconds": 3.9220205040000002
+    },
+    {
+      "file": "/nix/store/1b9vivp2g9yxf2wraadvxxh0lb3k1mm1-swingset-selector-freeze-20260917-003/src/swingset/state/derivation_dependencies.py",
+      "line": 33,
+      "function": "_scopes",
+      "primitive_calls": 34988,
+      "calls": 34988,
+      "own_seconds": 0.056134431000000005,
+      "cumulative_seconds": 3.918581026
+    },
+    {
+      "file": "/nix/store/s5rij9y3vb4gxbh0iqz3k0ndmsac7h02-python3-3.12.13/lib/python3.12/json/__init__.py",
+      "line": 183,
+      "function": "dumps",
+      "primitive_calls": 595595,
+      "calls": 595595,
+      "own_seconds": 0.34365636800000005,
+      "cumulative_seconds": 2.9524047540000002
+    },
+    {
+      "file": "/nix/store/1b9vivp2g9yxf2wraadvxxh0lb3k1mm1-swingset-selector-freeze-20260917-003/src/swingset/state/derivations.py",
+      "line": 529,
+      "function": "ready",
+      "primitive_calls": 5164,
+      "calls": 5164,
+      "own_seconds": 0.0035206900000000004,
+      "cumulative_seconds": 2.7767746840000003
+    },
+    {
+      "file": "/nix/store/1b9vivp2g9yxf2wraadvxxh0lb3k1mm1-swingset-selector-freeze-20260917-003/src/swingset/state/derivations.py",
+      "line": 542,
+      "function": "_ready",
+      "primitive_calls": 5164,
+      "calls": 5164,
+      "own_seconds": 0.023120705000000002,
+      "cumulative_seconds": 2.772841532
+    },
+    {
+      "file": "/nix/store/1b9vivp2g9yxf2wraadvxxh0lb3k1mm1-swingset-selector-freeze-20260917-003/src/swingset/state/derivation_dependencies.py",
+      "line": 21,
+      "function": "_canonical",
+      "primitive_calls": 511822,
+      "calls": 511822,
+      "own_seconds": 0.101460359,
+      "cumulative_seconds": 2.736068088
+    },
+    {
+      "file": "/nix/store/s5rij9y3vb4gxbh0iqz3k0ndmsac7h02-python3-3.12.13/lib/python3.12/json/encoder.py",
+      "line": 183,
+      "function": "encode",
+      "primitive_calls": 595595,
+      "calls": 595595,
+      "own_seconds": 0.259841233,
+      "cumulative_seconds": 2.54413811
+    },
+    {
+      "file": "/nix/store/1b9vivp2g9yxf2wraadvxxh0lb3k1mm1-swingset-selector-freeze-20260917-003/src/swingset/state/derivation_dependencies.py",
+      "line": 292,
+      "function": "group",
+      "primitive_calls": 25407,
+      "calls": 25407,
+      "own_seconds": 0.022217192,
+      "cumulative_seconds": 2.428781243
+    },
+    {
+      "file": "/nix/store/s5rij9y3vb4gxbh0iqz3k0ndmsac7h02-python3-3.12.13/lib/python3.12/json/encoder.py",
+      "line": 205,
+      "function": "iterencode",
+      "primitive_calls": 595595,
+      "calls": 595595,
+      "own_seconds": 2.170164411,
+      "cumulative_seconds": 2.170164411
+    },
+    {
+      "file": "~",
+      "line": 0,
+      "function": "<built-in method builtins.sorted>",
+      "primitive_calls": 48643,
+      "calls": 48643,
+      "own_seconds": 0.162869548,
+      "cumulative_seconds": 2.112574513
+    },
+    {
+      "file": "/nix/store/1b9vivp2g9yxf2wraadvxxh0lb3k1mm1-swingset-selector-freeze-20260917-003/src/swingset/state/derivation_readiness.py",
+      "line": 16,
+      "function": "all_dancers_current",
+      "primitive_calls": 2153,
+      "calls": 2153,
+      "own_seconds": 0.004663462,
+      "cumulative_seconds": 1.8120215560000001
+    },
+    {
+      "file": "/nix/store/1b9vivp2g9yxf2wraadvxxh0lb3k1mm1-swingset-selector-freeze-20260917-003/src/swingset/state/derivation_readiness.py",
+      "line": 29,
+      "function": "<lambda>",
+      "primitive_calls": 1,
+      "calls": 1,
+      "own_seconds": 6.25e-06,
+      "cumulative_seconds": 1.7826810080000002
+    },
+    {
+      "file": "/var/lib/swingset/operations/v2-continuation-20260917/profile-selector-comparison-003.py",
+      "line": 90,
+      "function": "dancers",
+      "primitive_calls": 1,
+      "calls": 1,
+      "own_seconds": 6.050000000000001e-05,
+      "cumulative_seconds": 1.7826646330000002
+    },
+    {
+      "file": "/nix/store/1b9vivp2g9yxf2wraadvxxh0lb3k1mm1-swingset-selector-freeze-20260917-003/src/swingset/state/derivation_readiness.py",
+      "line": 33,
+      "function": "dancers_current",
+      "primitive_calls": 1,
+      "calls": 1,
+      "own_seconds": 2.4877000000000003e-05,
+      "cumulative_seconds": 1.782590174
+    },
+    {
+      "file": "/nix/store/1b9vivp2g9yxf2wraadvxxh0lb3k1mm1-swingset-selector-freeze-20260917-003/src/swingset/state/derivation_readiness.py",
+      "line": 61,
+      "function": "<lambda>",
+      "primitive_calls": 1,
+      "calls": 1,
+      "own_seconds": 0.002305165,
+      "cumulative_seconds": 1.770182002
+    },
+    {
+      "file": "/nix/store/1b9vivp2g9yxf2wraadvxxh0lb3k1mm1-swingset-selector-freeze-20260917-003/src/swingset/state/derivation_readiness.py",
+      "line": 65,
+      "function": "_dancers_current",
+      "primitive_calls": 1,
+      "calls": 1,
+      "own_seconds": 1.763151831,
+      "cumulative_seconds": 1.7678768370000002
+    },
+    {
+      "file": "/nix/store/1b9vivp2g9yxf2wraadvxxh0lb3k1mm1-swingset-selector-freeze-20260917-003/src/swingset/state/derivation_dependencies.py",
+      "line": 231,
+      "function": "_raw",
+      "primitive_calls": 5167,
+      "calls": 5167,
+      "own_seconds": 0.43401261900000004,
+      "cumulative_seconds": 1.750521427
+    },
+    {
+      "file": "/nix/store/1b9vivp2g9yxf2wraadvxxh0lb3k1mm1-swingset-selector-freeze-20260917-003/src/swingset/state/derivation_dependencies.py",
+      "line": 25,
+      "function": "_digest",
+      "primitive_calls": 93928,
+      "calls": 93928,
+      "own_seconds": 0.056438956000000005,
+      "cumulative_seconds": 1.486904193
+    },
+    {
+      "file": "/nix/store/1b9vivp2g9yxf2wraadvxxh0lb3k1mm1-swingset-selector-freeze-20260917-003/src/swingset/state/derivation_dependencies.py",
+      "line": 484,
+      "function": "_table_rows",
+      "primitive_calls": 4,
+      "calls": 4,
+      "own_seconds": 1.3939169100000002,
+      "cumulative_seconds": 1.397738079
+    },
+    {
+      "file": "~",
+      "line": 0,
+      "function": "<built-in method builtins.all>",
+      "primitive_calls": 3011,
+      "calls": 3011,
+      "own_seconds": 0.000753039,
+      "cumulative_seconds": 0.8873549260000001
+    },
+    {
+      "file": "/nix/store/1b9vivp2g9yxf2wraadvxxh0lb3k1mm1-swingset-selector-freeze-20260917-003/src/swingset/state/derivations.py",
+      "line": 570,
+      "function": "<genexpr>",
+      "primitive_calls": 6024,
+      "calls": 6024,
+      "own_seconds": 0.001323697,
+      "cumulative_seconds": 0.887130638
+    }
+  ],
+  "format": "reviewed-selector-comparison-profile-v1",
+  "parent_source_receipt_sha256": "60cdfe64004a0ba5a9aee207bcb089d6d4c81f5ca58169ccdb88a5dfab8146d6",
+  "recorded_at": "2026-09-17T17:56:47.616260+00:00",
+  "source": "/nix/store/1b9vivp2g9yxf2wraadvxxh0lb3k1mm1-swingset-selector-freeze-20260917-003",
+  "source_receipt_sha256": "238460ea2cd80f41233e16c98bbb1563659235fe05fed8749ae647b3415d57a0",
+  "scratch": "/var/tmp/swingset-extension-input-20260917-001",
+  "marker_sha256": "8c9ad75dbfb7b25d3b99e655e17de203af05185299daeaa8448ba8e204aa862e",
+  "helper_sha256": "3d320841ad61e5fff7af480acb96b0c3f76e90b03df49d370d005d893be3114e",
+  "sqlite_read_only": true,
+  "database_total_changes": 0,
+  "data_version_unchanged": true,
+  "worker_executions": 0,
+  "network_requests": 0,
+  "production_applied": false,
+  "scope": "one read-only instrumented selection; source and interlock checks occur outside selection timeout"
+}

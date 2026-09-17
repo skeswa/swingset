@@ -76,3 +76,18 @@ If desired inputs change during an attempt, the attempt's materialized
 fingerprint does not match and the scope stays pending. An old completion
 cannot satisfy the new requirement or clear newer work. Work completion is
 recorded against the input generation it actually processed.
+
+Offline selection may reuse exact currentness answers within one owned read-only
+snapshot. The bounded cache includes the work unit and context, expires when that
+snapshot closes, and never becomes stored authority. Mutable caller transactions,
+inline derivation groups and filesystem-dependent build checks stay uncached.
+Selection preserves complete scope discovery and candidate order; normal worker
+admission rechecks controls and dependencies after the read snapshot closes. See
+[D-0072](../../../journal/decisions/0072-profile-offline-selection-before-changing-replay.md)
+for the measured duplicate work and validation.
+
+The same owned snapshot may reuse a complete dancer-cohort readiness result,
+keyed by the exact ordered cohort and ordinary database currentness callback.
+Custom callbacks and caller-owned transactions always recompute. This result
+uses the same bounded cache and freshness guards; normal worker admission still
+rechecks current controls and dependencies after selection.

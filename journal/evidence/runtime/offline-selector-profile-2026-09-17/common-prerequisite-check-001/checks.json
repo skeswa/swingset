@@ -1,0 +1,15 @@
+{
+  "recorded_at": "2026-09-17T17:53:46.914136+00:00",
+  "passed": true,
+  "files": {
+    "src/swingset/state/derivations.py": "79a1de06c5682c0f2f4f767ef79ab52b87c1ddf8ffc457dcba81e0b4bbc40775",
+    "src/swingset/state/derivation_dependencies.py": "1d074c9e91db21c826a4e65fe2ae284f1423c7e8115985cabcc270c5fa604454",
+    "src/swingset/state/derivation_readiness.py": "c98a262aef4bb3b38c0932adf73b38c1b8c5c869d4dc57484e9d9c73f4ad6058",
+    "tests/test_link_readiness_preconditions.py": "574eccd2fddd1374997fb7631d00e8be585e00c719b9d85d58ae79869d34b694"
+  },
+  "pytest": "55 passed in 18.46s: test_link_readiness_preconditions,test_dancer_readiness_cache,test_dancer_readiness,test_h15_acceptance,test_fairness",
+  "mypy": "Success: no issues found in 3 source files",
+  "ruff": "All checks passed before test-only fixture correction",
+  "earlier_attempt": "54 passed,1 failed: test monkeypatch incorrectly rejected dancer dependency calculation; narrowed assertion to link prerequisite expansion.",
+  "scope": "Focused local validation, not full-suite or deployed source; independent review and profile pending"
+}

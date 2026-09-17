@@ -7,9 +7,27 @@ import sqlite3
 from collections import defaultdict
 from collections.abc import Callable, Sequence
 
+from . import derivation_query
 from .derivation_signatures import base_certificate, materialized_proof
 from .recipes import recipe_inputs
 from .work import WorkUnit
+
+
+def all_dancers_current(conn: sqlite3.Connection) -> bool:
+    """Check the database-defined shared link cohort once per owned snapshot.
+
+    The key describes a database query, not a caller-supplied cohort. Guarded
+    snapshot lifetime binds both membership and proofs, avoiding repeated
+    construction and hashing of every dancer for each blocked link event.
+    """
+    from .derivation_dependencies import dancer_prerequisites
+    from .derivations import current
+
+    return derivation_query.currentness(
+        conn,
+        ("all_link_dancer_prerequisites", current),
+        lambda: dancers_current(conn, dancer_prerequisites(conn), current=current),
+    )
 
 
 def dancers_current(
@@ -20,8 +38,10 @@ def dancers_current(
 ) -> bool:
     """Bulk fast certificates; missing or mismatched proof uses full current().
 
-    The caller owns one read snapshot or a bounded write transaction. Nothing
-    survives this call, so writes and rollbacks cannot reuse an earlier answer.
+    The caller owns one read snapshot or a bounded write transaction. Only the
+    ordinary database currentness callback can share a complete cohort answer
+    within an owned read-only selection snapshot. Mutable worker transactions
+    and custom callbacks always recompute; nothing survives the snapshot.
     Physical unregistered scopes remain in ``units`` and take the slow path.
     """
     if not conn.in_transaction:
@@ -30,6 +50,25 @@ def dancers_current(
         return True
     if any(unit.stage != "project" or unit.unit_kind != "dancer" for unit in units):
         raise ValueError("only project/dancer prerequisites can use bulk currentness")
+    from .derivations import current as ordinary_current
+
+    cohort = tuple(units)
+    if current is not ordinary_current:
+        return _dancers_current(conn, cohort, current=current)
+    return derivation_query.currentness(
+        conn,
+        ("dancer_cohort_readiness", cohort, current),
+        lambda: _dancers_current(conn, cohort, current=current),
+    )
+
+
+def _dancers_current(
+    conn: sqlite3.Connection,
+    units: Sequence[WorkUnit],
+    *,
+    current: Callable[[sqlite3.Connection, WorkUnit], bool],
+) -> bool:
+    """Verify the full cohort from immutable certificates or ordinary fallback."""
     pointers = {
         str(row[0]): tuple(row[1:])
         for row in conn.execute(

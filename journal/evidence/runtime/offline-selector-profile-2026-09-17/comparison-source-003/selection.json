@@ -1,0 +1,13 @@
+{
+  "source": "/private/tmp/swingset-selector-freeze-20260917-003",
+  "receipt_sha256": "238460ea2cd80f41233e16c98bbb1563659235fe05fed8749ae647b3415d57a0",
+  "changed_files": {
+    "src/swingset/state/derivation_query.py": "169ffe67a7bd3299044a16b0a62685b3a34d5574bbba8215922eb5d79c9db3b7",
+    "src/swingset/state/derivations.py": "79a1de06c5682c0f2f4f767ef79ab52b87c1ddf8ffc457dcba81e0b4bbc40775",
+    "src/swingset/schedule/fairness.py": "dd4de2b6dfac2f8afb7e8a373c76b66e877fc2b96a6cc6e95218d0dda7e6f17b",
+    "src/swingset/state/derivation_readiness.py": "c98a262aef4bb3b38c0932adf73b38c1b8c5c869d4dc57484e9d9c73f4ad6058",
+    "src/swingset/state/derivation_dependencies.py": "1d074c9e91db21c826a4e65fe2ae284f1423c7e8115985cabcc270c5fa604454"
+  },
+  "independent_review": "journal/evidence/runtime/link-readiness-preconditions-2026-09-17/independent-review-001/checks.json",
+  "deployment": false
+}

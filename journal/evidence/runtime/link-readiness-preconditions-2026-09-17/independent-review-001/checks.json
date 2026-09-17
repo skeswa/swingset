@@ -1,0 +1,65 @@
+{
+  "format": "independent-link-prerequisite-review-v1",
+  "finished_at": "2026-09-17T17:53:48.597411+00:00",
+  "passed": true,
+  "before": {
+    "src/swingset/state/derivations.py": "79a1de06c5682c0f2f4f767ef79ab52b87c1ddf8ffc457dcba81e0b4bbc40775",
+    "src/swingset/state/derivation_dependencies.py": "1d074c9e91db21c826a4e65fe2ae284f1423c7e8115985cabcc270c5fa604454",
+    "src/swingset/state/derivation_readiness.py": "c98a262aef4bb3b38c0932adf73b38c1b8c5c869d4dc57484e9d9c73f4ad6058",
+    "src/swingset/state/derivation_query.py": "169ffe67a7bd3299044a16b0a62685b3a34d5574bbba8215922eb5d79c9db3b7",
+    "tests/test_link_readiness_preconditions.py": "574eccd2fddd1374997fb7631d00e8be585e00c719b9d85d58ae79869d34b694",
+    "tests/test_dancer_readiness_cache.py": "333b8f95187abefd42d410065c0755c4eaba80f7323fa485c304ee9d60b6a1e1",
+    "tests/test_dancer_readiness.py": "6ad6ccdbc62955dac3c11b644f88fb0de017c3f9cbbc44823da8e72316f7d981",
+    "tests/test_h15_acceptance.py": "7c8b22bc0a2946116284513647235fb911460204a4eec22c199d5e74e4deafab",
+    "tests/test_fairness.py": "f4e5f19c291cdb9a621aa43bbd61f992086b596e42679b8846ac9a2cf5dabbb4"
+  },
+  "after": {
+    "src/swingset/state/derivations.py": "79a1de06c5682c0f2f4f767ef79ab52b87c1ddf8ffc457dcba81e0b4bbc40775",
+    "src/swingset/state/derivation_dependencies.py": "1d074c9e91db21c826a4e65fe2ae284f1423c7e8115985cabcc270c5fa604454",
+    "src/swingset/state/derivation_readiness.py": "c98a262aef4bb3b38c0932adf73b38c1b8c5c869d4dc57484e9d9c73f4ad6058",
+    "src/swingset/state/derivation_query.py": "169ffe67a7bd3299044a16b0a62685b3a34d5574bbba8215922eb5d79c9db3b7",
+    "tests/test_link_readiness_preconditions.py": "574eccd2fddd1374997fb7631d00e8be585e00c719b9d85d58ae79869d34b694",
+    "tests/test_dancer_readiness_cache.py": "333b8f95187abefd42d410065c0755c4eaba80f7323fa485c304ee9d60b6a1e1",
+    "tests/test_dancer_readiness.py": "6ad6ccdbc62955dac3c11b644f88fb0de017c3f9cbbc44823da8e72316f7d981",
+    "tests/test_h15_acceptance.py": "7c8b22bc0a2946116284513647235fb911460204a4eec22c199d5e74e4deafab",
+    "tests/test_fairness.py": "f4e5f19c291cdb9a621aa43bbd61f992086b596e42679b8846ac9a2cf5dabbb4"
+  },
+  "checks": [
+    {
+      "name": "pytest",
+      "command": [
+        ".venv/bin/pytest",
+        "-q",
+        "tests/test_link_readiness_preconditions.py",
+        "tests/test_dancer_readiness_cache.py",
+        "tests/test_dancer_readiness.py",
+        "tests/test_h15_acceptance.py",
+        "tests/test_fairness.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "c8b5a437a49b2b52a3eaa60dec8282bde45e32bc3a4e2cd308773733407c9e53"
+    },
+    {
+      "name": "ruff",
+      "command": [
+        ".venv/bin/ruff",
+        "check",
+        "src/swingset/state/derivations.py",
+        "src/swingset/state/derivation_dependencies.py",
+        "src/swingset/state/derivation_readiness.py",
+        "tests/test_link_readiness_preconditions.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+    }
+  ],
+  "findings": [
+    "No blocking finding in shared dancer query extraction or early stale-cohort check.",
+    "Both prerequisite construction and the early check call identical dancer_prerequisites query (registered, queued, raw observed and canonical physical scopes).",
+    "Static query cache key is restricted by existing owned query-only snapshot, connection identity, total changes and data_version. Caller mutable transactions and rollback recompute.",
+    "Ready retains event/history dependency checks and bypasses the shared fast path in a consistency group. Selection ordering and request/control admission are unchanged.",
+    "This removes repeated cohort work only while blocked on shared dancers; broader measured selector performance and production acceptance remain separate."
+  ],
+  "network_requests": 0,
+  "production_operations": 0
+}

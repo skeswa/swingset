@@ -379,6 +379,23 @@ def complete(
 def current(
     conn: sqlite3.Connection, unit: WorkUnit, *, context: Mapping[str, Any] | None = None
 ) -> bool:
+    # A shared prerequisite can block thousands of event candidates. Reuse its
+    # exact answer only for one owned read selection; worker/write transactions
+    # and filesystem-dependent build checks always perform their normal checks.
+    from .derivation_query import currentness
+
+    if unit.stage in {"project", "link"} and _group.get() is None:
+        return currentness(
+            conn,
+            ("current", unit, canonical(context or {})),
+            lambda: _current(conn, unit, context=context),
+        )
+    return _current(conn, unit, context=context)
+
+
+def _current(
+    conn: sqlite3.Connection, unit: WorkUnit, *, context: Mapping[str, Any] | None = None
+) -> bool:
     pointer = conn.execute(
         "SELECT materialized_generation_id,materialized_signature FROM derivation_scopes WHERE stage=? AND unit_kind=? AND unit_id=?",
         _key(unit),
@@ -542,13 +559,13 @@ def _ready(conn: sqlite3.Connection, unit: WorkUnit) -> bool:
             global_kinds,
         ).fetchone():
             return False
+    if unit.stage == "link" and active is None:
+        from .derivation_readiness import all_dancers_current
+
+        if not all_dancers_current(conn):
+            return False
     dependencies = prerequisites(conn, unit)
     if unit.stage == "link" and active is None:
-        from .derivation_readiness import dancers_current
-
-        dancers = tuple(item for item in dependencies if item.unit_kind == "dancer")
-        if not dancers_current(conn, dancers, current=current):
-            return False
         dependencies = tuple(item for item in dependencies if item.unit_kind != "dancer")
     return all(
         (active is not None and active.connection is conn and dependency in active.selected)

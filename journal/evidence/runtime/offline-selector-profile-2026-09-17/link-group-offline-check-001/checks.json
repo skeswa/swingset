@@ -1,0 +1,14 @@
+{
+  "format": "link-group-precheck-offline-validation-v1",
+  "files": {
+    "src/swingset/schedule/fairness.py": "ac6ea664719eb2db67aba310334e25b1875b550227d96985e706bf04c7a09232",
+    "tests/test_link_group_precheck.py": "d8cf71be80ae80c42a86ae8e883bc6a21d7120ba2f1dff71a17faf7d0884bf67"
+  },
+  "checks": {
+    "pytest": "40 passed in 5.82s: test_link_group_precheck.py,test_fairness.py,test_link_readiness_preconditions.py,test_dancer_readiness_cache.py,test_selector_currentness_cache.py",
+    "ruff": "passed",
+    "mypy": "1 source file passed"
+  },
+  "network_requests": 0,
+  "production_applied": false
+}

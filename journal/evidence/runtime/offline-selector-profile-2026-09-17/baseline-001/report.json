@@ -1,0 +1,474 @@
+{
+  "status": "python_alarm_timeout",
+  "limit_seconds": 30.0,
+  "baseline_query_only": 0,
+  "instrumentation": "cProfile and current/desired/ready counters; no SQL trace callback; not uninstrumented throughput",
+  "elapsed_seconds": 30.009519152983557,
+  "derivation_calls": [
+    {
+      "function": "current",
+      "stage": "project",
+      "kind": "calendar",
+      "calls": 2,
+      "false": 1,
+      "seconds": 0.26474980101920664
+    },
+    {
+      "function": "current",
+      "stage": "project",
+      "kind": "event",
+      "calls": 978,
+      "false": 977,
+      "seconds": 0.4669898881111294
+    },
+    {
+      "function": "current",
+      "stage": "project",
+      "kind": "inventory",
+      "calls": 2,
+      "false": 2,
+      "seconds": 5.680809535027947
+    },
+    {
+      "function": "current",
+      "stage": "project",
+      "kind": "map",
+      "calls": 978,
+      "false": 978,
+      "seconds": 20.31400886870688
+    },
+    {
+      "function": "desired",
+      "stage": "project",
+      "kind": "calendar",
+      "calls": 1,
+      "false": 0,
+      "seconds": 0.24564481602283195
+    },
+    {
+      "function": "desired",
+      "stage": "project",
+      "kind": "event",
+      "calls": 977,
+      "false": 0,
+      "seconds": 0.35386547312373295
+    },
+    {
+      "function": "desired",
+      "stage": "project",
+      "kind": "inventory",
+      "calls": 2,
+      "false": 0,
+      "seconds": 5.4805559769738466
+    },
+    {
+      "function": "desired",
+      "stage": "project",
+      "kind": "map",
+      "calls": 978,
+      "false": 0,
+      "seconds": 19.81085854320554
+    },
+    {
+      "function": "ready",
+      "stage": "project",
+      "kind": "event",
+      "calls": 977,
+      "false": 977,
+      "seconds": 20.309198292088695
+    },
+    {
+      "function": "ready",
+      "stage": "project",
+      "kind": "inventory",
+      "calls": 1,
+      "false": 1,
+      "seconds": 0.26485430100001395
+    },
+    {
+      "function": "ready",
+      "stage": "project",
+      "kind": "map",
+      "calls": 1,
+      "false": 1,
+      "seconds": 2.4910405260161497
+    }
+  ],
+  "dancer_readiness_modes": {},
+  "profile_top_cumulative": [
+    {
+      "file": "/var/lib/swingset/operations/v2-continuation-20260917/profile-offline-selector-001.py",
+      "line": 187,
+      "function": "<lambda>",
+      "primitive_calls": 1,
+      "calls": 1,
+      "own_seconds": 1.7080000000000002e-06,
+      "cumulative_seconds": 30.009428527
+    },
+    {
+      "file": "/nix/store/dx0cyzvd8d91rf29v21sakbr7l5bwxnz-source/src/swingset/schedule/fairness.py",
+      "line": 453,
+      "function": "next_offline",
+      "primitive_calls": 1,
+      "calls": 1,
+      "own_seconds": 8.249e-06,
+      "cumulative_seconds": 30.009426819
+    },
+    {
+      "file": "/nix/store/dx0cyzvd8d91rf29v21sakbr7l5bwxnz-source/src/swingset/schedule/fairness.py",
+      "line": 468,
+      "function": "_next_offline",
+      "primitive_calls": 1,
+      "calls": 1,
+      "own_seconds": 0.019024568000000002,
+      "cumulative_seconds": 30.003186575
+    },
+    {
+      "file": "/nix/store/dx0cyzvd8d91rf29v21sakbr7l5bwxnz-source/src/swingset/state/work.py",
+      "line": 85,
+      "function": "next_work",
+      "primitive_calls": 3,
+      "calls": 3,
+      "own_seconds": 0.0019683780000000002,
+      "cumulative_seconds": 26.779503039
+    },
+    {
+      "file": "/var/lib/swingset/operations/v2-continuation-20260917/profile-offline-selector-001.py",
+      "line": 74,
+      "function": "wrapped",
+      "primitive_calls": 1959,
+      "calls": 4897,
+      "own_seconds": 0.652897893,
+      "cumulative_seconds": 26.743665940000003
+    },
+    {
+      "file": "/nix/store/dx0cyzvd8d91rf29v21sakbr7l5bwxnz-source/src/swingset/state/derivations.py",
+      "line": 379,
+      "function": "current",
+      "primitive_calls": 1960,
+      "calls": 1960,
+      "own_seconds": 0.014449073000000002,
+      "cumulative_seconds": 26.08146229
+    },
+    {
+      "file": "/nix/store/dx0cyzvd8d91rf29v21sakbr7l5bwxnz-source/src/swingset/state/derivations.py",
+      "line": 99,
+      "function": "desired",
+      "primitive_calls": 1958,
+      "calls": 1958,
+      "own_seconds": 0.127173068,
+      "cumulative_seconds": 25.886731693
+    },
+    {
+      "file": "/nix/store/dx0cyzvd8d91rf29v21sakbr7l5bwxnz-source/src/swingset/state/derivations.py",
+      "line": 512,
+      "function": "ready",
+      "primitive_calls": 979,
+      "calls": 979,
+      "own_seconds": 0.000773094,
+      "cumulative_seconds": 23.064287038
+    },
+    {
+      "file": "/nix/store/dx0cyzvd8d91rf29v21sakbr7l5bwxnz-source/src/swingset/state/derivations.py",
+      "line": 525,
+      "function": "_ready",
+      "primitive_calls": 979,
+      "calls": 979,
+      "own_seconds": 0.004548246000000001,
+      "cumulative_seconds": 23.063513944
+    },
+    {
+      "file": "~",
+      "line": 0,
+      "function": "<built-in method builtins.all>",
+      "primitive_calls": 979,
+      "calls": 979,
+      "own_seconds": 0.001040135,
+      "cumulative_seconds": 23.052290546000002
+    },
+    {
+      "file": "/nix/store/dx0cyzvd8d91rf29v21sakbr7l5bwxnz-source/src/swingset/state/derivations.py",
+      "line": 553,
+      "function": "<genexpr>",
+      "primitive_calls": 1959,
+      "calls": 1959,
+      "own_seconds": 0.0016364630000000001,
+      "cumulative_seconds": 23.052028427
+    },
+    {
+      "file": "/nix/store/dx0cyzvd8d91rf29v21sakbr7l5bwxnz-source/src/swingset/state/derivations.py",
+      "line": 155,
+      "function": "<genexpr>",
+      "primitive_calls": 2890026,
+      "calls": 2890026,
+      "own_seconds": 11.143367077,
+      "cumulative_seconds": 11.173608233000001
+    },
+    {
+      "file": "/nix/store/s5rij9y3vb4gxbh0iqz3k0ndmsac7h02-python3-3.12.13/lib/python3.12/json/__init__.py",
+      "line": 183,
+      "function": "dumps",
+      "primitive_calls": 509801,
+      "calls": 509801,
+      "own_seconds": 0.23716133600000003,
+      "cumulative_seconds": 10.034629202000001
+    },
+    {
+      "file": "/nix/store/s5rij9y3vb4gxbh0iqz3k0ndmsac7h02-python3-3.12.13/lib/python3.12/json/encoder.py",
+      "line": 183,
+      "function": "encode",
+      "primitive_calls": 509801,
+      "calls": 509801,
+      "own_seconds": 0.17520063300000002,
+      "cumulative_seconds": 9.752113236000001
+    },
+    {
+      "file": "/nix/store/s5rij9y3vb4gxbh0iqz3k0ndmsac7h02-python3-3.12.13/lib/python3.12/json/encoder.py",
+      "line": 205,
+      "function": "iterencode",
+      "primitive_calls": 509801,
+      "calls": 509801,
+      "own_seconds": 9.498719721,
+      "cumulative_seconds": 9.498719721
+    },
+    {
+      "file": "/nix/store/dx0cyzvd8d91rf29v21sakbr7l5bwxnz-source/src/swingset/state/derivations.py",
+      "line": 29,
+      "function": "digest",
+      "primitive_calls": 6855,
+      "calls": 6855,
+      "own_seconds": 0.005542629,
+      "cumulative_seconds": 8.578530399
+    },
+    {
+      "file": "/nix/store/dx0cyzvd8d91rf29v21sakbr7l5bwxnz-source/src/swingset/state/derivations.py",
+      "line": 25,
+      "function": "canonical",
+      "primitive_calls": 10779,
+      "calls": 10779,
+      "own_seconds": 0.004197724,
+      "cumulative_seconds": 7.409837928000001
+    },
+    {
+      "file": "/nix/store/dx0cyzvd8d91rf29v21sakbr7l5bwxnz-source/src/swingset/state/derivation_dependencies.py",
+      "line": 279,
+      "function": "dependencies",
+      "primitive_calls": 1958,
+      "calls": 1958,
+      "own_seconds": 0.034925814,
+      "cumulative_seconds": 5.706565939000001
+    },
+    {
+      "file": "/nix/store/dx0cyzvd8d91rf29v21sakbr7l5bwxnz-source/src/swingset/state/derivations.py",
+      "line": 473,
+      "function": "candidate_units",
+      "primitive_calls": 982,
+      "calls": 982,
+      "own_seconds": 0.01188629,
+      "cumulative_seconds": 3.7070008910000003
+    },
+    {
+      "file": "~",
+      "line": 0,
+      "function": "<method 'execute' of 'sqlite3.Connection' objects>",
+      "primitive_calls": 57013,
+      "calls": 57013,
+      "own_seconds": 3.6288039800000003,
+      "cumulative_seconds": 3.6333298000000003
+    },
+    {
+      "file": "/nix/store/dx0cyzvd8d91rf29v21sakbr7l5bwxnz-source/src/swingset/state/derivation_query.py",
+      "line": 40,
+      "function": "memo",
+      "primitive_calls": 3923,
+      "calls": 3924,
+      "own_seconds": 0.008022225000000001,
+      "cumulative_seconds": 3.455089972
+    },
+    {
+      "file": "/nix/store/dx0cyzvd8d91rf29v21sakbr7l5bwxnz-source/src/swingset/state/derivations.py",
+      "line": 458,
+      "function": "known_units",
+      "primitive_calls": 130295,
+      "calls": 130295,
+      "own_seconds": 0.0065670880000000004,
+      "cumulative_seconds": 3.2075732880000003
+    },
+    {
+      "file": "~",
+      "line": 0,
+      "function": "<method 'update' of 'set' objects>",
+      "primitive_calls": 1,
+      "calls": 7,
+      "own_seconds": 0.006739684,
+      "cumulative_seconds": 3.20414609
+    },
+    {
+      "file": "/nix/store/dx0cyzvd8d91rf29v21sakbr7l5bwxnz-source/src/swingset/schedule/fairness.py",
+      "line": 484,
+      "function": "<genexpr>",
+      "primitive_calls": 34987,
+      "calls": 34987,
+      "own_seconds": 0.001965113,
+      "cumulative_seconds": 3.2022123450000004
+    },
+    {
+      "file": "/nix/store/dx0cyzvd8d91rf29v21sakbr7l5bwxnz-source/src/swingset/state/derivation_dependencies.py",
+      "line": 29,
+      "function": "scopes",
+      "primitive_calls": 162741,
+      "calls": 162741,
+      "own_seconds": 0.0037830980000000004,
+      "cumulative_seconds": 3.199953851
+    },
+    {
+      "file": "/nix/store/dx0cyzvd8d91rf29v21sakbr7l5bwxnz-source/src/swingset/state/derivation_dependencies.py",
+      "line": 30,
+      "function": "<lambda>",
+      "primitive_calls": 2,
+      "calls": 2,
+      "own_seconds": 0.0029616760000000003,
+      "cumulative_seconds": 3.196069544
+    },
+    {
+      "file": "/nix/store/dx0cyzvd8d91rf29v21sakbr7l5bwxnz-source/src/swingset/state/derivation_dependencies.py",
+      "line": 33,
+      "function": "_scopes",
+      "primitive_calls": 34988,
+      "calls": 34988,
+      "own_seconds": 0.04811312,
+      "cumulative_seconds": 3.1931078680000002
+    },
+    {
+      "file": "/nix/store/dx0cyzvd8d91rf29v21sakbr7l5bwxnz-source/src/swingset/state/derivation_dependencies.py",
+      "line": 287,
+      "function": "group",
+      "primitive_calls": 1963,
+      "calls": 1963,
+      "own_seconds": 0.00561337,
+      "cumulative_seconds": 2.9496845990000002
+    },
+    {
+      "file": "/nix/store/dx0cyzvd8d91rf29v21sakbr7l5bwxnz-source/src/swingset/state/derivation_dependencies.py",
+      "line": 21,
+      "function": "_canonical",
+      "primitive_calls": 494117,
+      "calls": 494117,
+      "own_seconds": 0.077053568,
+      "cumulative_seconds": 2.6825879660000003
+    },
+    {
+      "file": "/nix/store/dx0cyzvd8d91rf29v21sakbr7l5bwxnz-source/src/swingset/state/derivation_dependencies.py",
+      "line": 479,
+      "function": "_table_rows",
+      "primitive_calls": 4,
+      "calls": 4,
+      "own_seconds": 2.028796412,
+      "cumulative_seconds": 2.039258909
+    },
+    {
+      "file": "~",
+      "line": 0,
+      "function": "<built-in method builtins.sorted>",
+      "primitive_calls": 7846,
+      "calls": 7846,
+      "own_seconds": 0.16250972,
+      "cumulative_seconds": 1.988585244
+    },
+    {
+      "file": "/nix/store/dx0cyzvd8d91rf29v21sakbr7l5bwxnz-source/src/swingset/state/derivation_dependencies.py",
+      "line": 25,
+      "function": "_digest",
+      "primitive_calls": 2944,
+      "calls": 2944,
+      "own_seconds": 0.007432463,
+      "cumulative_seconds": 1.22063322
+    },
+    {
+      "file": "~",
+      "line": 0,
+      "function": "<built-in method _hashlib.openssl_sha256>",
+      "primitive_calls": 76365,
+      "calls": 76365,
+      "own_seconds": 0.7146918280000001,
+      "cumulative_seconds": 0.7146918280000001
+    },
+    {
+      "file": "~",
+      "line": 0,
+      "function": "<method 'encode' of 'str' objects>",
+      "primitive_calls": 76365,
+      "calls": 76365,
+      "own_seconds": 0.685257018,
+      "cumulative_seconds": 0.685257018
+    },
+    {
+      "file": "/nix/store/dx0cyzvd8d91rf29v21sakbr7l5bwxnz-source/src/swingset/state/derivation_dependencies.py",
+      "line": 226,
+      "function": "_raw",
+      "primitive_calls": 982,
+      "calls": 982,
+      "own_seconds": 0.22253699500000002,
+      "cumulative_seconds": 0.408916367
+    },
+    {
+      "file": "/nix/store/dx0cyzvd8d91rf29v21sakbr7l5bwxnz-source/src/swingset/state/derivation_dependencies.py",
+      "line": 468,
+      "function": "_raw_kind",
+      "primitive_calls": 2,
+      "calls": 2,
+      "own_seconds": 0.002992733,
+      "cumulative_seconds": 0.296888441
+    },
+    {
+      "file": "/nix/store/dx0cyzvd8d91rf29v21sakbr7l5bwxnz-source/src/swingset/state/derivation_dependencies.py",
+      "line": 459,
+      "function": "_selected_members",
+      "primitive_calls": 981,
+      "calls": 981,
+      "own_seconds": 0.001426463,
+      "cumulative_seconds": 0.233907308
+    },
+    {
+      "file": "/nix/store/dx0cyzvd8d91rf29v21sakbr7l5bwxnz-source/src/swingset/state/derivation_dependencies.py",
+      "line": 464,
+      "function": "<genexpr>",
+      "primitive_calls": 31393,
+      "calls": 31393,
+      "own_seconds": 0.004961940000000001,
+      "cumulative_seconds": 0.13084773300000002
+    },
+    {
+      "file": "/nix/store/dx0cyzvd8d91rf29v21sakbr7l5bwxnz-source/src/swingset/state/derivations.py",
+      "line": 94,
+      "function": "selected_dependency",
+      "primitive_calls": 30412,
+      "calls": 30412,
+      "own_seconds": 0.012657993000000001,
+      "cumulative_seconds": 0.125885793
+    },
+    {
+      "file": "/nix/store/dx0cyzvd8d91rf29v21sakbr7l5bwxnz-source/src/swingset/state/derivations.py",
+      "line": 83,
+      "function": "selected_generation",
+      "primitive_calls": 32367,
+      "calls": 32367,
+      "own_seconds": 0.023403432000000002,
+      "cumulative_seconds": 0.12193089500000001
+    }
+  ],
+  "format": "frozen003-offline-selector-profile-v1",
+  "recorded_at": "2026-09-17T17:20:28.645012+00:00",
+  "source": "/nix/store/dx0cyzvd8d91rf29v21sakbr7l5bwxnz-source",
+  "source_receipt_sha256": "60cdfe64004a0ba5a9aee207bcb089d6d4c81f5ca58169ccdb88a5dfab8146d6",
+  "scratch": "/var/tmp/swingset-extension-input-20260917-001",
+  "marker_sha256": "8c9ad75dbfb7b25d3b99e655e17de203af05185299daeaa8448ba8e204aa862e",
+  "helper_sha256": "b637c20b0002f9c2e4452ebede0363b9ccfb104983ab065f5d2ba59533f81ca8",
+  "sqlite_read_only": true,
+  "database_total_changes": 0,
+  "data_version_unchanged": true,
+  "worker_executions": 0,
+  "network_requests": 0,
+  "production_applied": false,
+  "scope": "one read-only instrumented selection; source and interlock checks occur outside selection timeout"
+}

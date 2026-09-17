@@ -119,6 +119,11 @@ def _project_subset(conn: sqlite3.Connection, kinds: frozenset[str]) -> tuple[Wo
     )
 
 
+def dancer_prerequisites(conn: sqlite3.Connection) -> tuple[WorkUnit, ...]:
+    """The exact shared dancer cohort used by every link prerequisite query."""
+    return _project_subset(conn, frozenset({"dancer"}))
+
+
 def _stored_project_kind(conn: sqlite3.Connection, kind: str) -> tuple[WorkUnit, ...]:
     """Exact registered, queued and physical subset; no inferred source-index rows."""
     return tuple(
@@ -214,7 +219,7 @@ def prerequisites(conn: sqlite3.Connection, unit: WorkUnit) -> tuple[WorkUnit, .
         # Preserve the catalog's dancer/event/history ordering while sharing
         # its broad registry and history subsets across every event candidate.
         return (
-            *_project_subset(conn, frozenset({"dancer"})),
+            *dancer_prerequisites(conn),
             *((event,) if event is not None else ()),
             *_project_subset(conn, frozenset({"history"})),
         )

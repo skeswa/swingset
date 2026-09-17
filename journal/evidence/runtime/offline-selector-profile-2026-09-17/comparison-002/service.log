@@ -1,0 +1,8 @@
+Sep 17 17:47:44 swingset systemd[1]: Started [systemd-run] /var/lib/swingset/venv/bin/python /var/lib/swingset/operations/v2-continuation-20260917/profile-selector-comparison-002.py --source /nix/store/di7la1nb0y078syahq1h87lmld9w8vy2-swingset-selector-freeze-20260917-002-clean --scratch /var/tmp/swingset-extension-input-20260917-001 --marker-sha256 8c9ad75dbfb7b25d3b99e655e17de203af05185299daeaa8448ba8e204aa862e --helper-sha256 fca976dd3bd20d0f19e66b0382ee3582d6a4e15812799984d6eef8b9924e1478 --output /var/tmp/swingset-selector-comparison-20260917-002 --seconds 30.
+Sep 17 17:48:15 swingset python[116573]: {
+Sep 17 17:48:15 swingset python[116573]:   "status": "python_alarm_timeout",
+Sep 17 17:48:15 swingset python[116573]:   "elapsed_seconds": 30.012956472986843,
+Sep 17 17:48:15 swingset python[116573]:   "output": "/var/tmp/swingset-selector-comparison-20260917-002"
+Sep 17 17:48:15 swingset python[116573]: }
+Sep 17 17:48:15 swingset systemd[1]: swingset-selector-comparison-20260917-002.service: Deactivated successfully.
+Sep 17 17:48:15 swingset systemd[1]: swingset-selector-comparison-20260917-002.service: Consumed 31.124s CPU time, 1004.8M memory peak, 1.1G read from disk.

@@ -1,0 +1,8 @@
+Sep 17 17:19:57 swingset systemd[1]: Started [systemd-run] /var/lib/swingset/venv/bin/python /var/lib/swingset/operations/v2-continuation-20260917/profile-offline-selector-001.py --source /nix/store/dx0cyzvd8d91rf29v21sakbr7l5bwxnz-source --scratch /var/tmp/swingset-extension-input-20260917-001 --marker-sha256 8c9ad75dbfb7b25d3b99e655e17de203af05185299daeaa8448ba8e204aa862e --helper-sha256 b637c20b0002f9c2e4452ebede0363b9ccfb104983ab065f5d2ba59533f81ca8 --output /var/tmp/swingset-selector-profile-20260917-001 --seconds 30.
+Sep 17 17:20:28 swingset python[116297]: {
+Sep 17 17:20:28 swingset python[116297]:   "status": "python_alarm_timeout",
+Sep 17 17:20:28 swingset python[116297]:   "elapsed_seconds": 30.009519152983557,
+Sep 17 17:20:28 swingset python[116297]:   "output": "/var/tmp/swingset-selector-profile-20260917-001"
+Sep 17 17:20:28 swingset python[116297]: }
+Sep 17 17:20:28 swingset systemd[1]: swingset-selector-profile-20260917-001.service: Deactivated successfully.
+Sep 17 17:20:28 swingset systemd[1]: swingset-selector-profile-20260917-001.service: Consumed 30.782s CPU time, 1.1G memory peak, 558.7M read from disk.
