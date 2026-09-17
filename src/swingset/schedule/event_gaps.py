@@ -1,4 +1,4 @@
-"""Sample unavailable-origin gaps without creating successful stage progress."""
+"""Sample unavailable and unsupported gaps without creating successful stage progress."""
 
 from __future__ import annotations
 
@@ -8,17 +8,25 @@ from datetime import datetime, timedelta
 from typing import Any
 
 from swingset.admission.page_evidence import Session
-from swingset.admission.unavailable_evidence import FORMAT, metadata_valid
+from swingset.admission.unavailable_evidence import metadata_valid
+from swingset.admission.unsupported_evidence import metadata_valid as unsupported_valid
 from swingset.fetch.archive import canonical, digest
 
+FORMAT = "event-page-gaps-v2"
 
-def accounted(interpreted: bool | None, unavailable: bool | None) -> bool | None:
-    """An interpreted page or proved unavailable response accounts for one obligation."""
-    if any(value is not None and type(value) is not bool for value in (interpreted, unavailable)):
+
+def accounted(
+    interpreted: bool | None, unavailable: bool | None, unsupported: bool | None = False
+) -> bool | None:
+    """Verified interpretation or an explicit proved gap accounts for one obligation."""
+    if any(
+        value is not None and type(value) is not bool
+        for value in (interpreted, unavailable, unsupported)
+    ):
         raise ValueError("page accounting requires tri-state booleans")
-    if interpreted is True or unavailable is True:
+    if interpreted is True or unavailable is True or unsupported is True:
         return True
-    return False if interpreted is False and unavailable is False else None
+    return False if interpreted is False and unavailable is False and unsupported is False else None
 
 
 def available(conn: sqlite3.Connection) -> bool:
@@ -64,6 +72,8 @@ def observation(evidence: dict[str, Any], source_revision: int | None) -> dict[s
             "interpreted",
             "unavailable",
             "unavailability_support",
+            "unsupported",
+            "unsupported_support",
         )
     }
     value["format"] = FORMAT
@@ -99,7 +109,13 @@ def load(session: Session, batch: dict[str, Any]) -> dict[str, dict[str, Any]]:
     return {row["request_id"]: row for row in rows}
 
 
-def value(row: dict[str, Any], request: dict[str, Any], source_revision: int | None) -> bool | None:
+def value(
+    row: dict[str, Any],
+    request: dict[str, Any],
+    source_revision: int | None,
+    *,
+    classification: str = "unavailable",
+) -> bool | None:
     """Validate retained metadata; caller separately checks fence and bounded TTL."""
     try:
         evidence = json.loads(row["evidence_json"])
@@ -118,6 +134,8 @@ def value(row: dict[str, Any], request: dict[str, Any], source_revision: int | N
                 "interpreted",
                 "unavailable",
                 "unavailability_support",
+                "unsupported",
+                "unsupported_support",
             }
             or evidence["format"] != FORMAT
             or evidence["request"] != request
@@ -128,9 +146,11 @@ def value(row: dict[str, Any], request: dict[str, Any], source_revision: int | N
             or availability not in (None, 0, 1)
             or evidence["unavailable"] is not (None if availability is None else bool(availability))
             or not metadata_valid(evidence)
+            or not unsupported_valid(evidence)
         ):
             return None
-        return evidence["unavailable"]
+        result: bool | None = evidence[classification]
+        return result
     except (ValueError, KeyError, TypeError, RecursionError):
         return None
 

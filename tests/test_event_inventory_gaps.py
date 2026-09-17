@@ -51,7 +51,7 @@ def test_mixed_interpreted_and_unavailable_pages_are_accounted_without_success_i
     assert result["unavailability_unknown_pages"] == 0
     assert result["known_pages_accounted_for"] is True
     assert result["pagination"] == "unknown" and result["published_pages"] is None
-    assert result["unsupported_pages"] is None
+    assert result["unsupported_pages"] == 0
     member = next(p for p in result["members"] if p["unavailable"])
     assert member["acquired"] is member["interpreted"] is False
     assert member["accounted_for"] is True

@@ -33,9 +33,12 @@ class _Evidence:
         declared = sorted(
             {spec["watch_id"] for claim in member["support"] for spec in claim["watches"]}
         )
-        proof = self.session.verify_request(identity, classify_unavailability=True)
+        proof = self.session.verify_request(
+            identity, classify_unavailability=True, classify_unsupported=True
+        )
         acquired, interpreted = proof["acquired"], proof["interpreted"]
         unavailable = proof["unavailable"]
+        unsupported = proof["unsupported"]
         acquisition, interpretation = proof["acquisition_support"], proof["interpretation_support"]
         supported = ([acquisition] if acquisition else []) + (
             interpretation["snapshots"] if interpretation else []
@@ -103,8 +106,12 @@ class _Evidence:
             blockers.add("source_unavailability_unassessed")
         elif unavailable:
             blockers.add("retained_origin_unavailable")
+        if unsupported is None:
+            blockers.add("source_unsupported_unassessed")
+        elif unsupported:
+            blockers.add("retained_unsupported_interpretation")
         if not declared and not evidence_watches:
-            blockers.add("unsupported_page_kind")
+            blockers.add("page_kind_unassessed")
         if (
             diagnostics_assessed
             and latest
@@ -122,7 +129,9 @@ class _Evidence:
             "interpreted": interpreted,
             "unavailable": unavailable,
             "unavailability_support": proof["unavailability_support"],
-            "accounted_for": accounted(interpreted, unavailable),
+            "unsupported": unsupported,
+            "unsupported_support": proof["unsupported_support"],
+            "accounted_for": accounted(interpreted, unavailable, unsupported),
             "snapshot_ids": sorted({row["snapshot_id"] for row in supported}),
             "generation_ids": [interpretation["generation_id"]] if interpretation else [],
             "blockers": sorted(blockers),
@@ -130,13 +139,13 @@ class _Evidence:
             "latest_response_reason": diagnostic_reason,
             "latest_response_basis": "bounded_declared_and_verified_request_watches",
             "next_action": "verify_retained_evidence"
-            if acquired is None or interpreted is None or unavailable is None
+            if acquired is None or interpreted is None or unavailable is None or unsupported is None
             else "await_selected_release"
             if interpreted
             else "review_source_unavailability"
             if unavailable
             else "unsupported_review"
-            if not declared and not evidence_watches
+            if unsupported
             else "acquire_or_restore"
             if not acquired
             else "interpret_or_restore",
@@ -299,6 +308,7 @@ def inventory(
         ("acquired", "acquisition"),
         ("interpreted", "interpretation"),
         ("unavailable", "unavailability"),
+        ("unsupported", "unsupported"),
     ):
         values = [page[stage] for page in result["members"]]
         unknown = sum(value is None for value in values)

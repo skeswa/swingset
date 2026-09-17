@@ -424,15 +424,20 @@ def rows(
     result = []
     for entry in witness["entries"]:
         from .event_local_coverage import FORMAT as LOCAL_FORMAT
-        from .event_local_coverage import summary
+        from .event_local_coverage import UNAVAILABLE_FORMAT, summary
 
         totals = summary(entry, witness.get("local_pages"))
         reasons = [*entry["reasons"]]
         if totals["acquired_pages"] is None or totals["interpreted_pages"] is None:
             reasons.append("full_cutoff_local_verification_unavailable")
-        unavailable_assessed = (witness.get("local_pages") or {}).get("format") == LOCAL_FORMAT
+        unavailable_assessed = (witness.get("local_pages") or {}).get("format") in (
+            LOCAL_FORMAT,
+            UNAVAILABLE_FORMAT,
+        )
         if unavailable_assessed and totals["unavailable_pages"] is None:
             reasons.append("source_unavailability_unassessed")
+        if totals["unsupported_pages"] is None:
+            reasons.append("source_unsupported_unassessed")
         event_id = mapping.get((entry["source"], entry["source_ref"]))
         if event_id is None:
             reasons.append("canonical_mapping_unresolved")
@@ -470,7 +475,7 @@ def rows(
             acquisition_denominator=entry.get("listed_pages"),
             interpretation_denominator=entry.get("listed_pages"),
             uncertainty=(
-                "Local stage totals describe pinned verification observations; NULL means unassessed members. Unavailable counts require explicit retained origin responses with no usable acquired support; zero does not mean available. Unsupported classification remains unassessed. Selected support and final representation are separate; via=unknown aggregates transports."
+                "Local stage totals describe pinned verification observations; NULL means unassessed members. Unavailable counts require explicit retained origin responses with no usable acquired support; zero does not mean available. Unsupported counts require verified critical-unknown contract evidence; canonical scoring exclusions remain findings. Zero does not imply canonical support. Selected support and final representation are separate; via=unknown aggregates transports."
                 if unavailable_assessed
                 else "Local stage totals describe pinned verification observations; NULL means unassessed members. Unavailable/unsupported classification remains unassessed. Selected support and final representation are separate; via=unknown aggregates transports."
             ),

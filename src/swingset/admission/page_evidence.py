@@ -116,6 +116,7 @@ class _Evidence:
         self.acquired: dict[str, dict[str, Any]] = {}
         self.unknown = False
         self.checked_generations: set[str] = set()
+        self.generation_unknown = False
         self.revoked: list[tuple[Any, ...]] | None = None
 
     def artifact(self, kind: str, sha: str) -> bool:
@@ -172,7 +173,9 @@ class _Evidence:
                     raise
         return exhausted
 
-    def interpreted(self, identifier: str, decision_id: int | None = None) -> dict[str, Any] | None:
+    def interpreted(
+        self, identifier: str, decision_id: int | None = None, *, unsupported: bool = False
+    ) -> dict[str, Any] | None:
         reader = self.reader
         raw = reader.read(
             "SELECT * FROM source_generations WHERE generation_id=?",
@@ -197,7 +200,7 @@ class _Evidence:
             cap=reader.limits.candidates,
         )
         eligible = [row for row in decisions if _time(row["decided_at"]) <= self.cutoff]
-        if not eligible:
+        if not eligible and not unsupported:
             reader.reasons["not_accepted_at_cutoff"] += 1
             return None
         policies = reader.read(
@@ -222,7 +225,22 @@ class _Evidence:
             revoked_rows=self.revoked,
             policy_version=lambda _: policies[0]["contract_version"] if policies else None,
         )
-        if reason:
+        if unsupported:
+            from .unsupported_evidence import explicit_unknown
+
+            if reason != "source_interpretation_unsupported" or not explicit_unknown(value):
+                return None
+            if (
+                not policies
+                or policies[0]["contract_version"] != value["contract_version"]
+                or not policies[0]["reviewed_report_digest"]
+                or not policies[0]["reviewed_by"]
+                or not policies[0]["reviewed_at"]
+                or _time(policies[0]["reviewed_at"]) > self.cutoff
+            ):
+                reader.reasons["unsupported_contract_unassessed"] += 1
+                return None
+        elif reason:
             reader.reasons[reason] += 1
             return None
         if value["recipe"]["context"]["source"] != self.request["source"]:
@@ -231,6 +249,9 @@ class _Evidence:
         manifest = value["manifest"]
         if not isinstance(manifest, list) or not manifest:
             raise ValueError("generation manifest is empty or malformed")
+        if unsupported and len(manifest) != 1:
+            reader.reasons["unsupported_request_scope_unassessed"] += 1
+            return None
         if len(manifest) > reader.limits.manifest_members:
             raise _Unknown("manifest_member_budget")
         support = []
@@ -283,7 +304,7 @@ class _Evidence:
                 )
             ),
             "input_fingerprint": value["input_fingerprint"],
-            "accepted_decision": eligible[0],
+            "accepted_decision": None if unsupported else eligible[0],
             "policy": policies[0],
             "snapshots": support,
         }
@@ -323,6 +344,7 @@ class _Evidence:
                     return receipt, exhausted
             except (ValueError, KeyError, TypeError, RecursionError):
                 self.checked_generations.add(row["generation_id"])
+                self.generation_unknown = True
                 self.reader.reasons["generation_evidence_invalid"] += 1
         return None, exhausted
 
@@ -428,7 +450,11 @@ class Session:
         }
 
     def verify_request(
-        self, request: Mapping[str, Any], *, classify_unavailability: bool = False
+        self,
+        request: Mapping[str, Any],
+        *,
+        classify_unavailability: bool = False,
+        classify_unsupported: bool = False,
     ) -> dict[str, Any]:
         """Prove existence; false requires exhausting every relevant candidate domain."""
         checker = self._checker(request)
@@ -458,11 +484,22 @@ class Session:
             from .unavailable_evidence import observe
 
             unavailable, support = observe(checker, snapshots_exhausted=snapshots_exhausted)
+        unsupported_value, unsupported_support = None, None
+        if classify_unsupported:
+            from .unsupported_evidence import observe as observe_unsupported
+
+            unsupported_value, unsupported_support = observe_unsupported(
+                checker,
+                interpreted=receipt is not None,
+                exhausted=snapshots_exhausted and generations_exhausted,
+            )
         result = self._result(
             checker, receipt, snapshots_exhausted, generations_exhausted, reasons_before
         )
         if classify_unavailability:
             result.update(unavailable=unavailable, unavailability_support=support)
+        if classify_unsupported:
+            result.update(unsupported=unsupported_value, unsupported_support=unsupported_support)
         return result
 
     def verify_operation(

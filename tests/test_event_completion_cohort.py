@@ -306,7 +306,7 @@ def test_admitted_33_page_cohort_finishes_amid_discovery_and_current_refresh(
     assert final["known_pages_accounted_for"] is True
     assert final["canonical_event_id"] is None and final["pagination"] == "unknown"
     assert final["eligible_service_age_seconds"] is None
-    assert final["unsupported_pages"] is None and final["published_pages"] is None
+    assert final["unsupported_pages"] == 0 and final["published_pages"] is None
     # Refresh the same bounded artifact observer used by the cycle, through its
     # normal operation gate. Continuous arrivals have stopped at the bound.
     for visit in range(100):

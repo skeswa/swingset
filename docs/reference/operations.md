@@ -372,8 +372,9 @@ Historical success before recording began remains unknown.
 The nested `accounting` report classifies known enumerations as
 `locally_accounted`, `unfinished`, or `unassessed` from full bounded membership
 and fresh page and parent observations. Each known page must be interpreted or
-have a verified unavailable-origin response; all required parents must remain
-usable. A page is definitely unfinished only when both page outcomes are false.
+have a verified unavailable-origin response or an evidence-backed unsupported
+disposition; all required parents must remain usable. A page is definitely
+unfinished only when all three accounting branches are false.
 Otherwise an unresolved branch remains unknown. A definite missing page or parent
 establishes unfinished work even when other counts remain unknown. Legacy and oversized
 enumerations remain unassessed. The report reads metadata only and shows the

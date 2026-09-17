@@ -1,0 +1,2192 @@
+{
+  "format": "calendar-map-independent-review-v1",
+  "recorded_at": "2026-09-17T17:17:09.575658+00:00",
+  "reviewer": "history_gates",
+  "passed": true,
+  "input_sha256": {
+    "journal/evidence/collection/calendar-map-review-2026-09-17/review.json": "1592455db9e58802cb6502615c8fb1feaeec047ea230a790f14c033233e2c584",
+    "journal/evidence/collection/phase1-review-2026-09-17/year-review/targets.csv": "55bef260d7962b755eed68eb3f6e64581b8332dfb57e78f863803d7d3be8b336",
+    "src/swingset/sources/wsdc_calendar/adapter.py": "0e0550cc947cdb534df5ad28ccd3faa8d2936e921eafe4db6779f8fc324c6845",
+    "src/swingset/sources/wsdc_calendar/legacy.py": "d5cbffb3a95aae3b282478403a02dc37f822e49e6dfd4c4362a238690f2829e3",
+    "src/swingset/sources/wsdc_calendar/fixtures/calendar-map-20160710.html": "c954a81d470a10d650ac3f25288108e0118f729349bd86f625f3effb9d2bc05c",
+    "src/swingset/sources/wsdc_calendar/fixtures/calendar-map-20160710.json": "5718670b1af673d6d297d48e01a2893d4eeab04c7fd7aa36188330fcd893ce28",
+    "src/swingset/sources/wsdc_calendar/fixtures/calendar-map-20160909.html": "69886cf0bd032942daaafa52fcf342a20e056beccb5d3494ca90e61ddddd5c2c",
+    "src/swingset/sources/wsdc_calendar/fixtures/calendar-map-20160909.json": "957baa140d2a223c567dc43216a2cd44dc196012e1fd0a91a8b61064e554ebe9",
+    "src/swingset/sources/wsdc_calendar/fixtures/calendar-map-20161110.html": "e4edbdd2484ecdbefec9787d86e87c6842422ce82b28d2a6686ee401dd25b6ad",
+    "src/swingset/sources/wsdc_calendar/fixtures/calendar-map-20161110.json": "a164c91f5e384b5645fd491aafcbeff99f5849eb7e1fde14e251ab711fe14b4c",
+    "src/swingset/sources/wsdc_calendar/fixtures/calendar-map-20161212.html": "81a2aa57dba1cb4143cfff4ab06a1b2b3dc16b2459a15c04100c714ea7b837be",
+    "src/swingset/sources/wsdc_calendar/fixtures/calendar-map-20161212.json": "08c10a327d3fa164805826c22bcee84f3414c2087c84a50b56687a6411470eeb"
+  },
+  "bodies": [
+    {
+      "fixture": "src/swingset/sources/wsdc_calendar/fixtures/calendar-map-20160710.html",
+      "snapshot_id": "snap_20260913T051034Z_c954a81d470a",
+      "body_sha256": "c954a81d470a10d650ac3f25288108e0118f729349bd86f625f3effb9d2bc05c",
+      "captured_at": "2016-07-10T03:37:10+00:00",
+      "body_bytes": 42006,
+      "live_marker_count": 59,
+      "commented_example_count": 1,
+      "all_popups_single_named_anchor": true,
+      "printed_event_date_lines": 0,
+      "retained_report_matches": true,
+      "retained_target_status": "finding",
+      "current_parser_error": "captured map marker lacks a name or printed date",
+      "malformed_link_findings": [],
+      "decoded_names_and_links": [
+        {
+          "markup": "<a href=http://www.midlandswingopen.com target=_blank>Midland Swing Open</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Midland Swing Open",
+          "website_raw": "http://www.midlandswingopen.com"
+        },
+        {
+          "markup": "<a href=http://www.floridadancemagic.com target=_blank>Florida Dance Magic</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Florida Dance Magic",
+          "website_raw": "http://www.floridadancemagic.com"
+        },
+        {
+          "markup": "<a href=http://www.scswing.com/ target=_blank>SinCity Swing</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "SinCity Swing",
+          "website_raw": "http://www.scswing.com/"
+        },
+        {
+          "markup": "<a href=http://www.toshc.com/ target=_blank>Toronto Open Swing/Hustle Championships</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Toronto Open Swing/Hustle Championships",
+          "website_raw": "http://www.toshc.com/"
+        },
+        {
+          "markup": "<a href=http://www.dancemardigras.com target=_blank>New Orleans Dance Mardi Gras</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "New Orleans Dance Mardi Gras",
+          "website_raw": "http://www.dancemardigras.com"
+        },
+        {
+          "markup": "<a href=http://www.swingtimeintherockies.com/ target=_blank>Swingtime in the Rockies</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Swingtime in the Rockies",
+          "website_raw": "http://www.swingtimeintherockies.com/"
+        },
+        {
+          "markup": "<a href=http://wcsumea.se/rock-the-barn/index.html target=_blank>Rock The Barn</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Rock The Barn",
+          "website_raw": "http://wcsumea.se/rock-the-barn/index.html"
+        },
+        {
+          "markup": "<a href=http://www.seasunswing.net/ target=_blank>Sea Sun & Swing Camp</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Sea Sun & Swing Camp",
+          "website_raw": "http://www.seasunswing.net/"
+        },
+        {
+          "markup": "<a href=http://www.dancegeekproductions.com/ target=_blank>Swingtacular: The Galactic Open</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Swingtacular: The Galactic Open",
+          "website_raw": "http://www.dancegeekproductions.com/"
+        },
+        {
+          "markup": "<a href=http://www.swingfling.com/ target=_blank>Swing Fling</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Swing Fling",
+          "website_raw": "http://www.swingfling.com/"
+        },
+        {
+          "markup": "<a href=http://www.peoplewhodance.net/ target=_blank>Palm Springs Summer Dance Camp Classic</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Palm Springs Summer Dance Camp Classic",
+          "website_raw": "http://www.peoplewhodance.net/"
+        },
+        {
+          "markup": "<a href=http://www.lonestarcountrydance.com/ target=_blank>LoneStar Invitational</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "LoneStar Invitational",
+          "website_raw": "http://www.lonestarcountrydance.com/"
+        },
+        {
+          "markup": "<a href=http://worlddancemasters.com target=_blank>Swingmasters at World Dance masters</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Swingmasters at World Dance masters",
+          "website_raw": "http://worlddancemasters.com"
+        },
+        {
+          "markup": "<a href=http://www.chicagolanddancefestival.com target=_blank>Chicagoland Country & Swing Dance Festival</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Chicagoland Country & Swing Dance Festival",
+          "website_raw": "http://www.chicagolanddancefestival.com"
+        },
+        {
+          "markup": "<a href=http://www.dancepros.net/ target=_blank>Summer Hummer</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Summer Hummer",
+          "website_raw": "http://www.dancepros.net/"
+        },
+        {
+          "markup": "<a href=http://www.midwestwestiefest.com/ target=_blank>Midwest Westie Fest</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Midwest Westie Fest",
+          "website_raw": "http://www.midwestwestiefest.com/"
+        },
+        {
+          "markup": "<a href=http://www.improteam.com/ target=_blank>Sunny Side Dance Camp</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Sunny Side Dance Camp",
+          "website_raw": "http://www.improteam.com/"
+        },
+        {
+          "markup": "<a href=http://www.dallasdance.com/ target=_blank>Dallas D.A.N.C.E.</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Dallas D.A.N.C.E.",
+          "website_raw": "http://www.dallasdance.com/"
+        },
+        {
+          "markup": "<a href=http://www.southbaydancefling.com target=_blank>South Bay Dance Fling</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "South Bay Dance Fling",
+          "website_raw": "http://www.southbaydancefling.com"
+        },
+        {
+          "markup": "<a href=http://www.desertcityswing.com target=_blank>Desert City Swing</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Desert City Swing",
+          "website_raw": "http://www.desertcityswing.com"
+        },
+        {
+          "markup": "<a href=http://www.rivercityswing.com/ target=_blank>River City Swing</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "River City Swing",
+          "website_raw": "http://www.rivercityswing.com/"
+        },
+        {
+          "markup": "<a href=http://www.vermontswingdancechampionships.com target=_blank>Upstate Dance Challenge</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Upstate Dance Challenge",
+          "website_raw": "http://www.vermontswingdancechampionships.com"
+        },
+        {
+          "markup": "<a href=http://www.swingtrilogy.com target=_blank>Swing Trilogy</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Swing Trilogy",
+          "website_raw": "http://www.swingtrilogy.com"
+        },
+        {
+          "markup": "<a href=http://bavarianopen.com/ target=_blank>Bavarian Open WCS</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Bavarian Open WCS",
+          "website_raw": "http://bavarianopen.com/"
+        },
+        {
+          "markup": "<a href=http://www.bestofthebestwcs.com/ target=_blank>Best of the Best</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Best of the Best",
+          "website_raw": "http://www.bestofthebestwcs.com/"
+        },
+        {
+          "markup": "<a href=http://www.portlandswing.org/bts target=_blank>BridgeTown Swing</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "BridgeTown Swing",
+          "website_raw": "http://www.portlandswing.org/bts"
+        },
+        {
+          "markup": "<a href=http://www.winterwhitewcs.com target=_blank>Winter White WCS</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Winter White WCS",
+          "website_raw": "http://www.winterwhitewcs.com"
+        },
+        {
+          "markup": "<a href=http://www.thechallengeswing.com target=_blank>The Challenge</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "The Challenge",
+          "website_raw": "http://www.thechallengeswing.com"
+        },
+        {
+          "markup": "<a href=http://www.nyswingfling.co.uk target=_blank>New Year's Swing Fling</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "New Year's Swing Fling",
+          "website_raw": "http://www.nyswingfling.co.uk"
+        },
+        {
+          "markup": "<a href=http://peoplewhodance.net/ target=_blank>Palm Springs New Year's Swing Classic & Dance Camp</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Palm Springs New Year's Swing Classic & Dance Camp",
+          "website_raw": "http://peoplewhodance.net/"
+        },
+        {
+          "markup": "<a href=http://www.dcswingexperience.com target=_blank>DC Swing Experience (DCSX)</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "DC Swing Experience (DCSX)",
+          "website_raw": "http://www.dcswingexperience.com"
+        },
+        {
+          "markup": "<a href=http://floorplayswing.com target=_blank>FloorPlay New Years Swing Vacation</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "FloorPlay New Years Swing Vacation",
+          "website_raw": "http://floorplayswing.com"
+        },
+        {
+          "markup": "<a href=http://spotlightnewyears.com target=_blank>Spotlight Dance Celebration</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Spotlight Dance Celebration",
+          "website_raw": "http://spotlightnewyears.com"
+        },
+        {
+          "markup": "<a href=http://tampabayclassic.com target=_blank>Tampa Bay Classic</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Tampa Bay Classic",
+          "website_raw": "http://tampabayclassic.com"
+        },
+        {
+          "markup": "<a href=http://warsawhalloweenswing.com target=_blank>Warsaw Halloween Swing</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Warsaw Halloween Swing",
+          "website_raw": "http://warsawhalloweenswing.com"
+        },
+        {
+          "markup": "<a href=http://www.wcs.dance/sssc/ target=_blank>Swedish Swing Summer Camp</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Swedish Swing Summer Camp",
+          "website_raw": "http://www.wcs.dance/sssc/"
+        },
+        {
+          "markup": "<a href=http://www.wcs.dance/swg/ target=_blank>Sweden Westie Gala</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Sweden Westie Gala",
+          "website_raw": "http://www.wcs.dance/swg/"
+        },
+        {
+          "markup": "<a href=http://swingcitychicago.com target=_blank>Swing City Chicago</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Swing City Chicago",
+          "website_raw": "http://swingcitychicago.com"
+        },
+        {
+          "markup": "<a href=http://www.meetmeinstlouissdc.com target=_blank>Meet Me in St. Louis Swing Dance Championships</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Meet Me in St. Louis Swing Dance Championships",
+          "website_raw": "http://www.meetmeinstlouissdc.com"
+        },
+        {
+          "markup": "<a href=http://summerswingclassic.com/ target=_blank>Summer Swing Classic</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Summer Swing Classic",
+          "website_raw": "http://summerswingclassic.com/"
+        },
+        {
+          "markup": "<a href=http://www.westiesangels.com/ target=_blank>Westie Angels</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Westie Angels",
+          "website_raw": "http://www.westiesangels.com/"
+        },
+        {
+          "markup": "<a href=http://berlinswingrevolution.de/ target=_blank>Berlin Swing Revolution</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Berlin Swing Revolution",
+          "website_raw": "http://berlinswingrevolution.de/"
+        },
+        {
+          "markup": "<a href=http://sparklage.com/swustlicious/ target=_blank>Swustlicious</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Swustlicious",
+          "website_raw": "http://sparklage.com/swustlicious/"
+        },
+        {
+          "markup": "<a href=http://www.westcoastswingitaly.it/en/ target=_blank>Italian Open West Coast Swing</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Italian Open West Coast Swing",
+          "website_raw": "http://www.westcoastswingitaly.it/en/"
+        },
+        {
+          "markup": "<a href=http://phillyswings.com target=_blank>Philly Swing Classic</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Philly Swing Classic",
+          "website_raw": "http://phillyswings.com"
+        },
+        {
+          "markup": "<a href=http://boogiebythebay.com target=_blank>Boogie By The Bay</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Boogie By The Bay",
+          "website_raw": "http://boogiebythebay.com"
+        },
+        {
+          "markup": "<a href=http://www.centralcoastswingdance.com/halloween/halloween/ target=_blank>Halloween Swingthing</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Halloween Swingthing",
+          "website_raw": "http://www.centralcoastswingdance.com/halloween/halloween/"
+        },
+        {
+          "markup": "<a href=http://www.westcoastswinghelsinki.omasivu.fi/ target=_blank>West Coast Swing Helsinki</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "West Coast Swing Helsinki",
+          "website_raw": "http://www.westcoastswinghelsinki.omasivu.fi/"
+        },
+        {
+          "markup": "<a href=http://www.atlantaswingclassic.com/ target=_blank>Atlanta Swing Classic</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Atlanta Swing Classic",
+          "website_raw": "http://www.atlantaswingclassic.com/"
+        },
+        {
+          "markup": "<a href=http://www.seatoskydance.com/ target=_blank>Sea To Sky - Seattle</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Sea To Sky - Seattle",
+          "website_raw": "http://www.seatoskydance.com/"
+        },
+        {
+          "markup": "<a href=http://www.westie-fest.com/ target=_blank>Norway Westie Fest</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Norway Westie Fest",
+          "website_raw": "http://www.westie-fest.com/"
+        },
+        {
+          "markup": "<a href=http://www.westie-fest.com/ target=_blank>Norway Westie Fest</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Norway Westie Fest",
+          "website_raw": "http://www.westie-fest.com/"
+        },
+        {
+          "markup": "<a href=http://www.sacramentoallswing.com/ target=_blank>Sacramento All Swing</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/white.png",
+          "name": "Sacramento All Swing",
+          "website_raw": "http://www.sacramentoallswing.com/"
+        },
+        {
+          "markup": "<a href=http://rigasummerswing.com/ target=_blank>Riga Summer Swing</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Riga Summer Swing",
+          "website_raw": "http://rigasummerswing.com/"
+        },
+        {
+          "markup": "<a href=http://westiefest.org/en/ target=_blank>Moscow Westie Fest</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Moscow Westie Fest",
+          "website_raw": "http://westiefest.org/en/"
+        },
+        {
+          "markup": "<a href=http://usopenswing.com target=_blank>US Open Swing Dance Championships</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "US Open Swing Dance Championships",
+          "website_raw": "http://usopenswing.com"
+        },
+        {
+          "markup": "<a href=http://www.paradisecountrydancefestival.com/www.paradisecountrydancefestival.com/HOME.html target=_blank>Paradise Country & Swing Dance Festival</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Paradise Country & Swing Dance Festival",
+          "website_raw": "http://www.paradisecountrydancefestival.com/www.paradisecountrydancefestival.com/HOME.html"
+        },
+        {
+          "markup": "<a href=http://www.cashdanceclub.org target=_blank>C.A.S.H. Bash Weekend</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "C.A.S.H. Bash Weekend",
+          "website_raw": "http://www.cashdanceclub.org"
+        },
+        {
+          "markup": "<a href=http://www.arizonadanceclassic.com/ target=_blank>Arizona Dance Classic</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Arizona Dance Classic",
+          "website_raw": "http://www.arizonadanceclassic.com/"
+        }
+      ]
+    },
+    {
+      "fixture": "src/swingset/sources/wsdc_calendar/fixtures/calendar-map-20160909.html",
+      "snapshot_id": "snap_20260913T051124Z_69886cf0bd03",
+      "body_sha256": "69886cf0bd032942daaafa52fcf342a20e056beccb5d3494ca90e61ddddd5c2c",
+      "captured_at": "2016-09-09T10:44:00+00:00",
+      "body_bytes": 40440,
+      "live_marker_count": 51,
+      "commented_example_count": 1,
+      "all_popups_single_named_anchor": true,
+      "printed_event_date_lines": 0,
+      "retained_report_matches": true,
+      "retained_target_status": "finding",
+      "current_parser_error": "captured map marker lacks a name or printed date",
+      "malformed_link_findings": [],
+      "decoded_names_and_links": [
+        {
+          "markup": "<a href=http://www.midlandswingopen.com target=_blank>Midland Swing Open</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Midland Swing Open",
+          "website_raw": "http://www.midlandswingopen.com"
+        },
+        {
+          "markup": "<a href=http://www.portlandswing.org/bts target=_blank>BridgeTown Swing</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "BridgeTown Swing",
+          "website_raw": "http://www.portlandswing.org/bts"
+        },
+        {
+          "markup": "<a href=http://www.winterwhitewcs.com target=_blank>Winter White WCS</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Winter White WCS",
+          "website_raw": "http://www.winterwhitewcs.com"
+        },
+        {
+          "markup": "<a href=http://www.thechallengeswing.com target=_blank>The Challenge</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "The Challenge",
+          "website_raw": "http://www.thechallengeswing.com"
+        },
+        {
+          "markup": "<a href=http://www.nyswingfling.co.uk target=_blank>New Year's Swing Fling</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "New Year's Swing Fling",
+          "website_raw": "http://www.nyswingfling.co.uk"
+        },
+        {
+          "markup": "<a href=http://peoplewhodance.net/ target=_blank>Palm Springs New Year</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Palm Springs New Year",
+          "website_raw": "http://peoplewhodance.net/"
+        },
+        {
+          "markup": "<a href=http://www.dcswingexperience.com target=_blank>DC Swing Experience (DCSX)</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "DC Swing Experience (DCSX)",
+          "website_raw": "http://www.dcswingexperience.com"
+        },
+        {
+          "markup": "<a href=http://floorplayswing.com target=_blank>FloorPlay New Years Swing Vacation</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "FloorPlay New Years Swing Vacation",
+          "website_raw": "http://floorplayswing.com"
+        },
+        {
+          "markup": "<a href=http://spotlightnewyears.com target=_blank>Spotlight Dance Celebration</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Spotlight Dance Celebration",
+          "website_raw": "http://spotlightnewyears.com"
+        },
+        {
+          "markup": "<a href=http://warsawhalloweenswing.com target=_blank>Warsaw Halloween Swing</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Warsaw Halloween Swing",
+          "website_raw": "http://warsawhalloweenswing.com"
+        },
+        {
+          "markup": "<a href=http://www.wcs.dance/swg/ target=_blank>Sweden Westie Gala</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Sweden Westie Gala",
+          "website_raw": "http://www.wcs.dance/swg/"
+        },
+        {
+          "markup": "<a href=http://swingcitychicago.com target=_blank>Swing City Chicago</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Swing City Chicago",
+          "website_raw": "http://swingcitychicago.com"
+        },
+        {
+          "markup": "<a href=http://www.meetmeinstlouissdc.com target=_blank>Meet Me in St. Louis Swing Dance Championships</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Meet Me in St. Louis Swing Dance Championships",
+          "website_raw": "http://www.meetmeinstlouissdc.com"
+        },
+        {
+          "markup": "<a href=http://www.westiesangels.com/ target=_blank>Westie Angels</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Westie Angels",
+          "website_raw": "http://www.westiesangels.com/"
+        },
+        {
+          "markup": "<a href=http://berlinswingrevolution.de/ target=_blank>Berlin Swing Revolution</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Berlin Swing Revolution",
+          "website_raw": "http://berlinswingrevolution.de/"
+        },
+        {
+          "markup": "<a href=http://sparklage.com/swustlicious/ target=_blank>Swustlicious</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Swustlicious",
+          "website_raw": "http://sparklage.com/swustlicious/"
+        },
+        {
+          "markup": "<a href=http://www.westcoastswingitaly.it/en/ target=_blank>Italian Open West Coast Swing</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Italian Open West Coast Swing",
+          "website_raw": "http://www.westcoastswingitaly.it/en/"
+        },
+        {
+          "markup": "<a href=http://phillyswings.com target=_blank>Philly Swing Classic</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Philly Swing Classic",
+          "website_raw": "http://phillyswings.com"
+        },
+        {
+          "markup": "<a href=http://boogiebythebay.com target=_blank>Boogie By The Bay</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Boogie By The Bay",
+          "website_raw": "http://boogiebythebay.com"
+        },
+        {
+          "markup": "<a href=http://www.centralcoastswingdance.com/halloween/halloween/ target=_blank>Halloween Swingthing</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Halloween Swingthing",
+          "website_raw": "http://www.centralcoastswingdance.com/halloween/halloween/"
+        },
+        {
+          "markup": "<a href=http://www.westcoastswinghelsinki.omasivu.fi/ target=_blank>West Coast Swing Helsinki</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "West Coast Swing Helsinki",
+          "website_raw": "http://www.westcoastswinghelsinki.omasivu.fi/"
+        },
+        {
+          "markup": "<a href=http://www.atlantaswingclassic.com/ target=_blank>Atlanta Swing Classic</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Atlanta Swing Classic",
+          "website_raw": "http://www.atlantaswingclassic.com/"
+        },
+        {
+          "markup": "<a href=http://www.seatoskydance.com/ target=_blank>Sea To Sky - Seattle</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Sea To Sky - Seattle",
+          "website_raw": "http://www.seatoskydance.com/"
+        },
+        {
+          "markup": "<a href=http://www.westie-fest.com/ target=_blank>Norway Westie Fest</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Norway Westie Fest",
+          "website_raw": "http://www.westie-fest.com/"
+        },
+        {
+          "markup": "<a href=http://www.westie-fest.com/ target=_blank>Norway Westie Fest</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Norway Westie Fest",
+          "website_raw": "http://www.westie-fest.com/"
+        },
+        {
+          "markup": "<a href=http://westiefest.org/en/ target=_blank>Moscow Westie Fest</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Moscow Westie Fest",
+          "website_raw": "http://westiefest.org/en/"
+        },
+        {
+          "markup": "<a href=http://usopenswing.com target=_blank>US Open Swing Dance Championships</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "US Open Swing Dance Championships",
+          "website_raw": "http://usopenswing.com"
+        },
+        {
+          "markup": "<a href=http://www.paradisecountrydancefestival.com/www.paradisecountrydancefestival.com/HOME.html target=_blank>Paradise Country & Swing Dance Festival</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Paradise Country & Swing Dance Festival",
+          "website_raw": "http://www.paradisecountrydancefestival.com/www.paradisecountrydancefestival.com/HOME.html"
+        },
+        {
+          "markup": "<a href=http://www.cashdanceclub.org target=_blank>C.A.S.H. Bash Weekend</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "C.A.S.H. Bash Weekend",
+          "website_raw": "http://www.cashdanceclub.org"
+        },
+        {
+          "markup": "<a href=http://www.montrealwestiefest.com target=_blank>Montreal Westie Fest</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Montreal Westie Fest",
+          "website_raw": "http://www.montrealwestiefest.com"
+        },
+        {
+          "markup": "<a href=http://www.floridadancemagic.com target=_blank>Florida Dance Magic</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Florida Dance Magic",
+          "website_raw": "http://www.floridadancemagic.com"
+        },
+        {
+          "markup": "<a href=http://swingcitychicago.com target=_blank>Swing City Chicago</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Swing City Chicago",
+          "website_raw": "http://swingcitychicago.com"
+        },
+        {
+          "markup": "<a href=http://www.rosecityswingevents.com target=_blank>Rose City Swing</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/white.png",
+          "name": "Rose City Swing",
+          "website_raw": "http://www.rosecityswingevents.com"
+        },
+        {
+          "markup": "<a href=http://www.snowcs.se target=_blank>Scandinavian Open WCS</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Scandinavian Open WCS",
+          "website_raw": "http://www.snowcs.se"
+        },
+        {
+          "markup": "<a href=http://www.snowcs.se target=_blank>Scandinavian Open WCS</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Scandinavian Open WCS",
+          "website_raw": "http://www.snowcs.se"
+        },
+        {
+          "markup": "<a href=http://www.dutchopenwcs.com target=_blank>Dutch Open West Coast Swing</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Dutch Open West Coast Swing",
+          "website_raw": "http://www.dutchopenwcs.com"
+        },
+        {
+          "markup": "<a href=http://www.wcs-ho.com target=_blank>Hungarian Open</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Hungarian Open",
+          "website_raw": "http://www.wcs-ho.com"
+        },
+        {
+          "markup": "<a href=http://swingandsnow.ru target=_blank>Swing & Snow</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Swing & Snow",
+          "website_raw": "http://swingandsnow.ru"
+        },
+        {
+          "markup": "<a href=http://www.swingtimeintherockies.com/ target=_blank>Swingtime in the Rockies</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Swingtime in the Rockies",
+          "website_raw": "http://www.swingtimeintherockies.com/"
+        },
+        {
+          "markup": "<a href=http://www.mxdc.ru/en target=_blank>Moscow Xmas Swing Dance Camp</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Moscow Xmas Swing Dance Camp",
+          "website_raw": "http://www.mxdc.ru/en"
+        },
+        {
+          "markup": "<a href=http://westiefest.org/en/ target=_blank>Moscow Westie Fest</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Moscow Westie Fest",
+          "website_raw": "http://westiefest.org/en/"
+        },
+        {
+          "markup": "<a href=http://flssbb.net target=_blank>Ft. Lauderdale Swing & Shag Beach Bash</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Ft. Lauderdale Swing & Shag Beach Bash",
+          "website_raw": "http://flssbb.net"
+        },
+        {
+          "markup": "<a href=http://www.dancemardigras.com target=_blank>New Orleans Dance Mardi Gras</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "New Orleans Dance Mardi Gras",
+          "website_raw": "http://www.dancemardigras.com"
+        },
+        {
+          "markup": "<a href=http://www.michelledance.com/mmm.html target=_blank>Mountain Magic Dance Convention</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Mountain Magic Dance Convention",
+          "website_raw": "http://www.michelledance.com/mmm.html"
+        },
+        {
+          "markup": "<a href=http://dancepros.net/new-years-dance-extravaganza/ target=_blank>New Year\u2019s Dance Extravaganza</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "New Year\u2019s Dance Extravaganza",
+          "website_raw": "http://dancepros.net/new-years-dance-extravaganza/"
+        },
+        {
+          "markup": "<a href=http://www.rivercityswing.com/ target=_blank>River City Swing</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "River City Swing",
+          "website_raw": "http://www.rivercityswing.com/"
+        },
+        {
+          "markup": "<a href=http://www.libertyswing.com target=_blank>Liberty Swing Championships</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Liberty Swing Championships",
+          "website_raw": "http://www.libertyswing.com"
+        },
+        {
+          "markup": "<a href=http://www.capitalswingconvention.com target=_blank>Capital S.D.President</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Capital S.D.President",
+          "website_raw": "http://www.capitalswingconvention.com"
+        },
+        {
+          "markup": "<a href=http://d-townswing.com target=_blank>D-Townswing</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "D-Townswing",
+          "website_raw": "http://d-townswing.com"
+        },
+        {
+          "markup": "<a href=http://www.DerbyCitySwing.com target=_blank>Derby City Swing</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Derby City Swing",
+          "website_raw": "http://www.DerbyCitySwing.com"
+        },
+        {
+          "markup": "<a href=http://www.charlottewestiefest.com/ target=_blank>Charlotte Westie Fest</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Charlotte Westie Fest",
+          "website_raw": "http://www.charlottewestiefest.com/"
+        }
+      ]
+    },
+    {
+      "fixture": "src/swingset/sources/wsdc_calendar/fixtures/calendar-map-20161110.html",
+      "snapshot_id": "snap_20260913T051154Z_e4edbdd2484e",
+      "body_sha256": "e4edbdd2484ecdbefec9787d86e87c6842422ce82b28d2a6686ee401dd25b6ad",
+      "captured_at": "2016-11-10T03:56:18+00:00",
+      "body_bytes": 53334,
+      "live_marker_count": 112,
+      "commented_example_count": 1,
+      "all_popups_single_named_anchor": true,
+      "printed_event_date_lines": 0,
+      "retained_report_matches": true,
+      "retained_target_status": "finding",
+      "current_parser_error": "captured map marker lacks a name or printed date",
+      "malformed_link_findings": [],
+      "decoded_names_and_links": [
+        {
+          "markup": "<a href=http://www.freedomswingdance.com target=_blank>Freedom Swing Dance Challenge</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Freedom Swing Dance Challenge",
+          "website_raw": "http://www.freedomswingdance.com"
+        },
+        {
+          "markup": "<a href=http://dancenplay.com target=_blank>Dance N Play</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Dance N Play",
+          "website_raw": "http://dancenplay.com"
+        },
+        {
+          "markup": "<a href=http://www.winterwhitewcs.com target=_blank>Winter White WCS</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Winter White WCS",
+          "website_raw": "http://www.winterwhitewcs.com"
+        },
+        {
+          "markup": "<a href=http://www.thechallengeswing.com target=_blank>The Challenge</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "The Challenge",
+          "website_raw": "http://www.thechallengeswing.com"
+        },
+        {
+          "markup": "<a href=http://www.nyswingfling.co.uk target=_blank>New Year's Swing Fling</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "New Year's Swing Fling",
+          "website_raw": "http://www.nyswingfling.co.uk"
+        },
+        {
+          "markup": "<a href=http://peoplewhodance.net/ target=_blank>Palm Springs New Year</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Palm Springs New Year",
+          "website_raw": "http://peoplewhodance.net/"
+        },
+        {
+          "markup": "<a href=http://www.dcswingexperience.com target=_blank>DC Swing Experience (DCSX)</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "DC Swing Experience (DCSX)",
+          "website_raw": "http://www.dcswingexperience.com"
+        },
+        {
+          "markup": "<a href=http://floorplayswing.com target=_blank>FloorPlay New Years Swing Vacation</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "FloorPlay New Years Swing Vacation",
+          "website_raw": "http://floorplayswing.com"
+        },
+        {
+          "markup": "<a href=http://spotlightnewyears.com target=_blank>Spotlight Dance Celebration</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Spotlight Dance Celebration",
+          "website_raw": "http://spotlightnewyears.com"
+        },
+        {
+          "markup": "<a href=http://www.wcs.dance/swg/ target=_blank>Sweden Westie Gala</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Sweden Westie Gala",
+          "website_raw": "http://www.wcs.dance/swg/"
+        },
+        {
+          "markup": "<a href=http://berlinswingrevolution.de/ target=_blank>Berlin Swing Revolution</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Berlin Swing Revolution",
+          "website_raw": "http://berlinswingrevolution.de/"
+        },
+        {
+          "markup": "<a href=http://www.rm5dance.com target=_blank>Rocky Mountain Five Dance (RM5)</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Rocky Mountain Five Dance (RM5)",
+          "website_raw": "http://www.rm5dance.com"
+        },
+        {
+          "markup": "<a href=http://www.westie-fest.com/ target=_blank>Norway Westie Fest</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Norway Westie Fest",
+          "website_raw": "http://www.westie-fest.com/"
+        },
+        {
+          "markup": "<a href=http://www.asc-budapest.com/en/ target=_blank>Autumn Swing Challenge</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Autumn Swing Challenge",
+          "website_raw": "http://www.asc-budapest.com/en/"
+        },
+        {
+          "markup": "<a href=http://usopenswing.com target=_blank>US Open Swing Dance Championships     (NASDE)</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "US Open Swing Dance Championships     (NASDE)",
+          "website_raw": "http://usopenswing.com"
+        },
+        {
+          "markup": "<a href=http://www.cashdanceclub.org target=_blank>C.A.S.H. Bash Weekend</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "C.A.S.H. Bash Weekend",
+          "website_raw": "http://www.cashdanceclub.org"
+        },
+        {
+          "markup": "<a href=http://www.floridadancemagic.com target=_blank>Florida Dance Magic</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Florida Dance Magic",
+          "website_raw": "http://www.floridadancemagic.com"
+        },
+        {
+          "markup": "<a href=http://swingcitychicago.com target=_blank>Swing City Chicago</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Swing City Chicago",
+          "website_raw": "http://swingcitychicago.com"
+        },
+        {
+          "markup": "<a href=http://www.rosecityswingevents.com target=_blank>Rose City Swing</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Rose City Swing",
+          "website_raw": "http://www.rosecityswingevents.com"
+        },
+        {
+          "markup": "<a href=http://www.snowcs.se target=_blank>Scandinavian Open WCS</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Scandinavian Open WCS",
+          "website_raw": "http://www.snowcs.se"
+        },
+        {
+          "markup": "<a href=http://www.dutchopenwcs.com target=_blank>Dutch Open West Coast Swing</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Dutch Open West Coast Swing",
+          "website_raw": "http://www.dutchopenwcs.com"
+        },
+        {
+          "markup": "<a href=http://www.wcs-budafest.com target=_blank>West Coast Swing BudaFest</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "West Coast Swing BudaFest",
+          "website_raw": "http://www.wcs-budafest.com"
+        },
+        {
+          "markup": "<a href=http://www.wcs-ho.com target=_blank>Hungarian Open</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Hungarian Open",
+          "website_raw": "http://www.wcs-ho.com"
+        },
+        {
+          "markup": "<a href=http://swingandsnow.ru target=_blank>Swing & Snow</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Swing & Snow",
+          "website_raw": "http://swingandsnow.ru"
+        },
+        {
+          "markup": "<a href=http://www.swingtimeintherockies.com/ target=_blank>Swingtime in the Rockies   (NASDE)</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Swingtime in the Rockies   (NASDE)",
+          "website_raw": "http://www.swingtimeintherockies.com/"
+        },
+        {
+          "markup": "<a href=http://www.mxdc.ru/en target=_blank>Moscow Xmas Swing Dance Camp</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Moscow Xmas Swing Dance Camp",
+          "website_raw": "http://www.mxdc.ru/en"
+        },
+        {
+          "markup": "<a href=http://westiefest.org/en/ target=_blank>Moscow Westie Fest</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Moscow Westie Fest",
+          "website_raw": "http://westiefest.org/en/"
+        },
+        {
+          "markup": "<a href=http://flssbb.net target=_blank>Ft. Lauderdale Swing & Shag Beach Bash</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Ft. Lauderdale Swing & Shag Beach Bash",
+          "website_raw": "http://flssbb.net"
+        },
+        {
+          "markup": "<a href=http://www.dancemardigras.com target=_blank>New Orleans Dance Mardi Gras</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "New Orleans Dance Mardi Gras",
+          "website_raw": "http://www.dancemardigras.com"
+        },
+        {
+          "markup": "<a href=http://dancepros.net/new-years-dance-extravaganza/ target=_blank>New Year\u2019s Dance Extravaganza</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "New Year\u2019s Dance Extravaganza",
+          "website_raw": "http://dancepros.net/new-years-dance-extravaganza/"
+        },
+        {
+          "markup": "<a href=http://www.rivercityswing.com/ target=_blank>River City Swing</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "River City Swing",
+          "website_raw": "http://www.rivercityswing.com/"
+        },
+        {
+          "markup": "<a href=http://www.libertyswing.com target=_blank>Liberty Swing Championships      (NASDE)</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Liberty Swing Championships      (NASDE)",
+          "website_raw": "http://www.libertyswing.com"
+        },
+        {
+          "markup": "<a href=http://www.capitalswingconvention.com target=_blank>Capital S.D.President (NASDE)</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Capital S.D.President (NASDE)",
+          "website_raw": "http://www.capitalswingconvention.com"
+        },
+        {
+          "markup": "<a href=http://d-townswing.com target=_blank>D-Townswing</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "D-Townswing",
+          "website_raw": "http://d-townswing.com"
+        },
+        {
+          "markup": "<a href=http://www.DerbyCitySwing.com target=_blank>Derby City Swing</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Derby City Swing",
+          "website_raw": "http://www.DerbyCitySwing.com"
+        },
+        {
+          "markup": "<a href=http://www.charlottewestiefest.com/ target=_blank>Charlotte Westie Fest</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Charlotte Westie Fest",
+          "website_raw": "http://www.charlottewestiefest.com/"
+        },
+        {
+          "markup": "<a href=http://www.centralcoastswingdance.com/ target=_blank>Monterey Swingfest</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Monterey Swingfest",
+          "website_raw": "http://www.centralcoastswingdance.com/"
+        },
+        {
+          "markup": "<a href=http://jackandjillorama.com/ target=_blank>Jack & Jill O'Rama</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Jack & Jill O'Rama",
+          "website_raw": "http://jackandjillorama.com/"
+        },
+        {
+          "markup": "<a href=http://www.ucwdcworlds.com target=_blank>UCWDC Country Dance World Championships</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "UCWDC Country Dance World Championships",
+          "website_raw": "http://www.ucwdcworlds.com"
+        },
+        {
+          "markup": "<a href=http://www.austinswingdancechampionships.com target=_blank>Austin Swing Dance Championships</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Austin Swing Dance Championships",
+          "website_raw": "http://www.austinswingdancechampionships.com"
+        },
+        {
+          "markup": "<a href=http://www.swingcouver.com target=_blank>SwingCouver</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/white.png",
+          "name": "SwingCouver",
+          "website_raw": "http://www.swingcouver.com"
+        },
+        {
+          "markup": "<a href=http://www.sweetheartswingclassic.com/ target=_blank>Sweetheart Swing Classic</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Sweetheart Swing Classic",
+          "website_raw": "http://www.sweetheartswingclassic.com/"
+        },
+        {
+          "markup": "<a href=http://www.5280sdc.com target=_blank>5280 Swing Dance Championships</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "5280 Swing Dance Championships",
+          "website_raw": "http://www.5280sdc.com"
+        },
+        {
+          "markup": "<a href=http://www.holylandopen.com target=_blank>Holy Land Open  </a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Holy Land Open  ",
+          "website_raw": "http://www.holylandopen.com"
+        },
+        {
+          "markup": "<a href=http://www.swingncountry.net/DCC/ target=_blank>Dance Camp Chicago</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Dance Camp Chicago",
+          "website_raw": "http://www.swingncountry.net/DCC/"
+        },
+        {
+          "markup": "<a href=http://swingtzerland.com target=_blank>Swingtzerland</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Swingtzerland",
+          "website_raw": "http://swingtzerland.com"
+        },
+        {
+          "markup": "<a href=http://rawconnection.com.au/ozwcswoukchamps/ target=_blank>Australian West Coast Swing and Zouk</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Australian West Coast Swing and Zouk",
+          "website_raw": "http://rawconnection.com.au/ozwcswoukchamps/"
+        },
+        {
+          "markup": "<a href=http://www.atlanticdancejam.com target=_blank>Mid Atlantic Dance Jam (MADjam)      (NASDE)</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Mid Atlantic Dance Jam (MADjam)      (NASDE)",
+          "website_raw": "http://www.atlanticdancejam.com"
+        },
+        {
+          "markup": "<a href=https://thechicagoclassic.com target=_blank>The Chicago Classic   (NASDE)</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "The Chicago Classic   (NASDE)",
+          "website_raw": "https://thechicagoclassic.com"
+        },
+        {
+          "markup": "<a href=http://www.highdesertdanceclassic.com/ target=_blank>High Desert Dance Classic</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "High Desert Dance Classic",
+          "website_raw": "http://www.highdesertdanceclassic.com/"
+        },
+        {
+          "markup": "<a href=http://www.thebrazilianopen.com/ target=_blank>The Brazilian Open</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "The Brazilian Open",
+          "website_raw": "http://www.thebrazilianopen.com/"
+        },
+        {
+          "markup": "<a href=http://www.novice-invitational.com target=_blank>Novice Invitational</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Novice Invitational",
+          "website_raw": "http://www.novice-invitational.com"
+        },
+        {
+          "markup": "<a href=http://www.teapartyswings.com/ target=_blank>The Boston Tea Party</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "The Boston Tea Party",
+          "website_raw": "http://www.teapartyswings.com/"
+        },
+        {
+          "markup": "<a href=http://www.cityofangelsswing.com/ target=_blank>City of Angels Swing</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "City of Angels Swing",
+          "website_raw": "http://www.cityofangelsswing.com/"
+        },
+        {
+          "markup": "<a href=http://improteam.com/en/ruopen/home target=_blank>Russian Open WCS Championship</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Russian Open WCS Championship",
+          "website_raw": "http://improteam.com/en/ruopen/home"
+        },
+        {
+          "markup": "<a href=http://www.jiveaddiction.com/event-type/west-coast-swing/uk-european-wcs-championships-2017 target=_blank>U.K. & European WCS Championships</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "U.K. & European WCS Championships",
+          "website_raw": "http://www.jiveaddiction.com/event-type/west-coast-swing/uk-european-wcs-championships-2017"
+        },
+        {
+          "markup": "<a href=http://www.sandiegodancefestival.com/ target=_blank>San Diego Dance Festival</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "San Diego Dance Festival",
+          "website_raw": "http://www.sandiegodancefestival.com/"
+        },
+        {
+          "markup": "<a href=http://www.tulsaspringswing.com target=_blank>Tulsa Spring Swing</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Tulsa Spring Swing",
+          "website_raw": "http://www.tulsaspringswing.com"
+        },
+        {
+          "markup": "<a href=http://www.asiawcsopen.com/ target=_blank>Asia West Coast Swing Open</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Asia West Coast Swing Open",
+          "website_raw": "http://www.asiawcsopen.com/"
+        },
+        {
+          "markup": "<a href=http://www.detonationdance.com/ target=_blank>Detonation Dance</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Detonation Dance",
+          "website_raw": "http://www.detonationdance.com/"
+        },
+        {
+          "markup": "<a href=http://www.swingdanceamerica.com/ target=_blank>Swing Dance America</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Swing Dance America",
+          "website_raw": "http://www.swingdanceamerica.com/"
+        },
+        {
+          "markup": "<a href=http://www.nordicwcschamps.com/ target=_blank>Nordic WCS Champ</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Nordic WCS Champ",
+          "website_raw": "http://www.nordicwcschamps.com/"
+        },
+        {
+          "markup": "<a href=http://www.sis.djkenm.com target=_blank>Swingin' into Spring</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Swingin' into Spring",
+          "website_raw": "http://www.sis.djkenm.com"
+        },
+        {
+          "markup": "<a href=http:// target=_blank>KIWI Fest</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "KIWI Fest",
+          "website_raw": "http://"
+        },
+        {
+          "markup": "<a href=http://23.235.192.56/~soswin5/ target=_blank>SOswing Convention</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "SOswing Convention",
+          "website_raw": "http://23.235.192.56/~soswin5/"
+        },
+        {
+          "markup": "<a href=http://usagrandnationals.com/GNDC/ target=_blank>USA Grand National Dance Championship    (NASDE)</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "USA Grand National Dance Championship    (NASDE)",
+          "website_raw": "http://usagrandnationals.com/GNDC/"
+        },
+        {
+          "markup": "<a href=http://canadianswingchampionships.com target=_blank>Canadian Swing Championships (CSC)</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Canadian Swing Championships (CSC)",
+          "website_raw": "http://canadianswingchampionships.com"
+        },
+        {
+          "markup": "<a href=http://rawconnection.com.au/swingsation/ target=_blank>Swingsation</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Swingsation",
+          "website_raw": "http://rawconnection.com.au/swingsation/"
+        },
+        {
+          "markup": "<a href=http://freznodanceclassic.weebly.com target=_blank>FreZno Dance Classic</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "FreZno Dance Classic",
+          "website_raw": "http://freznodanceclassic.weebly.com"
+        },
+        {
+          "markup": "<a href=http://www.michiganclassic.com target=_blank>Michigan Classic</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Michigan Classic",
+          "website_raw": "http://www.michiganclassic.com"
+        },
+        {
+          "markup": "<a href=http://www.orangeblossomdance.net target=_blank>Orange Blossom Dance Festival</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Orange Blossom Dance Festival",
+          "website_raw": "http://www.orangeblossomdance.net"
+        },
+        {
+          "markup": "<a href=http://www.slingshotswing.no/ target=_blank>Slingshot Swing</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Slingshot Swing",
+          "website_raw": "http://www.slingshotswing.no/"
+        },
+        {
+          "markup": "<a href=http://www.balticswing.pl target=_blank>Baltic Swing</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Baltic Swing",
+          "website_raw": "http://www.balticswing.pl"
+        },
+        {
+          "markup": "<a href=http://www.ceroc.com.au/events/championships/ target=_blank>CMJ NSW West Coast Swing Dance Championships</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "CMJ NSW West Coast Swing Dance Championships",
+          "website_raw": "http://www.ceroc.com.au/events/championships/"
+        },
+        {
+          "markup": "<a href=http://www.rytmipolku.com/finnfest target=_blank>Finnfest</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Finnfest",
+          "website_raw": "http://www.rytmipolku.com/finnfest"
+        },
+        {
+          "markup": "<a href=http://www.swingapaloozaevent.com/ target=_blank>Swingapalooza</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Swingapalooza",
+          "website_raw": "http://www.swingapaloozaevent.com/"
+        },
+        {
+          "markup": "<a href=http://www.coloradocountryclassic.net/ target=_blank>Colorado Country Classic</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Colorado Country Classic",
+          "website_raw": "http://www.coloradocountryclassic.net/"
+        },
+        {
+          "markup": "<a href=http://www.swingoverorlando.com/ target=_blank>Swing Over Orlando</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Swing Over Orlando",
+          "website_raw": "http://www.swingoverorlando.com/"
+        },
+        {
+          "markup": "<a href=http://www.bigapplecountrydance.com/ target=_blank>Big Apple Country Dance & NY Swing Congress</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Big Apple Country Dance & NY Swing Congress",
+          "website_raw": "http://www.bigapplecountrydance.com/"
+        },
+        {
+          "markup": "<a href=http://www.wildwildwestie.com target=_blank>Wild Wild Westie</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Wild Wild Westie",
+          "website_raw": "http://www.wildwildwestie.com"
+        },
+        {
+          "markup": "<a href=http://www.easterswing.org/ target=_blank>Easter Swing      (NASDE)</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Easter Swing      (NASDE)",
+          "website_raw": "http://www.easterswing.org/"
+        },
+        {
+          "markup": "<a href=http://www.spsd.com.br target=_blank>Sao Paulo Swing Dance Championships</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Sao Paulo Swing Dance Championships",
+          "website_raw": "http://www.spsd.com.br"
+        },
+        {
+          "markup": "<a href=http://www.portlanddancefestival.com target=_blank>Portland Dance Festival</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Portland Dance Festival",
+          "website_raw": "http://www.portlanddancefestival.com"
+        },
+        {
+          "markup": "<a href=http://www.toshc.com/ target=_blank>Toronto Open Swing/Hustle Championships</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Toronto Open Swing/Hustle Championships",
+          "website_raw": "http://www.toshc.com/"
+        },
+        {
+          "markup": "<a href=http://wcsumea.se/rock-the-barn/index.html target=_blank>Rock The Barn</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Rock The Barn",
+          "website_raw": "http://wcsumea.se/rock-the-barn/index.html"
+        },
+        {
+          "markup": "<a href=http://www.arizonadanceclassic.com/ target=_blank>Arizona Dance Classic</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Arizona Dance Classic",
+          "website_raw": "http://www.arizonadanceclassic.com/"
+        },
+        {
+          "markup": "<a href=http://www.seasunswing.net/ target=_blank>Sea Sun & Swing Camp</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Sea Sun & Swing Camp",
+          "website_raw": "http://www.seasunswing.net/"
+        },
+        {
+          "markup": "<a href=http://www.nedancefestival.com/ target=_blank>New England Dance Festival</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "New England Dance Festival",
+          "website_raw": "http://www.nedancefestival.com/"
+        },
+        {
+          "markup": "<a href=http://tampabayclassic.com target=_blank>Tampa Bay Classic   (NASDE)</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Tampa Bay Classic   (NASDE)",
+          "website_raw": "http://tampabayclassic.com"
+        },
+        {
+          "markup": "<a href=http://www.dancegeekproductions.com/ target=_blank>Swingtacular: The Galactic Open</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Swingtacular: The Galactic Open",
+          "website_raw": "http://www.dancegeekproductions.com/"
+        },
+        {
+          "markup": "<a href=http://www.midwestwestiefest.com/ target=_blank>Midwest Westie Fest</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Midwest Westie Fest",
+          "website_raw": "http://www.midwestwestiefest.com/"
+        },
+        {
+          "markup": "<a href=http://www.swingfling.com/ target=_blank>Swing Fling</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Swing Fling",
+          "website_raw": "http://www.swingfling.com/"
+        },
+        {
+          "markup": "<a href=http://www.lonestarcountrydance.com/ target=_blank>LoneStar Invitational</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "LoneStar Invitational",
+          "website_raw": "http://www.lonestarcountrydance.com/"
+        },
+        {
+          "markup": "<a href=http://rigasummerswing.com/#home target=_blank>Rija Summer Swing</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Rija Summer Swing",
+          "website_raw": "http://rigasummerswing.com/#home"
+        },
+        {
+          "markup": "<a href=http://www.chicagolanddancefestival.com target=_blank>Chicagoland Country & Swing Dance Festival</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Chicagoland Country & Swing Dance Festival",
+          "website_raw": "http://www.chicagolanddancefestival.com"
+        },
+        {
+          "markup": "<a href=http://www.wcs.dance/sssc/ target=_blank>Swedish Swing Summer Camp</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Swedish Swing Summer Camp",
+          "website_raw": "http://www.wcs.dance/sssc/"
+        },
+        {
+          "markup": "<a href=http://www.dancepros.net/ target=_blank>Summer Hummer    (NASDE)</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Summer Hummer    (NASDE)",
+          "website_raw": "http://www.dancepros.net/"
+        },
+        {
+          "markup": "<a href=http://www.desertcityswing.com target=_blank>Desert City Swing</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Desert City Swing",
+          "website_raw": "http://www.desertcityswing.com"
+        },
+        {
+          "markup": "<a href=http://www.southbaydancefling.com target=_blank>South Bay Dance Fling</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "South Bay Dance Fling",
+          "website_raw": "http://www.southbaydancefling.com"
+        },
+        {
+          "markup": "<a href=http://www.dallasdance.com/ target=_blank>Dallas D.A.N.C.E.</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Dallas D.A.N.C.E.",
+          "website_raw": "http://www.dallasdance.com/"
+        },
+        {
+          "markup": "<a href=http://www.improteam.com/ target=_blank>Sunny Side Dance Camp</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Sunny Side Dance Camp",
+          "website_raw": "http://www.improteam.com/"
+        },
+        {
+          "markup": "<a href=http://bavarianopen.com/ target=_blank>Bavarian Open WCS</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Bavarian Open WCS",
+          "website_raw": "http://bavarianopen.com/"
+        },
+        {
+          "markup": "<a href=http://www.bestofthebestwcs.com/ target=_blank>Best of the Best</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Best of the Best",
+          "website_raw": "http://www.bestofthebestwcs.com/"
+        },
+        {
+          "markup": "<a href=http://www.upstatedancechallenge.com target=_blank>Upstate Dance Challenge</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Upstate Dance Challenge",
+          "website_raw": "http://www.upstatedancechallenge.com"
+        },
+        {
+          "markup": "<a href=http://www.portlandswing.org/bts target=_blank>BridgeTown Swing</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "BridgeTown Swing",
+          "website_raw": "http://www.portlandswing.org/bts"
+        },
+        {
+          "markup": "<a href=http://www.meetmeinstlouissdc.com target=_blank>Meet Me in St. Louis Swing Dance Championships</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Meet Me in St. Louis Swing Dance Championships",
+          "website_raw": "http://www.meetmeinstlouissdc.com"
+        },
+        {
+          "markup": "<a href=http://phillyswings.com target=_blank>Philly Swing Classic</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Philly Swing Classic",
+          "website_raw": "http://phillyswings.com"
+        },
+        {
+          "markup": "<a href=http://www.atlantaswingclassic.com/ target=_blank>Atlanta Swing Classic</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Atlanta Swing Classic",
+          "website_raw": "http://www.atlantaswingclassic.com/"
+        },
+        {
+          "markup": "<a href=http://www.midlandswingopen.com target=_blank>Midland Swing Open</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Midland Swing Open",
+          "website_raw": "http://www.midlandswingopen.com"
+        },
+        {
+          "markup": "<a href=http://pariswestiefest.com/?lang=en target=_blank>Paris Westie Fest</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Paris Westie Fest",
+          "website_raw": "http://pariswestiefest.com/?lang=en"
+        },
+        {
+          "markup": "<a href=http://www.fowcs.com/ target=_blank>French Open West Coast Swing</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "French Open West Coast Swing",
+          "website_raw": "http://www.fowcs.com/"
+        },
+        {
+          "markup": "<a href=http://www.danzea.com/west-coast-swing/congresses-west-coast-swing/london-swingvitational-2015 target=_blank>London SWINGvitational (On Hiatus)</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "London SWINGvitational (On Hiatus)",
+          "website_raw": "http://www.danzea.com/west-coast-swing/congresses-west-coast-swing/london-swingvitational-2015"
+        }
+      ]
+    },
+    {
+      "fixture": "src/swingset/sources/wsdc_calendar/fixtures/calendar-map-20161212.html",
+      "snapshot_id": "snap_20260913T051213Z_81a2aa57dba1",
+      "body_sha256": "81a2aa57dba1cb4143cfff4ab06a1b2b3dc16b2459a15c04100c714ea7b837be",
+      "captured_at": "2016-12-12T12:12:13+00:00",
+      "body_bytes": 56503,
+      "live_marker_count": 126,
+      "commented_example_count": 1,
+      "all_popups_single_named_anchor": true,
+      "printed_event_date_lines": 0,
+      "retained_report_matches": true,
+      "retained_target_status": "finding",
+      "current_parser_error": "captured map marker lacks a name or printed date",
+      "malformed_link_findings": [
+        {
+          "name": "New Zealand Open Swing Dance Championships",
+          "website_raw": "www.nzoswing.com#http://www.nzoswing.com#"
+        }
+      ],
+      "decoded_names_and_links": [
+        {
+          "markup": "<a href=http://www.freedomswingdance.com target=_blank>Freedom Swing Dance Challenge</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Freedom Swing Dance Challenge",
+          "website_raw": "http://www.freedomswingdance.com"
+        },
+        {
+          "markup": "<a href=http://dancenplay.com target=_blank>Dance N Play</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Dance N Play",
+          "website_raw": "http://dancenplay.com"
+        },
+        {
+          "markup": "<a href=http://www.peoplewhodance.net/ target=_blank>Palm Springs Summer Dance Camp Classic</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Palm Springs Summer Dance Camp Classic",
+          "website_raw": "http://www.peoplewhodance.net/"
+        },
+        {
+          "markup": "<a href=http://www.nyswingfling.co.uk target=_blank>New Year's Swing Fling</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "New Year's Swing Fling",
+          "website_raw": "http://www.nyswingfling.co.uk"
+        },
+        {
+          "markup": "<a href=http://peoplewhodance.net/ target=_blank>Palm Springs New Year</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Palm Springs New Year",
+          "website_raw": "http://peoplewhodance.net/"
+        },
+        {
+          "markup": "<a href=http://floorplayswing.com target=_blank>FloorPlay New Years Swing Vacation</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "FloorPlay New Years Swing Vacation",
+          "website_raw": "http://floorplayswing.com"
+        },
+        {
+          "markup": "<a href=http://spotlightnewyears.com target=_blank>Spotlight Dance Celebration</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Spotlight Dance Celebration",
+          "website_raw": "http://spotlightnewyears.com"
+        },
+        {
+          "markup": "<a href=http://www.wcs.dance/swg/ target=_blank>Sweden Westie Gala</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Sweden Westie Gala",
+          "website_raw": "http://www.wcs.dance/swg/"
+        },
+        {
+          "markup": "<a href=http://www.rm5dance.com target=_blank>Rocky Mountain Five Dance (RM5)</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Rocky Mountain Five Dance (RM5)",
+          "website_raw": "http://www.rm5dance.com"
+        },
+        {
+          "markup": "<a href=http://www.westie-fest.com/ target=_blank>Norway Westie Fest</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Norway Westie Fest",
+          "website_raw": "http://www.westie-fest.com/"
+        },
+        {
+          "markup": "<a href=http://www.floridadancemagic.com target=_blank>Florida Dance Magic</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Florida Dance Magic",
+          "website_raw": "http://www.floridadancemagic.com"
+        },
+        {
+          "markup": "<a href=http://swingcitychicago.com target=_blank>Swing City Chicago</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Swing City Chicago",
+          "website_raw": "http://swingcitychicago.com"
+        },
+        {
+          "markup": "<a href=http://www.rosecityswingevents.com target=_blank>Rose City Swing</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Rose City Swing",
+          "website_raw": "http://www.rosecityswingevents.com"
+        },
+        {
+          "markup": "<a href=http://www.snowcs.se target=_blank>Scandinavian Open WCS</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Scandinavian Open WCS",
+          "website_raw": "http://www.snowcs.se"
+        },
+        {
+          "markup": "<a href=http://www.dutchopenwcs.com target=_blank>Dutch Open West Coast Swing</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Dutch Open West Coast Swing",
+          "website_raw": "http://www.dutchopenwcs.com"
+        },
+        {
+          "markup": "<a href=http://www.wcs-budafest.com target=_blank>West Coast Swing BudaFest</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "West Coast Swing BudaFest",
+          "website_raw": "http://www.wcs-budafest.com"
+        },
+        {
+          "markup": "<a href=http://www.wcs-ho.com target=_blank>Hungarian Open</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Hungarian Open",
+          "website_raw": "http://www.wcs-ho.com"
+        },
+        {
+          "markup": "<a href=http://swingandsnow.ru target=_blank>Swing & Snow</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Swing & Snow",
+          "website_raw": "http://swingandsnow.ru"
+        },
+        {
+          "markup": "<a href=http://www.swingtimeintherockies.com/ target=_blank>Swingtime in the Rockies   (NASDE)</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Swingtime in the Rockies   (NASDE)",
+          "website_raw": "http://www.swingtimeintherockies.com/"
+        },
+        {
+          "markup": "<a href=http://www.mxdc.ru/en target=_blank>Moscow Xmas Swing Dance Camp</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Moscow Xmas Swing Dance Camp",
+          "website_raw": "http://www.mxdc.ru/en"
+        },
+        {
+          "markup": "<a href=http://westiefest.org/en/ target=_blank>Moscow Westie Fest</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Moscow Westie Fest",
+          "website_raw": "http://westiefest.org/en/"
+        },
+        {
+          "markup": "<a href=http://flssbb.net target=_blank>Ft. Lauderdale Swing & Shag Beach Bash</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Ft. Lauderdale Swing & Shag Beach Bash",
+          "website_raw": "http://flssbb.net"
+        },
+        {
+          "markup": "<a href=http://www.dancemardigras.com target=_blank>New Orleans Dance Mardi Gras</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "New Orleans Dance Mardi Gras",
+          "website_raw": "http://www.dancemardigras.com"
+        },
+        {
+          "markup": "<a href=http://dancepros.net/new-years-dance-extravaganza/ target=_blank>New Year\u2019s Dance Extravaganza</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "New Year\u2019s Dance Extravaganza",
+          "website_raw": "http://dancepros.net/new-years-dance-extravaganza/"
+        },
+        {
+          "markup": "<a href=http://www.rivercityswing.com/ target=_blank>River City Swing</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "River City Swing",
+          "website_raw": "http://www.rivercityswing.com/"
+        },
+        {
+          "markup": "<a href=http://www.libertyswing.com target=_blank>Liberty Swing Championships      (NASDE)</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Liberty Swing Championships      (NASDE)",
+          "website_raw": "http://www.libertyswing.com"
+        },
+        {
+          "markup": "<a href=http://www.capitalswingconvention.com target=_blank>Capital Swing Dance Presidents Day (NASDE)</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Capital Swing Dance Presidents Day (NASDE)",
+          "website_raw": "http://www.capitalswingconvention.com"
+        },
+        {
+          "markup": "<a href=http://d-townswing.com target=_blank>D-Townswing</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "D-Townswing",
+          "website_raw": "http://d-townswing.com"
+        },
+        {
+          "markup": "<a href=http://www.DerbyCitySwing.com target=_blank>Derby City Swing</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Derby City Swing",
+          "website_raw": "http://www.DerbyCitySwing.com"
+        },
+        {
+          "markup": "<a href=http://www.charlottewestiefest.com/ target=_blank>Charlotte Westie Fest</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Charlotte Westie Fest",
+          "website_raw": "http://www.charlottewestiefest.com/"
+        },
+        {
+          "markup": "<a href=http://www.centralcoastswingdance.com/ target=_blank>Monterey Swingfest</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Monterey Swingfest",
+          "website_raw": "http://www.centralcoastswingdance.com/"
+        },
+        {
+          "markup": "<a href=http://jackandjillorama.com/ target=_blank>Jack & Jill O'Rama</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Jack & Jill O'Rama",
+          "website_raw": "http://jackandjillorama.com/"
+        },
+        {
+          "markup": "<a href=http://www.ucwdcworlds.com target=_blank>UCWDC Country Dance World Championships</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "UCWDC Country Dance World Championships",
+          "website_raw": "http://www.ucwdcworlds.com"
+        },
+        {
+          "markup": "<a href=http://www.austinswingdancechampionships.com target=_blank>Austin Swing Dance Championships</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Austin Swing Dance Championships",
+          "website_raw": "http://www.austinswingdancechampionships.com"
+        },
+        {
+          "markup": "<a href=http://www.swingcouver.com target=_blank>SwingCouver</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "SwingCouver",
+          "website_raw": "http://www.swingcouver.com"
+        },
+        {
+          "markup": "<a href=http://www.sweetheartswingclassic.com/ target=_blank>Sweetheart Swing Classic</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Sweetheart Swing Classic",
+          "website_raw": "http://www.sweetheartswingclassic.com/"
+        },
+        {
+          "markup": "<a href=http://www.5280sdc.com target=_blank>5280 Swing Dance Championships</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "5280 Swing Dance Championships",
+          "website_raw": "http://www.5280sdc.com"
+        },
+        {
+          "markup": "<a href=http://www.holylandopen.com target=_blank>Holy Land Open  </a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Holy Land Open  ",
+          "website_raw": "http://www.holylandopen.com"
+        },
+        {
+          "markup": "<a href=http://www.swingncountry.net/DCC/ target=_blank>Dance Camp Chicago</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Dance Camp Chicago",
+          "website_raw": "http://www.swingncountry.net/DCC/"
+        },
+        {
+          "markup": "<a href=http://swingtzerland.com target=_blank>Swingtzerland</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Swingtzerland",
+          "website_raw": "http://swingtzerland.com"
+        },
+        {
+          "markup": "<a href=http://rawconnection.com.au/ozwcswoukchamps/ target=_blank>Australian West Coast Swing and Zouk</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Australian West Coast Swing and Zouk",
+          "website_raw": "http://rawconnection.com.au/ozwcswoukchamps/"
+        },
+        {
+          "markup": "<a href=http://www.atlanticdancejam.com target=_blank>Mid Atlantic Dance Jam (MADjam)      (NASDE)</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Mid Atlantic Dance Jam (MADjam)      (NASDE)",
+          "website_raw": "http://www.atlanticdancejam.com"
+        },
+        {
+          "markup": "<a href=https://thechicagoclassic.com target=_blank>The Chicago Classic   (NASDE)</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "The Chicago Classic   (NASDE)",
+          "website_raw": "https://thechicagoclassic.com"
+        },
+        {
+          "markup": "<a href=http://www.highdesertdanceclassic.com/ target=_blank>High Desert Dance Classic</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "High Desert Dance Classic",
+          "website_raw": "http://www.highdesertdanceclassic.com/"
+        },
+        {
+          "markup": "<a href=http://www.thebrazilianopen.com/ target=_blank>The Brazilian Open</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "The Brazilian Open",
+          "website_raw": "http://www.thebrazilianopen.com/"
+        },
+        {
+          "markup": "<a href=http://www.novice-invitational.com target=_blank>Novice Invitational</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Novice Invitational",
+          "website_raw": "http://www.novice-invitational.com"
+        },
+        {
+          "markup": "<a href=http://www.teapartyswings.com/ target=_blank>The Boston Tea Party</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "The Boston Tea Party",
+          "website_raw": "http://www.teapartyswings.com/"
+        },
+        {
+          "markup": "<a href=http://www.cityofangelsswing.com/ target=_blank>City of Angels Swing</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "City of Angels Swing",
+          "website_raw": "http://www.cityofangelsswing.com/"
+        },
+        {
+          "markup": "<a href=http://improteam.com/en/ruopen/home target=_blank>Russian Open WCS Championship</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Russian Open WCS Championship",
+          "website_raw": "http://improteam.com/en/ruopen/home"
+        },
+        {
+          "markup": "<a href=http://www.jiveaddiction.com/event-type/west-coast-swing/uk-european-wcs-championships-2017 target=_blank>U.K. & European WCS Championships</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "U.K. & European WCS Championships",
+          "website_raw": "http://www.jiveaddiction.com/event-type/west-coast-swing/uk-european-wcs-championships-2017"
+        },
+        {
+          "markup": "<a href=http://www.sandiegodancefestival.com/ target=_blank>San Diego Dance Festival</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "San Diego Dance Festival",
+          "website_raw": "http://www.sandiegodancefestival.com/"
+        },
+        {
+          "markup": "<a href=http://www.tulsaspringswing.com target=_blank>Tulsa Spring Swing</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Tulsa Spring Swing",
+          "website_raw": "http://www.tulsaspringswing.com"
+        },
+        {
+          "markup": "<a href=http://www.asiawcsopen.com/ target=_blank>Asia West Coast Swing Open</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Asia West Coast Swing Open",
+          "website_raw": "http://www.asiawcsopen.com/"
+        },
+        {
+          "markup": "<a href=http://www.detonationdance.com/ target=_blank>Detonation Dance</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Detonation Dance",
+          "website_raw": "http://www.detonationdance.com/"
+        },
+        {
+          "markup": "<a href=http://www.swingdanceamerica.com/ target=_blank>Swing Dance America</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Swing Dance America",
+          "website_raw": "http://www.swingdanceamerica.com/"
+        },
+        {
+          "markup": "<a href=http://www.nordicwcschamps.com/ target=_blank>Nordic WCS Champ</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Nordic WCS Champ",
+          "website_raw": "http://www.nordicwcschamps.com/"
+        },
+        {
+          "markup": "<a href=http://www.sis.djkenm.com target=_blank>Swingin' into Spring</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Swingin' into Spring",
+          "website_raw": "http://www.sis.djkenm.com"
+        },
+        {
+          "markup": "<a href=http:// target=_blank>KIWI Fest</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "KIWI Fest",
+          "website_raw": "http://"
+        },
+        {
+          "markup": "<a href=http://23.235.192.56/~soswin5/ target=_blank>SOswing Convention</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "SOswing Convention",
+          "website_raw": "http://23.235.192.56/~soswin5/"
+        },
+        {
+          "markup": "<a href=http://usagrandnationals.com/GNDC/ target=_blank>USA Grand National Dance Championship    (NASDE)</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "USA Grand National Dance Championship    (NASDE)",
+          "website_raw": "http://usagrandnationals.com/GNDC/"
+        },
+        {
+          "markup": "<a href=http://canadianswingchampionships.com target=_blank>Canadian Swing Championships (CSC)</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Canadian Swing Championships (CSC)",
+          "website_raw": "http://canadianswingchampionships.com"
+        },
+        {
+          "markup": "<a href=http://rawconnection.com.au/swingsation/ target=_blank>Swingsation</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Swingsation",
+          "website_raw": "http://rawconnection.com.au/swingsation/"
+        },
+        {
+          "markup": "<a href=http://freznodanceclassic.weebly.com target=_blank>FreZno Dance Classic</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "FreZno Dance Classic",
+          "website_raw": "http://freznodanceclassic.weebly.com"
+        },
+        {
+          "markup": "<a href=http://michiganclassicswing.com/ target=_blank>Michigan Classic</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Michigan Classic",
+          "website_raw": "http://michiganclassicswing.com/"
+        },
+        {
+          "markup": "<a href=http://www.orangeblossomdance.net target=_blank>Orange Blossom Dance Festival</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Orange Blossom Dance Festival",
+          "website_raw": "http://www.orangeblossomdance.net"
+        },
+        {
+          "markup": "<a href=http://www.slingshotswing.no/ target=_blank>Slingshot Swing</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Slingshot Swing",
+          "website_raw": "http://www.slingshotswing.no/"
+        },
+        {
+          "markup": "<a href=http://www.balticswing.pl target=_blank>Baltic Swing</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Baltic Swing",
+          "website_raw": "http://www.balticswing.pl"
+        },
+        {
+          "markup": "<a href=http://www.ceroc.com.au/events/championships/ target=_blank>CMJ NSW West Coast Swing Dance Championships</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "CMJ NSW West Coast Swing Dance Championships",
+          "website_raw": "http://www.ceroc.com.au/events/championships/"
+        },
+        {
+          "markup": "<a href=http://www.rytmipolku.com/finnfest target=_blank>Finnfest</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Finnfest",
+          "website_raw": "http://www.rytmipolku.com/finnfest"
+        },
+        {
+          "markup": "<a href=http://www.swingapaloozaevent.com/ target=_blank>Swingapalooza</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Swingapalooza",
+          "website_raw": "http://www.swingapaloozaevent.com/"
+        },
+        {
+          "markup": "<a href=http://www.coloradocountryclassic.net/ target=_blank>Colorado Country Classic</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Colorado Country Classic",
+          "website_raw": "http://www.coloradocountryclassic.net/"
+        },
+        {
+          "markup": "<a href=http://www.swingoverorlando.com/ target=_blank>Swing Over Orlando</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Swing Over Orlando",
+          "website_raw": "http://www.swingoverorlando.com/"
+        },
+        {
+          "markup": "<a href=http://www.bigapplecountrydance.com/ target=_blank>Big Apple Country Dance & NY Swing Congress</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Big Apple Country Dance & NY Swing Congress",
+          "website_raw": "http://www.bigapplecountrydance.com/"
+        },
+        {
+          "markup": "<a href=http://www.wildwildwestie.com target=_blank>Wild Wild Westie</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Wild Wild Westie",
+          "website_raw": "http://www.wildwildwestie.com"
+        },
+        {
+          "markup": "<a href=http://www.neverlandswing.nl/ target=_blank>Neverland Swing </a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Neverland Swing ",
+          "website_raw": "http://www.neverlandswing.nl/"
+        },
+        {
+          "markup": "<a href=http://www.easterswing.org/ target=_blank>Easter Swing      (NASDE)</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Easter Swing      (NASDE)",
+          "website_raw": "http://www.easterswing.org/"
+        },
+        {
+          "markup": "<a href=http://www.spsd.com.br target=_blank>Sao Paulo Swing Dance Championships</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Sao Paulo Swing Dance Championships",
+          "website_raw": "http://www.spsd.com.br"
+        },
+        {
+          "markup": "<a href=http://www.portlanddancefestival.com target=_blank>Portland Dance Festival</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Portland Dance Festival",
+          "website_raw": "http://www.portlanddancefestival.com"
+        },
+        {
+          "markup": "<a href=http://www.toshc.com/ target=_blank>Toronto Open Swing/Hustle Championships</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Toronto Open Swing/Hustle Championships",
+          "website_raw": "http://www.toshc.com/"
+        },
+        {
+          "markup": "<a href=http://wcsumea.se/rock-the-barn/index.html target=_blank>Rock The Barn</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Rock The Barn",
+          "website_raw": "http://wcsumea.se/rock-the-barn/index.html"
+        },
+        {
+          "markup": "<a href=http://www.arizonadanceclassic.com/ target=_blank>Arizona Dance Classic</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Arizona Dance Classic",
+          "website_raw": "http://www.arizonadanceclassic.com/"
+        },
+        {
+          "markup": "<a href=http://www.seasunswing.net/ target=_blank>Sea Sun & Swing Camp</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Sea Sun & Swing Camp",
+          "website_raw": "http://www.seasunswing.net/"
+        },
+        {
+          "markup": "<a href=http://www.nedancefestival.com/ target=_blank>New England Dance Festival</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "New England Dance Festival",
+          "website_raw": "http://www.nedancefestival.com/"
+        },
+        {
+          "markup": "<a href=http://tampabayclassic.com target=_blank>Tampa Bay Classic   (NASDE)</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Tampa Bay Classic   (NASDE)",
+          "website_raw": "http://tampabayclassic.com"
+        },
+        {
+          "markup": "<a href=http://www.dancegeekproductions.com/ target=_blank>Swingtacular: The Galactic Open</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Swingtacular: The Galactic Open",
+          "website_raw": "http://www.dancegeekproductions.com/"
+        },
+        {
+          "markup": "<a href=http://www.midwestwestiefest.com/ target=_blank>Midwest Westie Fest</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Midwest Westie Fest",
+          "website_raw": "http://www.midwestwestiefest.com/"
+        },
+        {
+          "markup": "<a href=http://www.swingfling.com/ target=_blank>Swing Fling</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Swing Fling",
+          "website_raw": "http://www.swingfling.com/"
+        },
+        {
+          "markup": "<a href=http://www.lonestarcountrydance.com/ target=_blank>LoneStar Invitational</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "LoneStar Invitational",
+          "website_raw": "http://www.lonestarcountrydance.com/"
+        },
+        {
+          "markup": "<a href=http://rigasummerswing.com/#home target=_blank>Rija Summer Swing</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Rija Summer Swing",
+          "website_raw": "http://rigasummerswing.com/#home"
+        },
+        {
+          "markup": "<a href=http://www.chicagolanddancefestival.com target=_blank>Chicagoland Country & Swing Dance Festival</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Chicagoland Country & Swing Dance Festival",
+          "website_raw": "http://www.chicagolanddancefestival.com"
+        },
+        {
+          "markup": "<a href=http://www.wcs.dance/sssc/ target=_blank>Swedish Swing Summer Camp</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Swedish Swing Summer Camp",
+          "website_raw": "http://www.wcs.dance/sssc/"
+        },
+        {
+          "markup": "<a href=http://www.dancepros.net/ target=_blank>Summer Hummer    (NASDE)</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Summer Hummer    (NASDE)",
+          "website_raw": "http://www.dancepros.net/"
+        },
+        {
+          "markup": "<a href=http://www.desertcityswing.com target=_blank>Desert City Swing</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Desert City Swing",
+          "website_raw": "http://www.desertcityswing.com"
+        },
+        {
+          "markup": "<a href=http://www.southbaydancefling.com target=_blank>South Bay Dance Fling</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "South Bay Dance Fling",
+          "website_raw": "http://www.southbaydancefling.com"
+        },
+        {
+          "markup": "<a href=http://www.dallasdance.com/ target=_blank>Dallas D.A.N.C.E.</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Dallas D.A.N.C.E.",
+          "website_raw": "http://www.dallasdance.com/"
+        },
+        {
+          "markup": "<a href=http://www.improteam.com/ target=_blank>Sunny Side Dance Camp</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Sunny Side Dance Camp",
+          "website_raw": "http://www.improteam.com/"
+        },
+        {
+          "markup": "<a href=http://bavarianopen.com/ target=_blank>Bavarian Open WCS</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Bavarian Open WCS",
+          "website_raw": "http://bavarianopen.com/"
+        },
+        {
+          "markup": "<a href=http://www.bestofthebestwcs.com/ target=_blank>Best of the Best</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Best of the Best",
+          "website_raw": "http://www.bestofthebestwcs.com/"
+        },
+        {
+          "markup": "<a href=http://www.upstatedancechallenge.com target=_blank>Upstate Dance Challenge</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Upstate Dance Challenge",
+          "website_raw": "http://www.upstatedancechallenge.com"
+        },
+        {
+          "markup": "<a href=http://www.portlandswing.org/bts target=_blank>BridgeTown Swing</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "BridgeTown Swing",
+          "website_raw": "http://www.portlandswing.org/bts"
+        },
+        {
+          "markup": "<a href=http://www.meetmeinstlouissdc.com target=_blank>Meet Me in St. Louis Swing Dance Championships</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Meet Me in St. Louis Swing Dance Championships",
+          "website_raw": "http://www.meetmeinstlouissdc.com"
+        },
+        {
+          "markup": "<a href=http://phillyswings.com target=_blank>Philly Swing Classic</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Philly Swing Classic",
+          "website_raw": "http://phillyswings.com"
+        },
+        {
+          "markup": "<a href=http://www.atlantaswingclassic.com/ target=_blank>Atlanta Swing Classic</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Atlanta Swing Classic",
+          "website_raw": "http://www.atlantaswingclassic.com/"
+        },
+        {
+          "markup": "<a href=http://www.midlandswingopen.com target=_blank>Midland Swing Open</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Midland Swing Open",
+          "website_raw": "http://www.midlandswingopen.com"
+        },
+        {
+          "markup": "<a href=http://pariswestiefest.com/?lang=en target=_blank>Paris Westie Fest</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Paris Westie Fest",
+          "website_raw": "http://pariswestiefest.com/?lang=en"
+        },
+        {
+          "markup": "<a href=http://www.fowcs.com/ target=_blank>French Open West Coast Swing</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "French Open West Coast Swing",
+          "website_raw": "http://www.fowcs.com/"
+        },
+        {
+          "markup": "<a href=http://peoplewhodance.net/ target=_blank>Palm Springs New Year</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Palm Springs New Year",
+          "website_raw": "http://peoplewhodance.net/"
+        },
+        {
+          "markup": "<a href=http://www.seatoskydance.com/ target=_blank>Sea To Sky - Seattle</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Sea To Sky - Seattle",
+          "website_raw": "http://www.seatoskydance.com/"
+        },
+        {
+          "markup": "<a href=http://anchor-festival.com target=_blank>Anchor Festival</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Anchor Festival",
+          "website_raw": "http://anchor-festival.com"
+        },
+        {
+          "markup": "<a href=http://www.wcs-spectacle.at target=_blank>Austrian WCS Spectacle</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Austrian WCS Spectacle",
+          "website_raw": "http://www.wcs-spectacle.at"
+        },
+        {
+          "markup": "<a href=http://oldtowndance.com/ target=_blank>Old Town Swing</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Old Town Swing",
+          "website_raw": "http://oldtowndance.com/"
+        },
+        {
+          "markup": "<a href=http://www.sacramentoallswing.com/ target=_blank>Sacramento All Swing</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Sacramento All Swing",
+          "website_raw": "http://www.sacramentoallswing.com/"
+        },
+        {
+          "markup": "<a href=http://scotlandswingclassic.com target=_blank>Scotland Swing Classic</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Scotland Swing Classic",
+          "website_raw": "http://scotlandswingclassic.com"
+        },
+        {
+          "markup": "<a href=http://www.winterwhitewcs.com target=_blank>Winter White WCS</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Winter White WCS",
+          "website_raw": "http://www.winterwhitewcs.com"
+        },
+        {
+          "markup": "<a href=http://www.koreawestival.com target=_blank>Korea Westival</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Korea Westival",
+          "website_raw": "http://www.koreawestival.com"
+        },
+        {
+          "markup": "<a href=http://www.londonswingvitational.co.uk target=_blank>London SWINGvitational </a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "London SWINGvitational ",
+          "website_raw": "http://www.londonswingvitational.co.uk"
+        },
+        {
+          "markup": "<a href=www.nzoswing.com#http://www.nzoswing.com# target=_blank>New Zealand Open Swing Dance Championships</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "New Zealand Open Swing Dance Championships",
+          "website_raw": "www.nzoswing.com#http://www.nzoswing.com#"
+        },
+        {
+          "markup": "<a href=http://sparklage.com/swustlicious/ target=_blank>Swustlicious</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Swustlicious",
+          "website_raw": "http://sparklage.com/swustlicious/"
+        },
+        {
+          "markup": "<a href=http://www.thetexasclassic.com/ target=_blank>The Texas Classic</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "The Texas Classic",
+          "website_raw": "http://www.thetexasclassic.com/"
+        },
+        {
+          "markup": "<a href=https://go-wcs.com target=_blank>German Open WCS Championships</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "German Open WCS Championships",
+          "website_raw": "https://go-wcs.com"
+        },
+        {
+          "markup": "<a href=http://boogiebythebay.com target=_blank>Boogie By The Bay    (NASDE)</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Boogie By The Bay    (NASDE)",
+          "website_raw": "http://boogiebythebay.com"
+        },
+        {
+          "markup": "<a href=http://www.westinlyon.com/ target=_blank>West In Lyon</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "West In Lyon",
+          "website_raw": "http://www.westinlyon.com/"
+        },
+        {
+          "markup": "<a href=http://www.theshowmeshowdown.com target=_blank>Show-Me Showdown</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Show-Me Showdown",
+          "website_raw": "http://www.theshowmeshowdown.com"
+        },
+        {
+          "markup": "<a href=http://www.indydancex.com target=_blank>Indy Dance Explosion</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Indy Dance Explosion",
+          "website_raw": "http://www.indydancex.com"
+        },
+        {
+          "markup": "<a href=http://www.swingithot.com target=_blank>Swing It Like It's Hot</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Swing It Like It's Hot",
+          "website_raw": "http://www.swingithot.com"
+        },
+        {
+          "markup": "<a href=http://www.westcoastswingitaly.it/en/ target=_blank>Italian Open West Coast Swing</a>",
+          "icon": "http://www.worldsdc.com/wp-content/themes/worlddancecouncil/images/marker.png",
+          "name": "Italian Open West Coast Swing",
+          "website_raw": "http://www.westcoastswingitaly.it/en/"
+        }
+      ]
+    }
+  ],
+  "method": "Independent quote-aware literal call scanner plus HTML structure checks; no JavaScript execution. Cross-check snapshot metadata against retained year-review target ledger and Archive Memento header. Actual current parser extract rejects missing printed dates.",
+  "network_requests": 0,
+  "production_operations": 0,
+  "conclusion": "Four acquired bodies have explicit date interpretation gaps. Capture year is not an event date. Commented examples are excluded. No successful interpretation or year acceptance is inferred.",
+  "limitations": [
+    "No live production metadata re-query; reviewed coordinator-retained snapshot metadata and existing ledger.",
+    "Not a complete JavaScript interpreter or a new source-kind admission review.",
+    "One December href is malformed and cannot become an event-site mapping without review."
+  ]
+}

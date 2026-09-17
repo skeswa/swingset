@@ -352,6 +352,15 @@ positive stage observations through the ordinary global epoch. Ordinary new
 snapshots preserve missing-to-success qualification. Backups retain these tables;
 normal restore activation invalidates their freshness through the existing epoch.
 
+Schema 25 extends gap observations with evidence-backed critical-unknown
+dispositions. Generation changes and source-unit watch changes invalidate the
+source gap revision, including generations never admitted. Observer policy v5
+invalidates prior sampled classifications. Legacy records do not acquire invented
+unsupported history. Known-page accounting combines verified interpretation,
+unavailable origin response, or explicit unsupported proof, with separate counts.
+This creates no successful stage operation, progress receipt, retirement authority
+or publication acknowledgment.
+
 ### Local enumeration and verification interfaces
 
 Migration 16 adds `source_event_inventory` current pointers, immutable

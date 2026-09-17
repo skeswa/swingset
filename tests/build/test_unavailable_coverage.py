@@ -78,7 +78,7 @@ def test_explicit_origin_response_supplies_exact_body_backed_observation(
     assert support["snapshot_id"] == context.snapshot_id and support["http_status"] == status
     assert any(a["kind"] == "body" and a["valid"] for a in proof["artifacts"])
     witness = capture(f)
-    assert row(witness)["unavailable_pages"] == 1 and row(witness)["unsupported_pages"] is None
+    assert row(witness)["unavailable_pages"] == 1 and row(witness)["unsupported_pages"] == 0
     with artifact_source(f.conn, f.archive):
         event_coverage.validate(f.conn, witness, selected_support=())
     assert context.snapshot_id in event_coverage.read_set(witness)["local_pages"]["snapshots"]
@@ -226,9 +226,12 @@ def test_legacy_v1_witness_keeps_unknown_count_and_remains_valid(event):
     local["format"] = "release-local-pages-v1"
     local["policy"]["format"] = "release-local-page-policy-v1"
     del local["policy"]["unavailability_verifier_format"]
+    del local["policy"]["unsupported_verifier_format"]
     for page in local["pages"].values():
         del page["unavailable"]
         del page["unavailability_support"]
+        del page["unsupported"]
+        del page["unsupported_support"]
     witness["digest"] = digest({k: v for k, v in witness.items() if k != "digest"})
     assert row(witness)["unavailable_pages"] is None
     with artifact_source(f.conn, f.archive):

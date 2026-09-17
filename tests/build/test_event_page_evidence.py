@@ -379,13 +379,13 @@ def test_budget_between_exact_and_alias_generation_pass_never_becomes_false(even
     assert True in verdicts and None in verdicts
 
 
-def aggregate(f):
+def aggregate(f, *, unsupported=False):
     """Stage, review and admit two actual pages under a different anchor watch."""
     from test_admission import BODY
 
     from swingset.admission.contracts import inspect
     from swingset.admission.generations import begin_attempt, stage_generation
-    from swingset.admission.report import evaluate
+    from swingset.admission.report import Field, evaluate
     from swingset.sources.base import ParseResult
 
     admit_parent(f, ["anchor.htm", "one.htm"])
@@ -434,10 +434,11 @@ def aggregate(f):
     report = evaluate(
         page.kind,
         reports[0].contract_version,
-        tuple(field for r in reports for field in r.fields),
+        tuple(field for r in reports for field in r.fields)
+        + ((Field("unattributed", "unknown", "Unknown in aggregate"),) if unsupported else ()),
         coverage,
     )
-    assert not report.failures
+    assert bool(report.failures) is unsupported
     inputs = begin_attempt(f.conn, contexts[0], page.EXTRACT_VERSION, page.PARSER_VERSION)
     with f.db.transaction():
         generation = stage_generation(
@@ -451,8 +452,9 @@ def aggregate(f):
             run_id=f.corpus.run,
             manifest=tuple(manifests),
         )
-    f.corpus.review(generation)
-    assert f.corpus.admit(generation) == "accepted"
+    if not unsupported:
+        f.corpus.review(generation)
+    assert f.corpus.admit(generation) == ("needs_review" if unsupported else "accepted")
     return contexts, generation
 
 

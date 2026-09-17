@@ -37,6 +37,7 @@ def unknown(reason: str) -> dict[str, Any]:
         listed_pages=None,
         stages=None,
         unavailable=None,
+        unsupported=None,
         page_accounting=None,
         parents=None,
         earliest_checked_at=None,
@@ -151,6 +152,7 @@ def observe(
         )
         supports = {r["generation_id"]: r for r in rows}
         gap_values = []
+        unsupported_values = []
         page_values = []
         for member in members:
             gap = gaps.get(member["request_id"])
@@ -159,6 +161,14 @@ def observe(
                 if gap is not None and fresh(gap, batch["token"], now, max_age)
                 else None
             )
+            unsupported = (
+                event_gaps.value(
+                    gap, member["request"], batch.get("gap_revision"), classification="unsupported"
+                )
+                if gap is not None and fresh(gap, batch["token"], now, max_age)
+                else None
+            )
+            unsupported_values.append(unsupported)
             row = pages.get((member["request_id"], "interpreted"))
             interpreted = (
                 bool(row["availability"])
@@ -168,7 +178,7 @@ def observe(
                 else None
             )
             gap_values.append(missing)
-            page_values.append(event_gaps.accounted(interpreted, missing))
+            page_values.append(event_gaps.accounted(interpreted, missing, unsupported))
         all_pages = bool(members) and all(value is True for value in page_values)
         if verify_parents and all_pages:
             # Missing/oldest first: a costly first parent cannot hide later ones.
@@ -212,8 +222,8 @@ def observe(
             )
 
         gap_counts, page_counts = total(gap_values), total(page_values)
-        for member, value in zip(members, gap_values, strict=True):
-            if value is not None:
+        for member, value, unsupported in zip(members, gap_values, unsupported_values, strict=True):
+            if value is not None or unsupported is not None:
                 checked.append(gaps[member["request_id"]])
         negative = bool(page_counts["negative"] or counts["parents"]["negative"])
         complete = bool(members and parents) and not any(
@@ -230,6 +240,7 @@ def observe(
             stages={s: counts[s] for s in STAGES},
             parents=counts["parents"],
             unavailable=gap_counts,
+            unsupported=total(unsupported_values),
             page_accounting=page_counts,
             earliest_checked_at=min(
                 (r["observed_at"] for r in checked), key=datetime.fromisoformat, default=None

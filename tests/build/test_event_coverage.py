@@ -163,7 +163,8 @@ def test_actual_build_binds_witness_and_reuses_only_matching_enumeration(release
     assert coverage and any(r["acquired_pages"] is not None for r in coverage)
     assert any(r["unavailable_pages"] == 0 for r in coverage)
     assert all(r["unavailable_pages"] in (None, 0) for r in coverage)
-    assert all(r["unsupported_pages"] is None for r in coverage)
+    assert any(r["unsupported_pages"] == 0 for r in coverage)
+    assert all(r["unsupported_pages"] in (None, 0) for r in coverage)
     assert service.build_release(f.db, f.bundle, f.clock, f.run).candidate_id == first.candidate_id
     from swingset.build.event_artifacts import artifact_source
     from swingset.fetch.archive import Archive

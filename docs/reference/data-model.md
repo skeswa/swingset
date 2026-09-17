@@ -463,6 +463,31 @@ members. It does not claim those pages were available. The exact response
 metadata and body remain dependencies at every validation boundary. Older
 version-one witnesses remain valid with unavailable counts unknown.
 
+Version-three local witnesses add an explicit unsupported source-interpretation
+observation. A generation must record a failed `critical_unknown` guard and a
+critical field with disposition `unknown`, a path, and a reason. Its current
+contract version, immutable generation fingerprint, request identity, full
+manifest, retained bodies and extracts must verify. Revoked evidence cannot
+supply the observation. A valid retained interpretation takes precedence;
+an incomplete candidate search or unverifiable evidence keeps the count null.
+The disposition currently requires a single-member manifest: an aggregate report
+without per-request attribution cannot label every member unsupported.
+Generic parse failures, missing parsers and unreviewed page kinds do not supply
+positive unsupported evidence.
+
+This classification adds no successful stage operation. `acquired_pages` may
+still include the same page because ordinary raw-body verification independently
+proved acquisition; `interpreted_pages` does not include the unsupported outcome.
+The gap can account for a known obligation without satisfying interpretation,
+retirement or publication. Zero means no qualifying critical-unknown observation
+in the fully assessed retained domain. It is not a claim that every layout or
+canonical scoring method is supported. Projection-only numeric/Solo exclusions
+remain contest findings alongside valid source interpretation, including pages
+with mixed supported and unsupported contests. Broader explicit page dispositions
+remain unfinished. Version-one and version-two witnesses retain unknown
+unsupported counts. Positive unsupported proofs retain their exact generation,
+contract and artifact dependencies at every release validation boundary.
+
 Local observations pin exact support and their capture and validation policy.
 `usable_verified_at` records the artifact check time separately from the source
 cutoff. Later evidence does not rewrite an old observation. Positive artifacts
@@ -471,6 +496,10 @@ candidate reuse, and publication. These local stage counts neither select
 output nor establish published completion. Doctor reads published coverage only from a verified,
 acknowledged baseline with a matching closure receipt. Overlapping transport
 rows are not added together.
+The history streams are `accounting`, `enumerations`, `page_retirement` and
+`source_event_retirement`. Ordinary doctor fleet refreshes remain bounded
+catalog samples; requesting history is a separate paginated read. Missing older
+schemas return unsupported history, rather than manufacturing empty progress.
 
 ## Relationships
 

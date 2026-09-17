@@ -18,11 +18,15 @@ from swingset.admission.page_evidence import FORMAT as EVIDENCE_FORMAT
 from swingset.admission.page_evidence import Limits, Session, revalidate_positive
 from swingset.admission.unavailable_evidence import FORMAT as UNAVAILABILITY_FORMAT
 from swingset.admission.unavailable_evidence import revalidate as revalidate_unavailability
+from swingset.admission.unsupported_evidence import FORMAT as UNSUPPORTED_FORMAT
+from swingset.admission.unsupported_evidence import metadata_valid as unsupported_valid
+from swingset.admission.unsupported_evidence import revalidate as revalidate_unsupported
 
 from .closure_manifest import ClosureError, digest
 from .event_artifacts import observation_time, source
 
-FORMAT = "release-local-pages-v2"
+FORMAT = "release-local-pages-v3"
+UNAVAILABLE_FORMAT = "release-local-pages-v2"
 LEGACY_FORMAT = "release-local-pages-v1"
 MAX_REQUESTS = 32
 MAX_BYTES = 4 * 1024 * 1024
@@ -32,7 +36,8 @@ VALIDATION_LIMITS = Limits(seconds=30)
 
 def _capture_policy() -> dict[str, Any]:
     return {
-        "format": "release-local-page-policy-v2",
+        "format": "release-local-page-policy-v3",
+        "unsupported_verifier_format": UNSUPPORTED_FORMAT,
         "verifier_format": EVIDENCE_FORMAT,
         "unavailability_verifier_format": UNAVAILABILITY_FORMAT,
         "max_requests": MAX_REQUESTS,
@@ -57,12 +62,24 @@ def _policy(local: Mapping[str, Any]) -> tuple[int, int, Limits]:
         }
         if not legacy:
             expected_fields.add("unavailability_verifier_format")
+        if local.get("format") == FORMAT:
+            expected_fields.add("unsupported_verifier_format")
         if (
             set(policy) != expected_fields
             or policy["format"]
-            != ("release-local-page-policy-v1" if legacy else "release-local-page-policy-v2")
+            != (
+                "release-local-page-policy-v1"
+                if legacy
+                else "release-local-page-policy-v3"
+                if local.get("format") == FORMAT
+                else "release-local-page-policy-v2"
+            )
             or policy["verifier_format"] != EVIDENCE_FORMAT
             or (not legacy and policy["unavailability_verifier_format"] != UNAVAILABILITY_FORMAT)
+            or (
+                local.get("format") == FORMAT
+                and policy["unsupported_verifier_format"] != UNSUPPORTED_FORMAT
+            )
         ):
             raise ValueError("unsupported verification policy")
         requests, size = policy["max_requests"], policy["max_output_bytes"]
@@ -121,7 +138,9 @@ def capture(
                     exhausted = True
                     continue
                 result = session.verify_request(
-                    json.loads(rows[0]["request_json"]), classify_unavailability=True
+                    json.loads(rows[0]["request_json"]),
+                    classify_unavailability=True,
+                    classify_unsupported=True,
                 )
                 # Keep exact positive proofs and observation status, not scan
                 # diagnostics/limits repeated for every request.
@@ -136,6 +155,8 @@ def capture(
                         "interpretation_support",
                         "unavailable",
                         "unavailability_support",
+                        "unsupported",
+                        "unsupported_support",
                         "reasons",
                     )
                 }
@@ -164,6 +185,7 @@ def summary(entry: Mapping[str, Any], local: Mapping[str, Any] | None) -> dict[s
             "acquisition_unknown_pages": entry.get("listed_pages"),
             "interpretation_unknown_pages": entry.get("listed_pages"),
             "unavailable_pages": None,
+            "unsupported_pages": None,
         }
     result: dict[str, Any] = {}
     for stage, field in (("acquired", "acquisition"), ("interpreted", "interpretation")):
@@ -173,6 +195,13 @@ def summary(entry: Mapping[str, Any], local: Mapping[str, Any] | None) -> dict[s
         result[field + "_unknown_pages"] = unknown
     values = [local["pages"].get(m["request_id"], {}).get("unavailable") for m in entry["members"]]
     result["unavailable_pages"] = (
+        sum(value is True for value in values)
+        if local.get("format") in (FORMAT, UNAVAILABLE_FORMAT)
+        and all(type(value) is bool for value in values)
+        else None
+    )
+    values = [local["pages"].get(m["request_id"], {}).get("unsupported") for m in entry["members"]]
+    result["unsupported_pages"] = (
         sum(value is True for value in values)
         if local.get("format") == FORMAT and all(type(value) is bool for value in values)
         else None
@@ -186,7 +215,7 @@ def _pages(witness: Mapping[str, Any]) -> list[dict[str, Any]]:
         return []
     requests, size, _ = _policy(local)
     if (
-        local.get("format") not in (FORMAT, LEGACY_FORMAT)
+        local.get("format") not in (FORMAT, UNAVAILABLE_FORMAT, LEGACY_FORMAT)
         or len(local["pages"]) > requests
         or len(json.dumps(local).encode()) > size + 4096
     ):
@@ -212,7 +241,7 @@ def _pages(witness: Mapping[str, Any]) -> list[dict[str, Any]]:
             )
         ):
             raise ClosureError("local_page_membership_invalid")
-        if local["format"] == FORMAT and (
+        if local["format"] in (FORMAT, UNAVAILABLE_FORMAT) and (
             "unavailable" not in page
             or "unavailability_support" not in page
             or (page["unavailable"] is not None and type(page["unavailable"]) is not bool)
@@ -226,6 +255,10 @@ def _pages(witness: Mapping[str, Any]) -> list[dict[str, Any]]:
             or (page["unavailable"] is not True and page["unavailability_support"] is not None)
         ):
             raise ClosureError("local_page_unavailability_invalid")
+        if local["format"] == FORMAT and not unsupported_valid(
+            {**page, "cutoff": witness["cutoff"]}
+        ):
+            raise ClosureError("local_page_unsupported_invalid")
         result.append({**page, "cutoff": witness["cutoff"]})
     return result
 
@@ -249,8 +282,16 @@ def check_artifacts(conn: sqlite3.Connection, witness: Mapping[str, Any]) -> Bud
                     refs.extend(
                         (("body", snapshot["body_sha256"]), ("extract", snapshot["extract_sha256"]))
                     )
-            if witness["local_pages"]["format"] == FORMAT and page["unavailable"] is True:
+            if (
+                witness["local_pages"]["format"] in (FORMAT, UNAVAILABLE_FORMAT)
+                and page["unavailable"] is True
+            ):
                 refs.append(("body", page["unavailability_support"]["body_sha256"]))
+            if witness["local_pages"]["format"] == FORMAT and page["unsupported"] is True:
+                for snapshot in page["unsupported_support"]["snapshots"]:
+                    refs.extend(
+                        (("body", snapshot["body_sha256"]), ("extract", snapshot["extract_sha256"]))
+                    )
             for kind, sha in refs:
                 if not budget.artifact(kind, sha):
                     raise ClosureError("local_page_artifact_changed")
@@ -269,10 +310,15 @@ def validate(conn: sqlite3.Connection, witness: Mapping[str, Any], budget: Budge
         for page in _pages(witness):
             if not revalidate_positive(conn, budget.archive, page, budget=budget):
                 raise ClosureError("local_page_support_changed")
-            if witness["local_pages"]["format"] == FORMAT and not revalidate_unavailability(
+            if witness["local_pages"]["format"] in (
+                FORMAT,
+                UNAVAILABLE_FORMAT,
+            ) and not revalidate_unavailability(page, budget=budget):
+                raise ClosureError("local_page_unavailability_changed")
+            if witness["local_pages"]["format"] == FORMAT and not revalidate_unsupported(
                 page, budget=budget
             ):
-                raise ClosureError("local_page_unavailability_changed")
+                raise ClosureError("local_page_unsupported_changed")
             # Request identity must be the retained enumeration member, even if
             # every stage was unassessed/negative at the pinned observation.
             for entry in witness["entries"]:
@@ -298,16 +344,22 @@ def read_set(witness: Mapping[str, Any]) -> dict[str, Any]:
         interpreted = page.get("interpretation_support")
         unavailable = (
             page.get("unavailability_support")
-            if witness["local_pages"]["format"] == FORMAT
+            if witness["local_pages"]["format"] in (FORMAT, UNAVAILABLE_FORMAT)
             else None
+        )
+        unsupported = (
+            page.get("unsupported_support") if witness["local_pages"]["format"] == FORMAT else None
         )
         for row in (
             ([acquired] if acquired else [])
             + (interpreted["snapshots"] if interpreted else [])
             + ([unavailable] if unavailable else [])
+            + (unsupported["snapshots"] if unsupported else [])
         ):
             snapshots.add(row["snapshot_id"])
             watches.add(row["watch_id"])
+        if unsupported:
+            generations.add(unsupported["generation_id"])
         if interpreted:
             generations.add(interpreted["generation_id"])
             decisions.add(interpreted["accepted_decision"]["decision_id"])

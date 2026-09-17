@@ -241,7 +241,7 @@ def test_unsupported_files_remain_visible_and_do_not_become_result_pages(event):
     unsupported = next(
         page for page in result["members"] if page["request"]["url"].endswith(".pdf")
     )
-    assert unsupported["watch_ids"] == [] and "unsupported_page_kind" in unsupported["blockers"]
+    assert unsupported["watch_ids"] == [] and "page_kind_unassessed" in unsupported["blockers"]
 
 
 def test_distinct_request_deduplicates_kinds_and_preserves_form_semantics(event):

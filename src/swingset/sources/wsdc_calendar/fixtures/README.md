@@ -30,3 +30,12 @@ retained through FetchClient on 2026-09-13 UTC. Its adjacent JSON records
 the full snapshot provenance. Nine markers print a single calendar date;
 parser 7 preserves that date as both endpoints without inventing duration.
 The Chicago Classic marker retains its printed HIATUS label.
+
+
+`calendar-map-20160710`, `calendar-map-20160909`, `calendar-map-20161110`
+and `calendar-map-20161212` are complete previously acquired production bodies,
+copied read-only on 2026-09-17 with adjacent original snapshot metadata. Their
+body hashes were verified after decompression. All marker popups contain names
+and websites only, without printed dates. These remain unsupported dating
+controls; capture timestamps are not event dates. See the
+[inspection](../../../../../journal/investigations/2026/calendar-map-gaps-2026-09-17.md).

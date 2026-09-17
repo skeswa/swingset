@@ -47,7 +47,7 @@ def test_full_cutoff_totals_are_distinct_from_selected_and_emitted_support(event
     assert result["acquired_pages"] == result["interpreted_pages"] == 1
     assert result["acquisition_unknown_pages"] == result["interpretation_unknown_pages"] == 0
     assert result["selected_interpreted_pages"] == result["represented_pages"] == 0
-    assert result["unavailable_pages"] == 0 and result["unsupported_pages"] is None
+    assert result["unavailable_pages"] == 0 and result["unsupported_pages"] == 0
     with artifact_source(f.conn, f.archive):
         event_coverage.validate(f.conn, witness, selected_support=())
 

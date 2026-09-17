@@ -34,7 +34,7 @@ def _json(value: Any) -> str:
 
 def policy(config: Config, limits: Limits) -> dict[str, Any]:
     values = {
-        "format": "observed-event-progress-v4-unavailable-gaps",
+        "format": "observed-event-progress-v5-unsupported-gaps",
         "verifier_format": FORMAT,
         "limits": asdict(limits),
         "events": EVENTS,
@@ -219,7 +219,9 @@ def _observe(
         key, page = member["request_id"], member["request"]
         observed: dict[str, Any] = {"request_id": key, "stages": {}}
         try:
-            evidence = session.verify_request(page, classify_unavailability=True)
+            evidence = session.verify_request(
+                page, classify_unavailability=True, classify_unsupported=True
+            )
             observed["gap"] = event_gaps.observation(evidence, result["gap_revision"])
             for stage in ("acquired", "interpreted"):
                 previous_rows = session.read(

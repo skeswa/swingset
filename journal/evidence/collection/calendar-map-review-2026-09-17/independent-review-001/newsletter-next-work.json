@@ -1,0 +1,1481 @@
+{
+  "format": "newsletter-colour-next-work-probe-v1",
+  "recorded_at": "2026-09-17T17:18:24.579385+00:00",
+  "bodies": [
+    {
+      "fixture": "src/swingset/sources/wsdc_newsletter/fixtures/newsletter-vol6.pdf",
+      "body_sha256": "008aaf4c693387eae071890592628e00e16476358268501bb436345acae9c987",
+      "pages": [
+        {
+          "page": 1,
+          "coloured_runs": [
+            {
+              "text": "Member Activities are shown ",
+              "fill": [
+                "rg",
+                0.6,
+                0.6,
+                0.804
+              ],
+              "text_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                43.8,
+                624.7
+              ],
+              "current_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                0.0,
+                0.0
+              ],
+              "font_size": 6.96
+            },
+            {
+              "text": "in purple",
+              "fill": [
+                "rg",
+                0.6,
+                0.6,
+                0.804
+              ],
+              "text_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                83.184,
+                616.18
+              ],
+              "current_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                0.0,
+                0.0
+              ],
+              "font_size": 6.96
+            },
+            {
+              "text": "\u2022",
+              "fill": [
+                "rg",
+                0.6,
+                0.6,
+                0.804
+              ],
+              "text_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                43.44,
+                457.51
+              ],
+              "current_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                0.0,
+                0.0
+              ],
+              "font_size": 6.96
+            },
+            {
+              "text": "S",
+              "fill": [
+                "rg",
+                0.6,
+                0.6,
+                0.804
+              ],
+              "text_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                52.08,
+                457.51
+              ],
+              "current_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                0.0,
+                0.0
+              ],
+              "font_size": 6.96
+            },
+            {
+              "text": "WING",
+              "fill": [
+                "rg",
+                0.6,
+                0.6,
+                0.804
+              ],
+              "text_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                57.0,
+                457.51
+              ],
+              "current_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                0.0,
+                0.0
+              ],
+              "font_size": 5.64
+            },
+            {
+              "text": "IN",
+              "fill": [
+                "rg",
+                0.6,
+                0.6,
+                0.804
+              ],
+              "text_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                78.144,
+                457.51
+              ],
+              "current_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                0.0,
+                0.0
+              ],
+              "font_size": 5.64
+            },
+            {
+              "text": "CAPITAL",
+              "fill": [
+                "rg",
+                0.6,
+                0.6,
+                0.804
+              ],
+              "text_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                88.464,
+                457.51
+              ],
+              "current_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                0.0,
+                0.0
+              ],
+              "font_size": 5.64
+            },
+            {
+              "text": "Apr 20 ",
+              "fill": [
+                "rg",
+                0.6,
+                0.6,
+                0.804
+              ],
+              "text_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                52.08,
+                447.55
+              ],
+              "current_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                0.0,
+                0.0
+              ],
+              "font_size": 6.96
+            },
+            {
+              "text": "\u2013",
+              "fill": [
+                "rg",
+                0.6,
+                0.6,
+                0.804
+              ],
+              "text_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                77.904,
+                447.55
+              ],
+              "current_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                0.0,
+                0.0
+              ],
+              "font_size": 6.96
+            },
+            {
+              "text": "22, 2018",
+              "fill": [
+                "rg",
+                0.6,
+                0.6,
+                0.804
+              ],
+              "text_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                84.864,
+                447.55
+              ],
+              "current_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                0.0,
+                0.0
+              ],
+              "font_size": 6.96
+            },
+            {
+              "text": "\u2022",
+              "fill": [
+                "rg",
+                0.6,
+                0.6,
+                0.804
+              ],
+              "text_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                43.44,
+                309.41
+              ],
+              "current_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                0.0,
+                0.0
+              ],
+              "font_size": 6.96
+            },
+            {
+              "text": "G",
+              "fill": [
+                "rg",
+                0.6,
+                0.6,
+                0.804
+              ],
+              "text_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                52.08,
+                309.41
+              ],
+              "current_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                0.0,
+                0.0
+              ],
+              "font_size": 6.96
+            },
+            {
+              "text": "O",
+              "fill": [
+                "rg",
+                0.6,
+                0.6,
+                0.804
+              ],
+              "text_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                57.72,
+                309.41
+              ],
+              "current_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                0.0,
+                0.0
+              ],
+              "font_size": 5.64
+            },
+            {
+              "text": "W",
+              "fill": [
+                "rg",
+                0.6,
+                0.6,
+                0.804
+              ],
+              "text_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                64.944,
+                309.41
+              ],
+              "current_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                0.0,
+                0.0
+              ],
+              "font_size": 6.96
+            },
+            {
+              "text": "EST",
+              "fill": [
+                "rg",
+                0.6,
+                0.6,
+                0.804
+              ],
+              "text_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                72.744,
+                309.41
+              ],
+              "current_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                0.0,
+                0.0
+              ],
+              "font_size": 5.64
+            },
+            {
+              "text": "S",
+              "fill": [
+                "rg",
+                0.6,
+                0.6,
+                0.804
+              ],
+              "text_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                86.784,
+                309.41
+              ],
+              "current_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                0.0,
+                0.0
+              ],
+              "font_size": 6.96
+            },
+            {
+              "text": "WING",
+              "fill": [
+                "rg",
+                0.6,
+                0.6,
+                0.804
+              ],
+              "text_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                91.704,
+                309.41
+              ],
+              "current_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                0.0,
+                0.0
+              ],
+              "font_size": 5.64
+            },
+            {
+              "text": "F",
+              "fill": [
+                "rg",
+                0.6,
+                0.6,
+                0.804
+              ],
+              "text_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                112.94,
+                309.41
+              ],
+              "current_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                0.0,
+                0.0
+              ],
+              "font_size": 6.96
+            },
+            {
+              "text": "EST",
+              "fill": [
+                "rg",
+                0.6,
+                0.6,
+                0.804
+              ],
+              "text_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                117.5,
+                309.41
+              ],
+              "current_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                0.0,
+                0.0
+              ],
+              "font_size": 5.64
+            },
+            {
+              "text": "Apr 27 ",
+              "fill": [
+                "rg",
+                0.6,
+                0.6,
+                0.804
+              ],
+              "text_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                52.08,
+                299.57
+              ],
+              "current_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                0.0,
+                0.0
+              ],
+              "font_size": 6.96
+            },
+            {
+              "text": "\u2013",
+              "fill": [
+                "rg",
+                0.6,
+                0.6,
+                0.804
+              ],
+              "text_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                77.904,
+                299.57
+              ],
+              "current_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                0.0,
+                0.0
+              ],
+              "font_size": 6.96
+            },
+            {
+              "text": "29, 2018",
+              "fill": [
+                "rg",
+                0.6,
+                0.6,
+                0.804
+              ],
+              "text_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                84.864,
+                299.57
+              ],
+              "current_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                0.0,
+                0.0
+              ],
+              "font_size": 6.96
+            }
+          ],
+          "inspection_text": "Member Activities are shown in purple\u2022SWINGINCAPITALApr 20 \u201322, 2018\u2022GOWESTSWINGFESTApr 27 \u201329, 2018"
+        }
+      ]
+    },
+    {
+      "fixture": "src/swingset/sources/wsdc_newsletter/fixtures/newsletter-vol9.pdf",
+      "body_sha256": "478d7ddb5edd0e23c6ddb529d429fecde0468456a42093745939e7bcb5f9b998",
+      "pages": [
+        {
+          "page": 1,
+          "coloured_runs": [
+            {
+              "text": "Member Activities are shown in gray.",
+              "fill": [
+                "g",
+                0.651
+              ],
+              "text_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                46.08,
+                633.46
+              ],
+              "current_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                0.0,
+                0.0
+              ],
+              "font_size": 5.04
+            },
+            {
+              "text": "\u2022",
+              "fill": [
+                "g",
+                0.651
+              ],
+              "text_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                43.32,
+                373.39
+              ],
+              "current_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                0.0,
+                0.0
+              ],
+              "font_size": 8.52
+            },
+            {
+              "text": "A",
+              "fill": [
+                "g",
+                0.651
+              ],
+              "text_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                51.96,
+                373.39
+              ],
+              "current_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                0.0,
+                0.0
+              ],
+              "font_size": 8.52
+            },
+            {
+              "text": "VIGNON",
+              "fill": [
+                "g",
+                0.651
+              ],
+              "text_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                58.56,
+                373.39
+              ],
+              "current_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                0.0,
+                0.0
+              ],
+              "font_size": 6.84
+            },
+            {
+              "text": "C",
+              "fill": [
+                "g",
+                0.651
+              ],
+              "text_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                93.264,
+                373.39
+              ],
+              "current_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                0.0,
+                0.0
+              ],
+              "font_size": 8.52
+            },
+            {
+              "text": "ITY",
+              "fill": [
+                "g",
+                0.651
+              ],
+              "text_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                99.384,
+                373.39
+              ],
+              "current_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                0.0,
+                0.0
+              ],
+              "font_size": 6.84
+            },
+            {
+              "text": "S",
+              "fill": [
+                "g",
+                0.651
+              ],
+              "text_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                115.7,
+                373.39
+              ],
+              "current_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                0.0,
+                0.0
+              ],
+              "font_size": 8.52
+            },
+            {
+              "text": "WING",
+              "fill": [
+                "g",
+                0.651
+              ],
+              "text_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                121.7,
+                373.39
+              ],
+              "current_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                0.0,
+                0.0
+              ],
+              "font_size": 6.84
+            },
+            {
+              "text": "*",
+              "fill": [
+                "g",
+                0.651
+              ],
+              "text_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                147.26,
+                373.39
+              ],
+              "current_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                0.0,
+                0.0
+              ],
+              "font_size": 8.52
+            },
+            {
+              "text": "January 18",
+              "fill": [
+                "g",
+                0.651
+              ],
+              "text_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                51.96,
+                361.49
+              ],
+              "current_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                0.0,
+                0.0
+              ],
+              "font_size": 8.52
+            },
+            {
+              "text": "-",
+              "fill": [
+                "g",
+                0.651
+              ],
+              "text_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                99.384,
+                361.49
+              ],
+              "current_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                0.0,
+                0.0
+              ],
+              "font_size": 8.52
+            },
+            {
+              "text": "20, 2019  ",
+              "fill": [
+                "g",
+                0.651
+              ],
+              "text_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                103.22,
+                361.49
+              ],
+              "current_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                0.0,
+                0.0
+              ],
+              "font_size": 8.52
+            }
+          ],
+          "inspection_text": "Member Activities are shown in gray.\u2022AVIGNONCITYSWING*January 18-20, 2019"
+        }
+      ]
+    },
+    {
+      "fixture": "src/swingset/sources/wsdc_newsletter/fixtures/newsletter-vol13.pdf",
+      "body_sha256": "220a0f22f0f6bd1646ca42cd7e4c96ac38ca51d59e87836074d582deae692889",
+      "pages": [
+        {
+          "page": 1,
+          "coloured_runs": [
+            {
+              "text": "Trial Events are shown in ",
+              "fill": [
+                "g",
+                0.651
+              ],
+              "text_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                45.36,
+                648.34
+              ],
+              "current_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                0.0,
+                0.0
+              ],
+              "font_size": 6.96
+            },
+            {
+              "text": "gray.",
+              "fill": [
+                "g",
+                0.651
+              ],
+              "text_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                85.104,
+                639.82
+              ],
+              "current_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                0.0,
+                0.0
+              ],
+              "font_size": 6.96
+            },
+            {
+              "text": "\u2022",
+              "fill": [
+                "g",
+                0.753
+              ],
+              "text_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                35.4,
+                98.664
+              ],
+              "current_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                0.0,
+                0.0
+              ],
+              "font_size": 8.52
+            },
+            {
+              "text": "B",
+              "fill": [
+                "g",
+                0.753
+              ],
+              "text_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                44.04,
+                98.664
+              ],
+              "current_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                0.0,
+                0.0
+              ],
+              "font_size": 8.52
+            },
+            {
+              "text": "Y",
+              "fill": [
+                "g",
+                0.753
+              ],
+              "text_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                50.52,
+                98.664
+              ],
+              "current_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                0.0,
+                0.0
+              ],
+              "font_size": 6.84
+            },
+            {
+              "text": "-",
+              "fill": [
+                "g",
+                0.753
+              ],
+              "text_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                55.56,
+                98.664
+              ],
+              "current_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                0.0,
+                0.0
+              ],
+              "font_size": 8.52
+            },
+            {
+              "text": "TOWN",
+              "fill": [
+                "g",
+                0.753
+              ],
+              "text_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                59.64,
+                98.664
+              ],
+              "current_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                0.0,
+                0.0
+              ],
+              "font_size": 6.84
+            },
+            {
+              "text": "O",
+              "fill": [
+                "g",
+                0.753
+              ],
+              "text_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                86.424,
+                98.664
+              ],
+              "current_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                0.0,
+                0.0
+              ],
+              "font_size": 8.52
+            },
+            {
+              "text": "NTARIO",
+              "fill": [
+                "g",
+                0.753
+              ],
+              "text_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                93.624,
+                98.664
+              ],
+              "current_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                0.0,
+                0.0
+              ],
+              "font_size": 6.84
+            },
+            {
+              "text": "O",
+              "fill": [
+                "g",
+                0.753
+              ],
+              "text_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                127.1,
+                98.664
+              ],
+              "current_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                0.0,
+                0.0
+              ],
+              "font_size": 8.52
+            },
+            {
+              "text": "PEN",
+              "fill": [
+                "g",
+                0.753
+              ],
+              "text_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                134.3,
+                98.664
+              ],
+              "current_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                0.0,
+                0.0
+              ],
+              "font_size": 6.84
+            },
+            {
+              "text": "(BTO)                              ",
+              "fill": [
+                "g",
+                0.753
+              ],
+              "text_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                44.04,
+                86.784
+              ],
+              "current_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                0.0,
+                0.0
+              ],
+              "font_size": 8.52
+            },
+            {
+              "text": "February 7",
+              "fill": [
+                "g",
+                0.753
+              ],
+              "text_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                44.04,
+                74.904
+              ],
+              "current_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                0.0,
+                0.0
+              ],
+              "font_size": 8.52
+            },
+            {
+              "text": "-",
+              "fill": [
+                "g",
+                0.753
+              ],
+              "text_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                90.504,
+                74.904
+              ],
+              "current_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                0.0,
+                0.0
+              ],
+              "font_size": 8.52
+            },
+            {
+              "text": "9, 2020 ",
+              "fill": [
+                "g",
+                0.753
+              ],
+              "text_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                94.344,
+                74.904
+              ],
+              "current_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                0.0,
+                0.0
+              ],
+              "font_size": 8.52
+            }
+          ],
+          "inspection_text": "Trial Events are shown in gray.\u2022BY-TOWNONTARIOOPEN(BTO) February 7-9, 2020"
+        }
+      ]
+    },
+    {
+      "fixture": "src/swingset/sources/wsdc_newsletter/fixtures/newsletter-vol25.pdf",
+      "body_sha256": "68c1360eb9f6a4bc487f4f08ea3f70fbd09e80cb1958cf72006f5a0c12803829",
+      "pages": [
+        {
+          "page": 1,
+          "coloured_runs": [
+            {
+              "text": "Trial Events are shown in gray",
+              "fill": [
+                "g",
+                0.651
+              ],
+              "text_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                33.24,
+                635.26
+              ],
+              "current_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                0.0,
+                0.0
+              ],
+              "font_size": 6.96
+            }
+          ],
+          "inspection_text": "Trial Events are shown in gray"
+        },
+        {
+          "page": 2,
+          "coloured_runs": [
+            {
+              "text": "Trial Events are shown in ",
+              "fill": [
+                "g",
+                0.651
+              ],
+              "text_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                461.71,
+                679.06
+              ],
+              "current_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                0.0,
+                0.0
+              ],
+              "font_size": 6.96
+            },
+            {
+              "text": "gray",
+              "fill": [
+                "g",
+                0.651
+              ],
+              "text_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                461.71,
+                671.5
+              ],
+              "current_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                0.0,
+                0.0
+              ],
+              "font_size": 6.96
+            },
+            {
+              "text": "\u2022",
+              "fill": [
+                "g",
+                0.651
+              ],
+              "text_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                461.71,
+                521.47
+              ],
+              "current_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                0.0,
+                0.0
+              ],
+              "font_size": 8.52
+            },
+            {
+              "text": "Swingvasion      ",
+              "fill": [
+                "g",
+                0.651
+              ],
+              "text_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                470.35,
+                521.47
+              ],
+              "current_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                0.0,
+                0.0
+              ],
+              "font_size": 8.52
+            },
+            {
+              "text": "March 10",
+              "fill": [
+                "g",
+                0.651
+              ],
+              "text_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                470.35,
+                511.03
+              ],
+              "current_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                0.0,
+                0.0
+              ],
+              "font_size": 8.52
+            },
+            {
+              "text": "-",
+              "fill": [
+                "g",
+                0.651
+              ],
+              "text_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                509.86,
+                511.03
+              ],
+              "current_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                0.0,
+                0.0
+              ],
+              "font_size": 8.52
+            },
+            {
+              "text": "12, 2023",
+              "fill": [
+                "g",
+                0.651
+              ],
+              "text_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                513.7,
+                511.03
+              ],
+              "current_matrix": [
+                1.0,
+                0.0,
+                0.0,
+                1.0,
+                0.0,
+                0.0
+              ],
+              "font_size": 8.52
+            }
+          ],
+          "inspection_text": "Trial Events are shown in gray\u2022Swingvasion March 10-12, 2023"
+        }
+      ]
+    }
+  ],
+  "network_requests": 0,
+  "production_operations": 0,
+  "interpretation": "Inspection only. Retained PDF content has recoverable purple/gray text matching named member/trial sidebar listings. No event status changed or colour warning closed.",
+  "limitations": [
+    "PDF visitor callback geometry and graphics-state handling need complete extractor review and real-body regression coverage before runtime adoption.",
+    "Legend and row gray values differ in Volume13; exact RGB equality to legend is not sufficient.",
+    "Printed-year typos and undated listings remain gaps.",
+    "Need design for retaining member-activity versus trial status before changing fallback output."
+  ]
+}
