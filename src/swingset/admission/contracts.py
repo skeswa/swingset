@@ -20,27 +20,41 @@ from .accounting import account_keys
 from .registry_contract import registry_accounting
 from .report import Coverage, Field, Guard, Report, evaluate
 from .round_contract import round_accounting
+from .stepright_contract import (
+    KINDS as STEPRIGHT_KINDS,
+)
+from .stepright_contract import (
+    KNOWN_BOUNDED_WARNINGS as STEPRIGHT_BOUNDED_WARNINGS,
+)
+from .stepright_contract import (
+    accounting as stepright_accounting,
+)
 
 CONTRACT_VERSION = "4"
-KINDS = frozenset(
-    {
-        "wsdc_registry.dancer",
-        "eepro.index",
-        "eepro.autoindex",
-        "eepro.round",
-        "scoringdance.sitemap",
-        "scoringdance.recent",
-        "scoringdance.event",
-        "scoringdance.round",
-        "wdr.rounds",
-    }
+KINDS = (
+    frozenset(
+        {
+            "wsdc_registry.dancer",
+            "eepro.index",
+            "eepro.autoindex",
+            "eepro.round",
+            "scoringdance.sitemap",
+            "scoringdance.recent",
+            "scoringdance.event",
+            "scoringdance.round",
+            "wdr.rounds",
+        }
+    )
+    | STEPRIGHT_KINDS
 )
 
 
 def contract_version(page_kind: str) -> str:
     """A changed page contract does not invalidate unrelated reviewed contracts."""
     return (
-        "5"
+        "1"
+        if page_kind in STEPRIGHT_KINDS
+        else "5"
         if page_kind == "eepro.autoindex"
         else CONTRACT_VERSION
         if page_kind in KINDS
@@ -61,7 +75,17 @@ def inspect(ctx: ParseContext, body: bytes, extract: Any, result: ParseResult) -
     guards.append(
         Guard("contract_unassessed", known, "This page kind has an explicit versioned contract")
     )
-    if ctx.kind == "wsdc_registry.dancer":
+    if ctx.kind in STEPRIGHT_KINDS:
+        accounted = stepright_accounting(ctx, extract, result)
+        fields.extend(accounted.fields)
+        guards.extend(accounted.guards)
+        source_count = accounted.source_count
+        interpreted = accounted.interpreted_count
+        terminal = accounted.terminal
+        children = accounted.listed_children
+        parsed_children = accounted.interpreted_children
+        removal = "none"
+    elif ctx.kind == "wsdc_registry.dancer":
         source_count, interpreted = registry_accounting(extract, result, fields, guards)
         removal = "none"  # A lookup can never delete historical registry facts.
     elif ctx.kind in {
@@ -219,10 +243,14 @@ def inspect(ctx: ParseContext, body: bytes, extract: Any, result: ParseResult) -
             )
         )
     for warning in result.warnings:
-        excluded = ctx.kind == "wdr.rounds" and warning.code in {
-            "wdr_s_callback_unverified",
-            "wdr_finals_bib_unverified",
-        }
+        excluded = (
+            ctx.kind == "wdr.rounds"
+            and warning.code
+            in {
+                "wdr_s_callback_unverified",
+                "wdr_finals_bib_unverified",
+            }
+        ) or (ctx.kind in STEPRIGHT_KINDS and warning.code in STEPRIGHT_BOUNDED_WARNINGS)
         fields.append(
             Field(
                 f"warning:{warning.code}",

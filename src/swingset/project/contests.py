@@ -24,6 +24,7 @@ from swingset.normalize.names import normalize_name, paired_names
 from swingset.sources.records import Cell, ResultTable, RoundSheet
 from swingset.state.findings import Finding
 
+from .steprightsolutions import round_sheet as step_right_round_sheet
 from .writer import Projection
 
 
@@ -220,7 +221,7 @@ def project_event(conn: sqlite3.Connection, event: str, now: str, run_id: str) -
                     round_index=round_index,
                     name_raw=selected.sheet.round_name_raw,
                     scoring_method="relative_placement" if round_type == "final" else "callback",
-                    callback_legend=_legend(tables),
+                    callback_legend=_callback_legend(selected_panels, round_type),
                     judge_count=judge_count,
                     chief_judge_id=None,
                     entry_count=danced,
@@ -414,6 +415,7 @@ def _entry_redirects(entries: dict[str, EntryFacts], findings: list[Finding]) ->
             numbered, named = bib_entries[0], named_entries[0]
             if (
                 numbered.evidence.source == named.evidence.source
+                and numbered.evidence.source != "steprightsolutions"
                 and not numbered.rounds & named.rounds
                 and all("/final" in rid for rid in named.rounds)
                 and all("/final" not in rid for rid in numbered.rounds)
@@ -453,6 +455,7 @@ def _collect_judges(
     judges: dict[str, tuple[Judge, Evidence]],
     *,
     named_only: bool = False,
+    round_: str | None = None,
 ) -> dict[int, str]:
     judge_columns: dict[int, str] = {}
     for index, (token, name, anonymous) in _judge_columns(
@@ -461,17 +464,24 @@ def _collect_judges(
         if named_only and (anonymous or not name):
             continue
         cell = table.headers[index]
-        jid = (
-            judge_id(event, name=name)
-            if not anonymous
-            else judge_id(event, anonymous_number=int(token.removeprefix("anon-")))
-        )
+        if evidence.source == "steprightsolutions":
+            if round_ is None:
+                continue
+            token = _attrs(cell).get("source-anonymous-id", token)
+            jid = f"{round_}/judge/{slug(token)}"
+            name = None
+        else:
+            jid = (
+                judge_id(event, name=name)
+                if not anonymous
+                else judge_id(event, anonymous_number=int(token.removeprefix("anon-")))
+            )
         judge_columns[index] = jid
         record = Judge(
             judge_id=jid,
             event_id=event,
             name_raw=name,
-            initials=_text(cell) or None,
+            initials=None if evidence.source == "steprightsolutions" else _text(cell) or None,
             anonymous=anonymous,
             wsdc_id=None,
             **_provenance(evidence, now, run_id),
@@ -502,7 +512,7 @@ def _project_table(
 ) -> None:
     headers = [_text(cell).casefold() for cell in table.headers]
     outcome_known = _outcome_convention_known(table, evidence.source)
-    judge_columns = _collect_judges(event, evidence, table, now, run_id, judges)
+    judge_columns = _collect_judges(event, evidence, table, now, run_id, judges, round_=round_)
     competitor_columns = [
         index
         for index, header in enumerate(headers)
@@ -591,7 +601,7 @@ def _project_table(
                     bib_columns,
                     role,
                     generic_shared=(
-                        evidence.source in {"wdr", "scoringdance"}
+                        evidence.source in {"wdr", "scoringdance", "steprightsolutions"}
                         and round_type == "final"
                         and len(competitor_columns) > 1
                     )
@@ -614,7 +624,12 @@ def _project_table(
                     )
                     continue
                 canonical_name = None if redacted_row else competitor_name
-                identifier = entry_id(contest, role, bib, canonical_name)
+                identifier = (
+                    f"{contest}/{role[:1].upper()}-source-"
+                    f"{slug(evidence.sheet.source_round_ref)}-{slug(table.heading_raw)}-{row_number}"
+                    if evidence.source == "steprightsolutions" and round_type == "final"
+                    else entry_id(contest, role, bib, canonical_name)
+                )
                 row_entries[role] = identifier
                 candidate = EntryFacts(
                     identifier, contest, event, role, bib, canonical_name, evidence, {round_}
@@ -661,6 +676,8 @@ def _project_table(
             _record_partner(follower, leader)
         for entry in row_entries.values():
             if redacted_row:
+                continue
+            if evidence.source == "steprightsolutions" and round_type != "final":
                 continue
             raw_marks: list[str] = []
             unknown_mark = False
@@ -863,6 +880,9 @@ def _evidence(conn: sqlite3.Connection, event: str) -> list[Evidence]:
         (event,),
     ):
         payload = decode_payload(str(row[0]), str(row[1]))
+        normalized = step_right_round_sheet(payload)
+        if normalized is not None:
+            payload = normalized
         if isinstance(payload, RoundSheet):
             result.append(
                 Evidence(payload, str(row[4]), str(row[2]), str(row[3]), str(row[5]), str(row[6]))
@@ -1231,6 +1251,27 @@ def _legend(tables: tuple[ResultTable, ...]) -> str:
     )
 
 
+def _callback_legend(panels: tuple[Evidence, ...], round_type: str) -> str:
+    ordinary_tables = tuple(
+        table
+        for panel in panels
+        if panel.source != "steprightsolutions"
+        for table in panel.sheet.tables
+    )
+    if ordinary_tables:
+        return _legend(ordinary_tables)
+    step_right = tuple(panel for panel in panels if panel.source == "steprightsolutions")
+    if not step_right or round_type == "final":
+        return "unknown"
+    supported = {
+        panel.sheet.scoring_method_raw
+        for panel in step_right
+        if panel.sheet.scoring_method_raw == "legacy_3"
+        and any(_judge_columns(table) for table in panel.sheet.tables)
+    }
+    return "legacy_3" if supported == {"legacy_3"} else "unknown"
+
+
 def _integer(value: str | None) -> int | None:
     try:
         return int(value or "")
@@ -1250,6 +1291,8 @@ def _place(value: str | None) -> int | None:
 
 
 def _outcome_convention_known(table: ResultTable, source: str) -> bool:
+    if source == "steprightsolutions":
+        return False
     if source != "scoringdance":
         return True
     headers = [_text(cell).casefold() for cell in table.headers]

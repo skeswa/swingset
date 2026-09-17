@@ -21,7 +21,7 @@ from .writer import replace_scope
 if TYPE_CHECKING:
     from swingset.state.derivations import Selection
 
-PROJECTOR_VERSION = 19
+PROJECTOR_VERSION = 20
 
 
 class InputBundleLike(Protocol):

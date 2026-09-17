@@ -14,6 +14,7 @@ from swingset.sources.records import CalendarRow, SourceEventRow
 from swingset.state.findings import Finding, replace_findings
 from swingset.state.work import WorkUnit, bump_revision, enqueue
 
+from .steprightsolutions import source_event as step_right_source_event
 from .writer import Projection
 
 
@@ -26,6 +27,8 @@ class SourceEventEvidence:
     parser_version: str
     fetched_at: str
     parser: str
+    location_raw: str | None = None
+    year: int | None = None
 
     @property
     def precedence(self) -> tuple[int, str, str]:
@@ -180,10 +183,15 @@ def project_source_index(conn: sqlite3.Connection, scope_id: str, now: str, run_
         dated = [item for item in candidates if nullable_date_range(item.payload.date_raw)[0]]
         name_evidence = max(named, key=lambda item: item.precedence) if named else winner
         date_evidence = max(dated, key=lambda item: item.precedence) if dated else winner
+        located = [item for item in candidates if item.location_raw]
+        location_evidence = max(located, key=lambda item: item.precedence) if located else None
+        linked = [item for item in candidates if item.payload.url]
+        url_evidence = max(linked, key=lambda item: item.precedence) if linked else winner
         payload = replace(
             winner.payload,
             name_raw=name_evidence.payload.name_raw,
             date_raw=date_evidence.payload.date_raw,
+            url=url_evidence.payload.url,
         )
         start, end = nullable_date_range(payload.date_raw)
         merged = replace(
@@ -201,7 +209,7 @@ def project_source_index(conn: sqlite3.Connection, scope_id: str, now: str, run_
             payload.name_raw,
             start,
             end,
-            None,
+            location_evidence.location_raw if location_evidence else None,
             payload.url,
             merged.snapshot_id,
             merged.parser_version,
@@ -274,10 +282,27 @@ def _replace_date_contradiction(
 
 def _source_event_evidence(conn: sqlite3.Connection) -> list[SourceEventEvidence]:
     result: list[SourceEventEvidence] = []
-    for row in conn.execute("""SELECT o.kind,o.payload_json,o.scope_id,o.snapshot_id,o.parser_version,w.source,COALESCE(s.observed_at,s.fetched_at),w.parser
+    for row in conn.execute("""SELECT o.kind,o.payload_json,o.scope_id,o.snapshot_id,o.parser_version,w.source,COALESCE(s.observed_at,s.fetched_at),w.parser,w.url
         FROM observations o JOIN watches w USING(watch_id) JOIN snapshots s USING(snapshot_id)
-        WHERE o.scope_kind='source_index' ORDER BY COALESCE(s.observed_at,s.fetched_at),s.snapshot_id,o.seq"""):
+        WHERE o.scope_kind='source_index' OR (o.scope_kind='source_event' AND w.source='steprightsolutions')
+        ORDER BY COALESCE(s.observed_at,s.fetched_at),s.snapshot_id,o.seq"""):
         payload = decode_payload(str(row[0]), str(row[1]))
+        step_right = step_right_source_event(payload, str(row[8]))
+        if step_right is not None:
+            result.append(
+                SourceEventEvidence(
+                    step_right.row,
+                    str(row[5]),
+                    str(row[2]),
+                    str(row[3]),
+                    str(row[4]),
+                    str(row[6]),
+                    str(row[7]),
+                    step_right.location_raw,
+                    step_right.year,
+                )
+            )
+            continue
         if isinstance(payload, SourceEventRow):
             result.append(
                 SourceEventEvidence(
