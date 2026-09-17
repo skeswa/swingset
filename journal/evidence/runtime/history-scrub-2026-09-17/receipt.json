@@ -1,0 +1,140 @@
+{
+  "format": "repository-large-file-scrub-v1",
+  "date": "2026-09-17",
+  "cutoff_bytes": 1048576,
+  "authority": "Owner requested scrub; selected over 1 MiB and verified external archive before removal",
+  "external_archive_directory": "/Users/skeswa/archives/swingset-history-scrub-20260917T210700Z",
+  "archive_scope": "tracked working copy and complete .jj/.git before scrub; ignored scratch files remain in place and were not included",
+  "archives": {
+    "before.tar.gz": {
+      "bytes": 99533319,
+      "sha256": "2c02193527f9c5c5c6455ba31bd4abc8c218800da2ab58c693f95a33162e93ea"
+    },
+    "large-blobs.tar.gz": {
+      "bytes": 8168098,
+      "sha256": "e0b72964d24d56653d4589cc531c729faa64545936c5439ace27b363b0bdef05"
+    },
+    "inventory.json.gz": {
+      "bytes": 2340746,
+      "sha256": "7b075baa741813a1bec392e455a2c4352d24dd38ce6f28223e2fe3d72826895f"
+    },
+    "restore_current.py": {
+      "bytes": 1475,
+      "sha256": "7a139136ddbc1ff1d44ef6839d8c37493bb0771c797ca4fa3ea6e01b23ca37f0"
+    },
+    "local-verification.json": {
+      "bytes": 19940,
+      "sha256": "3b3a65ede0125ecb40f4b00b2f6ec5d060e8fa3b732a3010e58050482b4a4de6"
+    },
+    "local-reclamation.json": {
+      "bytes": 648,
+      "sha256": "d6498d5dd515d22addece563ed4a3f61ff1e0252f9a29a0c3fe7ef3995c66d40"
+    }
+  },
+  "distinct_removed_contents": 8,
+  "rewritten_revisions": 13,
+  "verified_revisions": 111,
+  "published_main_unchanged": "b1b5b856bd6e8bae80555dd9f51b6b3e78ca10f2",
+  "remote_pushed": false,
+  "production_deployed": false,
+  "dataset_published": false,
+  "all_unmodified_historical_entries_preserved": true,
+  "all_reachable_contents_at_or_below_cutoff": true,
+  "restored_ignored_local_copies": [
+    {
+      "path": "journal/evidence/admission/dcn-index-fixture-2026-09-17/quarantine/bodies/3e4e9cae6d39e099b79c7b5e7bae1e25c02fb0315e82e1311c7be4b39e3796bb",
+      "blob": "53ea879da8fbc13e961b52151bbc74854fbf92ac",
+      "bytes": 2804496,
+      "sha256": "3e4e9cae6d39e099b79c7b5e7bae1e25c02fb0315e82e1311c7be4b39e3796bb"
+    },
+    {
+      "path": "journal/evidence/collection/phase1-review-2026-09-17/current-review/report.json",
+      "blob": "cceae24a86258f2b607db1e0b10d35978743553c",
+      "bytes": 3507666,
+      "sha256": "f8274266bbf27f8fa4ce4c9cff7e6392ceb36fb111e99db0d18a805284cd5fd2"
+    },
+    {
+      "path": "journal/evidence/collection/phase1-review-2026-09-17/retained-export/report.json",
+      "blob": "66ebdb9951a60a4c7937571d31b1e28bb8c705ba",
+      "bytes": 3549194,
+      "sha256": "a29af6e2ef9e60f702d610f81c7a0b9b1968039f98df33df9b0ab3777220baad"
+    },
+    {
+      "path": "journal/evidence/quality/jesann-nail-2026-09-17/release-manifest.json.gz",
+      "blob": "267cb01a754c621c6d3586fbb8e21fddce61179d",
+      "bytes": 1360463,
+      "sha256": "c0312ee8c539a7bd31721f89837c90c6dc13c400f86ad3adc613e9fb67419c23"
+    },
+    {
+      "path": "journal/evidence/runtime/extension-input-rehearsal-2026-09-17/production-copy-001/scratch-marker.json",
+      "blob": "affaef0be0699e34333cb36a664917f5eb970df2",
+      "bytes": 14027340,
+      "sha256": "8c9ad75dbfb7b25d3b99e655e17de203af05185299daeaa8448ba8e204aa862e"
+    },
+    {
+      "path": "journal/evidence/runtime/schema28-checkpoint-2026-09-17/production-001/receipt.json",
+      "blob": "28470314b866240936ac81dc41e1941d0677798e",
+      "bytes": 1117007,
+      "sha256": "72404b1ec4e341cd60585c2ec0e1e40a70e30578066e26ff098b989d2adf17ca"
+    },
+    {
+      "path": "journal/evidence/runtime/schema28-checkpoint-2026-09-17/production-002/receipt.json",
+      "blob": "5b793a9bab17a455b27c720b1059558f533d3262",
+      "bytes": 1117341,
+      "sha256": "40e303ce9e783d00422112c872c84421f3128ad193e910093299b25e638a4532"
+    },
+    {
+      "path": "journal/evidence/runtime/schema28-checkpoint-2026-09-17/production-004/receipt.json",
+      "blob": "0b73e15f8db9d98ca60c494975d902214f65cf9b",
+      "bytes": 1117341,
+      "sha256": "804e4b8fa2af496ea7640339760a5dec3ac2565d5731547417a835083cf9551d"
+    },
+    {
+      "path": "journal/evidence/runtime/schema29-successor-rehearsals-2026-09-17/candidate005-review-001/review-002/rebuilt-packet/backup-receipt.json",
+      "blob": "5b793a9bab17a455b27c720b1059558f533d3262",
+      "bytes": 1117341,
+      "sha256": "40e303ce9e783d00422112c872c84421f3128ad193e910093299b25e638a4532"
+    },
+    {
+      "path": "journal/evidence/runtime/schema29-successor-rehearsals-2026-09-17/packet-002/backup-receipt.json",
+      "blob": "5b793a9bab17a455b27c720b1059558f533d3262",
+      "bytes": 1117341,
+      "sha256": "40e303ce9e783d00422112c872c84421f3128ad193e910093299b25e638a4532"
+    },
+    {
+      "path": "journal/evidence/runtime/schema29-successor-rehearsals-2026-09-17/packet-003/backup-receipt.json",
+      "blob": "5b793a9bab17a455b27c720b1059558f533d3262",
+      "bytes": 1117341,
+      "sha256": "40e303ce9e783d00422112c872c84421f3128ad193e910093299b25e638a4532"
+    },
+    {
+      "path": "journal/evidence/runtime/schema29-successor-rehearsals-2026-09-17/packet-004/backup-receipt.json",
+      "blob": "0b73e15f8db9d98ca60c494975d902214f65cf9b",
+      "bytes": 1117341,
+      "sha256": "804e4b8fa2af496ea7640339760a5dec3ac2565d5731547417a835083cf9551d"
+    },
+    {
+      "path": "tests/fixtures/sources/dcn/real-eventsarchive-20251112105828.html",
+      "blob": "53ea879da8fbc13e961b52151bbc74854fbf92ac",
+      "bytes": 2804496,
+      "sha256": "3e4e9cae6d39e099b79c7b5e7bae1e25c02fb0315e82e1311c7be4b39e3796bb"
+    }
+  ],
+  "validation": {
+    "parser_tests": "73 passed in 0.96 seconds",
+    "size_guard": "exactly 1048576 bytes allowed; 1048577 bytes rejected",
+    "ruff": "passed",
+    "independent_rehearsal_review": "passed; missing ignore-rule concern resolved before hydration"
+  },
+  "local_reclamation": {
+    "old_operations_abandoned": 829,
+    "jj_kib_after": 6960,
+    "git_kib_after": 26160
+  },
+  "limits": [
+    "Archive is local, not replicated off-site.",
+    "Clean checkouts need archive hydration for the large fixture and operational evidence.",
+    "Old rewritten commit IDs and operation history are recoverable from before.tar.gz.",
+    "Previously frozen source inventories remain historical and byte-exact."
+  ]
+}

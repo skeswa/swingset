@@ -25,6 +25,10 @@ and source request rules still apply.
 
 ## Maintained tools and retained scripts
 
+Run `mise run evidence-size` to inspect tracked evidence size and large exact
+duplicates. It rejects any tracked file over 1 MiB and writes no report files; follow the
+[retention rules](../evidence/README.md#keep-new-evidence-small) before adding output.
+
 These tools use the current repository layout. Captured scripts under
 [evidence](../evidence/README.md) preserve exactly what ran before and may name
 old source paths or pins. Their old receipts do not certify a changed tool.

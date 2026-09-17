@@ -65,6 +65,11 @@ separate revision from what was pushed.
 - `journal/tools/` holds research tools grouped by purpose. `journal/evidence/`
   holds captured inputs, reports, and frozen scripts grouped by topic and run.
   Do not edit retained evidence or generated CSVs by hand; see `journal/evidence/README.md`.
+  Follow its small-evidence rules for new output: reuse existing records, keep
+  disposable diagnostics in scratch storage, and compress large text before
+  sealing it. Run `mise run evidence-size` when adding an evidence bundle.
+  Files over 1 MiB belong in a verified external archive, with a small retained
+  receipt; do not add them to version control (D-0106).
 - `src/swingset/` holds the pipeline; `tests/` holds offline tests.
 - `nix/` holds the service module and VM configuration. Start operating work
   at `docs/guides/operation.md` and read the current status and linked handoff.

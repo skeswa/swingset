@@ -24,3 +24,19 @@ tmp/
 
 # Retain important identity audits as byte-exact .json.gz archives.
 /journal/evidence/**/*-identity-withdrawals-*.json
+
+# Large historical evidence is archived externally; see journal/evidence/README.md.
+/journal/evidence/admission/dcn-index-fixture-2026-09-17/quarantine/bodies/3e4e9cae6d39e099b79c7b5e7bae1e25c02fb0315e82e1311c7be4b39e3796bb
+/journal/evidence/collection/phase1-review-2026-09-17/current-review/report.json
+/journal/evidence/collection/phase1-review-2026-09-17/retained-export/report.json
+/journal/evidence/quality/jesann-nail-2026-09-17/release-manifest.json.gz
+/journal/evidence/runtime/extension-input-rehearsal-2026-09-17/production-copy-001/scratch-marker.json
+/journal/evidence/runtime/schema28-checkpoint-2026-09-17/production-001/receipt.json
+/journal/evidence/runtime/schema28-checkpoint-2026-09-17/production-002/receipt.json
+/journal/evidence/runtime/schema28-checkpoint-2026-09-17/production-004/receipt.json
+/journal/evidence/runtime/schema29-successor-rehearsals-2026-09-17/candidate005-review-001/review-002/rebuilt-packet/backup-receipt.json
+/journal/evidence/runtime/schema29-successor-rehearsals-2026-09-17/packet-002/backup-receipt.json
+/journal/evidence/runtime/schema29-successor-rehearsals-2026-09-17/packet-003/backup-receipt.json
+/journal/evidence/runtime/schema29-successor-rehearsals-2026-09-17/packet-004/backup-receipt.json
+/journal/evidence/runtime/schema29-successor-rehearsals-2026-09-17/packet-005/backup-receipt.json
+/tests/fixtures/sources/dcn/real-eventsarchive-20251112105828.html

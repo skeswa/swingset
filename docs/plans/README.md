@@ -4,12 +4,13 @@ Plans describe remaining work and how to prove it is complete. They do not
 establish that a feature is deployed. Start with [current status](../status.md)
 for the latest retained operating evidence.
 
-| Goal                                            | Plan                                                     | Read first                                      |
-| ----------------------------------------------- | -------------------------------------------------------- | ----------------------------------------------- |
-| Add historical results while improving recovery | [History and recovery sequence](history-and-recovery.md) | Stage order and gates                           |
-| Preserve corrections and recover safely         | [Recovery rollout](recovery/README.md)                   | Work packages and acceptance scenarios          |
-| Fill historical gaps from event sites           | [Historical source collection](historical-sources.md)    | Source restrictions and review requirements     |
-| Move to PostgreSQL and Dokploy                  | [Migration](postgres-migration/README.md)                | Approach, then the relevant implementation step |
+| Goal                                             | Plan                                                              | Read first                                      |
+| ------------------------------------------------ | ----------------------------------------------------------------- | ----------------------------------------------- |
+| Add historical results while improving recovery  | [History and recovery sequence](history-and-recovery.md)          | Stage order and gates                           |
+| Preserve corrections and recover safely          | [Recovery rollout](recovery/README.md)                            | Work packages and acceptance scenarios          |
+| Bound operational storage without losing history | [Bounded state and durable archive](bounded-state-and-archive.md) | Stages, gates, and known limits                 |
+| Fill historical gaps from event sites            | [Historical source collection](historical-sources.md)             | Source restrictions and review requirements     |
+| Move to PostgreSQL and Dokploy                   | [Migration](postgres-migration/README.md)                         | Approach, then the relevant implementation step |
 
 The [project milestones](milestones.md) define dataset outcomes across these
 plans. Earlier rollout documents live in the [archive](../../journal/archive/README.md).
