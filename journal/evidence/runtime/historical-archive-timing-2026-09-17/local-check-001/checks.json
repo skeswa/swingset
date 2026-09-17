@@ -1,0 +1,86 @@
+{
+  "format": "historical-archive-timing-local-check-v1",
+  "date": "2026-09-17",
+  "schema": 29,
+  "source_before": {
+    "src/swingset/history/archive_timing.py": "0207f7fb3716c0de0f8dd1fd5fe0198cf344196a297d55999a6ebb26d32dfc7b",
+    "src/swingset/history/backfill.py": "96542be615401919f931d8cc41eeea78c65f5326d620614f49c579e07a18c6a3",
+    "src/swingset/fetch/eligibility.py": "4950798170c2e30e286e15cfea2b11efcc6fccc740c68b115f571904b9bab921",
+    "src/swingset/schedule/event_timing_observer.py": "c76af414419e6d798765ef06a8e731f5a66ff10ffb62f1f683e07dbdc0fa5199",
+    "src/swingset/schedule/cycle.py": "34d9ad2377d8f8400426e3c01ff5d2edc6abc57b359388dc5c8424a3a2309048",
+    "src/swingset/state/db.py": "db7688d8b9996c8760fa9f2433da01f5d7c48b06fada9367c8c8076c200d00a0",
+    "src/swingset/state/migrations/0029_history_dispatch_fence.sql": "ba2f46accc102636d8268dfbfaf08a766e34aa6fbb369cf30ee465de81b739d4",
+    "tests/test_historical_event_timing.py": "c0178e20a703dfc40c4afe6720671d17268d8de5974cdd10b824c47da0c8b569",
+    "tests/test_fetch_eligibility.py": "9d471c0bbfc2c3fe8977d73894597b2752c95e265fbdc6fc0b738c7c3e81f7c0"
+  },
+  "source_after": {
+    "src/swingset/history/archive_timing.py": "0207f7fb3716c0de0f8dd1fd5fe0198cf344196a297d55999a6ebb26d32dfc7b",
+    "src/swingset/history/backfill.py": "96542be615401919f931d8cc41eeea78c65f5326d620614f49c579e07a18c6a3",
+    "src/swingset/fetch/eligibility.py": "4950798170c2e30e286e15cfea2b11efcc6fccc740c68b115f571904b9bab921",
+    "src/swingset/schedule/event_timing_observer.py": "c76af414419e6d798765ef06a8e731f5a66ff10ffb62f1f683e07dbdc0fa5199",
+    "src/swingset/schedule/cycle.py": "34d9ad2377d8f8400426e3c01ff5d2edc6abc57b359388dc5c8424a3a2309048",
+    "src/swingset/state/db.py": "db7688d8b9996c8760fa9f2433da01f5d7c48b06fada9367c8c8076c200d00a0",
+    "src/swingset/state/migrations/0029_history_dispatch_fence.sql": "ba2f46accc102636d8268dfbfaf08a766e34aa6fbb369cf30ee465de81b739d4",
+    "tests/test_historical_event_timing.py": "c0178e20a703dfc40c4afe6720671d17268d8de5974cdd10b824c47da0c8b569",
+    "tests/test_fetch_eligibility.py": "9d471c0bbfc2c3fe8977d73894597b2752c95e265fbdc6fc0b738c7c3e81f7c0"
+  },
+  "source_unchanged": true,
+  "passed": true,
+  "checks": [
+    {
+      "name": "pytest",
+      "command": [
+        ".venv/bin/pytest",
+        "-q",
+        "tests/test_historical_event_timing.py"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 2.795,
+      "log_sha256": "3fd6046ff66c418e82ea242765119c130364f2a2a1e74c9773c403fde6f6a788"
+    },
+    {
+      "name": "ruff",
+      "command": [
+        ".venv/bin/ruff",
+        "check",
+        "src/swingset/history/archive_timing.py",
+        "src/swingset/history/backfill.py",
+        "src/swingset/fetch/eligibility.py",
+        "src/swingset/schedule/event_timing_observer.py",
+        "src/swingset/schedule/cycle.py",
+        "src/swingset/state/db.py",
+        "tests/test_historical_event_timing.py",
+        "tests/test_fetch_eligibility.py"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 0.033,
+      "log_sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+    },
+    {
+      "name": "mypy",
+      "command": [
+        ".venv/bin/mypy",
+        "src/swingset/history/archive_timing.py",
+        "src/swingset/history/backfill.py",
+        "src/swingset/fetch/eligibility.py",
+        "src/swingset/schedule/event_timing_observer.py",
+        "src/swingset/schedule/cycle.py",
+        "src/swingset/state/db.py"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 0.355,
+      "log_sha256": "ab35ee42183d4d6d3ba483825ab037d18a5a15622d03be01d82220b1564851ff"
+    }
+  ],
+  "broader_separate_run": {
+    "command": ".venv/bin/pytest -q tests/test_historical_event_timing.py tests/test_event_timing.py tests/test_fetch_eligibility.py tests/test_platform_backfill.py tests/test_history_origin_dispatch.py tests/test_cycle.py tests/test_h14_acceptance.py tests/test_event_timing_rendering.py",
+    "passed": 140,
+    "seconds": 14.71,
+    "receipt_scope": "Observed tool result before this separately retained focused check; not combined as one run."
+  },
+  "limits": [
+    "Local implementation only; not a full-suite run, source freeze, deployment or publication.",
+    "Global fence replay write cost and schema28-to29 preservation require separate predeployment checks.",
+    "Origin, interpretation, whole-event, legacy and continuous fleet timing remain unsupported."
+  ]
+}

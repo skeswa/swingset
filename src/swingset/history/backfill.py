@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, replace
 from datetime import datetime, timedelta
-from typing import Protocol
+from typing import TYPE_CHECKING, Protocol
 
 from swingset.admission.generations import deserialize_result
 from swingset.clock import Clock
@@ -23,6 +23,9 @@ from swingset.state.controls import matching_pauses
 from swingset.state.db import Database
 from swingset.state.findings import Finding, replace_findings
 from swingset.state.work import runnable_exists
+
+if TYPE_CHECKING:
+    from swingset.history.archive_timing import OfferTiming
 
 
 class Fetcher(Protocol):
@@ -188,6 +191,7 @@ def offers(
     *,
     plan: PlatformPlan | None = None,
     run_id: str | None = None,
+    timing: OfferTiming | None = None,
 ) -> tuple[WatchSpec, ...]:
     """Expose the finite eligible plan to ordinary rotation without scheduling it.
 
@@ -195,6 +199,8 @@ def offers(
     together, so that order cannot override an already enrolled event turn.
     Dispatch repeats the year, parent, capture, and source gates before mutation.
     """
+    if timing is not None:
+        timing.begin(connection=database.connection, config=config, clock=clock, run_id=run_id)
     plan = plan or retained_plan(database.connection, history_start=config.history_start)
     options = [(item, _candidate(database, config, clock, item, plan)) for item in plan.pages]
     archive_sources = {item.page.source for item, (spec, _, _) in options if spec is not None}
@@ -210,6 +216,8 @@ def offers(
             spec, _, _ = candidate(database, config, clock, item, plan, run_id=run_id)
         if spec is not None:
             result.setdefault(spec.watch_id, spec)
+    if timing is not None:
+        timing.finish(result)
     return tuple(result.values())
 
 
@@ -252,93 +260,103 @@ def dispatch_one(
     gaps = list(plan.findings)
     chosen: tuple[PlannedPage, Capture | None, WatchSpec] | None = None
     blocked = "no_eligible_capture"
-    with database.transaction():
-        if not allocated and (reason := _busy(database, config, clock, deadline)):
-            return Dispatch(reason)
-        options = [(item, _candidate(database, config, clock, item, plan)) for item in plan.pages]
-        archive_sources = {item.page.source for item, (spec, _, _) in options if spec is not None}
-        for item, (spec, capture, reason) in options:
-            page = item.page
-            archive_reason = reason
-            proposal: OriginProposal | None = None
-            if (
-                spec is None
-                and reason in {"capture_gap_exhausted", "operator_pause"}
-                and item.page.source not in archive_sources
-            ):
-                from swingset.history.origin_dispatch import candidate
+    from swingset.schedule.event_timing_observer import checkpoint, resume
 
-                spec, proposal, reason = candidate(
-                    database, config, clock, item, plan, run_id=run_id
-                )
-            if spec is None:
-                blocked = reason
-                if archive_reason == "capture_gap_exhausted" and item.captures:
-                    gaps.append(
-                        Finding(
-                            "history_archive_gap",
-                            "event",
-                            item.event.event_id,
-                            "warning",
-                            "Platform capture alternatives are exhausted or incomplete",
-                            {
-                                "source": page.source,
-                                "url": page.url,
-                                "year": item.event.year,
-                                "attempts_available": len(item.captures),
-                            },
-                        )
-                    )
-                elif reason == "parent_document_pending":
-                    gaps.append(
-                        Finding(
-                            "history_archive_gap",
-                            "event",
-                            item.event.event_id,
-                            "warning",
-                            "Archived sheet waits for its admitted parent declaration",
-                            {
-                                "source": page.source,
-                                "url": page.url,
-                                "parent_url": page.parent_url,
-                                "year": item.event.year,
-                            },
-                        )
-                    )
-                continue
-            if chosen is not None or (
-                target_watch_id is not None and spec.watch_id != target_watch_id
-            ):
-                continue
-            # The gate and this mutation share BEGIN IMMEDIATE; changed policies or
-            # year acceptance can never leave a newly admitted control behind.
-            scheduled = False
-            if proposal is not None:
-                from swingset.history.origin_dispatch import schedule
+    checkpoint()
+    try:
+        with database.transaction():
+            if not allocated and (reason := _busy(database, config, clock, deadline)):
+                return Dispatch(reason)
+            options = [
+                (item, _candidate(database, config, clock, item, plan)) for item in plan.pages
+            ]
+            archive_sources = {
+                item.page.source for item, (spec, _, _) in options if spec is not None
+            }
+            for item, (spec, capture, reason) in options:
+                page = item.page
+                archive_reason = reason
+                proposal: OriginProposal | None = None
+                if (
+                    spec is None
+                    and reason in {"capture_gap_exhausted", "operator_pause"}
+                    and item.page.source not in archive_sources
+                ):
+                    from swingset.history.origin_dispatch import candidate
 
-                schedule(conn, spec, proposal, run_id=run_id, now=clock.now())
-                scheduled = True
-            else:
-                scheduled = schedule_capture(conn, spec, now=clock.now())
-            if scheduled:
-                conn.execute("UPDATE watches SET priority=6 WHERE watch_id=?", (spec.watch_id,))
-                replace_findings(
-                    conn,
-                    owner_kind="acquisition_gate",
-                    owner_id=spec.watch_id,
-                    findings=(),
-                    opened_at=clock.now().isoformat(),
-                    run_id=run_id,
-                )
-                chosen = item, capture, spec
-        replace_findings(
-            conn,
-            owner_kind="platform_backfill",
-            owner_id="retained_plan",
-            findings=tuple(gaps),
-            opened_at=clock.now().isoformat(),
-            run_id=run_id,
-        )
+                    spec, proposal, reason = candidate(
+                        database, config, clock, item, plan, run_id=run_id
+                    )
+                if spec is None:
+                    blocked = reason
+                    if archive_reason == "capture_gap_exhausted" and item.captures:
+                        gaps.append(
+                            Finding(
+                                "history_archive_gap",
+                                "event",
+                                item.event.event_id,
+                                "warning",
+                                "Platform capture alternatives are exhausted or incomplete",
+                                {
+                                    "source": page.source,
+                                    "url": page.url,
+                                    "year": item.event.year,
+                                    "attempts_available": len(item.captures),
+                                },
+                            )
+                        )
+                    elif reason == "parent_document_pending":
+                        gaps.append(
+                            Finding(
+                                "history_archive_gap",
+                                "event",
+                                item.event.event_id,
+                                "warning",
+                                "Archived sheet waits for its admitted parent declaration",
+                                {
+                                    "source": page.source,
+                                    "url": page.url,
+                                    "parent_url": page.parent_url,
+                                    "year": item.event.year,
+                                },
+                            )
+                        )
+                    continue
+                if chosen is not None or (
+                    target_watch_id is not None and spec.watch_id != target_watch_id
+                ):
+                    continue
+                # The gate and this mutation share BEGIN IMMEDIATE; changed policies or
+                # year acceptance can never leave a newly admitted control behind.
+                scheduled = False
+                if proposal is not None:
+                    from swingset.history.origin_dispatch import schedule
+
+                    schedule(conn, spec, proposal, run_id=run_id, now=clock.now())
+                    scheduled = True
+                else:
+                    scheduled = schedule_capture(conn, spec, now=clock.now())
+                if scheduled:
+                    conn.execute("UPDATE watches SET priority=6 WHERE watch_id=?", (spec.watch_id,))
+                    replace_findings(
+                        conn,
+                        owner_kind="acquisition_gate",
+                        owner_id=spec.watch_id,
+                        findings=(),
+                        opened_at=clock.now().isoformat(),
+                        run_id=run_id,
+                    )
+                    chosen = item, capture, spec
+            replace_findings(
+                conn,
+                owner_kind="platform_backfill",
+                owner_id="retained_plan",
+                findings=tuple(gaps),
+                opened_at=clock.now().isoformat(),
+                run_id=run_id,
+            )
+    finally:
+        resume()
     if chosen is None:
         return Dispatch(blocked)
     _, capture, spec = chosen

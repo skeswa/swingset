@@ -1,0 +1,24 @@
+{
+  "recorded_at": "2026-09-17T17:24:16.392757+00:00",
+  "reviewer": "root coordinator independent of implementation author",
+  "source_and_test_sha256": {
+    "src/swingset/history/archive_timing.py": "0207f7fb3716c0de0f8dd1fd5fe0198cf344196a297d55999a6ebb26d32dfc7b",
+    "src/swingset/history/backfill.py": "96542be615401919f931d8cc41eeea78c65f5326d620614f49c579e07a18c6a3",
+    "src/swingset/fetch/eligibility.py": "4950798170c2e30e286e15cfea2b11efcc6fccc740c68b115f571904b9bab921",
+    "src/swingset/schedule/event_timing_observer.py": "c76af414419e6d798765ef06a8e731f5a66ff10ffb62f1f683e07dbdc0fa5199",
+    "src/swingset/schedule/cycle.py": "34d9ad2377d8f8400426e3c01ff5d2edc6abc57b359388dc5c8424a3a2309048",
+    "src/swingset/state/db.py": "db7688d8b9996c8760fa9f2433da01f5d7c48b06fada9367c8c8076c200d00a0",
+    "src/swingset/state/migrations/0029_history_dispatch_fence.sql": "ba2f46accc102636d8268dfbfaf08a766e34aa6fbb369cf30ee465de81b739d4",
+    "tests/test_historical_event_timing.py": "c0178e20a703dfc40c4afe6720671d17268d8de5974cdd10b824c47da0c8b569"
+  },
+  "source_unchanged_during_check": true,
+  "pytest_exit": 0,
+  "scope": "Archive offer proof invalidation and bounded observer only; no origin/whole-event timing, fleet throughput or deployment acceptance",
+  "review_findings": [
+    "early mutation-transaction return now resumes observer in finally and regression passes",
+    "current connection/run/dependency revision and retry cutoff bind proof",
+    "open and close reject changes; unsupported populations stay unknown",
+    "ordinary observer does not rescan archive plan/parent/year populations"
+  ],
+  "runtime_deployed": false
+}
