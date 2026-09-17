@@ -1,0 +1,86 @@
+{
+  "format": "independent-dcn-offline-review-v1",
+  "date": "2026-09-17",
+  "reviewer": "/root/eligible_time",
+  "source_before": {
+    "src/swingset/sources/dcn/__init__.py": "2dc8c0ecb84ba99b7c9fad6c0ea4a9abf47688741abf6f85c17e9b38243b1c5e",
+    "src/swingset/sources/dcn/adapter.py": "38697e69f800addf591c35cb893368ee2c69560e053c9c3d90c614957308e51f",
+    "src/swingset/sources/dcn/nuxt.py": "fdaa9a0c29cbf9dfcf8e15bf864f2c4d172a38d02f245409aef3dd5d93bb1c0f",
+    "src/swingset/sources/dcn/records.py": "5e2564bd3d4d87a6b514c076874a58c3b734155a8785080970faecc4613e32f6",
+    "tests/fixtures/sources/dcn/changed-controls.json": "c95d0d2a9e250ab40294baa4906c5a03096c24b5ac743e5ac539f217d7678bfd",
+    "tests/fixtures/sources/dcn/empty.html": "a9c77fd30469d5ddc9b91216ab7d8304ee34bf0ad486f5ed5e85e3729e9fd4e9",
+    "tests/fixtures/sources/dcn/malformed-nuxt.html": "b8b7a0f9f5f4454d34ac5be56bf68ffb8f614dd4dd87592624cef5aac54b1388",
+    "tests/fixtures/sources/dcn/real-eventsarchive-20251112105828.html": "3e4e9cae6d39e099b79c7b5e7bae1e25c02fb0315e82e1311c7be4b39e3796bb",
+    "tests/fixtures/sources/dcn/real-legacy-event-20180815191517.html": "c30d80cb4f6fae81e886c13aaa43c46ff68f9949ff219c5c77c3daa79104e03f",
+    "tests/fixtures/sources/dcn/real-provenance-20260917.json": "3862be967e4557b35b806df09b0e48aa84f616d85e8134b107f3d434a4e91bcc",
+    "tests/test_dcn_payload.py": "71b22e77bbed9230b508061e310bd8c02087516fa67e45b892d63f2d98bfca38",
+    "tests/test_dcn_real_controls.py": "f51c19fbea63f280cb0436da0d2d810b526c926d235c3457db5d70532c5518ab"
+  },
+  "source_after": {
+    "src/swingset/sources/dcn/__init__.py": "2dc8c0ecb84ba99b7c9fad6c0ea4a9abf47688741abf6f85c17e9b38243b1c5e",
+    "src/swingset/sources/dcn/adapter.py": "38697e69f800addf591c35cb893368ee2c69560e053c9c3d90c614957308e51f",
+    "src/swingset/sources/dcn/nuxt.py": "fdaa9a0c29cbf9dfcf8e15bf864f2c4d172a38d02f245409aef3dd5d93bb1c0f",
+    "src/swingset/sources/dcn/records.py": "5e2564bd3d4d87a6b514c076874a58c3b734155a8785080970faecc4613e32f6",
+    "tests/fixtures/sources/dcn/changed-controls.json": "c95d0d2a9e250ab40294baa4906c5a03096c24b5ac743e5ac539f217d7678bfd",
+    "tests/fixtures/sources/dcn/empty.html": "a9c77fd30469d5ddc9b91216ab7d8304ee34bf0ad486f5ed5e85e3729e9fd4e9",
+    "tests/fixtures/sources/dcn/malformed-nuxt.html": "b8b7a0f9f5f4454d34ac5be56bf68ffb8f614dd4dd87592624cef5aac54b1388",
+    "tests/fixtures/sources/dcn/real-eventsarchive-20251112105828.html": "3e4e9cae6d39e099b79c7b5e7bae1e25c02fb0315e82e1311c7be4b39e3796bb",
+    "tests/fixtures/sources/dcn/real-legacy-event-20180815191517.html": "c30d80cb4f6fae81e886c13aaa43c46ff68f9949ff219c5c77c3daa79104e03f",
+    "tests/fixtures/sources/dcn/real-provenance-20260917.json": "3862be967e4557b35b806df09b0e48aa84f616d85e8134b107f3d434a4e91bcc",
+    "tests/test_dcn_payload.py": "71b22e77bbed9230b508061e310bd8c02087516fa67e45b892d63f2d98bfca38",
+    "tests/test_dcn_real_controls.py": "f51c19fbea63f280cb0436da0d2d810b526c926d235c3457db5d70532c5518ab"
+  },
+  "source_unchanged": true,
+  "passed": true,
+  "checks": [
+    {
+      "name": "pytest",
+      "command": [
+        ".venv/bin/pytest",
+        "-q",
+        "tests/test_dcn_payload.py",
+        "tests/test_dcn_real_controls.py"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 1.041,
+      "log_sha256": "d1d38d544e1fe9d25b1613efd78cae086d6990576e149f68836e635347b3be96"
+    },
+    {
+      "name": "ruff",
+      "command": [
+        ".venv/bin/ruff",
+        "check",
+        "src/swingset/sources/dcn",
+        "tests/test_dcn_payload.py",
+        "tests/test_dcn_real_controls.py"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 0.034,
+      "log_sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+    }
+  ],
+  "findings": [
+    {
+      "issue": "Malformed source/context locators raised raw ValueError.",
+      "resolution": "Locator joins and splits now translate failure to controlled ExtractError/ParseError, with malformed source/context regressions.",
+      "status": "resolved"
+    },
+    {
+      "issue": "DCN-prefixed dataclass names registered d_c_n_* while persisted payload kinds use dcn_*; same-process encode/decode tests masked failure.",
+      "resolution": "Dcn-prefixed names match conventional codec keys; a new interpreter decodes the complete retained inventory and legacy metadata before encoding.",
+      "status": "resolved"
+    }
+  ],
+  "review_scope": [
+    "Data-only Nuxt grammar, depth/node/script/body/parameter and alias expansion bounds; no executable evaluation.",
+    "Real body and linked retained receipt hashes independently verified for both fixtures.",
+    "All 50 retained index event locators compared with independently parsed rendered HTML; raw metadata preserved.",
+    "Legacy metadata requires matching desktop/mobile headings and correct event results locator; results availability remains unknown.",
+    "No source registry, watch seed or admission policy activation."
+  ],
+  "remaining": [
+    "Offline controls only; no canonical projection or new-kind enforcement.",
+    "No new PDF control or results/PDF parsing acceptance.",
+    "No production deployment, acquisition, publication or owner year acceptance."
+  ]
+}

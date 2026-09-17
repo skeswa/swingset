@@ -1,0 +1,512 @@
+{
+  "format": "dcn-offline-locators-v1",
+  "index_body_sha256": "3e4e9cae6d39e099b79c7b5e7bae1e25c02fb0315e82e1311c7be4b39e3796bb",
+  "events": [
+    {
+      "source_event_ref": "dcn:300873831",
+      "name": "WeAsOne Indonesia",
+      "eventPage": "https://danceconvention.net/eventdirector/en/eventpage/300873831-weasone-indonesia",
+      "affiliations": [],
+      "results": false,
+      "published": true
+    },
+    {
+      "source_event_ref": "dcn:300632160",
+      "name": "Moscow Westie Fest: Gala Edition 2025",
+      "eventPage": "https://danceconvention.net/eventdirector/en/eventpage/300632160-moscow-westie-fest-gala-edition-2025",
+      "affiliations": [
+        "WSDC"
+      ],
+      "results": true,
+      "published": true
+    },
+    {
+      "source_event_ref": "dcn:300368331",
+      "name": "Simply Adelaide West Coast Swing 2025",
+      "eventPage": "https://danceconvention.net/eventdirector/en/eventpage/300368331-simply-adelaide-west-coast-swing-2025",
+      "affiliations": [
+        "WSDC"
+      ],
+      "results": true,
+      "published": true
+    },
+    {
+      "source_event_ref": "dcn:300873830",
+      "name": "BRAZUKA DANCE FESTIVAL 2025",
+      "eventPage": "https://danceconvention.net/eventdirector/en/eventpage/300873830-brazuka-dance-festival-2025",
+      "affiliations": [
+        "BZDC",
+        "WZR"
+      ],
+      "results": false,
+      "published": true
+    },
+    {
+      "source_event_ref": "dcn:300650011",
+      "name": "Spooky Westie Weekend 2025",
+      "eventPage": "https://danceconvention.net/eventdirector/en/eventpage/300650011-spooky-westie-weekend-2025",
+      "affiliations": [
+        "WSDC"
+      ],
+      "results": true,
+      "published": true
+    },
+    {
+      "source_event_ref": "dcn:300426000",
+      "name": "The NZ WCS Open 2025",
+      "eventPage": "https://danceconvention.net/eventdirector/en/eventpage/300426000-the-nz-wcs-open-2025",
+      "affiliations": [
+        "WSDC"
+      ],
+      "results": true,
+      "published": true
+    },
+    {
+      "source_event_ref": "dcn:300146691",
+      "name": "Go West Swingfest 2025",
+      "eventPage": "https://danceconvention.net/eventdirector/en/eventpage/300146691-go-west-swingfest-2025",
+      "affiliations": [
+        "WSDC"
+      ],
+      "results": true,
+      "published": true
+    },
+    {
+      "source_event_ref": "dcn:300721130",
+      "name": "Waffle Fest",
+      "eventPage": "https://danceconvention.net/eventdirector/en/eventpage/300721130-waffle-fest",
+      "affiliations": [],
+      "results": true,
+      "published": true
+    },
+    {
+      "source_event_ref": "dcn:300599470",
+      "name": "Austin Rocks | ATX ROX 2025 - West Coast Swing Magic",
+      "eventPage": "https://danceconvention.net/eventdirector/en/eventpage/300599470-austin-rocks-atx-rox-2025---west-coast-swing-magic",
+      "affiliations": [
+        "WSDC"
+      ],
+      "results": true,
+      "published": true
+    },
+    {
+      "source_event_ref": "dcn:300349130",
+      "name": "Best Of The Best 2025",
+      "eventPage": "https://danceconvention.net/eventdirector/en/eventpage/300349130-best-of-the-best-2025",
+      "affiliations": [
+        "WSDC"
+      ],
+      "results": true,
+      "published": true
+    },
+    {
+      "source_event_ref": "dcn:300904280",
+      "name": "Zouk Championship Summer Edition 2025",
+      "eventPage": "https://danceconvention.net/eventdirector/en/eventpage/300904280-zouk-championship-summer-edition-2025",
+      "affiliations": [
+        "BZDC",
+        "WZR"
+      ],
+      "results": true,
+      "published": true
+    },
+    {
+      "source_event_ref": "dcn:300460020",
+      "name": "Korea Westival 2025",
+      "eventPage": "https://danceconvention.net/eventdirector/en/eventpage/300460020-korea-westival-2025",
+      "affiliations": [
+        "WSDC"
+      ],
+      "results": true,
+      "published": true
+    },
+    {
+      "source_event_ref": "dcn:300698151",
+      "name": "Sea Dance Fest 2025",
+      "eventPage": "https://danceconvention.net/eventdirector/en/eventpage/300698151-sea-dance-fest-2025",
+      "affiliations": [
+        "WSDC"
+      ],
+      "results": true,
+      "published": true
+    },
+    {
+      "source_event_ref": "dcn:300472730",
+      "name": "Shakedown Swing 2025",
+      "eventPage": "https://danceconvention.net/eventdirector/en/eventpage/300472730-shakedown-swing-2025",
+      "affiliations": [
+        "WSDC"
+      ],
+      "results": true,
+      "published": true
+    },
+    {
+      "source_event_ref": "dcn:300647280",
+      "name": "Swing Dance Mania",
+      "eventPage": "https://danceconvention.net/eventdirector/en/eventpage/300647280-swing-dance-mania",
+      "affiliations": [
+        "WSDC"
+      ],
+      "results": true,
+      "published": true
+    },
+    {
+      "source_event_ref": "dcn:300687170",
+      "name": "ZoukoMore 2025",
+      "eventPage": "https://danceconvention.net/eventdirector/en/eventpage/300687170-zoukomore-2025",
+      "affiliations": [
+        "BZDC",
+        "WZR"
+      ],
+      "results": true,
+      "published": true
+    },
+    {
+      "source_event_ref": "dcn:300473490",
+      "name": "IGNITE QMJC 2025 (Dance Champs Weekend)",
+      "eventPage": "https://danceconvention.net/eventdirector/en/eventpage/300473490-ignite-qmjc-2025-dance-champs-weekend",
+      "affiliations": [],
+      "results": false,
+      "published": true
+    },
+    {
+      "source_event_ref": "dcn:300768820",
+      "name": "BRAZUKA AUTUMN CUP 2025",
+      "eventPage": "https://danceconvention.net/eventdirector/en/eventpage/300768820-brazuka-autumn-cup-2025",
+      "affiliations": [
+        "BZDC",
+        "WZR"
+      ],
+      "results": false,
+      "published": true
+    },
+    {
+      "source_event_ref": "dcn:300409020",
+      "name": "Lisbon Westie Fest 2025",
+      "eventPage": "https://danceconvention.net/eventdirector/en/eventpage/300409020-lisbon-westie-fest-2025",
+      "affiliations": [],
+      "results": false,
+      "published": true
+    },
+    {
+      "source_event_ref": "dcn:300545780",
+      "name": "Russian Zouk Congress and Championship 2025",
+      "eventPage": "https://danceconvention.net/eventdirector/en/eventpage/300545780-russian-zouk-congress-and-championship-2025",
+      "affiliations": [
+        "BZDC",
+        "WZR"
+      ],
+      "results": true,
+      "published": true
+    },
+    {
+      "source_event_ref": "dcn:300388070",
+      "name": "Swingesota Summer Spectacular 2025",
+      "eventPage": "https://danceconvention.net/eventdirector/en/eventpage/300388070-swingesota-summer-spectacular-2025",
+      "affiliations": [
+        "WSDC"
+      ],
+      "results": false,
+      "published": true
+    },
+    {
+      "source_event_ref": "dcn:300163900",
+      "name": "Revitalise WCS",
+      "eventPage": "https://danceconvention.net/eventdirector/en/eventpage/300163900-revitalise-wcs",
+      "affiliations": [
+        "WSDC"
+      ],
+      "results": true,
+      "published": true
+    },
+    {
+      "source_event_ref": "dcn:300454680",
+      "name": "St.Petersburg WCS Nights 2025",
+      "eventPage": "https://danceconvention.net/eventdirector/en/eventpage/300454680-stpetersburg-wcs-nights-2025",
+      "affiliations": [
+        "WSDC"
+      ],
+      "results": true,
+      "published": true
+    },
+    {
+      "source_event_ref": "dcn:300180840",
+      "name": "MY Swing 2025",
+      "eventPage": "https://danceconvention.net/eventdirector/en/eventpage/300180840-my-swing-2025",
+      "affiliations": [
+        "WSDC"
+      ],
+      "results": true,
+      "published": true
+    },
+    {
+      "source_event_ref": "dcn:300139570",
+      "name": "Americano Dance Camp 2025",
+      "eventPage": "https://danceconvention.net/eventdirector/en/eventpage/300139570-americano-dance-camp-2025",
+      "affiliations": [
+        "WSDC"
+      ],
+      "results": true,
+      "published": true
+    },
+    {
+      "source_event_ref": "dcn:300677910",
+      "name": "Judgement June High Low JNJ 2025",
+      "eventPage": "https://danceconvention.net/eventdirector/en/eventpage/300677910-judgement-june-high-low-jnj-2025",
+      "affiliations": [],
+      "results": false,
+      "published": true
+    },
+    {
+      "source_event_ref": "dcn:300568810",
+      "name": "BRAZUKA SUMMER CUP 2025",
+      "eventPage": "https://danceconvention.net/eventdirector/en/eventpage/300568810-brazuka-summer-cup-2025",
+      "affiliations": [
+        "BZDC",
+        "WZR"
+      ],
+      "results": true,
+      "published": true
+    },
+    {
+      "source_event_ref": "dcn:300460021",
+      "name": "Australian Ceroc Dance Championships",
+      "eventPage": "https://danceconvention.net/eventdirector/en/eventpage/300460021-australian-ceroc-dance-championships",
+      "affiliations": [],
+      "results": false,
+      "published": true
+    },
+    {
+      "source_event_ref": "dcn:300568811",
+      "name": "Life Is Life",
+      "eventPage": "https://danceconvention.net/eventdirector/en/eventpage/300568811-life-is-life",
+      "affiliations": [],
+      "results": true,
+      "published": true
+    },
+    {
+      "source_event_ref": "dcn:8652740",
+      "name": "Swingsation 2025",
+      "eventPage": "https://danceconvention.net/eventdirector/en/eventpage/8652740-swingsation-2025",
+      "affiliations": [
+        "WSDC"
+      ],
+      "results": true,
+      "published": true
+    },
+    {
+      "source_event_ref": "dcn:300134480",
+      "name": "Sea Breeze Modern Jive Weekend",
+      "eventPage": "https://danceconvention.net/eventdirector/en/eventpage/300134480-sea-breeze-modern-jive-weekend",
+      "affiliations": [],
+      "results": false,
+      "published": true
+    },
+    {
+      "source_event_ref": "dcn:300512920",
+      "name": "Zouk One Love 2025",
+      "eventPage": "https://danceconvention.net/eventdirector/en/eventpage/300512920-zouk-one-love-2025",
+      "affiliations": [
+        "BZDC",
+        "WZR"
+      ],
+      "results": true,
+      "published": true
+    },
+    {
+      "source_event_ref": "dcn:300454681",
+      "name": "BeeMAD 2025",
+      "eventPage": "https://danceconvention.net/eventdirector/en/eventpage/300454681-beemad-2025",
+      "affiliations": [
+        "WSDC"
+      ],
+      "results": false,
+      "published": true
+    },
+    {
+      "source_event_ref": "dcn:300225910",
+      "name": "HONEY FEST 2025",
+      "eventPage": "https://danceconvention.net/eventdirector/en/eventpage/300225910-honey-fest-2025",
+      "affiliations": [
+        "WSDC"
+      ],
+      "results": true,
+      "published": true
+    },
+    {
+      "source_event_ref": "dcn:8590830",
+      "name": "Asia WCS Open 2025",
+      "eventPage": "https://danceconvention.net/eventdirector/en/eventpage/8590830-asia-wcs-open-2025",
+      "affiliations": [
+        "WSDC"
+      ],
+      "results": true,
+      "published": true
+    },
+    {
+      "source_event_ref": "dcn:300492720",
+      "name": "BRAZUKA SPRING CUP 2025",
+      "eventPage": "https://danceconvention.net/eventdirector/en/eventpage/300492720-brazuka-spring-cup-2025",
+      "affiliations": [
+        "BZDC",
+        "WZR"
+      ],
+      "results": true,
+      "published": true
+    },
+    {
+      "source_event_ref": "dcn:300096840",
+      "name": "Korean Open WCS Championships 2025",
+      "eventPage": "https://danceconvention.net/eventdirector/en/eventpage/300096840-korean-open-wcs-championships-2025",
+      "affiliations": [
+        "WSDC"
+      ],
+      "results": true,
+      "published": true
+    },
+    {
+      "source_event_ref": "dcn:300278470",
+      "name": "Cinema Swing Fest: Wonderland",
+      "eventPage": "https://danceconvention.net/eventdirector/en/eventpage/300278470-cinema-swing-fest-wonderland",
+      "affiliations": [],
+      "results": true,
+      "published": true
+    },
+    {
+      "source_event_ref": "dcn:300486940",
+      "name": "March Madness JNJ",
+      "eventPage": "https://danceconvention.net/eventdirector/en/eventpage/300486940-march-madness-jnj",
+      "affiliations": [],
+      "results": true,
+      "published": true
+    },
+    {
+      "source_event_ref": "dcn:300240591",
+      "name": "Spicy Spring Swing",
+      "eventPage": "https://danceconvention.net/eventdirector/en/eventpage/300240591-spicy-spring-swing",
+      "affiliations": [],
+      "results": true,
+      "published": true
+    },
+    {
+      "source_event_ref": "dcn:300011200",
+      "name": "Swingvasion III (2025)",
+      "eventPage": "https://danceconvention.net/eventdirector/en/eventpage/300011200-swingvasion-iii-2025",
+      "affiliations": [
+        "WSDC"
+      ],
+      "results": true,
+      "published": true
+    },
+    {
+      "source_event_ref": "dcn:300240590",
+      "name": "Cash&amp;Swing 2025",
+      "eventPage": "https://danceconvention.net/eventdirector/en/eventpage/300240590-cashswing-2025",
+      "affiliations": [],
+      "results": true,
+      "published": true
+    },
+    {
+      "source_event_ref": "dcn:300439991",
+      "name": "Arousa Westie Fest 2025",
+      "eventPage": "https://danceconvention.net/eventdirector/en/eventpage/300439991-arousa-westie-fest-2025",
+      "affiliations": [
+        "WSDC"
+      ],
+      "results": false,
+      "published": true
+    },
+    {
+      "source_event_ref": "dcn:300353221",
+      "name": "BRAZUKA WINTER CUP 2025",
+      "eventPage": "https://danceconvention.net/eventdirector/en/eventpage/300353221-brazuka-winter-cup-2025",
+      "affiliations": [
+        "BZDC",
+        "WZR"
+      ],
+      "results": true,
+      "published": true
+    },
+    {
+      "source_event_ref": "dcn:8637240",
+      "name": "WesterOz Swing",
+      "eventPage": "https://danceconvention.net/eventdirector/en/eventpage/8637240-westeroz-swing",
+      "affiliations": [
+        "WSDC"
+      ],
+      "results": true,
+      "published": true
+    },
+    {
+      "source_event_ref": "dcn:300069421",
+      "name": "Paris Swing Classic 2025",
+      "eventPage": "https://danceconvention.net/eventdirector/en/eventpage/300069421-paris-swing-classic-2025",
+      "affiliations": [
+        "WSDC"
+      ],
+      "results": false,
+      "published": true
+    },
+    {
+      "source_event_ref": "dcn:300047750",
+      "name": "Swing&amp;Snow 2025",
+      "eventPage": "https://danceconvention.net/eventdirector/en/eventpage/300047750-swingsnow-2025",
+      "affiliations": [
+        "WSDC"
+      ],
+      "results": true,
+      "published": true
+    },
+    {
+      "source_event_ref": "dcn:299999902",
+      "name": "The Australian Classic WCS Dance Championships",
+      "eventPage": "https://danceconvention.net/eventdirector/en/eventpage/299999902-the-australian-classic-wcs-dance-championships",
+      "affiliations": [
+        "WSDC"
+      ],
+      "results": true,
+      "published": true
+    },
+    {
+      "source_event_ref": "dcn:300353220",
+      "name": "Christmas Zouk Championship 2025",
+      "eventPage": "https://danceconvention.net/eventdirector/en/eventpage/300353220-christmas-zouk-championship-2025",
+      "affiliations": [
+        "BZDC",
+        "WZR"
+      ],
+      "results": false,
+      "published": true
+    },
+    {
+      "source_event_ref": "dcn:300069620",
+      "name": "Winter Zouk Fest 2025",
+      "eventPage": "https://danceconvention.net/eventdirector/en/eventpage/300069620-winter-zouk-fest-2025",
+      "affiliations": [
+        "BZDC"
+      ],
+      "results": false,
+      "published": true
+    }
+  ],
+  "available_years": [
+    2025,
+    2024,
+    2023,
+    2022,
+    2021,
+    2020,
+    2019,
+    2018,
+    2017,
+    2016,
+    2015,
+    2014,
+    2013
+  ],
+  "load_year_url": "https://danceconvention.net/eventdirector/en/eventsarchive:loadyear",
+  "pdf_locators": [],
+  "watch_creation": false,
+  "network_requests": 0,
+  "enumeration_status": "listed_only; no claim about unlisted events or other years"
+}

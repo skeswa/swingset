@@ -1,0 +1,4 @@
+#!/bin/sh
+set -eu
+# Coordinator only: run once after all other worker operations stop.
+exec /run/current-system/sw/bin/env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=/nix/store/z689qy41inndill3d92ym8im852x3649-source/src:/nix/store/z689qy41inndill3d92ym8im852x3649-source /var/lib/swingset/venv/bin/python /var/lib/swingset/operations/v2-continuation-20260917/dcn-index-001/dcn-index-fixture-h13-001.py --repo /nix/store/z689qy41inndill3d92ym8im852x3649-source --manifest /var/lib/swingset/operations/v2-continuation-20260917/dcn-index-001/helper-closure/proposal.json --state /var/lib/swingset --quarantine /var/tmp/swingset-dcn-index-fixture-20260917-001 --authorization /var/lib/swingset/operations/v2-continuation-20260917/dcn-index-001/authorization.json --execution-gate /var/lib/swingset/operations/v2-continuation-20260917/dcn-index-001/execution-gate.json --execution-gate-sha256 886a4db376182712ebfe3333ceac760cad079c0c839f72fe4a4e99dfe864f0fa --execute

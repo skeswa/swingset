@@ -1,0 +1,42 @@
+{
+  "observed_at": "2026-09-17T16:22:53.202424+00:00",
+  "schema": "14",
+  "hold": true,
+  "baseline": "cand_8f31cad7226643ae",
+  "published": {
+    "candidate_id": "cand_8f31cad7226643ae",
+    "closure_digest": "14cf059a95be0a24d64367a84f3d0cc22b3d4ef82ced263f95ff9293d9da60ec",
+    "commit": "2a6c7dc744fb36eabb5163c0a527d787d3721f4f",
+    "correction_age_basis": "recorded_pending_corrections",
+    "correction_detected_at": null,
+    "correction_latency_seconds": null,
+    "evidence_cutoff": "2026-09-16T22:25:41.741173+00:00",
+    "latency_is_upper_bound": false,
+    "verified_at": "2026-09-16T22:37:24.934598+00:00"
+  },
+  "archive_budget": [
+    {
+      "host": "web.archive.org",
+      "day": "2026-09-13",
+      "requests": 200,
+      "bytes": 13463052
+    },
+    {
+      "host": "web.archive.org",
+      "day": "2026-09-17",
+      "requests": 10,
+      "bytes": 2934701
+    }
+  ],
+  "pending_parse": 31821,
+  "active_system": "/nix/store/sx7lpr80cx0n9vzsi3cwz9nxawqc4p1i-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+  "persistent_system": "/nix/store/sx7lpr80cx0n9vzsi3cwz9nxawqc4p1i-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+  "units": {
+    "swingset-cycle.service": "inactive",
+    "swingset-cycle.timer": "inactive",
+    "swingset-backup.service": "inactive",
+    "swingset-backup.timer": "inactive",
+    "swingset-summary.service": "inactive",
+    "swingset-summary.timer": "inactive"
+  }
+}

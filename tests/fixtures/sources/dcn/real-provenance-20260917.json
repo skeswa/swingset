@@ -1,0 +1,18 @@
+[
+  {
+    "file": "real-legacy-event-20180815191517.html",
+    "body_sha256": "c30d80cb4f6fae81e886c13aaa43c46ff68f9949ff219c5c77c3daa79104e03f",
+    "original_url": "https://danceconvention.net/eventdirector/en/eventpage/1546230",
+    "captured_at": "2018-08-15T19:15:17+00:00",
+    "receipt_path": "journal/evidence/admission/fixture-exception-2026-09-17/quarantine/receipt.json",
+    "receipt_sha256": "195c2ddcff02401f780c1591031125fe7d254d0a251179654dc448d55e1ae99a"
+  },
+  {
+    "file": "real-eventsarchive-20251112105828.html",
+    "body_sha256": "3e4e9cae6d39e099b79c7b5e7bae1e25c02fb0315e82e1311c7be4b39e3796bb",
+    "original_url": "https://danceconvention.net/eventdirector/en/eventsarchive",
+    "captured_at": "2025-11-12T10:58:28+00:00",
+    "receipt_path": "journal/evidence/admission/dcn-index-fixture-2026-09-17/quarantine/receipt.json",
+    "receipt_sha256": "a86b2220f764c4208cd1cec08861bd64a1521109ce27fd9b2d6d30076da08321"
+  }
+]

@@ -1,0 +1,13 @@
+{
+  "synthetic_derivatives_only": true,
+  "index": {
+    "base_file": "real-eventsarchive-20251112105828.html",
+    "old": "WeAsOne Indonesia",
+    "new": "WeAsOne Indonesia corrected"
+  },
+  "legacy": {
+    "base_file": "real-legacy-event-20180815191517.html",
+    "old": "Riga Summer Swing",
+    "new": "Riga Summer Swing corrected"
+  }
+}

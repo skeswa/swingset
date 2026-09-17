@@ -1,0 +1,27 @@
+{
+  "format": "dcn-index-independent-audit-v1",
+  "receipt": "journal/evidence/admission/dcn-index-fixture-2026-09-17/quarantine/receipt.json",
+  "receipt_sha256": "a86b2220f764c4208cd1cec08861bd64a1521109ce27fd9b2d6d30076da08321",
+  "checks": {
+    "manifest_hash": true,
+    "authorization_hash": true,
+    "authorization_matches": true,
+    "all_bodies_verified": true,
+    "exact_allowlist": true,
+    "exact_capture": true,
+    "request_count": true,
+    "bytes_sum": true,
+    "bounds": true,
+    "elapsed_spacing": true,
+    "utc_spacing": true,
+    "hard_duration": true
+  },
+  "completion_to_next_dispatch_elapsed_seconds": 10.0207652610261,
+  "completion_to_next_dispatch_utc_seconds": 10.020759,
+  "initial_elapsed_floor_seconds": 10.013764675997663,
+  "body_sha256": "3e4e9cae6d39e099b79c7b5e7bae1e25c02fb0315e82e1311c7be4b39e3796bb",
+  "requests": 2,
+  "received_bytes": 2804642,
+  "interpretation": "complete Nuxt index body; page-kind acceptance and canonical integration pending",
+  "new_network_requests": 0
+}
