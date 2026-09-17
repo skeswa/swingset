@@ -1,0 +1,24 @@
+{
+  "format": "dcn-legacy-results-offline-validation-v1",
+  "files": {
+    "src/swingset/sources/dcn/legacy_results.py": "24adfba6d6fd640fc3610783cf4b3e6ec908f1e687dcc2b09cfa0d1d810f40e3",
+    "src/swingset/sources/dcn/adapter.py": "33aabfccc7c753ff507429532cc9f2ec0ef72a30105ab4a79b28c238d828d33b",
+    "src/swingset/sources/dcn/records.py": "0160392a7cd2f9f3ee5d72bccdb240377867acf56ecca4d790e056526bbb0489",
+    "src/swingset/sources/dcn/__init__.py": "3f5c84063bc848ba5eee605d7646f775ae1cf8b22a683be1e903cfa36555212f",
+    "tests/test_dcn_legacy_results.py": "1c16af7bf09e6fc8d07528e2c1348e4b33a159b28c801bdce8288f0e29c79585",
+    "tests/fixtures/sources/dcn/malformed-results.html": "d449783af6b8cb763ee308b8a1798613e0b104a1b361e1017a213bec8e7a1cdd",
+    "tests/fixtures/sources/dcn/results-provenance-20260917.json": "28308f13ffd1691f86a2a617b92775f076585c66da8868b4604f20b96c3d5004",
+    "tests/fixtures/sources/dcn/results-changed-controls.json": "61a99647772f67d350ef4b45b7a05155c6d827dc0d43bc318ec75c3d50efe8f6",
+    "tests/fixtures/sources/dcn/real-riga-results-20190719204919.html": "487b38c2ff264e62bf2e6de8e2b24cd5aff2ceab40856a56c1ac8539a4aad573"
+  },
+  "checks": {
+    "pytest": "98 passed in 1.10s: test_dcn_legacy_results.py, test_dcn_real_controls.py, test_dcn_payload.py",
+    "ruff": "passed",
+    "mypy": "5 source files passed"
+  },
+  "network_requests": 0,
+  "production_applied": false,
+  "kind_activated": false,
+  "canonical_projection": false,
+  "independent_review": "pending"
+}

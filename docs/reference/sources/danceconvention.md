@@ -20,7 +20,9 @@ disallows registration flows, `index:retrievenewsfeed`,
 
 Per contest and round: names with city and country, rank, whether
 promoted (from ranking intervals), and per-round PDFs with bibs, judge
-names, and marks. **No bibs or WSDC ids outside the PDFs.** Some names
+names, and marks. The reviewed legacy Riga HTML also prints row-level bibs;
+its finals bib does not identify either partner individually. No WSDC IDs
+appear in that control. Some names
 are masked at source (`*******`). 19 events in the last year:
 Australia, New Zealand, Korea, Singapore, Russia.
 
@@ -89,8 +91,8 @@ platforms, and why a byte budget exists at all.
 
 1. `index` watches: plain GET, evaluate the payload, fingerprint the
    event list, upsert `source_events`, create `event` watches.
-2. `event` watch on `.../results`: plain GET. Evaluate the payload in
-   the `node` subprocess (5 s timeout, no network, stdin only). If
+2. `event` watch on `.../results`: plain GET. Decode only with the separately reviewed bounded data grammar; no JavaScript
+   subprocess runs. Modern results payload support remains unimplemented. If
    `publishCompResults` is false, treat as unchanged. Fingerprint
    `results`. If changed, archive the body and parse. For each round:
    create a `pdf` watch and make it due when `scoresAvailable` turns
@@ -109,7 +111,7 @@ platforms, and why a byte budget exists at all.
 
 ## 8. Parsing
 
-- `dcn.event_results`: payload path
+- Planned `dcn.event_results`: payload path
   `currentPageRenderData.results[]` =
   `{contestId, contestName, divisionType: RANDOM_PARTNER|OPEN_COUPLE|PERM_COUPLE, rounds[]: {roundId, roundName, isFinal, scoresAvailable, scoresLink, rankings[]: {competitorRole, competitorName, competitorCityAndState, competitorCountry, partnerName, partnerCityAndState, partnerCountry, rank, interval}}}`.
   `roundName` is free text with typos ("Prelilms"). Emits `contest`,
@@ -121,10 +123,71 @@ platforms, and why a byte budget exists at all.
 - `dcn.list`: `upcomingEvents` and `lastYearEvents` from the payload;
   the `loadyear` XHR returns Tapestry HTML with the same fields in a
   table.
-- The payload is a function call, not JSON. It is evaluated by
-  `sources/dcn/nuxt_eval.js` under `node` (decision 18). The evaluated
-  object is cached in the archive as a derived blob so re-parses do not
-  re-evaluate.
+- The payload is a data-serialization function call, not JSON. The implemented
+  pure decoder accepts only the reviewed literal-and-parameter grammar, without
+  executing JavaScript. See [the exact bounds](../parsing.md#parsing-rules).
+  Unsupported grammar fails extraction; no general evaluator runs as fallback.
+  The normal derived-extract archive remains the intended cache boundary.
+
+## Local implementation and fixture status
+
+The source package has offline `dcn.list`, `dcn.event_metadata` and
+`dcn.legacy_results` adapters.
+They are not registered for ordinary acquisition and create no seed or child
+watches. No source-kind policy or canonical projector is activated.
+
+The complete archive index captured `2025-11-12T10:58:28Z` supplies 50 payload
+events, exactly matching all 50 rendered event locators. Twenty-seven carry a
+`WSDC` affiliation; 36 carry a true source `results` flag. All raw source rows,
+including other dance affiliations and false flags, remain observations. The
+available-year labels are 2013–2025. These facts describe this retained body,
+not all DCN events, year acceptance, or full-year coverage. Enumeration stays
+`listed_only`. The decoder checks matching duplicate render-data views,
+row fields/types, event-ID ownership and the reviewed route/URL shapes.
+
+The 2018 Riga Summer Swing control is legacy Tapestry metadata. Matching desktop
+and mobile headers provide its name, raw dates and location. Its results-tab
+locator is retained without the archived routing session suffix. Availability
+of actual results remains unknown. Neither this body nor the index supplies a
+PDF locator, results payload or preliminary/final score-PDF control.
+
+The original two complete real fixtures and provenance hashes, synthetic empty/malformed
+controls, changed-input derivatives and grammar/bounds tests are retained under
+`tests/fixtures/sources/dcn/`. See the
+[audit and implementation receipt](../../../journal/investigations/2026/dcn-offline-parsing-2026-09-17.md).
+Modern results payloads, PDFs, other index routes and year
+responses require their own real controls before implementation acceptance and
+exact-kind enforcement. The operating procedures above remain planned behavior
+for those kinds; this offline increment does not enable them.
+
+The separately approved Riga results capture `2019-07-19T20:49:19Z` now supplies
+one legacy HTML results control. Its selected heading is `Jack'n'Jill Newcomer`;
+eight printed contest selectors identify a listed population only. The parsed
+tables contain nine finals pairs, zero printed preliminary leader rows and eight
+printed follower rows. An empty table is not proof of zero entrants. Preserve
+placement intervals as printed bounds, with promotion unknown. Preserve finals
+names in source order without assigning leader/follower identities, and retain
+the bib on the row rather than either individual.
+
+`dcn.legacy_results` binds canonical, OpenGraph, navigation and selector event
+IDs to the parse context. Exactly one selected heading must match a printed
+selector. Tables belong to that selected contest's container. HTML5 reparents
+its invalid table legends into sibling elements; each exact column must own one
+legend followed by its table. The reviewed layout has one Finals table and
+paired Prelims leaders/followers tables, exact Bib/Names/Placement columns,
+positive placements or ordered intervals, and explicit pair separators only
+for finals. Unknown layouts fail extraction. Bounds are 8 MiB HTML, 200 listed
+contest selectors and 2,000 result rows per table.
+
+Printed `roundscores/3451330.pdf` and `roundscores/3451331.pdf` locators belong
+to the finals and preliminary containers respectively. Both preliminary role
+tables share the latter locator. They and the eight contest selectors remain
+inert source observations, with no watches, requests or assumed PDF semantics.
+Source robots restrictions on selector endpoints remain unchanged. No event
+completeness, full selected-round population, score availability or promotion
+is inferred. The kind remains outside the ordinary source registry and has no
+canonical projection or exact-kind enforcement approval. See the
+[legacy results implementation receipt](../../../journal/investigations/2026/dcn-legacy-results-parsing-2026-09-17.md).
 
 ## 9. Quirks
 

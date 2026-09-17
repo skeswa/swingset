@@ -120,7 +120,8 @@ inventory names parser output, before canonical projection.
 | `scoringdance.event`                          | results index            | Event sheet and round watch specs                                    |
 | `scoringdance.round`                          | round HTML               | Round sheet, including printed WSDC ids                              |
 | `wdr.rounds`, `wdr.awards`                    | `routeInfo.json`         | Round and award sheets                                               |
-| `dcn.list` (later)                            | upcoming / archive HTML  | Source event rows                                                    |
+| `dcn.list` (offline preparation)              | reviewed archive HTML    | Raw index sheet; no watches or complete-year claim                   |
+| `dcn.event_metadata` (offline preparation)    | legacy Tapestry HTML     | Raw event metadata and unassessed results-tab locator                |
 | `dcn.event_results` (later)                   | results tab HTML         | Event sheet and PDF watch specs                                      |
 | `dcn.round_pdf` (later)                       | roundscores PDF          | Round sheet with printed bibs, judges, and marks                     |
 
@@ -146,13 +147,19 @@ inventory names parser output, before canonical projection.
 - An unrestricted or unspecified contest division remains `none` or
   `open`; it is not inferred to be Newcomer or another skill level. Identity
   scoring treats that division evidence as unavailable.
-- The DCN Nuxt payload is evaluated by a `node` subprocess from nixpkgs
-  running a small fixed script (`sources/dcn/nuxt_eval.js`) that defines
-  `window`, evaluates the payload, and prints JSON to stdout. The
-  subprocess gets the payload on stdin, no arguments, no network, no
-  filesystem beyond the script, and a 5-second timeout. The Python side
-  is a pure function `evaluate_nuxt(body: bytes) -> dict` so the engine
-  can be swapped without touching the parser.
+- The implemented DCN `evaluate_nuxt(body: bytes) -> dict` boundary decodes
+  the reviewed data-only Nuxt serialization in `sources/dcn/nuxt.py`. It accepts
+  an immediately invoked function containing one returned literal tree and
+  parameter references; it never executes JavaScript or starts a subprocess.
+  Calls, property access, arithmetic, unknown statements, duplicate keys and
+  mismatched arguments fail extraction. The observed `void 0` uses JSON
+  serialization semantics: omit object members and retain array slots as null.
+  Limits are 8 MiB HTML, 1 MiB script, depth 64, 50,000 nodes in both input and
+  resolved output, and 1,024 parameters. Unknown serialization stays a retained
+  parse failure; there is no fallback evaluation. This replaces the planned
+  Node implementation technique under
+  [D-0068](../../journal/decisions/0068-decode-dcn-source-data-without-running-scripts.md).
+  Results and PDF kinds remain separately gated by real fixtures and review.
 - A contest whose layout the parser cannot interpret is still an
   observation with an unsupported-layout warning. Projection emits
   a `contests` row with `parse_status = unsupported` and no rounds,

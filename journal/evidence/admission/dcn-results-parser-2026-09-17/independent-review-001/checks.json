@@ -1,0 +1,82 @@
+{
+  "format": "independent-dcn-legacy-results-parser-v1",
+  "recorded_at": "2026-09-17T17:56:20.117696+00:00",
+  "passed": true,
+  "before": {
+    "src/swingset/sources/dcn/legacy_results.py": "24adfba6d6fd640fc3610783cf4b3e6ec908f1e687dcc2b09cfa0d1d810f40e3",
+    "src/swingset/sources/dcn/adapter.py": "33aabfccc7c753ff507429532cc9f2ec0ef72a30105ab4a79b28c238d828d33b",
+    "src/swingset/sources/dcn/records.py": "0160392a7cd2f9f3ee5d72bccdb240377867acf56ecca4d790e056526bbb0489",
+    "src/swingset/sources/dcn/__init__.py": "3f5c84063bc848ba5eee605d7646f775ae1cf8b22a683be1e903cfa36555212f",
+    "src/swingset/sources/dcn/nuxt.py": "cb9a7a92a245e8bedb4466d263c9fa8b514f0a0c8a0a1766d0ea2cc0d4d781cc",
+    "tests/test_dcn_legacy_results.py": "1c16af7bf09e6fc8d07528e2c1348e4b33a159b28c801bdce8288f0e29c79585",
+    "tests/test_dcn_payload.py": "ca1294d85544c85200e3fcb38a790382ec86dc543c6cb605113426ba6f97a101",
+    "tests/test_dcn_real_controls.py": "4d7d69b33c8374dcc220630ddf341f4a3c4bbc858e1f21a4ac0a0cd9f073cacd",
+    "tests/fixtures/sources/dcn/changed-controls.json": "c95d0d2a9e250ab40294baa4906c5a03096c24b5ac743e5ac539f217d7678bfd",
+    "tests/fixtures/sources/dcn/empty.html": "a9c77fd30469d5ddc9b91216ab7d8304ee34bf0ad486f5ed5e85e3729e9fd4e9",
+    "tests/fixtures/sources/dcn/malformed-nuxt.html": "b8b7a0f9f5f4454d34ac5be56bf68ffb8f614dd4dd87592624cef5aac54b1388",
+    "tests/fixtures/sources/dcn/malformed-results.html": "d449783af6b8cb763ee308b8a1798613e0b104a1b361e1017a213bec8e7a1cdd",
+    "tests/fixtures/sources/dcn/real-eventsarchive-20251112105828.html": "3e4e9cae6d39e099b79c7b5e7bae1e25c02fb0315e82e1311c7be4b39e3796bb",
+    "tests/fixtures/sources/dcn/real-legacy-event-20180815191517.html": "c30d80cb4f6fae81e886c13aaa43c46ff68f9949ff219c5c77c3daa79104e03f",
+    "tests/fixtures/sources/dcn/real-provenance-20260917.json": "3862be967e4557b35b806df09b0e48aa84f616d85e8134b107f3d434a4e91bcc",
+    "tests/fixtures/sources/dcn/real-riga-results-20190719204919.html": "487b38c2ff264e62bf2e6de8e2b24cd5aff2ceab40856a56c1ac8539a4aad573",
+    "tests/fixtures/sources/dcn/results-changed-controls.json": "61a99647772f67d350ef4b45b7a05155c6d827dc0d43bc318ec75c3d50efe8f6",
+    "tests/fixtures/sources/dcn/results-provenance-20260917.json": "28308f13ffd1691f86a2a617b92775f076585c66da8868b4604f20b96c3d5004"
+  },
+  "after": {
+    "src/swingset/sources/dcn/legacy_results.py": "24adfba6d6fd640fc3610783cf4b3e6ec908f1e687dcc2b09cfa0d1d810f40e3",
+    "src/swingset/sources/dcn/adapter.py": "33aabfccc7c753ff507429532cc9f2ec0ef72a30105ab4a79b28c238d828d33b",
+    "src/swingset/sources/dcn/records.py": "0160392a7cd2f9f3ee5d72bccdb240377867acf56ecca4d790e056526bbb0489",
+    "src/swingset/sources/dcn/__init__.py": "3f5c84063bc848ba5eee605d7646f775ae1cf8b22a683be1e903cfa36555212f",
+    "src/swingset/sources/dcn/nuxt.py": "cb9a7a92a245e8bedb4466d263c9fa8b514f0a0c8a0a1766d0ea2cc0d4d781cc",
+    "tests/test_dcn_legacy_results.py": "1c16af7bf09e6fc8d07528e2c1348e4b33a159b28c801bdce8288f0e29c79585",
+    "tests/test_dcn_payload.py": "ca1294d85544c85200e3fcb38a790382ec86dc543c6cb605113426ba6f97a101",
+    "tests/test_dcn_real_controls.py": "4d7d69b33c8374dcc220630ddf341f4a3c4bbc858e1f21a4ac0a0cd9f073cacd",
+    "tests/fixtures/sources/dcn/changed-controls.json": "c95d0d2a9e250ab40294baa4906c5a03096c24b5ac743e5ac539f217d7678bfd",
+    "tests/fixtures/sources/dcn/empty.html": "a9c77fd30469d5ddc9b91216ab7d8304ee34bf0ad486f5ed5e85e3729e9fd4e9",
+    "tests/fixtures/sources/dcn/malformed-nuxt.html": "b8b7a0f9f5f4454d34ac5be56bf68ffb8f614dd4dd87592624cef5aac54b1388",
+    "tests/fixtures/sources/dcn/malformed-results.html": "d449783af6b8cb763ee308b8a1798613e0b104a1b361e1017a213bec8e7a1cdd",
+    "tests/fixtures/sources/dcn/real-eventsarchive-20251112105828.html": "3e4e9cae6d39e099b79c7b5e7bae1e25c02fb0315e82e1311c7be4b39e3796bb",
+    "tests/fixtures/sources/dcn/real-legacy-event-20180815191517.html": "c30d80cb4f6fae81e886c13aaa43c46ff68f9949ff219c5c77c3daa79104e03f",
+    "tests/fixtures/sources/dcn/real-provenance-20260917.json": "3862be967e4557b35b806df09b0e48aa84f616d85e8134b107f3d434a4e91bcc",
+    "tests/fixtures/sources/dcn/real-riga-results-20190719204919.html": "487b38c2ff264e62bf2e6de8e2b24cd5aff2ceab40856a56c1ac8539a4aad573",
+    "tests/fixtures/sources/dcn/results-changed-controls.json": "61a99647772f67d350ef4b45b7a05155c6d827dc0d43bc318ec75c3d50efe8f6",
+    "tests/fixtures/sources/dcn/results-provenance-20260917.json": "28308f13ffd1691f86a2a617b92775f076585c66da8868b4604f20b96c3d5004"
+  },
+  "checks": [
+    {
+      "name": "pytest",
+      "command": [
+        ".venv/bin/pytest",
+        "-q",
+        "tests/test_dcn_legacy_results.py",
+        "tests/test_dcn_payload.py",
+        "tests/test_dcn_real_controls.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "6b66dcd0cdf82d19fa384ec9f0f4fc43bdfeb22e3a2c4aeae7edc9f7d50375c9"
+    },
+    {
+      "name": "ruff",
+      "command": [
+        ".venv/bin/ruff",
+        "check",
+        "src/swingset/sources/dcn/legacy_results.py",
+        "src/swingset/sources/dcn/adapter.py",
+        "src/swingset/sources/dcn/records.py",
+        "src/swingset/sources/dcn/__init__.py",
+        "tests/test_dcn_legacy_results.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+    }
+  ],
+  "findings": [
+    "No blocking finding in reviewed source-only legacy results layout.",
+    "Event numeric ownership, selected contest name/selector identity, exact table sibling legends and PDF section ownership verified.",
+    "Nine finals paired rows and eight prelim follower rows preserved; no inferred paired bib ownership, promotion or complete population from empty leaders table.",
+    "Exact body/audit fixture pins, changed controls, malformed layout, mismatched ownership, inert locators and cold-process payload decoding covered.",
+    "No source-kind registration, seeds, canonical projection, acquisition or publication follows."
+  ],
+  "network_requests": 0,
+  "production_operations": 0
+}
