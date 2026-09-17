@@ -1,0 +1,650 @@
+{
+  "at": "2026-09-17T15:16:30.591649+00:00",
+  "passed": true,
+  "changes": [
+    {
+      "path": "/var/lib/swingset/operations/h16-performance-20260913",
+      "before": {
+        "inode": 7384895,
+        "mtime_ns": 1789316389455344604,
+        "uid": 0,
+        "mode": 448,
+        "gid": 0
+      },
+      "after": {
+        "inode": 7384895,
+        "mtime_ns": 1789316389455344604,
+        "uid": 0,
+        "mode": 488,
+        "gid": 995
+      }
+    },
+    {
+      "path": "/var/lib/swingset/operations/h16-event-preservation-release-20260916/deployment-intent.json",
+      "before": {
+        "inode": 8193246,
+        "mtime_ns": 1789588707765018876,
+        "uid": 0,
+        "mode": 384,
+        "gid": 0,
+        "sha256": "8b9e744b37dde3517e67bbf9df21df9cd23fae47bff9064960ef5a21c31f429d"
+      },
+      "after": {
+        "inode": 8193246,
+        "mtime_ns": 1789588707765018876,
+        "uid": 0,
+        "mode": 416,
+        "gid": 995,
+        "sha256": "8b9e744b37dde3517e67bbf9df21df9cd23fae47bff9064960ef5a21c31f429d"
+      }
+    },
+    {
+      "path": "/var/lib/swingset/operations/h16-event-preservation-release-20260916/deployment.json",
+      "before": {
+        "inode": 8193362,
+        "mtime_ns": 1789588709531450358,
+        "uid": 0,
+        "mode": 384,
+        "gid": 0,
+        "sha256": "342be820b7a4e4e1e7a354288fabf74f17e2d80253ed0e38f0a7ccecca5b9678"
+      },
+      "after": {
+        "inode": 8193362,
+        "mtime_ns": 1789588709531450358,
+        "uid": 0,
+        "mode": 416,
+        "gid": 995,
+        "sha256": "342be820b7a4e4e1e7a354288fabf74f17e2d80253ed0e38f0a7ccecca5b9678"
+      }
+    },
+    {
+      "path": "/var/lib/swingset/operations/h16-event-preservation-release-20260916/initialization-anchor-002.json",
+      "before": {
+        "inode": 8193933,
+        "mtime_ns": 1789590804127430347,
+        "uid": 0,
+        "mode": 384,
+        "gid": 0,
+        "sha256": "1c6d181c60b570f4af23fa2b0ffe1911ead968ee9b5744defcd4fe2a022788be"
+      },
+      "after": {
+        "inode": 8193933,
+        "mtime_ns": 1789590804127430347,
+        "uid": 0,
+        "mode": 416,
+        "gid": 995,
+        "sha256": "1c6d181c60b570f4af23fa2b0ffe1911ead968ee9b5744defcd4fe2a022788be"
+      }
+    },
+    {
+      "path": "/var/lib/swingset/operations/h16-event-preservation-release-20260916/supervision-reviewed-002/preflight.json",
+      "before": {
+        "inode": 8193953,
+        "mtime_ns": 1789590971227213049,
+        "uid": 0,
+        "mode": 384,
+        "gid": 0,
+        "sha256": "a6f40b151bf77c73c277afd75b67cf1519ad2435e572f5dc9282d845e5234154"
+      },
+      "after": {
+        "inode": 8193953,
+        "mtime_ns": 1789590971227213049,
+        "uid": 0,
+        "mode": 416,
+        "gid": 995,
+        "sha256": "a6f40b151bf77c73c277afd75b67cf1519ad2435e572f5dc9282d845e5234154"
+      }
+    },
+    {
+      "path": "/var/lib/swingset/operations/h16-event-preservation-release-20260916/supervision-reviewed-002/final.json",
+      "before": {
+        "inode": 8229879,
+        "mtime_ns": 1789597005677026067,
+        "uid": 0,
+        "mode": 384,
+        "gid": 0,
+        "sha256": "542fd9bc89eb48dd8dc3bd2d916127cb291db36b2429e3aaf03222e0facc0d5c"
+      },
+      "after": {
+        "inode": 8229879,
+        "mtime_ns": 1789597005677026067,
+        "uid": 0,
+        "mode": 416,
+        "gid": 995,
+        "sha256": "542fd9bc89eb48dd8dc3bd2d916127cb291db36b2429e3aaf03222e0facc0d5c"
+      }
+    },
+    {
+      "path": "/var/lib/swingset/operations/h16-event-preservation-release-20260916/supervision-reviewed-002/batch-001-start.json",
+      "before": {
+        "inode": 8193954,
+        "mtime_ns": 1789590971313365188,
+        "uid": 0,
+        "mode": 384,
+        "gid": 0,
+        "sha256": "1f8b7dfb4cd106b883d4d0fbdbe758ea96b707d03fca50130a44f23ed7550363"
+      },
+      "after": {
+        "inode": 8193954,
+        "mtime_ns": 1789590971313365188,
+        "uid": 0,
+        "mode": 416,
+        "gid": 995,
+        "sha256": "1f8b7dfb4cd106b883d4d0fbdbe758ea96b707d03fca50130a44f23ed7550363"
+      }
+    },
+    {
+      "path": "/var/lib/swingset/operations/h16-event-preservation-release-20260916/supervision-reviewed-002/batch-001-final.json",
+      "before": {
+        "inode": 8226957,
+        "mtime_ns": 1789591841683457319,
+        "uid": 0,
+        "mode": 384,
+        "gid": 0,
+        "sha256": "0c3218fc346fa4e253e27914895e92927924054f426bb6ceed62d5a415e88b2d"
+      },
+      "after": {
+        "inode": 8226957,
+        "mtime_ns": 1789591841683457319,
+        "uid": 0,
+        "mode": 416,
+        "gid": 995,
+        "sha256": "0c3218fc346fa4e253e27914895e92927924054f426bb6ceed62d5a415e88b2d"
+      }
+    },
+    {
+      "path": "/var/lib/swingset/operations/h16-event-preservation-release-20260916/supervision-reviewed-002/initializer-001.resources.jsonl",
+      "before": {
+        "inode": 8193955,
+        "mtime_ns": 1789591841601456604,
+        "uid": 0,
+        "mode": 384,
+        "gid": 0,
+        "sha256": "056de3a12e6842d9870b6e3f5e699b13db135ba5f803541a5f01c8a19e0b07af"
+      },
+      "after": {
+        "inode": 8193955,
+        "mtime_ns": 1789591841601456604,
+        "uid": 0,
+        "mode": 416,
+        "gid": 995,
+        "sha256": "056de3a12e6842d9870b6e3f5e699b13db135ba5f803541a5f01c8a19e0b07af"
+      }
+    },
+    {
+      "path": "/var/lib/swingset/operations/h16-event-preservation-release-20260916/supervision-reviewed-002/initializer-001.log",
+      "before": {
+        "inode": 8193956,
+        "mtime_ns": 1789591841502455741,
+        "uid": 0,
+        "mode": 384,
+        "gid": 0,
+        "sha256": "b9cfab40a19496fc89bd4ff08eb5a0330980cfd525c7a7cc5d0d6439dd7c6bc5"
+      },
+      "after": {
+        "inode": 8193956,
+        "mtime_ns": 1789591841502455741,
+        "uid": 0,
+        "mode": 416,
+        "gid": 995,
+        "sha256": "b9cfab40a19496fc89bd4ff08eb5a0330980cfd525c7a7cc5d0d6439dd7c6bc5"
+      }
+    },
+    {
+      "path": "/var/lib/swingset/operations/h16-event-preservation-release-20260916/supervision-reviewed-002/batch-002-start.json",
+      "before": {
+        "inode": 8226958,
+        "mtime_ns": 1789591841765475534,
+        "uid": 0,
+        "mode": 384,
+        "gid": 0,
+        "sha256": "61f706e950acb9ceb4688c6fad6ae8ed27152f7dfe88367262d66bac758b827f"
+      },
+      "after": {
+        "inode": 8226958,
+        "mtime_ns": 1789591841765475534,
+        "uid": 0,
+        "mode": 416,
+        "gid": 995,
+        "sha256": "61f706e950acb9ceb4688c6fad6ae8ed27152f7dfe88367262d66bac758b827f"
+      }
+    },
+    {
+      "path": "/var/lib/swingset/operations/h16-event-preservation-release-20260916/supervision-reviewed-002/batch-002-final.json",
+      "before": {
+        "inode": 8227556,
+        "mtime_ns": 1789592712009270323,
+        "uid": 0,
+        "mode": 384,
+        "gid": 0,
+        "sha256": "8740771698ab4b0fd1a9cf8ca0b7953164341476fbe86077f948601458d51433"
+      },
+      "after": {
+        "inode": 8227556,
+        "mtime_ns": 1789592712009270323,
+        "uid": 0,
+        "mode": 416,
+        "gid": 995,
+        "sha256": "8740771698ab4b0fd1a9cf8ca0b7953164341476fbe86077f948601458d51433"
+      }
+    },
+    {
+      "path": "/var/lib/swingset/operations/h16-event-preservation-release-20260916/supervision-reviewed-002/initializer-002.resources.jsonl",
+      "before": {
+        "inode": 8226959,
+        "mtime_ns": 1789592711924044246,
+        "uid": 0,
+        "mode": 384,
+        "gid": 0,
+        "sha256": "d9673a91104b067c7a381d99c1f180df126e65d1b0f9b4132046946b6912f650"
+      },
+      "after": {
+        "inode": 8226959,
+        "mtime_ns": 1789592711924044246,
+        "uid": 0,
+        "mode": 416,
+        "gid": 995,
+        "sha256": "d9673a91104b067c7a381d99c1f180df126e65d1b0f9b4132046946b6912f650"
+      }
+    },
+    {
+      "path": "/var/lib/swingset/operations/h16-event-preservation-release-20260916/supervision-reviewed-002/initializer-002.log",
+      "before": {
+        "inode": 8226960,
+        "mtime_ns": 1789592711781043000,
+        "uid": 0,
+        "mode": 384,
+        "gid": 0,
+        "sha256": "d360fa364a28297ffd40e4c7cb81f9320b217c8c5b6577778f6b64ce1d1a5943"
+      },
+      "after": {
+        "inode": 8226960,
+        "mtime_ns": 1789592711781043000,
+        "uid": 0,
+        "mode": 416,
+        "gid": 995,
+        "sha256": "d360fa364a28297ffd40e4c7cb81f9320b217c8c5b6577778f6b64ce1d1a5943"
+      }
+    },
+    {
+      "path": "/var/lib/swingset/operations/h16-event-preservation-release-20260916/supervision-reviewed-002/batch-003-start.json",
+      "before": {
+        "inode": 8227557,
+        "mtime_ns": 1789592712094657484,
+        "uid": 0,
+        "mode": 384,
+        "gid": 0,
+        "sha256": "a01eb2acaad85e860c2f0e78061c4e099ff40dc53760b91184756459d9e31c97"
+      },
+      "after": {
+        "inode": 8227557,
+        "mtime_ns": 1789592712094657484,
+        "uid": 0,
+        "mode": 416,
+        "gid": 995,
+        "sha256": "a01eb2acaad85e860c2f0e78061c4e099ff40dc53760b91184756459d9e31c97"
+      }
+    },
+    {
+      "path": "/var/lib/swingset/operations/h16-event-preservation-release-20260916/supervision-reviewed-002/batch-003-final.json",
+      "before": {
+        "inode": 8228050,
+        "mtime_ns": 1789593583802048965,
+        "uid": 0,
+        "mode": 384,
+        "gid": 0,
+        "sha256": "d124073dedd3283c848fc04395c085280326e094a6729689b01bacd6074484e1"
+      },
+      "after": {
+        "inode": 8228050,
+        "mtime_ns": 1789593583802048965,
+        "uid": 0,
+        "mode": 416,
+        "gid": 995,
+        "sha256": "d124073dedd3283c848fc04395c085280326e094a6729689b01bacd6074484e1"
+      }
+    },
+    {
+      "path": "/var/lib/swingset/operations/h16-event-preservation-release-20260916/supervision-reviewed-002/initializer-003.resources.jsonl",
+      "before": {
+        "inode": 8227558,
+        "mtime_ns": 1789593583714646787,
+        "uid": 0,
+        "mode": 384,
+        "gid": 0,
+        "sha256": "048e0440de1a1df09de8c12a366a2f81609b31f924251767ecb9f2c0d3e60062"
+      },
+      "after": {
+        "inode": 8227558,
+        "mtime_ns": 1789593583714646787,
+        "uid": 0,
+        "mode": 416,
+        "gid": 995,
+        "sha256": "048e0440de1a1df09de8c12a366a2f81609b31f924251767ecb9f2c0d3e60062"
+      }
+    },
+    {
+      "path": "/var/lib/swingset/operations/h16-event-preservation-release-20260916/supervision-reviewed-002/initializer-003.log",
+      "before": {
+        "inode": 8227559,
+        "mtime_ns": 1789593583584645654,
+        "uid": 0,
+        "mode": 384,
+        "gid": 0,
+        "sha256": "e7a037161c73001d612a9c438eedf88736373c885b9c6cff8ea7b83eaf987cc7"
+      },
+      "after": {
+        "inode": 8227559,
+        "mtime_ns": 1789593583584645654,
+        "uid": 0,
+        "mode": 416,
+        "gid": 995,
+        "sha256": "e7a037161c73001d612a9c438eedf88736373c885b9c6cff8ea7b83eaf987cc7"
+      }
+    },
+    {
+      "path": "/var/lib/swingset/operations/h16-event-preservation-release-20260916/supervision-reviewed-002/batch-004-start.json",
+      "before": {
+        "inode": 8228051,
+        "mtime_ns": 1789593583892369503,
+        "uid": 0,
+        "mode": 384,
+        "gid": 0,
+        "sha256": "8523cfc6a08ee835b2c7d9c7dbb35ebec8d5c85f6382ff8f1d05ab393093b334"
+      },
+      "after": {
+        "inode": 8228051,
+        "mtime_ns": 1789593583892369503,
+        "uid": 0,
+        "mode": 416,
+        "gid": 995,
+        "sha256": "8523cfc6a08ee835b2c7d9c7dbb35ebec8d5c85f6382ff8f1d05ab393093b334"
+      }
+    },
+    {
+      "path": "/var/lib/swingset/operations/h16-event-preservation-release-20260916/supervision-reviewed-002/batch-004-final.json",
+      "before": {
+        "inode": 8228541,
+        "mtime_ns": 1789594454316085168,
+        "uid": 0,
+        "mode": 384,
+        "gid": 0,
+        "sha256": "d69750f9ce0bb1b9ae83afd035b1188daada9b812e8cfa49981034e19400168a"
+      },
+      "after": {
+        "inode": 8228541,
+        "mtime_ns": 1789594454316085168,
+        "uid": 0,
+        "mode": 416,
+        "gid": 995,
+        "sha256": "d69750f9ce0bb1b9ae83afd035b1188daada9b812e8cfa49981034e19400168a"
+      }
+    },
+    {
+      "path": "/var/lib/swingset/operations/h16-event-preservation-release-20260916/supervision-reviewed-002/initializer-004.resources.jsonl",
+      "before": {
+        "inode": 8228052,
+        "mtime_ns": 1789594454232445169,
+        "uid": 0,
+        "mode": 384,
+        "gid": 0,
+        "sha256": "31f2d7bfba0d797f78ff955c493c88290e02638bb31b42ca92e3ebeb389bd76f"
+      },
+      "after": {
+        "inode": 8228052,
+        "mtime_ns": 1789594454232445169,
+        "uid": 0,
+        "mode": 416,
+        "gid": 995,
+        "sha256": "31f2d7bfba0d797f78ff955c493c88290e02638bb31b42ca92e3ebeb389bd76f"
+      }
+    },
+    {
+      "path": "/var/lib/swingset/operations/h16-event-preservation-release-20260916/supervision-reviewed-002/initializer-004.log",
+      "before": {
+        "inode": 8228053,
+        "mtime_ns": 1789594454107439443,
+        "uid": 0,
+        "mode": 384,
+        "gid": 0,
+        "sha256": "6dba09df3ec6ca8e9a4965e848f238d24a2ad2480fd19472bc60d472da56bc12"
+      },
+      "after": {
+        "inode": 8228053,
+        "mtime_ns": 1789594454107439443,
+        "uid": 0,
+        "mode": 416,
+        "gid": 995,
+        "sha256": "6dba09df3ec6ca8e9a4965e848f238d24a2ad2480fd19472bc60d472da56bc12"
+      }
+    },
+    {
+      "path": "/var/lib/swingset/operations/h16-event-preservation-release-20260916/supervision-reviewed-002/batch-005-start.json",
+      "before": {
+        "inode": 8228542,
+        "mtime_ns": 1789594454400452866,
+        "uid": 0,
+        "mode": 384,
+        "gid": 0,
+        "sha256": "defca7d1570e282dccd9de05638b7802423b38f879244b944f49fc512b0f9dc4"
+      },
+      "after": {
+        "inode": 8228542,
+        "mtime_ns": 1789594454400452866,
+        "uid": 0,
+        "mode": 416,
+        "gid": 995,
+        "sha256": "defca7d1570e282dccd9de05638b7802423b38f879244b944f49fc512b0f9dc4"
+      }
+    },
+    {
+      "path": "/var/lib/swingset/operations/h16-event-preservation-release-20260916/supervision-reviewed-002/batch-005-final.json",
+      "before": {
+        "inode": 8229029,
+        "mtime_ns": 1789595324004221850,
+        "uid": 0,
+        "mode": 384,
+        "gid": 0,
+        "sha256": "209483a120fa0478b3ffa1e5b1a178ca2ae33c0737dc2f7f1e0f56ac26bae302"
+      },
+      "after": {
+        "inode": 8229029,
+        "mtime_ns": 1789595324004221850,
+        "uid": 0,
+        "mode": 416,
+        "gid": 995,
+        "sha256": "209483a120fa0478b3ffa1e5b1a178ca2ae33c0737dc2f7f1e0f56ac26bae302"
+      }
+    },
+    {
+      "path": "/var/lib/swingset/operations/h16-event-preservation-release-20260916/supervision-reviewed-002/initializer-005.resources.jsonl",
+      "before": {
+        "inode": 8228543,
+        "mtime_ns": 1789595323917849139,
+        "uid": 0,
+        "mode": 384,
+        "gid": 0,
+        "sha256": "a76195e423d439e3371131ae43656f2eb150efae98561dc641b9cc38d9677447"
+      },
+      "after": {
+        "inode": 8228543,
+        "mtime_ns": 1789595323917849139,
+        "uid": 0,
+        "mode": 416,
+        "gid": 995,
+        "sha256": "a76195e423d439e3371131ae43656f2eb150efae98561dc641b9cc38d9677447"
+      }
+    },
+    {
+      "path": "/var/lib/swingset/operations/h16-event-preservation-release-20260916/supervision-reviewed-002/initializer-005.log",
+      "before": {
+        "inode": 8228544,
+        "mtime_ns": 1789595323803849576,
+        "uid": 0,
+        "mode": 384,
+        "gid": 0,
+        "sha256": "428222660cfd1ea3baed136f3dd1b0853f51024e7da84d0d2bc3b0ee018241b4"
+      },
+      "after": {
+        "inode": 8228544,
+        "mtime_ns": 1789595323803849576,
+        "uid": 0,
+        "mode": 416,
+        "gid": 995,
+        "sha256": "428222660cfd1ea3baed136f3dd1b0853f51024e7da84d0d2bc3b0ee018241b4"
+      }
+    },
+    {
+      "path": "/var/lib/swingset/operations/h16-event-preservation-release-20260916/supervision-reviewed-002/batch-006-start.json",
+      "before": {
+        "inode": 8229030,
+        "mtime_ns": 1789595324103029639,
+        "uid": 0,
+        "mode": 384,
+        "gid": 0,
+        "sha256": "8247dc89825f054ba6c1e3865fd35aa82057af03e6623604949d45841a6bdb35"
+      },
+      "after": {
+        "inode": 8229030,
+        "mtime_ns": 1789595324103029639,
+        "uid": 0,
+        "mode": 416,
+        "gid": 995,
+        "sha256": "8247dc89825f054ba6c1e3865fd35aa82057af03e6623604949d45841a6bdb35"
+      }
+    },
+    {
+      "path": "/var/lib/swingset/operations/h16-event-preservation-release-20260916/supervision-reviewed-002/batch-006-final.json",
+      "before": {
+        "inode": 8229473,
+        "mtime_ns": 1789596193403718360,
+        "uid": 0,
+        "mode": 384,
+        "gid": 0,
+        "sha256": "b192740dceb76fd6adafd3f51413cde9f6a498f60c4d218c292aa23698dec0e4"
+      },
+      "after": {
+        "inode": 8229473,
+        "mtime_ns": 1789596193403718360,
+        "uid": 0,
+        "mode": 416,
+        "gid": 995,
+        "sha256": "b192740dceb76fd6adafd3f51413cde9f6a498f60c4d218c292aa23698dec0e4"
+      }
+    },
+    {
+      "path": "/var/lib/swingset/operations/h16-event-preservation-release-20260916/supervision-reviewed-002/initializer-006.resources.jsonl",
+      "before": {
+        "inode": 8229031,
+        "mtime_ns": 1789596193316766962,
+        "uid": 0,
+        "mode": 384,
+        "gid": 0,
+        "sha256": "a55212423ae0ac7a6154243490c4776aa6eb63f3a31ed866e1abc0416f1e9fee"
+      },
+      "after": {
+        "inode": 8229031,
+        "mtime_ns": 1789596193316766962,
+        "uid": 0,
+        "mode": 416,
+        "gid": 995,
+        "sha256": "a55212423ae0ac7a6154243490c4776aa6eb63f3a31ed866e1abc0416f1e9fee"
+      }
+    },
+    {
+      "path": "/var/lib/swingset/operations/h16-event-preservation-release-20260916/supervision-reviewed-002/initializer-006.log",
+      "before": {
+        "inode": 8229032,
+        "mtime_ns": 1789596193170766642,
+        "uid": 0,
+        "mode": 384,
+        "gid": 0,
+        "sha256": "36f64ce4917e20a79d5c5b07788cdc4c3784ea64855c16ff270164fa258ccdc9"
+      },
+      "after": {
+        "inode": 8229032,
+        "mtime_ns": 1789596193170766642,
+        "uid": 0,
+        "mode": 416,
+        "gid": 995,
+        "sha256": "36f64ce4917e20a79d5c5b07788cdc4c3784ea64855c16ff270164fa258ccdc9"
+      }
+    },
+    {
+      "path": "/var/lib/swingset/operations/h16-event-preservation-release-20260916/supervision-reviewed-002/batch-007-start.json",
+      "before": {
+        "inode": 8229474,
+        "mtime_ns": 1789596193489767341,
+        "uid": 0,
+        "mode": 384,
+        "gid": 0,
+        "sha256": "a172590429c8ae5f2a262c5f108aa2dc0ba7890fb71bb338c303c63c77040e4a"
+      },
+      "after": {
+        "inode": 8229474,
+        "mtime_ns": 1789596193489767341,
+        "uid": 0,
+        "mode": 416,
+        "gid": 995,
+        "sha256": "a172590429c8ae5f2a262c5f108aa2dc0ba7890fb71bb338c303c63c77040e4a"
+      }
+    },
+    {
+      "path": "/var/lib/swingset/operations/h16-event-preservation-release-20260916/supervision-reviewed-002/batch-007-final.json",
+      "before": {
+        "inode": 8229878,
+        "mtime_ns": 1789597005673494705,
+        "uid": 0,
+        "mode": 384,
+        "gid": 0,
+        "sha256": "00e5dd98964c29355ab3bed7bcee4b2eb3257efa7b3404f2ee7c8a9fad330f66"
+      },
+      "after": {
+        "inode": 8229878,
+        "mtime_ns": 1789597005673494705,
+        "uid": 0,
+        "mode": 416,
+        "gid": 995,
+        "sha256": "00e5dd98964c29355ab3bed7bcee4b2eb3257efa7b3404f2ee7c8a9fad330f66"
+      }
+    },
+    {
+      "path": "/var/lib/swingset/operations/h16-event-preservation-release-20260916/supervision-reviewed-002/initializer-007.resources.jsonl",
+      "before": {
+        "inode": 8229475,
+        "mtime_ns": 1789597005586472628,
+        "uid": 0,
+        "mode": 384,
+        "gid": 0,
+        "sha256": "a52db0c049429e59d4a857891a74e96344c74d1d8379ee0ae4294e01b8c43e31"
+      },
+      "after": {
+        "inode": 8229475,
+        "mtime_ns": 1789597005586472628,
+        "uid": 0,
+        "mode": 416,
+        "gid": 995,
+        "sha256": "a52db0c049429e59d4a857891a74e96344c74d1d8379ee0ae4294e01b8c43e31"
+      }
+    },
+    {
+      "path": "/var/lib/swingset/operations/h16-event-preservation-release-20260916/supervision-reviewed-002/initializer-007.log",
+      "before": {
+        "inode": 8229476,
+        "mtime_ns": 1789597005438471435,
+        "uid": 0,
+        "mode": 384,
+        "gid": 0,
+        "sha256": "8dce632d19b42d954f49686a4ac03c3838134c43d53e077008e6af86cc43d7c3"
+      },
+      "after": {
+        "inode": 8229476,
+        "mtime_ns": 1789597005438471435,
+        "uid": 0,
+        "mode": 416,
+        "gid": 995,
+        "sha256": "8dce632d19b42d954f49686a4ac03c3838134c43d53e077008e6af86cc43d7c3"
+      }
+    }
+  ]
+}

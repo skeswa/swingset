@@ -1,0 +1,5 @@
+Sep 17 15:16:30 swingset systemd[1]: Started [systemd-run] /var/lib/swingset/venv/bin/python /var/lib/swingset/operations/v2-continuation-20260917/checkpoint-002.py --output /var/lib/swingset/operations/v2-continuation-20260917/checkpoint-002 --checkpoint /var/lib/swingset/checkpoints/h16-published-20260917 --upload.
+Sep 17 15:21:44 swingset systemd[1]: swingset-v2-checkpoint-20260917-002.service: A process of this unit has been killed by the OOM killer.
+Sep 17 15:21:44 swingset systemd[1]: swingset-v2-checkpoint-20260917-002.service: Main process exited, code=killed, status=9/KILL
+Sep 17 15:21:44 swingset systemd[1]: swingset-v2-checkpoint-20260917-002.service: Failed with result 'oom-kill'.
+Sep 17 15:21:44 swingset systemd[1]: swingset-v2-checkpoint-20260917-002.service: Consumed 3min 28.740s CPU time, 4G memory peak, 128.9G read from disk, 8.5G written to disk, 7.1M incoming IP traffic, 49.8K outgoing IP traffic.

@@ -1,0 +1,19 @@
+Sep 17 15:09:44 swingset systemd[1]: Started [systemd-run] /var/lib/swingset/venv/bin/python /var/lib/swingset/operations/v2-continuation-20260917/checkpoint.py --output /var/lib/swingset/operations/v2-continuation-20260917/checkpoint-001 --checkpoint /var/lib/swingset/checkpoints/h16-published-20260917 --upload.
+Sep 17 15:12:48 swingset python[110736]: Traceback (most recent call last):
+Sep 17 15:12:48 swingset python[110736]:   File "/var/lib/swingset/operations/v2-continuation-20260917/checkpoint.py", line 167, in <module>
+Sep 17 15:12:48 swingset python[110736]:     main()
+Sep 17 15:12:48 swingset python[110736]:   File "/var/lib/swingset/operations/v2-continuation-20260917/checkpoint.py", line 125, in main
+Sep 17 15:12:48 swingset python[110736]:     checkpoint = create_checkpoint(
+Sep 17 15:12:48 swingset python[110736]:                  ^^^^^^^^^^^^^^^^^^
+Sep 17 15:12:48 swingset python[110736]:   File "/nix/store/z689qy41inndill3d92ym8im852x3649-source/src/swingset/backup/checkpoint.py", line 214, in create_checkpoint
+Sep 17 15:12:48 swingset python[110736]:     _copy_file(source, temporary / relative)
+Sep 17 15:12:48 swingset python[110736]:   File "/nix/store/z689qy41inndill3d92ym8im852x3649-source/src/swingset/backup/checkpoint.py", line 153, in _copy_file
+Sep 17 15:12:48 swingset python[110736]:     with source.open("rb") as input_file, destination.open("xb") as output_file:
+Sep 17 15:12:48 swingset python[110736]:          ^^^^^^^^^^^^^^^^^
+Sep 17 15:12:48 swingset python[110736]:   File "/nix/store/s5rij9y3vb4gxbh0iqz3k0ndmsac7h02-python3-3.12.13/lib/python3.12/pathlib.py", line 1013, in open
+Sep 17 15:12:48 swingset python[110736]:     return io.open(self, mode, buffering, encoding, errors, newline)
+Sep 17 15:12:48 swingset python[110736]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Sep 17 15:12:48 swingset python[110736]: PermissionError: [Errno 13] Permission denied: '/var/lib/swingset/operations/h16-event-preservation-release-20260916/deployment-intent.json'
+Sep 17 15:12:48 swingset systemd[1]: swingset-v2-checkpoint-20260917-001.service: Main process exited, code=exited, status=1/FAILURE
+Sep 17 15:12:48 swingset systemd[1]: swingset-v2-checkpoint-20260917-001.service: Failed with result 'exit-code'.
+Sep 17 15:12:48 swingset systemd[1]: swingset-v2-checkpoint-20260917-001.service: Consumed 1min 46.280s CPU time, 4G memory peak, 8.5G read from disk, 7.3G written to disk.

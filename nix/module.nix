@@ -100,7 +100,11 @@ in
     systemd.services.swingset-backup = {
       description = "Checkpoint complete swingset state";
       unitConfig.ConditionPathExists = "!${cfg.stateDir}/operator-hold";
-      environment = env;
+      # Checkpoint transport archives can be larger than the worker's RAM.
+      # PrivateTmp also isolates /var/tmp, while retaining its disk backing.
+      environment = env // {
+        TMPDIR = "/var/tmp";
+      };
       serviceConfig = common // {
         Type = "oneshot";
         ExecStart = "${cfg.package}/bin/swingset backup ${args}";
