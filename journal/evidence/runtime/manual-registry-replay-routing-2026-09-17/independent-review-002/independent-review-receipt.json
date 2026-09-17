@@ -1,0 +1,73 @@
+{
+  "format": "manual-registry-replay-routing-independent-review-v1",
+  "passed": true,
+  "checked_at": "2026-09-17T20:12:25.416676Z",
+  "scope": "independent review of the exact manual registry sentinel invalidation exception under D-0097",
+  "status": {
+    "implemented": "local successor source implementation only",
+    "tested": true,
+    "deployed": false,
+    "published": false,
+    "D-0097": "Proposed; no owner acceptance recorded",
+    "historical_year_acceptance": "none"
+  },
+  "pins": {
+    "implementation": {
+      "path": "src/swingset/state/work.py",
+      "sha256": "beaaf6a8ad035f0ae0dd5dff4d662cdc640a39d9bae8bce0cb311df989581401"
+    },
+    "test": {
+      "path": "tests/test_manual_snapshot_invalidation.py",
+      "sha256": "4d745e318c6ce9e30f198dfdfa70d980e61442a998048eee19b9ad4aeccd438f"
+    },
+    "decision": {
+      "path": "journal/decisions/0097-keep-manual-registry-artifacts-on-their-replay-path.md",
+      "sha256": "39d880ef25939cf6442ee9df7236f1ac42100b3131613fb8180aa00c88fd4b15"
+    }
+  },
+  "validation": {
+    "commands": [
+      "PYTHONPATH=src .venv/bin/python -m pytest -c /dev/null -p no:cacheprovider -q tests/test_manual_snapshot_invalidation.py",
+      ".venv/bin/ruff check src/swingset/state/work.py tests/test_manual_snapshot_invalidation.py",
+      ".venv/bin/ruff format --check src/swingset/state/work.py tests/test_manual_snapshot_invalidation.py",
+      ".venv/bin/mypy --follow-imports=silent src/swingset/state/work.py"
+    ],
+    "results": {
+      "pytest": "1 passed",
+      "ruff": "passed",
+      "format": "passed",
+      "mypy": "passed"
+    },
+    "logs": {
+      "pytest.log": {
+        "path": "journal/evidence/runtime/manual-registry-replay-routing-2026-09-17/independent-review-002/pytest.log",
+        "sha256": "fa8e3e1f0a4b084326a7027307e5cc3a94f799f9733ea598c3b878fa3c70f37c"
+      },
+      "ruff.log": {
+        "path": "journal/evidence/runtime/manual-registry-replay-routing-2026-09-17/independent-review-002/ruff.log",
+        "sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+      },
+      "format.log": {
+        "path": "journal/evidence/runtime/manual-registry-replay-routing-2026-09-17/independent-review-002/format.log",
+        "sha256": "3bc53bf3e981a98a34a852e175bf9b77af841edea74fca595d9aedcbaf9a4938"
+      },
+      "mypy.log": {
+        "path": "journal/evidence/runtime/manual-registry-replay-routing-2026-09-17/independent-review-002/mypy.log",
+        "sha256": "5d4b6d285b77932e3d08212c3b4974d0a803f98ec60408ac6ccf6a063fa6c19e"
+      }
+    }
+  },
+  "checks": {
+    "only exact manual crosscheck source_kind_method_parser sentinel is exempted": true,
+    "normal known parser snapshots are still invalidated and queued": true,
+    "unknown parser snapshot remains queued and durable blocked failure is generated": true,
+    "subsequent runtime recipe acceptance preserves blocked work_attempts_finding_and_requirement_attempts": true,
+    "direct replay_crosscheck remains functional and does not queue ordinary parse work": true,
+    "pre-existing stale queued manual artifact timestamp remains unchanged": true,
+    "repeated identical input acceptance is idempotent": true
+  },
+  "review_findings": [],
+  "limitations": [
+    "The test uses a synthetic local registry-dump body; it exercises the real replay_crosscheck producer and durable derive_one failure path, not production acceptance."
+  ]
+}

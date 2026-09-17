@@ -1,12 +1,48 @@
 # Event-extension operating handoff, 2026-09-17
 
+## Current held production state
+
+Candidate 006 is deployed under the existing operator hold. Active and
+persistent system links both resolve to
+`/nix/store/5d9nlyflv9d4gb89a5wayhiarj01znnh-nixos-system-swingset-lxc-25.11.20260630.b6018f8`;
+the bound source is `/nix/store/rgyryll4d55rgzscdqhjcwmkr325a76f-source`.
+The guarded migration reached schema 29 at 23:11:59 UTC. It preserved all 116
+predecessor tables and added only the one-row `history_dispatch_fence` table.
+The [independent audit](../../evidence/runtime/held-schema29-migration-2026-09-17/postmigration-review-001/receipt.json)
+passed with the hold, seven sidecars, publication baseline and all six inactive
+ordinary units exact.
+
+This is deployed and tested. The separately sealed
+[production input acceptance](../../evidence/runtime/held-schema29-input-acceptance-2026-09-17/receipt.json)
+passed at 01:39:24 UTC on 2026-09-18. It changed the exact 12 reviewed input
+values within the 51-row map and preserved the other 112 application tables and
+all 4,931 named judges. It is not operating acceptance or publication.
+Collection and repairs remain inactive, and the public dataset remains
+`cand_8f31cad7226643ae` at
+`2a6c7dc744fb36eabb5163c0a527d787d3721f4f`.
+
 The reviewed event-completion runtime is deployed under hold. Its live migration
-passed at 16:59:15 UTC. Ordinary input acceptance, service activation, measured
+and separate production input acceptance passed. Service activation, measured
 operating acceptance and a subsequent publication remain unfinished. This
 handoff supersedes the older H16 runtime pins for current operation; it does not
 replace the retained H16 release receipts or public baseline.
 
-## Exact current pins
+## Superseded schema-28 handoff record
+
+The remainder of this document preserves the earlier schema-28 handoff for
+chronology. It is not current gate authority. Use the held candidate-006 state
+and receipts above for every new operation.
+
+The owner resumed work after the candidate-005 pause; see [D-0093](../../decisions/0093-resume-v2-from-candidate005.md).
+Candidate-005 service binding and its packet-003 review now pass. Actual
+disposable migration and restore of checkpoint 002 pass at schema 29, and
+scratch input acceptance preserves all 4,931 named judges. The first bounded
+replay passed 100 attempts in 402.17 seconds: 99 commits and one admission
+requiring review. These were disposable operations; the schema-28 pins below
+were current only when this earlier handoff was written.
+See the [successor receipts](schema29-successor-rehearsals-2026-09-17.md#candidate-005-successor).
+
+### Earlier exact pins
 
 - Worker: OrbStack machine `swingset`; service account `swingset`.
 - State: `/var/lib/swingset`; database schema 28.
@@ -36,7 +72,7 @@ preserved all 71 predecessor tables and added 45 tables. Its exact executed
 helper is retained beside its gate and receipt. Do not substitute newly formatted
 helper bytes under the old hash.
 
-## Checkpoint and recovery
+## Earlier checkpoint and recovery record
 
 Latest verified current-schema checkpoint:
 `/var/lib/swingset/checkpoints/extension28-held-20260917-002`.
@@ -47,7 +83,10 @@ It contains 68,812 files and 8,767,609,759 bytes, including the 15 paid Archive
 requests recorded today. The schema-28 backup passed at 17:56:52 UTC with zero
 live database changes and the old accepted input bundle preserved. Its
 [receipt](../../evidence/runtime/schema28-checkpoint-2026-09-17/production-002/receipt.json)
-is separate from restore validation of this checkpoint, which remains pending.
+is separate from its actual candidate-005 restore validation, which passed at
+18:53:25 UTC. See the [restore receipt](../../evidence/runtime/schema29-successor-rehearsals-2026-09-17/restore-001/restore-receipt.json).
+This checkpoint still predates five later paid Archive requests; fresh current-usage
+checkpoint recovery remains a rollout gate.
 The first attempt and its exact two-file permission repair are retained.
 
 Retained pre-migration rollback checkpoint:
@@ -62,7 +101,7 @@ includes both remote restore checks, final baseline verification and unchanged
 predecessor tables. Frozen schema-14 backup and WP16 helpers are not generic
 schema-28 operation drivers.
 
-## Active disposable rehearsal
+## Earlier disposable rehearsal record
 
 Scratch state: `/var/tmp/swingset-extension-input-20260917-001`.
 Receipts: `/var/tmp/swingset-extension-input-receipts-20260917-001`.
@@ -87,7 +126,7 @@ network, production input acceptance or publication is authorized by that helper
 Read the [closed receipt](../../evidence/runtime/extension-input-rehearsal-2026-09-17/production-copy-001/drain-001.json) before launching another turn. An empty queue cannot
 establish complete fleet derivation history.
 
-## Remaining operating gates
+## Earlier operating-gate record
 
 The ten paid Archive fixture requests support a reviewed ten-second legacy
 spacing baseline. Its prepared packet is at
@@ -121,12 +160,12 @@ these five debits. No PDF or origin request was made; HTML remains quarantined. 
 kind has been activated. See [current status](../../../docs/status.md) and the
 [continuation record](v2-continuation-2026-09-17.md).
 
-## Owner-requested pause
+## Earlier owner-requested pause
 
 Work stopped after candidate 005 passed 2,536 tests, Ruff, mypy over 224 source
 files and its offline NixOS build. It remains undeployed and unpublished;
 production stays held at schema 28. No commit or push was made. Read the
 [closing handoff](v2-continuation-2026-09-17.md#pause-after-candidate-005-validation)
 for exact candidate pins, unfinished operation gates and restart boundaries.
-The corrected successor rehearsal packet still binds candidate 004 and must
-be rebuilt and reviewed for candidate 005 before execution.
+At that pause, the corrected successor rehearsal packet still bound candidate 004. The resumed packet-003 review and operations above supersede that pending
+step; they do not change the retained pause or candidate-004 receipts.

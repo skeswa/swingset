@@ -59,6 +59,10 @@ def test_sql_loop_is_interrupted_and_connection_remains_readable(connection):
 
 def test_authorizer_denies_mutation_and_attach_but_preserves_baseline_query_mode(connection):
     assert connection.execute("PRAGMA query_only").fetchone() == (0,)
+    connection.execute("PRAGMA query_only=ON")
+    assert connection.execute("PRAGMA query_only").fetchone() == (1,)
+    connection.execute("PRAGMA query_only=OFF")
+    assert connection.execute("PRAGMA query_only").fetchone() == (0,)
     for sql in [
         "CREATE TABLE forbidden(id)",
         "PRAGMA user_version=29",

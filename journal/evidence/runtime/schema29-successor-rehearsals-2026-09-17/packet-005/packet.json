@@ -1,0 +1,71 @@
+{
+  "archive_commit": "68d738dcd78cb1654d053b479ea6dbd911f4b8ed",
+  "checkpoint": "/var/lib/swingset/checkpoints/extension28-held-20260917-004",
+  "checkpoint_sha256": "6ac7bb2d291136ef502abcb33f8762bf4449fd2fdc0160fb995f2aba0921f9d9",
+  "evidence": {
+    "capture_receipt_sha256": "804e4b8fa2af496ea7640339760a5dec3ac2565d5731547417a835083cf9551d",
+    "checkpoint_helper_sha256": "10bdfb40799a348ab948cca9934639b873676cf737e11a0532ba603960d099ba",
+    "verified_summary_sha256": "899500a757936b6fe90c9408c9b47058b3006ec6163e12855991566533d96a41"
+  },
+  "files": {
+    "backup-checkpoint-verified.json": "899500a757936b6fe90c9408c9b47058b3006ec6163e12855991566533d96a41",
+    "backup-checkpoint.py": "10bdfb40799a348ab948cca9934639b873676cf737e11a0532ba603960d099ba",
+    "backup-receipt.json": "804e4b8fa2af496ea7640339760a5dec3ac2565d5731547417a835083cf9551d",
+    "base-inputs.py": "ddb2761bc302d53436f0a257c853cb827d42f071234761fe27c28bf94a8ab861",
+    "base-migration.py": "225badb71efd35e5ed03b287bcd66c1cf01d4f7dd9e07c81570ccdd456d20f44",
+    "base-restore.py": "1e816a9af567344a6917e8fccd01362f6a2075ca480306bf48f2a0df96e93edf",
+    "checkpoint-sidecars.json": "b67384241d0f1c38c6aee7f35062a5cbf7bb9ebb3622f4f920ee5e3dfa264769",
+    "inputs.py": "aaa702614294edbacb1dce2bd33f7b881c78e8e67d1418e6261d17a8e46336d5",
+    "migration.py": "fc64795a53dad8d54d8118b07173be5a9256e266a1434be80d14ca6cc94c1d86",
+    "restore.py": "3fe70896146935be59f9b7a4e22366648223b9fe74ea188d6c73af18cdacc71f",
+    "runner.py": "5ee1ff19d118ba04b8e9d6d2d268863f9be615ea67afc5b9394e983f410cf055"
+  },
+  "format": "schema28-to29-current-checkpoint-packet-v1",
+  "paid_archive_usage": {
+    "bytes": 2952065,
+    "day": "2026-09-17",
+    "requests": 20
+  },
+  "paid_origin_usage": {
+    "bytes": 132764,
+    "day": "2026-09-17",
+    "host": "danceconvention.net",
+    "requests": 4
+  },
+  "predecessor_schema": 28,
+  "predecessor_tables": 116,
+  "source": "/nix/store/rgyryll4d55rgzscdqhjcwmkr325a76f-source",
+  "source_acceptance": "not_established_by_packet_build",
+  "source_receipt_sha256": "a2704c7c99ce5aef4fbd0f0df8b23343be5df2a688945e236b8e6856b320ad5f",
+  "target_schema": 29,
+  "top_level_sidecars": {
+    "dcn-origin-event-days.json": {
+      "sha256": "73a5fc787d0c60f1dd7b87633f5770540354e7b9295fffee301be70e6dcf9444",
+      "size": 520
+    },
+    "dcn-origin-robots-cache.json": {
+      "sha256": "1ff2d9e49b957569cfa0a645e0df0a4555a2d1cda8df9c51adef7d0a7ea77045",
+      "size": 335
+    },
+    "operator-hold": {
+      "sha256": "965468bb03ba65b6d1d4950ab8e85c09c8f2f2a323461b7a3f2b6177bba5c638",
+      "size": 66
+    },
+    "overnight-registry-result.json": {
+      "sha256": "9f69848aee480c129d2420a5648e04e519b29f55fbdd6cb20757a84057cb805c",
+      "size": 191
+    },
+    "overnight-registry-worker.py": {
+      "sha256": "f93bb995fcbe8e749db6c645f9f593d63209faf123fba1858e55d97715f38f74",
+      "size": 10308
+    },
+    "phase1-catalog.json": {
+      "sha256": "0355e34d69e23fc5a7096e07a99d420d4353bdb4fc59284497483ae856d084d9",
+      "size": 55922
+    },
+    "phase1-ledger.json": {
+      "sha256": "370ad76d175e4e4fa9cf344ec2d47268338dbba128194ecef65904a74632653c",
+      "size": 99840
+    }
+  }
+}

@@ -1,0 +1,101 @@
+{
+  "format": "held-schema29-live-migration-independent-review-v1",
+  "passed": true,
+  "checked_at": "2026-09-17T20:19:37.663506Z",
+  "status": {
+    "implementation": "implemented in local candidate-successor tooling",
+    "tested": true,
+    "deployed": false,
+    "published": false
+  },
+  "authority_boundary": {
+    "decision": "D-0098",
+    "decision_status": "Proposed; this review does not record owner acceptance",
+    "operator_hold_required": true,
+    "input_acceptance": false,
+    "collection_resumption": false,
+    "repairs_activation": false,
+    "publication": false
+  },
+  "pins": {
+    "helper": {
+      "path": "journal/tools/runtime/migrate_held_schema29.py",
+      "sha256": "45d9d17cd9eeceac1253db38e05529459b3ebe36555c446d18af3b3f27776e21"
+    },
+    "tests": {
+      "path": "tests/test_migrate_held_schema29.py",
+      "sha256": "8ac6d78dfa72ebdad041b7633dfd5fba6eff737f5d9503ed71bc08964b9691ad"
+    },
+    "migration_audit": {
+      "path": "journal/evidence/runtime/schema29-successor-rehearsals-2026-09-17/actual-review-004/migration-audit.json",
+      "sha256": "5a9713c828fbded1da6ff538d26b60b5932f32edf736b3cdf732375a280d65c3"
+    },
+    "restore_audit": {
+      "path": "journal/evidence/runtime/schema29-successor-rehearsals-2026-09-17/actual-review-004/restore-audit.json",
+      "sha256": "d6e02fa18b25b1dcf1a7a53d0baaab49583e5415ba9e80f301332807495674ee"
+    },
+    "packet_review": {
+      "path": "journal/evidence/runtime/schema29-successor-rehearsals-2026-09-17/packet004-independent-review-001/explicit-review-002/receipt.json",
+      "sha256": "8b843ed075109e65636bfd159be7379d167cb7e95142083840aa4bd237a1991f"
+    },
+    "migration_receipt_sha256": "13adb17d817b3372bfda9b28370a368d24fa24d399ee997ef5b77f009afb1a8c",
+    "restore_receipt_sha256": "eb3b33e1b72213b6cbee47b87586ad440b8bfaa841f073371c526ba72747ef97",
+    "packet_sha256": "366b0dbab70048cc2b85c4bdb7e06d24973478d8cfee965ee01ebb40d7fb5300",
+    "checkpoint_manifest_sha256": "6ac7bb2d291136ef502abcb33f8762bf4449fd2fdc0160fb995f2aba0921f9d9",
+    "candidate_source_receipt_sha256": "9255e8641a24c21c0942512ec251b32dd294bc6f2a537868a0012cafe331dc99"
+  },
+  "checks": {
+    "candidate005_source_file_inventory_and_receipt_pins_are_verified": true,
+    "built_candidate_system_and_service_binding_require_exact_six_units_and_six_override_inputs": true,
+    "gate_binds_current_packet_and_reviewed_artifacts_to_selected_receipt_attempts": true,
+    "packet_runner_closure_is_revalidated_inside_state_and_control_locks_before_migration": true,
+    "checkpoint_db_and_sidecars_are_verified_against_manifest_before_read": true,
+    "sealed_checkpoint_sqlite_read_uses_immutable_mode_and_no_wal_or_shm_artifact_is_created": true,
+    "checkpoint_schema28_116_tables_paid_usage_and_no_unsettled_admissions_are_checked": true,
+    "live_db_rejects_symlink_or_multiple_hardlinks": true,
+    "operator_hold_restore_barrier_current_and_persistent_system_and_six_inactive_units_are_checked": true,
+    "publication_baseline_and_pending_candidate_state_are_checked": true,
+    "migration_uses_state_then_control_lock_and_rechecks_all_inputs_at_boundary": true,
+    "post_migration_schema29_only_new_dispatch_fence_table_integrity_fk_reopen_control_sidecars_and_baseline_checks_are_present": true,
+    "operation_does_not_accept_inputs_resume_collection_activate_repairs_request_sources_or_publish": true,
+    "actual_migration_and_restore_independent_audits_bind_packet004_checkpoint004_and_exact_receipt_paths": true
+  },
+  "validation": {
+    "commands": [
+      ".venv/bin/python -m pytest -c /dev/null -p no:cacheprovider -q tests/test_migrate_held_schema29.py",
+      ".venv/bin/ruff check journal/tools/runtime/migrate_held_schema29.py tests/test_migrate_held_schema29.py",
+      ".venv/bin/ruff format --check journal/tools/runtime/migrate_held_schema29.py tests/test_migrate_held_schema29.py",
+      ".venv/bin/mypy --follow-imports=silent journal/tools/runtime/migrate_held_schema29.py"
+    ],
+    "results": {
+      "pytest": "14 passed",
+      "ruff": "passed",
+      "format": "passed",
+      "mypy": "passed"
+    },
+    "logs": {
+      "pytest.log": {
+        "path": "journal/evidence/runtime/held-schema29-migration-2026-09-17/independent-review-001/pytest.log",
+        "sha256": "afd29dde277673ae5fdf4065212d4ff9dfcfb69674649964c2810313752808d3"
+      },
+      "ruff.log": {
+        "path": "journal/evidence/runtime/held-schema29-migration-2026-09-17/independent-review-001/ruff.log",
+        "sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+      },
+      "format.log": {
+        "path": "journal/evidence/runtime/held-schema29-migration-2026-09-17/independent-review-001/format.log",
+        "sha256": "3bc53bf3e981a98a34a852e175bf9b77af841edea74fca595d9aedcbaf9a4938"
+      },
+      "mypy.log": {
+        "path": "journal/evidence/runtime/held-schema29-migration-2026-09-17/independent-review-001/mypy.log",
+        "sha256": "5d4b6d285b77932e3d08212c3b4974d0a803f98ec60408ac6ccf6a063fa6c19e"
+      }
+    }
+  },
+  "operational_limitations": [
+    "The local independent review did not execute the production preflight or migration. Fixed production paths and the VM-only Nix store source are checked only by the coordinator in the authorized operation environment.",
+    "Live read-only SQLite connections remain in normal mode so they can see committed WAL data; SQLite may create WAL/SHM bookkeeping files. The coordinator accepts those runtime transients, which are excluded from application sidecar state. Sealed checkpoint reads use immutable mode and their manifest closure remains unchanged.",
+    "The exact actual rehearsal audits validate all 116 predecessor table receipts, the sole new history_dispatch_fence table, integrity/foreign keys, sidecars, restore-only singleton pressure epoch increment, request spacing, and held state; these rehearsals are not deployment of the production migration."
+  ],
+  "review_findings": []
+}

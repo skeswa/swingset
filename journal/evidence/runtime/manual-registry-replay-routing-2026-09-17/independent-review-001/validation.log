@@ -1,0 +1,13 @@
+$ PYTHONPATH=src .venv/bin/python -m pytest -c /dev/null -p no:cacheprovider -q tests/test_manual_snapshot_invalidation.py
+.                                                                        [100%]
+1 passed in 0.51s
+
+$ PYTHONPATH=src .venv/bin/python -m pytest -c /dev/null -p no:cacheprovider -q tests/test_inputs.py tests/test_history_cycle.py tests/test_manual_derivation_controls.py tests/test_work_isolation.py
+....................                                                     [100%]
+20 passed in 16.88s
+
+$ .venv/bin/ruff check src/swingset/state/work.py tests/test_manual_snapshot_invalidation.py
+All checks passed!
+
+$ .venv/bin/mypy src/swingset/state/work.py tests/test_manual_snapshot_invalidation.py
+Success: no issues found in 2 source files

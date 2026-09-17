@@ -1,0 +1,24 @@
+{
+  "checkpoint_sha256": "6ac7bb2d291136ef502abcb33f8762bf4449fd2fdc0160fb995f2aba0921f9d9",
+  "checks": {
+    "migration_receipt_checkpoint_matches_packet": true,
+    "migration_receipt_has_116_predecessor_tables": true,
+    "migration_receipt_has_all_7_top_level_sidecars": true,
+    "migration_receipt_passed": true,
+    "migration_receipt_source_and_receipt_match_packet": true,
+    "migration_receipt_targets_schema29_from_schema28": true,
+    "prior_packet_review_audit_passed": true,
+    "prior_packet_sha256_matches": true
+  },
+  "finished_at": "2026-09-17T19:49:15.944801+00:00",
+  "format": "schema29-packet004-migration-independent-review-v1",
+  "packet_sha256": "366b0dbab70048cc2b85c4bdb7e06d24973478d8cfee965ee01ebb40d7fb5300",
+  "passed": true,
+  "prior_packet_audit": {
+    "path": "audit.log",
+    "sha256": "e2167f4b06faff32cf0831b63074ff17ecc41eda9e9b3271e7f38c96accc5572"
+  },
+  "receipt": "../migration-002/migration-receipt.json",
+  "receipt_sha256": "13adb17d817b3372bfda9b28370a368d24fa24d399ee997ef5b77f009afb1a8c",
+  "source_receipt_sha256": "9255e8641a24c21c0942512ec251b32dd294bc6f2a537868a0012cafe331dc99"
+}

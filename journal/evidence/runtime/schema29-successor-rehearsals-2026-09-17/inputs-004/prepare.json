@@ -1,0 +1,16 @@
+{
+  "checkpoint_sha256": "6ac7bb2d291136ef502abcb33f8762bf4449fd2fdc0160fb995f2aba0921f9d9",
+  "finished_at": "2026-09-17T22:23:55.525979+00:00",
+  "format": "extension-input-rehearsal-v1",
+  "helper_sha256": "aaa702614294edbacb1dce2bd33f7b881c78e8e67d1418e6261d17a8e46336d5",
+  "marker_sha256": "f573f831fa002e4a875767f17e78fb47895f4a97bad840ca9ce7bb42631332dd",
+  "network_requests": 0,
+  "passed": true,
+  "phase": "prepare",
+  "production_acceptance": false,
+  "publication": false,
+  "repairs_activated": false,
+  "source": "/nix/store/rgyryll4d55rgzscdqhjcwmkr325a76f-source",
+  "source_receipt_sha256": "a2704c7c99ce5aef4fbd0f0df8b23343be5df2a688945e236b8e6856b320ad5f",
+  "started_at": "2026-09-17T22:21:36.292286+00:00"
+}

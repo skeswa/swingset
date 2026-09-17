@@ -1,0 +1,20 @@
+2026-09-17T22:08:42+00:00 swingset systemd[1]: Starting [systemd-run] /var/lib/swingset/venv/bin/python /var/lib/swingset/operations/v2-resume-20260917/schema29-packet-005/runner.py run --packet-sha256 0d455559b7e0cd767cb1739f10271eb12e8178bebb5a4ab283bd8e74733b6ff3 restore -- --destination /var/tmp/swingset-schema29-restore-20260917-003...
+2026-09-17T22:08:42+00:00 swingset systemd[1]: Started [systemd-run] /var/lib/swingset/venv/bin/python /var/lib/swingset/operations/v2-resume-20260917/schema29-packet-005/runner.py run --packet-sha256 0d455559b7e0cd767cb1739f10271eb12e8178bebb5a4ab283bd8e74733b6ff3 restore -- --destination /var/tmp/swingset-schema29-restore-20260917-003.
+2026-09-17T22:08:43+00:00 swingset python[122177]: Traceback (most recent call last):
+2026-09-17T22:08:43+00:00 swingset python[122177]:   File "/var/lib/swingset/operations/v2-resume-20260917/schema29-packet-005/runner.py", line 428, in <module>
+2026-09-17T22:08:43+00:00 swingset python[122177]:     main()
+2026-09-17T22:08:43+00:00 swingset python[122177]:   File "/var/lib/swingset/operations/v2-resume-20260917/schema29-packet-005/runner.py", line 424, in main
+2026-09-17T22:08:43+00:00 swingset python[122177]:     run(Path(__file__).resolve().parent, args.packet_sha256, args.kind, values)
+2026-09-17T22:08:43+00:00 swingset python[122177]:   File "/var/lib/swingset/operations/v2-resume-20260917/schema29-packet-005/runner.py", line 379, in run
+2026-09-17T22:08:43+00:00 swingset python[122177]:     module.main()
+2026-09-17T22:08:43+00:00 swingset python[122177]:   File "/var/lib/swingset/operations/v2-resume-20260917/schema29-packet-005/restore.py", line 325, in main
+2026-09-17T22:08:43+00:00 swingset python[122177]:     hub = remote_reader(args.public_repo, destination / "remote-cache")
+2026-09-17T22:08:43+00:00 swingset python[122177]:           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-09-17T22:08:43+00:00 swingset python[122177]:   File "/var/lib/swingset/operations/v2-resume-20260917/schema29-packet-005/restore.py", line 240, in remote_reader
+2026-09-17T22:08:43+00:00 swingset python[122177]:     hub: Any = HuggingFaceHub(repo, token=os.environ["HF_TOKEN"])
+2026-09-17T22:08:43+00:00 swingset python[122177]:                                           ~~~~~~~~~~^^^^^^^^^^^^
+2026-09-17T22:08:43+00:00 swingset python[122177]:   File "<frozen os>", line 714, in __getitem__
+2026-09-17T22:08:43+00:00 swingset python[122177]: KeyError: 'HF_TOKEN'
+2026-09-17T22:08:43+00:00 swingset systemd[1]: swingset-schema29-restore-20260917-003.service: Main process exited, code=exited, status=1/FAILURE
+2026-09-17T22:08:43+00:00 swingset systemd[1]: swingset-schema29-restore-20260917-003.service: Failed with result 'exit-code'.
+2026-09-17T22:08:43+00:00 swingset systemd[1]: swingset-schema29-restore-20260917-003.service: Consumed 1.534s CPU time, 280.8M memory peak, 202.7M read from disk.

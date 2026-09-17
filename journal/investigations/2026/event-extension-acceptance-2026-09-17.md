@@ -59,9 +59,12 @@ observed; current proof still depends on current evidence and restore epochs.
 
 ## Gates still open
 
-The extension needs the coordinator's source-bound integrated checks and an actual
-schema-14 production backup/restore and migration rehearsal before deployment.
-Production input bindings, holds and ordinary jobs need reconciliation. A fixed
+The schema-14→28 backup, restore and migration gates later passed, and schema 28
+was deployed under hold; see the [operating handoff](event-extension-operating-handoff-2026-09-17.md).
+Candidate 005's schema-29 successor has passed full frozen validation and
+service-binding review. Its actual schema-28→29 migration, restore, scratch
+replay and fresh checkpoint gates remain separate from that validation.
+Production input bindings, holds and ordinary jobs still need reconciliation. A fixed
 admitted cohort then needs measured demand, service, objectives and elapsed
 operating observation, followed by the new audited and acknowledged release.
 Neither this audit nor local passing tests closes those gates.
@@ -72,7 +75,9 @@ timing are not exact fleet ages. A proven lower-bound breach can alert only with
 current eligibility and uninterrupted receipt authority. The complete recorded
 history API does not turn sampled observations into complete real-world history.
 
-V5 year acceptance and real-source fixture decisions remain separate owner gates.
+V5 year acceptance remains an explicit owner gate. D-0087 now supplies standing
+authority for necessary real-source fixtures; concrete scopes and independent
+runner review remain required.
 H17 still needs independent human labels and defensible accuracy estimates.
 H18 activation still waits for V5 and V6, including historical publications, and
 its own per-kind recovery and operating evidence. No acceptance is inferred here.

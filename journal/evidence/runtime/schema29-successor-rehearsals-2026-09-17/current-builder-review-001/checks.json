@@ -1,0 +1,48 @@
+{
+  "started_at": "2026-09-17T19:40:17.762374+00:00",
+  "before": {
+    "journal/tools/runtime/prepare_current_schema29_rehearsals.py": "0c074a6b6135fb1fdcf10ccdd676b20b87707cd69fbc35bd23fcdb4890fe9ba8",
+    "tests/test_current_schema29_rehearsals.py": "6f61b9242a170294e8d6be010622d7410027d6b4378d9420cace5d826000e527"
+  },
+  "scope": "coordinator independent review of fresh held checkpoint packet builder",
+  "checks": {
+    "pytest": {
+      "command": [
+        ".venv/bin/python",
+        "-m",
+        "pytest",
+        "-q",
+        "-p",
+        "no:cacheprovider",
+        "tests/test_current_schema29_rehearsals.py",
+        "tests/test_schema29_rehearsals.py"
+      ],
+      "exit_code": 4,
+      "log_sha256": "7779d1f3a2cde583049bcfb00a6826a79bdbc31dc274cf5f8fad5ba6e8b3fe18"
+    },
+    "ruff": {
+      "command": [
+        ".venv/bin/ruff",
+        "check",
+        "journal/tools/runtime/prepare_current_schema29_rehearsals.py",
+        "tests/test_current_schema29_rehearsals.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+    },
+    "mypy": {
+      "command": [
+        ".venv/bin/mypy",
+        "journal/tools/runtime/prepare_current_schema29_rehearsals.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "5d4b6d285b77932e3d08212c3b4974d0a803f98ec60408ac6ccf6a063fa6c19e"
+    }
+  },
+  "after": {
+    "journal/tools/runtime/prepare_current_schema29_rehearsals.py": "0c074a6b6135fb1fdcf10ccdd676b20b87707cd69fbc35bd23fcdb4890fe9ba8",
+    "tests/test_current_schema29_rehearsals.py": "6f61b9242a170294e8d6be010622d7410027d6b4378d9420cace5d826000e527"
+  },
+  "passed": false,
+  "finished_at": "2026-09-17T19:40:18.202493+00:00"
+}

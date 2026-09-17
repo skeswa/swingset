@@ -1,0 +1,53 @@
+{
+  "format": "schema28-to29-migration-independent-audit-v1",
+  "checked_at": "2026-09-17T18:45:30Z",
+  "passed": true,
+  "receipt": "../migration-001/migration-receipt.json",
+  "receipt_sha256": "b2721d9b3920af9f54e4bc1504bac200a76f72f95dd95a84a21565427d73b97f",
+  "receipt_scope": {
+    "source": "/nix/store/z0rnsn69aav2h8p2wgzydar6k9rw5kk9-source",
+    "source_receipt_sha256": "9255e8641a24c21c0942512ec251b32dd294bc6f2a537868a0012cafe331dc99",
+    "helper_sha256": "7ac399193c8144bc7e9c547b43dc5a06ccab10660486e4ba04f3f0bc06172643",
+    "packet_sha256": "6748af985bbe7b6a74c30c094c72cc117fd6f259a661fb5aeb052e51e309d230",
+    "checkpoint": "/var/lib/swingset/checkpoints/extension28-held-20260917-002",
+    "checkpoint_sha256": "4929859092cbd3e15122f3598b5da477a65498976cc744c52cf2b142d1cebea3",
+    "archive_commit": "d71060d4f77b6073f797bd7232bf2aa3694ba685",
+    "old_schema": 28,
+    "target_schema": 29,
+    "duration_seconds": 114.856
+  },
+  "table_preservation": {
+    "before_tables": 116,
+    "after_tables": 117,
+    "changed_existing_tables": [],
+    "all_before_receipts_equal_after": true,
+    "only_new_table": "history_dispatch_fence"
+  },
+  "migration_results": {
+    "passed": true,
+    "scope": "migration_only_without_runtime_input_acceptance",
+    "integrity": [["ok"]],
+    "foreign_key_failure": false,
+    "checkpoint_unchanged": true,
+    "checkpoint_manifest_sha256": "4929859092cbd3e15122f3598b5da477a65498976cc744c52cf2b142d1cebea3",
+    "source_receipt_rechecked": true,
+    "source_helper_sha256_rechecked": "225badb71efd35e5ed03b287bcd66c1cf01d4f7dd9e07c81570ccdd456d20f44",
+    "hold_sha256": "965468bb03ba65b6d1d4950ab8e85c09c8f2f2a323461b7a3f2b6177bba5c638",
+    "restore_pending": false
+  },
+  "independent_observation": {
+    "destination": "/var/tmp/swingset-schema29-migration-20260917-001",
+    "schema_markers": {"pragma_user_version": 29, "meta_schema_version": "29"},
+    "application_tables": 117,
+    "history_dispatch_fence": [[1, 1]],
+    "foreign_key_check_sample": [],
+    "destination_hold_matches_checkpoint": true,
+    "destination_receipt_sha256_matches_retained_receipt": true
+  },
+  "failures": [],
+  "limitations": [
+    "The independent pass checked every recorded before/after table digest and queried destination schema, table count, fence row, foreign keys, hold and receipt pins. It did not recompute every 5 GB database table digest a second time.",
+    "This rehearsal is bound to checkpoint002's 15-request cutoff. It does not validate the later 20-request state or replace the fresh checkpoint and successor rehearsals required before live rollout.",
+    "No live database migration, input acceptance, source request, public write, deployment or publication occurred in this review."
+  ]
+}

@@ -1,0 +1,3 @@
+Sep 17 18:41:04 swingset systemd[1]: Started [systemd-run] /var/lib/swingset/venv/bin/python /var/lib/swingset/operations/v2-resume-20260917/schema29-packet-003/runner.py run --packet-sha256 6748af985bbe7b6a74c30c094c72cc117fd6f259a661fb5aeb052e51e309d230 restore -- --destination /var/tmp/swingset-schema29-restore-20260917-001.
+Sep 17 18:53:25 swingset systemd[1]: swingset-schema29-restore-20260917-001.service: Deactivated successfully.
+Sep 17 18:53:25 swingset systemd[1]: swingset-schema29-restore-20260917-001.service: Consumed 4min 4.985s CPU time, 6.4G memory peak, 32.5G read from disk, 8.7G written to disk, 138.7M incoming IP traffic, 529.1K outgoing IP traffic.

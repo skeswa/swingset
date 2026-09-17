@@ -33,6 +33,8 @@ is the entry point for implementation and operating evidence.
 | ---------------------------------------------------- | ----------------------------------------- |
 | Module ownership and evidence flow                   | [Architecture](architecture.md)           |
 | Stored evidence, work, and invalidation              | [Local state](state.md)                   |
+| Changes in each SQLite schema version                | [Schema history](schema-history.md)       |
+| Changes and validation in each runtime source freeze | [Candidate history](candidate-history.md) |
 | Worker lifecycle, controls, and recovery             | [Operations](operations.md)               |
 | Cross-module recovery guarantees and target behavior | [Recovery contract](recovery.md)          |
 | Runtime tools                                        | [Technology](technology.md)               |

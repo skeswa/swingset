@@ -1,0 +1,18 @@
+{
+  "format": "event-extension-build-v1",
+  "checked_at": "2026-09-17T21:47:00Z",
+  "source_verified": true,
+  "source_files": 2939,
+  "source": "/nix/store/rgyryll4d55rgzscdqhjcwmkr325a76f-source",
+  "source_receipt_sha256": "a2704c7c99ce5aef4fbd0f0df8b23343be5df2a688945e236b8e6856b320ad5f",
+  "archived_dependencies_included": true,
+  "archived_fixture_sha256": "3e4e9cae6d39e099b79c7b5e7bae1e25c02fb0315e82e1311c7be4b39e3796bb",
+  "build_command": "nix build --offline --impure --no-link --print-out-paths <source>#nixosConfigurations.orb.config.system.build.toplevel",
+  "build_exit_code": 0,
+  "built_system": "/nix/store/5d9nlyflv9d4gb89a5wayhiarj01znnh-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+  "built_package": "/nix/store/lcay4ij6fa093g7wfk4g2imdsqza7d32-swingset",
+  "build_log_sha256": "19fa0b7859079ae29ba21391462ad841c95f47faba5377707685cad39793d3fa",
+  "deployed": false,
+  "published": false,
+  "service_bindings_reviewed": false
+}

@@ -1,0 +1,78 @@
+{
+  "checked_at": "2026-09-17T20:01:48.850226+00:00",
+  "checkpoint": "/var/lib/swingset/checkpoints/extension28-held-20260917-004",
+  "destination": "/var/tmp/swingset-schema29-migration-20260917-002",
+  "checkpoint_manifest_sha256": "6ac7bb2d291136ef502abcb33f8762bf4449fd2fdc0160fb995f2aba0921f9d9",
+  "checkpoint_database": {
+    "size": 5016879104,
+    "sha256": "c2e05c73c56360f786a5b6e5c2ca3e079644332de6041ed5743244540f8aff70"
+  },
+  "expected_checkpoint_database": {
+    "sha256": "c2e05c73c56360f786a5b6e5c2ca3e079644332de6041ed5743244540f8aff70",
+    "size": 5016879104
+  },
+  "destination_receipt_sha256": "13adb17d817b3372bfda9b28370a368d24fa24d399ee997ef5b77f009afb1a8c",
+  "sidecars": {
+    "dcn-origin-event-days.json": {
+      "checkpoint_sha256": "73a5fc787d0c60f1dd7b87633f5770540354e7b9295fffee301be70e6dcf9444",
+      "destination_sha256": "73a5fc787d0c60f1dd7b87633f5770540354e7b9295fffee301be70e6dcf9444",
+      "expected_sha256": "73a5fc787d0c60f1dd7b87633f5770540354e7b9295fffee301be70e6dcf9444"
+    },
+    "dcn-origin-robots-cache.json": {
+      "checkpoint_sha256": "1ff2d9e49b957569cfa0a645e0df0a4555a2d1cda8df9c51adef7d0a7ea77045",
+      "destination_sha256": "1ff2d9e49b957569cfa0a645e0df0a4555a2d1cda8df9c51adef7d0a7ea77045",
+      "expected_sha256": "1ff2d9e49b957569cfa0a645e0df0a4555a2d1cda8df9c51adef7d0a7ea77045"
+    },
+    "operator-hold": {
+      "checkpoint_sha256": "965468bb03ba65b6d1d4950ab8e85c09c8f2f2a323461b7a3f2b6177bba5c638",
+      "destination_sha256": "965468bb03ba65b6d1d4950ab8e85c09c8f2f2a323461b7a3f2b6177bba5c638",
+      "expected_sha256": "965468bb03ba65b6d1d4950ab8e85c09c8f2f2a323461b7a3f2b6177bba5c638"
+    },
+    "overnight-registry-result.json": {
+      "checkpoint_sha256": "9f69848aee480c129d2420a5648e04e519b29f55fbdd6cb20757a84057cb805c",
+      "destination_sha256": "9f69848aee480c129d2420a5648e04e519b29f55fbdd6cb20757a84057cb805c",
+      "expected_sha256": "9f69848aee480c129d2420a5648e04e519b29f55fbdd6cb20757a84057cb805c"
+    },
+    "overnight-registry-worker.py": {
+      "checkpoint_sha256": "f93bb995fcbe8e749db6c645f9f593d63209faf123fba1858e55d97715f38f74",
+      "destination_sha256": "f93bb995fcbe8e749db6c645f9f593d63209faf123fba1858e55d97715f38f74",
+      "expected_sha256": "f93bb995fcbe8e749db6c645f9f593d63209faf123fba1858e55d97715f38f74"
+    },
+    "phase1-catalog.json": {
+      "checkpoint_sha256": "0355e34d69e23fc5a7096e07a99d420d4353bdb4fc59284497483ae856d084d9",
+      "destination_sha256": "0355e34d69e23fc5a7096e07a99d420d4353bdb4fc59284497483ae856d084d9",
+      "expected_sha256": "0355e34d69e23fc5a7096e07a99d420d4353bdb4fc59284497483ae856d084d9"
+    },
+    "phase1-ledger.json": {
+      "checkpoint_sha256": "370ad76d175e4e4fa9cf344ec2d47268338dbba128194ecef65904a74632653c",
+      "destination_sha256": "370ad76d175e4e4fa9cf344ec2d47268338dbba128194ecef65904a74632653c",
+      "expected_sha256": "370ad76d175e4e4fa9cf344ec2d47268338dbba128194ecef65904a74632653c"
+    }
+  },
+  "network_requests": 0,
+  "database_changes": 0,
+  "checkpoint_state": {
+    "schema_markers": [
+      28,
+      "28"
+    ],
+    "application_tables": 116,
+    "foreign_key_sample": [],
+    "restore_pending": false
+  },
+  "destination_state": {
+    "schema_markers": [
+      29,
+      "29"
+    ],
+    "application_tables": 117,
+    "foreign_key_sample": [],
+    "restore_pending": false,
+    "fence": [
+      [
+        1,
+        1
+      ]
+    ]
+  }
+}

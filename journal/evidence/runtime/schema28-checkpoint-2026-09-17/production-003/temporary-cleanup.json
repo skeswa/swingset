@@ -1,0 +1,7 @@
+{
+  "removed_at": "2026-09-17T19:33:50.085896+00:00",
+  "removed_temporary_file": "/tmp/swingset-checkpoint-lt1znnn4/checkpoint.tar",
+  "bytes": 6643489792,
+  "reason": "incomplete private-upload tar from the OOM-killed coordinator service; checkpoint003 and retained receipts preserved",
+  "no_live_file_descriptor": true
+}

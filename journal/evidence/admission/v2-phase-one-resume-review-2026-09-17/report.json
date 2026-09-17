@@ -1,0 +1,625 @@
+{
+  "checks": {
+    "all_17_years_present": true,
+    "all_held_states_are_explicit": true,
+    "all_years_have_findings": true,
+    "all_years_recorded_unaccepted": true,
+    "annual_counts_reconcile_to_event_export": true,
+    "event_export_ids_unique": true,
+    "every_month_precision_row_has_event_month_and_no_day_dates": true,
+    "no_year_ready_for_owner_review": true
+  },
+  "counts": {
+    "alias_groups_with_multiple_candidates": 15,
+    "alias_groups_without_candidates": 643,
+    "alias_review_groups": 658,
+    "all_findings": 1046,
+    "events_by_year_in_event_export": {
+      "2010": 94,
+      "2011": 87,
+      "2012": 104,
+      "2013": 114,
+      "2014": 125,
+      "2015": 139,
+      "2016": 151,
+      "2017": 163,
+      "2018": 161,
+      "2019": 173,
+      "2020": 114,
+      "2021": 75,
+      "2022": 121,
+      "2023": 158,
+      "2024": 188,
+      "2025": 245,
+      "2026": 216,
+      "2027": 108,
+      "2028": 3,
+      "2029": 1,
+      "2030": 1
+    },
+    "finding_kinds": {
+      "event_alias": 39,
+      "parse_failure": 4,
+      "parse_warning": 62,
+      "phase1_incomplete": 17,
+      "series_alias": 924
+    },
+    "in_scope_cancelled": 23,
+    "in_scope_events_2010_2026": 2428,
+    "in_scope_listed": 517,
+    "in_scope_month_precision": 421,
+    "occurrence_evidence_rows": 1888,
+    "pending_targets": 17,
+    "phase1_findings": 17,
+    "registry_occurrence_rows": 1888,
+    "target_statuses": {
+      "duplicate": 4,
+      "empty": 33,
+      "finding": 4,
+      "parsed": 155,
+      "pending": 17
+    },
+    "targets": 213
+  },
+  "format": "v2-phase-one-resume-review-v1",
+  "in_scope_years": [
+    {
+      "cancelled": 0,
+      "day_precision": 51,
+      "events": 94,
+      "finding_count": 32,
+      "finding_kinds": {
+        "phase1_incomplete": 1,
+        "series_alias": 31
+      },
+      "listed": 14,
+      "month_precision": 43,
+      "recorded_events_accepted": false,
+      "recorded_ready_for_owner_review": false,
+      "registry_occurrences": 80,
+      "series_alias_groups": 30,
+      "target_statuses_in_capture_gaps": {
+        "finding": 4,
+        "parsed": 16,
+        "pending": 17
+      },
+      "unassociated_occurrences": 0,
+      "year": 2010
+    },
+    {
+      "cancelled": 0,
+      "day_precision": 30,
+      "events": 87,
+      "finding_count": 19,
+      "finding_kinds": {
+        "phase1_incomplete": 1,
+        "series_alias": 18
+      },
+      "listed": 2,
+      "month_precision": 57,
+      "recorded_events_accepted": false,
+      "recorded_ready_for_owner_review": false,
+      "registry_occurrences": 85,
+      "series_alias_groups": 17,
+      "target_statuses_in_capture_gaps": {
+        "finding": 4,
+        "parsed": 16,
+        "pending": 17
+      },
+      "unassociated_occurrences": 0,
+      "year": 2011
+    },
+    {
+      "cancelled": 0,
+      "day_precision": 70,
+      "events": 104,
+      "finding_count": 39,
+      "finding_kinds": {
+        "event_alias": 2,
+        "phase1_incomplete": 1,
+        "series_alias": 36
+      },
+      "listed": 13,
+      "month_precision": 34,
+      "recorded_events_accepted": false,
+      "recorded_ready_for_owner_review": false,
+      "registry_occurrences": 91,
+      "series_alias_groups": 34,
+      "target_statuses_in_capture_gaps": {
+        "finding": 4,
+        "parsed": 16,
+        "pending": 17
+      },
+      "unassociated_occurrences": 0,
+      "year": 2012
+    },
+    {
+      "cancelled": 1,
+      "day_precision": 71,
+      "events": 114,
+      "finding_count": 32,
+      "finding_kinds": {
+        "phase1_incomplete": 1,
+        "series_alias": 31
+      },
+      "listed": 7,
+      "month_precision": 43,
+      "recorded_events_accepted": false,
+      "recorded_ready_for_owner_review": false,
+      "registry_occurrences": 106,
+      "series_alias_groups": 27,
+      "target_statuses_in_capture_gaps": {
+        "finding": 4,
+        "parsed": 18,
+        "pending": 17
+      },
+      "unassociated_occurrences": 0,
+      "year": 2013
+    },
+    {
+      "cancelled": 0,
+      "day_precision": 57,
+      "events": 125,
+      "finding_count": 25,
+      "finding_kinds": {
+        "event_alias": 1,
+        "phase1_incomplete": 1,
+        "series_alias": 23
+      },
+      "listed": 8,
+      "month_precision": 68,
+      "recorded_events_accepted": false,
+      "recorded_ready_for_owner_review": false,
+      "registry_occurrences": 117,
+      "series_alias_groups": 22,
+      "target_statuses_in_capture_gaps": {
+        "finding": 4,
+        "parsed": 18,
+        "pending": 17
+      },
+      "unassociated_occurrences": 0,
+      "year": 2014
+    },
+    {
+      "cancelled": 1,
+      "day_precision": 102,
+      "events": 139,
+      "finding_count": 36,
+      "finding_kinds": {
+        "event_alias": 4,
+        "phase1_incomplete": 1,
+        "series_alias": 31
+      },
+      "listed": 15,
+      "month_precision": 37,
+      "recorded_events_accepted": false,
+      "recorded_ready_for_owner_review": false,
+      "registry_occurrences": 122,
+      "series_alias_groups": 30,
+      "target_statuses_in_capture_gaps": {
+        "finding": 4,
+        "parsed": 17,
+        "pending": 17
+      },
+      "unassociated_occurrences": 0,
+      "year": 2015
+    },
+    {
+      "cancelled": 1,
+      "day_precision": 120,
+      "events": 151,
+      "finding_count": 35,
+      "finding_kinds": {
+        "event_alias": 3,
+        "phase1_incomplete": 1,
+        "series_alias": 31
+      },
+      "listed": 16,
+      "month_precision": 31,
+      "recorded_events_accepted": false,
+      "recorded_ready_for_owner_review": false,
+      "registry_occurrences": 135,
+      "series_alias_groups": 29,
+      "target_statuses_in_capture_gaps": {
+        "finding": 4,
+        "parsed": 37,
+        "pending": 17
+      },
+      "unassociated_occurrences": 0,
+      "year": 2016
+    },
+    {
+      "cancelled": 0,
+      "day_precision": 157,
+      "events": 163,
+      "finding_count": 56,
+      "finding_kinds": {
+        "event_alias": 3,
+        "phase1_incomplete": 1,
+        "series_alias": 52
+      },
+      "listed": 15,
+      "month_precision": 6,
+      "recorded_events_accepted": false,
+      "recorded_ready_for_owner_review": false,
+      "registry_occurrences": 148,
+      "series_alias_groups": 52,
+      "target_statuses_in_capture_gaps": {
+        "finding": 4,
+        "parsed": 36,
+        "pending": 17
+      },
+      "unassociated_occurrences": 0,
+      "year": 2017
+    },
+    {
+      "cancelled": 0,
+      "day_precision": 159,
+      "events": 161,
+      "finding_count": 40,
+      "finding_kinds": {
+        "event_alias": 1,
+        "phase1_incomplete": 1,
+        "series_alias": 38
+      },
+      "listed": 14,
+      "month_precision": 2,
+      "recorded_events_accepted": false,
+      "recorded_ready_for_owner_review": false,
+      "registry_occurrences": 146,
+      "series_alias_groups": 38,
+      "target_statuses_in_capture_gaps": {
+        "finding": 4,
+        "parsed": 35,
+        "pending": 17
+      },
+      "unassociated_occurrences": 0,
+      "year": 2018
+    },
+    {
+      "cancelled": 4,
+      "day_precision": 169,
+      "events": 173,
+      "finding_count": 55,
+      "finding_kinds": {
+        "event_alias": 3,
+        "phase1_incomplete": 1,
+        "series_alias": 51
+      },
+      "listed": 17,
+      "month_precision": 4,
+      "recorded_events_accepted": false,
+      "recorded_ready_for_owner_review": false,
+      "registry_occurrences": 153,
+      "series_alias_groups": 50,
+      "target_statuses_in_capture_gaps": {
+        "finding": 4,
+        "parsed": 35,
+        "pending": 17
+      },
+      "unassociated_occurrences": 0,
+      "year": 2019
+    },
+    {
+      "cancelled": 3,
+      "day_precision": 111,
+      "events": 114,
+      "finding_count": 131,
+      "finding_kinds": {
+        "phase1_incomplete": 1,
+        "series_alias": 130
+      },
+      "listed": 80,
+      "month_precision": 3,
+      "recorded_events_accepted": false,
+      "recorded_ready_for_owner_review": false,
+      "registry_occurrences": 31,
+      "series_alias_groups": 130,
+      "target_statuses_in_capture_gaps": {
+        "finding": 4,
+        "parsed": 35,
+        "pending": 17
+      },
+      "unassociated_occurrences": 0,
+      "year": 2020
+    },
+    {
+      "cancelled": 1,
+      "day_precision": 74,
+      "events": 75,
+      "finding_count": 92,
+      "finding_kinds": {
+        "event_alias": 1,
+        "phase1_incomplete": 1,
+        "series_alias": 90
+      },
+      "listed": 48,
+      "month_precision": 1,
+      "recorded_events_accepted": false,
+      "recorded_ready_for_owner_review": false,
+      "registry_occurrences": 26,
+      "series_alias_groups": 90,
+      "target_statuses_in_capture_gaps": {
+        "finding": 4,
+        "parsed": 35,
+        "pending": 17
+      },
+      "unassociated_occurrences": 0,
+      "year": 2021
+    },
+    {
+      "cancelled": 0,
+      "day_precision": 118,
+      "events": 121,
+      "finding_count": 48,
+      "finding_kinds": {
+        "event_alias": 2,
+        "phase1_incomplete": 1,
+        "series_alias": 45
+      },
+      "listed": 29,
+      "month_precision": 3,
+      "recorded_events_accepted": false,
+      "recorded_ready_for_owner_review": false,
+      "registry_occurrences": 92,
+      "series_alias_groups": 45,
+      "target_statuses_in_capture_gaps": {
+        "finding": 4,
+        "parsed": 35,
+        "pending": 17
+      },
+      "unassociated_occurrences": 0,
+      "year": 2022
+    },
+    {
+      "cancelled": 6,
+      "day_precision": 148,
+      "events": 158,
+      "finding_count": 62,
+      "finding_kinds": {
+        "event_alias": 5,
+        "phase1_incomplete": 1,
+        "series_alias": 56
+      },
+      "listed": 31,
+      "month_precision": 10,
+      "recorded_events_accepted": false,
+      "recorded_ready_for_owner_review": false,
+      "registry_occurrences": 120,
+      "series_alias_groups": 56,
+      "target_statuses_in_capture_gaps": {
+        "finding": 4,
+        "parsed": 35,
+        "pending": 17
+      },
+      "unassociated_occurrences": 0,
+      "year": 2023
+    },
+    {
+      "cancelled": 4,
+      "day_precision": 181,
+      "events": 188,
+      "finding_count": 140,
+      "finding_kinds": {
+        "event_alias": 7,
+        "phase1_incomplete": 1,
+        "series_alias": 132
+      },
+      "listed": 45,
+      "month_precision": 7,
+      "recorded_events_accepted": false,
+      "recorded_ready_for_owner_review": false,
+      "registry_occurrences": 139,
+      "series_alias_groups": 131,
+      "target_statuses_in_capture_gaps": {
+        "finding": 4,
+        "parsed": 35,
+        "pending": 17
+      },
+      "unassociated_occurrences": 0,
+      "year": 2024
+    },
+    {
+      "cancelled": 1,
+      "day_precision": 212,
+      "events": 245,
+      "finding_count": 94,
+      "finding_kinds": {
+        "event_alias": 5,
+        "phase1_incomplete": 1,
+        "series_alias": 88
+      },
+      "listed": 72,
+      "month_precision": 33,
+      "recorded_events_accepted": false,
+      "recorded_ready_for_owner_review": false,
+      "registry_occurrences": 172,
+      "series_alias_groups": 88,
+      "target_statuses_in_capture_gaps": {
+        "finding": 4,
+        "parsed": 35,
+        "pending": 17
+      },
+      "unassociated_occurrences": 0,
+      "year": 2025
+    },
+    {
+      "cancelled": 1,
+      "day_precision": 177,
+      "events": 216,
+      "finding_count": 44,
+      "finding_kinds": {
+        "event_alias": 2,
+        "phase1_incomplete": 1,
+        "series_alias": 41
+      },
+      "listed": 91,
+      "month_precision": 39,
+      "recorded_events_accepted": false,
+      "recorded_ready_for_owner_review": false,
+      "registry_occurrences": 125,
+      "series_alias_groups": 41,
+      "target_statuses_in_capture_gaps": {
+        "finding": 4,
+        "parsed": 35,
+        "pending": 17
+      },
+      "unassociated_occurrences": 0,
+      "year": 2026
+    }
+  ],
+  "inputs_sha256": {
+    "events.csv": "cb2544d8e8a92fcd5599682811dcd91da6d32b35a1cabcc98eb8138a553acf34",
+    "findings.csv": "c1bffae01d7e2e217b2bb0ba9425d0cabfb341000b4200fb052ae74ebb8185e6",
+    "series-review.csv": "87066d7c6c171a4b26c501644996457e54d198b56c35b4882caa792bf3f521b3",
+    "targets.csv": "55bef260d7962b755eed68eb3f6e64581b8332dfb57e78f863803d7d3be8b336",
+    "years.csv": "5fa15d849f1e3a9507d8d256e6a165f16f580da1cd9eaab3f4ab388b76d1f0f1"
+  },
+  "limitations": [
+    "The export is retained historical evidence, not a live production-state check.",
+    "The 17 Archive catalog rows are pending body interpretation; this report does not claim each one changes each year.",
+    "Month precision is permitted and reported by the backfill contract; it is not itself a finding.",
+    "Listing-only and cancelled rows are retained explicitly. Their counts do not establish that every listing interpretation is correct.",
+    "No historical year has explicit owner acceptance."
+  ],
+  "pending_targets": [
+    {
+      "catalog_evidence": "archive_query:4650f5812bde23852d20f7b74ac77a191ab747245446fea4d22f5cf7d2ff9571",
+      "digest": "KGF345JH2N75NCXLOGAF3YZH6R6N3QUJ",
+      "source": "wsdc_calendar",
+      "target_id": "017e59a25155c25983b14000",
+      "timestamp": "20260513152740",
+      "url": "https://www.worldsdc.com/print-event-list/"
+    },
+    {
+      "catalog_evidence": "archive_query:4650f5812bde23852d20f7b74ac77a191ab747245446fea4d22f5cf7d2ff9571",
+      "digest": "JQ6GUQZ5F7JVOV47VUKYQVOOBVZXGUX3",
+      "source": "wsdc_calendar",
+      "target_id": "032270847f79d7aebca98f65",
+      "timestamp": "20260211205531",
+      "url": "https://www.worldsdc.com/print-event-list/"
+    },
+    {
+      "catalog_evidence": "archive_query:b332d617f0132533a5fffcbb0cc35776bc44b20e9720f75f849e41836d750b32",
+      "digest": "B5UAVCC7PH2TTWS6EIS5RYI3COG2TLXO",
+      "source": "wsdc_calendar",
+      "target_id": "24eaae0d5fea3221affb5a0a",
+      "timestamp": "20250512152735",
+      "url": "https://www.worldsdc.com/events/"
+    },
+    {
+      "catalog_evidence": "archive_query:8301f36cb8213a211f1904aca0bae0131b9301c1edab18703f024bb68f191c6e",
+      "digest": "GUYRCQ3DPHXAE2ASRUTROSQUAQSO3XUH",
+      "source": "wsdc_calendar",
+      "target_id": "2b8b7d5b424f394e25c2b7bb",
+      "timestamp": "20260513162349",
+      "url": "https://www.worldsdc.com/events/"
+    },
+    {
+      "catalog_evidence": "archive_query:8301f36cb8213a211f1904aca0bae0131b9301c1edab18703f024bb68f191c6e",
+      "digest": "265TMSXJSZ6PRQ4NDU4AW6BRDYEWRB44",
+      "source": "wsdc_calendar",
+      "target_id": "2dd8b6dc4d2d264495a33f0f",
+      "timestamp": "20260813102731",
+      "url": "https://worldsdc.com/events/"
+    },
+    {
+      "catalog_evidence": "archive_query:b332d617f0132533a5fffcbb0cc35776bc44b20e9720f75f849e41836d750b32",
+      "digest": "KYBUFWLCYAOUFCFCOVDJZWGDTY7Z7HTX",
+      "source": "wsdc_calendar",
+      "target_id": "3c5a6116618208e4556dd9e7",
+      "timestamp": "20251006110156",
+      "url": "https://www.worldsdc.com/events/"
+    },
+    {
+      "catalog_evidence": "archive_query:b332d617f0132533a5fffcbb0cc35776bc44b20e9720f75f849e41836d750b32",
+      "digest": "BPNGABNDJ4B2BLLC5GS5E7EVAZCELAYW",
+      "source": "wsdc_calendar",
+      "target_id": "763f8950892b9e719910fcd3",
+      "timestamp": "20251219113055",
+      "url": "https://www.worldsdc.com/events/"
+    },
+    {
+      "catalog_evidence": "archive_query:2f104f071c24acfac549e1838808693bd2466bf2affd2ddb8a45e763aa8e4827",
+      "digest": "WHPZNOGOVUGVJP2S3P3SFTIC2KGLBO5W",
+      "source": "wsdc_calendar",
+      "target_id": "828e41e7f8f4bfd34d171092",
+      "timestamp": "20250814164915",
+      "url": "https://www.worldsdc.com/print-event-list/"
+    },
+    {
+      "catalog_evidence": "archive_query:8301f36cb8213a211f1904aca0bae0131b9301c1edab18703f024bb68f191c6e",
+      "digest": "CA6LC6QHBF65O56OJBZ5A2U67RPDNCFF",
+      "source": "wsdc_calendar",
+      "target_id": "9592958a3cd694d86e677fc5",
+      "timestamp": "20260521133133",
+      "url": "https://www.worldsdc.com/events/"
+    },
+    {
+      "catalog_evidence": "archive_query:8301f36cb8213a211f1904aca0bae0131b9301c1edab18703f024bb68f191c6e",
+      "digest": "KOHL7PKDINAX5MSDRMG5DJRPW2A3ZPF5",
+      "source": "wsdc_calendar",
+      "target_id": "9fad90785a2f773113d0c84d",
+      "timestamp": "20260120214828",
+      "url": "https://www.worldsdc.com/events/"
+    },
+    {
+      "catalog_evidence": "archive_query:b332d617f0132533a5fffcbb0cc35776bc44b20e9720f75f849e41836d750b32",
+      "digest": "7TOTX7DRWUQVZDM4OM7P6NF4W2KIO427",
+      "source": "wsdc_calendar",
+      "target_id": "a9a1981e91474f1967356d61",
+      "timestamp": "20250226151724",
+      "url": "https://www.worldsdc.com/events/"
+    },
+    {
+      "catalog_evidence": "archive_query:2f104f071c24acfac549e1838808693bd2466bf2affd2ddb8a45e763aa8e4827",
+      "digest": "PIN56Y5EWQ4LVNSFSZLM37CUQWCRF5DE",
+      "source": "wsdc_calendar",
+      "target_id": "e7dcb140bcbd077c67c0d425",
+      "timestamp": "20251115173727",
+      "url": "https://www.worldsdc.com/print-event-list/"
+    },
+    {
+      "catalog_evidence": "archive_query:2f104f071c24acfac549e1838808693bd2466bf2affd2ddb8a45e763aa8e4827",
+      "digest": "L6FK5V4QMSTSOIZUQSR7MHOXKIBTP63U",
+      "source": "wsdc_calendar",
+      "target_id": "ea4e68c086533dd6581c3015",
+      "timestamp": "20250423104016",
+      "url": "https://www.worldsdc.com/print-event-list/"
+    },
+    {
+      "catalog_evidence": "archive_query:8301f36cb8213a211f1904aca0bae0131b9301c1edab18703f024bb68f191c6e",
+      "digest": "AKZN77YF4UAMDGAQ42XVKLTJHTAVAULW",
+      "source": "wsdc_calendar",
+      "target_id": "edb1d1478b3fe19a626a30d7",
+      "timestamp": "20260308093633",
+      "url": "https://www.worldsdc.com/events/"
+    },
+    {
+      "catalog_evidence": "archive_query:8301f36cb8213a211f1904aca0bae0131b9301c1edab18703f024bb68f191c6e",
+      "digest": "EQYC7F7U6PJJ7L5R7YZCVAW66EUSGHAW",
+      "source": "wsdc_calendar",
+      "target_id": "f0dcc51ff963f79c44d90734",
+      "timestamp": "20260107152659",
+      "url": "https://www.worldsdc.com/events/"
+    },
+    {
+      "catalog_evidence": "archive_query:b332d617f0132533a5fffcbb0cc35776bc44b20e9720f75f849e41836d750b32",
+      "digest": "SLTZBFDKVJPRLKFI4GANAQQTHU5K327V",
+      "source": "wsdc_calendar",
+      "target_id": "f140e9fd5864d1c777006540",
+      "timestamp": "20251219091106",
+      "url": "https://www.worldsdc.com/events/"
+    },
+    {
+      "catalog_evidence": "archive_query:8301f36cb8213a211f1904aca0bae0131b9301c1edab18703f024bb68f191c6e",
+      "digest": "IFZSVRGCUTFWXC2R6QOBM2SXR7UWI67B",
+      "source": "wsdc_calendar",
+      "target_id": "fa9d6701e2418b435644b296",
+      "timestamp": "20260110202716",
+      "url": "https://www.worldsdc.com/events/"
+    }
+  ],
+  "scope": "Read-only reconciliation of retained phase-one export and current-review pages. No source requests, production reads, acceptance, or publication.",
+  "source_directory": "journal/evidence/collection/phase1-review-2026-09-17/year-review"
+}

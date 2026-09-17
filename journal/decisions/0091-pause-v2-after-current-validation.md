@@ -1,12 +1,12 @@
 # D-0091: Pause v2 after the current validation
 
-Status: Accepted  
+Status: Superseded by D-0093 (implementation pause)  
 Recorded: 2026-09-17  
 Accepted: 2026-09-17  
 Acceptance source: Owner instruction in the implementation session  
 Topic: Implementation pause  
 Supersedes: —  
-Superseded by: —
+Superseded by: [D-0093](0093-resume-v2-from-candidate005.md) (implementation pause only)
 
 ## Decision
 

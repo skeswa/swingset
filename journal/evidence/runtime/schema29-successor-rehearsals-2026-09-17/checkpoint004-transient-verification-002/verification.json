@@ -1,0 +1,17 @@
+{
+  "format": "checkpoint-transient-cleanup-verification-v1",
+  "passed": true,
+  "started_at": "2026-09-17T20:12:58.655614+00:00",
+  "finished_at": "2026-09-17T20:13:21.971528+00:00",
+  "checkpoint": "/var/lib/swingset/checkpoints/extension28-held-20260917-004",
+  "manifest_sha256": "6ac7bb2d291136ef502abcb33f8762bf4449fd2fdc0160fb995f2aba0921f9d9",
+  "verified_files": 68866,
+  "verified_bytes": 8770615161,
+  "extra_files": [],
+  "missing_files": [],
+  "database_bytes_changed": false,
+  "network_requests": 0,
+  "limitations": [
+    "The prior cleanup script removed the captured empty WAL and SHM, then its verification incorrectly excluded a nested retained checkpoint.json by basename; this separate read-only attempt verifies the complete relative-path inventory."
+  ]
+}

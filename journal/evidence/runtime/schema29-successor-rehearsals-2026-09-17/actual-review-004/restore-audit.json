@@ -1,0 +1,64 @@
+{
+  "format": "schema28-to29-restore-independent-audit-v1",
+  "checked_at": "2026-09-17T20:10:28.040406Z",
+  "passed": true,
+  "receipt": "../restore-002/restore-receipt.json",
+  "receipt_sha256": "eb3b33e1b72213b6cbee47b87586ad440b8bfaa841f073371c526ba72747ef97",
+  "pins": {
+    "packet_sha256": "366b0dbab70048cc2b85c4bdb7e06d24973478d8cfee965ee01ebb40d7fb5300",
+    "checkpoint_sha256": "6ac7bb2d291136ef502abcb33f8762bf4449fd2fdc0160fb995f2aba0921f9d9",
+    "checkpoint": "/var/lib/swingset/checkpoints/extension28-held-20260917-004",
+    "archive_commit": "68d738dcd78cb1654d053b479ea6dbd911f4b8ed",
+    "source": "/nix/store/z0rnsn69aav2h8p2wgzydar6k9rw5kk9-source",
+    "source_receipt_sha256": "9255e8641a24c21c0942512ec251b32dd294bc6f2a537868a0012cafe331dc99",
+    "helper_sha256": "3fe70896146935be59f9b7a4e22366648223b9fe74ea188d6c73af18cdacc71f"
+  },
+  "restore_contract": {
+    "passed": true,
+    "stage": "finished_held_without_input_acceptance",
+    "schema": 29,
+    "change_contract": "event_pressure_state_singleton_epoch_plus_one_only",
+    "before_tables": 116,
+    "expected_restored_tables": 116,
+    "all_non_pressure_rows_equal_expected": true,
+    "changed_existing_tables": [],
+    "only_new_table_after_schema29_migration": "history_dispatch_fence",
+    "operator_hold_present": true,
+    "restore_pending": false,
+    "input_acceptance": false,
+    "workers_started": false,
+    "repairs_activated": false,
+    "source_requests": 0,
+    "public_writes": 0
+  },
+  "public_request_audit": {
+    "requests": 112,
+    "methods": [
+      "GET",
+      "HEAD"
+    ],
+    "hosts": {
+      "huggingface.co": 79,
+      "us.aws.cdn.hf.co": 33
+    },
+    "minimum_same_host_issue_gaps_seconds": {
+      "huggingface.co": 5.080729,
+      "us.aws.cdn.hf.co": 10.219846
+    },
+    "minimum_seconds": 5,
+    "all_methods_read_only": true
+  },
+  "sidecars": {
+    "count": 7,
+    "all_match_packet_and_vm_observation": true,
+    "observation_path": "restore-observation.json",
+    "observation_sha256": "74738208febce55030f026fe33148f1f2ce6b05c78ff9cbf1b9dec6bda681e7d",
+    "observation_script_path": "restore-observation.py",
+    "observation_script_sha256": "80e4ee4846996fe8ad13a3050353f704a24390a69a8355ed8a75c16a9aa72b23"
+  },
+  "limitations": [
+    "The reviewer used the retained packet-pinned restore receipt and coordinator-provided read-only VM observation; no VM, production, or network access was performed by this review.",
+    "The exact epoch increment is tied to packet restore helper code and the receipt's documented singleton-only contract; the public helper stores table digests rather than exposing the singleton's row values."
+  ],
+  "failures": []
+}

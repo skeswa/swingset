@@ -12,6 +12,7 @@ Check migrations, controls, scheduling, checkpoints, and isolated replay.
 | [accept_h14.py](accept_h14.py)                                                   | Bounded H14 schema 12→13 migration acceptance; no service or source execution.               |
 | [accept_h15.py](accept_h15.py)                                                   | Bounded H15 schema 13→14 migration acceptance; no service or source execution.               |
 | [accept_h16.py](accept_h16.py)                                                   | Bounded H16 schema-14 acceptance: read-only state, no migration or service.                  |
+| [accept_held_schema29_inputs.py](accept_held_schema29_inputs.py)                 | Seal and accept the exact candidate-006 inputs under hold; cannot resume or publish.         |
 | [accept_wp16.py](accept_wp16.py)                                                 | Reviewed WP16 schema14→15 migration only; preflight is read-only by default.                 |
 | [assemble_h11_source.py](assemble_h11_source.py)                                 | Prepare a selective H11 tree from the acknowledged V4 source pin; never deploy.              |
 | [audit_checkpoint_generation_closure.py](audit_checkpoint_generation_closure.py) | Read-only audit of generation artifact references against a private checkpoint.              |
@@ -28,3 +29,25 @@ Check migrations, controls, scheduling, checkpoints, and isolated replay.
 The [operational restore rehearsal](rehearse_extension_restore.py) restores a
 pinned checkpoint into disposable held state, verifies the actual public baseline
 and private evidence, then migrates under the hold. It accepts no runtime inputs.
+
+The [current schema-29 packet builder](prepare_current_schema29_rehearsals.py)
+binds candidate 005 to a newly acknowledged held schema-28 checkpoint, including
+paid requests and accounting sidecars. Its migration, restore and input replay
+are separate disposable operations. The [held migration helper](migrate_held_schema29.py)
+requires their closed evidence before a live schema-only change; it accepts no
+production inputs and resumes no services. See the
+[successor record](../../investigations/2026/schema29-successor-rehearsals-2026-09-17.md)
+for exact reviewed attempts and current operating limits.
+
+The [held schema-29 input helper](accept_held_schema29_inputs.py) keeps input
+acceptance separate from migration and ordinary operation. Its read-only
+preflight, disk-backed seal and reviewed-seal execution bind candidate 006, the
+postmigration audit, checkpoint-004 packet and rehearsed 51-row input map. The
+focused 17-test suite, Ruff and mypy pass. Its distinct preflight, disk-backed
+seal and execution gates passed independent review, and the sealed production
+transition passed under the hold. It started no workers and performed no fetch,
+repair or publication.
+
+The [schema-29 timing diagnostic](measure_schema29_overhead.py) compares rolled-back
+updates on a disposable database copy. It isolates the new triggers from older
+triggers; its measurements do not establish whole-worker throughput.

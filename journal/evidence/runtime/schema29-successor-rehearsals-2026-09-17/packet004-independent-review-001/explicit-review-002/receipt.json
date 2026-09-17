@@ -1,0 +1,32 @@
+{
+  "format": "schema29-packet004-independent-review-receipt-v1",
+  "passed": true,
+  "finished_at": "2026-09-17T19:57:00.804950+00:00",
+  "packet_sha256": "366b0dbab70048cc2b85c4bdb7e06d24973478d8cfee965ee01ebb40d7fb5300",
+  "audit_script": {
+    "path": "../audit.py",
+    "sha256": "117e850b08c27fae627a1fb38806bbaacaec37109a6a6e2748843d887d1f1ec4"
+  },
+  "audit_output": {
+    "path": "../audit.log",
+    "sha256": "e2167f4b06faff32cf0831b63074ff17ecc41eda9e9b3271e7f38c96accc5572"
+  },
+  "result_document": {
+    "path": "../review.json",
+    "sha256": "e2167f4b06faff32cf0831b63074ff17ecc41eda9e9b3271e7f38c96accc5572"
+  },
+  "checks": {
+    "packet_runner_closure_and_helper_hashes": true,
+    "checkpoint_manifest_and_private_ack_pins": true,
+    "schema28_and_116_predecessor_tables": true,
+    "production004_hold_system_units_and_no_live_db_changes": true,
+    "archive_usage_20_requests_2952065_bytes": true,
+    "dcn_usage_4_requests_132764_bytes": true,
+    "eight_origin_admissions_settled_zero_unsettled": true,
+    "all_seven_top_level_sidecars_match_packet_and_production_receipts": true
+  },
+  "limitations": [
+    "The local environment does not expose the immutable checkpoint directory or candidate Nix store source bytes for direct rehashing. The retained production checkpoint receipt and verified summary are hash-pinned; the exact packet runner independently checks the source and checkpoint at execution.",
+    "No network, VM or production operation was performed by this review."
+  ]
+}

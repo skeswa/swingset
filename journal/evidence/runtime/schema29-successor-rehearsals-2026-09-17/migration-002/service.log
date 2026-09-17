@@ -1,0 +1,3 @@
+Sep 17 19:47:11 swingset systemd[1]: Started [systemd-run] /var/lib/swingset/venv/bin/python /var/lib/swingset/operations/v2-resume-20260917/schema29-packet-004/runner.py run --packet-sha256 366b0dbab70048cc2b85c4bdb7e06d24973478d8cfee965ee01ebb40d7fb5300 migration -- --destination /var/tmp/swingset-schema29-migration-20260917-002.
+Sep 17 19:49:16 swingset systemd[1]: swingset-schema29-migration-20260917-002.service: Deactivated successfully.
+Sep 17 19:49:16 swingset systemd[1]: swingset-schema29-migration-20260917-002.service: Consumed 2min 4.802s CPU time, 6.4G memory peak, 26.7G read from disk, 4.6G written to disk.

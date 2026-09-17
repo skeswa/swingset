@@ -1,0 +1,196 @@
+{
+  "format": "schema29-candidate006-actual-rehearsal-independent-review-v1",
+  "finished_at": "2026-09-17T22:38:50Z",
+  "passed": true,
+  "gate": {
+    "candidate006_rehearsal_gate_closed": true,
+    "live_deployment_gate_closed": false,
+    "production_input_acceptance": false,
+    "publication": false,
+    "repairs_activated": false
+  },
+  "bindings": {
+    "packet_sha256": "0d455559b7e0cd767cb1739f10271eb12e8178bebb5a4ab283bd8e74733b6ff3",
+    "source": "/nix/store/rgyryll4d55rgzscdqhjcwmkr325a76f-source",
+    "source_receipt_sha256": "a2704c7c99ce5aef4fbd0f0df8b23343be5df2a688945e236b8e6856b320ad5f",
+    "checkpoint": "/var/lib/swingset/checkpoints/extension28-held-20260917-004",
+    "checkpoint_sha256": "6ac7bb2d291136ef502abcb33f8762bf4449fd2fdc0160fb995f2aba0921f9d9",
+    "migration_helper_sha256": "fc64795a53dad8d54d8118b07173be5a9256e266a1434be80d14ca6cc94c1d86",
+    "restore_helper_sha256": "3fe70896146935be59f9b7a4e22366648223b9fe74ea188d6c73af18cdacc71f",
+    "inputs_helper_sha256": "aaa702614294edbacb1dce2bd33f7b881c78e8e67d1418e6261d17a8e46336d5",
+    "all_receipts_match_packet005": true
+  },
+  "retained_receipts": {
+    "migration": {
+      "path": "../migration-004/migration-receipt.json",
+      "sha256": "325af505bb8abbdade88a7303feee9dbe56250191daec10b12a005aca53d9e75"
+    },
+    "restore": {
+      "path": "../restore-004/restore-receipt.json",
+      "sha256": "5f1584086b2e6d8c7eea89242c133316e3c53e8bcd3cf7e176d5d5f61eff23b8"
+    },
+    "inputs_prepare": {
+      "path": "../inputs-004/prepare.json",
+      "sha256": "751962638a5264641d07d3994e22ed81c38da9a1e9b6c91fb8ce1eacd6dc29c1"
+    },
+    "inputs_accept": {
+      "path": "../inputs-004/accept.json",
+      "sha256": "9ba0ca7bed02b165ca64fc5595ea3466ca28358740e52498a2fe11770b27beff"
+    },
+    "inputs_drain": {
+      "path": "../inputs-004/drain-001.json",
+      "sha256": "b47e7faff25181a01c53d869a98ccd25e60ce622e880290ae83955c29af4c02f"
+    }
+  },
+  "migration": {
+    "passed": true,
+    "predecessor_tables": 116,
+    "changed_predecessor_tables": [],
+    "new_tables": [
+      "history_dispatch_fence"
+    ],
+    "result_tables": 117,
+    "schema": 29,
+    "integrity": "ok",
+    "foreign_key_failure": false
+  },
+  "restore": {
+    "passed": true,
+    "predecessor_tables": 116,
+    "changed_predecessor_tables_after_permitted_restore": [],
+    "permitted_restore_change": {
+      "table": "event_pressure_state",
+      "singleton": 1,
+      "epoch_before": 0,
+      "epoch_after": 1,
+      "sequence_before": 0,
+      "sequence_after": 0
+    },
+    "new_tables": [
+      "history_dispatch_fence"
+    ],
+    "schema": 29,
+    "remote_commit": "2a6c7dc744fb36eabb5163c0a527d787d3721f4f",
+    "baseline": "2a6c7dc744fb36eabb5163c0a527d787d3721f4f",
+    "restore_heads": [
+      "2a6c7dc744fb36eabb5163c0a527d787d3721f4f",
+      "2a6c7dc744fb36eabb5163c0a527d787d3721f4f"
+    ],
+    "public_verification_requests": 112,
+    "public_request_methods": {
+      "GET": 73,
+      "HEAD": 39
+    },
+    "public_request_hosts": {
+      "huggingface.co": 79,
+      "us.aws.cdn.hf.co": 33
+    },
+    "source_requests": 0,
+    "public_writes": 0,
+    "workers_started": false,
+    "input_acceptance": false,
+    "repairs_activated": false,
+    "operator_hold_present": true,
+    "units_before_and_after_inactive": 6
+  },
+  "sidecars": {
+    "expected_top_level_sidecars": 7,
+    "migration_scratch_exact": true,
+    "restore_scratch_exact": true,
+    "input_scratch_exact": true
+  },
+  "inputs": {
+    "prepare_passed": true,
+    "accept_passed": true,
+    "drain_passed": true,
+    "accepted_changed_inputs": 12,
+    "input_bundle_hash": "abdf538777c1e4fc05c7f8b9079701bd5a37f276cabe83a8be023673a941d644",
+    "network_requests": 0,
+    "production_acceptance": false,
+    "publication": false,
+    "repairs_activated": false,
+    "judge_continuity": {
+      "original_named": 4931,
+      "preserved": 4931,
+      "changed_or_missing": 0,
+      "original_null_wsdc_ids": 4931,
+      "requires_review": false,
+      "independently_compared_checkpoint_to_scratch": true
+    },
+    "paid_usage_unchanged_from_checkpoint": {
+      "web.archive.org": {
+        "day": "2026-09-17",
+        "requests": 20,
+        "bytes": 2952065
+      },
+      "danceconvention.net": {
+        "day": "2026-09-17",
+        "requests": 4,
+        "bytes": 132764
+      }
+    }
+  },
+  "drain": {
+    "run_id": "run_20260917T222517Z",
+    "status": "bounded_stop",
+    "attempted": 100,
+    "interrupted_attempts": 0,
+    "outcomes": {
+      "parse/admission_needs_review": 1,
+      "parse/output_committed": 29,
+      "parse/unit_exception": 3,
+      "project/output_committed": 67
+    },
+    "admission_review": {
+      "count": 1,
+      "classification": "expected ordinary WDR admission review",
+      "snapshot_id": "snap_20260909T150549Z_abf51d8711ef"
+    },
+    "unit_exceptions": {
+      "count": 3,
+      "classification": "pre-existing checkpoint registry_crosscheck stale pending tokens, not candidate006 invalidation",
+      "snapshot_ids": [
+        "snap_20260909T153428Z_ae7f2b9d688b",
+        "snap_20260911T153519Z_ae7f2b9d688b",
+        "snap_20260912T131109Z_ae7f2b9d688b"
+      ],
+      "source": "crosscheck",
+      "kind": "registry_dump",
+      "method": "MANUAL",
+      "parser": "registry_crosscheck",
+      "checkpoint_and_scratch_enqueue_token": "2026-09-16T20:31:59.499854+00:00",
+      "checkpoint_and_scratch_queue_generation": 1,
+      "checkpoint_and_scratch_retry_generation": 0,
+      "attempt_tokens_match_checkpoint": true,
+      "candidate006_acceptance_left_tokens_unchanged": true,
+      "all_checkpoint_manual_crosscheck_pending_tokens_accounted_for": true
+    }
+  },
+  "production_read_only_state": {
+    "schema": 28,
+    "active_system": "/nix/store/lzwkabfmbz46d05yi5k41nq56i7jjh74-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+    "candidate006_deployed": false,
+    "operator_hold_sha256": "965468bb03ba65b6d1d4950ab8e85c09c8f2f2a323461b7a3f2b6177bba5c638",
+    "ordinary_units_inactive": 6,
+    "accepted_input_rows": 51,
+    "accepted_inputs_equal_checkpoint004": true,
+    "input_bundle_hash": "fe99b47cd65eb909abc7c9ebd64d9ace9524393e5af8cd4d9368c55317ce3c6a",
+    "input_bundle_equal_checkpoint004": true,
+    "published_candidate": "cand_8f31cad7226643ae",
+    "published_commit": "2a6c7dc744fb36eabb5163c0a527d787d3721f4f",
+    "candidate006_publication": false
+  },
+  "audit_operations": {
+    "vm_access": "read-only files, hashes, systemd state and immutable/read-only SQLite queries",
+    "network_requests": 0,
+    "production_writes": 0,
+    "migrations": 0,
+    "restores": 0,
+    "input_replays": 0
+  },
+  "blockers": [],
+  "limitations": [
+    "The drain was intentionally bounded at 100 attempts and does not establish whole-queue completion, sustained throughput or production operating acceptance.",
+    "This review closes the candidate006 packet-005 rehearsal gate only. Candidate006 remains undeployed, production remains on schema 28 under hold, and no production input acceptance, repair activation or publication is authorized or established."
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "checked_at": "2026-09-17T19:33:04.730070+00:00",
+  "temporary_candidates": [
+    {
+      "path": "/tmp/swingset-checkpoint-lt1znnn4",
+      "files": [
+        {
+          "name": "checkpoint.tar",
+          "bytes": 6643489792,
+          "mtime": "2026-09-17T19:31:15.819483+00:00",
+          "is_symlink": false,
+          "uid": 996
+        }
+      ]
+    }
+  ],
+  "tmp_mount": "TARGET SOURCE FSTYPE  SIZE  USED AVAIL\n/tmp   tmpfs  tmpfs  12.5G  7.7G  4.8G\n",
+  "disk": "Filesystem      Size  Used Avail Use% Mounted on\n/dev/vdb1       573G  341G  232G  60% /\n"
+}

@@ -1,0 +1,6 @@
+2026-09-17T22:45:00+00:00 swingset systemd[1]: Starting [systemd-run] /nix/store/2swgs700gln1w9llg54wmfp4sagp09xq-uv-0.9.30/bin/uv sync --project /nix/store/dx0cyzvd8d91rf29v21sakbr7l5bwxnz-source --offline --frozen --no-dev...
+2026-09-17T22:45:00+00:00 swingset systemd[1]: Started [systemd-run] /nix/store/2swgs700gln1w9llg54wmfp4sagp09xq-uv-0.9.30/bin/uv sync --project /nix/store/dx0cyzvd8d91rf29v21sakbr7l5bwxnz-source --offline --frozen --no-dev.
+2026-09-17T22:45:00+00:00 swingset uv[122682]: error: failed to remove file `/var/lib/swingset/venv/lib/python3.12/site-packages/swingset-0.1.0.dist-info/INSTALLER`: Permission denied (os error 13)
+2026-09-17T22:45:00+00:00 swingset systemd[1]: swingset-extension-venv-bind-20260917-002.service: Main process exited, code=exited, status=2/INVALIDARGUMENT
+2026-09-17T22:45:00+00:00 swingset systemd[1]: swingset-extension-venv-bind-20260917-002.service: Failed with result 'exit-code'.
+2026-09-17T22:45:00+00:00 swingset systemd[1]: swingset-extension-venv-bind-20260917-002.service: Consumed 22ms CPU time, 12M memory peak, 3.1M read from disk.

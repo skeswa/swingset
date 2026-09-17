@@ -508,6 +508,13 @@ def test_actual_wrapper_to_base_main_preflight_is_read_only(held_state, tmp_path
     base.str = lambda value: (
         NIX_SOURCE if isinstance(value, real_path) and value == source else str(value)
     )
+
+    class BoundDateTime:
+        @classmethod
+        def now(cls, tz=None):
+            return NOW if tz is not None else NOW.replace(tzinfo=None)
+
+    base.datetime = BoundDateTime
     monkeypatch.setattr(helper, "runtime", lambda packet: source)
     monkeypatch.setattr(helper, "load_base", lambda packet: base)
     require = helper.require

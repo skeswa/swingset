@@ -1,0 +1,47 @@
+{
+  "started_at": "2026-09-17T19:12:24.274545+00:00",
+  "before": {
+    "journal/tools/runtime/measure_schema29_overhead.py": "685291de8d477e7583188015675b69feebbd5a49661e8216ce24a3b8cf0dfc1c",
+    "tests/test_schema29_overhead.py": "60d47383303b3067de2e74ceb2ec534f722aef9e30e474a27a67fe04f57a2a85"
+  },
+  "scope": "coordinator independent review of isolated actual-row timing helper",
+  "checks": {
+    "pytest": {
+      "command": [
+        ".venv/bin/python",
+        "-m",
+        "pytest",
+        "-q",
+        "-p",
+        "no:cacheprovider",
+        "tests/test_schema29_overhead.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "a837324a2f5c0d804ee26513e45c3e17425242b25aba8e53fe57a7379e8a79a5"
+    },
+    "ruff": {
+      "command": [
+        ".venv/bin/ruff",
+        "check",
+        "journal/tools/runtime/measure_schema29_overhead.py",
+        "tests/test_schema29_overhead.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+    },
+    "mypy": {
+      "command": [
+        ".venv/bin/mypy",
+        "journal/tools/runtime/measure_schema29_overhead.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "5d4b6d285b77932e3d08212c3b4974d0a803f98ec60408ac6ccf6a063fa6c19e"
+    }
+  },
+  "after": {
+    "journal/tools/runtime/measure_schema29_overhead.py": "685291de8d477e7583188015675b69feebbd5a49661e8216ce24a3b8cf0dfc1c",
+    "tests/test_schema29_overhead.py": "60d47383303b3067de2e74ceb2ec534f722aef9e30e474a27a67fe04f57a2a85"
+  },
+  "passed": true,
+  "finished_at": "2026-09-17T19:12:24.813441+00:00"
+}

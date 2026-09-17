@@ -1,0 +1,41 @@
+{
+  "run_id": "run_20260917T191421Z",
+  "attempts": [
+    {
+      "attempt_id": 35094,
+      "stage": "parse",
+      "unit_kind": "snapshot",
+      "unit_id": "snap_20260909T150629Z_7829ef627605",
+      "queue_generation": 2,
+      "retry_generation": 0,
+      "work_token": "2026-09-17T18:47:52.862215+00:00",
+      "input_fingerprint": "8a5f50562a17abaf1e48128618bffb55e22860b1259c9d82500436345f8c099e",
+      "run_id": "run_20260917T191421Z",
+      "started_at": "2026-09-17T19:14:58.045693+00:00",
+      "finished_at": "2026-09-17T19:14:58.540186+00:00",
+      "outcome": "blocked",
+      "reason_code": "admission_needs_review",
+      "evidence_json": "{}",
+      "retry_at": null,
+      "requirement_id": "d6f5561605e73c71"
+    },
+    {
+      "attempt_id": 35130,
+      "stage": "parse",
+      "unit_kind": "snapshot",
+      "unit_id": "snap_20260909T153428Z_ae7f2b9d688b",
+      "queue_generation": 2,
+      "retry_generation": 0,
+      "work_token": "2026-09-17T18:47:52.862215+00:00",
+      "input_fingerprint": "b526381e42937da9b6b9acc73032a2b1a93c7c6fcfdcf9ec38d0cb866689a957",
+      "run_id": "run_20260917T191421Z",
+      "started_at": "2026-09-17T19:17:26.440161+00:00",
+      "finished_at": "2026-09-17T19:17:26.449640+00:00",
+      "outcome": "blocked",
+      "reason_code": "unit_exception",
+      "evidence_json": "{\"exception\": \"KeyError\", \"message\": \"'unknown page kind: registry_crosscheck'\"}",
+      "retry_at": null,
+      "requirement_id": "b9e5e005a6c38e93"
+    }
+  ]
+}

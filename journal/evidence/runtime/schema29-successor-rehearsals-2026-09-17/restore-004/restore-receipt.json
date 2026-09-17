@@ -1,0 +1,5687 @@
+{
+  "format": "extension-operational-restore-rehearsal-v1",
+  "started_at": "2026-09-17T22:09:17.779464+00:00",
+  "passed": true,
+  "checkpoint": "/var/lib/swingset/checkpoints/extension28-held-20260917-004",
+  "checkpoint_sha256": "6ac7bb2d291136ef502abcb33f8762bf4449fd2fdc0160fb995f2aba0921f9d9",
+  "acknowledged_archive_commit": "68d738dcd78cb1654d053b479ea6dbd911f4b8ed",
+  "source": "/nix/store/rgyryll4d55rgzscdqhjcwmkr325a76f-source",
+  "source_receipt_sha256": "a2704c7c99ce5aef4fbd0f0df8b23343be5df2a688945e236b8e6856b320ad5f",
+  "helper_sha256": "3fe70896146935be59f9b7a4e22366648223b9fe74ea188d6c73af18cdacc71f",
+  "public_repo": "skeswa/swingset",
+  "baseline": "2a6c7dc744fb36eabb5163c0a527d787d3721f4f",
+  "state": "/var/tmp/swingset-schema29-restore-20260917-004/restored-state",
+  "units_before": {
+    "swingset-cycle.service": "inactive",
+    "swingset-cycle.timer": "inactive",
+    "swingset-backup.service": "inactive",
+    "swingset-backup.timer": "inactive",
+    "swingset-summary.service": "inactive",
+    "swingset-summary.timer": "inactive"
+  },
+  "target_schema": 29,
+  "source_requests": 0,
+  "public_writes": 0,
+  "input_acceptance": false,
+  "workers_started": false,
+  "repairs_activated": false,
+  "stage": "finished_held_without_input_acceptance",
+  "before": {
+    "accepted_inputs": {
+      "rows": 51,
+      "sha256": "b3011da28824ad87cceaa721d3ce40f638ffca632e7a47ceb9d66ce6278a6871",
+      "columns": [
+        "consumer",
+        "input_name",
+        "digest"
+      ]
+    },
+    "admission_decisions": {
+      "rows": 31610,
+      "sha256": "8bd133180c070dddaad182b1843cb888062ce8e09f66ffa745e5e51bccfca065",
+      "columns": [
+        "decision_id",
+        "generation_id",
+        "state",
+        "reason",
+        "decided_at",
+        "policy_revision"
+      ]
+    },
+    "admission_policies": {
+      "rows": 13,
+      "sha256": "5452c5cbe2b91055f2d130b4f1ac609b92d19f516fc4cb628995b0e672b1665c",
+      "columns": [
+        "page_kind",
+        "contract_version",
+        "mode",
+        "policy_revision",
+        "reviewed_report_digest",
+        "reviewed_by",
+        "reviewed_at"
+      ]
+    },
+    "admission_reviews": {
+      "rows": 9,
+      "sha256": "d5e1fc6819066d07d7c6f80790ae8c078e7452d267f3b6c95e8044aad1097389",
+      "columns": [
+        "report_digest",
+        "page_kind",
+        "contract_version",
+        "cohort_json",
+        "reviewer",
+        "reviewed_at",
+        "evidence"
+      ]
+    },
+    "archive_captures": {
+      "rows": 32,
+      "sha256": "e9cf72a3d15c29fa0c7604d682cb852db728308ee0e4fb65d0c65f5bdbb7dd5c",
+      "columns": [
+        "source",
+        "url",
+        "timestamp",
+        "digest",
+        "status",
+        "mimetype",
+        "length",
+        "queried_at",
+        "cdx_query_id"
+      ]
+    },
+    "archive_queries": {
+      "rows": 15,
+      "sha256": "487d91c3d3468e2a9a7fc63dcdf275b5a9c8c3e3d585151a7949cb8c46764489",
+      "columns": [
+        "query_id",
+        "source",
+        "prefix",
+        "year",
+        "next_page",
+        "total_pages",
+        "completed_at",
+        "started_at"
+      ]
+    },
+    "backup_uploads": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "path",
+        "sha256",
+        "uploaded_at"
+      ]
+    },
+    "callback_marks": {
+      "rows": 484141,
+      "sha256": "b4609793dd357db67a22e33594965a035cea838a70d480353a0023f2331450d3",
+      "columns": [
+        "round_id",
+        "entry_id",
+        "judge_id",
+        "mark",
+        "mark_raw",
+        "mark_value",
+        "source",
+        "snapshot_id",
+        "parser_version",
+        "first_seen_at",
+        "last_seen_at",
+        "run_id"
+      ]
+    },
+    "callbacks": {
+      "rows": 98481,
+      "sha256": "8b94f3edbce4dac6a553b1e4d4b430f57a751a6a4708264dd20e8d6ec8416e42",
+      "columns": [
+        "round_id",
+        "entry_id",
+        "score_sum",
+        "yes_count",
+        "alt_count",
+        "no_count",
+        "outcome",
+        "tie_break_applied",
+        "heat_number",
+        "source",
+        "snapshot_id",
+        "parser_version",
+        "first_seen_at",
+        "last_seen_at",
+        "run_id"
+      ]
+    },
+    "canonical_scope_rows": {
+      "rows": 1058390,
+      "sha256": "1de774e2b25f9b0c24d322dee9c63212166cf6d33110e9382ef989b1b2491bdc",
+      "columns": [
+        "scope_kind",
+        "scope_id",
+        "table_name",
+        "record_key"
+      ]
+    },
+    "contests": {
+      "rows": 2644,
+      "sha256": "4ef20017431cda942c9b2330d3331225dc9f615dc6e5c66de29409498b5bc3fc",
+      "columns": [
+        "contest_id",
+        "event_id",
+        "name_raw",
+        "division",
+        "age_division",
+        "contest_type",
+        "partner_mode",
+        "dance_style",
+        "wsdc_points_eligible",
+        "combined_from",
+        "parse_status",
+        "source_contest_ref",
+        "source",
+        "snapshot_id",
+        "parser_version",
+        "first_seen_at",
+        "last_seen_at",
+        "run_id"
+      ]
+    },
+    "control_events": {
+      "rows": 2,
+      "sha256": "e9eb965312af30d2ccfa4c597ba688f380a10207429dd7cc25ddb68b5994ff88",
+      "columns": [
+        "event_id",
+        "control_revision",
+        "pause_id",
+        "scope_kind",
+        "scope_id",
+        "action",
+        "actor",
+        "reason",
+        "until_at",
+        "occurred_at"
+      ]
+    },
+    "control_state": {
+      "rows": 1,
+      "sha256": "636cbe06ddc482db3f6385cb0684bac684da870bbe68a86ac094ea15f8425514",
+      "columns": [
+        "singleton",
+        "revision"
+      ]
+    },
+    "coverage": {
+      "rows": 66,
+      "sha256": "f0ef4cb024b64823a088924108c9caf96a6c4de4e9a161ef9696919695695986",
+      "columns": [
+        "year",
+        "source",
+        "via",
+        "events",
+        "contests",
+        "rounds",
+        "entries",
+        "events_registry_only",
+        "events_index_only",
+        "events_sheets_partial",
+        "events_sheets_complete",
+        "events_day_precision",
+        "events_listed_only",
+        "events_accepted",
+        "expected_rounds",
+        "parsed_rounds",
+        "unresolved_findings",
+        "last_changed_at"
+      ]
+    },
+    "cursors": {
+      "rows": 4,
+      "sha256": "ad713b32f0a8603ef3f138190c1e079271e4d0d4437a3fdb4f7dcf72279d86b7",
+      "columns": [
+        "name",
+        "value"
+      ]
+    },
+    "dancers": {
+      "rows": 27784,
+      "sha256": "ceffab91b1cd9ef9b07ce56e9f060277c9f145097d5a1a2174235d8f64706487",
+      "columns": [
+        "wsdc_id",
+        "first_name",
+        "last_name",
+        "name_norm",
+        "is_pro",
+        "primary_role",
+        "leader_required_level",
+        "leader_allowed_level",
+        "follower_required_level",
+        "follower_allowed_level",
+        "leader_highest_level",
+        "leader_highest_points",
+        "follower_highest_level",
+        "follower_highest_points",
+        "recent_year",
+        "registry_internal_id",
+        "registry_fetched_at",
+        "merged_into_wsdc_id",
+        "source",
+        "snapshot_id",
+        "parser_version",
+        "first_seen_at",
+        "last_seen_at",
+        "run_id"
+      ]
+    },
+    "derivation_dependency_sets": {
+      "rows": 103369,
+      "sha256": "0a5ab388cc0ce13506a549473a775806c1d5d6c5435c2cb94e8f3c600f92d5f6",
+      "columns": [
+        "dependency_set_id",
+        "manifest_json"
+      ]
+    },
+    "derivation_generations": {
+      "rows": 34987,
+      "sha256": "cb1ee5571e36018595d8bd72bc11b4113efb20205200371461b780a555badd7c",
+      "columns": [
+        "generation_id",
+        "stage",
+        "unit_kind",
+        "unit_id",
+        "input_fingerprint",
+        "recipe_json",
+        "dependency_set_id",
+        "previous_generation_id",
+        "output_digest",
+        "row_count",
+        "created_at",
+        "run_id"
+      ]
+    },
+    "derivation_input_versions": {
+      "rows": 1084,
+      "sha256": "d158f50354295b261fe0d38286c0dfd149dd934beb730414a7defd8e6d666415",
+      "columns": [
+        "namespace",
+        "input_key",
+        "version"
+      ]
+    },
+    "derivation_rows": {
+      "rows": 1669989,
+      "sha256": "87cf0c169e690e1f30b16a7d7c42b5eb4d4d4383f29b11183452f4f4b6b2414c",
+      "columns": [
+        "generation_id",
+        "ordinal",
+        "table_name",
+        "record_key",
+        "payload_json"
+      ]
+    },
+    "derivation_scopes": {
+      "rows": 34987,
+      "sha256": "c210d1f91ab47b2528d77820f1415b96ce8c1b3259d7ba64d618008e6154cec4",
+      "columns": [
+        "stage",
+        "unit_kind",
+        "unit_id",
+        "desired_fingerprint",
+        "materialized_generation_id",
+        "registered_at",
+        "materialized_signature"
+      ]
+    },
+    "entries": {
+      "rows": 93820,
+      "sha256": "e8bf0919b13830707ea7ad18836ea6b99285b427b91880309afe6c01a3279db8",
+      "columns": [
+        "entry_id",
+        "contest_id",
+        "event_id",
+        "role",
+        "bib",
+        "name_raw",
+        "name_norm",
+        "partner_name_raw",
+        "city_raw",
+        "country_raw",
+        "wsdc_id",
+        "link_status",
+        "link_confidence",
+        "partner_entry_id",
+        "rounds_danced",
+        "best_round",
+        "source",
+        "snapshot_id",
+        "parser_version",
+        "first_seen_at",
+        "last_seen_at",
+        "run_id"
+      ]
+    },
+    "event_accounting_receipts": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "receipt_id",
+        "source",
+        "source_ref",
+        "enumeration_id",
+        "previous_receipt_id",
+        "assessment",
+        "transition",
+        "observed_at",
+        "earliest_checked_at",
+        "valid_until",
+        "token_json",
+        "summary_json"
+      ]
+    },
+    "event_accounting_support_observations": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "source",
+        "source_ref",
+        "enumeration_id",
+        "generation_id",
+        "availability",
+        "observed_at",
+        "valid_until",
+        "token_json",
+        "reasons_json"
+      ]
+    },
+    "event_blocker_cursor": {
+      "rows": 1,
+      "sha256": "9af439793083321aba74468f0535aa929752f762d41bb5de6e6039727697ebd7",
+      "columns": [
+        "singleton",
+        "last_rowid",
+        "high_water",
+        "pass"
+      ]
+    },
+    "event_blocker_latest": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "source",
+        "source_ref",
+        "observation_id"
+      ]
+    },
+    "event_blocker_observations": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "observation_id",
+        "source",
+        "source_ref",
+        "refresh_id",
+        "observed_at",
+        "signature",
+        "policy_digest",
+        "facts_json"
+      ]
+    },
+    "event_blocker_policies": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "digest",
+        "policy_json"
+      ]
+    },
+    "event_blocker_refreshes": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "refresh_id",
+        "run_id",
+        "observed_at",
+        "summary_json"
+      ]
+    },
+    "event_enumeration_inputs": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "generation_id",
+        "decision_id",
+        "outcome",
+        "recorded_at"
+      ]
+    },
+    "event_gap_observations": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "source",
+        "source_ref",
+        "request_id",
+        "enumeration_id",
+        "observed_at",
+        "valid_until",
+        "availability",
+        "token_json",
+        "source_revision",
+        "evidence_json",
+        "evidence_digest"
+      ]
+    },
+    "event_gap_revisions": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "source",
+        "revision"
+      ]
+    },
+    "event_pressure_dirty": {
+      "rows": 35417,
+      "sha256": "cb9fc9c5a09c74fde435b38331ab80699f75354a36b2a64102e6a8111bee5b76",
+      "columns": [
+        "watch_id"
+      ]
+    },
+    "event_pressure_hosts": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "host",
+        "source",
+        "source_ref"
+      ]
+    },
+    "event_pressure_latches": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "host",
+        "deferred",
+        "policy_digest",
+        "policy_json",
+        "changed_at"
+      ]
+    },
+    "event_pressure_parents": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "watch_id",
+        "source",
+        "source_ref"
+      ]
+    },
+    "event_pressure_state": {
+      "rows": 1,
+      "sha256": "3f5dbfe49758bcc018f01279b4d07432f17834a7a903a8f0f636dc8d35164597",
+      "columns": [
+        "singleton",
+        "epoch",
+        "sequence"
+      ]
+    },
+    "event_pressure_subjects": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "source",
+        "source_ref",
+        "enrolled_at",
+        "start_basis",
+        "revision",
+        "checked_sequence",
+        "scan_json",
+        "observation_json"
+      ]
+    },
+    "event_pressure_watches": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "watch_id",
+        "source",
+        "source_ref"
+      ]
+    },
+    "event_progress_cursor": {
+      "rows": 1,
+      "sha256": "3f5dbfe49758bcc018f01279b4d07432f17834a7a903a8f0f636dc8d35164597",
+      "columns": [
+        "singleton",
+        "last_rowid",
+        "high_water"
+      ]
+    },
+    "event_progress_observations": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "source",
+        "source_ref",
+        "request_id",
+        "stage",
+        "enumeration_id",
+        "observed_at",
+        "valid_until",
+        "availability",
+        "operation_frontier",
+        "token_json",
+        "reasons_json"
+      ]
+    },
+    "event_progress_policies": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "digest",
+        "policy_json"
+      ]
+    },
+    "event_progress_receipts": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "receipt_id",
+        "source",
+        "source_ref",
+        "request_id",
+        "stage",
+        "enumeration_id",
+        "operation_id",
+        "missing_observed_at",
+        "verified_at",
+        "token_json"
+      ]
+    },
+    "event_progress_scans": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "source",
+        "source_ref",
+        "enumeration_id",
+        "after_request_id",
+        "assessment_reason",
+        "assessed_at"
+      ]
+    },
+    "event_retirement_observations": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "source",
+        "source_ref",
+        "enumeration_id",
+        "predecessor_id",
+        "assessment",
+        "observed_at",
+        "valid_until",
+        "token_json",
+        "result_json",
+        "retry_fresh"
+      ]
+    },
+    "event_retirement_receipts": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "receipt_id",
+        "proof_digest",
+        "source",
+        "source_ref",
+        "enumeration_id",
+        "predecessor_id",
+        "generation_id",
+        "decision_id",
+        "observed_at",
+        "policy_digest",
+        "proof_json"
+      ]
+    },
+    "event_stage_operations": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "operation_id",
+        "stage",
+        "source",
+        "request_id",
+        "watch_id",
+        "snapshot_id",
+        "generation_id",
+        "decision_id",
+        "occurred_at",
+        "run_id"
+      ]
+    },
+    "event_timing": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "source",
+        "source_ref",
+        "episode_id",
+        "token_json",
+        "policy_json",
+        "observation_origin",
+        "saved_at",
+        "run_id",
+        "phase_open",
+        "eligible_seconds",
+        "blocked_seconds",
+        "unknown_seconds",
+        "inactive_seconds",
+        "since_service_seconds",
+        "since_progress_seconds",
+        "complete_coverage",
+        "service_bound_valid",
+        "progress_bound_valid",
+        "reason_seconds_json",
+        "state",
+        "reason",
+        "valid_until",
+        "service_frontier",
+        "progress_frontier",
+        "operation_origin",
+        "last_progress_at",
+        "last_service_action",
+        "last_service_at",
+        "unresolved_success",
+        "control_revision",
+        "marker_mtime_ns"
+      ]
+    },
+    "event_timing_cursor": {
+      "rows": 1,
+      "sha256": "3f5dbfe49758bcc018f01279b4d07432f17834a7a903a8f0f636dc8d35164597",
+      "columns": [
+        "singleton",
+        "last_rowid",
+        "high_water"
+      ]
+    },
+    "event_timing_history": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "episode_id",
+        "run_id",
+        "source",
+        "source_ref",
+        "summary_json"
+      ]
+    },
+    "events": {
+      "rows": 2541,
+      "sha256": "8e998ea3d885479d2d83d916f39479b9c07b58612a84522eebebc7bf628b0863",
+      "columns": [
+        "event_id",
+        "series_id",
+        "name",
+        "year",
+        "start_date",
+        "end_date",
+        "city",
+        "region",
+        "country",
+        "website",
+        "wsdc_status",
+        "sources",
+        "live_window_start",
+        "live_window_end",
+        "source",
+        "snapshot_id",
+        "parser_version",
+        "first_seen_at",
+        "last_seen_at",
+        "run_id",
+        "event_month",
+        "date_precision",
+        "held",
+        "coverage_tier",
+        "history_source"
+      ]
+    },
+    "execution_admissions": {
+      "rows": 35038,
+      "sha256": "3d93921664bc9b7a0b8b2c9e63984703f47c36a6dc48aef2d11d1cc218d651d5",
+      "columns": [
+        "action_id",
+        "action_kind",
+        "admitted_at",
+        "control_revision",
+        "run_id",
+        "work_attempt_id",
+        "candidate_id",
+        "host",
+        "all_sources",
+        "all_kinds",
+        "state",
+        "settled_at",
+        "outcome"
+      ]
+    },
+    "execution_dependencies": {
+      "rows": 318234,
+      "sha256": "81ddfb3857ba85409524a8774e87ce911331a119bef4855468d6691c17efb2d8",
+      "columns": [
+        "action_id",
+        "scope_kind",
+        "scope_id"
+      ]
+    },
+    "final_marks": {
+      "rows": 121623,
+      "sha256": "f869ee197cbe4469d99083709d61986d8a422d34175dad9752986b756e4460a1",
+      "columns": [
+        "round_id",
+        "placement_id",
+        "judge_id",
+        "rank",
+        "source",
+        "snapshot_id",
+        "parser_version",
+        "first_seen_at",
+        "last_seen_at",
+        "run_id"
+      ]
+    },
+    "finding_support": {
+      "rows": 55913,
+      "sha256": "fc4db885828e19de5de55414b09588feb64e416ecb0cd76fb3a9475e25e20469",
+      "columns": [
+        "finding_id",
+        "payload_json",
+        "active"
+      ]
+    },
+    "findings": {
+      "rows": 107692,
+      "sha256": "d854014df183703c37e770dfbf0346b291664859f2e7b4fcc8c960872728ca8b",
+      "columns": [
+        "finding_id",
+        "owner_kind",
+        "owner_id",
+        "kind",
+        "subject_kind",
+        "subject_id",
+        "watch_id",
+        "snapshot_id",
+        "severity",
+        "summary",
+        "evidence_json",
+        "suggested_override",
+        "opened_at",
+        "run_id",
+        "closed_at",
+        "closed_by",
+        "policy_version",
+        "desired_fingerprint",
+        "state",
+        "source",
+        "next_action",
+        "blocking_reason",
+        "next_eligible_at",
+        "attempt_count",
+        "last_progress_at",
+        "status_at"
+      ]
+    },
+    "heats": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "heat_id",
+        "round_id",
+        "heat_number",
+        "entry_id",
+        "position",
+        "source",
+        "snapshot_id",
+        "parser_version",
+        "first_seen_at",
+        "last_seen_at",
+        "run_id"
+      ]
+    },
+    "history_acceptance": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "year",
+        "accepted_at",
+        "accepted_by",
+        "inventory_digest"
+      ]
+    },
+    "history_origin_intents": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "watch_id",
+        "source",
+        "source_ref",
+        "event_id",
+        "page_kind",
+        "url",
+        "parent_url",
+        "evidence_json",
+        "created_at",
+        "dispatch_run_id"
+      ]
+    },
+    "history_origin_operator_refs": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "source_ref",
+        "evidence_reference",
+        "recorded_at"
+      ]
+    },
+    "history_origin_requests": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "action_id",
+        "watch_id",
+        "source",
+        "event_id",
+        "run_id",
+        "day",
+        "issued_at"
+      ]
+    },
+    "host_budget": {
+      "rows": 26,
+      "sha256": "3542fcd0f254ddb954867ca330ec5214094a06a80e14cd90a1297fb76e0a31dd",
+      "columns": [
+        "host",
+        "day",
+        "requests",
+        "bytes"
+      ]
+    },
+    "host_request_spacing": {
+      "rows": 8,
+      "sha256": "77bf439f1c57f229f85aa22ca1b691574acee5601e2026c2e5f95fc202d91129",
+      "columns": [
+        "host",
+        "reservation_id",
+        "gap_seconds",
+        "reserved_at",
+        "released_at"
+      ]
+    },
+    "host_request_spacing_baselines": {
+      "rows": 1,
+      "sha256": "7f95a83807d2bf5471d926aab77fb6b91006bd40c0a8b18c907b6c306f38bfa5",
+      "columns": [
+        "reservation_id",
+        "host",
+        "gap_seconds",
+        "stopped_at",
+        "recorded_at",
+        "evidence_ref",
+        "prior_reservation_id"
+      ]
+    },
+    "hosts": {
+      "rows": 8,
+      "sha256": "90e8ef23f09bbb55eb9fd9a7ba87d6dc34349d48c6ad7b0fe6d42c47923d74fe",
+      "columns": [
+        "host",
+        "next_allowed_at",
+        "paused_until",
+        "pause_reason",
+        "pause_streak",
+        "robots_sha256",
+        "robots_fetched_at",
+        "robots_status"
+      ]
+    },
+    "identity_decisions": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "decision_id",
+        "source",
+        "source_event",
+        "contest",
+        "round",
+        "participant",
+        "wsdc_id",
+        "decision",
+        "evidence",
+        "reason",
+        "author",
+        "date",
+        "supersedes",
+        "row_json",
+        "row_sha256",
+        "accepted_digest",
+        "accepted_at"
+      ]
+    },
+    "identity_journal_acceptances": {
+      "rows": 1,
+      "sha256": "b1ecd750fa6d6e9872007a8c59b2778afa722c96e9d7ac55049fa7085459fdd3",
+      "columns": [
+        "digest",
+        "bundle_digest",
+        "accepted_at",
+        "decision_count",
+        "generation"
+      ]
+    },
+    "identity_link_history": {
+      "rows": 396350,
+      "sha256": "3025ac3f8bfc9a1666774e598762db66bffbf7168fbca3e080831bea4deb3d4b",
+      "columns": [
+        "history_id",
+        "subject_kind",
+        "subject_id",
+        "state",
+        "assertion_json",
+        "resolution_json",
+        "recorded_at"
+      ]
+    },
+    "identity_link_resolutions": {
+      "rows": 98751,
+      "sha256": "087812876ce3dc9fb5a4eb7cb7551c744da72354e9f4644693b420ba68d7a62c",
+      "columns": [
+        "subject_kind",
+        "subject_id",
+        "ref_ids_json",
+        "decision_ids_json",
+        "policy_version",
+        "journal_digest",
+        "journal_generation",
+        "state",
+        "reason",
+        "asserted_at"
+      ]
+    },
+    "identity_links": {
+      "rows": 98751,
+      "sha256": "ca4f92eda0ab73e49fd3b7d08fa643d7784d4d7b47d46468fe2c92fad54fee7d",
+      "columns": [
+        "link_id",
+        "subject_kind",
+        "subject_id",
+        "wsdc_id",
+        "method",
+        "status",
+        "confidence",
+        "constraints_applied",
+        "asserted_at",
+        "run_id",
+        "linker_version"
+      ]
+    },
+    "identity_reference_bindings": {
+      "rows": 115718,
+      "sha256": "0da55155142d75e3c0a38330667c7857397fa0c73cafdea89090444715b5a311",
+      "columns": [
+        "binding_id",
+        "ref_id",
+        "subject_kind",
+        "subject_id",
+        "event_id",
+        "snapshot_id",
+        "semantic_hash",
+        "bound_at"
+      ]
+    },
+    "identity_reference_migrations": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "migration_id",
+        "from_ref_id",
+        "to_ref_ids_json",
+        "status",
+        "evidence",
+        "reason",
+        "author",
+        "date",
+        "supersedes",
+        "recorded_at"
+      ]
+    },
+    "identity_source_refs": {
+      "rows": 115713,
+      "sha256": "f73f22d54ae54927ce17ae96c7a8364ff0fe510775d0ad3fcb8ce9ac503d36de",
+      "columns": [
+        "ref_id",
+        "source",
+        "source_event",
+        "contest",
+        "round",
+        "participant",
+        "subject_kind",
+        "locator_json",
+        "created_at"
+      ]
+    },
+    "judges": {
+      "rows": 4931,
+      "sha256": "898c37a1258c8248e75eaaa13b3e118ae478f2f4aa10712e4cbd12c39475271c",
+      "columns": [
+        "judge_id",
+        "event_id",
+        "name_raw",
+        "initials",
+        "anonymous",
+        "wsdc_id",
+        "source",
+        "snapshot_id",
+        "parser_version",
+        "first_seen_at",
+        "last_seen_at",
+        "run_id"
+      ]
+    },
+    "link_candidates": {
+      "rows": 92499,
+      "sha256": "7379fbc83d816d3c2d56ed7e2205d7c14d7b93d88c237db8573dde63ffbebe7f",
+      "columns": [
+        "subject_kind",
+        "subject_id",
+        "wsdc_id",
+        "score",
+        "name_similarity",
+        "name_rarity",
+        "division_ok",
+        "role_ok",
+        "recency_ok",
+        "geography",
+        "bib_reuse",
+        "registry_confirms",
+        "source_id_confirms",
+        "rank",
+        "chosen",
+        "run_id"
+      ]
+    },
+    "meta": {
+      "rows": 14,
+      "sha256": "35215a3fd137569736d3381cfa597a90ae471a2abbeec3fc40959a333a2d37cf",
+      "columns": [
+        "key",
+        "value"
+      ]
+    },
+    "observations": {
+      "rows": 58169,
+      "sha256": "74fed9568e9c5cd33462c16103cc63a0fdfcc6f946d625135bbdef4433d9b893",
+      "columns": [
+        "observation_id",
+        "watch_id",
+        "snapshot_id",
+        "kind",
+        "scope_kind",
+        "scope_id",
+        "seq",
+        "extract_version",
+        "parser_version",
+        "payload_json"
+      ]
+    },
+    "operator_pauses": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "scope_kind",
+        "scope_id",
+        "until_at",
+        "reason",
+        "pause_id",
+        "actor",
+        "control_revision",
+        "created_at"
+      ]
+    },
+    "pending_work": {
+      "rows": 31821,
+      "sha256": "88683cc1121974174e36c05d79823159d9773b5cb735daa3837491567d1e9ac8",
+      "columns": [
+        "stage",
+        "unit_kind",
+        "unit_id",
+        "enqueued_at"
+      ]
+    },
+    "placements": {
+      "rows": 20236,
+      "sha256": "82e6b87832cda936b7681bdcd420866444c154313aa0e05581801d05a772d098",
+      "columns": [
+        "placement_id",
+        "round_id",
+        "contest_id",
+        "event_id",
+        "place",
+        "leader_entry_id",
+        "follower_entry_id",
+        "couple_entry_id",
+        "leader_wsdc_id",
+        "follower_wsdc_id",
+        "marks_sorted",
+        "tally",
+        "registry_points_leader",
+        "registry_points_follower",
+        "registry_confirmed",
+        "points_matches_expected",
+        "source",
+        "snapshot_id",
+        "parser_version",
+        "first_seen_at",
+        "last_seen_at",
+        "run_id"
+      ]
+    },
+    "registry_placements": {
+      "rows": 197990,
+      "sha256": "a4383024813e990b2898ce43bdb8e6ef217a01e39f10535483317cdbcd13315f",
+      "columns": [
+        "wsdc_id",
+        "role",
+        "dance_style",
+        "division",
+        "series_id",
+        "series_name_raw",
+        "event_month",
+        "event_id",
+        "result",
+        "points",
+        "source",
+        "snapshot_id",
+        "parser_version",
+        "first_seen_at",
+        "last_seen_at",
+        "run_id"
+      ]
+    },
+    "registry_verifications": {
+      "rows": 29060,
+      "sha256": "215b79cadc76ab6ae04dde42d731b8eebe3f81dbc3d84d14a2681393f4469ceb",
+      "columns": [
+        "verification_id",
+        "watch_id",
+        "checked_at",
+        "http_status",
+        "body_sha256",
+        "snapshot_id",
+        "extract_version",
+        "parser_version",
+        "outcome",
+        "usable",
+        "reason"
+      ]
+    },
+    "requirement_attempts": {
+      "rows": 34986,
+      "sha256": "c54baba55eb54b595dd80195f7995551d3409f7983fc74338bd46cea2e840a50",
+      "columns": [
+        "attempt_id",
+        "requirement_id",
+        "at",
+        "outcome"
+      ]
+    },
+    "requirement_cohort_members": {
+      "rows": 36689,
+      "sha256": "b677ed772c3cb5fe3a6e5c215f99d47546c16077e0e1cba1de87a37fb23ed632",
+      "columns": [
+        "cohort_id",
+        "requirement_id"
+      ]
+    },
+    "requirement_cohorts": {
+      "rows": 1,
+      "sha256": "71a5248a4af294f56cdd8441680648f90e03c72a628270d7f2fe9e8f2dc44180",
+      "columns": [
+        "cohort_id",
+        "created_at",
+        "policy_version",
+        "source",
+        "kind",
+        "bounded",
+        "first_open_transition_cutoff"
+      ]
+    },
+    "requirement_scan": {
+      "rows": 1,
+      "sha256": "0ea07f491835714cc56ce26587f2d6abee88820a693e1715a0ae0c55b357b848",
+      "columns": [
+        "singleton",
+        "cursor",
+        "started_at",
+        "last_scanned_at",
+        "last_completed_at",
+        "scanned"
+      ]
+    },
+    "requirement_transitions": {
+      "rows": 108429,
+      "sha256": "af59a029e3df6cb70ca0f657271f26b511b6169d0c12294ad5a17f368876617a",
+      "columns": [
+        "transition_id",
+        "requirement_id",
+        "kind",
+        "source",
+        "old_state",
+        "new_state",
+        "event",
+        "at"
+      ]
+    },
+    "revisions": {
+      "rows": 9,
+      "sha256": "a4643691751e97386175394cd07d2d38d004d6846e93dfba854b76460decd669",
+      "columns": [
+        "name",
+        "value"
+      ]
+    },
+    "rounds": {
+      "rows": 4279,
+      "sha256": "f847c1868169003d7e2cd60364e725f2d1f78e248723ad1f9b0a8fe7948891ab",
+      "columns": [
+        "round_id",
+        "contest_id",
+        "round_type",
+        "round_index",
+        "name_raw",
+        "scoring_method",
+        "callback_legend",
+        "judge_count",
+        "chief_judge_id",
+        "entry_count",
+        "promoted_count",
+        "source_round_ref",
+        "score_sheet_url",
+        "source",
+        "snapshot_id",
+        "parser_version",
+        "first_seen_at",
+        "last_seen_at",
+        "run_id"
+      ]
+    },
+    "runs": {
+      "rows": 1988,
+      "sha256": "d16c7a40409e86047ccde9093453d69ee2c30252919efe11d3722a232d699d78",
+      "columns": [
+        "run_id",
+        "started_at",
+        "finished_at",
+        "dry_run",
+        "summary_json"
+      ]
+    },
+    "scheduler_capacity_policies": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "digest",
+        "policy_json"
+      ]
+    },
+    "scheduler_capacity_requests": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "action_id",
+        "selected_host",
+        "lane",
+        "purpose",
+        "reason",
+        "policy_digest",
+        "credit_before",
+        "credit_after"
+      ]
+    },
+    "scheduler_capacity_service": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "selected_host",
+        "credit"
+      ]
+    },
+    "scheduler_event_policies": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "digest",
+        "policy_json"
+      ]
+    },
+    "scheduler_event_requests": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "action_id",
+        "selected_host",
+        "category",
+        "owner_key",
+        "source",
+        "source_ref",
+        "enumeration_id",
+        "turn_position",
+        "policy_digest",
+        "reason"
+      ]
+    },
+    "scheduler_event_turns": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "host",
+        "category",
+        "owner_key",
+        "source",
+        "source_ref",
+        "position",
+        "used",
+        "policy_digest",
+        "target_requests",
+        "enrolled_at",
+        "last_issued_at"
+      ]
+    },
+    "scheduler_offline_service": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "stage",
+        "unit_kind",
+        "attempts",
+        "last_served_at",
+        "sequence"
+      ]
+    },
+    "scheduler_parent_links": {
+      "rows": 6274,
+      "sha256": "f194f0dbcc3b9baa41ee4fb36484b2e3605e461041358f5e34e2cd35cdab1cee",
+      "columns": [
+        "parent_watch_id",
+        "child_watch_id",
+        "first_snapshot_id",
+        "first_seen_at"
+      ]
+    },
+    "scheduler_requests": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "action_id",
+        "host",
+        "day",
+        "category",
+        "work_key",
+        "run_id",
+        "repair",
+        "pressure_reserved",
+        "issued_at",
+        "body_bytes"
+      ]
+    },
+    "scheduler_watch_state": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "watch_id",
+        "metadata_attempts",
+        "last_metadata_attempt_at"
+      ]
+    },
+    "series": {
+      "rows": 288,
+      "sha256": "5abdf3646a13d8abe128726f7eee913c9e2ea8c435272655060087880a25a9d1",
+      "columns": [
+        "series_id",
+        "name",
+        "website",
+        "location_raw"
+      ]
+    },
+    "snapshots": {
+      "rows": 31821,
+      "sha256": "1ff56a0fcf748c8013c79abd7144fb5cfe937de0d77843cbcc7fa68ce3cf126d",
+      "columns": [
+        "snapshot_id",
+        "watch_id",
+        "method",
+        "url",
+        "form",
+        "fetched_at",
+        "http_status",
+        "etag",
+        "last_modified",
+        "content_type",
+        "body_sha256",
+        "body_bytes",
+        "content_changed",
+        "run_id",
+        "via",
+        "headers_json",
+        "classification",
+        "extract_status",
+        "extract_sha256",
+        "parse_status",
+        "parsed_at",
+        "extract_version",
+        "parser_version",
+        "captured_at",
+        "observed_at",
+        "archive_url",
+        "requested_archive_url",
+        "extract_recipe_sha256"
+      ]
+    },
+    "source_event_enumeration_members": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "enumeration_id",
+        "request_id",
+        "request_json",
+        "support_json",
+        "first_known_at"
+      ]
+    },
+    "source_event_enumerations": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "enumeration_id",
+        "source",
+        "source_ref",
+        "predecessor_id",
+        "generation_id",
+        "decision_id",
+        "parent_support_json",
+        "membership_digest",
+        "pagination",
+        "pagination_reason",
+        "added_json",
+        "removed_json",
+        "recorded_at"
+      ]
+    },
+    "source_event_inventory": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "source",
+        "source_ref",
+        "enumeration_id",
+        "first_known_at",
+        "bootstrap_basis"
+      ]
+    },
+    "source_event_map": {
+      "rows": 404,
+      "sha256": "83c92d7f16240a788fd7c5aac0ce41e68cc369d6b1abe3a0331b395e31ed4001",
+      "columns": [
+        "source",
+        "source_ref",
+        "event_id",
+        "match_method",
+        "match_confidence"
+      ]
+    },
+    "source_event_member_watches": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "enumeration_id",
+        "request_id",
+        "watch_id"
+      ]
+    },
+    "source_event_retirement_proofs": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "proof_digest",
+        "proof_json"
+      ]
+    },
+    "source_event_retirement_receipts": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "receipt_id",
+        "source",
+        "source_ref",
+        "enumeration_id",
+        "predecessor_id",
+        "generation_id",
+        "decision_id",
+        "observed_at",
+        "policy_digest",
+        "proof_digest",
+        "proof_json"
+      ]
+    },
+    "source_event_scope_rows": {
+      "rows": 837,
+      "sha256": "ac7472e1a58b0d6016669d3aee7d21956270a1b8b7aa6d6154cb17e1bf5feea7",
+      "columns": [
+        "scope_id",
+        "source",
+        "source_ref"
+      ]
+    },
+    "source_events": {
+      "rows": 455,
+      "sha256": "4d47d2a2ace8a897a6cb08411a5aa98cbd12c61e06777a5e150909c29ab90173",
+      "columns": [
+        "source",
+        "source_ref",
+        "name_raw",
+        "start_date",
+        "end_date",
+        "location_raw",
+        "url",
+        "snapshot_id",
+        "parser_version",
+        "first_seen_at",
+        "last_seen_at",
+        "run_id"
+      ]
+    },
+    "source_generations": {
+      "rows": 32189,
+      "sha256": "2169a9d83ef1d2e7dd9008ab6d5f1e42bc5234b8b64fcd712483b36082cb9de8",
+      "columns": [
+        "generation_id",
+        "unit_key",
+        "page_kind",
+        "contract_version",
+        "input_fingerprint",
+        "manifest_json",
+        "recipe_json",
+        "result_json",
+        "report_json",
+        "previous_generation_id",
+        "work_token",
+        "created_at",
+        "run_id",
+        "state",
+        "removal_authority"
+      ]
+    },
+    "source_units": {
+      "rows": 31805,
+      "sha256": "7635c40511a8367291b284f087ec68b51822a7b0d79a62742053de0b41bf19ff",
+      "columns": [
+        "unit_key",
+        "watch_id",
+        "page_kind",
+        "desired_fingerprint",
+        "accepted_generation_id",
+        "legacy_snapshot_id",
+        "legacy_state"
+      ]
+    },
+    "watches": {
+      "rows": 35417,
+      "sha256": "eaceb1e2ce398eb17ded98f745b96b7c3f7328688eea2050691c58ea0fc28436",
+      "columns": [
+        "watch_id",
+        "source",
+        "kind",
+        "method",
+        "url",
+        "form",
+        "archive_url",
+        "parser",
+        "source_ref",
+        "state",
+        "next_check_at",
+        "last_checked_at",
+        "last_changed_at",
+        "unchanged_streak",
+        "etag",
+        "last_modified",
+        "body_sha256",
+        "paused_until",
+        "notes",
+        "fingerprint",
+        "extract_version",
+        "priority",
+        "created_by_snapshot_id",
+        "parent_watch_id",
+        "ever_ok",
+        "current_observation_snapshot_id",
+        "consecutive_404s",
+        "first_404_at"
+      ]
+    },
+    "work_attempts": {
+      "rows": 34986,
+      "sha256": "dac2db473959193e6241a379fb864c9194abcb355a1b975c9315a820225ded45",
+      "columns": [
+        "attempt_id",
+        "stage",
+        "unit_kind",
+        "unit_id",
+        "queue_generation",
+        "retry_generation",
+        "work_token",
+        "input_fingerprint",
+        "run_id",
+        "started_at",
+        "finished_at",
+        "outcome",
+        "reason_code",
+        "evidence_json",
+        "retry_at",
+        "requirement_id"
+      ]
+    },
+    "work_generations": {
+      "rows": 66807,
+      "sha256": "95cd0a1716c9a63978ea8b9a456f3a1a95baf387e1c4be3fb41c3993f92666b5",
+      "columns": [
+        "stage",
+        "unit_kind",
+        "unit_id",
+        "generation",
+        "retry_generation",
+        "retry_reason",
+        "retry_requested_at"
+      ]
+    }
+  },
+  "expected_restored": {
+    "accepted_inputs": {
+      "rows": 51,
+      "sha256": "b3011da28824ad87cceaa721d3ce40f638ffca632e7a47ceb9d66ce6278a6871",
+      "columns": [
+        "consumer",
+        "input_name",
+        "digest"
+      ]
+    },
+    "admission_decisions": {
+      "rows": 31610,
+      "sha256": "8bd133180c070dddaad182b1843cb888062ce8e09f66ffa745e5e51bccfca065",
+      "columns": [
+        "decision_id",
+        "generation_id",
+        "state",
+        "reason",
+        "decided_at",
+        "policy_revision"
+      ]
+    },
+    "admission_policies": {
+      "rows": 13,
+      "sha256": "5452c5cbe2b91055f2d130b4f1ac609b92d19f516fc4cb628995b0e672b1665c",
+      "columns": [
+        "page_kind",
+        "contract_version",
+        "mode",
+        "policy_revision",
+        "reviewed_report_digest",
+        "reviewed_by",
+        "reviewed_at"
+      ]
+    },
+    "admission_reviews": {
+      "rows": 9,
+      "sha256": "d5e1fc6819066d07d7c6f80790ae8c078e7452d267f3b6c95e8044aad1097389",
+      "columns": [
+        "report_digest",
+        "page_kind",
+        "contract_version",
+        "cohort_json",
+        "reviewer",
+        "reviewed_at",
+        "evidence"
+      ]
+    },
+    "archive_captures": {
+      "rows": 32,
+      "sha256": "e9cf72a3d15c29fa0c7604d682cb852db728308ee0e4fb65d0c65f5bdbb7dd5c",
+      "columns": [
+        "source",
+        "url",
+        "timestamp",
+        "digest",
+        "status",
+        "mimetype",
+        "length",
+        "queried_at",
+        "cdx_query_id"
+      ]
+    },
+    "archive_queries": {
+      "rows": 15,
+      "sha256": "487d91c3d3468e2a9a7fc63dcdf275b5a9c8c3e3d585151a7949cb8c46764489",
+      "columns": [
+        "query_id",
+        "source",
+        "prefix",
+        "year",
+        "next_page",
+        "total_pages",
+        "completed_at",
+        "started_at"
+      ]
+    },
+    "backup_uploads": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "path",
+        "sha256",
+        "uploaded_at"
+      ]
+    },
+    "callback_marks": {
+      "rows": 484141,
+      "sha256": "b4609793dd357db67a22e33594965a035cea838a70d480353a0023f2331450d3",
+      "columns": [
+        "round_id",
+        "entry_id",
+        "judge_id",
+        "mark",
+        "mark_raw",
+        "mark_value",
+        "source",
+        "snapshot_id",
+        "parser_version",
+        "first_seen_at",
+        "last_seen_at",
+        "run_id"
+      ]
+    },
+    "callbacks": {
+      "rows": 98481,
+      "sha256": "8b94f3edbce4dac6a553b1e4d4b430f57a751a6a4708264dd20e8d6ec8416e42",
+      "columns": [
+        "round_id",
+        "entry_id",
+        "score_sum",
+        "yes_count",
+        "alt_count",
+        "no_count",
+        "outcome",
+        "tie_break_applied",
+        "heat_number",
+        "source",
+        "snapshot_id",
+        "parser_version",
+        "first_seen_at",
+        "last_seen_at",
+        "run_id"
+      ]
+    },
+    "canonical_scope_rows": {
+      "rows": 1058390,
+      "sha256": "1de774e2b25f9b0c24d322dee9c63212166cf6d33110e9382ef989b1b2491bdc",
+      "columns": [
+        "scope_kind",
+        "scope_id",
+        "table_name",
+        "record_key"
+      ]
+    },
+    "contests": {
+      "rows": 2644,
+      "sha256": "4ef20017431cda942c9b2330d3331225dc9f615dc6e5c66de29409498b5bc3fc",
+      "columns": [
+        "contest_id",
+        "event_id",
+        "name_raw",
+        "division",
+        "age_division",
+        "contest_type",
+        "partner_mode",
+        "dance_style",
+        "wsdc_points_eligible",
+        "combined_from",
+        "parse_status",
+        "source_contest_ref",
+        "source",
+        "snapshot_id",
+        "parser_version",
+        "first_seen_at",
+        "last_seen_at",
+        "run_id"
+      ]
+    },
+    "control_events": {
+      "rows": 2,
+      "sha256": "e9eb965312af30d2ccfa4c597ba688f380a10207429dd7cc25ddb68b5994ff88",
+      "columns": [
+        "event_id",
+        "control_revision",
+        "pause_id",
+        "scope_kind",
+        "scope_id",
+        "action",
+        "actor",
+        "reason",
+        "until_at",
+        "occurred_at"
+      ]
+    },
+    "control_state": {
+      "rows": 1,
+      "sha256": "636cbe06ddc482db3f6385cb0684bac684da870bbe68a86ac094ea15f8425514",
+      "columns": [
+        "singleton",
+        "revision"
+      ]
+    },
+    "coverage": {
+      "rows": 66,
+      "sha256": "f0ef4cb024b64823a088924108c9caf96a6c4de4e9a161ef9696919695695986",
+      "columns": [
+        "year",
+        "source",
+        "via",
+        "events",
+        "contests",
+        "rounds",
+        "entries",
+        "events_registry_only",
+        "events_index_only",
+        "events_sheets_partial",
+        "events_sheets_complete",
+        "events_day_precision",
+        "events_listed_only",
+        "events_accepted",
+        "expected_rounds",
+        "parsed_rounds",
+        "unresolved_findings",
+        "last_changed_at"
+      ]
+    },
+    "cursors": {
+      "rows": 4,
+      "sha256": "ad713b32f0a8603ef3f138190c1e079271e4d0d4437a3fdb4f7dcf72279d86b7",
+      "columns": [
+        "name",
+        "value"
+      ]
+    },
+    "dancers": {
+      "rows": 27784,
+      "sha256": "ceffab91b1cd9ef9b07ce56e9f060277c9f145097d5a1a2174235d8f64706487",
+      "columns": [
+        "wsdc_id",
+        "first_name",
+        "last_name",
+        "name_norm",
+        "is_pro",
+        "primary_role",
+        "leader_required_level",
+        "leader_allowed_level",
+        "follower_required_level",
+        "follower_allowed_level",
+        "leader_highest_level",
+        "leader_highest_points",
+        "follower_highest_level",
+        "follower_highest_points",
+        "recent_year",
+        "registry_internal_id",
+        "registry_fetched_at",
+        "merged_into_wsdc_id",
+        "source",
+        "snapshot_id",
+        "parser_version",
+        "first_seen_at",
+        "last_seen_at",
+        "run_id"
+      ]
+    },
+    "derivation_dependency_sets": {
+      "rows": 103369,
+      "sha256": "0a5ab388cc0ce13506a549473a775806c1d5d6c5435c2cb94e8f3c600f92d5f6",
+      "columns": [
+        "dependency_set_id",
+        "manifest_json"
+      ]
+    },
+    "derivation_generations": {
+      "rows": 34987,
+      "sha256": "cb1ee5571e36018595d8bd72bc11b4113efb20205200371461b780a555badd7c",
+      "columns": [
+        "generation_id",
+        "stage",
+        "unit_kind",
+        "unit_id",
+        "input_fingerprint",
+        "recipe_json",
+        "dependency_set_id",
+        "previous_generation_id",
+        "output_digest",
+        "row_count",
+        "created_at",
+        "run_id"
+      ]
+    },
+    "derivation_input_versions": {
+      "rows": 1084,
+      "sha256": "d158f50354295b261fe0d38286c0dfd149dd934beb730414a7defd8e6d666415",
+      "columns": [
+        "namespace",
+        "input_key",
+        "version"
+      ]
+    },
+    "derivation_rows": {
+      "rows": 1669989,
+      "sha256": "87cf0c169e690e1f30b16a7d7c42b5eb4d4d4383f29b11183452f4f4b6b2414c",
+      "columns": [
+        "generation_id",
+        "ordinal",
+        "table_name",
+        "record_key",
+        "payload_json"
+      ]
+    },
+    "derivation_scopes": {
+      "rows": 34987,
+      "sha256": "c210d1f91ab47b2528d77820f1415b96ce8c1b3259d7ba64d618008e6154cec4",
+      "columns": [
+        "stage",
+        "unit_kind",
+        "unit_id",
+        "desired_fingerprint",
+        "materialized_generation_id",
+        "registered_at",
+        "materialized_signature"
+      ]
+    },
+    "entries": {
+      "rows": 93820,
+      "sha256": "e8bf0919b13830707ea7ad18836ea6b99285b427b91880309afe6c01a3279db8",
+      "columns": [
+        "entry_id",
+        "contest_id",
+        "event_id",
+        "role",
+        "bib",
+        "name_raw",
+        "name_norm",
+        "partner_name_raw",
+        "city_raw",
+        "country_raw",
+        "wsdc_id",
+        "link_status",
+        "link_confidence",
+        "partner_entry_id",
+        "rounds_danced",
+        "best_round",
+        "source",
+        "snapshot_id",
+        "parser_version",
+        "first_seen_at",
+        "last_seen_at",
+        "run_id"
+      ]
+    },
+    "event_accounting_receipts": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "receipt_id",
+        "source",
+        "source_ref",
+        "enumeration_id",
+        "previous_receipt_id",
+        "assessment",
+        "transition",
+        "observed_at",
+        "earliest_checked_at",
+        "valid_until",
+        "token_json",
+        "summary_json"
+      ]
+    },
+    "event_accounting_support_observations": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "source",
+        "source_ref",
+        "enumeration_id",
+        "generation_id",
+        "availability",
+        "observed_at",
+        "valid_until",
+        "token_json",
+        "reasons_json"
+      ]
+    },
+    "event_blocker_cursor": {
+      "rows": 1,
+      "sha256": "9af439793083321aba74468f0535aa929752f762d41bb5de6e6039727697ebd7",
+      "columns": [
+        "singleton",
+        "last_rowid",
+        "high_water",
+        "pass"
+      ]
+    },
+    "event_blocker_latest": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "source",
+        "source_ref",
+        "observation_id"
+      ]
+    },
+    "event_blocker_observations": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "observation_id",
+        "source",
+        "source_ref",
+        "refresh_id",
+        "observed_at",
+        "signature",
+        "policy_digest",
+        "facts_json"
+      ]
+    },
+    "event_blocker_policies": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "digest",
+        "policy_json"
+      ]
+    },
+    "event_blocker_refreshes": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "refresh_id",
+        "run_id",
+        "observed_at",
+        "summary_json"
+      ]
+    },
+    "event_enumeration_inputs": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "generation_id",
+        "decision_id",
+        "outcome",
+        "recorded_at"
+      ]
+    },
+    "event_gap_observations": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "source",
+        "source_ref",
+        "request_id",
+        "enumeration_id",
+        "observed_at",
+        "valid_until",
+        "availability",
+        "token_json",
+        "source_revision",
+        "evidence_json",
+        "evidence_digest"
+      ]
+    },
+    "event_gap_revisions": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "source",
+        "revision"
+      ]
+    },
+    "event_pressure_dirty": {
+      "rows": 35417,
+      "sha256": "cb9fc9c5a09c74fde435b38331ab80699f75354a36b2a64102e6a8111bee5b76",
+      "columns": [
+        "watch_id"
+      ]
+    },
+    "event_pressure_hosts": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "host",
+        "source",
+        "source_ref"
+      ]
+    },
+    "event_pressure_latches": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "host",
+        "deferred",
+        "policy_digest",
+        "policy_json",
+        "changed_at"
+      ]
+    },
+    "event_pressure_parents": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "watch_id",
+        "source",
+        "source_ref"
+      ]
+    },
+    "event_pressure_state": {
+      "rows": 1,
+      "sha256": "28a7a101dfb850d13a85758e127d3b54b329321e4f8e334c105756647cbfee34",
+      "columns": [
+        "singleton",
+        "epoch",
+        "sequence"
+      ]
+    },
+    "event_pressure_subjects": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "source",
+        "source_ref",
+        "enrolled_at",
+        "start_basis",
+        "revision",
+        "checked_sequence",
+        "scan_json",
+        "observation_json"
+      ]
+    },
+    "event_pressure_watches": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "watch_id",
+        "source",
+        "source_ref"
+      ]
+    },
+    "event_progress_cursor": {
+      "rows": 1,
+      "sha256": "3f5dbfe49758bcc018f01279b4d07432f17834a7a903a8f0f636dc8d35164597",
+      "columns": [
+        "singleton",
+        "last_rowid",
+        "high_water"
+      ]
+    },
+    "event_progress_observations": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "source",
+        "source_ref",
+        "request_id",
+        "stage",
+        "enumeration_id",
+        "observed_at",
+        "valid_until",
+        "availability",
+        "operation_frontier",
+        "token_json",
+        "reasons_json"
+      ]
+    },
+    "event_progress_policies": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "digest",
+        "policy_json"
+      ]
+    },
+    "event_progress_receipts": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "receipt_id",
+        "source",
+        "source_ref",
+        "request_id",
+        "stage",
+        "enumeration_id",
+        "operation_id",
+        "missing_observed_at",
+        "verified_at",
+        "token_json"
+      ]
+    },
+    "event_progress_scans": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "source",
+        "source_ref",
+        "enumeration_id",
+        "after_request_id",
+        "assessment_reason",
+        "assessed_at"
+      ]
+    },
+    "event_retirement_observations": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "source",
+        "source_ref",
+        "enumeration_id",
+        "predecessor_id",
+        "assessment",
+        "observed_at",
+        "valid_until",
+        "token_json",
+        "result_json",
+        "retry_fresh"
+      ]
+    },
+    "event_retirement_receipts": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "receipt_id",
+        "proof_digest",
+        "source",
+        "source_ref",
+        "enumeration_id",
+        "predecessor_id",
+        "generation_id",
+        "decision_id",
+        "observed_at",
+        "policy_digest",
+        "proof_json"
+      ]
+    },
+    "event_stage_operations": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "operation_id",
+        "stage",
+        "source",
+        "request_id",
+        "watch_id",
+        "snapshot_id",
+        "generation_id",
+        "decision_id",
+        "occurred_at",
+        "run_id"
+      ]
+    },
+    "event_timing": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "source",
+        "source_ref",
+        "episode_id",
+        "token_json",
+        "policy_json",
+        "observation_origin",
+        "saved_at",
+        "run_id",
+        "phase_open",
+        "eligible_seconds",
+        "blocked_seconds",
+        "unknown_seconds",
+        "inactive_seconds",
+        "since_service_seconds",
+        "since_progress_seconds",
+        "complete_coverage",
+        "service_bound_valid",
+        "progress_bound_valid",
+        "reason_seconds_json",
+        "state",
+        "reason",
+        "valid_until",
+        "service_frontier",
+        "progress_frontier",
+        "operation_origin",
+        "last_progress_at",
+        "last_service_action",
+        "last_service_at",
+        "unresolved_success",
+        "control_revision",
+        "marker_mtime_ns"
+      ]
+    },
+    "event_timing_cursor": {
+      "rows": 1,
+      "sha256": "3f5dbfe49758bcc018f01279b4d07432f17834a7a903a8f0f636dc8d35164597",
+      "columns": [
+        "singleton",
+        "last_rowid",
+        "high_water"
+      ]
+    },
+    "event_timing_history": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "episode_id",
+        "run_id",
+        "source",
+        "source_ref",
+        "summary_json"
+      ]
+    },
+    "events": {
+      "rows": 2541,
+      "sha256": "8e998ea3d885479d2d83d916f39479b9c07b58612a84522eebebc7bf628b0863",
+      "columns": [
+        "event_id",
+        "series_id",
+        "name",
+        "year",
+        "start_date",
+        "end_date",
+        "city",
+        "region",
+        "country",
+        "website",
+        "wsdc_status",
+        "sources",
+        "live_window_start",
+        "live_window_end",
+        "source",
+        "snapshot_id",
+        "parser_version",
+        "first_seen_at",
+        "last_seen_at",
+        "run_id",
+        "event_month",
+        "date_precision",
+        "held",
+        "coverage_tier",
+        "history_source"
+      ]
+    },
+    "execution_admissions": {
+      "rows": 35038,
+      "sha256": "3d93921664bc9b7a0b8b2c9e63984703f47c36a6dc48aef2d11d1cc218d651d5",
+      "columns": [
+        "action_id",
+        "action_kind",
+        "admitted_at",
+        "control_revision",
+        "run_id",
+        "work_attempt_id",
+        "candidate_id",
+        "host",
+        "all_sources",
+        "all_kinds",
+        "state",
+        "settled_at",
+        "outcome"
+      ]
+    },
+    "execution_dependencies": {
+      "rows": 318234,
+      "sha256": "81ddfb3857ba85409524a8774e87ce911331a119bef4855468d6691c17efb2d8",
+      "columns": [
+        "action_id",
+        "scope_kind",
+        "scope_id"
+      ]
+    },
+    "final_marks": {
+      "rows": 121623,
+      "sha256": "f869ee197cbe4469d99083709d61986d8a422d34175dad9752986b756e4460a1",
+      "columns": [
+        "round_id",
+        "placement_id",
+        "judge_id",
+        "rank",
+        "source",
+        "snapshot_id",
+        "parser_version",
+        "first_seen_at",
+        "last_seen_at",
+        "run_id"
+      ]
+    },
+    "finding_support": {
+      "rows": 55913,
+      "sha256": "fc4db885828e19de5de55414b09588feb64e416ecb0cd76fb3a9475e25e20469",
+      "columns": [
+        "finding_id",
+        "payload_json",
+        "active"
+      ]
+    },
+    "findings": {
+      "rows": 107692,
+      "sha256": "d854014df183703c37e770dfbf0346b291664859f2e7b4fcc8c960872728ca8b",
+      "columns": [
+        "finding_id",
+        "owner_kind",
+        "owner_id",
+        "kind",
+        "subject_kind",
+        "subject_id",
+        "watch_id",
+        "snapshot_id",
+        "severity",
+        "summary",
+        "evidence_json",
+        "suggested_override",
+        "opened_at",
+        "run_id",
+        "closed_at",
+        "closed_by",
+        "policy_version",
+        "desired_fingerprint",
+        "state",
+        "source",
+        "next_action",
+        "blocking_reason",
+        "next_eligible_at",
+        "attempt_count",
+        "last_progress_at",
+        "status_at"
+      ]
+    },
+    "heats": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "heat_id",
+        "round_id",
+        "heat_number",
+        "entry_id",
+        "position",
+        "source",
+        "snapshot_id",
+        "parser_version",
+        "first_seen_at",
+        "last_seen_at",
+        "run_id"
+      ]
+    },
+    "history_acceptance": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "year",
+        "accepted_at",
+        "accepted_by",
+        "inventory_digest"
+      ]
+    },
+    "history_origin_intents": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "watch_id",
+        "source",
+        "source_ref",
+        "event_id",
+        "page_kind",
+        "url",
+        "parent_url",
+        "evidence_json",
+        "created_at",
+        "dispatch_run_id"
+      ]
+    },
+    "history_origin_operator_refs": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "source_ref",
+        "evidence_reference",
+        "recorded_at"
+      ]
+    },
+    "history_origin_requests": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "action_id",
+        "watch_id",
+        "source",
+        "event_id",
+        "run_id",
+        "day",
+        "issued_at"
+      ]
+    },
+    "host_budget": {
+      "rows": 26,
+      "sha256": "3542fcd0f254ddb954867ca330ec5214094a06a80e14cd90a1297fb76e0a31dd",
+      "columns": [
+        "host",
+        "day",
+        "requests",
+        "bytes"
+      ]
+    },
+    "host_request_spacing": {
+      "rows": 8,
+      "sha256": "77bf439f1c57f229f85aa22ca1b691574acee5601e2026c2e5f95fc202d91129",
+      "columns": [
+        "host",
+        "reservation_id",
+        "gap_seconds",
+        "reserved_at",
+        "released_at"
+      ]
+    },
+    "host_request_spacing_baselines": {
+      "rows": 1,
+      "sha256": "7f95a83807d2bf5471d926aab77fb6b91006bd40c0a8b18c907b6c306f38bfa5",
+      "columns": [
+        "reservation_id",
+        "host",
+        "gap_seconds",
+        "stopped_at",
+        "recorded_at",
+        "evidence_ref",
+        "prior_reservation_id"
+      ]
+    },
+    "hosts": {
+      "rows": 8,
+      "sha256": "90e8ef23f09bbb55eb9fd9a7ba87d6dc34349d48c6ad7b0fe6d42c47923d74fe",
+      "columns": [
+        "host",
+        "next_allowed_at",
+        "paused_until",
+        "pause_reason",
+        "pause_streak",
+        "robots_sha256",
+        "robots_fetched_at",
+        "robots_status"
+      ]
+    },
+    "identity_decisions": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "decision_id",
+        "source",
+        "source_event",
+        "contest",
+        "round",
+        "participant",
+        "wsdc_id",
+        "decision",
+        "evidence",
+        "reason",
+        "author",
+        "date",
+        "supersedes",
+        "row_json",
+        "row_sha256",
+        "accepted_digest",
+        "accepted_at"
+      ]
+    },
+    "identity_journal_acceptances": {
+      "rows": 1,
+      "sha256": "b1ecd750fa6d6e9872007a8c59b2778afa722c96e9d7ac55049fa7085459fdd3",
+      "columns": [
+        "digest",
+        "bundle_digest",
+        "accepted_at",
+        "decision_count",
+        "generation"
+      ]
+    },
+    "identity_link_history": {
+      "rows": 396350,
+      "sha256": "3025ac3f8bfc9a1666774e598762db66bffbf7168fbca3e080831bea4deb3d4b",
+      "columns": [
+        "history_id",
+        "subject_kind",
+        "subject_id",
+        "state",
+        "assertion_json",
+        "resolution_json",
+        "recorded_at"
+      ]
+    },
+    "identity_link_resolutions": {
+      "rows": 98751,
+      "sha256": "087812876ce3dc9fb5a4eb7cb7551c744da72354e9f4644693b420ba68d7a62c",
+      "columns": [
+        "subject_kind",
+        "subject_id",
+        "ref_ids_json",
+        "decision_ids_json",
+        "policy_version",
+        "journal_digest",
+        "journal_generation",
+        "state",
+        "reason",
+        "asserted_at"
+      ]
+    },
+    "identity_links": {
+      "rows": 98751,
+      "sha256": "ca4f92eda0ab73e49fd3b7d08fa643d7784d4d7b47d46468fe2c92fad54fee7d",
+      "columns": [
+        "link_id",
+        "subject_kind",
+        "subject_id",
+        "wsdc_id",
+        "method",
+        "status",
+        "confidence",
+        "constraints_applied",
+        "asserted_at",
+        "run_id",
+        "linker_version"
+      ]
+    },
+    "identity_reference_bindings": {
+      "rows": 115718,
+      "sha256": "0da55155142d75e3c0a38330667c7857397fa0c73cafdea89090444715b5a311",
+      "columns": [
+        "binding_id",
+        "ref_id",
+        "subject_kind",
+        "subject_id",
+        "event_id",
+        "snapshot_id",
+        "semantic_hash",
+        "bound_at"
+      ]
+    },
+    "identity_reference_migrations": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "migration_id",
+        "from_ref_id",
+        "to_ref_ids_json",
+        "status",
+        "evidence",
+        "reason",
+        "author",
+        "date",
+        "supersedes",
+        "recorded_at"
+      ]
+    },
+    "identity_source_refs": {
+      "rows": 115713,
+      "sha256": "f73f22d54ae54927ce17ae96c7a8364ff0fe510775d0ad3fcb8ce9ac503d36de",
+      "columns": [
+        "ref_id",
+        "source",
+        "source_event",
+        "contest",
+        "round",
+        "participant",
+        "subject_kind",
+        "locator_json",
+        "created_at"
+      ]
+    },
+    "judges": {
+      "rows": 4931,
+      "sha256": "898c37a1258c8248e75eaaa13b3e118ae478f2f4aa10712e4cbd12c39475271c",
+      "columns": [
+        "judge_id",
+        "event_id",
+        "name_raw",
+        "initials",
+        "anonymous",
+        "wsdc_id",
+        "source",
+        "snapshot_id",
+        "parser_version",
+        "first_seen_at",
+        "last_seen_at",
+        "run_id"
+      ]
+    },
+    "link_candidates": {
+      "rows": 92499,
+      "sha256": "7379fbc83d816d3c2d56ed7e2205d7c14d7b93d88c237db8573dde63ffbebe7f",
+      "columns": [
+        "subject_kind",
+        "subject_id",
+        "wsdc_id",
+        "score",
+        "name_similarity",
+        "name_rarity",
+        "division_ok",
+        "role_ok",
+        "recency_ok",
+        "geography",
+        "bib_reuse",
+        "registry_confirms",
+        "source_id_confirms",
+        "rank",
+        "chosen",
+        "run_id"
+      ]
+    },
+    "meta": {
+      "rows": 14,
+      "sha256": "35215a3fd137569736d3381cfa597a90ae471a2abbeec3fc40959a333a2d37cf",
+      "columns": [
+        "key",
+        "value"
+      ]
+    },
+    "observations": {
+      "rows": 58169,
+      "sha256": "74fed9568e9c5cd33462c16103cc63a0fdfcc6f946d625135bbdef4433d9b893",
+      "columns": [
+        "observation_id",
+        "watch_id",
+        "snapshot_id",
+        "kind",
+        "scope_kind",
+        "scope_id",
+        "seq",
+        "extract_version",
+        "parser_version",
+        "payload_json"
+      ]
+    },
+    "operator_pauses": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "scope_kind",
+        "scope_id",
+        "until_at",
+        "reason",
+        "pause_id",
+        "actor",
+        "control_revision",
+        "created_at"
+      ]
+    },
+    "pending_work": {
+      "rows": 31821,
+      "sha256": "88683cc1121974174e36c05d79823159d9773b5cb735daa3837491567d1e9ac8",
+      "columns": [
+        "stage",
+        "unit_kind",
+        "unit_id",
+        "enqueued_at"
+      ]
+    },
+    "placements": {
+      "rows": 20236,
+      "sha256": "82e6b87832cda936b7681bdcd420866444c154313aa0e05581801d05a772d098",
+      "columns": [
+        "placement_id",
+        "round_id",
+        "contest_id",
+        "event_id",
+        "place",
+        "leader_entry_id",
+        "follower_entry_id",
+        "couple_entry_id",
+        "leader_wsdc_id",
+        "follower_wsdc_id",
+        "marks_sorted",
+        "tally",
+        "registry_points_leader",
+        "registry_points_follower",
+        "registry_confirmed",
+        "points_matches_expected",
+        "source",
+        "snapshot_id",
+        "parser_version",
+        "first_seen_at",
+        "last_seen_at",
+        "run_id"
+      ]
+    },
+    "registry_placements": {
+      "rows": 197990,
+      "sha256": "a4383024813e990b2898ce43bdb8e6ef217a01e39f10535483317cdbcd13315f",
+      "columns": [
+        "wsdc_id",
+        "role",
+        "dance_style",
+        "division",
+        "series_id",
+        "series_name_raw",
+        "event_month",
+        "event_id",
+        "result",
+        "points",
+        "source",
+        "snapshot_id",
+        "parser_version",
+        "first_seen_at",
+        "last_seen_at",
+        "run_id"
+      ]
+    },
+    "registry_verifications": {
+      "rows": 29060,
+      "sha256": "215b79cadc76ab6ae04dde42d731b8eebe3f81dbc3d84d14a2681393f4469ceb",
+      "columns": [
+        "verification_id",
+        "watch_id",
+        "checked_at",
+        "http_status",
+        "body_sha256",
+        "snapshot_id",
+        "extract_version",
+        "parser_version",
+        "outcome",
+        "usable",
+        "reason"
+      ]
+    },
+    "requirement_attempts": {
+      "rows": 34986,
+      "sha256": "c54baba55eb54b595dd80195f7995551d3409f7983fc74338bd46cea2e840a50",
+      "columns": [
+        "attempt_id",
+        "requirement_id",
+        "at",
+        "outcome"
+      ]
+    },
+    "requirement_cohort_members": {
+      "rows": 36689,
+      "sha256": "b677ed772c3cb5fe3a6e5c215f99d47546c16077e0e1cba1de87a37fb23ed632",
+      "columns": [
+        "cohort_id",
+        "requirement_id"
+      ]
+    },
+    "requirement_cohorts": {
+      "rows": 1,
+      "sha256": "71a5248a4af294f56cdd8441680648f90e03c72a628270d7f2fe9e8f2dc44180",
+      "columns": [
+        "cohort_id",
+        "created_at",
+        "policy_version",
+        "source",
+        "kind",
+        "bounded",
+        "first_open_transition_cutoff"
+      ]
+    },
+    "requirement_scan": {
+      "rows": 1,
+      "sha256": "0ea07f491835714cc56ce26587f2d6abee88820a693e1715a0ae0c55b357b848",
+      "columns": [
+        "singleton",
+        "cursor",
+        "started_at",
+        "last_scanned_at",
+        "last_completed_at",
+        "scanned"
+      ]
+    },
+    "requirement_transitions": {
+      "rows": 108429,
+      "sha256": "af59a029e3df6cb70ca0f657271f26b511b6169d0c12294ad5a17f368876617a",
+      "columns": [
+        "transition_id",
+        "requirement_id",
+        "kind",
+        "source",
+        "old_state",
+        "new_state",
+        "event",
+        "at"
+      ]
+    },
+    "revisions": {
+      "rows": 9,
+      "sha256": "a4643691751e97386175394cd07d2d38d004d6846e93dfba854b76460decd669",
+      "columns": [
+        "name",
+        "value"
+      ]
+    },
+    "rounds": {
+      "rows": 4279,
+      "sha256": "f847c1868169003d7e2cd60364e725f2d1f78e248723ad1f9b0a8fe7948891ab",
+      "columns": [
+        "round_id",
+        "contest_id",
+        "round_type",
+        "round_index",
+        "name_raw",
+        "scoring_method",
+        "callback_legend",
+        "judge_count",
+        "chief_judge_id",
+        "entry_count",
+        "promoted_count",
+        "source_round_ref",
+        "score_sheet_url",
+        "source",
+        "snapshot_id",
+        "parser_version",
+        "first_seen_at",
+        "last_seen_at",
+        "run_id"
+      ]
+    },
+    "runs": {
+      "rows": 1988,
+      "sha256": "d16c7a40409e86047ccde9093453d69ee2c30252919efe11d3722a232d699d78",
+      "columns": [
+        "run_id",
+        "started_at",
+        "finished_at",
+        "dry_run",
+        "summary_json"
+      ]
+    },
+    "scheduler_capacity_policies": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "digest",
+        "policy_json"
+      ]
+    },
+    "scheduler_capacity_requests": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "action_id",
+        "selected_host",
+        "lane",
+        "purpose",
+        "reason",
+        "policy_digest",
+        "credit_before",
+        "credit_after"
+      ]
+    },
+    "scheduler_capacity_service": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "selected_host",
+        "credit"
+      ]
+    },
+    "scheduler_event_policies": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "digest",
+        "policy_json"
+      ]
+    },
+    "scheduler_event_requests": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "action_id",
+        "selected_host",
+        "category",
+        "owner_key",
+        "source",
+        "source_ref",
+        "enumeration_id",
+        "turn_position",
+        "policy_digest",
+        "reason"
+      ]
+    },
+    "scheduler_event_turns": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "host",
+        "category",
+        "owner_key",
+        "source",
+        "source_ref",
+        "position",
+        "used",
+        "policy_digest",
+        "target_requests",
+        "enrolled_at",
+        "last_issued_at"
+      ]
+    },
+    "scheduler_offline_service": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "stage",
+        "unit_kind",
+        "attempts",
+        "last_served_at",
+        "sequence"
+      ]
+    },
+    "scheduler_parent_links": {
+      "rows": 6274,
+      "sha256": "f194f0dbcc3b9baa41ee4fb36484b2e3605e461041358f5e34e2cd35cdab1cee",
+      "columns": [
+        "parent_watch_id",
+        "child_watch_id",
+        "first_snapshot_id",
+        "first_seen_at"
+      ]
+    },
+    "scheduler_requests": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "action_id",
+        "host",
+        "day",
+        "category",
+        "work_key",
+        "run_id",
+        "repair",
+        "pressure_reserved",
+        "issued_at",
+        "body_bytes"
+      ]
+    },
+    "scheduler_watch_state": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "watch_id",
+        "metadata_attempts",
+        "last_metadata_attempt_at"
+      ]
+    },
+    "series": {
+      "rows": 288,
+      "sha256": "5abdf3646a13d8abe128726f7eee913c9e2ea8c435272655060087880a25a9d1",
+      "columns": [
+        "series_id",
+        "name",
+        "website",
+        "location_raw"
+      ]
+    },
+    "snapshots": {
+      "rows": 31821,
+      "sha256": "1ff56a0fcf748c8013c79abd7144fb5cfe937de0d77843cbcc7fa68ce3cf126d",
+      "columns": [
+        "snapshot_id",
+        "watch_id",
+        "method",
+        "url",
+        "form",
+        "fetched_at",
+        "http_status",
+        "etag",
+        "last_modified",
+        "content_type",
+        "body_sha256",
+        "body_bytes",
+        "content_changed",
+        "run_id",
+        "via",
+        "headers_json",
+        "classification",
+        "extract_status",
+        "extract_sha256",
+        "parse_status",
+        "parsed_at",
+        "extract_version",
+        "parser_version",
+        "captured_at",
+        "observed_at",
+        "archive_url",
+        "requested_archive_url",
+        "extract_recipe_sha256"
+      ]
+    },
+    "source_event_enumeration_members": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "enumeration_id",
+        "request_id",
+        "request_json",
+        "support_json",
+        "first_known_at"
+      ]
+    },
+    "source_event_enumerations": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "enumeration_id",
+        "source",
+        "source_ref",
+        "predecessor_id",
+        "generation_id",
+        "decision_id",
+        "parent_support_json",
+        "membership_digest",
+        "pagination",
+        "pagination_reason",
+        "added_json",
+        "removed_json",
+        "recorded_at"
+      ]
+    },
+    "source_event_inventory": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "source",
+        "source_ref",
+        "enumeration_id",
+        "first_known_at",
+        "bootstrap_basis"
+      ]
+    },
+    "source_event_map": {
+      "rows": 404,
+      "sha256": "83c92d7f16240a788fd7c5aac0ce41e68cc369d6b1abe3a0331b395e31ed4001",
+      "columns": [
+        "source",
+        "source_ref",
+        "event_id",
+        "match_method",
+        "match_confidence"
+      ]
+    },
+    "source_event_member_watches": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "enumeration_id",
+        "request_id",
+        "watch_id"
+      ]
+    },
+    "source_event_retirement_proofs": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "proof_digest",
+        "proof_json"
+      ]
+    },
+    "source_event_retirement_receipts": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "receipt_id",
+        "source",
+        "source_ref",
+        "enumeration_id",
+        "predecessor_id",
+        "generation_id",
+        "decision_id",
+        "observed_at",
+        "policy_digest",
+        "proof_digest",
+        "proof_json"
+      ]
+    },
+    "source_event_scope_rows": {
+      "rows": 837,
+      "sha256": "ac7472e1a58b0d6016669d3aee7d21956270a1b8b7aa6d6154cb17e1bf5feea7",
+      "columns": [
+        "scope_id",
+        "source",
+        "source_ref"
+      ]
+    },
+    "source_events": {
+      "rows": 455,
+      "sha256": "4d47d2a2ace8a897a6cb08411a5aa98cbd12c61e06777a5e150909c29ab90173",
+      "columns": [
+        "source",
+        "source_ref",
+        "name_raw",
+        "start_date",
+        "end_date",
+        "location_raw",
+        "url",
+        "snapshot_id",
+        "parser_version",
+        "first_seen_at",
+        "last_seen_at",
+        "run_id"
+      ]
+    },
+    "source_generations": {
+      "rows": 32189,
+      "sha256": "2169a9d83ef1d2e7dd9008ab6d5f1e42bc5234b8b64fcd712483b36082cb9de8",
+      "columns": [
+        "generation_id",
+        "unit_key",
+        "page_kind",
+        "contract_version",
+        "input_fingerprint",
+        "manifest_json",
+        "recipe_json",
+        "result_json",
+        "report_json",
+        "previous_generation_id",
+        "work_token",
+        "created_at",
+        "run_id",
+        "state",
+        "removal_authority"
+      ]
+    },
+    "source_units": {
+      "rows": 31805,
+      "sha256": "7635c40511a8367291b284f087ec68b51822a7b0d79a62742053de0b41bf19ff",
+      "columns": [
+        "unit_key",
+        "watch_id",
+        "page_kind",
+        "desired_fingerprint",
+        "accepted_generation_id",
+        "legacy_snapshot_id",
+        "legacy_state"
+      ]
+    },
+    "watches": {
+      "rows": 35417,
+      "sha256": "eaceb1e2ce398eb17ded98f745b96b7c3f7328688eea2050691c58ea0fc28436",
+      "columns": [
+        "watch_id",
+        "source",
+        "kind",
+        "method",
+        "url",
+        "form",
+        "archive_url",
+        "parser",
+        "source_ref",
+        "state",
+        "next_check_at",
+        "last_checked_at",
+        "last_changed_at",
+        "unchanged_streak",
+        "etag",
+        "last_modified",
+        "body_sha256",
+        "paused_until",
+        "notes",
+        "fingerprint",
+        "extract_version",
+        "priority",
+        "created_by_snapshot_id",
+        "parent_watch_id",
+        "ever_ok",
+        "current_observation_snapshot_id",
+        "consecutive_404s",
+        "first_404_at"
+      ]
+    },
+    "work_attempts": {
+      "rows": 34986,
+      "sha256": "dac2db473959193e6241a379fb864c9194abcb355a1b975c9315a820225ded45",
+      "columns": [
+        "attempt_id",
+        "stage",
+        "unit_kind",
+        "unit_id",
+        "queue_generation",
+        "retry_generation",
+        "work_token",
+        "input_fingerprint",
+        "run_id",
+        "started_at",
+        "finished_at",
+        "outcome",
+        "reason_code",
+        "evidence_json",
+        "retry_at",
+        "requirement_id"
+      ]
+    },
+    "work_generations": {
+      "rows": 66807,
+      "sha256": "95cd0a1716c9a63978ea8b9a456f3a1a95baf387e1c4be3fb41c3993f92666b5",
+      "columns": [
+        "stage",
+        "unit_kind",
+        "unit_id",
+        "generation",
+        "retry_generation",
+        "retry_reason",
+        "retry_requested_at"
+      ]
+    }
+  },
+  "restore_change_contract": "event_pressure_state_singleton_epoch_plus_one_only",
+  "remote": {
+    "commit": "2a6c7dc744fb36eabb5163c0a527d787d3721f4f",
+    "parent": "81121dcc7d62a1db9e76ee1c49a6b90e1f4c5653",
+    "candidate_id": "cand_8f31cad7226643ae",
+    "manifest_hash": "6ff950afb842c2e2f1fc24c937df6633c890309bc9c6189b8706a4884eadc5a6",
+    "files": {
+      "LICENSE": "6514f086147ec4bf179e3180421871e082e5ce3798e953f1fbfc62b80b8d7378",
+      "README.md": "560cec3e3fd8390769b91c823cb4ca582da9a4539145d8f213351e506ad61df0",
+      "data/callback_marks/year=2019.parquet": "103ec9f54d9d8120bb9c84e1ce24a375dcaa5e706975ac1a831c2bd638bbb75d",
+      "data/callback_marks/year=2020.parquet": "a4bb18c0c4b65e8e440e3edf27639720fed9b33dd47afabe3da6e39ecd57126a",
+      "data/callback_marks/year=2021.parquet": "63f8cee5a6f55b516495783c462efdfc68d3e43427df1516b9d89732f508938c",
+      "data/callback_marks/year=2022.parquet": "4441e72843d0e170a9789bccd040e066a1adb034b4dae63c1aa55c0e9764e057",
+      "data/callback_marks/year=2023.parquet": "2e3eeaafc1bb72879fcf07aaa366b97a155103c7162da4f47f80d7f0c0a68647",
+      "data/callback_marks/year=2024.parquet": "ce63ffbcb4f8413f4d9347e23aea887fe4ba9c0d1bd2cb36b3b17c0208ddd9f2",
+      "data/callback_marks/year=2025.parquet": "79d4d1e6ec908639e4c94ee0fbd5ad28579f257b8b1af8871cdc768feca7b6e1",
+      "data/callback_marks/year=2026.parquet": "5c84215ec0e9238dc0993ea0c956270df9a37fbaa8c5319bd9b08eed41aab85e",
+      "data/callbacks/callbacks.parquet": "dd6ac1847c07b3afb60d2ef402bf47fa597cb6d3ca854b98c2349f076ffb22ad",
+      "data/changelog/changelog.parquet": "ce87310a0ae35dcc04b0b7676dd0d57055f91456d5e1246cc5e5ed11c0500e3b",
+      "data/contests/contests.parquet": "40b92adcd9de735cf3241e2cc302ad9a9d89467678e2e2a8955b8b323022ac20",
+      "data/coverage/coverage.parquet": "daa89120120c626cb8d1d3df50921d508c103de086a2fd2900206e00a41005e5",
+      "data/dancers/dancers.parquet": "3862fd64c7cb2ed9e4cd013e2b32336be0eaaeb57232429320d6b670446a9b47",
+      "data/entries/entries.parquet": "3a199823366158017bb9305ee32a59982a6713cdf1c6f0a0dc4c16185ae68375",
+      "data/events/events.parquet": "99d725b995c56e8d4fb713b66f2051ad96b0faaf8852b8e6a120115d9f6a099c",
+      "data/final_marks/year=2018.parquet": "5b7d7c562e686881f8d703b469fbd6c0c92e0a030dbb67cfad884d4dcbddcd0a",
+      "data/final_marks/year=2019.parquet": "47a3e19417125c2c21301f34e4eb03488bd7a91ff4d890d15067bbd80b3f3caf",
+      "data/final_marks/year=2020.parquet": "875b51138009c433106e0c306cb2f1f91fe12da4815902c0941d553e25f0b30a",
+      "data/final_marks/year=2021.parquet": "5932d619ad9a72010a838686b867a9dd9887e9fec4d781d773c51cbd021bf69e",
+      "data/final_marks/year=2022.parquet": "192a47df8cd4420daad9deb55c978ede3c953f32d91e59ee23ceafc16984f722",
+      "data/final_marks/year=2023.parquet": "8a85d2d846aa58e070b6fe6292f32e994633a15d96459ac098a714b2ce1a84d9",
+      "data/final_marks/year=2024.parquet": "e62873585b8ed3b36e885b5cd493607d8f74e08ee867d2123050b71739fccb90",
+      "data/final_marks/year=2025.parquet": "4202ffe586d41156f22dba4c8d8c5aaca6ee0fdc22b97b65b88f4a241b617aa1",
+      "data/final_marks/year=2026.parquet": "c5c67a50614a9b0f96187d082557e6d5f15ce5e73e8389ddf225e55682d5839c",
+      "data/heats/heats.parquet": "5224c0f2e57fd1ab8c5269240db627c6d1d7a04a9526d86c55ca5b2611271e5a",
+      "data/identity_links/identity_links.parquet": "3eda8be629b783ff90c28db632d868c23ca849d730a08869193bf471e59cc2b3",
+      "data/judges/judges.parquet": "28307059280038d7652ece27b9b9f2b3d0a2967b36a1b1059b7a642b604f6d58",
+      "data/link_candidates/link_candidates.parquet": "b870dc3123b631f5b1a113fd7a79546bd4d77e3f039c3931fe676fb6f1c15bb4",
+      "data/placements/placements.parquet": "d0a0be124cb58f74b8c318634ba554b9031a44145d13a0ea3f9fceb9c4cee0b8",
+      "data/registry_placements/registry_placements.parquet": "88ae41f39cc8ef8f51305c0f6329e106fe2d518f643e165b73d9fe49fd2d2978",
+      "data/review_queue/review_queue.parquet": "571360433db7a28dcc70b1825b50c44738fe967818d6391a187ac850bff787b4",
+      "data/rounds/rounds.parquet": "34c47ca4a8c9043f94f1e3e055eddd969ce979114f4651137f15602f71bff531",
+      "data/snapshots/snapshots.parquet": "84b2ea9c11a055581a15a41d1b77d279d12a472c2e59195bc63f6fc6482d2e51",
+      "_meta/manifest.json": "6ff950afb842c2e2f1fc24c937df6633c890309bc9c6189b8706a4884eadc5a6"
+    }
+  },
+  "restore_heads": [
+    "2a6c7dc744fb36eabb5163c0a527d787d3721f4f",
+    "2a6c7dc744fb36eabb5163c0a527d787d3721f4f"
+  ],
+  "schema28_activated_under_hold": true,
+  "changed_existing_tables": [],
+  "after": {
+    "accepted_inputs": {
+      "rows": 51,
+      "sha256": "b3011da28824ad87cceaa721d3ce40f638ffca632e7a47ceb9d66ce6278a6871",
+      "columns": [
+        "consumer",
+        "input_name",
+        "digest"
+      ]
+    },
+    "admission_decisions": {
+      "rows": 31610,
+      "sha256": "8bd133180c070dddaad182b1843cb888062ce8e09f66ffa745e5e51bccfca065",
+      "columns": [
+        "decision_id",
+        "generation_id",
+        "state",
+        "reason",
+        "decided_at",
+        "policy_revision"
+      ]
+    },
+    "admission_policies": {
+      "rows": 13,
+      "sha256": "5452c5cbe2b91055f2d130b4f1ac609b92d19f516fc4cb628995b0e672b1665c",
+      "columns": [
+        "page_kind",
+        "contract_version",
+        "mode",
+        "policy_revision",
+        "reviewed_report_digest",
+        "reviewed_by",
+        "reviewed_at"
+      ]
+    },
+    "admission_reviews": {
+      "rows": 9,
+      "sha256": "d5e1fc6819066d07d7c6f80790ae8c078e7452d267f3b6c95e8044aad1097389",
+      "columns": [
+        "report_digest",
+        "page_kind",
+        "contract_version",
+        "cohort_json",
+        "reviewer",
+        "reviewed_at",
+        "evidence"
+      ]
+    },
+    "archive_captures": {
+      "rows": 32,
+      "sha256": "e9cf72a3d15c29fa0c7604d682cb852db728308ee0e4fb65d0c65f5bdbb7dd5c",
+      "columns": [
+        "source",
+        "url",
+        "timestamp",
+        "digest",
+        "status",
+        "mimetype",
+        "length",
+        "queried_at",
+        "cdx_query_id"
+      ]
+    },
+    "archive_queries": {
+      "rows": 15,
+      "sha256": "487d91c3d3468e2a9a7fc63dcdf275b5a9c8c3e3d585151a7949cb8c46764489",
+      "columns": [
+        "query_id",
+        "source",
+        "prefix",
+        "year",
+        "next_page",
+        "total_pages",
+        "completed_at",
+        "started_at"
+      ]
+    },
+    "backup_uploads": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "path",
+        "sha256",
+        "uploaded_at"
+      ]
+    },
+    "callback_marks": {
+      "rows": 484141,
+      "sha256": "b4609793dd357db67a22e33594965a035cea838a70d480353a0023f2331450d3",
+      "columns": [
+        "round_id",
+        "entry_id",
+        "judge_id",
+        "mark",
+        "mark_raw",
+        "mark_value",
+        "source",
+        "snapshot_id",
+        "parser_version",
+        "first_seen_at",
+        "last_seen_at",
+        "run_id"
+      ]
+    },
+    "callbacks": {
+      "rows": 98481,
+      "sha256": "8b94f3edbce4dac6a553b1e4d4b430f57a751a6a4708264dd20e8d6ec8416e42",
+      "columns": [
+        "round_id",
+        "entry_id",
+        "score_sum",
+        "yes_count",
+        "alt_count",
+        "no_count",
+        "outcome",
+        "tie_break_applied",
+        "heat_number",
+        "source",
+        "snapshot_id",
+        "parser_version",
+        "first_seen_at",
+        "last_seen_at",
+        "run_id"
+      ]
+    },
+    "canonical_scope_rows": {
+      "rows": 1058390,
+      "sha256": "1de774e2b25f9b0c24d322dee9c63212166cf6d33110e9382ef989b1b2491bdc",
+      "columns": [
+        "scope_kind",
+        "scope_id",
+        "table_name",
+        "record_key"
+      ]
+    },
+    "contests": {
+      "rows": 2644,
+      "sha256": "4ef20017431cda942c9b2330d3331225dc9f615dc6e5c66de29409498b5bc3fc",
+      "columns": [
+        "contest_id",
+        "event_id",
+        "name_raw",
+        "division",
+        "age_division",
+        "contest_type",
+        "partner_mode",
+        "dance_style",
+        "wsdc_points_eligible",
+        "combined_from",
+        "parse_status",
+        "source_contest_ref",
+        "source",
+        "snapshot_id",
+        "parser_version",
+        "first_seen_at",
+        "last_seen_at",
+        "run_id"
+      ]
+    },
+    "control_events": {
+      "rows": 2,
+      "sha256": "e9eb965312af30d2ccfa4c597ba688f380a10207429dd7cc25ddb68b5994ff88",
+      "columns": [
+        "event_id",
+        "control_revision",
+        "pause_id",
+        "scope_kind",
+        "scope_id",
+        "action",
+        "actor",
+        "reason",
+        "until_at",
+        "occurred_at"
+      ]
+    },
+    "control_state": {
+      "rows": 1,
+      "sha256": "636cbe06ddc482db3f6385cb0684bac684da870bbe68a86ac094ea15f8425514",
+      "columns": [
+        "singleton",
+        "revision"
+      ]
+    },
+    "coverage": {
+      "rows": 66,
+      "sha256": "f0ef4cb024b64823a088924108c9caf96a6c4de4e9a161ef9696919695695986",
+      "columns": [
+        "year",
+        "source",
+        "via",
+        "events",
+        "contests",
+        "rounds",
+        "entries",
+        "events_registry_only",
+        "events_index_only",
+        "events_sheets_partial",
+        "events_sheets_complete",
+        "events_day_precision",
+        "events_listed_only",
+        "events_accepted",
+        "expected_rounds",
+        "parsed_rounds",
+        "unresolved_findings",
+        "last_changed_at"
+      ]
+    },
+    "cursors": {
+      "rows": 4,
+      "sha256": "ad713b32f0a8603ef3f138190c1e079271e4d0d4437a3fdb4f7dcf72279d86b7",
+      "columns": [
+        "name",
+        "value"
+      ]
+    },
+    "dancers": {
+      "rows": 27784,
+      "sha256": "ceffab91b1cd9ef9b07ce56e9f060277c9f145097d5a1a2174235d8f64706487",
+      "columns": [
+        "wsdc_id",
+        "first_name",
+        "last_name",
+        "name_norm",
+        "is_pro",
+        "primary_role",
+        "leader_required_level",
+        "leader_allowed_level",
+        "follower_required_level",
+        "follower_allowed_level",
+        "leader_highest_level",
+        "leader_highest_points",
+        "follower_highest_level",
+        "follower_highest_points",
+        "recent_year",
+        "registry_internal_id",
+        "registry_fetched_at",
+        "merged_into_wsdc_id",
+        "source",
+        "snapshot_id",
+        "parser_version",
+        "first_seen_at",
+        "last_seen_at",
+        "run_id"
+      ]
+    },
+    "derivation_dependency_sets": {
+      "rows": 103369,
+      "sha256": "0a5ab388cc0ce13506a549473a775806c1d5d6c5435c2cb94e8f3c600f92d5f6",
+      "columns": [
+        "dependency_set_id",
+        "manifest_json"
+      ]
+    },
+    "derivation_generations": {
+      "rows": 34987,
+      "sha256": "cb1ee5571e36018595d8bd72bc11b4113efb20205200371461b780a555badd7c",
+      "columns": [
+        "generation_id",
+        "stage",
+        "unit_kind",
+        "unit_id",
+        "input_fingerprint",
+        "recipe_json",
+        "dependency_set_id",
+        "previous_generation_id",
+        "output_digest",
+        "row_count",
+        "created_at",
+        "run_id"
+      ]
+    },
+    "derivation_input_versions": {
+      "rows": 1084,
+      "sha256": "d158f50354295b261fe0d38286c0dfd149dd934beb730414a7defd8e6d666415",
+      "columns": [
+        "namespace",
+        "input_key",
+        "version"
+      ]
+    },
+    "derivation_rows": {
+      "rows": 1669989,
+      "sha256": "87cf0c169e690e1f30b16a7d7c42b5eb4d4d4383f29b11183452f4f4b6b2414c",
+      "columns": [
+        "generation_id",
+        "ordinal",
+        "table_name",
+        "record_key",
+        "payload_json"
+      ]
+    },
+    "derivation_scopes": {
+      "rows": 34987,
+      "sha256": "c210d1f91ab47b2528d77820f1415b96ce8c1b3259d7ba64d618008e6154cec4",
+      "columns": [
+        "stage",
+        "unit_kind",
+        "unit_id",
+        "desired_fingerprint",
+        "materialized_generation_id",
+        "registered_at",
+        "materialized_signature"
+      ]
+    },
+    "entries": {
+      "rows": 93820,
+      "sha256": "e8bf0919b13830707ea7ad18836ea6b99285b427b91880309afe6c01a3279db8",
+      "columns": [
+        "entry_id",
+        "contest_id",
+        "event_id",
+        "role",
+        "bib",
+        "name_raw",
+        "name_norm",
+        "partner_name_raw",
+        "city_raw",
+        "country_raw",
+        "wsdc_id",
+        "link_status",
+        "link_confidence",
+        "partner_entry_id",
+        "rounds_danced",
+        "best_round",
+        "source",
+        "snapshot_id",
+        "parser_version",
+        "first_seen_at",
+        "last_seen_at",
+        "run_id"
+      ]
+    },
+    "event_accounting_receipts": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "receipt_id",
+        "source",
+        "source_ref",
+        "enumeration_id",
+        "previous_receipt_id",
+        "assessment",
+        "transition",
+        "observed_at",
+        "earliest_checked_at",
+        "valid_until",
+        "token_json",
+        "summary_json"
+      ]
+    },
+    "event_accounting_support_observations": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "source",
+        "source_ref",
+        "enumeration_id",
+        "generation_id",
+        "availability",
+        "observed_at",
+        "valid_until",
+        "token_json",
+        "reasons_json"
+      ]
+    },
+    "event_blocker_cursor": {
+      "rows": 1,
+      "sha256": "9af439793083321aba74468f0535aa929752f762d41bb5de6e6039727697ebd7",
+      "columns": [
+        "singleton",
+        "last_rowid",
+        "high_water",
+        "pass"
+      ]
+    },
+    "event_blocker_latest": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "source",
+        "source_ref",
+        "observation_id"
+      ]
+    },
+    "event_blocker_observations": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "observation_id",
+        "source",
+        "source_ref",
+        "refresh_id",
+        "observed_at",
+        "signature",
+        "policy_digest",
+        "facts_json"
+      ]
+    },
+    "event_blocker_policies": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "digest",
+        "policy_json"
+      ]
+    },
+    "event_blocker_refreshes": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "refresh_id",
+        "run_id",
+        "observed_at",
+        "summary_json"
+      ]
+    },
+    "event_enumeration_inputs": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "generation_id",
+        "decision_id",
+        "outcome",
+        "recorded_at"
+      ]
+    },
+    "event_gap_observations": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "source",
+        "source_ref",
+        "request_id",
+        "enumeration_id",
+        "observed_at",
+        "valid_until",
+        "availability",
+        "token_json",
+        "source_revision",
+        "evidence_json",
+        "evidence_digest"
+      ]
+    },
+    "event_gap_revisions": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "source",
+        "revision"
+      ]
+    },
+    "event_pressure_dirty": {
+      "rows": 35417,
+      "sha256": "cb9fc9c5a09c74fde435b38331ab80699f75354a36b2a64102e6a8111bee5b76",
+      "columns": [
+        "watch_id"
+      ]
+    },
+    "event_pressure_hosts": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "host",
+        "source",
+        "source_ref"
+      ]
+    },
+    "event_pressure_latches": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "host",
+        "deferred",
+        "policy_digest",
+        "policy_json",
+        "changed_at"
+      ]
+    },
+    "event_pressure_parents": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "watch_id",
+        "source",
+        "source_ref"
+      ]
+    },
+    "event_pressure_state": {
+      "rows": 1,
+      "sha256": "28a7a101dfb850d13a85758e127d3b54b329321e4f8e334c105756647cbfee34",
+      "columns": [
+        "singleton",
+        "epoch",
+        "sequence"
+      ]
+    },
+    "event_pressure_subjects": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "source",
+        "source_ref",
+        "enrolled_at",
+        "start_basis",
+        "revision",
+        "checked_sequence",
+        "scan_json",
+        "observation_json"
+      ]
+    },
+    "event_pressure_watches": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "watch_id",
+        "source",
+        "source_ref"
+      ]
+    },
+    "event_progress_cursor": {
+      "rows": 1,
+      "sha256": "3f5dbfe49758bcc018f01279b4d07432f17834a7a903a8f0f636dc8d35164597",
+      "columns": [
+        "singleton",
+        "last_rowid",
+        "high_water"
+      ]
+    },
+    "event_progress_observations": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "source",
+        "source_ref",
+        "request_id",
+        "stage",
+        "enumeration_id",
+        "observed_at",
+        "valid_until",
+        "availability",
+        "operation_frontier",
+        "token_json",
+        "reasons_json"
+      ]
+    },
+    "event_progress_policies": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "digest",
+        "policy_json"
+      ]
+    },
+    "event_progress_receipts": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "receipt_id",
+        "source",
+        "source_ref",
+        "request_id",
+        "stage",
+        "enumeration_id",
+        "operation_id",
+        "missing_observed_at",
+        "verified_at",
+        "token_json"
+      ]
+    },
+    "event_progress_scans": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "source",
+        "source_ref",
+        "enumeration_id",
+        "after_request_id",
+        "assessment_reason",
+        "assessed_at"
+      ]
+    },
+    "event_retirement_observations": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "source",
+        "source_ref",
+        "enumeration_id",
+        "predecessor_id",
+        "assessment",
+        "observed_at",
+        "valid_until",
+        "token_json",
+        "result_json",
+        "retry_fresh"
+      ]
+    },
+    "event_retirement_receipts": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "receipt_id",
+        "proof_digest",
+        "source",
+        "source_ref",
+        "enumeration_id",
+        "predecessor_id",
+        "generation_id",
+        "decision_id",
+        "observed_at",
+        "policy_digest",
+        "proof_json"
+      ]
+    },
+    "event_stage_operations": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "operation_id",
+        "stage",
+        "source",
+        "request_id",
+        "watch_id",
+        "snapshot_id",
+        "generation_id",
+        "decision_id",
+        "occurred_at",
+        "run_id"
+      ]
+    },
+    "event_timing": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "source",
+        "source_ref",
+        "episode_id",
+        "token_json",
+        "policy_json",
+        "observation_origin",
+        "saved_at",
+        "run_id",
+        "phase_open",
+        "eligible_seconds",
+        "blocked_seconds",
+        "unknown_seconds",
+        "inactive_seconds",
+        "since_service_seconds",
+        "since_progress_seconds",
+        "complete_coverage",
+        "service_bound_valid",
+        "progress_bound_valid",
+        "reason_seconds_json",
+        "state",
+        "reason",
+        "valid_until",
+        "service_frontier",
+        "progress_frontier",
+        "operation_origin",
+        "last_progress_at",
+        "last_service_action",
+        "last_service_at",
+        "unresolved_success",
+        "control_revision",
+        "marker_mtime_ns"
+      ]
+    },
+    "event_timing_cursor": {
+      "rows": 1,
+      "sha256": "3f5dbfe49758bcc018f01279b4d07432f17834a7a903a8f0f636dc8d35164597",
+      "columns": [
+        "singleton",
+        "last_rowid",
+        "high_water"
+      ]
+    },
+    "event_timing_history": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "episode_id",
+        "run_id",
+        "source",
+        "source_ref",
+        "summary_json"
+      ]
+    },
+    "events": {
+      "rows": 2541,
+      "sha256": "8e998ea3d885479d2d83d916f39479b9c07b58612a84522eebebc7bf628b0863",
+      "columns": [
+        "event_id",
+        "series_id",
+        "name",
+        "year",
+        "start_date",
+        "end_date",
+        "city",
+        "region",
+        "country",
+        "website",
+        "wsdc_status",
+        "sources",
+        "live_window_start",
+        "live_window_end",
+        "source",
+        "snapshot_id",
+        "parser_version",
+        "first_seen_at",
+        "last_seen_at",
+        "run_id",
+        "event_month",
+        "date_precision",
+        "held",
+        "coverage_tier",
+        "history_source"
+      ]
+    },
+    "execution_admissions": {
+      "rows": 35038,
+      "sha256": "3d93921664bc9b7a0b8b2c9e63984703f47c36a6dc48aef2d11d1cc218d651d5",
+      "columns": [
+        "action_id",
+        "action_kind",
+        "admitted_at",
+        "control_revision",
+        "run_id",
+        "work_attempt_id",
+        "candidate_id",
+        "host",
+        "all_sources",
+        "all_kinds",
+        "state",
+        "settled_at",
+        "outcome"
+      ]
+    },
+    "execution_dependencies": {
+      "rows": 318234,
+      "sha256": "81ddfb3857ba85409524a8774e87ce911331a119bef4855468d6691c17efb2d8",
+      "columns": [
+        "action_id",
+        "scope_kind",
+        "scope_id"
+      ]
+    },
+    "final_marks": {
+      "rows": 121623,
+      "sha256": "f869ee197cbe4469d99083709d61986d8a422d34175dad9752986b756e4460a1",
+      "columns": [
+        "round_id",
+        "placement_id",
+        "judge_id",
+        "rank",
+        "source",
+        "snapshot_id",
+        "parser_version",
+        "first_seen_at",
+        "last_seen_at",
+        "run_id"
+      ]
+    },
+    "finding_support": {
+      "rows": 55913,
+      "sha256": "fc4db885828e19de5de55414b09588feb64e416ecb0cd76fb3a9475e25e20469",
+      "columns": [
+        "finding_id",
+        "payload_json",
+        "active"
+      ]
+    },
+    "findings": {
+      "rows": 107692,
+      "sha256": "d854014df183703c37e770dfbf0346b291664859f2e7b4fcc8c960872728ca8b",
+      "columns": [
+        "finding_id",
+        "owner_kind",
+        "owner_id",
+        "kind",
+        "subject_kind",
+        "subject_id",
+        "watch_id",
+        "snapshot_id",
+        "severity",
+        "summary",
+        "evidence_json",
+        "suggested_override",
+        "opened_at",
+        "run_id",
+        "closed_at",
+        "closed_by",
+        "policy_version",
+        "desired_fingerprint",
+        "state",
+        "source",
+        "next_action",
+        "blocking_reason",
+        "next_eligible_at",
+        "attempt_count",
+        "last_progress_at",
+        "status_at"
+      ]
+    },
+    "heats": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "heat_id",
+        "round_id",
+        "heat_number",
+        "entry_id",
+        "position",
+        "source",
+        "snapshot_id",
+        "parser_version",
+        "first_seen_at",
+        "last_seen_at",
+        "run_id"
+      ]
+    },
+    "history_acceptance": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "year",
+        "accepted_at",
+        "accepted_by",
+        "inventory_digest"
+      ]
+    },
+    "history_dispatch_fence": {
+      "rows": 1,
+      "sha256": "81f522ebe2a86e654d5342816d6b2740ff65afd83bf5257dc7ca3fa89945cf4b",
+      "columns": [
+        "singleton",
+        "revision"
+      ]
+    },
+    "history_origin_intents": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "watch_id",
+        "source",
+        "source_ref",
+        "event_id",
+        "page_kind",
+        "url",
+        "parent_url",
+        "evidence_json",
+        "created_at",
+        "dispatch_run_id"
+      ]
+    },
+    "history_origin_operator_refs": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "source_ref",
+        "evidence_reference",
+        "recorded_at"
+      ]
+    },
+    "history_origin_requests": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "action_id",
+        "watch_id",
+        "source",
+        "event_id",
+        "run_id",
+        "day",
+        "issued_at"
+      ]
+    },
+    "host_budget": {
+      "rows": 26,
+      "sha256": "3542fcd0f254ddb954867ca330ec5214094a06a80e14cd90a1297fb76e0a31dd",
+      "columns": [
+        "host",
+        "day",
+        "requests",
+        "bytes"
+      ]
+    },
+    "host_request_spacing": {
+      "rows": 8,
+      "sha256": "77bf439f1c57f229f85aa22ca1b691574acee5601e2026c2e5f95fc202d91129",
+      "columns": [
+        "host",
+        "reservation_id",
+        "gap_seconds",
+        "reserved_at",
+        "released_at"
+      ]
+    },
+    "host_request_spacing_baselines": {
+      "rows": 1,
+      "sha256": "7f95a83807d2bf5471d926aab77fb6b91006bd40c0a8b18c907b6c306f38bfa5",
+      "columns": [
+        "reservation_id",
+        "host",
+        "gap_seconds",
+        "stopped_at",
+        "recorded_at",
+        "evidence_ref",
+        "prior_reservation_id"
+      ]
+    },
+    "hosts": {
+      "rows": 8,
+      "sha256": "90e8ef23f09bbb55eb9fd9a7ba87d6dc34349d48c6ad7b0fe6d42c47923d74fe",
+      "columns": [
+        "host",
+        "next_allowed_at",
+        "paused_until",
+        "pause_reason",
+        "pause_streak",
+        "robots_sha256",
+        "robots_fetched_at",
+        "robots_status"
+      ]
+    },
+    "identity_decisions": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "decision_id",
+        "source",
+        "source_event",
+        "contest",
+        "round",
+        "participant",
+        "wsdc_id",
+        "decision",
+        "evidence",
+        "reason",
+        "author",
+        "date",
+        "supersedes",
+        "row_json",
+        "row_sha256",
+        "accepted_digest",
+        "accepted_at"
+      ]
+    },
+    "identity_journal_acceptances": {
+      "rows": 1,
+      "sha256": "b1ecd750fa6d6e9872007a8c59b2778afa722c96e9d7ac55049fa7085459fdd3",
+      "columns": [
+        "digest",
+        "bundle_digest",
+        "accepted_at",
+        "decision_count",
+        "generation"
+      ]
+    },
+    "identity_link_history": {
+      "rows": 396350,
+      "sha256": "3025ac3f8bfc9a1666774e598762db66bffbf7168fbca3e080831bea4deb3d4b",
+      "columns": [
+        "history_id",
+        "subject_kind",
+        "subject_id",
+        "state",
+        "assertion_json",
+        "resolution_json",
+        "recorded_at"
+      ]
+    },
+    "identity_link_resolutions": {
+      "rows": 98751,
+      "sha256": "087812876ce3dc9fb5a4eb7cb7551c744da72354e9f4644693b420ba68d7a62c",
+      "columns": [
+        "subject_kind",
+        "subject_id",
+        "ref_ids_json",
+        "decision_ids_json",
+        "policy_version",
+        "journal_digest",
+        "journal_generation",
+        "state",
+        "reason",
+        "asserted_at"
+      ]
+    },
+    "identity_links": {
+      "rows": 98751,
+      "sha256": "ca4f92eda0ab73e49fd3b7d08fa643d7784d4d7b47d46468fe2c92fad54fee7d",
+      "columns": [
+        "link_id",
+        "subject_kind",
+        "subject_id",
+        "wsdc_id",
+        "method",
+        "status",
+        "confidence",
+        "constraints_applied",
+        "asserted_at",
+        "run_id",
+        "linker_version"
+      ]
+    },
+    "identity_reference_bindings": {
+      "rows": 115718,
+      "sha256": "0da55155142d75e3c0a38330667c7857397fa0c73cafdea89090444715b5a311",
+      "columns": [
+        "binding_id",
+        "ref_id",
+        "subject_kind",
+        "subject_id",
+        "event_id",
+        "snapshot_id",
+        "semantic_hash",
+        "bound_at"
+      ]
+    },
+    "identity_reference_migrations": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "migration_id",
+        "from_ref_id",
+        "to_ref_ids_json",
+        "status",
+        "evidence",
+        "reason",
+        "author",
+        "date",
+        "supersedes",
+        "recorded_at"
+      ]
+    },
+    "identity_source_refs": {
+      "rows": 115713,
+      "sha256": "f73f22d54ae54927ce17ae96c7a8364ff0fe510775d0ad3fcb8ce9ac503d36de",
+      "columns": [
+        "ref_id",
+        "source",
+        "source_event",
+        "contest",
+        "round",
+        "participant",
+        "subject_kind",
+        "locator_json",
+        "created_at"
+      ]
+    },
+    "judges": {
+      "rows": 4931,
+      "sha256": "898c37a1258c8248e75eaaa13b3e118ae478f2f4aa10712e4cbd12c39475271c",
+      "columns": [
+        "judge_id",
+        "event_id",
+        "name_raw",
+        "initials",
+        "anonymous",
+        "wsdc_id",
+        "source",
+        "snapshot_id",
+        "parser_version",
+        "first_seen_at",
+        "last_seen_at",
+        "run_id"
+      ]
+    },
+    "link_candidates": {
+      "rows": 92499,
+      "sha256": "7379fbc83d816d3c2d56ed7e2205d7c14d7b93d88c237db8573dde63ffbebe7f",
+      "columns": [
+        "subject_kind",
+        "subject_id",
+        "wsdc_id",
+        "score",
+        "name_similarity",
+        "name_rarity",
+        "division_ok",
+        "role_ok",
+        "recency_ok",
+        "geography",
+        "bib_reuse",
+        "registry_confirms",
+        "source_id_confirms",
+        "rank",
+        "chosen",
+        "run_id"
+      ]
+    },
+    "meta": {
+      "rows": 14,
+      "sha256": "35215a3fd137569736d3381cfa597a90ae471a2abbeec3fc40959a333a2d37cf",
+      "columns": [
+        "key",
+        "value"
+      ]
+    },
+    "observations": {
+      "rows": 58169,
+      "sha256": "74fed9568e9c5cd33462c16103cc63a0fdfcc6f946d625135bbdef4433d9b893",
+      "columns": [
+        "observation_id",
+        "watch_id",
+        "snapshot_id",
+        "kind",
+        "scope_kind",
+        "scope_id",
+        "seq",
+        "extract_version",
+        "parser_version",
+        "payload_json"
+      ]
+    },
+    "operator_pauses": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "scope_kind",
+        "scope_id",
+        "until_at",
+        "reason",
+        "pause_id",
+        "actor",
+        "control_revision",
+        "created_at"
+      ]
+    },
+    "pending_work": {
+      "rows": 31821,
+      "sha256": "88683cc1121974174e36c05d79823159d9773b5cb735daa3837491567d1e9ac8",
+      "columns": [
+        "stage",
+        "unit_kind",
+        "unit_id",
+        "enqueued_at"
+      ]
+    },
+    "placements": {
+      "rows": 20236,
+      "sha256": "82e6b87832cda936b7681bdcd420866444c154313aa0e05581801d05a772d098",
+      "columns": [
+        "placement_id",
+        "round_id",
+        "contest_id",
+        "event_id",
+        "place",
+        "leader_entry_id",
+        "follower_entry_id",
+        "couple_entry_id",
+        "leader_wsdc_id",
+        "follower_wsdc_id",
+        "marks_sorted",
+        "tally",
+        "registry_points_leader",
+        "registry_points_follower",
+        "registry_confirmed",
+        "points_matches_expected",
+        "source",
+        "snapshot_id",
+        "parser_version",
+        "first_seen_at",
+        "last_seen_at",
+        "run_id"
+      ]
+    },
+    "registry_placements": {
+      "rows": 197990,
+      "sha256": "a4383024813e990b2898ce43bdb8e6ef217a01e39f10535483317cdbcd13315f",
+      "columns": [
+        "wsdc_id",
+        "role",
+        "dance_style",
+        "division",
+        "series_id",
+        "series_name_raw",
+        "event_month",
+        "event_id",
+        "result",
+        "points",
+        "source",
+        "snapshot_id",
+        "parser_version",
+        "first_seen_at",
+        "last_seen_at",
+        "run_id"
+      ]
+    },
+    "registry_verifications": {
+      "rows": 29060,
+      "sha256": "215b79cadc76ab6ae04dde42d731b8eebe3f81dbc3d84d14a2681393f4469ceb",
+      "columns": [
+        "verification_id",
+        "watch_id",
+        "checked_at",
+        "http_status",
+        "body_sha256",
+        "snapshot_id",
+        "extract_version",
+        "parser_version",
+        "outcome",
+        "usable",
+        "reason"
+      ]
+    },
+    "requirement_attempts": {
+      "rows": 34986,
+      "sha256": "c54baba55eb54b595dd80195f7995551d3409f7983fc74338bd46cea2e840a50",
+      "columns": [
+        "attempt_id",
+        "requirement_id",
+        "at",
+        "outcome"
+      ]
+    },
+    "requirement_cohort_members": {
+      "rows": 36689,
+      "sha256": "b677ed772c3cb5fe3a6e5c215f99d47546c16077e0e1cba1de87a37fb23ed632",
+      "columns": [
+        "cohort_id",
+        "requirement_id"
+      ]
+    },
+    "requirement_cohorts": {
+      "rows": 1,
+      "sha256": "71a5248a4af294f56cdd8441680648f90e03c72a628270d7f2fe9e8f2dc44180",
+      "columns": [
+        "cohort_id",
+        "created_at",
+        "policy_version",
+        "source",
+        "kind",
+        "bounded",
+        "first_open_transition_cutoff"
+      ]
+    },
+    "requirement_scan": {
+      "rows": 1,
+      "sha256": "0ea07f491835714cc56ce26587f2d6abee88820a693e1715a0ae0c55b357b848",
+      "columns": [
+        "singleton",
+        "cursor",
+        "started_at",
+        "last_scanned_at",
+        "last_completed_at",
+        "scanned"
+      ]
+    },
+    "requirement_transitions": {
+      "rows": 108429,
+      "sha256": "af59a029e3df6cb70ca0f657271f26b511b6169d0c12294ad5a17f368876617a",
+      "columns": [
+        "transition_id",
+        "requirement_id",
+        "kind",
+        "source",
+        "old_state",
+        "new_state",
+        "event",
+        "at"
+      ]
+    },
+    "revisions": {
+      "rows": 9,
+      "sha256": "a4643691751e97386175394cd07d2d38d004d6846e93dfba854b76460decd669",
+      "columns": [
+        "name",
+        "value"
+      ]
+    },
+    "rounds": {
+      "rows": 4279,
+      "sha256": "f847c1868169003d7e2cd60364e725f2d1f78e248723ad1f9b0a8fe7948891ab",
+      "columns": [
+        "round_id",
+        "contest_id",
+        "round_type",
+        "round_index",
+        "name_raw",
+        "scoring_method",
+        "callback_legend",
+        "judge_count",
+        "chief_judge_id",
+        "entry_count",
+        "promoted_count",
+        "source_round_ref",
+        "score_sheet_url",
+        "source",
+        "snapshot_id",
+        "parser_version",
+        "first_seen_at",
+        "last_seen_at",
+        "run_id"
+      ]
+    },
+    "runs": {
+      "rows": 1988,
+      "sha256": "d16c7a40409e86047ccde9093453d69ee2c30252919efe11d3722a232d699d78",
+      "columns": [
+        "run_id",
+        "started_at",
+        "finished_at",
+        "dry_run",
+        "summary_json"
+      ]
+    },
+    "scheduler_capacity_policies": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "digest",
+        "policy_json"
+      ]
+    },
+    "scheduler_capacity_requests": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "action_id",
+        "selected_host",
+        "lane",
+        "purpose",
+        "reason",
+        "policy_digest",
+        "credit_before",
+        "credit_after"
+      ]
+    },
+    "scheduler_capacity_service": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "selected_host",
+        "credit"
+      ]
+    },
+    "scheduler_event_policies": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "digest",
+        "policy_json"
+      ]
+    },
+    "scheduler_event_requests": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "action_id",
+        "selected_host",
+        "category",
+        "owner_key",
+        "source",
+        "source_ref",
+        "enumeration_id",
+        "turn_position",
+        "policy_digest",
+        "reason"
+      ]
+    },
+    "scheduler_event_turns": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "host",
+        "category",
+        "owner_key",
+        "source",
+        "source_ref",
+        "position",
+        "used",
+        "policy_digest",
+        "target_requests",
+        "enrolled_at",
+        "last_issued_at"
+      ]
+    },
+    "scheduler_offline_service": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "stage",
+        "unit_kind",
+        "attempts",
+        "last_served_at",
+        "sequence"
+      ]
+    },
+    "scheduler_parent_links": {
+      "rows": 6274,
+      "sha256": "f194f0dbcc3b9baa41ee4fb36484b2e3605e461041358f5e34e2cd35cdab1cee",
+      "columns": [
+        "parent_watch_id",
+        "child_watch_id",
+        "first_snapshot_id",
+        "first_seen_at"
+      ]
+    },
+    "scheduler_requests": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "action_id",
+        "host",
+        "day",
+        "category",
+        "work_key",
+        "run_id",
+        "repair",
+        "pressure_reserved",
+        "issued_at",
+        "body_bytes"
+      ]
+    },
+    "scheduler_watch_state": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "watch_id",
+        "metadata_attempts",
+        "last_metadata_attempt_at"
+      ]
+    },
+    "series": {
+      "rows": 288,
+      "sha256": "5abdf3646a13d8abe128726f7eee913c9e2ea8c435272655060087880a25a9d1",
+      "columns": [
+        "series_id",
+        "name",
+        "website",
+        "location_raw"
+      ]
+    },
+    "snapshots": {
+      "rows": 31821,
+      "sha256": "1ff56a0fcf748c8013c79abd7144fb5cfe937de0d77843cbcc7fa68ce3cf126d",
+      "columns": [
+        "snapshot_id",
+        "watch_id",
+        "method",
+        "url",
+        "form",
+        "fetched_at",
+        "http_status",
+        "etag",
+        "last_modified",
+        "content_type",
+        "body_sha256",
+        "body_bytes",
+        "content_changed",
+        "run_id",
+        "via",
+        "headers_json",
+        "classification",
+        "extract_status",
+        "extract_sha256",
+        "parse_status",
+        "parsed_at",
+        "extract_version",
+        "parser_version",
+        "captured_at",
+        "observed_at",
+        "archive_url",
+        "requested_archive_url",
+        "extract_recipe_sha256"
+      ]
+    },
+    "source_event_enumeration_members": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "enumeration_id",
+        "request_id",
+        "request_json",
+        "support_json",
+        "first_known_at"
+      ]
+    },
+    "source_event_enumerations": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "enumeration_id",
+        "source",
+        "source_ref",
+        "predecessor_id",
+        "generation_id",
+        "decision_id",
+        "parent_support_json",
+        "membership_digest",
+        "pagination",
+        "pagination_reason",
+        "added_json",
+        "removed_json",
+        "recorded_at"
+      ]
+    },
+    "source_event_inventory": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "source",
+        "source_ref",
+        "enumeration_id",
+        "first_known_at",
+        "bootstrap_basis"
+      ]
+    },
+    "source_event_map": {
+      "rows": 404,
+      "sha256": "83c92d7f16240a788fd7c5aac0ce41e68cc369d6b1abe3a0331b395e31ed4001",
+      "columns": [
+        "source",
+        "source_ref",
+        "event_id",
+        "match_method",
+        "match_confidence"
+      ]
+    },
+    "source_event_member_watches": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "enumeration_id",
+        "request_id",
+        "watch_id"
+      ]
+    },
+    "source_event_retirement_proofs": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "proof_digest",
+        "proof_json"
+      ]
+    },
+    "source_event_retirement_receipts": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "receipt_id",
+        "source",
+        "source_ref",
+        "enumeration_id",
+        "predecessor_id",
+        "generation_id",
+        "decision_id",
+        "observed_at",
+        "policy_digest",
+        "proof_digest",
+        "proof_json"
+      ]
+    },
+    "source_event_scope_rows": {
+      "rows": 837,
+      "sha256": "ac7472e1a58b0d6016669d3aee7d21956270a1b8b7aa6d6154cb17e1bf5feea7",
+      "columns": [
+        "scope_id",
+        "source",
+        "source_ref"
+      ]
+    },
+    "source_events": {
+      "rows": 455,
+      "sha256": "4d47d2a2ace8a897a6cb08411a5aa98cbd12c61e06777a5e150909c29ab90173",
+      "columns": [
+        "source",
+        "source_ref",
+        "name_raw",
+        "start_date",
+        "end_date",
+        "location_raw",
+        "url",
+        "snapshot_id",
+        "parser_version",
+        "first_seen_at",
+        "last_seen_at",
+        "run_id"
+      ]
+    },
+    "source_generations": {
+      "rows": 32189,
+      "sha256": "2169a9d83ef1d2e7dd9008ab6d5f1e42bc5234b8b64fcd712483b36082cb9de8",
+      "columns": [
+        "generation_id",
+        "unit_key",
+        "page_kind",
+        "contract_version",
+        "input_fingerprint",
+        "manifest_json",
+        "recipe_json",
+        "result_json",
+        "report_json",
+        "previous_generation_id",
+        "work_token",
+        "created_at",
+        "run_id",
+        "state",
+        "removal_authority"
+      ]
+    },
+    "source_units": {
+      "rows": 31805,
+      "sha256": "7635c40511a8367291b284f087ec68b51822a7b0d79a62742053de0b41bf19ff",
+      "columns": [
+        "unit_key",
+        "watch_id",
+        "page_kind",
+        "desired_fingerprint",
+        "accepted_generation_id",
+        "legacy_snapshot_id",
+        "legacy_state"
+      ]
+    },
+    "watches": {
+      "rows": 35417,
+      "sha256": "eaceb1e2ce398eb17ded98f745b96b7c3f7328688eea2050691c58ea0fc28436",
+      "columns": [
+        "watch_id",
+        "source",
+        "kind",
+        "method",
+        "url",
+        "form",
+        "archive_url",
+        "parser",
+        "source_ref",
+        "state",
+        "next_check_at",
+        "last_checked_at",
+        "last_changed_at",
+        "unchanged_streak",
+        "etag",
+        "last_modified",
+        "body_sha256",
+        "paused_until",
+        "notes",
+        "fingerprint",
+        "extract_version",
+        "priority",
+        "created_by_snapshot_id",
+        "parent_watch_id",
+        "ever_ok",
+        "current_observation_snapshot_id",
+        "consecutive_404s",
+        "first_404_at"
+      ]
+    },
+    "work_attempts": {
+      "rows": 34986,
+      "sha256": "dac2db473959193e6241a379fb864c9194abcb355a1b975c9315a820225ded45",
+      "columns": [
+        "attempt_id",
+        "stage",
+        "unit_kind",
+        "unit_id",
+        "queue_generation",
+        "retry_generation",
+        "work_token",
+        "input_fingerprint",
+        "run_id",
+        "started_at",
+        "finished_at",
+        "outcome",
+        "reason_code",
+        "evidence_json",
+        "retry_at",
+        "requirement_id"
+      ]
+    },
+    "work_generations": {
+      "rows": 66807,
+      "sha256": "95cd0a1716c9a63978ea8b9a456f3a1a95baf387e1c4be3fb41c3993f92666b5",
+      "columns": [
+        "stage",
+        "unit_kind",
+        "unit_id",
+        "generation",
+        "retry_generation",
+        "retry_reason",
+        "retry_requested_at"
+      ]
+    }
+  },
+  "schema": 29,
+  "units_after": {
+    "swingset-cycle.service": "inactive",
+    "swingset-cycle.timer": "inactive",
+    "swingset-backup.service": "inactive",
+    "swingset-backup.timer": "inactive",
+    "swingset-summary.service": "inactive",
+    "swingset-summary.timer": "inactive"
+  },
+  "finished_at": "2026-09-17T22:20:55.481544+00:00",
+  "restore_pending": false,
+  "operator_hold_present": true,
+  "public_requests": [
+    {
+      "method": "GET",
+      "host": "huggingface.co",
+      "issued_at": "2026-09-17T22:12:26.507568+00:00"
+    },
+    {
+      "method": "GET",
+      "host": "huggingface.co",
+      "issued_at": "2026-09-17T22:12:31.693882+00:00"
+    },
+    {
+      "method": "HEAD",
+      "host": "huggingface.co",
+      "issued_at": "2026-09-17T22:12:36.907538+00:00"
+    },
+    {
+      "method": "HEAD",
+      "host": "huggingface.co",
+      "issued_at": "2026-09-17T22:12:42.064677+00:00"
+    },
+    {
+      "method": "GET",
+      "host": "huggingface.co",
+      "issued_at": "2026-09-17T22:12:47.161505+00:00"
+    },
+    {
+      "method": "HEAD",
+      "host": "huggingface.co",
+      "issued_at": "2026-09-17T22:12:52.406894+00:00"
+    },
+    {
+      "method": "HEAD",
+      "host": "huggingface.co",
+      "issued_at": "2026-09-17T22:12:57.501076+00:00"
+    },
+    {
+      "method": "GET",
+      "host": "huggingface.co",
+      "issued_at": "2026-09-17T22:13:02.586106+00:00"
+    },
+    {
+      "method": "HEAD",
+      "host": "huggingface.co",
+      "issued_at": "2026-09-17T22:13:07.691475+00:00"
+    },
+    {
+      "method": "HEAD",
+      "host": "huggingface.co",
+      "issued_at": "2026-09-17T22:13:12.837325+00:00"
+    },
+    {
+      "method": "GET",
+      "host": "huggingface.co",
+      "issued_at": "2026-09-17T22:13:17.970603+00:00"
+    },
+    {
+      "method": "HEAD",
+      "host": "huggingface.co",
+      "issued_at": "2026-09-17T22:13:23.070512+00:00"
+    },
+    {
+      "method": "GET",
+      "host": "huggingface.co",
+      "issued_at": "2026-09-17T22:13:28.187431+00:00"
+    },
+    {
+      "method": "GET",
+      "host": "us.aws.cdn.hf.co",
+      "issued_at": "2026-09-17T22:13:28.316162+00:00"
+    },
+    {
+      "method": "HEAD",
+      "host": "huggingface.co",
+      "issued_at": "2026-09-17T22:13:33.316088+00:00"
+    },
+    {
+      "method": "GET",
+      "host": "huggingface.co",
+      "issued_at": "2026-09-17T22:13:38.479096+00:00"
+    },
+    {
+      "method": "GET",
+      "host": "us.aws.cdn.hf.co",
+      "issued_at": "2026-09-17T22:13:38.579553+00:00"
+    },
+    {
+      "method": "HEAD",
+      "host": "huggingface.co",
+      "issued_at": "2026-09-17T22:13:43.580238+00:00"
+    },
+    {
+      "method": "GET",
+      "host": "huggingface.co",
+      "issued_at": "2026-09-17T22:13:48.724124+00:00"
+    },
+    {
+      "method": "GET",
+      "host": "us.aws.cdn.hf.co",
+      "issued_at": "2026-09-17T22:13:48.824890+00:00"
+    },
+    {
+      "method": "HEAD",
+      "host": "huggingface.co",
+      "issued_at": "2026-09-17T22:13:53.828346+00:00"
+    },
+    {
+      "method": "GET",
+      "host": "huggingface.co",
+      "issued_at": "2026-09-17T22:13:58.946476+00:00"
+    },
+    {
+      "method": "GET",
+      "host": "us.aws.cdn.hf.co",
+      "issued_at": "2026-09-17T22:13:59.060410+00:00"
+    },
+    {
+      "method": "HEAD",
+      "host": "huggingface.co",
+      "issued_at": "2026-09-17T22:14:04.063362+00:00"
+    },
+    {
+      "method": "GET",
+      "host": "huggingface.co",
+      "issued_at": "2026-09-17T22:14:09.189396+00:00"
+    },
+    {
+      "method": "GET",
+      "host": "us.aws.cdn.hf.co",
+      "issued_at": "2026-09-17T22:14:09.301329+00:00"
+    },
+    {
+      "method": "HEAD",
+      "host": "huggingface.co",
+      "issued_at": "2026-09-17T22:14:14.304147+00:00"
+    },
+    {
+      "method": "GET",
+      "host": "huggingface.co",
+      "issued_at": "2026-09-17T22:14:19.419588+00:00"
+    },
+    {
+      "method": "GET",
+      "host": "us.aws.cdn.hf.co",
+      "issued_at": "2026-09-17T22:14:19.541345+00:00"
+    },
+    {
+      "method": "HEAD",
+      "host": "huggingface.co",
+      "issued_at": "2026-09-17T22:14:24.542653+00:00"
+    },
+    {
+      "method": "GET",
+      "host": "huggingface.co",
+      "issued_at": "2026-09-17T22:14:29.805455+00:00"
+    },
+    {
+      "method": "GET",
+      "host": "us.aws.cdn.hf.co",
+      "issued_at": "2026-09-17T22:14:29.973933+00:00"
+    },
+    {
+      "method": "HEAD",
+      "host": "huggingface.co",
+      "issued_at": "2026-09-17T22:14:34.977183+00:00"
+    },
+    {
+      "method": "GET",
+      "host": "huggingface.co",
+      "issued_at": "2026-09-17T22:14:40.122460+00:00"
+    },
+    {
+      "method": "GET",
+      "host": "us.aws.cdn.hf.co",
+      "issued_at": "2026-09-17T22:14:40.231111+00:00"
+    },
+    {
+      "method": "HEAD",
+      "host": "huggingface.co",
+      "issued_at": "2026-09-17T22:14:45.238379+00:00"
+    },
+    {
+      "method": "GET",
+      "host": "huggingface.co",
+      "issued_at": "2026-09-17T22:14:50.348132+00:00"
+    },
+    {
+      "method": "GET",
+      "host": "us.aws.cdn.hf.co",
+      "issued_at": "2026-09-17T22:14:50.492203+00:00"
+    },
+    {
+      "method": "HEAD",
+      "host": "huggingface.co",
+      "issued_at": "2026-09-17T22:14:55.494769+00:00"
+    },
+    {
+      "method": "GET",
+      "host": "huggingface.co",
+      "issued_at": "2026-09-17T22:15:00.609265+00:00"
+    },
+    {
+      "method": "GET",
+      "host": "us.aws.cdn.hf.co",
+      "issued_at": "2026-09-17T22:15:00.763592+00:00"
+    },
+    {
+      "method": "HEAD",
+      "host": "huggingface.co",
+      "issued_at": "2026-09-17T22:15:10.215041+00:00"
+    },
+    {
+      "method": "GET",
+      "host": "huggingface.co",
+      "issued_at": "2026-09-17T22:15:15.353749+00:00"
+    },
+    {
+      "method": "GET",
+      "host": "us.aws.cdn.hf.co",
+      "issued_at": "2026-09-17T22:15:15.563291+00:00"
+    },
+    {
+      "method": "HEAD",
+      "host": "huggingface.co",
+      "issued_at": "2026-09-17T22:15:20.568406+00:00"
+    },
+    {
+      "method": "GET",
+      "host": "huggingface.co",
+      "issued_at": "2026-09-17T22:15:25.698233+00:00"
+    },
+    {
+      "method": "GET",
+      "host": "us.aws.cdn.hf.co",
+      "issued_at": "2026-09-17T22:15:25.811264+00:00"
+    },
+    {
+      "method": "HEAD",
+      "host": "huggingface.co",
+      "issued_at": "2026-09-17T22:15:30.815462+00:00"
+    },
+    {
+      "method": "GET",
+      "host": "huggingface.co",
+      "issued_at": "2026-09-17T22:15:36.040359+00:00"
+    },
+    {
+      "method": "GET",
+      "host": "us.aws.cdn.hf.co",
+      "issued_at": "2026-09-17T22:15:36.195856+00:00"
+    },
+    {
+      "method": "HEAD",
+      "host": "huggingface.co",
+      "issued_at": "2026-09-17T22:15:41.196330+00:00"
+    },
+    {
+      "method": "GET",
+      "host": "huggingface.co",
+      "issued_at": "2026-09-17T22:15:46.299685+00:00"
+    },
+    {
+      "method": "GET",
+      "host": "us.aws.cdn.hf.co",
+      "issued_at": "2026-09-17T22:15:46.442125+00:00"
+    },
+    {
+      "method": "HEAD",
+      "host": "huggingface.co",
+      "issued_at": "2026-09-17T22:15:51.452202+00:00"
+    },
+    {
+      "method": "GET",
+      "host": "huggingface.co",
+      "issued_at": "2026-09-17T22:15:56.604226+00:00"
+    },
+    {
+      "method": "GET",
+      "host": "us.aws.cdn.hf.co",
+      "issued_at": "2026-09-17T22:15:56.716285+00:00"
+    },
+    {
+      "method": "HEAD",
+      "host": "huggingface.co",
+      "issued_at": "2026-09-17T22:16:01.725171+00:00"
+    },
+    {
+      "method": "GET",
+      "host": "huggingface.co",
+      "issued_at": "2026-09-17T22:16:06.871812+00:00"
+    },
+    {
+      "method": "GET",
+      "host": "us.aws.cdn.hf.co",
+      "issued_at": "2026-09-17T22:16:07.043674+00:00"
+    },
+    {
+      "method": "HEAD",
+      "host": "huggingface.co",
+      "issued_at": "2026-09-17T22:16:12.045727+00:00"
+    },
+    {
+      "method": "GET",
+      "host": "huggingface.co",
+      "issued_at": "2026-09-17T22:16:17.279803+00:00"
+    },
+    {
+      "method": "GET",
+      "host": "us.aws.cdn.hf.co",
+      "issued_at": "2026-09-17T22:16:17.433482+00:00"
+    },
+    {
+      "method": "HEAD",
+      "host": "huggingface.co",
+      "issued_at": "2026-09-17T22:16:22.435599+00:00"
+    },
+    {
+      "method": "GET",
+      "host": "huggingface.co",
+      "issued_at": "2026-09-17T22:16:27.581269+00:00"
+    },
+    {
+      "method": "GET",
+      "host": "us.aws.cdn.hf.co",
+      "issued_at": "2026-09-17T22:16:27.692209+00:00"
+    },
+    {
+      "method": "HEAD",
+      "host": "huggingface.co",
+      "issued_at": "2026-09-17T22:16:32.700711+00:00"
+    },
+    {
+      "method": "GET",
+      "host": "huggingface.co",
+      "issued_at": "2026-09-17T22:16:37.813298+00:00"
+    },
+    {
+      "method": "GET",
+      "host": "us.aws.cdn.hf.co",
+      "issued_at": "2026-09-17T22:16:37.953416+00:00"
+    },
+    {
+      "method": "HEAD",
+      "host": "huggingface.co",
+      "issued_at": "2026-09-17T22:16:42.956050+00:00"
+    },
+    {
+      "method": "GET",
+      "host": "huggingface.co",
+      "issued_at": "2026-09-17T22:16:48.080474+00:00"
+    },
+    {
+      "method": "GET",
+      "host": "us.aws.cdn.hf.co",
+      "issued_at": "2026-09-17T22:16:48.220686+00:00"
+    },
+    {
+      "method": "HEAD",
+      "host": "huggingface.co",
+      "issued_at": "2026-09-17T22:16:53.226093+00:00"
+    },
+    {
+      "method": "GET",
+      "host": "huggingface.co",
+      "issued_at": "2026-09-17T22:16:58.373602+00:00"
+    },
+    {
+      "method": "GET",
+      "host": "us.aws.cdn.hf.co",
+      "issued_at": "2026-09-17T22:16:58.480189+00:00"
+    },
+    {
+      "method": "HEAD",
+      "host": "huggingface.co",
+      "issued_at": "2026-09-17T22:17:03.489122+00:00"
+    },
+    {
+      "method": "GET",
+      "host": "huggingface.co",
+      "issued_at": "2026-09-17T22:17:08.613719+00:00"
+    },
+    {
+      "method": "GET",
+      "host": "us.aws.cdn.hf.co",
+      "issued_at": "2026-09-17T22:17:08.747157+00:00"
+    },
+    {
+      "method": "HEAD",
+      "host": "huggingface.co",
+      "issued_at": "2026-09-17T22:17:13.747226+00:00"
+    },
+    {
+      "method": "GET",
+      "host": "huggingface.co",
+      "issued_at": "2026-09-17T22:17:18.854775+00:00"
+    },
+    {
+      "method": "GET",
+      "host": "us.aws.cdn.hf.co",
+      "issued_at": "2026-09-17T22:17:19.007539+00:00"
+    },
+    {
+      "method": "HEAD",
+      "host": "huggingface.co",
+      "issued_at": "2026-09-17T22:17:24.011337+00:00"
+    },
+    {
+      "method": "GET",
+      "host": "huggingface.co",
+      "issued_at": "2026-09-17T22:17:29.153020+00:00"
+    },
+    {
+      "method": "GET",
+      "host": "us.aws.cdn.hf.co",
+      "issued_at": "2026-09-17T22:17:29.352372+00:00"
+    },
+    {
+      "method": "HEAD",
+      "host": "huggingface.co",
+      "issued_at": "2026-09-17T22:17:34.356467+00:00"
+    },
+    {
+      "method": "GET",
+      "host": "huggingface.co",
+      "issued_at": "2026-09-17T22:17:39.508522+00:00"
+    },
+    {
+      "method": "GET",
+      "host": "us.aws.cdn.hf.co",
+      "issued_at": "2026-09-17T22:17:39.644593+00:00"
+    },
+    {
+      "method": "HEAD",
+      "host": "huggingface.co",
+      "issued_at": "2026-09-17T22:17:44.653707+00:00"
+    },
+    {
+      "method": "GET",
+      "host": "huggingface.co",
+      "issued_at": "2026-09-17T22:17:49.868516+00:00"
+    },
+    {
+      "method": "GET",
+      "host": "us.aws.cdn.hf.co",
+      "issued_at": "2026-09-17T22:17:50.005488+00:00"
+    },
+    {
+      "method": "HEAD",
+      "host": "huggingface.co",
+      "issued_at": "2026-09-17T22:17:55.007671+00:00"
+    },
+    {
+      "method": "GET",
+      "host": "huggingface.co",
+      "issued_at": "2026-09-17T22:18:00.163818+00:00"
+    },
+    {
+      "method": "GET",
+      "host": "us.aws.cdn.hf.co",
+      "issued_at": "2026-09-17T22:18:00.281498+00:00"
+    },
+    {
+      "method": "HEAD",
+      "host": "huggingface.co",
+      "issued_at": "2026-09-17T22:18:05.283106+00:00"
+    },
+    {
+      "method": "GET",
+      "host": "huggingface.co",
+      "issued_at": "2026-09-17T22:18:10.388888+00:00"
+    },
+    {
+      "method": "GET",
+      "host": "us.aws.cdn.hf.co",
+      "issued_at": "2026-09-17T22:18:10.504364+00:00"
+    },
+    {
+      "method": "HEAD",
+      "host": "huggingface.co",
+      "issued_at": "2026-09-17T22:18:15.505221+00:00"
+    },
+    {
+      "method": "GET",
+      "host": "huggingface.co",
+      "issued_at": "2026-09-17T22:18:20.659365+00:00"
+    },
+    {
+      "method": "GET",
+      "host": "us.aws.cdn.hf.co",
+      "issued_at": "2026-09-17T22:18:20.837946+00:00"
+    },
+    {
+      "method": "HEAD",
+      "host": "huggingface.co",
+      "issued_at": "2026-09-17T22:18:25.847437+00:00"
+    },
+    {
+      "method": "GET",
+      "host": "huggingface.co",
+      "issued_at": "2026-09-17T22:18:30.955836+00:00"
+    },
+    {
+      "method": "GET",
+      "host": "us.aws.cdn.hf.co",
+      "issued_at": "2026-09-17T22:18:31.067530+00:00"
+    },
+    {
+      "method": "HEAD",
+      "host": "huggingface.co",
+      "issued_at": "2026-09-17T22:18:36.068523+00:00"
+    },
+    {
+      "method": "GET",
+      "host": "huggingface.co",
+      "issued_at": "2026-09-17T22:18:41.193336+00:00"
+    },
+    {
+      "method": "GET",
+      "host": "us.aws.cdn.hf.co",
+      "issued_at": "2026-09-17T22:18:41.337778+00:00"
+    },
+    {
+      "method": "HEAD",
+      "host": "huggingface.co",
+      "issued_at": "2026-09-17T22:18:46.340448+00:00"
+    },
+    {
+      "method": "GET",
+      "host": "huggingface.co",
+      "issued_at": "2026-09-17T22:18:51.485842+00:00"
+    },
+    {
+      "method": "GET",
+      "host": "us.aws.cdn.hf.co",
+      "issued_at": "2026-09-17T22:18:51.617383+00:00"
+    },
+    {
+      "method": "HEAD",
+      "host": "huggingface.co",
+      "issued_at": "2026-09-17T22:18:56.618143+00:00"
+    },
+    {
+      "method": "GET",
+      "host": "huggingface.co",
+      "issued_at": "2026-09-17T22:19:01.742247+00:00"
+    },
+    {
+      "method": "GET",
+      "host": "us.aws.cdn.hf.co",
+      "issued_at": "2026-09-17T22:19:01.868143+00:00"
+    },
+    {
+      "method": "GET",
+      "host": "huggingface.co",
+      "issued_at": "2026-09-17T22:19:06.869120+00:00"
+    },
+    {
+      "method": "GET",
+      "host": "huggingface.co",
+      "issued_at": "2026-09-17T22:20:54.581264+00:00"
+    }
+  ]
+}

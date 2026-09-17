@@ -1,0 +1,8 @@
+{
+  "helper_sha256": "10bdfb40799a348ab948cca9934639b873676cf737e11a0532ba603960d099ba",
+  "maintained_helper_sha256": "ddc9eb67500c9fe5e3d21d3ec25b414727c2356d08a2452f89d285d94a2e86ca",
+  "same_ast": true,
+  "operation": "fresh held schema28 checkpoint and verified private archive acknowledgment after current fixture accounting",
+  "reuses_reviewed_helper": "production-002/checkpoint.py",
+  "executed": false
+}

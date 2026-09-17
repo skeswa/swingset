@@ -1,0 +1,52 @@
+{
+  "format": "schema29-candidate006-operational-attempts-v1",
+  "recorded_at": "2026-09-17T22:35:00Z",
+  "packet_sha256": "0d455559b7e0cd767cb1739f10271eb12e8178bebb5a4ab283bd8e74733b6ff3",
+  "source_receipt_sha256": "a2704c7c99ce5aef4fbd0f0df8b23343be5df2a688945e236b8e6856b320ad5f",
+  "failed_attempts": [
+    {
+      "attempt": "packet-staging-preflight-001",
+      "passed": false,
+      "failure": "The verifier import created __pycache__/runner.cpython-312.pyc before the sealed packet closure check because PYTHONDONTWRITEBYTECODE was omitted.",
+      "effect": "The sealed runner rejected the extra file before any rehearsal ran.",
+      "remediation": "Removed only the generated __pycache__ directory and repeated the verifier with PYTHONDONTWRITEBYTECODE=1. The 12-member packet closure and packet digest then passed."
+    },
+    {
+      "attempt": "swingset-schema29-migration-20260917-003",
+      "passed": false,
+      "failure": "ImportError: libstdc++.so.6 could not be loaded because the transient unit omitted the installed service LD_LIBRARY_PATH.",
+      "effect": "The unit stopped before creating the destination specimen.",
+      "service_log": {
+        "path": "../migration-003/service.log",
+        "sha256": "b863904db1981925189f518d22d5117f5f5ac5eabd8874d1cf251427400166f4"
+      },
+      "remediation": "Used a new unit and destination with the installed service library and locale environment."
+    },
+    {
+      "attempt": "swingset-schema29-restore-20260917-003",
+      "passed": false,
+      "failure": "KeyError: HF_TOKEN because the transient unit omitted the root-owned service environment file.",
+      "effect": "The unit stopped before remote verification or restore work; it created only an empty destination directory.",
+      "service_log": {
+        "path": "../restore-003/service.log",
+        "sha256": "0235c322f920668597c1e0b36e8b8a36b4927a8603b77d530aa8c4506d9565fd"
+      },
+      "remediation": "Used a new unit and destination with EnvironmentFile=/etc/swingset.env."
+    }
+  ],
+  "production_state_after_failures": {
+    "schema": 28,
+    "operator_hold_sha256": "965468bb03ba65b6d1d4950ab8e85c09c8f2f2a323461b7a3f2b6177bba5c638",
+    "ordinary_units_inactive": 6,
+    "candidate006_deployed": false,
+    "production_input_acceptance": false,
+    "published": false
+  },
+  "successful_successors": {
+    "migration_receipt_sha256": "325af505bb8abbdade88a7303feee9dbe56250191daec10b12a005aca53d9e75",
+    "restore_receipt_sha256": "5f1584086b2e6d8c7eea89242c133316e3c53e8bcd3cf7e176d5d5f61eff23b8",
+    "input_prepare_receipt_sha256": "751962638a5264641d07d3994e22ed81c38da9a1e9b6c91fb8ce1eacd6dc29c1",
+    "input_accept_receipt_sha256": "9ba0ca7bed02b165ca64fc5595ea3466ca28358740e52498a2fe11770b27beff",
+    "input_drain_receipt_sha256": "b47e7faff25181a01c53d869a98ccd25e60ce622e880290ae83955c29af4c02f"
+  }
+}

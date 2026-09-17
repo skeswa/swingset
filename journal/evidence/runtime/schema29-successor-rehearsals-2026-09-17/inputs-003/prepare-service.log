@@ -1,0 +1,3 @@
+Sep 17 20:13:33 swingset systemd[1]: Started [systemd-run] /var/lib/swingset/venv/bin/python /var/lib/swingset/operations/v2-resume-20260917/schema29-packet-004/runner.py run --packet-sha256 366b0dbab70048cc2b85c4bdb7e06d24973478d8cfee965ee01ebb40d7fb5300 inputs -- prepare --scratch /var/tmp/swingset-schema29-input-20260917-003 --output /var/tmp/swingset-schema29-input-receipts-20260917-003/prepare.json.
+Sep 17 20:15:49 swingset systemd[1]: swingset-schema29-input-prepare-20260917-003.service: Deactivated successfully.
+Sep 17 20:15:49 swingset systemd[1]: swingset-schema29-input-prepare-20260917-003.service: Consumed 2min 16.311s CPU time, 6.4G memory peak, 37.2G read from disk, 8.3G written to disk.

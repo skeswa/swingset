@@ -1,0 +1,113 @@
+{
+  "started_at": "2026-09-17T18:37:26.323798+00:00",
+  "source": "/private/tmp/swingset-extension-freeze-20260917-005",
+  "source_receipt_sha256": "9255e8641a24c21c0942512ec251b32dd294bc6f2a537868a0012cafe331dc99",
+  "before": {
+    "journal/tools/runtime/prepare_schema29_rehearsals.py": "f91a09a313984bfe2468cb4d2ade400e3658bf93a8731b6e8a5f48b5e576dfd9",
+    "tests/test_schema29_rehearsal_packet.py": "faf6cca3a60736fadf0c15ac47b19f3139dc9f91c1cbdfee3d8bab048cec6b35",
+    "tests/test_extension_input_rehearsal.py": "f16fc938ec2821db8b62d665da88363ef2c49e0e322c4f0e80f0d661fb5082f7",
+    "tests/test_extension_restore_rehearsal.py": "78e49122b7e50a3fb601f588ea6a6a611530f9b618716b9a4b56f68a8b6b4c39",
+    "journal/tools/runtime/rehearse_extension_migration.py": "225badb71efd35e5ed03b287bcd66c1cf01d4f7dd9e07c81570ccdd456d20f44",
+    "journal/tools/runtime/rehearse_extension_restore.py": "1e816a9af567344a6917e8fccd01362f6a2075ca480306bf48f2a0df96e93edf",
+    "journal/tools/runtime/rehearse_extension_inputs.py": "ddb2761bc302d53436f0a257c853cb827d42f071234761fe27c28bf94a8ab861"
+  },
+  "packet": "/Users/skeswa/repos/skeswa/swingset/journal/evidence/runtime/schema29-successor-rehearsals-2026-09-17/packet-003",
+  "packet_sha256": "6748af985bbe7b6a74c30c094c72cc117fd6f259a661fb5aeb052e51e309d230",
+  "expected_packet_sha256": "6748af985bbe7b6a74c30c094c72cc117fd6f259a661fb5aeb052e51e309d230",
+  "passed": true,
+  "production_operations": 0,
+  "network_requests": 0,
+  "checks": {
+    "pytest": {
+      "command": [
+        "/Users/skeswa/repos/skeswa/swingset/.venv/bin/python",
+        "-m",
+        "pytest",
+        "-c",
+        "/dev/null",
+        "-p",
+        "no:cacheprovider",
+        "-q",
+        "tests/test_schema29_rehearsal_packet.py",
+        "tests/test_extension_input_rehearsal.py",
+        "tests/test_extension_restore_rehearsal.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "ef29825ccf66df155054c6c49b991a5f2f90729b7622b5cb18a332e23b106834"
+    },
+    "ruff": {
+      "command": [
+        "/Users/skeswa/repos/skeswa/swingset/.venv/bin/ruff",
+        "check",
+        "journal/tools/runtime/prepare_schema29_rehearsals.py",
+        "tests/test_schema29_rehearsal_packet.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+    },
+    "mypy": {
+      "command": [
+        "/Users/skeswa/repos/skeswa/swingset/.venv/bin/mypy",
+        "journal/tools/runtime/prepare_schema29_rehearsals.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "5d4b6d285b77932e3d08212c3b4974d0a803f98ec60408ac6ccf6a063fa6c19e"
+    },
+    "deterministic_rebuild": {
+      "command": [
+        "orb",
+        "-m",
+        "swingset",
+        "-u",
+        "root",
+        "/nix/store/s5rij9y3vb4gxbh0iqz3k0ndmsac7h02-python3-3.12.13/bin/python3.12",
+        "/Users/skeswa/repos/skeswa/swingset/journal/tools/runtime/prepare_schema29_rehearsals.py",
+        "build",
+        "--source",
+        "/private/tmp/swingset-extension-freeze-20260917-005",
+        "--source-receipt-sha256",
+        "9255e8641a24c21c0942512ec251b32dd294bc6f2a537868a0012cafe331dc99",
+        "--runtime-source",
+        "/nix/store/z0rnsn69aav2h8p2wgzydar6k9rw5kk9-source",
+        "--bases",
+        "/Users/skeswa/repos/skeswa/swingset/journal/tools/runtime",
+        "--output",
+        "/Users/skeswa/repos/skeswa/swingset/journal/evidence/runtime/schema29-successor-rehearsals-2026-09-17/candidate005-review-001/review-002/rebuilt-packet"
+      ],
+      "exit_code": 0,
+      "complete_file_inventory": {
+        "backup-checkpoint-verified.json": "0b9678b9f4831a486498f5aaa91e54c2431d58c20311d9ae63ca94d0e4c8c850",
+        "runner.py": "f91a09a313984bfe2468cb4d2ade400e3658bf93a8731b6e8a5f48b5e576dfd9",
+        "packet.json": "6748af985bbe7b6a74c30c094c72cc117fd6f259a661fb5aeb052e51e309d230",
+        "backup-receipt.json": "40e303ce9e783d00422112c872c84421f3128ad193e910093299b25e638a4532",
+        "base-restore.py": "1e816a9af567344a6917e8fccd01362f6a2075ca480306bf48f2a0df96e93edf",
+        "inputs.py": "07c11895c9e17568d06074eb884ef2033a1a8ca239b219d0e2d2855613050525",
+        "base-inputs.py": "ddb2761bc302d53436f0a257c853cb827d42f071234761fe27c28bf94a8ab861",
+        "migration.py": "7ac399193c8144bc7e9c547b43dc5a06ccab10660486e4ba04f3f0bc06172643",
+        "restore.py": "3fe70896146935be59f9b7a4e22366648223b9fe74ea188d6c73af18cdacc71f",
+        "base-migration.py": "225badb71efd35e5ed03b287bcd66c1cf01d4f7dd9e07c81570ccdd456d20f44",
+        "backup-checkpoint.py": "10bdfb40799a348ab948cca9934639b873676cf737e11a0532ba603960d099ba"
+      },
+      "passed": true
+    }
+  },
+  "after": {
+    "journal/tools/runtime/prepare_schema29_rehearsals.py": "f91a09a313984bfe2468cb4d2ade400e3658bf93a8731b6e8a5f48b5e576dfd9",
+    "tests/test_schema29_rehearsal_packet.py": "faf6cca3a60736fadf0c15ac47b19f3139dc9f91c1cbdfee3d8bab048cec6b35",
+    "tests/test_extension_input_rehearsal.py": "f16fc938ec2821db8b62d665da88363ef2c49e0e322c4f0e80f0d661fb5082f7",
+    "tests/test_extension_restore_rehearsal.py": "78e49122b7e50a3fb601f588ea6a6a611530f9b618716b9a4b56f68a8b6b4c39",
+    "journal/tools/runtime/rehearse_extension_migration.py": "225badb71efd35e5ed03b287bcd66c1cf01d4f7dd9e07c81570ccdd456d20f44",
+    "journal/tools/runtime/rehearse_extension_restore.py": "1e816a9af567344a6917e8fccd01362f6a2075ca480306bf48f2a0df96e93edf",
+    "journal/tools/runtime/rehearse_extension_inputs.py": "ddb2761bc302d53436f0a257c853cb827d42f071234761fe27c28bf94a8ab861"
+  },
+  "findings": [
+    "Packet003 pins the exact candidate005 store source and receipt, schema28 checkpoint identity, private archive acknowledgment, and 116 predecessor tables.",
+    "The builder derives restore and migration helpers with schema28 predecessor checks and only the documented singleton pressure epoch increment for restore.",
+    "Review commands are offline validation and deterministic packet rebuild only; no production operation or network request was made."
+  ],
+  "limitations": [
+    "This review does not execute actual-checkpoint migration, restore, scratch input replay, deployment, or publication.",
+    "Candidate005 full validation remains the separately retained 2536-test receipt."
+  ],
+  "finished_at": "2026-09-17T18:37:49.408496+00:00"
+}

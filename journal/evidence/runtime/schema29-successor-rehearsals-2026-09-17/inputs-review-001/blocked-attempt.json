@@ -1,0 +1,78 @@
+{
+  "checked_at": "2026-09-17T19:03:30.855956+00:00",
+  "read_only": true,
+  "scratch": "/var/tmp/swingset-schema29-input-20260917-001",
+  "run_id": "run_20260917T185409Z",
+  "attempts": [
+    {
+      "attempt_id": 35052,
+      "stage": "parse",
+      "unit_kind": "snapshot",
+      "unit_id": "snap_20260909T150549Z_abf51d8711ef",
+      "queue_generation": 2,
+      "retry_generation": 0,
+      "work_token": "2026-09-17T18:47:52.862215+00:00",
+      "input_fingerprint": "67e1cf949c8da0a93c8ad42a21f3b97094553ab6c2fc465314bb833d13ccab5a",
+      "run_id": "run_20260917T185409Z",
+      "started_at": "2026-09-17T18:58:35.331883+00:00",
+      "finished_at": "2026-09-17T18:58:35.633298+00:00",
+      "outcome": "blocked",
+      "reason_code": "admission_needs_review",
+      "evidence_json": "{}",
+      "retry_at": null,
+      "requirement_id": "29596ff5d8cde2b9"
+    }
+  ],
+  "watch": [
+    {
+      "watch_id": "d90c36177bf77641",
+      "source": "wdr",
+      "kind": "event",
+      "parser": "wdr.rounds",
+      "source_ref": "wdr:fe9b06d3-4273-11f0-9a29-0aa72bbce9ea",
+      "url": "https://scores.worlddanceregistry.com/fe9b06d3-4273-11f0-9a29-0aa72bbce9ea/rounds/routeInfo.json"
+    }
+  ],
+  "findings": [
+    {
+      "finding_id": "29596ff5d8cde2b9",
+      "kind": "work_attempt",
+      "summary": "change the source inputs or implementation before retrying",
+      "evidence_json": "{\"input_fingerprint\":\"67e1cf949c8da0a93c8ad42a21f3b97094553ab6c2fc465314bb833d13ccab5a\",\"last_attempt_id\":35052,\"reason_code\":\"admission_needs_review\",\"stage\":\"parse\",\"unit_id\":\"snap_20260909T150549Z_abf51d8711ef\",\"unit_kind\":\"snapshot\"}",
+      "blocking_reason": "admission_needs_review",
+      "next_action": "change the source inputs or implementation before retrying"
+    },
+    {
+      "finding_id": "2352baa45f8a3928",
+      "kind": "parse_warning",
+      "summary": "WDR finals Bib # is preserved without assigning it to a partner",
+      "evidence_json": "{\"code\":\"wdr_finals_bib_unverified\",\"evidence\":{\"occurrences\":23,\"sample\":{\"round_id\":\"beed1dd3-0600-4085-80f2-3e44abb88580\"}}}",
+      "blocking_reason": null,
+      "next_action": "review"
+    },
+    {
+      "finding_id": "9fb9e2e801b320fe",
+      "kind": "parse_warning",
+      "summary": "WDR S<n> callback value is preserved without interpretation",
+      "evidence_json": "{\"code\":\"wdr_s_callback_unverified\",\"evidence\":{\"occurrences\":316,\"sample\":{\"round_id\":\"296d3c8c-528d-4697-9092-6e2498efa1ab\",\"value\":\"S5\"}}}",
+      "blocking_reason": null,
+      "next_action": "review"
+    },
+    {
+      "finding_id": "603e1af6daa706bb",
+      "kind": "admission_blocked",
+      "summary": "Source generation retained without promotion: needs_review (critical_unknown)",
+      "evidence_json": "{\"failures\":[\"critical_unknown\"],\"generation_id\":\"gen_ff363c20a1b73a1f1d2aa6cb18916e71044339e1297bac7c1ba9b61475ece15c\"}",
+      "blocking_reason": null,
+      "next_action": "review"
+    },
+    {
+      "finding_id": "694129755ef02505",
+      "kind": "admission_blocked",
+      "summary": "Source generation retained without promotion: needs_review (critical_unknown, non_authoritative_row_loss)",
+      "evidence_json": "{\"failures\":[\"critical_unknown\",\"non_authoritative_row_loss\"],\"generation_id\":\"gen_899d64af3d7c059f511137ae1466d24096df9ae084d51e49ff266df10599b637\"}",
+      "blocking_reason": null,
+      "next_action": "review"
+    }
+  ]
+}

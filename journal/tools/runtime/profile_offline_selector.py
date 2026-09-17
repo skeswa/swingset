@@ -1,4 +1,4 @@
-"""Profile one frozen003 offline selection on held disposable scratch, read-only.
+"""Profile one frozen offline selection on held disposable scratch, read-only.
 
 No parser/projector/linker worker is executed. The baseline keeps query_only=0,
 as the ordinary selector does, but SQLite mode=ro and an authorizer forbid writes.
@@ -70,13 +70,14 @@ def read_only(action: int, first: str | None, second: str | None, *_: Any) -> in
         sqlite3.SQLITE_ANALYZE,
     }:
         return sqlite3.SQLITE_DENY
-    if action == sqlite3.SQLITE_PRAGMA and (
-        second is not None
-        or first not in {"data_version", "query_only", "user_version", "table_info"}
-    ):
-        # table_info has an argument but only reads metadata.
-        if first != "table_info":
-            return sqlite3.SQLITE_DENY
+    if action == sqlite3.SQLITE_PRAGMA:
+        if first == "table_info":
+            return sqlite3.SQLITE_OK
+        if first == "query_only" and second in {None, "0", "1", "OFF", "ON"}:
+            return sqlite3.SQLITE_OK
+        if first in {"data_version", "user_version"} and second is None:
+            return sqlite3.SQLITE_OK
+        return sqlite3.SQLITE_DENY
     return sqlite3.SQLITE_OK
 
 
@@ -189,6 +190,8 @@ def main() -> None:
         parser.add_argument("--" + name, type=Path, required=True)
     parser.add_argument("--helper-sha256", required=True)
     parser.add_argument("--marker-sha256", required=True)
+    parser.add_argument("--source-receipt-sha256", default=SOURCE_SHA)
+    parser.add_argument("--schema", type=int, default=28)
     parser.add_argument("--seconds", type=float, default=30)
     args = parser.parse_args()
     os.umask(0o077)
@@ -216,8 +219,8 @@ def main() -> None:
         marker["format"] == "extension-input-scratch-v1"
         and marker["scratch"] == str(scratch)
         and marker["source"] == str(source)
-        and marker["source_receipt_sha256"] == SOURCE_SHA
-        and marker["schema"] == 28,
+        and marker["source_receipt_sha256"] == args.source_receipt_sha256
+        and marker["schema"] == args.schema,
         "scratch source/schema identity differs",
     )
     require(
@@ -226,7 +229,15 @@ def main() -> None:
         "scratch hold/restore interlock differs",
     )
     receipt = source / "extension-source.json"
-    require(sha(receipt) == SOURCE_SHA, "frozen003 receipt differs")
+    require(
+        sha(receipt) == args.source_receipt_sha256,
+        "frozen source receipt differs",
+    )
+    receipt_value = json.loads(receipt.read_bytes())
+    require(
+        receipt_value.get("schema") == args.schema,
+        "frozen source receipt schema differs",
+    )
     verifier = source / "journal/tools/runtime/rehearse_extension_migration.py"
     expected = json.loads(receipt.read_bytes())["files"][verifier.relative_to(source).as_posix()]
     require(
@@ -237,11 +248,14 @@ def main() -> None:
     assert spec and spec.loader
     util = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(util)
-    util.verify_source(source, receipt, SOURCE_SHA)
+    util.verify_source(source, receipt, args.source_receipt_sha256)
     sys.path[:0] = [str(source / "src"), str(source)]
     from swingset.schedule.fairness import next_offline
     from swingset.state import derivation_readiness, derivations
     from swingset.state.control_scopes import unit_allowed
+    from swingset.state.db import SCHEMA_VERSION
+
+    require(SCHEMA_VERSION == args.schema, "imported runtime schema differs")
 
     for name, module in tuple(sys.modules.items()):
         if name == "swingset" or name.startswith("swingset."):
@@ -249,7 +263,7 @@ def main() -> None:
             require(
                 isinstance(location, str)
                 and Path(location).resolve().is_relative_to(source / "src"),
-                "runtime import escaped frozen003",
+                "runtime import escaped frozen source",
             )
 
     def no_network(event: str, values: Any) -> None:
@@ -272,10 +286,10 @@ def main() -> None:
             conn.row_factory = sqlite3.Row
             conn.set_authorizer(read_only)
             require(
-                conn.execute("PRAGMA user_version").fetchone()[0] == 28
+                conn.execute("PRAGMA user_version").fetchone()[0] == args.schema
                 and conn.execute("SELECT value FROM meta WHERE key='schema_version'").fetchone()[0]
-                == "28",
-                "exact schema28 required",
+                == str(args.schema),
+                "exact requested schema required",
             )
             before = conn.execute("PRAGMA data_version").fetchone()[0]
             require(conn.total_changes == 0, "unexpected pre-profile writes")
@@ -296,16 +310,17 @@ def main() -> None:
             )
         finally:
             conn.close()
-    util.verify_source(source, receipt, SOURCE_SHA)
+    util.verify_source(source, receipt, args.source_receipt_sha256)
     require(
         sha(scratch / "operator-hold") == marker["retained_files"]["operator-hold"]["sha256"],
         "scratch hold changed",
     )
     report.update(
-        format="frozen003-offline-selector-profile-v1",
+        format="frozen-offline-selector-profile-v2",
         recorded_at=datetime.now(UTC).isoformat(),
         source=str(source),
-        source_receipt_sha256=SOURCE_SHA,
+        source_receipt_sha256=args.source_receipt_sha256,
+        schema=args.schema,
         scratch=str(scratch),
         marker_sha256=args.marker_sha256,
         helper_sha256=args.helper_sha256,

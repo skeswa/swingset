@@ -140,6 +140,13 @@ tar. `_transport/archive.json` authenticates the tar by size and SHA-256. This
 keeps a registry-scale checkpoint to three files in one atomic Hub commit;
 restore also accepts older checkpoints whose files were uploaded separately.
 
+The backup service sets `TMPDIR=/var/tmp` so the temporary tar uses disk. Preserve
+that setting in manually invoked checkpoint or upload helpers; for a transient
+unit, pass `--setenv=TMPDIR=/var/tmp` to `systemd-run`. This host's `/tmp` is
+memory-backed and cannot safely hold the full archive. A locally verified
+checkpoint is not remotely acknowledged until the upload and manifest check
+finish. Retain failed-attempt receipts and use a new attempt path when retrying.
+
 ## Pause, resume, source switches, and stopping
 
 ```sh
@@ -266,3 +273,9 @@ marker survives interruption and is cleared only after comparison succeeds.
 EEPro's operator conversation must be recorded in its playbook before live
 fetching. Do not reinterpret an unknown registry response as a missing dancer.
 WDR's unknown cell meanings remain raw evidence, with warnings where needed.
+
+When inspecting a verified sealed SQLite checkpoint directly, use
+`mode=ro&immutable=1` so SQLite does not create WAL or shared-memory sidecars
+outside its manifest. Do not use immutable mode for a live or changing database.
+An ordinary read-only connection must still read committed WAL contents there.
+See [the inspection decision](../../journal/decisions/0102-read-sealed-checkpoints-without-sqlite-sidecars.md).

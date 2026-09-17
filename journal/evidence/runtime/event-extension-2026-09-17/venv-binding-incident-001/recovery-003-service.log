@@ -1,0 +1,7 @@
+2026-09-17T22:45:28+00:00 swingset systemd[1]: Starting [systemd-run] /nix/store/2swgs700gln1w9llg54wmfp4sagp09xq-uv-0.9.30/bin/uv sync --project /nix/store/dx0cyzvd8d91rf29v21sakbr7l5bwxnz-source --offline --frozen --no-dev...
+2026-09-17T22:45:28+00:00 swingset systemd[1]: Started [systemd-run] /nix/store/2swgs700gln1w9llg54wmfp4sagp09xq-uv-0.9.30/bin/uv sync --project /nix/store/dx0cyzvd8d91rf29v21sakbr7l5bwxnz-source --offline --frozen --no-dev.
+2026-09-17T22:45:28+00:00 swingset uv[122706]: Uninstalled 1 package in 0.24ms
+2026-09-17T22:45:28+00:00 swingset uv[122706]: Installed 1 package in 4ms
+2026-09-17T22:45:28+00:00 swingset uv[122706]:  - swingset==0.1.0 (from file:///nix/store/rgyryll4d55rgzscdqhjcwmkr325a76f-source)
+2026-09-17T22:45:28+00:00 swingset uv[122706]:  + swingset==0.1.0 (from file:///nix/store/dx0cyzvd8d91rf29v21sakbr7l5bwxnz-source)
+2026-09-17T22:45:28+00:00 swingset systemd[1]: swingset-extension-venv-bind-20260917-003.service: Deactivated successfully.

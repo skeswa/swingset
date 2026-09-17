@@ -1,0 +1,584 @@
+{
+  "baseline_elapsed_ns": [
+    93999994,
+    90492304,
+    90090634,
+    101852337,
+    90636638,
+    95145680,
+    104726279
+  ],
+  "baseline_median_ns_per_update": 9591.83612244898,
+  "candidate_elapsed_ns": [
+    122433388,
+    127564714,
+    123495437,
+    115927929,
+    130512233,
+    120269666,
+    117872981
+  ],
+  "candidate_median_ns_per_update": 12493.202857142856,
+  "candidate_p95_ns_per_update": 13317.574795918368,
+  "cohort": [
+    {
+      "column": "consumer",
+      "key_columns": [
+        "rowid"
+      ],
+      "key_values": [
+        1
+      ],
+      "table": "accepted_inputs"
+    },
+    {
+      "column": "decision_id",
+      "key_columns": [
+        "rowid"
+      ],
+      "key_values": [
+        1
+      ],
+      "table": "admission_decisions"
+    },
+    {
+      "column": "page_kind",
+      "key_columns": [
+        "rowid"
+      ],
+      "key_values": [
+        1
+      ],
+      "table": "admission_policies"
+    },
+    {
+      "column": "report_digest",
+      "key_columns": [
+        "rowid"
+      ],
+      "key_values": [
+        1
+      ],
+      "table": "admission_reviews"
+    },
+    {
+      "column": "source",
+      "key_columns": [
+        "rowid"
+      ],
+      "key_values": [
+        1
+      ],
+      "table": "archive_captures"
+    },
+    {
+      "column": "query_id",
+      "key_columns": [
+        "rowid"
+      ],
+      "key_values": [
+        1
+      ],
+      "table": "archive_queries"
+    },
+    {
+      "column": "round_id",
+      "key_columns": [
+        "rowid"
+      ],
+      "key_values": [
+        1
+      ],
+      "table": "callback_marks"
+    },
+    {
+      "column": "round_id",
+      "key_columns": [
+        "rowid"
+      ],
+      "key_values": [
+        1
+      ],
+      "table": "callbacks"
+    },
+    {
+      "column": "scope_kind",
+      "key_columns": [
+        "rowid"
+      ],
+      "key_values": [
+        1
+      ],
+      "table": "canonical_scope_rows"
+    },
+    {
+      "column": "contest_id",
+      "key_columns": [
+        "rowid"
+      ],
+      "key_values": [
+        1
+      ],
+      "table": "contests"
+    },
+    {
+      "column": "year",
+      "key_columns": [
+        "rowid"
+      ],
+      "key_values": [
+        1
+      ],
+      "table": "coverage"
+    },
+    {
+      "column": "name",
+      "key_columns": [
+        "rowid"
+      ],
+      "key_values": [
+        1
+      ],
+      "table": "cursors"
+    },
+    {
+      "column": "wsdc_id",
+      "key_columns": [
+        "rowid"
+      ],
+      "key_values": [
+        1
+      ],
+      "table": "dancers"
+    },
+    {
+      "column": "dependency_set_id",
+      "key_columns": [
+        "rowid"
+      ],
+      "key_values": [
+        1
+      ],
+      "table": "derivation_dependency_sets"
+    },
+    {
+      "column": "generation_id",
+      "key_columns": [
+        "rowid"
+      ],
+      "key_values": [
+        1
+      ],
+      "table": "derivation_generations"
+    },
+    {
+      "column": "namespace",
+      "key_columns": [
+        "rowid"
+      ],
+      "key_values": [
+        1
+      ],
+      "table": "derivation_input_versions"
+    },
+    {
+      "column": "generation_id",
+      "key_columns": [
+        "rowid"
+      ],
+      "key_values": [
+        1
+      ],
+      "table": "derivation_rows"
+    },
+    {
+      "column": "stage",
+      "key_columns": [
+        "rowid"
+      ],
+      "key_values": [
+        1
+      ],
+      "table": "derivation_scopes"
+    },
+    {
+      "column": "entry_id",
+      "key_columns": [
+        "rowid"
+      ],
+      "key_values": [
+        1
+      ],
+      "table": "entries"
+    },
+    {
+      "column": "event_id",
+      "key_columns": [
+        "rowid"
+      ],
+      "key_values": [
+        1
+      ],
+      "table": "events"
+    },
+    {
+      "column": "round_id",
+      "key_columns": [
+        "rowid"
+      ],
+      "key_values": [
+        1
+      ],
+      "table": "final_marks"
+    },
+    {
+      "column": "finding_id",
+      "key_columns": [
+        "rowid"
+      ],
+      "key_values": [
+        1
+      ],
+      "table": "finding_support"
+    },
+    {
+      "column": "finding_id",
+      "key_columns": [
+        "rowid"
+      ],
+      "key_values": [
+        1
+      ],
+      "table": "findings"
+    },
+    {
+      "column": "digest",
+      "key_columns": [
+        "rowid"
+      ],
+      "key_values": [
+        1
+      ],
+      "table": "identity_journal_acceptances"
+    },
+    {
+      "column": "history_id",
+      "key_columns": [
+        "rowid"
+      ],
+      "key_values": [
+        1
+      ],
+      "table": "identity_link_history"
+    },
+    {
+      "column": "subject_kind",
+      "key_columns": [
+        "rowid"
+      ],
+      "key_values": [
+        1
+      ],
+      "table": "identity_link_resolutions"
+    },
+    {
+      "column": "link_id",
+      "key_columns": [
+        "rowid"
+      ],
+      "key_values": [
+        1714120
+      ],
+      "table": "identity_links"
+    },
+    {
+      "column": "binding_id",
+      "key_columns": [
+        "rowid"
+      ],
+      "key_values": [
+        1
+      ],
+      "table": "identity_reference_bindings"
+    },
+    {
+      "column": "ref_id",
+      "key_columns": [
+        "rowid"
+      ],
+      "key_values": [
+        1
+      ],
+      "table": "identity_source_refs"
+    },
+    {
+      "column": "judge_id",
+      "key_columns": [
+        "rowid"
+      ],
+      "key_values": [
+        1
+      ],
+      "table": "judges"
+    },
+    {
+      "column": "subject_kind",
+      "key_columns": [
+        "rowid"
+      ],
+      "key_values": [
+        370480
+      ],
+      "table": "link_candidates"
+    },
+    {
+      "column": "key",
+      "key_columns": [
+        "rowid"
+      ],
+      "key_values": [
+        1
+      ],
+      "table": "meta"
+    },
+    {
+      "column": "observation_id",
+      "key_columns": [
+        "rowid"
+      ],
+      "key_values": [
+        173
+      ],
+      "table": "observations"
+    },
+    {
+      "column": "stage",
+      "key_columns": [
+        "rowid"
+      ],
+      "key_values": [
+        1
+      ],
+      "table": "pending_work"
+    },
+    {
+      "column": "placement_id",
+      "key_columns": [
+        "rowid"
+      ],
+      "key_values": [
+        1
+      ],
+      "table": "placements"
+    },
+    {
+      "column": "wsdc_id",
+      "key_columns": [
+        "rowid"
+      ],
+      "key_values": [
+        180
+      ],
+      "table": "registry_placements"
+    },
+    {
+      "column": "verification_id",
+      "key_columns": [
+        "rowid"
+      ],
+      "key_values": [
+        1
+      ],
+      "table": "registry_verifications"
+    },
+    {
+      "column": "name",
+      "key_columns": [
+        "rowid"
+      ],
+      "key_values": [
+        1
+      ],
+      "table": "revisions"
+    },
+    {
+      "column": "round_id",
+      "key_columns": [
+        "rowid"
+      ],
+      "key_values": [
+        1
+      ],
+      "table": "rounds"
+    },
+    {
+      "column": "series_id",
+      "key_columns": [
+        "rowid"
+      ],
+      "key_values": [
+        1
+      ],
+      "table": "series"
+    },
+    {
+      "column": "snapshot_id",
+      "key_columns": [
+        "rowid"
+      ],
+      "key_values": [
+        1
+      ],
+      "table": "snapshots"
+    },
+    {
+      "column": "source",
+      "key_columns": [
+        "rowid"
+      ],
+      "key_values": [
+        1
+      ],
+      "table": "source_event_map"
+    },
+    {
+      "column": "scope_id",
+      "key_columns": [
+        "rowid"
+      ],
+      "key_values": [
+        1
+      ],
+      "table": "source_event_scope_rows"
+    },
+    {
+      "column": "source",
+      "key_columns": [
+        "rowid"
+      ],
+      "key_values": [
+        1
+      ],
+      "table": "source_events"
+    },
+    {
+      "column": "generation_id",
+      "key_columns": [
+        "rowid"
+      ],
+      "key_values": [
+        1
+      ],
+      "table": "source_generations"
+    },
+    {
+      "column": "unit_key",
+      "key_columns": [
+        "rowid"
+      ],
+      "key_values": [
+        1
+      ],
+      "table": "source_units"
+    },
+    {
+      "column": "watch_id",
+      "key_columns": [
+        "rowid"
+      ],
+      "key_values": [
+        1
+      ],
+      "table": "watches"
+    },
+    {
+      "column": "attempt_id",
+      "key_columns": [
+        "rowid"
+      ],
+      "key_values": [
+        1
+      ],
+      "table": "work_attempts"
+    },
+    {
+      "column": "stage",
+      "key_columns": [
+        "rowid"
+      ],
+      "key_values": [
+        1
+      ],
+      "table": "work_generations"
+    }
+  ],
+  "cohort_skipped": [
+    "heats:empty",
+    "history_acceptance:empty",
+    "identity_decisions:empty",
+    "identity_reference_migrations:empty",
+    "source_event_enumeration_members:empty",
+    "source_event_enumerations:empty",
+    "source_event_inventory:empty",
+    "source_event_member_watches:empty",
+    "source_event_retirement_proofs:empty",
+    "source_event_retirement_receipts:empty"
+  ],
+  "fence_revision_before_and_after": 1,
+  "finished_at": "2026-09-17T19:13:04.229647+00:00",
+  "format": "schema29-dispatch-trigger-overhead-v1",
+  "input_acceptance": false,
+  "limitations": [
+    "This is an isolated schema29 dispatch-trigger diagnostic; it excludes interaction with preexisting triggers and their costs, durable commit/fsync cost, parsing, selection and network service.",
+    "Empty target tables cannot provide an existing row and are listed in cohort_skipped; every nonempty target table is measured.",
+    "This microbenchmark does not establish sustained replay throughput or fixed-cohort acquisition service."
+  ],
+  "median_overhead_ns_per_update": 2901.3667346938773,
+  "median_overhead_ratio": 1.3024829342010384,
+  "migration_receipt_sha256": "b2721d9b3920af9f54e4bc1504bac200a76f72f95dd95a84a21565427d73b97f",
+  "migration_specimen": "/var/tmp/swingset-schema29-migration-20260917-001",
+  "migration_sql_sha256": "ba2f46accc102636d8268dfbfaf08a766e34aa6fbb369cf30ee465de81b739d4",
+  "migration_trigger_count": 177,
+  "network_requests": 0,
+  "passed": true,
+  "preexisting_trigger_count": 489,
+  "preexisting_triggers_disabled_in_both_variants": true,
+  "production_operations": 0,
+  "publication": false,
+  "rehearsal_packet_sha256": "6748af985bbe7b6a74c30c094c72cc117fd6f259a661fb5aeb052e51e309d230",
+  "repairs_activated": false,
+  "rollback_verified": true,
+  "rounds_per_sample": 200,
+  "sample_order": [
+    "baseline",
+    "candidate",
+    "candidate",
+    "baseline",
+    "baseline",
+    "candidate",
+    "candidate",
+    "baseline",
+    "baseline",
+    "candidate",
+    "candidate",
+    "baseline",
+    "baseline",
+    "candidate"
+  ],
+  "samples": 7,
+  "scope": "paired no-op UPDATEs on one existing row in each nonempty schema29 target table; all preexisting non-schema29 triggers are disabled in both variants, while only the exact history_timing_* trigger set differs between variants",
+  "scratch": "/var/tmp/swingset-schema29-overhead-20260917-002",
+  "scratch_database_sha256_after": "eb85e0df0f534d71aa1bd5ec616d283af0e25ccdc3ddeeffaf5791acf478bf21",
+  "scratch_database_sha256_before": "eb85e0df0f534d71aa1bd5ec616d283af0e25ccdc3ddeeffaf5791acf478bf21",
+  "scratch_hold_sha256": "965468bb03ba65b6d1d4950ab8e85c09c8f2f2a323461b7a3f2b6177bba5c638",
+  "source": "/nix/store/z0rnsn69aav2h8p2wgzydar6k9rw5kk9-source",
+  "source_receipt_sha256": "9255e8641a24c21c0942512ec251b32dd294bc6f2a537868a0012cafe331dc99",
+  "specimen_database_bytes": 5016920064,
+  "specimen_database_sha256": "eb85e0df0f534d71aa1bd5ec616d283af0e25ccdc3ddeeffaf5791acf478bf21",
+  "specimen_database_sha256_before": "eb85e0df0f534d71aa1bd5ec616d283af0e25ccdc3ddeeffaf5791acf478bf21",
+  "specimen_receipt_sha256": "b2721d9b3920af9f54e4bc1504bac200a76f72f95dd95a84a21565427d73b97f",
+  "started_at": "2026-09-17T19:13:02.607948+00:00",
+  "target_table_count": 59,
+  "trigger_inventory_restored": true,
+  "updates_per_sample": 9800
+}

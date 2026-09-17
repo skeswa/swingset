@@ -23,7 +23,8 @@ Local state is what the worker keeps between runs: saved evidence, database rows
 
 One file, WAL mode, `foreign_keys = ON`, schema versioned by numbered
 SQL migrations under `state/migrations/`. Names match the published
-tables where a table is published.
+tables where a table is published. The [schema history](schema-history.md) lists
+what each numbered migration changes and links to its exact SQL.
 
 Internal tables:
 

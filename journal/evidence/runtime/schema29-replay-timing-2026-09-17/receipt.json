@@ -1,0 +1,106 @@
+{
+  "format": "schema29-replay-attempt-timing-v1",
+  "passed": true,
+  "checked_at": "2026-09-17T21:44:40Z",
+  "read_only": true,
+  "scratch": "/var/tmp/swingset-schema29-input-20260917-001/state.sqlite",
+  "source": "/nix/store/z0rnsn69aav2h8p2wgzydar6k9rw5kk9-source",
+  "source_receipt_sha256": "9255e8641a24c21c0942512ec251b32dd294bc6f2a537868a0012cafe331dc99",
+  "checkpoint_manifest_sha256": "4929859092cbd3e15122f3598b5da477a65498976cc744c52cf2b142d1cebea3",
+  "inputs": [
+    {
+      "path": "journal/evidence/runtime/schema29-successor-rehearsals-2026-09-17/inputs-001/drain-001.json",
+      "sha256": "7ec985b1753fa14b6d3d01cc3a8f88a9224b3fdd25fd71dc4226efd06d613e20"
+    },
+    {
+      "path": "journal/evidence/runtime/schema29-successor-rehearsals-2026-09-17/inputs-001/drain-002.json",
+      "sha256": "a1d1dccd080a27098c1c8b881c44884577d02a683211bd935d9698c2dfc61c39"
+    }
+  ],
+  "method": {
+    "query": "journal/investigations/2026/schema29-replay-throughput-next-2026-09-17.md#read-only-timing-query",
+    "transaction": "PRAGMA query_only=ON; BEGIN; aggregate; ROLLBACK",
+    "fixture_passed": true,
+    "no_replay_service_active": true,
+    "attempts_per_run": 100,
+    "unfinished_attempts_per_run": 0,
+    "negative_inter_attempt_gaps": 0
+  },
+  "groups": [
+    {
+      "run_id": "run_20260917T185409Z",
+      "stage": "parse",
+      "attempts": 33,
+      "succeeded": 32,
+      "non_successful": 1,
+      "execution_seconds": 4.129,
+      "mean_execution_seconds": 0.125,
+      "max_execution_seconds": 1.245,
+      "preceding_gap_seconds": 128.206,
+      "mean_preceding_gap_seconds": 4.006,
+      "min_preceding_gap_seconds": 3.752
+    },
+    {
+      "run_id": "run_20260917T185409Z",
+      "stage": "project",
+      "attempts": 67,
+      "succeeded": 67,
+      "non_successful": 0,
+      "execution_seconds": 7.959,
+      "mean_execution_seconds": 0.119,
+      "max_execution_seconds": 3.098,
+      "preceding_gap_seconds": 257.784,
+      "mean_preceding_gap_seconds": 3.848,
+      "min_preceding_gap_seconds": 0.429
+    },
+    {
+      "run_id": "run_20260917T191421Z",
+      "stage": "parse",
+      "attempts": 33,
+      "succeeded": 31,
+      "non_successful": 2,
+      "execution_seconds": 3.983,
+      "mean_execution_seconds": 0.121,
+      "max_execution_seconds": 0.773,
+      "preceding_gap_seconds": 129.095,
+      "mean_preceding_gap_seconds": 3.912,
+      "min_preceding_gap_seconds": 3.75
+    },
+    {
+      "run_id": "run_20260917T191421Z",
+      "stage": "project",
+      "attempts": 67,
+      "succeeded": 67,
+      "non_successful": 0,
+      "execution_seconds": 3.622,
+      "mean_execution_seconds": 0.054,
+      "max_execution_seconds": 0.11,
+      "preceding_gap_seconds": 268.169,
+      "mean_preceding_gap_seconds": 4.063,
+      "min_preceding_gap_seconds": 3.78
+    }
+  ],
+  "run_totals": [
+    {
+      "run_id": "run_20260917T185409Z",
+      "receipt_elapsed_seconds": 402.1713,
+      "recorded_execution_seconds": 12.088,
+      "recorded_preceding_gap_seconds": 385.99,
+      "covered_attempt_interval_seconds": 398.078
+    },
+    {
+      "run_id": "run_20260917T191421Z",
+      "receipt_elapsed_seconds": 413.86,
+      "recorded_execution_seconds": 7.605,
+      "recorded_preceding_gap_seconds": 397.264,
+      "covered_attempt_interval_seconds": 404.869
+    }
+  ],
+  "finding": "Between-attempt gaps dominate both measured attempt intervals. They include scheduler selection, service accounting, admission and derivation capture; they are not pure selector time.",
+  "next_gate": "Use one independently reviewed selector-only profile on a fresh candidate-bound schema-29 copy before changing parser or projector behavior.",
+  "limits": [
+    "The first-attempt setup gap and turn finalization are outside the covered interval.",
+    "The result does not measure acquisition or sustained throughput.",
+    "The result does not establish operating acceptance, deployment or publication."
+  ]
+}

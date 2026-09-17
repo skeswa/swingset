@@ -1,0 +1,20 @@
+Sep 17 20:08:24 swingset systemd[1]: Started [systemd-run] /var/lib/swingset/venv/bin/python /var/lib/swingset/operations/v2-resume-20260917/schema29-packet-004/runner.py run --packet-sha256 366b0dbab70048cc2b85c4bdb7e06d24973478d8cfee965ee01ebb40d7fb5300 inputs -- prepare --scratch /var/tmp/swingset-schema29-input-20260917-002 --output /var/tmp/swingset-schema29-input-receipts-20260917-002/prepare.json.
+Sep 17 20:08:28 swingset python[120318]: Traceback (most recent call last):
+Sep 17 20:08:28 swingset python[120318]:   File "/var/lib/swingset/operations/v2-resume-20260917/schema29-packet-004/runner.py", line 428, in <module>
+Sep 17 20:08:28 swingset python[120318]:     main()
+Sep 17 20:08:28 swingset python[120318]:   File "/var/lib/swingset/operations/v2-resume-20260917/schema29-packet-004/runner.py", line 424, in main
+Sep 17 20:08:28 swingset python[120318]:     run(Path(__file__).resolve().parent, args.packet_sha256, args.kind, values)
+Sep 17 20:08:28 swingset python[120318]:   File "/var/lib/swingset/operations/v2-resume-20260917/schema29-packet-004/runner.py", line 379, in run
+Sep 17 20:08:28 swingset python[120318]:     module.main()
+Sep 17 20:08:28 swingset python[120318]:   File "/var/lib/swingset/operations/v2-resume-20260917/schema29-packet-004/inputs.py", line 469, in main
+Sep 17 20:08:28 swingset python[120318]:     marker = prepare(checkpoint, scratch, source, util)
+Sep 17 20:08:28 swingset python[120318]:              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Sep 17 20:08:28 swingset python[120318]:   File "/var/lib/swingset/operations/v2-resume-20260917/schema29-packet-004/inputs.py", line 230, in prepare
+Sep 17 20:08:28 swingset python[120318]:     manifest = verify_checkpoint(checkpoint, maximum_schema_version=29)
+Sep 17 20:08:28 swingset python[120318]:                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Sep 17 20:08:28 swingset python[120318]:   File "/nix/store/z0rnsn69aav2h8p2wgzydar6k9rw5kk9-source/src/swingset/backup/checkpoint.py", line 263, in verify_checkpoint
+Sep 17 20:08:28 swingset python[120318]:     raise CheckpointError(
+Sep 17 20:08:28 swingset python[120318]: swingset.backup.checkpoint.CheckpointError: checkpoint closure differs: missing=[], extra=['state.sqlite-shm', 'state.sqlite-wal']
+Sep 17 20:08:28 swingset systemd[1]: swingset-schema29-input-prepare-20260917-002.service: Main process exited, code=exited, status=1/FAILURE
+Sep 17 20:08:28 swingset systemd[1]: swingset-schema29-input-prepare-20260917-002.service: Failed with result 'exit-code'.
+Sep 17 20:08:28 swingset systemd[1]: swingset-schema29-input-prepare-20260917-002.service: Consumed 4.079s CPU time, 274M memory peak, 209.6M read from disk, 8K written to disk.

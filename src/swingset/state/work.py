@@ -206,10 +206,18 @@ def bump_revision(conn: sqlite3.Connection, name: str) -> None:
 def affected_work(conn: sqlite3.Connection, input_name: str) -> Iterable[WorkUnit]:
     """The centralized invalidation map from the state contract."""
     if input_name == "recipe/runtime":
-        conn.execute("UPDATE watches SET extract_version=NULL")
+        manual_crosscheck = (
+            "source='crosscheck' AND kind='registry_dump' AND method='MANUAL' "
+            "AND parser='registry_crosscheck'"
+        )
+        conn.execute(f"UPDATE watches SET extract_version=NULL WHERE NOT ({manual_crosscheck})")
         return tuple(
             WorkUnit("parse", "snapshot", str(row[0]))
-            for row in conn.execute("SELECT snapshot_id FROM snapshots")
+            for row in conn.execute(
+                "SELECT s.snapshot_id FROM snapshots s JOIN watches w USING(watch_id) "
+                "WHERE NOT (w.source='crosscheck' AND w.kind='registry_dump' "
+                "AND w.method='MANUAL' AND w.parser='registry_crosscheck')"
+            )
         )
     if input_name.startswith(("extract_version:", "version/extract/")):
         kind = input_name.rsplit(":" if ":" in input_name else "/", 1)[1]

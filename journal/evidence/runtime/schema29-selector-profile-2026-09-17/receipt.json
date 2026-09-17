@@ -1,0 +1,69 @@
+{
+  "format": "schema29-selector-profile-receipt-v1",
+  "passed": true,
+  "started_at": "2026-09-17T21:55:22Z",
+  "finished_at": "2026-09-17T21:55:34Z",
+  "source": "/nix/store/z0rnsn69aav2h8p2wgzydar6k9rw5kk9-source",
+  "source_receipt_sha256": "9255e8641a24c21c0942512ec251b32dd294bc6f2a537868a0012cafe331dc99",
+  "schema": 29,
+  "scratch": "/var/tmp/swingset-schema29-input-20260917-003",
+  "marker_sha256": "0225b825d144769737f444b1fe0891c55e08dd791834a30fbd29b27972cdf627",
+  "helper_sha256": "36d3ae4cd74db82724480fb0ea50b37387b194d3317fa49b90944a7b9c72f782",
+  "independent_review": "passed full synthetic candidate-005/schema-29 and legacy-default invocations before execution",
+  "bounds": {
+    "selection_seconds": 30,
+    "service_runtime_seconds": 11.351,
+    "private_network": true,
+    "memory_max_bytes": 8589934592,
+    "output_was_new": true
+  },
+  "result": {
+    "status": "selected",
+    "elapsed_seconds": 10.180808205972426,
+    "selected": {
+      "stage": "project",
+      "kind": "source_index",
+      "unit_id": "eepro"
+    },
+    "baseline_query_only": 0,
+    "sqlite_read_only": true,
+    "database_total_changes": 0,
+    "data_version_unchanged": true,
+    "worker_executions": 0,
+    "network_requests": 0,
+    "production_applied": false,
+    "dancer_readiness_calls": 1,
+    "inventory_current_seconds": 3.198811695969198,
+    "inventory_desired_seconds": 3.1103835059911944,
+    "event_current_calls": 2541,
+    "event_current_seconds": 1.378432335681282,
+    "event_desired_seconds": 1.060191610478796,
+    "history_current_seconds": 0.8228488889872096,
+    "history_desired_seconds": 0.8220314719947055,
+    "currentness_cumulative_seconds": 6.815627556,
+    "next_work_cumulative_seconds": 5.927979099
+  },
+  "scratch_outputs": {
+    "report": {
+      "path": "/var/tmp/swingset-schema29-selector-profile-20260917-001/report.json",
+      "bytes": 16689,
+      "sha256": "c4d53b991b2f30655bd2aa6e05cdcc35a1fa2a06538751b2adb9d32f8a16c214"
+    },
+    "cprofile": {
+      "path": "/var/tmp/swingset-schema29-selector-profile-20260917-001/selector.prof",
+      "bytes": 33154,
+      "sha256": "2f3f6f27655124c8b4230749614d8ca6b4ed8093ee811bc11f6d28eb8d186d2c"
+    }
+  },
+  "post_state": {
+    "operator_hold_sha256": "965468bb03ba65b6d1d4950ab8e85c09c8f2f2a323461b7a3f2b6177bba5c638",
+    "six_ordinary_units_inactive": true
+  },
+  "finding": "The optimized selector completes but still takes 10.18 instrumented seconds. Inventory currentness dominates the selected path; event and history currentness also contribute. This profile does not explain the roughly four-second mean gaps as selector time alone and is not sustained throughput evidence.",
+  "limits": [
+    "cProfile and function wrappers add overhead; this is not uninstrumented throughput.",
+    "The selected unit was not executed.",
+    "The full report and cProfile output remain disposable scratch, referenced here by path and hash.",
+    "No production input acceptance, deployment, collection, repair activation or publication occurred."
+  ]
+}

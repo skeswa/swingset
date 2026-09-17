@@ -1,0 +1,6 @@
+Sep 17 19:26:04 swingset systemd[1]: Started [systemd-run] /var/lib/swingset/venv/bin/python /var/lib/swingset/operations/v2-resume-20260917/checkpoint-extension28-003.py --output /var/tmp/swingset-extension28-checkpoint-receipts-20260917-003 --checkpoint /var/lib/swingset/checkpoints/extension28-held-20260917-003 --upload.
+Sep 17 19:29:48 swingset python[120001]: {"phase": "checkpoint_verified", "path": "/var/lib/swingset/checkpoints/extension28-held-20260917-003", "manifest_sha256": "6ac7bb2d291136ef502abcb33f8762bf4449fd2fdc0160fb995f2aba0921f9d9", "files": 68866, "bytes": 8770615161}
+Sep 17 19:31:16 swingset systemd[1]: swingset-extension28-checkpoint-20260917-003.service: A process of this unit has been killed by the OOM killer.
+Sep 17 19:31:16 swingset systemd[1]: swingset-extension28-checkpoint-20260917-003.service: Main process exited, code=killed, status=9/KILL
+Sep 17 19:31:16 swingset systemd[1]: swingset-extension28-checkpoint-20260917-003.service: Failed with result 'oom-kill'.
+Sep 17 19:31:16 swingset systemd[1]: swingset-extension28-checkpoint-20260917-003.service: Consumed 4min 11.181s CPU time, 6.4G memory peak, 252.3G read from disk, 8.6G written to disk, 8.9K incoming IP traffic, 2.3K outgoing IP traffic.

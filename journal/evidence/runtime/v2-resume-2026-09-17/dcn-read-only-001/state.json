@@ -1,0 +1,12 @@
+{
+  "checked_at": "2026-09-17T18:43:35.754805+00:00",
+  "read_only": true,
+  "host": "danceconvention.net",
+  "capacity_reserved": false,
+  "source_requests": 0,
+  "hosts": [],
+  "host_budget": [],
+  "host_request_spacing": [],
+  "host_request_spacing_baselines": [],
+  "operator_pauses": []
+}

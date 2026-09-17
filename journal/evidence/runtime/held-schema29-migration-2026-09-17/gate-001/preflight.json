@@ -1,0 +1,58 @@
+{
+  "format": "held-schema29-live-migration-gate-v1",
+  "helper_sha256": "7ad38b1f328915c0ef9e9a2aeb4f85b2dbb62f6ad81268898a591bf0ec59be50",
+  "state": "/var/lib/swingset",
+  "source": "/nix/store/rgyryll4d55rgzscdqhjcwmkr325a76f-source",
+  "source_receipt_sha256": "a2704c7c99ce5aef4fbd0f0df8b23343be5df2a688945e236b8e6856b320ad5f",
+  "predecessor_source": "/nix/store/dx0cyzvd8d91rf29v21sakbr7l5bwxnz-source",
+  "predecessor_system": "/nix/store/lzwkabfmbz46d05yi5k41nq56i7jjh74-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+  "target_system": "/nix/store/5d9nlyflv9d4gb89a5wayhiarj01znnh-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+  "phase": "before_deployment",
+  "source_receipt": {
+    "path": "/nix/store/rgyryll4d55rgzscdqhjcwmkr325a76f-source/extension-source.json",
+    "sha256": "a2704c7c99ce5aef4fbd0f0df8b23343be5df2a688945e236b8e6856b320ad5f"
+  },
+  "checkpoint": {
+    "path": "/var/lib/swingset/checkpoints/extension28-held-20260917-004",
+    "manifest_sha256": "6ac7bb2d291136ef502abcb33f8762bf4449fd2fdc0160fb995f2aba0921f9d9",
+    "archive_commit": "68d738dcd78cb1654d053b479ea6dbd911f4b8ed",
+    "capture_receipt": {
+      "path": "/Users/skeswa/repos/skeswa/swingset/journal/evidence/runtime/schema28-checkpoint-2026-09-17/production-004/receipt.json",
+      "sha256": "804e4b8fa2af496ea7640339760a5dec3ac2565d5731547417a835083cf9551d"
+    },
+    "verified_summary": {
+      "path": "/Users/skeswa/repos/skeswa/swingset/journal/evidence/runtime/schema28-checkpoint-2026-09-17/production-004/checkpoint-verified.json",
+      "sha256": "899500a757936b6fe90c9408c9b47058b3006ec6163e12855991566533d96a41"
+    },
+    "checkpoint_helper": {
+      "path": "/Users/skeswa/repos/skeswa/swingset/journal/evidence/runtime/schema28-checkpoint-2026-09-17/production-004/checkpoint.py",
+      "sha256": "10bdfb40799a348ab948cca9934639b873676cf737e11a0532ba603960d099ba"
+    }
+  },
+  "packet": {
+    "path": "/var/lib/swingset/operations/v2-resume-20260917/schema29-packet-005/packet.json",
+    "sha256": "0d455559b7e0cd767cb1739f10271eb12e8178bebb5a4ab283bd8e74733b6ff3"
+  },
+  "evidence": {
+    "validation": {
+      "path": "/Users/skeswa/repos/skeswa/swingset/journal/evidence/runtime/event-extension-2026-09-17/validation-006/validation.json",
+      "sha256": "57c02e301dcc6d1f2c8824b0380d6c28bea85dc49e840a9128cd1f955298d9d1"
+    },
+    "build": {
+      "path": "/Users/skeswa/repos/skeswa/swingset/journal/evidence/runtime/event-extension-2026-09-17/build-006/receipt.json",
+      "sha256": "d3716d6c173c8a67d6612006bbcdfe2a415c006657a52816f047934458411d79"
+    },
+    "service_binding": {
+      "path": "/Users/skeswa/repos/skeswa/swingset/journal/evidence/runtime/event-extension-2026-09-17/service-binding-006-review-001/service-binding.json",
+      "sha256": "fecbbffcab8233fe9c33ec667a5c6e8387d0cc11a48d483f8e2fda3f761f9e6e"
+    },
+    "packet_review": {
+      "path": "/Users/skeswa/repos/skeswa/swingset/journal/evidence/runtime/schema29-successor-rehearsals-2026-09-17/packet005-independent-review-001/receipt.json",
+      "sha256": "258877dba4d98d41ededd5d0d8248b558f90274a2f4704f0add34702e2b584a3"
+    },
+    "actual_review": {
+      "path": "/Users/skeswa/repos/skeswa/swingset/journal/evidence/runtime/schema29-successor-rehearsals-2026-09-17/actual-review-005/receipt.json",
+      "sha256": "efe8547205a7d938dbc65a9f720cf47635ddd78cbe7f4ab7833099cf307b803d"
+    }
+  }
+}

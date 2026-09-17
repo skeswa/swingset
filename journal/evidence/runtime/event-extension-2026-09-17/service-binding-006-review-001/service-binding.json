@@ -1,0 +1,91 @@
+{
+  "candidate": {
+    "frozen_config_sha256": {
+      "config/hosts.toml": "a32134c7dd6891b8a2f7856cf6851651d5617af937b8c45cb63b9541e8be74d1",
+      "config/sources.toml": "acd354d61fc559a0d29198c6521c41278d4d76103dc87fa96fc3db8e4b121ee1",
+      "pyproject.toml": "304f978e63fd86a6e50e52fe3a66d984c6d37e8c3673f74021b662a3d646de2e",
+      "uv.lock": "4a062de47b10d5a4e2c6130395349f4c04b0648b96ab8e44debcfd274f1acb6d"
+    },
+    "generated_units": {
+      "swingset-backup.service": "ab2d4c1ced4e35b84e313066c0cced77f0c704e22760fd1456dd75b9f9a03f79",
+      "swingset-backup.timer": "28c7f714b7288bd6f58ef9dc1916c09c8178a758053fef6cb63e803baa742792",
+      "swingset-cycle.service": "a82f577462e653e3892ebe4ad607918092c309e0b6844bcb351ec6592d453e4d",
+      "swingset-cycle.timer": "a5118a8743071cbcb531163dc3e9f61fdddd9b7f2aba2927310ab316d99bac24",
+      "swingset-summary.service": "751b314997c08deff83623e559aefa3dda7d5c8215c6083e178f8855225051c9",
+      "swingset-summary.timer": "5f2613b3cde179b98cc9745cf8de152ba117e87b53047aa33f8c18aa53d5908a"
+    },
+    "package": "/nix/store/lcay4ij6fa093g7wfk4g2imdsqza7d32-swingset",
+    "package_script_sha256": "560fde830aab9a947b39ff4740d48fdce116a3eeb5fd2486166e028a065cd0b7",
+    "source": "/nix/store/rgyryll4d55rgzscdqhjcwmkr325a76f-source",
+    "source_files": 2939,
+    "source_receipt_sha256": "a2704c7c99ce5aef4fbd0f0df8b23343be5df2a688945e236b8e6856b320ad5f",
+    "system": "/nix/store/5d9nlyflv9d4gb89a5wayhiarj01znnh-nixos-system-swingset-lxc-25.11.20260630.b6018f8"
+  },
+  "checked_at": "2026-09-17T21:50:20.664312+00:00",
+  "external_overrides": {
+    "all_six_match_candidate_and_production": true,
+    "directory": "/Users/skeswa/repos/skeswa/swingset/overrides",
+    "sha256": {
+      "event_aliases.csv": "2a0ef9ae578fe194a512f490b6cb80d99d6b78133b57e5409c0f52dad575d9da",
+      "identity_overrides.csv": "e1487f143891001bc7ddb16cfe6e32003e1ac95628fcaa3a03849e3806f6a246",
+      "nicknames.csv": "468106077a4b1aac34289b705b16e38f7bc29de28376d5db052d84a3c5e50dcf",
+      "series_aliases.csv": "92366188e4295b901772dbe1cc3e1f12116fab46be9765a577a8845e31815642",
+      "source_urls.csv": "cce22c27665b53c67291a41dc18e99989b6b3eab4fe817aeb5e902e6f251e9a1",
+      "suppressions.csv": "2362faa4e3e099c1d307b9a72182e016f60818ab067135be75feb53bccd61fd9"
+    }
+  },
+  "failures": [],
+  "format": "event-extension-service-binding-review-v1",
+  "limitations": [
+    "Read-only review only; no activation, input acceptance, checkpoint mutation, network request or publication was performed.",
+    "Independent review remains separate from this coordinator-generated receipt."
+  ],
+  "normalized_unit_comparison": {
+    "all_six_identical": true,
+    "checks": {
+      "backup:disk_tmp": true,
+      "swingset-backup.service:account": true,
+      "swingset-backup.service:hold": true,
+      "swingset-backup.service:protection": true,
+      "swingset-cycle.service:account": true,
+      "swingset-cycle.service:hold": true,
+      "swingset-cycle.service:protection": true,
+      "swingset-summary.service:account": true,
+      "swingset-summary.service:hold": true,
+      "swingset-summary.service:protection": true
+    },
+    "method": "replace only candidate006 or deployed source and package store paths with common tokens",
+    "units": {
+      "swingset-backup.service": true,
+      "swingset-backup.timer": true,
+      "swingset-cycle.service": true,
+      "swingset-cycle.timer": true,
+      "swingset-summary.service": true,
+      "swingset-summary.timer": true
+    }
+  },
+  "passed": true,
+  "production_read_only_state": {
+    "active_system": "/nix/store/lzwkabfmbz46d05yi5k41nq56i7jjh74-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+    "application_tables": 116,
+    "candidate006_deployed": false,
+    "deployed_package": "/nix/store/dx0f5m41y5x05sp6vq116vxb8yfr5cxh-swingset",
+    "deployed_source": "/nix/store/dx0cyzvd8d91rf29v21sakbr7l5bwxnz-source",
+    "input_acceptance": false,
+    "operator_hold": {
+      "present": true,
+      "sha256": "965468bb03ba65b6d1d4950ab8e85c09c8f2f2a323461b7a3f2b6177bba5c638"
+    },
+    "persistent_system": "/nix/store/lzwkabfmbz46d05yi5k41nq56i7jjh74-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+    "published": false,
+    "schema": 28,
+    "units": {
+      "swingset-backup.service": "inactive",
+      "swingset-backup.timer": "inactive",
+      "swingset-cycle.service": "inactive",
+      "swingset-cycle.timer": "inactive",
+      "swingset-summary.service": "inactive",
+      "swingset-summary.timer": "inactive"
+    }
+  }
+}

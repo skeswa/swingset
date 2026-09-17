@@ -1,0 +1,9 @@
+{
+  "reuses_reviewed_helper_sha256": "10bdfb40799a348ab948cca9934639b873676cf737e11a0532ba603960d099ba",
+  "retry_reason": "production003 verified locally but upload was OOM-killed assembling tar under tmpfs /tmp",
+  "environment_correction": {
+    "TMPDIR": "/var/tmp"
+  },
+  "source_runtime_unchanged": true,
+  "prior_attempt_preserved": true
+}

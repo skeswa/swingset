@@ -1,0 +1,47 @@
+{
+  "started_at": "2026-09-17T19:04:49.506026+00:00",
+  "before": {
+    "journal/tools/runtime/measure_schema29_overhead.py": "0d6263d97ae92cd91a13c229ebb61b5c996c4732356764570cdbc7135fb491a6",
+    "tests/test_schema29_overhead.py": "2082218b510a8e812e7f72bf8e047ac96bbe5f0c904d2a58b71b29626d28c267"
+  },
+  "scope": "independent coordinator review of Luna measurement helper",
+  "checks": {
+    "pytest": {
+      "command": [
+        ".venv/bin/python",
+        "-m",
+        "pytest",
+        "-q",
+        "-p",
+        "no:cacheprovider",
+        "tests/test_schema29_overhead.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "3f2a7d474201c0ea38d8bf1671a9f35e691f355933bdef622342047561fb3da4"
+    },
+    "ruff": {
+      "command": [
+        ".venv/bin/ruff",
+        "check",
+        "journal/tools/runtime/measure_schema29_overhead.py",
+        "tests/test_schema29_overhead.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+    },
+    "mypy": {
+      "command": [
+        ".venv/bin/mypy",
+        "journal/tools/runtime/measure_schema29_overhead.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "5d4b6d285b77932e3d08212c3b4974d0a803f98ec60408ac6ccf6a063fa6c19e"
+    }
+  },
+  "after": {
+    "journal/tools/runtime/measure_schema29_overhead.py": "0d6263d97ae92cd91a13c229ebb61b5c996c4732356764570cdbc7135fb491a6",
+    "tests/test_schema29_overhead.py": "2082218b510a8e812e7f72bf8e047ac96bbe5f0c904d2a58b71b29626d28c267"
+  },
+  "passed": true,
+  "finished_at": "2026-09-17T19:04:49.914825+00:00"
+}

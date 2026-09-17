@@ -1,0 +1,61 @@
+{
+  "format": "schema28-to29-migration-independent-audit-v1",
+  "checked_at": "2026-09-17T20:03:33.026936Z",
+  "passed": true,
+  "receipt": "../migration-002/migration-receipt.json",
+  "receipt_sha256": "13adb17d817b3372bfda9b28370a368d24fa24d399ee997ef5b77f009afb1a8c",
+  "receipt_scope": {
+    "source": "/nix/store/z0rnsn69aav2h8p2wgzydar6k9rw5kk9-source",
+    "source_receipt_sha256": "9255e8641a24c21c0942512ec251b32dd294bc6f2a537868a0012cafe331dc99",
+    "helper_sha256": "fc64795a53dad8d54d8118b07173be5a9256e266a1434be80d14ca6cc94c1d86",
+    "packet_sha256": "366b0dbab70048cc2b85c4bdb7e06d24973478d8cfee965ee01ebb40d7fb5300",
+    "checkpoint": "/var/lib/swingset/checkpoints/extension28-held-20260917-004",
+    "checkpoint_sha256": "6ac7bb2d291136ef502abcb33f8762bf4449fd2fdc0160fb995f2aba0921f9d9",
+    "archive_commit": "68d738dcd78cb1654d053b479ea6dbd911f4b8ed",
+    "old_schema": 28,
+    "target_schema": 29,
+    "duration_seconds": 90.764
+  },
+  "table_preservation": {
+    "before_tables": 116,
+    "after_tables": 117,
+    "changed_existing_tables": [],
+    "all_before_receipts_equal_after": true,
+    "only_new_table": "history_dispatch_fence"
+  },
+  "migration_results": {
+    "passed": true,
+    "scope": "migration_only_without_runtime_input_acceptance",
+    "integrity": [
+      [
+        "ok"
+      ]
+    ],
+    "foreign_key_failure": false,
+    "checkpoint_unchanged": true,
+    "checkpoint_manifest_sha256": "6ac7bb2d291136ef502abcb33f8762bf4449fd2fdc0160fb995f2aba0921f9d9",
+    "source_receipt_rechecked": true,
+    "source_helper_sha256_rechecked": "fc64795a53dad8d54d8118b07173be5a9256e266a1434be80d14ca6cc94c1d86",
+    "hold_sha256": "965468bb03ba65b6d1d4950ab8e85c09c8f2f2a323461b7a3f2b6177bba5c638",
+    "restore_pending": false
+  },
+  "independent_observation": {
+    "evidence_basis": "Recomputed all 116 predecessor digest/column/row-count comparisons from the immutable migration receipt; validated receipt and packet helper hashes, schema result, integrity/FK checks, all seven top-level sidecars, and the coordinator-retained VM read-only checkpoint/specimen observation.",
+    "application_tables": 117,
+    "history_dispatch_fence": {
+      "rows": 1,
+      "sha256": "81f522ebe2a86e654d5342816d6b2740ff65afd83bf5257dc7ca3fa89945cf4b",
+      "columns": [
+        "singleton",
+        "revision"
+      ]
+    },
+    "destination_receipt_sha256_matches_retained_receipt": true,
+    "destination_hold_matches_checkpoint_receipt": true
+  },
+  "failures": [],
+  "limitations": [
+    "The independent reviewer did not mount the VM filesystems. For direct database bytes/schema/sidecar checks, this review pins the coordinator-retained read-only VM observation script and output; the source-bound migration helper also verifies the checkpoint manifest and state.sqlite hashes before and after the rehearsal.",
+    "No VM, network, production database, input acceptance, source request, or public write was performed by this review."
+  ]
+}

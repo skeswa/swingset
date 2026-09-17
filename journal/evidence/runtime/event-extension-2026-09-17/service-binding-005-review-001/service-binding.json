@@ -1,0 +1,79 @@
+{
+  "format": "event-extension-service-binding-review-v1",
+  "checked_at": "2026-09-17T18:39:04Z",
+  "passed": true,
+  "candidate": {
+    "source": "/nix/store/z0rnsn69aav2h8p2wgzydar6k9rw5kk9-source",
+    "source_receipt_sha256": "9255e8641a24c21c0942512ec251b32dd294bc6f2a537868a0012cafe331dc99",
+    "source_files": 2572,
+    "system": "/nix/store/1nyhqr4gh2f2nw9wn3mkw51g7l248lnm-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+    "package": "/nix/store/pg86shahjlif3rwcscxjyp8ky22sibli-swingset",
+    "package_script_sha256": "147bea55824ba9842abf4811fa01b83a7d3e810c3a6ec207b5695208d8a42b01",
+    "generated_units": {
+      "swingset-cycle.service": "77a74498cf16aa7bae5efa1981cf36805c4293fc01153a3dfa262580d22d779d",
+      "swingset-cycle.timer": "a5118a8743071cbcb531163dc3e9f61fdddd9b7f2aba2927310ab316d99bac24",
+      "swingset-backup.service": "4c7d55ad10711ed9b4ad843f96eed1caf317e429d838054e19473c64d283255f",
+      "swingset-backup.timer": "28c7f714b7288bd6f58ef9dc1916c09c8178a758053fef6cb63e803baa742792",
+      "swingset-summary.service": "e6b95831205e3777b29edd208ca70d8d4e2584044df47c684710fd34e40f8fd2",
+      "swingset-summary.timer": "5f2613b3cde179b98cc9745cf8de152ba117e87b53047aa33f8c18aa53d5908a"
+    },
+    "frozen_config_sha256": {
+      "config/hosts.toml": "a32134c7dd6891b8a2f7856cf6851651d5617af937b8c45cb63b9541e8be74d1",
+      "config/sources.toml": "acd354d61fc559a0d29198c6521c41278d4d76103dc87fa96fc3db8e4b121ee1",
+      "pyproject.toml": "304f978e63fd86a6e50e52fe3a66d984c6d37e8c3673f74021b662a3d646de2e",
+      "uv.lock": "4a062de47b10d5a4e2c6130395349f4c04b0648b96ab8e44debcfd274f1acb6d"
+    }
+  },
+  "external_overrides": {
+    "directory": "/Users/skeswa/repos/skeswa/swingset/overrides",
+    "all_six_match_candidate_and_production": true,
+    "sha256": {
+      "event_aliases.csv": "2a0ef9ae578fe194a512f490b6cb80d99d6b78133b57e5409c0f52dad575d9da",
+      "nicknames.csv": "468106077a4b1aac34289b705b16e38f7bc29de28376d5db052d84a3c5e50dcf",
+      "series_aliases.csv": "92366188e4295b901772dbe1cc3e1f12116fab46be9765a577a8845e31815642",
+      "identity_overrides.csv": "e1487f143891001bc7ddb16cfe6e32003e1ac95628fcaa3a03849e3806f6a246",
+      "suppressions.csv": "2362faa4e3e099c1d307b9a72182e016f60818ab067135be75feb53bccd61fd9",
+      "source_urls.csv": "cce22c27665b53c67291a41dc18e99989b6b3eab4fe817aeb5e902e6f251e9a1"
+    }
+  },
+  "normalized_unit_comparison": {
+    "method": "compare generated candidate005 units to live configured units after replacing only the candidate or deployed source and package store paths with the same token",
+    "all_six_identical": true,
+    "units": [
+      "swingset-cycle.service",
+      "swingset-cycle.timer",
+      "swingset-backup.service",
+      "swingset-backup.timer",
+      "swingset-summary.service",
+      "swingset-summary.timer"
+    ],
+    "checks": [
+      "all three service commands and uv sync bind to candidate005 frozen source/config and built package",
+      "all services retain ConditionPathExists=!/var/lib/swingset/operator-hold, User=swingset, Group=swingset, ProtectHome=read-only, ProtectSystem=strict, and ReadWritePaths=/var/lib/swingset",
+      "backup retains TMPDIR=/var/tmp and Restart=on-failure",
+      "all timer schedules and persistence settings match the live configured units"
+    ]
+  },
+  "production_read_only_state": {
+    "active_system": "/nix/store/lzwkabfmbz46d05yi5k41nq56i7jjh74-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+    "persistent_system": "/nix/store/lzwkabfmbz46d05yi5k41nq56i7jjh74-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+    "deployed_source": "/nix/store/dx0cyzvd8d91rf29v21sakbr7l5bwxnz-source",
+    "deployed_package": "/nix/store/dx0f5m41y5x05sp6vq116vxb8yfr5cxh-swingset",
+    "service_venv_import": "/nix/store/dx0cyzvd8d91rf29v21sakbr7l5bwxnz-source/src/swingset/__init__.py",
+    "schema": 28,
+    "application_tables": 116,
+    "operator_hold": {
+      "present": true,
+      "sha256": "965468bb03ba65b6d1d4950ab8e85c09c8f2f2a323461b7a3f2b6177bba5c638"
+    },
+    "six_ordinary_units": "inactive",
+    "input_acceptance": false,
+    "deployed": false,
+    "published": false
+  },
+  "failures": [],
+  "limitations": [
+    "No activation, input acceptance, checkpoint mutation, network request, or publication was performed.",
+    "Initial sqlite3 CLI and service-account-shell probes were unavailable; read-only schema and interpreter checks succeeded with the pinned VM Python as root."
+  ]
+}

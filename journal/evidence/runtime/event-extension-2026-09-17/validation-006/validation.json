@@ -1,0 +1,49 @@
+{
+  "format": "event-extension-validation-v1",
+  "started_at": "2026-09-17T20:17:09.494163+00:00",
+  "source": "/private/tmp/swingset-extension-freeze-20260917-006",
+  "source_receipt_sha256": "a2704c7c99ce5aef4fbd0f0df8b23343be5df2a688945e236b8e6856b320ad5f",
+  "schema": 29,
+  "source_verified_before": true,
+  "checks": [
+    {
+      "name": "pytest",
+      "command": [
+        "/Users/skeswa/repos/skeswa/swingset/.venv/bin/python",
+        "-m",
+        "pytest",
+        "-q",
+        "-p",
+        "no:cacheprovider"
+      ],
+      "exit_code": 0,
+      "log_sha256": "bf87b8efd88343421d777c9f1ac0da601ff221d9aab52c092385765946b8301f"
+    },
+    {
+      "name": "ruff",
+      "command": [
+        "/Users/skeswa/repos/skeswa/swingset/.venv/bin/ruff",
+        "check",
+        "--no-cache",
+        "."
+      ],
+      "exit_code": 0,
+      "log_sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+    },
+    {
+      "name": "mypy",
+      "command": [
+        "/Users/skeswa/repos/skeswa/swingset/.venv/bin/mypy",
+        "--cache-dir=/tmp/swingset-extension-mypy-cache-20260917-006",
+        "src/swingset"
+      ],
+      "exit_code": 0,
+      "log_sha256": "9924564d83abbaaf14619acf6ca1b2ae2e22dc0f9ef760f89e1c1e5d4a5bca9c"
+    }
+  ],
+  "passed": true,
+  "deployed": false,
+  "published": false,
+  "source_verified_after": true,
+  "finished_at": "2026-09-17T20:27:10.748107+00:00"
+}
