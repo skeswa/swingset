@@ -1,0 +1,3 @@
+Sep 17 15:30:27 swingset systemd[1]: Started [systemd-run] /var/lib/swingset/venv/bin/python /var/lib/swingset/operations/v2-continuation-20260917/phase1/resume.py --gate /var/lib/swingset/operations/v2-continuation-20260917/phase1/gate-001.json --gate-sha256 c575347878de8ea5181919e26e8607d5d4aa31bfc08c899b82c4c0c25c3ecd98 --output /var/lib/swingset/operations/v2-continuation-20260917/phase1/execution-001.json --execute.
+Sep 17 15:30:28 swingset systemd[1]: swingset-phase1-resume-20260917-001.service: Deactivated successfully.
+Sep 17 15:30:28 swingset systemd[1]: swingset-phase1-resume-20260917-001.service: Consumed 783ms CPU time, 190.4M memory peak, 152.7M read from disk, 420K written to disk.

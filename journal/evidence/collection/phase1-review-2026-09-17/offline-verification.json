@@ -1,0 +1,26 @@
+{
+  "verified_at": "2026-09-17T15:10:44.043087+00:00",
+  "network_requests": 0,
+  "production_actions": 0,
+  "frozen_source_receipt_sha256": "0c3a391aca5c32381ab10daa22adfdde44cda76ab26b68df002f9822ad4945fb",
+  "source_files_verified": 638,
+  "source_mismatches": [],
+  "driver_sha256": "81357b33c8862bdc4bdd2d84f2479a7913a9d783b00b435910cc2328bdcf69f7",
+  "helper_manifest_sha256": "f8e0557026bc3bcfbd06624071bbc98ab7c7a46983fd6e3117d34140d6b16db3",
+  "helper_files_verified": 9,
+  "helper_mismatches": [],
+  "fixture_tests": {
+    "passed": 63,
+    "seconds": 2.78,
+    "runtime": "/Users/skeswa/.cache/swingset-h16-event-preservation-tests-20260916"
+  },
+  "h17": {
+    "sample_digest": "c10b47e24a491711e00cf652ad4cc880f6bc326c1418afe54725d378acc8f7a6",
+    "sample_count": 275,
+    "artifact_files_checked": 848,
+    "artifact_hash_mismatches": [],
+    "extract_hash_rule": "Canonical JSON as in Archive; packet extracts are pretty-printed.",
+    "human_adjudications": "not supplied; retained unreviewed packet",
+    "packet_path": "/tmp/swingset-v2-phase1-check/h17-review"
+  }
+}

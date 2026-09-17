@@ -7,6 +7,12 @@
 Status: **proposal, not authorized or executed**. Prepared on 2026-09-13 UTC
 from retained research only. No request was made to prepare this packet.
 
+Current decision, 2026-09-17: the owner approved this exact exception in
+[D-0053](../../decisions/0053-approve-exact-new-source-fixture-exception.md).
+[D-0054](../../decisions/0054-keep-step-right-history-at-the-2010-floor.md)
+resolved WP14 to 2010–2016. The original proposal below remains a historical
+record; its request allowlist and limits are unchanged.
+
 ## Proposed owner decision
 
 After V2/V4 publish, permit the five exact archived bodies below and one
