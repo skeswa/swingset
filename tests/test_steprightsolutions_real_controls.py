@@ -32,7 +32,10 @@ def context(identifier, page):
         record["original_url"],
         "steprightsolutions",
         page.kind,
-        None if identifier == "srs-index" else "steprightsolutions:asianopen2013",
+        record.get(
+            "source_ref",
+            None if identifier == "srs-index" else "steprightsolutions:asianopen2013",
+        ),
         record["captured_at"],
     )
 
@@ -57,6 +60,53 @@ def test_real_index_and_metadata_only_event_preserve_printed_scope():
     ]
     assert not event.watches
     assert decode_payload(sheet.kind, encode_payload(sheet)) == sheet
+
+
+def test_real_2015_event_uses_visible_main_panel_without_sidebar_duplicates():
+    result = parsed("srs-event2015", EventPage())
+    sheet = result.observations[0].payload
+    assert sheet.name_raw == "Asia West Coast Swing Open"
+    assert sheet.date_raw == "April 23 - 26, 2015"
+    assert sheet.source_event_ref == "steprightsolutions:asianopen2015"
+    assert len(sheet.round_links) == 12
+    assert [
+        (link.contest_name_raw, link.round_name_raw, link.source_round_ref)
+        for link in sheet.round_links
+    ] == [
+        ("Newcomer West Coast Swing Jack & Jill", "Finals", "1126"),
+        ("Novice West Coast Swing Jack & Jill", "Prelims", "1127"),
+        ("Novice West Coast Swing Jack & Jill", "Semi-Finals", "1128"),
+        ("Novice West Coast Swing Jack & Jill", "Finals", "1129"),
+        ("Intermediate West Coast Swing Jack & Jill", "Prelims", "1130"),
+        ("Intermediate West Coast Swing Jack & Jill", "Finals", "1131"),
+        ("Advanced West Coast Swing Jack & Jill", "Prelims", "1132"),
+        ("Advanced West Coast Swing Jack & Jill", "Finals", "1133"),
+        ("Novice West Coast Swing Strictly", "Prelims", "1134"),
+        ("Novice West Coast Swing Strictly", "Finals", "1135"),
+        ("Open West Coast Swing Strictly", "Prelims", "1136"),
+        ("Open West Coast Swing Strictly", "Finals", "1137"),
+    ]
+    assert len({link.source_round_ref for link in sheet.round_links}) == 12
+    assert sheet.round_listing_status == "listed_links"
+    assert not result.warnings and not result.watches
+    assert decode_payload(sheet.kind, encode_payload(sheet)) == sheet
+
+
+def test_real_2015_event_does_not_substitute_sidebar_for_empty_main_panel():
+    page = EventPage()
+    original = body("srs-event2015")
+    before_panel, panel = original.split(b'<div class="span9">', 1)
+    without_main_links = (
+        before_panel
+        + b'<div class="span9">'
+        + panel.replace(
+            b'<a href="/events/asianopen2015/round/',
+            b'<a data-href="/events/asianopen2015/round/',
+        )
+    )
+    assert without_main_links != original
+    with pytest.raises(ExtractError, match="main results panel"):
+        page.extract(without_main_links)
 
 
 def test_real_grouped_preliminary_header_and_anonymous_roster_are_distinct():

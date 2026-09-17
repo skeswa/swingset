@@ -24,6 +24,19 @@
     "source_receipt_sha256": "195c2ddcff02401f780c1591031125fe7d254d0a251179654dc448d55e1ae99a"
   },
   {
+    "file": "real-srs-event2015-20260918.html",
+    "archive_url": "https://web.archive.org/web/20150711035813id_/http://steprightsolutions.com:80/events/asianopen2015",
+    "body_sha256": "bc699e4e88dd8af53f495276dde4e3a2618e65b1f64cf7932d815cef00012357",
+    "captured_at": "2015-07-11T03:58:13+00:00",
+    "id": "srs-event2015",
+    "interpretation": "independently_reviewed_quarantine_body",
+    "original_url": "http://steprightsolutions.com:80/events/asianopen2015",
+    "requested_archive_url": "https://web.archive.org/web/20150711035813id_/http://steprightsolutions.com:80/events/asianopen2015",
+    "source_ref": "steprightsolutions:asianopen2015",
+    "source_receipt": "/var/tmp/swingset-stepright-body-20260918-004/receipt.json",
+    "source_receipt_sha256": "fce5a3d881dce7326836c1364629a7a3ed34f9f2402648ad55b0c42ba37ebceb"
+  },
+  {
     "file": "real-srs-round507-20260917.html",
     "archive_url": "https://web.archive.org/web/20160909170855id_/http://steprightsolutions.com/events/asianopen2013/round/507",
     "body_sha256": "5a75a6e61684b23a616dd3c39eb6efd3da28e9b23e0a77925aa05e9da555f15e",

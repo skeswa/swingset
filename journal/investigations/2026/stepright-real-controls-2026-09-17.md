@@ -1,5 +1,45 @@
 # Step Right real-control parser increment, 2026-09-17
 
+## Current deployment boundary
+
+At the resumed-session source check, all three Step Right source-module hashes
+matched deployed source 003's
+[verified inventory](../../evidence/admission/dcn-origin-runner-2026-09-17/packet-001/source/extension-source.json).
+These parser bytes are deployed under the operator hold. Their ordinary page
+kinds remain unassessed and inactive; no Step Right historical year or output is
+accepted or published. The earlier increment receipt below predates that held
+deployment. See [next controls](stepright-next-controls-2026-09-17.md) for current
+fixture, canonical projection and admission gaps.
+
+## Results-bearing event increment
+
+The later independently reviewed Asian Open 2015 quarantine capture adds the
+first results-bearing event control: 33,253 bytes at SHA-256
+`bc699e4e88dd8af53f495276dde4e3a2618e65b1f64cf7932d815cef00012357`.
+It prints Asia West Coast Swing Open, April 23–26, 2015, with 12 round links
+under six contest headings. A responsive sidebar repeats those links.
+
+The prior whole-page event traversal emitted both copies, assigned the sidebar
+copy to the event heading, and used the breadcrumb as the event name. The local
+event extractor now reads the dedicated header and main result panel, rejects
+an empty reviewed main panel, and emits the exact 12 links with their printed
+contest ownership. The following contract increment moved
+`EventPage.EXTRACT_VERSION` to 4 and its parser version to 3. The byte-exact fixture and
+provenance bind the independently audited operation receipt
+`fce5a3d881dce7326836c1364629a7a3ed34f9f2402648ad55b0c42ba37ebceb`.
+
+The implementation passed 37 focused source tests, Ruff and mypy. Independent
+review verified the exact fixture/provenance/receipt chain, name, date, six
+contests, 12 unique main-panel links, sidebar exclusion, fail-closed empty main
+panel, older fixtures and absence of activation changes. The reviewed adapter
+SHA-256 is
+`677d57a5eae3798ff576948c500af1440b36d2564586b7447c464b2d8977ce43`.
+This is local parser work; it is not deployed, and it adds no admission
+contract, watch, canonical projection, historical-year acceptance or
+publication.
+
+## Earlier implementation receipt
+
 Local event and round parsers now read the complete approved fixtures described
 in the [independent review](fixture-controls-review-2026-09-17.md). This
 increment follows the coordinator's candidate-001 freeze and is not part of

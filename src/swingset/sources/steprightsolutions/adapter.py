@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from collections import Counter
 from dataclasses import dataclass
 from typing import Any
 from urllib.parse import urljoin, urlsplit, urlunsplit
@@ -21,7 +22,8 @@ from swingset.sources.base import (
     WatchSpec,
 )
 from swingset.sources.common import text
-from swingset.sources.records import Cell, ResultRow, ResultTable
+from swingset.sources.interpretation import declared
+from swingset.sources.records import Cell, ResultRow, ResultTable, SourceEventRow
 
 from .records import (
     StepRightEventSheet,
@@ -88,21 +90,29 @@ def _expand_judge_header(headers: tuple[Cell, ...], *, is_final: bool) -> tuple[
 
 class IndexPage:
     kind = "steprightsolutions.index"
-    EXTRACT_VERSION = 1
-    PARSER_VERSION = 1
+    EXTRACT_VERSION = 2
+    PARSER_VERSION = 2
     change_mode = "extract"
 
     def expected_statuses(self, watch: object) -> frozenset[int]:
         return frozenset()
 
     def extract(self, body: bytes) -> JsonValue:
+        tree = HTMLParser(body)
         rows = []
-        for block in HTMLParser(body).css("div.event"):
+        external_event_sites = []
+        blocks = tree.css("div.event")
+        date_anchors = [anchor for block in blocks for anchor in block.css("div.dates a[href]")]
+        for block in blocks:
             heading = block.css_first("h4")
             location = block.css_first("div.location")
             for anchor in block.css("div.dates a[href]"):
-                target = _url(anchor.attributes["href"] or "")
-                if target is None or target[2] is not None:
+                href = anchor.attributes["href"] or ""
+                target = _url(href)
+                if target is None:
+                    external_event_sites.append({"label": text(anchor.text()), "url": href})
+                    continue
+                if target[2] is not None:
                     continue
                 rows.append(
                     {
@@ -115,12 +125,21 @@ class IndexPage:
                 )
         if not rows:
             raise ExtractError("Step Right index contains no recognized event links")
-        return rows
+        return {
+            "rows": rows,
+            "contract_witness": {
+                "event_block_count": len(blocks),
+                "date_anchor_count": len(date_anchors),
+                "external_event_sites": external_event_sites,
+            },
+        }
 
+    @declared
     def parse(self, extract: JsonValue, ctx: ParseContext) -> ParseResult:
+        rows = extract.get("rows", []) if isinstance(extract, dict) else extract
         output = []
         seen = set()
-        for row in extract:
+        for row in rows:
             key = tuple(row[name] for name in ("ref", "series", "location", "year"))
             if key in seen:
                 continue
@@ -143,21 +162,34 @@ class IndexPage:
 
 class EventPage(IndexPage):
     kind = "steprightsolutions.event"
-    EXTRACT_VERSION = 2
-    PARSER_VERSION = 2
+    EXTRACT_VERSION = 4
+    PARSER_VERSION = 3
 
     def extract(self, body: bytes) -> JsonValue:
         tree = HTMLParser(body)
         content = _content(tree)
-        headings = content.css("h1")
-        name = text(headings[0].text()) if headings else ""
-        breadcrumb = tree.css_first(".breadcrumb, .breadcrumbs")
-        if not name and breadcrumb:
-            name = text(breadcrumb.text(separator=" "))
+        metadata_heading = content.css_first(".box-content.header h2")
+        date_node = metadata_heading.css_first("small") if metadata_heading else None
+        date_text = text(date_node.text()) if date_node else ""
+        if metadata_heading:
+            title_tree = HTMLParser(metadata_heading.html)
+            for child in title_tree.css("small"):
+                child.decompose()
+            name = text(title_tree.text())
+        else:
+            headings = content.css("h1")
+            name = text(headings[0].text()) if headings else ""
+            breadcrumb = tree.css_first(".breadcrumb, .breadcrumbs")
+            if not name and breadcrumb:
+                name = text(breadcrumb.text(separator=" "))
+
         dates = DATE_LINE.search(text(content.text(separator=" ")))
+        main_panels = content.css(".event-overview .span9 .well")
+        main_panel = main_panels[0] if main_panels else None
+        link_scope = main_panel or content
         contest = ""
         links = []
-        for node in content.traverse():
+        for node in link_scope.traverse():
             if node.tag not in {"h1", "h2", "h3", "h4", "h5", "h6", "a"}:
                 continue
             if node.tag != "a":
@@ -175,20 +207,33 @@ class EventPage(IndexPage):
                     "round_ref": target[2],
                 }
             )
+        all_round_urls = []
+        for anchor in content.css("a[href]"):
+            target = _url(anchor.attributes.get("href", ""))
+            if target is not None and target[2] is not None:
+                all_round_urls.append(target[0])
+        main_round_urls = [link["url"] for link in links]
+        main_unique = set(main_round_urls)
+        sidebar_round_urls = list((Counter(all_round_urls) - Counter(main_round_urls)).elements())
+        contract_witness = {
+            "main_panel_count": len(main_panels),
+            "contest_count": len(main_panel.css("h1,h2,h3,h4,h5,h6")) if main_panel else 0,
+            "main_round_link_count": len(main_round_urls),
+            "main_unique_round_link_count": len(main_unique),
+            "sidebar_duplicate_count": max(0, len(all_round_urls) - len(main_round_urls)),
+            "sidebar_round_links_match_main": Counter(sidebar_round_urls)
+            == Counter(main_round_urls),
+            "unique_round_links_outside_main": sorted(set(all_round_urls) - main_unique),
+        }
+        if main_panel is not None and not links:
+            raise ExtractError("Step Right event main results panel contains no round links")
         if not links:
             # The retained April 1 event capture predates the event and lists
             # metadata only. Its absence of links is not a complete enumeration.
-            heading = content.css_first(".box-content.header h2")
-            date_node = heading.css_first("small") if heading else None
-            date_text = text(date_node.text()) if date_node else ""
-            if heading is None or not DATE_LINE.fullmatch(date_text):
+            if metadata_heading is None or not DATE_LINE.fullmatch(date_text):
                 raise ExtractError(
                     "Step Right event contains no recognized round links or metadata header"
                 )
-            title_tree = HTMLParser(heading.html)
-            for child in title_tree.css("small"):
-                child.decompose()
-            name = text(title_tree.text())
             if not name:
                 raise ExtractError("Step Right metadata event has no name")
             return {
@@ -196,14 +241,17 @@ class EventPage(IndexPage):
                 "date": date_text,
                 "links": [],
                 "round_listing_status": "no_round_links",
+                "contract_witness": contract_witness,
             }
         return {
             "name": name,
-            "date": dates[0] if dates else None,
+            "date": date_text or (dates[0] if dates else None),
             "links": links,
             "round_listing_status": "listed_links",
+            "contract_witness": contract_witness,
         }
 
+    @declared
     def parse(self, extract: JsonValue, ctx: ParseContext) -> ParseResult:
         refs = {link["ref"] for link in extract["links"]}
         if not refs and extract["round_listing_status"] == "no_round_links":
@@ -237,7 +285,20 @@ class EventPage(IndexPage):
             )
         )
         return ParseResult(
-            (Observation(ObservationScope("source_event", ref), payload.kind, payload),),
+            (
+                Observation(ObservationScope("source_event", ref), payload.kind, payload),
+                Observation(
+                    ObservationScope("source_index", ref),
+                    "source_event_row",
+                    SourceEventRow(
+                        "source_event_row",
+                        ref,
+                        extract["name"],
+                        extract["date"],
+                        ctx.url,
+                    ),
+                ),
+            ),
             warnings=warnings,
         )
 
@@ -245,7 +306,7 @@ class EventPage(IndexPage):
 class RoundPage(IndexPage):
     kind = "steprightsolutions.round"
     EXTRACT_VERSION = 2
-    PARSER_VERSION = 2
+    PARSER_VERSION = 3
 
     def extract(self, body: bytes) -> JsonValue:
         content = _content(HTMLParser(body))
@@ -317,6 +378,7 @@ class RoundPage(IndexPage):
             raise ExtractError("Step Right round needs a contest, round heading, and bib table")
         return {"contest": contest, "round": round_name, "tables": tables}
 
+    @declared
     def parse(self, extract: JsonValue, ctx: ParseContext) -> ParseResult:
         target = _url(ctx.url)
         if target is None or target[2] is None or (ctx.source_ref and ctx.source_ref != target[1]):
@@ -324,12 +386,7 @@ class RoundPage(IndexPage):
                 "Step Right round requires an original URL with matching event ownership"
             )
         tables = []
-        warnings = [
-            ParseWarning(
-                "steprightsolutions_canonical_admission_pending",
-                "Offline parser preparation; canonical projection and real-body acceptance remain pending.",
-            )
-        ]
+        warnings = []
         is_final = re.fullmatch(r"finals?", extract["round"], re.I) is not None
         for number, item in enumerate(extract["tables"]):
             rows = [

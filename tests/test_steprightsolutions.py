@@ -77,7 +77,6 @@ def test_callbacks_preserve_raw_values_unknown_promotion_and_unattributed_roster
     assert leaders.promotion == "unknown"  # Even a highlight class cannot establish promotion.
     assert (leaders.bib_ownership, followers.bib_ownership) == ("leader", "follower")
     assert {warning.code for warning in result.warnings} == {
-        "steprightsolutions_canonical_admission_pending",
         "steprightsolutions_promotion_unknown",
         "steprightsolutions_callback_unknown",
     }
