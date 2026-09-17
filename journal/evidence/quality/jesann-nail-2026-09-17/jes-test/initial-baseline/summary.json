@@ -1,0 +1,178 @@
+{
+  "agreement": {
+    "agrees": 19,
+    "assessable": 19,
+    "conflicting_evidence": 0,
+    "disagrees": 0,
+    "insufficient_evidence": 0,
+    "percent_agree_when_assessable": 100.0
+  },
+  "benchmark": "Jes Test",
+  "benchmark_version": 1,
+  "by_division_and_role": {
+    "advanced|follower": {
+      "covered": 0,
+      "final": 0,
+      "judge_marks": 0,
+      "registry": 10
+    },
+    "allstar|follower": {
+      "covered": 8,
+      "final": 8,
+      "judge_marks": 8,
+      "registry": 48
+    },
+    "intermediate|follower": {
+      "covered": 0,
+      "final": 0,
+      "judge_marks": 0,
+      "registry": 8
+    },
+    "intermediate|leader": {
+      "covered": 4,
+      "final": 4,
+      "judge_marks": 4,
+      "registry": 4
+    },
+    "novice|follower": {
+      "covered": 0,
+      "final": 0,
+      "judge_marks": 0,
+      "registry": 5
+    },
+    "sophisticated|follower": {
+      "covered": 7,
+      "final": 7,
+      "judge_marks": 7,
+      "registry": 10
+    }
+  },
+  "by_year": {
+    "2010": {
+      "covered": 0,
+      "final": 0,
+      "judge_marks": 0,
+      "registry": 3
+    },
+    "2011": {
+      "covered": 0,
+      "final": 0,
+      "judge_marks": 0,
+      "registry": 7
+    },
+    "2012": {
+      "covered": 0,
+      "final": 0,
+      "judge_marks": 0,
+      "registry": 6
+    },
+    "2013": {
+      "covered": 0,
+      "final": 0,
+      "judge_marks": 0,
+      "registry": 5
+    },
+    "2014": {
+      "covered": 0,
+      "final": 0,
+      "judge_marks": 0,
+      "registry": 6
+    },
+    "2015": {
+      "covered": 0,
+      "final": 0,
+      "judge_marks": 0,
+      "registry": 7
+    },
+    "2016": {
+      "covered": 0,
+      "final": 0,
+      "judge_marks": 0,
+      "registry": 6
+    },
+    "2017": {
+      "covered": 0,
+      "final": 0,
+      "judge_marks": 0,
+      "registry": 3
+    },
+    "2018": {
+      "covered": 0,
+      "final": 0,
+      "judge_marks": 0,
+      "registry": 7
+    },
+    "2019": {
+      "covered": 0,
+      "final": 0,
+      "judge_marks": 0,
+      "registry": 5
+    },
+    "2020": {
+      "covered": 0,
+      "final": 0,
+      "judge_marks": 0,
+      "registry": 2
+    },
+    "2022": {
+      "covered": 0,
+      "final": 0,
+      "judge_marks": 0,
+      "registry": 2
+    },
+    "2023": {
+      "covered": 0,
+      "final": 0,
+      "judge_marks": 0,
+      "registry": 4
+    },
+    "2024": {
+      "covered": 0,
+      "final": 0,
+      "judge_marks": 0,
+      "registry": 3
+    },
+    "2025": {
+      "covered": 9,
+      "final": 9,
+      "judge_marks": 9,
+      "registry": 9
+    },
+    "2026": {
+      "covered": 10,
+      "final": 10,
+      "judge_marks": 10,
+      "registry": 10
+    }
+  },
+  "configuration_sha256": "0cd1981671dd4b72bddb18fa14e7508a90914e92ed01723dbc7cf66267776af9",
+  "coverage": {
+    "ambiguous": 0,
+    "final_results": 19,
+    "final_results_percent": 22.4,
+    "identity_conflicts": 0,
+    "individual_judge_marks": 19,
+    "individual_judge_marks_percent": 22.4,
+    "individual_results": 19,
+    "individual_results_percent": 22.4,
+    "uncovered": 66
+  },
+  "denominator": 85,
+  "identity_exclusions": [],
+  "notes": [
+    "A registry entry is covered by one uniquely corresponding individual Jack & Jill entry with verified retained snapshot provenance and participation, final, callback, or judge-mark evidence.",
+    "Correspondence uses person, edition, month, role, division, and style; placement and points are excluded from the match.",
+    "Explicit name aliases are benchmark-only and do not create production identity links.",
+    "Registry points are reported as context and are not treated as independent validation.",
+    "Coverage and agreement describe this dataset, not all real-world competition appearances."
+  ],
+  "release": {
+    "built_at": "2026-09-16T22:28:07.842359+00:00",
+    "candidate_id": "cand_8f31cad7226643ae",
+    "commit": "2a6c7dc744fb36eabb5163c0a527d787d3721f4f",
+    "evidence_cutoff": "2026-09-16T22:25:41.741173+00:00",
+    "manifest_sha256": "6ff950afb842c2e2f1fc24c937df6633c890309bc9c6189b8706a4884eadc5a6",
+    "published_verified_at": "2026-09-16T22:37:24.934598+00:00"
+  },
+  "wsdc_id": 7849
+}

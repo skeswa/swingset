@@ -1,0 +1,182 @@
+{
+  "dataset_commit": "2a6c7dc744fb36eabb5163c0a527d787d3721f4f",
+  "source": "Read-only copy of acknowledged production baseline cand_8f31cad7226643ae",
+  "checked_files": [
+    {
+      "path": "data/callback_marks/year=2019.parquet",
+      "expected_sha256": "103ec9f54d9d8120bb9c84e1ce24a375dcaa5e706975ac1a831c2bd638bbb75d",
+      "actual_sha256": "103ec9f54d9d8120bb9c84e1ce24a375dcaa5e706975ac1a831c2bd638bbb75d"
+    },
+    {
+      "path": "data/callback_marks/year=2020.parquet",
+      "expected_sha256": "a4bb18c0c4b65e8e440e3edf27639720fed9b33dd47afabe3da6e39ecd57126a",
+      "actual_sha256": "a4bb18c0c4b65e8e440e3edf27639720fed9b33dd47afabe3da6e39ecd57126a"
+    },
+    {
+      "path": "data/callback_marks/year=2021.parquet",
+      "expected_sha256": "63f8cee5a6f55b516495783c462efdfc68d3e43427df1516b9d89732f508938c",
+      "actual_sha256": "63f8cee5a6f55b516495783c462efdfc68d3e43427df1516b9d89732f508938c"
+    },
+    {
+      "path": "data/callback_marks/year=2022.parquet",
+      "expected_sha256": "4441e72843d0e170a9789bccd040e066a1adb034b4dae63c1aa55c0e9764e057",
+      "actual_sha256": "4441e72843d0e170a9789bccd040e066a1adb034b4dae63c1aa55c0e9764e057"
+    },
+    {
+      "path": "data/callback_marks/year=2023.parquet",
+      "expected_sha256": "2e3eeaafc1bb72879fcf07aaa366b97a155103c7162da4f47f80d7f0c0a68647",
+      "actual_sha256": "2e3eeaafc1bb72879fcf07aaa366b97a155103c7162da4f47f80d7f0c0a68647"
+    },
+    {
+      "path": "data/callback_marks/year=2024.parquet",
+      "expected_sha256": "ce63ffbcb4f8413f4d9347e23aea887fe4ba9c0d1bd2cb36b3b17c0208ddd9f2",
+      "actual_sha256": "ce63ffbcb4f8413f4d9347e23aea887fe4ba9c0d1bd2cb36b3b17c0208ddd9f2"
+    },
+    {
+      "path": "data/callback_marks/year=2025.parquet",
+      "expected_sha256": "79d4d1e6ec908639e4c94ee0fbd5ad28579f257b8b1af8871cdc768feca7b6e1",
+      "actual_sha256": "79d4d1e6ec908639e4c94ee0fbd5ad28579f257b8b1af8871cdc768feca7b6e1"
+    },
+    {
+      "path": "data/callback_marks/year=2026.parquet",
+      "expected_sha256": "5c84215ec0e9238dc0993ea0c956270df9a37fbaa8c5319bd9b08eed41aab85e",
+      "actual_sha256": "5c84215ec0e9238dc0993ea0c956270df9a37fbaa8c5319bd9b08eed41aab85e"
+    },
+    {
+      "path": "data/callbacks/callbacks.parquet",
+      "expected_sha256": "dd6ac1847c07b3afb60d2ef402bf47fa597cb6d3ca854b98c2349f076ffb22ad",
+      "actual_sha256": "dd6ac1847c07b3afb60d2ef402bf47fa597cb6d3ca854b98c2349f076ffb22ad"
+    },
+    {
+      "path": "data/changelog/changelog.parquet",
+      "expected_sha256": "ce87310a0ae35dcc04b0b7676dd0d57055f91456d5e1246cc5e5ed11c0500e3b",
+      "actual_sha256": "ce87310a0ae35dcc04b0b7676dd0d57055f91456d5e1246cc5e5ed11c0500e3b"
+    },
+    {
+      "path": "data/contests/contests.parquet",
+      "expected_sha256": "40b92adcd9de735cf3241e2cc302ad9a9d89467678e2e2a8955b8b323022ac20",
+      "actual_sha256": "40b92adcd9de735cf3241e2cc302ad9a9d89467678e2e2a8955b8b323022ac20"
+    },
+    {
+      "path": "data/coverage/coverage.parquet",
+      "expected_sha256": "daa89120120c626cb8d1d3df50921d508c103de086a2fd2900206e00a41005e5",
+      "actual_sha256": "daa89120120c626cb8d1d3df50921d508c103de086a2fd2900206e00a41005e5"
+    },
+    {
+      "path": "data/dancers/dancers.parquet",
+      "expected_sha256": "3862fd64c7cb2ed9e4cd013e2b32336be0eaaeb57232429320d6b670446a9b47",
+      "actual_sha256": "3862fd64c7cb2ed9e4cd013e2b32336be0eaaeb57232429320d6b670446a9b47"
+    },
+    {
+      "path": "data/entries/entries.parquet",
+      "expected_sha256": "3a199823366158017bb9305ee32a59982a6713cdf1c6f0a0dc4c16185ae68375",
+      "actual_sha256": "3a199823366158017bb9305ee32a59982a6713cdf1c6f0a0dc4c16185ae68375"
+    },
+    {
+      "path": "data/events/events.parquet",
+      "expected_sha256": "99d725b995c56e8d4fb713b66f2051ad96b0faaf8852b8e6a120115d9f6a099c",
+      "actual_sha256": "99d725b995c56e8d4fb713b66f2051ad96b0faaf8852b8e6a120115d9f6a099c"
+    },
+    {
+      "path": "data/final_marks/year=2018.parquet",
+      "expected_sha256": "5b7d7c562e686881f8d703b469fbd6c0c92e0a030dbb67cfad884d4dcbddcd0a",
+      "actual_sha256": "5b7d7c562e686881f8d703b469fbd6c0c92e0a030dbb67cfad884d4dcbddcd0a"
+    },
+    {
+      "path": "data/final_marks/year=2019.parquet",
+      "expected_sha256": "47a3e19417125c2c21301f34e4eb03488bd7a91ff4d890d15067bbd80b3f3caf",
+      "actual_sha256": "47a3e19417125c2c21301f34e4eb03488bd7a91ff4d890d15067bbd80b3f3caf"
+    },
+    {
+      "path": "data/final_marks/year=2020.parquet",
+      "expected_sha256": "875b51138009c433106e0c306cb2f1f91fe12da4815902c0941d553e25f0b30a",
+      "actual_sha256": "875b51138009c433106e0c306cb2f1f91fe12da4815902c0941d553e25f0b30a"
+    },
+    {
+      "path": "data/final_marks/year=2021.parquet",
+      "expected_sha256": "5932d619ad9a72010a838686b867a9dd9887e9fec4d781d773c51cbd021bf69e",
+      "actual_sha256": "5932d619ad9a72010a838686b867a9dd9887e9fec4d781d773c51cbd021bf69e"
+    },
+    {
+      "path": "data/final_marks/year=2022.parquet",
+      "expected_sha256": "192a47df8cd4420daad9deb55c978ede3c953f32d91e59ee23ceafc16984f722",
+      "actual_sha256": "192a47df8cd4420daad9deb55c978ede3c953f32d91e59ee23ceafc16984f722"
+    },
+    {
+      "path": "data/final_marks/year=2023.parquet",
+      "expected_sha256": "8a85d2d846aa58e070b6fe6292f32e994633a15d96459ac098a714b2ce1a84d9",
+      "actual_sha256": "8a85d2d846aa58e070b6fe6292f32e994633a15d96459ac098a714b2ce1a84d9"
+    },
+    {
+      "path": "data/final_marks/year=2024.parquet",
+      "expected_sha256": "e62873585b8ed3b36e885b5cd493607d8f74e08ee867d2123050b71739fccb90",
+      "actual_sha256": "e62873585b8ed3b36e885b5cd493607d8f74e08ee867d2123050b71739fccb90"
+    },
+    {
+      "path": "data/final_marks/year=2025.parquet",
+      "expected_sha256": "4202ffe586d41156f22dba4c8d8c5aaca6ee0fdc22b97b65b88f4a241b617aa1",
+      "actual_sha256": "4202ffe586d41156f22dba4c8d8c5aaca6ee0fdc22b97b65b88f4a241b617aa1"
+    },
+    {
+      "path": "data/final_marks/year=2026.parquet",
+      "expected_sha256": "c5c67a50614a9b0f96187d082557e6d5f15ce5e73e8389ddf225e55682d5839c",
+      "actual_sha256": "c5c67a50614a9b0f96187d082557e6d5f15ce5e73e8389ddf225e55682d5839c"
+    },
+    {
+      "path": "data/heats/heats.parquet",
+      "expected_sha256": "5224c0f2e57fd1ab8c5269240db627c6d1d7a04a9526d86c55ca5b2611271e5a",
+      "actual_sha256": "5224c0f2e57fd1ab8c5269240db627c6d1d7a04a9526d86c55ca5b2611271e5a"
+    },
+    {
+      "path": "data/identity_links/identity_links.parquet",
+      "expected_sha256": "3eda8be629b783ff90c28db632d868c23ca849d730a08869193bf471e59cc2b3",
+      "actual_sha256": "3eda8be629b783ff90c28db632d868c23ca849d730a08869193bf471e59cc2b3"
+    },
+    {
+      "path": "data/judges/judges.parquet",
+      "expected_sha256": "28307059280038d7652ece27b9b9f2b3d0a2967b36a1b1059b7a642b604f6d58",
+      "actual_sha256": "28307059280038d7652ece27b9b9f2b3d0a2967b36a1b1059b7a642b604f6d58"
+    },
+    {
+      "path": "data/link_candidates/link_candidates.parquet",
+      "expected_sha256": "b870dc3123b631f5b1a113fd7a79546bd4d77e3f039c3931fe676fb6f1c15bb4",
+      "actual_sha256": "b870dc3123b631f5b1a113fd7a79546bd4d77e3f039c3931fe676fb6f1c15bb4"
+    },
+    {
+      "path": "data/placements/placements.parquet",
+      "expected_sha256": "d0a0be124cb58f74b8c318634ba554b9031a44145d13a0ea3f9fceb9c4cee0b8",
+      "actual_sha256": "d0a0be124cb58f74b8c318634ba554b9031a44145d13a0ea3f9fceb9c4cee0b8"
+    },
+    {
+      "path": "data/registry_placements/registry_placements.parquet",
+      "expected_sha256": "88ae41f39cc8ef8f51305c0f6329e106fe2d518f643e165b73d9fe49fd2d2978",
+      "actual_sha256": "88ae41f39cc8ef8f51305c0f6329e106fe2d518f643e165b73d9fe49fd2d2978"
+    },
+    {
+      "path": "data/review_queue/review_queue.parquet",
+      "expected_sha256": "571360433db7a28dcc70b1825b50c44738fe967818d6391a187ac850bff787b4",
+      "actual_sha256": "571360433db7a28dcc70b1825b50c44738fe967818d6391a187ac850bff787b4"
+    },
+    {
+      "path": "data/rounds/rounds.parquet",
+      "expected_sha256": "34c47ca4a8c9043f94f1e3e055eddd969ce979114f4651137f15602f71bff531",
+      "actual_sha256": "34c47ca4a8c9043f94f1e3e055eddd969ce979114f4651137f15602f71bff531"
+    },
+    {
+      "path": "data/snapshots/snapshots.parquet",
+      "expected_sha256": "84b2ea9c11a055581a15a41d1b77d279d12a472c2e59195bc63f6fc6482d2e51",
+      "actual_sha256": "84b2ea9c11a055581a15a41d1b77d279d12a472c2e59195bc63f6fc6482d2e51"
+    }
+  ],
+  "exports": {
+    "score_sheet_results.json": "a2a93e9b13beaf122fb206ce41b200caea92cbf2a57cc645667bf1f9805daf4f",
+    "registry_results.json": "197e9b6c2fc862a082317f3d1f47ba38a8fadb0d80fe9b7d78509bb20573d442",
+    "judging_appearances.json": "293b3485d733240f330f6bd82c72105e139ae2015e1f7aace6355483d8d24413",
+    "final_marks_given.json": "b87c23f71f7f02be4fe0d5221f90b47f4792bde12dd20ca3f680cffb764d86d2",
+    "final_marks_received.json": "05b55903cf622ecc4b11a1f29e6c5d1b5e198da1d6218dd8e8d6873287d036f2",
+    "callback_marks_received.json": "03e36000469b3e043e269d9875e723a03390517a57e256fb6bdc39e801f43b08",
+    "callback_marks_given.json": "dec68503da236056bf0333a6b40d0d41f86fc7edf5467950814b34c2ba1b86b3",
+    "callbacks.json": "77b6f9cd4fc01b4dc29561367fa921e3fc475060c675ff7b08db56a1c000e276",
+    "profile.json": "a7c09d88725da55e3c786d40c168021124494aa67d07a4745b7629e69ef9cb27"
+  }
+}

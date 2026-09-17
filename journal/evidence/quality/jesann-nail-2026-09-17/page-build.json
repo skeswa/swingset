@@ -1,0 +1,13 @@
+{
+  "date": "2026-09-17",
+  "page_sha256": "e8495ee06211922ec7e1a5e47ea4b2750ab1011cabca9545183368b323a7fc28",
+  "source_files": {
+    "build.py": "0df6e0517d78f305635de7cba33435a0f5d5f93547c0451a52cb07c5e84ad315",
+    "page.html": "ec2dd516847da2487df24dcc5184b8f88457305b77b8f0ce47a3b26e6b585f59",
+    "README.md": "3b626308fe983d100da4ddf0c051957cb4a887192e9a112e14fbefb5c9bb1d59",
+    "style.css": "33558f39447f1ece93894032c66553c516f1229fe33b37f48ef39e89e9c1f842",
+    "app.js": "73902cdfd922020dc1dd1162d87793d1a62482895e07cf1911fa2ad4a294bf54"
+  },
+  "formatting": "mise run fmt in isolated checkout, copied back only owned files",
+  "validation": "node --check and ruff check; Chrome behavior checks retained separately"
+}

@@ -14,3 +14,9 @@ Inspect a saved dataset and explain missing or conflicting results.
 | [missing_data_operations.py](missing_data_operations.py) | Summarize intake gaps from a captured SQLite state without fetching sources.             |
 | [missing_data_registry.py](missing_data_registry.py)     | Reproduce the 2026-09-12 offline registry gap audit.                                     |
 | [self_healing_checks.py](self_healing_checks.py)         | Reproduce self-healing defects offline, using temporary state and mock HTTP.             |
+
+[JesAnn Nail history page](person-history/README.md) builds an offline explorer
+with all recorded participation, source percentages, and scoring details. The
+[Jes Test](jes_test/README.md) benchmarks registry coverage against individual
+results in a pinned offline dataset and canaries for progress or regressions
+between releases.

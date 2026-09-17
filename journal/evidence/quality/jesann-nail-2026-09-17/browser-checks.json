@@ -1,0 +1,140 @@
+{
+  "date": "2026-09-17",
+  "browser": "Chrome via DevTools",
+  "dataset_commit": "2a6c7dc744fb36eabb5163c0a527d787d3721f4f",
+  "checks": [
+    {
+      "name": "All participation is default",
+      "pass": true,
+      "actual": true
+    },
+    {
+      "name": "Grouped appearances",
+      "pass": true,
+      "actual": 100
+    },
+    {
+      "name": "Result data percentage",
+      "pass": true,
+      "actual": "34%"
+    },
+    {
+      "name": "Registry-only percentage",
+      "pass": true,
+      "actual": "66%"
+    },
+    {
+      "name": "Overlap partitions",
+      "pass": true,
+      "actual": "Detailed results only: 15 appearances, 15%; Both sources: 19 appearances, 19%; Registry only: 66 appearances, 66%"
+    },
+    {
+      "name": "Entries without registry match",
+      "pass": true,
+      "actual": 15
+    },
+    {
+      "name": "Prelim and semifinal participation",
+      "pass": true,
+      "actual": 4
+    },
+    {
+      "name": "Non-final sheet participation included",
+      "pass": true,
+      "actual": [
+        "DEC\nSwingle Bell Rock\nOpen / other\nCouple\n·\nJack & Jill\n·\nName match\n·\nNo registry match\nPreliminary\nbest recorded\n+",
+        "NOV\nDC Swing eXperience\nIntermediate\nLeader\n·\nJack & Jill\n·\nName match\n·\nNo registry match\nSemifinal\nbest recorded\n+",
+        "JUN\nLiberty Swing\nAll-Star\nCouple\n·\nStrictly\n·\nName match\n·\nNo registry match\nPreliminary\nbest recorded\n+",
+        "MAR\nBoston Tea Party\nIntermediate\nLeader\n·\nJack & Jill\n·\nName match\n·\nNo registry match\nSemifinal\nbest recorded\n+"
+      ]
+    },
+    {
+      "name": "Partner search in all participation",
+      "pass": true,
+      "actual": 2
+    },
+    {
+      "name": "All leader appearances including semis",
+      "pass": true,
+      "actual": 6
+    },
+    {
+      "name": "Chronological sorting",
+      "pass": true,
+      "actual": true
+    },
+    {
+      "name": "Chart includes result-only participation",
+      "pass": true,
+      "actual": 18
+    },
+    {
+      "name": "Empty year",
+      "pass": true,
+      "actual": true
+    },
+    {
+      "name": "Expanded all groups",
+      "pass": true,
+      "actual": true
+    },
+    {
+      "name": "All score details retained",
+      "pass": true,
+      "actual": 376
+    },
+    {
+      "name": "Both source identities disclosed",
+      "pass": true,
+      "actual": true
+    },
+    {
+      "name": "CSV preserves 15 result-only entries and unknown points",
+      "pass": true,
+      "actual": 16
+    },
+    {
+      "name": "Registry view count",
+      "pass": true,
+      "actual": 85
+    },
+    {
+      "name": "Registry wins preserved",
+      "pass": true,
+      "actual": 12
+    },
+    {
+      "name": "Registry podiums preserved",
+      "pass": true,
+      "actual": 35
+    },
+    {
+      "name": "Score-sheet view count",
+      "pass": true,
+      "actual": 34
+    },
+    {
+      "name": "Score-sheet no-registry filter",
+      "pass": true,
+      "actual": 15
+    },
+    {
+      "name": "Judging count",
+      "pass": true,
+      "actual": 6
+    },
+    {
+      "name": "All judging marks",
+      "pass": true,
+      "actual": 939
+    },
+    {
+      "name": "Narrow mobile width",
+      "pass": true,
+      "actual": {
+        "width": 320,
+        "scrollWidth": 320
+      }
+    }
+  ]
+}

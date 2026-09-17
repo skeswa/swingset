@@ -1,0 +1,30 @@
+[
+  {
+    "wsdc_id": 7849,
+    "first_name": "JesAnn",
+    "last_name": "Nail",
+    "name_norm": "jesann nail",
+    "is_pro": false,
+    "primary_role": "follower",
+    "leader_required_level": "none",
+    "leader_allowed_level": "none",
+    "follower_required_level": "allstar",
+    "follower_allowed_level": "allstar",
+    "leader_highest_level": "intermediate",
+    "leader_highest_points": 23,
+    "follower_highest_level": "allstar",
+    "follower_highest_points": 134,
+    "recent_year": 2026,
+    "registry_internal_id": 7468,
+    "registry_fetched_at": "2026-09-11 17:10:26.866258+00:00",
+    "merged_into_wsdc_id": null,
+    "source": "wsdc_registry",
+    "snapshot_id": "snap_20260911T171026Z_2adeb14a3018",
+    "parser_version": "3",
+    "first_seen_at": "2026-09-16 20:45:10.202684+00:00",
+    "last_seen_at": "2026-09-16 20:45:10.202684+00:00",
+    "run_id": "run_20260916T203629Z",
+    "scope_status": "accepted",
+    "evidence_observed_at": "2026-09-11 17:10:26.866258+00:00"
+  }
+]
