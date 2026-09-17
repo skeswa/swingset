@@ -1,0 +1,38 @@
+{
+  "method": "pypdf split into one-page PDFs, Quick Look thumbnail render at requested2400px, coordinator visual inspection",
+  "source_receipt": "journal/evidence/admission/dcn-origin-runner-2026-09-17/quarantine-001/receipt.json",
+  "network_requests": 0,
+  "observations": [
+    "Finals has9rows,7judgeplacementcolumns,9numberedcolumns1-1through1-9,ResultandemptyRemarks; pairnamesprintedwithnoindividualrolelabels.",
+    "Leaders prelim pagehas9Callbackrows; Followershas16rows:9Callback,1Alternate1,6dashresults.",
+    "Bothpreliminarypagesprinttheomissiondisclaimeranddistinctfivejudgepanels.",
+    "Bib485finalsvisiblyprintsLilioMontel/JulijaLosane, matchingPDFtextanddisagreeingwithretainedarchivedHTMLnameLucienBlaise.",
+    "Visualchecksconfirmthese3pagesonly, notgeneralparseracceptance,completepopulationsorcrosssourceidentity."
+  ],
+  "files": {
+    "finals.pdf": {
+      "bytes": 53213,
+      "sha256": "a2d316daf81878c1cac3561e8856320bc8a7aa224dc2f96d6f2fbc8856c5f45a"
+    },
+    "finals.pdf.png": {
+      "bytes": 303289,
+      "sha256": "7df9bd79144db3743b81badfa78992b61d7cb953f2f56fe73c34b7951bdf05fe"
+    },
+    "leaders.pdf": {
+      "bytes": 67592,
+      "sha256": "eaa3b0d347ccf1e8f3248ac501371b9206f0d379700f9ee1c853e03d005ecf13"
+    },
+    "leaders.pdf.png": {
+      "bytes": 245337,
+      "sha256": "dcb40e71b8bfcc917519d371ede4147b332edfa58da900d75aeb89ea73042616"
+    },
+    "followers.pdf": {
+      "bytes": 68664,
+      "sha256": "43d5260390fc5dbc24c7b996ffb801ebed8bf383359480da527c17d2eab649c4"
+    },
+    "followers.pdf.png": {
+      "bytes": 301988,
+      "sha256": "e82c0d5545996ab9c0d33a4025e18796d3aeb9d8751f4873dea6e09f39dc083a"
+    }
+  }
+}

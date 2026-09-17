@@ -1,0 +1,52 @@
+{
+  "deployment_status": "not_deployed",
+  "format": "dcn-origin-runner-independent-review-v1",
+  "http_requests_by_reviewer": 0,
+  "implementation_status": "implemented",
+  "operation_evidence": {
+    "authorization_sha256": "f9ea2bd9783e75fd6380bf01e1647acda1ff23a231dce439f3f272f94dfd609b",
+    "gate_sha256": "ff21f94db075b9c74c8c6d9c2a5e4cf2951d3d97ec2ac226580e17bea062b3a7",
+    "pre_state_sha256": "62eda4868871c971f5c33615aac337d16c3d15fef6a8e9ebec61fc18384afd17",
+    "preflight_execution": false,
+    "preflight_exit_code": 0,
+    "preflight_sha256": "892b5ac30d0a32ed7c2cea2e41e6fdfd827bf8aab82f60cf1b4c5ff3f5de7f39",
+    "preflight_time": "2026-09-17T19:21:48.790951+00:00"
+  },
+  "packet": {
+    "build_receipt_sha256": "7014ad79c3967fe6002c4bd2e96ebce29a792cd72ca501a3dc3dcd4ff893dc38",
+    "closure_member_count": 11,
+    "closure_sha256": "875f0ef40105a66ad3ef20ec87f88be10e4332b181292c6b76a9b0f705994893",
+    "executed": false,
+    "independent_vm_rebuild": "not_performed",
+    "local_closure_verification": "passed",
+    "network_requests": 0,
+    "path": "journal/evidence/admission/dcn-origin-runner-2026-09-17/packet-001",
+    "runner_sha256": "df5f0ea1b4167da0bf63f0d2b75bf99e323b93f910d131dd86dd24a935bc6108",
+    "source_file_count": 2221
+  },
+  "production_writes_by_reviewer": 0,
+  "publication_status": "not_published",
+  "review_notes": [
+    "The fixture remains quarantined; no watches or production interpretations are created.",
+    "The exact VM CLI preflight passed with execution=false; no origin request has yet been issued.",
+    "The reviewer verified the exact packet closure locally; an independent VM rebuild was not available from this reviewer context.",
+    "The runtime guard checks the pinned active and persistent system, six inactive units, and hold marker at CLI preflight and before each request.",
+    "Fresh source-year acceptance is not asserted by this origin fixture operation."
+  ],
+  "reviewed_at": "2026-09-17T19:23:25.205584+00:00",
+  "source_sha256": {
+    "journal/tools/admission/build_dcn_origin_fixture.py": "ffda6bc940f534d1cc001f922ecdc785f9aaec04ff0e888048379938d7279c64",
+    "journal/tools/admission/dcn_origin_fixture_runner.py": "df5f0ea1b4167da0bf63f0d2b75bf99e323b93f910d131dd86dd24a935bc6108",
+    "tests/test_dcn_origin_fixture_runner.py": "8584fbd7abbf0b47ee2545bbe2d563de3af5668f1ab55f81225a0d532f3af560"
+  },
+  "test_status": "tested",
+  "validation": {
+    "pytest_command": "PYTHONPATH=. .venv/bin/python -m pytest -c /dev/null -p no:cacheprovider -q tests/test_dcn_origin_fixture_runner.py",
+    "pytest_exit_code": 0,
+    "pytest_stdout": ".....................................                                    [100%]\n37 passed in 1.96s",
+    "ruff_command": ".venv/bin/ruff check journal/tools/admission/dcn_origin_fixture_runner.py journal/tools/admission/build_dcn_origin_fixture.py tests/test_dcn_origin_fixture_runner.py",
+    "ruff_exit_code": 0,
+    "ruff_stdout": "All checks passed!"
+  },
+  "verdict": "pass_for_coordinator_operation_after_preflight"
+}

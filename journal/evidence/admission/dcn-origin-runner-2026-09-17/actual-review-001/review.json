@@ -1,0 +1,118 @@
+{
+  "drain_002": {
+    "attempted": 100,
+    "blockers": [
+      {
+        "attempt_id": 35094,
+        "evidence_json": "{}",
+        "finished_at": "2026-09-17T19:14:58.540186+00:00",
+        "input_fingerprint": "8a5f50562a17abaf1e48128618bffb55e22860b1259c9d82500436345f8c099e",
+        "outcome": "blocked",
+        "queue_generation": 2,
+        "reason_code": "admission_needs_review",
+        "requirement_id": "d6f5561605e73c71",
+        "retry_at": null,
+        "retry_generation": 0,
+        "run_id": "run_20260917T191421Z",
+        "stage": "parse",
+        "started_at": "2026-09-17T19:14:58.045693+00:00",
+        "unit_id": "snap_20260909T150629Z_7829ef627605",
+        "unit_kind": "snapshot",
+        "work_token": "2026-09-17T18:47:52.862215+00:00"
+      },
+      {
+        "attempt_id": 35130,
+        "evidence_json": "{\"exception\": \"KeyError\", \"message\": \"'unknown page kind: registry_crosscheck'\"}",
+        "finished_at": "2026-09-17T19:17:26.449640+00:00",
+        "input_fingerprint": "b526381e42937da9b6b9acc73032a2b1a93c7c6fcfdcf9ec38d0cb866689a957",
+        "outcome": "blocked",
+        "queue_generation": 2,
+        "reason_code": "unit_exception",
+        "requirement_id": "b9e5e005a6c38e93",
+        "retry_at": null,
+        "retry_generation": 0,
+        "run_id": "run_20260917T191421Z",
+        "stage": "parse",
+        "started_at": "2026-09-17T19:17:26.440161+00:00",
+        "unit_id": "snap_20260909T153428Z_ae7f2b9d688b",
+        "unit_kind": "snapshot",
+        "work_token": "2026-09-17T18:47:52.862215+00:00"
+      }
+    ],
+    "elapsed_seconds": 413.8585619510268,
+    "outcomes": {
+      "parse/admission_needs_review": 1,
+      "parse/output_committed": 31,
+      "parse/unit_exception": 1,
+      "project/output_committed": 67
+    },
+    "passed_for_bounded_rehearsal": true,
+    "pending_queue_by_stage": {
+      "parse": 31758,
+      "project": 2
+    },
+    "production_acceptance": false,
+    "publication": false
+  },
+  "format": "dcn-origin-actual-independent-review-v1",
+  "http_requests_by_reviewer": 0,
+  "origin": {
+    "archive_paid_usage_unchanged": true,
+    "body_bytes_total": 132764,
+    "completion_to_dispatch_seconds": [
+      10.098277449025773,
+      10.103789235989098,
+      10.123576537996996
+    ],
+    "event_day_sidecar_sha256": "73a5fc787d0c60f1dd7b87633f5770540354e7b9295fffee301be70e6dcf9444",
+    "h13_admissions_settled": 8,
+    "host_budget_bytes": 132764,
+    "host_budget_requests": 4,
+    "pdf_bytes_total": 129823,
+    "production_facts_or_watches_created": 0,
+    "production_state_unchanged": true,
+    "receipt_sha256": "35a2683a2edbfdcfbeb0510c31e099fc3a5c031f7c575447c5ec7de51fb29e19",
+    "request_count": 4,
+    "request_urls": [
+      "https://danceconvention.net/robots.txt",
+      "https://danceconvention.net/eventdirector/robots.txt",
+      "https://danceconvention.net/eventdirector/en/roundscores/3451330.pdf",
+      "https://danceconvention.net/eventdirector/en/roundscores/3451331.pdf"
+    ],
+    "response_hashes": [
+      null,
+      "536c1571781a9bdb72f8c07f0b07f2dc3d9d4dda4a3cc14bacf34f94a7591e61",
+      "b91e9e0a82edbd455b21b5aad50f211c590a05afd9a8bb34c81493d134e70e5e",
+      "f2ee4660315ab79703e8095312f75922e84271b38e19e784236bee5c2fbebb0b"
+    ],
+    "response_statuses": [
+      301,
+      200,
+      200,
+      200
+    ],
+    "robots_allows_targets": {
+      "https://danceconvention.net/eventdirector/en/roundscores/3451330.pdf": true,
+      "https://danceconvention.net/eventdirector/en/roundscores/3451331.pdf": true
+    },
+    "robots_bytes": 2941,
+    "robots_cache_sidecar_sha256": "1ff2d9e49b957569cfa0a645e0df0a4555a2d1cda8df9c51adef7d0a7ea77045",
+    "robots_sha256": "536c1571781a9bdb72f8c07f0b07f2dc3d9d4dda4a3cc14bacf34f94a7591e61",
+    "status": "captured_pending_independent_review",
+    "target_bodies": [
+      {
+        "bytes": 55063,
+        "path": "journal/evidence/admission/dcn-origin-runner-2026-09-17/quarantine-001/bodies/b91e9e0a82edbd455b21b5aad50f211c590a05afd9a8bb34c81493d134e70e5e",
+        "sha256": "b91e9e0a82edbd455b21b5aad50f211c590a05afd9a8bb34c81493d134e70e5e"
+      },
+      {
+        "bytes": 74760,
+        "path": "journal/evidence/admission/dcn-origin-runner-2026-09-17/quarantine-001/bodies/f2ee4660315ab79703e8095312f75922e84271b38e19e784236bee5c2fbebb0b",
+        "sha256": "f2ee4660315ab79703e8095312f75922e84271b38e19e784236bee5c2fbebb0b"
+      }
+    ]
+  },
+  "production_writes_by_reviewer": 0,
+  "reviewed_at": "2026-09-17T19:28:58.407474+00:00",
+  "verdict": "origin_receipt_and_accounting_pass; PDFs remain unreviewed quarantine bodies"
+}

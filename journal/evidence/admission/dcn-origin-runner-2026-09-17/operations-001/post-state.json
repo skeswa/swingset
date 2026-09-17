@@ -1,0 +1,200 @@
+{
+  "checked_at": "2026-09-17T19:25:30.804454+00:00",
+  "read_only": true,
+  "schema": 28,
+  "control_revision": 2,
+  "hold_sha256": "965468bb03ba65b6d1d4950ab8e85c09c8f2f2a323461b7a3f2b6177bba5c638",
+  "active_system": "/nix/store/lzwkabfmbz46d05yi5k41nq56i7jjh74-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+  "persistent_system": "/nix/store/lzwkabfmbz46d05yi5k41nq56i7jjh74-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+  "baseline": {
+    "candidate_id": "cand_8f31cad7226643ae",
+    "closure_digest": "14cf059a95be0a24d64367a84f3d0cc22b3d4ef82ced263f95ff9293d9da60ec",
+    "commit": "2a6c7dc744fb36eabb5163c0a527d787d3721f4f",
+    "correction_age_basis": "recorded_pending_corrections",
+    "correction_detected_at": null,
+    "correction_latency_seconds": null,
+    "evidence_cutoff": "2026-09-16T22:25:41.741173+00:00",
+    "latency_is_upper_bound": false,
+    "verified_at": "2026-09-16T22:37:24.934598+00:00"
+  },
+  "units": {
+    "swingset-cycle.service": "inactive",
+    "swingset-cycle.timer": "inactive",
+    "swingset-backup.service": "inactive",
+    "swingset-backup.timer": "inactive",
+    "swingset-summary.service": "inactive",
+    "swingset-summary.timer": "inactive"
+  },
+  "hosts": [
+    {
+      "host": "danceconvention.net",
+      "next_allowed_at": "2026-09-17T19:24:40.956433+00:00",
+      "paused_until": null,
+      "pause_reason": null,
+      "pause_streak": 0,
+      "robots_sha256": "536c1571781a9bdb72f8c07f0b07f2dc3d9d4dda4a3cc14bacf34f94a7591e61",
+      "robots_fetched_at": "2026-09-17T19:24:10.143964+00:00",
+      "robots_status": 200
+    }
+  ],
+  "host_budget": [
+    {
+      "host": "danceconvention.net",
+      "day": "2026-09-17",
+      "requests": 4,
+      "bytes": 132764
+    }
+  ],
+  "host_request_spacing": [
+    {
+      "host": "danceconvention.net",
+      "reservation_id": "2b4a779f9edd4735b25145caba1580b0",
+      "gap_seconds": 10.0,
+      "reserved_at": "2026-09-17T19:24:30.550149+00:00",
+      "released_at": "2026-09-17T19:24:30.956433+00:00"
+    }
+  ],
+  "host_request_spacing_baselines": [],
+  "operator_pauses": [],
+  "unsettled_admissions": [],
+  "origin_admissions": [
+    {
+      "action_id": "dcn_origin_fetch_riga-origin-20260917-001_1",
+      "action_kind": "fetch",
+      "admitted_at": "2026-09-17T19:23:59.536422+00:00",
+      "control_revision": 2,
+      "run_id": null,
+      "work_attempt_id": null,
+      "candidate_id": null,
+      "host": "danceconvention.net",
+      "all_sources": 0,
+      "all_kinds": 0,
+      "state": "settled",
+      "settled_at": "2026-09-17T19:23:59.891085+00:00",
+      "outcome": "completed"
+    },
+    {
+      "action_id": "dcn_origin_riga-origin-20260917-001_1",
+      "action_kind": "request",
+      "admitted_at": "2026-09-17T19:23:59.595931+00:00",
+      "control_revision": 2,
+      "run_id": null,
+      "work_attempt_id": null,
+      "candidate_id": null,
+      "host": "danceconvention.net",
+      "all_sources": 0,
+      "all_kinds": 0,
+      "state": "settled",
+      "settled_at": "2026-09-17T19:23:59.885715+00:00",
+      "outcome": "Redirect"
+    },
+    {
+      "action_id": "dcn_origin_fetch_riga-origin-20260917-001_2",
+      "action_kind": "fetch",
+      "admitted_at": "2026-09-17T19:23:59.894718+00:00",
+      "control_revision": 2,
+      "run_id": null,
+      "work_attempt_id": null,
+      "candidate_id": null,
+      "host": "danceconvention.net",
+      "all_sources": 0,
+      "all_kinds": 0,
+      "state": "settled",
+      "settled_at": "2026-09-17T19:24:10.142712+00:00",
+      "outcome": "completed"
+    },
+    {
+      "action_id": "dcn_origin_riga-origin-20260917-001_2",
+      "action_kind": "request",
+      "admitted_at": "2026-09-17T19:24:09.925184+00:00",
+      "control_revision": 2,
+      "run_id": null,
+      "work_attempt_id": null,
+      "candidate_id": null,
+      "host": "danceconvention.net",
+      "all_sources": 0,
+      "all_kinds": 0,
+      "state": "settled",
+      "settled_at": "2026-09-17T19:24:10.137129+00:00",
+      "outcome": "Ok"
+    },
+    {
+      "action_id": "dcn_origin_fetch_riga-origin-20260917-001_3",
+      "action_kind": "fetch",
+      "admitted_at": "2026-09-17T19:24:10.184457+00:00",
+      "control_revision": 2,
+      "run_id": null,
+      "work_attempt_id": null,
+      "candidate_id": null,
+      "host": "danceconvention.net",
+      "all_sources": 0,
+      "all_kinds": 0,
+      "state": "settled",
+      "settled_at": "2026-09-17T19:24:20.498005+00:00",
+      "outcome": "completed"
+    },
+    {
+      "action_id": "dcn_origin_riga-origin-20260917-001_3",
+      "action_kind": "request",
+      "admitted_at": "2026-09-17T19:24:20.180370+00:00",
+      "control_revision": 2,
+      "run_id": null,
+      "work_attempt_id": null,
+      "candidate_id": null,
+      "host": "danceconvention.net",
+      "all_sources": 0,
+      "all_kinds": 0,
+      "state": "settled",
+      "settled_at": "2026-09-17T19:24:20.492095+00:00",
+      "outcome": "Ok"
+    },
+    {
+      "action_id": "dcn_origin_fetch_riga-origin-20260917-001_4",
+      "action_kind": "fetch",
+      "admitted_at": "2026-09-17T19:24:20.575007+00:00",
+      "control_revision": 2,
+      "run_id": null,
+      "work_attempt_id": null,
+      "candidate_id": null,
+      "host": "danceconvention.net",
+      "all_sources": 0,
+      "all_kinds": 0,
+      "state": "settled",
+      "settled_at": "2026-09-17T19:24:30.963479+00:00",
+      "outcome": "completed"
+    },
+    {
+      "action_id": "dcn_origin_riga-origin-20260917-001_4",
+      "action_kind": "request",
+      "admitted_at": "2026-09-17T19:24:30.549853+00:00",
+      "control_revision": 2,
+      "run_id": null,
+      "work_attempt_id": null,
+      "candidate_id": null,
+      "host": "danceconvention.net",
+      "all_sources": 0,
+      "all_kinds": 0,
+      "state": "settled",
+      "settled_at": "2026-09-17T19:24:30.958005+00:00",
+      "outcome": "Ok"
+    }
+  ],
+  "archive_paid_usage": [
+    {
+      "host": "web.archive.org",
+      "day": "2026-09-17",
+      "requests": 20,
+      "bytes": 2952065
+    }
+  ],
+  "sidecars": {
+    "dcn-origin-event-days.json": {
+      "sha256": "73a5fc787d0c60f1dd7b87633f5770540354e7b9295fffee301be70e6dcf9444",
+      "bytes": 520
+    },
+    "dcn-origin-robots-cache.json": {
+      "sha256": "1ff2d9e49b957569cfa0a645e0df0a4555a2d1cda8df9c51adef7d0a7ea77045",
+      "bytes": 335
+    }
+  }
+}

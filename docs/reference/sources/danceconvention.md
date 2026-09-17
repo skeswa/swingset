@@ -132,7 +132,8 @@ platforms, and why a byte budget exists at all.
 ## Local implementation and fixture status
 
 The source package has offline `dcn.list`, `dcn.event_metadata` and
-`dcn.legacy_results` adapters.
+`dcn.legacy_results` adapters. The local `dcn.round_pdf` increment now parses
+only the two exact reviewed Riga layouts; independent review passed.
 They are not registered for ordinary acquisition and create no seed or child
 watches. No source-kind policy or canonical projector is activated.
 
@@ -155,7 +156,7 @@ The original two complete real fixtures and provenance hashes, synthetic empty/m
 controls, changed-input derivatives and grammar/bounds tests are retained under
 `tests/fixtures/sources/dcn/`. See the
 [audit and implementation receipt](../../../journal/investigations/2026/dcn-offline-parsing-2026-09-17.md).
-Modern results payloads, PDFs, other index routes and year
+Modern results payloads, other index routes and year
 responses require their own real controls before implementation acceptance and
 exact-kind enforcement. The operating procedures above remain planned behavior
 for those kinds; this offline increment does not enable them.
@@ -188,6 +189,27 @@ completeness, full selected-round population, score availability or promotion
 is inferred. The kind remains outside the ordinary source registry and has no
 canonical projection or exact-kind enforcement approval. See the
 [legacy results implementation receipt](../../../journal/investigations/2026/dcn-legacy-results-parsing-2026-09-17.md).
+
+A separately reviewed fixture operation captured those two exact PDFs from the
+origin on 2026-09-17. It made four requests including the allowed robots redirect;
+the independent audit verified current robots permission, completion-based
+spacing and 132,764 received bytes. This grants no ordinary crawling or page-kind
+admission. See the [acquisition record](../../../journal/investigations/2026/dcn-origin-runner-2026-09-17.md).
+
+The finals PDF prints nine pair rows, seven named judge-code columns, nine
+numbered columns with unexplained arithmetic, final results and empty remarks.
+The two preliminary pages have distinct five-judge panels, marks `1`, `2.1`,
+`2.2`, `3`, and printed `Callback`, `Alternate1` or `-` results. They explicitly
+omit dancers with no Yes or Alternate marks, so neither page establishes the
+full participant population. Finals bib ownership remains row-level. A printed
+name at finals bib 485 differs between the archived HTML and current PDF;
+retain the disagreement without choosing an identity or inferring its cause.
+The [PDF controls review](../../../journal/investigations/2026/dcn-score-pdf-controls-2026-09-17.md)
+records exact field and population limits. The local
+[PDF parser](../../../journal/investigations/2026/dcn-score-pdf-parser-2026-09-17.md)
+passed focused tests and preserves page-scoped source observations. Its bytes
+are outside candidate 005 and are not deployed or published. Independent review
+passed; canonical projection and exact-kind admission remain separate gates.
 
 ## 9. Quirks
 

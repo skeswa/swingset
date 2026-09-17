@@ -87,3 +87,54 @@ class DcnLegacyResults:
     tables: tuple[DcnResultTable, ...]
     event_results_completeness: str = "unknown"
     score_pdf_interpretation: str = "unassessed"
+
+
+@dataclass(frozen=True)
+class DcnScorePdfJudge:
+    code_raw: str
+    name_raw: str
+
+
+@dataclass(frozen=True)
+class DcnScorePdfValue:
+    column_raw: str
+    value_raw: str
+    mark_kind: str | None = None
+    alternate_rank_raw: str | None = None
+
+
+@dataclass(frozen=True)
+class DcnScorePdfRow:
+    bib_raw: str
+    member_names_raw: tuple[str, ...]
+    role: str | None
+    judge_values: tuple[DcnScorePdfValue, ...]
+    numbered_values: tuple[DcnScorePdfValue, ...]
+    result_raw: str
+    remarks_raw: str
+    line_raw: str
+    continuation_line_raw: str | None
+    bib_ownership: str = "row"
+    promotion: str = "unknown"
+
+
+@register_observation_type
+@dataclass(frozen=True)
+class DcnScorePdfPage:
+    kind: str
+    source_body_sha256: str
+    source_url: str
+    source_event_ref: str
+    source_round_id: str
+    page_number: int
+    heading_raw: str
+    event_name_raw: str
+    role: str | None
+    legend_raw: str
+    judges: tuple[DcnScorePdfJudge, ...]
+    column_headers_raw: tuple[str, ...]
+    rows: tuple[DcnScorePdfRow, ...]
+    remarks_header_raw: str | None
+    disclaimer_raw: str | None
+    page_text_raw: str
+    population_completeness: str = "unknown"

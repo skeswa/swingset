@@ -1,0 +1,30 @@
+{
+  "format": "dcn-score-pdf-fixture-provenance-v1",
+  "source": "danceconvention.net",
+  "source_event_ref": "dcn:1546230",
+  "contest": "Jack'n'Jill Newcomer",
+  "source_receipt": "journal/evidence/admission/dcn-origin-runner-2026-09-17/quarantine-001/receipt.json",
+  "source_receipt_sha256": "35a2683a2edbfdcfbeb0510c31e099fc3a5c031f7c575447c5ec7de51fb29e19",
+  "fixtures": {
+    "finals": {
+      "file": "real-riga-finals-3451330-20260917.pdf",
+      "url": "https://danceconvention.net/eventdirector/en/roundscores/3451330.pdf",
+      "body_sha256": "b91e9e0a82edbd455b21b5aad50f211c590a05afd9a8bb34c81493d134e70e5e",
+      "body_bytes": 55063,
+      "captured_at": "2026-09-17T19:24:20.485922+00:00"
+    },
+    "prelims": {
+      "file": "real-riga-prelims-3451331-20260917.pdf",
+      "url": "https://danceconvention.net/eventdirector/en/roundscores/3451331.pdf",
+      "body_sha256": "f2ee4660315ab79703e8095312f75922e84271b38e19e784236bee5c2fbebb0b",
+      "body_bytes": 74760,
+      "captured_at": "2026-09-17T19:24:30.951561+00:00"
+    }
+  },
+  "policy": {
+    "copied_byte_for_byte_from_quarantine": true,
+    "network_requests_by_fixture_tests": 0,
+    "no_year_acceptance_or_kind_activation": true,
+    "html_pdf_bib_485_disagreement_remains_unresolved": true
+  }
+}

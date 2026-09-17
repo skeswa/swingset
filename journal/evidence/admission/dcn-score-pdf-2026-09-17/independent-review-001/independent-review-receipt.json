@@ -1,0 +1,92 @@
+{
+  "format": "dcn-score-pdf-independent-review-v1",
+  "passed": true,
+  "checked_at": "2026-09-17T20:12:25.416676Z",
+  "scope": "offline strict parser review for the two quarantined Riga Summer Swing score PDFs at the exact reviewed DCN locators",
+  "status": {
+    "implemented": "local successor source implementation only",
+    "tested": true,
+    "deployed": false,
+    "published": false,
+    "kind_admission": "not activated",
+    "historical_year_acceptance": "none"
+  },
+  "pins": {
+    "source": {
+      "src/swingset/sources/dcn/score_pdf.py": "feb3ac1b60ad6fe83e9893bbea63ab35a7a3da32a0ae221e6bb433804477baa8",
+      "src/swingset/sources/dcn/adapter.py": "beade666305dd9d7d03907009f91194d2615c24ffcb970bda162889ed19c9bc3",
+      "src/swingset/sources/dcn/records.py": "e1e88b990a934b93370cd943b48b8617b5e5675e5cc90b71220b59828b2d065c",
+      "src/swingset/sources/dcn/__init__.py": "e888826c73732e427547a45b43990db1c3a8eb6370017cf1ca09f828f6ccb5ed"
+    },
+    "tests": {
+      "path": "tests/test_dcn_score_pdf.py",
+      "sha256": "9ff4ba66f416b0f3656a84c48f52acf449f03425d5e9d89cfaf8383d6047d4da"
+    },
+    "fixtures": {
+      "finals": {
+        "path": "tests/fixtures/sources/dcn/real-riga-finals-3451330-20260917.pdf",
+        "sha256": "b91e9e0a82edbd455b21b5aad50f211c590a05afd9a8bb34c81493d134e70e5e"
+      },
+      "prelims": {
+        "path": "tests/fixtures/sources/dcn/real-riga-prelims-3451331-20260917.pdf",
+        "sha256": "f2ee4660315ab79703e8095312f75922e84271b38e19e784236bee5c2fbebb0b"
+      },
+      "provenance": {
+        "path": "tests/fixtures/sources/dcn/score-pdf-provenance-20260917.json",
+        "sha256": "76b5e651b9ee73144688e9a2f016a6737adaa0df382a73a3625a023d9762de0c"
+      },
+      "origin_receipt": {
+        "path": "journal/evidence/admission/dcn-origin-runner-2026-09-17/quarantine-001/receipt.json",
+        "sha256": "35a2683a2edbfdcfbeb0510c31e099fc3a5c031f7c575447c5ec7de51fb29e19"
+      }
+    }
+  },
+  "validation": {
+    "commands": [
+      "PYTHONPATH=src .venv/bin/python -m pytest -c /dev/null -p no:cacheprovider -q tests/test_dcn_score_pdf.py",
+      ".venv/bin/ruff check src/swingset/sources/dcn/score_pdf.py src/swingset/sources/dcn/adapter.py src/swingset/sources/dcn/records.py src/swingset/sources/dcn/__init__.py tests/test_dcn_score_pdf.py",
+      ".venv/bin/ruff format --check src/swingset/sources/dcn/score_pdf.py src/swingset/sources/dcn/adapter.py src/swingset/sources/dcn/records.py src/swingset/sources/dcn/__init__.py tests/test_dcn_score_pdf.py",
+      ".venv/bin/mypy --follow-imports=silent src/swingset/sources/dcn/score_pdf.py"
+    ],
+    "results": {
+      "pytest": "13 passed",
+      "ruff": "passed",
+      "format": "passed",
+      "mypy": "passed"
+    },
+    "logs": {
+      "pytest.log": {
+        "path": "journal/evidence/admission/dcn-score-pdf-2026-09-17/independent-review-001/pytest.log",
+        "sha256": "950020cf0ce20fe4288830dc12ad683c59dfeef69e7e63196e8c851aa1564915"
+      },
+      "ruff.log": {
+        "path": "journal/evidence/admission/dcn-score-pdf-2026-09-17/independent-review-001/ruff.log",
+        "sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+      },
+      "format.log": {
+        "path": "journal/evidence/admission/dcn-score-pdf-2026-09-17/independent-review-001/format.log",
+        "sha256": "f114d83b30c5c657ee43a847a45bafccaea255d82673feb87c26d252c61e29c1"
+      },
+      "mypy.log": {
+        "path": "journal/evidence/admission/dcn-score-pdf-2026-09-17/independent-review-001/mypy.log",
+        "sha256": "5d4b6d285b77932e3d08212c3b4974d0a803f98ec60408ac6ccf6a063fa6c19e"
+      }
+    }
+  },
+  "checks": {
+    "exact source event and both URL/round bindings": true,
+    "prelim role panels remain separate and filtered-subset": true,
+    "final pair names remain role-unassigned and promotion unknown": true,
+    "empty final Remarks remains empty": true,
+    "bib 485 HTML/PDF disagreement preserved as unresolved source facts": true,
+    "changed heading/header/mark and inserted legend-to-header qualification fail closed": true,
+    "fixture provenance binds retained origin receipt and exact body hashes": true,
+    "tests perform no network requests and do not activate kind/year acceptance": true
+  },
+  "review_findings": [],
+  "conclusions": [
+    "No role is inferred for either member of the finals pair.",
+    "No finals promotion, complete event population, or human identity label is inferred.",
+    "The results remain raw source observations; kind admission and publication remain separate gates."
+  ]
+}

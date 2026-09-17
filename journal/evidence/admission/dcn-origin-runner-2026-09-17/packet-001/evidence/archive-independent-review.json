@@ -1,0 +1,87 @@
+{
+  "format": "dcn-score-pdf-metadata-acquisition-independent-review-v1",
+  "recorded_at": "2026-09-17T18:12:45.714420+00:00",
+  "reviewer": "unsupported",
+  "passed": true,
+  "files": {
+    "journal/evidence/admission/dcn-score-pdf-lookup-2026-09-17/production-after.json": "08fc520f64766a475f01493b2a55fd2dfab54d8a80f1f3081e419cc02339f96a",
+    "journal/evidence/admission/dcn-score-pdf-lookup-2026-09-17/service.log": "28f292309f63391b467758e1ca0c053f3311ada928a2c2ffece751cfcf74499c",
+    "journal/evidence/admission/dcn-score-pdf-lookup-2026-09-17/execution-admissions.json": "473977b0d03e80439fab61c494d147364e1125e880e9123aaa0d5f03b249d630",
+    "journal/evidence/admission/dcn-score-pdf-lookup-2026-09-17/quarantine/authorization.json": "f2e7e8e554e0c5a7ecc9babef3e2aa492aaf22b8302a25483640da1a4540e2dc",
+    "journal/evidence/admission/dcn-score-pdf-lookup-2026-09-17/quarantine/manifest.json": "f25df5f025ccd81ed95c6e0a87ecb952ff7fd26baceb064b68c512bafb6711ac",
+    "journal/evidence/admission/dcn-score-pdf-lookup-2026-09-17/quarantine/receipt.json": "4927ca01a88d9ad5ebaa38d613c16ee8a941c0873a726902b13f00e2c30c6e3a",
+    "journal/evidence/admission/dcn-score-pdf-lookup-2026-09-17/packet/build-receipt.json": "0e3c547af30a4e8cfb2f425087f883904869a95f718cbb15595165f5adca510d",
+    "journal/evidence/admission/dcn-score-pdf-lookup-2026-09-17/packet/dcn-score-pdf-lookup-h13-001.py": "b3e50815456113d44eb96885199c4d6caddef65d408a7ee9d85e3803cb1dd80d",
+    "journal/evidence/admission/dcn-score-pdf-lookup-2026-09-17/packet/authorization.json": "5bda553e915f595207609f485d74444d37b315ed473099d64e0aa50e2c1b4114",
+    "journal/evidence/admission/dcn-score-pdf-lookup-2026-09-17/packet/execution-gate.json": "d8516679743677869295b83441199851d9da50d6bf8840a50a07520fce053abf",
+    "journal/evidence/admission/dcn-score-pdf-lookup-2026-09-17/packet/execute.sh": "9a56cc43db0b7297d337465ef893d38ce1172c624cc00d1e559202c0a53b8cf5",
+    "journal/evidence/admission/dcn-score-pdf-lookup-2026-09-17/packet/prepare_fixture_exception.py": "0730c8237b1c90bac7a7d1faddf6edea64a53bc0207acab14d2dae6bd002131e",
+    "journal/evidence/admission/dcn-score-pdf-lookup-2026-09-17/packet/preparation-receipt.json": "12d467899a2b261ef5d6b4aa6f784d037121a0b9e2474651edcaadd01b32bae3",
+    "journal/evidence/admission/dcn-score-pdf-lookup-2026-09-17/quarantine/bodies/37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+    "journal/evidence/admission/dcn-score-pdf-lookup-2026-09-17/quarantine/bodies/4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+    "journal/evidence/admission/dcn-score-pdf-lookup-2026-09-17/quarantine/bodies/55f7d9e99b8e2d4e0e193b2f0275501e6d9c1ebd29cadbea6a0da48a8587e3e0": "55f7d9e99b8e2d4e0e193b2f0275501e6d9c1ebd29cadbea6a0da48a8587e3e0",
+    "journal/evidence/admission/dcn-score-pdf-lookup-2026-09-17/packet/helper-closure/authority.md": "84ad7a85d2a260b1ffab9ad07bbfe52ce04dbc2b2f0bee687ba51c05c566f498",
+    "journal/evidence/admission/dcn-score-pdf-lookup-2026-09-17/packet/helper-closure/source-proposal.json": "806f9450d2d487fcbb8fc09ec4966cb685eee16099f1dd80c16757ca2b2aa18e",
+    "journal/evidence/admission/dcn-score-pdf-lookup-2026-09-17/packet/helper-closure/closure.json": "2ad23ab7bfd923bf0d9fe7afed49b1410867c187f8f473aeefb73d427c1a1059",
+    "journal/evidence/admission/dcn-score-pdf-lookup-2026-09-17/packet/helper-closure/proposal.json": "f25df5f025ccd81ed95c6e0a87ecb952ff7fd26baceb064b68c512bafb6711ac",
+    "journal/evidence/admission/dcn-score-pdf-lookup-2026-09-17/packet/helper-closure/evidence/locator-context.json": "714ba4f9ba7e94d4a0327c82ad510420de5005157e6fd2886efaf4d5523df209",
+    "journal/evidence/admission/dcn-score-pdf-lookup-2026-09-17/packet/helper-closure/evidence/riga-results.html": "487b38c2ff264e62bf2e6de8e2b24cd5aff2ceab40856a56c1ac8539a4aad573",
+    "journal/evidence/admission/dcn-score-pdf-lookup-2026-09-17/packet/helper-closure/evidence/acquisition-receipt.json": "18efd8529a048fa548a0e388d56dcee808cfe5cf75877245bf5bd5a77ad58e5f",
+    "journal/evidence/admission/dcn-score-pdf-lookup-2026-09-17/packet/helper-closure/evidence/acquisition-audit.json": "cb94bddd6d8aa3f3654905f127bbb3f89fdf36813b8d5813b90e39d00ffdf078",
+    "journal/evidence/admission/dcn-score-pdf-lookup-2026-09-17/packet/helper-closure/fixture_helpers/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "journal/evidence/admission/dcn-score-pdf-lookup-2026-09-17/packet/helper-closure/fixture_helpers/fixture_exception.py": "67be565c9d119a9781377d48f3218aa39ab9b126addeb9285f767afec2b74f72",
+    "journal/evidence/admission/dcn-score-pdf-lookup-2026-09-17/packet/helper-closure/fixture_helpers/fixture_transport.py": "4ff935cd38da1afad44ed891b77a57b96ff2a7b7d505966266fd1a3be6636928"
+  },
+  "runner_review_sha256": "909224564b26de32333625d24e75ea1301d0ed85681e7d14dcc81bf07211f85e",
+  "request_count": 5,
+  "accounted_response_body_bytes": 156,
+  "completion_to_dispatch_monotonic_seconds": [
+    10.015212942031212,
+    10.01674438198097,
+    10.023802572046407,
+    10.029719829035457
+  ],
+  "completion_to_dispatch_wall_seconds": [
+    10.015211,
+    10.016741,
+    10.0238,
+    10.029717
+  ],
+  "elapsed_seconds": 63.752822,
+  "paid_requests_before": 15,
+  "paid_requests_after": 20,
+  "paid_bytes_before": 2951909,
+  "paid_bytes_after": 2952065,
+  "all_admissions_settled": true,
+  "logical_fetch_admissions": 5,
+  "paid_request_admissions": 5,
+  "source_schema": 28,
+  "hold_preserved": true,
+  "six_ordinary_units_inactive": true,
+  "baseline_unchanged": true,
+  "query_results": [
+    {
+      "original_url": "https://danceconvention.net/eventdirector/en/roundscores/3451330.pdf",
+      "pages_reported": 1,
+      "page0_bytes": "[]\\n",
+      "capture_rows": 0,
+      "further_pages_reported": 0
+    },
+    {
+      "original_url": "https://danceconvention.net/eventdirector/en/roundscores/3451331.pdf",
+      "pages_reported": 1,
+      "page0_bytes": "[]\\n",
+      "capture_rows": 0,
+      "further_pages_reported": 0
+    }
+  ],
+  "interpretation": "No capture rows returned by these exact2018-2026 collapsed200-status queries at this observation. The1-page probe and empty page0 do not prove the URLs were never archived or cover other query variants.",
+  "production_facts_or_watches_created": 0,
+  "network_requests_by_reviewer": 0,
+  "production_operations_by_reviewer": 0,
+  "limits": [
+    "Review uses retained coordinator exports, not a fresh live query.",
+    "Application-exposed response bodies are measured; transport buffering is unknown.",
+    "No PDF body was acquired or interpreted, and no source kind or year was accepted."
+  ]
+}

@@ -25,6 +25,7 @@ from swingset.sources.common import text
 from .legacy_results import LegacyResultsPage
 from .nuxt import MAX_BODY_BYTES, evaluate_nuxt
 from .records import DcnEventMetadata, DcnIndexEvent, DcnIndexSheet
+from .score_pdf import ScorePdfPage
 
 HOST = "danceconvention.net"
 ROOT = f"https://{HOST}"
@@ -300,6 +301,7 @@ class DCNSource:
         IndexPage.kind: IndexPage(),
         LegacyEventPage.kind: LegacyEventPage(),
         LegacyResultsPage.kind: LegacyResultsPage(),
+        ScorePdfPage.kind: ScorePdfPage(),
     }
 
     def seed_watches(self, config: object, overrides: object) -> list[WatchSpec]:
