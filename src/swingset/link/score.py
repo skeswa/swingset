@@ -9,6 +9,13 @@ from .candidates import Candidate
 
 @dataclass(frozen=True)
 class Weights:
+    """Relative contributions to a candidate's ranking score.
+
+    Missing division evidence and unknown judge roles omit their weights.
+    The retained ``source_id`` setting is not used as a numeric weight:
+    a matching printed ID directly returns a score of 1.0.
+    """
+
     name: float = 0.65
     role: float = 0.10
     recency: float = 0.05
@@ -36,6 +43,14 @@ def _judge_name_support(candidate: Candidate) -> bool:
 
 
 def score_candidate(candidate: Candidate, weights: Weights | None = None) -> float:
+    """Rank one proposed match using name, role, recency, and division signals.
+
+    The score is not a calibrated probability: 0.97 does not mean a 97%
+    chance of correctness. A perfect name match with compatible other signals
+    can score 1.0 and still remain tentative. Reviewed restrictions can also
+    forbid a high-scoring pair; this function does not decide permission or
+    confirmation. CandidateAssessment carries those separate facts.
+    """
     weights = weights or Weights()
     subject, dancer = candidate.subject, candidate.dancer
     if subject.source_wsdc_id == dancer.wsdc_id:

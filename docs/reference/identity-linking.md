@@ -12,6 +12,7 @@ Linking connects a result entry or judge to a WSDC registry dancer. This page ow
 - [Link status](#link-status)
 - [Retroactive correction](#retroactive-correction)
 - [Newcomers and first points](#newcomers-and-first-points)
+- [Implementation and inspection](#implementation-and-inspection)
 - [Work ownership](#work-ownership)
 - [Durable decisions and resolution (H8–H9)](#durable-decisions-and-resolution-h8h9)
 - [Offline reviewed evaluation (H17)](#offline-reviewed-evaluation-h17)
@@ -61,27 +62,28 @@ small enough to score everything for every entry per event anyway.
 ## Scoring and methods
 
 Each candidate gets a score in [0, 1] from a weighted combination. The
-weights start hand-set in `link/weights.toml` and are later fit with Splink (Fellegi-Sunter with
-term-frequency adjustment, DuckDB backend) using scoring.dance rows as
-labeled truth, because that source prints WSDC ids next to names.
+current weights are hand-set in `link/weights.toml`. Offline fitting with
+Splink is a future step, using reviewed scoring.dance evidence; the runtime
+does not fit weights. Recorded candidate evidence includes signals that do
+not currently contribute to the weighted score.
 
 Signals:
 
-| Signal                | Effect                                                                                                                                               |
-| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Name similarity       | main signal                                                                                                                                          |
-| Name rarity           | a rare surname match counts more (term frequency)                                                                                                    |
-| Division consistency  | the dancer's registry level for that role on the event date must allow the contest's division. A Champion dancing Novice is a near-impossible match. |
-| Role consistency      | registry primary role matches entry role; weaker signal because dancers switch                                                                       |
-| Recency               | dancer has registry activity within 3 years of the event                                                                                             |
-| Geography             | DCN city/country vs. the dancer's recent event locations; weak                                                                                       |
-| Bib reuse             | the same bib at the same event in another contest already linked to a dancer; strong                                                                 |
-| Registry confirmation | one exact normalized-name identity matches the same event, role, division, style, and numeric place or finalist result `F`; decisive                 |
-| Source-provided id    | scoring.dance `data-wsdc`; decisive                                                                                                                  |
+| Signal                | Effect                                                                                                                                                                                                 |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Name similarity       | main signal                                                                                                                                                                                            |
+| Name rarity           | recorded for review; does not currently affect the score                                                                                                                                               |
+| Division consistency  | the loaded registry required/allowed levels for that role must allow the contest's division; an incompatible level sharply reduces the score. Historical event-date levels are not reconstructed here. |
+| Role consistency      | registry primary role matches entry role; weaker signal because dancers switch                                                                                                                         |
+| Recency               | dancer has registry activity within 3 years of the event                                                                                                                                               |
+| Geography             | not currently computed; stored as unavailable                                                                                                                                                          |
+| Bib reuse             | the same bib within one contest and role shares an assignment; recorded on the selected candidate, without a score weight                                                                              |
+| Registry confirmation | one exact normalized-name identity matches the same event, role, division, style, and numeric place or finalist result `F`; decisive                                                                   |
+| Source-provided id    | scoring.dance `data-wsdc`; decisive                                                                                                                                                                    |
 
-Per-event constraints are applied after scoring as an assignment
-problem: within one event, one WSDC id links to at most one bib per role,
-and one bib per role links to at most one WSDC id. We solve with
+Assignment runs separately for each contest and role: one WSDC id is
+assigned to at most one bib in that scope, and one bib to at most one WSDC id.
+The same bib in another contest is a separate assignment group. We solve with
 `scipy.optimize.linear_sum_assignment` on `-log(score)`, then reject
 assignments below threshold.
 
@@ -171,6 +173,49 @@ identity but does not establish a numeric rank or attach points to that exact
 placement. Bib reuse remains a separate linking signal.
 This is expected and is the main reason the dataset is "eventually
 correct".
+
+## Implementation and inspection
+
+The public operation is `link_event` in
+[`service.py`](../../src/swingset/link/service.py). Its implementation has three phases:
+
+| Phase                  | Owner                                                      | Result                                                                                   |
+| ---------------------- | ---------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| Load retained evidence | [`evidence.py`](../../src/swingset/link/evidence.py)       | `LinkingSnapshot`: event evidence, rules, selected derivation, and journal token         |
+| Resolve identities     | [`resolution.py`](../../src/swingset/link/resolution.py)   | `EventResolution`: conclusions, candidate assessments, review restrictions, and findings |
+| Commit current results | [`persistence.py`](../../src/swingset/link/persistence.py) | Stored links and candidates, history, dependent updates, and completed work              |
+
+`resolve_event(evidence, rules)` is deterministic and has no database or clock
+argument. Read `_conclude` for the final evidence precedence: unresolved person
+ownership, subject hold, reviewed positive, permitted unique printed identity,
+unique permitted registry confirmation among generated candidates, then scored
+assignment or unmatched. Cross-subject strong-claim conflicts are checked before
+assignment. Restricted candidates remain available with their scores and signals;
+they still contribute to the existing ambiguity comparison.
+
+The [model](../../src/swingset/link/model.py) distinguishes `ConfirmedIdentity`,
+`TentativeIdentity`, `UnmatchedIdentity`, and `WithheldIdentity`. Only the first
+provides `SubjectResolution.default_wsdc_id`. Tentative conclusions retain the
+existing probable/possible/ambiguous statuses. Both unmatched and withheld
+conclusions store `unmatched`; inspect `conclusion.reasons`, `review`, and
+`findings` to distinguish absent matches from prevented joins. History reason
+precedence remains unchanged, including a hold on an already paired subject.
+
+The shared deterministic journal policy lives in
+[`policy.py`](../../src/swingset/link/policy.py). `DecisionResolver` in
+[`decisions.py`](../../src/swingset/link/decisions.py) loads that policy and reads
+durable source continuity for linking and publication. The commit rechecks both
+the selected derivation and journal token. A stale standalone call returns
+`False` with work still queued; a delegated call raises `SupersededWorkError`.
+An unchanged successful standalone call also returns `False`, preserving the
+existing public interface.
+
+Placement points and confirmation watches live in
+[`effects.py`](../../src/swingset/link/effects.py) and still update inside the
+same transaction as identities, findings, history, and work completion.
+Offline `evaluation*` modules prepare human review artifacts; they do not run
+as part of event resolution. See [D-0042](../../journal/decisions/0042-separate-link-evidence-resolution-and-persistence.md)
+for the design choice and validation links.
 
 ## Work ownership
 

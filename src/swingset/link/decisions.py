@@ -1,75 +1,62 @@
-"""One decision policy for source IDs, reviewed positives, and scored candidates."""
+"""Load durable identity review evidence and retain committed resolutions.
+
+DecisionPolicy owns the shared, deterministic review rules. DecisionResolver
+adds storage-backed source continuity checks for current and baseline records.
+"""
 
 from __future__ import annotations
 
 import json
 import sqlite3
-from dataclasses import dataclass
+from types import MappingProxyType
 
 from swingset.state.identity_journal import JournalToken, active_decisions, token
 from swingset.state.identity_references import ReferenceBinding, SourceReference
 
-POLICY_VERSION = "identity-decisions-v1"
-
-
-@dataclass(frozen=True)
-class DecisionResolution:
-    token: JournalToken
-    ref_ids: tuple[str, ...]
-    decision_ids: tuple[str, ...]
-    migration_ids: tuple[str, ...]
-    positive_wsdc_id: int | None
-    blocked_wsdc_ids: frozenset[int]
-    hold_subject: bool
-    contradictions: tuple[str, ...]
-    review_required: bool
-    policy_version: str = POLICY_VERSION
-
-    def allows(self, wsdc_id: int) -> bool:
-        return (
-            not self.hold_subject
-            and wsdc_id not in self.blocked_wsdc_ids
-            and (self.positive_wsdc_id is None or wsdc_id == self.positive_wsdc_id)
-        )
+from .policy import POLICY_VERSION as POLICY_VERSION
+from .policy import DecisionPolicy
+from .policy import DecisionResolution as DecisionResolution
 
 
 class DecisionResolver:
-    """Read an accepted journal once, then resolve durable refs without writes.
+    """Read durable review evidence for linking and publication.
 
-    Callers may supply baseline references without a current canonical subject.
-    Recheck ``token`` in the write/publication transaction before selecting output.
+    Source bindings connect an entry or judge to an original source location.
+    Continuity checks detect missing, replaced, or ambiguously moved locations
+    so a correction cannot silently disappear. DecisionPolicy interprets the
+    loaded human decisions and claims; it does not query this connection.
+    Callers recheck the journal token before selecting output.
     """
 
     def __init__(self, conn: sqlite3.Connection):
-        self.token = token(conn)
-        self.decisions = active_decisions(conn)
+        journal = token(conn)
+        decisions = active_decisions(conn)
         self.conn = conn
-        self.migrations: dict[str, list[tuple[str, tuple[str, ...], str, str]]] = {}
+        migrations: dict[str, list[tuple[str, tuple[str, ...], str, str]]] = {}
         for row in conn.execute(
             "SELECT migration_id,from_ref_id,to_ref_ids_json,status,evidence FROM identity_reference_migrations WHERE migration_id NOT IN (SELECT supersedes FROM identity_reference_migrations WHERE supersedes IS NOT NULL)"
         ):
-            self.migrations.setdefault(str(row[1]), []).append(
+            migrations.setdefault(str(row[1]), []).append(
                 (str(row[0]), tuple(json.loads(row[2])), str(row[3]), str(row[4]))
             )
 
-    def _reachable(self, reference: str) -> tuple[set[str], bool, set[str]]:
-        reachable = set()
-        pending = [reference]
-        ambiguous = False
-        migrations = set()
-        while pending:
-            ref = pending.pop()
-            if ref in reachable:
-                continue
-            reachable.add(ref)
-            moves = self.migrations.get(ref, [])
-            if len(moves) > 1:
-                ambiguous = True
-            for identifier, targets, status, _evidence in moves:
-                migrations.add(identifier)
-                ambiguous |= status != "approved" or len(targets) != 1
-                pending.extend(targets)
-        return reachable, ambiguous, migrations
+        self.policy = DecisionPolicy(
+            journal,
+            tuple(decisions),
+            MappingProxyType({key: tuple(value) for key, value in migrations.items()}),
+        )
+
+    @property
+    def token(self) -> JournalToken:
+        return self.policy.token
+
+    def previous_reference_ids(self, subject_id: str) -> tuple[str, ...]:
+        return tuple(
+            str(row[0])
+            for row in self.conn.execute(
+                "SELECT ref_id FROM identity_reference_bindings WHERE subject_id=?", (subject_id,)
+            )
+        )
 
     def binding_problem(
         self,
@@ -91,7 +78,7 @@ class DecisionResolver:
             return "ambiguous_source_locator"
         current_ids = {binding.reference.ref_id for binding in bindings}
         for binding in bindings:
-            for decision in self.decisions:
+            for decision in self.policy.decisions:
                 if (
                     decision.source != binding.reference.source
                     or decision.source_event != binding.reference.source_event
@@ -100,7 +87,7 @@ class DecisionResolver:
                 old_ref = decision.reference.ref_id
                 if old_ref in current_ids:
                     continue
-                reachable, ambiguous, _moves = self._reachable(old_ref)
+                reachable, ambiguous, _moves = self.policy.reachable(old_ref)
                 if not ambiguous and (reachable & current_ids or len(reachable) > 1):
                     continue
                 old_subjects = self.conn.execute(
@@ -130,7 +117,7 @@ class DecisionResolver:
             ).fetchall()
             if any(str(row[0]) != binding.semantic_hash for row in older):
                 approved = False
-                for _identifier, targets, status, evidence in self.migrations.get(
+                for _identifier, targets, status, evidence in self.policy.migrations.get(
                     binding.reference.ref_id, []
                 ):
                     try:
@@ -154,9 +141,9 @@ class DecisionResolver:
                 old_ref = str(row[0])
                 if old_ref in current_ids:
                     continue
-                if not any(d.reference.ref_id == old_ref for d in self.decisions):
+                if not any(d.reference.ref_id == old_ref for d in self.policy.decisions):
                     continue
-                reachable, ambiguous, _moves = self._reachable(old_ref)
+                reachable, ambiguous, _moves = self.policy.reachable(old_ref)
                 if not (reachable & current_ids) or ambiguous:
                     return "source_locator_changed_requires_reference_migration"
         return None
@@ -170,79 +157,15 @@ class DecisionResolver:
         legacy_subject_id: str | None = None,
         reference_problem: str | None = None,
     ) -> DecisionResolution:
-        refs = {ref.ref_id for ref in references}
-        if reference_problem and legacy_subject_id:
-            refs.update(
-                str(row[0])
-                for row in self.conn.execute(
-                    "SELECT ref_id FROM identity_reference_bindings WHERE subject_id=?",
-                    (legacy_subject_id,),
-                )
-            )
-        applicable = []
-        migrations = set()
-        problems = set()
-        for reference in tuple(refs):
-            reachable, ambiguous, moves = self._reachable(reference)
-            refs.update(reachable)
-            migrations.update(moves)
-            if ambiguous:
-                problems.add("ambiguous_reference_migration")
-        for decision in self.decisions:
-            targets, ambiguous, moves = self._reachable(decision.reference.ref_id)
-            legacy = (
-                decision.source == "legacy"
-                and decision.participant == f"unmapped-entry:{legacy_subject_id}"
-            )
-            if not (targets & refs) and not legacy:
-                continue
-            applicable.append(decision)
-            migrations.update(moves)
-            if ambiguous:
-                problems.add("ambiguous_reference_migration")
-        if reference_problem:
-            problems.add(reference_problem)
-        positives = {int(d.wsdc_id) for d in applicable if d.decision == "same_person"}
-        blocked = {
-            int(d.wsdc_id)
-            for d in applicable
-            if d.decision in {"different_person", "insufficient_evidence"} and d.wsdc_id != "NONE"
-        }
-        held = any(
-            d.decision == "hold_unlinked"
-            or (
-                d.decision == "insufficient_evidence"
-                and (d.wsdc_id == "NONE" or d.source == "legacy")
-            )
-            for d in applicable
-        )
-        if len(positives) > 1:
-            problems.add("conflicting_positive_decisions")
-        if positives & blocked:
-            problems.add("conflicting_positive_and_negative_decisions")
-        if positives and held:
-            problems.add("positive_decision_conflicts_with_subject_hold")
-        strong = set(registry_wsdc_ids)
-        if source_wsdc_id is not None:
-            strong.add(source_wsdc_id)
-        if positives and strong - positives:
-            problems.add("new_evidence_conflicts_with_positive_decision")
-        if strong & blocked:
-            problems.add("new_evidence_conflicts_with_pair_restriction")
-        if len(strong) > 1:
-            problems.add("contradictory_source_and_registry_identities")
-        return DecisionResolution(
-            self.token,
-            tuple(sorted(refs)),
-            tuple(sorted(d.decision_id for d in applicable)),
-            tuple(sorted(migrations)),
-            next(iter(positives)) if len(positives) == 1 else None,
-            frozenset(blocked),
-            held or bool(problems),
-            tuple(sorted(problems)),
-            held
-            or bool(problems)
-            or any(d.decision == "insufficient_evidence" for d in applicable),
+        return self.policy.resolve(
+            references,
+            source_wsdc_id=source_wsdc_id,
+            registry_wsdc_ids=registry_wsdc_ids,
+            legacy_subject_id=legacy_subject_id,
+            reference_problem=reference_problem,
+            previous_reference_ids=self.previous_reference_ids(legacy_subject_id)
+            if reference_problem and legacy_subject_id
+            else (),
         )
 
 

@@ -41,6 +41,19 @@ These terms connect dance results to the pipeline. Start with the
 | Publication candidate   | One complete proposed version of the dataset, including its change history relative to a specific baseline.                                                                                             |
 | Baseline                | The last public dataset version acknowledged locally; the reference for the next changelog delta.                                                                                                       |
 
+## Identity reasoning
+
+| Term                       | Meaning                                                                                                                |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| Identity subject           | An entry or judge whose registry identity is being considered.                                                         |
+| Reviewed identity decision | A person's recorded confirmation, restriction, or hold in the identity decision journal.                               |
+| Identity resolution        | The linker's computed conclusion from source evidence, registry facts, reviewed decisions, and other subjects' claims. |
+| Candidate assessment       | The evidence and score for one possible registry identity, including whether current restrictions permit selecting it. |
+| Withheld identity          | A subject whose identity join is prevented by a hold, contradiction, or unresolved person ownership.                   |
+
+The [identity reference](identity-linking.md#implementation-and-inspection)
+owns resolution outcomes and their relationship to stored link statuses.
+
 ## Recovery and publication
 
 | Term                      | Plain-language meaning                                                                            |

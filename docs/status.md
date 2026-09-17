@@ -1,6 +1,7 @@
 # Current status
 
-Updated 2026-09-16. A read-only worker check confirmed the operator hold and
+Updated 2026-09-17. The operating evidence below is dated 2026-09-16.
+A read-only worker check confirmed the operator hold and
 all six ordinary cycle, backup, and summary units inactive. The repaired H16
 source was activated at 19:58:29 UTC and its release was published and remotely
 verified at 22:37:24 UTC. On 2026-09-16 the owner
@@ -126,6 +127,13 @@ and has not been deployed. See
 [the implementation outcome](../journal/investigations/2026/event-completion-2026-09-16.md).
 
 ## Where to continue
+
+The identity linker has a local evidence → resolution → persistence refactor.
+The full offline suite passed 2,088 tests, including 195 focused checks; the
+original-versus-refactored output comparison also passed. It has not been
+deployed or published. See the
+[dated validation outcome](../journal/investigations/2026/link-resolution-refactor-2026-09-17.md)
+for scope and evidence.
 
 - [Release handoff](../journal/investigations/2026/2026-09-15-release-handoff.md): exact source pins, scratch paths, holds, and release gates.
 - [Current production release](../journal/investigations/2026/h16-production-release-2026-09-16.md): repaired source, authorization, and actual phase outcomes.

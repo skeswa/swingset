@@ -10,6 +10,14 @@ from swingset.normalize.names import nickname_equivalent, normalize_name, paired
 
 @dataclass(frozen=True)
 class Subject:
+    """An entry or judge whose registry identity we want to establish.
+
+    For example, fictional Alex Lee, leader bib 42 in Novice Jack & Jill,
+    is one subject. Alex entering another contest produces another subject.
+    ``subject_id`` identifies the participation record, not a registry person.
+    ``source_wsdc_id`` is a printed identity claim; restrictions may block it.
+    """
+
     subject_kind: str
     subject_id: str
     name_raw: str
@@ -23,6 +31,13 @@ class Subject:
 
 @dataclass(frozen=True)
 class DancerRecord:
+    """A registry identity and the facts used to compare it with a subject.
+
+    For example, fictional WSDC 100 might be Alex Lee, primarily a leader,
+    with activity in 2026. Several subjects can refer to this same person.
+    The loaded role levels are registry facts, not reconstructed past levels.
+    """
+
     wsdc_id: int
     name_raw: str
     primary_role: str
@@ -36,6 +51,19 @@ class DancerRecord:
 
 @dataclass(frozen=True)
 class Candidate:
+    """A hypothesis that one subject and one registry dancer are the same person.
+
+    A candidate is a pair, not just a dancer. If registry IDs 100 and 200
+    both name Alex Lee, bib 42 can have two candidates: (bib 42, WSDC 100)
+    and (bib 42, WSDC 200). Neither pair is confirmed by being generated.
+
+    ``exact`` compares normalized names; ``nickname`` records configured
+    nickname equivalence, such as Mike/Michael. ``token_set`` compares name
+    words and contributes to ``name_similarity``. These are name signals,
+    not the final weighted score. ``division_ok`` is True for compatible
+    evidence, False for incompatible evidence, and None when unavailable.
+    """
+
     subject: Subject
     dancer: DancerRecord
     name_similarity: float
@@ -63,6 +91,10 @@ _LEVEL = {
 
 
 def _division_ok(subject: Subject, dancer: DancerRecord) -> bool | None:
+    """Compare the contest division with the dancer's loaded role levels.
+
+    None means there is no usable eligibility evidence, not a mismatch.
+    """
     if (
         subject.division in {None, "none", "open"}
         or subject.division not in _LEVEL
@@ -79,6 +111,17 @@ def _division_ok(subject: Subject, dancer: DancerRecord) -> bool | None:
 def generate_candidates(
     subject: Subject, dancers: list[DancerRecord], nicknames: dict[str, str]
 ) -> list[Candidate]:
+    """Find subject/dancer pairs worth scoring in the supplied registry pool.
+
+    For fictional bib 42 named Alex Lee, two registry dancers with that name
+    yield two candidates. Pat Gomez fails the surname-initial block. With a
+    configured nickname mapping, Mike Smith can match Michael Smith.
+
+    The surname-initial block applies even to printed-ID candidates. Coupled
+    or unsplit paired subjects yield no individual candidates. Name matching
+    proposes possibilities; scoring, review restrictions, and confirmation
+    are handled later. Results have deterministic name-similarity/ID order.
+    """
     if subject.role == "couple" or paired_names(subject.name_raw):
         return []
     wanted = normalize_name(subject.name_raw)

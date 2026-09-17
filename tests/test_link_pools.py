@@ -1,13 +1,14 @@
-from unittest.mock import patch
-
 import pytest
 from test_link_service import Bundle, entry, owned_source_sheet, run, seed
 
 from swingset.link import DancerRecord, Subject, generate_candidates
-from swingset.link.service import _candidate_pools
-from swingset.normalize.names import normalize_name
+from swingset.link.model import EventEvidence, LinkingRules, SubjectEvidence
+from swingset.link.policy import DecisionPolicy
+from swingset.link.resolution import resolve_event
+from swingset.link.score import Weights
 from swingset.state.db import open_database
 from swingset.state.findings import Finding, replace_findings
+from swingset.state.identity_journal import JournalToken
 
 
 @pytest.mark.parametrize("kind", ["entry", "judge"])
@@ -15,7 +16,7 @@ from swingset.state.findings import Finding, replace_findings
     "name", ["Álex Léé Jr", "Alex Lee", "Alex la Rue", "李 小龙", "", "***", "Alex Lee and Sam Doe"]
 )
 @pytest.mark.parametrize("source_id", [None, 2, 3])
-def test_indexed_pool_preserves_every_candidate_signal_and_order(kind, name, source_id):
+def test_resolution_preserves_full_pool_candidate_signals(kind, name, source_id):
     dancers = [
         DancerRecord(4, "Alexander Lee", "leader", 2026),
         DancerRecord(2, "Álex Léé Jr", "leader", 2023),
@@ -26,7 +27,6 @@ def test_indexed_pool_preserves_every_candidate_signal_and_order(kind, name, sou
         DancerRecord(7, "***", "unknown", 2026),
     ]
     judge_ids = {2, 3, 4, 6, 7}
-    entry_pools, judge_pools = _candidate_pools(dancers, judge_ids)
     subject = Subject(
         kind, "subject", name, "leader" if kind == "entry" else "unknown", "novice", 2026, source_id
     )
@@ -35,17 +35,21 @@ def test_indexed_pool_preserves_every_candidate_signal_and_order(kind, name, sou
         if kind == "entry"
         else [dancer for dancer in dancers if dancer.wsdc_id in judge_ids]
     )
-    pools = entry_pools if kind == "entry" else judge_pools
-    indexed = pools.get(normalize_name(name).last_token[:1], [])
-    assert generate_candidates(subject, indexed, {"alex": "alexander"}) == generate_candidates(
-        subject, full_pool, {"alex": "alexander"}
+    result = resolve_event(
+        EventEvidence(
+            "event",
+            (SubjectEvidence(subject),),
+            tuple(dancers),
+            frozenset(judge_ids),
+            DecisionPolicy(JournalToken("test", 1), (), {}),
+        ),
+        LinkingRules(Weights(), {"alex": "alexander"}),
     )
-    assert indexed == [
-        dancer
-        for dancer in full_pool
-        if normalize_name(dancer.name_raw).last_token[:1] == normalize_name(name).last_token[:1]
-        and normalize_name(name).last_token
-    ]
+    actual = [assessment.candidate for assessment in result.subjects[0].candidates]
+    expected = generate_candidates(subject, full_pool, {"alex": "alexander"})
+    assert sorted(actual, key=lambda item: item.dancer.wsdc_id) == sorted(
+        expected, key=lambda item: item.dancer.wsdc_id
+    )
 
 
 def test_service_keeps_judge_eligibility_and_original_source_id_behavior(tmp_path):
@@ -56,16 +60,12 @@ def test_service_keeps_judge_eligibility_and_original_source_id_behavior(tmp_pat
         db.connection.execute(
             "INSERT INTO judges(judge_id,event_id,name_raw,initials,anonymous,source,snapshot_id,parser_version,first_seen_at,last_seen_at,run_id) VALUES ('judge','event','Alex Lee','AL',0,'test','snap','1','t','t','run')"
         )
-        with patch(
-            "swingset.link.service.generate_candidates", wraps=generate_candidates
-        ) as generate:
-            owned_source_sheet(db.connection, [("032", "Alex Lee", 999)])
-            run(db, Bundle())
-        pools = {
-            call.args[0].subject_kind: [dancer.wsdc_id for dancer in call.args[1]]
-            for call in generate.call_args_list
-        }
-        assert pools == {"entry": [1, 2], "judge": [2]}
+        owned_source_sheet(db.connection, [("032", "Alex Lee", 999)])
+        run(db, Bundle())
+        candidates = db.connection.execute(
+            "SELECT subject_kind,wsdc_id FROM link_candidates ORDER BY subject_kind,wsdc_id"
+        ).fetchall()
+        assert [tuple(row) for row in candidates] == [("entry", 1), ("entry", 2), ("judge", 2)]
         assert db.connection.execute("SELECT wsdc_id,link_status FROM entries").fetchone()[:] == (
             999,
             "confirmed",

@@ -48,8 +48,9 @@ are linked below it.
 | [D-0038](0038-pin-fixture-helpers-beside-frozen-runtime.md)                  | Pin fixture helpers beside the frozen runtime                   | Proposed                                       | Fixture acquisition preparation |
 | [D-0039](0039-exercise-integrated-event-accounting-offline.md)               | Exercise integrated event accounting offline                    | Proposed                                       | Event completion validation     |
 | [D-0040](0040-allow-service-read-access-to-verifier-receipts.md)             | Allow service read access to verifier receipts                  | Proposed                                       | Release operations              |
-
-| [D-0041](0041-consolidate-agent-workspace-drafts.md) | Consolidate the integrated agent workspace drafts | Proposed | Repository maintenance |
+| [D-0041](0041-consolidate-agent-workspace-drafts.md)                         | Consolidate the integrated agent workspace drafts               | Proposed                                       | Repository maintenance          |
+| [D-0042](0042-separate-link-evidence-resolution-and-persistence.md)          | Separate link evidence, resolution, and persistence             | Accepted                                       | Identity linking                |
+| [D-0043](0043-explain-linking-terms-in-docstrings.md)                        | Explain linking terms beside the code                           | Accepted                                       | Identity documentation          |
 
 The [legacy decision log](legacy-design-review.md) preserves the original
 review notes. It is historical evidence, not a second list of current rules.

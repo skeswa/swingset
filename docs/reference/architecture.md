@@ -113,6 +113,13 @@ context contains captured overrides and vocabularies. Identity policy
 and dancer-dependent matching belong to link, so a registry refresh
 does not silently change a projection's undeclared inputs.
 
+`link_event` loads retained evidence and its input versions, calls the pure
+`resolve_event(evidence, rules)`, then commits against those versions. The
+resolution owns conclusions, candidate assessments, and reasons. The guarded
+commit owns history, findings, dependent placement and watch updates, and work
+completion. The [identity reference](identity-linking.md#implementation-and-inspection)
+owns the exact interfaces and policy precedence.
+
 Canonical rows are frozen dataclasses in `model/canonical.py`, one per
 stored canonical table, with a `key()` method. Project owns their source
 facts; link owns identity columns. Both use the transactional writer,

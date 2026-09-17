@@ -13,7 +13,7 @@ lives in [`cli.py`](../../src/swingset/cli.py).
 | Understand a source's pages  | `sources/`   | [base.py](../../src/swingset/sources/base.py), then that source's `adapter.py`                                 |
 | Check source interpretations | `admission/` | [contracts.py](../../src/swingset/admission/contracts.py), [select.py](../../src/swingset/admission/select.py) |
 | Combine source facts         | `project/`   | [map.py](../../src/swingset/project/map.py), [writer.py](../../src/swingset/project/writer.py)                 |
-| Resolve person matches       | `link/`      | [service.py](../../src/swingset/link/service.py), [decisions.py](../../src/swingset/link/decisions.py)         |
+| Resolve person matches       | `link/`      | [service.py](../../src/swingset/link/service.py), [resolution.py](../../src/swingset/link/resolution.py)       |
 | Collect historical results   | `history/`   | [catalog.py](../../src/swingset/history/catalog.py), [backfill.py](../../src/swingset/history/backfill.py)     |
 | Build a candidate            | `build/`     | [builder.py](../../src/swingset/build/builder.py), [closure.py](../../src/swingset/build/closure.py)           |
 | Publish and reconcile        | `publish/`   | [service.py](../../src/swingset/publish/service.py)                                                            |

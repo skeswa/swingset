@@ -5,7 +5,8 @@ import pytest
 
 from swingset.clock import FakeClock
 from swingset.link import link_event
-from swingset.link.service import _seed_confirmation_watches, _update_registry_points
+from swingset.link.effects import seed_confirmation_watches as _seed_confirmation_watches
+from swingset.link.effects import update_registry_points as _update_registry_points
 from swingset.model.ids import observation_id
 from swingset.model.observations import encode_payload
 from swingset.project.process import process_unit

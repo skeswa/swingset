@@ -311,9 +311,9 @@ def test_concurrent_acceptance_cannot_restore_old_link_or_clear_relink_work(tmp_
         positive = decision(binding, "same_person")
         accept(db, positive)
         run(db)
-        from swingset.link import service
+        from swingset.link import persistence
 
-        actual_complete = service.complete
+        actual_complete = persistence.complete
 
         def interleave(database, work, write):
             accept(
@@ -323,7 +323,7 @@ def test_concurrent_acceptance_cannot_restore_old_link_or_clear_relink_work(tmp_
             )
             return actual_complete(database, work, write)
 
-        with patch.object(service, "complete", side_effect=interleave):
+        with patch.object(persistence, "complete", side_effect=interleave):
             assert run(db) is False
         assert db.connection.execute(
             "SELECT 1 FROM pending_work WHERE stage='link' AND unit_id=?", (EVENT,)

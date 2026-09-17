@@ -4,6 +4,7 @@ Find identity reviews, withdrawn matches, correction releases, and evaluation pa
 
 [All investigations](README.md) · [Current status](../../docs/status.md)
 
+- [Separating identity resolution from storage](2026/link-resolution-refactor-2026-09-17.md) — 2026-09-17.
 - [Preparing a representative identity review (H17)](2026/h17-review-packet-2026-09-13.md) — 2026-09-13.
 - [Reviewing evidence for judge identities (H3)](2026/judge-acceptance-2026-09-13.md) — 2026-09-13.
 - [Checking the first identity correction release (V1)](2026/v1-correction-2026-09-13.md) — 2026-09-13.
