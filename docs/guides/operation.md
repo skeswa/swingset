@@ -61,6 +61,7 @@ grant permission to fetch or reconstruct past eligibility.
 `summary` accepts the same filter. The report also shows the operator-hold
 marker. See [current status](../status.md) before expecting these fields on the
 deployed worker.
+
 The local extension adds `acquisition_timing` to this drill-down. It reports
 closed observed waiting intervals and diagnostic alarms, with explicit gaps;
 it does not report exact age since discovery. Historical dispatch and

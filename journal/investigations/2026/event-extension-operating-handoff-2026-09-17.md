@@ -120,3 +120,13 @@ is 20 requests and 2,952,065 bytes. The verified checkpoint above predates
 these five debits. No PDF or origin request was made; HTML remains quarantined. No automatic repair
 kind has been activated. See [current status](../../../docs/status.md) and the
 [continuation record](v2-continuation-2026-09-17.md).
+
+## Owner-requested pause
+
+Work stopped after candidate 005 passed 2,536 tests, Ruff, mypy over 224 source
+files and its offline NixOS build. It remains undeployed and unpublished;
+production stays held at schema 28. No commit or push was made. Read the
+[closing handoff](v2-continuation-2026-09-17.md#pause-after-candidate-005-validation)
+for exact candidate pins, unfinished operation gates and restart boundaries.
+The corrected successor rehearsal packet still binds candidate 004 and must
+be rebuilt and reviewed for candidate 005 before execution.

@@ -496,6 +496,7 @@ candidate reuse, and publication. These local stage counts neither select
 output nor establish published completion. Doctor reads published coverage only from a verified,
 acknowledged baseline with a matching closure receipt. Overlapping transport
 rows are not added together.
+
 ## Recorded source-event history and retirement
 
 Whole source-event retirement requires more than removing its listed pages.
@@ -531,6 +532,8 @@ report neither opens artifacts nor performs network requests or mutations.
 Pagination cursors belong to the same retained database and its physical
 backup/restore lineage; do not reuse them after rebuilding tables or other
 maintenance that changes SQLite row IDs.
+
+For a source event, the corresponding read-only command is:
 
 ```sh
 python -m swingset.schedule.event_history --state /var/lib/swingset --source eepro --source-ref eepro:test --stream accounting --limit 100

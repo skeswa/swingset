@@ -24,3 +24,6 @@ Find investigations of unfinished work, retries, pause controls, saved outputs, 
 - [Measuring scheduled work without activating it (H14)](2026/h14-shadow-load-2026-09-13.md) — 2026-09-13.
 - [Checking saved outputs and their inputs (H15)](2026/h15-acceptance-2026-09-13.md) — 2026-09-13.
 - [Measuring selection of local work (H15)](2026/h15-offline-selection-profile-2026-09-13.md) — 2026-09-13.
+- [Current held extension runtime and operating gates](2026/event-extension-operating-handoff-2026-09-17.md) — 2026-09-17.
+- [Measured offline selector costs and bounded fixes](2026/offline-selector-profile-2026-09-17.md) — 2026-09-17.
+- [Local historical dispatch timing proofs](2026/historical-archive-timing-2026-09-17.md) — 2026-09-17.

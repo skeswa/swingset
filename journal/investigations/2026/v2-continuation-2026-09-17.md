@@ -410,3 +410,54 @@ controlled deployment. Fixture work proceeds independently through exact scope,
 runner review, acquisition audit, parser controls and source-kind admission.
 Year review and H17 human evidence remain explicit gates; no stage acceptance
 is inferred from local tests or this operating progress.
+
+## Pause after candidate 005 validation
+
+At the owner's request, all three agents stopped and the coordinator closed
+only the build and full validation already running. No deployment, publication,
+commit or push followed this instruction. Standing approvals remain recorded;
+[D-0091](../../decisions/0091-pause-v2-after-current-validation.md) records the pause.
+
+Candidate 004's full run finished with 2,525 passes and ten failures. All failures
+were spacing-helper tests using the new default schema 29 although the frozen
+helper correctly accepts only schemas 14 and 28. Its failed receipt remains
+unchanged. Candidate 005 changes only that test file, explicitly exercises
+schema 28 and verifies schema-29 rejection; all runtime bytes equal candidate 004.
+
+Candidate 005 passed **2,536 tests in 554.76 seconds**, Ruff, and mypy over
+224 source files, finishing at 18:26:34 UTC. Its 2,572-file inventory was
+verified before and after. See the [validation receipt](../../evidence/runtime/event-extension-2026-09-17/validation-005/validation.json).
+Source: `/nix/store/z0rnsn69aav2h8p2wgzydar6k9rw5kk9-source`.
+Source receipt: `9255e8641a24c21c0942512ec251b32dd294bc6f2a537868a0012cafe331dc99`.
+The offline NixOS build passed:
+`/nix/store/1nyhqr4gh2f2nw9wn3mkw51g7l248lnm-nixos-system-swingset-lxc-25.11.20260630.b6018f8`.
+The transferred inventory was verified in the VM. Candidate-005 service-binding
+review remains pending; candidate-004 bindings are separate dated evidence.
+[Build and pause checks](../../evidence/runtime/event-extension-2026-09-17/build-005/)
+confirm the predecessor active and persistent system, hold and six inactive
+ordinary units. A separate read-only schema check confirms production schema 28.
+
+Resume from these boundaries:
+
+- Bind the independently reviewed schema-28-to-29 rehearsal packet to candidate 005. Packet-002 and its 41-test independent review bind candidate 004; do not
+  relabel them. Execute actual migration, restore and scratch input replay,
+  preserve old data and controls, and measure performance before rollout.
+- Take a fresh verified checkpoint before live operations. Checkpoint 002
+  acknowledges the 15-request cutoff; current retained Archive usage is 20.
+- The exact origin PDF proposal is prepared. No origin runner or tests were
+  created before the pause. Resolve ordinary configuration bindings, robots
+  cache writes and durable one-event-per-day accounting, implement bounded gzip
+  handling and no-cookie behavior, and obtain independent technical review.
+  D-0087 supplies authority; another fixture permission request is unnecessary.
+- Finish phase-one reconciliation, year reviews and explicit year acceptance;
+  all 17 pending captures and zero accepted historical years remain. Complete
+  parser/source-kind admission, historical acquisition and per-year publication.
+- Complete measured extension service, progress reporting and a newly audited
+  coverage publication. H17 human adjudication remains deferred to the future
+  review website; no human labels were supplied. H18 activation still waits
+  for V5/V6 and the applicable identity gate.
+
+The public dataset remains the acknowledged H16 baseline
+`2a6c7dc744fb36eabb5163c0a527d787d3721f4f`. V2 is not complete. Earlier source003
+validation, new source005 validation and helper-focused reviews remain distinct
+receipts. No source005 claim covers later helper files or concurrent work.

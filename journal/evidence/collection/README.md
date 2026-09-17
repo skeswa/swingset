@@ -16,4 +16,5 @@ Build event inventories, examine archived pages, and prepare bounded source coll
 
 These are dated captures, reports, and frozen scripts. Their internal paths
 refer to the original checkout. See the [path map](../paths.json) for relocated files.
+
 Current continuation: [year-review evidence](phase1-review-2026-09-17/current-review/README.md) and [retained newsletter controls](newsletter-warning-2026-09-17/), described in the [2026-09-17 review](../../investigations/2026/history-review-2026-09-17.md). No year acceptance is implied.

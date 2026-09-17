@@ -1,6 +1,20 @@
 # Current status
 
-Updated 2026-09-17. The operating evidence below is dated 2026-09-16.
+Updated 2026-09-17. **Paused at the owner's request after candidate 005 validation.**
+The frozen schema-29 candidate passed 2,536 tests, Ruff and mypy over 224 source
+files, with unchanged inventories before and after; its offline NixOS build
+passed. It is not deployed or published. All continuation agents stopped;
+no commit or push was made. See the
+[pause and resume handoff](../journal/investigations/2026/v2-continuation-2026-09-17.md#pause-after-candidate-005-validation)
+and [D-0091](../journal/decisions/0091-pause-v2-after-current-validation.md).
+
+The reviewed extension system was activated at 16:50 UTC
+under the existing hold, with all six ordinary units inactive afterward.
+Its guarded live schema 14→28 migration passed at 16:59 UTC, preserving all
+71 predecessor application tables. The acknowledged public H16
+baseline is unchanged.
+See the [continuation record](../journal/investigations/2026/v2-continuation-2026-09-17.md)
+for the new work and checkpoint attempt. The H16 release evidence below is dated 2026-09-16.
 A read-only worker check confirmed the operator hold and
 all six ordinary cycle, backup, and summary units inactive. The repaired H16
 source was activated at 19:58:29 UTC and its release was published and remotely
@@ -16,22 +30,42 @@ that reject unsafe source interpretations. These are stages V1–V4 in the
 [history and recovery plan](plans/history-and-recovery.md#3-stages).
 The public baseline is
 [`2a6c7dc744fb36eabb5163c0a527d787d3721f4f`](https://huggingface.co/datasets/skeswa/swingset/tree/2a6c7dc744fb36eabb5163c0a527d787d3721f4f).
-The original H16 release-closure work is deployed and published; the later
-event-completion extension remains local.
+The original H16 release-closure work is deployed and published. The reviewed
+event-completion runtime is now deployed under hold; migration validation,
+operating acceptance and its subsequent publication remain separate.
 Detailed historical score-sheet coverage remains incomplete.
+[D-0087](../journal/decisions/0087-authorize-remaining-v2-acquisition-and-operations.md)
+records standing owner authorization for remaining v2 acquisition and operations;
+individual fixture permission requests are no longer required. Concrete review
+and runtime gates still apply.
+
+A local [JesAnn Nail history page](../journal/investigations/2026/jesann-history-page-2026-09-17.md)
+now shows all recorded participation, source percentages, and scoring details.
+It includes the offline Jes Test coverage and agreement panel; the pinned
+baseline found individual results for 19/85 registry entries. Jes Test can
+canary coverage progress and regressions between dataset releases. Desktop and
+mobile browser checks passed. It has not been deployed as a website.
 
 ## What is running
 
-The last operating handoff records an OrbStack NixOS worker using SQLite
-schema 14. Scheduled collection, backup, and summary jobs are held by
+The OrbStack NixOS worker now has reviewed extension source
+`/nix/store/dx0cyzvd8d91rf29v21sakbr7l5bwxnz-source` active and persistent in
+system `/nix/store/lzwkabfmbz46d05yi5k41nq56i7jjh74-nixos-system-swingset-lxc-25.11.20260630.b6018f8`.
+The guarded live migration reached schema 28 and passed its preservation
+checks at 16:59:15 UTC. Independent post-migration verification passed all 42 checks. Disposable input
+acceptance and the first bounded offline replay passed preservation checks.
+That turn completed only four units in 550 seconds. Read-only profiling found
+repeated mapping and dancer-readiness checks; the reviewed fixes now select a parse in 9.09 seconds on the retained scratch.
+This is instrumented selection, not sustained throughput. Further validation
+is required before ordinary collection resumes. Scheduled collection, backup, and summary jobs are held by
 `/var/lib/swingset/operator-hold`. That runtime interlock remains during
 validation and the controlled release sequence. The owner authorization to
 proceed afterward is recorded; another permission request is not required.
 
-The worker now runs repaired H16 source
-`/nix/store/z689qy41inndill3d92ym8im852x3649-source`, with active and persistent
-system `/nix/store/sx7lpr80cx0n9vzsi3cwz9nxawqc4p1i-nixos-system-swingset-lxc-25.11.20260630.b6018f8`.
-Activation and read-only production acceptance passed with all six ordinary
+The published H16 baseline was produced with repaired source
+`/nix/store/z689qy41inndill3d92ym8im852x3649-source` and predecessor system
+`/nix/store/sx7lpr80cx0n9vzsi3cwz9nxawqc4p1i-nixos-system-swingset-lxc-25.11.20260630.b6018f8`.
+Its activation and read-only production acceptance passed with all six ordinary
 units inactive. The legacy-input compatibility fix and control-lock ownership
 repair are complete. Production preparation passed and accepted the exact
 reviewed bundle. The independent post-prepare check passed; guarded project/link
@@ -43,19 +77,66 @@ evidence and parse work. The production build passed in 401.55 seconds overall
 memory. All 54 independent audit checks passed, preserving all 4,931 named judges,
 including those without WSDC IDs. Publication passed and the acknowledged
 candidate `cand_8f31cad7226643ae` is now the baseline. All phase processes have
-stopped. Ordinary scheduled jobs remain held while external override paths
-differ from the frozen reviewed bundle; resuming collection needs separate
-input and activation checks.
+stopped. The external overrides now match the reviewed extension source;
+production input acceptance and collection activation remain pending.
 
 ## What is blocked
 
-| Work                     | Evidence and next requirement                                                                                                                                                                               |
-| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Event-completion rollout | Schema-24 local implementation and offline acceptance pass. Deployment rehearsal, eligible-time reporting, unsupported-page classification, measured service, and a subsequent coverage publication remain. |
-| Historical score sheets  | Source fixtures, event aliases, and year reviews remain necessary. The retained handoff records no years accepted for phase-two acquisition.                                                                |
-| Identity evaluation      | Human review of the representative sample remains pending. Model-generated review notes do not satisfy it.                                                                                                  |
-| Automatic repairs        | Activation follows the remaining history, recovery, and review gates.                                                                                                                                       |
-| PostgreSQL and Dokploy   | A detailed migration plan exists. It is a target, not the recorded production setup.                                                                                                                        |
+The current continuation adds schema-25 unsupported-page evidence,
+schema-26 bounded ordinary-acquisition timing, and schema-27 source-event
+retirement with paginated recorded history. Schema 28 additionally preserves
+completion-based request spacing and original UTC debit days across restart.
+The reviewed candidate-003 runtime passed **2,239 tests**, Ruff, and mypy over
+217 source files, with unchanged source inventories before and after. Subsequent
+DCN parser and operating-helper edits have separate focused checks and are not
+covered by that full run. An actual
+held restore from schema 14 through schema 27 passed, preserving all 71 prior
+application tables and verifying the public baseline remotely. Schema 28
+has also passed its corresponding operational restore and migration rehearsal,
+preserving all 71 predecessor tables. Live production preflight passed and the
+new system is deployed under hold and its live migration passed. Historical dispatch timing has a separately tested local schema-29 increment.
+It is not deployed. Unobserved fleet history, calibrated objectives and operating
+acceptance remain unfinished. See the [continuation](../journal/investigations/2026/v2-continuation-2026-09-17.md)
+and [acceptance audit](../journal/investigations/2026/event-extension-acceptance-2026-09-17.md).
+These increments do not establish V6 acceptance.
+
+The schema-28 checkpoint, including the 15 paid Archive requests recorded
+at its cutoff, passed verification and private archive acknowledgment at 17:56 UTC:
+`d71060d4f77b6073f797bd7232bf2aa3694ba685`. It preserved the hold and made zero
+live database changes. The older schema-14 checkpoint and its restore receipts
+remain retained. The new checkpoint's restore validation is separate. A bounded phase-one
+resume attempt issued zero requests because 31,821 pending parse units trigger
+the ordinary backpressure gate; all 17 captures remain pending. See the
+[continuation receipts](../journal/investigations/2026/v2-continuation-2026-09-17.md).
+The five approved fixture bodies were captured. The separately
+[approved DCN index](../journal/decisions/0060-approve-exact-dcn-index-fixture.md)
+was also captured within its two-request, 2,804,642-byte actual usage; its
+independent acquisition audit passed. The separately approved Riga metadata lookup passed independent audit. Its
+exact results HTML body was captured at 17:43 UTC using two HTTP requests and
+16,839 response-body bytes; independent acquisition review passed. These
+are quarantined parsing controls, not production acquisition or new source-kind
+activation. The later exact two-PDF metadata lookup passed independent audit:
+five requests and 156 bytes, with no capture rows returned. Total retained
+Archive usage is 20 requests and 2,952,065 bytes. No PDFs were acquired. The
+origin fixture proposal is prepared; its runner has not been implemented.
+WP14 is explicitly 2010–2016. H17 human adjudication is deferred to a future
+review website; no human labels or precision claims have been added.
+
+The [fresh year-review packet](../journal/investigations/2026/history-review-2026-09-17.md)
+confirms 17 pending calendar captures and zero accepted historical years.
+The [map-body inspection](../journal/investigations/2026/calendar-map-gaps-2026-09-17.md)
+accounts for four acquired map failures: their popups have names and websites
+but no event dates. Their findings remain open. The [newsletter repair](../journal/investigations/2026/newsletter-warning-2026-09-17.md)
+removes false planning-prose warnings against retained full PDFs while preserving
+event observations. It is local; production findings have not been replayed.
+
+| Work                     | Evidence and next requirement                                                                                                                                                  |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Event-completion rollout | Reviewed runtime deployed under hold after full validation and restore rehearsal. Live migration passed; input acceptance, measured service and subsequent publication remain. |
+| Historical score sheets  | Source fixtures, event aliases, and year reviews remain necessary. The retained handoff records no years accepted for phase-two acquisition.                                   |
+| Identity evaluation      | Human review of the representative sample remains pending. Model-generated review notes do not satisfy it.                                                                     |
+| Automatic repairs        | Activation follows the remaining history, recovery, and review gates.                                                                                                          |
+| PostgreSQL and Dokploy   | A detailed migration plan exists. It is a target, not the recorded production setup.                                                                                           |
 
 The memory and completion fixes passed a full scratch replay and build. That
 build took 368.36 seconds with about 4.40 GiB peak sampled anonymous memory.
@@ -114,7 +195,8 @@ unavailable-page gaps passed independent review and all 2,063 tests in 419.36
 seconds, Ruff, and mypy over 206 source files. Source hashes stayed unchanged
 during validation. Fresh inventory checks and sampled accounting use the same
 evidence rule; unavailable pages do not count as acquired or interpreted.
-Eligible-time reporting remains pending. These increments have not been deployed.
+Eligible-time reporting remains pending. These dated schema-24 increments are included in the reviewed schema-28 runtime
+deployed under hold on September 17; operating acceptance and publication remain open.
 Six additional offline tests passed after formatting, including actual 33-page
 acquisition and admission under continuous discovery/current refresh, pressure
 drain, and activated restore of schema-24 accounting. The earlier full-run
@@ -128,10 +210,14 @@ and has not been deployed. See
 
 ## Where to continue
 
-The identity linker has a local evidence → resolution → persistence refactor.
-The full offline suite passed 2,088 tests, including 195 focused checks; the
-original-versus-refactored output comparison also passed. It has not been
-deployed or published. See the
+Start operating work at the [current extension handoff](../journal/investigations/2026/event-extension-operating-handoff-2026-09-17.md).
+It records the schema-28 rollout and remaining held activation checks.
+
+The identity linker’s evidence → resolution → persistence refactor is included
+in the held candidate-003 deployment. Its earlier standalone full suite passed
+2,088 tests, including 195 focused checks, plus an original-versus-refactored
+output comparison. Candidate 003 has its separate 2,239-test integrated receipt.
+No subsequent release has published the refactor’s rebuilt output. See the
 [dated validation outcome](../journal/investigations/2026/link-resolution-refactor-2026-09-17.md)
 for scope and evidence.
 

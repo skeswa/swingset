@@ -20,3 +20,8 @@ Find source surveys, archive coverage, parser preparation, and fixture investiga
 - [What the Wayback Machine holds for a 2010 start](2026/wayback-coverage-2026-09-11.md) — 2026-09-11.
 - [Planning collection from platform archives (WP15)](2026/wp15-platform-backfill-2026-09-13.md) — 2026-09-13.
 - [Preparing historical event-site collection (WP16)](undated/wp16-deployment-preparation.md) — date and scope in record.
+- [Undated calendar map evidence](2026/calendar-map-gaps-2026-09-17.md) — 2026-09-17.
+- [Five exact newsletter colour corrections](2026/newsletter-colour-review-2026-09-17.md) — 2026-09-17.
+- [Reviewed exact Riga HTML runner](2026/dcn-results-body-runner-2026-09-17.md) — 2026-09-17.
+- [Approved and captured exact Riga HTML](2026/dcn-results-body-proposal-2026-09-17.md) — 2026-09-17.
+- [Proposed exact two-URL PDF capture lookup](2026/dcn-score-pdf-lookup-proposal-2026-09-17.md) — 2026-09-17.
