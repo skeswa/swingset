@@ -1,0 +1,49 @@
+{
+  "format": "independent-extension-phase1-resume-v1",
+  "finished_at": "2026-09-17T17:57:28.235475+00:00",
+  "passed": true,
+  "before": {
+    "journal/tools/collection/prepare_extension_phase1_resume.py": "4cbee52eeb347bae758ed6ea2736dd6b035c7eb6a58b307db333cdbe53b07a54",
+    "tests/test_extension_phase1_resume.py": "e7c58129266ffebf99310034030cde699f1f90956c0d1bd69bf54f33f9c6fa91",
+    "journal/evidence/collection/phase1-resume-2026-09-17/resume.py": "1ddbe1ebae293dc7f97ec1de50a809c93588066d4f26ddb5afa9a59359f93752",
+    "journal/evidence/collection/phase1-resume-2026-09-17/gate-001.json": "c575347878de8ea5181919e26e8607d5d4aa31bfc08c899b82c4c0c25c3ecd98"
+  },
+  "after": {
+    "journal/tools/collection/prepare_extension_phase1_resume.py": "4cbee52eeb347bae758ed6ea2736dd6b035c7eb6a58b307db333cdbe53b07a54",
+    "tests/test_extension_phase1_resume.py": "e7c58129266ffebf99310034030cde699f1f90956c0d1bd69bf54f33f9c6fa91",
+    "journal/evidence/collection/phase1-resume-2026-09-17/resume.py": "1ddbe1ebae293dc7f97ec1de50a809c93588066d4f26ddb5afa9a59359f93752",
+    "journal/evidence/collection/phase1-resume-2026-09-17/gate-001.json": "c575347878de8ea5181919e26e8607d5d4aa31bfc08c899b82c4c0c25c3ecd98"
+  },
+  "checks": [
+    {
+      "name": "pytest",
+      "command": [
+        ".venv/bin/pytest",
+        "-q",
+        "tests/test_extension_phase1_resume.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "27849de415e4ed601fb2c81e8fe12ce590bf087f988ac8d83ccab728dbcd6f6c"
+    },
+    {
+      "name": "ruff",
+      "command": [
+        ".venv/bin/ruff",
+        "check",
+        "journal/tools/collection/prepare_extension_phase1_resume.py",
+        "tests/test_extension_phase1_resume.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+    }
+  ],
+  "findings": [
+    "No blocking source finding after inspected accepted-input, held-state, original17scope, wrapper-to-base handoff and per-debit gates.",
+    "Review requested actual sealed base.main preflight test; added and confirms read-only DB/no intake. OS/live-state and imported-runtime identity bindings are doubled in the disposable test, not production guard relaxation.",
+    "Review found unregistered-host fixture and capture-race setup issue; fixed with explicit configured host authority and per-fixture frozen captured runtime identity.",
+    "Six ordinary units are checked at locked preflight. Per-debit hold/schema/accepted-input/external-input/public-baseline checks and ordinary H13 admission remain; no claim of six-unit OS check on every debit.",
+    "Production source28 is separate from current source29 offline tests. A new exact-source packet, current accepted bundle and actual operating gates are required before any coordinator execution."
+  ],
+  "network_requests": 0,
+  "production_operations": 0
+}

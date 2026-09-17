@@ -1,0 +1,56 @@
+{
+  "checkpoint_sha256": "22102b3cc07b07b49800c702396a748bbbe733e148bbca9b426bff370792223d",
+  "finished_at": "2026-09-17T17:15:26.138064+00:00",
+  "format": "extension-input-rehearsal-v1",
+  "helper_sha256": "7bc742cdfbdf8e38085d7affb1c82df8cbdca655b637a7764b46f58d98087e1b",
+  "input_bundle_hash": "27528a47da5f702a4ff2ea68c1bfe2a2ce608989600fd9bc7e6734b4c74a0c95",
+  "judge_continuity": {
+    "changed_or_missing": 0,
+    "examples": [],
+    "original_named": 4931,
+    "original_null_ids": 4931,
+    "preserved": 4931,
+    "requires_review": false
+  },
+  "network_requests": 0,
+  "passed": true,
+  "phase": "drain",
+  "production_acceptance": false,
+  "publication": false,
+  "repairs_activated": false,
+  "source": "/nix/store/dx0cyzvd8d91rf29v21sakbr7l5bwxnz-source",
+  "source_receipt_sha256": "60cdfe64004a0ba5a9aee207bcb089d6d4c81f5ca58169ccdb88a5dfab8146d6",
+  "started_at": "2026-09-17T17:05:40.086604+00:00",
+  "turn": {
+    "all_work_current": false,
+    "attempted": 4,
+    "elapsed_seconds": 550.0083299280377,
+    "fleet_derivation_completeness": "not_assessed_by_queue_count",
+    "interrupted_attempts": 0,
+    "max_seconds": 600.0,
+    "max_units": 100,
+    "outcomes": {
+      "parse/output_committed": 1,
+      "project/output_committed": 3
+    },
+    "parse_hint_recovery": {
+      "enqueued": 0,
+      "pass_complete": true,
+      "reasons": {},
+      "scanned": 0,
+      "supported": true,
+      "unassessed": 0
+    },
+    "pending_queue_by_stage": {
+      "parse": 31820,
+      "project": 2
+    },
+    "recovered_admissions": 0,
+    "run_id": "run_20260917T170547Z",
+    "selection_budget_overrun_seconds": 0.0,
+    "status": "selection_time_limit",
+    "time_limit_basis": "selection_budget_not_hard_wall_deadline",
+    "transaction_limit_seconds": 45.0,
+    "worker_overrun_possible": true
+  }
+}

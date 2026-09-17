@@ -1,0 +1,66 @@
+{
+  "recorded_at": "2026-09-17T17:56:57.425478+00:00",
+  "files": {
+    "journal/tools/collection/prepare_extension_phase1_resume.py": "4cbee52eeb347bae758ed6ea2736dd6b035c7eb6a58b307db333cdbe53b07a54",
+    "tests/test_extension_phase1_resume.py": "e7c58129266ffebf99310034030cde699f1f90956c0d1bd69bf54f33f9c6fa91"
+  },
+  "files_unchanged": true,
+  "runtime": "/tmp/swingset-extension-freeze-20260917-003",
+  "runtime_receipt_sha256": "60cdfe64004a0ba5a9aee207bcb089d6d4c81f5ca58169ccdb88a5dfab8146d6",
+  "schema": 28,
+  "checks": [
+    {
+      "command": [
+        ".venv/bin/python",
+        "/Users/skeswa/repos/skeswa/swingset/journal/tools/collection/prepare_extension_phase1_resume.py",
+        "build",
+        "--source",
+        "/tmp/swingset-extension-freeze-20260917-003",
+        "--deployed-source",
+        "/nix/store/dx0cyzvd8d91rf29v21sakbr7l5bwxnz-source",
+        "--source-receipt-sha256",
+        "60cdfe64004a0ba5a9aee207bcb089d6d4c81f5ca58169ccdb88a5dfab8146d6",
+        "--schema",
+        "28",
+        "--output",
+        "/Users/skeswa/repos/skeswa/swingset/journal/evidence/collection/extension-phase1-resume-2026-09-17/packet-001"
+      ],
+      "exit_code": 0,
+      "stdout": "{\n  \"packet\": \"/Users/skeswa/repos/skeswa/swingset/journal/evidence/collection/extension-phase1-resume-2026-09-17/packet-001\",\n  \"packet_sha256\": \"1c75670ec1dc57e10770cf85a1922c80fbafd49dc47d1ce77f64fbff6114ccb0\",\n  \"network_requests\": 0,\n  \"production_operations\": 0,\n  \"executed\": false\n}\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        ".venv/bin/python",
+        "-m",
+        "pytest",
+        "-c",
+        "/dev/null",
+        "-p",
+        "no:cacheprovider",
+        "-q",
+        "/Users/skeswa/repos/skeswa/swingset/tests/test_extension_phase1_resume.py"
+      ],
+      "exit_code": 0,
+      "stdout": "...............................                                          [100%]\n31 passed in 9.26s\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        ".venv/bin/ruff",
+        "check",
+        "/Users/skeswa/repos/skeswa/swingset/journal/tools/collection/prepare_extension_phase1_resume.py",
+        "/Users/skeswa/repos/skeswa/swingset/tests/test_extension_phase1_resume.py"
+      ],
+      "exit_code": 0,
+      "stdout": "All checks passed!\n",
+      "stderr": ""
+    }
+  ],
+  "passed": true,
+  "network_requests": 0,
+  "production_operations": 0,
+  "production_gate_prepared": false,
+  "deployed": false,
+  "published": false
+}

@@ -1,0 +1,38 @@
+{
+  "accepted_inputs": [
+    "config/hosts.toml",
+    "config/sources.toml",
+    "overrides/event_aliases.csv",
+    "recipe/runtime",
+    "version/extract/scoringdance.round",
+    "version/extract/steprightsolutions.event",
+    "version/extract/steprightsolutions.round",
+    "version/parser/scoringdance.round",
+    "version/parser/steprightsolutions.event",
+    "version/parser/steprightsolutions.round",
+    "version/parser/wsdc_newsletter.events",
+    "version/repository"
+  ],
+  "checkpoint_sha256": "22102b3cc07b07b49800c702396a748bbbe733e148bbca9b426bff370792223d",
+  "finished_at": "2026-09-17T17:05:00.033189+00:00",
+  "format": "extension-input-rehearsal-v1",
+  "helper_sha256": "7bc742cdfbdf8e38085d7affb1c82df8cbdca655b637a7764b46f58d98087e1b",
+  "input_bundle_hash": "27528a47da5f702a4ff2ea68c1bfe2a2ce608989600fd9bc7e6734b4c74a0c95",
+  "judge_continuity": {
+    "changed_or_missing": 0,
+    "examples": [],
+    "original_named": 4931,
+    "original_null_ids": 4931,
+    "preserved": 4931,
+    "requires_review": false
+  },
+  "network_requests": 0,
+  "passed": true,
+  "phase": "accept",
+  "production_acceptance": false,
+  "publication": false,
+  "repairs_activated": false,
+  "source": "/nix/store/dx0cyzvd8d91rf29v21sakbr7l5bwxnz-source",
+  "source_receipt_sha256": "60cdfe64004a0ba5a9aee207bcb089d6d4c81f5ca58169ccdb88a5dfab8146d6",
+  "started_at": "2026-09-17T17:04:16.607094+00:00"
+}

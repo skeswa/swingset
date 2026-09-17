@@ -1,0 +1,24 @@
+{
+  "recorded_at": "2026-09-17T17:50:26.260412+00:00",
+  "passed": true,
+  "files": [
+    {
+      "path": "/var/lib/swingset/operations/v2-continuation-20260917/rollout-001/preflight-receipt.json",
+      "sha256": "d3a12cb9dd9699eaac20d5a121b8fdc50f59087de74253dc626127fd13a1d084",
+      "uid": 0,
+      "gid": 995,
+      "mode": "0640",
+      "inode_and_mtime_preserved": true
+    },
+    {
+      "path": "/var/lib/swingset/operations/v2-continuation-20260917/rollout-001/migration-receipt.json",
+      "sha256": "9ed991d1389d36d36aa541f45fcd3bcdd2367b18206a429a357d62f079e8b636",
+      "uid": 0,
+      "gid": 995,
+      "mode": "0640",
+      "inode_and_mtime_preserved": true
+    }
+  ],
+  "database_opened": false,
+  "hold_preserved": true
+}

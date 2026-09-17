@@ -1,0 +1,19 @@
+Sep 17 17:45:10 swingset systemd[1]: Started [systemd-run] /var/lib/swingset/venv/bin/python /var/lib/swingset/operations/v2-continuation-20260917/checkpoint-extension28-001.py --output /var/lib/swingset/operations/v2-continuation-20260917/checkpoint-extension28-001 --checkpoint /var/lib/swingset/checkpoints/extension28-held-20260917-001 --upload.
+Sep 17 17:49:13 swingset python[116466]: Traceback (most recent call last):
+Sep 17 17:49:13 swingset python[116466]:   File "/var/lib/swingset/operations/v2-continuation-20260917/checkpoint-extension28-001.py", line 195, in <module>
+Sep 17 17:49:13 swingset python[116466]:     main()
+Sep 17 17:49:13 swingset python[116466]:   File "/var/lib/swingset/operations/v2-continuation-20260917/checkpoint-extension28-001.py", line 139, in main
+Sep 17 17:49:13 swingset python[116466]:     checkpoint = create_checkpoint(
+Sep 17 17:49:13 swingset python[116466]:                  ^^^^^^^^^^^^^^^^^^
+Sep 17 17:49:13 swingset python[116466]:   File "/nix/store/dx0cyzvd8d91rf29v21sakbr7l5bwxnz-source/src/swingset/backup/checkpoint.py", line 215, in create_checkpoint
+Sep 17 17:49:13 swingset python[116466]:     _copy_file(source, temporary / relative)
+Sep 17 17:49:13 swingset python[116466]:   File "/nix/store/dx0cyzvd8d91rf29v21sakbr7l5bwxnz-source/src/swingset/backup/checkpoint.py", line 154, in _copy_file
+Sep 17 17:49:13 swingset python[116466]:     with source.open("rb") as input_file, destination.open("xb") as output_file:
+Sep 17 17:49:13 swingset python[116466]:          ^^^^^^^^^^^^^^^^^
+Sep 17 17:49:13 swingset python[116466]:   File "/nix/store/s5rij9y3vb4gxbh0iqz3k0ndmsac7h02-python3-3.12.13/lib/python3.12/pathlib.py", line 1013, in open
+Sep 17 17:49:13 swingset python[116466]:     return io.open(self, mode, buffering, encoding, errors, newline)
+Sep 17 17:49:13 swingset python[116466]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Sep 17 17:49:13 swingset python[116466]: PermissionError: [Errno 13] Permission denied: '/var/lib/swingset/operations/v2-continuation-20260917/rollout-001/preflight-receipt.json'
+Sep 17 17:49:13 swingset systemd[1]: swingset-extension28-checkpoint-20260917-001.service: Main process exited, code=exited, status=1/FAILURE
+Sep 17 17:49:13 swingset systemd[1]: swingset-extension28-checkpoint-20260917-001.service: Failed with result 'exit-code'.
+Sep 17 17:49:13 swingset systemd[1]: swingset-extension28-checkpoint-20260917-001.service: Consumed 2min 15.548s CPU time, 4G memory peak, 9.8G read from disk, 8.5G written to disk.

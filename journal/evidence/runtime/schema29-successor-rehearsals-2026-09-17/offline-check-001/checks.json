@@ -1,0 +1,72 @@
+{
+  "format": "schema29-successor-offline-check-v1",
+  "recorded_at": "2026-09-17T18:13:16.673982+00:00",
+  "passed": true,
+  "source": "/private/tmp/swingset-extension-freeze-20260917-004",
+  "source_receipt_sha256": "44208cb5b38f0cd3f8b6c7c91f1b5d1cd650ef677d52b4bd54c17d8576c485e7",
+  "target_schema": 29,
+  "before": {
+    "journal/tools/runtime/prepare_schema29_rehearsals.py": "ed16a15a8cf83344c89b91773aceb87abf4cac2b4bd02c74209436781b073635",
+    "tests/test_schema29_rehearsal_packet.py": "456a5e0a5ee026c6a7f296a1243a5463563331589cedf4b0e6de0922a1092508",
+    "journal/tools/runtime/rehearse_extension_inputs.py": "ddb2761bc302d53436f0a257c853cb827d42f071234761fe27c28bf94a8ab861",
+    "journal/tools/runtime/rehearse_extension_restore.py": "1e816a9af567344a6917e8fccd01362f6a2075ca480306bf48f2a0df96e93edf",
+    "journal/tools/runtime/rehearse_extension_migration.py": "225badb71efd35e5ed03b287bcd66c1cf01d4f7dd9e07c81570ccdd456d20f44"
+  },
+  "after": {
+    "journal/tools/runtime/prepare_schema29_rehearsals.py": "ed16a15a8cf83344c89b91773aceb87abf4cac2b4bd02c74209436781b073635",
+    "tests/test_schema29_rehearsal_packet.py": "456a5e0a5ee026c6a7f296a1243a5463563331589cedf4b0e6de0922a1092508",
+    "journal/tools/runtime/rehearse_extension_inputs.py": "ddb2761bc302d53436f0a257c853cb827d42f071234761fe27c28bf94a8ab861",
+    "journal/tools/runtime/rehearse_extension_restore.py": "1e816a9af567344a6917e8fccd01362f6a2075ca480306bf48f2a0df96e93edf",
+    "journal/tools/runtime/rehearse_extension_migration.py": "225badb71efd35e5ed03b287bcd66c1cf01d4f7dd9e07c81570ccdd456d20f44"
+  },
+  "checks": [
+    {
+      "command": [
+        ".venv/bin/python",
+        "-c",
+        "import swingset.state.db; print(swingset.state.db.__file__); print(swingset.state.db.SCHEMA_VERSION)"
+      ],
+      "exit_code": 0,
+      "log": "check-0.log"
+    },
+    {
+      "command": [
+        ".venv/bin/python",
+        "-m",
+        "pytest",
+        "-c",
+        "/dev/null",
+        "-p",
+        "no:cacheprovider",
+        "-q",
+        "tests/test_schema29_rehearsal_packet.py",
+        "tests/test_extension_input_rehearsal.py",
+        "tests/test_extension_restore_rehearsal.py"
+      ],
+      "exit_code": 0,
+      "log": "check-1.log"
+    },
+    {
+      "command": [
+        ".venv/bin/ruff",
+        "check",
+        "journal/tools/runtime/prepare_schema29_rehearsals.py",
+        "tests/test_schema29_rehearsal_packet.py"
+      ],
+      "exit_code": 0,
+      "log": "check-2.log"
+    },
+    {
+      "command": [
+        ".venv/bin/mypy",
+        "journal/tools/runtime/prepare_schema29_rehearsals.py"
+      ],
+      "exit_code": 0,
+      "log": "check-3.log"
+    }
+  ],
+  "packet_sha256": "83ca58b799db9dc7933970ed828ad4f821a3d1957edffbc911211b9c572270fc",
+  "deterministic_rebuild": true,
+  "production_operations": 0,
+  "actual_checkpoint_rehearsed": false
+}

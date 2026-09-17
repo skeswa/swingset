@@ -1,0 +1,21 @@
+{
+  "archive_commit": "d71060d4f77b6073f797bd7232bf2aa3694ba685",
+  "checkpoint": "/var/lib/swingset/checkpoints/extension28-held-20260917-002",
+  "checkpoint_sha256": "4929859092cbd3e15122f3598b5da477a65498976cc744c52cf2b142d1cebea3",
+  "files": {
+    "base-inputs.py": "ddb2761bc302d53436f0a257c853cb827d42f071234761fe27c28bf94a8ab861",
+    "base-migration.py": "225badb71efd35e5ed03b287bcd66c1cf01d4f7dd9e07c81570ccdd456d20f44",
+    "base-restore.py": "1e816a9af567344a6917e8fccd01362f6a2075ca480306bf48f2a0df96e93edf",
+    "inputs.py": "94a4a9b93d8ad94a55663e42c31ce335879c94bdd101ab47c597d3bc2e8b4ad3",
+    "migration.py": "7ac399193c8144bc7e9c547b43dc5a06ccab10660486e4ba04f3f0bc06172643",
+    "restore.py": "c6e1708ed633418088c058b2d3399fd3349aa0e906242a8d86c52e3cdc95011d",
+    "runner.py": "ed16a15a8cf83344c89b91773aceb87abf4cac2b4bd02c74209436781b073635"
+  },
+  "format": "schema28-to29-rehearsal-packet-v1",
+  "predecessor_schema": 28,
+  "predecessor_tables": 116,
+  "source": "/nix/store/c0dpchrf4b6hkxlc2yn4jm1v96ld0xd2-source",
+  "source_acceptance": "not_established_by_packet_build",
+  "source_receipt_sha256": "44208cb5b38f0cd3f8b6c7c91f1b5d1cd650ef677d52b4bd54c17d8576c485e7",
+  "target_schema": 29
+}

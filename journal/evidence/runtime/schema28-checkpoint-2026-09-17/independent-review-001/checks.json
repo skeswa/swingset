@@ -1,0 +1,41 @@
+{
+  "format": "independent-schema28-checkpoint-review-v1",
+  "finished_at": "2026-09-17T17:30:55.312536+00:00",
+  "passed": true,
+  "before": {
+    "journal/tools/runtime/checkpoint_extension28_20260917.py": "10bdfb40799a348ab948cca9934639b873676cf737e11a0532ba603960d099ba",
+    "tests/test_extension28_checkpoint_helper.py": "2a91a95b0c3788c55405ea0380d33ab07fab7e3a2e37ddd6513a77765408714e"
+  },
+  "after": {
+    "journal/tools/runtime/checkpoint_extension28_20260917.py": "10bdfb40799a348ab948cca9934639b873676cf737e11a0532ba603960d099ba",
+    "tests/test_extension28_checkpoint_helper.py": "2a91a95b0c3788c55405ea0380d33ab07fab7e3a2e37ddd6513a77765408714e"
+  },
+  "checks": [
+    {
+      "name": "pytest",
+      "command": [
+        ".venv/bin/pytest",
+        "-q",
+        "tests/test_extension28_checkpoint_helper.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "8ad932230daeee61fcf9477a786c90fb07c2c3273c2120c9d7c4ac8ee6b63e9d"
+    },
+    {
+      "name": "ruff",
+      "command": [
+        ".venv/bin/ruff",
+        "check",
+        "journal/tools/runtime/checkpoint_extension28_20260917.py",
+        "tests/test_extension28_checkpoint_helper.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+    }
+  ],
+  "scope": "Offline real schema28 database and checkpoint implementation; runtime import/system pins, review work, and private archive are test doubles. No network or production operations.",
+  "findings_resolved": [
+    "Resuming a schema14 or stale checkpoint could pass; resume removed and exact schema28 required.",
+    "Late hold/runtime changes during review or copy could precede creation/upload; guards now repeated immediately before both actions."
+  ]
+}

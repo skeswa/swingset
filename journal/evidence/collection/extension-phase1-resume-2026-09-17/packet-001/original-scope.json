@@ -1,0 +1,169 @@
+{
+  "baseline_path": "/var/lib/swingset/candidates/cand_8f31cad7226643ae",
+  "catalog_sha256": "0355e34d69e23fc5a7096e07a99d420d4353bdb4fc59284497483ae856d084d9",
+  "coordinator_reviewed": true,
+  "driver_sha256": "1ddbe1ebae293dc7f97ec1de50a809c93588066d4f26ddb5afa9a59359f93752",
+  "format": "phase1-17-resume-v1",
+  "inputs": {
+    "accepted_inputs": "da6f60f986d0f8f58544aeeec571fea919c484fce13a45a51845cdd718d4056e",
+    "accepted_meta": [
+      [
+        "input_bundle_hash",
+        "fe99b47cd65eb909abc7c9ebd64d9ace9524393e5af8cd4d9368c55317ce3c6a"
+      ]
+    ]
+  },
+  "ledger_sha256": "05703fb6d0fab50c79eeaeb3c0c641ffc71ee6bbcd1a7b6fe6b257d9b6f55bd6",
+  "manifest_sha256": "6ff950afb842c2e2f1fc24c937df6633c890309bc9c6189b8706a4884eadc5a6",
+  "max_additional_requests": 48,
+  "original_targets": {
+    "017e59a25155c25983b14000": {
+      "parser": "wsdc_calendar.events",
+      "source": "wsdc_calendar",
+      "timestamp": "20260513152740",
+      "url": "https://www.worldsdc.com/print-event-list/"
+    },
+    "032270847f79d7aebca98f65": {
+      "parser": "wsdc_calendar.events",
+      "source": "wsdc_calendar",
+      "timestamp": "20260211205531",
+      "url": "https://www.worldsdc.com/print-event-list/"
+    },
+    "24eaae0d5fea3221affb5a0a": {
+      "parser": "wsdc_calendar.events",
+      "source": "wsdc_calendar",
+      "timestamp": "20250512152735",
+      "url": "https://www.worldsdc.com/events/"
+    },
+    "2b8b7d5b424f394e25c2b7bb": {
+      "parser": "wsdc_calendar.events",
+      "source": "wsdc_calendar",
+      "timestamp": "20260513162349",
+      "url": "https://www.worldsdc.com/events/"
+    },
+    "2dd8b6dc4d2d264495a33f0f": {
+      "parser": "wsdc_calendar.events",
+      "source": "wsdc_calendar",
+      "timestamp": "20260813102731",
+      "url": "https://worldsdc.com/events/"
+    },
+    "3c5a6116618208e4556dd9e7": {
+      "parser": "wsdc_calendar.events",
+      "source": "wsdc_calendar",
+      "timestamp": "20251006110156",
+      "url": "https://www.worldsdc.com/events/"
+    },
+    "763f8950892b9e719910fcd3": {
+      "parser": "wsdc_calendar.events",
+      "source": "wsdc_calendar",
+      "timestamp": "20251219113055",
+      "url": "https://www.worldsdc.com/events/"
+    },
+    "828e41e7f8f4bfd34d171092": {
+      "parser": "wsdc_calendar.events",
+      "source": "wsdc_calendar",
+      "timestamp": "20250814164915",
+      "url": "https://www.worldsdc.com/print-event-list/"
+    },
+    "9592958a3cd694d86e677fc5": {
+      "parser": "wsdc_calendar.events",
+      "source": "wsdc_calendar",
+      "timestamp": "20260521133133",
+      "url": "https://www.worldsdc.com/events/"
+    },
+    "9fad90785a2f773113d0c84d": {
+      "parser": "wsdc_calendar.events",
+      "source": "wsdc_calendar",
+      "timestamp": "20260120214828",
+      "url": "https://www.worldsdc.com/events/"
+    },
+    "a9a1981e91474f1967356d61": {
+      "parser": "wsdc_calendar.events",
+      "source": "wsdc_calendar",
+      "timestamp": "20250226151724",
+      "url": "https://www.worldsdc.com/events/"
+    },
+    "e7dcb140bcbd077c67c0d425": {
+      "parser": "wsdc_calendar.events",
+      "source": "wsdc_calendar",
+      "timestamp": "20251115173727",
+      "url": "https://www.worldsdc.com/print-event-list/"
+    },
+    "ea4e68c086533dd6581c3015": {
+      "parser": "wsdc_calendar.events",
+      "source": "wsdc_calendar",
+      "timestamp": "20250423104016",
+      "url": "https://www.worldsdc.com/print-event-list/"
+    },
+    "edb1d1478b3fe19a626a30d7": {
+      "parser": "wsdc_calendar.events",
+      "source": "wsdc_calendar",
+      "timestamp": "20260308093633",
+      "url": "https://www.worldsdc.com/events/"
+    },
+    "f0dcc51ff963f79c44d90734": {
+      "parser": "wsdc_calendar.events",
+      "source": "wsdc_calendar",
+      "timestamp": "20260107152659",
+      "url": "https://www.worldsdc.com/events/"
+    },
+    "f140e9fd5864d1c777006540": {
+      "parser": "wsdc_calendar.events",
+      "source": "wsdc_calendar",
+      "timestamp": "20251219091106",
+      "url": "https://www.worldsdc.com/events/"
+    },
+    "fa9d6701e2418b435644b296": {
+      "parser": "wsdc_calendar.events",
+      "source": "wsdc_calendar",
+      "timestamp": "20260110202716",
+      "url": "https://www.worldsdc.com/events/"
+    }
+  },
+  "published_sha256": "d4de650ec774534ae62978aa7dc88c3f8a093de96725f8bb9b64a8a0e0f03cc4",
+  "remaining_target_ids": [
+    "017e59a25155c25983b14000",
+    "032270847f79d7aebca98f65",
+    "24eaae0d5fea3221affb5a0a",
+    "2b8b7d5b424f394e25c2b7bb",
+    "2dd8b6dc4d2d264495a33f0f",
+    "3c5a6116618208e4556dd9e7",
+    "763f8950892b9e719910fcd3",
+    "828e41e7f8f4bfd34d171092",
+    "9592958a3cd694d86e677fc5",
+    "9fad90785a2f773113d0c84d",
+    "a9a1981e91474f1967356d61",
+    "e7dcb140bcbd077c67c0d425",
+    "ea4e68c086533dd6581c3015",
+    "edb1d1478b3fe19a626a30d7",
+    "f0dcc51ff963f79c44d90734",
+    "f140e9fd5864d1c777006540",
+    "fa9d6701e2418b435644b296"
+  ],
+  "schema": 14,
+  "source": "/nix/store/z689qy41inndill3d92ym8im852x3649-source",
+  "source_receipt": "h16-source.json",
+  "source_receipt_sha256": "0c3a391aca5c32381ab10daa22adfdde44cda76ab26b68df002f9822ad4945fb",
+  "state": "/var/lib/swingset",
+  "target_statuses": {
+    "017e59a25155c25983b14000": "pending",
+    "032270847f79d7aebca98f65": "pending",
+    "24eaae0d5fea3221affb5a0a": "pending",
+    "2b8b7d5b424f394e25c2b7bb": "pending",
+    "2dd8b6dc4d2d264495a33f0f": "pending",
+    "3c5a6116618208e4556dd9e7": "pending",
+    "763f8950892b9e719910fcd3": "pending",
+    "828e41e7f8f4bfd34d171092": "pending",
+    "9592958a3cd694d86e677fc5": "pending",
+    "9fad90785a2f773113d0c84d": "pending",
+    "a9a1981e91474f1967356d61": "pending",
+    "e7dcb140bcbd077c67c0d425": "pending",
+    "ea4e68c086533dd6581c3015": "pending",
+    "edb1d1478b3fe19a626a30d7": "pending",
+    "f0dcc51ff963f79c44d90734": "pending",
+    "f140e9fd5864d1c777006540": "pending",
+    "fa9d6701e2418b435644b296": "pending"
+  },
+  "utc_day": "2026-09-17",
+  "wall_seconds": 600
+}

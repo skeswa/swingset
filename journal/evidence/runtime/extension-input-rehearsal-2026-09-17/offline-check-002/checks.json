@@ -1,0 +1,49 @@
+{
+  "format": "extension-input-rehearsal-offline-check-v1",
+  "recorded_at": "2026-09-17T16:47:15.342055+00:00",
+  "files": {
+    "journal/tools/runtime/rehearse_extension_inputs.py": "7bc742cdfbdf8e38085d7affb1c82df8cbdca655b637a7764b46f58d98087e1b",
+    "tests/test_extension_input_rehearsal.py": "4e774d6c99cb15b3aaafb1a9295c474fb6dee9b9d6878a05f2f94ad0b1c70c3c"
+  },
+  "files_unchanged": true,
+  "runtime": "/tmp/swingset-extension-freeze-20260917-003",
+  "runtime_receipt_sha256": "60cdfe64004a0ba5a9aee207bcb089d6d4c81f5ca58169ccdb88a5dfab8146d6",
+  "checks": [
+    {
+      "command": [
+        ".venv/bin/pytest",
+        "-c",
+        "/dev/null",
+        "-p",
+        "no:cacheprovider",
+        "-q",
+        "tests/test_extension_input_rehearsal.py"
+      ],
+      "returncode": 0,
+      "stdout": ".............                                                            [100%]\n13 passed in 0.90s\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        ".venv/bin/ruff",
+        "check",
+        "journal/tools/runtime/rehearse_extension_inputs.py",
+        "tests/test_extension_input_rehearsal.py"
+      ],
+      "returncode": 0,
+      "stdout": "All checks passed!\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        ".venv/bin/mypy",
+        "journal/tools/runtime/rehearse_extension_inputs.py"
+      ],
+      "returncode": 0,
+      "stdout": "Success: no issues found in 1 source file\n",
+      "stderr": ""
+    }
+  ],
+  "network_requests": 0,
+  "production_applied": false
+}
