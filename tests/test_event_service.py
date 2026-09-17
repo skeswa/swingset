@@ -142,6 +142,8 @@ def test_populated_old_turn_schema_keeps_capacity_unknown(tmp_path, monkeypatch)
     from test_event_turns import add
 
     from swingset.clock import FakeClock
+    from swingset.schedule.fairness import record_request
+    from swingset.state.controls import admission, settle
 
     with monkeypatch.context() as legacy:
         legacy.setattr(state_db, "SCHEMA_VERSION", 17)
@@ -167,7 +169,36 @@ def test_populated_old_turn_schema_keeps_capacity_unknown(tmp_path, monkeypatch)
                 run=database.start_run(clock.now()),
             )
             add(f, "legacy")
-            debit(f, select(f))
+            choice = select(f)
+            # Populate a retained schema17 receipt through its accounting seam.
+            # Current fetching correctly refuses that unsupported spacing schema;
+            # this test concerns read-only interpretation of historical receipts.
+            with (
+                servicing(choice, run_id=f.run),
+                admission(
+                    database,
+                    action_id="retained-schema17-request",
+                    action_kind="request",
+                    scope=choice.scope,
+                    now=clock.now(),
+                ),
+            ):
+                conn = database.connection
+                conn.execute("INSERT OR IGNORE INTO hosts(host) VALUES (?)", (choice.host,))
+                conn.execute(
+                    "INSERT INTO host_budget VALUES (?,?,1,0)",
+                    (choice.host, clock.now().date().isoformat()),
+                )
+                record_request(
+                    conn,
+                    f.config,
+                    action_id="retained-schema17-request",
+                    host=choice.host,
+                    watch_id=choice.key,
+                    source="wsdc_calendar",
+                    now=clock.now(),
+                )
+                settle(conn, "retained-schema17-request", now=clock.now(), outcome="Ok")
     conn = sqlite3.connect((tmp_path / "state.sqlite").as_uri() + "?mode=ro", uri=True)
     conn.row_factory = sqlite3.Row
     try:

@@ -1,0 +1,49 @@
+{
+  "format": "independent-legacy-spacing-review-v1",
+  "date": "2026-09-17",
+  "reviewer": "/root/eligible_time",
+  "source_before": {
+    "journal/tools/runtime/legacy_spacing_baselines.py": "7a6f8c7261bbc145feddca261abf76179b37c47f5f2f2aeb820469e509027947",
+    "tests/test_legacy_spacing_baselines.py": "862e6b4dc412b66b170c7743ccb4a356e04025c08f71ac60f94e0207b31a3475"
+  },
+  "source_after": {
+    "journal/tools/runtime/legacy_spacing_baselines.py": "7a6f8c7261bbc145feddca261abf76179b37c47f5f2f2aeb820469e509027947",
+    "tests/test_legacy_spacing_baselines.py": "862e6b4dc412b66b170c7743ccb4a356e04025c08f71ac60f94e0207b31a3475"
+  },
+  "source_unchanged": true,
+  "passed": true,
+  "checks": [
+    {
+      "name": "pytest",
+      "command": [
+        ".venv/bin/pytest",
+        "-q",
+        "tests/test_legacy_spacing_baselines.py"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 1.222,
+      "log_sha256": "567196731b6304177f02157e4d6b8dd8f7562e082ffb278d8a710e71d98616d4"
+    },
+    {
+      "name": "ruff",
+      "command": [
+        ".venv/bin/ruff",
+        "check",
+        "journal/tools/runtime/legacy_spacing_baselines.py",
+        "tests/test_legacy_spacing_baselines.py"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 0.01,
+      "log_sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+    }
+  ],
+  "finding": {
+    "issue": "An allowed spacing-table INSERT fired by a trigger could create authority for an unproven host without changing the protected budget/control tables.",
+    "resolution": "The write authorizer now also requires trigger origin to be null; the regression proves same-table trigger writes are refused and rolled back.",
+    "status": "resolved"
+  },
+  "limits": [
+    "Offline helper review only; no production baseline applied.",
+    "Coordinator must verify the concrete live packet before applying."
+  ]
+}

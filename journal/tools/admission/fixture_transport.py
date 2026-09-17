@@ -159,7 +159,9 @@ class FixtureRunner:
             self.clock.sleep(
                 min(1, grant.seconds, (self.deadline - self.clock.now()).total_seconds())
             )
-        day = self.clock.now().date().isoformat()
+        if grant.debited_at is None:
+            raise FixtureStopped("request grant omitted its durable debit time")
+        day = grant.debited_at.date().isoformat()
         reserved = self._reservation(day)
         request: dict[str, Any] = {
             "url": url,

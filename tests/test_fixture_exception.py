@@ -86,7 +86,7 @@ def facts(conn):
     return {
         table: [tuple(row) for row in conn.execute(f'SELECT * FROM "{table}"')]
         for table in tables
-        if table not in {"hosts", "host_budget"}
+        if table not in {"hosts", "host_budget", "host_request_spacing"}
     }
 
 
@@ -171,6 +171,10 @@ def test_success_uses_shared_gate_and_preserves_all_production_facts(setup):
         )
         budget = conn.execute("SELECT requests,bytes FROM host_budget").fetchone()
         assert tuple(budget) == (7, result["received_bytes"])
+        spacing = conn.execute(
+            "SELECT gap_seconds,released_at FROM host_request_spacing WHERE host=?", (HOST,)
+        ).fetchone()
+        assert spacing[0] == 10 and spacing[1] is not None
         assert result["cdx_further_pages_unexamined"] == 2
         assert len(result["targets"]) == 5
         assert conn.execute("SELECT robots_sha256 FROM hosts").fetchone()[0] == robots
@@ -376,6 +380,10 @@ with accounting_connection(state) as conn:
             1,
             8 * 1024**2,
         )
+        spacing = conn.execute(
+            "SELECT gap_seconds,released_at FROM host_request_spacing WHERE host=?", (HOST,)
+        ).fetchone()
+        assert tuple(spacing) == (10, None)  # Crash does not invent completion.
         with pytest.raises(FixtureStopped, match="single-use"):
             runner(setup, conn, lambda _: pytest.fail("request made"))
 
@@ -454,3 +462,47 @@ def test_owner_authorization_persists_when_unstarted_execution_window_moves(setu
     output.mkdir()
     with pytest.raises(FixtureStopped, match="single-use"):
         authorize(auth, state=state, output=output, now=clock.now())
+
+
+def test_fixture_bytes_and_receipt_keep_grant_day_across_dispatch_midnight(setup):
+    state, _, clock, authorization = setup
+    clock.current = clock.current.replace(hour=23, minute=59, second=59)
+    authorization["execution_window"] = {
+        "starts_at": clock.now().isoformat(),
+        "expires_at": (clock.now() + timedelta(minutes=15)).isoformat(),
+    }
+    calls = []
+
+    def handler(request):
+        calls.append(str(request.url))
+        if len(calls) > 1:
+            raise httpx.ReadTimeout("stop after one retained body")
+        return response(body=b"retained body")
+
+    with accounting_connection(state) as conn:
+        instance = runner(setup, conn, handler)
+        acquire = instance.gate.acquire
+
+        def delayed_grant(*args, **kwargs):
+            grant = acquire(*args, **kwargs)
+            if getattr(grant, "debited_at", None) is not None:
+                clock.sleep(2)
+            return grant
+
+        instance.gate.acquire = delayed_grant
+        result = instance.run()
+        first = result["requests"][0]
+        assert first["request_day"] == "2026-01-01"
+        assert first["issued_at"].startswith("2026-01-02")
+        assert tuple(
+            conn.execute(
+                "SELECT requests,bytes FROM host_budget WHERE host=? AND day=?",
+                (HOST, "2026-01-01"),
+            ).fetchone()
+        ) == (1, len(b"retained body"))
+        assert tuple(
+            conn.execute(
+                "SELECT requests,bytes FROM host_budget WHERE host=? AND day=?",
+                (HOST, "2026-01-02"),
+            ).fetchone()
+        ) == (1, 0)

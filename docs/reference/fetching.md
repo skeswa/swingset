@@ -59,6 +59,23 @@ floor everywhere else.
 | Cookies                                | Not stored, not sent                                                                                                                                                                                                                                                                           |
 | Per-source kill switch                 | `enabled = false` in config stops all fetches for that source                                                                                                                                                                                                                                  |
 
+The local schema-28 gate starts its next spacing interval after the preceding
+response or failure completes, using the effective gap captured with that
+request. This is a conservative implementation of the minimum: slow responses
+reduce throughput. It preserves any later host deadline and shares live request
+ownership across clients in the same writer. After restart, a retained known-gap
+reservation receives a fresh full monotonic wait before another debit. Read-only
+assessment never starts that recovery wait.
+
+Legacy paid hosts have unknown original timing. Before operating the new gate,
+the coordinator must record a reviewed stopped-worker baseline under the writer
+lock, with a conservative gap justified by configuration and retained robots
+evidence. `Gate.establish_spacing_baseline` records the evidence reference and
+requires a fresh wait; it clears no pause, shortens no deadline and refunds no
+usage. Hosts without a justified baseline remain blocked. See
+[D-0056](../../journal/decisions/0056-anchor-host-spacing-to-request-completion.md)
+and [current deployment status](../status.md).
+
 A run also has a wall-clock budget ([operations](operations.md)). When time runs out,
 remaining due watches wait for the next run. Nothing is lost because
 "due" is computed from state, not from a queue.
@@ -68,8 +85,9 @@ it. `scheduler_requests` attributes each issued HTTP request to its host,
 UTC debit day, work class, and cycle in the same transaction that increments
 `host_budget`. Robots checks, redirect hops, retries, and requests that
 fail after issuance all count. A skipped, paused, or budget-denied visit
-records no service. Response body bytes are added on release to the original
-request day. These are accounted body bytes, not wire-byte measurements.
+records no service. One captured grant timestamp owns eligibility against the daily budget, its
+request debit and scheduler receipt. Response body bytes are added on release
+to that original request day, even if dispatch or completion crosses midnight. These are accounted body bytes, not wire-byte measurements.
 
 Pending-work backpressure is checked again at request admission. Its
 two-request repair reserve includes every HTTP operation, so a robots

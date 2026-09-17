@@ -1,0 +1,24 @@
+{
+  "format": "legacy-spacing-application-v1",
+  "applied": true,
+  "proposal_sha256": "8cf5b72015a8dc03557b26d74b458e970d1fd6770552f7fd2d2c3d9e713d4a75",
+  "bindings": {
+    "source": "/nix/store/dx0cyzvd8d91rf29v21sakbr7l5bwxnz-source",
+    "source_receipt_sha256": "60cdfe64004a0ba5a9aee207bcb089d6d4c81f5ca58169ccdb88a5dfab8146d6",
+    "helper_sha256": "7a6f8c7261bbc145feddca261abf76179b37c47f5f2f2aeb820469e509027947",
+    "config": "/nix/store/dx0cyzvd8d91rf29v21sakbr7l5bwxnz-source/config",
+    "hosts_sha256": "a32134c7dd6891b8a2f7856cf6851651d5617af937b8c45cb63b9541e8be74d1",
+    "sources_sha256": "acd354d61fc559a0d29198c6521c41278d4d76103dc87fa96fc3db8e4b121ee1",
+    "fixture_bundle": "/var/lib/swingset/operations/v2-continuation-20260917/legacy-spacing-001/fixture-exception-2026-09-17",
+    "prior_hosts": "/nix/store/z689qy41inndill3d92ym8im852x3649-source/config/hosts.toml",
+    "state": "/var/lib/swingset",
+    "dcn_bundle": "/var/lib/swingset/operations/v2-continuation-20260917/legacy-spacing-001/dcn-index-fixture-2026-09-17"
+  },
+  "baseline_ids": {
+    "web.archive.org": "baseline_d6003a4b6acc4a5e9f846f164120010e"
+  },
+  "observed_at": "2026-09-17T17:07:15.869559+00:00",
+  "holds_removed": false,
+  "budgets_changed": false,
+  "requests_issued": 0
+}

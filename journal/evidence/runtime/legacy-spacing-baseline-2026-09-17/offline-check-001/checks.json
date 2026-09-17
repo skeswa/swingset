@@ -1,0 +1,50 @@
+{
+  "format": "legacy-spacing-helper-offline-check-v1",
+  "recorded_at": "2026-09-17T16:19:54.536329+00:00",
+  "files": {
+    "journal/tools/runtime/legacy_spacing_baselines.py": "ce1efa0f2fa3770ff2589e7f4ef625beee5b6fcb1ebfe9d8c386e6bf92f525b5",
+    "tests/test_legacy_spacing_baselines.py": "b9a950ef3212d5dc441b2b79a65b7c978681df478824d66d27e4eb8295128df3",
+    "tests/fixtures/runtime/h16_hosts_20260916.toml": "6c0b8d7b34e1c4a068374c59d0f41d52459f0113883b9868a6750c2753123122"
+  },
+  "files_unchanged": true,
+  "runtime": "/tmp/swingset-extension-freeze-20260917-002",
+  "runtime_receipt_sha256": "ab09a5c859384b7a39267a81660f81252dea14c9d9462a6545e1eec8f15f2f91",
+  "checks": [
+    {
+      "command": [
+        ".venv/bin/pytest",
+        "-c",
+        "/dev/null",
+        "-p",
+        "no:cacheprovider",
+        "-q",
+        "tests/test_legacy_spacing_baselines.py"
+      ],
+      "returncode": 0,
+      "stdout": "............                                                             [100%]\n12 passed in 14.56s\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        ".venv/bin/ruff",
+        "check",
+        "journal/tools/runtime/legacy_spacing_baselines.py",
+        "tests/test_legacy_spacing_baselines.py"
+      ],
+      "returncode": 0,
+      "stdout": "All checks passed!\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        ".venv/bin/mypy",
+        "journal/tools/runtime/legacy_spacing_baselines.py"
+      ],
+      "returncode": 0,
+      "stdout": "Success: no issues found in 1 source file\n",
+      "stderr": ""
+    }
+  ],
+  "network_requests": 0,
+  "production_applied": false
+}

@@ -1,0 +1,294 @@
+{
+  "observed_at": "2026-09-17T16:43:37.725840+00:00",
+  "schema": "14",
+  "hosts": [
+    {
+      "host": {
+        "host": "eepro.com",
+        "next_allowed_at": "2026-09-13T03:14:09.814060+00:00",
+        "paused_until": null,
+        "pause_reason": null,
+        "pause_streak": 0,
+        "robots_sha256": "80c3fe2ae1062abf56456f52518bd670f9ec3917b7f85e152b347ac6b6faf880",
+        "robots_fetched_at": "2026-09-12T14:12:04.944858+00:00",
+        "robots_status": 404
+      },
+      "last_paid_day": {
+        "host": "eepro.com",
+        "day": "2026-09-13",
+        "requests": 2,
+        "bytes": 54326
+      },
+      "last_requests": [],
+      "last_snapshot": {
+        "snapshot_id": "snap_20260912T163251Z_542b51dc73ea",
+        "watch_id": "dfb2d24de366f549",
+        "url": "https://eepro.com/results/tulsa2025/proamjj.html",
+        "fetched_at": "2026-09-12T16:32:51.162305+00:00",
+        "http_status": 200,
+        "body_sha256": "542b51dc73ead62d5cb084b43f8c8534fc2d2f4857b51320c6d68e08bc29587c",
+        "run_id": "run_20260912T163207Z",
+        "via": "origin",
+        "classification": "Ok"
+      },
+      "snapshot_run": {
+        "run_id": "run_20260912T163207Z",
+        "started_at": "2026-09-12T16:32:07.046085Z",
+        "finished_at": "2026-09-12T16:34:55.325723+00:00",
+        "dry_run": 0,
+        "summary_json": "{\"accepted_inputs\": [], \"bytes_by_host\": {\"eepro.com\": 138689}, \"candidate_id\": \"cand_9671fadae32d4be2\", \"changed\": 7, \"checked\": 7, \"dry_run\": false, \"duration_seconds\": 168.279628, \"failed\": false, \"finished_at\": \"2026-09-12T16:34:55.325723+00:00\", \"nonce_unchanged\": 0, \"not_modified\": 0, \"parse_errors\": {\"eepro\": 0}, \"paused_hosts\": [], \"publish_commit\": \"845d92a04e30b03d4a7081655e754ec2cea323aa\", \"run_id\": \"run_20260912T163207Z\", \"stages\": [\"parse\", \"project\", \"link\", \"build\"], \"stopped\": false}"
+      }
+    },
+    {
+      "host": {
+        "host": "points.worldsdc.com",
+        "next_allowed_at": "2026-09-13T04:26:18.516125+00:00",
+        "paused_until": null,
+        "pause_reason": null,
+        "pause_streak": 0,
+        "robots_sha256": "e5c4b84484ee4216e9373be99380320c25dd94805f99f0a805846f087636553f",
+        "robots_fetched_at": "2026-09-13T04:26:09.644265+00:00",
+        "robots_status": 200
+      },
+      "last_paid_day": {
+        "host": "points.worldsdc.com",
+        "day": "2026-09-13",
+        "requests": 6,
+        "bytes": 44276
+      },
+      "last_requests": [],
+      "last_snapshot": {
+        "snapshot_id": "snap_20260912T130940Z_8437bd0ef46a",
+        "watch_id": "d03a4562776041e1",
+        "url": "https://points.worldsdc.com/lookup2020/find",
+        "fetched_at": "2026-09-12T13:09:40.726999+00:00",
+        "http_status": 404,
+        "body_sha256": "8437bd0ef46a19c9a7c294c53e0429b40e76ebbd5fe9fd73a9025752495ddb1c",
+        "run_id": "run_20260912T130914Z",
+        "via": "origin",
+        "classification": "Ok"
+      },
+      "snapshot_run": {
+        "run_id": "run_20260912T130914Z",
+        "started_at": "2026-09-12T13:09:14.476873Z",
+        "finished_at": "2026-09-12T13:09:40.745377+00:00",
+        "dry_run": 1,
+        "summary_json": "{\"checked\": 14, \"command\": \"overnight-registry\", \"cursor_next\": null, \"cursor_start\": 29035, \"failed\": false, \"finished_at\": \"2026-09-12T13:09:40.745377+00:00\", \"outcomes\": {\"not_found\": 14}, \"parsed\": 14, \"retry_at\": null, \"run_id\": \"run_20260912T130914Z\", \"stop_reason\": \"sweep complete\"}"
+      }
+    },
+    {
+      "host": {
+        "host": "scores.worlddanceregistry.com",
+        "next_allowed_at": "2026-09-12T14:58:09.458436+00:00",
+        "paused_until": null,
+        "pause_reason": null,
+        "pause_streak": 0,
+        "robots_sha256": "e8a25cec5402746885ddebaac8b89c9e3da2e37b9c1ee74248fe5c7a7723bca0",
+        "robots_fetched_at": "2026-09-12T14:12:05.666945+00:00",
+        "robots_status": 403
+      },
+      "last_paid_day": {
+        "host": "scores.worlddanceregistry.com",
+        "day": "2026-09-12",
+        "requests": 3,
+        "bytes": 243
+      },
+      "last_requests": [],
+      "last_snapshot": {
+        "snapshot_id": "snap_20260909T150724Z_4ddc7d026792",
+        "watch_id": "a9fb2c159525b23b",
+        "url": "https://scores.worlddanceregistry.com/00cf1615-fb0d-11f0-9a29-0aa72bbce9ea/awards/routeInfo.json",
+        "fetched_at": "2026-09-09T15:07:24.910744+00:00",
+        "http_status": 200,
+        "body_sha256": "4ddc7d02679279eea4bb7d4007ccd9faf9f9d7e5343dc9c4d3439918f071e590",
+        "run_id": "run_20260909T150720Z",
+        "via": "origin",
+        "classification": "Ok"
+      },
+      "snapshot_run": {
+        "run_id": "run_20260909T150720Z",
+        "started_at": "2026-09-09T15:07:20.582986Z",
+        "finished_at": "2026-09-09T15:07:24.931029+00:00",
+        "dry_run": 1,
+        "summary_json": "{\"run_id\": \"run_20260909T150720Z\", \"command\": \"fetch-one\", \"finished_at\": \"2026-09-09T15:07:24.931029+00:00\", \"stopped\": false, \"failed\": false}"
+      }
+    },
+    {
+      "host": {
+        "host": "scoring.dance",
+        "next_allowed_at": "2026-09-13T04:15:56.016671+00:00",
+        "paused_until": null,
+        "pause_reason": null,
+        "pause_streak": 0,
+        "robots_sha256": "8f53338379755be8a1fe0521741bd86a9c19ba3d38e87180590628bcc3327f15",
+        "robots_fetched_at": "2026-09-12T14:00:08.148035+00:00",
+        "robots_status": 200
+      },
+      "last_paid_day": {
+        "host": "scoring.dance",
+        "day": "2026-09-13",
+        "requests": 725,
+        "bytes": 54530203
+      },
+      "last_requests": [],
+      "last_snapshot": {
+        "snapshot_id": "snap_20260913T041552Z_6b36cce2d6d1",
+        "watch_id": "cf6169a735720843",
+        "url": "https://scoring.dance/enUS/events/110/results/1464.html",
+        "fetched_at": "2026-09-13T04:15:52.089089+00:00",
+        "http_status": 200,
+        "body_sha256": "6b36cce2d6d1efaedc7dd9323c19afa0e72e0f60022bebce10f503846ca103b7",
+        "run_id": "run_20260913T041530Z",
+        "via": "origin",
+        "classification": "Ok"
+      },
+      "snapshot_run": {
+        "run_id": "run_20260913T041530Z",
+        "started_at": "2026-09-13T04:15:30.298531Z",
+        "finished_at": "2026-09-13T04:15:52.156062+00:00",
+        "dry_run": 0,
+        "summary_json": "{\"accepted_inputs\": [], \"bytes_by_host\": {\"scoring.dance\": 342837}, \"changed\": 5, \"checked\": 5, \"dry_run\": false, \"duration_seconds\": 21.857524, \"failed\": false, \"finished_at\": \"2026-09-13T04:15:52.156062+00:00\", \"nonce_unchanged\": 0, \"not_modified\": 0, \"parse_errors\": {}, \"paused_hosts\": [], \"run_id\": \"run_20260913T041530Z\", \"stages\": [], \"stopped\": true}"
+      }
+    },
+    {
+      "host": {
+        "host": "web.archive.org",
+        "next_allowed_at": "2026-09-17T16:16:22.692906+00:00",
+        "paused_until": null,
+        "pause_reason": null,
+        "pause_streak": 0,
+        "robots_sha256": "55f7d9e99b8e2d4e0e193b2f0275501e6d9c1ebd29cadbea6a0da48a8587e3e0",
+        "robots_fetched_at": "2026-09-13T05:04:13.334209+00:00",
+        "robots_status": 404
+      },
+      "last_paid_day": {
+        "host": "web.archive.org",
+        "day": "2026-09-17",
+        "requests": 10,
+        "bytes": 2934701
+      },
+      "last_requests": [
+        {
+          "action_id": "fixture_request_1f274b8a53cd4680973bd11672be2998",
+          "action_kind": "request",
+          "admitted_at": "2026-09-17T16:16:11.259971+00:00",
+          "control_revision": 2,
+          "run_id": null,
+          "work_attempt_id": null,
+          "candidate_id": null,
+          "host": "web.archive.org",
+          "all_sources": 0,
+          "all_kinds": 0,
+          "state": "settled",
+          "settled_at": "2026-09-17T16:16:12.720937+00:00",
+          "outcome": "Ok"
+        },
+        {
+          "action_id": "fixture_request_b9ad86bb0c6440bc8bacc2bda3647c46",
+          "action_kind": "request",
+          "admitted_at": "2026-09-17T16:16:00.877294+00:00",
+          "control_revision": 2,
+          "run_id": null,
+          "work_attempt_id": null,
+          "candidate_id": null,
+          "host": "web.archive.org",
+          "all_sources": 0,
+          "all_kinds": 0,
+          "state": "settled",
+          "settled_at": "2026-09-17T16:16:01.300189+00:00",
+          "outcome": "Gone"
+        },
+        {
+          "action_id": "fixture_request_788d71ea8403448c89b1c009dfe285bc",
+          "action_kind": "request",
+          "admitted_at": "2026-09-17T15:44:03.057233+00:00",
+          "control_revision": 2,
+          "run_id": null,
+          "work_attempt_id": null,
+          "candidate_id": null,
+          "host": "web.archive.org",
+          "all_sources": 0,
+          "all_kinds": 0,
+          "state": "settled",
+          "settled_at": "2026-09-17T15:44:06.241311+00:00",
+          "outcome": "Ok"
+        }
+      ],
+      "last_snapshot": null
+    },
+    {
+      "host": {
+        "host": "worldsdc.com",
+        "next_allowed_at": "2026-09-13T05:29:04.879593+00:00",
+        "paused_until": null,
+        "pause_reason": null,
+        "pause_streak": 0,
+        "robots_sha256": "d885748d144a33034ef56ceb5344e182f99bd503e839217b0f86b841fe5cee64",
+        "robots_fetched_at": "2026-09-12T14:12:06.547133+00:00",
+        "robots_status": 200
+      },
+      "last_paid_day": {
+        "host": "worldsdc.com",
+        "day": "2026-09-13",
+        "requests": 3,
+        "bytes": 91584
+      },
+      "last_requests": [],
+      "last_snapshot": {
+        "snapshot_id": "de51b1e142624d9a854864ae05264d1b",
+        "watch_id": "c6f6cc3dde20493f",
+        "url": "https://worldsdc.com/events/",
+        "fetched_at": "2026-09-09T04:00:29.181541+00:00",
+        "http_status": 200,
+        "body_sha256": "dbf02b46df604fd86f214f93d3c5c38f9500b854e5fd50bdf63a0ecb3f9d57cb",
+        "run_id": "run_20260909T040023Z",
+        "via": "origin",
+        "classification": "Ok"
+      },
+      "snapshot_run": {
+        "run_id": "run_20260909T040023Z",
+        "started_at": "2026-09-09T04:00:23.165026Z",
+        "finished_at": "2026-09-09T04:00:29.252159+00:00",
+        "dry_run": 1,
+        "summary_json": "{\"accepted_inputs\": [\"config/hosts.toml\", \"config/sources.toml\", \"link/weights.toml\", \"overrides/event_aliases.csv\", \"overrides/identity_overrides.csv\", \"overrides/nicknames.csv\", \"overrides/source_urls.csv\", \"overrides/suppressions.csv\", \"version/extract/eepro.autoindex\", \"version/extract/eepro.index\", \"version/extract/eepro.round\", \"version/extract/scoringdance.event\", \"version/extract/scoringdance.recent\", \"version/extract/scoringdance.round\", \"version/extract/scoringdance.sitemap\", \"version/extract/wdr.awards\", \"version/extract/wdr.rounds\", \"version/extract/wsdc_calendar.events\", \"version/extract/wsdc_registry.dancer\", \"version/linker\", \"version/package\", \"version/parser/eepro.autoindex\", \"version/parser/eepro.index\", \"version/parser/eepro.round\", \"version/parser/scoringdance.event\", \"version/parser/scoringdance.recent\", \"version/parser/scoringdance.round\", \"version/parser/scoringdance.sitemap\", \"version/parser/wdr.awards\", \"version/parser/wdr.rounds\", \"version/parser/wsdc_calendar.events\", \"version/parser/wsdc_registry.dancer\", \"version/projector\", \"version/schema\"], \"bytes_by_host\": {\"worldsdc.com\": 250338}, \"candidate_id\": \"cand_ffb176e4bc634b3a\", \"changed\": 1, \"checked\": 1, \"dry_run\": true, \"duration_seconds\": 6.087128, \"failed\": false, \"finished_at\": \"2026-09-09T04:00:29.252159+00:00\", \"nonce_unchanged\": 0, \"not_modified\": 0, \"parse_errors\": {\"wsdc_calendar\": 0}, \"paused_hosts\": [], \"run_id\": \"run_20260909T040023Z\", \"stages\": [\"parse\", \"project\", \"build\"], \"stopped\": false}"
+      }
+    },
+    {
+      "host": {
+        "host": "www.worldsdc.com",
+        "next_allowed_at": "2026-09-13T05:34:57.655005+00:00",
+        "paused_until": null,
+        "pause_reason": null,
+        "pause_streak": 0,
+        "robots_sha256": "d885748d144a33034ef56ceb5344e182f99bd503e839217b0f86b841fe5cee64",
+        "robots_fetched_at": "2026-09-13T05:28:55.449715+00:00",
+        "robots_status": 200
+      },
+      "last_paid_day": {
+        "host": "www.worldsdc.com",
+        "day": "2026-09-13",
+        "requests": 57,
+        "bytes": 14838987
+      },
+      "last_requests": [],
+      "last_snapshot": {
+        "snapshot_id": "snap_20260913T055442Z_f8d9c3ea0532",
+        "watch_id": "2266e5637dc4e865",
+        "url": "https://www.worldsdc.com/print-event-list/",
+        "fetched_at": "2026-09-13T05:54:42.573889+00:00",
+        "http_status": 200,
+        "body_sha256": "f8d9c3ea05323494a5df791a2fbe13f72e32c745c843c1d04308c6d3dbff39ec",
+        "run_id": "run_20260913T055216Z",
+        "via": "wayback",
+        "classification": "Ok"
+      },
+      "snapshot_run": {
+        "run_id": "run_20260913T055216Z",
+        "started_at": "2026-09-13T05:52:16.766220Z",
+        "finished_at": null,
+        "dry_run": 1,
+        "summary_json": null
+      }
+    }
+  ]
+}

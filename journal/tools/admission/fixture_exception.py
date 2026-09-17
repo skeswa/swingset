@@ -89,7 +89,7 @@ def validate_authorization(
 
 def _accounting_only(action: int, table: str | None, column: str | None, *_: Any) -> int:
     if action in (sqlite3.SQLITE_INSERT, sqlite3.SQLITE_UPDATE):
-        allowed = table == "host_budget" or (
+        allowed = table in {"host_budget", "host_request_spacing"} or (
             table == "hosts"
             and (
                 action == sqlite3.SQLITE_INSERT

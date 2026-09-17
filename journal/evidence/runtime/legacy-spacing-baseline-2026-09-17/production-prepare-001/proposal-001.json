@@ -1,0 +1,569 @@
+{
+  "format": "reviewed-legacy-spacing-proposal-v1",
+  "schema": 14,
+  "hosts": [
+    {
+      "host": "eepro.com",
+      "eligible": false,
+      "reason": "no reviewed last-request, original-policy and robots proof",
+      "effective_policy": {
+        "min_gap_seconds": 5,
+        "daily_request_budget": 600,
+        "daily_byte_budget": null,
+        "index_interval": null,
+        "index_interval_weekend": 3600.0,
+        "index_interval_weekday": 21600.0,
+        "live_interval": 900.0,
+        "cooling_interval": 21600.0,
+        "round_live_interval": 43200.0,
+        "round_cooling_interval": 86400.0,
+        "challenge_pause": 86400,
+        "sweep_daily_request_budget": 20000
+      },
+      "gap_seconds": null,
+      "cached_robots": {
+        "body_sha256": "80c3fe2ae1062abf56456f52518bd670f9ec3917b7f85e152b347ac6b6faf880",
+        "fetched_at": "2026-09-12T14:12:04.944858+00:00",
+        "status": 404
+      }
+    },
+    {
+      "host": "points.worldsdc.com",
+      "eligible": false,
+      "reason": "no reviewed last-request, original-policy and robots proof",
+      "effective_policy": {
+        "min_gap_seconds": 2,
+        "daily_request_budget": 1500,
+        "daily_byte_budget": null,
+        "index_interval": null,
+        "index_interval_weekend": 3600,
+        "index_interval_weekday": 21600,
+        "live_interval": 900,
+        "cooling_interval": 21600,
+        "round_live_interval": 43200,
+        "round_cooling_interval": 86400,
+        "challenge_pause": 86400,
+        "sweep_daily_request_budget": 20000
+      },
+      "gap_seconds": null,
+      "cached_robots": {
+        "body_sha256": "e5c4b84484ee4216e9373be99380320c25dd94805f99f0a805846f087636553f",
+        "fetched_at": "2026-09-13T04:26:09.644265+00:00",
+        "status": 200
+      }
+    },
+    {
+      "host": "scores.worlddanceregistry.com",
+      "eligible": false,
+      "reason": "no reviewed last-request, original-policy and robots proof",
+      "effective_policy": {
+        "min_gap_seconds": 5,
+        "daily_request_budget": 400,
+        "daily_byte_budget": null,
+        "index_interval": null,
+        "index_interval_weekend": 3600,
+        "index_interval_weekday": 21600,
+        "live_interval": 900.0,
+        "cooling_interval": 21600.0,
+        "round_live_interval": 43200,
+        "round_cooling_interval": 86400,
+        "challenge_pause": 86400,
+        "sweep_daily_request_budget": 20000
+      },
+      "gap_seconds": null,
+      "cached_robots": {
+        "body_sha256": "e8a25cec5402746885ddebaac8b89c9e3da2e37b9c1ee74248fe5c7a7723bca0",
+        "fetched_at": "2026-09-12T14:12:05.666945+00:00",
+        "status": 403
+      }
+    },
+    {
+      "host": "scoring.dance",
+      "eligible": false,
+      "reason": "no reviewed last-request, original-policy and robots proof",
+      "effective_policy": {
+        "min_gap_seconds": 5,
+        "daily_request_budget": 800,
+        "daily_byte_budget": null,
+        "index_interval": null,
+        "index_interval_weekend": 3600.0,
+        "index_interval_weekday": 21600.0,
+        "live_interval": 900.0,
+        "cooling_interval": 21600.0,
+        "round_live_interval": 14400.0,
+        "round_cooling_interval": 86400.0,
+        "challenge_pause": 86400.0,
+        "sweep_daily_request_budget": 20000
+      },
+      "gap_seconds": null,
+      "cached_robots": {
+        "body_sha256": "8f53338379755be8a1fe0521741bd86a9c19ba3d38e87180590628bcc3327f15",
+        "fetched_at": "2026-09-12T14:00:08.148035+00:00",
+        "status": 200
+      }
+    },
+    {
+      "host": "web.archive.org",
+      "eligible": true,
+      "reason": null,
+      "effective_policy": {
+        "min_gap_seconds": 10,
+        "daily_request_budget": 200,
+        "daily_byte_budget": null,
+        "index_interval": null,
+        "index_interval_weekend": 3600,
+        "index_interval_weekday": 21600,
+        "live_interval": 900,
+        "cooling_interval": 21600,
+        "round_live_interval": 43200,
+        "round_cooling_interval": 86400,
+        "challenge_pause": 86400,
+        "sweep_daily_request_budget": 20000
+      },
+      "gap_seconds": 10,
+      "cached_robots": {
+        "body_sha256": "55f7d9e99b8e2d4e0e193b2f0275501e6d9c1ebd29cadbea6a0da48a8587e3e0",
+        "fetched_at": "2026-09-13T05:04:13.334209+00:00",
+        "status": 404
+      }
+    },
+    {
+      "host": "worldsdc.com",
+      "eligible": false,
+      "reason": "no reviewed last-request, original-policy and robots proof",
+      "effective_policy": {
+        "min_gap_seconds": 5,
+        "daily_request_budget": 10,
+        "daily_byte_budget": null,
+        "index_interval": 86400.0,
+        "index_interval_weekend": 3600,
+        "index_interval_weekday": 21600,
+        "live_interval": 900,
+        "cooling_interval": 21600,
+        "round_live_interval": 43200,
+        "round_cooling_interval": 86400,
+        "challenge_pause": 86400,
+        "sweep_daily_request_budget": 20000
+      },
+      "gap_seconds": null,
+      "cached_robots": {
+        "body_sha256": "d885748d144a33034ef56ceb5344e182f99bd503e839217b0f86b841fe5cee64",
+        "fetched_at": "2026-09-12T14:12:06.547133+00:00",
+        "status": 200
+      }
+    },
+    {
+      "host": "www.worldsdc.com",
+      "eligible": false,
+      "reason": "no reviewed last-request, original-policy and robots proof",
+      "effective_policy": {
+        "min_gap_seconds": 5,
+        "daily_request_budget": 200,
+        "daily_byte_budget": null,
+        "index_interval": null,
+        "index_interval_weekend": 3600,
+        "index_interval_weekday": 21600,
+        "live_interval": 900,
+        "cooling_interval": 21600,
+        "round_live_interval": 43200,
+        "round_cooling_interval": 86400,
+        "challenge_pause": 86400,
+        "sweep_daily_request_budget": 20000
+      },
+      "gap_seconds": null,
+      "cached_robots": {
+        "body_sha256": "d885748d144a33034ef56ceb5344e182f99bd503e839217b0f86b841fe5cee64",
+        "fetched_at": "2026-09-13T05:28:55.449715+00:00",
+        "status": 200
+      }
+    }
+  ],
+  "evidence": {
+    "kind": "archive-fixtures-2026-09-17-ten-requests",
+    "previous": {
+      "kind": "archive-fixture-2026-09-17-eight-requests",
+      "files": {
+        "quarantine/receipt.json": "195c2ddcff02401f780c1591031125fe7d254d0a251179654dc448d55e1ae99a",
+        "quarantine/manifest.json": "c51d9810073d5e49c4a1044e30de97bd4409f3ad4c4a109aa6a2fa31dc51dd93",
+        "execution-admissions.json": "10eb3a3989629e83108c0fdac2564b86ed8a7a8bb3db08a13431bb61753e6ef1",
+        "packet/helper-closure/fixture_helpers/fixture_transport.py": "5e873a4ccc711ef3c668246862ac6a4a33be0a90dd998a4b896af09c2e55a97a",
+        "packet/fixture-exception-h13-002.py": "81357b33c8862bdc4bdd2d84f2479a7913a9d783b00b435910cc2328bdcf69f7",
+        "packet/preparation-receipt.json": "fe33f63f97e24eae80ec58a8a672e5e5891a47c2de58e1881d923ec7fa1d752b"
+      },
+      "prior_hosts_sha256": "6c0b8d7b34e1c4a068374c59d0f41d52459f0113883b9868a6750c2753123122",
+      "original_effective_gap_seconds": 10.0,
+      "robots": {
+        "body_sha256": "55f7d9e99b8e2d4e0e193b2f0275501e6d9c1ebd29cadbea6a0da48a8587e3e0",
+        "http_status": 404,
+        "issued_at": "2026-09-17T15:42:53.040298+00:00",
+        "crawl_delay": 0
+      },
+      "bodies": {
+        "55f7d9e99b8e2d4e0e193b2f0275501e6d9c1ebd29cadbea6a0da48a8587e3e0": 146,
+        "9264cb04aab050fce36fc83b92c7e51ffb28c4d1b1412ef575474e7dd6864f40": 26497,
+        "ef7b01b6a34c91dbf15e41a1bad76052b878dc7c0903fb0b67e44a6dcafbd63c": 14788,
+        "5a75a6e61684b23a616dd3c39eb6efd3da28e9b23e0a77925aa05e9da555f15e": 37876,
+        "ab571cf857210f90b91db779b81a81c0beae10becf97aaa8c66377b0da7b26eb": 35358,
+        "c30d80cb4f6fae81e886c13aaa43c46ff68f9949ff219c5c77c3daa79104e03f": 14508,
+        "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865": 2,
+        "d1e3f7d8031e7a0f9bb113273250abce9fdf48df13756c199b8c609b9a2387fb": 884
+      },
+      "started_at": "2026-09-17T15:42:52.996197+00:00",
+      "finished_at": "2026-09-17T15:44:06.251242+00:00",
+      "day": "2026-09-17",
+      "requests": 8,
+      "received_bytes": 130059,
+      "admissions": [
+        {
+          "action_id": "fixture_request_788d71ea8403448c89b1c009dfe285bc",
+          "action_kind": "request",
+          "admitted_at": "2026-09-17T15:44:03.057233+00:00",
+          "control_revision": 2,
+          "run_id": null,
+          "work_attempt_id": null,
+          "candidate_id": null,
+          "host": "web.archive.org",
+          "all_sources": 0,
+          "all_kinds": 0,
+          "state": "settled",
+          "settled_at": "2026-09-17T15:44:06.241311+00:00",
+          "outcome": "Ok"
+        },
+        {
+          "action_id": "fixture_request_900432063ebc45f7be0594afe62f276a",
+          "action_kind": "request",
+          "admitted_at": "2026-09-17T15:43:03.038771+00:00",
+          "control_revision": 2,
+          "run_id": null,
+          "work_attempt_id": null,
+          "candidate_id": null,
+          "host": "web.archive.org",
+          "all_sources": 0,
+          "all_kinds": 0,
+          "state": "settled",
+          "settled_at": "2026-09-17T15:43:09.690356+00:00",
+          "outcome": "Ok"
+        },
+        {
+          "action_id": "fixture_request_b31d5b2376964f968cf1f409e925dfbb",
+          "action_kind": "request",
+          "admitted_at": "2026-09-17T15:43:13.042706+00:00",
+          "control_revision": 2,
+          "run_id": null,
+          "work_attempt_id": null,
+          "candidate_id": null,
+          "host": "web.archive.org",
+          "all_sources": 0,
+          "all_kinds": 0,
+          "state": "settled",
+          "settled_at": "2026-09-17T15:43:18.756763+00:00",
+          "outcome": "Ok"
+        },
+        {
+          "action_id": "fixture_request_be79a4b8c64e44e1a05d467e00a90fb8",
+          "action_kind": "request",
+          "admitted_at": "2026-09-17T15:43:23.046854+00:00",
+          "control_revision": 2,
+          "run_id": null,
+          "work_attempt_id": null,
+          "candidate_id": null,
+          "host": "web.archive.org",
+          "all_sources": 0,
+          "all_kinds": 0,
+          "state": "settled",
+          "settled_at": "2026-09-17T15:43:29.968562+00:00",
+          "outcome": "Ok"
+        },
+        {
+          "action_id": "fixture_request_c2b919f446ef476881e85c03e7ae4911",
+          "action_kind": "request",
+          "admitted_at": "2026-09-17T15:43:43.052507+00:00",
+          "control_revision": 2,
+          "run_id": null,
+          "work_attempt_id": null,
+          "candidate_id": null,
+          "host": "web.archive.org",
+          "all_sources": 0,
+          "all_kinds": 0,
+          "state": "settled",
+          "settled_at": "2026-09-17T15:43:48.639619+00:00",
+          "outcome": "Ok"
+        },
+        {
+          "action_id": "fixture_request_d3c45e80cc94493f8ea2532dcbafeb57",
+          "action_kind": "request",
+          "admitted_at": "2026-09-17T15:43:33.049303+00:00",
+          "control_revision": 2,
+          "run_id": null,
+          "work_attempt_id": null,
+          "candidate_id": null,
+          "host": "web.archive.org",
+          "all_sources": 0,
+          "all_kinds": 0,
+          "state": "settled",
+          "settled_at": "2026-09-17T15:43:40.734992+00:00",
+          "outcome": "Ok"
+        },
+        {
+          "action_id": "fixture_request_ed1b46303aed4ca2828d201f5f7371dc",
+          "action_kind": "request",
+          "admitted_at": "2026-09-17T15:42:53.037348+00:00",
+          "control_revision": 2,
+          "run_id": null,
+          "work_attempt_id": null,
+          "candidate_id": null,
+          "host": "web.archive.org",
+          "all_sources": 0,
+          "all_kinds": 0,
+          "state": "settled",
+          "settled_at": "2026-09-17T15:42:53.606632+00:00",
+          "outcome": "Gone"
+        },
+        {
+          "action_id": "fixture_request_f238a42ddff1406490ff6050faacc638",
+          "action_kind": "request",
+          "admitted_at": "2026-09-17T15:43:53.053626+00:00",
+          "control_revision": 2,
+          "run_id": null,
+          "work_attempt_id": null,
+          "candidate_id": null,
+          "host": "web.archive.org",
+          "all_sources": 0,
+          "all_kinds": 0,
+          "state": "settled",
+          "settled_at": "2026-09-17T15:43:53.190156+00:00",
+          "outcome": "Ok"
+        }
+      ]
+    },
+    "files": {
+      "quarantine/receipt.json": "a86b2220f764c4208cd1cec08861bd64a1521109ce27fd9b2d6d30076da08321",
+      "quarantine/manifest.json": "8495f724833e077cde947c97360f38c24dee7265ade89549e6ae9e553f61e18e",
+      "execution-admissions.json": "ebe48d5dbcb0ac6117d6f2e29e2113146784c8e76c848043d7f5b2ff2f885d9f",
+      "production-after.json": "13117ca6d41ecfdbb64b80131cb31267b6eab7f2ab74eb4e660e45f2b2f3020a",
+      "packet/helper-closure/fixture_helpers/fixture_transport.py": "16a06e016500524952819aacedfedd0d23507f73cca080ecf6b3296c84ba46d6",
+      "packet/dcn-index-fixture-h13-001.py": "b068926b0491182338f51b3e7091a3610aac7287d399194c60cc143f76cbe2b1",
+      "packet/preparation-receipt.json": "d16d40c499b5d78cea3126540fd5bdb76594ffc290e8b85361371520a9338343"
+    },
+    "original_effective_gap_seconds": 10.0,
+    "robots": {
+      "body_sha256": "55f7d9e99b8e2d4e0e193b2f0275501e6d9c1ebd29cadbea6a0da48a8587e3e0",
+      "http_status": 404,
+      "issued_at": "2026-09-17T16:16:00.884870+00:00",
+      "crawl_delay": 0
+    },
+    "bodies": {
+      "55f7d9e99b8e2d4e0e193b2f0275501e6d9c1ebd29cadbea6a0da48a8587e3e0": 146,
+      "3e4e9cae6d39e099b79c7b5e7bae1e25c02fb0315e82e1311c7be4b39e3796bb": 2804496
+    },
+    "started_at": "2026-09-17T15:42:52.996197+00:00",
+    "finished_at": "2026-09-17T16:16:12.737675+00:00",
+    "day": "2026-09-17",
+    "requests": 10,
+    "received_bytes": 2934701,
+    "admissions": [
+      {
+        "action_id": "fixture_request_1f274b8a53cd4680973bd11672be2998",
+        "action_kind": "request",
+        "admitted_at": "2026-09-17T16:16:11.259971+00:00",
+        "control_revision": 2,
+        "run_id": null,
+        "work_attempt_id": null,
+        "candidate_id": null,
+        "host": "web.archive.org",
+        "all_sources": 0,
+        "all_kinds": 0,
+        "state": "settled",
+        "settled_at": "2026-09-17T16:16:12.720937+00:00",
+        "outcome": "Ok"
+      },
+      {
+        "action_id": "fixture_request_788d71ea8403448c89b1c009dfe285bc",
+        "action_kind": "request",
+        "admitted_at": "2026-09-17T15:44:03.057233+00:00",
+        "control_revision": 2,
+        "run_id": null,
+        "work_attempt_id": null,
+        "candidate_id": null,
+        "host": "web.archive.org",
+        "all_sources": 0,
+        "all_kinds": 0,
+        "state": "settled",
+        "settled_at": "2026-09-17T15:44:06.241311+00:00",
+        "outcome": "Ok"
+      },
+      {
+        "action_id": "fixture_request_900432063ebc45f7be0594afe62f276a",
+        "action_kind": "request",
+        "admitted_at": "2026-09-17T15:43:03.038771+00:00",
+        "control_revision": 2,
+        "run_id": null,
+        "work_attempt_id": null,
+        "candidate_id": null,
+        "host": "web.archive.org",
+        "all_sources": 0,
+        "all_kinds": 0,
+        "state": "settled",
+        "settled_at": "2026-09-17T15:43:09.690356+00:00",
+        "outcome": "Ok"
+      },
+      {
+        "action_id": "fixture_request_b31d5b2376964f968cf1f409e925dfbb",
+        "action_kind": "request",
+        "admitted_at": "2026-09-17T15:43:13.042706+00:00",
+        "control_revision": 2,
+        "run_id": null,
+        "work_attempt_id": null,
+        "candidate_id": null,
+        "host": "web.archive.org",
+        "all_sources": 0,
+        "all_kinds": 0,
+        "state": "settled",
+        "settled_at": "2026-09-17T15:43:18.756763+00:00",
+        "outcome": "Ok"
+      },
+      {
+        "action_id": "fixture_request_b9ad86bb0c6440bc8bacc2bda3647c46",
+        "action_kind": "request",
+        "admitted_at": "2026-09-17T16:16:00.877294+00:00",
+        "control_revision": 2,
+        "run_id": null,
+        "work_attempt_id": null,
+        "candidate_id": null,
+        "host": "web.archive.org",
+        "all_sources": 0,
+        "all_kinds": 0,
+        "state": "settled",
+        "settled_at": "2026-09-17T16:16:01.300189+00:00",
+        "outcome": "Gone"
+      },
+      {
+        "action_id": "fixture_request_be79a4b8c64e44e1a05d467e00a90fb8",
+        "action_kind": "request",
+        "admitted_at": "2026-09-17T15:43:23.046854+00:00",
+        "control_revision": 2,
+        "run_id": null,
+        "work_attempt_id": null,
+        "candidate_id": null,
+        "host": "web.archive.org",
+        "all_sources": 0,
+        "all_kinds": 0,
+        "state": "settled",
+        "settled_at": "2026-09-17T15:43:29.968562+00:00",
+        "outcome": "Ok"
+      },
+      {
+        "action_id": "fixture_request_c2b919f446ef476881e85c03e7ae4911",
+        "action_kind": "request",
+        "admitted_at": "2026-09-17T15:43:43.052507+00:00",
+        "control_revision": 2,
+        "run_id": null,
+        "work_attempt_id": null,
+        "candidate_id": null,
+        "host": "web.archive.org",
+        "all_sources": 0,
+        "all_kinds": 0,
+        "state": "settled",
+        "settled_at": "2026-09-17T15:43:48.639619+00:00",
+        "outcome": "Ok"
+      },
+      {
+        "action_id": "fixture_request_d3c45e80cc94493f8ea2532dcbafeb57",
+        "action_kind": "request",
+        "admitted_at": "2026-09-17T15:43:33.049303+00:00",
+        "control_revision": 2,
+        "run_id": null,
+        "work_attempt_id": null,
+        "candidate_id": null,
+        "host": "web.archive.org",
+        "all_sources": 0,
+        "all_kinds": 0,
+        "state": "settled",
+        "settled_at": "2026-09-17T15:43:40.734992+00:00",
+        "outcome": "Ok"
+      },
+      {
+        "action_id": "fixture_request_ed1b46303aed4ca2828d201f5f7371dc",
+        "action_kind": "request",
+        "admitted_at": "2026-09-17T15:42:53.037348+00:00",
+        "control_revision": 2,
+        "run_id": null,
+        "work_attempt_id": null,
+        "candidate_id": null,
+        "host": "web.archive.org",
+        "all_sources": 0,
+        "all_kinds": 0,
+        "state": "settled",
+        "settled_at": "2026-09-17T15:42:53.606632+00:00",
+        "outcome": "Gone"
+      },
+      {
+        "action_id": "fixture_request_f238a42ddff1406490ff6050faacc638",
+        "action_kind": "request",
+        "admitted_at": "2026-09-17T15:43:53.053626+00:00",
+        "control_revision": 2,
+        "run_id": null,
+        "work_attempt_id": null,
+        "candidate_id": null,
+        "host": "web.archive.org",
+        "all_sources": 0,
+        "all_kinds": 0,
+        "state": "settled",
+        "settled_at": "2026-09-17T15:43:53.190156+00:00",
+        "outcome": "Ok"
+      }
+    ]
+  },
+  "protected": {
+    "hosts": {
+      "rows": 7,
+      "sha256": "c4f1d3cc38fcb252e9f1c1a5b6f3202a058e7aaaff8410faf33955eeef84da8b"
+    },
+    "host_budget": {
+      "rows": 25,
+      "sha256": "e59c5b81b752353b1a6c353f8c582f49d2d5cca8f056622b64371164afbeb095"
+    },
+    "operator_pauses": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "control_state": {
+      "rows": 1,
+      "sha256": "636cbe06ddc482db3f6385cb0684bac684da870bbe68a86ac094ea15f8425514"
+    },
+    "control_events": {
+      "rows": 2,
+      "sha256": "e9eb965312af30d2ccfa4c597ba688f380a10207429dd7cc25ddb68b5994ff88"
+    },
+    "execution_admissions": {
+      "rows": 35010,
+      "sha256": "76cb3064988150db433ffa95f29d7e77fc636be8d91d2fc147392997b56692ac"
+    }
+  },
+  "bindings": {
+    "source": "/nix/store/dx0cyzvd8d91rf29v21sakbr7l5bwxnz-source",
+    "source_receipt_sha256": "60cdfe64004a0ba5a9aee207bcb089d6d4c81f5ca58169ccdb88a5dfab8146d6",
+    "helper_sha256": "7a6f8c7261bbc145feddca261abf76179b37c47f5f2f2aeb820469e509027947",
+    "config": "/nix/store/dx0cyzvd8d91rf29v21sakbr7l5bwxnz-source/config",
+    "hosts_sha256": "a32134c7dd6891b8a2f7856cf6851651d5617af937b8c45cb63b9541e8be74d1",
+    "sources_sha256": "acd354d61fc559a0d29198c6521c41278d4d76103dc87fa96fc3db8e4b121ee1",
+    "fixture_bundle": "/var/lib/swingset/operations/v2-continuation-20260917/legacy-spacing-001/fixture-exception-2026-09-17",
+    "prior_hosts": "/nix/store/z689qy41inndill3d92ym8im852x3649-source/config/hosts.toml",
+    "state": "/var/lib/swingset",
+    "dcn_bundle": "/var/lib/swingset/operations/v2-continuation-20260917/legacy-spacing-001/dcn-index-fixture-2026-09-17"
+  },
+  "guards": {
+    "operator_hold_sha256": "965468bb03ba65b6d1d4950ab8e85c09c8f2f2a323461b7a3f2b6177bba5c638",
+    "units": {
+      "swingset-cycle.service": "inactive",
+      "swingset-cycle.timer": "inactive",
+      "swingset-backup.service": "inactive",
+      "swingset-backup.timer": "inactive",
+      "swingset-summary.service": "inactive",
+      "swingset-summary.timer": "inactive"
+    }
+  },
+  "stopped_at": "2026-09-17T16:39:28.524532+00:00",
+  "prepared_at": "2026-09-17T16:39:28.524532+00:00",
+  "applied": false
+}

@@ -33,6 +33,9 @@ def issue(
     request_url: str | None = None,
     context: RequestContext | None = None,
 ) -> tuple[Grant | Wait | Paused, str | None]:
+    from swingset.schedule.event_timing_observer import checkpoint, resume
+
+    checkpoint()
     action_id = "request_" + uuid4().hex
     scope = for_watch(
         database.connection,
@@ -80,6 +83,7 @@ def issue(
                 # Waiting is not an issued attempt. Roll back the speculative
                 # admission rather than append an action for every clock tick.
                 raise _NotIssued(grant)
+            assert grant.debited_at is not None
             record_request(
                 database.connection,
                 gate.config,
@@ -87,18 +91,23 @@ def issue(
                 host=host,
                 watch_id=getattr(watch, "watch_id", None),
                 source=source,
-                now=clock.now(),
+                now=grant.debited_at,
             )
-            record_origin_request(database.connection, watch, action_id=action_id, now=clock.now())
+            record_origin_request(
+                database.connection, watch, action_id=action_id, now=grant.debited_at
+            )
         if context:
             context.admitted_attempts += 1
+        resume()
         return grant, action_id
     except _NotIssued as deferred:
         # Retain a host's diagnostic row without claiming a robots check or an
         # issued request when its budget/cooldown deferred the operation.
         database.connection.execute("INSERT OR IGNORE INTO hosts(host) VALUES (?)", (host,))
+        resume()
         return deferred.grant, None
     except ControlPaused:
+        resume()
         return Paused("operator"), None
     except BaseException:
         # No HTTP call follows an unsuccessful admission commit. Roll back a
@@ -131,6 +140,9 @@ def release(
     body_bytes: int,
     request_day: str,
 ) -> None:
+    from swingset.schedule.event_timing_observer import checkpoint
+
+    checkpoint()
     with database.transaction() as conn:
         gate.release(host, outcome, body_bytes=body_bytes, request_day=request_day)
         conn.execute(

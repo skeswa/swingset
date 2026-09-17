@@ -373,6 +373,13 @@ another transition. Current reports require fresh domain and admission fences.
 Restore preserves receipts while invalidating current proof freshness. See the
 [retirement contract](data-model.md#recorded-source-event-history-and-retirement).
 
+Schema 28 retains per-host request spacing reservations and immutable reviewed
+legacy-baseline receipts. The original effective gap and debit timestamp survive
+crash and restore. A restored reservation cannot establish current in-flight
+ownership or elapsed monotonic time; the ordinary gate imposes a fresh wait.
+Legacy paid hosts keep an unknown gap until the explicit operating baseline is
+recorded. See [fetch spacing](fetching.md#politeness-rules).
+
 ### Local enumeration and verification interfaces
 
 Migration 16 adds `source_event_inventory` current pointers, immutable

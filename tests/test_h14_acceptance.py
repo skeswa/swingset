@@ -200,6 +200,17 @@ def test_every_host_keeps_its_actual_daily_cap_and_request_floor(tmp_path, host,
             (host, clock.now().date().isoformat(), limit - 1),
         )
         gate = Gate(conn, config(), clock)
+        # Seeded historical debits have no dispatch/completion evidence. Adopt
+        # an explicit stopped-worker baseline before testing remaining capacity.
+        with db.transaction():
+            gate.establish_spacing_baseline(
+                host,
+                gap_seconds=gap,
+                stopped_at=clock.now(),
+                evidence_ref="offline://h14-seeded-debits",
+            )
+        assert gate.acquire(host) == Wait(gap)
+        clock.sleep(gap)
         assert isinstance(gate.acquire(host), Grant)
         assert isinstance(gate.acquire(host), Wait)
         gate.release(host, Classification(Outcome.OK))
@@ -387,6 +398,14 @@ def test_midday_migration_usage_is_not_new_capacity_or_catchup_credit(tmp_path):
             ),
             random_value=lambda: 0,
         )
+        with db.transaction():
+            for host in ("scoring.dance", "web.archive.org"):
+                fetcher.gate.establish_spacing_baseline(
+                    host,
+                    gap_seconds=max(5, config().host(host).min_gap_seconds),
+                    stopped_at=clock.now(),
+                    evidence_ref="offline://h14-midday-seeded-debits",
+                )
         try:
             for _ in range(75):
                 choice = next_watch(

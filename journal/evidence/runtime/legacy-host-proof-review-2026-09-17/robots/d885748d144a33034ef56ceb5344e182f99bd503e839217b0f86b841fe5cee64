@@ -1,0 +1,38 @@
+# START WPFORMS BLOCK
+# ---------------------------
+User-agent: *
+Disallow: /wp-content/uploads/wpforms/
+# ---------------------------
+# END WPFORMS BLOCK
+
+# START YOAST BLOCK
+# ---------------------------
+User-agent: *
+Disallow: /*add-to-cart=
+Disallow: /*remove_item=
+Disallow: /*?wc-ajax=
+Disallow: /cart/
+Disallow: /checkout/
+Disallow: /*?s=
+Disallow: /*jet_blog_ajax
+Disallow: /*nocache=
+Disallow: /xmlrpc.php
+
+Sitemap: https://worldsdc.com/sitemap_index.xml
+# ---------------------------
+# END YOAST BLOCK
+
+# --- goo1-botguard ---
+# Aggressive, aber gutwillige Crawler ausbremsen
+User-agent: Amazonbot
+Crawl-delay: 10
+
+User-agent: Bytespider
+Crawl-delay: 30
+
+User-agent: PetalBot
+Crawl-delay: 30
+
+# Bestaetigt schaedlich, wird zusaetzlich hart geblockt
+User-agent: jscrawler
+Disallow: /

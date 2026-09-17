@@ -201,7 +201,8 @@ class FetchClient:
                     assert isinstance(grant, Grant)
                     assert action_id is not None
                     break
-                day = self.clock.now().date().isoformat()
+                assert grant.debited_at is not None
+                day = grant.debited_at.date().isoformat()
                 response, body_bytes = None, 0
                 outcome = Classification(Outcome.INVALID)
                 retrying = False
