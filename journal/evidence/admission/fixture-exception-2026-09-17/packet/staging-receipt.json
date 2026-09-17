@@ -1,0 +1,20 @@
+{
+  "format": "fixture-staging-v1",
+  "files": {
+    "fixture-exception-h13-002.py": "81357b33c8862bdc4bdd2d84f2479a7913a9d783b00b435910cc2328bdcf69f7",
+    "helper-closure/closure.json": "f8e0557026bc3bcfbd06624071bbc98ab7c7a46983fd6e3117d34140d6b16db3",
+    "helper-closure/fixture_helpers/__init__.py": "52653ca36ce3711b8bdd5d30ddfa437ff9488cb97ffc43ada0fefb8fd0d55a3c",
+    "helper-closure/fixture_helpers/fixture_exception.py": "82321170f50747285cc661e3a7d6a91c4ad260b6fe2c6471c33c7eee1e545f47",
+    "helper-closure/fixture_helpers/fixture_transport.py": "5e873a4ccc711ef3c668246862ac6a4a33be0a90dd998a4b896af09c2e55a97a",
+    "helper-closure/proposal.json": "6269cc9837ca9e4eb9913270194b1e1622a5dc5b7e0d1d715e3b04fb5bb34eab",
+    "helper-closure/research/verification/2026-09-11/cdx_dcn_eventpage_2013_2018_first50.json": "389a671edfa6bd3bc6e6fa7db147942197ae16a8bec91e7e9a83ae45a7c70472",
+    "helper-closure/research/verification/2026-09-11/cdx_steprightsolutions_html_all.json": "b9562bc37c62b14161dafd34c570ad55e229a1dff44a833e573f7bf84bf77b46",
+    "helper-closure/research/verification/2026-09-11/wayback_id_steprt_events_index.hdr": "2ea15981f572bd7595137bdf90571bbc4a729f71ef5b4459bdc29a763ab4bae7",
+    "helper-closure/research/verification/2026-09-11/wayback_id_steprt_round_507.hdr": "f9c01017ce1fe12f79294a617b9052851eef8ffd71d1d048190b8e02b2edaf4d",
+    "helper-closure/research/verification/2026-09-11/wayback_id_steprt_round_508.hdr": "04ff250f08968005cf681a2ffc1bb1bd5858580ed01b8af4c6dad3d393815b34",
+    "prepare_fixture_exception.py": "50b2bcf623cf26482e8497bf4cd9afd579789bab39b4f020c5338cbc76359786"
+  },
+  "authority": "journal/decisions/0053-approve-exact-new-source-fixture-exception.md",
+  "executed": false,
+  "network_requests": 0
+}

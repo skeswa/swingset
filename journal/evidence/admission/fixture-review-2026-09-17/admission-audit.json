@@ -1,0 +1,18 @@
+{
+  "format": "fixture-admission-audit-v1",
+  "source": "journal/evidence/admission/fixture-exception-2026-09-17/execution-admissions.json",
+  "source_sha256": "10eb3a3989629e83108c0fdac2564b86ed8a7a8bb3db08a13431bb61753e6ef1",
+  "request_admissions": 8,
+  "all_settled": true,
+  "admission_gaps_seconds": [
+    10.001423,
+    10.003935,
+    10.004148,
+    10.002449,
+    10.003204,
+    10.001119,
+    10.003607
+  ],
+  "each_request_settles_before_next_admission": true,
+  "interpretation": "Admissions precede transport issuance; receipt issue-time shortfalls remain, actual wire dispatch time unknown."
+}

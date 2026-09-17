@@ -1,0 +1,16 @@
+{
+  "files": {
+    "fixture_helpers/__init__.py": "52653ca36ce3711b8bdd5d30ddfa437ff9488cb97ffc43ada0fefb8fd0d55a3c",
+    "fixture_helpers/fixture_exception.py": "82321170f50747285cc661e3a7d6a91c4ad260b6fe2c6471c33c7eee1e545f47",
+    "fixture_helpers/fixture_transport.py": "5e873a4ccc711ef3c668246862ac6a4a33be0a90dd998a4b896af09c2e55a97a",
+    "proposal.json": "6269cc9837ca9e4eb9913270194b1e1622a5dc5b7e0d1d715e3b04fb5bb34eab",
+    "research/verification/2026-09-11/cdx_dcn_eventpage_2013_2018_first50.json": "389a671edfa6bd3bc6e6fa7db147942197ae16a8bec91e7e9a83ae45a7c70472",
+    "research/verification/2026-09-11/cdx_steprightsolutions_html_all.json": "b9562bc37c62b14161dafd34c570ad55e229a1dff44a833e573f7bf84bf77b46",
+    "research/verification/2026-09-11/wayback_id_steprt_events_index.hdr": "2ea15981f572bd7595137bdf90571bbc4a729f71ef5b4459bdc29a763ab4bae7",
+    "research/verification/2026-09-11/wayback_id_steprt_round_507.hdr": "f9c01017ce1fe12f79294a617b9052851eef8ffd71d1d048190b8e02b2edaf4d",
+    "research/verification/2026-09-11/wayback_id_steprt_round_508.hdr": "04ff250f08968005cf681a2ffc1bb1bd5858580ed01b8af4c6dad3d393815b34"
+  },
+  "format": "fixture-helper-closure-v1",
+  "runtime_files_included": false,
+  "scope": "Exact fixture helper/evidence closure only; no acquisition authorization"
+}

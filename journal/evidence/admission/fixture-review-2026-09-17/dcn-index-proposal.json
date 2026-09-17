@@ -1,0 +1,54 @@
+{
+  "format": "exact-dcn-index-fixture-proposal-v1",
+  "status": "proposed_requires_specific_owner_approval_and_new_reviewed_driver",
+  "target": {
+    "id": "dcn-eventsarchive-2025-latest",
+    "source": "dcn",
+    "original_url": "https://danceconvention.net/eventdirector/en/eventsarchive",
+    "capture_timestamp": "20251112105828",
+    "replay_url": "https://web.archive.org/web/20251112105828id_/https://danceconvention.net/eventdirector/en/eventsarchive",
+    "cdx_row": [
+      "20251112105828",
+      "https://danceconvention.net/eventdirector/en/eventsarchive",
+      "74UF7246MXYEOC53OCCDTDBA2UUKMAXE",
+      "text/html",
+      "1594993"
+    ],
+    "evidence_path": "journal/evidence/admission/fixture-exception-2026-09-17/quarantine/bodies/d1e3f7d8031e7a0f9bb113273250abce9fdf48df13756c199b8c609b9a2387fb",
+    "evidence_sha256": "d1e3f7d8031e7a0f9bb113273250abce9fdf48df13756c199b8c609b9a2387fb",
+    "cdx_row_number_one_based_including_header": 7,
+    "selection_reason": "Newest retained 2025 distinct-digest index capture; other five are unrequested alternatives."
+  },
+  "limits": {
+    "archived_body_targets": 1,
+    "total_http_requests_including_robots_and_redirects": 5,
+    "max_archive_redirects_per_body": 3,
+    "metadata_requests": 0,
+    "origin_requests": 0,
+    "automatic_alternates": 0,
+    "automatic_retries": 0,
+    "automatic_children": 0,
+    "pdf_requests": 0,
+    "max_received_bytes_per_response": 8388608,
+    "max_total_received_bytes": 16777216,
+    "max_elapsed_seconds": 900,
+    "minimum_actual_dispatch_gap_seconds": 10,
+    "max_in_flight": 1,
+    "shared_archive_daily_request_budget": 200
+  },
+  "preconditions": [
+    "Specific owner approval for this new single body; D0053 does not cover it.",
+    "New reviewed exact-manifest runner bound to actual runtime/schema and baseline; old five-body driver cannot be repurposed.",
+    "Fix grant/dispatch timing seam and test variable bookkeeping delay before acquisition; retain prior timing finding.",
+    "Coordinator verifies actual shared budget/cooldowns/holds/robots and serializes with all worker operations."
+  ],
+  "quarantine": {
+    "fresh_and_separate": true,
+    "production_watches": false,
+    "production_observations": false,
+    "year_acceptance": false,
+    "page_kind_activation": false,
+    "publication": false
+  },
+  "pdf_fixture_proposal": "Not prepared: retained metadata has no PDF locator or capture evidence; do not guess URLs."
+}

@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+    <title>Step Right Solutions</title>
+    <link href="/css/jquery-ui.css" rel="stylesheet"/>
+    <link href="/css/bootstrap.min.css" rel="stylesheet"/>
+    
+    <link href="/css/main.css" rel="stylesheet"/>
+
+    <link rel="icon" type="image/png" href="/favicon_64.png">
+
+    <script type="text/javascript" src="/js/head.load.min.js"></script>
+
+    <script type="text/javascript">
+        head.js(
+            '/js/jquery-ui.js',
+            '/js/bootstrap.min.js',
+            '/js/underscore-min.js',
+            '/js/underscore-string-min.js',
+            '/js/jquery/s3Slider.js',
+            '/js/srs.js'
+        );
+    </script>
+
+    <!--[if (gte IE 6)&(lte IE 8)]>
+        <script type="text/javascript" src="/js/selectivizr-min.js"></script>
+        <noscript><link rel="stylesheet" href="/css/ie.css" /></noscript>
+    <![endif]-->
+
+        
+</head>
+<body>
+    <div id="bodyWrapper">
+        <div id="header" class="navbar-top">
+            <div class="navbar">
+                <div class="navbar-inner">
+                    <a class="brand" href="/">Step Right Solutions</a>
+
+                    <ul class="nav">
+            <li class="dropdown ">
+            <a href="/services">
+                Services                <b class="caret"></b>
+            </a>
+            <ul class="dropdown-menu" role="menu">
+                                                            <li>
+                            <a href="/services/scorekeeping">Competition Services</a>
+                        </li>
+                                                                                <li>
+                            <a href="/services/eventmanagement">Event Management</a>
+                        </li>
+                                                                                <li>
+                            <a href="/services/dancersnetwork">The Dancer's Network</a>
+                        </li>
+                                                </ul>
+        </li>
+                <li class="dropdown ">
+            <a href="/about">
+                About                <b class="caret"></b>
+            </a>
+            <ul class="dropdown-menu" role="menu">
+                                                            <li>
+                            <a href="/about/contact">Contact</a>
+                        </li>
+                                                </ul>
+        </li>
+                <li class="">
+            <a href="/schedule">Calendar</a>
+        </li>
+                <li class="dropdown active">
+            <a href="/events">
+                Competition Results                <b class="caret"></b>
+            </a>
+            <ul class="dropdown-menu" role="menu">
+                                    
+                        <li class="dropdown-submenu">
+                            <a href="#">Chico Dance Sensation</a>
+                            <ul class="dropdown-menu">
+                                                                    <li>
+                                        <a href="/events/cds2009">2009</a>
+                                    </li>
+                                                                    <li>
+                                        <a href="/events/cds2010">2010</a>
+                                    </li>
+                                                                    <li>
+                                        <a href="/events/cds2011">2011</a>
+                                    </li>
+                                                                    <li>
+                                        <a href="/events/cds2012">2012</a>
+                                    </li>
+                                                            </ul>
+                        </li>
+                                                        
+                        <li class="dropdown-submenu">
+                            <a href="#">Come Rain Come Shine</a>
+                            <ul class="dropdown-menu">
+                                                                    <li>
+                                        <a href="/events/crcs2009">2009</a>
+                                    </li>
+                                                                    <li>
+                                        <a href="/events/crcs2010">2010</a>
+                                    </li>
+                                                                    <li>
+                                        <a href="/events/crcs2013">2013</a>
+                                    </li>
+                                                            </ul>
+                        </li>
+                                                        
+                        <li class="dropdown-submenu">
+                            <a href="#">French Open West Coast Swing</a>
+                            <ul class="dropdown-menu">
+                                                                    <li>
+                                        <a href="/events/fowcs2010">2010</a>
+                                    </li>
+                                                                    <li>
+                                        <a href="/events/fowcs2011">2011</a>
+                                    </li>
+                                                                    <li>
+                                        <a href="/events/fowcs2012">2012</a>
+                                    </li>
+                                                            </ul>
+                        </li>
+                                                        
+                        <li class="dropdown-submenu">
+                            <a href="#">Liberty Swing Dance Championships</a>
+                            <ul class="dropdown-menu">
+                                                                    <li>
+                                        <a href="/events/liberty2012">2012</a>
+                                    </li>
+                                                            </ul>
+                        </li>
+                                                        
+                        <li class="dropdown-submenu">
+                            <a href="#">Palm Springs New Years Swing Dance Classic</a>
+                            <ul class="dropdown-menu">
+                                                                    <li>
+                                        <a href="/events/psny2011">2011</a>
+                                    </li>
+                                                                    <li>
+                                        <a href="/events/psny2012">2012</a>
+                                    </li>
+                                                                    <li>
+                                        <a href="/events/psny2013">2013</a>
+                                    </li>
+                                                            </ul>
+                        </li>
+                                                        
+                        <li class="dropdown-submenu">
+                            <a href="#">Palm Springs Summer Swing Dance Classic</a>
+                            <ul class="dropdown-menu">
+                                                                    <li>
+                                        <a href="/events/pssummer2011">2011</a>
+                                    </li>
+                                                                    <li>
+                                        <a href="/events/pssummer2012">2012</a>
+                                    </li>
+                                                            </ul>
+                        </li>
+                                                        
+                        <li class="dropdown-submenu">
+                            <a href="#">Reno Dance Sensation</a>
+                            <ul class="dropdown-menu">
+                                                                    <li>
+                                        <a href="/events/rds2009">2009</a>
+                                    </li>
+                                                                    <li>
+                                        <a href="/events/rds2010">2010</a>
+                                    </li>
+                                                                    <li>
+                                        <a href="/events/rds2011">2011</a>
+                                    </li>
+                                                            </ul>
+                        </li>
+                                                        
+                        <li class="dropdown-submenu">
+                            <a href="#">Seattle's Easter Swing</a>
+                            <ul class="dropdown-menu">
+                                                                    <li>
+                                        <a href="/events/seaeaster2013">2013</a>
+                                    </li>
+                                                            </ul>
+                        </li>
+                                                        
+                        <li class="dropdown-submenu">
+                            <a href="#">SOswing</a>
+                            <ul class="dropdown-menu">
+                                                                    <li>
+                                        <a href="/events/soswing2012">2012</a>
+                                    </li>
+                                                            </ul>
+                        </li>
+                                                        
+                        <li class="dropdown-submenu">
+                            <a href="#">SwingCouver</a>
+                            <ul class="dropdown-menu">
+                                                                    <li>
+                                        <a href="/events/sc2013">2013</a>
+                                    </li>
+                                                            </ul>
+                        </li>
+                                                        
+                        <li class="dropdown-submenu">
+                            <a href="#">The West in Lyon</a>
+                            <ul class="dropdown-menu">
+                                                                    <li>
+                                        <a href="/events/lyon2013">2013</a>
+                                    </li>
+                                                            </ul>
+                        </li>
+                                                </ul>
+        </li>
+    </ul>
+
+
+                </div>
+            </div>
+        </div>
+
+        <div class="container messages">
+                                            
+                    
+                                                    
+                    
+                                                    
+                    
+                                                    
+                    
+            </div>
+                    <div class="container" id="content">
+                                    <h2>Events</h2>
+
+<div class="container event-overview">
+    <div class="row">
+        <div class="span3 sidebar">
+            <div class="box-content">
+                
+                                    <h3>Recent Events</h3>
+                    <ul class="event-list">
+                                            <li>
+                            <a href="/events/seaeaster2013">Seattle's Easter Swing</a>
+                            <span class="date">March 28 - 31, 2013</span>
+                        </li>
+                                            <li>
+                            <a href="/events/lyon2013">The West In Lyon</a>
+                            <span class="date">March 15 - 17, 2013</span>
+                        </li>
+                                            <li>
+                            <a href="/events/crcs2013">Come Rain Come Shine</a>
+                            <span class="date">February 22 - 24, 2013</span>
+                        </li>
+                                            <li>
+                            <a href="/events/sc2013">SwingCouver</a>
+                            <span class="date">January 25 - 27, 2013</span>
+                        </li>
+                                            <li>
+                            <a href="/events/psny2013">Palm Springs New Years Swing Dance Classic</a>
+                            <span class="date">Dec 28, 2012 - Jan 1, 2013</span>
+                        </li>
+                                            <li>
+                            <a href="/events/cds2012">Chico Dance Sensation</a>
+                            <span class="date">Nov 29 - Dec 2, 2012</span>
+                        </li>
+                                        </ul>
+
+                
+                                    <h3>Upcoming Events</h3>
+
+                    <ul class="event-list">
+                                                    <li>
+                                <a href="/events/sfds2013">San Francisco Dance Sensation</a>
+                                <span class="date">April 11 - 14, 2013</span>
+                            </li>
+                                                    <li>
+                                <a href="/events/asianopen2013">Swingvitation Asian WCS Open</a>
+                                <span class="date">April 25 - 28, 2013</span>
+                            </li>
+                                                    <li>
+                                <a href="/events/soswing2013">SOswing</a>
+                                <span class="date">May 17 - 19, 2013</span>
+                            </li>
+                                                    <li>
+                                <a href="/events/fowcs2013">French Open West Coast Swing</a>
+                                <span class="date">May 17 - 20, 2013</span>
+                            </li>
+                                            </ul>
+                            </div>
+        </div>
+
+        <div class="span8">
+            <div class="box-content">
+                
+
+                                    <div class="event clearfix">
+                                                    <div class="logo">
+                                <img src="/img/event_logos/fowcs_logo.png" alt="French Open West Coast Swing" />
+                            </div>
+                                                <h4>French Open West Coast Swing</h4>
+                        <div class="location">Paris, France</div>
+                        <div class="dates">
+                                                            <a href="/events/fowcs2010">2010</a> |
+                                                            <a href="/events/fowcs2011">2011</a> |
+                                                            <a href="/events/fowcs2012">2012</a> |
+                                                        <a href="http://www.fowcs.com" rel="external" class="newWindow" target="_blank">Event Site</a>
+                        </div>
+                    </div>
+
+                                    <div class="event clearfix">
+                                                    <div class="logo">
+                                <img src="/img/event_logos/chicods_logo.png" alt="Chico Dance Sensation" />
+                            </div>
+                                                <h4>Chico Dance Sensation</h4>
+                        <div class="location">Chico, CA</div>
+                        <div class="dates">
+                                                            <a href="/events/cds2009">2009</a> |
+                                                            <a href="/events/cds2010">2010</a> |
+                                                            <a href="/events/cds2011">2011</a> |
+                                                            <a href="/events/cds2012">2012</a> |
+                                                        <a href="http://www.chicodancesensation.com" rel="external" class="newWindow" target="_blank">Event Site</a>
+                        </div>
+                    </div>
+
+                                    <div class="event clearfix">
+                                                    <div class="logo">
+                                <img src="/img/event_logos/palmspringsnewyears_logo.jpg" alt="Palm Springs New Years Swing Dance Classic" />
+                            </div>
+                                                <h4>Palm Springs New Years Swing Dance Classic</h4>
+                        <div class="location">Palm Springs, CA</div>
+                        <div class="dates">
+                                                            <a href="/events/psny2011">2011</a> |
+                                                            <a href="/events/psny2012">2012</a> |
+                                                            <a href="/events/psny2013">2013</a> |
+                                                        <a href="http://www.peoplewhodance.net/events/NYE/index.html" rel="external" class="newWindow" target="_blank">Event Site</a>
+                        </div>
+                    </div>
+
+                                    <div class="event clearfix">
+                                                    <div class="logo">
+                                <img src="/img/event_logos/palmsprings_summer.jpg" alt="Palm Springs Summer Swing Dance Classic" />
+                            </div>
+                                                <h4>Palm Springs Summer Swing Dance Classic</h4>
+                        <div class="location">Palm Springs, CA</div>
+                        <div class="dates">
+                                                            <a href="/events/pssummer2011">2011</a> |
+                                                            <a href="/events/pssummer2012">2012</a> |
+                                                        <a href="http://www.peoplewhodance.net/summer/swing/index.php" rel="external" class="newWindow" target="_blank">Event Site</a>
+                        </div>
+                    </div>
+
+                                    <div class="event clearfix">
+                                                    <div class="logo">
+                                <img src="/img/event_logos/seattle_logo.png" alt="Seattle's Easter Swing" />
+                            </div>
+                                                <h4>Seattle's Easter Swing</h4>
+                        <div class="location">Seattle, WA</div>
+                        <div class="dates">
+                                                            <a href="/events/seaeaster2013">2013</a> |
+                                                        <a href="http://easterswing.seattlewcswing.org/" rel="external" class="newWindow" target="_blank">Event Site</a>
+                        </div>
+                    </div>
+
+                                    <div class="event clearfix">
+                                                    <div class="logo">
+                                <img src="/img/event_logos/swingcouver_logo.png" alt="SwingCouver" />
+                            </div>
+                                                <h4>SwingCouver</h4>
+                        <div class="location">Vancouver, BC</div>
+                        <div class="dates">
+                                                            <a href="/events/sc2013">2013</a> |
+                                                        <a href="http://www.swingcouver.com/" rel="external" class="newWindow" target="_blank">Event Site</a>
+                        </div>
+                    </div>
+
+                                    <div class="event clearfix">
+                                                    <div class="logo">
+                                <img src="/img/event_logos/soswing_logo.jpg" alt="SOswing" />
+                            </div>
+                                                <h4>SOswing</h4>
+                        <div class="location">Medford, OR</div>
+                        <div class="dates">
+                                                            <a href="/events/soswing2012">2012</a> |
+                                                        <a href="http://soswing.org/SOswingConvention.html" rel="external" class="newWindow" target="_blank">Event Site</a>
+                        </div>
+                    </div>
+
+                                    <div class="event clearfix">
+                                                    <div class="logo">
+                                <img src="/img/event_logos/liberty_logo.png" alt="Liberty Swing Dance Championships" />
+                            </div>
+                                                <h4>Liberty Swing Dance Championships</h4>
+                        <div class="location">New Brunswick, NJ</div>
+                        <div class="dates">
+                                                            <a href="/events/liberty2012">2012</a> |
+                                                        <a href="http://www.libertyswing.com/" rel="external" class="newWindow" target="_blank">Event Site</a>
+                        </div>
+                    </div>
+
+                                    <div class="event clearfix">
+                                                    <div class="logo">
+                                <img src="/img/event_logos/renods_logo.png" alt="Reno Dance Sensation" />
+                            </div>
+                                                <h4>Reno Dance Sensation</h4>
+                        <div class="location">Reno, NV</div>
+                        <div class="dates">
+                                                            <a href="/events/rds2009">2009</a> |
+                                                            <a href="/events/rds2010">2010</a> |
+                                                            <a href="/events/rds2011">2011</a> |
+                                                        <a href="http://www.renodancesensation.com" rel="external" class="newWindow" target="_blank">Event Site</a>
+                        </div>
+                    </div>
+
+                                    <div class="event clearfix">
+                                                    <div class="logo">
+                                <img src="/img/event_logos/comerain_logo.png" alt="Come Rain Come Shine" />
+                            </div>
+                                                <h4>Come Rain Come Shine</h4>
+                        <div class="location">Portland, OR</div>
+                        <div class="dates">
+                                                            <a href="/events/crcs2009">2009</a> |
+                                                            <a href="/events/crcs2010">2010</a> |
+                                                            <a href="/events/crcs2013">2013</a> |
+                                                        <a href="http://www.comeraincomeshine.com" rel="external" class="newWindow" target="_blank">Event Site</a>
+                        </div>
+                    </div>
+
+                
+            </div>
+        </div>
+    </div>
+</div>
+                            </div>
+        
+        <div id="dialogs">
+
+        </div>
+
+        <div id="footer">
+            <div class="container">
+        <div class="row">
+            <div class="span3">
+                <p>
+            <a href="/services">Services</a>
+    </p>
+    <ul>
+                    <li><a href="/services/eventmanagement">Event Management</a></li>
+                    <li><a href="/services/scorekeeping">Competition Services</a></li>
+                    <li><a href="/services/dancersnetwork">Dancer's Network</a></li>
+            </ul>
+                <p>
+            <a href="/about">About</a>
+    </p>
+    <ul>
+                    <li><a href="/about/contact">Contact</a></li>
+            </ul>
+                <p>
+            <a href="/schedule">Calendar</a>
+    </p>
+            </div>
+            <div class="span4">
+                <p>
+            Recent Events    </p>
+    <ul>
+                    <li><a href="/events/seaeaster2013">Seattle's Easter Swing</a></li>
+                    <li><a href="/events/lyon2013">The West In Lyon</a></li>
+                    <li><a href="/events/crcs2013">Come Rain Come Shine</a></li>
+                    <li><a href="/events/sc2013">SwingCouver</a></li>
+                    <li><a href="/events/psny2013">Palm Springs New Years Swing Dance Classic</a></li>
+                    <li><a href="/events/cds2012">Chico Dance Sensation</a></li>
+            </ul>
+            </div>
+            <div class="span4">
+                <p>
+            Upcoming Events    </p>
+    <ul>
+                    <li><a href="/events/sfds2013">San Francisco Dance Sensation</a></li>
+                    <li><a href="/events/asianopen2013">Swingvitation Asian WCS Open</a></li>
+                    <li><a href="/events/soswing2013">SOswing</a></li>
+                    <li><a href="/events/fowcs2013">French Open West Coast Swing</a></li>
+            </ul>
+            </div>
+        </div>
+    </div>
+
+
+
+            <div class="copyright">
+                &copy; 2007 - 2012 Step Right Solutions.  All rights reserved.
+            </div>
+        </div>
+    </div>
+
+    <script type="text/javascript">
+        var _gaq = _gaq || [];
+        _gaq.push(['_setAccount', 'UA-15518302-3']);
+        _gaq.push(['_trackPageview']);
+
+        (function() {
+        var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+        ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+        var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+        })();
+    </script>
+    <script type="text/javascript" src="/js/jquery.js"></script>
+
+    
+        </body>
+</html>

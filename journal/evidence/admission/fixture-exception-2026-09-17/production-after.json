@@ -1,0 +1,26 @@
+{
+  "observed_at": "2026-09-17T15:45:49.185030+00:00",
+  "schema": "14",
+  "hold": true,
+  "baseline": "cand_8f31cad7226643ae",
+  "published": {
+    "candidate_id": "cand_8f31cad7226643ae",
+    "closure_digest": "14cf059a95be0a24d64367a84f3d0cc22b3d4ef82ced263f95ff9293d9da60ec",
+    "commit": "2a6c7dc744fb36eabb5163c0a527d787d3721f4f",
+    "correction_age_basis": "recorded_pending_corrections",
+    "correction_detected_at": null,
+    "correction_latency_seconds": null,
+    "evidence_cutoff": "2026-09-16T22:25:41.741173+00:00",
+    "latency_is_upper_bound": false,
+    "verified_at": "2026-09-16T22:37:24.934598+00:00"
+  },
+  "archive_budget": [
+    {
+      "host": "web.archive.org",
+      "day": "2026-09-17",
+      "requests": 8,
+      "bytes": 130059
+    }
+  ],
+  "pending_parse": 31821
+}

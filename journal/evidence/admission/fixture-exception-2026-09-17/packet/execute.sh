@@ -1,0 +1,4 @@
+#!/bin/sh
+set -eu
+# Coordinator only: run once after all other worker operations stop.
+exec env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=/nix/store/z689qy41inndill3d92ym8im852x3649-source/src:/nix/store/z689qy41inndill3d92ym8im852x3649-source /var/lib/swingset/venv/bin/python /var/lib/swingset/operations/v2-continuation-20260917/fixture-002/fixture-exception-h13-002.py --repo /nix/store/z689qy41inndill3d92ym8im852x3649-source --manifest /var/lib/swingset/operations/v2-continuation-20260917/fixture-002/helper-closure/proposal.json --state /var/lib/swingset --quarantine /var/tmp/swingset-new-source-fixtures-20260917-001 --authorization /var/lib/swingset/operations/v2-continuation-20260917/fixture-002/authorization.json --execution-gate /var/lib/swingset/operations/v2-continuation-20260917/fixture-002/execution-gate.json --execution-gate-sha256 6699366221a86793913c41280b57825c8145642c05c8c05d19c145383154e279 --execute

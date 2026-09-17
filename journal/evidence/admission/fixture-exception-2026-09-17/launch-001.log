@@ -1,0 +1,5 @@
+Sep 17 15:42:19 swingset systemd[1]: Started [systemd-run] /bin/sh /var/lib/swingset/operations/v2-continuation-20260917/fixture-002/execute.sh.
+Sep 17 15:42:19 swingset sh[111382]: /var/lib/swingset/operations/v2-continuation-20260917/fixture-002/execute.sh: line 4: exec: env: not found
+Sep 17 15:42:19 swingset systemd[1]: swingset-fixture-exception-20260917-001.service: Main process exited, code=exited, status=127/n/a
+Sep 17 15:42:19 swingset systemd[1]: swingset-fixture-exception-20260917-001.service: Failed with result 'exit-code'.
+Sep 17 15:42:19 swingset systemd[1]: swingset-fixture-exception-20260917-001.service: Consumed 4ms CPU time, 3.2M memory peak, 1.5M read from disk.

@@ -1,0 +1,76 @@
+{
+  "format": "fixture-independent-audit-v1",
+  "receipt_path": "journal/evidence/admission/fixture-exception-2026-09-17/quarantine/receipt.json",
+  "receipt_sha256": "195c2ddcff02401f780c1591031125fe7d254d0a251179654dc448d55e1ae99a",
+  "checks": {
+    "body_hashes_lengths_complete": true,
+    "requests_exact_allowlist": true,
+    "authorization_canonical_matches": true,
+    "manifest_canonical_matches": true,
+    "target_provenance_matches": true,
+    "requests_and_bytes_bounded": true
+  },
+  "http_requests": 8,
+  "target_bodies": 5,
+  "received_bytes": 130059,
+  "elapsed_seconds": 73.255045,
+  "issued_at_gaps_seconds": [
+    10.012779,
+    10.014738,
+    9.990654,
+    10.003321,
+    10.004283,
+    9.996796,
+    10.004583
+  ],
+  "all_issued_gaps_at_least_ten_seconds": false,
+  "minimum_issued_gap_seconds": 9.990654,
+  "wire_dispatch_spacing": "unknown; no wire-dispatch timestamps retained",
+  "single_in_flight": "structural sequential synchronous stream; receipt lacks completion timestamps",
+  "source_pins": {
+    "src/swingset/sources/steprightsolutions/adapter.py": "75c82cf9977ce54205e96e9b946ce2afbcfaac254f5dc7a7629f95b7977651c0",
+    "src/swingset/sources/steprightsolutions/records.py": "6e8598bcd6bcadf01ec95c18f5dc096535e1cc309873c43db4836d3e9843dbe8"
+  },
+  "parser_runs": [
+    {
+      "target": "srs-index",
+      "page_kind": "steprightsolutions.index",
+      "extract_version": 1,
+      "parser_version": 1,
+      "status": "parsed",
+      "observation_count": 22,
+      "warnings": [],
+      "watch_count": 0
+    },
+    {
+      "target": "srs-event",
+      "page_kind": "steprightsolutions.event",
+      "extract_version": 1,
+      "parser_version": 1,
+      "status": "rejected",
+      "exception": "ExtractError",
+      "reason": "Step Right event contains no recognized round links"
+    },
+    {
+      "target": "srs-round507",
+      "page_kind": "steprightsolutions.round",
+      "extract_version": 1,
+      "parser_version": 1,
+      "status": "rejected",
+      "exception": "ParseError",
+      "reason": "Step Right merged or uneven cells need a reviewed fixture"
+    },
+    {
+      "target": "srs-round508",
+      "page_kind": "steprightsolutions.round",
+      "extract_version": 1,
+      "parser_version": 1,
+      "status": "rejected",
+      "exception": "ParseError",
+      "reason": "Step Right merged or uneven cells need a reviewed fixture"
+    }
+  ],
+  "dcn_current_parser": "absent; legacy Tapestry metadata body inspected offline",
+  "new_network_requests": 0,
+  "policy_activated": false
+}
