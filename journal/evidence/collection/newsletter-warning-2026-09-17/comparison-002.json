@@ -1,0 +1,530 @@
+{
+  "fixture_count": 21,
+  "source_hashes": {
+    "src/swingset/sources/wsdc_newsletter/adapter.py": "b574be11029aeb4bcd155d2d3c5a5a00f51e93e336851da911af90f3495c4616",
+    "tests/test_history_sources.py": "6f2e083adc8454f184a0e63e976cf838dc8bde2ccc7c85a63cae8948ecaad450"
+  },
+  "results": [
+    {
+      "fixture": "newsletter-vol1.pdf",
+      "body_sha256": "44c788523cf470ad6f024404da5e8c296d2fcafdaa737927ee6fcd0bd65d7c6d",
+      "observations": 39,
+      "removed_warnings": [],
+      "added_warnings": [],
+      "remaining_warnings": [
+        {
+          "code": "newsletter_undated_listing",
+          "message": "Listed event has no safely parsed date; preserve hiatus or other notice for review",
+          "evidence": {
+            "page": 2,
+            "rows": [
+              "HOLY LAND OPEN On Hiatus"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "fixture": "newsletter-vol11.pdf",
+      "body_sha256": "b3d4d7e4936b416ca9e23489d963912abd3a34d077fa97e18c2a133b010dd5e6",
+      "observations": 33,
+      "removed_warnings": [
+        {
+          "code": "approval_notice_review",
+          "message": "Prose approval notice needs a dated event interpretation",
+          "evidence": {
+            "page": 1,
+            "notice": "\u2022 ODYSSEY WEST COAST SWING                           Please send us your questions and topics of            especially those running new events, rely heavily"
+          }
+        }
+      ],
+      "added_warnings": [],
+      "remaining_warnings": [
+        {
+          "code": "newsletter_undated_listing",
+          "message": "Listed event has no safely parsed date; preserve hiatus or other notice for review",
+          "evidence": {
+            "page": 1,
+            "rows": [
+              "SWING IT LIKE IT\u2019S HOT On Hiatus",
+              "NEW ORLEANS DANCE MARDI GRAS On Hiatus"
+            ]
+          }
+        },
+        {
+          "code": "newsletter_undated_listing",
+          "message": "Listed event has no safely parsed date; preserve hiatus or other notice for review",
+          "evidence": {
+            "page": 2,
+            "rows": [
+              "OLD TOWN SWING On Hiatus"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "fixture": "newsletter-vol13.pdf",
+      "body_sha256": "220a0f22f0f6bd1646ca42cd7e4c96ac38ca51d59e87836074d582deae692889",
+      "observations": 37,
+      "removed_warnings": [],
+      "added_warnings": [],
+      "remaining_warnings": [
+        {
+          "code": "newsletter_colour_unverified",
+          "message": "Trial or member activity colour was not recovered; newsletter registry status uses the documented fallback",
+          "evidence": {
+            "snapshot_id": "snapshot",
+            "fallback": "registry",
+            "colour_recovered": false
+          }
+        },
+        {
+          "code": "newsletter_undated_listing",
+          "message": "Listed event has no safely parsed date; preserve hiatus or other notice for review",
+          "evidence": {
+            "page": 1,
+            "rows": [
+              "DANCE CAMP CHICAGO On Hiatus"
+            ]
+          }
+        },
+        {
+          "code": "newsletter_undated_listing",
+          "message": "Listed event has no safely parsed date; preserve hiatus or other notice for review",
+          "evidence": {
+            "page": 2,
+            "rows": [
+              "ANCHOR FESTIVAL On Hiatus"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "fixture": "newsletter-vol14.pdf",
+      "body_sha256": "085674f10a5da1ab09fe968b42eee10a1301a39cc04a7aebce4c173a973d8fc7",
+      "observations": 0,
+      "removed_warnings": [],
+      "added_warnings": [],
+      "remaining_warnings": []
+    },
+    {
+      "fixture": "newsletter-vol15.pdf",
+      "body_sha256": "aafbd00bb65715cc286d65033bb1f8fbb52b1c1f6eac9fea01cc149683b31566",
+      "observations": 0,
+      "removed_warnings": [],
+      "added_warnings": [],
+      "remaining_warnings": []
+    },
+    {
+      "fixture": "newsletter-vol16.pdf",
+      "body_sha256": "b00e313eecfaf55361c87040d3e056d1902664f38e6dded7e37373a91dc9923d",
+      "observations": 0,
+      "removed_warnings": [],
+      "added_warnings": [],
+      "remaining_warnings": []
+    },
+    {
+      "fixture": "newsletter-vol17.pdf",
+      "body_sha256": "e10a45b1cbafd884f1d9be5a8fba406170f1cd6e57e0f908d9a2655396aa6f90",
+      "observations": 0,
+      "removed_warnings": [],
+      "added_warnings": [],
+      "remaining_warnings": []
+    },
+    {
+      "fixture": "newsletter-vol18.pdf",
+      "body_sha256": "59a6bf606025adc6cb8f809124cb3414ebb47f0b84c5f8e64fe66c59221ac759",
+      "observations": 0,
+      "removed_warnings": [],
+      "added_warnings": [],
+      "remaining_warnings": []
+    },
+    {
+      "fixture": "newsletter-vol19.pdf",
+      "body_sha256": "793ee2d9e0810bc4cc1983efaeadb5d3c7dd820f8eed08664519af08746c5936",
+      "observations": 0,
+      "removed_warnings": [],
+      "added_warnings": [],
+      "remaining_warnings": []
+    },
+    {
+      "fixture": "newsletter-vol2.pdf",
+      "body_sha256": "0177184cf9eba91bc084b38eb7d369031c4aec4955ca47b67ae79f1cd13ca00c",
+      "observations": 38,
+      "removed_warnings": [],
+      "added_warnings": [],
+      "remaining_warnings": [
+        {
+          "code": "newsletter_undated_listing",
+          "message": "Listed event has no safely parsed date; preserve hiatus or other notice for review",
+          "evidence": {
+            "page": 1,
+            "rows": [
+              "KIWI FEST On Hiatus"
+            ]
+          }
+        },
+        {
+          "code": "approval_notice_review",
+          "message": "Prose approval notice needs a dated event interpretation",
+          "evidence": {
+            "page": 1,
+            "notice": "Apr 13 \u2013 16, 2017                      quarter of 2017 new registry events included:                  We currently have 154 Registry Events, 84 in"
+          }
+        },
+        {
+          "code": "newsletter_undated_listing",
+          "message": "Listed event has no safely parsed date; preserve hiatus or other notice for review",
+          "evidence": {
+            "page": 2,
+            "rows": [
+              "SLINGSHOT SWING On Hiatus",
+              "CMJ NSW WEST COAST SWING DANCE CHAMPIONSHIPS On Hiatus"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "fixture": "newsletter-vol20.pdf",
+      "body_sha256": "12545410f858740ff9ac6a85852eb8b32bf64767bdc59aaf860c56a3e617dcfd",
+      "observations": 0,
+      "removed_warnings": [],
+      "added_warnings": [],
+      "remaining_warnings": []
+    },
+    {
+      "fixture": "newsletter-vol21.pdf",
+      "body_sha256": "b7a224d7799f3eb1ca13ec9307ac1fc2149cccdabe680585d6aa1abf268fc82b",
+      "observations": 0,
+      "removed_warnings": [],
+      "added_warnings": [],
+      "remaining_warnings": []
+    },
+    {
+      "fixture": "newsletter-vol23.pdf",
+      "body_sha256": "e2920d5d80beea725d9b36f33ba164cdcc255def99bf73a4b793dbc65db0eeaf",
+      "observations": 39,
+      "removed_warnings": [
+        {
+          "code": "approval_notice_review",
+          "message": "Prose approval notice needs a dated event interpretation",
+          "evidence": {
+            "page": 3,
+            "notice": "dancers about your event, but also to assist new events that are applying for membership.  We want to see your spot"
+          }
+        },
+        {
+          "code": "approval_notice_review",
+          "message": "Prose approval notice needs a dated event interpretation",
+          "evidence": {
+            "page": 3,
+            "notice": "on the calendar, so that new events are able to select locations and dates that comply with our time distance rules."
+          }
+        }
+      ],
+      "added_warnings": [],
+      "remaining_warnings": [
+        {
+          "code": "newsletter_undated_listing",
+          "message": "Listed event has no safely parsed date; preserve hiatus or other notice for review",
+          "evidence": {
+            "page": 1,
+            "rows": [
+              "Fall Fall in Swing",
+              "Austin Rocks",
+              "Ukrainian Open",
+              "Citadel Swing",
+              "Old town Swing",
+              "The Brazilian Open Championships",
+              "Norway Westie Fest",
+              "Rocky Mountain Five",
+              "European Swing Challenge"
+            ]
+          }
+        },
+        {
+          "code": "newsletter_undated_listing",
+          "message": "Listed event has no safely parsed date; preserve hiatus or other notice for review",
+          "evidence": {
+            "page": 2,
+            "rows": [
+              "Tampa Bay Classic",
+              "Sea To Sky Seattle",
+              "Swingin\u2019 new England Dance Festival"
+            ]
+          }
+        },
+        {
+          "code": "newsletter_undated_listing",
+          "message": "Listed event has no safely parsed date; preserve hiatus or other notice for review",
+          "evidence": {
+            "page": 3,
+            "rows": [
+              "Countdown Swing Boston Dec 29, 2022, Jan 2, 2023",
+              "Palm Springs New Year\u2019s West Coast Swing and Hustle Dance Classic",
+              "Spotlight New Year\u2019s Celebration",
+              "New Year\u2019s Swing Fling"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "fixture": "newsletter-vol25.pdf",
+      "body_sha256": "68c1360eb9f6a4bc487f4f08ea3f70fbd09e80cb1958cf72006f5a0c12803829",
+      "observations": 28,
+      "removed_warnings": [],
+      "added_warnings": [],
+      "remaining_warnings": [
+        {
+          "code": "newsletter_colour_unverified",
+          "message": "Trial or member activity colour was not recovered; newsletter registry status uses the documented fallback",
+          "evidence": {
+            "snapshot_id": "snapshot",
+            "fallback": "registry",
+            "colour_recovered": false
+          }
+        },
+        {
+          "code": "newsletter_undated_listing",
+          "message": "Listed event has no safely parsed date; preserve hiatus or other notice for review",
+          "evidence": {
+            "page": 1,
+            "rows": [
+              "Austin Swing Dance Championships On Hiatus",
+              "Municorn Swing Cancelled due to Covid",
+              "Swingtzerland Cancelled due to Covid"
+            ]
+          }
+        },
+        {
+          "code": "newsletter_undated_listing",
+          "message": "Listed event has no safely parsed date; preserve hiatus or other notice for review",
+          "evidence": {
+            "page": 2,
+            "rows": [
+              "High Desert Dance Classic On Hiatus",
+              "Anchor Festival Canceld due to Covid",
+              "Boston Tea Party Canceld due to Covid"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "fixture": "newsletter-vol29.pdf",
+      "body_sha256": "ed5072b4dea1577bd79567057a957651e47a34fd83bb55a040b29a7bc74bc7b5",
+      "observations": 36,
+      "removed_warnings": [
+        {
+          "code": "approval_notice_review",
+          "message": "Prose approval notice needs a dated event interpretation",
+          "evidence": {
+            "page": 3,
+            "notice": "to inform our  dancers about your event, but also to assist new events that are applying for membership.                          world and guide events in creating the"
+          }
+        },
+        {
+          "code": "approval_notice_review",
+          "message": "Prose approval notice needs a dated event interpretation",
+          "evidence": {
+            "page": 3,
+            "notice": "We want to see your spot on the calendar, so that new events are able to select locations and dates that                          ideal environment to promote"
+          }
+        }
+      ],
+      "added_warnings": [],
+      "remaining_warnings": [
+        {
+          "code": "newsletter_undated_listing",
+          "message": "Listed event has no safely parsed date; preserve hiatus or other notice for review",
+          "evidence": {
+            "page": 1,
+            "rows": [
+              "Municorn Swing On Hiatus",
+              "WesterOz Swing On Hiatus"
+            ]
+          }
+        },
+        {
+          "code": "approval_notice_review",
+          "message": "Prose approval notice needs a dated event interpretation",
+          "evidence": {
+            "page": 1,
+            "notice": "Dec 31, 2023 \u2013Jan 7, 2024                      We would like to welcome the following new Registry Events that have been approved in 2023:"
+          }
+        },
+        {
+          "code": "newsletter_undated_listing",
+          "message": "Listed event has no safely parsed date; preserve hiatus or other notice for review",
+          "evidence": {
+            "page": 2,
+            "rows": [
+              "Anchor Festival On Hiatus"
+            ]
+          }
+        },
+        {
+          "code": "approval_notice_review",
+          "message": "Newsletter page has no safely dated event rows; review its sidebar and approval notices",
+          "evidence": {
+            "page": 3
+          }
+        }
+      ]
+    },
+    {
+      "fixture": "newsletter-vol3.pdf",
+      "body_sha256": "08ef5aac26660711812dec52a1a0176d1f479df6f7dd60ced7ca6700cb8501e7",
+      "observations": 45,
+      "removed_warnings": [],
+      "added_warnings": [],
+      "remaining_warnings": [
+        {
+          "code": "newsletter_undated_listing",
+          "message": "Listed event has no safely parsed date; preserve hiatus or other notice for review",
+          "evidence": {
+            "page": 1,
+            "rows": [
+              "SAN PAULO SWING DANCE CHAMPIONSHIPS On Hiatus"
+            ]
+          }
+        },
+        {
+          "code": "newsletter_undated_listing",
+          "message": "Listed event has no safely parsed date; preserve hiatus or other notice for review",
+          "evidence": {
+            "page": 2,
+            "rows": [
+              "SUNNY SIDE DANCE CAMP On Hiatus"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "fixture": "newsletter-vol5.pdf",
+      "body_sha256": "9938b86a709424ca44dd6a4ccf830fa9362b260cec99ea9d0d90b305f07e6aca",
+      "observations": 39,
+      "removed_warnings": [],
+      "added_warnings": [],
+      "remaining_warnings": [
+        {
+          "code": "newsletter_undated_listing",
+          "message": "Listed event has no safely parsed date; preserve hiatus or other notice for review",
+          "evidence": {
+            "page": 2,
+            "rows": [
+              "AUSTRALIAN WEST COAST SWING AND ZOUK On Hiatus"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "fixture": "newsletter-vol6.pdf",
+      "body_sha256": "008aaf4c693387eae071890592628e00e16476358268501bb436345acae9c987",
+      "observations": 41,
+      "removed_warnings": [],
+      "added_warnings": [],
+      "remaining_warnings": [
+        {
+          "code": "newsletter_colour_unverified",
+          "message": "Trial or member activity colour was not recovered; newsletter registry status uses the documented fallback",
+          "evidence": {
+            "snapshot_id": "snapshot",
+            "fallback": "registry",
+            "colour_recovered": false
+          }
+        }
+      ]
+    },
+    {
+      "fixture": "newsletter-vol7.pdf",
+      "body_sha256": "3347ef6a31416d1bbbf8f8bb450fef77464752c9f30559e1ff08227d6d851c12",
+      "observations": 31,
+      "removed_warnings": [],
+      "added_warnings": [],
+      "remaining_warnings": [
+        {
+          "code": "newsletter_undated_listing",
+          "message": "Listed event has no safely parsed date; preserve hiatus or other notice for review",
+          "evidence": {
+            "page": 1,
+            "rows": [
+              "SACRAMENTO ALL SWING On Hiatus",
+              "SEA SUN & SWING CAMP Hiatus"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "fixture": "newsletter-vol8.pdf",
+      "body_sha256": "e19d60bb1ba4fb809b4ae45c709fbfee65b035853a857897cf6ce2b7db76be8b",
+      "observations": 38,
+      "removed_warnings": [
+        {
+          "code": "approval_notice_review",
+          "message": "Prose approval notice needs a dated event interpretation",
+          "evidence": {
+            "page": 2,
+            "notice": "YOUR COMPETITION TO QUALIFY?                                    certification process for new events.  From the"
+          }
+        },
+        {
+          "code": "approval_notice_review",
+          "message": "Prose approval notice needs a dated event interpretation",
+          "evidence": {
+            "page": 2,
+            "notice": "scores will not be posted to our database.  We                  events and new events.  Wednesday\u2019s focus is                       December 6-9, 2018"
+          }
+        }
+      ],
+      "added_warnings": [],
+      "remaining_warnings": []
+    },
+    {
+      "fixture": "newsletter-vol9.pdf",
+      "body_sha256": "478d7ddb5edd0e23c6ddb529d429fecde0468456a42093745939e7bcb5f9b998",
+      "observations": 34,
+      "removed_warnings": [
+        {
+          "code": "approval_notice_review",
+          "message": "Prose approval notice needs a dated event interpretation",
+          "evidence": {
+            "page": 2,
+            "notice": "from page 1)                                                    Leyva, who has been managing new events,                           Events"
+          }
+        }
+      ],
+      "added_warnings": [],
+      "remaining_warnings": [
+        {
+          "code": "newsletter_colour_unverified",
+          "message": "Trial or member activity colour was not recovered; newsletter registry status uses the documented fallback",
+          "evidence": {
+            "snapshot_id": "snapshot",
+            "fallback": "registry",
+            "colour_recovered": false
+          }
+        },
+        {
+          "code": "newsletter_undated_listing",
+          "message": "Listed event has no safely parsed date; preserve hiatus or other notice for review",
+          "evidence": {
+            "page": 2,
+            "rows": [
+              "SWEETHEART SWING CLASSIC On Hiatus"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "network_requests": 0,
+  "deployed": false
+}

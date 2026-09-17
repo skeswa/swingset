@@ -1,0 +1,51 @@
+{
+  "recorded_at": "2026-09-17T17:33:45.486035+00:00",
+  "files": {
+    "src/swingset/sources/wsdc_newsletter/adapter.py": "613c69c12fff1f1909649de53fdd8a050de2a26f5a7d8312b3b20e1d18d33344",
+    "src/swingset/sources/wsdc_newsletter/colour_review.py": "727ccca0ac78d722ce0d98e030766b84665ec7a991ce434ab745cf1731c83772",
+    "tests/test_newsletter_colour_review.py": "56dc354d340571b750285c6275f2e2cdfc2990be9b7d1a247d5251f0fbb2b13a"
+  },
+  "checks": [
+    {
+      "command": [
+        ".venv/bin/python",
+        "-m",
+        "pytest",
+        "-q",
+        "tests/test_newsletter_colour_review.py",
+        "tests/test_history_sources.py",
+        "tests/test_history_inventory.py"
+      ],
+      "returncode": 0,
+      "stdout": ".........................................                                [100%]\n41 passed in 4.23s\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        ".venv/bin/ruff",
+        "check",
+        "src/swingset/sources/wsdc_newsletter/adapter.py",
+        "src/swingset/sources/wsdc_newsletter/colour_review.py",
+        "tests/test_newsletter_colour_review.py"
+      ],
+      "returncode": 0,
+      "stdout": "All checks passed!\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        ".venv/bin/mypy",
+        "src/swingset/sources/wsdc_newsletter/adapter.py",
+        "src/swingset/sources/wsdc_newsletter/colour_review.py"
+      ],
+      "returncode": 0,
+      "stdout": "Success: no issues found in 2 source files\n",
+      "stderr": ""
+    }
+  ],
+  "passed": true,
+  "independent_review": "pending",
+  "deployed": false,
+  "published": false,
+  "network_requests": 0
+}

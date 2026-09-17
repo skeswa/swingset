@@ -25,13 +25,14 @@ from swingset.sources.base import (
 from swingset.sources.records import CalendarRow
 from swingset.sources.swingdancecouncil.adapter import historical_dates
 
+from .colour_review import reviewed_colours
 from .empty_review import reviewed_empty
 
 
 class EventsPage:
     kind = "wsdc_newsletter.events"
     EXTRACT_VERSION = 2
-    PARSER_VERSION = 6
+    PARSER_VERSION = 8
     change_mode = "extract"
 
     def extract(self, body: bytes) -> JsonValue:
@@ -56,6 +57,7 @@ class EventsPage:
             raise ExtractError("newsletter extract must contain page text")
         if reviewed_empty(body_sha256, extract):
             return ParseResult(legitimate_empty=True)
+        colours = reviewed_colours(body_sha256, extract)
         observations = []
         warnings = []
         colour_unverified = any(
@@ -68,11 +70,14 @@ class EventsPage:
             warnings.append(
                 ParseWarning(
                     "newsletter_colour_unverified",
-                    "Trial or member activity colour was not recovered; newsletter registry status uses the documented fallback",
+                    "Trial or member activity colour was not recovered; reviewed rows are labelled separately, other newsletter rows use the documented registry fallback"
+                    if colours
+                    else "Trial or member activity colour was not recovered; newsletter registry status uses the documented fallback",
                     {
                         "snapshot_id": ctx.snapshot_id,
                         "fallback": "registry",
                         "colour_recovered": False,
+                        **({"reviewed_colour_rows": len(colours)} if colours else {}),
                     },
                 )
             )
@@ -103,13 +108,31 @@ class EventsPage:
                     )
                 )
             for (name, start, end, location), sidebar in rows:
-                flags = (
-                    ("newsletter_status_colour_unverified",)
-                    if sidebar and colour_unverified
-                    else ()
-                )
+                label = colours.get((page_number, name, start, end)) if sidebar else None
+                flags: tuple[str, ...]
+                if label is not None:
+                    flags = (
+                        "newsletter_status_colour_reviewed",
+                        "newsletter_member_activity"
+                        if label == "Member Activity"
+                        else "newsletter_trial_event",
+                    )
+                else:
+                    flags = (
+                        ("newsletter_status_colour_unverified",)
+                        if sidebar and colour_unverified
+                        else ()
+                    )
                 payload = CalendarRow(
-                    "calendar_row", name, start, end, "registry", location, None, None, flags
+                    "calendar_row",
+                    name,
+                    start,
+                    end,
+                    label or "registry",
+                    location,
+                    None,
+                    None,
+                    flags,
                 )
                 observations.append(
                     Observation(ObservationScope("calendar", "wsdc-history"), payload.kind, payload)
@@ -312,6 +335,19 @@ def _approval_rows(
     for index, line in enumerate(lines):
         header = re.search(r"New\s+(?:Registry\s+)?Events\b", line, re.I)
         if header is None or re.search(r"applications?|\bemail:", line, re.I):
+            continue
+        administrative = re.search(
+            r"new events are able to select locations and dates\b"
+            r"|(?:managing|running)\s+new events,"
+            r"|certification process for new events\."
+            r"|assist new events that are applying for membership\."
+            r"|events and new events\.\s+Wednesday[’']s focus is",
+            line,
+            re.I,
+        )
+        if administrative and administrative.start() <= header.start() < administrative.end():
+            # These retained planning, management and posting-schedule sentences
+            # name no newly approved edition. Unknown prose still needs review.
             continue
         start = header.start()
         label = _column(line, start).casefold()

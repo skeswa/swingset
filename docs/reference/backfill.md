@@ -167,8 +167,15 @@ this order for each year, oldest year first:
      2016-12 to 2024-05), parser `wsdc_newsletter.events`: the
      "Upcoming Registry Events" sidebar (name, dates) and the "New
      Registry Events" box (name, approval quarter). Trial events are
-     marked by colour only, so `wsdc_status` from a newsletter is
-     `registry` unless the colour is recovered (**unverified** how).
+     marked by colour only. Unreviewed rows use the `registry` fallback
+     with an explicit colour warning. Parser 8 locally recovers five
+     exact named/date-bound rows from reviewed Vol6/9/13/25 bodies and
+     complete extracted-page hashes: `Trial Event` or `Member Activity`
+     stays raw source vocabulary. Member activity does not establish
+     trial or registry status. Changed evidence cannot inherit these
+     dispositions; other rows and the partial-coverage warning remain.
+     This is not a general colour interpreter or source-policy admission.
+     See the [operator review](../../journal/investigations/2026/newsletter-colour-review-2026-09-17.md).
    - Platform indexes from the archive: EEPro `event.php`, scoring.dance
      `recent` and sitemap, DCN `eventsarchive`, and the Step Right events
      index, as `source_events` with the platform's own dates.

@@ -1,0 +1,118 @@
+{
+  "fixture_count": 17,
+  "results": [
+    {
+      "fixture": "newsletter-vol1.pdf",
+      "observations": 39,
+      "removed_warnings": [],
+      "added_warnings": []
+    },
+    {
+      "fixture": "newsletter-vol13.pdf",
+      "observations": 37,
+      "removed_warnings": [],
+      "added_warnings": []
+    },
+    {
+      "fixture": "newsletter-vol14.pdf",
+      "observations": 0,
+      "removed_warnings": [],
+      "added_warnings": []
+    },
+    {
+      "fixture": "newsletter-vol15.pdf",
+      "observations": 0,
+      "removed_warnings": [],
+      "added_warnings": []
+    },
+    {
+      "fixture": "newsletter-vol16.pdf",
+      "observations": 0,
+      "removed_warnings": [],
+      "added_warnings": []
+    },
+    {
+      "fixture": "newsletter-vol17.pdf",
+      "observations": 0,
+      "removed_warnings": [],
+      "added_warnings": []
+    },
+    {
+      "fixture": "newsletter-vol18.pdf",
+      "observations": 0,
+      "removed_warnings": [],
+      "added_warnings": []
+    },
+    {
+      "fixture": "newsletter-vol19.pdf",
+      "observations": 0,
+      "removed_warnings": [],
+      "added_warnings": []
+    },
+    {
+      "fixture": "newsletter-vol2.pdf",
+      "observations": 38,
+      "removed_warnings": [],
+      "added_warnings": []
+    },
+    {
+      "fixture": "newsletter-vol20.pdf",
+      "observations": 0,
+      "removed_warnings": [],
+      "added_warnings": []
+    },
+    {
+      "fixture": "newsletter-vol21.pdf",
+      "observations": 0,
+      "removed_warnings": [],
+      "added_warnings": []
+    },
+    {
+      "fixture": "newsletter-vol23.pdf",
+      "observations": 39,
+      "removed_warnings": [
+        {
+          "code": "approval_notice_review",
+          "message": "Prose approval notice needs a dated event interpretation",
+          "evidence": {
+            "page": 3,
+            "notice": "on the calendar, so that new events are able to select locations and dates that comply with our time distance rules."
+          }
+        }
+      ],
+      "added_warnings": []
+    },
+    {
+      "fixture": "newsletter-vol25.pdf",
+      "observations": 28,
+      "removed_warnings": [],
+      "added_warnings": []
+    },
+    {
+      "fixture": "newsletter-vol3.pdf",
+      "observations": 45,
+      "removed_warnings": [],
+      "added_warnings": []
+    },
+    {
+      "fixture": "newsletter-vol5.pdf",
+      "observations": 39,
+      "removed_warnings": [],
+      "added_warnings": []
+    },
+    {
+      "fixture": "newsletter-vol6.pdf",
+      "observations": 41,
+      "removed_warnings": [],
+      "added_warnings": []
+    },
+    {
+      "fixture": "newsletter-vol7.pdf",
+      "observations": 31,
+      "removed_warnings": [],
+      "added_warnings": []
+    }
+  ],
+  "network_requests": 0,
+  "deployed": false
+}

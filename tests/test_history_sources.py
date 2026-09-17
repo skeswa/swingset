@@ -377,3 +377,50 @@ def test_newsletter_ambiguous_discontinuous_and_malformed_dates_stay_unparsed():
         "On Hiatus",
     ]:
         assert _dated_range(printed) is None
+
+
+def test_retained_newsletter_planning_prose_is_not_an_approval_notice():
+    from pathlib import Path
+
+    page = NewsletterPage()
+    for volume, count in [(8, 38), (9, 34), (11, 33), (23, 39), (29, 36)]:
+        body = Path(
+            f"src/swingset/sources/wsdc_newsletter/fixtures/newsletter-vol{volume}.pdf"
+        ).read_bytes()
+        result = page.parse(page.extract(body), context(page))
+        assert len(result.observations) == count
+        assert not any(
+            warning.code == "approval_notice_review"
+            and "notice" in warning.evidence
+            and any(
+                phrase in str(warning.evidence["notice"])
+                for phrase in (
+                    "are able to select",
+                    "managing new events",
+                    "running new events",
+                    "certification process for new events",
+                    "assist new events that are applying",
+                    "events and new events.",
+                )
+            )
+            for warning in result.warnings
+        )
+        assert not result.legitimate_empty
+        if volume == 23:
+            assert any(warning.code == "newsletter_undated_listing" for warning in result.warnings)
+
+
+def test_newsletter_unknown_prose_and_approval_quarters_remain_findings():
+    from swingset.sources.wsdc_newsletter.adapter import _approval_rows
+
+    for prose in [
+        "We welcome the following new events approved in 2026:",
+        "New events include Example Weekend",
+        "New events are able to select locations",
+        "We approved new events, including Example Weekend",
+        "New Registry Events are able to select locations and dates",
+        "New Events\nExample Weekend in London\nQ3 2026",
+    ]:
+        rows, warnings = _approval_rows(prose, 1)
+        assert not rows
+        assert warnings and all(warning.code == "approval_notice_review" for warning in warnings)
