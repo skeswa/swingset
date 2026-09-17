@@ -1,5 +1,81 @@
 # Continue history and recovery from the published H16 baseline
 
+## Overnight stop after Step Right integration
+
+At the owner's 2026-09-18 stop instruction, the local Step Right increment had
+independent clearance for its real-body parser, three version-1 no-removal
+admission contracts, normal event-detail dispatch and projector-20 common
+reconciliation. A separately reviewed disposable schema-29 rehearsal accepted
+all five fixture generations, added 28 observations, removed none and made no
+network or production write. Its compact receipt is
+[`stepright-admission-rehearsal-2026-09-18/receipt.json`](../../evidence/admission/stepright-admission-rehearsal-2026-09-18/receipt.json).
+
+After coordinator formatting, the integrated working tree passed 2,847 tests,
+Ruff, mypy over 228 source files and `mise run evidence-size`. No source freeze
+or Nix build was created. The fresh read-only production check retained
+candidate 006, schema 29, the exact operator hold, six inactive ordinary units,
+the acknowledged public baseline and 31,821 pending parse units. Candidate 007
+freeze/build/review, held deployment and exact input acceptance therefore
+remain distinct future gates. The production backlog still needs a controlled
+offline drain before phase-one acquisition can make progress. No historical
+year is accepted; H17 remains at 275 retained subjects and zero human labels;
+no dataset was published.
+
+## Candidate 006 schema-29 deployment
+
+Candidate 006 is deployed under hold and production is now schema 29. The exact
+[preflight](../../evidence/runtime/held-schema29-migration-2026-09-17/preflight-001/receipt.json),
+[migration receipt](../../evidence/runtime/held-schema29-migration-2026-09-17/execution-001/receipt.json)
+and [independent audit](../../evidence/runtime/held-schema29-migration-2026-09-17/postmigration-review-001/receipt.json)
+preserve the distinction between implementation, testing and deployment. No new
+dataset release is published. Production input acceptance, measured operating
+service, year acceptance and H18 repairs remain open. H17 still has 275 retained
+subjects and zero human labels.
+
+## Resume after candidate 005
+
+The owner resumed implementation under existing standing authority in D-0093.
+The starting working copy was clean at parent `8d59db2b`; no old workspace was
+recreated. Coordinator inspection at 18:36 UTC confirmed schema 28, the expected
+active and persistent source003 system, unchanged hold, six inactive ordinary
+units and acknowledged publication `2a6c7dc744fb36eabb5163c0a527d787d3721f4f`.
+The [read-only receipt](../../evidence/runtime/v2-resume-2026-09-17/read-only-001/state.json)
+also retains actual host usage. This check did not contact the public dataset.
+
+The coordinator generated successor rehearsal packet 003 for candidate 005:
+SHA-256 `6748af985bbe7b6a74c30c094c72cc117fd6f259a661fb5aeb052e51e309d230`.
+Independent review and actual execution remain separate gates. Mac system
+Python lacked `hashlib.file_digest`; generation succeeded with the VM's pinned
+Python 3.12 without changing the builder. No failed packet directory was created.
+
+Bounded Luna ownership: `origin_runner` implements new origin helper/tests;
+`runtime_review` independently checks service binding and the rehearsal packet;
+`phase_one_review` audits retained year evidence. Only the coordinator performs
+production operations, integration, formatting and freezes. Candidate 005 stays
+implemented, fully tested and built, but undeployed and unpublished.
+
+Candidate-005 service binding and packet review passed. The actual disposable
+migration preserved all 116 predecessor tables; scratch prepare and input
+acceptance passed, including all 4,931 named judges. See the
+[successor operations](schema29-successor-rehearsals-2026-09-17.md#candidate-005-successor)
+for dated receipts. Actual restore passed at 18:53:25 UTC with public-baseline
+verification and the documented pressure-epoch increment. The first bounded
+replay passed 100 attempts in 402.17 seconds, with 99 commits and one admission
+requiring review. Production remains held at schema 28.
+
+The [phase-one reconciliation](v2-phase-one-resume-review-2026-09-17.md)
+retains a reproducible generator, all 17 pending captures and per-year blockers.
+No historical year is ready or accepted. The origin runner passed 37 offline
+tests, independent code/packet review and live dry preflight. Its later exact
+Riga operation captured both PDFs with four requests and 132,764 bytes. Bodies
+remain quarantined pending acquisition audit and interpretation. Production
+remains held. Checkpoint 004 now has a verified private acknowledgment and
+preserves all later paid usage. Attempt 003 verified locally but its upload was
+OOM-killed after the coordinator omitted disk-backed temporary storage; its
+failure evidence remains retained.
+
+## Earlier continuation before the pause
+
 Date: 2026-09-17 UTC. Work is in progress. This record does not close V5, V6 or V7.
 
 The starting checkout was clean at `6f5c5ff8`, above the committed link refactor

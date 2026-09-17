@@ -6,7 +6,7 @@ Step Right Solutions is a historical source read through archived pages. This gu
 
 ## 1. Status
 
-Verified 2026-09-11 from Wayback captures
+Verified through 2026-09-18 from Wayback captures
 (`journal/evidence/collection/wayback-2026-09-11/`, `wayback_id_steprt_*.hdr`). The
 origin returns empty 200 responses today (`journal/investigations/undated/initial-source-survey.md`). The
 operator relationship is unknown; the company's pages are copyright
@@ -68,8 +68,10 @@ all through the Wayback transport with the capture selection rule in
 
 - `steprightsolutions.index`: `div.event` blocks with `h4` (series),
   `div.location`, and `div.dates a[href^=/events/]` (year and slug).
-- `steprightsolutions.event`: breadcrumb `Home / Events / <name>`,
-  a date line, then contest headings each followed by round links.
+- `steprightsolutions.event`: the dedicated event header contains the name and
+  date. The main result panel contains contest headings followed by round
+  lists. Some pages repeat the same links in a responsive sidebar; that copy is
+  fixture evidence, not a second extracted listing.
   Contest names are free text: `Novice West Coast Swing Jack & Jill`,
   `All-Stars / Champions West Coast Swing Jack and Jill`,
   `Master's Strictly Swing`, `NASDE Classic`, `Rising Star`.
@@ -114,7 +116,8 @@ director is honored like any removal request.
 - A bounded promotion rule beyond the verified 507/508 control pair.
 - Sub-values of mark `2` outside the retained preliminary control.
 - Finals bib ownership outside the observed cross-page matches.
-- A real results-bearing event page to control contest and round-link parsing.
+- Results-panel layout coverage beyond the retained 2015 control, including
+  explicit handling when the responsive sidebar and main panel disagree.
 
 ## 14. Local implementation status
 
@@ -125,8 +128,10 @@ Round observations retain zero-padded bibs, names, anonymous columns,
 raw marks and placements, the printed panel roster, and chief judge.
 Panel names do not need WSDC numbers and never own anonymous columns.
 
-Complete approved bodies now control the index, a metadata-only event, and
-preliminary/final rounds. Event and round extract/parser versions are 2.
+Complete approved bodies now control the index, a metadata-only event, one
+results-bearing event, and preliminary/final rounds. The event extract version
+is 4 and its parser version is 3. The index extract/parser versions are 2; the
+round extract/parser versions are 2/3.
 The real grouped `Judge Scores *` and `Judge Placements *` headers expand into
 anonymous columns only when neighboring headers and row widths match the
 reviewed layout. Preliminary groups require the supported legend. Other merged
@@ -137,16 +142,30 @@ requires the reviewed title/date header and original event URL. It emits
 `round_listing_status = no_round_links` and a finding; neither complete
 enumeration nor unavailable results follows.
 
-The source emits no seed or discovered watches. Its source-specific
-observations are not admitted to the canonical contest projector yet.
-This prevents the current projector from inventing an alternate rank
-for `2` or assigning a finals bib to both partners. Callback `2` means
-an unranked alternate; unknown values are retained with a warning.
-Promotion stays unknown even when a row has a highlight class. Finals
-bib ownership stays unknown and produces a warning.
+The 2015 event control prints Asia West Coast Swing Open, April 23–26, 2015,
+and exactly 12 round links under six contest headings. The event extractor
+reads the dedicated header and main result panel, so the repeated sidebar does
+not duplicate links or change contest ownership. A present but empty reviewed
+main panel rejects instead of falling back to unrelated page links.
+
+The source emits no seed or discovered watches. Its three page kinds now have
+version-1 local admission contracts over the five retained controls. All grant
+no removal authority. No policy has been enforced; corpus review and activation
+remain a separate gate.
+
+Projector 20 normalizes Step Right evidence into the common event contest
+reconciler. Event details refresh source metadata through normal source-index
+invalidation, so their name and date can replace index values while retaining
+the index location. Overlapping source evidence resolves before the writer and
+cannot silently replace the same canonical key. Preliminary entries retain
+roles and printed bibs, while callback marks, outcomes and promotion remain
+unprojected because `2` is an unranked alternate. Final entries and ordinal
+placements project with source-row identity; the generic final bib belongs to
+neither partner. Anonymous judges are round-scoped. The printed roster does
+not own marks, and no score-sheet URL is invented.
 
 Tests in `tests/fixtures/sources/steprightsolutions/` include synthetic inputs
-and four byte-exact approved archived bodies with provenance hashes. Offline
+and five byte-exact approved archived bodies with provenance hashes. Offline
 cross-page checks demonstrate all 16 `adv` participants in the final and all
 eight final bibs matching leaders. These checks do not give a single-body
 parser verified predecessor evidence or activate canonical ownership.
@@ -154,5 +173,13 @@ Malformed groups, unknown legends, empty pages, changed marks and changed judge
 notes have dedicated controls. See the
 [independent fixture review](../../../journal/investigations/2026/fixture-controls-review-2026-09-17.md)
 and [implementation receipt](../../../journal/investigations/2026/stepright-real-controls-2026-09-17.md).
-WP14 remains open: canonical integration, independent contract acceptance,
-page-kind enforcement and historical event-year coverage are not complete.
+The local contracts, dispatch and projection passed focused tests plus
+independent semantic reviews. The real controls require preliminary round 507
+to project `legacy_3`, final round 508 to project `unknown`, and both to emit no
+canonical callbacks. A separately reviewed disposable schema-29 run accepted
+all five fixture generations under the three version-1 policies, with zero
+guards, removals, network requests or production mutations. This proves the
+offline admission path; it does not activate production. None of this code is
+deployed. WP14 remains open:
+independently reviewed corpus activation, page-kind enforcement and historical
+event-year coverage are not complete. No historical year is accepted.
