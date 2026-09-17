@@ -1,0 +1,50 @@
+[
+  {
+    "file": "real-srs-index-20260917.html",
+    "archive_url": "https://web.archive.org/web/20130413022752id_/http://www.steprightsolutions.com:80/events",
+    "body_sha256": "9264cb04aab050fce36fc83b92c7e51ffb28c4d1b1412ef575474e7dd6864f40",
+    "captured_at": "2013-04-13T02:27:52+00:00",
+    "id": "srs-index",
+    "interpretation": "unreviewed_quarantine_body",
+    "original_url": "http://www.steprightsolutions.com:80/events",
+    "requested_archive_url": "https://web.archive.org/web/20130413022752id_/http://www.steprightsolutions.com:80/events",
+    "source_receipt": "journal/evidence/admission/fixture-exception-2026-09-17/quarantine/receipt.json",
+    "source_receipt_sha256": "195c2ddcff02401f780c1591031125fe7d254d0a251179654dc448d55e1ae99a"
+  },
+  {
+    "file": "real-srs-event-20260917.html",
+    "archive_url": "https://web.archive.org/web/20130401090810id_/http://www.steprightsolutions.com:80/events/asianopen2013",
+    "body_sha256": "ef7b01b6a34c91dbf15e41a1bad76052b878dc7c0903fb0b67e44a6dcafbd63c",
+    "captured_at": "2013-04-01T09:08:10+00:00",
+    "id": "srs-event",
+    "interpretation": "unreviewed_quarantine_body",
+    "original_url": "http://www.steprightsolutions.com:80/events/asianopen2013",
+    "requested_archive_url": "https://web.archive.org/web/20130401090810id_/http://www.steprightsolutions.com:80/events/asianopen2013",
+    "source_receipt": "journal/evidence/admission/fixture-exception-2026-09-17/quarantine/receipt.json",
+    "source_receipt_sha256": "195c2ddcff02401f780c1591031125fe7d254d0a251179654dc448d55e1ae99a"
+  },
+  {
+    "file": "real-srs-round507-20260917.html",
+    "archive_url": "https://web.archive.org/web/20160909170855id_/http://steprightsolutions.com/events/asianopen2013/round/507",
+    "body_sha256": "5a75a6e61684b23a616dd3c39eb6efd3da28e9b23e0a77925aa05e9da555f15e",
+    "captured_at": "2016-09-09T17:08:55+00:00",
+    "id": "srs-round507",
+    "interpretation": "unreviewed_quarantine_body",
+    "original_url": "http://steprightsolutions.com/events/asianopen2013/round/507",
+    "requested_archive_url": "https://web.archive.org/web/20160909170855id_/http://steprightsolutions.com/events/asianopen2013/round/507",
+    "source_receipt": "journal/evidence/admission/fixture-exception-2026-09-17/quarantine/receipt.json",
+    "source_receipt_sha256": "195c2ddcff02401f780c1591031125fe7d254d0a251179654dc448d55e1ae99a"
+  },
+  {
+    "file": "real-srs-round508-20260917.html",
+    "archive_url": "https://web.archive.org/web/20160909171011id_/http://steprightsolutions.com/events/asianopen2013/round/508",
+    "body_sha256": "ab571cf857210f90b91db779b81a81c0beae10becf97aaa8c66377b0da7b26eb",
+    "captured_at": "2016-09-09T17:10:11+00:00",
+    "id": "srs-round508",
+    "interpretation": "unreviewed_quarantine_body",
+    "original_url": "http://steprightsolutions.com/events/asianopen2013/round/508",
+    "requested_archive_url": "https://web.archive.org/web/20160909171011id_/http://steprightsolutions.com/events/asianopen2013/round/508",
+    "source_receipt": "journal/evidence/admission/fixture-exception-2026-09-17/quarantine/receipt.json",
+    "source_receipt_sha256": "195c2ddcff02401f780c1591031125fe7d254d0a251179654dc448d55e1ae99a"
+  }
+]

@@ -21,7 +21,8 @@ per-judge callback marks (`1`, `2`, `3`) with anonymous columns, totals,
 finals with leader and follower names, per-judge placements, and final
 placement. Judges are named per round, and the chief judge is named on
 some pages, but marks are not attributable to a named judge. No WSDC
-ids. Whether promotion is marked on prelims rows is **unverified**.
+ids. The retained 507/508 control pair verifies `adv` classes against final
+participants; a general promotion rule remains **unverified**.
 
 The archive holds 163 event slugs, 108 of them with round pages, and
 1,685 round pages. Per event year (slugs with round pages / round
@@ -79,7 +80,8 @@ all through the Wayback transport with the capture selection rule in
   Finals have one table with `BIB`, `Leader`, `Follower`, per-judge
   placements, `Placement` as an ordinal (`1st`). Marks map `1` to
   `yes`, `2` to `alt`, `3` to `no` (`callback_legend = legacy_3`);
-  whether `2` carries sub-values is **unverified**. Marks reference
+  the complete round-507 control contains only `1`, `2`, and `3`, with an
+  explicit grouped-header legend. Sub-values elsewhere remain **unverified**. Marks reference
   `anon-<n>` judges; named judges are recorded on the round with
   `marks_attributed = false`.
 - Bibs are zero-padded strings (`032`); keep as printed.
@@ -88,8 +90,9 @@ all through the Wayback transport with the capture selection rule in
 
 - Round headings misspell `Semi-FInals` and `FInals` on some pages.
 - Newcomer contests can be finals-only.
-- Which bib a finals row shows for a Jack and Jill couple is
-  **unverified**.
+- All eight round-508 final bibs match leaders' round-507 bibs. Ownership for
+  other finals remains **unverified**; a single-page parse does not assign the
+  printed final bib to either partner.
 - The 2013 index and the 2016 pages list different series sets; the
   union across captures is the event list.
 
@@ -108,9 +111,10 @@ director is honored like any removal request.
 
 ## 13. Open items
 
-- Promotion marking on prelims rows.
-- Sub-values of mark `2`.
-- Finals bib ownership.
+- A bounded promotion rule beyond the verified 507/508 control pair.
+- Sub-values of mark `2` outside the retained preliminary control.
+- Finals bib ownership outside the observed cross-page matches.
+- A real results-bearing event page to control contest and round-link parsing.
 
 ## 14. Local implementation status
 
@@ -121,6 +125,18 @@ Round observations retain zero-padded bibs, names, anonymous columns,
 raw marks and placements, the printed panel roster, and chief judge.
 Panel names do not need WSDC numbers and never own anonymous columns.
 
+Complete approved bodies now control the index, a metadata-only event, and
+preliminary/final rounds. Event and round extract/parser versions are 2.
+The real grouped `Judge Scores *` and `Judge Placements *` headers expand into
+anonymous columns only when neighboring headers and row widths match the
+reviewed layout. Preliminary groups require the supported legend. Other merged
+layouts reject. Source group labels, widths and attributes remain retained.
+Judge notes are stored separately from the roster, so anonymity and private
+chief-score statements never become judge names. The metadata-only event
+requires the reviewed title/date header and original event URL. It emits
+`round_listing_status = no_round_links` and a finding; neither complete
+enumeration nor unavailable results follows.
+
 The source emits no seed or discovered watches. Its source-specific
 observations are not admitted to the canonical contest projector yet.
 This prevents the current projector from inventing an alternate rank
@@ -129,11 +145,14 @@ an unranked alternate; unknown values are retained with a warning.
 Promotion stays unknown even when a row has a highlight class. Finals
 bib ownership stays unknown and produces a warning.
 
-Tests use explicitly synthetic HTML in
-`tests/fixtures/sources/steprightsolutions/`. The retained CDX index
-supports URL discovery only. The retained index and round 507/508
-response headers have no accompanying page bodies. These tests do not
-close the three open source questions or demonstrate real event-year
-coverage. WP14 acceptance remains open until complete archived bodies
-are retained, reviewed, and tested; canonical integration follows that
-review and the V5 admission gates.
+Tests in `tests/fixtures/sources/steprightsolutions/` include synthetic inputs
+and four byte-exact approved archived bodies with provenance hashes. Offline
+cross-page checks demonstrate all 16 `adv` participants in the final and all
+eight final bibs matching leaders. These checks do not give a single-body
+parser verified predecessor evidence or activate canonical ownership.
+Malformed groups, unknown legends, empty pages, changed marks and changed judge
+notes have dedicated controls. See the
+[independent fixture review](../../../journal/investigations/2026/fixture-controls-review-2026-09-17.md)
+and [implementation receipt](../../../journal/investigations/2026/stepright-real-controls-2026-09-17.md).
+WP14 remains open: canonical integration, independent contract acceptance,
+page-kind enforcement and historical event-year coverage are not complete.

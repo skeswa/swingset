@@ -57,6 +57,35 @@ def _content(tree: HTMLParser) -> Any:
     return tree.css_first("main, #content, .content") or tree.body or tree.root
 
 
+def _expand_judge_header(headers: tuple[Cell, ...], *, is_final: bool) -> tuple[Cell, ...]:
+    """Expand only the real fixture's labeled group, keeping its source attributes."""
+    grouped = [
+        index
+        for index, cell in enumerate(headers)
+        if dict(cell.attributes).get("colspan", "1") != "1"
+    ]
+    if not grouped:
+        return headers
+    prefix = ("BIB", "Leader", "Follower") if is_final else ("BIB#", "Name")
+    expected = (
+        *prefix,
+        "Judge Placements *" if is_final else "Judge Scores *",
+        "Placement" if is_final else "Total",
+    )
+    if tuple(cell.text for cell in headers) != expected or grouped != [len(prefix)]:
+        raise ParseError("Step Right merged header needs a reviewed fixture")
+    group = headers[len(prefix)]
+    attrs = dict(group.attributes)
+    count = attrs.get("colspan", "")
+    if not count.isdecimal() or not 1 <= int(count) <= 32:
+        raise ParseError("Step Right judge group width is unsupported")
+    if not is_final and re.sub(r"\s+", "", attrs.get("title", "")).lower() != "1=yes,2=alt,3=no":
+        raise ParseError("Step Right grouped callback legend is unverified")
+    attrs.update(colspan="1", source_group_colspan=count, source_group_label=group.text or "")
+    anonymous = tuple(Cell("", tuple(sorted(attrs.items()))) for _ in range(int(count)))
+    return (*headers[: len(prefix)], *anonymous, headers[-1])
+
+
 class IndexPage:
     kind = "steprightsolutions.index"
     EXTRACT_VERSION = 1
@@ -114,6 +143,8 @@ class IndexPage:
 
 class EventPage(IndexPage):
     kind = "steprightsolutions.event"
+    EXTRACT_VERSION = 2
+    PARSER_VERSION = 2
 
     def extract(self, body: bytes) -> JsonValue:
         tree = HTMLParser(body)
@@ -145,11 +176,41 @@ class EventPage(IndexPage):
                 }
             )
         if not links:
-            raise ExtractError("Step Right event contains no recognized round links")
-        return {"name": name, "date": dates[0] if dates else None, "links": links}
+            # The retained April 1 event capture predates the event and lists
+            # metadata only. Its absence of links is not a complete enumeration.
+            heading = content.css_first(".box-content.header h2")
+            date_node = heading.css_first("small") if heading else None
+            date_text = text(date_node.text()) if date_node else ""
+            if heading is None or not DATE_LINE.fullmatch(date_text):
+                raise ExtractError(
+                    "Step Right event contains no recognized round links or metadata header"
+                )
+            title_tree = HTMLParser(heading.html)
+            for child in title_tree.css("small"):
+                child.decompose()
+            name = text(title_tree.text())
+            if not name:
+                raise ExtractError("Step Right metadata event has no name")
+            return {
+                "name": name,
+                "date": date_text,
+                "links": [],
+                "round_listing_status": "no_round_links",
+            }
+        return {
+            "name": name,
+            "date": dates[0] if dates else None,
+            "links": links,
+            "round_listing_status": "listed_links",
+        }
 
     def parse(self, extract: JsonValue, ctx: ParseContext) -> ParseResult:
         refs = {link["ref"] for link in extract["links"]}
+        if not refs and extract["round_listing_status"] == "no_round_links":
+            target = _url(ctx.url)
+            if target is None or target[2] is not None:
+                raise ParseError("Step Right metadata requires its original event URL")
+            refs = {target[1]}
         if len(refs) != 1 or (ctx.source_ref and ctx.source_ref not in refs):
             raise ParseError("Step Right round links disagree on event ownership")
         ref = refs.pop()
@@ -158,15 +219,33 @@ class EventPage(IndexPage):
             for row in extract["links"]
         )
         payload = StepRightEventSheet(
-            "step_right_event_sheet", ref, extract["name"], extract["date"], links
+            "step_right_event_sheet",
+            ref,
+            extract["name"],
+            extract["date"],
+            links,
+            extract["round_listing_status"],
+        )
+        warnings = (
+            ()
+            if links
+            else (
+                ParseWarning(
+                    "steprightsolutions_round_listing_absent",
+                    "Event metadata has no round links; completeness and result availability remain unknown.",
+                ),
+            )
         )
         return ParseResult(
-            (Observation(ObservationScope("source_event", ref), payload.kind, payload),)
+            (Observation(ObservationScope("source_event", ref), payload.kind, payload),),
+            warnings=warnings,
         )
 
 
 class RoundPage(IndexPage):
     kind = "steprightsolutions.round"
+    EXTRACT_VERSION = 2
+    PARSER_VERSION = 2
 
     def extract(self, body: bytes) -> JsonValue:
         content = _content(HTMLParser(body))
@@ -174,6 +253,7 @@ class RoundPage(IndexPage):
         round_name = ""
         role_heading = ""
         panel: list[str] = []
+        judge_notes: list[str] = []
         chief: str | None = None
         tables = []
         for node in content.traverse():
@@ -197,7 +277,11 @@ class RoundPage(IndexPage):
                     chief = re.sub(r"^Chief Judge\s*:\s*", "", visible, flags=re.I)
                 elif re.match(r"^Judges\s*:", visible, re.I):
                     # Preserve the printed roster line. Its order never owns columns.
-                    panel = [re.sub(r"^Judges\s*:\s*", "", visible, flags=re.I)]
+                    roster = HTMLParser(node.html)
+                    judge_notes = [text(note.text()) for note in roster.css(".judge_note")]
+                    for note in roster.css(".judge_note"):
+                        note.decompose()
+                    panel = [re.sub(r"^Judges\s*:\s*", "", text(roster.text()), flags=re.I)]
             else:
                 rows: list[list[dict[str, Any]]] = []
                 for row in node.css("tr"):
@@ -220,7 +304,13 @@ class RoundPage(IndexPage):
                 ):
                     continue
                 tables.append(
-                    {"heading": role_heading, "rows": rows, "panel": panel.copy(), "chief": chief}
+                    {
+                        "heading": role_heading,
+                        "rows": rows,
+                        "panel": panel.copy(),
+                        "chief": chief,
+                        "judge_notes": judge_notes.copy(),
+                    }
                 )
                 role_heading = ""
         if not tables or not contest or not round_name:
@@ -247,9 +337,10 @@ class RoundPage(IndexPage):
                 for row in item["rows"]
             ]
             headers = rows[0]
+            headers = _expand_judge_header(headers, is_final=is_final)
             if any(len(row) != len(headers) for row in rows[1:]) or any(
                 dict(cell.attributes).get(key, "1") != "1"
-                for row in rows
+                for row in (headers, *rows[1:])
                 for cell in row
                 for key in ("colspan", "rowspan")
             ):
@@ -314,6 +405,7 @@ class RoundPage(IndexPage):
                     tuple(item["panel"]),
                     item["chief"],
                     bib_ownership=ownership,
+                    judge_notes_raw=tuple(item["judge_notes"]),
                 )
             )
         payload = StepRightRoundSheet(

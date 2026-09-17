@@ -33,6 +33,7 @@ class StepRightEventSheet:
     name_raw: str
     date_raw: str | None
     round_links: tuple[StepRightRoundLink, ...]
+    round_listing_status: str = "listed_links"
 
 
 @dataclass(frozen=True)
@@ -45,6 +46,7 @@ class StepRightTable:
     marks_attributed: bool = False
     promotion: str = "unknown"
     bib_ownership: str = "unknown"
+    judge_notes_raw: tuple[str, ...] = ()
 
 
 @register_observation_type
