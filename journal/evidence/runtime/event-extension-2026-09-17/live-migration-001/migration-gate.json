@@ -1,0 +1,53 @@
+{
+  "format": "event-extension-live-migration-gate-v1",
+  "state": "/var/lib/swingset",
+  "source": "/nix/store/dx0cyzvd8d91rf29v21sakbr7l5bwxnz-source",
+  "helper_sha256": "459f9157b04f6449792d1eb6fac1c79885d50107fb4cd4aad84c7192218d3029",
+  "phase": "after_deployment",
+  "source_receipt": {
+    "path": "/nix/store/dx0cyzvd8d91rf29v21sakbr7l5bwxnz-source/extension-source.json",
+    "sha256": "60cdfe64004a0ba5a9aee207bcb089d6d4c81f5ca58169ccdb88a5dfab8146d6"
+  },
+  "checkpoint": {
+    "path": "/var/lib/swingset/checkpoints/h16-before-extension-20260917-003",
+    "manifest_sha256": "22102b3cc07b07b49800c702396a748bbbe733e148bbca9b426bff370792223d"
+  },
+  "restore_helper": {
+    "path": "restore.py",
+    "sha256": "55f40f2533da2de3ebd37368cbccf9fd60659dccd5c7067c3444c094e43eb35c"
+  },
+  "evidence": {
+    "backup": {
+      "path": "backup.json.gz",
+      "sha256": "3d2251b8553d25827073333575f7ca937917207492bb6d6ee523a858961ab02b"
+    },
+    "migration": {
+      "path": "migration.json",
+      "sha256": "f4a0ba01e2bacc010a825daff6870d76ada4a1f1866965c382b3dc5d81e1349d"
+    },
+    "restore": {
+      "path": "restore.json",
+      "sha256": "46d462b2c2910ae41eaab9ff0050b3368b8bf165bcc1843fba40d0ed3edbb1b4"
+    },
+    "validation": {
+      "path": "validation.json",
+      "sha256": "ad6336227ee3f97474a40749fce4dcabc0759a98aff5a4d1e2d7e522dcbd7e08"
+    },
+    "service_binding": {
+      "path": "service_binding.json",
+      "sha256": "601484267360333c551c70ad6230579641429942d412687a59da657804703399"
+    },
+    "pytest_log": {
+      "path": "pytest_log.log",
+      "sha256": "65bcff5ff8a4cc08a2290f47a2334abfaf73ad9f2f4ecdc0b06a910be78b9ce7"
+    },
+    "ruff_log": {
+      "path": "ruff_log.log",
+      "sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+    },
+    "mypy_log": {
+      "path": "mypy_log.log",
+      "sha256": "acb95be999ab9419706b6508a3108bbbbadadc551a8deadaeef8711a7837660e"
+    }
+  }
+}

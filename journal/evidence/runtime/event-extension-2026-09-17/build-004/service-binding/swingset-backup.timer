@@ -1,0 +1,10 @@
+[Unit]
+
+[Timer]
+OnCalendar=Mon..Thu *-*-* 04:00:00
+OnCalendar=Fri..Sun *-*-* 04,12,20:00:00
+Persistent=true
+
+
+[Install]
+WantedBy=timers.target

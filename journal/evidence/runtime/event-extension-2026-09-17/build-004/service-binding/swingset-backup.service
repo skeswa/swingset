@@ -1,0 +1,36 @@
+[Unit]
+ConditionPathExists=!/var/lib/swingset/operator-hold
+Description=Checkpoint complete swingset state
+StartLimitIntervalSec=0
+
+[Service]
+Environment="HF_HUB_DISABLE_PROGRESS_BARS=1"
+Environment="LD_LIBRARY_PATH=/nix/store/x03dxqva88ax4w45hyms977zv3f8a8i9-gcc-14.3.0-lib/lib:/nix/store/5zq11bibj72nvrhlx9fm0xl0xhxd6388-zlib-1.3.2/lib"
+Environment="LOCALE_ARCHIVE=/nix/store/0mk6nx5x3y5y7z7mkj4m6w9lkxw69zni-glibc-locales-2.40-224/lib/locale/locale-archive"
+Environment="PATH=/nix/store/nja3jimv61blss0mfgjqa68rfiwfxv39-coreutils-9.8/bin:/nix/store/f72alkaiwzx07151akyzlz0w7lwpi6px-findutils-4.10.0/bin:/nix/store/fpidzzfdfq4kqpg7izrjwl5dprm1ybql-gnugrep-3.12/bin:/nix/store/m4mnwm47q796m3zq16bpbca19r7ab2hk-gnused-4.9/bin:/nix/store/f99j50qvfy3lr4mxxad1qxsf7c6c9brj-systemd-258.7/bin:/nix/store/nja3jimv61blss0mfgjqa68rfiwfxv39-coreutils-9.8/sbin:/nix/store/f72alkaiwzx07151akyzlz0w7lwpi6px-findutils-4.10.0/sbin:/nix/store/fpidzzfdfq4kqpg7izrjwl5dprm1ybql-gnugrep-3.12/sbin:/nix/store/m4mnwm47q796m3zq16bpbca19r7ab2hk-gnused-4.9/sbin:/nix/store/f99j50qvfy3lr4mxxad1qxsf7c6c9brj-systemd-258.7/sbin"
+Environment="TMPDIR=/var/tmp"
+Environment="TZDIR=/nix/store/61dk4kx1ra82nlzymqdxb8alpc0nn452-tzdata-2026b/share/zoneinfo"
+Environment="UV_CACHE_DIR=/var/lib/swingset/uv-cache"
+Environment="UV_HTTP_TIMEOUT=120"
+Environment="UV_PROJECT_ENVIRONMENT=/var/lib/swingset/venv"
+Environment="UV_PYTHON=/nix/store/s5rij9y3vb4gxbh0iqz3k0ndmsac7h02-python3-3.12.13/bin/python3.12"
+Environment="UV_PYTHON_DOWNLOADS=never"
+DynamicUser=false
+EnvironmentFile=/etc/swingset.env
+ExecStart=/nix/store/9kz3y5annjxcdfpmgqwinsc58027wjlr-swingset/bin/swingset backup --state /var/lib/swingset --config /nix/store/c0dpchrf4b6hkxlc2yn4jm1v96ld0xd2-source/config --overrides /Users/skeswa/repos/skeswa/swingset/overrides
+ExecStartPre=/nix/store/2swgs700gln1w9llg54wmfp4sagp09xq-uv-0.9.30/bin/uv sync --project /nix/store/c0dpchrf4b6hkxlc2yn4jm1v96ld0xd2-source --frozen --no-dev
+Group=swingset
+KillMode=mixed
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=read-only
+ProtectSystem=strict
+ReadWritePaths=/var/lib/swingset
+Restart=on-failure
+RestartSec=60
+TimeoutStartSec=infinity
+TimeoutStopSec=45
+Type=oneshot
+UMask=0077
+User=swingset
+WorkingDirectory=/nix/store/c0dpchrf4b6hkxlc2yn4jm1v96ld0xd2-source

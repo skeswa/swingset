@@ -1,0 +1,382 @@
+........................................................................ [  2%]
+........................................................................ [  5%]
+........................................................................ [  8%]
+........................................................................ [ 11%]
+........................................................................ [ 14%]
+........................................................................ [ 17%]
+........................................................................ [ 19%]
+........................................................................ [ 22%]
+........................................................................ [ 25%]
+........................................................................ [ 28%]
+........................................................................ [ 31%]
+........................................................................ [ 34%]
+........................................................................ [ 36%]
+........................................................................ [ 39%]
+........................................................................ [ 42%]
+........................................................................ [ 45%]
+........................................................................ [ 48%]
+........................................................................ [ 51%]
+........................................................................ [ 53%]
+........................................................................ [ 56%]
+........................................................................ [ 59%]
+........................................................................ [ 62%]
+........................................................................ [ 65%]
+........................................................................ [ 68%]
+........................................................................ [ 71%]
+..........................................................FFFFFFFF..F... [ 73%]
+F....................................................................... [ 76%]
+........................................................................ [ 79%]
+........................................................................ [ 82%]
+........................................................................ [ 85%]
+........................................................................ [ 88%]
+........................................................................ [ 90%]
+........................................................................ [ 93%]
+........................................................................ [ 96%]
+........................................................................ [ 99%]
+...............                                                          [100%]
+=================================== FAILURES ===================================
+_____ test_apply_preserves_hold_fields_budgets_controls_and_later_deadline _____
+
+tmp_path = PosixPath('/private/var/folders/kc/94jncx6s6pqc8g2g4f2kyvtr0000gn/T/pytest-of-skeswa/pytest-1310/test_apply_preserves_hold_fiel0')
+evidence = {'kind': 'archive-fixture-2026-09-17-eight-requests', 'files': {'quarantine/receipt.json': '195c2ddcff02401f780c159103...a256': '6c0b8d7b34e1c4a068374c59d0f41d52459f0113883b9868a6750c2753123122', 'original_effective_gap_seconds': 10.0, ...}
+
+    def test_apply_preserves_hold_fields_budgets_controls_and_later_deadline(tmp_path, evidence):
+        with database_module.open_database(tmp_path) as db:
+            populate(db.connection, evidence)
+>           proposal = HELPER.prepare(db.connection, config(), evidence)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_legacy_spacing_baselines.py:81: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+journal/tools/runtime/legacy_spacing_baselines.py:316: in prepare
+    require(schema in {14, 28}, "proposal supports only schema14 or schema28")
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+value = False, message = 'proposal supports only schema14 or schema28'
+
+    def require(value: bool, message: str) -> None:
+        if not value:
+>           raise ValueError(message)
+E           ValueError: proposal supports only schema14 or schema28
+
+journal/tools/runtime/legacy_spacing_baselines.py:55: ValueError
+_ test_apply_rejects_changed_proposal_evidence_and_never_debits[paid_request] __
+
+tmp_path = PosixPath('/private/var/folders/kc/94jncx6s6pqc8g2g4f2kyvtr0000gn/T/pytest-of-skeswa/pytest-1310/test_apply_rejects_changed_pro0')
+evidence = {'kind': 'archive-fixture-2026-09-17-eight-requests', 'files': {'quarantine/receipt.json': '195c2ddcff02401f780c159103...a256': '6c0b8d7b34e1c4a068374c59d0f41d52459f0113883b9868a6750c2753123122', 'original_effective_gap_seconds': 10.0, ...}
+change = 'paid_request'
+
+    @pytest.mark.parametrize(
+        "change",
+        [
+            "paid_request",
+            "later_day",
+            "configuration",
+            "unsettled_control",
+            "robots_metadata",
+            "later_admission",
+        ],
+    )
+    def test_apply_rejects_changed_proposal_evidence_and_never_debits(tmp_path, evidence, change):
+        with database_module.open_database(tmp_path) as db:
+            populate(db.connection, evidence)
+>           proposal = HELPER.prepare(db.connection, config(), evidence)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_legacy_spacing_baselines.py:144: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+journal/tools/runtime/legacy_spacing_baselines.py:316: in prepare
+    require(schema in {14, 28}, "proposal supports only schema14 or schema28")
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+value = False, message = 'proposal supports only schema14 or schema28'
+
+    def require(value: bool, message: str) -> None:
+        if not value:
+>           raise ValueError(message)
+E           ValueError: proposal supports only schema14 or schema28
+
+journal/tools/runtime/legacy_spacing_baselines.py:55: ValueError
+___ test_apply_rejects_changed_proposal_evidence_and_never_debits[later_day] ___
+
+tmp_path = PosixPath('/private/var/folders/kc/94jncx6s6pqc8g2g4f2kyvtr0000gn/T/pytest-of-skeswa/pytest-1310/test_apply_rejects_changed_pro1')
+evidence = {'kind': 'archive-fixture-2026-09-17-eight-requests', 'files': {'quarantine/receipt.json': '195c2ddcff02401f780c159103...a256': '6c0b8d7b34e1c4a068374c59d0f41d52459f0113883b9868a6750c2753123122', 'original_effective_gap_seconds': 10.0, ...}
+change = 'later_day'
+
+    @pytest.mark.parametrize(
+        "change",
+        [
+            "paid_request",
+            "later_day",
+            "configuration",
+            "unsettled_control",
+            "robots_metadata",
+            "later_admission",
+        ],
+    )
+    def test_apply_rejects_changed_proposal_evidence_and_never_debits(tmp_path, evidence, change):
+        with database_module.open_database(tmp_path) as db:
+            populate(db.connection, evidence)
+>           proposal = HELPER.prepare(db.connection, config(), evidence)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_legacy_spacing_baselines.py:144: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+journal/tools/runtime/legacy_spacing_baselines.py:316: in prepare
+    require(schema in {14, 28}, "proposal supports only schema14 or schema28")
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+value = False, message = 'proposal supports only schema14 or schema28'
+
+    def require(value: bool, message: str) -> None:
+        if not value:
+>           raise ValueError(message)
+E           ValueError: proposal supports only schema14 or schema28
+
+journal/tools/runtime/legacy_spacing_baselines.py:55: ValueError
+_ test_apply_rejects_changed_proposal_evidence_and_never_debits[configuration] _
+
+tmp_path = PosixPath('/private/var/folders/kc/94jncx6s6pqc8g2g4f2kyvtr0000gn/T/pytest-of-skeswa/pytest-1310/test_apply_rejects_changed_pro2')
+evidence = {'kind': 'archive-fixture-2026-09-17-eight-requests', 'files': {'quarantine/receipt.json': '195c2ddcff02401f780c159103...a256': '6c0b8d7b34e1c4a068374c59d0f41d52459f0113883b9868a6750c2753123122', 'original_effective_gap_seconds': 10.0, ...}
+change = 'configuration'
+
+    @pytest.mark.parametrize(
+        "change",
+        [
+            "paid_request",
+            "later_day",
+            "configuration",
+            "unsettled_control",
+            "robots_metadata",
+            "later_admission",
+        ],
+    )
+    def test_apply_rejects_changed_proposal_evidence_and_never_debits(tmp_path, evidence, change):
+        with database_module.open_database(tmp_path) as db:
+            populate(db.connection, evidence)
+>           proposal = HELPER.prepare(db.connection, config(), evidence)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_legacy_spacing_baselines.py:144: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+journal/tools/runtime/legacy_spacing_baselines.py:316: in prepare
+    require(schema in {14, 28}, "proposal supports only schema14 or schema28")
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+value = False, message = 'proposal supports only schema14 or schema28'
+
+    def require(value: bool, message: str) -> None:
+        if not value:
+>           raise ValueError(message)
+E           ValueError: proposal supports only schema14 or schema28
+
+journal/tools/runtime/legacy_spacing_baselines.py:55: ValueError
+_ test_apply_rejects_changed_proposal_evidence_and_never_debits[unsettled_control] _
+
+tmp_path = PosixPath('/private/var/folders/kc/94jncx6s6pqc8g2g4f2kyvtr0000gn/T/pytest-of-skeswa/pytest-1310/test_apply_rejects_changed_pro3')
+evidence = {'kind': 'archive-fixture-2026-09-17-eight-requests', 'files': {'quarantine/receipt.json': '195c2ddcff02401f780c159103...a256': '6c0b8d7b34e1c4a068374c59d0f41d52459f0113883b9868a6750c2753123122', 'original_effective_gap_seconds': 10.0, ...}
+change = 'unsettled_control'
+
+    @pytest.mark.parametrize(
+        "change",
+        [
+            "paid_request",
+            "later_day",
+            "configuration",
+            "unsettled_control",
+            "robots_metadata",
+            "later_admission",
+        ],
+    )
+    def test_apply_rejects_changed_proposal_evidence_and_never_debits(tmp_path, evidence, change):
+        with database_module.open_database(tmp_path) as db:
+            populate(db.connection, evidence)
+>           proposal = HELPER.prepare(db.connection, config(), evidence)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_legacy_spacing_baselines.py:144: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+journal/tools/runtime/legacy_spacing_baselines.py:316: in prepare
+    require(schema in {14, 28}, "proposal supports only schema14 or schema28")
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+value = False, message = 'proposal supports only schema14 or schema28'
+
+    def require(value: bool, message: str) -> None:
+        if not value:
+>           raise ValueError(message)
+E           ValueError: proposal supports only schema14 or schema28
+
+journal/tools/runtime/legacy_spacing_baselines.py:55: ValueError
+_ test_apply_rejects_changed_proposal_evidence_and_never_debits[robots_metadata] _
+
+tmp_path = PosixPath('/private/var/folders/kc/94jncx6s6pqc8g2g4f2kyvtr0000gn/T/pytest-of-skeswa/pytest-1310/test_apply_rejects_changed_pro4')
+evidence = {'kind': 'archive-fixture-2026-09-17-eight-requests', 'files': {'quarantine/receipt.json': '195c2ddcff02401f780c159103...a256': '6c0b8d7b34e1c4a068374c59d0f41d52459f0113883b9868a6750c2753123122', 'original_effective_gap_seconds': 10.0, ...}
+change = 'robots_metadata'
+
+    @pytest.mark.parametrize(
+        "change",
+        [
+            "paid_request",
+            "later_day",
+            "configuration",
+            "unsettled_control",
+            "robots_metadata",
+            "later_admission",
+        ],
+    )
+    def test_apply_rejects_changed_proposal_evidence_and_never_debits(tmp_path, evidence, change):
+        with database_module.open_database(tmp_path) as db:
+            populate(db.connection, evidence)
+>           proposal = HELPER.prepare(db.connection, config(), evidence)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_legacy_spacing_baselines.py:144: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+journal/tools/runtime/legacy_spacing_baselines.py:316: in prepare
+    require(schema in {14, 28}, "proposal supports only schema14 or schema28")
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+value = False, message = 'proposal supports only schema14 or schema28'
+
+    def require(value: bool, message: str) -> None:
+        if not value:
+>           raise ValueError(message)
+E           ValueError: proposal supports only schema14 or schema28
+
+journal/tools/runtime/legacy_spacing_baselines.py:55: ValueError
+_ test_apply_rejects_changed_proposal_evidence_and_never_debits[later_admission] _
+
+tmp_path = PosixPath('/private/var/folders/kc/94jncx6s6pqc8g2g4f2kyvtr0000gn/T/pytest-of-skeswa/pytest-1310/test_apply_rejects_changed_pro5')
+evidence = {'kind': 'archive-fixture-2026-09-17-eight-requests', 'files': {'quarantine/receipt.json': '195c2ddcff02401f780c159103...a256': '6c0b8d7b34e1c4a068374c59d0f41d52459f0113883b9868a6750c2753123122', 'original_effective_gap_seconds': 10.0, ...}
+change = 'later_admission'
+
+    @pytest.mark.parametrize(
+        "change",
+        [
+            "paid_request",
+            "later_day",
+            "configuration",
+            "unsettled_control",
+            "robots_metadata",
+            "later_admission",
+        ],
+    )
+    def test_apply_rejects_changed_proposal_evidence_and_never_debits(tmp_path, evidence, change):
+        with database_module.open_database(tmp_path) as db:
+            populate(db.connection, evidence)
+>           proposal = HELPER.prepare(db.connection, config(), evidence)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_legacy_spacing_baselines.py:144: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+journal/tools/runtime/legacy_spacing_baselines.py:316: in prepare
+    require(schema in {14, 28}, "proposal supports only schema14 or schema28")
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+value = False, message = 'proposal supports only schema14 or schema28'
+
+    def require(value: bool, message: str) -> None:
+        if not value:
+>           raise ValueError(message)
+E           ValueError: proposal supports only schema14 or schema28
+
+journal/tools/runtime/legacy_spacing_baselines.py:55: ValueError
+_____ test_apply_authorizer_rejects_triggered_budget_writes_and_rolls_back _____
+
+tmp_path = PosixPath('/private/var/folders/kc/94jncx6s6pqc8g2g4f2kyvtr0000gn/T/pytest-of-skeswa/pytest-1310/test_apply_authorizer_rejects_0')
+evidence = {'kind': 'archive-fixture-2026-09-17-eight-requests', 'files': {'quarantine/receipt.json': '195c2ddcff02401f780c159103...a256': '6c0b8d7b34e1c4a068374c59d0f41d52459f0113883b9868a6750c2753123122', 'original_effective_gap_seconds': 10.0, ...}
+
+    def test_apply_authorizer_rejects_triggered_budget_writes_and_rolls_back(tmp_path, evidence):
+        with database_module.open_database(tmp_path) as db:
+            populate(db.connection, evidence)
+>           proposal = HELPER.prepare(db.connection, config(), evidence)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_legacy_spacing_baselines.py:186: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+journal/tools/runtime/legacy_spacing_baselines.py:316: in prepare
+    require(schema in {14, 28}, "proposal supports only schema14 or schema28")
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+value = False, message = 'proposal supports only schema14 or schema28'
+
+    def require(value: bool, message: str) -> None:
+        if not value:
+>           raise ValueError(message)
+E           ValueError: proposal supports only schema14 or schema28
+
+journal/tools/runtime/legacy_spacing_baselines.py:55: ValueError
+_ test_exact_dcn_followup_replaces_stale_eight_request_proof_without_refunding _
+
+tmp_path = PosixPath('/private/var/folders/kc/94jncx6s6pqc8g2g4f2kyvtr0000gn/T/pytest-of-skeswa/pytest-1310/test_exact_dcn_followup_replac0')
+evidence = {'kind': 'archive-fixture-2026-09-17-eight-requests', 'files': {'quarantine/receipt.json': '195c2ddcff02401f780c159103...a256': '6c0b8d7b34e1c4a068374c59d0f41d52459f0113883b9868a6750c2753123122', 'original_effective_gap_seconds': 10.0, ...}
+
+    def test_exact_dcn_followup_replaces_stale_eight_request_proof_without_refunding(
+        tmp_path, evidence
+    ):
+        current = HELPER.dcn_evidence(
+            ROOT / "journal/evidence/admission/dcn-index-fixture-2026-09-17", evidence
+        )
+        assert current["requests"] == 10 and current["received_bytes"] == 2934701
+        assert current["original_effective_gap_seconds"] == 10
+        with database_module.open_database(tmp_path) as db:
+            populate(db.connection, current)
+            assert not next(
+                row
+>               for row in HELPER.prepare(db.connection, config(), evidence)["hosts"]
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                if row["host"] == HELPER.HOST
+            )["eligible"]
+
+tests/test_legacy_spacing_baselines.py:272: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+journal/tools/runtime/legacy_spacing_baselines.py:316: in prepare
+    require(schema in {14, 28}, "proposal supports only schema14 or schema28")
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+value = False, message = 'proposal supports only schema14 or schema28'
+
+    def require(value: bool, message: str) -> None:
+        if not value:
+>           raise ValueError(message)
+E           ValueError: proposal supports only schema14 or schema28
+
+journal/tools/runtime/legacy_spacing_baselines.py:55: ValueError
+___________ test_trigger_cannot_grant_spacing_to_an_unreviewed_host ____________
+
+tmp_path = PosixPath('/private/var/folders/kc/94jncx6s6pqc8g2g4f2kyvtr0000gn/T/pytest-of-skeswa/pytest-1310/test_trigger_cannot_grant_spac0')
+evidence = {'kind': 'archive-fixture-2026-09-17-eight-requests', 'files': {'quarantine/receipt.json': '195c2ddcff02401f780c159103...a256': '6c0b8d7b34e1c4a068374c59d0f41d52459f0113883b9868a6750c2753123122', 'original_effective_gap_seconds': 10.0, ...}
+
+    def test_trigger_cannot_grant_spacing_to_an_unreviewed_host(tmp_path, evidence):
+        with database_module.open_database(tmp_path) as db:
+            populate(db.connection, evidence)
+>           proposal = HELPER.prepare(db.connection, config(), evidence)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_legacy_spacing_baselines.py:319: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+journal/tools/runtime/legacy_spacing_baselines.py:316: in prepare
+    require(schema in {14, 28}, "proposal supports only schema14 or schema28")
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+value = False, message = 'proposal supports only schema14 or schema28'
+
+    def require(value: bool, message: str) -> None:
+        if not value:
+>           raise ValueError(message)
+E           ValueError: proposal supports only schema14 or schema28
+
+journal/tools/runtime/legacy_spacing_baselines.py:55: ValueError
+=========================== short test summary info ============================
+FAILED tests/test_legacy_spacing_baselines.py::test_apply_preserves_hold_fields_budgets_controls_and_later_deadline
+FAILED tests/test_legacy_spacing_baselines.py::test_apply_rejects_changed_proposal_evidence_and_never_debits[paid_request]
+FAILED tests/test_legacy_spacing_baselines.py::test_apply_rejects_changed_proposal_evidence_and_never_debits[later_day]
+FAILED tests/test_legacy_spacing_baselines.py::test_apply_rejects_changed_proposal_evidence_and_never_debits[configuration]
+FAILED tests/test_legacy_spacing_baselines.py::test_apply_rejects_changed_proposal_evidence_and_never_debits[unsettled_control]
+FAILED tests/test_legacy_spacing_baselines.py::test_apply_rejects_changed_proposal_evidence_and_never_debits[robots_metadata]
+FAILED tests/test_legacy_spacing_baselines.py::test_apply_rejects_changed_proposal_evidence_and_never_debits[later_admission]
+FAILED tests/test_legacy_spacing_baselines.py::test_apply_authorizer_rejects_triggered_budget_writes_and_rolls_back
+FAILED tests/test_legacy_spacing_baselines.py::test_exact_dcn_followup_replaces_stale_eight_request_proof_without_refunding
+FAILED tests/test_legacy_spacing_baselines.py::test_trigger_cannot_grant_spacing_to_an_unreviewed_host
+10 failed, 2525 passed in 552.48s (0:09:12)

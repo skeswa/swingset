@@ -1,0 +1,33 @@
+{
+  "format": "event-extension-validation-v1",
+  "passed": true,
+  "finished_at": "2026-09-17T16:37:18.104112+00:00",
+  "source": "/nix/store/dx0cyzvd8d91rf29v21sakbr7l5bwxnz-source",
+  "source_receipt_sha256": "60cdfe64004a0ba5a9aee207bcb089d6d4c81f5ca58169ccdb88a5dfab8146d6",
+  "schema": 28,
+  "source_verified_before": true,
+  "source_verified_after": true,
+  "pytest": {
+    "command": "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=/tmp/swingset-extension-freeze-20260917-003/src:/tmp/swingset-extension-freeze-20260917-003 /Users/skeswa/repos/skeswa/swingset/.venv/bin/pytest -q -p no:cacheprovider",
+    "full_suite": true,
+    "exit_code": 0,
+    "passed": 2239,
+    "failed": 0,
+    "elapsed_seconds": 620.29,
+    "log_sha256": "65bcff5ff8a4cc08a2290f47a2334abfaf73ad9f2f4ecdc0b06a910be78b9ce7"
+  },
+  "ruff": {
+    "command": "ruff check --no-cache .",
+    "exit_code": 0,
+    "log_sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+  },
+  "mypy": {
+    "command": "mypy --cache-dir=/tmp/swingset-extension-mypy-cache-20260917-003 src/swingset",
+    "exit_code": 0,
+    "source_files": 217,
+    "log_sha256": "acb95be999ab9419706b6508a3108bbbbadadc551a8deadaeef8711a7837660e"
+  },
+  "scope": "frozen candidate003 only; later DCN parser and operating-helper edits excluded",
+  "deployed": false,
+  "published": false
+}

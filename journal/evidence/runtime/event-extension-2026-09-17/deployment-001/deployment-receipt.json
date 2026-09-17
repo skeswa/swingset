@@ -1,0 +1,82 @@
+{
+  "format": "event-extension-system-deployment-v1",
+  "started_at": "2026-09-17T16:50:06.876616+00:00",
+  "passed": true,
+  "source": "/nix/store/dx0cyzvd8d91rf29v21sakbr7l5bwxnz-source",
+  "system": "/nix/store/lzwkabfmbz46d05yi5k41nq56i7jjh74-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+  "preflight_sha256": "d3a12cb9dd9699eaac20d5a121b8fdc50f59087de74253dc626127fd13a1d084",
+  "commands": [
+    {
+      "argv": [
+        "nix-env",
+        "--profile",
+        "/nix/var/nix/profiles/system",
+        "--set",
+        "/nix/store/lzwkabfmbz46d05yi5k41nq56i7jjh74-nixos-system-swingset-lxc-25.11.20260630.b6018f8"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/nix/store/lzwkabfmbz46d05yi5k41nq56i7jjh74-nixos-system-swingset-lxc-25.11.20260630.b6018f8/bin/switch-to-configuration",
+        "switch"
+      ],
+      "exit_code": 0,
+      "stdout": "setting up /etc...\n",
+      "stderr": "activating the configuration...\nreloading user units for root...\nreloading user units for swingset...\nreloading user units for skeswa...\nrestarting sysinit-reactivation.target\nreloading the following units: dbus.service\nthe following new units were started: swingset-backup.timer, swingset-cycle.timer, swingset-summary.timer\n"
+    },
+    {
+      "argv": [
+        "systemctl",
+        "stop",
+        "swingset-cycle.service",
+        "swingset-cycle.timer",
+        "swingset-backup.service",
+        "swingset-backup.timer",
+        "swingset-summary.service",
+        "swingset-summary.timer"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    }
+  ],
+  "live_migration": false,
+  "input_acceptance": false,
+  "publication": false,
+  "holds_removed": false,
+  "before": {
+    "systems": {
+      "/run/current-system": "/nix/store/sx7lpr80cx0n9vzsi3cwz9nxawqc4p1i-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+      "/nix/var/nix/profiles/system": "/nix/store/sx7lpr80cx0n9vzsi3cwz9nxawqc4p1i-nixos-system-swingset-lxc-25.11.20260630.b6018f8"
+    },
+    "units": {
+      "swingset-cycle.service": "inactive",
+      "swingset-cycle.timer": "inactive",
+      "swingset-backup.service": "inactive",
+      "swingset-backup.timer": "inactive",
+      "swingset-summary.service": "inactive",
+      "swingset-summary.timer": "inactive"
+    },
+    "operator_hold_sha256": "965468bb03ba65b6d1d4950ab8e85c09c8f2f2a323461b7a3f2b6177bba5c638"
+  },
+  "after": {
+    "systems": {
+      "/run/current-system": "/nix/store/lzwkabfmbz46d05yi5k41nq56i7jjh74-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+      "/nix/var/nix/profiles/system": "/nix/store/lzwkabfmbz46d05yi5k41nq56i7jjh74-nixos-system-swingset-lxc-25.11.20260630.b6018f8"
+    },
+    "units": {
+      "swingset-cycle.service": "inactive",
+      "swingset-cycle.timer": "inactive",
+      "swingset-backup.service": "inactive",
+      "swingset-backup.timer": "inactive",
+      "swingset-summary.service": "inactive",
+      "swingset-summary.timer": "inactive"
+    },
+    "operator_hold_sha256": "965468bb03ba65b6d1d4950ab8e85c09c8f2f2a323461b7a3f2b6177bba5c638"
+  },
+  "schema": 14,
+  "finished_at": "2026-09-17T16:50:08.817824+00:00"
+}

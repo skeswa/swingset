@@ -1,0 +1,14 @@
+{
+  "format": "extension-system-build-v1",
+  "source": "/nix/store/c0dpchrf4b6hkxlc2yn4jm1v96ld0xd2-source",
+  "source_receipt_sha256": "44208cb5b38f0cd3f8b6c7c91f1b5d1cd650ef677d52b4bd54c17d8576c485e7",
+  "system": "/nix/store/qafwymyx9nf7wm708n6ikyqxk3dxy5xa-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+  "offline": true,
+  "host_configuration_import": "/etc/nixos/configuration.nix",
+  "pure_evaluation_attempt": "Rejected configured absolute OrbStack host import; repeated offline with --impure as required by nix/hosts/orb.nix.",
+  "passed": true,
+  "deployed": false,
+  "published": false,
+  "integration_validation": "running separately",
+  "log_sha256": "ab0a99712086747d45304e4561a8670117192484d989a5a50d8108b9093b8743"
+}

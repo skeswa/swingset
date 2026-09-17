@@ -3,6 +3,8 @@
 Use this guide to inspect the worker, manage pauses, and request local work.
 Read [current status](../status.md) before changing production. A token alone
 does not enable publication; begin a new installation with `dryRun = true`.
+The [current extension handoff](../../journal/investigations/2026/event-extension-operating-handoff-2026-09-17.md)
+pins the held runtime, checkpoint and unfinished activation checks.
 
 For other tasks, see [installation](deployment.md),
 [backup and restore](backup-and-restore.md), or [data corrections](data-corrections.md).

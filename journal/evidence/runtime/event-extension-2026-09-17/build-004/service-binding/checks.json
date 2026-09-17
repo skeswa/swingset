@@ -1,0 +1,21 @@
+{
+  "source_files": 2572,
+  "verified": true,
+  "active_system": "/nix/store/lzwkabfmbz46d05yi5k41nq56i7jjh74-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+  "persistent_system": "/nix/store/lzwkabfmbz46d05yi5k41nq56i7jjh74-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+  "host_configuration_sha256": "47f72341e08e0b7420e82cd317d0583e68aa60edd7ed9019cdac88e05875c668",
+  "host_integration_sha256": "2761d7907c7e6c0a4eee6e2eb8fc07f1158cc9173088d117b8f6de388cbc123a",
+  "source": "/nix/store/c0dpchrf4b6hkxlc2yn4jm1v96ld0xd2-source",
+  "system": "/nix/store/qafwymyx9nf7wm708n6ikyqxk3dxy5xa-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+  "package": "/nix/store/9kz3y5annjxcdfpmgqwinsc58027wjlr-swingset",
+  "deployed": false,
+  "files": {
+    "swingset-summary.service": "d4bf43a859c1ee8de0d05d7ac8cb25af57b448eb456f4827ff31beec2e088f88",
+    "swingset-cycle.service": "caf434c9873b2e677af3ef2e87564c25fce9b3d1b6ead20cf55fee3f41ac24fe",
+    "swingset-summary.timer": "5f2613b3cde179b98cc9745cf8de152ba117e87b53047aa33f8c18aa53d5908a",
+    "swingset-backup.service": "649c5a4bf2e3d23f1a8b56eee3a68dc2071ad53048feceacb33776649840374c",
+    "swingset-backup.timer": "28c7f714b7288bd6f58ef9dc1916c09c8178a758053fef6cb63e803baa742792",
+    "swingset-wrapper": "1c6d60facb96c8f2159a596cf8d63f33c13099482a3f3af72a6e23aff3ab176c",
+    "swingset-cycle.timer": "a5118a8743071cbcb531163dc3e9f61fdddd9b7f2aba2927310ab316d99bac24"
+  }
+}

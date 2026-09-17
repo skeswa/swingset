@@ -66,8 +66,11 @@ Accepted addition to H14 and H16, recorded 2026-09-14. Enumeration, event turns,
 expansion controls, artifact diagnostics, blocker history, and bounded progress
 observations are implemented and tested locally. Bounded fleet accounting,
 immediate-edge retirement proofs, and verified unavailable-page accounting also
-pass local tests. Eligible-time reporting, unsupported-page classification,
-deployment, and operating acceptance remain pending. See [current status](../../status.md).
+pass local tests. Bounded ordinary-acquisition timing, evidence-backed unsupported
+pages, and recorded event retirement/history are included in the reviewed
+schema-28 runtime deployed under hold on 2026-09-17. Calibration, operating
+acceptance and subsequent coverage publication remain pending. The later
+historical-timing schema-29 increment is separately tested locally. See [current status](../../status.md).
 Existing completion receipts for the original
 H14 scope remain valid; class fairness alone does not satisfy these additional
 scenarios. This work stays in V6, with no renumbering of H1 to H18.

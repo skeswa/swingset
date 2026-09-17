@@ -1,0 +1,200 @@
+........................................................................ [  3%]
+........................................................................ [  6%]
+........................................................................ [  9%]
+........................................................................ [ 12%]
+........................................................................ [ 16%]
+........................................................................ [ 19%]
+........................................................................ [ 22%]
+........................................................................ [ 25%]
+........................................................................ [ 28%]
+...........................................................F............ [ 32%]
+........................................................................ [ 35%]
+........................................................................ [ 38%]
+........................................................................ [ 41%]
+...................F.................................................... [ 45%]
+........................................................................ [ 48%]
+........................................................................ [ 51%]
+........................................................................ [ 54%]
+........................................................................ [ 57%]
+........................................................................ [ 61%]
+........................................................................ [ 64%]
+........................................................................ [ 67%]
+........................................................................ [ 70%]
+........................................................................ [ 73%]
+........................................................................ [ 77%]
+........................................................................ [ 80%]
+........................................................................ [ 83%]
+........................................................................ [ 86%]
+........................................................................ [ 90%]
+........................................................................ [ 93%]
+........................................................................ [ 96%]
+........................................................................ [ 99%]
+.......                                                                  [100%]
+=================================== FAILURES ===================================
+__ test_partial_turn_survives_crash_hold_and_daily_reset_without_extra_debits __
+
+f = namespace(db=<swingset.state.db.Database object at 0x113d89010>, clock=<swingset.clock.FakeClock object at 0x113d8bd40...re_max_age_seconds=86400, event_pressure_refresh_events=8, event_pressure_probe_pages=32)), run='run_20260101T000000Z')
+
+    def test_partial_turn_survives_crash_hold_and_daily_reset_without_extra_debits(f):
+        f.config = replace(
+            f.config,
+            hosts={
+                host: replace(value, daily_request_budget=1) for host, value in f.config.hosts.items()
+            },
+        )
+        first, second = add(f, "older", 0), add(f, "older", 1)
+        add(f, "other", 0)
+        choice = select(f)
+        assert choice.turn is not None
+        debit(f, choice, finish=False)  # Crash after the durable admission, before settlement.
+        conn = f.db.connection
+        old_day = f.clock.now().date().isoformat()
+        pending = [
+            tuple(row)
+            for row in conn.execute("SELECT watch_id,source_ref FROM watches ORDER BY watch_id")
+        ]
+        turn = tuple(
+            conn.execute(
+                "SELECT position,used,target_requests,policy_digest FROM scheduler_event_turns WHERE owner_key=?",
+                (choice.turn.owner_key,),
+            ).fetchone()
+        )
+        assert turn[1:3] == (1, 4)
+        change_control(
+            f.db.state_dir,
+            selector=Selector("all", "all"),
+            paused=True,
+            actor="test",
+            reason="restart held",
+            now=f.clock.now(),
+        )
+        path = f.db.state_dir
+        f.db.close()
+        f.clock.sleep(86400)
+        f.db = open_database(path)
+        assert select(f) is None
+        assert [
+            tuple(row)
+            for row in f.db.connection.execute(
+                "SELECT watch_id,source_ref FROM watches ORDER BY watch_id"
+            )
+        ] == pending
+        assert (
+            tuple(
+                f.db.connection.execute(
+                    "SELECT position,used,target_requests,policy_digest FROM scheduler_event_turns WHERE owner_key=?",
+                    (choice.turn.owner_key,),
+                ).fetchone()
+            )
+            == turn
+        )
+        change_control(
+            path,
+            selector=Selector("all", "all"),
+            paused=False,
+            actor="test",
+            reason="resume ordinary limits",
+            now=f.clock.now(),
+        )
+        # Keep one obligation retry-blocked while its sibling can receive the next turn.
+        f.db.connection.execute(
+            "UPDATE watches SET paused_until=? WHERE watch_id=?",
+            ((f.clock.now() + timedelta(seconds=30)).isoformat(), first.watch_id),
+        )
+        resumed = select(f)
+        assert resumed is not None and resumed.key == second.watch_id
+        assert resumed.turn.owner_key == choice.turn.owner_key
+>       debit(f, resumed)
+
+tests/test_event_extension_acceptance.py:102: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+f = namespace(db=<swingset.state.db.Database object at 0x113d89010>, clock=<swingset.clock.FakeClock object at 0x113d8bd40...re_max_age_seconds=86400, event_pressure_refresh_events=8, event_pressure_probe_pages=32)), run='run_20260101T000000Z')
+choice = WatchChoice(key='81fb11da161e0626', watch_id='81fb11da161e0626', host='example.test', category='new', scope=ActionScop...a8fb5d74', policy_json='{"fetch_chain_request_limit":80,"format":"listed-page-capacity-v1","listed_page_percent":50}'))
+finish = True
+
+    def debit(f, choice, *, finish=True):
+        gate = Gate(f.db.connection, f.config, f.clock)
+        with servicing(choice, run_id=f.run):
+            grant, action = issue(
+                f.db,
+                gate,
+                f.clock,
+                host=choice.host,
+                source="wsdc_calendar",
+                watch=SimpleNamespace(watch_id=choice.key, kind="round"),
+                page_kind=EventsPage.kind,
+                crawl_delay=0,
+                sweep=False,
+            )
+>       assert isinstance(grant, Grant)
+E       assert False
+E        +  where False = isinstance(Wait(seconds=5.0), Grant)
+
+tests/test_event_turns.py:91: AssertionError
+____________ test_populated_old_turn_schema_keeps_capacity_unknown _____________
+
+tmp_path = PosixPath('/private/var/folders/kc/94jncx6s6pqc8g2g4f2kyvtr0000gn/T/pytest-of-skeswa/pytest-1219/test_populated_old_turn_schema0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x113205010>
+
+    def test_populated_old_turn_schema_keeps_capacity_unknown(tmp_path, monkeypatch):
+        from test_event_turns import add
+    
+        from swingset.clock import FakeClock
+    
+        with monkeypatch.context() as legacy:
+            legacy.setattr(state_db, "SCHEMA_VERSION", 17)
+            with state_db.open_database(tmp_path) as database:
+                clock = FakeClock()
+                # Use the real legacy fallback owner; explicit event membership is
+                # supplied through the same read-only seam as scheduler selection.
+                from swingset.schedule import event_enumerations
+    
+                members = {}
+                legacy.setattr(
+                    event_enumerations,
+                    "memberships",
+                    lambda conn, keys: {k: members[k] for k in keys if k in members},
+                )
+                f = SimpleNamespace(
+                    db=database,
+                    clock=clock,
+                    members=members,
+                    config=Config(
+                        {"example.test": HostConfig()}, {"wsdc_calendar": SourceConfig(True)}
+                    ),
+                    run=database.start_run(clock.now()),
+                )
+                add(f, "legacy")
+>               debit(f, select(f))
+
+tests/test_event_service.py:170: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+f = namespace(db=<swingset.state.db.Database object at 0x1132067b0>, clock=<swingset.clock.FakeClock object at 0x1131aca10...re_max_age_seconds=86400, event_pressure_refresh_events=8, event_pressure_probe_pages=32)), run='run_20260101T000000Z')
+choice = WatchChoice(key='a44bf827b5b14e4f', watch_id='a44bf827b5b14e4f', host='example.test', category='new', scope=ActionScop... policy_digest='09d4bd01d57666cb0ab09d977539c4505fd2ae5588d467ba3d237570a9c44a84', reason='queue_head'), capacity=None)
+finish = True
+
+    def debit(f, choice, *, finish=True):
+        gate = Gate(f.db.connection, f.config, f.clock)
+        with servicing(choice, run_id=f.run):
+            grant, action = issue(
+                f.db,
+                gate,
+                f.clock,
+                host=choice.host,
+                source="wsdc_calendar",
+                watch=SimpleNamespace(watch_id=choice.key, kind="round"),
+                page_kind=EventsPage.kind,
+                crawl_delay=0,
+                sweep=False,
+            )
+>       assert isinstance(grant, Grant)
+E       AssertionError: assert False
+E        +  where False = isinstance(Paused(reason='request spacing schema unavailable'), Grant)
+
+tests/test_event_turns.py:91: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_event_extension_acceptance.py::test_partial_turn_survives_crash_hold_and_daily_reset_without_extra_debits
+FAILED tests/test_event_service.py::test_populated_old_turn_schema_keeps_capacity_unknown
+2 failed, 2237 passed in 546.78s (0:09:06)

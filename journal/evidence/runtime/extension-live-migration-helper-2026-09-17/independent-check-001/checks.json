@@ -1,0 +1,39 @@
+{
+  "format": "event-extension-live-migration-independent-check-v1",
+  "recorded_at": "2026-09-17T16:29:12.298396+00:00",
+  "reviewer": "history_gates",
+  "runtime": "/tmp/swingset-extension-freeze-20260917-003",
+  "runtime_receipt_sha256": "60cdfe64004a0ba5a9aee207bcb089d6d4c81f5ca58169ccdb88a5dfab8146d6",
+  "environment": {
+    "PYTHONPATH": "/tmp/swingset-extension-freeze-20260917-003/src:/Users/skeswa/repos/skeswa/swingset",
+    "PYTHONDONTWRITEBYTECODE": "1"
+  },
+  "files": {
+    "journal/tools/runtime/accept_event_extension.py": "459f9157b04f6449792d1eb6fac1c79885d50107fb4cd4aad84c7192218d3029",
+    "tests/test_event_extension_live_migration.py": "521dcd44320875cadcbd4a6fa586dc56679ca78a146b7a815c2be582c0bcf882"
+  },
+  "files_unchanged": true,
+  "command": [
+    ".venv/bin/pytest",
+    "-c",
+    "/dev/null",
+    "-p",
+    "no:cacheprovider",
+    "-q",
+    "tests/test_event_extension_live_migration.py"
+  ],
+  "exit_code": 0,
+  "stdout": "..........................                                               [100%]\n26 passed in 0.21s\n",
+  "stderr": "",
+  "review_findings": [
+    {
+      "finding": "Operating guards and reviewed inputs previously checked before long retained-file/table hashing, then after migration committed.",
+      "resolution": "Recheck exact source, gate, helper, evidence, external inputs, services and hold directly before _migrate after the final table hash; regression verifies changed input leaves schema14 untouched.",
+      "status": "resolved"
+    }
+  ],
+  "remaining_blockers": [],
+  "production_operations": 0,
+  "network_requests": 0,
+  "scope": "Independent helper review and offline tests; operational validation, deployment, migration and input activation remain separate."
+}

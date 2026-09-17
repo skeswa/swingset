@@ -1,0 +1,195 @@
+........................................................................ [  3%]
+........................F..................F............................ [  6%]
+........................................................................ [  9%]
+........................................................................ [ 13%]
+........................................................................ [ 16%]
+........................................................................ [ 19%]
+........................................................................ [ 22%]
+........................................................................ [ 26%]
+........................................................................ [ 29%]
+........................................................................ [ 32%]
+........................................................................ [ 36%]
+........................................................................ [ 39%]
+........................................................................ [ 42%]
+........................................................................ [ 45%]
+........................................................................ [ 49%]
+........................................................................ [ 52%]
+F....................................................................... [ 55%]
+................................................................F....... [ 59%]
+........................................................................ [ 62%]
+........................................................................ [ 65%]
+........................................................................ [ 68%]
+........................................................................ [ 72%]
+........................................................................ [ 75%]
+........................................................................ [ 78%]
+........................................................................ [ 82%]
+........................................................................ [ 85%]
+........................................................................ [ 88%]
+........................................................................ [ 91%]
+........................................................................ [ 95%]
+........................................................................ [ 98%]
+................................                                         [100%]
+=================================== FAILURES ===================================
+_____ test_source_result_blob_change_forces_actual_witness_reconstruction ______
+
+release_state = namespace(db=<swingset.state.db.Database object at 0x1167bef30>, conn=<sqlite3.Connection object at 0x1160fbd30>, cloc...93/test_source_result_blob_change0/overrides'), hub=<publish.test_recovery.FakeHub object at 0x11683b0e0>, run='run_a')
+
+    def test_source_result_blob_change_forces_actual_witness_reconstruction(release_state):
+        f = release_state
+        manifest = pinned(f)
+        _, source = accepted_witness(manifest)
+        rowid = f.conn.execute(
+            "SELECT rowid FROM source_generations WHERE generation_id=?", (source["generation_id"],)
+        ).fetchone()[0]
+        with f.db.transaction(), validation_scope(f.conn):
+            closure.validate(f.conn, manifest)
+>           with f.conn.blobopen("source_generations", "result_json", rowid, readonly=False) as blob:
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           sqlite3.OperationalError: cannot open indexed column for writing
+
+tests/build/test_closure_validation_scope.py:230: OperationalError
+_____ test_actual_build_binds_witness_and_reuses_only_matching_enumeration _____
+
+release_state = namespace(db=<swingset.state.db.Database object at 0x1165f5220>, conn=<sqlite3.Connection object at 0x1160fb5b0>, cloc...93/test_actual_build_binds_witnes0/overrides'), hub=<publish.test_recovery.FakeHub object at 0x116af3980>, run='run_a')
+
+    def test_actual_build_binds_witness_and_reuses_only_matching_enumeration(release_state):
+        f = release_state
+        from swingset.schedule.event_enumerations import bootstrap
+    
+        while bootstrap(f.db, now=f.clock.now())["may_have_more"]:
+            pass
+        first = service.build_release(f.db, f.bundle, f.clock, f.run)
+        public = json.loads((first.path / "_meta/manifest.json").read_bytes())["release_policy"][
+            "closure"
+        ]
+        assert public["event_coverage"]["digest"]
+        private = closure.hydrate(f.conn, public)
+        assert private["event_coverage"]["entries"]
+        coverage = [
+            r for r in candidate_tables(first.path)["coverage"] if r["scope_kind"] == "source_event"
+        ]
+        assert coverage and any(r["acquired_pages"] is not None for r in coverage)
+        assert any(r["unavailable_pages"] == 0 for r in coverage)
+        assert all(r["unavailable_pages"] in (None, 0) for r in coverage)
+>       assert all(r["unsupported_pages"] is None for r in coverage)
+E       assert False
+E        +  where False = all(<generator object test_actual_build_binds_witness_and_reuses_only_matching_enumeration.<locals>.<genexpr> at 0x115110110>)
+
+tests/build/test_event_coverage.py:166: AssertionError
+_______ test_real_process_crash_leaves_conservative_budget_and_no_facts ________
+
+setup = (PosixPath('/private/var/folders/kc/94jncx6s6pqc8g2g4f2kyvtr0000gn/T/pytest-of-skeswa/pytest-1193/test_real_process_cr...ers/kc/94jncx6s6pqc8g2g4f2kyvtr0000gn/T/pytest-of-skeswa/pytest-1193/test_real_process_crash_leaves0/quarantine', ...})
+tmp_path = PosixPath('/private/var/folders/kc/94jncx6s6pqc8g2g4f2kyvtr0000gn/T/pytest-of-skeswa/pytest-1193/test_real_process_crash_leaves0')
+
+    def test_real_process_crash_leaves_conservative_budget_and_no_facts(setup, tmp_path):
+        state, output, _, record = setup
+        auth = tmp_path / "auth.json"
+        auth.write_text(json.dumps(record))
+        script = """
+    import json, os, sys
+    from pathlib import Path
+    import httpx
+    from journal.tools.admission.fixture_exception import accounting_connection, read_manifest
+    from journal.tools.admission.fixture_transport import FixtureRunner
+    from swingset.clock import FakeClock
+    from swingset.config import Config
+    state, output, auth, manifest, repo = map(Path, sys.argv[1:])
+    with accounting_connection(state) as conn:
+        runner = FixtureRunner(conn, Config({}, {}), FakeClock(), state=state, output=output,
+            manifest=read_manifest(manifest, repo), authorization=json.loads(auth.read_text()),
+            transport=httpx.MockTransport(lambda _: os._exit(77)))
+        runner.run()
+    """
+        with accounting_connection(state) as conn:
+            before = facts(conn)
+        process = subprocess.run(
+            [
+                sys.executable,
+                "-c",
+                script,
+                str(state),
+                str(output),
+                str(auth),
+                str(MANIFEST),
+                str(REPO),
+            ],
+            cwd=REPO,
+            check=False,
+        )
+>       assert process.returncode == 77
+E       AssertionError: assert 0 == 77
+E        +  where 0 = CompletedProcess(args=['/Users/skeswa/repos/skeswa/swingset/.venv/bin/python', '-c', '\nimport json, os, sys\nfrom pat...n/v2-new-source-fixture-targets-2026-09-13.json', '/private/tmp/swingset-extension-freeze-20260917-001'], returncode=0).returncode
+
+tests/test_fixture_exception.py:368: AssertionError
+____ test_process_death_immediately_after_commit_leaves_current_generation _____
+
+source_fixture = namespace(db=<swingset.state.db.Database object at 0x1176610d0>, conn=<sqlite3.Connection object at 0x1169531f0>, corp...x6s6pqc8g2g4f2kyvtr0000gn/T/pytest-of-skeswa/pytest-1193/test_process_death_immediately0/overrides/event_aliases.csv'))
+tmp_path = PosixPath('/private/var/folders/kc/94jncx6s6pqc8g2g4f2kyvtr0000gn/T/pytest-of-skeswa/pytest-1193/test_process_death_immediately0')
+
+    def test_process_death_immediately_after_commit_leaves_current_generation(source_fixture, tmp_path):
+        import sqlite3
+        import subprocess
+        import sys
+        from contextlib import closing
+        from pathlib import Path
+    
+        from swingset.state import derivations
+        from swingset.state.work import WorkUnit
+    
+        f = source_fixture
+        clone = tmp_path / "after-commit-process"
+        clone.mkdir()
+        with closing(sqlite3.connect(clone / "state.sqlite")) as target:
+            f.conn.backup(target)
+        code = """
+    import os,sys
+    from pathlib import Path
+    sys.path.insert(0, str(Path.cwd() / 'tests'))
+    from test_h15_acceptance import scope_rows
+    from swingset.project.contests import project_event
+    from swingset.project.writer import replace_scope
+    from swingset.state import derivations
+    from swingset.state.db import open_database
+    from swingset.state.work import WorkUnit
+    state,now,run=sys.argv[1:]
+    with open_database(Path(state)) as db:
+        unit=WorkUnit('project','event','event-a')
+        with db.transaction():
+            captured=derivations.capture(db.connection,unit,now=now)
+            replace_scope(db.connection,scope_kind='event',scope_id='event-a',projection=project_event(db.connection,'event-a',now,run),run_id=run,projected_at=now)
+            derivations.complete(db.connection,captured,rows=scope_rows(db.connection,'event-a'),now=now,run_id=run)
+        os._exit(73)
+    """
+        result = subprocess.run(
+            [sys.executable, "-c", code, str(clone), f.corpus.clock.now().isoformat(), f.corpus.run],
+            cwd=Path(__file__).parents[1],
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        assert result.returncode == 73, result.stderr
+>       with open_database(clone) as restarted:
+             ^^^^^^^^^^^^^^^^^^^^
+
+tests/test_h15_acceptance.py:565: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/swingset/state/db.py:169: in open_database
+    _migrate(database)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+database = <swingset.state.db.Database object at 0x116b70050>
+
+    def _migrate(database: Database) -> None:
+        current = int(database.connection.execute("PRAGMA user_version").fetchone()[0])
+        migrations = Path(__file__).with_name("migrations")
+        if current > SCHEMA_VERSION:
+>           raise RuntimeError(f"database schema {current} is newer than supported {SCHEMA_VERSION}")
+E           RuntimeError: database schema 28 is newer than supported 27
+
+src/swingset/state/db.py:180: RuntimeError
+=========================== short test summary info ============================
+FAILED tests/build/test_closure_validation_scope.py::test_source_result_blob_change_forces_actual_witness_reconstruction
+FAILED tests/build/test_event_coverage.py::test_actual_build_binds_witness_and_reuses_only_matching_enumeration
+FAILED tests/test_fixture_exception.py::test_real_process_crash_leaves_conservative_budget_and_no_facts
+FAILED tests/test_h15_acceptance.py::test_process_death_immediately_after_commit_leaves_current_generation
+4 failed, 2188 passed in 473.96s (0:07:53)

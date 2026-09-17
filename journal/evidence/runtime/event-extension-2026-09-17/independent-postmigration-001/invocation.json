@@ -1,0 +1,16 @@
+{
+  "command": [
+    "orb",
+    "-m",
+    "swingset",
+    "-u",
+    "root",
+    "/var/lib/swingset/venv/bin/python",
+    "-B",
+    "-"
+  ],
+  "exit_code": 0,
+  "verifier_sha256": "224b7824476b25cf42ec948c6aeeba6aae49939562527fcb96c65d8b871e93fe",
+  "stdout_sha256": "037a074558cf3e3108f703e42ef83a3c068024928d4163128e75d58cac242d8b",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}

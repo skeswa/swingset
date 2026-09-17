@@ -1,0 +1,71 @@
+--- frozen002/tests/test_event_extension_acceptance.py
++++ frozen003/tests/test_event_extension_acceptance.py
+@@ -22,7 +22,7 @@
+ from swingset.build.files import sha256_file
+ from swingset.build.schema import SCHEMAS
+ from swingset.fetch.controls import issue
+-from swingset.fetch.politeness import Gate, Paused
++from swingset.fetch.politeness import Gate, Paused, Wait
+ from swingset.schedule import event_publication
+ from swingset.schedule.event_history import report as history
+ from swingset.schedule.fairness import servicing
+@@ -99,6 +99,24 @@
+     resumed = select(f)
+     assert resumed is not None and resumed.key == second.watch_id
+     assert resumed.turn.owner_key == choice.turn.owner_key
++    # A lost worker's grant timestamp is not dispatch/completion evidence. The
++    # resumed owner first waits the retained full host gap, without another debit.
++    with servicing(resumed, run_id=f.run):
++        waiting, action = issue(
++            f.db,
++            Gate(f.db.connection, f.config, f.clock),
++            f.clock,
++            host=resumed.host,
++            source="wsdc_calendar",
++            watch=SimpleNamespace(watch_id=resumed.key, kind="round"),
++            page_kind="wsdc_calendar.events",
++            crawl_delay=0,
++            sweep=False,
++        )
++    assert waiting == Wait(5) and action is None
++    assert dict(f.db.connection.execute("SELECT day,requests FROM host_budget WHERE host='example.test'")) == {old_day: 1}
++    assert f.db.connection.execute("SELECT count(*) FROM scheduler_event_requests").fetchone()[0] == 1
++    f.clock.sleep(waiting.seconds)
+     debit(f, resumed)
+     new_day = f.clock.now().date().isoformat()
+     assert dict(
+--- frozen002/tests/test_event_service.py
++++ frozen003/tests/test_event_service.py
+@@ -142,6 +142,8 @@
+     from test_event_turns import add
+ 
+     from swingset.clock import FakeClock
++    from swingset.schedule.fairness import record_request
++    from swingset.state.controls import admission, settle
+ 
+     with monkeypatch.context() as legacy:
+         legacy.setattr(state_db, "SCHEMA_VERSION", 17)
+@@ -167,7 +169,22 @@
+                 run=database.start_run(clock.now()),
+             )
+             add(f, "legacy")
+-            debit(f, select(f))
++            choice = select(f)
++            # Populate a retained schema17 receipt through its accounting seam.
++            # Current fetching correctly refuses that unsupported spacing schema;
++            # this test concerns read-only interpretation of historical receipts.
++            with servicing(choice, run_id=f.run), admission(
++                database,
++                action_id="retained-schema17-request",
++                action_kind="request",
++                scope=choice.scope,
++                now=clock.now(),
++            ):
++                conn = database.connection
++                conn.execute("INSERT OR IGNORE INTO hosts(host) VALUES (?)", (choice.host,))
++                conn.execute("INSERT INTO host_budget VALUES (?,?,1,0)", (choice.host, clock.now().date().isoformat()))
++                record_request(conn, f.config, action_id="retained-schema17-request", host=choice.host, watch_id=choice.key, source="wsdc_calendar", now=clock.now())
++                settle(conn, "retained-schema17-request", now=clock.now(), outcome="Ok")
+     conn = sqlite3.connect((tmp_path / "state.sqlite").as_uri() + "?mode=ro", uri=True)
+     conn.row_factory = sqlite3.Row
+     try:

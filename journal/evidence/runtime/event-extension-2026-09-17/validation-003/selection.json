@@ -1,0 +1,14 @@
+{
+  "source": "/nix/store/dx0cyzvd8d91rf29v21sakbr7l5bwxnz-source",
+  "source_receipt_sha256": "60cdfe64004a0ba5a9aee207bcb089d6d4c81f5ca58169ccdb88a5dfab8146d6",
+  "predecessor_receipt_sha256": "ab09a5c859384b7a39267a81660f81252dea14c9d9462a6545e1eec8f15f2f91",
+  "selected_changes": [
+    "tests/test_event_extension_acceptance.py",
+    "tests/test_event_service.py"
+  ],
+  "other_files_identical": true,
+  "vm_inventory_verified": true,
+  "runtime_changes_since_frozen002": 0,
+  "deployed": false,
+  "published": false
+}

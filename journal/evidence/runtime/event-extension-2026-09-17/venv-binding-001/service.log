@@ -1,0 +1,10 @@
+Sep 17 17:31:38 swingset systemd[1]: Started [systemd-run] /nix/store/2swgs700gln1w9llg54wmfp4sagp09xq-uv-0.9.30/bin/uv sync --project /nix/store/dx0cyzvd8d91rf29v21sakbr7l5bwxnz-source --offline --frozen --no-dev.
+Sep 17 17:31:39 swingset uv[116343]:    Building swingset @ file:///nix/store/dx0cyzvd8d91rf29v21sakbr7l5bwxnz-source
+Sep 17 17:31:39 swingset uv[116343]:       Built swingset @ file:///nix/store/dx0cyzvd8d91rf29v21sakbr7l5bwxnz-source
+Sep 17 17:31:39 swingset uv[116343]: Prepared 1 package in 166ms
+Sep 17 17:31:39 swingset uv[116343]: Uninstalled 1 package in 1ms
+Sep 17 17:31:39 swingset uv[116343]: Installed 1 package in 0.69ms
+Sep 17 17:31:39 swingset uv[116343]:  - swingset==0.1.0 (from file:///nix/store/z689qy41inndill3d92ym8im852x3649-source)
+Sep 17 17:31:39 swingset uv[116343]:  + swingset==0.1.0 (from file:///nix/store/dx0cyzvd8d91rf29v21sakbr7l5bwxnz-source)
+Sep 17 17:31:39 swingset systemd[1]: swingset-extension-venv-bind-20260917-001.service: Deactivated successfully.
+Sep 17 17:31:39 swingset systemd[1]: swingset-extension-venv-bind-20260917-001.service: Consumed 251ms CPU time, 108.1M memory peak, 73.4M read from disk, 104K written to disk.

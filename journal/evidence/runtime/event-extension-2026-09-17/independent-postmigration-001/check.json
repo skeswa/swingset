@@ -1,0 +1,174 @@
+{
+  "format": "event-extension-independent-postmigration-v1",
+  "finished_at": "2026-09-17T17:06:23.010331+00:00",
+  "passed": true,
+  "checks": {
+    "closed_migration_passed": true,
+    "receipt_pin": true,
+    "schema_transition": true,
+    "all_71_predecessor_tables_preserved": true,
+    "gate_and_helper_binding": true,
+    "source_receipt_binding": true,
+    "schema_module_binding": true,
+    "evidence_hash_backup": true,
+    "evidence_passed_backup": true,
+    "evidence_hash_migration": true,
+    "evidence_passed_migration": true,
+    "evidence_hash_restore": true,
+    "evidence_passed_restore": true,
+    "evidence_hash_validation": true,
+    "evidence_passed_validation": true,
+    "evidence_hash_service_binding": true,
+    "evidence_passed_service_binding": true,
+    "evidence_hash_pytest_log": true,
+    "evidence_hash_ruff_log": true,
+    "evidence_hash_mypy_log": true,
+    "predecessor_bound_to_migration": true,
+    "predecessor_bound_to_restore": true,
+    "migration_performed_no_other_operations": true,
+    "guarded_before": true,
+    "live_schema_28": true,
+    "live_table_inventory": true,
+    "live_preserved_meta": true,
+    "live_preserved_hosts": true,
+    "live_preserved_host_budget": true,
+    "live_preserved_operator_pauses": true,
+    "live_preserved_control_state": true,
+    "live_preserved_control_events": true,
+    "live_preserved_execution_admissions": true,
+    "no_unsettled_admissions": true,
+    "archive_paid_usage_preserved": true,
+    "no_spacing_baseline_applied": true,
+    "read_connection_made_no_changes": true,
+    "acknowledged_baseline": true,
+    "checkpoint_manifest_pin": true,
+    "baseline_ack_file_preserved": true,
+    "guarded_after": true,
+    "migration_receipt_unchanged": true
+  },
+  "receipt_sha256": "9ed991d1389d36d36aa541f45fcd3bcdd2367b18206a429a357d62f079e8b636",
+  "source": "/nix/store/dx0cyzvd8d91rf29v21sakbr7l5bwxnz-source",
+  "schema": 28,
+  "predecessor_table_count": 71,
+  "current_table_count": 116,
+  "guards": {
+    "systems": {
+      "/run/current-system": "/nix/store/lzwkabfmbz46d05yi5k41nq56i7jjh74-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+      "/nix/var/nix/profiles/system": "/nix/store/lzwkabfmbz46d05yi5k41nq56i7jjh74-nixos-system-swingset-lxc-25.11.20260630.b6018f8"
+    },
+    "units": {
+      "swingset-cycle.service": "inactive",
+      "swingset-cycle.timer": "inactive",
+      "swingset-backup.service": "inactive",
+      "swingset-backup.timer": "inactive",
+      "swingset-summary.service": "inactive",
+      "swingset-summary.timer": "inactive"
+    },
+    "operator_hold_sha256": "965468bb03ba65b6d1d4950ab8e85c09c8f2f2a323461b7a3f2b6177bba5c638"
+  },
+  "targeted_table_receipts": {
+    "meta": {
+      "rows": 14,
+      "sha256": "35215a3fd137569736d3381cfa597a90ae471a2abbeec3fc40959a333a2d37cf",
+      "columns": [
+        "key",
+        "value"
+      ]
+    },
+    "hosts": {
+      "rows": 7,
+      "sha256": "e559a8c2f51fac72a3d443eea81d423b371bb3411a1045963ba81f38bed74f49",
+      "columns": [
+        "host",
+        "next_allowed_at",
+        "paused_until",
+        "pause_reason",
+        "pause_streak",
+        "robots_sha256",
+        "robots_fetched_at",
+        "robots_status"
+      ]
+    },
+    "host_budget": {
+      "rows": 25,
+      "sha256": "dd96d72a882c54b40c7640855d882686eda53fe46c4770c21c13f5419e46c021",
+      "columns": [
+        "host",
+        "day",
+        "requests",
+        "bytes"
+      ]
+    },
+    "operator_pauses": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "columns": [
+        "scope_kind",
+        "scope_id",
+        "until_at",
+        "reason",
+        "pause_id",
+        "actor",
+        "control_revision",
+        "created_at"
+      ]
+    },
+    "control_state": {
+      "rows": 1,
+      "sha256": "636cbe06ddc482db3f6385cb0684bac684da870bbe68a86ac094ea15f8425514",
+      "columns": [
+        "singleton",
+        "revision"
+      ]
+    },
+    "control_events": {
+      "rows": 2,
+      "sha256": "e9eb965312af30d2ccfa4c597ba688f380a10207429dd7cc25ddb68b5994ff88",
+      "columns": [
+        "event_id",
+        "control_revision",
+        "pause_id",
+        "scope_kind",
+        "scope_id",
+        "action",
+        "actor",
+        "reason",
+        "until_at",
+        "occurred_at"
+      ]
+    },
+    "execution_admissions": {
+      "rows": 35010,
+      "sha256": "5deb3831b8fa3e530b37f8546fe45ceb96f3121b2c113fab38f3e48b1dfff855",
+      "columns": [
+        "action_id",
+        "action_kind",
+        "admitted_at",
+        "control_revision",
+        "run_id",
+        "work_attempt_id",
+        "candidate_id",
+        "host",
+        "all_sources",
+        "all_kinds",
+        "state",
+        "settled_at",
+        "outcome"
+      ]
+    }
+  },
+  "archive_latest_paid_usage": [
+    "2026-09-17",
+    10,
+    2934701
+  ],
+  "baseline_candidate": "cand_8f31cad7226643ae",
+  "baseline_commit": "2a6c7dc744fb36eabb5163c0a527d787d3721f4f",
+  "source_requests": 0,
+  "production_writes": 0,
+  "limits": [
+    "All 71 predecessor table preservation is independently compared from pinned closed receipt inventories; only seven critical live tables are freshly rehashed.",
+    "Acknowledged local public baseline checked; no network remote-head query performed.",
+    "No source fetch, migration, input acceptance, spacing baseline or worker activation performed."
+  ]
+}

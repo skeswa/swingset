@@ -1,0 +1,32 @@
+{
+  "format": "event-extension-service-binding-v1",
+  "passed": true,
+  "finished_at": "2026-09-17T16:27:33.758585+00:00",
+  "source": "/nix/store/dx0cyzvd8d91rf29v21sakbr7l5bwxnz-source",
+  "source_receipt_sha256": "60cdfe64004a0ba5a9aee207bcb089d6d4c81f5ca58169ccdb88a5dfab8146d6",
+  "system": "/nix/store/lzwkabfmbz46d05yi5k41nq56i7jjh74-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+  "unit_hashes": {
+    "swingset-cycle.service": "169af222f587c62ebd667036b835eb51e20cc6fcffa466737ebd10567688d09a",
+    "swingset-cycle.timer": "a5118a8743071cbcb531163dc3e9f61fdddd9b7f2aba2927310ab316d99bac24",
+    "swingset-backup.service": "ef8f8b7cd2a71afc590f86573b275dd1540104e29eadfa3bed6c10c22b88b32c",
+    "swingset-backup.timer": "28c7f714b7288bd6f58ef9dc1916c09c8178a758053fef6cb63e803baa742792",
+    "swingset-summary.service": "de06efa1f69ccf0cf46f3a91227d34e6ef1e45a172ee6bec75dc19badfe1a045",
+    "swingset-summary.timer": "5f2613b3cde179b98cc9745cf8de152ba117e87b53047aa33f8c18aa53d5908a"
+  },
+  "package": "/nix/store/dx0f5m41y5x05sp6vq116vxb8yfr5cxh-swingset",
+  "package_script_sha256": "b42ca2d722db5f00f77e40907eb78a599fd49789b33ee10976d6ee1e1630c8b4",
+  "external_overrides_match": true,
+  "hold_conditions": true,
+  "backup_disk_tmp": true,
+  "external_files": {
+    "/Users/skeswa/repos/skeswa/swingset/overrides/event_aliases.csv": "2a0ef9ae578fe194a512f490b6cb80d99d6b78133b57e5409c0f52dad575d9da",
+    "/Users/skeswa/repos/skeswa/swingset/overrides/nicknames.csv": "468106077a4b1aac34289b705b16e38f7bc29de28376d5db052d84a3c5e50dcf",
+    "/Users/skeswa/repos/skeswa/swingset/overrides/series_aliases.csv": "92366188e4295b901772dbe1cc3e1f12116fab46be9765a577a8845e31815642",
+    "/Users/skeswa/repos/skeswa/swingset/overrides/identity_overrides.csv": "e1487f143891001bc7ddb16cfe6e32003e1ac95628fcaa3a03849e3806f6a246",
+    "/Users/skeswa/repos/skeswa/swingset/overrides/suppressions.csv": "2362faa4e3e099c1d307b9a72182e016f60818ab067135be75feb53bccd61fd9",
+    "/Users/skeswa/repos/skeswa/swingset/overrides/source_urls.csv": "cce22c27665b53c67291a41dc18e99989b6b3eab4fe817aeb5e902e6f251e9a1"
+  },
+  "input_acceptance": false,
+  "deployed": false,
+  "published": false
+}

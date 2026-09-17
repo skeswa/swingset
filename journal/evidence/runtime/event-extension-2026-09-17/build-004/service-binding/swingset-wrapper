@@ -1,0 +1,17 @@
+#!/nix/store/7ls7m3jyp74xb0ahnybm2pk4s2pvnk3n-bash-5.3p3/bin/bash
+set -o errexit
+set -o nounset
+set -o pipefail
+
+export PATH="/nix/store/2swgs700gln1w9llg54wmfp4sagp09xq-uv-0.9.30/bin:/nix/store/s5rij9y3vb4gxbh0iqz3k0ndmsac7h02-python3-3.12.13/bin:$PATH"
+
+export SWINGSET_REVISION=uncommitted:c0dpchrf4b6hkxlc2yn4jm1v96ld0xd2-source
+export UV_PYTHON=/nix/store/s5rij9y3vb4gxbh0iqz3k0ndmsac7h02-python3-3.12.13/bin/python3.12
+export UV_PYTHON_DOWNLOADS=never
+export SWINGSET_CONFIG_DIR=/nix/store/c0dpchrf4b6hkxlc2yn4jm1v96ld0xd2-source/config
+export SWINGSET_OVERRIDES_DIR="${SWINGSET_OVERRIDES_DIR:-/nix/store/c0dpchrf4b6hkxlc2yn4jm1v96ld0xd2-source/overrides}"
+export UV_PROJECT_ENVIRONMENT="${UV_PROJECT_ENVIRONMENT:-/var/lib/swingset/venv}"
+export UV_CACHE_DIR="${UV_CACHE_DIR:-/var/lib/swingset/uv-cache}"
+export LD_LIBRARY_PATH=/nix/store/x03dxqva88ax4w45hyms977zv3f8a8i9-gcc-14.3.0-lib/lib:/nix/store/5zq11bibj72nvrhlx9fm0xl0xhxd6388-zlib-1.3.2/lib
+exec uv run --project /nix/store/c0dpchrf4b6hkxlc2yn4jm1v96ld0xd2-source --frozen --no-dev swingset "$@"
+
