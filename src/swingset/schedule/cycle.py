@@ -373,13 +373,17 @@ def run_cycle(
                 )
             return fetcher
 
-        def acquisition(until: datetime) -> bool:
+        def _acquisition(until: datetime) -> bool:
             from swingset.history.backfill import dispatch_one, offers
+
+            from .event_timing_observer import archive_offers
 
             began = clock.now()
             issued = False
             offered_pages = (
-                offers(database, bundle.config, clock, run_id=run_id) if not stop() else ()
+                offers(database, bundle.config, clock, run_id=run_id, timing=archive_offers())
+                if not stop()
+                else ()
             )
             extra: list[WatchChoice] = []
             for offered in offered_pages:
@@ -408,6 +412,9 @@ def run_cycle(
                     )
                 )
             while not stop() and clock.now() < until:
+                from .event_timing_observer import checkpoint, resume
+
+                checkpoint()
                 with database.transaction() as conn:
                     prepare_event_turns(
                         conn,
@@ -417,6 +424,7 @@ def run_cycle(
                         extra_choices=extra,
                         run_id=run_id,
                     )
+                resume()
                 choice = next_watch(
                     database.connection,
                     bundle.config,
@@ -497,6 +505,12 @@ def run_cycle(
                 clock.now() - began
             ).total_seconds()
             return issued
+
+        def acquisition(until: datetime) -> bool:
+            from .event_timing_observer import Observer, observing
+
+            with observing(Observer(database, client(), clock, run_id=run_id, deadline=until)):
+                return _acquisition(until)
 
         def settle_offline() -> None:
             if (

@@ -362,7 +362,10 @@ and per-refresh counts. It rotates through eight events with 64-member and
 64-watch bounds. Oversized events remain unassessed. Diagnostic bookkeeping can
 record a source or global pause without starting paused source work. The last
 saved change is not proof that its conditions held continuously afterward;
-eligible service age remains unknown. See
+eligible service age remains unknown. Bounded ordinary-acquisition timing is
+now implemented locally under the [timing contract](event-timing.md). Historical
+dispatch, interpretation waiting and whole-event eligible age remain outside
+that measured scope. See
 [D-0019](../../journal/decisions/0019-retain-observed-event-blocker-changes.md).
 
 For a fixed set of eligible events and sufficient allocated capacity, fake-clock

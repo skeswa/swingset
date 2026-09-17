@@ -323,8 +323,11 @@ request-service history, bounded blocker-change observations, and acknowledged
 release coverage are implemented in the working source. Recorded successful
 outputs, sampled verified progress, and bounded release-local stage counts are
 also implemented locally. Bounded sampled event accounting is implemented locally;
-instantaneous fleet verification, complete progress history, eligible time, and
-eligible-work alarms remain pending. The catalog
+instantaneous fleet verification, unobserved lifetime history, historical dispatch
+eligibility and whole-event eligible-work alarms remain pending. Bounded ordinary-acquisition
+timing and diagnostic alarms are implemented locally under the
+[timing contract](event-timing.md); production objectives remain unset pending
+measurement. The catalog
 does not hash every artifact during ordinary doctor refreshes; use
 `--source SOURCE --source-event SOURCE_REF` for a fresh local check. Unknown
 values remain null. Deployment is tracked in [current status](../status.md).

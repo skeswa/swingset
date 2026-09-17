@@ -24,6 +24,8 @@ class SchedulerConfig:
     metadata_recovery_attempts: int = 3
     metadata_recheck_seconds: float = 2592000
     unavailable_recheck_seconds: float = 7776000
+    event_acquisition_service_alarm_seconds: float | None = None
+    event_acquisition_progress_alarm_seconds: float | None = None
     event_turn_requests: int = 4
     listed_page_percent: int = 50
     event_pressure_high: int = 100
@@ -35,6 +37,15 @@ class SchedulerConfig:
     def __post_init__(self) -> None:
         for field in fields(self):
             value = getattr(self, field.name)
+            if (
+                field.name
+                in {
+                    "event_acquisition_service_alarm_seconds",
+                    "event_acquisition_progress_alarm_seconds",
+                }
+                and value is None
+            ):
+                continue
             if (
                 isinstance(value, bool)
                 or not isinstance(value, int | float)

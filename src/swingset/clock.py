@@ -8,9 +8,13 @@ from typing import Protocol
 class Clock(Protocol):
     def now(self) -> datetime: ...
     def sleep(self, seconds: float) -> None: ...
+    def monotonic(self) -> float: ...
 
 
 class SystemClock:
+    def monotonic(self) -> float:
+        return time.monotonic()
+
     def now(self) -> datetime:
         return datetime.now(UTC)
 
@@ -24,10 +28,15 @@ class FakeClock:
         if self.current.tzinfo is None:
             raise ValueError("clock requires timezone-aware UTC time")
         self.sleeps: list[float] = []
+        self.elapsed = 0.0
+
+    def monotonic(self) -> float:
+        return self.elapsed
 
     def now(self) -> datetime:
         return self.current
 
     def sleep(self, seconds: float) -> None:
         self.sleeps.append(seconds)
+        self.elapsed += max(0, seconds)
         self.current += timedelta(seconds=max(0, seconds))

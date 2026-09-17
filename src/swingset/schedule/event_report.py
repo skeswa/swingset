@@ -85,6 +85,11 @@ def report(
     )
     if source is not None and source_ref is not None:
         result["detail"] = inventory(conn, archive, source=source, source_ref=source_ref, now=now)
+        from .event_timing import report as timing_report
+
+        result["detail"]["acquisition_timing"] = timing_report(
+            conn, source=source, source_ref=source_ref, now=now, operator_hold=operator_hold
+        )
         result["detail"]["service_history"] = service_report(
             conn, source=source, source_ref=source_ref
         )

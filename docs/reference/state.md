@@ -361,6 +361,11 @@ unavailable origin response, or explicit unsupported proof, with separate counts
 This creates no successful stage operation, progress receipt, retirement authority
 or publication acknowledgment.
 
+Schema 26 retains bounded acquisition timing episodes, closed counters, per-run
+summaries and the observation cursor. See [acquisition timing](event-timing.md)
+for interval coverage, invalidation and unknown history. Timing is diagnostic;
+it cannot authorize requests or establish event completion.
+
 ### Local enumeration and verification interfaces
 
 Migration 16 adds `source_event_inventory` current pointers, immutable

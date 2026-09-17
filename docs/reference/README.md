@@ -7,13 +7,14 @@ is the entry point for implementation and operating evidence.
 
 ## Collection and interpretation
 
-| Rule                                                | Owner                              |
-| --------------------------------------------------- | ---------------------------------- |
-| Requests, host limits, responses, and archive       | [Fetching](fetching.md)            |
-| Site-specific behavior and permitted host overrides | [Source guides](sources/README.md) |
-| Work selection, polling, and event turns            | [Scheduling](scheduling.md)        |
-| Historical date boundary and archive coverage       | [Backfill](backfill.md)            |
-| Parser inputs, outputs, and source admission        | [Parsing](parsing.md)              |
+| Rule                                                 | Owner                                 |
+| ---------------------------------------------------- | ------------------------------------- |
+| Requests, host limits, responses, and archive        | [Fetching](fetching.md)               |
+| Site-specific behavior and permitted host overrides  | [Source guides](sources/README.md)    |
+| Work selection, polling, and event turns             | [Scheduling](scheduling.md)           |
+| Observed acquisition intervals and diagnostic alarms | [Acquisition timing](event-timing.md) |
+| Historical date boundary and archive coverage        | [Backfill](backfill.md)               |
+| Parser inputs, outputs, and source admission         | [Parsing](parsing.md)                 |
 
 ## Dataset and identity
 
