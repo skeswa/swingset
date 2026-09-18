@@ -1,0 +1,502 @@
+{
+  "database_unchanged": true,
+  "findings": [
+    "Every page is accounted for by dbstat, the free list, and reserved pages.",
+    "File size 5016936448 bytes; bytes in use 5016932352; free list 0 bytes.",
+    "Generations declare 1669989 output rows and that many read back.",
+    "Output rows 1669989 carry 502109081 payload bytes; distinct payload digests are at most 1669607 (0.9998 of rows).",
+    "Largest objects: derivation_rows 873897984 bytes, source_generations 720551936 bytes, derivation_dependency_sets 429436928 bytes.",
+    "Source-generation JSON carries 686890362 logical UTF-8 bytes; report_json is largest at 386379672 logical bytes. These are not physical SQLite page sizes.",
+    "Every gate passed."
+  ],
+  "finished_at": "2026-09-18T19:10:03.172300+00:00",
+  "format": "state-storage-measurement-receipt-v3",
+  "gates": {
+    "backup_timing": null,
+    "declared_rows_match": true,
+    "page_accounting": true,
+    "passed": true,
+    "rows_all_name_a_generation": true
+  },
+  "inputs": {
+    "code_revision": "e03f14f0dbc65f47b7d9b9f95da6b2a97f6c2beb",
+    "command": [
+      "/Users/skeswa/repos/skeswa/swingset/journal/tools/runtime/measure_state_storage.py",
+      "--state",
+      "/var/tmp/swingset-schema29-restore-20260917-004/restored-state",
+      "--output",
+      "/Users/skeswa/repos/skeswa/swingset/journal/evidence/runtime/state-storage-measurement-2026-09-18/report-003.json",
+      "--receipt",
+      "/Users/skeswa/repos/skeswa/swingset/journal/evidence/runtime/state-storage-measurement-2026-09-18/receipt-003.json",
+      "--hash-database",
+      "--code-revision",
+      "e03f14f0dbc65f47b7d9b9f95da6b2a97f6c2beb"
+    ],
+    "database_bytes": 5016936448,
+    "database_path": "/var/tmp/swingset-schema29-restore-20260917-004/restored-state/state.sqlite",
+    "database_sha256": "5840f97da69c42adb6e60132418c64c04505ae043a650723c84ff38644c64265",
+    "schema_version": 29,
+    "shm_bytes": 0,
+    "source_checkpoint_manifest_sha256": null,
+    "source_kind": "state",
+    "state_dir": "/var/tmp/swingset-schema29-restore-20260917-004/restored-state",
+    "wal_bytes": 0
+  },
+  "limits": [
+    "Measures one disposable copy at one moment. It is not a growth rate and not a forecast.",
+    "Distinct payload digests are counted per stage and unit kind. The totals figure sums those sets, so it is an upper bound on the whole-database distinct count: a payload shared by two scopes is counted twice.",
+    "dbstat reports bytes that pages hold, not the file size. A file keeps freed pages on its free list, so bytes in use and file size are reported separately.",
+    "Unverified: that SQLite keeps its reserved lock page off the free list. The accounting check allows exactly one such page in a database larger than 1 GiB and reports the difference.",
+    "Declared row counts come from derivation_generations.row_count; readable rows are counted by streaming derivation_rows. A generation whose payload bytes are gone declares rows that cannot be read, so the two are reported separately and compared.",
+    "Output rows are read through derivation_rows, which is a table before the payload split and a view over derivation_row_refs and derivation_payloads after it. The report says which shape it found; payload bytes are the bytes the rows name, not the bytes stored.",
+    "Source-generation JSON column sizes are logical UTF-8 byte counts, not physical SQLite page sizes or predicted savings. Table and index page sizes come separately from dbstat.",
+    "Index physical bytes come from dbstat. Index definitions, columns, expressions, sort order, collations, uniqueness, origins, and partial flags come from SQLite schema pragmas.",
+    "Backup timing is one run on one machine with a cold or warm cache that is not controlled. Treat it as an order of magnitude, not a service level.",
+    "Timing a held checkpoint restores it and then backs up the restored tree, so the restore figure includes verifying the source and the backup figure covers a real state directory. Timing a plain state directory does the reverse. The report says which order ran.",
+    "Nothing here reads production, publishes, or uses the network."
+  ],
+  "network_requests": 0,
+  "production_operations": 0,
+  "results": {
+    "accounted": true,
+    "backup_timing": null,
+    "costly_index_profiles": [
+      {
+        "indexes": [
+          {
+            "key_columns": [
+              {
+                "collation": "BINARY",
+                "column_id": 0,
+                "descending": false,
+                "kind": "column",
+                "name": "generation_id"
+              },
+              {
+                "collation": "BINARY",
+                "column_id": 1,
+                "descending": false,
+                "kind": "column",
+                "name": "ordinal"
+              }
+            ],
+            "name": "sqlite_autoindex_derivation_rows_1",
+            "origin": "pk",
+            "partial": false,
+            "physical_bytes": 150556672,
+            "unique": true
+          },
+          {
+            "key_columns": [
+              {
+                "collation": "BINARY",
+                "column_id": 0,
+                "descending": false,
+                "kind": "column",
+                "name": "generation_id"
+              },
+              {
+                "collation": "BINARY",
+                "column_id": 2,
+                "descending": false,
+                "kind": "column",
+                "name": "table_name"
+              },
+              {
+                "collation": "BINARY",
+                "column_id": 3,
+                "descending": false,
+                "kind": "column",
+                "name": "record_key"
+              }
+            ],
+            "name": "sqlite_autoindex_derivation_rows_2",
+            "origin": "u",
+            "partial": false,
+            "physical_bytes": 342245376,
+            "unique": true
+          }
+        ],
+        "kind": "table",
+        "physical_index_bytes": 492802048,
+        "physical_table_bytes": 873897984,
+        "present": true,
+        "table": "derivation_rows"
+      },
+      {
+        "indexes": [],
+        "kind": null,
+        "present": false,
+        "table": "derivation_row_refs"
+      },
+      {
+        "indexes": [],
+        "kind": null,
+        "present": false,
+        "table": "derivation_payloads"
+      },
+      {
+        "indexes": [
+          {
+            "key_columns": [
+              {
+                "collation": "BINARY",
+                "column_id": 9,
+                "descending": false,
+                "kind": "column",
+                "name": "previous_generation_id"
+              }
+            ],
+            "name": "source_generations_previous_idx",
+            "origin": "c",
+            "partial": false,
+            "physical_bytes": 299008,
+            "unique": false
+          },
+          {
+            "key_columns": [
+              {
+                "collation": "BINARY",
+                "column_id": -2,
+                "descending": false,
+                "kind": "expression",
+                "name": null
+              }
+            ],
+            "name": "source_generations_retained_source",
+            "origin": "c",
+            "partial": false,
+            "physical_bytes": 675840,
+            "unique": false
+          },
+          {
+            "key_columns": [
+              {
+                "collation": "BINARY",
+                "column_id": 12,
+                "descending": false,
+                "kind": "column",
+                "name": "run_id"
+              }
+            ],
+            "name": "source_generations_run_idx",
+            "origin": "c",
+            "partial": false,
+            "physical_bytes": 999424,
+            "unique": false
+          },
+          {
+            "key_columns": [
+              {
+                "collation": "BINARY",
+                "column_id": 13,
+                "descending": false,
+                "kind": "column",
+                "name": "state"
+              },
+              {
+                "collation": "BINARY",
+                "column_id": 2,
+                "descending": false,
+                "kind": "column",
+                "name": "page_kind"
+              }
+            ],
+            "name": "source_generations_state_idx",
+            "origin": "c",
+            "partial": false,
+            "physical_bytes": 1355776,
+            "unique": false
+          },
+          {
+            "key_columns": [
+              {
+                "collation": "BINARY",
+                "column_id": 1,
+                "descending": false,
+                "kind": "column",
+                "name": "unit_key"
+              },
+              {
+                "collation": "BINARY",
+                "column_id": 11,
+                "descending": false,
+                "kind": "column",
+                "name": "created_at"
+              },
+              {
+                "collation": "BINARY",
+                "column_id": 0,
+                "descending": false,
+                "kind": "column",
+                "name": "generation_id"
+              }
+            ],
+            "name": "source_generations_unit_idx",
+            "origin": "c",
+            "partial": false,
+            "physical_bytes": 4710400,
+            "unique": false
+          },
+          {
+            "key_columns": [
+              {
+                "collation": "BINARY",
+                "column_id": 0,
+                "descending": false,
+                "kind": "column",
+                "name": "generation_id"
+              }
+            ],
+            "name": "sqlite_autoindex_source_generations_1",
+            "origin": "pk",
+            "partial": false,
+            "physical_bytes": 2826240,
+            "unique": true
+          }
+        ],
+        "kind": "table",
+        "physical_index_bytes": 10866688,
+        "physical_table_bytes": 720551936,
+        "present": true,
+        "table": "source_generations"
+      }
+    ],
+    "derivation_rows_kind": "table",
+    "derivation_scopes_truncated": false,
+    "derivation_totals": {
+      "declared_row_count": 1669989,
+      "distinct_payload_sha256_upper_bound": 1669607,
+      "distinct_to_total_rows_upper_bound": 0.9997712559783328,
+      "generations": 34987,
+      "payload_bytes": 502109081,
+      "rows": 1669989
+    },
+    "derivations_by_scope": [
+      {
+        "declared_row_count": 1,
+        "distinct_payload_sha256": 1,
+        "distinct_to_total_rows": 1.0,
+        "generations": 1,
+        "payload_bytes": 265,
+        "rows": 1,
+        "stage": "build",
+        "unit_kind": "release"
+      },
+      {
+        "declared_row_count": 408988,
+        "distinct_payload_sha256": 408988,
+        "distinct_to_total_rows": 1.0,
+        "generations": 2541,
+        "payload_bytes": 110877233,
+        "rows": 408988,
+        "stage": "link",
+        "unit_kind": "event"
+      },
+      {
+        "declared_row_count": 169,
+        "distinct_payload_sha256": 169,
+        "distinct_to_total_rows": 1.0,
+        "generations": 2,
+        "payload_bytes": 108281,
+        "rows": 169,
+        "stage": "project",
+        "unit_kind": "calendar"
+      },
+      {
+        "declared_row_count": 225774,
+        "distinct_payload_sha256": 225774,
+        "distinct_to_total_rows": 1.0,
+        "generations": 29048,
+        "payload_bytes": 73940004,
+        "rows": 225774,
+        "stage": "project",
+        "unit_kind": "dancer"
+      },
+      {
+        "declared_row_count": 830155,
+        "distinct_payload_sha256": 830155,
+        "distinct_to_total_rows": 1.0,
+        "generations": 2541,
+        "payload_bytes": 282909646,
+        "rows": 830155,
+        "stage": "project",
+        "unit_kind": "event"
+      },
+      {
+        "declared_row_count": 200597,
+        "distinct_payload_sha256": 200597,
+        "distinct_to_total_rows": 1.0,
+        "generations": 1,
+        "payload_bytes": 32375384,
+        "rows": 200597,
+        "stage": "project",
+        "unit_kind": "history"
+      },
+      {
+        "declared_row_count": 2660,
+        "distinct_payload_sha256": 2660,
+        "distinct_to_total_rows": 1.0,
+        "generations": 1,
+        "payload_bytes": 1365928,
+        "rows": 2660,
+        "stage": "project",
+        "unit_kind": "inventory"
+      },
+      {
+        "declared_row_count": 808,
+        "distinct_payload_sha256": 808,
+        "distinct_to_total_rows": 1.0,
+        "generations": 1,
+        "payload_bytes": 291265,
+        "rows": 808,
+        "stage": "project",
+        "unit_kind": "map"
+      },
+      {
+        "declared_row_count": 0,
+        "distinct_payload_sha256": 0,
+        "distinct_to_total_rows": null,
+        "generations": 467,
+        "payload_bytes": 0,
+        "rows": 0,
+        "stage": "project",
+        "unit_kind": "source_event"
+      },
+      {
+        "declared_row_count": 837,
+        "distinct_payload_sha256": 455,
+        "distinct_to_total_rows": 0.5436081242532855,
+        "generations": 384,
+        "payload_bytes": 241075,
+        "rows": 837,
+        "stage": "project",
+        "unit_kind": "source_index"
+      }
+    ],
+    "freelist_bytes": 0,
+    "largest_objects": [
+      {
+        "bytes": 873897984,
+        "kind": "table",
+        "name": "derivation_rows"
+      },
+      {
+        "bytes": 720551936,
+        "kind": "table",
+        "name": "source_generations"
+      },
+      {
+        "bytes": 429436928,
+        "kind": "table",
+        "name": "derivation_dependency_sets"
+      },
+      {
+        "bytes": 342245376,
+        "kind": "index",
+        "name": "sqlite_autoindex_derivation_rows_2"
+      },
+      {
+        "bytes": 278102016,
+        "kind": "table",
+        "name": "identity_link_history"
+      },
+      {
+        "bytes": 252571648,
+        "kind": "table",
+        "name": "derivation_generations"
+      },
+      {
+        "bytes": 209678336,
+        "kind": "index",
+        "name": "sqlite_autoindex_canonical_scope_rows_1"
+      },
+      {
+        "bytes": 176238592,
+        "kind": "table",
+        "name": "canonical_scope_rows"
+      },
+      {
+        "bytes": 172806144,
+        "kind": "table",
+        "name": "observations"
+      },
+      {
+        "bytes": 150556672,
+        "kind": "index",
+        "name": "sqlite_autoindex_derivation_rows_1"
+      }
+    ],
+    "page_count": 1224838,
+    "page_size": 4096,
+    "rows_without_a_generation": 0,
+    "source_generation_json": {
+      "columns": [
+        {
+          "distinct_byte_lengths": 58,
+          "logical_utf8_bytes": 16804780,
+          "max_logical_utf8_bytes": 664,
+          "min_logical_utf8_bytes": 461,
+          "name": "manifest_json",
+          "null_rows": 0,
+          "p50_logical_utf8_bytes": 520,
+          "p90_logical_utf8_bytes": 520,
+          "p99_logical_utf8_bytes": 580,
+          "present": true,
+          "rows": 32189
+        },
+        {
+          "distinct_byte_lengths": 60,
+          "logical_utf8_bytes": 109815446,
+          "max_logical_utf8_bytes": 3474,
+          "min_logical_utf8_bytes": 3381,
+          "name": "recipe_json",
+          "null_rows": 0,
+          "p50_logical_utf8_bytes": 3411,
+          "p90_logical_utf8_bytes": 3411,
+          "p99_logical_utf8_bytes": 3426,
+          "present": true,
+          "rows": 32189
+        },
+        {
+          "distinct_byte_lengths": 6864,
+          "logical_utf8_bytes": 173890464,
+          "max_logical_utf8_bytes": 1539302,
+          "min_logical_utf8_bytes": 70,
+          "name": "result_json",
+          "null_rows": 0,
+          "p50_logical_utf8_bytes": 1035,
+          "p90_logical_utf8_bytes": 8018,
+          "p99_logical_utf8_bytes": 78331,
+          "present": true,
+          "rows": 32189
+        },
+        {
+          "distinct_byte_lengths": 1005,
+          "logical_utf8_bytes": 386379672,
+          "max_logical_utf8_bytes": 151857,
+          "min_logical_utf8_bytes": 1873,
+          "name": "report_json",
+          "null_rows": 0,
+          "p50_logical_utf8_bytes": 11075,
+          "p90_logical_utf8_bytes": 17713,
+          "p99_logical_utf8_bytes": 22507,
+          "present": true,
+          "rows": 32189
+        }
+      ],
+      "logical_utf8_bytes": 686890362,
+      "measurement": "logical UTF-8 bytes; not physical SQLite page bytes",
+      "physical_index_bytes": 10866688,
+      "physical_table_bytes": 720551936,
+      "present": true,
+      "rows": 32189,
+      "table": "source_generations"
+    },
+    "unaccounted_bytes": 4096,
+    "used_bytes": 5016932352
+  },
+  "started_at": "2026-09-18T19:09:49.062252+00:00",
+  "tool_version": "measure-state-storage-v4",
+  "unchanged_check": "sha256"
+}

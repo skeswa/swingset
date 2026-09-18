@@ -191,6 +191,42 @@ tests pass; and bytes in use and file size are measured before and after on the
 same copy. Shrinking the file is `gc --reclaim`, which section 7 added. The
 published dataset has not been rebuilt, because nothing is deployed.
 
+## 6a. Step 2a: attribute row indexes and source-generation JSON
+
+[D-0166](../../journal/decisions/0166-hold-interning-back-until-rows-repeat-and-cut-indexes-first.md)
+adds this measurement before any redesign of the next largest storage costs.
+Use the same closed disposable copy as step 1. Report each derivation-row index
+with its exact `dbstat` bytes and key definition. For the four JSON columns in
+`source_generations`, report logical UTF-8 bytes and row-size distributions
+without retaining any body. Logical column bytes are not physical page bytes;
+do not claim that removing a column would save the same number of bytes.
+
+The 2026-09-18 follow-up found that the two inline `derivation_rows` indexes use
+492,802,048 bytes. The uniqueness index on generation, table and record key is
+342,245,376 bytes; the generation-and-ordinal primary-key index is 150,556,672
+bytes. The four source-generation JSON columns carry 686,890,362 logical bytes
+inside a 720,551,936-byte table. `report_json` is largest at 386,379,672 logical
+bytes, followed by `result_json` at 173,890,464, `recipe_json` at 109,815,446,
+and `manifest_json` at 16,804,780. The table's indexes total only 10,866,688
+bytes. See the [measurement](../../journal/investigations/2026/state-storage-measurement-2026-09-18.md#storage-driver-follow-up-2026-09-18).
+
+No schema rewrite follows from those figures alone. Before proposing one,
+inventory the queries and integrity rules served by both derivation indexes,
+and explain whether any source-generation JSON can be reconstructed, shared or
+stored more compactly without weakening retained evidence. Prototype a concrete
+layout on a disposable copy and compare integrity, query plans, migration time,
+file size and backup size. Put an agent recommendation in an investigation; a
+lasting schema choice needs an owner decision record.
+
+**Done when:** the physical index and logical JSON measurements are retained;
+the relevant query and integrity uses are accounted for; at least one concrete
+layout is measured on a disposable copy; and an owner decision selects a change
+or records that the current layout stays.
+
+**What exists as of 2026-09-18.** The attribution tool and its focused tests are
+implemented, and its run against the step 1 schema-29 copy passed every gate.
+The query inventory, layout prototype and owner decision have not started.
+
 ## 7. Step 3: work out what is needed, then remove the rest carefully
 
 Move `_artifact_closure` and `garbage_collect` out of `backup/checkpoint.py`
@@ -591,6 +627,9 @@ nothing deployed. They are marked, so nothing here is mistaken for done.
 - step 1 has a receipt and a decision naming which steps ran; **met on
   2026-09-18**
   ([D-0166](../../journal/decisions/0166-hold-interning-back-until-rows-repeat-and-cut-indexes-first.md));
+- step 2a accounts for the row indexes and source-generation JSON, then an
+  owner decision records whether their layout changes; attribution is met,
+  while the query inventory, prototype and decision remain open;
 - each unique row is stored once and every fingerprint checks;
 - one walk produces both lists, with a plan, a locked apply, a note of each
   apply, and a receipt;

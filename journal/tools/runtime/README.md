@@ -21,7 +21,7 @@ Check migrations, controls, scheduling, checkpoints, and isolated replay.
 | [benchmark_requirements.py](benchmark_requirements.py)                           | Time two inventory scans on an explicitly disposable state copy, offline.                    |
 | [h14_picker_cost.py](h14_picker_cost.py)                                         | Read-only retained-demand picker timing; older schemas use empty TEMP counters.              |
 | [h14_shadow_load.py](h14_shadow_load.py)                                         | Read one retained SQLite snapshot and emit H14 load evidence; never import runtime.          |
-| [measure_state_storage.py](measure_state_storage.py)                             | Read-only per-table, per-stage and payload-digest storage report on a disposable copy.       |
+| [measure_state_storage.py](measure_state_storage.py)                             | Read-only table, index, source-JSON and derivation storage report on a disposable copy.      |
 | [replay_derivations.py](replay_derivations.py)                                   | Resume real project/link workers on a marker-bound SQLite scratch copy only.                 |
 | [checkpoint_h16_20260917.py](checkpoint_h16_20260917.py)                         | Capture and verify the published H16 checkpoint with the pinned deployed runtime.            |
 | [rehearse_extension_migration.py](rehearse_extension_migration.py)               | Verify current-schema migration on a disposable copy of a source-bound schema-14 checkpoint. |
@@ -56,7 +56,10 @@ triggers; its measurements do not establish whole-worker throughput.
 The [state storage measurement](measure_state_storage.py) answers step 1 of the
 bounded state plan: bytes per table and index from `dbstat`, file size against
 bytes in use and free-list bytes, and distinct payload digests against total
-rows per stage, and declared row counts against the rows that read back. It
+rows per stage, and declared row counts against the rows that read back. Its
+follow-up profile names exact index keys and physical bytes, and measures the
+four `source_generations` JSON columns as logical UTF-8 byte distributions
+without returning their bodies. It
 opens the database `mode=ro&immutable=1`, so it creates no sidecar files and
 cannot write to what it measures, and it refuses `/var/lib/swingset` and any
 database a connection still holds open. Every path it writes to is fenced the
@@ -65,5 +68,6 @@ same way and checked before the measurement starts: not under
 exits non-zero when a gate fails.
 `--time-backup` times a restore, a checkpoint and its verification into a
 scratch directory it is given; on a copied held checkpoint it restores first and
-backs up the restored tree. The measurement itself has not been run; see the
+backs up the restored tree. Both the original run and the storage-driver
+follow-up ran on the retained schema-29 copy; see the
 [investigation](../../investigations/2026/state-storage-measurement-2026-09-18.md).

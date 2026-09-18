@@ -95,11 +95,15 @@ separate revision from what was pushed.
 
 ## Tests
 
-`nix develop -c uv run pytest -q` runs the reviewed core suite; `--full-suite`
-or an explicit path runs more. A full run writes about 15 GiB of temp. The dev
-shell pins `TMPDIR=/tmp` so pytest prunes to its last three runs; never point
-`TMPDIR` at a directory nothing prunes. On the worker, `/tmp` is a small tmpfs:
-use `--basetemp` under `/var/tmp` for a full run there.
+Run the core suite, `nix develop -c uv run pytest -q`, and the test files you
+changed while iterating. Run `--full-suite` only as a final or important check:
+before a commit or handoff, or when a change touches crash recovery,
+migrations, backup and restore, publication, or anything else the extended
+suite covers (see `docs/guides/testing.md`). A full run takes about ten
+minutes and writes about 15 GiB of temp; a core run takes about three minutes.
+The dev shell pins `TMPDIR=/tmp` so pytest prunes to its last three runs; never
+point `TMPDIR` at a directory nothing prunes. On the worker, `/tmp` is a small
+tmpfs: use `--basetemp` under `/var/tmp` for a full run there.
 
 ## Formatting
 

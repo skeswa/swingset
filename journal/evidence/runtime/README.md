@@ -19,7 +19,7 @@ Check migrations, controls, scheduling, checkpoints, and isolated replay.
 | [Input rehearsal, 2026-09-17](extension-input-rehearsal-2026-09-17/) | Disposable checkpoint copy, exact input acceptance and bounded offline turns; no live acceptance |
 | [Legacy spacing, 2026-09-17](legacy-spacing-baseline-2026-09-17/) | Reviewed Archive baseline preparation and guarded application; six other hosts remain unknown |
 | [Worker disk bound, 2026-09-18](worker-disk-bound-2026-09-18/) | [Worker disk exhaustion and its bound](../../investigations/2026/worker-disk-exhaustion-2026-09-18.md); removals, bound, pinned hotfix deployment |
-| [State storage measurement, 2026-09-18](state-storage-measurement-2026-09-18/) | [Measuring where state storage goes](../../investigations/2026/state-storage-measurement-2026-09-18.md); dbstat receipts, backup timing, schema-30 migration before and after |
+| [State storage measurement, 2026-09-18](state-storage-measurement-2026-09-18/) | [Measuring where state storage goes](../../investigations/2026/state-storage-measurement-2026-09-18.md); dbstat receipts, backup timing, schema-32 migration before and after, index definitions and source-generation JSON attribution |
 
 | [Core test suite, 2026-09-18](core-test-suite-2026-09-18/) | [Test selection and passing timing](../../investigations/2026/pytest-suite-review-2026-09-18.md#implemented-core-selection-and-passing-timing); default core, extended crash validation and code hashes |
 

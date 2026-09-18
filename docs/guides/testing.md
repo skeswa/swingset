@@ -25,6 +25,12 @@ declared safe to delete.
 | `uv run pytest -q tests/test_fetch.py`                  | Every test in that file                           |
 | `uv run pytest -q tests/test_crash_recovery.py -m core` | Focused crash/restart and SIGTERM tests           |
 
+Prefer the core run and the files you changed while iterating. Run
+`--full-suite` as a final or important check: before a commit or handoff, or
+when a change touches crash recovery, migrations, backup and restore,
+publication, or another area listed under the extended suite below. A full run
+takes about ten minutes and writes about 15 GiB of temp.
+
 An explicit file, directory or node ID bypasses the default selection. In
 particular, explicitly selecting the crash file without `-m core` includes the
 exhaustive test. `-k` and `-m` otherwise filter the selected suite; use

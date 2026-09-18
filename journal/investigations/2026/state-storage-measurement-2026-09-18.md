@@ -330,6 +330,67 @@ Later note: the migrations were reordered after this was written, so interning
 is schema 32 and the numbers above that call it schema 30 mean the same
 migration ([D-0167](../../decisions/0167-intern-derivation-payloads-in-the-last-migration.md)).
 
+## Storage-driver follow-up, 2026-09-18
+
+D-0166 also asked which derivation indexes and source-generation JSON columns
+carry the next block of bytes before any redesign. Tool version 4 adds that
+attribution without returning or retaining JSON bodies. Index page sizes still
+come from `dbstat`; JSON figures are logical UTF-8 byte counts and cannot be
+read as predicted page savings.
+
+The tool ran as root on the worker against the same closed schema-29 scratch
+restore, with no backup timing leg and no production or network operation. It
+hashed the 5,016,936,448-byte database as
+`5840f97da69c42adb6e60132418c64c04505ae043a650723c84ff38644c64265`,
+found no SQLite sidecars, passed every gate and verified that the database did
+not change. The tool revision recorded by the run is
+`e03f14f0dbc65f47b7d9b9f95da6b2a97f6c2beb`; the tool file's SHA-256 is
+`21a2513234ac4400851659bb502630e979ef24ff97bec14cb9ff9e1ca3a74024`.
+
+Retained output:
+
+- [report-003](../../evidence/runtime/state-storage-measurement-2026-09-18/report-003.json),
+  SHA-256 `941384e9b7bcc36af0c0a6007484a2536fa75a3ea3880b54946c53bf65c4664f`;
+- [receipt-003](../../evidence/runtime/state-storage-measurement-2026-09-18/receipt-003.json),
+  SHA-256 `4d0a12f9f5c870aa3dcc518fc311c0175b0aeb3027eac542f20a34937a428e5b`.
+
+The 34 focused measurement tests passed, including skewed UTF-8 columns,
+implicit and expression indexes, the pre-interning table, the post-interning
+view and absent tables. The final combined working copy passed all 3,034
+offline tests in 573.86 seconds, Ruff, and mypy over 232 source files.
+
+### Results
+
+| Object or column                                                  | Bytes       | Meaning                 |
+| ----------------------------------------------------------------- | ----------- | ----------------------- |
+| `derivation_rows` uniqueness index: generation, table, record key | 342,245,376 | Physical `dbstat` bytes |
+| `derivation_rows` primary-key index: generation, ordinal          | 150,556,672 | Physical `dbstat` bytes |
+| `source_generations` table                                        | 720,551,936 | Physical `dbstat` bytes |
+| All `source_generations` indexes                                  | 10,866,688  | Physical `dbstat` bytes |
+| `report_json`                                                     | 386,379,672 | Logical UTF-8 bytes     |
+| `result_json`                                                     | 173,890,464 | Logical UTF-8 bytes     |
+| `recipe_json`                                                     | 109,815,446 | Logical UTF-8 bytes     |
+| `manifest_json`                                                   | 16,804,780  | Logical UTF-8 bytes     |
+| All four JSON columns                                             | 686,890,362 | Logical UTF-8 bytes     |
+
+The source-generation table has 32,189 rows and no null JSON values.
+`report_json` is broad rather than driven only by rare outliers: its median row
+is 11,075 bytes and its 90th percentile is 17,713 bytes. `result_json` is more
+skewed: its median is 1,035 bytes, its 99th percentile is 78,331 bytes and its
+maximum is 1,539,302 bytes.
+
+### Recommendation, not a decision
+
+Do not remove a source-generation index to chase this cost: all six together
+are only 11 MB. Start the next design investigation with the repeated structure
+inside `report_json` and with the long text keys carried by the two 493 MB
+derivation indexes. First inventory the queries and uniqueness rules those
+indexes serve. Then measure one compact representation on a disposable copy,
+including migration time, integrity, query plans, file size and backup size.
+The retained JSON is evidence, so a design must preserve exact reconstruction
+and must not infer savings from logical bytes alone. No schema change is chosen
+by this investigation.
+
 ## Known local test failure
 
 `tests/publish/test_publication_controls.py::test_process_death_retains_active_pause_drain_until_recovery`

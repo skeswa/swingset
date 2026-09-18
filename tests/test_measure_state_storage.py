@@ -195,6 +195,138 @@ def test_profile_reports_nothing_when_a_copy_predates_derivations() -> None:
     assert profile["totals"]["rows"] == 0
 
 
+def test_source_generation_json_profile_reports_skewed_logical_utf8_lengths() -> None:
+    connection = sqlite3.connect(":memory:")
+    connection.execute(
+        "CREATE TABLE source_generations("
+        "manifest_json TEXT,recipe_json TEXT,result_json TEXT,report_json TEXT)"
+    )
+    manifests = ("x", "é", "12345", "y" * 100, "z" * 1000)
+    for ordinal, manifest in enumerate(manifests):
+        connection.execute(
+            "INSERT INTO source_generations VALUES (?,?,?,?)",
+            (manifest, "{}", "r" * ordinal, "report"),
+        )
+    objects = MEASURE.storage_objects(connection)
+
+    profile = MEASURE.source_generation_json_profile(connection, objects)
+
+    assert profile["present"] is True
+    assert profile["measurement"] == "logical UTF-8 bytes; not physical SQLite page bytes"
+    assert profile["physical_table_bytes"] > 0
+    columns = {item["name"]: item for item in profile["columns"]}
+    manifest = columns["manifest_json"]
+    # The second value is two UTF-8 bytes even though Python and SQLite both
+    # expose it as one character.
+    assert manifest["logical_utf8_bytes"] == 1 + 2 + 5 + 100 + 1000
+    assert manifest["distinct_byte_lengths"] == 5
+    assert manifest["min_logical_utf8_bytes"] == 1
+    assert manifest["p50_logical_utf8_bytes"] == 5
+    assert manifest["p90_logical_utf8_bytes"] == 1000
+    assert manifest["p99_logical_utf8_bytes"] == 1000
+    assert manifest["max_logical_utf8_bytes"] == 1000
+    assert columns["recipe_json"]["distinct_byte_lengths"] == 1
+    assert columns["result_json"]["min_logical_utf8_bytes"] == 0
+    # Only sizes and distribution cross the connection boundary; no source body
+    # or digest of a source body appears in the report.
+    rendered = json.dumps(profile, sort_keys=True)
+    assert "z" * 1000 not in rendered
+    assert "y" * 100 not in rendered
+
+
+def test_costly_index_profiles_include_implicit_and_expression_definitions(
+    tmp_path: Path,
+) -> None:
+    database = tmp_path / "indexes.sqlite"
+    connection = sqlite3.connect(database)
+    connection.executescript(
+        """
+        CREATE TABLE derivation_rows(
+            generation_id TEXT NOT NULL,
+            ordinal INTEGER NOT NULL,
+            table_name TEXT NOT NULL,
+            record_key TEXT NOT NULL,
+            payload_json TEXT NOT NULL,
+            PRIMARY KEY(generation_id,ordinal),
+            UNIQUE(generation_id,table_name,record_key)
+        );
+        CREATE INDEX derivation_rows_expression
+        ON derivation_rows(lower(record_key), ordinal DESC)
+        WHERE table_name='events';
+        INSERT INTO derivation_rows VALUES ('g',0,'events','MixedCase','{}');
+        """
+    )
+    connection.commit()
+    objects = MEASURE.storage_objects(connection)
+
+    profiles = {item["table"]: item for item in MEASURE.index_profiles(connection, objects)}
+
+    rows = profiles["derivation_rows"]
+    assert rows["present"] is True
+    assert rows["kind"] == "table"
+    assert rows["physical_index_bytes"] == sum(
+        item["bytes"]
+        for item in objects
+        if item["kind"] == "index" and item["table"] == "derivation_rows"
+    )
+    indexes = {item["name"]: item for item in rows["indexes"]}
+    expression = indexes["derivation_rows_expression"]
+    assert expression["physical_bytes"] > 0
+    assert expression["unique"] is False
+    assert expression["partial"] is True
+    assert expression["origin"] == "c"
+    assert expression["definition_source"] == "sqlite_schema.sql"
+    assert "lower(record_key)" in expression["definition_sql"]
+    key_columns = [item for item in expression["columns"] if item["key"]]
+    assert key_columns == [
+        {
+            "sequence": 0,
+            "column_id": -2,
+            "name": None,
+            "kind": "expression",
+            "descending": False,
+            "collation": "BINARY",
+            "key": True,
+        },
+        {
+            "sequence": 1,
+            "column_id": 1,
+            "name": "ordinal",
+            "kind": "column",
+            "descending": True,
+            "collation": "BINARY",
+            "key": True,
+        },
+    ]
+    implicit = [item for item in rows["indexes"] if item["origin"] in {"pk", "u"}]
+    assert len(implicit) == 2
+    assert all(item["definition_sql"] is None for item in implicit)
+    assert all(item["definition_source"] == "implicit table constraint" for item in implicit)
+
+
+def test_storage_attribution_profiles_report_missing_tables_without_error() -> None:
+    connection = sqlite3.connect(":memory:")
+    objects = MEASURE.storage_objects(connection)
+
+    source_json = MEASURE.source_generation_json_profile(connection, objects)
+    indexes = MEASURE.index_profiles(connection, objects)
+
+    assert source_json == {
+        "table": "source_generations",
+        "present": False,
+        "measurement": "logical UTF-8 bytes; not physical SQLite page bytes",
+        "physical_table_bytes": 0,
+        "physical_index_bytes": 0,
+        "rows": 0,
+        "logical_utf8_bytes": 0,
+        "columns": [
+            {"name": name, "present": False} for name in MEASURE.SOURCE_GENERATION_JSON_COLUMNS
+        ],
+    }
+    assert [item["table"] for item in indexes] == list(MEASURE.COSTLY_INDEX_TABLES)
+    assert all(item["present"] is False and item["indexes"] == [] for item in indexes)
+
+
 def test_every_table_and_index_is_accounted_for(state: Path) -> None:
     report = MEASURE.measure(state)
 
@@ -274,6 +406,22 @@ def test_history_and_derivation_tables_report_rows_and_bytes(state: Path) -> Non
     assert legacy == {"name": "derivation_rows_legacy", "present": False, "kind": None}
     assert derivations["derivation_input_versions"]["present"] is True
 
+    source_json = report["source_generation_json"]
+    assert source_json["present"] is True
+    assert source_json["rows"] == 0
+    assert source_json["logical_utf8_bytes"] == 0
+    assert all(item["present"] is True for item in source_json["columns"])
+
+    costly = {item["table"]: item for item in report["costly_index_profiles"]}
+    # Current schema 32 exposes the stable name as a view and stores the rows in
+    # the two split tables. The schema-29 inline-table shape is covered above.
+    assert costly["derivation_rows"]["kind"] == "view"
+    assert costly["derivation_rows"]["indexes"] == []
+    assert costly["derivation_row_refs"]["kind"] == "table"
+    assert costly["derivation_row_refs"]["indexes"]
+    assert costly["derivation_payloads"]["kind"] == "table"
+    assert costly["source_generations"]["kind"] == "table"
+
 
 def test_measurement_never_writes_to_the_database(state: Path) -> None:
     database = state / "state.sqlite"
@@ -339,6 +487,17 @@ def test_run_writes_report_and_receipt(state: Path, tmp_path: Path) -> None:
     assert compact["limits"] == list(MEASURE.LIMITS)
     assert compact["findings"]
     assert compact["results"]["backup_timing"] is None
+    assert compact["results"]["source_generation_json"]["measurement"].startswith(
+        "logical UTF-8 bytes"
+    )
+    assert compact["results"]["costly_index_profiles"]
+    # Compact receipts retain index costs and key terms, while exact SQL and
+    # auxiliary rowid terms remain in the full report.
+    assert all(
+        "definition_sql" not in index
+        for table in compact["results"]["costly_index_profiles"]
+        for index in table["indexes"]
+    )
     assert len(compact["results"]["largest_objects"]) <= MEASURE.RECEIPT_TOP_OBJECTS
     assert receipt.stat().st_size < 64 * 1024
 

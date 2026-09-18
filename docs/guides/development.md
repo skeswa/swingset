@@ -17,9 +17,10 @@ The test suite is offline. A dry cycle disables publication; it should not be
 used as a substitute for offline tests when you need to avoid source requests.
 See [fetching rules](../reference/fetching.md) before any live-source work.
 
-The default test command runs the reviewed core. Use `uv run pytest -q
---full-suite` for core and extended coverage, or give an explicit path to test
-one module. A full run writes about 15 GiB of temp; the dev shell pins
+The default test command runs the reviewed core; use it and the files you
+changed while iterating. Run `uv run pytest -q --full-suite` only as a final
+or important check, such as before a commit or handoff or after touching an
+area the extended suite covers, or give an explicit path to test one module. A full run writes about 15 GiB of temp; the dev shell pins
 `TMPDIR=/tmp` so pytest keeps only its last three runs. On the worker `/tmp` is
 a 13 GiB tmpfs, so pass `--basetemp` under `/var/tmp` there. The [testing guide](testing.md) owns selection rules, fixture setup
 and the measured runtime goal.

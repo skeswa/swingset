@@ -587,6 +587,13 @@ A request additionally records its host. Local derivations have no host scope.
 The short control mutex serializes pause servicing with new admission; output
 settlement joins the existing unit transaction without reacquiring that mutex.
 An acknowledged pause fences later admissions while prior work drains.
+Restore activation recovers abandoned admissions for every schema that has
+`execution_admissions`, starting at schema 12. Local and request actions settle
+as interrupted; publications remain uncertain until receipt reconciliation.
+This recovery does not depend on the event-pressure tables added in schema 19.
+When those tables exist, activation also advances their observation epoch in
+the same transaction. The transaction commits before `RESTORE_PENDING` is
+removed; schemas through 11 remain compatible and perform neither change.
 
 Outer immediate worker transactions enforce a 45-second wall-clock deadline;
 savepoints inherit it. Interrupted output rolls back before the attempt records

@@ -331,15 +331,22 @@ def activate_restored_state(state_dir: Path) -> None:
     connection.row_factory = sqlite3.Row
     try:
         with connection:
-            if connection.execute(
-                "SELECT 1 FROM sqlite_master WHERE type='table' AND name='event_pressure_state'"
-            ).fetchone():
+            tables = {
+                row[0]
+                for row in connection.execute(
+                    "SELECT name FROM sqlite_master WHERE type='table' "
+                    "AND name IN ('execution_admissions','event_pressure_state')"
+                )
+            }
+            if tables:
+                connection.execute("BEGIN IMMEDIATE")
+            if "execution_admissions" in tables:
                 from swingset.state.controls import recover_admissions
 
-                connection.execute("BEGIN IMMEDIATE")
                 # Restored workers cannot still own these admissions. Preserve
                 # publication uncertainty while releasing the stale write fence.
                 recover_admissions(connection, now=datetime.now(UTC))
+            if "event_pressure_state" in tables:
                 connection.execute("UPDATE event_pressure_state SET epoch=epoch+1")
     finally:
         connection.close()

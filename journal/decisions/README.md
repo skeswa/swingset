@@ -193,6 +193,7 @@ summary in each record; evidence and implementation detail are linked below it.
 | [D-0168](0168-run-core-tests-by-default-and-keep-an-extended-suite.md)                | Run core tests by default and keep an extended suite                                                | Test suite maintenance                            |
 | [D-0169](0169-agents-decide-and-record-and-ask-only-for-high-impact-choices.md)       | Agents decide and record; the owner is asked only for high-impact choices                           | Documentation                                     |
 | [D-0170](0170-pin-tmpdir-in-the-dev-shell-so-test-temp-is-pruned.md)                  | Pin TMPDIR in the dev shell so test temp is pruned                                                  | Development environment                           |
+| [D-0171](0171-core-suite-while-iterating-full-suite-as-final-check.md)                | Core suite while iterating; full suite as a final check                                             | Development checks                                |
 
 The [legacy decision log](legacy-design-review.md) preserves the original
 review notes. It is historical evidence, not a second list of current rules.

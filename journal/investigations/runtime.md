@@ -5,6 +5,7 @@ Find investigations of unfinished work, retries, pause controls, saved outputs, 
 [All investigations](README.md) · [Current status](../../docs/status.md)
 
 - [Pytest value and reduction review](2026/pytest-suite-review-2026-09-18.md) — 2026-09-18; all 217 test files reviewed, with conditional reductions and a separate count for tool tests. No tests removed.
+- [Restore activation skipped admissions before schema 19](2026/restore-activation-admission-recovery-2026-09-18.md) — 2026-09-18; local fix and historical-schema regressions keep admission recovery independent of event-pressure invalidation.
 - [Event accounting after checkpoint activation](2026/event-accounting-activated-restore-2026-09-16.md) — 2026-09-16; actual schema 24 activation and resumed accounting, with rejected and changed support controls.
 - [Normalized request lookup](2026/normalized-request-lookup-2026-09-16.md) — 2026-09-16; reproduced candidate crowding and proposed portable index options, not implemented.
 - [Proving explicit page retirement](2026/event-page-retirement-proof-2026-09-16.md) — 2026-09-16; bounded immediate-edge proof, whole-event retirement unknown.
@@ -28,6 +29,6 @@ Find investigations of unfinished work, retries, pause controls, saved outputs, 
 - [Current held extension runtime and operating gates](2026/event-extension-operating-handoff-2026-09-17.md) — 2026-09-17.
 - [Measured offline selector costs and bounded fixes](2026/offline-selector-profile-2026-09-17.md) — 2026-09-17.
 - [Local historical dispatch timing proofs](2026/historical-archive-timing-2026-09-17.md) — 2026-09-17.
-- [Measuring where state storage goes](2026/state-storage-measurement-2026-09-18.md) — 2026-09-18; a read-only tool for per-table, per-stage and payload-digest numbers, and its run on a scratch copy of held checkpoint 004: rows do not repeat yet, derivation rows and their indexes are 27% of the file, and the interning migration (schema 32 since [D-0167](../decisions/0167-intern-derivation-payloads-in-the-last-migration.md)) makes the file 6% larger on this copy.
+- [Measuring where state storage goes](2026/state-storage-measurement-2026-09-18.md) — 2026-09-18; a read-only tool and its runs on a scratch copy of held checkpoint 004: rows do not repeat yet, schema-32 interning makes the file 6% larger, row indexes use 493 MB, and source-generation JSON carries 687 MB of logical data.
 - [Worker disk exhaustion and its bound](2026/worker-disk-exhaustion-2026-09-18.md) — 2026-09-18; rehearsal scratch and old checkpoints removed, 256 GiB machine bound, scratch-clean timer deployed as a pinned hotfix.
 - [Disk leak from `nix develop` and pytest](2026/nix-develop-tmpdir-leak-2026-09-18.md) — 2026-09-18; leaked TMPDIR directories filled the Mac; the dev shell now pins TMPDIR so pytest prunes.

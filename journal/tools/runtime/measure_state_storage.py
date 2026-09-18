@@ -49,9 +49,9 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-TOOL_VERSION = "measure-state-storage-v3"
-REPORT_FORMAT = "state-storage-measurement-v2"
-RECEIPT_FORMAT = "state-storage-measurement-receipt-v2"
+TOOL_VERSION = "measure-state-storage-v4"
+REPORT_FORMAT = "state-storage-measurement-v3"
+RECEIPT_FORMAT = "state-storage-measurement-receipt-v3"
 
 # SQLite reserves the page holding byte 0x40000000 and never stores data there.
 # It is counted by `page_count` but appears in neither `dbstat` nor the free list.
@@ -75,6 +75,21 @@ DERIVATION_TABLES = (
     "derivation_scopes",
     "derivation_input_versions",
 )
+SOURCE_GENERATION_JSON_COLUMNS = (
+    "manifest_json",
+    "recipe_json",
+    "result_json",
+    "report_json",
+)
+# These are the tables whose indexes D-0166 asks to inspect. Both derivation
+# layouts are listed: schema 29 stores rows inline, while schema 32 splits row
+# references from payloads and leaves `derivation_rows` as a view.
+COSTLY_INDEX_TABLES = (
+    "derivation_rows",
+    "derivation_row_refs",
+    "derivation_payloads",
+    "source_generations",
+)
 RECEIPT_TOP_OBJECTS = 10
 # Stage and unit-kind pairs are a handful, but a receipt must stay small whatever
 # it measures, so the per-scope table is capped and the cap is recorded.
@@ -95,6 +110,10 @@ LIMITS = (
     "Output rows are read through derivation_rows, which is a table before the payload split "
     "and a view over derivation_row_refs and derivation_payloads after it. The report says which "
     "shape it found; payload bytes are the bytes the rows name, not the bytes stored.",
+    "Source-generation JSON column sizes are logical UTF-8 byte counts, not physical SQLite "
+    "page sizes or predicted savings. Table and index page sizes come separately from dbstat.",
+    "Index physical bytes come from dbstat. Index definitions, columns, expressions, sort order, "
+    "collations, uniqueness, origins, and partial flags come from SQLite schema pragmas.",
     "Backup timing is one run on one machine with a cold or warm cache that is not controlled. "
     "Treat it as an order of magnitude, not a service level.",
     "Timing a held checkpoint restores it and then backs up the restored tree, so the restore "
@@ -214,7 +233,7 @@ def schema_kinds(connection: sqlite3.Connection) -> dict[str, dict[str, str]]:
 def storage_objects(connection: sqlite3.Connection) -> list[dict[str, Any]]:
     """Bytes and pages each table and index occupies, from dbstat."""
     kinds = schema_kinds(connection)
-    objects = []
+    objects: list[dict[str, Any]] = []
     for name, pages, size in connection.execute(
         "SELECT name,count(*),sum(pgsize) FROM dbstat GROUP BY name"
     ):
@@ -300,6 +319,180 @@ def table_profile(
             }
         )
     return profile
+
+
+def _quoted_identifier(name: str) -> str:
+    return '"' + name.replace('"', '""') + '"'
+
+
+def _nearest_rank(
+    distribution: list[tuple[int, int]], rows: int, numerator: int, denominator: int
+) -> int | None:
+    """Return an exact nearest-rank percentile from a length/count distribution."""
+    if rows == 0:
+        return None
+    rank = (rows * numerator + denominator - 1) // denominator
+    seen = 0
+    for length, count in distribution:
+        seen += count
+        if seen >= rank:
+            return length
+    raise AssertionError("byte-length distribution did not contain its declared rows")
+
+
+def source_generation_json_profile(
+    connection: sqlite3.Connection, objects: list[dict[str, Any]]
+) -> dict[str, Any]:
+    """Measure JSON as logical UTF-8 lengths without returning or retaining any body."""
+    table_row = connection.execute(
+        "SELECT type FROM sqlite_master WHERE name='source_generations'"
+    ).fetchone()
+    base: dict[str, Any] = {
+        "table": "source_generations",
+        "present": table_row is not None and str(table_row[0]) == "table",
+        "measurement": "logical UTF-8 bytes; not physical SQLite page bytes",
+        "physical_table_bytes": sum(
+            int(item["bytes"])
+            for item in objects
+            if item["name"] == "source_generations" and item["kind"] == "table"
+        ),
+        "physical_index_bytes": sum(
+            int(item["bytes"])
+            for item in objects
+            if item["table"] == "source_generations" and item["kind"] == "index"
+        ),
+    }
+    if not base["present"]:
+        return {
+            **base,
+            "rows": 0,
+            "logical_utf8_bytes": 0,
+            "columns": [
+                {"name": name, "present": False} for name in SOURCE_GENERATION_JSON_COLUMNS
+            ],
+        }
+
+    table_columns = {
+        str(row[1]) for row in connection.execute("PRAGMA table_info(source_generations)")
+    }
+    table_rows = int(connection.execute("SELECT count(*) FROM source_generations").fetchone()[0])
+    columns: list[dict[str, Any]] = []
+    for name in SOURCE_GENERATION_JSON_COLUMNS:
+        if name not in table_columns:
+            columns.append({"name": name, "present": False})
+            continue
+        identifier = _quoted_identifier(name)
+        # SQLite computes and groups only byte lengths. JSON bodies never cross
+        # the connection boundary and are never hashed or included in output.
+        lengths = [
+            (int(length), int(count))
+            for length, count in connection.execute(
+                f"SELECT octet_length({identifier}),count(*) FROM source_generations "
+                f"WHERE {identifier} IS NOT NULL GROUP BY octet_length({identifier}) "
+                "ORDER BY octet_length(" + identifier + ")"
+            )
+        ]
+        value_rows = sum(count for _, count in lengths)
+        logical_bytes = sum(length * count for length, count in lengths)
+        columns.append(
+            {
+                "name": name,
+                "present": True,
+                "rows": value_rows,
+                "null_rows": table_rows - value_rows,
+                "logical_utf8_bytes": logical_bytes,
+                "distinct_byte_lengths": len(lengths),
+                "min_logical_utf8_bytes": lengths[0][0] if lengths else None,
+                "p50_logical_utf8_bytes": _nearest_rank(lengths, value_rows, 50, 100),
+                "p90_logical_utf8_bytes": _nearest_rank(lengths, value_rows, 90, 100),
+                "p99_logical_utf8_bytes": _nearest_rank(lengths, value_rows, 99, 100),
+                "max_logical_utf8_bytes": lengths[-1][0] if lengths else None,
+            }
+        )
+    return {
+        **base,
+        "rows": table_rows,
+        "logical_utf8_bytes": sum(int(column.get("logical_utf8_bytes", 0)) for column in columns),
+        "columns": columns,
+    }
+
+
+def index_profiles(
+    connection: sqlite3.Connection,
+    objects: list[dict[str, Any]],
+    table_names: tuple[str, ...] = COSTLY_INDEX_TABLES,
+) -> list[dict[str, Any]]:
+    """Describe exact index shape beside physical dbstat bytes for selected tables."""
+    schema_objects = {
+        str(name): str(kind)
+        for name, kind in connection.execute(
+            "SELECT name,type FROM sqlite_master WHERE type IN ('table','view')"
+        )
+    }
+    physical = {str(item["name"]): item for item in objects}
+    profiles: list[dict[str, Any]] = []
+    for table in table_names:
+        kind = schema_objects.get(table)
+        if kind is None:
+            profiles.append({"table": table, "present": False, "kind": None, "indexes": []})
+            continue
+        indexes: list[dict[str, Any]] = []
+        for _, index_name, unique, origin, partial in connection.execute(
+            'SELECT seq,name,"unique",origin,partial FROM pragma_index_list(?)', (table,)
+        ):
+            definition_row = connection.execute(
+                "SELECT sql FROM sqlite_master WHERE type='index' AND name=?", (index_name,)
+            ).fetchone()
+            columns = []
+            for sequence, column_id, column_name, descending, collation, key in connection.execute(
+                "SELECT seqno,cid,name,desc,coll,key FROM pragma_index_xinfo(?) ORDER BY seqno",
+                (index_name,),
+            ):
+                cid = int(column_id)
+                columns.append(
+                    {
+                        "sequence": int(sequence),
+                        "column_id": cid,
+                        "name": None if column_name is None else str(column_name),
+                        "kind": "column" if cid >= 0 else ("expression" if cid == -2 else "rowid"),
+                        "descending": bool(descending),
+                        "collation": None if collation is None else str(collation),
+                        "key": bool(key),
+                    }
+                )
+            stored = physical.get(str(index_name))
+            indexes.append(
+                {
+                    "name": str(index_name),
+                    "physical_pages": int(stored["pages"]) if stored is not None else 0,
+                    "physical_bytes": int(stored["bytes"]) if stored is not None else 0,
+                    "unique": bool(unique),
+                    "origin": str(origin),
+                    "partial": bool(partial),
+                    "definition_sql": None
+                    if definition_row is None or definition_row[0] is None
+                    else str(definition_row[0]),
+                    "definition_source": "implicit table constraint"
+                    if definition_row is None or definition_row[0] is None
+                    else "sqlite_schema.sql",
+                    "columns": columns,
+                }
+            )
+        indexes.sort(key=lambda item: str(item["name"]))
+        stored_table = physical.get(table)
+        profiles.append(
+            {
+                "table": table,
+                "present": True,
+                "kind": kind,
+                "physical_table_bytes": int(stored_table["bytes"])
+                if stored_table is not None and stored_table["kind"] != "index"
+                else 0,
+                "physical_index_bytes": sum(int(item["physical_bytes"]) for item in indexes),
+                "indexes": indexes,
+            }
+        )
+    return profiles
 
 
 def identity_tables(connection: sqlite3.Connection) -> tuple[str, ...]:
@@ -472,6 +665,21 @@ def findings(report: dict[str, Any]) -> list[str]:
             + ", ".join(f"{item['name']} {item['bytes']} bytes" for item in largest)
             + "."
         )
+    source_json = report["source_generation_json"]
+    if source_json["present"]:
+        present_columns = [item for item in source_json["columns"] if item["present"]]
+        if present_columns:
+            largest_column = max(
+                present_columns,
+                key=lambda item: (int(item["logical_utf8_bytes"]), str(item["name"])),
+            )
+            notes.append(
+                "Source-generation JSON carries "
+                f"{source_json['logical_utf8_bytes']} logical UTF-8 bytes; "
+                f"{largest_column['name']} is largest at "
+                f"{largest_column['logical_utf8_bytes']} logical bytes. These are not physical "
+                "SQLite page sizes."
+            )
     broken = failed_gates(report["gates"])
     notes.append("Gates failed: " + ", ".join(broken) + "." if broken else "Every gate passed.")
     timing = report["backup_timing"]
@@ -520,6 +728,8 @@ def measure(target: Path, *, hash_database: bool = False) -> dict[str, Any]:
             "storage": objects,
             "accounting": accounting,
             "derivations": derivation_profile(connection),
+            "source_generation_json": source_generation_json_profile(connection, objects),
+            "costly_index_profiles": index_profiles(connection, objects),
             "history_tables": table_profile(connection, objects, history),
             "derivation_tables": table_profile(connection, objects, DERIVATION_TABLES),
             "backup_timing": None,
@@ -672,6 +882,50 @@ def receipt_scopes(by_scope: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return sorted(largest, key=lambda item: (str(item["stage"]), str(item["unit_kind"])))
 
 
+def receipt_index_profiles(profiles: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Keep costly index facts while omitting auxiliary rowid terms and full SQL."""
+    compact = []
+    for profile in profiles:
+        if not profile["present"]:
+            compact.append(
+                {
+                    "table": profile["table"],
+                    "present": False,
+                    "kind": None,
+                    "indexes": [],
+                }
+            )
+            continue
+        compact.append(
+            {
+                "table": profile["table"],
+                "present": True,
+                "kind": profile["kind"],
+                "physical_table_bytes": profile["physical_table_bytes"],
+                "physical_index_bytes": profile["physical_index_bytes"],
+                "indexes": [
+                    {
+                        "name": index["name"],
+                        "physical_bytes": index["physical_bytes"],
+                        "unique": index["unique"],
+                        "origin": index["origin"],
+                        "partial": index["partial"],
+                        "key_columns": [
+                            {
+                                key: column[key]
+                                for key in ("column_id", "name", "kind", "descending", "collation")
+                            }
+                            for column in index["columns"]
+                            if column["key"]
+                        ],
+                    }
+                    for index in profile["indexes"]
+                ],
+            }
+        )
+    return compact
+
+
 def build_receipt(
     report: dict[str, Any],
     *,
@@ -719,6 +973,8 @@ def build_receipt(
             "derivation_scopes_truncated": len(report["derivations"]["by_scope"])
             > RECEIPT_MAX_SCOPES,
             "rows_without_a_generation": report["derivations"]["rows_without_a_generation"],
+            "source_generation_json": report["source_generation_json"],
+            "costly_index_profiles": receipt_index_profiles(report["costly_index_profiles"]),
             "backup_timing": report["backup_timing"],
         },
         "gates": report["gates"],

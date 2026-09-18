@@ -30,6 +30,14 @@ machine is bounded to 256 GiB, and a daily timer now removes idle rehearsal
 scratch. See the [investigation](../journal/investigations/2026/worker-disk-exhaustion-2026-09-18.md)
 and [D-0133](../journal/decisions/0133-bound-the-worker-disk-and-remove-rehearsals-eagerly.md).
 
+A local restore-activation fix now recovers abandoned schema-12-to-18
+admissions without depending on schema 19's event-pressure table. Schema 11,
+schema 12 and schema 19 boundary tests passed with the focused restore and
+control suites, 47 tests total. The final combined working copy passed all
+3,034 offline tests, Ruff, and mypy over 232 source files. This fix is not
+deployed, and no production restore was rerun. See the
+[investigation](../journal/investigations/2026/restore-activation-admission-recovery-2026-09-18.md).
+
 Steps 2 and 3 of the [bounded state plan](plans/bounded-state-and-archive.md)
 are implemented and locally tested as of 2026-09-18. **Nothing is deployed.**
 Production stays at schema 29 under the operator hold; no database has been
@@ -61,12 +69,18 @@ deploy and run `gc`, holds, doctor, checkpoint and restore without it
 ([D-0167](../journal/decisions/0167-intern-derivation-payloads-in-the-last-migration.md)).
 Interning itself still waits for a copy with recomputation history. See
 the [investigation](../journal/investigations/2026/state-storage-measurement-2026-09-18.md).
-Until that measurement the two retention defaults (8,000,000,000 bytes and a window
-of 3) are judgment calls, not measured ones. The order actually taken, and what
-still waits for the numbers, is recorded in
+The follow-up storage-driver measurement also passed on the same copy. The two
+`derivation_rows` indexes use 493 MB. The four `source_generations` JSON columns
+carry 687 MB of logical UTF-8 data inside a 721 MB table; `report_json` alone
+carries 386 MB. These are attribution figures, not expected page savings. The
+new plan step still needs a query inventory and disposable layout prototype
+before an owner chooses a schema change. The two retention defaults
+(8,000,000,000 bytes and a window of 3) remain judgment calls. The order
+actually taken is recorded in
 [D-0158](../journal/decisions/0158-build-steps-2-and-3-before-the-measurement-and-gate-the-rest-on-it.md);
-it does not satisfy step 1's own "done when", which needs the measurement. Step 4, archiving to two object
-stores and bringing data back, has not started; neither store exists.
+the later measurement and [D-0166](../journal/decisions/0166-hold-interning-back-until-rows-repeat-and-cut-indexes-first.md)
+satisfy step 1. Step 4, archiving to two object stores and bringing data back,
+has not started; neither store exists.
 
 Production input acceptance passed its separately reviewed three-gate operation
 at 01:39:24 UTC. The exact 12 candidate-006 inputs changed within the existing

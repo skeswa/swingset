@@ -310,11 +310,17 @@ Restore is an activation protocol:
    private state or explicitly decide how to handle data loss; normal
    restore never invents observations from public Parquet or resets
    history. Unknown third-party commits are also held for review.
-5. Recheck the head before activation, rebuild upload receipts against
-   the selected archive commit, and remove `RESTORE_PENDING` durably.
-   The next cycle accepts the installed checkout's inputs against the
-   saved bundle and enqueues any differences before proceeding. Enable
-   timers only after verification succeeds.
+5. Recheck the head before activation and rebuild upload receipts against
+   the selected archive commit. Under the exclusive restore locks, recover
+   abandoned execution admissions whenever the restored schema has
+   `execution_admissions` (schema 12 and later): local and request work becomes
+   interrupted, while publication stays uncertain for receipt reconciliation.
+   Independently, increment the event-pressure observation epoch when
+   `event_pressure_state` exists (schema 19 and later). Commit those changes
+   before removing `RESTORE_PENDING` durably; schemas through 11 have neither
+   activation change. The next cycle accepts the installed checkout's inputs
+   against the saved bundle and enqueues any differences before proceeding.
+   Enable timers only after verification succeeds.
 
 Backup and public publication are separate commits. Therefore a machine
 loss can lose private observations collected after its last checkpoint,

@@ -308,6 +308,109 @@ def test_restore_from_checkpoint_holds_protocol_through_activation(tmp_path: Pat
     assert (restored / "baseline").resolve().name == "cand_base"
 
 
+def historical_state(root: Path, schema_version: int, monkeypatch: pytest.MonkeyPatch) -> None:
+    from swingset.state import db as state_db
+
+    monkeypatch.setattr(state_db, "SCHEMA_VERSION", schema_version)
+    with state_db.open_database(root) as database:
+        assert database.connection.execute("PRAGMA user_version").fetchone()[0] == schema_version
+
+
+def test_restore_activation_keeps_schema_11_compatible(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    restored = tmp_path / "restored"
+    historical_state(restored, 11, monkeypatch)
+    marker = restored / "RESTORE_PENDING"
+    marker.write_text("verification pending\n")
+
+    activate_restored_state(restored)
+
+    assert not marker.exists()
+    with sqlite3.connect(restored / "state.sqlite") as connection:
+        tables = {
+            row[0]
+            for row in connection.execute("SELECT name FROM sqlite_master WHERE type='table'")
+        }
+        assert "execution_admissions" not in tables
+        assert "event_pressure_state" not in tables
+
+
+def test_restore_activation_recovers_schema_12_admissions_before_removing_marker(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from swingset.state import controls
+    from swingset.state import db as state_db
+
+    restored = tmp_path / "restored"
+    historical_state(restored, 12, monkeypatch)
+    with state_db.open_database(restored) as database:
+        database.connection.executemany(
+            "INSERT INTO execution_admissions("
+            "action_id,action_kind,admitted_at,control_revision,all_sources,all_kinds,state"
+            ") VALUES (?,?,?,0,1,1,'active')",
+            (
+                ("abandoned-local", "parse", "2026-09-18T00:00:00+00:00"),
+                ("abandoned-publication", "publication", "2026-09-18T00:00:01+00:00"),
+            ),
+        )
+    marker = restored / "RESTORE_PENDING"
+    marker.write_text("verification pending\n")
+    recovered_with_marker: list[bool] = []
+    recover_admissions = controls.recover_admissions
+
+    def checked_recovery(connection: sqlite3.Connection, **kwargs: object) -> int:
+        recovered_with_marker.append(marker.is_file())
+        return recover_admissions(connection, **kwargs)
+
+    monkeypatch.setattr(controls, "recover_admissions", checked_recovery)
+
+    activate_restored_state(restored)
+
+    assert recovered_with_marker == [True]
+    assert not marker.exists()
+    with sqlite3.connect(restored / "state.sqlite") as connection:
+        assert connection.execute(
+            "SELECT state,outcome FROM execution_admissions WHERE action_id='abandoned-local'"
+        ).fetchone() == ("settled", "process_interrupted")
+        assert connection.execute(
+            "SELECT state,outcome FROM execution_admissions WHERE action_id='abandoned-publication'"
+        ).fetchone() == ("uncertain", "receipt_reconciliation_required")
+        assert (
+            connection.execute(
+                "SELECT 1 FROM sqlite_master WHERE type='table' AND name='event_pressure_state'"
+            ).fetchone()
+            is None
+        )
+
+
+def test_restore_activation_recovers_schema_19_admissions_and_advances_pressure_epoch(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from swingset.state import db as state_db
+
+    restored = tmp_path / "restored"
+    historical_state(restored, 19, monkeypatch)
+    with state_db.open_database(restored) as database:
+        database.connection.execute(
+            "INSERT INTO execution_admissions("
+            "action_id,action_kind,admitted_at,control_revision,all_sources,all_kinds,state"
+            ") VALUES ('abandoned-local','parse','2026-09-18T00:00:00+00:00',0,1,1,'active')"
+        )
+        database.connection.execute("UPDATE event_pressure_state SET epoch=7")
+    marker = restored / "RESTORE_PENDING"
+    marker.write_text("verification pending\n")
+
+    activate_restored_state(restored)
+
+    assert not marker.exists()
+    with sqlite3.connect(restored / "state.sqlite") as connection:
+        assert connection.execute(
+            "SELECT state,outcome FROM execution_admissions WHERE action_id='abandoned-local'"
+        ).fetchone() == ("settled", "process_interrupted")
+        assert connection.execute("SELECT epoch FROM event_pressure_state").fetchone() == (8,)
+
+
 def test_restore_lock_timeout_makes_no_staging_state(tmp_path: Path) -> None:
     source = tmp_path / "source"
     connection = state(source)
