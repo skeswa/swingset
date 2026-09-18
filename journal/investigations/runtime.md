@@ -4,6 +4,7 @@ Find investigations of unfinished work, retries, pause controls, saved outputs, 
 
 [All investigations](README.md) · [Current status](../../docs/status.md)
 
+- [Pytest value and reduction review](2026/pytest-suite-review-2026-09-18.md) — 2026-09-18; all 217 test files reviewed, with conditional reductions and a separate count for tool tests. No tests removed.
 - [Event accounting after checkpoint activation](2026/event-accounting-activated-restore-2026-09-16.md) — 2026-09-16; actual schema 24 activation and resumed accounting, with rejected and changed support controls.
 - [Normalized request lookup](2026/normalized-request-lookup-2026-09-16.md) — 2026-09-16; reproduced candidate crowding and proposed portable index options, not implemented.
 - [Proving explicit page retirement](2026/event-page-retirement-proof-2026-09-16.md) — 2026-09-16; bounded immediate-edge proof, whole-event retirement unknown.

@@ -6,6 +6,7 @@ read [current status](../status.md) and its linked operating handoff.
 | Task                                       | Guide                                       |
 | ------------------------------------------ | ------------------------------------------- |
 | Set up a checkout and run checks           | [Development](development.md)               |
+| Choose core, extended or focused tests     | [Testing](testing.md)                       |
 | Install the NixOS worker                   | [Deployment](deployment.md)                 |
 | Inspect, pause, or troubleshoot the worker | [Operation](operation.md)                   |
 | Restore a saved checkpoint                 | [Backup and restore](backup-and-restore.md) |

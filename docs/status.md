@@ -388,6 +388,13 @@ for scope and evidence.
 - [Build validation investigation](../journal/investigations/2026/h16-validation-investigation-2026-09-15.md): why isolated timings did not prove full-build completion. Its VM measurements are dated 2026-09-16 UTC / 2026-09-15 Denver.
 - [Active plans](plans/README.md): remaining work and acceptance criteria.
 
+The reviewed core test selection is implemented and locally validated:
+**989 passed in 2 minutes 54 seconds**, serially on the development Mac on
+2026-09-18. Another 2,039 cases remain in the opt-in extended suite. No runtime
+or deployment changed for this test-selection work. See the
+[testing guide](guides/testing.md) and
+[timing receipt](../journal/evidence/runtime/core-test-suite-2026-09-18/receipt.json).
+
 Update this page when new evidence changes a current claim. Put detailed
 commands, measurements, and receipts in the journal. Local tests, deployment,
 and publication are separate milestones; do not infer one from another.

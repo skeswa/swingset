@@ -17,6 +17,11 @@ The test suite is offline. A dry cycle disables publication; it should not be
 used as a substitute for offline tests when you need to avoid source requests.
 See [fetching rules](../reference/fetching.md) before any live-source work.
 
+The default test command runs the reviewed core. Use `uv run pytest -q
+--full-suite` for core and extended coverage, or give an explicit path to test
+one module. The [testing guide](testing.md) owns selection rules, fixture setup
+and the measured runtime goal.
+
 ## Format and review changes
 
 Formatting only needs mise. Versions are pinned in `mise.toml`:

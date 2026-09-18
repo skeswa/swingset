@@ -21,6 +21,7 @@ Check migrations, controls, scheduling, checkpoints, and isolated replay.
 | [Worker disk bound, 2026-09-18](worker-disk-bound-2026-09-18/) | [Worker disk exhaustion and its bound](../../investigations/2026/worker-disk-exhaustion-2026-09-18.md); removals, bound, pinned hotfix deployment |
 | [State storage measurement, 2026-09-18](state-storage-measurement-2026-09-18/) | [Measuring where state storage goes](../../investigations/2026/state-storage-measurement-2026-09-18.md); dbstat receipts, backup timing, schema-30 migration before and after |
 
+| [Core test suite, 2026-09-18](core-test-suite-2026-09-18/) | [Test selection and passing timing](../../investigations/2026/pytest-suite-review-2026-09-18.md#implemented-core-selection-and-passing-timing); default core, extended crash validation and code hashes |
 
 These are dated captures, reports, and frozen scripts. Their internal paths
 refer to the original checkout. See the [path map](../paths.json) for relocated files.

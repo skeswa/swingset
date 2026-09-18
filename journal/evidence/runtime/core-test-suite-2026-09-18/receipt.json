@@ -1,0 +1,84 @@
+{
+  "recorded_date": "2026-09-18",
+  "purpose": "Validate the reviewed default core below 1000 cases and five minutes; retain specialist tests as opt-in extended coverage.",
+  "source": {
+    "base_revision": "72ead87cd3a087348c16323722ad3b2bbe21c0cd",
+    "runtime_source_files": 264,
+    "runtime_source_sha256": "4f7c1eb11352fa1ea75f747ab460faecdf7d8e74eb9187cedc769ae3f496faea",
+    "digest_recipe": "SHA-256 of sorted repo-relative src/**/*.py and src/**/*.sql paths, each followed by one space, file SHA-256 and newline.",
+    "edited_test_sha256": {
+      "tests/conftest.py": "b11ecbb9a24393eb0cd89f9a75b956e1dbd05bf302884a9d824fa24d6d323d71",
+      "tests/suite.toml": "c298adf095ee42c0f385b0055b5611eab1bfe1a67f1557086ac94eb9534d2d17",
+      "tests/test_suite_selection.py": "c0755268d05d4b16bf9fbfbc22f5aab09a8dbe0810011f68380b4d4cf41d4644",
+      "tests/test_crash_recovery.py": "68d5e337515e6ae6684ee4b5b8c7635bd1157acc884bb4f387500dd6fb277035",
+      "tests/helpers/crash_cycle.py": "407bf1077c97ccd36b58cfa8fa9d69e14d2f9ffd950eb93528d2fa39a0c91c83"
+    },
+    "measured_source_and_tests_match_shared_checkout": true
+  },
+  "environment": {
+    "hardware": "Development ARM64 Mac",
+    "platform": "macOS-26.5.1-arm64-arm-64bit",
+    "logical_cpus": 15,
+    "python": "3.12.13",
+    "pytest_workers": 1,
+    "isolated_jj_workspace": true,
+    "network_required": false
+  },
+  "core": {
+    "command": "python -m pytest -q --durations=15 --junitxml=core-final-results.xml",
+    "exit_code": 0,
+    "passed": 989,
+    "deselected": 2039,
+    "failed": 0,
+    "errors": 0,
+    "warnings": 2,
+    "warning_scope": "Existing record_property calls warn about pytest JUnit xunit2 format.",
+    "pytest_seconds": 173.73,
+    "wall_seconds": 174.38,
+    "user_seconds": 124.31,
+    "system_seconds": 38.04,
+    "crash_cases": 21,
+    "crash_combined_seconds": 32.849
+  },
+  "extended_crash": {
+    "command": "python -m pytest -q tests/test_crash_recovery.py -m extended --durations=3",
+    "exit_code": 0,
+    "passed": 1,
+    "deselected": 21,
+    "remaining_transaction_boundaries": 81,
+    "fault_sides_per_boundary": 2,
+    "pytest_seconds": 275.15,
+    "wall_seconds": 275.39,
+    "user_seconds": 192.99,
+    "system_seconds": 63.57
+  },
+  "checks": {
+    "full_collection": {
+      "command": "python -m pytest -q --full-suite --collect-only",
+      "exit_code": 0,
+      "collected": 3028
+    },
+    "selection_policy_integration_cases_passed": 7,
+    "ruff": {
+      "command": "ruff check tests/conftest.py tests/test_suite_selection.py tests/test_crash_recovery.py tests/helpers/crash_cycle.py",
+      "exit_code": 0
+    },
+    "format": {
+      "command": "mise run fmt",
+      "exit_code": 0
+    }
+  },
+  "fixture_restore": {
+    "verified_files_restored": 13,
+    "command": "python3 /path/to/swingset-history-scrub-20260917T210700Z/restore_current.py /absolute/path/to/isolated-checkout",
+    "archive_receipt": "journal/evidence/runtime/history-scrub-2026-09-17/receipt.json",
+    "archive_receipt_sha256": "2fea92bd788f3f0b4306a465e9ea69b13bfbb496e854c4981f0ac6090617f281"
+  },
+  "limits": [
+    "The complete extended suite was not rerun; only the modified exhaustive crash test was executed separately.",
+    "Measurements are serial local results on this hardware, not a guarantee for other machines or concurrent loads.",
+    "No tests were deleted; the default selection intentionally omits specialist coverage.",
+    "No runtime changes or deployment are part of this suite-selection change.",
+    "Verbose test logs and JUnit reports are disposable diagnostics and are not retained evidence."
+  ]
+}

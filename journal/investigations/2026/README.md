@@ -3,6 +3,7 @@
 [Browse by topic](../README.md). Dates in each record describe its evidence.
 A missing original date is not inferred from file modification time.
 
+- 2026-09-18: [Which pytest cases are worth keeping?](pytest-suite-review-2026-09-18.md).
 - 2026-09-18: [Measuring where state storage goes](state-storage-measurement-2026-09-18.md).
 - 2026-09-18: [Worker disk exhaustion and its bound](worker-disk-exhaustion-2026-09-18.md).
 - 2026-09-17: [JesAnn Nail’s full participation history page](jesann-history-page-2026-09-17.md).
