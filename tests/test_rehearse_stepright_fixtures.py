@@ -6,6 +6,7 @@ import pytest
 
 from journal.tools.admission import rehearse_stepright_fixtures as rehearsal
 from swingset.fetch.archive import canonical
+from swingset.state import db as db_module
 from swingset.state.db import open_database
 
 PAST = datetime.now(UTC) - timedelta(minutes=1)
@@ -45,7 +46,12 @@ def test_preparation_rejects_invalid_wall_clock(
         rehearsal.prepare(tmp_path / "rehearsal", prepared_at=prepared_at)
 
 
-def test_preparation_stages_exact_fixture_cohorts_without_activation(tmp_path: Path) -> None:
+def test_preparation_stages_exact_fixture_cohorts_without_activation(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # The rehearsal tool is frozen at the schema it was reviewed against (D-0013).
+    monkeypatch.setattr(db_module, "SCHEMA_VERSION", 29)
+    monkeypatch.setattr(rehearsal, "SCHEMA_VERSION", 29)
     output = tmp_path / "rehearsal"
     request = rehearsal.prepare(output, prepared_at=PAST)
 

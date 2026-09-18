@@ -66,6 +66,15 @@ in
       type = lib.types.bool;
       default = true;
     };
+    scratchMaxAgeDays = lib.mkOption {
+      type = lib.types.ints.positive;
+      default = 3;
+      description = ''
+        Rehearsal scratch directories under /var/tmp/swingset-* are removed
+        once nothing inside them has changed for this many days. A KEEP file
+        at the top of a directory exempts it.
+      '';
+    };
   };
   config = lib.mkIf cfg.enable {
     users.groups.swingset = { };
@@ -137,6 +146,40 @@ in
       wantedBy = [ "timers.target" ];
       timerConfig = {
         OnCalendar = "*-*-* 08:00:00";
+        Persistent = true;
+      };
+    };
+    # Rehearsals copy the whole state directory into /var/tmp/swingset-<name>.
+    # Each copy is several gigabytes and nothing removed them before this
+    # timer existed. Runs as root because operators create them as root, and
+    # without PrivateTmp so it sees the real /var/tmp.
+    systemd.services.swingset-scratch-clean = {
+      description = "Remove idle swingset rehearsal scratch under /var/tmp";
+      serviceConfig = {
+        Type = "oneshot";
+        ExecStart = pkgs.writeShellScript "swingset-scratch-clean" ''
+          set -eu
+          age=${toString cfg.scratchMaxAgeDays}
+          for dir in /var/tmp/swingset-*/; do
+            [ -d "$dir" ] || continue
+            dir="''${dir%/}"
+            if [ -e "$dir/KEEP" ]; then
+              echo "kept (KEEP marker): $dir"
+              continue
+            fi
+            if [ -n "$(${pkgs.findutils}/bin/find "$dir" -newermt "$age days ago" -print -quit)" ]; then
+              continue
+            fi
+            echo "removing rehearsal scratch idle for $age days: $dir"
+            rm -rf -- "$dir"
+          done
+        '';
+      };
+    };
+    systemd.timers.swingset-scratch-clean = {
+      wantedBy = [ "timers.target" ];
+      timerConfig = {
+        OnCalendar = "*-*-* 05:00:00";
         Persistent = true;
       };
     };

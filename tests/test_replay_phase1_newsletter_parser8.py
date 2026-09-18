@@ -628,9 +628,12 @@ def test_non_target_ledger_hash_covers_exactly_185_records():
     assert helper.non_target_ledger_hash(ledger) != before
 
 
-def _sealed_fresh_database(tmp_path):
+def _sealed_fresh_database(tmp_path, monkeypatch):
+    from swingset.state import db as db_module
     from swingset.state.db import open_database
 
+    # The replay tool is frozen at the schema it was reviewed against (D-0013).
+    monkeypatch.setattr(db_module, "SCHEMA_VERSION", 29)
     state = tmp_path / "state"
     database = open_database(state)
     database.connection.execute(
@@ -667,8 +670,8 @@ def _sealed_fresh_database(tmp_path):
     return state, database, marker
 
 
-def test_fabricated_or_operated_scratch_fails_before_replay(tmp_path):
-    state, database, marker = _sealed_fresh_database(tmp_path)
+def test_fabricated_or_operated_scratch_fails_before_replay(tmp_path, monkeypatch):
+    state, database, marker = _sealed_fresh_database(tmp_path, monkeypatch)
     helper.verify_database_authority(
         database.connection, state, require_fresh=True, verify_bundle=False
     )

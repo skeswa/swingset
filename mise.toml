@@ -27,11 +27,11 @@ run = "python3 journal/tools/evidence_size.py"
 description = "Format every hand-written file in the repo"
 run = [
   # .nix — nixfmt (RFC 166 style).
-  "jj file list -T 'path ++ \"\\0\"' 'glob:**/*.nix & ~glob:journal/evidence/** & ~glob:**/fixtures/**' | xargs -0 nixfmt",
+  "jj file list -T 'path ++ \"\\0\"' 'glob:**/*.nix & ~glob:journal/evidence/** & ~glob:**/fixtures/**' | xargs -0 -r nixfmt",
   # .toml — taplo.
-  "jj file list -T 'path ++ \"\\0\"' 'glob:**/*.toml & ~glob:journal/evidence/** & ~glob:**/fixtures/**' | xargs -0 taplo fmt",
+  "jj file list -T 'path ++ \"\\0\"' 'glob:**/*.toml & ~glob:journal/evidence/** & ~glob:**/fixtures/**' | xargs -0 -r taplo fmt",
   # .sh — shfmt.
-  "jj file list -T 'path ++ \"\\0\"' 'glob:**/*.sh & ~glob:journal/evidence/** & ~glob:**/fixtures/**' | xargs -0 shfmt --write --indent 2",
+  "jj file list -T 'path ++ \"\\0\"' 'glob:**/*.sh & ~glob:journal/evidence/** & ~glob:**/fixtures/**' | xargs -0 -r shfmt --write --indent 2",
   # .py — ruff's formatter. Its excludes live in pyproject.toml ([tool.ruff]).
   "ruff format .",
   # .json, .md, .yml, .html — oxfmt, repo-wide. Machine-written and captured

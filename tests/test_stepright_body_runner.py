@@ -57,6 +57,7 @@ from swingset.clock import FakeClock
 from swingset.config import Config, HostConfig
 from swingset.fetch.archive import Archive, canonical
 from swingset.fetch.client import USER_AGENT
+from swingset.state import db as db_module
 from swingset.state.db import open_database
 
 REPO = Path(__file__).resolve().parents[1]
@@ -71,7 +72,9 @@ def response(
 
 
 @pytest.fixture
-def setup(tmp_path):
+def setup(tmp_path, monkeypatch):
+    # The runner is frozen at the schema it was reviewed against (D-0013).
+    monkeypatch.setattr(db_module, "SCHEMA_VERSION", 29)
     clock = FakeClock()
     state, output = tmp_path / "state", tmp_path / "quarantine"
     source_root = tmp_path / "source"
@@ -533,6 +536,9 @@ def test_process_death_keeps_durable_dispatch_ambiguity_and_full_debit(setup, tm
 import json, os, signal, sys
 from pathlib import Path
 import httpx
+import swingset.state.db as db_module
+# The runner is frozen at the schema it was reviewed against (D-0013).
+db_module.SCHEMA_VERSION = 29
 from journal.tools.admission.stepright_body_runner import StepRightBodyRunner, accounting_connection
 from swingset.clock import FakeClock
 from swingset.config import Config, HostConfig

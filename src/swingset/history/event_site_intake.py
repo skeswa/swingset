@@ -101,7 +101,7 @@ def page_count(body: bytes) -> int:
         value = 0
     if isinstance(value, bool) or not isinstance(value, int) or not 0 <= value <= MAX_RECEIPTS:
         raise ValueError("invalid or excessive filtered CDX page count")
-    return value
+    return int(value)
 
 
 def page_captures(

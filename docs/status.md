@@ -12,14 +12,61 @@ and the guarded schema 28→29 migration passed at 23:11:59 UTC. All 116
 predecessor application tables were unchanged; the only new table is the
 one-row `history_dispatch_fence`. Both schema markers are 29, integrity and
 foreign keys pass, and the independent postmigration audit found no blockers.
-The active and persistent system is
-`/nix/store/5d9nlyflv9d4gb89a5wayhiarj01znnh-nixos-system-swingset-lxc-25.11.20260630.b6018f8`;
-its source is `/nix/store/rgyryll4d55rgzscdqhjcwmkr325a76f-source`.
+The active and persistent system since 2026-09-18 06:12 UTC is
+`/nix/store/mni8kwh2472nrfljz1v6kydrvx7f2m70-nixos-system-swingset-lxc-25.11.20260630.b6018f8`,
+which differs from candidate 006's system
+`/nix/store/5d9nlyflv9d4gb89a5wayhiarj01znnh-nixos-system-swingset-lxc-25.11.20260630.b6018f8`
+only by the `swingset-scratch-clean` timer and script; the swingset package and
+its source `/nix/store/rgyryll4d55rgzscdqhjcwmkr325a76f-source` are unchanged.
 The operator hold and seven sidecars are exact, all six ordinary units are
 inactive, and unsettled admissions and pending publication are zero. See the
 [preflight](../journal/evidence/runtime/held-schema29-migration-2026-09-17/preflight-001/receipt.json),
 [migration](../journal/evidence/runtime/held-schema29-migration-2026-09-17/execution-001/receipt.json),
 and [independent audit](../journal/evidence/runtime/held-schema29-migration-2026-09-17/postmigration-review-001/receipt.json).
+
+The worker ran the Mac out of disk on 2026-09-18. Rehearsal scratch (142
+directories, 238 GB) and eleven pre-H16 checkpoints (28 GB) were removed, the
+machine is bounded to 256 GiB, and a daily timer now removes idle rehearsal
+scratch. See the [investigation](../journal/investigations/2026/worker-disk-exhaustion-2026-09-18.md)
+and [D-0133](../journal/decisions/0133-bound-the-worker-disk-and-remove-rehearsals-eagerly.md).
+
+Steps 2 and 3 of the [bounded state plan](plans/bounded-state-and-archive.md)
+are implemented and locally tested as of 2026-09-18. **Nothing is deployed.**
+Production stays at schema 29 under the operator hold; no database has been
+migrated and nothing has been removed, archived or reclaimed anywhere. Schema
+30 makes findings declare the support they rely on, schema 31 records one
+permanent note per removal, and schema 32 stores each distinct derivation output
+row once behind a `derivation_rows` view. One retention walk produces the durable
+and local lists; `gc --plan`, `gc --apply`, `gc --reclaim`, `swingset hold` and
+doctor work from it, and no payload bytes can be removed until step 4's archive
+tables exist. The full suite passes locally except one pre-existing,
+environment-caused failure in `tests/publish/test_publication_controls.py`
+explained in the [measurement investigation](../journal/investigations/2026/state-storage-measurement-2026-09-18.md#known-local-test-failure).
+See the [retention contract](reference/state.md#retention),
+[schema history](reference/schema-history.md), and
+[D-0127](../journal/decisions/0127-measure-state-storage-read-only-on-a-copy.md)
+through
+[D-0158](../journal/decisions/0158-build-steps-2-and-3-before-the-measurement-and-gate-the-rest-on-it.md).
+
+Step 1 of that plan, the measurement, **ran on 2026-09-18** against a scratch
+restore of held checkpoint 004 on the worker, after steps 2 and 3 were already
+written. Rows do not repeat yet (0.9998 distinct), `derivation_rows` and its
+indexes are 27% of the 5.0 GB file, and migrating the copy to schema 32 made it
+6% larger. [D-0166](../journal/decisions/0166-hold-interning-back-until-rows-repeat-and-cut-indexes-first.md),
+accepted on 2026-09-18, holds interning back, reordering the migrations so step 3 can deploy
+alone, and adds a step for the row indexes and source generation JSON. The reorder
+was done on 2026-09-18: interning is now schema 32, the last migration, and every
+reader of the interned tables falls back to the one table, so schemas 30 and 31
+deploy and run `gc`, holds, doctor, checkpoint and restore without it
+([D-0167](../journal/decisions/0167-intern-derivation-payloads-in-the-last-migration.md)).
+Interning itself still waits for a copy with recomputation history. See
+the [investigation](../journal/investigations/2026/state-storage-measurement-2026-09-18.md).
+Until that measurement the two retention defaults (8,000,000,000 bytes and a window
+of 3) are judgment calls, not measured ones. The order actually taken, and what
+still waits for the numbers, is recorded in
+[D-0158](../journal/decisions/0158-build-steps-2-and-3-before-the-measurement-and-gate-the-rest-on-it.md);
+it does not satisfy step 1's own "done when", which needs the measurement. Step 4, archiving to two object
+stores and bringing data back, has not started; neither store exists.
 
 Production input acceptance passed its separately reviewed three-gate operation
 at 01:39:24 UTC. The exact 12 candidate-006 inputs changed within the existing

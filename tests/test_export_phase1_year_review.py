@@ -69,8 +69,12 @@ def _write_fake_runtime(root: Path, marker: str) -> None:
 
 @pytest.fixture
 def prepared(tmp_path, monkeypatch):
+    from swingset.state import db as db_module
     from swingset.state.db import Database, open_database
 
+    # The export tool is frozen at the schema it was reviewed against (D-0013),
+    # including its exact application-table count.
+    monkeypatch.setattr(db_module, "SCHEMA_VERSION", helper.SCHEMA)
     monkeypatch.setattr(helper, "SCRATCH_ROOT", tmp_path)
     monkeypatch.setattr(helper, "SCRATCH_PREFIX", "scratch-")
     monkeypatch.setattr(helper, "OUTPUT_ROOT", tmp_path)

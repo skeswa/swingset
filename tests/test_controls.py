@@ -382,19 +382,31 @@ def test_paused_publication_still_validates_safety_before_admission(tmp_path):
 def test_checkpoint_control_snapshot_stays_consistent_while_controls_continue(
     tmp_path, monkeypatch
 ):
+    """The checkpoint resolves one point in time, and a control change waits for it.
+
+    The copied database is taken before the closure, so a resume that arrives
+    while the checkpoint runs cannot change what it carries. Since D-0164 the
+    closure and copy also hold the control lock, so that resume waits rather
+    than landing mid-copy; it lands as soon as the copy is done.
+    """
     from swingset.backup import checkpoint as checkpoint_module
 
     original_closure = checkpoint_module._artifact_closure
     state = tmp_path / "state"
     with open_database(state) as db:
         receipt = change(state)
+        resumed = threading.Thread(target=lambda: change(state, paused=False))
 
         def capture_closure(state_dir, conn, candidates):
             assert (
                 conn.execute("SELECT pause_id FROM operator_pauses").fetchone()[0]
                 == receipt["pause_id"]
             )
-            change(state, paused=False)
+            resumed.start()
+            # The resume cannot commit while the copy runs: it is waiting for
+            # the control lock this checkpoint holds.
+            time.sleep(0.05)
+            assert resumed.is_alive()
             assert (
                 conn.execute("SELECT pause_id FROM operator_pauses").fetchone()[0]
                 == receipt["pause_id"]
@@ -410,6 +422,8 @@ def test_checkpoint_control_snapshot_stays_consistent_while_controls_continue(
             versions={},
             input_bundle_hash=None,
         )
+        resumed.join(30)
+        assert not resumed.is_alive()
         assert not db.connection.execute("SELECT 1 FROM operator_pauses").fetchone()
     conn = sqlite3.connect(
         f"{(checkpoint.path / 'state.sqlite').as_uri()}?mode=ro&immutable=1", uri=True

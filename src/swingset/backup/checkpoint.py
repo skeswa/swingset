@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 import fcntl
 import json
 import os
@@ -14,6 +15,9 @@ from typing import Any
 from swingset.build.files import canonical_json, durable_write, fsync_dir, sha256_file
 from swingset.clock import Clock
 from swingset.publish.service import Hub, RemoteCommit, pending_candidates
+from swingset.state.retention import RetentionError
+from swingset.state.retention import artifact_closure as _artifact_closure
+from swingset.state.retention import referenced_candidates as _referenced_candidates
 
 
 @dataclass(frozen=True)
@@ -23,11 +27,13 @@ class Checkpoint:
     files: dict[str, dict[str, int | str]]
 
 
-class CheckpointError(RuntimeError):
-    pass
+# The file closure moved to state/retention.py, where the one retention walk
+# lives, so a checkpoint and a removal plan cannot disagree about which files are
+# declared. One closure raises one error: this name is that error, so every
+# existing caller and message is unchanged.
+CheckpointError = RetentionError
 
-
-EXCLUDED_TOP_LEVEL = {".cache", "venv", "uv-cache", "checkpoints"}
+EXCLUDED_TOP_LEVEL = {".cache", "venv", "uv-cache", "checkpoints", "gc"}
 EXCLUDED_NAMES = {
     "state.lock",
     "control.lock",
@@ -35,118 +41,6 @@ EXCLUDED_NAMES = {
     "state.sqlite-shm",
     "RESTORE_PENDING",
 }
-
-
-def _artifact_closure(
-    state_dir: Path, connection: sqlite3.Connection, candidates: set[Path]
-) -> set[Path]:
-    included: set[Path] = set()
-    table_names = {
-        str(row[0])
-        for row in connection.execute("SELECT name FROM sqlite_master WHERE type='table'")
-    }
-    if "snapshots" in table_names:
-        for body, extract in connection.execute(
-            "SELECT body_sha256, extract_sha256 FROM snapshots"
-        ):
-            if body:
-                digest = str(body)
-                included.add(state_dir / "blobs" / "sha256" / digest[:2] / digest[2:4] / digest)
-            if extract:
-                included.add(state_dir / "extracts" / str(extract))
-    if "source_generations" in table_names:
-        for generation_id, manifest_json in connection.execute(
-            "SELECT generation_id,manifest_json FROM source_generations ORDER BY generation_id"
-        ):
-            try:
-                manifest = json.loads(manifest_json)
-            except (TypeError, ValueError) as exc:
-                raise CheckpointError(
-                    f"invalid generation artifact manifest: {generation_id}"
-                ) from exc
-            if not isinstance(manifest, list) or any(
-                not isinstance(item, dict) for item in manifest
-            ):
-                raise CheckpointError(f"invalid generation artifact manifest: {generation_id}")
-            for item in manifest:
-                for field in ("body_sha256", "extract_sha256"):
-                    value = item.get(field)
-                    if value is None:
-                        continue
-                    if (
-                        not isinstance(value, str)
-                        or len(value) != 64
-                        or any(char not in "0123456789abcdef" for char in value)
-                    ):
-                        raise CheckpointError(
-                            f"invalid generation artifact digest: {generation_id}"
-                        )
-                    included.add(
-                        state_dir / "blobs" / "sha256" / value[:2] / value[2:4] / value
-                        if field == "body_sha256"
-                        else state_dir / "extracts" / value
-                    )
-    if "hosts" in table_names:
-        for (body,) in connection.execute(
-            "SELECT robots_sha256 FROM hosts WHERE robots_sha256 IS NOT NULL"
-        ):
-            digest = str(body)
-            included.add(state_dir / "blobs" / "sha256" / digest[:2] / digest[2:4] / digest)
-    if "findings" in table_names:
-        for (evidence_json,) in connection.execute(
-            "SELECT evidence_json FROM findings WHERE closed_at IS NULL"
-        ):
-            stack = [json.loads(str(evidence_json))]
-            while stack:
-                value = stack.pop()
-                if isinstance(value, dict):
-                    stack.extend(value.values())
-                elif isinstance(value, list):
-                    stack.extend(value)
-                elif (
-                    isinstance(value, str)
-                    and len(value) == 64
-                    and all(char in "0123456789abcdef" for char in value)
-                ):
-                    digest = value
-                    possibilities = (
-                        state_dir / "blobs" / "sha256" / digest[:2] / digest[2:4] / digest,
-                        state_dir / "extracts" / digest,
-                    )
-                    included.update(path for path in possibilities if path.is_file())
-    bundle_hashes: set[str] = set()
-    if "meta" in table_names:
-        row = connection.execute("SELECT value FROM meta WHERE key='input_bundle_hash'").fetchone()
-        if row and row[0]:
-            bundle_hashes.add(str(row[0]))
-    for candidate in candidates:
-        manifest = candidate / "_meta" / "manifest.json"
-        if manifest.is_file():
-            value = json.loads(manifest.read_text()).get("input_bundle_hash")
-            if value:
-                bundle_hashes.add(str(value))
-    for bundle_hash in bundle_hashes:
-        bundle = state_dir / "inputs" / bundle_hash
-        if not bundle.is_dir():
-            raise CheckpointError(f"referenced input bundle is missing: {bundle_hash}")
-        included.update(path for path in bundle.rglob("*") if path.is_file())
-    missing = [path for path in included if not path.is_file()]
-    if missing:
-        raise CheckpointError(
-            f"referenced artifact is missing: {missing[0].relative_to(state_dir)}"
-        )
-    return {path.resolve() for path in included}
-
-
-def _referenced_candidates(state_dir: Path) -> set[Path]:
-    result: set[Path] = set()
-    baseline = state_dir / "baseline"
-    if baseline.is_symlink():
-        result.add(baseline.resolve())
-    candidates = state_dir / "candidates"
-    if candidates.exists():
-        result.update(path.resolve() for path in pending_candidates(state_dir))
-    return result
 
 
 def _copy_file(source: Path, destination: Path) -> None:
@@ -173,10 +67,32 @@ def create_checkpoint(
     schema_version: int,
     versions: dict[str, str],
     input_bundle_hash: str | None,
+    control_timeout: float = 60,
 ) -> Checkpoint:
+    """Copy the database and every file its closure declares.
+
+    The file closure and the copy run under the control lock, unless the caller
+    already holds it for a wider operation. A hold is one file written under that
+    lock after its contents are checked, so without it a hold could be committed
+    between this closure and this copy, and the checkpoint would carry the hold
+    but not the file it holds. Files a hold names are filtered by `is_file()`, so
+    nothing would report the gap. The documented order is state.lock (which the
+    backup command already owns), then control.lock, then SQLite, and never while
+    a SQLite write transaction is open; the database copy below happens before
+    the lock for that reason.
+    """
+    from swingset.state.control_lock import control_lock, holds_control_lock
+
     _check_database_schema(connection, schema_version)
     if destination.exists():
         raise CheckpointError(f"checkpoint destination exists: {destination}")
+    # An operator tool that already fenced a whole operation with the control
+    # lock keeps its own fence; the mutex is not re-entrant.
+    fence: contextlib.AbstractContextManager[None] = (
+        contextlib.nullcontext()
+        if holds_control_lock(state_dir)
+        else control_lock(state_dir, timeout=control_timeout)
+    )
     temporary = destination.with_name(f".{destination.name}.tmp-{uuid.uuid4().hex}")
     temporary.mkdir(parents=True)
     try:
@@ -187,32 +103,36 @@ def create_checkpoint(
             copied.execute("PRAGMA wal_checkpoint(TRUNCATE)")
         finally:
             copied.close()
-        included_candidates = _referenced_candidates(state_dir)
-        # Controls may append while the one data writer is checkpointing. Resolve
-        # every database reference from the copied point-in-time database.
-        snapshot = sqlite3.connect(f"{database.resolve().as_uri()}?mode=ro&immutable=1", uri=True)
-        try:
-            included_artifacts = _artifact_closure(state_dir, snapshot, included_candidates)
-        finally:
-            snapshot.close()
-        for source in state_dir.rglob("*"):
-            if not source.is_file() or source.name in EXCLUDED_NAMES:
-                continue
-            relative = source.relative_to(state_dir)
-            if relative == Path("state.sqlite") or relative.parts[0] in EXCLUDED_TOP_LEVEL:
-                continue
-            if relative.parts[0] == "candidates" and not _candidate_allowed(
-                source, included_candidates
-            ):
-                continue
-            if (
-                relative.parts[0] in {"blobs", "extracts", "inputs"}
-                and source.resolve() not in included_artifacts
-            ):
-                continue
-            if any(part.startswith(".") and ".tmp-" in part for part in relative.parts):
-                continue
-            _copy_file(source, temporary / relative)
+        with fence:
+            included_candidates = _referenced_candidates(state_dir)
+            # Controls may append while the one data writer is checkpointing.
+            # Resolve every database reference from the copied point-in-time
+            # database.
+            snapshot = sqlite3.connect(
+                f"{database.resolve().as_uri()}?mode=ro&immutable=1", uri=True
+            )
+            try:
+                included_artifacts = _artifact_closure(state_dir, snapshot, included_candidates)
+            finally:
+                snapshot.close()
+            for source in state_dir.rglob("*"):
+                if not source.is_file() or source.name in EXCLUDED_NAMES:
+                    continue
+                relative = source.relative_to(state_dir)
+                if relative == Path("state.sqlite") or relative.parts[0] in EXCLUDED_TOP_LEVEL:
+                    continue
+                if relative.parts[0] == "candidates" and not _candidate_allowed(
+                    source, included_candidates
+                ):
+                    continue
+                if (
+                    relative.parts[0] in {"blobs", "extracts", "inputs"}
+                    and source.resolve() not in included_artifacts
+                ):
+                    continue
+                if any(part.startswith(".") and ".tmp-" in part for part in relative.parts):
+                    continue
+                _copy_file(source, temporary / relative)
         files: dict[str, dict[str, int | str]] = {}
         for path in sorted(item for item in temporary.rglob("*") if item.is_file()):
             relative_name = path.relative_to(temporary).as_posix()
@@ -499,55 +419,3 @@ def _restore_promote(state_dir: Path, candidate: Path) -> None:
     except FileNotFoundError:
         pass
     fsync_dir(candidate)
-
-
-def garbage_collect(state_dir: Path, *, older_than: float, now: float) -> list[Path]:
-    """Prune old orphans while retaining reference closure and five dry candidates."""
-    removed: list[Path] = []
-    candidates = state_dir / "candidates"
-    if not candidates.exists():
-        return removed
-    retained = _referenced_candidates(state_dir)
-    disposable = sorted(
-        (
-            path
-            for path in candidates.iterdir()
-            if (path / "BUILT").is_file() and path.resolve() not in retained
-        ),
-        key=lambda path: path.stat().st_mtime,
-        reverse=True,
-    )
-    retained.update(path.resolve() for path in disposable[:5])
-    for candidate in candidates.iterdir():
-        if candidate.resolve() in retained:
-            continue
-        if now - candidate.stat().st_mtime < older_than:
-            continue
-        shutil.rmtree(candidate)
-        removed.append(candidate)
-    database_path = state_dir / "state.sqlite"
-    if database_path.is_file():
-        connection = sqlite3.connect(database_path)
-        try:
-            referenced = _artifact_closure(state_dir, connection, retained)
-        finally:
-            connection.close()
-        for top_level in ("blobs", "extracts", "inputs"):
-            root = state_dir / top_level
-            if not root.exists():
-                continue
-            for artifact in (path for path in root.rglob("*") if path.is_file()):
-                if artifact.resolve() in referenced or now - artifact.stat().st_mtime < older_than:
-                    continue
-                artifact.unlink()
-                removed.append(artifact)
-            for directory in sorted(
-                (path for path in root.rglob("*") if path.is_dir()), reverse=True
-            ):
-                try:
-                    directory.rmdir()
-                except OSError:
-                    pass
-    if removed:
-        fsync_dir(candidates)
-    return removed

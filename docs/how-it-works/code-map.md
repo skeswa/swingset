@@ -17,7 +17,7 @@ lives in [`cli.py`](../../src/swingset/cli.py).
 | Collect historical results   | `history/`   | [catalog.py](../../src/swingset/history/catalog.py), [backfill.py](../../src/swingset/history/backfill.py)     |
 | Build a candidate            | `build/`     | [builder.py](../../src/swingset/build/builder.py), [closure.py](../../src/swingset/build/closure.py)           |
 | Publish and reconcile        | `publish/`   | [service.py](../../src/swingset/publish/service.py)                                                            |
-| Back up and restore          | `backup/`    | [checkpoint.py](../../src/swingset/backup/checkpoint.py)                                                       |
+| Back up and restore          | `backup/`    | [checkpoint.py](../../src/swingset/backup/checkpoint.py), [pruning.py](../../src/swingset/backup/pruning.py)   |
 
 These modules live under `src/swingset/`. For their exact responsibilities,
 see [architecture](../reference/architecture.md).
@@ -28,7 +28,17 @@ see [architecture](../reference/architecture.md).
 names and source labels. `state/` owns the database, accepted inputs, work
 records, and migrations. Start with [db.py](../../src/swingset/state/db.py),
 [work.py](../../src/swingset/state/work.py), and
-[derivations.py](../../src/swingset/state/derivations.py).
+[derivations.py](../../src/swingset/state/derivations.py). Each distinct output
+row is stored once;
+[derivation_payload_migration.py](../../src/swingset/state/derivation_payload_migration.py)
+is the one-time fill and check that migration 32 runs.
+
+[retention.py](../../src/swingset/state/retention.py) decides what stays in the
+live database: it owns the file closure and the walk behind `gc --plan`, `hold`
+and doctor's retention report, and it removes nothing.
+[retention_apply.py](../../src/swingset/state/retention_apply.py) is the only
+module that removes anything, through `gc --apply` and `gc --reclaim`, from a
+written plan under both locks.
 
 The [data model](../reference/data-model.md) describes published tables.
 [Local state](../reference/state.md) describes what the worker keeps between runs.

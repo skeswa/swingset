@@ -21,6 +21,7 @@ Check migrations, controls, scheduling, checkpoints, and isolated replay.
 | [benchmark_requirements.py](benchmark_requirements.py)                           | Time two inventory scans on an explicitly disposable state copy, offline.                    |
 | [h14_picker_cost.py](h14_picker_cost.py)                                         | Read-only retained-demand picker timing; older schemas use empty TEMP counters.              |
 | [h14_shadow_load.py](h14_shadow_load.py)                                         | Read one retained SQLite snapshot and emit H14 load evidence; never import runtime.          |
+| [measure_state_storage.py](measure_state_storage.py)                             | Read-only per-table, per-stage and payload-digest storage report on a disposable copy.       |
 | [replay_derivations.py](replay_derivations.py)                                   | Resume real project/link workers on a marker-bound SQLite scratch copy only.                 |
 | [checkpoint_h16_20260917.py](checkpoint_h16_20260917.py)                         | Capture and verify the published H16 checkpoint with the pinned deployed runtime.            |
 | [rehearse_extension_migration.py](rehearse_extension_migration.py)               | Verify current-schema migration on a disposable copy of a source-bound schema-14 checkpoint. |
@@ -51,3 +52,18 @@ repair or publication.
 The [schema-29 timing diagnostic](measure_schema29_overhead.py) compares rolled-back
 updates on a disposable database copy. It isolates the new triggers from older
 triggers; its measurements do not establish whole-worker throughput.
+
+The [state storage measurement](measure_state_storage.py) answers step 1 of the
+bounded state plan: bytes per table and index from `dbstat`, file size against
+bytes in use and free-list bytes, and distinct payload digests against total
+rows per stage, and declared row counts against the rows that read back. It
+opens the database `mode=ro&immutable=1`, so it creates no sidecar files and
+cannot write to what it measures, and it refuses `/var/lib/swingset` and any
+database a connection still holds open. Every path it writes to is fenced the
+same way and checked before the measurement starts: not under
+`/var/lib/swingset`, not inside the measured copy, and not already there. It
+exits non-zero when a gate fails.
+`--time-backup` times a restore, a checkpoint and its verification into a
+scratch directory it is given; on a copied held checkpoint it restores first and
+backs up the restored tree. The measurement itself has not been run; see the
+[investigation](../../investigations/2026/state-storage-measurement-2026-09-18.md).

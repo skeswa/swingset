@@ -1,0 +1,2877 @@
+{
+  "accounting": {
+    "accounted": true,
+    "freelist_bytes": 0,
+    "freelist_count": 0,
+    "page_count": 1224838,
+    "page_count_bytes": 5016936448,
+    "page_size": 4096,
+    "reserved_lock_pages_expected": 1,
+    "unaccounted_bytes": 4096,
+    "unaccounted_pages": 1,
+    "used_bytes": 5016932352,
+    "used_pages": 1224837
+  },
+  "backup_timing": {
+    "backed_up_state_dir": "/var/tmp/swingset-schema29-restore-20260917-004/restored-state",
+    "checkpoint_bytes": 8782406326,
+    "checkpoint_file_count": 68866,
+    "checkpoint_manifest_sha256": "a6acb9ee29c4228b35194bd68ab782950dd82831b71d2cb1c386adef7282d03d",
+    "create_seconds": 268.281729877,
+    "free_bytes_before": 168004804608,
+    "network_requests": 0,
+    "order": "backup-then-restore",
+    "required_free_bytes": 17541345010,
+    "restore_seconds": 226.50361236000003,
+    "restored_bytes": 8770672526,
+    "schema_version": 29,
+    "scratch": "/var/tmp/swingset-measure-20260918/scratch-002",
+    "scratch_bytes": 17553078852,
+    "source_database_bytes": 5016936448,
+    "source_kind": "state",
+    "source_tree_bytes": 8770672505,
+    "total_seconds": 537.8782129670001,
+    "verify_seconds": 43.092870730000016
+  },
+  "database": {
+    "file_bytes": 5016936448,
+    "path": "/var/tmp/swingset-schema29-restore-20260917-004/restored-state/state.sqlite",
+    "schema_version": 29,
+    "sha256": null,
+    "shm_bytes": 0,
+    "source_checkpoint_manifest_sha256": null,
+    "source_kind": "state",
+    "state_dir": "/var/tmp/swingset-schema29-restore-20260917-004/restored-state",
+    "user_version": 29,
+    "wal_bytes": 0
+  },
+  "database_unchanged": true,
+  "derivation_tables": [
+    {
+      "index_bytes": 9998336,
+      "kind": "table",
+      "name": "derivation_generations",
+      "present": true,
+      "rows": 34987,
+      "table_bytes": 252571648,
+      "total_bytes": 262569984
+    },
+    {
+      "index_bytes": 492802048,
+      "kind": "table",
+      "name": "derivation_rows",
+      "present": true,
+      "rows": 1669989,
+      "table_bytes": 873897984,
+      "total_bytes": 1366700032
+    },
+    {
+      "kind": null,
+      "name": "derivation_rows_legacy",
+      "present": false
+    },
+    {
+      "kind": null,
+      "name": "derivation_row_refs",
+      "present": false
+    },
+    {
+      "kind": null,
+      "name": "derivation_payloads",
+      "present": false
+    },
+    {
+      "index_bytes": 8630272,
+      "kind": "table",
+      "name": "derivation_dependency_sets",
+      "present": true,
+      "rows": 103369,
+      "table_bytes": 429436928,
+      "total_bytes": 438067200
+    },
+    {
+      "index_bytes": 8318976,
+      "kind": "table",
+      "name": "derivation_scopes",
+      "present": true,
+      "rows": 34987,
+      "table_bytes": 10149888,
+      "total_bytes": 18468864
+    },
+    {
+      "index_bytes": 53248,
+      "kind": "table",
+      "name": "derivation_input_versions",
+      "present": true,
+      "rows": 1084,
+      "table_bytes": 57344,
+      "total_bytes": 110592
+    }
+  ],
+  "derivations": {
+    "by_scope": [
+      {
+        "declared_row_count": 1,
+        "distinct_payload_sha256": 1,
+        "distinct_to_total_rows": 1.0,
+        "generations": 1,
+        "payload_bytes": 265,
+        "rows": 1,
+        "stage": "build",
+        "unit_kind": "release"
+      },
+      {
+        "declared_row_count": 408988,
+        "distinct_payload_sha256": 408988,
+        "distinct_to_total_rows": 1.0,
+        "generations": 2541,
+        "payload_bytes": 110877233,
+        "rows": 408988,
+        "stage": "link",
+        "unit_kind": "event"
+      },
+      {
+        "declared_row_count": 169,
+        "distinct_payload_sha256": 169,
+        "distinct_to_total_rows": 1.0,
+        "generations": 2,
+        "payload_bytes": 108281,
+        "rows": 169,
+        "stage": "project",
+        "unit_kind": "calendar"
+      },
+      {
+        "declared_row_count": 225774,
+        "distinct_payload_sha256": 225774,
+        "distinct_to_total_rows": 1.0,
+        "generations": 29048,
+        "payload_bytes": 73940004,
+        "rows": 225774,
+        "stage": "project",
+        "unit_kind": "dancer"
+      },
+      {
+        "declared_row_count": 830155,
+        "distinct_payload_sha256": 830155,
+        "distinct_to_total_rows": 1.0,
+        "generations": 2541,
+        "payload_bytes": 282909646,
+        "rows": 830155,
+        "stage": "project",
+        "unit_kind": "event"
+      },
+      {
+        "declared_row_count": 200597,
+        "distinct_payload_sha256": 200597,
+        "distinct_to_total_rows": 1.0,
+        "generations": 1,
+        "payload_bytes": 32375384,
+        "rows": 200597,
+        "stage": "project",
+        "unit_kind": "history"
+      },
+      {
+        "declared_row_count": 2660,
+        "distinct_payload_sha256": 2660,
+        "distinct_to_total_rows": 1.0,
+        "generations": 1,
+        "payload_bytes": 1365928,
+        "rows": 2660,
+        "stage": "project",
+        "unit_kind": "inventory"
+      },
+      {
+        "declared_row_count": 808,
+        "distinct_payload_sha256": 808,
+        "distinct_to_total_rows": 1.0,
+        "generations": 1,
+        "payload_bytes": 291265,
+        "rows": 808,
+        "stage": "project",
+        "unit_kind": "map"
+      },
+      {
+        "declared_row_count": 0,
+        "distinct_payload_sha256": 0,
+        "distinct_to_total_rows": null,
+        "generations": 467,
+        "payload_bytes": 0,
+        "rows": 0,
+        "stage": "project",
+        "unit_kind": "source_event"
+      },
+      {
+        "declared_row_count": 837,
+        "distinct_payload_sha256": 455,
+        "distinct_to_total_rows": 0.5436081242532855,
+        "generations": 384,
+        "payload_bytes": 241075,
+        "rows": 837,
+        "stage": "project",
+        "unit_kind": "source_index"
+      }
+    ],
+    "derivation_rows_kind": "table",
+    "rows_without_a_generation": 0,
+    "totals": {
+      "declared_row_count": 1669989,
+      "distinct_payload_sha256_upper_bound": 1669607,
+      "distinct_to_total_rows_upper_bound": 0.9997712559783328,
+      "generations": 34987,
+      "payload_bytes": 502109081,
+      "rows": 1669989
+    }
+  },
+  "findings": [
+    "Every page is accounted for by dbstat, the free list, and reserved pages.",
+    "File size 5016936448 bytes; bytes in use 5016932352; free list 0 bytes.",
+    "Generations declare 1669989 output rows and that many read back.",
+    "Output rows 1669989 carry 502109081 payload bytes; distinct payload digests are at most 1669607 (0.9998 of rows).",
+    "Largest objects: derivation_rows 873897984 bytes, source_generations 720551936 bytes, derivation_dependency_sets 429436928 bytes.",
+    "Every gate passed.",
+    "Backup timing (backup-then-restore): restore 226.504s, create 268.282s, verify 43.093s; 17553078852 bytes written under scratch."
+  ],
+  "finished_at": "2026-09-18T15:17:38.523517+00:00",
+  "format": "state-storage-measurement-v2",
+  "gates": {
+    "backup_timing": true,
+    "declared_rows_match": true,
+    "page_accounting": true,
+    "passed": true,
+    "rows_all_name_a_generation": true
+  },
+  "history_tables": [
+    {
+      "index_bytes": 12288,
+      "kind": "table",
+      "name": "identity_decisions",
+      "present": true,
+      "rows": 0,
+      "table_bytes": 4096,
+      "total_bytes": 16384
+    },
+    {
+      "index_bytes": 4096,
+      "kind": "table",
+      "name": "identity_journal_acceptances",
+      "present": true,
+      "rows": 1,
+      "table_bytes": 4096,
+      "total_bytes": 8192
+    },
+    {
+      "index_bytes": 29908992,
+      "kind": "table",
+      "name": "identity_link_history",
+      "present": true,
+      "rows": 396350,
+      "table_bytes": 278102016,
+      "total_bytes": 308011008
+    },
+    {
+      "index_bytes": 7102464,
+      "kind": "table",
+      "name": "identity_link_resolutions",
+      "present": true,
+      "rows": 98751,
+      "table_bytes": 30711808,
+      "total_bytes": 37814272
+    },
+    {
+      "index_bytes": 12279808,
+      "kind": "table",
+      "name": "identity_links",
+      "present": true,
+      "rows": 98751,
+      "table_bytes": 18620416,
+      "total_bytes": 30900224
+    },
+    {
+      "index_bytes": 27496448,
+      "kind": "table",
+      "name": "identity_reference_bindings",
+      "present": true,
+      "rows": 115718,
+      "table_bytes": 42848256,
+      "total_bytes": 70344704
+    },
+    {
+      "index_bytes": 12288,
+      "kind": "table",
+      "name": "identity_reference_migrations",
+      "present": true,
+      "rows": 0,
+      "table_bytes": 4096,
+      "total_bytes": 16384
+    },
+    {
+      "index_bytes": 21696512,
+      "kind": "table",
+      "name": "identity_source_refs",
+      "present": true,
+      "rows": 115713,
+      "table_bytes": 42340352,
+      "total_bytes": 64036864
+    },
+    {
+      "index_bytes": 4096,
+      "kind": "table",
+      "name": "control_events",
+      "present": true,
+      "rows": 2,
+      "table_bytes": 4096,
+      "total_bytes": 8192
+    },
+    {
+      "index_bytes": 3330048,
+      "kind": "table",
+      "name": "work_attempts",
+      "present": true,
+      "rows": 34986,
+      "table_bytes": 9707520,
+      "total_bytes": 13037568
+    },
+    {
+      "index_bytes": 65536,
+      "kind": "table",
+      "name": "runs",
+      "present": true,
+      "rows": 1988,
+      "table_bytes": 819200,
+      "total_bytes": 884736
+    },
+    {
+      "index_bytes": 26677248,
+      "kind": "table",
+      "name": "findings",
+      "present": true,
+      "rows": 107692,
+      "table_bytes": 66215936,
+      "total_bytes": 92893184
+    },
+    {
+      "index_bytes": 3174400,
+      "kind": "table",
+      "name": "finding_support",
+      "present": true,
+      "rows": 55913,
+      "table_bytes": 43175936,
+      "total_bytes": 46350336
+    }
+  ],
+  "limits": [
+    "Measures one disposable copy at one moment. It is not a growth rate and not a forecast.",
+    "Distinct payload digests are counted per stage and unit kind. The totals figure sums those sets, so it is an upper bound on the whole-database distinct count: a payload shared by two scopes is counted twice.",
+    "dbstat reports bytes that pages hold, not the file size. A file keeps freed pages on its free list, so bytes in use and file size are reported separately.",
+    "Unverified: that SQLite keeps its reserved lock page off the free list. The accounting check allows exactly one such page in a database larger than 1 GiB and reports the difference.",
+    "Declared row counts come from derivation_generations.row_count; readable rows are counted by streaming derivation_rows. A generation whose payload bytes are gone declares rows that cannot be read, so the two are reported separately and compared.",
+    "Output rows are read through derivation_rows, which is a table before the payload split and a view over derivation_row_refs and derivation_payloads after it. The report says which shape it found; payload bytes are the bytes the rows name, not the bytes stored.",
+    "Backup timing is one run on one machine with a cold or warm cache that is not controlled. Treat it as an order of magnitude, not a service level.",
+    "Timing a held checkpoint restores it and then backs up the restored tree, so the restore figure includes verifying the source and the backup figure covers a real state directory. Timing a plain state directory does the reverse. The report says which order ran.",
+    "Nothing here reads production, publishes, or uses the network."
+  ],
+  "started_at": "2026-09-18T15:17:32.070463+00:00",
+  "storage": [
+    {
+      "bytes": 873897984,
+      "kind": "table",
+      "name": "derivation_rows",
+      "pages": 213354,
+      "table": "derivation_rows"
+    },
+    {
+      "bytes": 720551936,
+      "kind": "table",
+      "name": "source_generations",
+      "pages": 175916,
+      "table": "source_generations"
+    },
+    {
+      "bytes": 429436928,
+      "kind": "table",
+      "name": "derivation_dependency_sets",
+      "pages": 104843,
+      "table": "derivation_dependency_sets"
+    },
+    {
+      "bytes": 342245376,
+      "kind": "index",
+      "name": "sqlite_autoindex_derivation_rows_2",
+      "pages": 83556,
+      "table": "derivation_rows"
+    },
+    {
+      "bytes": 278102016,
+      "kind": "table",
+      "name": "identity_link_history",
+      "pages": 67896,
+      "table": "identity_link_history"
+    },
+    {
+      "bytes": 252571648,
+      "kind": "table",
+      "name": "derivation_generations",
+      "pages": 61663,
+      "table": "derivation_generations"
+    },
+    {
+      "bytes": 209678336,
+      "kind": "index",
+      "name": "sqlite_autoindex_canonical_scope_rows_1",
+      "pages": 51191,
+      "table": "canonical_scope_rows"
+    },
+    {
+      "bytes": 176238592,
+      "kind": "table",
+      "name": "canonical_scope_rows",
+      "pages": 43027,
+      "table": "canonical_scope_rows"
+    },
+    {
+      "bytes": 172806144,
+      "kind": "table",
+      "name": "observations",
+      "pages": 42189,
+      "table": "observations"
+    },
+    {
+      "bytes": 150556672,
+      "kind": "index",
+      "name": "sqlite_autoindex_derivation_rows_1",
+      "pages": 36757,
+      "table": "derivation_rows"
+    },
+    {
+      "bytes": 146382848,
+      "kind": "index",
+      "name": "canonical_scope_rows_record_idx",
+      "pages": 35738,
+      "table": "canonical_scope_rows"
+    },
+    {
+      "bytes": 140107776,
+      "kind": "table",
+      "name": "callback_marks",
+      "pages": 34206,
+      "table": "callback_marks"
+    },
+    {
+      "bytes": 86753280,
+      "kind": "index",
+      "name": "sqlite_autoindex_callback_marks_1",
+      "pages": 21180,
+      "table": "callback_marks"
+    },
+    {
+      "bytes": 66215936,
+      "kind": "table",
+      "name": "findings",
+      "pages": 16166,
+      "table": "findings"
+    },
+    {
+      "bytes": 50974720,
+      "kind": "table",
+      "name": "registry_placements",
+      "pages": 12445,
+      "table": "registry_placements"
+    },
+    {
+      "bytes": 45260800,
+      "kind": "table",
+      "name": "snapshots",
+      "pages": 11050,
+      "table": "snapshots"
+    },
+    {
+      "bytes": 43175936,
+      "kind": "table",
+      "name": "finding_support",
+      "pages": 10541,
+      "table": "finding_support"
+    },
+    {
+      "bytes": 42848256,
+      "kind": "table",
+      "name": "identity_reference_bindings",
+      "pages": 10461,
+      "table": "identity_reference_bindings"
+    },
+    {
+      "bytes": 42340352,
+      "kind": "table",
+      "name": "identity_source_refs",
+      "pages": 10337,
+      "table": "identity_source_refs"
+    },
+    {
+      "bytes": 37621760,
+      "kind": "table",
+      "name": "entries",
+      "pages": 9185,
+      "table": "entries"
+    },
+    {
+      "bytes": 35926016,
+      "kind": "table",
+      "name": "final_marks",
+      "pages": 8771,
+      "table": "final_marks"
+    },
+    {
+      "bytes": 30711808,
+      "kind": "table",
+      "name": "identity_link_resolutions",
+      "pages": 7498,
+      "table": "identity_link_resolutions"
+    },
+    {
+      "bytes": 29908992,
+      "kind": "index",
+      "name": "identity_link_history_subject_idx",
+      "pages": 7302,
+      "table": "identity_link_history"
+    },
+    {
+      "bytes": 26218496,
+      "kind": "index",
+      "name": "callback_marks_judge_id_fk_idx",
+      "pages": 6401,
+      "table": "callback_marks"
+    },
+    {
+      "bytes": 26140672,
+      "kind": "index",
+      "name": "callback_marks_entry_id_fk_idx",
+      "pages": 6382,
+      "table": "callback_marks"
+    },
+    {
+      "bytes": 25145344,
+      "kind": "table",
+      "name": "callbacks",
+      "pages": 6139,
+      "table": "callbacks"
+    },
+    {
+      "bytes": 24719360,
+      "kind": "index",
+      "name": "sqlite_autoindex_execution_dependencies_1",
+      "pages": 6035,
+      "table": "execution_dependencies"
+    },
+    {
+      "bytes": 24264704,
+      "kind": "index",
+      "name": "sqlite_autoindex_final_marks_1",
+      "pages": 5924,
+      "table": "final_marks"
+    },
+    {
+      "bytes": 24068096,
+      "kind": "index",
+      "name": "execution_dependencies_scope",
+      "pages": 5876,
+      "table": "execution_dependencies"
+    },
+    {
+      "bytes": 21118976,
+      "kind": "table",
+      "name": "execution_dependencies",
+      "pages": 5156,
+      "table": "execution_dependencies"
+    },
+    {
+      "bytes": 18620416,
+      "kind": "table",
+      "name": "identity_links",
+      "pages": 4546,
+      "table": "identity_links"
+    },
+    {
+      "bytes": 15888384,
+      "kind": "table",
+      "name": "watches",
+      "pages": 3879,
+      "table": "watches"
+    },
+    {
+      "bytes": 12034048,
+      "kind": "index",
+      "name": "sqlite_autoindex_identity_source_refs_2",
+      "pages": 2938,
+      "table": "identity_source_refs"
+    },
+    {
+      "bytes": 12021760,
+      "kind": "index",
+      "name": "sqlite_autoindex_callbacks_1",
+      "pages": 2935,
+      "table": "callbacks"
+    },
+    {
+      "bytes": 11743232,
+      "kind": "index",
+      "name": "registry_placements_occurrence_idx",
+      "pages": 2867,
+      "table": "registry_placements"
+    },
+    {
+      "bytes": 11329536,
+      "kind": "index",
+      "name": "sqlite_autoindex_registry_placements_1",
+      "pages": 2766,
+      "table": "registry_placements"
+    },
+    {
+      "bytes": 10928128,
+      "kind": "table",
+      "name": "requirement_transitions",
+      "pages": 2668,
+      "table": "requirement_transitions"
+    },
+    {
+      "bytes": 10149888,
+      "kind": "table",
+      "name": "derivation_scopes",
+      "pages": 2478,
+      "table": "derivation_scopes"
+    },
+    {
+      "bytes": 9842688,
+      "kind": "table",
+      "name": "link_candidates",
+      "pages": 2403,
+      "table": "link_candidates"
+    },
+    {
+      "bytes": 9707520,
+      "kind": "table",
+      "name": "work_attempts",
+      "pages": 2370,
+      "table": "work_attempts"
+    },
+    {
+      "bytes": 9662464,
+      "kind": "index",
+      "name": "sqlite_autoindex_identity_source_refs_1",
+      "pages": 2359,
+      "table": "identity_source_refs"
+    },
+    {
+      "bytes": 9646080,
+      "kind": "index",
+      "name": "identity_reference_bindings_ref_idx",
+      "pages": 2355,
+      "table": "identity_reference_bindings"
+    },
+    {
+      "bytes": 9633792,
+      "kind": "table",
+      "name": "placements",
+      "pages": 2352,
+      "table": "placements"
+    },
+    {
+      "bytes": 9625600,
+      "kind": "index",
+      "name": "sqlite_autoindex_identity_reference_bindings_1",
+      "pages": 2350,
+      "table": "identity_reference_bindings"
+    },
+    {
+      "bytes": 8630272,
+      "kind": "index",
+      "name": "sqlite_autoindex_derivation_dependency_sets_1",
+      "pages": 2107,
+      "table": "derivation_dependency_sets"
+    },
+    {
+      "bytes": 8413184,
+      "kind": "table",
+      "name": "source_units",
+      "pages": 2054,
+      "table": "source_units"
+    },
+    {
+      "bytes": 8224768,
+      "kind": "index",
+      "name": "identity_reference_bindings_subject_idx",
+      "pages": 2008,
+      "table": "identity_reference_bindings"
+    },
+    {
+      "bytes": 8032256,
+      "kind": "index",
+      "name": "final_marks_placement_id_fk_idx",
+      "pages": 1961,
+      "table": "final_marks"
+    },
+    {
+      "bytes": 7831552,
+      "kind": "table",
+      "name": "dancers",
+      "pages": 1912,
+      "table": "dancers"
+    },
+    {
+      "bytes": 7340032,
+      "kind": "index",
+      "name": "findings_owner_idx",
+      "pages": 1792,
+      "table": "findings"
+    },
+    {
+      "bytes": 7262208,
+      "kind": "index",
+      "name": "registry_placements_event_id_fk_idx",
+      "pages": 1773,
+      "table": "registry_placements"
+    },
+    {
+      "bytes": 7221248,
+      "kind": "index",
+      "name": "sqlite_autoindex_identity_links_2",
+      "pages": 1763,
+      "table": "identity_links"
+    },
+    {
+      "bytes": 7102464,
+      "kind": "index",
+      "name": "sqlite_autoindex_identity_link_resolutions_1",
+      "pages": 1734,
+      "table": "identity_link_resolutions"
+    },
+    {
+      "bytes": 7016448,
+      "kind": "index",
+      "name": "sqlite_autoindex_link_candidates_1",
+      "pages": 1713,
+      "table": "link_candidates"
+    },
+    {
+      "bytes": 6836224,
+      "kind": "table",
+      "name": "admission_decisions",
+      "pages": 1669,
+      "table": "admission_decisions"
+    },
+    {
+      "bytes": 6656000,
+      "kind": "index",
+      "name": "sqlite_autoindex_entries_1",
+      "pages": 1625,
+      "table": "entries"
+    },
+    {
+      "bytes": 6451200,
+      "kind": "index",
+      "name": "final_marks_judge_id_fk_idx",
+      "pages": 1575,
+      "table": "final_marks"
+    },
+    {
+      "bytes": 6262784,
+      "kind": "table",
+      "name": "execution_admissions",
+      "pages": 1529,
+      "table": "execution_admissions"
+    },
+    {
+      "bytes": 5754880,
+      "kind": "index",
+      "name": "findings_subject_id_control_idx",
+      "pages": 1405,
+      "table": "findings"
+    },
+    {
+      "bytes": 5431296,
+      "kind": "table",
+      "name": "registry_verifications",
+      "pages": 1326,
+      "table": "registry_verifications"
+    },
+    {
+      "bytes": 5353472,
+      "kind": "index",
+      "name": "callbacks_entry_id_fk_idx",
+      "pages": 1307,
+      "table": "callbacks"
+    },
+    {
+      "bytes": 5234688,
+      "kind": "index",
+      "name": "requirement_transitions_time",
+      "pages": 1278,
+      "table": "requirement_transitions"
+    },
+    {
+      "bytes": 4878336,
+      "kind": "index",
+      "name": "sqlite_autoindex_observations_2",
+      "pages": 1191,
+      "table": "observations"
+    },
+    {
+      "bytes": 4820992,
+      "kind": "index",
+      "name": "entries_contest_id_fk_idx",
+      "pages": 1177,
+      "table": "entries"
+    },
+    {
+      "bytes": 4710400,
+      "kind": "index",
+      "name": "source_generations_unit_idx",
+      "pages": 1150,
+      "table": "source_generations"
+    },
+    {
+      "bytes": 4214784,
+      "kind": "index",
+      "name": "findings_owner_finding_idx",
+      "pages": 1029,
+      "table": "findings"
+    },
+    {
+      "bytes": 4046848,
+      "kind": "index",
+      "name": "derivation_scopes_unassessed",
+      "pages": 988,
+      "table": "derivation_scopes"
+    },
+    {
+      "bytes": 4026368,
+      "kind": "index",
+      "name": "snapshots_body_idx",
+      "pages": 983,
+      "table": "snapshots"
+    },
+    {
+      "bytes": 3846144,
+      "kind": "index",
+      "name": "entries_event_idx",
+      "pages": 939,
+      "table": "entries"
+    },
+    {
+      "bytes": 3461120,
+      "kind": "index",
+      "name": "findings_run_id_fk_idx",
+      "pages": 845,
+      "table": "findings"
+    },
+    {
+      "bytes": 3448832,
+      "kind": "index",
+      "name": "requirement_transitions_requirement_idx",
+      "pages": 842,
+      "table": "requirement_transitions"
+    },
+    {
+      "bytes": 3354624,
+      "kind": "index",
+      "name": "sqlite_autoindex_work_generations_1",
+      "pages": 819,
+      "table": "work_generations"
+    },
+    {
+      "bytes": 3342336,
+      "kind": "index",
+      "name": "snapshots_watch_idx",
+      "pages": 816,
+      "table": "snapshots"
+    },
+    {
+      "bytes": 3276800,
+      "kind": "index",
+      "name": "pending_work_order_idx",
+      "pages": 800,
+      "table": "pending_work"
+    },
+    {
+      "bytes": 3178496,
+      "kind": "table",
+      "name": "work_generations",
+      "pages": 776,
+      "table": "work_generations"
+    },
+    {
+      "bytes": 3047424,
+      "kind": "index",
+      "name": "sqlite_autoindex_derivation_generations_1",
+      "pages": 744,
+      "table": "derivation_generations"
+    },
+    {
+      "bytes": 3014656,
+      "kind": "index",
+      "name": "derivation_scopes_materialized",
+      "pages": 736,
+      "table": "derivation_scopes"
+    },
+    {
+      "bytes": 2973696,
+      "kind": "index",
+      "name": "sqlite_autoindex_findings_1",
+      "pages": 726,
+      "table": "findings"
+    },
+    {
+      "bytes": 2940928,
+      "kind": "index",
+      "name": "derivation_generations_dependencies",
+      "pages": 718,
+      "table": "derivation_generations"
+    },
+    {
+      "bytes": 2912256,
+      "kind": "table",
+      "name": "pending_work",
+      "pages": 711,
+      "table": "pending_work"
+    },
+    {
+      "bytes": 2883584,
+      "kind": "index",
+      "name": "admission_decisions_generation_idx",
+      "pages": 704,
+      "table": "admission_decisions"
+    },
+    {
+      "bytes": 2826240,
+      "kind": "index",
+      "name": "sqlite_autoindex_source_generations_1",
+      "pages": 690,
+      "table": "source_generations"
+    },
+    {
+      "bytes": 2789376,
+      "kind": "index",
+      "name": "sqlite_autoindex_identity_links_1",
+      "pages": 681,
+      "table": "identity_links"
+    },
+    {
+      "bytes": 2744320,
+      "kind": "table",
+      "name": "requirement_attempts",
+      "pages": 670,
+      "table": "requirement_attempts"
+    },
+    {
+      "bytes": 2723840,
+      "kind": "index",
+      "name": "source_units_accepted_idx",
+      "pages": 665,
+      "table": "source_units"
+    },
+    {
+      "bytes": 2654208,
+      "kind": "index",
+      "name": "observations_snapshot_id_fk_idx",
+      "pages": 648,
+      "table": "observations"
+    },
+    {
+      "bytes": 2551808,
+      "kind": "index",
+      "name": "derivation_generations_scope",
+      "pages": 623,
+      "table": "derivation_generations"
+    },
+    {
+      "bytes": 2502656,
+      "kind": "index",
+      "name": "sqlite_autoindex_requirement_cohort_members_1",
+      "pages": 611,
+      "table": "requirement_cohort_members"
+    },
+    {
+      "bytes": 2269184,
+      "kind": "index",
+      "name": "identity_links_method_wsdc_idx",
+      "pages": 554,
+      "table": "identity_links"
+    },
+    {
+      "bytes": 2211840,
+      "kind": "table",
+      "name": "requirement_cohort_members",
+      "pages": 540,
+      "table": "requirement_cohort_members"
+    },
+    {
+      "bytes": 2080768,
+      "kind": "index",
+      "name": "sqlite_autoindex_pending_work_1",
+      "pages": 508,
+      "table": "pending_work"
+    },
+    {
+      "bytes": 2064384,
+      "kind": "index",
+      "name": "watches_due_idx",
+      "pages": 504,
+      "table": "watches"
+    },
+    {
+      "bytes": 1925120,
+      "kind": "index",
+      "name": "execution_admissions_state",
+      "pages": 470,
+      "table": "execution_admissions"
+    },
+    {
+      "bytes": 1888256,
+      "kind": "index",
+      "name": "registry_verification_watch",
+      "pages": 461,
+      "table": "registry_verifications"
+    },
+    {
+      "bytes": 1880064,
+      "kind": "index",
+      "name": "findings_snapshot_id_fk_idx",
+      "pages": 459,
+      "table": "findings"
+    },
+    {
+      "bytes": 1777664,
+      "kind": "index",
+      "name": "watches_event_blockers",
+      "pages": 434,
+      "table": "watches"
+    },
+    {
+      "bytes": 1765376,
+      "kind": "index",
+      "name": "sqlite_autoindex_execution_admissions_1",
+      "pages": 431,
+      "table": "execution_admissions"
+    },
+    {
+      "bytes": 1728512,
+      "kind": "index",
+      "name": "sqlite_autoindex_placements_1",
+      "pages": 422,
+      "table": "placements"
+    },
+    {
+      "bytes": 1712128,
+      "kind": "index",
+      "name": "observations_scope_idx",
+      "pages": 418,
+      "table": "observations"
+    },
+    {
+      "bytes": 1638400,
+      "kind": "index",
+      "name": "finding_support_active_idx",
+      "pages": 400,
+      "table": "finding_support"
+    },
+    {
+      "bytes": 1630208,
+      "kind": "index",
+      "name": "observations_watch_idx",
+      "pages": 398,
+      "table": "observations"
+    },
+    {
+      "bytes": 1576960,
+      "kind": "index",
+      "name": "sqlite_autoindex_observations_1",
+      "pages": 385,
+      "table": "observations"
+    },
+    {
+      "bytes": 1540096,
+      "kind": "index",
+      "name": "sqlite_autoindex_snapshots_1",
+      "pages": 376,
+      "table": "snapshots"
+    },
+    {
+      "bytes": 1536000,
+      "kind": "index",
+      "name": "sqlite_autoindex_finding_support_1",
+      "pages": 375,
+      "table": "finding_support"
+    },
+    {
+      "bytes": 1482752,
+      "kind": "index",
+      "name": "source_units_legacy_idx",
+      "pages": 362,
+      "table": "source_units"
+    },
+    {
+      "bytes": 1400832,
+      "kind": "table",
+      "name": "rounds",
+      "pages": 342,
+      "table": "rounds"
+    },
+    {
+      "bytes": 1384448,
+      "kind": "index",
+      "name": "work_attempts_unit",
+      "pages": 338,
+      "table": "work_attempts"
+    },
+    {
+      "bytes": 1355776,
+      "kind": "index",
+      "name": "source_generations_state_idx",
+      "pages": 331,
+      "table": "source_generations"
+    },
+    {
+      "bytes": 1257472,
+      "kind": "index",
+      "name": "sqlite_autoindex_derivation_scopes_1",
+      "pages": 307,
+      "table": "derivation_scopes"
+    },
+    {
+      "bytes": 1236992,
+      "kind": "index",
+      "name": "registry_verifications_snapshot_id_fk_idx",
+      "pages": 302,
+      "table": "registry_verifications"
+    },
+    {
+      "bytes": 1224704,
+      "kind": "index",
+      "name": "placements_round_id_fk_idx",
+      "pages": 299,
+      "table": "placements"
+    },
+    {
+      "bytes": 1150976,
+      "kind": "table",
+      "name": "judges",
+      "pages": 281,
+      "table": "judges"
+    },
+    {
+      "bytes": 1146880,
+      "kind": "index",
+      "name": "watches_kind_watch_idx",
+      "pages": 280,
+      "table": "watches"
+    },
+    {
+      "bytes": 1130496,
+      "kind": "index",
+      "name": "derivation_generations_run",
+      "pages": 276,
+      "table": "derivation_generations"
+    },
+    {
+      "bytes": 1130496,
+      "kind": "index",
+      "name": "execution_admissions_run",
+      "pages": 276,
+      "table": "execution_admissions"
+    },
+    {
+      "bytes": 1130496,
+      "kind": "index",
+      "name": "work_attempts_run",
+      "pages": 276,
+      "table": "work_attempts"
+    },
+    {
+      "bytes": 1110016,
+      "kind": "index",
+      "name": "placements_contest_id_fk_idx",
+      "pages": 271,
+      "table": "placements"
+    },
+    {
+      "bytes": 1056768,
+      "kind": "index",
+      "name": "placements_follower_entry_idx",
+      "pages": 258,
+      "table": "placements"
+    },
+    {
+      "bytes": 1052672,
+      "kind": "index",
+      "name": "findings_watch_id_fk_idx",
+      "pages": 257,
+      "table": "findings"
+    },
+    {
+      "bytes": 1040384,
+      "kind": "index",
+      "name": "placements_leader_entry_idx",
+      "pages": 254,
+      "table": "placements"
+    },
+    {
+      "bytes": 1003520,
+      "kind": "table",
+      "name": "events",
+      "pages": 245,
+      "table": "events"
+    },
+    {
+      "bytes": 999424,
+      "kind": "index",
+      "name": "source_generations_run_idx",
+      "pages": 244,
+      "table": "source_generations"
+    },
+    {
+      "bytes": 983040,
+      "kind": "index",
+      "name": "sqlite_autoindex_event_pressure_dirty_1",
+      "pages": 240,
+      "table": "event_pressure_dirty"
+    },
+    {
+      "bytes": 958464,
+      "kind": "table",
+      "name": "contests",
+      "pages": 234,
+      "table": "contests"
+    },
+    {
+      "bytes": 954368,
+      "kind": "index",
+      "name": "sqlite_autoindex_watches_1",
+      "pages": 233,
+      "table": "watches"
+    },
+    {
+      "bytes": 929792,
+      "kind": "index",
+      "name": "requirement_attempts_requirement_idx",
+      "pages": 227,
+      "table": "requirement_attempts"
+    },
+    {
+      "bytes": 901120,
+      "kind": "index",
+      "name": "snapshots_run_id_fk_idx",
+      "pages": 220,
+      "table": "snapshots"
+    },
+    {
+      "bytes": 876544,
+      "kind": "index",
+      "name": "sqlite_autoindex_source_units_1",
+      "pages": 214,
+      "table": "source_units"
+    },
+    {
+      "bytes": 860160,
+      "kind": "index",
+      "name": "source_units_watch_idx",
+      "pages": 210,
+      "table": "source_units"
+    },
+    {
+      "bytes": 843776,
+      "kind": "table",
+      "name": "event_pressure_dirty",
+      "pages": 206,
+      "table": "event_pressure_dirty"
+    },
+    {
+      "bytes": 819200,
+      "kind": "table",
+      "name": "runs",
+      "pages": 200,
+      "table": "runs"
+    },
+    {
+      "bytes": 815104,
+      "kind": "index",
+      "name": "work_attempts_running",
+      "pages": 199,
+      "table": "work_attempts"
+    },
+    {
+      "bytes": 700416,
+      "kind": "index",
+      "name": "placements_event_id_fk_idx",
+      "pages": 171,
+      "table": "placements"
+    },
+    {
+      "bytes": 688128,
+      "kind": "index",
+      "name": "sqlite_autoindex_requirement_attempts_1",
+      "pages": 168,
+      "table": "requirement_attempts"
+    },
+    {
+      "bytes": 675840,
+      "kind": "index",
+      "name": "source_generations_retained_source",
+      "pages": 165,
+      "table": "source_generations"
+    },
+    {
+      "bytes": 491520,
+      "kind": "table",
+      "name": "scheduler_parent_links",
+      "pages": 120,
+      "table": "scheduler_parent_links"
+    },
+    {
+      "bytes": 409600,
+      "kind": "index",
+      "name": "execution_admissions_work",
+      "pages": 100,
+      "table": "execution_admissions"
+    },
+    {
+      "bytes": 409600,
+      "kind": "index",
+      "name": "watches_parent_watch_id_fk_idx",
+      "pages": 100,
+      "table": "watches"
+    },
+    {
+      "bytes": 385024,
+      "kind": "index",
+      "name": "snapshots_parser_idx",
+      "pages": 94,
+      "table": "snapshots"
+    },
+    {
+      "bytes": 335872,
+      "kind": "schema",
+      "name": "sqlite_schema",
+      "pages": 82,
+      "table": "sqlite_schema"
+    },
+    {
+      "bytes": 327680,
+      "kind": "index",
+      "name": "derivation_generations_previous",
+      "pages": 80,
+      "table": "derivation_generations"
+    },
+    {
+      "bytes": 323584,
+      "kind": "index",
+      "name": "sqlite_autoindex_judges_1",
+      "pages": 79,
+      "table": "judges"
+    },
+    {
+      "bytes": 311296,
+      "kind": "index",
+      "name": "sqlite_autoindex_rounds_1",
+      "pages": 76,
+      "table": "rounds"
+    },
+    {
+      "bytes": 303104,
+      "kind": "index",
+      "name": "scheduler_parent_links_snapshot",
+      "pages": 74,
+      "table": "scheduler_parent_links"
+    },
+    {
+      "bytes": 299008,
+      "kind": "index",
+      "name": "source_generations_previous_idx",
+      "pages": 73,
+      "table": "source_generations"
+    },
+    {
+      "bytes": 290816,
+      "kind": "index",
+      "name": "sqlite_autoindex_scheduler_parent_links_1",
+      "pages": 71,
+      "table": "scheduler_parent_links"
+    },
+    {
+      "bytes": 262144,
+      "kind": "index",
+      "name": "rounds_contest_idx",
+      "pages": 64,
+      "table": "rounds"
+    },
+    {
+      "bytes": 188416,
+      "kind": "index",
+      "name": "judges_event_idx",
+      "pages": 46,
+      "table": "judges"
+    },
+    {
+      "bytes": 176128,
+      "kind": "index",
+      "name": "scheduler_parent_links_child",
+      "pages": 43,
+      "table": "scheduler_parent_links"
+    },
+    {
+      "bytes": 172032,
+      "kind": "index",
+      "name": "sqlite_autoindex_contests_1",
+      "pages": 42,
+      "table": "contests"
+    },
+    {
+      "bytes": 139264,
+      "kind": "table",
+      "name": "source_events",
+      "pages": 34,
+      "table": "source_events"
+    },
+    {
+      "bytes": 114688,
+      "kind": "index",
+      "name": "contests_event_idx",
+      "pages": 28,
+      "table": "contests"
+    },
+    {
+      "bytes": 114688,
+      "kind": "index",
+      "name": "sqlite_autoindex_events_1",
+      "pages": 28,
+      "table": "events"
+    },
+    {
+      "bytes": 81920,
+      "kind": "index",
+      "name": "events_series_month_idx",
+      "pages": 20,
+      "table": "events"
+    },
+    {
+      "bytes": 65536,
+      "kind": "index",
+      "name": "sqlite_autoindex_runs_1",
+      "pages": 16,
+      "table": "runs"
+    },
+    {
+      "bytes": 57344,
+      "kind": "table",
+      "name": "derivation_input_versions",
+      "pages": 14,
+      "table": "derivation_input_versions"
+    },
+    {
+      "bytes": 53248,
+      "kind": "index",
+      "name": "sqlite_autoindex_derivation_input_versions_1",
+      "pages": 13,
+      "table": "derivation_input_versions"
+    },
+    {
+      "bytes": 49152,
+      "kind": "table",
+      "name": "source_event_scope_rows",
+      "pages": 12,
+      "table": "source_event_scope_rows"
+    },
+    {
+      "bytes": 49152,
+      "kind": "index",
+      "name": "sqlite_autoindex_source_event_scope_rows_1",
+      "pages": 12,
+      "table": "source_event_scope_rows"
+    },
+    {
+      "bytes": 40960,
+      "kind": "table",
+      "name": "source_event_map",
+      "pages": 10,
+      "table": "source_event_map"
+    },
+    {
+      "bytes": 24576,
+      "kind": "index",
+      "name": "sqlite_autoindex_source_events_1",
+      "pages": 6,
+      "table": "source_events"
+    },
+    {
+      "bytes": 20480,
+      "kind": "index",
+      "name": "source_event_map_event_idx",
+      "pages": 5,
+      "table": "source_event_map"
+    },
+    {
+      "bytes": 20480,
+      "kind": "index",
+      "name": "sqlite_autoindex_source_event_map_1",
+      "pages": 5,
+      "table": "source_event_map"
+    },
+    {
+      "bytes": 16384,
+      "kind": "table",
+      "name": "series",
+      "pages": 4,
+      "table": "series"
+    },
+    {
+      "bytes": 12288,
+      "kind": "table",
+      "name": "admission_reviews",
+      "pages": 3,
+      "table": "admission_reviews"
+    },
+    {
+      "bytes": 12288,
+      "kind": "table",
+      "name": "archive_captures",
+      "pages": 3,
+      "table": "archive_captures"
+    },
+    {
+      "bytes": 12288,
+      "kind": "table",
+      "name": "coverage",
+      "pages": 3,
+      "table": "coverage"
+    },
+    {
+      "bytes": 12288,
+      "kind": "index",
+      "name": "sqlite_autoindex_series_1",
+      "pages": 3,
+      "table": "series"
+    },
+    {
+      "bytes": 4096,
+      "kind": "table",
+      "name": "accepted_inputs",
+      "pages": 1,
+      "table": "accepted_inputs"
+    },
+    {
+      "bytes": 4096,
+      "kind": "table",
+      "name": "admission_policies",
+      "pages": 1,
+      "table": "admission_policies"
+    },
+    {
+      "bytes": 4096,
+      "kind": "table",
+      "name": "archive_queries",
+      "pages": 1,
+      "table": "archive_queries"
+    },
+    {
+      "bytes": 4096,
+      "kind": "table",
+      "name": "backup_uploads",
+      "pages": 1,
+      "table": "backup_uploads"
+    },
+    {
+      "bytes": 4096,
+      "kind": "table",
+      "name": "control_events",
+      "pages": 1,
+      "table": "control_events"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "control_events_pause",
+      "pages": 1,
+      "table": "control_events"
+    },
+    {
+      "bytes": 4096,
+      "kind": "table",
+      "name": "control_state",
+      "pages": 1,
+      "table": "control_state"
+    },
+    {
+      "bytes": 4096,
+      "kind": "table",
+      "name": "cursors",
+      "pages": 1,
+      "table": "cursors"
+    },
+    {
+      "bytes": 4096,
+      "kind": "table",
+      "name": "event_accounting_receipts",
+      "pages": 1,
+      "table": "event_accounting_receipts"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "event_accounting_receipts_definite",
+      "pages": 1,
+      "table": "event_accounting_receipts"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "event_accounting_receipts_definite_enum",
+      "pages": 1,
+      "table": "event_accounting_receipts"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "event_accounting_receipts_event",
+      "pages": 1,
+      "table": "event_accounting_receipts"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "event_accounting_receipts_previous",
+      "pages": 1,
+      "table": "event_accounting_receipts"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "event_accounting_support_enumeration",
+      "pages": 1,
+      "table": "event_accounting_support_observations"
+    },
+    {
+      "bytes": 4096,
+      "kind": "table",
+      "name": "event_accounting_support_observations",
+      "pages": 1,
+      "table": "event_accounting_support_observations"
+    },
+    {
+      "bytes": 4096,
+      "kind": "table",
+      "name": "event_blocker_cursor",
+      "pages": 1,
+      "table": "event_blocker_cursor"
+    },
+    {
+      "bytes": 4096,
+      "kind": "table",
+      "name": "event_blocker_latest",
+      "pages": 1,
+      "table": "event_blocker_latest"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "event_blocker_latest_observation",
+      "pages": 1,
+      "table": "event_blocker_latest"
+    },
+    {
+      "bytes": 4096,
+      "kind": "table",
+      "name": "event_blocker_observations",
+      "pages": 1,
+      "table": "event_blocker_observations"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "event_blocker_observations_event",
+      "pages": 1,
+      "table": "event_blocker_observations"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "event_blocker_observations_policy",
+      "pages": 1,
+      "table": "event_blocker_observations"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "event_blocker_observations_refresh",
+      "pages": 1,
+      "table": "event_blocker_observations"
+    },
+    {
+      "bytes": 4096,
+      "kind": "table",
+      "name": "event_blocker_policies",
+      "pages": 1,
+      "table": "event_blocker_policies"
+    },
+    {
+      "bytes": 4096,
+      "kind": "table",
+      "name": "event_blocker_refreshes",
+      "pages": 1,
+      "table": "event_blocker_refreshes"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "event_blocker_refreshes_run",
+      "pages": 1,
+      "table": "event_blocker_refreshes"
+    },
+    {
+      "bytes": 4096,
+      "kind": "table",
+      "name": "event_enumeration_inputs",
+      "pages": 1,
+      "table": "event_enumeration_inputs"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "event_enumeration_inputs_decision",
+      "pages": 1,
+      "table": "event_enumeration_inputs"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "event_enumeration_members_request",
+      "pages": 1,
+      "table": "source_event_enumeration_members"
+    },
+    {
+      "bytes": 4096,
+      "kind": "table",
+      "name": "event_gap_observations",
+      "pages": 1,
+      "table": "event_gap_observations"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "event_gap_observations_enumeration",
+      "pages": 1,
+      "table": "event_gap_observations"
+    },
+    {
+      "bytes": 4096,
+      "kind": "table",
+      "name": "event_gap_revisions",
+      "pages": 1,
+      "table": "event_gap_revisions"
+    },
+    {
+      "bytes": 4096,
+      "kind": "table",
+      "name": "event_pressure_hosts",
+      "pages": 1,
+      "table": "event_pressure_hosts"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "event_pressure_hosts_subject",
+      "pages": 1,
+      "table": "event_pressure_hosts"
+    },
+    {
+      "bytes": 4096,
+      "kind": "table",
+      "name": "event_pressure_latches",
+      "pages": 1,
+      "table": "event_pressure_latches"
+    },
+    {
+      "bytes": 4096,
+      "kind": "table",
+      "name": "event_pressure_parents",
+      "pages": 1,
+      "table": "event_pressure_parents"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "event_pressure_parents_event",
+      "pages": 1,
+      "table": "event_pressure_parents"
+    },
+    {
+      "bytes": 4096,
+      "kind": "table",
+      "name": "event_pressure_state",
+      "pages": 1,
+      "table": "event_pressure_state"
+    },
+    {
+      "bytes": 4096,
+      "kind": "table",
+      "name": "event_pressure_subjects",
+      "pages": 1,
+      "table": "event_pressure_subjects"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "event_pressure_subjects_refresh",
+      "pages": 1,
+      "table": "event_pressure_subjects"
+    },
+    {
+      "bytes": 4096,
+      "kind": "table",
+      "name": "event_pressure_watches",
+      "pages": 1,
+      "table": "event_pressure_watches"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "event_pressure_watches_subject",
+      "pages": 1,
+      "table": "event_pressure_watches"
+    },
+    {
+      "bytes": 4096,
+      "kind": "table",
+      "name": "event_progress_cursor",
+      "pages": 1,
+      "table": "event_progress_cursor"
+    },
+    {
+      "bytes": 4096,
+      "kind": "table",
+      "name": "event_progress_observations",
+      "pages": 1,
+      "table": "event_progress_observations"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "event_progress_observations_enumeration",
+      "pages": 1,
+      "table": "event_progress_observations"
+    },
+    {
+      "bytes": 4096,
+      "kind": "table",
+      "name": "event_progress_policies",
+      "pages": 1,
+      "table": "event_progress_policies"
+    },
+    {
+      "bytes": 4096,
+      "kind": "table",
+      "name": "event_progress_receipts",
+      "pages": 1,
+      "table": "event_progress_receipts"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "event_progress_receipts_enumeration",
+      "pages": 1,
+      "table": "event_progress_receipts"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "event_progress_receipts_event",
+      "pages": 1,
+      "table": "event_progress_receipts"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "event_progress_receipts_operation",
+      "pages": 1,
+      "table": "event_progress_receipts"
+    },
+    {
+      "bytes": 4096,
+      "kind": "table",
+      "name": "event_progress_scans",
+      "pages": 1,
+      "table": "event_progress_scans"
+    },
+    {
+      "bytes": 4096,
+      "kind": "table",
+      "name": "event_retirement_observations",
+      "pages": 1,
+      "table": "event_retirement_observations"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "event_retirement_observations_enumeration",
+      "pages": 1,
+      "table": "event_retirement_observations"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "event_retirement_observations_predecessor",
+      "pages": 1,
+      "table": "event_retirement_observations"
+    },
+    {
+      "bytes": 4096,
+      "kind": "table",
+      "name": "event_retirement_receipts",
+      "pages": 1,
+      "table": "event_retirement_receipts"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "event_retirement_receipts_event",
+      "pages": 1,
+      "table": "event_retirement_receipts"
+    },
+    {
+      "bytes": 4096,
+      "kind": "table",
+      "name": "event_stage_operations",
+      "pages": 1,
+      "table": "event_stage_operations"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "event_stage_operations_request",
+      "pages": 1,
+      "table": "event_stage_operations"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "event_stage_operations_run",
+      "pages": 1,
+      "table": "event_stage_operations"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "event_stage_operations_source",
+      "pages": 1,
+      "table": "event_stage_operations"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "event_stage_operations_watch",
+      "pages": 1,
+      "table": "event_stage_operations"
+    },
+    {
+      "bytes": 4096,
+      "kind": "table",
+      "name": "event_timing",
+      "pages": 1,
+      "table": "event_timing"
+    },
+    {
+      "bytes": 4096,
+      "kind": "table",
+      "name": "event_timing_cursor",
+      "pages": 1,
+      "table": "event_timing_cursor"
+    },
+    {
+      "bytes": 4096,
+      "kind": "table",
+      "name": "event_timing_history",
+      "pages": 1,
+      "table": "event_timing_history"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "execution_one_publication",
+      "pages": 1,
+      "table": "execution_admissions"
+    },
+    {
+      "bytes": 4096,
+      "kind": "table",
+      "name": "heats",
+      "pages": 1,
+      "table": "heats"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "heats_entry_id_fk_idx",
+      "pages": 1,
+      "table": "heats"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "heats_round_id_fk_idx",
+      "pages": 1,
+      "table": "heats"
+    },
+    {
+      "bytes": 4096,
+      "kind": "table",
+      "name": "history_acceptance",
+      "pages": 1,
+      "table": "history_acceptance"
+    },
+    {
+      "bytes": 4096,
+      "kind": "table",
+      "name": "history_dispatch_fence",
+      "pages": 1,
+      "table": "history_dispatch_fence"
+    },
+    {
+      "bytes": 4096,
+      "kind": "table",
+      "name": "history_origin_intents",
+      "pages": 1,
+      "table": "history_origin_intents"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "history_origin_intents_event",
+      "pages": 1,
+      "table": "history_origin_intents"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "history_origin_intents_run",
+      "pages": 1,
+      "table": "history_origin_intents"
+    },
+    {
+      "bytes": 4096,
+      "kind": "table",
+      "name": "history_origin_operator_refs",
+      "pages": 1,
+      "table": "history_origin_operator_refs"
+    },
+    {
+      "bytes": 4096,
+      "kind": "table",
+      "name": "history_origin_requests",
+      "pages": 1,
+      "table": "history_origin_requests"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "history_origin_requests_cycle",
+      "pages": 1,
+      "table": "history_origin_requests"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "history_origin_requests_day",
+      "pages": 1,
+      "table": "history_origin_requests"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "history_origin_requests_watch",
+      "pages": 1,
+      "table": "history_origin_requests"
+    },
+    {
+      "bytes": 4096,
+      "kind": "table",
+      "name": "host_budget",
+      "pages": 1,
+      "table": "host_budget"
+    },
+    {
+      "bytes": 4096,
+      "kind": "table",
+      "name": "host_request_spacing",
+      "pages": 1,
+      "table": "host_request_spacing"
+    },
+    {
+      "bytes": 4096,
+      "kind": "table",
+      "name": "host_request_spacing_baselines",
+      "pages": 1,
+      "table": "host_request_spacing_baselines"
+    },
+    {
+      "bytes": 4096,
+      "kind": "table",
+      "name": "hosts",
+      "pages": 1,
+      "table": "hosts"
+    },
+    {
+      "bytes": 4096,
+      "kind": "table",
+      "name": "identity_decisions",
+      "pages": 1,
+      "table": "identity_decisions"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "identity_decisions_reference_idx",
+      "pages": 1,
+      "table": "identity_decisions"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "identity_decisions_supersedes_idx",
+      "pages": 1,
+      "table": "identity_decisions"
+    },
+    {
+      "bytes": 4096,
+      "kind": "table",
+      "name": "identity_journal_acceptances",
+      "pages": 1,
+      "table": "identity_journal_acceptances"
+    },
+    {
+      "bytes": 4096,
+      "kind": "table",
+      "name": "identity_reference_migrations",
+      "pages": 1,
+      "table": "identity_reference_migrations"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "identity_reference_migrations_from_idx",
+      "pages": 1,
+      "table": "identity_reference_migrations"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "identity_reference_migrations_supersedes_idx",
+      "pages": 1,
+      "table": "identity_reference_migrations"
+    },
+    {
+      "bytes": 4096,
+      "kind": "table",
+      "name": "meta",
+      "pages": 1,
+      "table": "meta"
+    },
+    {
+      "bytes": 4096,
+      "kind": "table",
+      "name": "operator_pauses",
+      "pages": 1,
+      "table": "operator_pauses"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "operator_pauses_id",
+      "pages": 1,
+      "table": "operator_pauses"
+    },
+    {
+      "bytes": 4096,
+      "kind": "table",
+      "name": "requirement_cohorts",
+      "pages": 1,
+      "table": "requirement_cohorts"
+    },
+    {
+      "bytes": 4096,
+      "kind": "table",
+      "name": "requirement_scan",
+      "pages": 1,
+      "table": "requirement_scan"
+    },
+    {
+      "bytes": 4096,
+      "kind": "table",
+      "name": "revisions",
+      "pages": 1,
+      "table": "revisions"
+    },
+    {
+      "bytes": 4096,
+      "kind": "table",
+      "name": "scheduler_capacity_policies",
+      "pages": 1,
+      "table": "scheduler_capacity_policies"
+    },
+    {
+      "bytes": 4096,
+      "kind": "table",
+      "name": "scheduler_capacity_requests",
+      "pages": 1,
+      "table": "scheduler_capacity_requests"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "scheduler_capacity_requests_host",
+      "pages": 1,
+      "table": "scheduler_capacity_requests"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "scheduler_capacity_requests_policy",
+      "pages": 1,
+      "table": "scheduler_capacity_requests"
+    },
+    {
+      "bytes": 4096,
+      "kind": "table",
+      "name": "scheduler_capacity_service",
+      "pages": 1,
+      "table": "scheduler_capacity_service"
+    },
+    {
+      "bytes": 4096,
+      "kind": "table",
+      "name": "scheduler_event_policies",
+      "pages": 1,
+      "table": "scheduler_event_policies"
+    },
+    {
+      "bytes": 4096,
+      "kind": "table",
+      "name": "scheduler_event_requests",
+      "pages": 1,
+      "table": "scheduler_event_requests"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "scheduler_event_requests_enumeration",
+      "pages": 1,
+      "table": "scheduler_event_requests"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "scheduler_event_requests_event",
+      "pages": 1,
+      "table": "scheduler_event_requests"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "scheduler_event_requests_owner",
+      "pages": 1,
+      "table": "scheduler_event_requests"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "scheduler_event_requests_policy",
+      "pages": 1,
+      "table": "scheduler_event_requests"
+    },
+    {
+      "bytes": 4096,
+      "kind": "table",
+      "name": "scheduler_event_turns",
+      "pages": 1,
+      "table": "scheduler_event_turns"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "scheduler_event_turns_event",
+      "pages": 1,
+      "table": "scheduler_event_turns"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "scheduler_event_turns_policy",
+      "pages": 1,
+      "table": "scheduler_event_turns"
+    },
+    {
+      "bytes": 4096,
+      "kind": "table",
+      "name": "scheduler_offline_service",
+      "pages": 1,
+      "table": "scheduler_offline_service"
+    },
+    {
+      "bytes": 4096,
+      "kind": "table",
+      "name": "scheduler_requests",
+      "pages": 1,
+      "table": "scheduler_requests"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "scheduler_requests_class",
+      "pages": 1,
+      "table": "scheduler_requests"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "scheduler_requests_run",
+      "pages": 1,
+      "table": "scheduler_requests"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "scheduler_requests_service",
+      "pages": 1,
+      "table": "scheduler_requests"
+    },
+    {
+      "bytes": 4096,
+      "kind": "table",
+      "name": "scheduler_watch_state",
+      "pages": 1,
+      "table": "scheduler_watch_state"
+    },
+    {
+      "bytes": 4096,
+      "kind": "table",
+      "name": "source_event_enumeration_members",
+      "pages": 1,
+      "table": "source_event_enumeration_members"
+    },
+    {
+      "bytes": 4096,
+      "kind": "table",
+      "name": "source_event_enumerations",
+      "pages": 1,
+      "table": "source_event_enumerations"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "source_event_enumerations_decision",
+      "pages": 1,
+      "table": "source_event_enumerations"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "source_event_enumerations_event",
+      "pages": 1,
+      "table": "source_event_enumerations"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "source_event_enumerations_parent",
+      "pages": 1,
+      "table": "source_event_enumerations"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "source_event_enumerations_predecessor",
+      "pages": 1,
+      "table": "source_event_enumerations"
+    },
+    {
+      "bytes": 4096,
+      "kind": "table",
+      "name": "source_event_inventory",
+      "pages": 1,
+      "table": "source_event_inventory"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "source_event_inventory_enumeration",
+      "pages": 1,
+      "table": "source_event_inventory"
+    },
+    {
+      "bytes": 4096,
+      "kind": "table",
+      "name": "source_event_member_watches",
+      "pages": 1,
+      "table": "source_event_member_watches"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "source_event_member_watches_watch",
+      "pages": 1,
+      "table": "source_event_member_watches"
+    },
+    {
+      "bytes": 4096,
+      "kind": "table",
+      "name": "source_event_retirement_proofs",
+      "pages": 1,
+      "table": "source_event_retirement_proofs"
+    },
+    {
+      "bytes": 4096,
+      "kind": "table",
+      "name": "source_event_retirement_receipts",
+      "pages": 1,
+      "table": "source_event_retirement_receipts"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "source_event_retirement_receipts_event",
+      "pages": 1,
+      "table": "source_event_retirement_receipts"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "sqlite_autoindex_accepted_inputs_1",
+      "pages": 1,
+      "table": "accepted_inputs"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "sqlite_autoindex_admission_policies_1",
+      "pages": 1,
+      "table": "admission_policies"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "sqlite_autoindex_admission_reviews_1",
+      "pages": 1,
+      "table": "admission_reviews"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "sqlite_autoindex_archive_captures_1",
+      "pages": 1,
+      "table": "archive_captures"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "sqlite_autoindex_archive_queries_1",
+      "pages": 1,
+      "table": "archive_queries"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "sqlite_autoindex_backup_uploads_1",
+      "pages": 1,
+      "table": "backup_uploads"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "sqlite_autoindex_coverage_1",
+      "pages": 1,
+      "table": "coverage"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "sqlite_autoindex_cursors_1",
+      "pages": 1,
+      "table": "cursors"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "sqlite_autoindex_event_accounting_support_observations_1",
+      "pages": 1,
+      "table": "event_accounting_support_observations"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "sqlite_autoindex_event_blocker_latest_1",
+      "pages": 1,
+      "table": "event_blocker_latest"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "sqlite_autoindex_event_blocker_policies_1",
+      "pages": 1,
+      "table": "event_blocker_policies"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "sqlite_autoindex_event_enumeration_inputs_1",
+      "pages": 1,
+      "table": "event_enumeration_inputs"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "sqlite_autoindex_event_gap_observations_1",
+      "pages": 1,
+      "table": "event_gap_observations"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "sqlite_autoindex_event_gap_revisions_1",
+      "pages": 1,
+      "table": "event_gap_revisions"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "sqlite_autoindex_event_pressure_hosts_1",
+      "pages": 1,
+      "table": "event_pressure_hosts"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "sqlite_autoindex_event_pressure_latches_1",
+      "pages": 1,
+      "table": "event_pressure_latches"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "sqlite_autoindex_event_pressure_parents_1",
+      "pages": 1,
+      "table": "event_pressure_parents"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "sqlite_autoindex_event_pressure_subjects_1",
+      "pages": 1,
+      "table": "event_pressure_subjects"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "sqlite_autoindex_event_pressure_watches_1",
+      "pages": 1,
+      "table": "event_pressure_watches"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "sqlite_autoindex_event_progress_observations_1",
+      "pages": 1,
+      "table": "event_progress_observations"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "sqlite_autoindex_event_progress_policies_1",
+      "pages": 1,
+      "table": "event_progress_policies"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "sqlite_autoindex_event_progress_receipts_1",
+      "pages": 1,
+      "table": "event_progress_receipts"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "sqlite_autoindex_event_progress_scans_1",
+      "pages": 1,
+      "table": "event_progress_scans"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "sqlite_autoindex_event_retirement_observations_1",
+      "pages": 1,
+      "table": "event_retirement_observations"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "sqlite_autoindex_event_retirement_receipts_1",
+      "pages": 1,
+      "table": "event_retirement_receipts"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "sqlite_autoindex_event_stage_operations_1",
+      "pages": 1,
+      "table": "event_stage_operations"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "sqlite_autoindex_event_stage_operations_2",
+      "pages": 1,
+      "table": "event_stage_operations"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "sqlite_autoindex_event_timing_1",
+      "pages": 1,
+      "table": "event_timing"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "sqlite_autoindex_event_timing_history_1",
+      "pages": 1,
+      "table": "event_timing_history"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "sqlite_autoindex_heats_1",
+      "pages": 1,
+      "table": "heats"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "sqlite_autoindex_history_origin_intents_1",
+      "pages": 1,
+      "table": "history_origin_intents"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "sqlite_autoindex_history_origin_operator_refs_1",
+      "pages": 1,
+      "table": "history_origin_operator_refs"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "sqlite_autoindex_history_origin_requests_1",
+      "pages": 1,
+      "table": "history_origin_requests"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "sqlite_autoindex_host_budget_1",
+      "pages": 1,
+      "table": "host_budget"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "sqlite_autoindex_host_request_spacing_1",
+      "pages": 1,
+      "table": "host_request_spacing"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "sqlite_autoindex_host_request_spacing_2",
+      "pages": 1,
+      "table": "host_request_spacing"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "sqlite_autoindex_host_request_spacing_baselines_1",
+      "pages": 1,
+      "table": "host_request_spacing_baselines"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "sqlite_autoindex_hosts_1",
+      "pages": 1,
+      "table": "hosts"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "sqlite_autoindex_identity_decisions_1",
+      "pages": 1,
+      "table": "identity_decisions"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "sqlite_autoindex_identity_journal_acceptances_1",
+      "pages": 1,
+      "table": "identity_journal_acceptances"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "sqlite_autoindex_identity_reference_migrations_1",
+      "pages": 1,
+      "table": "identity_reference_migrations"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "sqlite_autoindex_meta_1",
+      "pages": 1,
+      "table": "meta"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "sqlite_autoindex_operator_pauses_1",
+      "pages": 1,
+      "table": "operator_pauses"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "sqlite_autoindex_requirement_cohorts_1",
+      "pages": 1,
+      "table": "requirement_cohorts"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "sqlite_autoindex_revisions_1",
+      "pages": 1,
+      "table": "revisions"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "sqlite_autoindex_scheduler_capacity_policies_1",
+      "pages": 1,
+      "table": "scheduler_capacity_policies"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "sqlite_autoindex_scheduler_capacity_requests_1",
+      "pages": 1,
+      "table": "scheduler_capacity_requests"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "sqlite_autoindex_scheduler_capacity_service_1",
+      "pages": 1,
+      "table": "scheduler_capacity_service"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "sqlite_autoindex_scheduler_event_policies_1",
+      "pages": 1,
+      "table": "scheduler_event_policies"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "sqlite_autoindex_scheduler_event_requests_1",
+      "pages": 1,
+      "table": "scheduler_event_requests"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "sqlite_autoindex_scheduler_event_turns_1",
+      "pages": 1,
+      "table": "scheduler_event_turns"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "sqlite_autoindex_scheduler_event_turns_2",
+      "pages": 1,
+      "table": "scheduler_event_turns"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "sqlite_autoindex_scheduler_offline_service_1",
+      "pages": 1,
+      "table": "scheduler_offline_service"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "sqlite_autoindex_scheduler_requests_1",
+      "pages": 1,
+      "table": "scheduler_requests"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "sqlite_autoindex_scheduler_watch_state_1",
+      "pages": 1,
+      "table": "scheduler_watch_state"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "sqlite_autoindex_source_event_enumeration_members_1",
+      "pages": 1,
+      "table": "source_event_enumeration_members"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "sqlite_autoindex_source_event_enumerations_1",
+      "pages": 1,
+      "table": "source_event_enumerations"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "sqlite_autoindex_source_event_inventory_1",
+      "pages": 1,
+      "table": "source_event_inventory"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "sqlite_autoindex_source_event_member_watches_1",
+      "pages": 1,
+      "table": "source_event_member_watches"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "sqlite_autoindex_source_event_retirement_proofs_1",
+      "pages": 1,
+      "table": "source_event_retirement_proofs"
+    },
+    {
+      "bytes": 4096,
+      "kind": "index",
+      "name": "sqlite_autoindex_source_event_retirement_receipts_1",
+      "pages": 1,
+      "table": "source_event_retirement_receipts"
+    },
+    {
+      "bytes": 4096,
+      "kind": "table",
+      "name": "sqlite_sequence",
+      "pages": 1,
+      "table": "sqlite_sequence"
+    }
+  ],
+  "tool_version": "measure-state-storage-v3",
+  "unchanged_check": "size-mtime-inode"
+}

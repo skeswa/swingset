@@ -22,6 +22,25 @@ fault = sys.argv[4]
 original = Database.transaction
 count = 0
 stopped = False
+checkpoints = {}
+
+
+def checkpoint():
+    """Name durable pipeline transitions without adding runtime fault hooks."""
+    frame = sys._getframe(2)
+    while frame.f_globals.get("__name__") == "contextlib":
+        frame = frame.f_back
+    caller = (frame.f_globals.get("__name__"), frame.f_code.co_name)
+    if caller == ("swingset.state.inputs", "accept"):
+        return "inputs_accepted"
+    if caller == ("swingset.fetch.client", "_fetch") and "snapshot_id" in frame.f_locals:
+        return "snapshot_saved"
+    if caller == ("swingset.schedule.derive", "derive_one"):
+        unit = frame.f_locals["unit"]
+        return f"{unit.stage}_{unit.unit_kind}_completed"
+    if caller == ("swingset.build.generations", "complete"):
+        return "build_completed"
+    return None
 
 
 @contextlib.contextmanager
@@ -29,6 +48,9 @@ def transaction(self, **kwargs):
     global count
     count += 1
     boundary = count
+    name = checkpoint()
+    if name is not None:
+        checkpoints.setdefault(name, boundary)
     if fault == f"before:{boundary}":
         os._exit(91)
     try:
@@ -103,6 +125,7 @@ with open_database(state) as db:
         json.dumps(
             {
                 "transactions": count,
+                "checkpoints": checkpoints,
                 "stopped": result["stopped"],
                 "recovery_cycles": recovery_cycles,
             }

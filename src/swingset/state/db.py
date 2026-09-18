@@ -14,7 +14,7 @@ from typing import IO, Self
 from swingset.clock import Clock, SystemClock
 from swingset.model.ids import run_id as make_run_id
 
-SCHEMA_VERSION = 29
+SCHEMA_VERSION = 32
 
 
 class DatabaseLockedError(RuntimeError):
@@ -43,6 +43,15 @@ class Database:
         ).fetchone()
         return int(row[0]) if row is not None else 0
 
+    @property
+    def holds_writer_lock(self) -> bool:
+        """Whether this handle took `state.lock`, not just opened the file.
+
+        Retention removal asks, because a removal that is not the one data
+        writer could race a cycle that is still writing what it is removing.
+        """
+        return self._lock_file is not None
+
     @contextlib.contextmanager
     def transaction(self, *, immediate: bool = True) -> Iterator[sqlite3.Connection]:
         """Commit all writes or roll them all back; nested calls use savepoints."""
@@ -70,7 +79,14 @@ class Database:
             self.connection.rollback()
             raise
         else:
-            self.connection.commit()
+            try:
+                self.connection.commit()
+            except BaseException:
+                # A deferred constraint fails at COMMIT, and SQLite leaves the
+                # transaction open when it does. Roll it back so the failure
+                # cannot be inherited by the next caller as a savepoint.
+                self.connection.rollback()
+                raise
 
     @contextlib.contextmanager
     def _read_snapshot(self) -> Iterator[None]:
@@ -167,6 +183,7 @@ def open_database(
                 if not allow_restore_pending and (state_dir / "RESTORE_PENDING").exists():
                     raise RuntimeError(f"restore verification is pending: {state_dir}")
                 _migrate(database)
+                _revoke_stale_payload_removal(database)
     except BaseException:
         database.close()
         raise
@@ -202,6 +219,21 @@ def _migrate(database: Database) -> None:
                 from swingset.state.verification import recover_registry_verifications
 
                 recover_registry_verifications(database)
+            if version == 30:
+                from .finding_reference_migration import backfill_finding_references
+
+                # Which digests a finding relies on was decided by looking at
+                # the files on disk, so the backfill needs the state directory.
+                backfill_finding_references(conn, database.state_dir)
+            if version == 32:
+                from .derivation_payload_migration import intern_derivation_payloads
+
+                # SQLite cannot hash, so the fill, the comparison of every
+                # generation label, and the drop of the old table happen here,
+                # inside the migration transaction. Interning is the last
+                # migration so that schemas 30 and 31 deploy without it; see
+                # journal/decisions/0167-intern-derivation-payloads-in-the-last-migration.md.
+                intern_derivation_payloads(conn)
             if version >= 12:
                 from .publication_fence import install_publication_fences
 
@@ -217,6 +249,35 @@ def _migrate(database: Database) -> None:
             raise
         finally:
             conn.execute("PRAGMA foreign_keys=ON")
+
+
+def _revoke_stale_payload_removal(database: Database) -> None:
+    """Close the derivation payload delete gate if a grant outlived its writer.
+
+    The grant row cannot commit while foreign keys are on, so a row here means
+    some writer committed it with them off. The gate is the last guard on
+    derivation output, so it is closed here rather than left open for whichever
+    process opens the database next.
+    """
+    conn = database.connection
+    if (
+        conn.execute(
+            "SELECT 1 FROM sqlite_master WHERE name='derivation_payload_removal_authority'"
+        ).fetchone()
+        is None
+    ):
+        return
+    stale = conn.execute(
+        "SELECT reason,granted_at FROM derivation_payload_removal_authority"
+    ).fetchall()
+    if not stale:
+        return
+    with database.transaction() as txn:
+        txn.execute("DELETE FROM derivation_payload_removal_authority")
+    from swingset.log import log
+
+    for reason, granted_at in stale:
+        log("derivation-payload-removal-grant-revoked", reason=reason, granted_at=granted_at)
 
 
 def _iso(moment: datetime) -> str:

@@ -12,7 +12,7 @@ from swingset.schedule.confirmation import awaiting_first_number
 from swingset.schedule.watches import upsert_watch
 from swingset.sources.wsdc_registry.adapter import SOURCE, DancerPage
 from swingset.state.db import Database
-from swingset.state.findings import Finding, replace_findings
+from swingset.state.findings import Finding, Reference, replace_findings
 from swingset.state.verification import usable_verification
 from swingset.state.work import bump_revision
 
@@ -373,6 +373,7 @@ def _crosscheck_body(database: Database, body: bytes, sha: str, now: datetime, r
                         "mirror_row": actual,
                     },
                     snapshot_id=make_snapshot_id(now, sha),
+                    references=(Reference("body", sha),),
                 )
             )
     for number in sorted(mirror.keys() - seen):
@@ -390,6 +391,7 @@ def _crosscheck_body(database: Database, body: bytes, sha: str, now: datetime, r
                     "mirror_row": mirror[number],
                 },
                 snapshot_id=make_snapshot_id(now, sha),
+                references=(Reference("body", sha),),
             )
         )
     with database.transaction():

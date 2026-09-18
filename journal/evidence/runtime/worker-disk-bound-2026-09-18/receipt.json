@@ -1,0 +1,69 @@
+{
+  "after": {
+    "guest_used_gb": 143,
+    "host_free_gib": 265,
+    "orbstack_image_gb": 142
+  },
+  "before": {
+    "checkpoints_gb": 97,
+    "guest_used_bytes_approx": 402000000000,
+    "host_free_gib": 5.7,
+    "nix_gb": 38,
+    "orbstack_image_gb": 402,
+    "var_tmp_scratch_gb": 241
+  },
+  "bound": {
+    "btrfs_qgroup": {
+      "id": "0/258",
+      "max_referenced": 274877906944,
+      "referenced": 138126827520
+    },
+    "machine.swingset-restore.disk_bytes": 68719476736,
+    "machine.swingset.disk_bytes": 274877906944
+  },
+  "deployment": {
+    "built_from": "/var/tmp/swingset-deploy-scratch-20260918 (deployed source copy; nix/module.nix replaced; package and source pinned by storePath)",
+    "closure_diff_added": [
+      "swingset-scratch",
+      "unit-swingset-scratch-clean.service",
+      "unit-swingset-scratch-clean.timer"
+    ],
+    "failed_units": 0,
+    "first_timer_run": "kept (KEEP marker): /var/tmp/swingset-schema29-restore-20260917-004",
+    "hold_preserved": true,
+    "machine_restarted_at": "2026-09-18T06:12:27Z",
+    "new_system": "/nix/store/mni8kwh2472nrfljz1v6kydrvx7f2m70-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+    "previous_system": "/nix/store/5d9nlyflv9d4gb89a5wayhiarj01znnh-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+    "scratch_clean_script": "/nix/store/fb7s5l3cfggh5px5k5lr71qws817g8nm-swingset-scratch-clean",
+    "source_unchanged": "/nix/store/rgyryll4d55rgzscdqhjcwmkr325a76f-source",
+    "swingset_package_unchanged": "/nix/store/lcay4ij6fa093g7wfk4g2imdsqza7d32-swingset",
+    "timer": "*-*-* 05:00:00"
+  },
+  "failure": {
+    "daemon_restarted": "2026-09-18T05:56:47Z",
+    "orbstack_log": "vmgr.1.log 2026-09-18T05:46:28Z block req failed: write failed ... StorageFull",
+    "previous_boot_ended": "2026-09-18T05:00:06Z"
+  },
+  "machine": "swingset (OrbStack, NixOS 25.11, arm64)",
+  "recorded_at": "2026-09-18T06:20:00Z",
+  "removed": {
+    "checkpoints": [
+      "h11-before-h12-20260913",
+      "h12-before-h13-20260913",
+      "h13-before-h14-20260913",
+      "h13-before-h14-20260913-closure-fix",
+      "h14-before-h15-20260913",
+      "h15-before-h16-20260913",
+      "run_20260909T042445Z",
+      "run_20260909T143454Z",
+      "run_20260909T144029Z",
+      "run_20260909T144131Z",
+      "run_20260909T144629Z"
+    ],
+    "checkpoints_mb": 27618,
+    "fstrim_bytes": 841844105216,
+    "kept_scratch": "/var/tmp/swingset-schema29-restore-20260917-004 (KEEP)",
+    "scratch_directories": 142,
+    "scratch_mb": 238261
+  }
+}

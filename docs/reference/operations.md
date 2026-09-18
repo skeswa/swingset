@@ -110,6 +110,44 @@ blank values and unknown selectors are rejected. `--until` on pause requires
 a future timestamp with a timezone. An omitted expiry means indefinite.
 Automatic host pauses remain separate and resume never clears them.
 
+`swingset hold add --generation <id> --who <who> --why <why>` records a
+retention hold, and `hold list` and `hold remove --hold-id <id>` read and remove
+one. Holds take the control lock and not the writer lock, so one can be placed
+while a cycle runs. `hold add` walks everything the named computations were
+built from and refuses, listing the ids to restore first, if any of it is not in
+the live database; it writes nothing when it refuses. See
+[retention](state.md#retention).
+
+When `state.sqlite` on disk passes `retention.max_database_bytes`, the worker
+records one operator pause on `all`/`all` with the reason "state database file
+is over its retention size cap", at the start of a cycle and when `gc --plan`
+runs. Reading, doctor, controls, `gc`, backup and restore do not go through
+admission, so they keep working; fetching and derivation wait. An existing
+`all`/`all` pause is never rewritten, whatever its reason, and nothing is
+recorded while `RESTORE_PENDING` exists. A timed pause whose `--until` has
+passed is not an existing pause: nothing is holding, so the cap records its own.
+Only an operator clears it, with `resume --all`.
+
+`swingset gc` on its own removes nothing: it prints the plan summary and points
+at `gc --plan`, and hands out no digest to apply, because nothing goes without a
+written plan. `gc --plan` writes the plan and prints the digest to apply.
+`gc --apply <digest>` takes the writer lock, then the control lock, recomputes
+the plan under both, stops if the digest moved, commits a note keyed by the
+digest, removes the files the plan named, and writes one receipt. If an earlier
+apply was killed before its files went, it also finishes the files its own fresh
+plan still calls removable and leaves the rest, naming them in that note's
+receipt.
+`gc --reclaim` rewrites `state.sqlite` in place so the pages a removal freed
+leave the file. Run apply, then reclaim, then resume. A schema migration that
+drops a table frees pages the same way, so reclaim follows one of those too.
+Raising `retention.max_database_bytes` in `config/sources.toml` is still the way
+out when there is nothing to remove; that change recomputes no work, and the new
+input bundle records the limits in force as values. The pause result and `gc --plan` print both.
+`gc --restore` does not exist yet, so no payload bytes are ever removed. Before
+schema 32 there are no interned payloads to remove either; the plan and doctor
+say which shape they measured under `payloads_interned`. See
+[retention](state.md#retention) for the order, the note and the receipt.
+
 Controls use a restricted connection that cannot migrate or accept inputs.
 They bypass the whole-cycle writer lock and serialize at the next bounded
 admission boundary under `control.lock`. A successful receipt means the control
@@ -218,8 +256,33 @@ only after confirming it exists at the archive's selected parent commit.
 `backup_uploads` is an optimization, never evidence that a missing file
 exists remotely. Record success only after acknowledgment. A failed
 upload or lock interruption is retried; an unchanged checkpoint needs
-no new commit. The venv, uv cache, lock file, incomplete candidates, and
-unreferenced orphan blobs are excluded. Secrets are never captured.
+no new commit. The venv, uv cache, lock file, incomplete candidates, the `gc/`
+directory of written retention plans and receipts, and unreferenced orphan blobs
+are excluded; retention holds and the files they name are included. Secrets are never captured.
+
+Once the checkpoint is written, and uploaded when it had to be, the backup
+command prunes the local checkpoint directory by the `checkpoint_` values of
+the `[retention]` table: the newest few timer checkpoints (`run_*`) and any
+young one stay, abandoned temporary directories go after their own age, and it
+logs what it removed and kept. Policy removes only what the code wrote: a
+`run_*` checkpoint or a `.<name>.tmp-<hex>` directory from an interrupted copy.
+It never removes the checkpoint of that run, and it never removes a directory
+under any other name, at any age, finished or not. Pruning is cleanup after a
+backup that already succeeded, so a removal that fails is logged and does not
+fail the backup. `--no-prune` skips pruning for one run.
+`--remove-checkpoint NAME` removes one operator-named checkpoint, complete or
+not, and makes no backup, refusing a timer name, an empty or missing name, any
+name with a path in it, and a state directory with `RESTORE_PENDING` in it; it
+takes no lock and starts no run. Doctor lists every checkpoint with its name,
+completeness, age in days, bytes and whether policy would prune it now, and
+removes nothing. Every size comes from the checkpoint's own manifest, in the
+plan as well as the report, so neither stats the files of a full state copy;
+only a directory with no usable manifest is walked, and both skip whatever a
+concurrent backup moves under them. `state/checkpoints` is outside both the
+checkpoint file closure and the retention walk, so pruning one can never remove
+a retention root or a file a plan must keep
+([D-0152](../../journal/decisions/0152-the-backup-command-prunes-its-own-checkpoints.md),
+[D-0154](../../journal/decisions/0154-policy-removes-only-what-the-code-wrote-and-sizes-it-once.md)).
 
 Restore is an activation protocol:
 

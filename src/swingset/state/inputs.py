@@ -4,12 +4,18 @@ import csv
 import io
 import json
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from pathlib import Path
 from types import MappingProxyType
 
 from swingset.clock import Clock
-from swingset.config import Config, parse_history_start, parse_hosts, parse_sources
+from swingset.config import (
+    Config,
+    parse_history_start,
+    parse_hosts,
+    parse_retention,
+    parse_sources,
+)
 from swingset.fetch.archive import canonical, digest, durable_write
 from swingset.schedule.fair_policy import parse_scheduler
 from swingset.state.db import Database
@@ -63,7 +69,14 @@ def capture(
         parse_sources(files["config/sources.toml"]),
         parse_history_start(files["config/sources.toml"]),
         parse_scheduler(files["config/sources.toml"]),
+        parse_retention(files["config/sources.toml"]),
     )
+    # The retention limits as values, not as the bytes they were read from. An
+    # absent `[retention]` table means the defaults, so a bundle that carried
+    # only `config/sources.toml` could not tell a reader what the size cap was
+    # when it was captured
+    # ([D-0156](../../../journal/decisions/0156-capture-the-retention-limits-as-values.md)).
+    files["policy/retention.json"] = canonical(asdict(config.retention))
     hashes = {name: digest(body) for name, body in files.items()}
     bundle_digest = digest(canonical(hashes))
     target = state_dir / "inputs" / bundle_digest

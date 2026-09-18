@@ -18,6 +18,9 @@ Check migrations, controls, scheduling, checkpoints, and isolated replay.
 | [Extension rollout, 2026-09-17](event-extension-2026-09-17/) | [Current held schema-28 handoff](../../investigations/2026/event-extension-operating-handoff-2026-09-17.md), frozen validation, deployment, migration and restore receipts |
 | [Input rehearsal, 2026-09-17](extension-input-rehearsal-2026-09-17/) | Disposable checkpoint copy, exact input acceptance and bounded offline turns; no live acceptance |
 | [Legacy spacing, 2026-09-17](legacy-spacing-baseline-2026-09-17/) | Reviewed Archive baseline preparation and guarded application; six other hosts remain unknown |
+| [Worker disk bound, 2026-09-18](worker-disk-bound-2026-09-18/) | [Worker disk exhaustion and its bound](../../investigations/2026/worker-disk-exhaustion-2026-09-18.md); removals, bound, pinned hotfix deployment |
+| [State storage measurement, 2026-09-18](state-storage-measurement-2026-09-18/) | [Measuring where state storage goes](../../investigations/2026/state-storage-measurement-2026-09-18.md); dbstat receipts, backup timing, schema-30 migration before and after |
+
 
 These are dated captures, reports, and frozen scripts. Their internal paths
 refer to the original checkout. See the [path map](../paths.json) for relocated files.

@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from swingset.config import Config, load_config, parse_history_start
+from swingset.config import Config, load_config, parse_history_start, parse_retention
 from swingset.model.history import HISTORY_START, in_history
 
 
@@ -47,3 +47,29 @@ def test_in_history_uses_end_date_then_start_date_then_year() -> None:
     assert in_history(start, year=2010)
     assert not in_history(start, year=2009)
     assert in_history(start)
+
+
+@pytest.mark.parametrize(
+    ("body", "message"),
+    [
+        (b"[retention]\ncollect_older_than = 0\n", "collect_older_than"),
+        (b"[retention]\ncollect_older_than = -1\n", "negative"),
+        (b'[retention]\ncollect_older_than = "0s"\n', "collect_older_than"),
+        (b"[retention]\ncheckpoint_max_age = -1\n", "negative"),
+        (b"[retention]\ncheckpoint_incomplete_max_age = -1\n", "negative"),
+    ],
+)
+def test_retention_refuses_an_age_floor_that_protects_nothing(body: bytes, message: str) -> None:
+    """The collector's age floor is the only thing a build in flight has (D-0143).
+
+    Zero would let an apply remove a candidate directory the moment it appeared,
+    so zero is not a setting. Only `max_database_bytes` and `recent_window` were
+    checked before, so every age parsed unvalidated.
+    """
+    with pytest.raises(ValueError, match=message):
+        parse_retention(body)
+
+
+def test_retention_accepts_the_smallest_age_floor_that_still_protects() -> None:
+    assert parse_retention(b'[retention]\ncollect_older_than = "1s"\n').collect_older_than == 1
+    assert parse_retention(b"[retention]\ncheckpoint_max_age = 0\n").checkpoint_max_age == 0

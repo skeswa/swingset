@@ -9,7 +9,7 @@ from __future__ import annotations
 import hashlib
 import json
 import sqlite3
-from collections.abc import Iterable, Iterator, Mapping
+from collections.abc import Callable, Iterable, Iterator, Mapping
 from contextlib import contextmanager
 from contextvars import ContextVar
 from dataclasses import dataclass, field
@@ -258,6 +258,213 @@ def _validate_dependencies(conn: sqlite3.Connection, selection: Selection) -> No
                 raise SupersededWorkError("selected dependency generation is incomplete")
 
 
+def interned(conn: sqlite3.Connection) -> bool:
+    """Whether derivation output rows are stored once behind the `derivation_rows` view.
+
+    Schema 32 splits the old `derivation_rows` table into `derivation_payloads`
+    and `derivation_row_refs` and puts a view of the old shape back over them.
+    It is the last migration, so schemas 30 and 31 are deployable on their own
+    and still have to plan, apply, hold, back up and restore
+    ([D-0167](../../../journal/decisions/0167-intern-derivation-payloads-in-the-last-migration.md)).
+    Everything that names the interned tables asks here first and falls back to
+    the one table; reading through the `derivation_rows` name needs no branch,
+    because it is a table before the split and a view after it.
+    """
+    return (
+        conn.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='derivation_row_refs'"
+        ).fetchone()
+        is not None
+    )
+
+
+def retain_output(
+    conn: sqlite3.Connection,
+    generation_id: str,
+    rows: Iterable[OutputRow],
+    *,
+    record_label: Callable[[str, int], None] | None = None,
+) -> None:
+    """Store one generation's output rows and check them against its label.
+
+    This is the only writer of derivation output. Each distinct payload is
+    stored once and every row keeps one reference to it. The function never
+    touches a scope pointer or any scheduling state, so bringing archived output
+    back later calls it exactly as completion does. Rows are read in one pass
+    and never held in memory.
+
+    A generation with no label yet belongs to a caller that is completing it.
+    That caller passes ``record_label``, which is handed the digest and row count
+    of the stream as it was stored and writes the label from them; the label is
+    then read back and compared. References are written before the label. Their
+    foreign key to ``derivation_generations`` is deferred, so a commit still
+    refuses a reference whose label never arrived.
+
+    With a label already recorded, residency decides what happens:
+
+    - every row of the generation is there: nothing to do;
+    - the references are there but some payload bytes are not, which is what
+      plan step 4 leaves behind: store the missing bytes and read the whole
+      generation back to check it; or
+    - there are no references yet: write both and check the stream.
+    """
+    if not conn.in_transaction:
+        # A failed retention must leave nothing behind. References are permanent
+        # once committed, so a half-written generation on an autocommit
+        # connection could never be finished or retried.
+        raise ValueError("output retention must share the caller's transaction")
+    recorded = _recorded_label(conn, generation_id)
+    if record_label is not None:
+        if recorded is not None:
+            raise SupersededWorkError("output retention cannot relabel a generation")
+        stored = _fingerprint(_store(conn, generation_id, rows))
+        record_label(*stored)
+        if _recorded_label(conn, generation_id) != stored:
+            raise SupersededWorkError("retained derivation output does not match its label")
+        return
+    if recorded is None:
+        raise SupersededWorkError("output retention requires a recorded generation label")
+    row_table = "derivation_row_refs" if interned(conn) else "derivation_rows"
+    references = int(
+        conn.execute(
+            f"SELECT count(*) FROM {row_table} WHERE generation_id=?", (generation_id,)
+        ).fetchone()[0]
+    )
+    if not references:
+        _match_label(recorded, _store(conn, generation_id, rows))
+        return
+    if references == recorded[1] and not _payload_bytes_missing(conn, generation_id):
+        # Whatever wrote these references checked them against this same label,
+        # and references and payloads are both immutable, so counting is proof
+        # enough. Reading the whole generation back through the view would undo
+        # the saving this change exists to make.
+        return
+    _restore(conn, generation_id, rows, recorded)
+
+
+def _recorded_label(conn: sqlite3.Connection, generation_id: str) -> tuple[str, int] | None:
+    row = conn.execute(
+        "SELECT output_digest,row_count FROM derivation_generations WHERE generation_id=?",
+        (generation_id,),
+    ).fetchone()
+    return None if row is None else (str(row[0]), int(row[1]))
+
+
+def _payload_bytes_missing(conn: sqlite3.Connection, generation_id: str) -> bool:
+    """Does any reference of this generation name payload bytes that are gone?
+
+    Never, before interning: a row of the one table carries its own bytes, so a
+    row that is there cannot have lost them.
+    """
+    if not interned(conn):
+        return False
+    return bool(
+        conn.execute(
+            "SELECT EXISTS(SELECT 1 FROM derivation_row_refs r WHERE r.generation_id=? "
+            "AND NOT EXISTS(SELECT 1 FROM derivation_payloads p "
+            "WHERE p.payload_sha256=r.payload_sha256))",
+            (generation_id,),
+        ).fetchone()[0]
+    )
+
+
+def _store(
+    conn: sqlite3.Connection, generation_id: str, rows: Iterable[OutputRow]
+) -> Iterator[tuple[str, str, str]]:
+    """Write one payload per distinct row and one reference per row, in order.
+
+    Before interning there is nothing to share, so each row is written whole
+    into the one table. Either way the stream this yields is the same, and the
+    label is computed from it.
+    """
+    shared = interned(conn)
+    for ordinal, row in enumerate(rows):
+        payload = canonical(dict(row.payload))
+        if not shared:
+            conn.execute(
+                "INSERT INTO derivation_rows VALUES (?,?,?,?,?)",
+                (generation_id, ordinal, row.table, row.key, payload),
+            )
+            yield row.table, row.key, payload
+            continue
+        payload_sha256 = hashlib.sha256(payload.encode()).hexdigest()
+        conn.execute(
+            "INSERT OR IGNORE INTO derivation_payloads VALUES (?,?)",
+            (payload_sha256, payload),
+        )
+        conn.execute(
+            "INSERT INTO derivation_row_refs VALUES (?,?,?,?,?)",
+            (generation_id, ordinal, row.table, row.key, payload_sha256),
+        )
+        yield row.table, row.key, payload
+
+
+def _offered(rows: Iterable[OutputRow]) -> Iterator[tuple[str, str, str]]:
+    """The fingerprint shape of rows that are read but not stored."""
+    for row in rows:
+        yield row.table, row.key, canonical(dict(row.payload))
+
+
+def _restore(
+    conn: sqlite3.Connection,
+    generation_id: str,
+    rows: Iterable[OutputRow],
+    expected: tuple[str, int],
+) -> None:
+    """Put back the payload bytes of a generation whose references are all there.
+
+    The references already say which payloads this generation is made of, so the
+    offered rows are only a source of bytes. A row the references do not name is
+    ignored rather than stored, so a wrong restore leaves no ownerless payload
+    behind, and the check below still fails because the generation does not read
+    back whole.
+    """
+    if interned(conn):
+        wanted = {
+            str(row[0])
+            for row in conn.execute(
+                "SELECT payload_sha256 FROM derivation_row_refs WHERE generation_id=?",
+                (generation_id,),
+            )
+        }
+        for row in rows:
+            payload = canonical(dict(row.payload))
+            payload_sha256 = hashlib.sha256(payload.encode()).hexdigest()
+            if payload_sha256 in wanted:
+                conn.execute(
+                    "INSERT OR IGNORE INTO derivation_payloads VALUES (?,?)",
+                    (payload_sha256, payload),
+                )
+    # Before interning a row's bytes never leave it, so there is nothing to put
+    # back and the read-back below is the whole check.
+    _match_label(
+        expected,
+        (
+            (str(table_name), str(record_key), str(payload_json))
+            for table_name, record_key, payload_json in conn.execute(
+                "SELECT table_name,record_key,payload_json FROM derivation_rows "
+                "WHERE generation_id=? ORDER BY ordinal",
+                (generation_id,),
+            )
+        ),
+    )
+
+
+def _fingerprint(rows: Iterable[tuple[str, str, str]]) -> tuple[str, int]:
+    """The output digest and row count of one generation's rows, in order."""
+    output = hashlib.sha256()
+    count = 0
+    for row in rows:
+        count += 1
+        output.update(canonical(row).encode() + b"\n")
+    return output.hexdigest(), count
+
+
+def _match_label(expected: tuple[str, int], rows: Iterable[tuple[str, str, str]]) -> None:
+    if _fingerprint(rows) != expected:
+        raise SupersededWorkError("retained derivation output does not match its label")
+
+
 def complete(
     conn: sqlite3.Connection,
     selection: Selection,
@@ -308,28 +515,11 @@ def complete(
         "SELECT output_digest,row_count FROM derivation_generations WHERE generation_id=?",
         (selection.generation_id,),
     ).fetchone()
-    output = hashlib.sha256()
-    count = 0
-    for count, row in enumerate(rows, 1):
-        payload = canonical(dict(row.payload))
-        output.update(canonical((row.table, row.key, payload)).encode() + b"\n")
-        if existing is None:
-            conn.execute(
-                "INSERT INTO derivation_rows VALUES (?,?,?,?,?)",
-                (selection.generation_id, count - 1, row.table, row.key, payload),
-            )
-    after_rows = desired(
-        conn,
-        selection.unit,
-        recipe=selection.recipe if selection.explicit_recipe else None,
-        context=selection.context,
-        _validate_artifacts=False,
-    )
-    if after_rows.fingerprint != selection.fingerprint:
-        raise SupersededWorkError("derivation inputs changed while output rows were being retained")
-    output_digest = output.hexdigest()
     if existing is not None:
-        if tuple(existing) != (output_digest, count):
+        # A repeat of identical inputs reads its rows once and must reproduce the
+        # recorded output. It writes nothing: the references and payloads of that
+        # generation are already stored, and both are immutable.
+        if _fingerprint(_offered(rows)) != (str(existing[0]), int(existing[1])):
             raise SupersededWorkError("identical derivation inputs produced different output")
     else:
         for set_id, members in selection.dependency_sets.items():
@@ -342,27 +532,42 @@ def complete(
             "INSERT OR IGNORE INTO derivation_dependency_sets VALUES (?,?)",
             (dependency_set, canonical(selection.dependencies)),
         )
-        conn.execute(
-            "INSERT INTO derivation_generations VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
-            (
-                selection.generation_id,
-                *_key(selection.unit),
-                selection.fingerprint,
-                canonical(
-                    {
-                        "inputs": dict(selection.recipe),
-                        "context": dict(selection.context),
-                        "continuity": dict(selection.continuity),
-                    }
+
+        def record(output_digest: str, row_count: int) -> None:
+            conn.execute(
+                "INSERT INTO derivation_generations VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+                (
+                    selection.generation_id,
+                    *_key(selection.unit),
+                    selection.fingerprint,
+                    canonical(
+                        {
+                            "inputs": dict(selection.recipe),
+                            "context": dict(selection.context),
+                            "continuity": dict(selection.continuity),
+                        }
+                    ),
+                    dependency_set,
+                    selection.previous_generation_id,
+                    output_digest,
+                    row_count,
+                    _at(now),
+                    run_id,
                 ),
-                dependency_set,
-                selection.previous_generation_id,
-                output_digest,
-                count,
-                _at(now),
-                run_id,
-            ),
-        )
+            )
+
+        # The rows stream straight into storage and the label is written from
+        # what was stored, so no scope's output is ever held in memory.
+        retain_output(conn, selection.generation_id, rows, record_label=record)
+    after_rows = desired(
+        conn,
+        selection.unit,
+        recipe=selection.recipe if selection.explicit_recipe else None,
+        context=selection.context,
+        _validate_artifacts=False,
+    )
+    if after_rows.fingerprint != selection.fingerprint:
+        raise SupersededWorkError("derivation inputs changed while output rows were being retained")
     conn.execute(
         "UPDATE derivation_scopes SET desired_fingerprint=?,materialized_generation_id=? WHERE stage=? AND unit_kind=? AND unit_id=?",
         (selection.fingerprint, selection.generation_id, *_key(selection.unit)),

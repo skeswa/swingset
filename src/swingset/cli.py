@@ -12,14 +12,17 @@ import time
 from dataclasses import asdict
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from swingset import __version__
 from swingset.clock import SystemClock
-from swingset.config import duration, load_config
+from swingset.config import RetentionConfig, duration, load_config
 from swingset.log import log
 from swingset.publish.service import Hub
 from swingset.state.db import Database, DatabaseLockedError, open_database
+
+if TYPE_CHECKING:
+    from swingset.backup.pruning import PrunePolicy
 
 
 def parser() -> argparse.ArgumentParser:
@@ -46,7 +49,6 @@ def parser() -> argparse.ArgumentParser:
         "link",
         "build",
         "publish",
-        "gc",
     ):
         command = commands.add_parser(name, parents=[shared])
         if name in {"build", "publish"}:
@@ -67,6 +69,32 @@ def parser() -> argparse.ArgumentParser:
             command.add_argument("--kind")
             command.add_argument("--requirement")
             command.add_argument("--since", type=datetime.fromisoformat)
+    collect = commands.add_parser("gc", parents=[shared])
+    # Bare `gc` summarises the plan and removes nothing. Nothing removes
+    # anything without a plan digest and both locks.
+    step = collect.add_mutually_exclusive_group()
+    step.add_argument(
+        "--plan",
+        action="store_true",
+        help="Write the retention plan under state/gc/plans and remove nothing",
+    )
+    step.add_argument(
+        "--apply",
+        metavar="PLAN_DIGEST",
+        help="Remove what that written plan named, under the writer and control locks",
+    )
+    step.add_argument(
+        "--reclaim",
+        action="store_true",
+        help="Rewrite state.sqlite in place so freed pages leave the file",
+    )
+    hold = commands.add_parser("hold", parents=[shared])
+    hold.add_argument("action", choices=("add", "list", "remove"))
+    hold.add_argument("--generation", action="append", default=[], metavar="ID", help="repeatable")
+    hold.add_argument("--artifact", action="append", default=[], metavar="SHA256")
+    hold.add_argument("--who")
+    hold.add_argument("--why")
+    hold.add_argument("--hold-id")
     cycle = commands.add_parser("cycle", parents=[shared])
     mode = cycle.add_mutually_exclusive_group()
     mode.add_argument("--dry-run", dest="dry_run", action="store_true", default=True)
@@ -118,6 +146,16 @@ def parser() -> argparse.ArgumentParser:
     backup = commands.add_parser("backup", parents=[shared])
     backup.add_argument("--local", action="store_true")
     backup.add_argument("--destination", type=Path)
+    backup.add_argument(
+        "--no-prune",
+        action="store_true",
+        help="Keep every local checkpoint instead of pruning timer checkpoints by policy",
+    )
+    backup.add_argument(
+        "--remove-checkpoint",
+        metavar="NAME",
+        help="Remove one operator-named checkpoint by name and make no backup",
+    )
     restore = commands.add_parser("restore", parents=[shared])
     restore_input = restore.add_mutually_exclusive_group(required=True)
     restore_input.add_argument("--checkpoint", type=Path)
@@ -135,6 +173,75 @@ def hub() -> Hub:
     return HuggingFaceHub("skeswa/swingset", token=token)
 
 
+def _checkpoint_policy(retention: RetentionConfig) -> "PrunePolicy":
+    """The checkpoint knobs of the `[retention]` table, as the pruner wants them."""
+    from swingset.backup.pruning import PrunePolicy
+
+    return PrunePolicy(
+        keep_recent=retention.checkpoint_keep_recent,
+        max_age_seconds=retention.checkpoint_max_age,
+        incomplete_max_age_seconds=retention.checkpoint_incomplete_max_age,
+    )
+
+
+def _prune_checkpoints(state: Path, created: Path, retention: RetentionConfig) -> None:
+    """Remove the local checkpoints policy no longer needs, never the new one.
+
+    `state/checkpoints` is outside the checkpoint file closure and outside the
+    retention walk, so a pruned directory is never a root and never a file a
+    plan must keep. One plan is worked out, read once to refuse the one case
+    that could remove this run's own checkpoint -- a `--destination` reusing a
+    timer name older than the ones already there -- and then applied. Working
+    it out twice would size every removable full state copy twice.
+
+    Nothing here checks `RESTORE_PENDING`: `open_database` refuses to open a
+    state directory with that marker, so a backup, and with it this prune,
+    cannot run while a restore into this directory is pending. A restore into
+    a *different* state directory that reads a checkpoint from this one leaves
+    no mark here; rename that checkpoint before starting such a restore, since
+    policy never removes an operator-named one.
+
+    This is cleanup after a backup that already succeeded, so nothing here can
+    fail the backup. A failure is logged and the command still reports what it
+    did; the alternative is a unit that restarts on failure and writes a fresh
+    full copy every minute while one old directory stays unremovable.
+    """
+    from swingset.backup.pruning import PruneError, plan_prune, remove_planned
+
+    checkpoints = state / "checkpoints"
+    try:
+        policy = _checkpoint_policy(retention)
+        fresh = created.resolve()
+        plan = plan_prune(checkpoints, now=time.time(), policy=policy)
+        if any(entry.path.resolve() == fresh for entry in plan.remove):
+            log(
+                "checkpoint-prune-skipped",
+                checkpoint=str(created),
+                reason="policy named this run's own checkpoint",
+            )
+            return
+        plan = remove_planned(checkpoints, plan)
+    except PruneError as exc:
+        log(
+            "checkpoint-prune-failed",
+            message=str(exc),
+            removed=[entry.path.name for entry in exc.removed],
+        )
+        return
+    except (OSError, ValueError, RuntimeError) as exc:
+        log("checkpoint-prune-failed", message=f"{type(exc).__name__}: {exc}", removed=[])
+        return
+    log(
+        "checkpoints-pruned",
+        removed=[
+            {"name": entry.path.name, "reason": entry.reason, "bytes": entry.bytes}
+            for entry in plan.remove
+        ],
+        kept=[{"name": entry.path.name, "reason": entry.reason} for entry in plan.keep],
+        reclaimed_bytes=plan.reclaimable_bytes,
+    )
+
+
 def doctor(args: argparse.Namespace) -> dict[str, Any]:
     if getattr(args, "source_event", None) and not getattr(args, "source", None):
         raise ValueError("--source-event requires --source")
@@ -145,6 +252,19 @@ def doctor(args: argparse.Namespace) -> dict[str, Any]:
         "sources": {name: asdict(value) for name, value in config.sources.items()},
         "restore_pending": (args.state / "RESTORE_PENDING").exists(),
     }
+    from swingset.backup.pruning import describe as describe_checkpoints
+
+    # The pruner in report mode: every local checkpoint, its size, and whether
+    # the next backup would prune it. Nothing is removed here, so a stale
+    # operator-named checkpoint is visible before anyone has to go looking.
+    result["checkpoints"] = [
+        asdict(entry)
+        for entry in describe_checkpoints(
+            args.state / "checkpoints",
+            now=time.time(),
+            policy=_checkpoint_policy(config.retention),
+        )
+    ]
     if not (args.state / "state.sqlite").exists():
         result["schema_version"] = 0
         return result
@@ -236,6 +356,34 @@ def doctor(args: argparse.Namespace) -> dict[str, Any]:
                 "last_backup": "SELECT key,value FROM meta WHERE key LIKE 'last_backup%'",
             }.items():
                 result[label] = [dict(row) for row in conn.execute(query)]
+            if conn.execute(
+                "SELECT 1 FROM sqlite_master WHERE name='derivation_payload_removal_authority'"
+            ).fetchone():
+                # Anything here means a writer left the derivation payload delete
+                # gate open. A grant cannot commit with foreign keys on, so the
+                # list is empty unless something wrote one with them off.
+                result["derivation_payload_removal_grants"] = [
+                    dict(row)
+                    for row in conn.execute(
+                        "SELECT reason,granted_at FROM derivation_payload_removal_authority"
+                    )
+                ]
+            if conn.execute(
+                "SELECT 1 FROM sqlite_master WHERE name='derivation_generations'"
+            ).fetchone():
+                from swingset.state.retention import report as retention_report
+
+                # The planner in report mode: the same walk, nothing written.
+                # The walk needs derivation history and nothing newer: it runs
+                # before interning too, and says so with `payloads_interned`.
+                result["retention"] = retention_report(
+                    conn,
+                    args.state,
+                    max_database_bytes=config.retention.max_database_bytes,
+                    recent_window=config.retention.recent_window,
+                    collect_older_than=config.retention.collect_older_than,
+                    detail_limit=200 if getattr(args, "json", False) else 20,
+                )
             result["open_findings"] = conn.execute(
                 "SELECT COUNT(*) FROM findings WHERE closed_at IS NULL"
             ).fetchone()[0]
@@ -282,12 +430,15 @@ def daily_summary(result: dict[str, Any]) -> None:
         last_publish=result.get("last_publish"),
         publication=result.get("publication"),
         last_backup=result.get("last_backup", []),
+        checkpoints=result.get("checkpoints", []),
         pending_work=result.get("pending_work", []),
         pending_work_basis=result.get("pending_work_basis"),
+        retention=result.get("retention"),
         restore_pending=result["restore_pending"],
         requirements=result.get("requirements"),
         registry_verification=result.get("registry_verification"),
         registry_cursors=result.get("registry_cursors"),
+        derivation_payload_removal_grants=result.get("derivation_payload_removal_grants", []),
     )
 
 
@@ -662,19 +813,73 @@ def _mutate(args: argparse.Namespace, database: Database, stopped: list[bool]) -
                         "INSERT INTO meta(key,value) VALUES (?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",
                         (key, value),
                     )
+        # Only a checkpoint that was written, and uploaded when it had to be,
+        # lets older ones go. A failure above raises before this line.
+        if not args.no_prune:
+            _prune_checkpoints(args.state, checkpoint.path, bundle.config.retention)
     elif command == "gc":
-        from swingset.backup.checkpoint import garbage_collect
+        from swingset.state.retention import enforce_size_cap, plan, write_plan
+        from swingset.state.retention_apply import apply_plan, reclaim
 
-        print(
-            json.dumps(
-                [
-                    str(p)
-                    for p in garbage_collect(
-                        args.state, older_than=86400, now=clock.now().timestamp()
-                    )
-                ]
+        policy = bundle.config.retention
+        if args.reclaim:
+            print(
+                json.dumps(reclaim(database, now=clock.now(), timeout=args.lock_timeout), indent=2)
             )
-        )
+        elif args.apply:
+            print(
+                json.dumps(
+                    apply_plan(
+                        database,
+                        plan_digest=args.apply,
+                        max_database_bytes=policy.max_database_bytes,
+                        recent_window=policy.recent_window,
+                        collect_older_than=policy.collect_older_than,
+                        now=clock.now(),
+                        timeout=args.lock_timeout,
+                    ),
+                    indent=2,
+                )
+            )
+        else:
+            # Planning is also when the cap is noticed: an operator asking what
+            # could go should be told the pipeline is already over its limit.
+            cap = enforce_size_cap(
+                args.state,
+                max_database_bytes=policy.max_database_bytes,
+                now=clock.now(),
+                timeout=args.lock_timeout,
+            )
+            retention_plan = plan(
+                database.connection,
+                args.state,
+                max_database_bytes=policy.max_database_bytes,
+                recent_window=policy.recent_window,
+                collect_older_than=policy.collect_older_than,
+            )
+            summary: dict[str, Any] = {
+                "digest": retention_plan.digest,
+                "totals": retention_plan.content["totals"],
+                "size_cap": cap,
+            }
+            if args.plan:
+                # Only a written plan names an apply. The operator has a file to
+                # read before anything goes, and the digest to apply is printed
+                # next to where that file landed.
+                summary["plan"] = str(write_plan(args.state, retention_plan))
+                summary["next"] = [
+                    f"gc --apply {retention_plan.digest} removes what that plan names, "
+                    "under both locks",
+                    "gc --reclaim rewrites the file so freed pages leave it",
+                ]
+            else:
+                # The bare command removes nothing and hands out no digest to
+                # apply. It says what a plan would say and points at gc --plan.
+                summary["next"] = [
+                    "gc --plan writes this plan under state/gc/plans and says how to apply it",
+                    "gc --reclaim rewrites the file so freed pages leave it",
+                ]
+            print(json.dumps(summary, indent=2))
     else:
         raise ValueError(f"unsupported command {command}")
     from swingset.fetch.archive import canonical, durable_write
@@ -764,6 +969,42 @@ def _control(args: argparse.Namespace) -> int:
     return code
 
 
+def _hold(args: argparse.Namespace) -> int:
+    """Read and write retention holds under the control lock, not the writer lock.
+
+    A hold is a promise that everything it needs can be restored with no
+    network, so adding one walks its closure first and refuses if any of that
+    output is not in the live database.
+    """
+    from swingset.state.retention import add_hold, holds, remove_hold
+
+    clock = SystemClock()
+    if args.action == "list":
+        print(json.dumps(holds(args.state), indent=2))
+        return 0
+    if args.action == "remove":
+        if not args.hold_id:
+            raise ValueError("hold remove requires --hold-id")
+        removed = remove_hold(args.state, args.hold_id, timeout=args.lock_timeout)
+        print(json.dumps({"hold_id": args.hold_id, "removed": removed}))
+        return 0 if removed else 1
+    if not (args.who or "").strip() or not (args.why or "").strip():
+        raise ValueError("hold add requires --who and --why")
+    with open_database(args.state, lock=False, read_only=True) as database:
+        record = add_hold(
+            args.state,
+            database.connection,
+            who=args.who,
+            why=args.why,
+            now=clock.now(),
+            generations=tuple(args.generation),
+            artifacts=tuple(args.artifact),
+            timeout=args.lock_timeout,
+        )
+    print(json.dumps(record, indent=2))
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     args = parser().parse_args(argv)
     stopped = [False]
@@ -773,6 +1014,40 @@ def main(argv: list[str] | None = None) -> int:
         except (OSError, ValueError, RuntimeError) as exc:
             log("error", message=str(exc))
             return 1
+    if args.command == "hold":
+        try:
+            return _hold(args)
+        except (OSError, ValueError, RuntimeError) as exc:
+            log("error", message=str(exc))
+            return 1
+    if args.command == "backup" and args.remove_checkpoint is not None:
+        # Removing one named checkpoint makes no backup, so it takes no writer
+        # lock, captures no input bundle and starts no run. An empty name is a
+        # caller whose variable was unset, and is an error, not a backup.
+        from swingset.backup.pruning import remove_named
+
+        try:
+            if args.local or args.destination or args.no_prune:
+                raise ValueError(
+                    "--remove-checkpoint removes one named checkpoint and makes no backup; "
+                    "do not combine it with --local, --destination or --no-prune"
+                )
+            if (args.state / "RESTORE_PENDING").exists():
+                # A restore into this state directory is under way, and it
+                # rewrites everything here. A restore into a *different* state
+                # directory that reads a checkpoint from this one leaves no
+                # mark here; rename that checkpoint before starting it.
+                raise ValueError(
+                    "a restore into this state directory is pending. "
+                    "Remove this checkpoint once the restore has finished."
+                )
+            removed = remove_named(args.state / "checkpoints", args.remove_checkpoint)
+        except (OSError, ValueError, RuntimeError) as exc:
+            log("error", message=f"{type(exc).__name__}: {exc}")
+            return 1
+        log("checkpoint-removed", checkpoint=str(removed))
+        print(removed)
+        return 0
     if args.command == "enums":
         from swingset.model.enums import enums_markdown
 

@@ -1,0 +1,257 @@
+{
+  "database_unchanged": true,
+  "findings": [
+    "Every page is accounted for by dbstat, the free list, and reserved pages.",
+    "File size 5016936448 bytes; bytes in use 5016932352; free list 0 bytes.",
+    "Generations declare 1669989 output rows and that many read back.",
+    "Output rows 1669989 carry 502109081 payload bytes; distinct payload digests are at most 1669607 (0.9998 of rows).",
+    "Largest objects: derivation_rows 873897984 bytes, source_generations 720551936 bytes, derivation_dependency_sets 429436928 bytes.",
+    "Every gate passed.",
+    "Backup timing (backup-then-restore): restore 226.504s, create 268.282s, verify 43.093s; 17553078852 bytes written under scratch."
+  ],
+  "finished_at": "2026-09-18T15:17:38.523517+00:00",
+  "format": "state-storage-measurement-receipt-v2",
+  "gates": {
+    "backup_timing": true,
+    "declared_rows_match": true,
+    "page_accounting": true,
+    "passed": true,
+    "rows_all_name_a_generation": true
+  },
+  "inputs": {
+    "code_revision": "ttnwxvylxqvq",
+    "command": [
+      "journal/tools/runtime/measure_state_storage.py",
+      "--state",
+      "/var/tmp/swingset-schema29-restore-20260917-004/restored-state",
+      "--output",
+      "/var/tmp/swingset-measure-20260918/report-002.json",
+      "--receipt",
+      "/var/tmp/swingset-measure-20260918/receipt-002.json",
+      "--code-revision",
+      "ttnwxvylxqvq",
+      "--time-backup",
+      "--scratch",
+      "/var/tmp/swingset-measure-20260918/scratch-002"
+    ],
+    "database_bytes": 5016936448,
+    "database_path": "/var/tmp/swingset-schema29-restore-20260917-004/restored-state/state.sqlite",
+    "database_sha256": null,
+    "schema_version": 29,
+    "shm_bytes": 0,
+    "source_checkpoint_manifest_sha256": null,
+    "source_kind": "state",
+    "state_dir": "/var/tmp/swingset-schema29-restore-20260917-004/restored-state",
+    "wal_bytes": 0
+  },
+  "limits": [
+    "Measures one disposable copy at one moment. It is not a growth rate and not a forecast.",
+    "Distinct payload digests are counted per stage and unit kind. The totals figure sums those sets, so it is an upper bound on the whole-database distinct count: a payload shared by two scopes is counted twice.",
+    "dbstat reports bytes that pages hold, not the file size. A file keeps freed pages on its free list, so bytes in use and file size are reported separately.",
+    "Unverified: that SQLite keeps its reserved lock page off the free list. The accounting check allows exactly one such page in a database larger than 1 GiB and reports the difference.",
+    "Declared row counts come from derivation_generations.row_count; readable rows are counted by streaming derivation_rows. A generation whose payload bytes are gone declares rows that cannot be read, so the two are reported separately and compared.",
+    "Output rows are read through derivation_rows, which is a table before the payload split and a view over derivation_row_refs and derivation_payloads after it. The report says which shape it found; payload bytes are the bytes the rows name, not the bytes stored.",
+    "Backup timing is one run on one machine with a cold or warm cache that is not controlled. Treat it as an order of magnitude, not a service level.",
+    "Timing a held checkpoint restores it and then backs up the restored tree, so the restore figure includes verifying the source and the backup figure covers a real state directory. Timing a plain state directory does the reverse. The report says which order ran.",
+    "Nothing here reads production, publishes, or uses the network."
+  ],
+  "network_requests": 0,
+  "production_operations": 0,
+  "results": {
+    "accounted": true,
+    "backup_timing": {
+      "backed_up_state_dir": "/var/tmp/swingset-schema29-restore-20260917-004/restored-state",
+      "checkpoint_bytes": 8782406326,
+      "checkpoint_file_count": 68866,
+      "checkpoint_manifest_sha256": "a6acb9ee29c4228b35194bd68ab782950dd82831b71d2cb1c386adef7282d03d",
+      "create_seconds": 268.281729877,
+      "free_bytes_before": 168004804608,
+      "network_requests": 0,
+      "order": "backup-then-restore",
+      "required_free_bytes": 17541345010,
+      "restore_seconds": 226.50361236000003,
+      "restored_bytes": 8770672526,
+      "schema_version": 29,
+      "scratch": "/var/tmp/swingset-measure-20260918/scratch-002",
+      "scratch_bytes": 17553078852,
+      "source_database_bytes": 5016936448,
+      "source_kind": "state",
+      "source_tree_bytes": 8770672505,
+      "total_seconds": 537.8782129670001,
+      "verify_seconds": 43.092870730000016
+    },
+    "derivation_rows_kind": "table",
+    "derivation_scopes_truncated": false,
+    "derivation_totals": {
+      "declared_row_count": 1669989,
+      "distinct_payload_sha256_upper_bound": 1669607,
+      "distinct_to_total_rows_upper_bound": 0.9997712559783328,
+      "generations": 34987,
+      "payload_bytes": 502109081,
+      "rows": 1669989
+    },
+    "derivations_by_scope": [
+      {
+        "declared_row_count": 1,
+        "distinct_payload_sha256": 1,
+        "distinct_to_total_rows": 1.0,
+        "generations": 1,
+        "payload_bytes": 265,
+        "rows": 1,
+        "stage": "build",
+        "unit_kind": "release"
+      },
+      {
+        "declared_row_count": 408988,
+        "distinct_payload_sha256": 408988,
+        "distinct_to_total_rows": 1.0,
+        "generations": 2541,
+        "payload_bytes": 110877233,
+        "rows": 408988,
+        "stage": "link",
+        "unit_kind": "event"
+      },
+      {
+        "declared_row_count": 169,
+        "distinct_payload_sha256": 169,
+        "distinct_to_total_rows": 1.0,
+        "generations": 2,
+        "payload_bytes": 108281,
+        "rows": 169,
+        "stage": "project",
+        "unit_kind": "calendar"
+      },
+      {
+        "declared_row_count": 225774,
+        "distinct_payload_sha256": 225774,
+        "distinct_to_total_rows": 1.0,
+        "generations": 29048,
+        "payload_bytes": 73940004,
+        "rows": 225774,
+        "stage": "project",
+        "unit_kind": "dancer"
+      },
+      {
+        "declared_row_count": 830155,
+        "distinct_payload_sha256": 830155,
+        "distinct_to_total_rows": 1.0,
+        "generations": 2541,
+        "payload_bytes": 282909646,
+        "rows": 830155,
+        "stage": "project",
+        "unit_kind": "event"
+      },
+      {
+        "declared_row_count": 200597,
+        "distinct_payload_sha256": 200597,
+        "distinct_to_total_rows": 1.0,
+        "generations": 1,
+        "payload_bytes": 32375384,
+        "rows": 200597,
+        "stage": "project",
+        "unit_kind": "history"
+      },
+      {
+        "declared_row_count": 2660,
+        "distinct_payload_sha256": 2660,
+        "distinct_to_total_rows": 1.0,
+        "generations": 1,
+        "payload_bytes": 1365928,
+        "rows": 2660,
+        "stage": "project",
+        "unit_kind": "inventory"
+      },
+      {
+        "declared_row_count": 808,
+        "distinct_payload_sha256": 808,
+        "distinct_to_total_rows": 1.0,
+        "generations": 1,
+        "payload_bytes": 291265,
+        "rows": 808,
+        "stage": "project",
+        "unit_kind": "map"
+      },
+      {
+        "declared_row_count": 0,
+        "distinct_payload_sha256": 0,
+        "distinct_to_total_rows": null,
+        "generations": 467,
+        "payload_bytes": 0,
+        "rows": 0,
+        "stage": "project",
+        "unit_kind": "source_event"
+      },
+      {
+        "declared_row_count": 837,
+        "distinct_payload_sha256": 455,
+        "distinct_to_total_rows": 0.5436081242532855,
+        "generations": 384,
+        "payload_bytes": 241075,
+        "rows": 837,
+        "stage": "project",
+        "unit_kind": "source_index"
+      }
+    ],
+    "freelist_bytes": 0,
+    "largest_objects": [
+      {
+        "bytes": 873897984,
+        "kind": "table",
+        "name": "derivation_rows"
+      },
+      {
+        "bytes": 720551936,
+        "kind": "table",
+        "name": "source_generations"
+      },
+      {
+        "bytes": 429436928,
+        "kind": "table",
+        "name": "derivation_dependency_sets"
+      },
+      {
+        "bytes": 342245376,
+        "kind": "index",
+        "name": "sqlite_autoindex_derivation_rows_2"
+      },
+      {
+        "bytes": 278102016,
+        "kind": "table",
+        "name": "identity_link_history"
+      },
+      {
+        "bytes": 252571648,
+        "kind": "table",
+        "name": "derivation_generations"
+      },
+      {
+        "bytes": 209678336,
+        "kind": "index",
+        "name": "sqlite_autoindex_canonical_scope_rows_1"
+      },
+      {
+        "bytes": 176238592,
+        "kind": "table",
+        "name": "canonical_scope_rows"
+      },
+      {
+        "bytes": 172806144,
+        "kind": "table",
+        "name": "observations"
+      },
+      {
+        "bytes": 150556672,
+        "kind": "index",
+        "name": "sqlite_autoindex_derivation_rows_1"
+      }
+    ],
+    "page_count": 1224838,
+    "page_size": 4096,
+    "rows_without_a_generation": 0,
+    "unaccounted_bytes": 4096,
+    "used_bytes": 5016932352
+  },
+  "started_at": "2026-09-18T15:17:32.070463+00:00",
+  "tool_version": "measure-state-storage-v3",
+  "unchanged_check": "size-mtime-inode"
+}

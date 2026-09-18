@@ -178,6 +178,16 @@ def run_cycle(
     try:
         bundle = capture(config_dir, overrides_dir, database.state_dir, versions())
         summary["accepted_inputs"] = sorted(accept(database, bundle, clock))
+        from swingset.state.retention import enforce_size_cap
+
+        # A database over its size cap pauses the pipeline before any work is
+        # admitted. Reading, controls and recovery do not go through admission,
+        # so they keep working, and `gc --plan` still explains what could go.
+        summary["retention_cap"] = enforce_size_cap(
+            database.state_dir,
+            max_database_bytes=bundle.config.retention.max_database_bytes,
+            now=clock.now(),
+        )
         from swingset.schedule.event_enumerations import bootstrap as bootstrap_events
 
         if not stop():

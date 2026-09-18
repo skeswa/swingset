@@ -12,8 +12,9 @@ The [operations reference](../reference/operations.md) owns worker behavior.
 
 ## Commands and logs
 
-Data-writing commands use the same state lock. H13 pause and resume commands
-use the separate bounded control path described below. A timer overlap exits 0 with
+Data-writing commands use the same state lock. H13 pause and resume commands,
+and the `hold` commands in [disk space](#disk-space), use the separate bounded
+control path described below. A timer overlap exits 0 with
 `skipped-overlap`. Manual mutations wait up to `--lock-timeout` (60 seconds by
 default); a timeout exits nonzero and applies no change. Backup waits for the
 writer and the service retries failures after 60 seconds.
@@ -192,6 +193,172 @@ Disabling fetching or pausing a host permits offline work. Under H13, an all,
 source or kind pause also holds matching derivations and shared publication;
 unrelated eligible work continues. A valid held candidate is not rejected, and
 an in-flight commit must reconcile its receipt before its pause is fully drained.
+
+## Disk space
+
+The worker's disk is bounded by OrbStack at 256 GiB
+(`orb config set machine.swingset.disk_bytes 274877906944`), enforced as a
+btrfs quota, so `df` inside the machine does not show it; `orb info swingset`
+on the Mac does. Inside that bound, three things use most of the space:
+the live state, local checkpoints under `/var/lib/swingset/checkpoints`, and
+rehearsal scratch under `/var/tmp/swingset-*`. Each rehearsal or checkpoint is
+a full copy of the state, several gigabytes, so copies must not accumulate.
+
+- Rehearsal scratch: the `swingset-scratch-clean` timer runs daily at 05:00
+  and removes any `/var/tmp/swingset-*` directory in which nothing changed for
+  `services.swingset.scratchMaxAgeDays` days (default 3). Put a file named
+  `KEEP` at the top of a directory to exempt it while an investigation still
+  needs it, and remove the marker when it does not. Retained receipts under
+  `journal/evidence/` are the durable record; a scratch copy never is.
+- Checkpoints: after it has written one, the backup command prunes timer
+  checkpoints (`run_*`) by policy, keeping the newest two and anything under
+  two days old, and removes abandoned temporary directories after a day. It
+  never removes the checkpoint it just wrote, and it logs what it removed and
+  kept (`event="checkpoints-pruned"`). Those three numbers are the
+  `checkpoint_` values of the `[retention]` table (see
+  [state](../reference/state.md#knobs)). Adding `--no-prune` to a backup keeps
+  everything for that run. This is cleanup after a backup that already
+  succeeded, so a removal that fails is logged as
+  `event="checkpoint-prune-failed"` and the backup still reports success; fix
+  the directory it names by hand.
+- Named checkpoints: a directory whose name is not `run_*` and not a
+  `.<name>.tmp-<hex>` copy is an operator's, and policy never removes it, at
+  any age, finished or not. Remove one by name with
+  `swingset backup --remove-checkpoint NAME` once the gate it protected has
+  passed; that makes no backup, and it refuses while a restore into this state
+  directory is pending. An interrupted `cp -a` leaves a directory with no
+  `checkpoint.json`, which nothing can restore from: doctor lists it as
+  incomplete, and it stays until you remove it by name.
+- A restore reading a checkpoint from this machine into a _different_ state
+  directory leaves no mark here, and a `run_*` checkpoint it is reading can be
+  pruned under it. Rename that checkpoint before starting such a restore.
+- Doctor lists every checkpoint with its name, whether it is complete, its age
+  in days, its bytes, and whether policy would prune it, so a stale named
+  checkpoint shows up without being hunted for. `prunes` is what policy says at
+  that moment; the next backup's own checkpoint takes one of the kept slots, so
+  a `run_*` kept as "one of the newest two, until the next backup takes a slot"
+  goes at the next backup. Rename it first if you need it.
+- The state database: `swingset gc --plan` writes a plan naming every piece of
+  saved output and every file, which list it is on, and why, then prints the
+  plan's fingerprint and a summary. It removes nothing, and neither does
+  `swingset gc` on its own, which prints the same summary and points at the
+  commands that act. `swingset gc --apply <fingerprint>` removes what that plan
+  named. `swingset gc --reclaim` shrinks the file afterwards.
+
+To see what is using space: `sudo du -xh -d1 /var/tmp /var/lib/swingset | sort -h`.
+
+A schema migration that drops a table frees pages the same way an apply does,
+and leaves the file the size it was. Schema 30 does exactly that. Run
+`swingset gc --reclaim` after the switch that migrates, or the database keeps
+its old size on disk and in every backup. See
+[schema history](../reference/schema-history.md).
+
+### Retention plans and holds
+
+```sh
+uv run swingset gc --plan --state /var/lib/swingset
+uv run swingset doctor --json --state /var/lib/swingset | jq .retention
+```
+
+The plan lands in `/var/lib/swingset/gc/plans/<fingerprint>.json`, named by its
+own fingerprint, and the same state always produces the same file. Plans are not
+copied into backups. A plan names every artifact file, so the newest ten are
+kept and older ones go as new plans are written.
+
+Doctor's `retention` section shows bytes in use, the file size on disk, the
+write-ahead log, free-list bytes, usage against `retention.max_database_bytes`
+and `retention.recent_window`, and why the largest local generations stay. Its
+`unknown` counts say how many items have no owner and `unknown_items` says which
+ones they are, so a payload digest or a path can be looked at without writing a
+plan out.
+Deleting rows frees pages to SQLite's free list without shrinking the file, so
+bytes in use and file size are reported separately.
+
+If the file goes over the cap, the worker sets an operator pause on everything
+with the reason "state database file is over its retention size cap" at the
+start of the next cycle. Reading, doctor, controls, `gc`, backup and restore
+keep working; fetching and derivation wait.
+
+Resuming on its own pauses again on the next cycle, because the file is still
+over the cap. Either shrink it with apply and reclaim below, or raise
+`max_database_bytes` in the `[retention]` table of `config/sources.toml` (add
+the table; it is absent by default) and deploy. Then resume with
+`swingset resume --all --reason "..."`.
+
+Adding or changing that table recomputes nothing. The next cycle captures a new
+input bundle, which records the limits in force as values under
+`policy/retention.json`, and accepts it; no stage's recipe reads either the file
+or the values, so no work is queued and no generation is rebuilt
+([D-0156](../../journal/decisions/0156-capture-the-retention-limits-as-values.md)).
+
+### Removing what a plan named
+
+```sh
+uv run swingset gc --plan --state /var/lib/swingset
+uv run swingset gc --apply <fingerprint> --state /var/lib/swingset
+uv run swingset gc --reclaim --state /var/lib/swingset
+```
+
+`swingset gc` with no flag prints the same summary and removes nothing. It does
+not print a fingerprint to apply, because nothing goes without a plan file to
+read first: `gc --plan` writes the file and prints the apply line next to it.
+
+Apply takes the writer lock and then the control lock, works the plan out again
+while holding both, and stops if the fingerprint has moved: any hold, candidate
+or pointer that appeared since the plan was written makes it refuse and change
+nothing. Plan again and read the new plan before applying it. A hold asked for
+while apply is running waits, and then sees a state apply has finished with.
+
+If an apply is killed after its note commits and before its files go, run
+`gc --plan` again and apply the new fingerprint. That apply finishes the files
+the new plan still calls removable and leaves anything the new plan now keeps,
+which its receipt lists under `skipped_files`. Nothing is removed on the word of
+the killed run alone.
+
+Apply removes only files today, and only unreferenced candidate directories past
+`retention.collect_older_than`. It never removes saved output, and it never
+removes a file nothing declares: doctor reports those as unknown and a person
+decides what they are.
+
+Reclaim needs about twice the current file size free on the state volume and
+refuses before touching anything if it is not there. It holds both locks for the
+whole rewrite, which on a large database is minutes. A kill during it rolls back
+to the file as it was.
+
+Receipts land in `/var/lib/swingset/gc/receipts/`. An apply receipt is named by
+the plan fingerprint and carries the files it planned, the files it removed, any
+it found already gone, the payloads it planned (none today) and their bytes, any
+earlier unfinished apply it finished with what that apply removed and skipped,
+and the plan's totals. Every planned file is in exactly one of those lists. A reclaim receipt is named by when it ran and carries bytes in
+use, file size, write-ahead log size and free-list bytes, before and after.
+Receipts are not copied into backups; the note in the database is. Keep one small
+copy per production apply and reclaim under `journal/evidence/`.
+
+Rerunning apply with a fingerprint it already applied prints the recorded receipt
+and changes nothing, so a retry after a lost connection is safe. It also writes
+the receipt file again if it is missing, which is how a restored backup, which
+leaves `gc/` out, gets its copy back.
+
+### Holds
+
+A hold keeps named computations and files in the live database, so they can be
+restored with no network:
+
+```sh
+uv run swingset hold add --state /var/lib/swingset \
+  --generation dg_abc123 --who sandile --why "checking the 2019 rounds"
+uv run swingset hold list --state /var/lib/swingset
+uv run swingset hold remove --state /var/lib/swingset --hold-id hold_0f3c...
+```
+
+`hold add` walks everything the named computations were built from and refuses
+if any of it is not in the live database, listing the ids to bring back first
+with `gc --restore`. A held artifact digest has to be a file under `blobs/` or
+`extracts/` already. It writes nothing when it refuses. Holds live one file per
+hold under `/var/lib/swingset/holds/`; a hold and the files it names are
+included in backups, and holds are taken under the control lock, so one can be
+placed while a cycle runs. Add `--artifact <sha256>` to hold a stored page or
+extract.
 
 Before stopping the VM, stop cycle and backup timers and services, then use
 `orb stop swingset` on the Mac. Start it with `orb start swingset`; inspect logs

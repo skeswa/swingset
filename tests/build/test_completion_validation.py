@@ -27,7 +27,7 @@ def test_completion_validates_before_output_after_rows_and_before_certificate(
         f.conn.set_trace_callback(
             lambda sql: (
                 events.append("artifact")
-                if sql.startswith("INSERT INTO derivation_rows")
+                if sql.startswith("INSERT INTO derivation_row_refs")
                 else events.append("generation")
                 if sql.startswith("INSERT INTO derivation_generations")
                 else None
@@ -42,11 +42,13 @@ def test_completion_validates_before_output_after_rows_and_before_certificate(
     monkeypatch.setattr(generations, "complete", finishing)
     result = service.build_release(f.db, f.bundle, f.clock, f.run)
     assert events.count("validate") == 3
-    # SQLite traces an INSERT again while entering its triggers.
+    # SQLite traces an INSERT again while entering its triggers. The rows stream
+    # in first and the label is written from what was stored, so the generation
+    # follows them; the re-check after the rows still rolls everything back
+    # together.
     assert [kind for kind, _ in groupby(events)] == [
         "validate",
         "artifact",
-        "validate",
         "generation",
         "validate",
     ]
@@ -104,7 +106,7 @@ def test_changed_retained_support_rejects_before_output_and_rolls_back_retention
         )
         f.conn.set_trace_callback(
             lambda sql: (
-                writes.append(sql) if sql.startswith("INSERT INTO derivation_rows") else None
+                writes.append(sql) if sql.startswith("INSERT INTO derivation_row_refs") else None
             )
         )
         try:

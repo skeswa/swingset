@@ -341,7 +341,9 @@ def test_restore_main_allows_only_one_pressure_epoch_increment(
 @pytest.mark.parametrize(
     "mutation", ["PRAGMA user_version=28", "UPDATE meta SET value='28' WHERE key='schema_version'"]
 )
-def test_scratch_input_phases_require_both_schema29_markers(tmp_path, mutation):
+def test_scratch_input_phases_require_both_schema29_markers(tmp_path, mutation, monkeypatch):
+    # The rehearsal tool is frozen at the schema it was reviewed against (D-0013).
+    monkeypatch.setattr(db_module, "SCHEMA_VERSION", 29)
     with open_database(tmp_path / "state") as db:
         builder.scratch_markers(db.state_dir)
         db.connection.execute(mutation)

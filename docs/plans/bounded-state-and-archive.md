@@ -1,7 +1,14 @@
 # Bounded operational state and durable history
 
-Status: proposed, 2026-09-17. This plan does not allow deleting anything in
-production, deploying anything, or changing the current retention rules.
+Status: proposed, 2026-09-17. Steps 2 and 3 are implemented and tested offline
+as of 2026-09-18; step 1's measurement ran the same day and its decision
+([D-0166](../../journal/decisions/0166-hold-interning-back-until-rows-repeat-and-cut-indexes-first.md))
+is accepted: interning waits for rows that repeat, the migrations were
+reordered on 2026-09-18 so step 3 can deploy alone
+([D-0167](../../journal/decisions/0167-intern-derivation-payloads-in-the-last-migration.md)),
+and step 4 has not started. The status line of each step below says what exists. This plan does not
+allow deleting anything in production, deploying anything, or changing the
+current retention rules.
 [D-0119](../../journal/decisions/0119-bound-state-by-interning-and-one-closure.md)
 records the direction. It replaces the earlier design in
 [D-0117](../../journal/decisions/0117-bound-operational-state-with-durable-archives.md).
@@ -109,6 +116,17 @@ The distinct-to-total ratio predicts how much step 2 will save before any
 code is written. Keep one small receipt under `journal/evidence/`. Leave big
 reports in scratch storage.
 
+The tool is
+[`journal/tools/runtime/measure_state_storage.py`](../../journal/tools/runtime/measure_state_storage.py).
+The [investigation](../../journal/investigations/2026/state-storage-measurement-2026-09-18.md)
+has the numbers. The measurement ran on 2026-09-18 on a scratch restore of
+held checkpoint 004: rows do not repeat yet, `derivation_rows` and its indexes
+are 27% of the file, and the step 2 migration makes the file 6% larger on that
+copy. [D-0166](../../journal/decisions/0166-hold-interning-back-until-rows-repeat-and-cut-indexes-first.md)
+is the accepted decision this step asks for. Steps 2 and 3
+were built ahead of the numbers, recorded in
+[D-0158](../../journal/decisions/0158-build-steps-2-and-3-before-the-measurement-and-gate-the-rest-on-it.md).
+
 **Done when:** the counts match the copy, every table is accounted for, and a
 decision record says which later steps to do and in what order. If result
 rows are not the biggest cost, that record says what is and adds a step for
@@ -139,9 +157,13 @@ gets no special "historical" mode.
 Row references are permanent, like labels. The no-delete triggers move to the
 reference table. The row data table gets a delete trigger that allows only a
 transaction carrying a permission row, the same pattern as
-`removal_authority` on `source_generations`.
+`removal_authority` on `source_generations`. That row cannot commit: a deferred
+foreign key to an always-empty table makes a transaction that still holds it
+fail, so the permission can never be left switched on
+([D-0136](../../journal/decisions/0136-make-a-payload-removal-grant-impossible-to-commit.md)).
 
-The migration fills both tables, recomputes every `output_digest` through the
+The migration runs last, after step 3's two, so step 3 deploys on its own. It
+fills both tables, recomputes every `output_digest` through the
 view, and drops the old table only when every fingerprint matches. Until that
 drop it can be undone. Dropping the old table frees pages inside the file but
 does not shrink the file, so the reclaim step in section 7 runs right after.
@@ -158,6 +180,16 @@ dataset rebuilds to the same manifest hash; all derivation, closure, build,
 backup, and restore tests pass; the file is shrunk after the drop; and both
 the bytes in use and the file size are measured before and after on the same
 copy.
+
+**What exists as of 2026-09-18.** This step is implemented and tested offline
+and is the **last** migration, number 32, so step 3's schemas deploy without it
+([D-0167](../../journal/decisions/0167-intern-derivation-payloads-in-the-last-migration.md)).
+Migration 32 fills the two tables, recomputes every `output_digest` through the
+view, and drops the old table only when all of them match; a migrated fixture
+keeps every digest and row count; derivation, closure, build, backup and restore
+tests pass; and bytes in use and file size are measured before and after on the
+same copy. Shrinking the file is `gc --reclaim`, which section 7 added. The
+published dataset has not been rebuilt, because nothing is deployed.
 
 ## 7. Step 3: work out what is needed, then remove the rest carefully
 
@@ -219,11 +251,16 @@ every result ever released, and the plan would achieve nothing. An old
 release can still be rebuilt: `gc --restore --release <candidate id>` reads
 its list, brings back every archived computation on it, and only then does
 the byte-for-byte rebuild promise in [publishing](../reference/publishing.md)
-apply. A test must rebuild a release whose data was archived.
+apply. A test must rebuild a release whose data was archived. That test belongs
+to step 4: it needs `gc --restore`, which does not exist, and data that has been
+archived, which nothing does yet. It is the "old release's data is archived"
+row of section 10.
 
 **Accepting a new starting point.** Creating a hold, or naming a
-computation in a finding, runs the walk for that item under the control
-lock. If any data it reaches is archived rather than local, the request is
+computation in a finding, runs the walk for that item first. A hold takes the
+control lock; a finding is written in the caller's write transaction, under the
+writer lock. Apply holds both, so neither can appear between its final check and
+its removal. If any data it reaches is archived rather than local, the request is
 refused, and the refusal lists the computation IDs to bring back first with
 `gc --restore`. A marker is never written for data that is not there. The
 baseline and pending candidates need no such check, because they are always
@@ -241,8 +278,9 @@ plan. It removes nothing. On unchanged state it produces the identical file.
 2. Recompute the plan while holding the locks. Stop if the fingerprint
    differs.
 3. In one database transaction: write a note of this apply keyed by the plan
-   fingerprint, write the permission row, remove the eligible row data,
-   commit.
+   fingerprint, write the permission row, remove the eligible row data, remove
+   the permission row, commit. The permission row has to go before the commit,
+   or the commit fails.
 4. Still holding both locks, remove the eligible files. A waiting hold
    creator cannot take the control lock and pin a file that is about to go.
    This part is safe to rerun. If it crashes, the note says which files were
@@ -254,8 +292,10 @@ and changes nothing. Running it with an old fingerprint after a successful
 apply stops, because the state has changed. The database cannot undo a file
 removal, so the note commits before any file goes.
 
-Until step 4 exists, apply removes no row data. It only removes files, as the
-collector does today, but with a plan, locks, and a receipt.
+Until step 4 exists, apply removes no row data. It removes only the files a
+plan calls removable, with a plan, locks, and a receipt. That is the disposable
+candidate directories the collector used to drop on age. A file nothing declares
+is not one of them: it is unknown, and unknown is never eligible.
 
 **Shrinking the file.** Deleting rows does not shrink the database file.
 SQLite keeps the freed pages on a free list and reuses them later, so a file
@@ -291,8 +331,9 @@ Automatic vacuuming stays off. It changes the page layout and still needs a
 full `VACUUM` to turn on. Reclaim runs after the step 2 drop and after any
 apply whose receipt shows enough free-list bytes to matter.
 
-**Doctor** runs the planner in report mode and shows unknown row data, bytes
-that could be given back, and why each local computation stays.
+**Doctor** runs the planner in report mode and shows unknown row data, by
+count and by item, bytes that could be given back, and why each local
+computation stays.
 
 **Declared references.** The fingerprints a finding relies on move into rows
 in `finding_support` instead of being found by pattern-matching the
@@ -313,7 +354,65 @@ applied fingerprint returns the same receipt; a crash after commit but before
 file removal is finished by the next apply; every backup, verify, and restore
 scenario passes.
 
+**What exists as of 2026-09-18.** This step is implemented and tested offline.
+`state/retention.py` owns the file closure and the walk; `gc --plan` writes the
+plan; doctor reports both lists, the unknown items, and usage against both
+knobs; `hold add`, `hold list` and `hold remove` place and read holds under the
+control lock, with the residency check; findings declare their support in schema
+30 instead of being scanned; and the two knobs plus the collector's age floor
+are policy values read from an optional `[retention]` table in
+`config/sources.toml`, with the defaults in `config.py`.
+
+A review on 2026-09-18 found seven defects in this step, and all are fixed. The
+rules they settled: a declaration replaces a finding's references and an empty
+one leaves them alone
+([D-0160](../../journal/decisions/0160-an-empty-declaration-never-clears-a-findings-recorded-references.md));
+the residency check covers what a write newly declares
+([D-0162](../../journal/decisions/0162-the-residency-check-covers-only-newly-declared-generations.md));
+a requirement declares nothing and relies on the snapshot pin
+([D-0161](../../journal/decisions/0161-a-requirement-finding-relies-on-the-snapshot-pin.md));
+`create_checkpoint` takes the control lock across its closure and copy, so a
+hold cannot be written between them
+([D-0164](../../journal/decisions/0164-a-checkpoint-holds-the-control-lock-across-its-closure-and-copy.md));
+an expired pause is not an existing pause
+([D-0159](../../journal/decisions/0159-an-expired-pause-is-not-an-existing-pause.md));
+and every value of the `[retention]` table is checked where it is read
+([D-0163](../../journal/decisions/0163-every-retention-value-is-checked-where-the-table-is-read.md)).
+
+`state/retention_apply.py` owns removal. `gc --apply <digest>` takes the writer
+lock and then the control lock, recomputes the plan under both, stops if the
+digest moved, commits a note in `retention_applies` (schema 31), removes the
+eligible files, and writes one receipt under `state/gc/receipts/`. A note whose
+files never went is finished only through the fresh plan: the apply removes the
+files that plan still calls removable and leaves the rest, which its receipt
+lists ([D-0151](../../journal/decisions/0151-a-resumed-note-removes-only-what-the-fresh-plan-still-names.md)).
+`gc --reclaim` rewrites the file in place and writes its own receipt. The old
+direct collector is gone: `gc` without a flag prints the plan summary and points
+at `gc --plan`. Nothing inside the retention closure is removed without a written
+plan, its digest and both locks. Two things outside it still clean up after
+themselves: writing a plan drops all but the ten newest written plans under
+`state/gc/plans/`, and the backup command prunes its own checkpoints under
+`state/checkpoints/`. Both directories are excluded from the closure, so neither
+is ever a root and neither holds anything a plan names
+([D-0143](../../journal/decisions/0143-an-undeclared-file-is-unknown-in-the-plan.md),
+[D-0152](../../journal/decisions/0152-the-backup-command-prunes-its-own-checkpoints.md)).
+Removing a file nothing declares went with the collector; those are unknown, and
+unknown is never eligible. A receipt accounts for every file its plan named:
+removed, skipped, or already gone.
+
+No payload bytes are ever removed yet. The gate is there and is shut: no
+generation is eligible until the `archived_generations` table of step 4 exists
+and names it. The plan says so per generation, so the digest an operator reviews
+covers it and archiving anything after that review stops the apply
+([D-0155](../../journal/decisions/0155-the-plan-digest-covers-what-is-archived.md)).
+`gc --restore` is still to come. Nothing here is deployed.
+
 ## 8. Step 4: archive, remove locally, and bring back
+
+Not started as of 2026-09-18. It waits on step 1's numbers and on the two object
+stores, which do not exist yet. Step 3 built the gate it will open:
+`archived_generations` is the table the eligibility check looks for, and finding
+nothing there is why no payload byte is ever removed today.
 
 Do this step only if the numbers from steps 1 and 2 are still above the
 accepted database size cap.
@@ -382,6 +481,17 @@ Two policy values, captured in the input bundle:
 - the maximum size of the live database file on disk, in bytes; and
 - how many recent successful computations to keep per area, the window N.
 
+They are read from an optional `[retention]` table in `config/sources.toml`, and
+an absent table means the defaults. So the bundle captures the values in force,
+as `policy/retention.json`, not only the file they were read from: a reader of an
+old bundle can then say what the cap was. Changing either one recomputes
+nothing. No stage's recipe selects the file or the values, so raising the cap and
+deploying never recomputes the history the cap is there to bound
+([D-0156](../../journal/decisions/0156-capture-the-retention-limits-as-values.md)).
+
+Both defaults are provisional until step 1 runs
+([D-0158](../../journal/decisions/0158-build-steps-2-and-3-before-the-measurement-and-gate-the-rest-on-it.md)).
+
 Doctor reports usage against both, showing bytes in use, file size, and
 free-list bytes separately. Crossing the size cap sets an operator pause
 through the existing controls. Reading, controls, and recovery keep working.
@@ -422,6 +532,11 @@ The work is not finished until each of these has been tried:
 | Data is restored after removal                                        | Row data matches the label fingerprint; pointers unchanged                     |
 | A backup is taken after removal                                       | It restores with no network, leaves archive objects out, and checks out        |
 | The database file reaches the size cap                                | An operator pause is set; controls and recovery still work                     |
+
+Every row above is covered by an offline test except the seven that need an
+archive: the two restore scenarios, rebuilding an archived release, an
+interrupted upload, a missing or corrupt store, and the two that follow a
+removal of row data. Those are step 4's, and step 4 has not started.
 
 ## 11. Rollout and evidence
 
@@ -470,14 +585,22 @@ not turn on removal of row data as part of a database-engine cutover.
 
 ## 14. Finished when
 
-- step 1 has a receipt and a decision naming which steps ran;
+Three of these cannot be reached from a machine with no production data and
+nothing deployed. They are marked, so nothing here is mistaken for done.
+
+- step 1 has a receipt and a decision naming which steps ran; **met on
+  2026-09-18**
+  ([D-0166](../../journal/decisions/0166-hold-interning-back-until-rows-repeat-and-cut-indexes-first.md));
 - each unique row is stored once and every fingerprint checks;
 - one walk produces both lists, with a plan, a locked apply, a note of each
   apply, and a receipt;
 - doctor explains local, archivable, and unknown bytes, and bytes in use
   against file size;
 - the live database file, not just its rows, stays under the cap through
-  sustained replay;
+  sustained replay; **deferred to deployment.** Only a running system produces
+  sustained replay. Offline, one test drives the file over a cap set to one byte
+  and checks the pause;
 - if step 4 ran, both stores check out and archived data comes back without
   moving a pointer; and
-- scheduled restore drills pass.
+- scheduled restore drills pass; **deferred to deployment**, like the drills
+  themselves.

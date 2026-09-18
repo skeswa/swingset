@@ -381,3 +381,71 @@ def test_cycle_reconciles_retained_event_site_suggestion_without_source_calls(
         == 0
     )
     assert fixture.conn.execute("SELECT COUNT(*) FROM history_origin_requests").fetchone()[0] == 0
+
+
+def test_review_keeps_pinning_the_cdx_bodies_its_proposals_were_read_from(sites, tmp_path):
+    """A proposal declares the retained page it was read from, so review keeps it.
+
+    Migration 31 backfilled a body reference for every digest an open finding's
+    evidence named and a file existed for. The evidence of an event-site
+    proposal names the CDX response body each capture came from. Declaring
+    nothing and rewriting the finding would have deleted that backfilled row on
+    the next review cadence, unpinning the very page the proposal asks a human
+    to check.
+    """
+    from swingset.backup.checkpoint import create_checkpoint
+    from swingset.state import retention
+    from swingset.state.finding_reference_migration import backfill_finding_references
+
+    _, body_sha = retained(sites)
+    state = sites.db.state_dir
+    blob = Archive(state).blob_path(body_sha)
+    assert blob.is_file()
+    assert reconcile(sites.db, now=sites.clock.now(), run_id=sites.run) == 1
+    finding = sites.conn.execute(
+        "SELECT finding_id FROM findings WHERE kind='history_event_site_review' AND closed_at IS NULL"
+    ).fetchone()[0]
+    declared = [
+        tuple(row)
+        for row in sites.conn.execute(
+            "SELECT kind,sha256 FROM finding_support_references WHERE finding_id=?", (finding,)
+        )
+    ]
+    assert declared == [("body", body_sha)]
+
+    # The same rows migration 30 would have backfilled from this evidence, and
+    # nothing more: the receipt itself lives under archive-cdx/, not blobs/, so
+    # declaring it would name a file that is not there.
+    sites.conn.execute("DELETE FROM finding_support_references")
+    assert backfill_finding_references(sites.conn, state) == 1
+    assert [
+        tuple(row)
+        for row in sites.conn.execute("SELECT kind,sha256 FROM finding_support_references")
+    ] == declared
+
+    # The next review cadence rewrites the same finding and keeps the pin.
+    reconcile(sites.db, now=sites.clock.now(), run_id=sites.run)
+    assert [
+        tuple(row)
+        for row in sites.conn.execute("SELECT kind,sha256 FROM finding_support_references")
+    ] == declared
+    assert blob.resolve() in retention.artifact_closure(state, sites.conn, set())
+    assert (
+        retention.plan(
+            sites.conn,
+            state,
+            max_database_bytes=1 << 40,
+            recent_window=1,
+            collect_older_than=86400.0,
+        ).content["unknown"]["missing_declared_references"]
+        == []
+    )
+    checkpoint = create_checkpoint(
+        state,
+        sites.conn,
+        tmp_path / "checkpoint",
+        schema_version=sites.db.schema_version,
+        versions={},
+        input_bundle_hash=None,
+    )
+    assert blob.relative_to(state).as_posix() in checkpoint.files

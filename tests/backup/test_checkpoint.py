@@ -489,3 +489,107 @@ def test_new_closure_validation_rejects_backup_that_omitted_generation_extract(t
     (saved.path / "checkpoint.json").write_text(json.dumps(manifest))
     with pytest.raises(CheckpointError, match="referenced artifact is missing"):
         verify_checkpoint(saved.path, maximum_schema_version=schema)
+
+
+def test_a_hold_added_during_a_checkpoint_waits_for_the_copy(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The closure and the copy run under the control lock, so no hold can slip in.
+
+    `add_hold` checks that a held file is there and writes the hold under the
+    control lock. The checkpoint used to compute its file closure and copy under
+    the writer lock alone, so a hold could be committed for a file between the
+    two. Files a hold names are filtered by `is_file()`, so the checkpoint would
+    have carried the hold and not the file, and nothing would have said so.
+    """
+    import threading
+    from datetime import UTC, datetime
+
+    from swingset.backup import checkpoint as checkpoint_module
+    from swingset.state.control_lock import ControlTimeout
+    from swingset.state.retention import add_hold, holds
+
+    now = datetime(2026, 9, 18, tzinfo=UTC)
+    source = tmp_path / "source"
+    connection = state(source)
+    body = hashlib.sha256(b"evidence").hexdigest()
+    original = checkpoint_module._artifact_closure
+    closure_done = threading.Event()
+    attempted = threading.Event()
+    outcome: dict[str, str] = {}
+
+    def paused_closure(*args: object, **kwargs: object) -> object:
+        included = original(*args, **kwargs)  # type: ignore[arg-type]
+        closure_done.set()
+        attempted.wait(20)
+        return included
+
+    def add() -> None:
+        try:
+            closure_done.wait(20)
+            other = sqlite3.connect(source / "state.sqlite")
+            try:
+                add_hold(
+                    source,
+                    other,
+                    who="operator",
+                    why="checking the retained page",
+                    now=now,
+                    artifacts=(body,),
+                    timeout=0.5,
+                )
+            finally:
+                other.close()
+            outcome["result"] = "written"
+        except ControlTimeout:
+            outcome["result"] = "waited"
+        except BaseException as error:  # pragma: no cover - reported by the assert
+            outcome["result"] = repr(error)
+        finally:
+            attempted.set()
+
+    monkeypatch.setattr(checkpoint_module, "_artifact_closure", paused_closure)
+    waiting = threading.Thread(target=add)
+    waiting.start()
+    try:
+        checkpoint = create_checkpoint(
+            source,
+            connection,
+            tmp_path / "checkpoint",
+            schema_version=1,
+            versions={},
+            input_bundle_hash=None,
+        )
+    finally:
+        waiting.join(30)
+    monkeypatch.undo()
+    assert outcome == {"result": "waited"}
+    assert holds(source) == []
+    # Nothing dangling: the checkpoint has no hold, and the file the hold would
+    # have named is in it anyway because a snapshot declares it.
+    assert not [name for name in checkpoint.files if name.startswith("holds/")]
+    relative = f"blobs/sha256/{body[:2]}/{body[2:4]}/{body}"
+    assert relative in checkpoint.files
+
+    # After the copy the same hold is accepted, and the next checkpoint carries
+    # the hold and the file together.
+    add_hold(
+        source,
+        connection,
+        who="operator",
+        why="checking the retained page",
+        now=now,
+        artifacts=(body,),
+    )
+    after = create_checkpoint(
+        source,
+        connection,
+        tmp_path / "checkpoint-2",
+        schema_version=1,
+        versions={},
+        input_bundle_hash=None,
+    )
+    connection.close()
+    assert [name for name in after.files if name.startswith("holds/")]
+    assert relative in after.files
+    verify_checkpoint(after.path, maximum_schema_version=1)

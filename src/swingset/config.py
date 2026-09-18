@@ -25,6 +25,16 @@ def duration(value: str | int | float) -> float:
     return seconds
 
 
+def byte_size(value: str | int) -> int:
+    """Read a byte count written plainly or with a decimal KB/MB/GB suffix."""
+    if isinstance(value, int):
+        return value
+    match = re.fullmatch(r"(\d+)(KB|MB|GB)?", value.strip())
+    if not match:
+        raise ValueError(f"invalid byte size: {value!r}")
+    return int(match[1]) * {None: 1, "KB": 1000, "MB": 1000000, "GB": 1000000000}[match[2]]
+
+
 @dataclass(frozen=True)
 class HostConfig:
     min_gap_seconds: float = 5
@@ -48,11 +58,38 @@ class SourceConfig:
 
 
 @dataclass(frozen=True)
+class RetentionConfig:
+    """How big the live database may get, and how much recent history stays local.
+
+    `max_database_bytes` is measured against `state.sqlite` on disk, which is
+    what backups and the disk actually carry; deleting rows frees pages to
+    SQLite's free list without shrinking that file. `recent_window` is how many
+    of the newest generations of each scope are retention roots. Both are
+    reported by doctor. `collect_older_than` is the age a disposable candidate
+    or artifact must reach before the collector may remove it, and it must be at
+    least one second: that floor is all a build still writing its candidate has.
+
+    The three `checkpoint_` values are the same kind of policy for the local
+    checkpoints on the worker's disk, which the backup command prunes: how many
+    of the newest timer checkpoints stay, how young any timer checkpoint may be
+    and stay, and how long an abandoned temporary directory waits.
+    """
+
+    max_database_bytes: int = 8_000_000_000
+    recent_window: int = 3
+    collect_older_than: float = 86400
+    checkpoint_keep_recent: int = 2
+    checkpoint_max_age: float = 2 * 86400
+    checkpoint_incomplete_max_age: float = 86400
+
+
+@dataclass(frozen=True)
 class Config:
     hosts: Mapping[str, HostConfig]
     sources: Mapping[str, SourceConfig]
     history_start: date = history.HISTORY_START
     scheduler: SchedulerConfig = SchedulerConfig()
+    retention: RetentionConfig = RetentionConfig()
 
     def host(self, name: str) -> HostConfig:
         return self.hosts.get(name, HostConfig())
@@ -107,6 +144,36 @@ def parse_sources(body: bytes) -> Mapping[str, SourceConfig]:
     return MappingProxyType(result)
 
 
+def parse_retention(body: bytes) -> RetentionConfig:
+    """Read the `[retention]` table of sources.toml; absent means the defaults."""
+    values = tomllib.loads(body.decode()).get("retention", {})
+    if unknown := values.keys() - {field.name for field in fields(RetentionConfig)}:
+        raise ValueError(f"unknown retention settings: {sorted(unknown)}")
+    parsed = dict(values)
+    if "max_database_bytes" in parsed:
+        parsed["max_database_bytes"] = byte_size(parsed["max_database_bytes"])
+    for name in ("collect_older_than", "checkpoint_max_age", "checkpoint_incomplete_max_age"):
+        if name in parsed:
+            parsed[name] = duration(parsed[name])
+    result = RetentionConfig(**parsed)
+    for name in ("recent_window", "checkpoint_keep_recent"):
+        count = getattr(result, name)
+        if not isinstance(count, int) or isinstance(count, bool):
+            raise ValueError(f"retention {name} must be a whole number")
+    if result.max_database_bytes < 1 or result.recent_window < 1:
+        raise ValueError("retention limits must be positive")
+    if result.checkpoint_keep_recent < 1:
+        raise ValueError("retention checkpoint_keep_recent must keep at least one checkpoint")
+    # The age floor is the only thing between a build that is still writing its
+    # candidate directory and a removal, so zero is not a setting: it would let
+    # an apply remove a directory the moment it appeared.
+    if result.collect_older_than < 1:
+        raise ValueError("retention collect_older_than must be at least one second")
+    if result.checkpoint_max_age < 0 or result.checkpoint_incomplete_max_age < 0:
+        raise ValueError("retention checkpoint ages cannot be negative")
+    return result
+
+
 def parse_history_start(body: bytes) -> date:
     """Read the top-level `history_start` of sources.toml; absent means the enshrined default."""
     raw = tomllib.loads(body.decode())
@@ -122,4 +189,5 @@ def load_config(directory: Path = Path("config")) -> Config:
         parse_sources(sources),
         parse_history_start(sources),
         parse_scheduler(sources),
+        parse_retention(sources),
     )

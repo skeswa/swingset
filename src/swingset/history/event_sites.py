@@ -21,7 +21,7 @@ from swingset.project.history import phase_two_allowed
 from swingset.sources import get_page_kind
 from swingset.state.controls import ActionScope, matching_pauses
 from swingset.state.db import Database
-from swingset.state.findings import Finding, replace_findings
+from swingset.state.findings import Finding, Reference, replace_findings
 
 WORDS = ("result", "score", "callback", "prelim", "final")
 HTML_FILTER = "original:.*(result|score|callback|prelim|final).*"
@@ -314,6 +314,17 @@ def proposals(
                     "captures": [hit.__dict__ for hit in group],
                 },
                 suggested_override=output.getvalue() or None,
+                # The evidence names the retained CDX page each capture was read
+                # from, and retention keeps a file only if a finding says it
+                # relies on it. Declare those bodies, or the next review cadence
+                # would unpin the very pages this proposal asks a human to check.
+                # `receipt_sha256` is not declared: the receipt is stored under
+                # `archive-cdx/`, not `blobs/`, and a declaration naming a file
+                # that is not there is a reported defect (D-0144).
+                references=tuple(
+                    Reference("body", digest)
+                    for digest in sorted({hit.body_sha256 for hit in group})
+                ),
             )
         )
     return tuple(result)

@@ -156,7 +156,7 @@ class LocalCheckpointRecovery:
                 or conn.execute("PRAGMA foreign_key_check").fetchone()
             ):
                 raise ValueError("checkpoint database integrity failure")
-            from swingset.backup.checkpoint import CheckpointError, _artifact_closure
+            from swingset.state.retention import RetentionError, artifact_closure
 
             candidates = set()
             for field in ("baseline_candidate", "pending_candidate"):
@@ -166,6 +166,6 @@ class LocalCheckpointRecovery:
                         raise ValueError("checkpoint candidate is incomplete")
                     candidates.add(candidate)
             try:
-                _artifact_closure(root, conn, candidates)
-            except CheckpointError as exc:
+                artifact_closure(root, conn, candidates)
+            except RetentionError as exc:
                 raise ValueError(str(exc)) from exc

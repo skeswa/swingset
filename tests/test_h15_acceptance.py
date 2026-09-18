@@ -131,6 +131,7 @@ def output_state(conn):
 
 
 def test_dependency_manifests_and_materialized_generations_are_immutable(tmp_path):
+    import hashlib
     import sqlite3
 
     from swingset.clock import FakeClock
@@ -152,8 +153,12 @@ def test_dependency_manifests_and_materialized_generations_are_immutable(tmp_pat
                 "INSERT INTO derivation_generations VALUES ('generation','project','event','fixture','input-fingerprint','{}','dependencies',NULL,'output-digest',1,?,?)",
                 (now.isoformat(), run),
             )
+            payload = '{"name_raw":"Retained name"}'
+            payload_sha256 = hashlib.sha256(payload.encode()).hexdigest()
+            conn.execute("INSERT INTO derivation_payloads VALUES (?,?)", (payload_sha256, payload))
             conn.execute(
-                "INSERT INTO derivation_rows VALUES ('generation',0,'entries','[\"retained-row\"]','{\"name_raw\":\"Retained name\"}')"
+                "INSERT INTO derivation_row_refs VALUES ('generation',0,'entries','[\"retained-row\"]',?)",
+                (payload_sha256,),
             )
             conn.execute(
                 "UPDATE derivation_scopes SET materialized_generation_id='generation' WHERE unit_id='fixture'"
@@ -161,13 +166,19 @@ def test_dependency_manifests_and_materialized_generations_are_immutable(tmp_pat
         immutable = {
             "derivation_dependency_sets": "manifest_json= '{}'",
             "derivation_generations": "input_fingerprint='different-input'",
-            "derivation_rows": "payload_json='{}'",
+            "derivation_row_refs": "record_key='[\"changed-row\"]'",
         }
         for table, assignment in immutable.items():
             with pytest.raises(sqlite3.IntegrityError, match="immutable"):
                 conn.execute(f"UPDATE {table} SET {assignment}")
             with pytest.raises(sqlite3.IntegrityError, match="immutable"):
                 conn.execute("DELETE FROM " + table)
+        # Payload bytes are the one derivation record a written removal plan may
+        # take away, so their delete gate is a permission row, not immutability.
+        with pytest.raises(sqlite3.IntegrityError, match="immutable"):
+            conn.execute("UPDATE derivation_payloads SET payload_json='{}'")
+        with pytest.raises(sqlite3.IntegrityError, match="requires authority"):
+            conn.execute("DELETE FROM derivation_payloads")
         assert (
             conn.execute("SELECT manifest_json FROM derivation_dependency_sets").fetchone()[0]
             == manifest

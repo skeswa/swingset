@@ -1,0 +1,38 @@
+{
+  "after_migration_before_vacuum": {
+    "dbstat_in_use": 5523730432,
+    "derivation_payloads_bytes_incl_indexes": 804007936,
+    "derivation_row_refs_bytes_incl_indexes": 1069449216,
+    "file_bytes": 6890405888,
+    "freelist_bytes": 1366671360,
+    "migration_seconds": 92.4
+  },
+  "after_vacuum": {
+    "dbstat_in_use": 5333401600,
+    "derivation_payloads_bytes_incl_indexes": 789082112,
+    "derivation_row_refs_bytes_incl_indexes": 1007370240,
+    "file_bytes": 5333405696,
+    "freelist_bytes": 0,
+    "vacuum_seconds": 33.9
+  },
+  "before": {
+    "dbstat_in_use": 5016932352,
+    "derivation_rows_bytes_incl_indexes": 1366700032,
+    "file_bytes": 5016936448,
+    "freelist_bytes": 0
+  },
+  "change": {
+    "file_bytes_after_reclaim_vs_before": 316469248,
+    "headroom_needed_bytes": 1873469440,
+    "peak_file_bytes_during_migration": 6890405888,
+    "ratio": 1.0631
+  },
+  "code_revision": "ttnwxvylxqvq",
+  "format": "schema30-migration-measurement-v1",
+  "method": "open_database() on the copy migrates 29 -> 32 (30 interns payloads, 31 finding references, 32 apply notes); PRAGMA wal_checkpoint(TRUNCATE); then VACUUM in place; sizes from os.path.getsize, page_count*page_size, freelist_count*page_size and sum(pgsize) from dbstat",
+  "network_requests": 0,
+  "production_operations": 0,
+  "recorded_at": "2026-09-18T15:30:00Z",
+  "source": "copy of /var/tmp/swingset-schema29-restore-20260917-004/restored-state/state.sqlite (scratch restore of held checkpoint 004, schema 29)",
+  "tool_receipt_after": "receipt-schema30.json"
+}

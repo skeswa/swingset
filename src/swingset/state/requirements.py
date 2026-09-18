@@ -53,7 +53,18 @@ class Requirement:
 def reconcile_requirement(
     conn: sqlite3.Connection, requirement: Requirement, now: datetime, run_id: str
 ) -> str:
-    """Commit only a checked postcondition, preserving durable attempts/history."""
+    """Commit only a checked postcondition, preserving durable attempts/history.
+
+    This writes the `findings` row itself rather than going through
+    `replace_findings`, because a requirement owns columns that function does
+    not write (state, desired fingerprint, next action, blocking reason, next
+    eligible time) and its identity is the requirement's own, not a hash of the
+    summary. It therefore declares no `finding_support_references` row, and a
+    requirement never pins a file on its own: an `archive_artifact` requirement
+    is about a digest that `snapshots.body_sha256` already pins for the file
+    closure, and the `retirement` branch only restates a finding that exists.
+    Anything a requirement could declare is already kept for another reason.
+    """
     if requirement.state not in STATES:
         raise ValueError(f"unknown requirement state: {requirement.state}")
     evidence = json.dumps(requirement.evidence, sort_keys=True, separators=(",", ":"))
@@ -292,6 +303,9 @@ def _check(
             {"entry_id": key, "registry_matches": bool(matched)},
         )
     if scope == "artifact":
+        # `key` is a body digest taken from `snapshots`, which is what keeps the
+        # file in the retention closure. The requirement reports on that file;
+        # it does not hold it. See `reconcile_requirement`.
         support = conn.execute(
             "SELECT s.snapshot_id,w.source FROM snapshots s JOIN watches w USING(watch_id) WHERE s.body_sha256=? ORDER BY s.snapshot_id",
             (key,),

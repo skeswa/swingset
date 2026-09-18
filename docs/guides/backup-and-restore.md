@@ -11,7 +11,12 @@ Disable timers and stop the former writer before activation. Use a fresh machine
 
 ```sh
 orb create nixos:25.11 swingset-restore
+orb config set machine.swingset-restore.disk_bytes 68719476736
 ```
+
+Bound the restore machine to 64 GiB. An unbounded OrbStack machine grows until
+the Mac itself is full, which stops every write on the Mac
+([D-0133](../../journal/decisions/0133-bound-the-worker-disk-and-remove-rehearsals-eagerly.md)).
 
 Provision `HF_TOKEN` for remote verification. Select a specific private archive
 commit and restore its complete checkpoint:

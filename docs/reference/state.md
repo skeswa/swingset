@@ -18,6 +18,7 @@ Local state is what the worker keeps between runs: saved evidence, database rows
 - [Derivation generations (H15)](#derivation-generations-h15)
 - [Accepted source generations (H7)](#accepted-source-generations-h7)
 - [Durable controls (H13)](#durable-controls-h13)
+- [Retention](#retention)
 
 ## SQLite schema
 
@@ -92,6 +93,9 @@ extracts/                      content-addressed serialized extracts
 inputs/<hash>/                 captured config, overrides, vocabularies, versions
 candidates/<candidate_id>/      data/, README.md, _meta/, BUILT, PUBLISHING, PUBLISHED
 baseline -> candidates/<candidate_id>
+holds/<hold_id>.json           one retention hold: who, why, when, what it keeps
+gc/plans/<digest>.json         written retention plans; disposable, not backed up
+gc/receipts/<name>.json        one receipt per apply and per reclaim; not backed up
 RESTORE_PENDING                present until restore verification succeeds
 runs/
 venv/                          disposable; rebuilt from the lock
@@ -103,9 +107,12 @@ Publication markers and the baseline have one owner,
 claiming a candidate directory exists. Raw bodies, extracts, and input
 bundles are written and made durable before the transaction referring
 to them. A crash can leave an unreferenced artifact; it cannot leave a
-committed reference to an incomplete file. GC removes only artifacts
-older than a day that no snapshot, finding, input bundle, candidate,
-or retained backup references. GC is manual in v1.
+committed reference to an incomplete file. An artifact nothing declares is
+never removed: it is "unknown", and the plan reports it for someone to explain.
+GC is manual in v1, removes nothing except through `gc --apply`, from a written
+plan, under both locks, and the only files it removes are candidate directories
+no release or recent build claims, once they are older than
+`retention.collect_older_than`. See [retention](#retention).
 
 ## Invalidation
 
@@ -117,7 +124,10 @@ captured inputs available to consumers. Output revisions describe changed
 data, never whether another stage ran.
 
 At cycle start, read config, overrides, vocabularies, implementation versions,
-and the exact runtime artifact into a validated immutable input bundle. Each consumer
+and the exact runtime artifact into a validated immutable input bundle. The
+bundle also carries `policy/retention.json`, the retention limits in force as
+values, because an optional table with defaults cannot be read back from the
+captured file alone; see [retention](#retention). Each consumer
 uses those captured bytes throughout the cycle, including build. The
 checkout stays the source of corrections; saved bundles provide exact
 replay and backup. A later checkout edit is accepted next cycle. Capture
@@ -452,8 +462,68 @@ Linking selects event output and the whole registry candidate universe, includin
 dancers that have never been candidates for the event. Link-owned columns are
 excluded from its project dependencies.
 
-Completion rechecks the selected inputs and prior materialized pointer. Output,
-owned output-row history, revision bumps, and the new pointer commit together.
+Migration 32 stores each distinct output row once. The bytes live in
+`derivation_payloads`, keyed by the sha256 of the canonical row text, and
+`derivation_row_refs` records which generation uses which row, in what order. A
+view named `derivation_rows` joins them, so every reader keeps the old five
+columns. A recomputation that changes ten rows of a thousand therefore costs ten
+rows. One function, `retain_output`, writes output, inside the caller's
+transaction. It reads its rows in one pass and never holds a generation in
+memory. What it does depends on residency: nothing when every row of the
+generation is there, store the missing payload bytes when the references are
+there without them, and store both when the generation is new. A new generation
+has no label yet, so the caller completing it hands `retain_output` a function
+that writes the label; the digest and row count come from the stream as it was
+stored, and the recorded label is read back and compared. The path that puts
+missing bytes back reads the whole generation through the view and checks that.
+Either way the
+generation ends up matching its `output_digest` and `row_count`; that the stored
+rows are exactly the stream is what `PRIMARY KEY(generation_id,ordinal)` and
+`UNIQUE(generation_id,table_name,record_key)` guarantee. It never moves a
+pointer and never touches scheduling state, so restoring archived output later
+is checked exactly as a fresh computation is.
+
+References are permanent, like generations. Payload bytes are the one derivation
+record that can be removed, and only by a transaction that carries its own row in
+`derivation_payload_removal_authority`. That row cannot survive its transaction:
+its deferred foreign key points at an always-empty table, so a commit that still
+holds it fails. A grant therefore cannot be left switched on for later
+processes. If one is ever written with foreign keys off, `PRAGMA
+foreign_key_check` reports it, which checkpoint verification and recovery
+already run, doctor lists it, and opening the database clears it. Nothing in the
+pipeline writes the row today.
+
+A reference names its payload by digest with no foreign key, so bytes can be
+archived while the reference stays; a generation whose bytes are not local
+reads as no rows at all through the `derivation_rows` view, and every reader of
+that view catches it with the row-count and digest check it already does rather
+than using a partial answer. The scope pointer is not such a reader:
+`current()` answers from the pointer and its signature, so keeping every current
+generation's bytes local is the removal plan's job, not the view's.
+
+Migration 32 fills the new tables, recomputes every generation's output digest
+through the view, and drops the old table only when every one matches;
+otherwise it raises and the whole migration rolls back with the old table
+intact. It needs about twice the old table's bytes free while it runs. The drop
+returns pages to SQLite's free list and does not shrink the file on disk.
+
+Interning is the last migration on purpose, so schemas 30 and 31 are deployable
+without it
+([D-0167](../../journal/decisions/0167-intern-derivation-payloads-in-the-last-migration.md)).
+At those schemas `derivation_rows` is still the one table: `retain_output`
+writes it directly, no payload bytes can be missing, no payload can be removed,
+and the plan says which of the two shapes it measured under
+`payloads_interned`. Reading through the `derivation_rows` name needs no branch
+either way, because it is a table before the split and a view after it.
+
+Completion rechecks the selected inputs and prior materialized pointer. It reads
+the output rows once. A new generation streams them through `retain_output`,
+which stores them and records the generation from what it stored; a repeat of an
+existing generation only fingerprints them and is rejected when the digest or row
+count differs; it reads and writes no stored row, and it does not bring archived
+bytes back, which is `gc --restore`'s job. Completion then rechecks the inputs before moving the pointer.
+Output, owned output-row history, revision bumps, and the new pointer commit
+together.
 A late worker cannot overwrite a newer generation. A crash before commit leaves
 the scope unfinished; a crash after commit preserves complete output. Immutable
 generations retain exact dependency references even after newer inputs arrive.
@@ -539,3 +609,267 @@ unknown earlier duration from the known interval after import. Reports keep
 unknown overlapping durations unavailable and retain evidence wall ages. These
 diagnostic clocks use current dependencies; they do not claim reconstructed
 historical ownership or host-budget eligibility.
+
+## Retention
+
+A saved computation is three things with three lifetimes. The **label** (the
+`derivation_generations` row, its dependency set, and its row references) is
+permanent; nothing here ever deletes one. The **output bytes** are the
+`derivation_payloads` rows the references name; retention decides only where
+they live. The **current pointer** is `derivation_scopes.materialized_generation_id`,
+owned by the pipeline; retention never moves one.
+
+`state/retention.py` does one walk and produces two lists:
+
+- **durable**: every generation that has a label. Its bytes must exist in at
+  least one checked place forever. An ordinary superseded generation is on this
+  list, so it is never "unknown".
+- **local**: every generation the walk reaches from a root. These stay in the
+  live database, so every backup carries them and a restore needs no network.
+
+Durable minus local is archivable. Nothing archives or removes output bytes yet:
+`gc --plan` writes down what the lists say, and `gc --apply` removes only files
+from it. `state/retention_apply.py` is the only thing in the tree that removes
+anything
+([D-0147](../../journal/decisions/0147-only-a-planned-locked-apply-removes-anything.md)).
+
+### Roots
+
+Roots are read from state that already exists, so no second list can drift:
+
+| Root                | What it pins                                                                |
+| ------------------- | --------------------------------------------------------------------------- |
+| `baseline`          | The generations the baseline candidate's release closure names              |
+| `pending_candidate` | The same, for every pending candidate                                       |
+| `pointer`           | Every `derivation_scopes.materialized_generation_id`                        |
+| `finding`           | Generations open findings declare in `finding_support_references`           |
+| `hold`              | Generations named by a file under `state/holds/`                            |
+| `restore_marker`    | The current pointers and pending candidates, while `RESTORE_PENDING` exists |
+| `operator_hold`     | The same, while the `operator-hold` file exists                             |
+| `window`            | The newest `retention.recent_window` generations of each scope              |
+
+The two markers pin the current pointers and nothing more; neither records which
+computation it was about, and an operator who needs more writes a hold
+([D-0138](../../journal/decisions/0138-recovery-markers-pin-current-pointers-and-nothing-more.md)).
+
+From every root generation the walk follows the dependency set through the same
+manifest reader the release closure uses, adds every generation it names, and
+keeps going. It does not use the release selector, which refuses two generations
+for one scope; the walk collects by generation id and allows many per scope, and
+the one-per-scope rule stays where it is, in release validation. It does not
+follow `previous_generation_id`. So a recent link generation keeps the older
+project generation it was built from, even after that scope has moved on, and
+the window only picks roots; it never replaces the walk.
+
+Files are the same closure a checkpoint uses: everything snapshots, source
+generations, hosts, open findings' declared references, input bundles, the
+retained candidates and the holds reach. A hold names a digest without saying
+which kind of file it is, so whichever of `blobs/` or `extracts/` has it is the
+file it holds; `hold add` refuses a digest that is in neither.
+
+A checkpoint computes that closure and copies the files under the control lock,
+after the writer lock the command already owns and after the database copy, so a
+hold cannot be committed for a file between the two and be carried without it. A
+caller that already fenced a wider operation with that lock keeps its own fence;
+the lock itself is not re-entrant
+([D-0164](../../journal/decisions/0164-a-checkpoint-holds-the-control-lock-across-its-closure-and-copy.md)).
+
+### Unknown
+
+Five things have no owner: payload bytes no reference names, payload bytes only
+a reference with no label names, a row reference whose label is missing, a file
+under `blobs/`, `extracts/` or `inputs/` that nothing declares, and a file an
+open finding declares that is not on disk. Doctor reports them and nothing
+removes them until someone works out what they are
+([D-0143](../../journal/decisions/0143-an-undeclared-file-is-unknown-in-the-plan.md)).
+It reports both the count of each kind and the items behind it, the digests and
+the paths, cut to the same limit as the rest of the report, so nobody has to
+write a plan file out to find out which item to look at
+([D-0157](../../journal/decisions/0157-an-operator-report-names-the-items-not-only-the-count.md)).
+
+Unknown payload bytes are counted apart from both lists. They are never added to
+the bytes archiving would give back, because nobody can say who owns them. A
+file an open finding declares but which is not there is reported the same way
+and is not an error: the closure keeps whatever is on disk, so one wrong
+declaration cannot stop a backup
+([D-0144](../../journal/decisions/0144-unowned-bytes-are-unknown-and-a-wrong-declaration-is-reported.md)).
+
+Payload bytes are measured with SQLite's `octet_length`, not `length`. A payload
+is stored as text, so `length` would count characters and under-report every
+accented name by the bytes its accents cost. These are the numbers the size cap
+is read against, so they are real bytes.
+
+### Holds
+
+`swingset hold add` writes one file per hold under `state/holds/`, with who
+asked, why, when, and the generation ids and artifact digests it keeps. It runs
+under the control lock, walks the closure first, and refuses, naming the ids to
+restore, if any generation it reaches is not completely local: references
+present, every payload present, and the count matching the label. A named
+artifact digest has to be a file under `blobs/` or `extracts/` already. Nothing
+is written when it refuses. Naming a generation in a finding gets the same check in
+`replace_findings`, in the caller's write transaction under the writer lock
+rather than under the control lock; an apply holds both locks, so neither kind of
+new root can appear while one runs. That check covers what the write newly
+declares, not every declaration in the batch: a generation a finding already
+declares is already a root, and rechecking it would let one archived generation
+named by one unchanged finding refuse every other finding for that owner
+([D-0162](../../journal/decisions/0162-the-residency-check-covers-only-newly-declared-generations.md)). Holds ride in checkpoints; written plans do not
+([D-0140](../../journal/decisions/0140-a-hold-is-one-checked-file-under-the-control-lock.md)).
+
+### Knobs
+
+`config/sources.toml` may carry a `[retention]` table. It does not carry one
+today, and an absent table means the defaults, which live in `RetentionConfig`
+in `src/swingset/config.py`. Adding the table is how an operator changes any of
+them: `max_database_bytes` (default 8,000,000,000) is the most
+`state.sqlite` may be on disk; `recent_window` (default 3) is how many recent
+generations of each scope are roots; `collect_older_than` (default one day) is
+how old a disposable candidate directory must be before an apply may remove it,
+and it must be at least one second, because that floor is the only thing between
+a build still writing its candidate and a removal. Every value is checked when
+the table is read: a size cap or window below one, a keep-recent below one, an
+age floor below one second, and a negative checkpoint age are all refused
+([D-0163](../../journal/decisions/0163-every-retention-value-is-checked-where-the-table-is-read.md)).
+Doctor reports usage against the first two, and reports bytes in use, file
+size, write-ahead log size and free-list bytes separately, because deleting rows
+frees pages to SQLite's free list without shrinking the file. Crossing the cap
+sets one whole-pipeline operator pause; reading, controls and recovery keep
+working
+([D-0141](../../journal/decisions/0141-two-retention-limits-and-the-collector-age-become-policy.md),
+[D-0142](../../journal/decisions/0142-the-size-cap-sets-one-whole-pipeline-pause-and-never-rewrites-one.md)).
+
+The same table carries three values for the local checkpoints the backup
+command prunes: `checkpoint_keep_recent` (default 2) is how many of the newest
+timer checkpoints stay, `checkpoint_max_age` (default two days) is how young any
+other timer checkpoint must be to stay, and `checkpoint_incomplete_max_age`
+(default one day) is how long a half-written `run_*` or `.<name>.tmp-<hex>`
+directory waits. They are policy for disk on the worker, not for the database,
+and they never decide anything about a directory under any other name
+([D-0152](../../journal/decisions/0152-the-backup-command-prunes-its-own-checkpoints.md),
+[D-0154](../../journal/decisions/0154-policy-removes-only-what-the-code-wrote-and-sizes-it-once.md)).
+
+`gc --apply` frees pages inside the file and `gc --reclaim` gives them back to
+the filesystem, which is what the cap measures. Raising `max_database_bytes` is
+still the way out when there is nothing to remove, and the pause result says
+both.
+
+The limits in force are captured as values in every input bundle, as
+`policy/retention.json`, because an absent `[retention]` table means the
+defaults and the captured file bytes alone cannot say what the cap was. Changing
+a limit changes that file and the digest of `config/sources.toml`, and recomputes
+nothing: no stage recipe selects either name, and neither invalidates work. So
+raising the cap and deploying never recomputes the history the cap bounds
+([D-0156](../../journal/decisions/0156-capture-the-retention-limits-as-values.md)).
+
+Both defaults are provisional. Step 1 of the
+[bounded state plan](../plans/bounded-state-and-archive.md) measured a 5.0 GB
+file with no recomputation history yet; the numbers and the proposed next steps
+are in [D-0166](../../journal/decisions/0166-hold-interning-back-until-rows-repeat-and-cut-indexes-first.md).
+
+Written plans live under `state/gc/plans/`, named by their own fingerprint. A
+plan names every artifact file, so the newest ten are kept and older ones are
+removed as new plans are written; plans are never copied into a backup.
+
+### Apply
+
+`gc --apply <plan digest>` is the only thing that removes anything. In this
+order:
+
+1. Take the writer lock, then the control lock. That order is fixed. Creating a
+   hold and admitting a candidate take the control lock too, so no new root can
+   appear between the last recompute and the last removal.
+2. Recompute the plan while holding both. Stop if the digest differs, having
+   changed nothing. A root added between plan and apply therefore stops it.
+3. In one transaction: write a note keyed by the plan digest, write the payload
+   permission row, remove the eligible payload bytes, remove the permission row,
+   commit. The permission row cannot commit, so it has to go first.
+4. Still holding both locks, remove the eligible files. This part is safe to
+   rerun.
+5. Release the locks and write one receipt from the note.
+
+A note is a row in `retention_applies`: the plan digest, the files and payloads
+it planned to remove, the payload bytes it removed, when it started, when its
+files finished, and its receipt. The note commits before the first file goes,
+because SQLite can undo a deleted row and nothing can undo an unlinked file. A
+crash between that commit and the last unlink leaves `files_completed_at` NULL.
+Notes are permanent and are written once and finished once.
+
+An unfinished note is never replayed on its own. The next apply finishes only the
+files the plan it just recomputed under both locks still calls removable; a file
+that plan now keeps stays where it is and is listed under `skipped_files`. The
+state moves after a crash, so a note is not a plan of the state it is resumed
+against, and removal happens only from a plan of the current state. The note is
+then closed, and if a skipped file becomes removable again the next plan names it
+again. The resuming apply records all of that under `resumed`
+([D-0151](../../journal/decisions/0151-a-resumed-note-removes-only-what-the-fresh-plan-still-names.md)).
+
+A receipt accounts for every file its plan named, in exactly one list:
+`removed_files`, `skipped_files`, or `already_gone_files` for a file this apply
+found was not there. A file the crashed apply had already unlinked counts as
+removed in that note's own receipt, because that apply is what removed it
+([D-0157](../../journal/decisions/0157-an-operator-report-names-the-items-not-only-the-count.md)).
+
+Rerunning an already applied digest returns the recorded receipt and changes
+nothing; it writes the receipt file again if that file is missing, because the
+note is the record and the file is the operator's copy. Running an old digest
+that was never applied stops, because the state has moved.
+
+No payload is eligible today. Bytes may go only once they are somewhere else,
+and the only record that will say so is the `archived_generations` table of plan
+step 4, so the gate returns nothing until that table exists and names the
+generation
+([D-0149](../../journal/decisions/0149-no-generation-is-eligible-until-a-table-says-it-is-archived.md)).
+A payload shared by a local generation stays whatever else names it.
+
+The plan carries that answer: every generation row says whether it is archived,
+and the totals count them. Apply reads the flag from the plan it was given, so
+archiving something after a plan was reviewed moves the digest and stops the
+apply, instead of widening what it removes past what the plan named
+([D-0155](../../journal/decisions/0155-the-plan-digest-covers-what-is-archived.md)).
+
+### Reclaim
+
+Deleting rows and dropping tables return pages to SQLite's free list and leave
+the file the size it was. `gc --reclaim` closes that gap:
+
+1. Check free disk. The in-place rewrite needs about twice the current file size,
+   and it refuses before touching anything if that is not there.
+2. Take the writer lock, then the control lock. Run
+   `PRAGMA wal_checkpoint(TRUNCATE)`.
+3. Run `VACUUM` in place on the one writer connection: no second database file
+   and no swap. SQLite's own journal makes it all-or-nothing, so a crash rolls
+   back to the original file on the next open. Readers keep reading. A pending
+   write on another connection makes it fail, and then it reports that and stops
+   with nothing changed
+   ([D-0150](../../journal/decisions/0150-reclaim-rewrites-in-place-on-the-one-writer-connection.md)).
+4. Run `PRAGMA integrity_check`, `PRAGMA foreign_key_check` and the same schema
+   check a checkpoint is verified with, then `wal_checkpoint(TRUNCATE)` again.
+5. Release the locks and write one receipt with bytes in use, file size,
+   write-ahead log size and free-list bytes, before and after.
+
+Automatic vacuuming stays off. Receipts live under `state/gc/receipts/`, named by
+the plan digest for an apply and by when it ran for a reclaim. They are the
+operator's copy; the note in the database is the record a restore carries
+([D-0148](../../journal/decisions/0148-a-receipt-is-the-operator-copy-of-a-note-that-lives-in-the-database.md)).
+
+Schema 30 adds `finding_support_references(finding_id, kind, sha256)`, where
+`kind` is `body`, `extract` or `generation`. Findings declare what they rely on
+instead of the closure reading their evidence for digest-shaped strings; the
+migration backfills the table from that same scan once, and only a checkpoint of
+an older schema still uses it
+([D-0139](../../journal/decisions/0139-findings-declare-the-support-they-rely-on.md)).
+A writer that declares nothing says nothing: the rows the finding already has,
+including the backfilled ones, stay, and an empty declaration is not a change
+([D-0160](../../journal/decisions/0160-an-empty-declaration-never-clears-a-findings-recorded-references.md)).
+Requirements write their own `findings` row and declare nothing at all; an
+`archive_artifact` requirement is about a digest `snapshots.body_sha256` already
+pins
+([D-0161](../../journal/decisions/0161-a-requirement-finding-relies-on-the-snapshot-pin.md)).
+
+Schema 31 adds `retention_applies`, one permanent note per apply keyed by the
+plan digest. Schema 32, interning, comes after both, so an apply on a schema-31
+database removes files and no row data at all.
+
+The [bounded state plan](../plans/bounded-state-and-archive.md) owns the rest:
+archiving and `gc --restore` do not exist yet, so no payload bytes ever leave.

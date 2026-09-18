@@ -5,9 +5,25 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
+from swingset.publish.safety import verify_candidate_files
 from swingset.state.db import open_database
+from swingset.state.work import unfinished_units
 
 SCRIPT = Path("tests/helpers/crash_cycle.py")
+CHECKPOINTS = (
+    "inputs_accepted",
+    "snapshot_saved",
+    "parse_snapshot_completed",
+    "project_calendar_completed",
+    "project_inventory_completed",
+    "project_map_completed",
+    "project_event_completed",
+    "project_history_completed",
+    "link_event_completed",
+    "build_completed",
+)
 
 
 def invoke(state, overrides, config, fault="none"):
@@ -24,10 +40,24 @@ def belief(state):
         assert db.connection.execute("PRAGMA integrity_check").fetchone()[0] == "ok"
         assert db.connection.execute("PRAGMA foreign_key_check").fetchall() == []
         assert db.connection.execute("SELECT COUNT(*) FROM pending_work").fetchone()[0] == 0
+        assert list(unfinished_units(db.connection)) == []
+        builds = db.connection.execute(
+            "SELECT r.payload_json FROM derivation_scopes s "
+            "JOIN derivation_rows r ON r.generation_id=s.materialized_generation_id "
+            "WHERE s.stage='build' AND r.table_name='artifact'"
+        ).fetchall()
+        assert builds, "recovery must finish a durable build, not only recreate event rows"
+        for row in builds:
+            artifact = json.loads(row[0])
+            candidate = Path(artifact["path"])
+            verify_candidate_files(candidate)
+            built = json.loads((candidate / "BUILT").read_bytes())
+            assert built["manifest_hash"] == artifact["manifest_hash"]
         return [
             tuple(row)
             for row in db.connection.execute(
-                "SELECT event_id,name,start_date,end_date,wsdc_status FROM events ORDER BY event_id"
+                "SELECT event_id,series_id,name,year,start_date,end_date,city,region,country,"
+                "website,wsdc_status,sources FROM events ORDER BY event_id"
             )
         ]
 
@@ -45,23 +75,57 @@ def setup_inputs(tmp_path):
     return overrides, config
 
 
-def test_restart_before_and_after_every_cycle_transaction(tmp_path):
+@pytest.fixture(scope="module")
+def uninterrupted_cycle(tmp_path_factory):
+    tmp_path = tmp_path_factory.mktemp("uninterrupted-cycle")
     overrides, config = setup_inputs(tmp_path)
     normal = invoke(tmp_path / "normal", overrides, config)
     assert normal.returncode == 0, normal.stderr
-    boundaries = json.loads(normal.stdout)["transactions"]
+    trace = json.loads(normal.stdout)
+    assert set(trace["checkpoints"]) == set(CHECKPOINTS)
     expected = belief(tmp_path / "normal")
+    assert len(expected) == 1
+    return overrides, config, trace, expected
+
+
+def assert_recovery(state, overrides, config, boundary, side, expected):
+    crashed = invoke(state, overrides, config, f"{side}:{boundary}")
+    assert crashed.returncode == 91, (side, boundary, crashed.stderr)
+    restarted = invoke(state, overrides, config)
+    assert restarted.returncode == 0, restarted.stderr
+    assert belief(state) == expected, (side, boundary)
+
+
+@pytest.mark.core
+@pytest.mark.parametrize("checkpoint", CHECKPOINTS)
+@pytest.mark.parametrize("side", ("before", "after"))
+def test_restart_at_pipeline_checkpoint(tmp_path, uninterrupted_cycle, checkpoint, side):
+    overrides, config, trace, expected = uninterrupted_cycle
+    assert_recovery(
+        tmp_path / "crashed",
+        overrides,
+        config,
+        trace["checkpoints"][checkpoint],
+        side,
+        expected,
+    )
+
+
+@pytest.mark.extended
+def test_restart_before_and_after_remaining_cycle_transactions(tmp_path, uninterrupted_cycle):
+    overrides, config, trace, expected = uninterrupted_cycle
+    boundaries = trace["transactions"]
     assert boundaries >= 5
+    selected = set(trace["checkpoints"].values())
     for boundary in range(1, boundaries + 1):
+        if boundary in selected:
+            continue
         for side in ("before", "after"):
             state = tmp_path / f"{side}-{boundary}"
-            crashed = invoke(state, overrides, config, f"{side}:{boundary}")
-            assert crashed.returncode == 91, (side, boundary, crashed.stderr)
-            restarted = invoke(state, overrides, config)
-            assert restarted.returncode == 0, restarted.stderr
-            assert belief(state) == expected, (side, boundary)
+            assert_recovery(state, overrides, config, boundary, side, expected)
 
 
+@pytest.mark.core
 def test_sigterm_stops_at_boundary_and_next_cycle_finishes(tmp_path):
     overrides, config = setup_inputs(tmp_path)
     state = tmp_path / "stopped"
