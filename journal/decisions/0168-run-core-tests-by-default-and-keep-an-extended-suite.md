@@ -1,9 +1,7 @@
 # D-0168: Run core tests by default and keep an extended suite
 
-Status: Accepted  
 Recorded: 2026-09-18  
-Accepted: 2026-09-18  
-Acceptance source: The owner requested high-impact tests running in under five minutes on this hardware, then selected “Keep an opt-in extended suite (recommended).”  
+Decided by: owner, 2026-09-18; source: The owner requested high-impact tests running in under five minutes on this hardware, then selected “Keep an opt-in extended suite (recommended).”  
 Topic: Test suite maintenance  
 Supersedes: —  
 Superseded by: —

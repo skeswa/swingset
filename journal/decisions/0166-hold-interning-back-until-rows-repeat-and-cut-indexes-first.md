@@ -1,9 +1,7 @@
 # D-0166: Hold interning back until rows repeat, and cut indexes and JSON first
 
-Status: Accepted  
 Recorded: 2026-09-18  
-Accepted: 2026-09-18, Sandile Keswa  
-Acceptance source: Session instruction on 2026-09-18: "I approve D-0166"  
+Decided by: owner, 2026-09-18, Sandile Keswa; source: Session instruction on 2026-09-18: "I approve D-0166"  
 Topic: State retention and recovery cost  
 Supersedes: —  
 Superseded by: —

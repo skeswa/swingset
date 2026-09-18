@@ -1,9 +1,7 @@
 # D-0020: Pin event enumerations in release evidence
 
-Status: Proposed  
 Recorded: 2026-09-16  
-Accepted: —  
-Acceptance source: The owner authorized continued history and recovery implementation. This working-source extension has not received release acceptance.  
+Decided by: agent  
 Topic: Release coverage  
 Supersedes: —  
 Superseded by: —

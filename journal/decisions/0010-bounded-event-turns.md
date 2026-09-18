@@ -1,9 +1,7 @@
 # D-0010: Rotate source events after a bounded request turn
 
-Status: Proposed  
 Recorded: 2026-09-16  
-Accepted: —  
-Acceptance source: The owner authorized continuing the history and recovery plan. These initial policy values and implementation choices have not received separate operating acceptance.  
+Decided by: agent  
 Topic: Scheduling  
 Supersedes: —  
 Superseded by: —

@@ -1,9 +1,7 @@
 # D-0022: Preserve supported event bases
 
-Status: Proposed  
 Recorded: 2026-09-16  
-Accepted: —  
-Acceptance source: The owner authorized continued history and recovery implementation. The repaired release has not received acceptance.  
+Decided by: agent  
 Topic: Event preservation  
 Supersedes: —  
 Superseded by: —

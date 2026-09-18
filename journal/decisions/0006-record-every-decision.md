@@ -1,9 +1,7 @@
 # D-0006: Record every decision in the decision log
 
-Status: Accepted  
 Recorded: 2026-09-15  
-Accepted: 2026-09-15, Sandile Keswa  
-Acceptance source: Owner instruction: “Make sure that ALL decisions get recorded in the decisions log”  
+Decided by: owner, 2026-09-15, Sandile Keswa; source: Owner instruction: “Make sure that ALL decisions get recorded in the decisions log”  
 Topic: Documentation  
 Supersedes: D-0001's restriction to lasting decisions  
 Superseded by: —

@@ -1,9 +1,7 @@
 # D-0061: Build a separate schema-14 DCN fixture runner
 
-Status: Proposed  
 Recorded: 2026-09-17  
-Accepted: —  
-Acceptance source: —  
+Decided by: agent  
 Topic: Bounded fixture operations  
 Supersedes: —  
 Superseded by: —
@@ -41,7 +39,7 @@ and remaining shared budget under the writer lock. The coordinator must review
 the packet, prepare actual authorization and serialize execution. No policy,
 year acceptance, watch, observation, migration or publication is enabled.
 Stopped quarantine remains single-use. Implementation authority is existing;
-owner acquisition authority is specifically D-0060, not this proposed record.
+owner acquisition authority is specifically D-0060, not this record.
 
 ## Links
 

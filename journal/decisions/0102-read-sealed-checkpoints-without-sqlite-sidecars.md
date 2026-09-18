@@ -1,9 +1,7 @@
 # D-0102: Read sealed checkpoints without SQLite sidecars
 
-Status: Proposed  
 Recorded: 2026-09-17  
-Accepted: —  
-Acceptance source: —  
+Decided by: agent  
 Topic: Checkpoint inspection  
 Supersedes: —  
 Superseded by: —

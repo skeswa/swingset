@@ -1,9 +1,7 @@
 # D-0055: Defer human adjudication to a review website
 
-Status: Accepted  
 Recorded: 2026-09-17  
-Accepted: 2026-09-17, Sandile Keswa  
-Acceptance source: Owner reply about H17 reviewers: “We will build a website to handle this in the future”  
+Decided by: owner, 2026-09-17, Sandile Keswa; source: Owner reply about H17 reviewers: “We will build a website to handle this in the future”  
 Topic: Human accuracy evaluation  
 Supersedes: —  
 Superseded by: —

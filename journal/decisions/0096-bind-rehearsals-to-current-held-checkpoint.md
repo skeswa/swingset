@@ -1,9 +1,7 @@
 # D-0096: Bind rehearsals to the current held checkpoint
 
-Status: Proposed  
 Recorded: 2026-09-17  
-Accepted: —  
-Acceptance source: —  
+Decided by: agent  
 Topic: Schema-29 recovery evidence  
 Supersedes: —  
 Superseded by: —

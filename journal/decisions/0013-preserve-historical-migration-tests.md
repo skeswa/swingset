@@ -1,9 +1,7 @@
 # D-0013: Keep historical migration tests pinned to their reviewed schema
 
-Status: Proposed  
 Recorded: 2026-09-16  
-Accepted: —  
-Acceptance source: The owner authorized continued implementation. These integration choices have not received separate acceptance.  
+Decided by: agent  
 Topic: Migration validation  
 Supersedes: —  
 Superseded by: —

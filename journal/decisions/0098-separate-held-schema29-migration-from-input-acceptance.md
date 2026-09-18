@@ -1,9 +1,7 @@
 # D-0098: Separate held schema-29 migration from input acceptance
 
-Status: Proposed  
 Recorded: 2026-09-17  
-Accepted: —  
-Acceptance source: —  
+Decided by: agent  
 Topic: Held production migration  
 Supersedes: —  
 Superseded by: —

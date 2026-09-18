@@ -1,9 +1,7 @@
 # D-0072: Profile offline selection before changing replay
 
-Status: Proposed  
 Recorded: 2026-09-17  
-Accepted: —  
-Acceptance source: —  
+Decided by: agent  
 Topic: Bounded selector performance investigation  
 Supersedes: —  
 Superseded by: —

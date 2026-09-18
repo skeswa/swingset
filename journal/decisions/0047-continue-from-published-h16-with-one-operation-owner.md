@@ -1,9 +1,7 @@
 # D-0047: Continue from published H16 with one operation owner
 
-Status: Proposed  
 Recorded: 2026-09-17  
-Accepted: —  
-Acceptance source: —  
+Decided by: agent  
 Topic: Integration and recovery preparation  
 Supersedes: —  
 Superseded by: —

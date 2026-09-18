@@ -1,9 +1,7 @@
 # D-0108: Build a separate Step Right body runner
 
-Status: Proposed  
 Recorded: 2026-09-17  
-Accepted: —  
-Acceptance source: —  
+Decided by: agent  
 Topic: Step Right fixture acquisition  
 Supersedes: —  
 Superseded by: —

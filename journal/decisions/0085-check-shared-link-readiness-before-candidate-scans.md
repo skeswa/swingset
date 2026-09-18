@@ -1,9 +1,7 @@
 # D-0085: Check shared link readiness before candidate scans
 
-Status: Proposed  
 Recorded: 2026-09-17  
-Accepted: —  
-Acceptance source: —  
+Decided by: agent  
 Topic: Measured ordinary offline selection cost  
 Supersedes: —  
 Superseded by: —

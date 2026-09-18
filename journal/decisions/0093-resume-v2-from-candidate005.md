@@ -1,9 +1,7 @@
 # D-0093: Resume v2 from candidate 005
 
-Status: Accepted  
 Recorded: 2026-09-17  
-Accepted: 2026-09-17  
-Acceptance source: Owner instruction in the continuation session  
+Decided by: owner, 2026-09-17; source: Owner instruction in the continuation session  
 Topic: V2 continuation and operational ownership  
 Supersedes: D-0091's implementation pause  
 Superseded by: —

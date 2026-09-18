@@ -1,9 +1,7 @@
 # D-0024: Compare restored event work with an uninterrupted run
 
-Status: Proposed  
 Recorded: 2026-09-16  
-Accepted: —  
-Acceptance source: The owner authorized continued history and recovery implementation. This prepares an offline scenario; production repair activation remains held.  
+Decided by: agent  
 Topic: Restore validation  
 Supersedes: —  
 Superseded by: —

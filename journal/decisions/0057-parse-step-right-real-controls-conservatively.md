@@ -1,9 +1,7 @@
 # D-0057: Parse Step Right real controls conservatively
 
-Status: Proposed  
 Recorded: 2026-09-17  
-Accepted: —  
-Acceptance source: —  
+Decided by: agent  
 Topic: Historical source parsing  
 Supersedes: —  
 Superseded by: —

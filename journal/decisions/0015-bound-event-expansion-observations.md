@@ -1,9 +1,7 @@
 # D-0015: Bound verification before gating event-index expansion
 
-Status: Proposed  
 Recorded: 2026-09-16  
-Accepted: —  
-Acceptance source: —; agent recommendation supporting authorized plan work, with no operating acceptance.  
+Decided by: agent  
 Topic: Scheduling  
 Supersedes: —  
 Superseded by: —

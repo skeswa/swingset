@@ -1,9 +1,7 @@
 # D-0136: Make a payload removal grant impossible to commit
 
-Status: Proposed  
 Recorded: 2026-09-18  
-Accepted: —  
-Acceptance source: —  
+Decided by: agent  
 Topic: Derivation output storage  
 Supersedes: —  
 Superseded by: —

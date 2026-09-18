@@ -1,9 +1,7 @@
 # D-0012: Reserve new-work capacity for listed result pages
 
-Status: Proposed  
 Recorded: 2026-09-16  
-Accepted: —  
-Acceptance source: The owner authorized continuing the history and recovery plan. These policy values and implementation choices have not received separate operating acceptance.  
+Decided by: agent  
 Topic: Scheduling  
 Supersedes: —  
 Superseded by: —

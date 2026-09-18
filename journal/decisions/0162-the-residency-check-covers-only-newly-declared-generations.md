@@ -1,9 +1,7 @@
 # D-0162: The residency check covers only newly declared generations
 
-Status: Proposed  
 Recorded: 2026-09-18  
-Accepted: —  
-Acceptance source: —  
+Decided by: agent  
 Topic: State retention  
 Supersedes: —  
 Superseded by: —

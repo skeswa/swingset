@@ -1,9 +1,7 @@
 # D-0113: Seal held input acceptance on disk
 
-Status: Proposed  
 Recorded: 2026-09-17  
-Accepted: —  
-Acceptance source: —  
+Decided by: agent  
 Topic: Held production input acceptance  
 Supersedes: —  
 Superseded by: —

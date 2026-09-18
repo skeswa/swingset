@@ -1,9 +1,7 @@
 # D-0023: Include build tests in default discovery
 
-Status: Proposed  
 Recorded: 2026-09-16  
-Accepted: —  
-Acceptance source: The owner authorized investigation of local validation issues and continued implementation. This is a local validation correction.  
+Decided by: agent  
 Topic: Test discovery  
 Supersedes: —  
 Superseded by: —

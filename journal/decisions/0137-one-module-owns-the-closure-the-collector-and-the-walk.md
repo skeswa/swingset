@@ -1,9 +1,7 @@
 # D-0137: One module owns the file closure, the collector, and the retention walk
 
-Status: Proposed  
 Recorded: 2026-09-18  
-Accepted: —  
-Acceptance source: —  
+Decided by: agent  
 Topic: State retention  
 Supersedes: —  
 Superseded by: [D-0147](0147-only-a-planned-locked-apply-removes-anything.md), for the

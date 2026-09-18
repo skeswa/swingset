@@ -1,9 +1,7 @@
 # D-0052: Package checkpoint archives on disk
 
-Status: Proposed  
 Recorded: 2026-09-17  
-Accepted: —  
-Acceptance source: —  
+Decided by: agent  
 Topic: Backup resource use  
 Supersedes: —  
 Superseded by: —

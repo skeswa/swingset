@@ -1,9 +1,7 @@
 # D-0133: Bound the worker disk and remove rehearsals and old checkpoints eagerly
 
-Status: Accepted  
 Recorded: 2026-09-18  
-Accepted: 2026-09-18, Sandile Keswa  
-Acceptance source: Session instructions on 2026-09-18: "these rehearsals cannot possibly need to stick around for this long", "update our docs and logic to eagerly remove unneeded rehearsals and checkpoints", "set an upperbound on the volume used by our vm", and approval of the deletions, the machine restart, and the rebuild  
+Decided by: owner, 2026-09-18, Sandile Keswa; source: Session instructions on 2026-09-18: "these rehearsals cannot possibly need to stick around for this long", "update our docs and logic to eagerly remove unneeded rehearsals and checkpoints", "set an upperbound on the volume used by our vm", and approval of the deletions, the machine restart, and the rebuild  
 Topic: Worker disk space  
 Supersedes: —  
 Superseded by: —

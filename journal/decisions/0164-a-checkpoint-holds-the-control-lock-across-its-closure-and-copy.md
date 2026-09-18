@@ -1,9 +1,7 @@
 # D-0164: A checkpoint holds the control lock across its closure and copy
 
-Status: Proposed  
 Recorded: 2026-09-18  
-Accepted: —  
-Acceptance source: —  
+Decided by: agent  
 Topic: State retention  
 Supersedes: —  
 Superseded by: —

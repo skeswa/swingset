@@ -1,9 +1,7 @@
 # D-0034: Record bounded observations of known event completion
 
-Status: Proposed  
 Recorded: 2026-09-16  
-Accepted: —  
-Acceptance source: Implementation authorized by the coordinator within the owner's continuing plan; separate owner acceptance of this choice is not recorded.  
+Decided by: agent  
 Topic: Event accounting  
 Supersedes: —  
 Superseded by: D-0037 extends page accounting to supported unavailable-origin gaps; parent support and historical semantics remain unchanged.

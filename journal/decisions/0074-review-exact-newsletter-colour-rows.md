@@ -1,9 +1,7 @@
 # D-0074: Review exact newsletter colour rows
 
-Status: Proposed  
 Recorded: 2026-09-17  
-Accepted: —  
-Acceptance source: —  
+Decided by: agent  
 Topic: Historical source interpretation  
 Supersedes: —  
 Superseded by: —

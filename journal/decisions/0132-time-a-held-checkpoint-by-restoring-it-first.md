@@ -1,9 +1,7 @@
 # D-0132: Time a held checkpoint by restoring it first, then backing up what came out
 
-Status: Proposed  
 Recorded: 2026-09-18  
-Accepted: —  
-Acceptance source: —  
+Decided by: agent  
 Topic: State retention and recovery cost  
 Supersedes: —  
 Superseded by: —

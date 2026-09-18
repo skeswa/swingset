@@ -1,9 +1,7 @@
 # D-0069: Approve the exact DCN results metadata lookup
 
-Status: Accepted  
 Recorded: 2026-09-17  
-Accepted: 2026-09-17, Sandile Keswa  
-Acceptance source: Owner reply: “Approve this exact metadata lookup”  
+Decided by: owner, 2026-09-17, Sandile Keswa; source: Owner reply: “Approve this exact metadata lookup”  
 Topic: Source fixture acquisition  
 Supersedes: —  
 Superseded by: —

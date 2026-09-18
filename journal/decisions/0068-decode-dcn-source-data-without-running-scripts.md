@@ -1,9 +1,7 @@
 # D-0068: Decode DCN source data without running scripts
 
-Status: Proposed  
 Recorded: 2026-09-17  
-Accepted: —  
-Acceptance source: —  
+Decided by: agent  
 Topic: Source interpretation  
 Supersedes: —  
 Superseded by: —

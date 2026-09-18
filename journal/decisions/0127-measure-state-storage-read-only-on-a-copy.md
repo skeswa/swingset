@@ -1,9 +1,7 @@
 # D-0127: Measure state storage read-only on a copy, with digests never row bodies
 
-Status: Proposed  
 Recorded: 2026-09-18  
-Accepted: —  
-Acceptance source: —  
+Decided by: agent  
 Topic: State retention and recovery cost  
 Supersedes: —  
 Superseded by: —

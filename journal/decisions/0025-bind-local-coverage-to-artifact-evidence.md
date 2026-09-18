@@ -1,9 +1,7 @@
 # D-0025: Bind local release coverage to artifact evidence
 
-Status: Proposed  
 Recorded: 2026-09-16  
-Accepted: —  
-Acceptance source: The owner authorized continued history and recovery implementation. This extension has not received operating or release acceptance.  
+Decided by: agent  
 Topic: Release coverage  
 Supersedes: —  
 Superseded by: —

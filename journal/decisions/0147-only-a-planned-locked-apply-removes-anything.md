@@ -1,9 +1,7 @@
 # D-0147: Only a planned, locked apply removes anything
 
-Status: Proposed  
 Recorded: 2026-09-18  
-Accepted: —  
-Acceptance source: —  
+Decided by: agent  
 Topic: State retention  
 Supersedes: [D-0137](0137-one-module-owns-the-closure-the-collector-and-the-walk.md), for the
 collector only: that record kept `garbage_collect` removing directly until step

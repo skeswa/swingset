@@ -1,9 +1,7 @@
 # D-0080: Parse only owned legacy DCN results tables
 
-Status: Proposed  
 Recorded: 2026-09-17  
-Accepted: —  
-Acceptance source: —  
+Decided by: agent  
 Topic: Offline DCN legacy results interpretation  
 Supersedes: —  
 Superseded by: —

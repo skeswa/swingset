@@ -1,9 +1,7 @@
 # D-0045: Account for evidence-backed unsupported pages
 
-Status: Proposed  
 Recorded: 2026-09-17  
-Accepted: —  
-Acceptance source: —  
+Decided by: agent  
 Topic: Event accounting and release coverage  
 Supersedes: —  
 Superseded by: —

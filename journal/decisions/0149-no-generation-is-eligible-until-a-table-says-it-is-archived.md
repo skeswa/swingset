@@ -1,9 +1,7 @@
 # D-0149: No generation is eligible until a table says it is archived
 
-Status: Proposed  
 Recorded: 2026-09-18  
-Accepted: —  
-Acceptance source: —  
+Decided by: agent  
 Topic: State retention  
 Supersedes: —  
 Superseded by: —

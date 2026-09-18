@@ -1,9 +1,7 @@
 # D-0141: Two retention limits and the collector's age floor become policy
 
-Status: Proposed  
 Recorded: 2026-09-18  
-Accepted: —  
-Acceptance source: —  
+Decided by: agent  
 Topic: State retention  
 Supersedes: —  
 Superseded by: —

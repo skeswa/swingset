@@ -1,9 +1,7 @@
 # D-0038: Pin fixture helpers beside the frozen runtime
 
-Status: Proposed  
 Recorded: 2026-09-16  
-Accepted: —  
-Acceptance source: Coordinator accepted engineering preparation after independent review; owner fixture-acquisition approval remains pending.  
+Decided by: agent  
 Topic: Fixture acquisition preparation  
 Supersedes: —  
 Superseded by: —

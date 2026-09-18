@@ -1,9 +1,7 @@
 # D-0076: Checkpoint held schema 28 without accepting inputs
 
-Status: Proposed  
 Recorded: 2026-09-17  
-Accepted: —  
-Acceptance source: —  
+Decided by: agent  
 Topic: Recovery operations  
 Supersedes: —  
 Superseded by: —

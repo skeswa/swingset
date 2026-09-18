@@ -1,9 +1,7 @@
 # D-0123: Reconcile Step Right through the common projector
 
-Status: Proposed  
 Recorded: 2026-09-18  
-Accepted: —  
-Acceptance source: —  
+Decided by: agent  
 Topic: Step Right canonical projection  
 Supersedes: —  
 Superseded by: —

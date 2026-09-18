@@ -1,9 +1,7 @@
 # D-0112: Bind phase-one replay to retained identities
 
-Status: Proposed  
 Recorded: 2026-09-17  
-Accepted: —  
-Acceptance source: —  
+Decided by: agent  
 Topic: Phase-one reconciliation  
 Supersedes: —  
 Superseded by: —

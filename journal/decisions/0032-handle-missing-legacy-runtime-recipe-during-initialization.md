@@ -1,9 +1,7 @@
 # D-0032: Handle a missing legacy runtime recipe during initialization
 
-Status: Proposed  
 Recorded: 2026-09-16  
-Accepted: —  
-Acceptance source: Coordinator implementation within the owner's authorized H16 release; owner acceptance of this implementation choice is not separately recorded.  
+Decided by: agent  
 Topic: Initialization compatibility  
 Supersedes: —  
 Superseded by: —

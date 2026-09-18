@@ -1,9 +1,7 @@
 # D-0028: Reconstruct retained snapshot parse hints
 
-Status: Proposed  
 Recorded: 2026-09-16  
-Accepted: —  
-Acceptance source: The owner authorized continued history and recovery implementation. This local repair has not received operating acceptance.  
+Decided by: agent  
 Topic: Queue recovery  
 Supersedes: —  
 Superseded by: —

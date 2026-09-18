@@ -1,9 +1,7 @@
 # D-0094: Measure schema-29 cost on a disposable copy
 
-Status: Proposed  
 Recorded: 2026-09-17  
-Accepted: —  
-Acceptance source: —  
+Decided by: agent  
 Topic: Operating measurements  
 Supersedes: —  
 Superseded by: —

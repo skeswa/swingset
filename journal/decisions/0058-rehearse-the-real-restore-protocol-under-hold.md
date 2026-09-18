@@ -1,9 +1,7 @@
 # D-0058: Rehearse the real restore protocol under hold
 
-Status: Proposed  
 Recorded: 2026-09-17  
-Accepted: —  
-Acceptance source: —  
+Decided by: agent  
 Topic: Extension operating rehearsal  
 Supersedes: —  
 Superseded by: —

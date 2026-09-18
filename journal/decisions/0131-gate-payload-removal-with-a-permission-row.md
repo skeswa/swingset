@@ -1,9 +1,7 @@
 # D-0131: Gate payload removal with a permission row in the deleting transaction
 
-Status: Proposed  
 Recorded: 2026-09-18  
-Accepted: —  
-Acceptance source: —  
+Decided by: agent  
 Topic: Derivation output storage  
 Supersedes: —  
 Superseded by: —

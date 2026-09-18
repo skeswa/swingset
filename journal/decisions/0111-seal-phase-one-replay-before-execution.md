@@ -1,9 +1,7 @@
 # D-0111: Seal phase-one replay state before execution
 
-Status: Proposed  
 Recorded: 2026-09-17  
-Accepted: —  
-Acceptance source: —  
+Decided by: agent  
 Topic: Phase-one reconciliation  
 Supersedes: —  
 Superseded by: —

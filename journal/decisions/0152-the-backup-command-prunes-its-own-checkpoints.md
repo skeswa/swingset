@@ -1,9 +1,7 @@
 # D-0152: The backup command prunes its own checkpoints, by the retention table
 
-Status: Proposed  
 Recorded: 2026-09-18  
-Accepted: —  
-Acceptance source: —  
+Decided by: agent  
 Topic: Worker disk space  
 Supersedes: —  
 Superseded by: —

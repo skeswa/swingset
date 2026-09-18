@@ -1,9 +1,7 @@
 # D-0106: Archive large files and scrub local history
 
-Status: Accepted  
 Recorded: 2026-09-17  
-Accepted: 2026-09-17, Sandile Keswa  
-Acceptance source: Owner requested a history scrub, selected over 1 MiB, and required a verified external archive before removal  
+Decided by: owner, 2026-09-17, Sandile Keswa; source: Owner requested a history scrub, selected over 1 MiB, and required a verified external archive before removal  
 Topic: Repository size and evidence preservation  
 Supersedes: D-0105's allowance for tracking explained size exceptions  
 Superseded by: —

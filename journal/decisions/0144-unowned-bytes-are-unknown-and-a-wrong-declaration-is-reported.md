@@ -1,9 +1,7 @@
 # D-0144: Bytes no label owns are unknown, and a declaration that names a missing file is reported
 
-Status: Proposed  
 Recorded: 2026-09-18  
-Accepted: —  
-Acceptance source: —  
+Decided by: agent  
 Topic: State retention  
 Supersedes: —  
 Superseded by: —

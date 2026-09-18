@@ -1,9 +1,7 @@
 # D-0039: Exercise integrated event accounting offline
 
-Status: Proposed  
 Recorded: 2026-09-16  
-Accepted: —  
-Acceptance source: Coordinator-authorized acceptance tests within the owner's continuing implementation request; separate owner acceptance is not recorded.  
+Decided by: agent  
 Topic: Event completion validation  
 Supersedes: —  
 Superseded by: —

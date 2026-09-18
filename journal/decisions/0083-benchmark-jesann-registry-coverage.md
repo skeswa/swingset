@@ -1,9 +1,7 @@
 # D-0083: Benchmark JesAnn registry coverage against individual results
 
-Status: Accepted  
 Recorded: 2026-09-17  
-Accepted: 2026-09-17  
-Acceptance source: Project owner approved the Jes Test plan in conversation  
+Decided by: owner, 2026-09-17; source: Project owner approved the Jes Test plan in conversation  
 Topic: Dataset quality  
 Supersedes: —  
 Superseded by: —

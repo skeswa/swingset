@@ -1,9 +1,7 @@
 # D-0143: An undeclared file is unknown in the plan, and the plan is named by its digest
 
-Status: Proposed  
 Recorded: 2026-09-18  
-Accepted: —  
-Acceptance source: —  
+Decided by: agent  
 Topic: State retention  
 Supersedes: —  
 Superseded by: —

@@ -1,9 +1,7 @@
 # D-0035: Prove page retirements on one enumeration edge
 
-Status: Proposed  
 Recorded: 2026-09-16  
-Accepted: —  
-Acceptance source: Coordinator implementation authorization within the owner's continuing plan; separate owner acceptance is not recorded.  
+Decided by: agent  
 Topic: Event retirement evidence  
 Supersedes: —  
 Superseded by: —

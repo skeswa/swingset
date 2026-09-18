@@ -1,9 +1,7 @@
 # D-0063: Guard live extension migration with closed receipts
 
-Status: Proposed  
 Recorded: 2026-09-17  
-Accepted: —  
-Acceptance source: —  
+Decided by: agent  
 Topic: Extension deployment and migration  
 Supersedes: —  
 Superseded by: —

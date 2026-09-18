@@ -1,9 +1,7 @@
 # D-0087: Authorize remaining v2 acquisition and operations
 
-Status: Accepted  
 Recorded: 2026-09-17  
-Accepted: 2026-09-17  
-Acceptance source: Owner instruction in the implementation session  
+Decided by: owner, 2026-09-17; source: Owner instruction in the implementation session  
 Topic: V2 implementation authority  
 Supersedes: Separate owner approval requirement for further v2 fixture operations  
 Superseded by: —

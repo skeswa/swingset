@@ -1,9 +1,7 @@
 # D-0070: Fence historical Archive timing proofs
 
-Status: Proposed  
 Recorded: 2026-09-17  
-Accepted: —  
-Acceptance source: —  
+Decided by: agent  
 Topic: Event completion timing  
 Supersedes: D-0066 for the local Archive proof boundary only  
 Superseded by: —

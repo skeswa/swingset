@@ -1,9 +1,7 @@
 # D-0090: Bind an explicit quarantine source policy
 
-Status: Proposed  
 Recorded: 2026-09-17  
-Accepted: —  
-Acceptance source: —  
+Decided by: agent  
 Topic: Bounded fixture acquisition  
 Supersedes: —  
 Superseded by: —

@@ -1,9 +1,7 @@
 # D-0110: Use runtime hold conditions through the NixOS switch
 
-Status: Proposed  
 Recorded: 2026-09-17  
-Accepted: —  
-Acceptance source: —  
+Decided by: agent  
 Topic: Held production deployment  
 Supersedes: —  
 Superseded by: —

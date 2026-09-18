@@ -1,9 +1,7 @@
 # D-0107: Use candidate 006 for the schema-29 rollout
 
-Status: Proposed  
 Recorded: 2026-09-17  
-Accepted: —  
-Acceptance source: —  
+Decided by: agent  
 Topic: Runtime rollout candidate  
 Supersedes: —  
 Superseded by: —

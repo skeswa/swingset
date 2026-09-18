@@ -1,9 +1,7 @@
 # D-0026: Record stage outputs and verified event progress separately
 
-Status: Proposed  
 Recorded: 2026-09-16  
-Accepted: —  
-Acceptance source: The owner authorized continued history and recovery implementation. This local extension has not received operating acceptance.  
+Decided by: agent  
 Topic: Event progress  
 Supersedes: —  
 Superseded by: —

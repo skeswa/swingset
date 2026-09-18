@@ -1,9 +1,7 @@
 # D-0004: Port to PostgreSQL before moving the worker to Dokploy
 
-Status: Historical; acceptance not yet verified  
 Recorded: 2026-09-15; imported from the 2026-09-14 migration specification  
-Accepted: —; original acceptance date and approver not established by this review  
-Acceptance source: —  
+Decided by: owner, —; original acceptance date and approver not established by this review  
 Topic: Hosting  
 Supersedes: —  
 Superseded by: —

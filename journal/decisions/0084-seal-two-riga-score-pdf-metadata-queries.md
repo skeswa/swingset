@@ -1,9 +1,7 @@
 # D-0084: Seal two exact Riga score-PDF metadata queries
 
-Status: Proposed  
 Recorded: 2026-09-17  
-Accepted: —  
-Acceptance source: —  
+Decided by: agent  
 Topic: Fixture runner implementation  
 Supersedes: —  
 Superseded by: —

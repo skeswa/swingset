@@ -1,9 +1,7 @@
 # D-0054: Keep Step Right history at the 2010 floor
 
-Status: Accepted  
 Recorded: 2026-09-17  
-Accepted: 2026-09-17, Sandile Keswa  
-Acceptance source: Owner reply in the implementation session: “Keep 2010–2016; correct WP14 criterion”  
+Decided by: owner, 2026-09-17, Sandile Keswa; source: Owner reply in the implementation session: “Keep 2010–2016; correct WP14 criterion”  
 Topic: Historical scope  
 Supersedes: —  
 Superseded by: —

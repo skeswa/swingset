@@ -1,9 +1,7 @@
 # D-0011: Verify event artifacts in an explicit doctor drill-down
 
-Status: Proposed  
 Recorded: 2026-09-16  
-Accepted: —  
-Acceptance source: The owner authorized continued implementation of the history and recovery plan. This reporting choice has not been separately accepted.  
+Decided by: agent  
 Topic: Event completion reporting  
 Supersedes: —  
 Superseded by: —

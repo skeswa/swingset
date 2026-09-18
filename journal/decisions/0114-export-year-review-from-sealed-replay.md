@@ -1,9 +1,7 @@
 # D-0114: Export year review from the sealed replay
 
-Status: Proposed  
 Recorded: 2026-09-17  
-Accepted: —  
-Acceptance source: —  
+Decided by: agent  
 Topic: Historical review  
 Supersedes: —  
 Superseded by: —

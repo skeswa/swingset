@@ -1,9 +1,7 @@
 # D-0122: Version Step Right admission without removal authority
 
-Status: Proposed  
 Recorded: 2026-09-18  
-Accepted: —  
-Acceptance source: —  
+Decided by: agent  
 Topic: Step Right source admission  
 Supersedes: —  
 Superseded by: —

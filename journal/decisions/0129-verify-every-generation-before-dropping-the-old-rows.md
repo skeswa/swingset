@@ -1,9 +1,7 @@
 # D-0129: Verify every generation before dropping the old derivation rows
 
-Status: Proposed  
 Recorded: 2026-09-18  
-Accepted: —  
-Acceptance source: —  
+Decided by: agent  
 Topic: Derivation output storage  
 Supersedes: —  
 Superseded by: —

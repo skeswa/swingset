@@ -1,9 +1,7 @@
 # D-0019: Retain observed changes in event blockers
 
-Status: Proposed  
 Recorded: 2026-09-16  
-Accepted: —  
-Acceptance source: The owner authorized continued plan implementation; these observation bounds have not received operating acceptance.  
+Decided by: agent  
 Topic: Event reporting  
 Supersedes: —  
 Superseded by: —

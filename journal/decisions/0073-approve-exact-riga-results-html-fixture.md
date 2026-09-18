@@ -1,9 +1,7 @@
 # D-0073: Approve the exact Riga results HTML fixture
 
-Status: Accepted  
 Recorded: 2026-09-17  
-Accepted: 2026-09-17, Sandile Keswa  
-Acceptance source: Owner reply: “Approve this exact results HTML fixture”  
+Decided by: owner, 2026-09-17, Sandile Keswa; source: Owner reply: “Approve this exact results HTML fixture”  
 Topic: Source fixture acquisition  
 Supersedes: —  
 Superseded by: —

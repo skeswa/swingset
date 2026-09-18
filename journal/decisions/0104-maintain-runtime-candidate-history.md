@@ -1,9 +1,7 @@
 # D-0104: Maintain runtime candidate history
 
-Status: Accepted  
 Recorded: 2026-09-17  
-Accepted: 2026-09-17  
-Acceptance source: Owner instruction in the Codex session to add a candidate-difference document under `docs/reference`.  
+Decided by: owner, 2026-09-17; source: Owner instruction in the Codex session to add a candidate-difference document under `docs/reference`.  
 Topic: Runtime documentation  
 Supersedes: —  
 Superseded by: —

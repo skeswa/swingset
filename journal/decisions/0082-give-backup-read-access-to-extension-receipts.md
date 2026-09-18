@@ -1,9 +1,7 @@
 # D-0082: Give backup read access to extension receipts
 
-Status: Proposed  
 Recorded: 2026-09-17  
-Accepted: —  
-Acceptance source: —  
+Decided by: agent  
 Topic: Recovery operations  
 Supersedes: —  
 Superseded by: —

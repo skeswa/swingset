@@ -1,9 +1,7 @@
 # D-0165: Reduce tests by behavior and tool lifetime
 
-Status: Proposed  
 Recorded: 2026-09-18  
-Accepted: —  
-Acceptance source: —  
+Decided by: agent  
 Topic: Test suite maintenance  
 Supersedes: —  
 Superseded by: —

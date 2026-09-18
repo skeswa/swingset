@@ -1,9 +1,7 @@
 # D-0088: Scope origin score-PDF controls after empty Archive lookups
 
-Status: Proposed  
 Recorded: 2026-09-17  
-Accepted: —  
-Acceptance source: —  
+Decided by: agent  
 Topic: DCN preliminary and final PDF fixture acquisition  
 Supersedes: —  
 Superseded by: —

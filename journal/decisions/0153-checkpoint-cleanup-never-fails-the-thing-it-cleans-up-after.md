@@ -1,9 +1,7 @@
 # D-0153: Checkpoint cleanup never fails the backup or the health check
 
-Status: Proposed  
 Recorded: 2026-09-18  
-Accepted: —  
-Acceptance source: —  
+Decided by: agent  
 Topic: Worker disk space  
 Supersedes: —  
 Superseded by: —

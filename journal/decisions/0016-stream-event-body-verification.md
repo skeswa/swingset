@@ -1,9 +1,7 @@
 # D-0016: Stream body verification in event diagnostics
 
-Status: Proposed  
 Recorded: 2026-09-16  
-Accepted: —  
-Acceptance source: The owner authorized continued implementation of the history and recovery plan. This implementation choice has not been separately accepted.  
+Decided by: agent  
 Topic: Event evidence verification  
 Supersedes: —  
 Superseded by: —

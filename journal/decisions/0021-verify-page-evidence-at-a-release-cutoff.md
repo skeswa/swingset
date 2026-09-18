@@ -1,9 +1,7 @@
 # D-0021: Verify page evidence at a release cutoff
 
-Status: Proposed  
 Recorded: 2026-09-16  
-Accepted: —  
-Acceptance source: The owner authorized continued plan implementation; release integration and operating acceptance remain pending.  
+Decided by: agent  
 Topic: Release coverage  
 Supersedes: —  
 Superseded by: —

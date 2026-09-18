@@ -1,9 +1,7 @@
 # D-0134: Let row references outlive payload bytes, with no foreign key between them
 
-Status: Proposed  
 Recorded: 2026-09-18  
-Accepted: —  
-Acceptance source: —  
+Decided by: agent  
 Topic: Derivation output storage  
 Supersedes: —  
 Superseded by: —

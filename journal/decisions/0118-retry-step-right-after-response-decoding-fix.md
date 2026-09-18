@@ -1,9 +1,7 @@
 # D-0118: Retry Step Right after the response decoding fix
 
-Status: Accepted  
 Recorded: 2026-09-17  
-Accepted: 2026-09-17  
-Acceptance source: Owner instruction in the implementation session  
+Decided by: owner, 2026-09-17; source: Owner instruction in the implementation session  
 Topic: Step Right fixture acquisition  
 Supersedes: The no-retry limit for failed Step Right body operation 002  
 Superseded by: —

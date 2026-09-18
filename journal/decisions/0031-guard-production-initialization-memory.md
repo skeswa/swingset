@@ -1,9 +1,7 @@
 # D-0031: Guard production initialization memory
 
-Status: Proposed  
 Recorded: 2026-09-16  
-Accepted: —  
-Acceptance source: Coordinator review within authorized H16 release work; no separate owner acceptance recorded.  
+Decided by: agent  
 Topic: Release supervision  
 Supersedes: —  
 Superseded by: —

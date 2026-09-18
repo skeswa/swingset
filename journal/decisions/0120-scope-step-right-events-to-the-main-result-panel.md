@@ -1,9 +1,7 @@
 # D-0120: Scope Step Right events to the main result panel
 
-Status: Proposed  
 Recorded: 2026-09-17  
-Accepted: —  
-Acceptance source: —  
+Decided by: agent  
 Topic: Step Right event parsing  
 Supersedes: —  
 Superseded by: —

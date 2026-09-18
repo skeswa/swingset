@@ -1,9 +1,7 @@
 # D-0030: Retain live operation evidence outside workspaces
 
-Status: Proposed  
 Recorded: 2026-09-16  
-Accepted: —  
-Acceptance source: Coordinator implementation review; no separate owner acceptance recorded.  
+Decided by: agent  
 Topic: Operation evidence  
 Supersedes: —  
 Superseded by: —

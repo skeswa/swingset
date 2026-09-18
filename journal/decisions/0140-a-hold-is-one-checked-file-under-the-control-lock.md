@@ -1,9 +1,7 @@
 # D-0140: A hold is one checked file written under the control lock
 
-Status: Proposed  
 Recorded: 2026-09-18  
-Accepted: —  
-Acceptance source: —  
+Decided by: agent  
 Topic: State retention  
 Supersedes: —  
 Superseded by: —

@@ -1,9 +1,7 @@
 # D-0046: Separate phase-one acquisition from review gaps
 
-Status: Proposed  
 Recorded: 2026-09-17  
-Accepted: —  
-Acceptance source: —  
+Decided by: agent  
 Topic: Historical event review  
 Supersedes: —  
 Superseded by: —

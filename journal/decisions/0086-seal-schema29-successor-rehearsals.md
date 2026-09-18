@@ -1,9 +1,7 @@
 # D-0086: Seal successor rehearsals for the schema 28 checkpoint
 
-Status: Proposed  
 Recorded: 2026-09-17  
-Accepted: —  
-Acceptance source: —  
+Decided by: agent  
 Topic: Recovery and runtime operations  
 Supersedes: —  
 Superseded by: —

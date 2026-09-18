@@ -1,9 +1,7 @@
 # D-0121: Withhold Step Right preliminary callback projection
 
-Status: Proposed  
 Recorded: 2026-09-17  
-Accepted: —  
-Acceptance source: —  
+Decided by: agent  
 Topic: Step Right canonical projection  
 Supersedes: —  
 Superseded by: —

@@ -1,9 +1,7 @@
 # D-0041: Consolidate the integrated agent workspace drafts
 
-Status: Proposed  
 Recorded: 2026-09-17  
-Accepted: —  
-Acceptance source: The owner requested jj repository cleanup on 2026-09-17;
+Decided by: agent  
 the consolidation method is an agent implementation choice.  
 Topic: Repository maintenance  
 Supersedes: —  

@@ -1,9 +1,7 @@
 # D-0003: Keep source evidence separate from derived records
 
-Status: Historical; acceptance not yet verified  
 Recorded: 2026-09-15; imported from existing architecture  
-Accepted: —; original acceptance date and approver not established by this review  
-Acceptance source: —  
+Decided by: owner, —; original acceptance date and approver not established by this review  
 Topic: Architecture  
 Supersedes: —  
 Superseded by: —

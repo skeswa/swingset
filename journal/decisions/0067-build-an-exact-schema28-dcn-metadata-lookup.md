@@ -1,9 +1,7 @@
 # D-0067: Build an exact schema-28 DCN metadata lookup
 
-Status: Proposed  
 Recorded: 2026-09-17  
-Accepted: —  
-Acceptance source: —  
+Decided by: agent  
 Topic: Bounded DCN results-locator metadata runner  
 Supersedes: —  
 Superseded by: —

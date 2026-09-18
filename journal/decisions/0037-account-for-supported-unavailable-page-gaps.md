@@ -1,9 +1,7 @@
 # D-0037: Account for supported unavailable page gaps
 
-Status: Proposed  
 Recorded: 2026-09-16  
-Accepted: —  
-Acceptance source: Implementation authorized by the coordinator within the owner's continuing plan; separate owner acceptance is not recorded.  
+Decided by: agent  
 Topic: Event accounting  
 Supersedes: D-0034's requirement that every accounted page be interpreted  
 Superseded by: —

@@ -1,9 +1,7 @@
 # D-0079: Propose exact Riga score-PDF metadata lookup
 
-Status: Proposed  
 Recorded: 2026-09-17  
-Accepted: —  
-Acceptance source: —  
+Decided by: agent  
 Topic: Source fixture acquisition  
 Supersedes: —  
 Superseded by: —

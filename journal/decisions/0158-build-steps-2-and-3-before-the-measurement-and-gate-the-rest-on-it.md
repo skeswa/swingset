@@ -1,9 +1,7 @@
 # D-0158: Build steps 2 and 3 before the measurement, and gate the rest on it
 
-Status: Proposed  
 Recorded: 2026-09-18  
-Accepted: —  
-Acceptance source: —  
+Decided by: agent  
 Topic: State retention  
 Supersedes: —  
 Superseded by: —

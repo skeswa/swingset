@@ -1,9 +1,7 @@
 # D-0044: Record closed acquisition waiting intervals conservatively
 
-Status: Proposed  
 Recorded: 2026-09-17  
-Accepted: —  
-Acceptance source: —  
+Decided by: agent  
 Topic: Event-completion timing and local alarms  
 Supersedes: —  
 Superseded by: —

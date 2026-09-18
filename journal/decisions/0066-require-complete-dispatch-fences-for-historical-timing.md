@@ -1,9 +1,7 @@
 # D-0066: Require complete dispatch fences for historical timing
 
-Status: Proposed  
 Recorded: 2026-09-17  
-Accepted: —  
-Acceptance source: —  
+Decided by: agent  
 Topic: Event completion timing  
 Supersedes: —  
 Superseded by: D-0070 for the local Archive proof boundary only

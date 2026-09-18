@@ -1,9 +1,7 @@
 # D-0099: Parse DCN score PDFs as scoped source observations
 
-Status: Proposed  
 Recorded: 2026-09-17  
-Accepted: —  
-Acceptance source: —  
+Decided by: agent  
 Topic: DCN PDF interpretation  
 Supersedes: —  
 Superseded by: —

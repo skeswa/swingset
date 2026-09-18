@@ -1,9 +1,7 @@
 # D-0089: Test the fixed spacing helper on its reviewed schemas
 
-Status: Proposed  
 Recorded: 2026-09-17  
-Accepted: —  
-Acceptance source: —  
+Decided by: agent  
 Topic: Source-bound validation  
 Supersedes: —  
 Superseded by: —

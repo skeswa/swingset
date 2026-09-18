@@ -1,9 +1,7 @@
 # D-0119: Bound state by interning payloads and one reachability closure
 
-Status: Accepted (plan direction only)  
 Recorded: 2026-09-17  
-Accepted: 2026-09-17, Sandile Keswa  
-Acceptance source: Owner instruction in the plan review session to replace the D-0117 design with this one  
+Decided by: owner, 2026-09-17, Sandile Keswa; source: Owner instruction in the plan review session to replace the D-0117 design with this one  
 Topic: State retention and recovery cost  
 Supersedes: [D-0117](0117-bound-operational-state-with-durable-archives.md)  
 Superseded by: —

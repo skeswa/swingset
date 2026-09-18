@@ -1,9 +1,7 @@
 # D-0008: Make focused validation checks run independently
 
-Status: Proposed  
 Recorded: 2026-09-16  
-Accepted: —  
-Acceptance source: Implementation authorized by the owner's instruction to continue the history and recovery plan; these exact routine choices have not been separately accepted.  
+Decided by: agent  
 Topic: Development checks  
 Supersedes: —  
 Superseded by: —

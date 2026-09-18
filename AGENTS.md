@@ -83,9 +83,12 @@ separate revision from what was pushed.
   change, including routine implementation choices. Use its `README.md` and
   template; keep small records brief and update the index. Chat, code comments,
   and change descriptions do not replace the log.
-- Record explicit acceptance; an agent recommendation stays proposed.
-  Preserve accepted reasoning; use a new record for a changed choice and link
-  both records. Put research and conclusions in `journal/investigations/`.
+- Decide and record most choices yourself; the record's existence is the
+  acceptance and records carry no status. Ask the owner first only for a
+  high-impact or controversial choice, as `journal/decisions/README.md`
+  defines it, and note who decided in the record. Preserve recorded reasoning;
+  use a new record for a changed choice and link both records. Put research
+  and conclusions in `journal/investigations/`.
 - Write tersely at a high-school reading level for readers with minimal context.
   Explain the purpose first, then link to detail. Give each rule one home,
   mark unverified facts, and keep history in the journal. See `docs/writing.md`.

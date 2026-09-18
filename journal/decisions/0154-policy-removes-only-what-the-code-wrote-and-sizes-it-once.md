@@ -1,9 +1,7 @@
 # D-0154: Checkpoint policy removes only what the code wrote, and sizes it from the manifest
 
-Status: Proposed  
 Recorded: 2026-09-18  
-Accepted: —  
-Acceptance source: —  
+Decided by: agent  
 Topic: Worker disk space  
 Supersedes: —  
 Superseded by: —

@@ -1,9 +1,7 @@
 # D-0128: Intern derivation payloads behind a `derivation_rows` view
 
-Status: Proposed  
 Recorded: 2026-09-18  
-Accepted: —  
-Acceptance source: —  
+Decided by: agent  
 Topic: Derivation output storage  
 Supersedes: —  
 Superseded by: —

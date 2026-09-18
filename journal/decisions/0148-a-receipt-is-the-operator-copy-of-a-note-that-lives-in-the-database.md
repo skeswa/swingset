@@ -1,9 +1,7 @@
 # D-0148: A receipt is the operator's copy of a note that lives in the database
 
-Status: Proposed  
 Recorded: 2026-09-18  
-Accepted: —  
-Acceptance source: —  
+Decided by: agent  
 Topic: State retention  
 Supersedes: —  
 Superseded by: —

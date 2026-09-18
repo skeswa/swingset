@@ -1,9 +1,7 @@
 # D-0042: Separate link evidence, resolution, and persistence
 
-Status: Accepted  
 Recorded: 2026-09-17  
-Accepted: 2026-09-17, project owner  
-Acceptance source: Owner request, “Please refactor in this style,” following the evidence → resolution → persistence proposal in this session.  
+Decided by: owner, 2026-09-17, project owner; source: Owner request, “Please refactor in this style,” following the evidence → resolution → persistence proposal in this session.  
 Topic: Identity linking  
 Supersedes: —  
 Superseded by: —

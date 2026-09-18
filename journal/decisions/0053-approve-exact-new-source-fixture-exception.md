@@ -1,9 +1,7 @@
 # D-0053: Approve the exact new-source fixture exception
 
-Status: Accepted  
 Recorded: 2026-09-17  
-Accepted: 2026-09-17, Sandile Keswa  
-Acceptance source: Owner reply in the implementation session: “Approve this exact fixture exception”  
+Decided by: owner, 2026-09-17, Sandile Keswa; source: Owner reply in the implementation session: “Approve this exact fixture exception”  
 Topic: Source fixture acquisition  
 Supersedes: —  
 Superseded by: —

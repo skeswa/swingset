@@ -1,9 +1,7 @@
 # D-0105: Reduce new evidence volume
 
-Status: Accepted (direction; thresholds are implementation choices)  
 Recorded: 2026-09-17  
-Accepted: 2026-09-17, Sandile Keswa (reduce file volume)  
-Acceptance source: Owner request to reduce low-signal files and large repository files during v2 implementation  
+Decided by: owner, 2026-09-17, Sandile Keswa (reduce file volume); source: Owner request to reduce low-signal files and large repository files during v2 implementation  
 Topic: Evidence retention  
 Supersedes: —  
 Superseded by: D-0106 for tracking files over 1 MiB

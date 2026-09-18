@@ -1,9 +1,7 @@
 # D-0001: Separate current guidance, research history, and formal decisions
 
-Status: Accepted  
 Recorded: 2026-09-15  
-Accepted: 2026-09-15, Sandile Keswa  
-Acceptance source: Owner instruction in this documentation-reorganization session: “Ok! I like it - Please re-organize the codebase” after reviewing the structure and decision process.  
+Decided by: owner, 2026-09-15, Sandile Keswa; source: Owner instruction in this documentation-reorganization session: “Ok! I like it - Please re-organize the codebase” after reviewing the structure and decision process.  
 Topic: Documentation  
 Supersedes: —  
 Superseded by: [D-0005](0005-research-under-journal.md), for research placement; [D-0006](0006-record-every-decision.md), for decision scope

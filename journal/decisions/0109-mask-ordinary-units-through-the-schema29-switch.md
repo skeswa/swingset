@@ -1,9 +1,7 @@
 # D-0109: Mask ordinary units through the schema-29 switch
 
-Status: Proposed  
 Recorded: 2026-09-17  
-Accepted: —  
-Acceptance source: —  
+Decided by: agent  
 Topic: Held production deployment  
 Supersedes: —  
 Superseded by: —

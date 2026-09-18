@@ -1,9 +1,7 @@
 # D-0027: Compare turn policies with all modeled pages ready
 
-Status: Proposed  
 Recorded: 2026-09-16  
-Accepted: —  
-Acceptance source: The owner authorized continued history and recovery implementation. This is an offline experiment; it changes no operating policy.  
+Decided by: agent  
 Topic: Scheduling validation  
 Supersedes: —  
 Superseded by: —

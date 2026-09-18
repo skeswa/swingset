@@ -1,9 +1,7 @@
 # D-0018: Gate new event indexes with conservative local observations
 
-Status: Proposed  
 Recorded: 2026-09-16  
-Accepted: —  
-Acceptance source: The owner authorized continued implementation of the history and recovery plan. These policy values and implementation choices have not received operating acceptance.  
+Decided by: agent  
 Topic: Scheduling  
 Supersedes: —  
 Superseded by: —

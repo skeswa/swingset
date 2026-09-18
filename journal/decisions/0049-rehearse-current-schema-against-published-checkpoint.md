@@ -1,9 +1,7 @@
 # D-0049: Rehearse the current schema against the published checkpoint
 
-Status: Proposed  
 Recorded: 2026-09-17  
-Accepted: —  
-Acceptance source: —  
+Decided by: agent  
 Topic: Migration validation  
 Supersedes: —  
 Superseded by: —

@@ -1,9 +1,7 @@
 # D-0048: Ignore explicit newsletter planning prose
 
-Status: Proposed  
 Recorded: 2026-09-17  
-Accepted: —  
-Acceptance source: —  
+Decided by: agent  
 Topic: Historical source interpretation  
 Supersedes: —  
 Superseded by: —

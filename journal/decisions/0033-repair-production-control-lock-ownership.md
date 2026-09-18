@@ -1,9 +1,7 @@
 # D-0033: Repair production control-lock ownership
 
-Status: Proposed  
 Recorded: 2026-09-16  
-Accepted: —  
-Acceptance source: Coordinator operational repair within the owner's authorized H16 release; no separate owner acceptance recorded.  
+Decided by: agent  
 Topic: Release operations  
 Supersedes: —  
 Superseded by: —

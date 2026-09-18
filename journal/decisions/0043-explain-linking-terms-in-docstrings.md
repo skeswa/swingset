@@ -1,9 +1,7 @@
 # D-0043: Explain linking terms beside the code
 
-Status: Accepted  
 Recorded: 2026-09-17  
-Accepted: 2026-09-17, project owner  
-Acceptance source: Owner request, “Please add this information in doc comments,” following the linking taxonomy explanation.  
+Decided by: owner, 2026-09-17, project owner; source: Owner request, “Please add this information in doc comments,” following the linking taxonomy explanation.  
 Topic: Identity documentation  
 Supersedes: —  
 Superseded by: —

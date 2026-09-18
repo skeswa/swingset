@@ -1,9 +1,7 @@
 # D-0062: Bind legacy spacing baselines to retained requests
 
-Status: Proposed  
 Recorded: 2026-09-17  
-Accepted: —  
-Acceptance source: —  
+Decided by: agent  
 Topic: Schema-28 spacing adoption  
 Supersedes: —  
 Superseded by: —

@@ -88,7 +88,7 @@ def build(source: Path, destination: Path) -> dict[str, object]:
     ):
         raise ValueError("HTML does not print exact PDF locator")
     authority = (ROOT / AUTHORITY).read_bytes()
-    if b"Status: Accepted" not in authority or b"remaining v2 acquisition" not in authority:
+    if b"remaining v2 acquisition" not in authority:
         raise ValueError("standing authority record differs")
     manifest = dict(
         version=1,

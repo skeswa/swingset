@@ -2,15 +2,15 @@
 
 Date: 2026-09-18 UTC
 Status: Tool implemented and tested; the measurement ran on 2026-09-18 (see
-"Measurement run" below). Step 1's decision is proposed in
+"Measurement run" below). Step 1's decision is
 [D-0166](../../decisions/0166-hold-interning-back-until-rows-repeat-and-cut-indexes-first.md).
 Decision: [D-0119](../../decisions/0119-bound-state-by-interning-and-one-closure.md)
 (plan direction), [D-0127](../../decisions/0127-measure-state-storage-read-only-on-a-copy.md)
-(tool design, proposed),
+(tool design),
 [D-0132](../../decisions/0132-time-a-held-checkpoint-by-restoring-it-first.md)
-(backup timing order, proposed),
+(backup timing order),
 [D-0135](../../decisions/0135-fence-every-path-the-measurement-writes-and-exit-on-the-gates.md)
-(write fence and gate-driven exit status, proposed)
+(write fence and gate-driven exit status)
 
 ## Purpose
 

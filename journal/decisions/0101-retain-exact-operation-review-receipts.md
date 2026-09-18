@@ -1,9 +1,7 @@
 # D-0101: Retain exact operation review receipts
 
-Status: Proposed  
 Recorded: 2026-09-17  
-Accepted: —  
-Acceptance source: —  
+Decided by: agent  
 Topic: Retained operating evidence  
 Supersedes: —  
 Superseded by: —

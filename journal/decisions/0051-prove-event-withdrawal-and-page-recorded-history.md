@@ -1,9 +1,7 @@
 # D-0051: Prove event withdrawal and page recorded history
 
-Status: Proposed  
 Recorded: 2026-09-17  
-Accepted: —  
-Acceptance source: —  
+Decided by: agent  
 Topic: Source-event progress and retirement  
 Supersedes: —  
 Superseded by: —

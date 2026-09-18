@@ -1,9 +1,7 @@
 # D-0007: Reuse closure proof only after rechecking its exact evidence
 
-Status: Proposed  
 Recorded: 2026-09-16  
-Accepted: —  
-Acceptance source: The owner authorized continued implementation of the history and recovery plan. This implementation choice has not been separately accepted.  
+Decided by: agent  
 Topic: Build completion  
 Supersedes: —  
 Superseded by: —

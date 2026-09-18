@@ -1,9 +1,7 @@
 # D-0005: Keep research tools and evidence inside the project journal
 
-Status: Accepted  
 Recorded: 2026-09-15  
-Accepted: 2026-09-15, Sandile Keswa  
-Acceptance source: Owner instruction: “Please move research into journal and organize it - it feels like a hodgepodge right now”  
+Decided by: owner, 2026-09-15, Sandile Keswa; source: Owner instruction: “Please move research into journal and organize it - it feels like a hodgepodge right now”  
 Topic: Documentation and research  
 Supersedes: D-0001's placement of tools and evidence in top-level `research/`  
 Superseded by: —

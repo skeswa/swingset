@@ -1,9 +1,7 @@
 # D-0145: A hold file is read strictly, and only a file named like a hold is read as one
 
-Status: Proposed  
 Recorded: 2026-09-18  
-Accepted: —  
-Acceptance source: —  
+Decided by: agent  
 Topic: State retention  
 Supersedes: —  
 Superseded by: —

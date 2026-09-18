@@ -1,9 +1,7 @@
 # D-0135: Fence every path the measurement tool writes, and make its gates the exit status
 
-Status: Proposed  
 Recorded: 2026-09-18  
-Accepted: —  
-Acceptance source: —  
+Decided by: agent  
 Topic: State retention and recovery cost  
 Supersedes: —  
 Superseded by: —

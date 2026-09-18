@@ -1,9 +1,7 @@
 # D-0117: Bound operational state with durable archives
 
-Status: Superseded by D-0119  
 Recorded: 2026-09-17  
-Accepted: —  
-Acceptance source: —  
+Decided by: agent  
 Topic: State retention and recovery cost  
 Supersedes: —  
 Superseded by: [D-0119](0119-bound-state-by-interning-and-one-closure.md)

@@ -1,9 +1,7 @@
 # D-0081: Check shared link prerequisites before event expansion
 
-Status: Proposed  
 Recorded: 2026-09-17  
-Accepted: —  
-Acceptance source: —  
+Decided by: agent  
 Topic: Offline selection cost  
 Supersedes: —  
 Superseded by: —

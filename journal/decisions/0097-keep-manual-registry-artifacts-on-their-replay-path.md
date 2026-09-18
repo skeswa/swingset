@@ -1,9 +1,7 @@
 # D-0097: Keep manual registry artifacts on their replay path
 
-Status: Proposed  
 Recorded: 2026-09-17  
-Accepted: —  
-Acceptance source: —  
+Decided by: agent  
 Topic: Input invalidation routing  
 Supersedes: —  
 Superseded by: —

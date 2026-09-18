@@ -1,9 +1,7 @@
 # D-0002: Publish person IDs only for confirmed matches
 
-Status: Historical; acceptance not yet verified  
 Recorded: 2026-09-15; imported from existing design and release evidence  
-Accepted: —; original acceptance date and approver not established by this review  
-Acceptance source: —  
+Decided by: owner, —; original acceptance date and approver not established by this review  
 Topic: Identity  
 Supersedes: Legacy design-review item 8 in behavior; original acceptance record unverified  
 Superseded by: —

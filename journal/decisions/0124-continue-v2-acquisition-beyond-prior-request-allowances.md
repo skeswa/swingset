@@ -1,9 +1,7 @@
 # D-0124: Continue v2 acquisition beyond prior request allowances
 
-Status: Accepted  
 Recorded: 2026-09-17  
-Accepted: 2026-09-17, project owner  
-Acceptance source: Session instruction: “all scraping limits have been waived until the conclusion of v2 impl - feel free to keep trying”  
+Decided by: owner, 2026-09-17, project owner; source: Session instruction: “all scraping limits have been waived until the conclusion of v2 impl - feel free to keep trying”  
 Topic: V2 acquisition operations  
 Supersedes: —  
 Superseded by: —

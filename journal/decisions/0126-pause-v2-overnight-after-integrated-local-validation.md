@@ -1,9 +1,7 @@
 # D-0126: Pause v2 overnight after integrated local validation
 
-Status: Accepted  
 Recorded: 2026-09-18  
-Accepted: 2026-09-18, project owner  
-Acceptance source: Session instruction: “please find a good stopping point then halt progress for the night”  
+Decided by: owner, 2026-09-18, project owner; source: Session instruction: “please find a good stopping point then halt progress for the night”  
 Topic: V2 continuation  
 Supersedes: —  
 Superseded by: —

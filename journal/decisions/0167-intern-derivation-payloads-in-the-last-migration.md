@@ -1,9 +1,7 @@
 # D-0167: Intern derivation payloads in the last migration
 
-Status: Proposed  
 Recorded: 2026-09-18  
-Accepted: —  
-Acceptance source: —  
+Decided by: agent  
 Topic: State retention and recovery cost  
 Supersedes: —  
 Superseded by: —

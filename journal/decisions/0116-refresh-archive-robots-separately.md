@@ -1,9 +1,7 @@
 # D-0116: Refresh Archive robots separately
 
-Status: Proposed  
 Recorded: 2026-09-17  
-Accepted: —  
-Acceptance source: —  
+Decided by: agent  
 Topic: Fixture acquisition  
 Supersedes: —  
 Superseded by: —

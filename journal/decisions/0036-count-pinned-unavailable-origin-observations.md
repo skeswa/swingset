@@ -1,9 +1,7 @@
 # D-0036: Count pinned unavailable-origin observations
 
-Status: Proposed  
 Recorded: 2026-09-16  
-Accepted: —  
-Acceptance source: Coordinator implementation within the owner's continuing plan; no separate owner acceptance recorded.  
+Decided by: agent  
 Topic: Release coverage  
 Supersedes: —  
 Superseded by: —

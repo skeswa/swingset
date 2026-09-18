@@ -1,9 +1,7 @@
 # D-0029: Resume H16 production release after validation
 
-Status: Accepted  
 Recorded: 2026-09-16  
-Accepted: 2026-09-16, project owner  
-Acceptance source: Owner instruction in the implementation session: "Remove the hold on prod deployment and publication - we should work on that as soon as h16 completes".  
+Decided by: owner, 2026-09-16, project owner; source: Owner instruction in the implementation session: "Remove the hold on prod deployment and publication - we should work on that as soon as h16 completes".  
 Topic: Release operations  
 Supersedes: The owner's network-related production deferral recorded in the 2026-09-15 release handoff  
 Superseded by: —
