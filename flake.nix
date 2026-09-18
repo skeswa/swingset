@@ -35,6 +35,18 @@
               pkgs.stdenv.cc.cc.lib
               pkgs.zlib
             ];
+            # `nix develop` points TMPDIR, TEMPDIR, TMP, TEMP and NIX_BUILD_TOP
+            # at a fresh /tmp/nix-shell.XXXXXX and removes it on exit only if it
+            # is still empty, and only when TMPDIR still names it. uv and pytest
+            # write there, so every run leaked its whole temp tree (D-0170).
+            # Remove the directory now, while it is empty, and use a stable
+            # TMPDIR so pytest prunes to its last three runs again.
+            shellHook = ''
+              if [ -n "''${NIX_BUILD_TOP:-}" ] && [ -d "$NIX_BUILD_TOP" ]; then
+                rmdir "$NIX_BUILD_TOP" 2>/dev/null || true
+              fi
+              export TMPDIR=/tmp TEMPDIR=/tmp TMP=/tmp TEMP=/tmp NIX_BUILD_TOP=/tmp
+            '';
           };
         }
       );

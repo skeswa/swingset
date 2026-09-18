@@ -71,3 +71,4 @@ A missing original date is not inferred from file modification time.
 - [Rehearsing the registry probe (G1)](registry-g1-rehearsal.md).
 - [Prior art: registry scrapes and analyses](prior-art-registry-analyses.md).
 - 2026-09-15: [Reorganizing the documentation for new readers](2026-09-15-documentation-reorganization/README.md).
+- 2026-09-18: [Disk leak from `nix develop` and pytest](nix-develop-tmpdir-leak-2026-09-18.md).

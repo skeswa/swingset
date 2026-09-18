@@ -123,6 +123,9 @@ def test_restart_before_and_after_remaining_cycle_transactions(tmp_path, uninter
         for side in ("before", "after"):
             state = tmp_path / f"{side}-{boundary}"
             assert_recovery(state, overrides, config, boundary, side, expected)
+            # Each copy is about 21 MiB and is needed for one check only; ninety
+            # of them per run were most of a 15 GiB temp tree (D-0170).
+            shutil.rmtree(state, ignore_errors=True)
 
 
 @pytest.mark.core

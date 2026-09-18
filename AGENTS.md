@@ -93,6 +93,14 @@ separate revision from what was pushed.
   Explain the purpose first, then link to detail. Give each rule one home,
   mark unverified facts, and keep history in the journal. See `docs/writing.md`.
 
+## Tests
+
+`nix develop -c uv run pytest -q` runs the reviewed core suite; `--full-suite`
+or an explicit path runs more. A full run writes about 15 GiB of temp. The dev
+shell pins `TMPDIR=/tmp` so pytest prunes to its last three runs; never point
+`TMPDIR` at a directory nothing prunes. On the worker, `/tmp` is a small tmpfs:
+use `--basetemp` under `/var/tmp` for a full run there.
+
 ## Formatting
 
 `mise run fmt` is the only formatting entry point: nixfmt (RFC 166) for
