@@ -111,7 +111,7 @@ two watch can be created.
 
 The exact 28 retained newsletter captures now have a narrow offline replay
 helper at
-[`replay_phase1_newsletter_parser8.py`](../../tools/admission/replay_phase1_newsletter_parser8.py).
+`replay_phase1_newsletter_parser8.py`.
 It is implemented and locally tested. Seal-only attempts exercised disposable
 schema-29 database copies and produced a reviewed before-state seal. The first
 sealed execution rolled back at the exact expected-after comparison before

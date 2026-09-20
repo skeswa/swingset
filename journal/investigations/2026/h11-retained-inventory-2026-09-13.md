@@ -39,7 +39,7 @@ Query-plan regression tests exercise the production SQL; the receipt records
 artifact, history and finalist plans from the actual copy.
 
 Machine receipt: [h11-retained-inventory-20260913.json](../../evidence/runtime/h11/h11-retained-inventory-20260913.json).
-Reproduce with [benchmark_requirements.py](../../tools/runtime/benchmark_requirements.py), on a
+Reproduce with `benchmark_requirements.py`, on a
 fresh SQLite backup of the checkpoint named `swingset-h11-review`. Link its
 `blobs` and `extracts` to the checkpoint read-only. Never use the live state as
 the benchmark destination:
@@ -70,7 +70,7 @@ to their original values and `foreign_key_check` returned no errors.
 
 Receipt: [h11-retained-fk-indexes-20260913.json](../../evidence/runtime/h11/h11-retained-fk-indexes-20260913.json).
 Reproduce on the disposable copy with
-[benchmark_fk_indexes.py](../../tools/runtime/benchmark_fk_indexes.py):
+`benchmark_fk_indexes.py`:
 
 ```sh
 PYTHONPATH=src python -m journal.tools.runtime.benchmark_fk_indexes \

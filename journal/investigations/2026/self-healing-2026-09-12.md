@@ -271,7 +271,7 @@ cannot responsibly be driven to a blanket 100% completeness figure.
 
 ## Reproduction
 
-Run the [offline checks](../../tools/quality/self_healing_checks.py) from the repository checkout:
+Run the offline checks (`self_healing_checks.py`) from the repository checkout:
 
 ```sh
 nix develop --command uv run python -m journal.tools.quality.self_healing_checks

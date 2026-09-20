@@ -65,7 +65,7 @@ source-specific wrapper, and an independent deterministic rebuild. The DCN
 body wrapper and builder are
 [`dcn-results-body-h13-001.py`](../../evidence/admission/dcn-results-body-2026-09-17/packet/dcn-results-body-h13-001.py)
 (SHA-256 `103206f27c25f45b43807ef4ab467392b411e9ba51355e4de6ef11a1047227dd`)
-and [`build_dcn_results_body.py`](../../tools/admission/build_dcn_results_body.py)
+and `build_dcn_results_body.py`
 (SHA-256 `60d6d89bbfc7bd19000470b114fe26305dc21f996cce7a4c2a40d30ce30b3d2b`).
 Its packet also demonstrates independent review of a rebuilt, sealed helper
 closure. Its source pin and schema-28 execution gates are historical examples,
@@ -165,7 +165,7 @@ hold; the three page kinds remain unassessed and inactive in admission.
 
 ## Implemented runner and operation outcome
 
-[`stepright_body_runner.py`](../../tools/admission/stepright_body_runner.py)
+`stepright_body_runner.py`
 implements the exact allowlist, retained-locator check, single-use quarantine,
 schema-29 accounting connection, H13 source/kind/host/global scope, shared
 Archive budgets and completion-based spacing, bounded gzip streaming, robots

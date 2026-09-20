@@ -29,6 +29,6 @@ migration or an operational restore drill.
 
 ## Links
 
-- [Rehearsal helper](../tools/runtime/rehearse_extension_migration.py)
+- Rehearsal helper (`rehearse_extension_migration.py`)
 - [Continuation evidence](../investigations/2026/v2-continuation-2026-09-17.md)
 - [Migration contract](../../docs/plans/recovery/README.md#migration-enforcement-and-recovery)

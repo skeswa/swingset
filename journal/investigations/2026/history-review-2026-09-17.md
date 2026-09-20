@@ -44,7 +44,7 @@ month-rule distribution, absent newsletter volumes, or individual trial colours.
 
 ## Executable preparation
 
-[reconcile_retained_phase1.py](../../tools/collection/reconcile_retained_phase1.py)
+`reconcile_retained_phase1.py`
 generates a new packet offline and refuses an existing output directory. Two
 focused tests pass, checking detailed counts, retained warnings, pending work
 and input preservation. Ruff passes for this helper, its tests and the gate
@@ -56,7 +56,7 @@ constructor. These checks do not validate an acquisition or publication.
   --output NEW_REVIEW_DIRECTORY
 ```
 
-[prepare_phase1_resume_gate.py](../../tools/collection/prepare_phase1_resume_gate.py)
+`prepare_phase1_resume_gate.py`
 prepares a gate from actual locked, read-only production state. It verifies the
 schema-14 source inventory, acknowledged baseline, hold, restore marker,
 accepted inputs and exact remaining subset of the original 17 targets. It

@@ -199,6 +199,7 @@ that links the old one.
 | [D-0174](0174-benchmark-one-exact-source-json-compression-layout.md)                  | Benchmark one exact source JSON compression layout                                                  | State retention and recovery cost                 |
 | [D-0175](0175-fewer-records-receipts-not-bundles-and-tiered-review.md)                | Fewer records, receipts not bundles, and tiered review                                              | Process                                           |
 | [D-0176](0176-resume-automatic-collection-and-give-the-hold-an-owner-and-expiry.md)   | Resume automatic collection and publication; give the hold an owner and an expiry                   | Release operations                                |
+| [D-0177](0177-keep-only-maintained-tools-in-the-journal.md)                           | Keep only maintained tools in the journal                                                           | Research tools                                    |
 
 The [legacy decision log](legacy-design-review.md) preserves the original
 review notes. It is historical evidence, not a second list of current rules.

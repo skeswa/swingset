@@ -1,6 +1,6 @@
 # Extension input rehearsal preparation, 2026-09-17
 
-The [helper](../../tools/runtime/rehearse_extension_inputs.py) prepares an offline
+The helper (`rehearse_extension_inputs.py`) prepares an offline
 rehearsal of input acceptance and ordinary parse/project/link work. It is
 implemented locally. No actual checkpoint replay, production input acceptance,
 collection, repair activation or publication is established by this document.

@@ -30,6 +30,6 @@ directory. No live database contents, source artifact bytes, or holds change.
 
 ## Links
 
-- [Exact repair helper](../tools/runtime/repair_h16_backup_read_access.py)
+- Exact repair helper (`repair_h16_backup_read_access.py`)
 - [Prior receipt-access repair](0040-allow-service-read-access-to-verifier-receipts.md)
 - [Continuation evidence](../investigations/2026/v2-continuation-2026-09-17.md)

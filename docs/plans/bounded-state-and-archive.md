@@ -4,8 +4,9 @@ Status: **parked on 2026-09-20**
 ([D-0175](../../journal/decisions/0175-fewer-records-receipts-not-bundles-and-tiered-review.md)).
 The measured database is 5.0 GB on a disk with more than 400 GB free, so no
 step here reopens until a measurement receipt shows the live database over
-20 GB or the worker disk under 100 GB free. Benchmark scripts for step 2a stay
-in scratch and are not retained. Earlier status, 2026-09-17: Steps 2 and 3 are implemented and tested offline
+20 GB or the worker disk under 100 GB free. One exception: on 2026-09-20 the owner asked to finish the A0/A1 source JSON
+compression benchmark (attempt 003, [D-0174](../../journal/decisions/0174-benchmark-one-exact-source-json-compression-layout.md))
+and record its decision, so those benchmark tools stay in `journal/tools/runtime`. Earlier status, 2026-09-17: Steps 2 and 3 are implemented and tested offline
 as of 2026-09-18; step 1's measurement ran the same day and its decision
 ([D-0166](../../journal/decisions/0166-hold-interning-back-until-rows-repeat-and-cut-indexes-first.md))
 is accepted: interning waits for rows that repeat, the migrations were

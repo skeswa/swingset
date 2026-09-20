@@ -27,5 +27,5 @@ inventories, schemas, accepted inputs, systems, public baseline or active jobs.
 
 ## Links
 
-- [New helper](../tools/runtime/checkpoint_extension28_20260917.py)
+- New helper (`checkpoint_extension28_20260917.py`)
 - [Current operating handoff](../investigations/2026/event-extension-operating-handoff-2026-09-17.md)

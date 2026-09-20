@@ -56,7 +56,7 @@ Sample digest:
 `c10b47e24a491711e00cf652ad4cc880f6bc326c1418afe54725d378acc8f7a6`.
 Machine timing and stratum denominators:
 [h17-review-packet-20260913.json](../../evidence/identity/h17/h17-review-packet-20260913.json).
-Reproduce with [prepare_identity_review.py](../../tools/identity/prepare_identity_review.py), the
+Reproduce with `prepare_identity_review.py`, the
 same settled state, seed, cohort, cutoff and `--per-stratum 3`. The packet's
 `sample.json`, `provenance.json`, and input revision records remain the review
 reference. No score policy or default join was expanded by evaluation tooling.

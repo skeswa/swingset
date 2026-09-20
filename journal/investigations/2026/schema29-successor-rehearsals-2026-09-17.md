@@ -190,7 +190,7 @@ is the next diagnostic before more replay or parser optimization.
 
 The sections below retain the prior candidate-004 packaging record and commands.
 
-The [builder](../../tools/runtime/prepare_schema29_rehearsals.py) prepares three
+The builder (`prepare_schema29_rehearsals.py`) prepares three
 separately executed rehearsals for the actual schema 28 checkpoint. This is local
 implementation and offline validation. It does not establish production input
 acceptance, deployment, ordinary collection, repair activation or publication.

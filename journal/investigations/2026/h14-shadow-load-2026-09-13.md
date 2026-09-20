@@ -12,7 +12,7 @@ request was made, and no semantic state was changed. The scan took 0.55 seconds.
 This is retained demand during an intentional operational hold, not a measurement
 of steady-state throughput or achieved scheduling fairness.
 
-Rebuild with [h14_shadow_load.py](../../tools/runtime/h14_shadow_load.py), using the service Python:
+Rebuild with `h14_shadow_load.py`, using the service Python:
 
 ```sh
 python -m journal.tools.runtime.h14_shadow_load --state /var/lib/swingset > /tmp/h14-load.json

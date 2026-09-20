@@ -6,7 +6,7 @@ execution gates remain separate. [D-0087](../../decisions/0087-authorize-remaini
 provides standing authority for the [exact approved scope](dcn-score-pdf-lookup-proposal-2026-09-17.md);
 no further fixture permission question is required.
 
-The [new builder](../../tools/admission/build_dcn_score_pdf_lookup.py) creates a
+The new builder (`build_dcn_score_pdf_lookup.py`) creates a
 fresh packet bound to frozen runtime 003, schema 28, source receipt
 `60cdfe64004a0ba5a9aee207bcb089d6d4c81f5ca58169ccdb88a5dfab8146d6`.
 It reuses the exact retained metadata transport and H13 wrapper, verifies the

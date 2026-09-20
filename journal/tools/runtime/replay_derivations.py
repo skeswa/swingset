@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import sqlite3
@@ -13,7 +14,6 @@ from pathlib import Path
 from time import monotonic
 from typing import Any
 
-from journal.tools.runtime.accept_h11 import digest, verify_files
 from swingset.clock import Clock, SystemClock
 from swingset.fetch.archive import Archive, canonical, durable_write
 from swingset.schedule.cycle import versions
@@ -25,6 +25,27 @@ from swingset.state.controls import recover_admissions
 from swingset.state.inputs import accept, capture
 from swingset.state.work import WorkUnit
 from swingset.state.write_deadline import WRITE_SECONDS
+
+
+def digest(path: Path) -> str:
+    with path.open("rb") as stream:
+        return hashlib.file_digest(stream, "sha256").hexdigest()
+
+
+def verify_files(root: Path, expected: dict) -> None:
+    for relative, expected_hash in expected.items():
+        if (
+            not isinstance(expected_hash, str)
+            or len(expected_hash) != 64
+            or any(c not in "0123456789abcdef" for c in expected_hash)
+        ):
+            raise ValueError("source and evidence manifests require SHA256 strings")
+        path = root / relative
+        if Path(relative).is_absolute() or not path.resolve().is_relative_to(root.resolve()):
+            raise ValueError("manifest path escapes its root")
+        if not path.is_file() or digest(path) != expected_hash:
+            raise ValueError(f"file differs from reviewed evidence: {path}")
+
 
 MARKER = "offline-derivation-scratch.json"
 COHORTS = tuple(

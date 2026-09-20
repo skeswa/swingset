@@ -38,5 +38,5 @@ incomplete manifest cannot disguise omitted generation support.
 
 Machine evidence is in
 [the audit receipt](../../evidence/runtime/h12/h12-generation-closure-20260913.json).
-[The audit script](../../tools/runtime/audit_checkpoint_generation_closure.py) reproduces the
+The audit script (`audit_checkpoint_generation_closure.py`) reproduces the
 comparison without opening the checkpoint through a migrating runtime.

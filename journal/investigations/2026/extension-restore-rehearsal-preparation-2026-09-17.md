@@ -1,6 +1,6 @@
 # Extension restore rehearsal preparation, 2026-09-17
 
-The [helper](../../tools/runtime/rehearse_extension_restore.py) is implemented
+The helper (`rehearse_extension_restore.py`) is implemented
 and tested offline. No production restore has been executed by this preparation
 branch. The coordinator owns helper freezing, independent review and execution.
 

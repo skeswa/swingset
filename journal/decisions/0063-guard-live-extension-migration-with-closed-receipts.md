@@ -53,7 +53,7 @@ and stage acceptance remain separate recorded outcomes.
 
 ## Links
 
-- [Helper](../tools/runtime/accept_event_extension.py)
+- Helper (`accept_event_extension.py`)
 - [Offline guard tests](../../tests/test_event_extension_live_migration.py)
 - [Gate contract and local evidence](../investigations/2026/event-extension-live-migration-helper-2026-09-17.md)
 - [Recovery plan](../../docs/plans/recovery/README.md)

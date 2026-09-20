@@ -61,7 +61,7 @@ writes and savepoint rollback must invalidate every prior answer.
 
 ## Profiling helper
 
-[profile_offline_selector.py](../../tools/runtime/profile_offline_selector.py)
+`profile_offline_selector.py`
 profiles exactly one ordinary `next_offline` call. It verifies source 003, the
 hashed scratch marker, schema 28 and the retained hold. It rejects production and
 checkpoint paths, takes the existing scratch writer lock, opens `mode=ro`, and

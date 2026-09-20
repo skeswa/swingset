@@ -4,7 +4,7 @@ Status: Implemented locally; source-bound tests and independent review are
 recorded below. No production preparation, acquisition, input acceptance,
 deployment or publication occurred in this work. No historical year is accepted.
 
-The new [prepare_extension_phase1_resume.py](../../tools/collection/prepare_extension_phase1_resume.py)
+The new `prepare_extension_phase1_resume.py`
 packages the exact retained September 17 `resume.py` and original 17-target
 scope, plus the new wrapper. The original driver hash is
 `1ddbe1ebae293dc7f97ec1de50a809c93588066d4f26ddb5afa9a59359f93752`;

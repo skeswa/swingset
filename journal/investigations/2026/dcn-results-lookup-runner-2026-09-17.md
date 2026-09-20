@@ -1,6 +1,6 @@
 # Exact DCN results metadata runner, 2026-09-17
 
-The [builder](../../tools/admission/build_dcn_results_lookup.py) produces a new
+The builder (`build_dcn_results_lookup.py`) produces a new
 metadata-only fixture packet for the [exact proposed lookup](dcn-results-locator-proposal-2026-09-17.md).
 It is implemented and tested offline. These checks establish no acquisition,
 source-kind activation, production input acceptance or publication. The

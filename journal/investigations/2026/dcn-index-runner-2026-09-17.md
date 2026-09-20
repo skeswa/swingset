@@ -1,6 +1,6 @@
 # Exact DCN index runner preparation, 2026-09-17
 
-The [offline builder](../../tools/admission/build_dcn_index_fixture.py) creates
+The offline builder (`build_dcn_index_fixture.py`) creates
 a separate runner for the one index body accepted in
 [D-0060](../../decisions/0060-approve-exact-dcn-index-fixture.md). The
 [implementation choice](../../decisions/0061-build-a-separate-schema14-dcn-fixture-runner.md)
@@ -41,7 +41,7 @@ budget exhaustion, cached robots disallow, service/restore interlocks, three
 archive redirects within five HTTP requests, rejected origin/CDX/PDF redirects,
 no retry after failure, settled admissions, forbidden domain writes, obsolete
 authorization rejection and migrated-schema rejection. The tests are run
-explicitly from [the check module](../../tools/admission/dcn_index_fixture_checks.py);
+explicitly from the check module (`dcn_index_fixture_checks.py`);
 they deliberately refuse a runtime whose schema version is not 14. Independent
 packet review and coordinator execution remain distinct gates.
 

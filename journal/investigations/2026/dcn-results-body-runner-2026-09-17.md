@@ -7,7 +7,7 @@ This record claims no acquisition, parser acceptance, deployment or publication.
 authorizes the exact body identified by the completed metadata lookup.
 [D-0077](../../decisions/0077-build-a-separate-exact-riga-body-runner.md)
 records the separate packet choice. The
-[builder](../../tools/admission/build_dcn_results_body.py) derives its code from
+builder (`build_dcn_results_body.py`) derives its code from
 the retained final schema-28 metadata packet, whose build receipt is
 `645d5d364c2ac261ec847cc47c44818e6afe4ff165d12d054a106938a13cf97d`.
 No retained packet or runtime source was changed.
@@ -44,7 +44,7 @@ Runtime source receipt SHA-256 is
 The packet manifest SHA-256 is
 `ac0ab2c8ae0f76084c4c91cb4f3ab22f006f6892e1239ea97de341e1cf0ac27e`.
 
-The dedicated [offline checks](../../tools/admission/dcn_results_body_checks.py)
+The dedicated offline checks (`dcn_results_body_checks.py`)
 passed **46 tests in 2.84 seconds**, using that packet and frozen source 003:
 
 ```sh

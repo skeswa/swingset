@@ -1,6 +1,6 @@
 # Legacy spacing baseline preparation, 2026-09-17
 
-The [maintained helper](../../tools/runtime/legacy_spacing_baselines.py) is
+The maintained helper (`legacy_spacing_baselines.py`) is
 implemented and tested offline. It has not prepared or applied a production
 baseline in this branch. The coordinator owns actual review and execution.
 

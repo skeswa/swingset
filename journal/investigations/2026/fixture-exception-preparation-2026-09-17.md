@@ -2,7 +2,7 @@
 
 The owner approved the five-body fixture exception in
 [D-0053](../../decisions/0053-approve-exact-new-source-fixture-exception.md).
-The new [preparation helper](../../tools/admission/prepare_fixture_exception.py)
+The new preparation helper (`prepare_fixture_exception.py`)
 constructs the authorization and execution gate for the unchanged, reviewed
 schema-14 wrapper. Preparation performs no acquisition, migration, policy
 activation, production parsing or publication.

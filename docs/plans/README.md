@@ -37,7 +37,8 @@ weekly session.
 
 1. [Bounded state](bounded-state-and-archive.md), remaining steps: parked until
    a measurement receipt shows the live database over 20 GB or the worker disk
-   under 100 GB free.
+   under 100 GB free. The one open item is the A0/A1 source JSON compression
+   benchmark (attempt 003) and its decision, which the owner asked to finish.
 2. [PostgreSQL and Dokploy migration](postgres-migration/README.md): a target,
    not started.
 3. Human identity review website (H17) and the JesAnn history page as a site:

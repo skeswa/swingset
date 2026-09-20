@@ -13,7 +13,6 @@ Inspect a saved dataset and explain missing or conflicting results.
 | [missing_data_fields.py](missing_data_fields.py)         | Profile null and blank fields in a pinned publication; absence is not always a defect.   |
 | [missing_data_operations.py](missing_data_operations.py) | Summarize intake gaps from a captured SQLite state without fetching sources.             |
 | [missing_data_registry.py](missing_data_registry.py)     | Reproduce the 2026-09-12 offline registry gap audit.                                     |
-| [self_healing_checks.py](self_healing_checks.py)         | Reproduce self-healing defects offline, using temporary state and mock HTTP.             |
 
 [JesAnn Nail history page](person-history/README.md) builds an offline explorer
 with all recorded participation, source percentages, and scoring details. The
