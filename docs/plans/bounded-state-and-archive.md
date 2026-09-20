@@ -216,16 +216,40 @@ and explain whether any source-generation JSON can be reconstructed, shared or
 stored more compactly without weakening retained evidence. Prototype a concrete
 layout on a disposable copy and compare integrity, query plans, migration time,
 file size and backup size. Put an agent recommendation in an investigation; a
-lasting schema choice needs an owner decision record.
+lasting schema choice needs a decision record.
 
 **Done when:** the physical index and logical JSON measurements are retained;
 the relevant query and integrity uses are accounted for; at least one concrete
-layout is measured on a disposable copy; and an owner decision selects a change
+layout is measured on a disposable copy; and a decision record selects a change
 or records that the current layout stays.
 
-**What exists as of 2026-09-18.** The attribution tool and its focused tests are
-implemented, and its run against the step 1 schema-29 copy passed every gate.
-The query inventory, layout prototype and owner decision have not started.
+**What exists as of 2026-09-18.** The attribution and JSON-structure tools are
+implemented. Their runs against the step 1 schema-29 copy passed every gate.
+The query and integrity inventory is complete, and a full-copy prototype kept
+both row constraints while rebuilding `derivation_rows` as `WITHOUT ROWID`.
+After both layouts were compacted, the prototype saved 142,528,512 bytes from
+the database (2.9%) and 14,769,705 bytes from a deterministic compressed-backup
+proxy. Exact row streams, output labels, foreign keys, immutability and dispatch
+fencing matched, and the required reads retained usable indexed plans. The
+[investigation](../../journal/investigations/2026/state-storage-measurement-2026-09-18.md#query-json-and-layout-follow-up-2026-09-18)
+records the layout and JSON evidence.
+[D-0173](../../journal/decisions/0173-defer-row-layout-to-schema32-and-prototype-json-compression.md)
+closes the row-layout part of this step. No standalone migration will rebuild
+the inline table because schema 32 already replaces it. The `WITHOUT ROWID`
+layout must be measured again against schema 32's actual reference table and
+is adopted there only if that direct comparison remains favorable. Exact
+source-generation JSON compression is the next prototype.
+[D-0174](../../journal/decisions/0174-benchmark-one-exact-source-json-compression-layout.md)
+bounds its first benchmark to compact A0 and A1 copies. A1 keeps the generation
+metadata, foreign-key and trigger anchor, and moves four independent zlib-6
+streams with their raw lengths and digests into a one-to-one `WITHOUT ROWID`
+table. Recipe facts used by SQL stay directly queryable. Structural interning
+is deferred; no JSON production schema or deployment is selected. The
+benchmark tool and 10 focused fixture tests are implemented as of 2026-09-20.
+The fixture run proves exact reconstruction, identity, extracted-field,
+one-to-one, integrity, immutability, cascade and fencing gates. The full-copy
+measurement remains open because the earlier 5 GB scratch restore has been
+pruned; it needs a fresh disposable restore of the held checkpoint.
 
 ## 7. Step 3: work out what is needed, then remove the rest carefully
 
@@ -627,9 +651,11 @@ nothing deployed. They are marked, so nothing here is mistaken for done.
 - step 1 has a receipt and a decision naming which steps ran; **met on
   2026-09-18**
   ([D-0166](../../journal/decisions/0166-hold-interning-back-until-rows-repeat-and-cut-indexes-first.md));
-- step 2a accounts for the row indexes and source-generation JSON, then an
-  owner decision records whether their layout changes; attribution is met,
-  while the query inventory, prototype and decision remain open;
+- step 2a accounts for the row indexes and source-generation JSON, then a
+  decision records whether their layout changes; **met for the row layout on
+  2026-09-20**
+  ([D-0173](../../journal/decisions/0173-defer-row-layout-to-schema32-and-prototype-json-compression.md));
+  the exact JSON compression prototype remains open;
 - each unique row is stored once and every fingerprint checks;
 - one walk produces both lists, with a plan, a locked apply, a note of each
   apply, and a receipt;

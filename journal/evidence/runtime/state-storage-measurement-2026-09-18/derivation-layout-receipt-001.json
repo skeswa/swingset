@@ -1,0 +1,93 @@
+{
+  "command": [
+    "/Users/skeswa/repos/skeswa/swingset/journal/tools/runtime/benchmark_derivation_row_layout.py",
+    "--source",
+    "/var/tmp/swingset-schema29-restore-20260917-004/restored-state",
+    "--scratch",
+    "/var/tmp/swingset-derivation-layout-benchmark-20260918-001",
+    "--output",
+    "/Users/skeswa/repos/skeswa/swingset/journal/evidence/runtime/state-storage-measurement-2026-09-18/derivation-layout-report-001.json",
+    "--receipt",
+    "/Users/skeswa/repos/skeswa/swingset/journal/evidence/runtime/state-storage-measurement-2026-09-18/derivation-layout-receipt-001.json",
+    "--timing-repeats",
+    "3"
+  ],
+  "comparison": {
+    "compressed_proxy_bytes_delta": -14769705,
+    "compressed_proxy_bytes_saved": 14769705,
+    "derivation_rows_bytes_delta": -142528512,
+    "derivation_rows_bytes_saved": 142528512,
+    "whole_database_bytes_delta": -142528512,
+    "whole_database_bytes_saved": 142528512
+  },
+  "finished_at": "2026-09-18T20:36:09.871446+00:00",
+  "format": "derivation-row-layout-benchmark-receipt-v1",
+  "gates": {
+    "checks": {
+      "baseline_compact": true,
+      "baseline_constraints": true,
+      "baseline_content_matches_source": true,
+      "baseline_integrity": true,
+      "baseline_is_rowid": true,
+      "candidate_compact": true,
+      "candidate_constraints": true,
+      "candidate_content_matches_source": true,
+      "candidate_integrity": true,
+      "candidate_is_without_rowid": true,
+      "source_has_no_orphan_rows": true,
+      "source_integrity": true,
+      "source_output_labels_match_rows": true,
+      "source_sidecars_unchanged": true,
+      "source_signature_and_hash_unchanged": true,
+      "triggers_preserved": true
+    },
+    "passed": true
+  },
+  "layouts": {
+    "baseline": {
+      "build": {
+        "copy_seconds": 2.340805318999628,
+        "prepare_seconds": 27.054288475999783,
+        "total_seconds": 29.39509379499941,
+        "vacuum_seconds": 24.918424643001345
+      },
+      "compressed_proxy_bytes": 499507625,
+      "database_bytes": 4859154432,
+      "derivation_rows_bytes": 1322237952,
+      "row_stream_sha256": "01ddc9fa9c79962b17206e198f8bb03a5c7a2cc4ca234c31c933bb8e66ff876b"
+    },
+    "without_rowid": {
+      "build": {
+        "copy_seconds": 11.524385806002101,
+        "prepare_seconds": 40.488200592000794,
+        "rebuild_seconds": 9.845787568003288,
+        "total_seconds": 52.012586398002895,
+        "vacuum_seconds": 28.891127339000377
+      },
+      "compressed_proxy_bytes": 484737920,
+      "database_bytes": 4716625920,
+      "derivation_rows_bytes": 1179709440,
+      "row_stream_sha256": "01ddc9fa9c79962b17206e198f8bb03a5c7a2cc4ca234c31c933bb8e66ff876b"
+    }
+  },
+  "limit": "gzip is a deterministic whole-database backup-size proxy, not a checkpoint",
+  "network_requests": 0,
+  "production_operations": 0,
+  "source": {
+    "path": "/var/tmp/swingset-schema29-restore-20260917-004/restored-state/state.sqlite",
+    "signature_after": {
+      "bytes": 5016936448,
+      "inode": 10285233,
+      "mtime_ns": 1789683616572116585,
+      "sha256": "5840f97da69c42adb6e60132418c64c04505ae043a650723c84ff38644c64265"
+    },
+    "signature_before": {
+      "bytes": 5016936448,
+      "inode": 10285233,
+      "mtime_ns": 1789683616572116585,
+      "sha256": "5840f97da69c42adb6e60132418c64c04505ae043a650723c84ff38644c64265"
+    }
+  },
+  "started_at": "2026-09-18T20:32:15.317843+00:00",
+  "tool_version": "benchmark-derivation-row-layout-v1"
+}

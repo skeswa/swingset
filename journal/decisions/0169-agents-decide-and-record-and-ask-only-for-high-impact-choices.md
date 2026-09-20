@@ -4,7 +4,7 @@ Recorded: 2026-09-18
 Decided by: owner, 2026-09-18, Sandile Keswa; source: session instructions "the decision file existing is itself proof of acceptance" and "agent makes most decisions and only prompts the owner for high impact or controversial choices"  
 Topic: Documentation  
 Supersedes: [D-0006](0006-record-every-decision.md) for the approval step only  
-Superseded by: —
+Superseded by: [D-0172](0172-delegate-all-project-decisions-to-agents-until-revoked.md) for the owner-approval threshold
 
 ## Decision
 

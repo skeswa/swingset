@@ -391,6 +391,190 @@ The retained JSON is evidence, so a design must preserve exact reconstruction
 and must not infer savings from logical bytes alone. No schema change is chosen
 by this investigation.
 
+## Query, JSON and layout follow-up, 2026-09-18
+
+The next investigation completed the plan's query inventory and measured one
+concrete layout on two fresh full-database copies. It did not change the sealed
+schema-29 source, production, or the network.
+
+### What the derivation indexes protect
+
+`PRIMARY KEY(generation_id, ordinal)` has four jobs. It rejects two rows at one
+stream position, gives every generation a stable output order, supplies the
+common generation lookup, and lets schema 32 stream the old table in exact
+generation and ordinal order. The completion, closure and restore paths all
+read `WHERE generation_id=? ORDER BY ordinal`; retention counts and groups by
+the same prefix.
+
+`UNIQUE(generation_id, table_name, record_key)` rejects two logical rows with
+the same identity inside one generation. `retain_output` relies on both unique
+constraints to prove that the stored rows are an exact image of the one-pass
+fingerprinted stream. The index also serves artifact lookup by generation and
+table. The completed-build receipt query additionally filters by record key and
+JSON content. Dropping either constraint would change the accepted integrity
+contract, so the prototype keeps both.
+
+The rows are immutable. Their deferred foreign key permits the sole writer to
+stream rows before it writes the generation label, while commit still rejects
+an absent label. History-dispatch triggers advance the timing fence on row
+changes. A rebuild must preserve the foreign key, both unique constraints, the
+immutability triggers and the fence triggers together.
+
+### Exact source-generation evidence
+
+The four JSON documents cannot be recreated from current watches,
+observations, accepted inputs or snapshots. Those tables can change and do not
+cover rejected or superseded generations. The retained documents own the
+ordered artifact manifest, exact parse recipe, ordered parse result and full
+admission report. Existing readers use all four, raw report bytes participate
+in review digests, and `recipe_json` has direct SQL `json_extract` readers plus
+the retained-source expression index. A compact representation therefore has
+to reconstruct the original UTF-8 bytes and preserve the extracted recipe
+fields used by SQL.
+
+The bounded read-only profiler found that every current document is canonical
+JSON and left the source signature unchanged. Whole-document sharing is too
+small to justify a four-column dictionary:
+
+| Column          |   Logical bytes | Distinct documents | Per-row zlib-6 bytes |
+| --------------- | --------------: | -----------------: | -------------------: |
+| `manifest_json` |      16,804,780 |             31,805 |            9,935,581 |
+| `recipe_json`   |     109,815,446 |             32,189 |           34,421,385 |
+| `result_json`   |     173,890,464 |             31,754 |           23,392,043 |
+| `report_json`   |     386,379,672 |             31,805 |           48,790,097 |
+| **Total**       | **686,890,362** |                    |      **116,539,106** |
+
+The 83% reduction is an upper bound on possible storage savings before SQLite
+framing and any columns needed for SQL. Structural sharing is concentrated more narrowly:
+`recipe_json.accepted_inputs` contains 1,545,072 items but only 51 distinct
+values; `report_json.fields` contains 2,084,911 items and 20,897 distinct
+values; `report_json.guards` contains 817,991 items and only 33 distinct values.
+These are candidates for a later exact reconstruction prototype. Whole result
+observations share much less. Compression or structural interning is not a
+schema choice from this measurement alone.
+
+Retained output:
+
+- [source JSON report](../../evidence/runtime/state-storage-measurement-2026-09-18/source-json-report-005.json),
+  SHA-256 `32b99fafc531eca2fdd3a81318f7bf49370d1e9c55aa1f4cbd802745a1f48b7c`;
+- [source JSON receipt](../../evidence/runtime/state-storage-measurement-2026-09-18/source-json-receipt-005.json),
+  SHA-256 `182dfcd99209ef76a96a63c27a4f1bd38be2295eaf402fe5bfdde0684af17f8e`.
+
+The first profiler output, attempt 004, was superseded after review found that
+its post-read check did not reject a writer that created a WAL during the scan.
+Attempt 005 checks WAL, shared memory and rollback journals before and after,
+records the schema and runtime, and groups raw documents as bytes. The earlier
+files remain retained as a distinguishable attempt and do not support the
+findings above.
+
+### Full-copy `WITHOUT ROWID` prototype
+
+The first layout candidate changed only the physical shape of
+`derivation_rows`: it used `WITHOUT ROWID` with the existing
+`PRIMARY KEY(generation_id, ordinal)` and
+`UNIQUE(generation_id, table_name, record_key)`. The benchmark copied the full
+database twice, analyzed and vacuumed both copies, rebuilt the candidate table,
+and used deterministic gzip of each whole SQLite file as a backup-size proxy.
+It did not claim that proxy was a Swingset checkpoint.
+
+| Measure                              | Compact rowid baseline | `WITHOUT ROWID` |      Saving |
+| ------------------------------------ | ---------------------: | --------------: | ----------: |
+| Whole database                       |          4,859,154,432 |   4,716,625,920 | 142,528,512 |
+| `derivation_rows`, table and indexes |          1,322,237,952 |   1,179,709,440 | 142,528,512 |
+| Deterministic gzip proxy             |            499,507,625 |     484,737,920 |  14,769,705 |
+
+The candidate removes the separate primary-key b-tree. Its table shrank by
+6,422,528 bytes and its logical-identity index shrank by 1,712,128 bytes after
+both layouts were vacuumed. Overall it saves 10.8% of the derivation-row object
+and 2.9% of the compact database; the compressed proxy saves 3.0%. The table
+rebuild took 8.42 seconds and its vacuum took 45.57 seconds on this one worker
+run. Those timings are observations, not service levels.
+
+Every gate passed. Both copies contained the exact 1,669,989-row stream and all
+34,987 generation labels; every stored output digest and row count matched.
+Integrity, foreign keys, both duplicate probes, deferred-label rejection,
+immutability and history-fence behavior passed. The candidate kept direct
+primary-key lookup for ordered generation reads and the unique index for
+logical-key and artifact reads. Three warm samples showed no ordered-stream
+regression and a faster full retention grouping scan. Generation counts were
+about 20% slower by the three-sample medians, while point reads stayed in microseconds.
+The artifact timing selected the largest non-artifact generation and returned
+no rows, so only its query plan is useful. Repeat timing and an actual
+checkpoint would be needed before an operating claim.
+
+Retained output:
+
+- [layout report](../../evidence/runtime/state-storage-measurement-2026-09-18/derivation-layout-report-002.json),
+  SHA-256 `82ebcd5d93df040233383f5af9965b989aaae259b7382c523a776bb9683d15d1`;
+- [layout receipt](../../evidence/runtime/state-storage-measurement-2026-09-18/derivation-layout-receipt-002.json),
+  SHA-256 `3ec6c3d4da28a9c6c3026525f60f35ab4e21648b9b0217527bb281cc8c5f9c74`.
+
+The first layout output, attempt 001, was superseded after review found that its
+constraint probes accepted any SQLite error and that its compressed proxy was
+not hash-bound to the inspected database bytes. Attempt 002 requires the exact
+constraint errors, records full source and layout hashes, and binds each gzip
+stream to its inspected input. It ran on host `swingset` with Python 3.12.13
+and SQLite 3.50.4. The earlier files remain retained and do not support the
+recommendation.
+
+The benchmark tool's SHA-256 is
+`e7a321e77f325affca68313f6ff9e41dc31c3fe49e28a07df81824252c6efe66`;
+the JSON profiler's is
+`f7a31758e55c07ff45f5f0b8d5ff7e70696cc25d06b3cc0ddb467b022b53d1ad`.
+Twenty-one focused tool tests pass, along with the suite-classification tests,
+Ruff and strict mypy for both tools.
+
+### Recommendation, not a decision
+
+Adopt `WITHOUT ROWID` when `derivation_rows` is next rebuilt. It preserves the
+accepted interface and integrity rules, and the measured saving is real after a
+fair vacuumed baseline. Do not add a special production migration solely from
+this report: the saving is 2.9% of the file, production is held, and schema 32
+already plans to replace this table. The owner should choose whether to put the
+layout in an earlier standalone migration, apply it only to schema 32's row
+reference table after a separate measurement, or keep the present layout.
+
+For source JSON, benchmark exact compression before structural interning. Keep
+`recipe_json` query fields available to SQLite, route full document reads
+through one accessor, and verify every reconstructed byte and dependent digest.
+That is a separate higher-impact design investigation; no JSON schema rewrite
+is selected here.
+
+### Decision and compression prototype, 2026-09-20
+
+[D-0173](../../decisions/0173-defer-row-layout-to-schema32-and-prototype-json-compression.md)
+resolved the row-layout recommendation without a standalone migration. Schema
+32 must measure its actual reference table before adopting `WITHOUT ROWID`.
+[D-0174](../../decisions/0174-benchmark-one-exact-source-json-compression-layout.md)
+selects one bounded JSON prototype: compact A0 and A1 copies, with the
+generation table retained as the relational anchor and four independent zlib-6
+streams held in a one-to-one `WITHOUT ROWID` side table. SQL-visible recipe
+facts remain on the anchor. Structural interning stays deferred.
+
+The offline benchmark and 10 focused fixture tests are implemented. They prove
+byte-exact reconstruction, stored lengths and SHA-256 values, generation and
+input identities, extracted recipe values, one-to-one integrity, immutability,
+authorized delete cascade, closed-source fencing and fail-closed decoding. A
+malformed recipe is preserved byte for byte while the identity gate correctly
+fails. The full 5 GB measurement has not run: the earlier disposable restore
+was pruned, so this prototype still needs a fresh restore of the held
+checkpoint. No production schema, migration or checkpoint result follows from
+the fixture run.
+
+Two unretained worker attempts stopped before measurement completed. Attempt
+001 rejected unrelated tables that happened to use generic `manifest_json`,
+`recipe_json` or `result_json` column names. Attempt 002 reached the candidate
+rebuild, then exposed three triggers on other tables that query
+`source_generations`; the temporary drop-and-rename gap made SQLite reject the
+schema. The tool now limits its document-dependency check to objects that also
+name `source_generations`, and it captures, removes and exactly recreates
+external triggers and views around the anchor rebuild. The fixture includes
+both regression shapes, and all 10 focused tests and seven suite-selection
+tests pass. Failed scratch was removed. The sealed source still has SHA-256
+`5840f97da69c42adb6e60132418c64c04505ae043a650723c84ff38644c64265` and
+5,016,936,448 bytes. Attempt 003 is the next full run; there is no retained
+compression report or receipt yet.
+
 ## Known local test failure
 
 `tests/publish/test_publication_controls.py::test_process_death_retains_active_pause_drain_until_recovery`

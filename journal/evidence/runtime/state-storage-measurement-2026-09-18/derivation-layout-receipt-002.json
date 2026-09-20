@@ -1,0 +1,109 @@
+{
+  "command": [
+    "/Users/skeswa/repos/skeswa/swingset/journal/tools/runtime/benchmark_derivation_row_layout.py",
+    "--source",
+    "/var/tmp/swingset-schema29-restore-20260917-004/restored-state",
+    "--scratch",
+    "/var/tmp/swingset-derivation-layout-benchmark-20260918-002",
+    "--output",
+    "/Users/skeswa/repos/skeswa/swingset/journal/evidence/runtime/state-storage-measurement-2026-09-18/derivation-layout-report-002.json",
+    "--receipt",
+    "/Users/skeswa/repos/skeswa/swingset/journal/evidence/runtime/state-storage-measurement-2026-09-18/derivation-layout-receipt-002.json",
+    "--timing-repeats",
+    "3"
+  ],
+  "comparison": {
+    "compressed_proxy_bytes_delta": -14769705,
+    "compressed_proxy_bytes_saved": 14769705,
+    "derivation_rows_bytes_delta": -142528512,
+    "derivation_rows_bytes_saved": 142528512,
+    "whole_database_bytes_delta": -142528512,
+    "whole_database_bytes_saved": 142528512
+  },
+  "finished_at": "2026-09-18T20:54:32.288117+00:00",
+  "format": "derivation-row-layout-benchmark-receipt-v2",
+  "gates": {
+    "checks": {
+      "baseline_compact": true,
+      "baseline_constraints": true,
+      "baseline_content_matches_source": true,
+      "baseline_inspection_bound_to_compressed_proxy": true,
+      "baseline_integrity": true,
+      "baseline_is_rowid": true,
+      "baseline_table_definition_preserved": true,
+      "candidate_compact": true,
+      "candidate_constraints": true,
+      "candidate_content_matches_source": true,
+      "candidate_inspection_bound_to_compressed_proxy": true,
+      "candidate_integrity": true,
+      "candidate_is_without_rowid": true,
+      "candidate_table_semantics_preserved": true,
+      "source_has_no_orphan_rows": true,
+      "source_integrity": true,
+      "source_output_labels_match_rows": true,
+      "source_sidecars_unchanged": true,
+      "source_signature_and_hash_unchanged": true,
+      "triggers_preserved": true
+    },
+    "passed": true
+  },
+  "layouts": {
+    "baseline": {
+      "build": {
+        "copy_seconds": 3.288250823999988,
+        "prepare_seconds": 36.1462933110015,
+        "total_seconds": 39.43454413500149,
+        "vacuum_seconds": 34.99510933300189
+      },
+      "compressed_proxy_bytes": 499507625,
+      "compressed_proxy_sha256": "a10de7a722a9a97eb8233ead33ad7f3683e69e2224ab69750f4f752d3fc50f39",
+      "database_bytes": 4859154432,
+      "database_sha256": "398d801680c735327a5cb7fdc566e38dce1df45e8c6d7aaad7a8ecd57df79ebf",
+      "derivation_rows_bytes": 1322237952,
+      "row_stream_sha256": "01ddc9fa9c79962b17206e198f8bb03a5c7a2cc4ca234c31c933bb8e66ff876b"
+    },
+    "without_rowid": {
+      "build": {
+        "copy_seconds": 13.87028316499709,
+        "prepare_seconds": 54.77512916300111,
+        "rebuild_seconds": 8.42066488600176,
+        "total_seconds": 68.6454123279982,
+        "vacuum_seconds": 45.57333312300034
+      },
+      "compressed_proxy_bytes": 484737920,
+      "compressed_proxy_sha256": "1098dbd9baf7df878180a9977afb5249cce1dfc114148d99e559d953ef4e76a2",
+      "database_bytes": 4716625920,
+      "database_sha256": "9dafc40c790509a631613c5f9f4ec459b5dc9864a9bb8182a2bcf1c72e58e924",
+      "derivation_rows_bytes": 1179709440,
+      "row_stream_sha256": "01ddc9fa9c79962b17206e198f8bb03a5c7a2cc4ca234c31c933bb8e66ff876b"
+    }
+  },
+  "limit": "gzip is a deterministic whole-database backup-size proxy, not a checkpoint",
+  "network_requests": 0,
+  "production_operations": 0,
+  "runtime": {
+    "hostname": "swingset",
+    "platform": "Linux-7.0.14-orbstack-00380-ga7e0a2dc9535-aarch64-with-glibc2.40",
+    "python_version": "3.12.13 (main, Mar  3 2026, 12:39:30) [GCC 14.3.0]",
+    "sqlite_version": "3.50.4",
+    "tool_path": "/Users/skeswa/repos/skeswa/swingset/journal/tools/runtime/benchmark_derivation_row_layout.py",
+    "tool_sha256": "e7a321e77f325affca68313f6ff9e41dc31c3fe49e28a07df81824252c6efe66"
+  },
+  "source": {
+    "path": "/var/tmp/swingset-schema29-restore-20260917-004/restored-state/state.sqlite",
+    "signature_after": {
+      "bytes": 5016936448,
+      "inode": 10285233,
+      "mtime_ns": 1789683616572116585,
+      "sha256": "5840f97da69c42adb6e60132418c64c04505ae043a650723c84ff38644c64265"
+    },
+    "signature_before": {
+      "bytes": 5016936448,
+      "inode": 10285233,
+      "mtime_ns": 1789683616572116585,
+      "sha256": "5840f97da69c42adb6e60132418c64c04505ae043a650723c84ff38644c64265"
+    }
+  },
+  "started_at": "2026-09-18T20:49:50.426037+00:00",
+  "tool_version": "benchmark-derivation-row-layout-v2"
+}

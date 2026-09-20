@@ -1,0 +1,657 @@
+{
+  "caps": {
+    "max_bytes": 2000000000,
+    "max_row_bytes": 4000000,
+    "max_rows": 100000
+  },
+  "cohorts": [
+    {
+      "documents": {
+        "manifest_json": {
+          "logical_utf8_bytes": 37128,
+          "zlib6_bytes": 21900
+        },
+        "recipe_json": {
+          "logical_utf8_bytes": 244896,
+          "zlib6_bytes": 76475
+        },
+        "report_json": {
+          "logical_utf8_bytes": 319506,
+          "zlib6_bytes": 75455
+        },
+        "result_json": {
+          "logical_utf8_bytes": 228332,
+          "zlib6_bytes": 35124
+        }
+      },
+      "page_kind": "eepro.autoindex",
+      "rows": 72,
+      "state": "accepted"
+    },
+    {
+      "documents": {
+        "manifest_json": {
+          "logical_utf8_bytes": 512,
+          "zlib6_bytes": 301
+        },
+        "recipe_json": {
+          "logical_utf8_bytes": 3381,
+          "zlib6_bytes": 1053
+        },
+        "report_json": {
+          "logical_utf8_bytes": 9317,
+          "zlib6_bytes": 1286
+        },
+        "result_json": {
+          "logical_utf8_bytes": 36387,
+          "zlib6_bytes": 3391
+        }
+      },
+      "page_kind": "eepro.index",
+      "rows": 1,
+      "state": "accepted"
+    },
+    {
+      "documents": {
+        "manifest_json": {
+          "logical_utf8_bytes": 232381,
+          "zlib6_bytes": 138105
+        },
+        "recipe_json": {
+          "logical_utf8_bytes": 1494552,
+          "zlib6_bytes": 470058
+        },
+        "report_json": {
+          "logical_utf8_bytes": 6249147,
+          "zlib6_bytes": 646145
+        },
+        "result_json": {
+          "logical_utf8_bytes": 26457415,
+          "zlib6_bytes": 1941937
+        }
+      },
+      "page_kind": "eepro.round",
+      "rows": 438,
+      "state": "accepted"
+    },
+    {
+      "documents": {
+        "manifest_json": {
+          "logical_utf8_bytes": 1050,
+          "zlib6_bytes": 620
+        },
+        "recipe_json": {
+          "logical_utf8_bytes": 6802,
+          "zlib6_bytes": 2140
+        },
+        "report_json": {
+          "logical_utf8_bytes": 36154,
+          "zlib6_bytes": 3409
+        },
+        "result_json": {
+          "logical_utf8_bytes": 121742,
+          "zlib6_bytes": 10886
+        }
+      },
+      "page_kind": "eepro.round",
+      "rows": 2,
+      "state": "needs_review"
+    },
+    {
+      "documents": {
+        "manifest_json": {
+          "logical_utf8_bytes": 3734,
+          "zlib6_bytes": 2222
+        },
+        "recipe_json": {
+          "logical_utf8_bytes": 23919,
+          "zlib6_bytes": 7530
+        },
+        "report_json": {
+          "logical_utf8_bytes": 21210,
+          "zlib6_bytes": 5583
+        },
+        "result_json": {
+          "logical_utf8_bytes": 490,
+          "zlib6_bytes": 469
+        }
+      },
+      "page_kind": "eepro.round",
+      "rows": 7,
+      "state": "waiting_for_inputs"
+    },
+    {
+      "documents": {
+        "manifest_json": {
+          "logical_utf8_bytes": 162064,
+          "zlib6_bytes": 95707
+        },
+        "recipe_json": {
+          "logical_utf8_bytes": 1059138,
+          "zlib6_bytes": 328966
+        },
+        "report_json": {
+          "logical_utf8_bytes": 1745154,
+          "zlib6_bytes": 297364
+        },
+        "result_json": {
+          "logical_utf8_bytes": 1741476,
+          "zlib6_bytes": 242466
+        }
+      },
+      "page_kind": "scoringdance.event",
+      "rows": 310,
+      "state": "accepted"
+    },
+    {
+      "documents": {
+        "manifest_json": {
+          "logical_utf8_bytes": 38541,
+          "zlib6_bytes": 22751
+        },
+        "recipe_json": {
+          "logical_utf8_bytes": 252784,
+          "zlib6_bytes": 78510
+        },
+        "report_json": {
+          "logical_utf8_bytes": 245796,
+          "zlib6_bytes": 60897
+        },
+        "result_json": {
+          "logical_utf8_bytes": 37252,
+          "zlib6_bytes": 17559
+        }
+      },
+      "page_kind": "scoringdance.event",
+      "rows": 74,
+      "state": "needs_review"
+    },
+    {
+      "documents": {
+        "manifest_json": {
+          "logical_utf8_bytes": 523,
+          "zlib6_bytes": 308
+        },
+        "recipe_json": {
+          "logical_utf8_bytes": 3417,
+          "zlib6_bytes": 1060
+        },
+        "report_json": {
+          "logical_utf8_bytes": 8496,
+          "zlib6_bytes": 1063
+        },
+        "result_json": {
+          "logical_utf8_bytes": 12914,
+          "zlib6_bytes": 1385
+        }
+      },
+      "page_kind": "scoringdance.event",
+      "rows": 1,
+      "state": "superseded"
+    },
+    {
+      "documents": {
+        "manifest_json": {
+          "logical_utf8_bytes": 510,
+          "zlib6_bytes": 299
+        },
+        "recipe_json": {
+          "logical_utf8_bytes": 3391,
+          "zlib6_bytes": 1057
+        },
+        "report_json": {
+          "logical_utf8_bytes": 3499,
+          "zlib6_bytes": 881
+        },
+        "result_json": {
+          "logical_utf8_bytes": 97564,
+          "zlib6_bytes": 7673
+        }
+      },
+      "page_kind": "scoringdance.recent",
+      "rows": 1,
+      "state": "accepted"
+    },
+    {
+      "documents": {
+        "manifest_json": {
+          "logical_utf8_bytes": 741877,
+          "zlib6_bytes": 439595
+        },
+        "recipe_json": {
+          "logical_utf8_bytes": 4778840,
+          "zlib6_bytes": 1492598
+        },
+        "report_json": {
+          "logical_utf8_bytes": 8369801,
+          "zlib6_bytes": 1625522
+        },
+        "result_json": {
+          "logical_utf8_bytes": 47160360,
+          "zlib6_bytes": 2819262
+        }
+      },
+      "page_kind": "scoringdance.round",
+      "rows": 1395,
+      "state": "accepted"
+    },
+    {
+      "documents": {
+        "manifest_json": {
+          "logical_utf8_bytes": 126538,
+          "zlib6_bytes": 74965
+        },
+        "recipe_json": {
+          "logical_utf8_bytes": 815268,
+          "zlib6_bytes": 254629
+        },
+        "report_json": {
+          "logical_utf8_bytes": 1334322,
+          "zlib6_bytes": 287448
+        },
+        "result_json": {
+          "logical_utf8_bytes": 8869551,
+          "zlib6_bytes": 526825
+        }
+      },
+      "page_kind": "scoringdance.round",
+      "rows": 238,
+      "state": "needs_review"
+    },
+    {
+      "documents": {
+        "manifest_json": {
+          "logical_utf8_bytes": 510,
+          "zlib6_bytes": 301
+        },
+        "recipe_json": {
+          "logical_utf8_bytes": 3392,
+          "zlib6_bytes": 1050
+        },
+        "report_json": {
+          "logical_utf8_bytes": 74705,
+          "zlib6_bytes": 3721
+        },
+        "result_json": {
+          "logical_utf8_bytes": 185412,
+          "zlib6_bytes": 9637
+        }
+      },
+      "page_kind": "scoringdance.sitemap",
+      "rows": 1,
+      "state": "accepted"
+    },
+    {
+      "documents": {
+        "manifest_json": {
+          "logical_utf8_bytes": 72294,
+          "zlib6_bytes": 39456
+        },
+        "recipe_json": {
+          "logical_utf8_bytes": 382023,
+          "zlib6_bytes": 120879
+        },
+        "report_json": {
+          "logical_utf8_bytes": 210375,
+          "zlib6_bytes": 82761
+        },
+        "result_json": {
+          "logical_utf8_bytes": 3323664,
+          "zlib6_bytes": 358575
+        }
+      },
+      "page_kind": "swingdancecouncil.events",
+      "rows": 111,
+      "state": "needs_review"
+    },
+    {
+      "documents": {
+        "manifest_json": {
+          "logical_utf8_bytes": 6876,
+          "zlib6_bytes": 4148
+        },
+        "recipe_json": {
+          "logical_utf8_bytes": 41688,
+          "zlib6_bytes": 13153
+        },
+        "report_json": {
+          "logical_utf8_bytes": 1118408,
+          "zlib6_bytes": 58368
+        },
+        "result_json": {
+          "logical_utf8_bytes": 8642495,
+          "zlib6_bytes": 424418
+        }
+      },
+      "page_kind": "wdr.rounds",
+      "rows": 12,
+      "state": "accepted"
+    },
+    {
+      "documents": {
+        "manifest_json": {
+          "logical_utf8_bytes": 573,
+          "zlib6_bytes": 346
+        },
+        "recipe_json": {
+          "logical_utf8_bytes": 3474,
+          "zlib6_bytes": 1096
+        },
+        "report_json": {
+          "logical_utf8_bytes": 93081,
+          "zlib6_bytes": 4912
+        },
+        "result_json": {
+          "logical_utf8_bytes": 649516,
+          "zlib6_bytes": 34283
+        }
+      },
+      "page_kind": "wdr.rounds",
+      "rows": 1,
+      "state": "needs_review"
+    },
+    {
+      "documents": {
+        "manifest_json": {
+          "logical_utf8_bytes": 219849,
+          "zlib6_bytes": 122254
+        },
+        "recipe_json": {
+          "logical_utf8_bytes": 1288265,
+          "zlib6_bytes": 404130
+        },
+        "report_json": {
+          "logical_utf8_bytes": 723010,
+          "zlib6_bytes": 282880
+        },
+        "result_json": {
+          "logical_utf8_bytes": 17025332,
+          "zlib6_bytes": 1596315
+        }
+      },
+      "page_kind": "wsdc_calendar.events",
+      "rows": 379,
+      "state": "needs_review"
+    },
+    {
+      "documents": {
+        "manifest_json": {
+          "logical_utf8_bytes": 47601,
+          "zlib6_bytes": 29184
+        },
+        "recipe_json": {
+          "logical_utf8_bytes": 290865,
+          "zlib6_bytes": 93654
+        },
+        "report_json": {
+          "logical_utf8_bytes": 175917,
+          "zlib6_bytes": 68256
+        },
+        "result_json": {
+          "logical_utf8_bytes": 736380,
+          "zlib6_bytes": 75489
+        }
+      },
+      "page_kind": "wsdc_newsletter.events",
+      "rows": 84,
+      "state": "needs_review"
+    },
+    {
+      "documents": {
+        "manifest_json": {
+          "logical_utf8_bytes": 1539,
+          "zlib6_bytes": 912
+        },
+        "recipe_json": {
+          "logical_utf8_bytes": 10224,
+          "zlib6_bytes": 3201
+        },
+        "report_json": {
+          "logical_utf8_bytes": 5628,
+          "zlib6_bytes": 2214
+        },
+        "result_json": {
+          "logical_utf8_bytes": 24033,
+          "zlib6_bytes": 2793
+        }
+      },
+      "page_kind": "wsdc_newsletter.index",
+      "rows": 3,
+      "state": "needs_review"
+    },
+    {
+      "documents": {
+        "manifest_json": {
+          "logical_utf8_bytes": 15103920,
+          "zlib6_bytes": 8938212
+        },
+        "recipe_json": {
+          "logical_utf8_bytes": 99064800,
+          "zlib6_bytes": 31056253
+        },
+        "report_json": {
+          "logical_utf8_bytes": 365386739,
+          "zlib6_bytes": 45258872
+        },
+        "result_json": {
+          "logical_utf8_bytes": 58229950,
+          "zlib6_bytes": 15257759
+        }
+      },
+      "page_kind": "wsdc_registry.dancer",
+      "rows": 29046,
+      "state": "accepted"
+    },
+    {
+      "documents": {
+        "manifest_json": {
+          "logical_utf8_bytes": 1040,
+          "zlib6_bytes": 613
+        },
+        "recipe_json": {
+          "logical_utf8_bytes": 6822,
+          "zlib6_bytes": 2140
+        },
+        "report_json": {
+          "logical_utf8_bytes": 17196,
+          "zlib6_bytes": 2496
+        },
+        "result_json": {
+          "logical_utf8_bytes": 1204,
+          "zlib6_bytes": 601
+        }
+      },
+      "page_kind": "wsdc_registry.dancer",
+      "rows": 2,
+      "state": "needs_review"
+    },
+    {
+      "documents": {
+        "manifest_json": {
+          "logical_utf8_bytes": 5720,
+          "zlib6_bytes": 3382
+        },
+        "recipe_json": {
+          "logical_utf8_bytes": 37505,
+          "zlib6_bytes": 11753
+        },
+        "report_json": {
+          "logical_utf8_bytes": 232211,
+          "zlib6_bytes": 20564
+        },
+        "result_json": {
+          "logical_utf8_bytes": 308995,
+          "zlib6_bytes": 25196
+        }
+      },
+      "page_kind": "wsdc_registry.dancer",
+      "rows": 11,
+      "state": "superseded"
+    }
+  ],
+  "compression": {
+    "algorithm": "zlib",
+    "framing": "Each source document and each canonical structural item is compressed as one independent zlib stream. Aggregate fields sum those stream byte lengths; unique fields sum one stream per raw-byte-distinct document or canonical-distinct item.",
+    "level": 6
+  },
+  "dbstat": {
+    "database_file_bytes": 5016936448,
+    "freelist_count": 0,
+    "page_count": 1224838,
+    "page_size": 4096,
+    "source_generations_index_bytes": 10866688,
+    "source_generations_index_pages": 2653,
+    "source_generations_table_bytes": 720551936,
+    "source_generations_table_pages": 175916
+  },
+  "documents": {
+    "manifest_json": {
+      "canonical_byte_identical_rows": 32189,
+      "distinct_documents": 31805,
+      "duplicate_logical_utf8_bytes": 227188,
+      "logical_utf8_bytes": 16804780,
+      "rows": 32189,
+      "unique_logical_utf8_bytes": 16577592,
+      "unique_zlib6_bytes": 9807911,
+      "zlib6_bytes": 9935581
+    },
+    "recipe_json": {
+      "canonical_byte_identical_rows": 32189,
+      "distinct_documents": 32189,
+      "duplicate_logical_utf8_bytes": 0,
+      "logical_utf8_bytes": 109815446,
+      "rows": 32189,
+      "unique_logical_utf8_bytes": 109815446,
+      "unique_zlib6_bytes": 34421385,
+      "zlib6_bytes": 34421385
+    },
+    "report_json": {
+      "canonical_byte_identical_rows": 32189,
+      "distinct_documents": 31805,
+      "duplicate_logical_utf8_bytes": 742038,
+      "logical_utf8_bytes": 386379672,
+      "rows": 32189,
+      "unique_logical_utf8_bytes": 385637634,
+      "unique_zlib6_bytes": 48499847,
+      "zlib6_bytes": 48790097
+    },
+    "result_json": {
+      "canonical_byte_identical_rows": 32189,
+      "distinct_documents": 31754,
+      "duplicate_logical_utf8_bytes": 14256693,
+      "logical_utf8_bytes": 173890464,
+      "rows": 32189,
+      "unique_logical_utf8_bytes": 159633771,
+      "unique_zlib6_bytes": 22014611,
+      "zlib6_bytes": 23392043
+    }
+  },
+  "format": "source-generation-json-profile-v2",
+  "invocation": {
+    "command": [
+      "/Users/skeswa/repos/skeswa/swingset/journal/tools/runtime/profile_source_generation_json.py",
+      "--state",
+      "/var/tmp/swingset-schema29-restore-20260917-004/restored-state",
+      "--output",
+      "/Users/skeswa/repos/skeswa/swingset/journal/evidence/runtime/state-storage-measurement-2026-09-18/source-json-report-005.json",
+      "--receipt",
+      "/Users/skeswa/repos/skeswa/swingset/journal/evidence/runtime/state-storage-measurement-2026-09-18/source-json-receipt-005.json"
+    ]
+  },
+  "limits": [
+    "The profile covers one closed disposable copy at one moment.",
+    "Logical and zlib byte counts do not predict SQLite page savings.",
+    "Only fixed document columns, fixed array paths, and page-kind/state cohorts are read.",
+    "Other than page-kind and state cohort labels, no source-data body, scalar value, URL, identity, digest, or JSON key name is retained in the report or receipt.",
+    "SQLite may use automatically managed temporary storage containing source documents for GROUP BY. The tool does not select or retain that temporary storage.",
+    "No production operation or network request is performed."
+  ],
+  "measured_at": "2026-09-18T20:49:03.462932+00:00",
+  "preflight": {
+    "logical_utf8_bytes": 686890362,
+    "max_row_bytes": 1695206,
+    "rows": 32189
+  },
+  "runtime": {
+    "hostname": "swingset",
+    "platform": "Linux-7.0.14-orbstack-00380-ga7e0a2dc9535-aarch64-with-glibc2.40",
+    "python_version": "3.12.13",
+    "sqlite_version": "3.50.4",
+    "zlib_compile_version": "1.3.2",
+    "zlib_runtime_version": "1.3.2"
+  },
+  "source": {
+    "database_path": "/var/tmp/swingset-schema29-restore-20260917-004/restored-state/state.sqlite",
+    "kind": "state",
+    "root_path": "/var/tmp/swingset-schema29-restore-20260917-004/restored-state",
+    "schema_version": 29,
+    "sidecars_after": {
+      "journal_bytes": 0,
+      "journal_exists": false,
+      "shm_bytes": 0,
+      "shm_exists": false,
+      "wal_bytes": 0,
+      "wal_exists": false
+    },
+    "sidecars_before": {
+      "journal_bytes": 0,
+      "journal_exists": false,
+      "shm_bytes": 0,
+      "shm_exists": false,
+      "wal_bytes": 0,
+      "wal_exists": false
+    },
+    "signature_after": {
+      "bytes": 5016936448,
+      "inode": 10285233,
+      "mtime_ns": 1789683616572116585
+    },
+    "signature_before": {
+      "bytes": 5016936448,
+      "inode": 10285233,
+      "mtime_ns": 1789683616572116585
+    },
+    "unchanged": true,
+    "user_version": 29
+  },
+  "structural_paths": [
+    {
+      "distinct_items": 51,
+      "logical_utf8_bytes": 96631378,
+      "occurrences": 1545072,
+      "path": "recipe_json.accepted_inputs[]",
+      "rows_missing": 0,
+      "rows_with_array": 32189,
+      "rows_wrong_type": 0,
+      "unique_logical_utf8_bytes": 3267,
+      "unique_zlib6_bytes": 3458,
+      "zlib6_bytes": 103036413
+    },
+    {
+      "distinct_items": 20897,
+      "logical_utf8_bytes": 278990710,
+      "occurrences": 2084911,
+      "path": "report_json.fields[]",
+      "rows_missing": 0,
+      "rows_with_array": 32189,
+      "rows_wrong_type": 0,
+      "unique_logical_utf8_bytes": 2789001,
+      "unique_zlib6_bytes": 2503264,
+      "zlib6_bytes": 240070267
+    },
+    {
+      "distinct_items": 33,
+      "logical_utf8_bytes": 87860549,
+      "occurrences": 817991,
+      "path": "report_json.guards[]",
+      "rows_missing": 0,
+      "rows_with_array": 32189,
+      "rows_wrong_type": 0,
+      "unique_logical_utf8_bytes": 3654,
+      "unique_zlib6_bytes": 3238,
+      "zlib6_bytes": 78212030
+    }
+  ],
+  "tool_sha256": "f7a31758e55c07ff45f5f0b8d5ff7e70696cc25d06b3cc0ddb467b022b53d1ad",
+  "tool_version": "profile-source-generation-json-v2"
+}

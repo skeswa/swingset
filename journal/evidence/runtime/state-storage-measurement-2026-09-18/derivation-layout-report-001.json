@@ -1,0 +1,584 @@
+{
+  "comparison": {
+    "compressed_proxy_bytes_delta": -14769705,
+    "compressed_proxy_bytes_saved": 14769705,
+    "derivation_rows_bytes_delta": -142528512,
+    "derivation_rows_bytes_saved": 142528512,
+    "whole_database_bytes_delta": -142528512,
+    "whole_database_bytes_saved": 142528512
+  },
+  "finished_at": "2026-09-18T20:36:09.871446+00:00",
+  "format": "derivation-row-layout-benchmark-v1",
+  "gates": {
+    "checks": {
+      "baseline_compact": true,
+      "baseline_constraints": true,
+      "baseline_content_matches_source": true,
+      "baseline_integrity": true,
+      "baseline_is_rowid": true,
+      "candidate_compact": true,
+      "candidate_constraints": true,
+      "candidate_content_matches_source": true,
+      "candidate_integrity": true,
+      "candidate_is_without_rowid": true,
+      "source_has_no_orphan_rows": true,
+      "source_integrity": true,
+      "source_output_labels_match_rows": true,
+      "source_sidecars_unchanged": true,
+      "source_signature_and_hash_unchanged": true,
+      "triggers_preserved": true
+    },
+    "passed": true
+  },
+  "layouts": {
+    "baseline": {
+      "build": {
+        "copy_seconds": 2.340805318999628,
+        "prepare_seconds": 27.054288475999783,
+        "total_seconds": 29.39509379499941,
+        "vacuum_seconds": 24.918424643001345
+      },
+      "compressed_backup_proxy": {
+        "bytes": 499507625,
+        "compresslevel": 6,
+        "gzip_mtime": 0,
+        "kind": "deterministic-gzip-whole-database-proxy",
+        "path": "/var/tmp/swingset-derivation-layout-benchmark-20260918-001/baseline.sqlite.gz",
+        "seconds": 26.122244194000814,
+        "sha256": "a10de7a722a9a97eb8233ead33ad7f3683e69e2224ab69750f4f752d3fc50f39"
+      },
+      "constraints": {
+        "deferred_foreign_key": {
+          "commit_rejected_without_label": true,
+          "insert_allowed_before_label": true
+        },
+        "delete_immutable": {
+          "error": "derivation rows are immutable",
+          "rejected": true
+        },
+        "duplicate_logical_key": {
+          "error": "UNIQUE constraint failed: derivation_rows.generation_id, derivation_rows.table_name, derivation_rows.record_key",
+          "rejected": true
+        },
+        "duplicate_ordinal": {
+          "error": "UNIQUE constraint failed: derivation_rows.generation_id, derivation_rows.ordinal",
+          "rejected": true
+        },
+        "history_fence": {
+          "insert_bumped_revision": true,
+          "relevant": true
+        },
+        "passed": true,
+        "update_immutable": {
+          "error": "derivation rows are immutable",
+          "rejected": true
+        }
+      },
+      "content": {
+        "declared_rows": 1669989,
+        "generation_label_stream_sha256": "53bb2bfc504d766a3c12637feae4cd0036c59686b37a0b69a6d10f03a0b71218",
+        "generations": 34987,
+        "output_label_mismatch_count": 0,
+        "output_label_mismatches": [],
+        "payload_bytes": 502109081,
+        "row_stream_sha256": "01ddc9fa9c79962b17206e198f8bb03a5c7a2cc4ca234c31c933bb8e66ff876b",
+        "rows": 1669989,
+        "rows_without_generation": 0
+      },
+      "integrity": {
+        "foreign_key_check": [],
+        "integrity_check": [
+          "ok"
+        ],
+        "passed": true
+      },
+      "path": "/var/tmp/swingset-derivation-layout-benchmark-20260918-001/baseline.sqlite",
+      "queries": [
+        {
+          "best_seconds": 0.0047595039977750275,
+          "name": "generation_count",
+          "plan": [
+            "SEARCH derivation_rows USING COVERING INDEX sqlite_autoindex_derivation_rows_1 (generation_id=?)"
+          ],
+          "repeats": 3,
+          "rows_returned": 1,
+          "seconds": [
+            0.0049072549991251435,
+            0.004811129001609515,
+            0.0047595039977750275
+          ],
+          "sql": "SELECT count(*) FROM derivation_rows WHERE generation_id=?"
+        },
+        {
+          "best_seconds": 0.08585819500149228,
+          "name": "generation_ordered_stream",
+          "plan": [
+            "SEARCH derivation_rows USING INDEX sqlite_autoindex_derivation_rows_1 (generation_id=?)"
+          ],
+          "repeats": 3,
+          "rows_returned": 200597,
+          "seconds": [
+            0.08707108199814684,
+            0.09152783200261183,
+            0.08585819500149228
+          ],
+          "sql": "SELECT table_name,record_key,payload_json FROM derivation_rows WHERE generation_id=? ORDER BY ordinal"
+        },
+        {
+          "best_seconds": 2.91700052912347e-06,
+          "name": "generation_artifacts",
+          "plan": [
+            "SEARCH derivation_rows USING INDEX sqlite_autoindex_derivation_rows_2 (generation_id=? AND table_name=?)"
+          ],
+          "repeats": 3,
+          "rows_returned": 0,
+          "seconds": [
+            2.7166999643668532e-05,
+            3.6249984987080097e-06,
+            2.91700052912347e-06
+          ],
+          "sql": "SELECT payload_json FROM derivation_rows WHERE generation_id=? AND table_name='artifact'"
+        },
+        {
+          "best_seconds": 3.832999937003478e-06,
+          "name": "exact_logical_key",
+          "plan": [
+            "SEARCH derivation_rows USING INDEX sqlite_autoindex_derivation_rows_2 (generation_id=? AND table_name=? AND record_key=?)"
+          ],
+          "repeats": 3,
+          "rows_returned": 1,
+          "seconds": [
+            2.0208000933052972e-05,
+            3.832999937003478e-06,
+            3.9579972508363426e-06
+          ],
+          "sql": "SELECT payload_json FROM derivation_rows WHERE generation_id=? AND table_name=? AND record_key=?"
+        },
+        {
+          "best_seconds": 0.2850653479981702,
+          "name": "retention_grouping",
+          "plan": [
+            "SCAN derivation_rows USING INDEX sqlite_autoindex_derivation_rows_1"
+          ],
+          "repeats": 3,
+          "rows_returned": 28529,
+          "seconds": [
+            0.2876143309986219,
+            0.2850653479981702,
+            0.2853525600003195
+          ],
+          "sql": "SELECT generation_id,count(*),coalesce(sum(length(CAST(payload_json AS BLOB))),0) FROM derivation_rows GROUP BY generation_id"
+        }
+      ],
+      "storage": {
+        "dbstat_bytes": 4859150336,
+        "derivation_rows": {
+          "index_bytes": 448339968,
+          "indexes": [
+            {
+              "bytes": 134393856,
+              "columns": [
+                "generation_id",
+                "ordinal"
+              ],
+              "name": "sqlite_autoindex_derivation_rows_1",
+              "origin": "pk",
+              "partial": false,
+              "unique": true
+            },
+            {
+              "bytes": 313946112,
+              "columns": [
+                "generation_id",
+                "table_name",
+                "record_key"
+              ],
+              "name": "sqlite_autoindex_derivation_rows_2",
+              "origin": "u",
+              "partial": false,
+              "unique": true
+            }
+          ],
+          "table_bytes": 873897984,
+          "total_bytes": 1322237952,
+          "without_rowid": false
+        },
+        "file_bytes": 4859154432,
+        "freelist_pages": 0,
+        "page_count": 1186317,
+        "page_size": 4096
+      },
+      "triggers": [
+        {
+          "name": "derivation_row_no_delete",
+          "sql": "CREATE TRIGGER derivation_row_no_delete BEFORE DELETE ON derivation_rows\nBEGIN SELECT RAISE(ABORT,'derivation rows are immutable'); END"
+        },
+        {
+          "name": "derivation_row_no_update",
+          "sql": "CREATE TRIGGER derivation_row_no_update BEFORE UPDATE ON derivation_rows\nBEGIN SELECT RAISE(ABORT,'derivation rows are immutable'); END"
+        },
+        {
+          "name": "history_timing_derivation_rows_delete",
+          "sql": "CREATE TRIGGER history_timing_derivation_rows_delete AFTER DELETE ON derivation_rows BEGIN\n    UPDATE history_dispatch_fence SET revision=revision+1 WHERE singleton=1;\nEND"
+        },
+        {
+          "name": "history_timing_derivation_rows_insert",
+          "sql": "CREATE TRIGGER history_timing_derivation_rows_insert AFTER INSERT ON derivation_rows BEGIN\n    UPDATE history_dispatch_fence SET revision=revision+1 WHERE singleton=1;\nEND"
+        },
+        {
+          "name": "history_timing_derivation_rows_update",
+          "sql": "CREATE TRIGGER history_timing_derivation_rows_update AFTER UPDATE ON derivation_rows BEGIN\n    UPDATE history_dispatch_fence SET revision=revision+1 WHERE singleton=1;\nEND"
+        },
+        {
+          "name": "publication_fence_derivation_rows_delete",
+          "sql": "CREATE TRIGGER \"publication_fence_derivation_rows_delete\" BEFORE DELETE ON \"derivation_rows\" WHEN EXISTS(SELECT 1 FROM execution_admissions WHERE state='active' AND action_kind IN ('publish','publication')) BEGIN SELECT RAISE(ABORT,'active publication fences semantic writes'); END"
+        },
+        {
+          "name": "publication_fence_derivation_rows_insert",
+          "sql": "CREATE TRIGGER \"publication_fence_derivation_rows_insert\" BEFORE INSERT ON \"derivation_rows\" WHEN EXISTS(SELECT 1 FROM execution_admissions WHERE state='active' AND action_kind IN ('publish','publication')) BEGIN SELECT RAISE(ABORT,'active publication fences semantic writes'); END"
+        },
+        {
+          "name": "publication_fence_derivation_rows_update",
+          "sql": "CREATE TRIGGER \"publication_fence_derivation_rows_update\" BEFORE UPDATE ON \"derivation_rows\" WHEN EXISTS(SELECT 1 FROM execution_admissions WHERE state='active' AND action_kind IN ('publish','publication')) BEGIN SELECT RAISE(ABORT,'active publication fences semantic writes'); END"
+        }
+      ]
+    },
+    "without_rowid": {
+      "build": {
+        "copy_seconds": 11.524385806002101,
+        "prepare_seconds": 40.488200592000794,
+        "rebuild_seconds": 9.845787568003288,
+        "total_seconds": 52.012586398002895,
+        "vacuum_seconds": 28.891127339000377
+      },
+      "compressed_backup_proxy": {
+        "bytes": 484737920,
+        "compresslevel": 6,
+        "gzip_mtime": 0,
+        "kind": "deterministic-gzip-whole-database-proxy",
+        "path": "/var/tmp/swingset-derivation-layout-benchmark-20260918-001/without-rowid.sqlite.gz",
+        "seconds": 25.835861167000985,
+        "sha256": "1098dbd9baf7df878180a9977afb5249cce1dfc114148d99e559d953ef4e76a2"
+      },
+      "constraints": {
+        "deferred_foreign_key": {
+          "commit_rejected_without_label": true,
+          "insert_allowed_before_label": true
+        },
+        "delete_immutable": {
+          "error": "derivation rows are immutable",
+          "rejected": true
+        },
+        "duplicate_logical_key": {
+          "error": "UNIQUE constraint failed: derivation_rows.generation_id, derivation_rows.table_name, derivation_rows.record_key",
+          "rejected": true
+        },
+        "duplicate_ordinal": {
+          "error": "UNIQUE constraint failed: derivation_rows.generation_id, derivation_rows.ordinal",
+          "rejected": true
+        },
+        "history_fence": {
+          "insert_bumped_revision": true,
+          "relevant": true
+        },
+        "passed": true,
+        "update_immutable": {
+          "error": "derivation rows are immutable",
+          "rejected": true
+        }
+      },
+      "content": {
+        "declared_rows": 1669989,
+        "generation_label_stream_sha256": "53bb2bfc504d766a3c12637feae4cd0036c59686b37a0b69a6d10f03a0b71218",
+        "generations": 34987,
+        "output_label_mismatch_count": 0,
+        "output_label_mismatches": [],
+        "payload_bytes": 502109081,
+        "row_stream_sha256": "01ddc9fa9c79962b17206e198f8bb03a5c7a2cc4ca234c31c933bb8e66ff876b",
+        "rows": 1669989,
+        "rows_without_generation": 0
+      },
+      "integrity": {
+        "foreign_key_check": [],
+        "integrity_check": [
+          "ok"
+        ],
+        "passed": true
+      },
+      "path": "/var/tmp/swingset-derivation-layout-benchmark-20260918-001/without-rowid.sqlite",
+      "queries": [
+        {
+          "best_seconds": 0.006015181999828201,
+          "name": "generation_count",
+          "plan": [
+            "SEARCH derivation_rows USING COVERING INDEX sqlite_autoindex_derivation_rows_2 (generation_id=?)"
+          ],
+          "repeats": 3,
+          "rows_returned": 1,
+          "seconds": [
+            0.006135141997219762,
+            0.006478519997472176,
+            0.006015181999828201
+          ],
+          "sql": "SELECT count(*) FROM derivation_rows WHERE generation_id=?"
+        },
+        {
+          "best_seconds": 0.07737082200037548,
+          "name": "generation_ordered_stream",
+          "plan": [
+            "SEARCH derivation_rows USING PRIMARY KEY (generation_id=?)"
+          ],
+          "repeats": 3,
+          "rows_returned": 200597,
+          "seconds": [
+            0.07737082200037548,
+            0.08511706300123478,
+            0.08425630499914405
+          ],
+          "sql": "SELECT table_name,record_key,payload_json FROM derivation_rows WHERE generation_id=? ORDER BY ordinal"
+        },
+        {
+          "best_seconds": 3.3329997677356005e-06,
+          "name": "generation_artifacts",
+          "plan": [
+            "SEARCH derivation_rows USING INDEX sqlite_autoindex_derivation_rows_2 (generation_id=? AND table_name=?)"
+          ],
+          "repeats": 3,
+          "rows_returned": 0,
+          "seconds": [
+            4.03340018237941e-05,
+            6.333000783342868e-06,
+            3.3329997677356005e-06
+          ],
+          "sql": "SELECT payload_json FROM derivation_rows WHERE generation_id=? AND table_name='artifact'"
+        },
+        {
+          "best_seconds": 9.540999599266797e-06,
+          "name": "exact_logical_key",
+          "plan": [
+            "SEARCH derivation_rows USING INDEX sqlite_autoindex_derivation_rows_2 (generation_id=? AND table_name=? AND record_key=?)"
+          ],
+          "repeats": 3,
+          "rows_returned": 1,
+          "seconds": [
+            3.50419977621641e-05,
+            9.540999599266797e-06,
+            1.1583000741666183e-05
+          ],
+          "sql": "SELECT payload_json FROM derivation_rows WHERE generation_id=? AND table_name=? AND record_key=?"
+        },
+        {
+          "best_seconds": 0.188907054001902,
+          "name": "retention_grouping",
+          "plan": [
+            "SCAN derivation_rows"
+          ],
+          "repeats": 3,
+          "rows_returned": 28529,
+          "seconds": [
+            0.21899163399939425,
+            0.1938415599979635,
+            0.188907054001902
+          ],
+          "sql": "SELECT generation_id,count(*),coalesce(sum(length(CAST(payload_json AS BLOB))),0) FROM derivation_rows GROUP BY generation_id"
+        }
+      ],
+      "storage": {
+        "dbstat_bytes": 4716621824,
+        "derivation_rows": {
+          "index_bytes": 312233984,
+          "indexes": [
+            {
+              "bytes": 0,
+              "columns": [
+                "generation_id",
+                "ordinal"
+              ],
+              "name": "sqlite_autoindex_derivation_rows_1",
+              "origin": "pk",
+              "partial": false,
+              "unique": true
+            },
+            {
+              "bytes": 312233984,
+              "columns": [
+                "generation_id",
+                "table_name",
+                "record_key"
+              ],
+              "name": "sqlite_autoindex_derivation_rows_2",
+              "origin": "u",
+              "partial": false,
+              "unique": true
+            }
+          ],
+          "table_bytes": 867475456,
+          "total_bytes": 1179709440,
+          "without_rowid": true
+        },
+        "file_bytes": 4716625920,
+        "freelist_pages": 0,
+        "page_count": 1151520,
+        "page_size": 4096
+      },
+      "triggers": [
+        {
+          "name": "derivation_row_no_delete",
+          "sql": "CREATE TRIGGER derivation_row_no_delete BEFORE DELETE ON derivation_rows\nBEGIN SELECT RAISE(ABORT,'derivation rows are immutable'); END"
+        },
+        {
+          "name": "derivation_row_no_update",
+          "sql": "CREATE TRIGGER derivation_row_no_update BEFORE UPDATE ON derivation_rows\nBEGIN SELECT RAISE(ABORT,'derivation rows are immutable'); END"
+        },
+        {
+          "name": "history_timing_derivation_rows_delete",
+          "sql": "CREATE TRIGGER history_timing_derivation_rows_delete AFTER DELETE ON derivation_rows BEGIN\n    UPDATE history_dispatch_fence SET revision=revision+1 WHERE singleton=1;\nEND"
+        },
+        {
+          "name": "history_timing_derivation_rows_insert",
+          "sql": "CREATE TRIGGER history_timing_derivation_rows_insert AFTER INSERT ON derivation_rows BEGIN\n    UPDATE history_dispatch_fence SET revision=revision+1 WHERE singleton=1;\nEND"
+        },
+        {
+          "name": "history_timing_derivation_rows_update",
+          "sql": "CREATE TRIGGER history_timing_derivation_rows_update AFTER UPDATE ON derivation_rows BEGIN\n    UPDATE history_dispatch_fence SET revision=revision+1 WHERE singleton=1;\nEND"
+        },
+        {
+          "name": "publication_fence_derivation_rows_delete",
+          "sql": "CREATE TRIGGER \"publication_fence_derivation_rows_delete\" BEFORE DELETE ON \"derivation_rows\" WHEN EXISTS(SELECT 1 FROM execution_admissions WHERE state='active' AND action_kind IN ('publish','publication')) BEGIN SELECT RAISE(ABORT,'active publication fences semantic writes'); END"
+        },
+        {
+          "name": "publication_fence_derivation_rows_insert",
+          "sql": "CREATE TRIGGER \"publication_fence_derivation_rows_insert\" BEFORE INSERT ON \"derivation_rows\" WHEN EXISTS(SELECT 1 FROM execution_admissions WHERE state='active' AND action_kind IN ('publish','publication')) BEGIN SELECT RAISE(ABORT,'active publication fences semantic writes'); END"
+        },
+        {
+          "name": "publication_fence_derivation_rows_update",
+          "sql": "CREATE TRIGGER \"publication_fence_derivation_rows_update\" BEFORE UPDATE ON \"derivation_rows\" WHEN EXISTS(SELECT 1 FROM execution_admissions WHERE state='active' AND action_kind IN ('publish','publication')) BEGIN SELECT RAISE(ABORT,'active publication fences semantic writes'); END"
+        }
+      ]
+    }
+  },
+  "limits": [
+    "The source must already be a closed disposable schema-29 copy.",
+    "Timings are local warm-or-cold observations, not service levels.",
+    "Deterministic gzip of the whole SQLite file is a backup-size proxy, not a checkpoint.",
+    "This tool performs no production operation and makes no network request."
+  ],
+  "scratch": "/var/tmp/swingset-derivation-layout-benchmark-20260918-001",
+  "source": {
+    "content": {
+      "declared_rows": 1669989,
+      "generation_label_stream_sha256": "53bb2bfc504d766a3c12637feae4cd0036c59686b37a0b69a6d10f03a0b71218",
+      "generations": 34987,
+      "output_label_mismatch_count": 0,
+      "output_label_mismatches": [],
+      "payload_bytes": 502109081,
+      "row_stream_sha256": "01ddc9fa9c79962b17206e198f8bb03a5c7a2cc4ca234c31c933bb8e66ff876b",
+      "rows": 1669989,
+      "rows_without_generation": 0
+    },
+    "integrity": {
+      "foreign_key_check": [],
+      "integrity_check": [
+        "ok"
+      ],
+      "passed": true
+    },
+    "opened": "mode=ro&immutable=1",
+    "path": "/var/tmp/swingset-schema29-restore-20260917-004/restored-state/state.sqlite",
+    "root": "/var/tmp/swingset-schema29-restore-20260917-004/restored-state",
+    "sidecars_after": {
+      "shm": null,
+      "wal": null
+    },
+    "sidecars_before": {
+      "shm": null,
+      "wal": null
+    },
+    "signature_after": {
+      "bytes": 5016936448,
+      "inode": 10285233,
+      "mtime_ns": 1789683616572116585,
+      "sha256": "5840f97da69c42adb6e60132418c64c04505ae043a650723c84ff38644c64265"
+    },
+    "signature_before": {
+      "bytes": 5016936448,
+      "inode": 10285233,
+      "mtime_ns": 1789683616572116585,
+      "sha256": "5840f97da69c42adb6e60132418c64c04505ae043a650723c84ff38644c64265"
+    },
+    "storage": {
+      "dbstat_bytes": 5016932352,
+      "derivation_rows": {
+        "index_bytes": 492802048,
+        "indexes": [
+          {
+            "bytes": 150556672,
+            "columns": [
+              "generation_id",
+              "ordinal"
+            ],
+            "name": "sqlite_autoindex_derivation_rows_1",
+            "origin": "pk",
+            "partial": false,
+            "unique": true
+          },
+          {
+            "bytes": 342245376,
+            "columns": [
+              "generation_id",
+              "table_name",
+              "record_key"
+            ],
+            "name": "sqlite_autoindex_derivation_rows_2",
+            "origin": "u",
+            "partial": false,
+            "unique": true
+          }
+        ],
+        "table_bytes": 873897984,
+        "total_bytes": 1366700032,
+        "without_rowid": false
+      },
+      "file_bytes": 5016936448,
+      "freelist_pages": 0,
+      "page_count": 1224838,
+      "page_size": 4096
+    },
+    "triggers": [
+      {
+        "name": "derivation_row_no_delete",
+        "sql": "CREATE TRIGGER derivation_row_no_delete BEFORE DELETE ON derivation_rows\nBEGIN SELECT RAISE(ABORT,'derivation rows are immutable'); END"
+      },
+      {
+        "name": "derivation_row_no_update",
+        "sql": "CREATE TRIGGER derivation_row_no_update BEFORE UPDATE ON derivation_rows\nBEGIN SELECT RAISE(ABORT,'derivation rows are immutable'); END"
+      },
+      {
+        "name": "history_timing_derivation_rows_delete",
+        "sql": "CREATE TRIGGER history_timing_derivation_rows_delete AFTER DELETE ON derivation_rows BEGIN\n    UPDATE history_dispatch_fence SET revision=revision+1 WHERE singleton=1;\nEND"
+      },
+      {
+        "name": "history_timing_derivation_rows_insert",
+        "sql": "CREATE TRIGGER history_timing_derivation_rows_insert AFTER INSERT ON derivation_rows BEGIN\n    UPDATE history_dispatch_fence SET revision=revision+1 WHERE singleton=1;\nEND"
+      },
+      {
+        "name": "history_timing_derivation_rows_update",
+        "sql": "CREATE TRIGGER history_timing_derivation_rows_update AFTER UPDATE ON derivation_rows BEGIN\n    UPDATE history_dispatch_fence SET revision=revision+1 WHERE singleton=1;\nEND"
+      },
+      {
+        "name": "publication_fence_derivation_rows_delete",
+        "sql": "CREATE TRIGGER \"publication_fence_derivation_rows_delete\" BEFORE DELETE ON \"derivation_rows\" WHEN EXISTS(SELECT 1 FROM execution_admissions WHERE state='active' AND action_kind IN ('publish','publication')) BEGIN SELECT RAISE(ABORT,'active publication fences semantic writes'); END"
+      },
+      {
+        "name": "publication_fence_derivation_rows_insert",
+        "sql": "CREATE TRIGGER \"publication_fence_derivation_rows_insert\" BEFORE INSERT ON \"derivation_rows\" WHEN EXISTS(SELECT 1 FROM execution_admissions WHERE state='active' AND action_kind IN ('publish','publication')) BEGIN SELECT RAISE(ABORT,'active publication fences semantic writes'); END"
+      },
+      {
+        "name": "publication_fence_derivation_rows_update",
+        "sql": "CREATE TRIGGER \"publication_fence_derivation_rows_update\" BEFORE UPDATE ON \"derivation_rows\" WHEN EXISTS(SELECT 1 FROM execution_admissions WHERE state='active' AND action_kind IN ('publish','publication')) BEGIN SELECT RAISE(ABORT,'active publication fences semantic writes'); END"
+      }
+    ]
+  },
+  "started_at": "2026-09-18T20:32:15.317843+00:00",
+  "tool_version": "benchmark-derivation-row-layout-v1"
+}
