@@ -364,11 +364,16 @@ Before stopping the VM, stop cycle and backup timers and services, then use
 `orb stop swingset` on the Mac. Start it with `orb start swingset`; inspect logs
 and `doctor` before resuming collection.
 
-For a maintenance hold that survives deployment and reboot, create the persistent
-marker before stopping the services:
+A maintenance hold is a runtime interlock for one named review, never a
+standing state. The marker file says who set it, why, and the date by which
+it is reviewed. `doctor` reports it as `operator_hold` with its age and marks
+it `overdue` after 48 hours; an overdue hold is the first line of
+[status](../status.md) ([D-0176](../../journal/decisions/0176-resume-automatic-collection-and-give-the-hold-an-owner-and-expiry.md)).
+Create the marker before stopping the services:
 
 ```sh
-sudo touch /var/lib/swingset/operator-hold
+printf 'who: %s\nwhy: %s\nreview-by: %s\n' sandile 'checking the 2019 rounds' 2026-09-22 |
+  sudo tee /var/lib/swingset/operator-hold >/dev/null
 sudo systemctl stop swingset-cycle.timer swingset-backup.timer swingset-summary.timer
 sudo systemctl stop swingset-cycle.service swingset-backup.service swingset-summary.service
 ```

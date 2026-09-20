@@ -1,23 +1,23 @@
 # Project decisions
 
-A decision record states a choice and the reason for it. The file itself is
-the acceptance: there is no status and no separate approval step. The agent
-makes and records most decisions on its own, including routine implementation
-choices. It asks the owner first, and records the answer in `Decided by`, only
-when a choice is high impact or controversial:
+A decision record states a choice and the reason for it, on one screen. The
+file's existence is its acceptance; there is no status and no approval step.
+Under [D-0172](0172-delegate-all-project-decisions-to-agents-until-revoked.md)
+agents decide and record without asking the owner. Under
+[D-0175](0175-fewer-records-receipts-not-bundles-and-tiered-review.md) a record
+is written only for a choice a future reader could want to reverse:
 
-- it deletes, rewrites, or moves retained evidence, published data, or
-  production state, or changes what is kept and for how long;
-- it deploys, publishes, spends money, or touches a third party or a live
-  source beyond the documented fetching rules;
-- it changes a published contract, the data model, an identity rule, or a
-  promise made in `docs/reference/`;
-- it reverses or narrows an earlier owner-decided record; or
-- reasonable engineers would disagree and the cost of being wrong is not
-  cheaply undone.
+- it changes the data model, an identity rule, a retention limit, a source or
+  host policy, or a promise made in `docs/reference/`;
+- it deletes, rewrites or moves retained evidence, published data or
+  production state;
+- it deploys, publishes, spends money, or touches a third party beyond the
+  documented fetching rules; or
+- it reverses or narrows an earlier record.
 
-A changed choice gets a new record that links the old one. Start with the
-summary in each record; evidence and implementation detail are linked below it.
+Routine implementation choices go in the commit message. A choice about plan
+direction is a plan edit in `docs/plans/`. A changed choice gets a new record
+that links the old one.
 
 ## Decision index
 
@@ -194,6 +194,11 @@ summary in each record; evidence and implementation detail are linked below it.
 | [D-0169](0169-agents-decide-and-record-and-ask-only-for-high-impact-choices.md)       | Agents decide and record; the owner is asked only for high-impact choices                           | Documentation                                     |
 | [D-0170](0170-pin-tmpdir-in-the-dev-shell-so-test-temp-is-pruned.md)                  | Pin TMPDIR in the dev shell so test temp is pruned                                                  | Development environment                           |
 | [D-0171](0171-core-suite-while-iterating-full-suite-as-final-check.md)                | Core suite while iterating; full suite as a final check                                             | Development checks                                |
+| [D-0172](0172-delegate-all-project-decisions-to-agents-until-revoked.md)              | Delegate all project decisions to agents until revoked                                              | Documentation                                     |
+| [D-0173](0173-defer-row-layout-to-schema32-and-prototype-json-compression.md)         | Defer row-layout optimization to schema 32 and prototype exact JSON compression next                | State retention and recovery cost                 |
+| [D-0174](0174-benchmark-one-exact-source-json-compression-layout.md)                  | Benchmark one exact source JSON compression layout                                                  | State retention and recovery cost                 |
+| [D-0175](0175-fewer-records-receipts-not-bundles-and-tiered-review.md)                | Fewer records, receipts not bundles, and tiered review                                              | Process                                           |
+| [D-0176](0176-resume-automatic-collection-and-give-the-hold-an-owner-and-expiry.md)   | Resume automatic collection and publication; give the hold an owner and an expiry                   | Release operations                                |
 
 The [legacy decision log](legacy-design-review.md) preserves the original
 review notes. It is historical evidence, not a second list of current rules.
@@ -210,7 +215,7 @@ do not replace a record here. See [D-0006](0006-record-every-decision.md).
 Use the [template](TEMPLATE.md). Assign the next unused four-digit number;
 never reuse an ID. Give each record one choice and a descriptive filename.
 Keep small decisions to a few sentences; use more detail only when needed.
-Retain the template's status and acceptance fields; omit empty body sections.
+Retain the template's provenance fields; omit empty body sections.
 Link supporting research and add every record to the index.
 
 Logging a choice does not require a new approval step for already authorized
@@ -219,16 +224,13 @@ older decisions surface, record what is known and mark missing evidence.
 
 ## Acceptance and lifecycle
 
-| Status     | Meaning                                                                                                  |
-| ---------- | -------------------------------------------------------------------------------------------------------- |
-| Proposed   | Under consideration; does not establish a rule.                                                          |
-| Accepted   | Explicitly agreed by the project owner or a named delegate. Record who, when, and the acceptance source. |
-| Rejected   | Considered and declined. Preserve the reason.                                                            |
-| Superseded | Replaced by a later accepted decision. Link both records.                                                |
+A record's existence establishes the choice. `Decided by` preserves who made
+it and under what authority. A later choice may supersede all or part of it;
+link both records and preserve the earlier reasoning.
 
-An agent's recommendation is not acceptance. Accepted does not mean implemented,
-tested, deployed, or published. Put those claims and their evidence in
-[current status](../../docs/status.md) and the related plan or outcome record.
+A decision does not mean implemented, tested, deployed, or published. Put
+those claims and their evidence in [current status](../../docs/status.md) and
+the related plan or outcome record.
 
 For imported history only, **Historical; acceptance not yet verified** means
 the choice appears in old design or code, but the acceptance record has not
@@ -236,12 +238,13 @@ been established. Existing implementation is not proof of who approved it.
 This migration label creates no new approval gate for ordinary authorized work.
 Resolve it when evidence is found; do not invent a date or approver.
 
-Once accepted, preserve the substance of the record. Fix typos and links;
+Once recorded, preserve the substance of the record. Fix typos and links;
 record a changed choice in a new decision. If only part changes, state the
-scope of replacement in both records. Update the index with every status change.
+scope of replacement in both records. Update the index when a later record
+supersedes it.
 
 ## Keep current docs in step
 
-When implementing an accepted decision, update its current reference page in
-the same change. A proposed alternative must not silently replace the current
-rule. The reference explains what applies; this journal preserves the reasons.
+When implementing a decision, update its current reference page in the same
+change. An alternative must not silently replace the current rule. The
+reference explains what applies; this journal preserves the reasons.

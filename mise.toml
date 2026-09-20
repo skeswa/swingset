@@ -20,8 +20,16 @@ shfmt = "3.13.1"
 taplo = "0.10.0"
 
 [tasks.evidence-size]
-description = "Report evidence sizes and reject tracked files over 1 MiB"
+description = "Report evidence sizes; reject files over 1 MiB and more than 200 KiB of new evidence per change"
 run = "python3 journal/tools/evidence_size.py"
+
+[tasks.session-start]
+description = "Take or refresh the one agent-session lock for this checkout (pass -- --label <you>)"
+run = "python3 journal/tools/agent_session.py start"
+
+[tasks.session-end]
+description = "Release the agent-session lock"
+run = "python3 journal/tools/agent_session.py end"
 
 [tasks.fmt]
 description = "Format every hand-written file in the repo"

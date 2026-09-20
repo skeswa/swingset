@@ -1,33 +1,32 @@
 # D-NNNN: State the choice in plain language
 
 Recorded: YYYY-MM-DD  
-Decided by: agent | owner, YYYY-MM-DD; source: the instruction or review that decided it  
+Decided by: agent | owner, YYYY-MM-DD; source: the instruction that decided it  
 Topic: Name the topic  
 Supersedes: —  
 Superseded by: —
 
 ## Decision
 
-The agent decides and records most choices itself; the file's existence is
-the acceptance and there is no status. Ask the owner first only for a
-high-impact or controversial choice (see the README), and then say so in
-`Decided by`. State what we will do and where the rule applies. Explain enough context that
-someone new can understand the choice without opening another page.
+What we will do and where the rule applies, in a few sentences a newcomer
+can follow without opening another page.
 
 ## Why
 
-Describe the problem, constraints, and evidence behind the choice. Mark
-unverified assumptions and link to investigations.
+The problem, the evidence, and the constraint that settled it. Mark
+unverified assumptions.
 
-## Alternatives
+## Alternatives and consequences
 
-List the serious alternatives and the reason for choosing against each.
-
-## Consequences
-
-State what improves, what it costs, and what limits we accept.
+Only when a reasonable engineer would have chosen differently: what else was
+considered, why not, and what this choice costs. Delete this section
+otherwise.
 
 ## Links
 
-Link to the current reference, supporting investigations, and implementation
-plan.
+One link to the owning reference, plan, or receipt. Add more only when the
+reader needs them.
+
+Keep the whole record on one screen, about 40 lines. Detail belongs in an
+investigation or the plan. Write a record only for a choice a future reader
+could want to reverse; see the [README](README.md) for the test.

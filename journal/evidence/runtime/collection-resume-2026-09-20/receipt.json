@@ -1,0 +1,53 @@
+{
+  "operation": "Resume automatic collection and publication by removing the operator hold",
+  "decision": "D-0176",
+  "operator": "claude (Claude Code session), on the owner's instruction of 2026-09-20",
+  "worker": "OrbStack machine swingset, candidate 006, schema 29",
+  "source": "/nix/store/rgyryll4d55rgzscdqhjcwmkr325a76f-source",
+  "hold_before": {
+    "path": "/var/lib/swingset/operator-hold",
+    "created_utc": "2026-09-13T04:17:05Z",
+    "bytes": 66,
+    "text": "V2 deployment and controlled G1 probe; publication awaits review."
+  },
+  "fault_found_before_removal": {
+    "symptom": "ExecStartPre `uv sync --frozen --no-dev` failed for the swingset user: failed to hardlink _editable_impl_swingset.pth into /var/lib/swingset/uv-cache/archive-v0/L1JFi0Q1SpDhteEbfX5zU (Operation not permitted)",
+    "cause": "two archive-v0 entries were root-owned since 2026-09-17T22:44Z and fs.protected_hardlinks=1 refuses the link",
+    "note": "the reviewer's first read-only doctor attempt ran the same sync and uninstalled the package before the install step failed; the service would have hit the same failure on its first post-hold start",
+    "repair": [
+      "chown -R swingset:swingset /var/lib/swingset/uv-cache",
+      "sudo -u swingset env <swingset-cycle.service Environment> uv sync --project <source> --frozen --no-dev  -> Installed 1 package: swingset==0.1.0",
+      "sudo -u swingset env <...> /var/lib/swingset/venv/bin/python -c 'import swingset'  -> /nix/store/rgyryll4d55rgzscdqhjcwmkr325a76f-source/src/swingset/__init__.py"
+    ]
+  },
+  "pre_resume_doctor": {
+    "command": "swingset doctor --state /var/lib/swingset --config <source>/config",
+    "captured_utc": "2026-09-20T23:08:39Z",
+    "sha256": "40d974c36ba8b2772dc895d5acd250248780e23fa12779214276559a680fc647",
+    "bytes": 150904180,
+    "kept_at": "scratch only; not retained",
+    "facts": {
+      "schema_version": 29,
+      "restore_pending": false,
+      "controls_state": "running",
+      "operator_pauses": [],
+      "pending_work": [{ "stage": "parse", "count": 31821 }, { "stage": "project", "count": 1 }],
+      "last_publish": "2a6c7dc744fb36eabb5163c0a527d787d3721f4f",
+      "awaiting_publication_candidates": []
+    }
+  },
+  "removal": {
+    "commands": ["rm /var/lib/swingset/operator-hold", "systemctl start swingset-cycle.service"],
+    "at_utc": "2026-09-20T23:09:58Z",
+    "timers_already_active": ["swingset-cycle.timer", "swingset-backup.timer", "swingset-summary.timer", "swingset-scratch-clean.timer"],
+    "runtime_drop_ins_or_masks": "none present"
+  },
+  "first_cycle": {
+    "started_utc": "2026-09-20T23:09:58Z",
+    "exec_start_pre": "uv: Audited 25 packages in 1ms (sync passed)",
+    "observed_at_utc": "2026-09-20T23:44:21Z",
+    "state": "still running: python at 99% CPU, 3.2 GB RSS, parsing the backlog",
+    "how_to_read_the_outcome": "journalctl -u swingset-cycle --since 2026-09-20 | grep 'event=\"cycle\"'"
+  },
+  "unchanged": ["no deployment, migration, schema, config or override change", "no network request made by the operator", "public dataset baseline 2a6c7dc unchanged at the time of the receipt"]
+}

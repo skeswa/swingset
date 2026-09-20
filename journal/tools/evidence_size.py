@@ -1,4 +1,11 @@
-"""Report evidence sizes and reject tracked files over 1 MiB; never modify files."""
+"""Report evidence sizes and enforce the two evidence limits; never modify files.
+
+The limits, from D-0106 and D-0175:
+
+- no tracked file may exceed 1 MiB;
+- one change may add or modify at most 200 KiB under ``journal/evidence/``,
+  measured from ``trunk()`` to the working copy.
+"""
 
 from __future__ import annotations
 
@@ -9,28 +16,46 @@ from pathlib import Path
 
 MIB = 1024 * 1024
 TEXT_REVIEW_BYTES = 256 * 1024
+NEW_EVIDENCE_BUDGET = 200 * 1024
+
+
+def _jj(root: Path, *args: str) -> bytes:
+    result = subprocess.run(
+        ["jj", "--config", "snapshot.max-new-file-size=16MiB", *args],
+        cwd=root,
+        check=True,
+        capture_output=True,
+    )
+    return result.stdout
+
+
+def changed_evidence(root: Path) -> list[tuple[int, str]] | None:
+    """Evidence files added or modified since trunk, with working-tree sizes.
+
+    Returns None when trunk cannot be resolved, for example in a clone with
+    no remote, so the caller can say the budget was not checked.
+    """
+    try:
+        out = _jj(root, "diff", "--from", "trunk()", "--to", "@", "--summary")
+    except subprocess.CalledProcessError:
+        return None
+    rows: list[tuple[int, str]] = []
+    for line in out.decode().splitlines():
+        status, _, name = line.partition(" ")
+        if status not in {"A", "M"} or not name.startswith("journal/evidence/"):
+            continue
+        path = root / name
+        if path.is_file() and not path.is_symlink():
+            rows.append((path.stat().st_size, name))
+    return rows
 
 
 def main() -> None:
     root = Path(__file__).resolve().parents[2]
     # Use jj's tracked inventory, not the much larger ignored scratch output.
-    result = subprocess.run(
-        [
-            "jj",
-            "--config",
-            "snapshot.max-new-file-size=16MiB",
-            "file",
-            "list",
-            "-T",
-            'path ++ "\\0"',
-        ],
-        cwd=root,
-        check=True,
-        capture_output=True,
-    )
     rows: list[tuple[int, str]] = []
     oversized: list[tuple[int, str]] = []
-    for raw in result.stdout.split(b"\0"):
+    for raw in _jj(root, "file", "list", "-T", 'path ++ "\\0"').split(b"\0"):
         name = raw.decode()
         if not name:
             continue
@@ -77,12 +102,30 @@ def main() -> None:
         print(f"  {size / MIB:.2f} MiB repeated:")
         for name in names:
             print(f"    {name}")
+
+    failed = False
+    changed = changed_evidence(root)
+    if changed is None:
+        print("New-evidence budget not checked: trunk() did not resolve.")
+    else:
+        added = sum(size for size, _ in changed)
+        print(
+            f"New or changed evidence since trunk: {len(changed)} files, "
+            f"{added / 1024:.0f} KiB (budget {NEW_EVIDENCE_BUDGET // 1024} KiB)"
+        )
+        if added > NEW_EVIDENCE_BUDGET:
+            failed = True
+            print("FAIL: keep one compact receipt per operation; leave the rest in scratch:")
+            for size, name in sorted(changed, reverse=True):
+                print(f"  {size:,} bytes  {name}")
     if oversized:
+        failed = True
         print("FAIL: archive these files externally before retaining their compact receipts:")
         for size, name in sorted(oversized, reverse=True):
             print(f"  {size:,} bytes  {name}")
+    if failed:
         raise SystemExit(1)
-    print("PASS: no tracked file exceeds 1 MiB.")
+    print("PASS: no tracked file exceeds 1 MiB and new evidence is within budget.")
 
 
 if __name__ == "__main__":

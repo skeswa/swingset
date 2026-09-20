@@ -12,9 +12,9 @@ level, including on detailed reference pages.
 | Steps to complete a task                            | `docs/guides/`                           |
 | Exact rules, interfaces, tables, and source details | `docs/reference/`                        |
 | Work still to do and acceptance criteria            | `docs/plans/`                            |
-| What is implemented, tested, deployed, or published | `docs/status.md`                         |
+| What is published, running, held, and next          | `docs/status.md`, at most 60 lines       |
 | Evidence, findings, and dated outcomes              | `journal/investigations/`                |
-| Every decision and its reasoning                    | `journal/decisions/`                     |
+| Decisions a reader could want to reverse            | `journal/decisions/`                     |
 | Reusable research scripts                           | `journal/tools/`                         |
 | Captured sources, reports, and frozen scripts       | `journal/evidence/`                      |
 
@@ -29,7 +29,7 @@ acceptance.” Keep old work-package IDs as secondary labels when needed to
 connect evidence. Define technical terms on first use and link to the glossary.
 Use short sentences, active verbs, and tables only when they aid comparison.
 
-Aim for 100–250 words in an index, 300–700 in an explanation, and about one page
+Aim for 100–250 words in an index, 300–700 in an explanation, and one screen
 per decision. These are guides, not quotas. Split long pages by reader question;
 do not split a single procedure across files just to meet a word count.
 
@@ -45,8 +45,9 @@ that code is implemented or running. Unverified facts must say **unverified**.
 
 ## Record decisions and investigations
 
-Record every decision, including routine implementation choices, using the
-[decision process](../journal/decisions/README.md). Keep small records brief.
+Record a decision when a future reader could want to reverse it, using the
+[decision process](../journal/decisions/README.md). Routine implementation
+choices go in the commit message. Keep a record to one screen.
 Use the [investigation template](../journal/investigations/TEMPLATE.md)
 for research and outcomes. A finding is not automatically a decision.
 

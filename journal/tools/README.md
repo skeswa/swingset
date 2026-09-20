@@ -29,6 +29,12 @@ Run `mise run evidence-size` to inspect tracked evidence size and large exact
 duplicates. It rejects any tracked file over 1 MiB and writes no report files; follow the
 [retention rules](../evidence/README.md#keep-new-evidence-small) before adding output.
 
+A script that runs once belongs in scratch, not here. A script that runs
+twice becomes a `swingset` subcommand with a test. Every tool kept here is
+maintained and has an entry in its purpose README (D-0175).
+`mise run session-start -- --label <you>` and `mise run session-end` take and
+release the one agent-session lock for the checkout (`agent_session.py`).
+
 These tools use the current repository layout. Captured scripts under
 [evidence](../evidence/README.md) preserve exactly what ran before and may name
 old source paths or pins. Their old receipts do not certify a changed tool.

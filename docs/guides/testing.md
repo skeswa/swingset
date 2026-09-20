@@ -72,6 +72,11 @@ coverage after a file is added or a selected test is renamed. Use an explicit
 path while developing a new file, then classify it. Keep core selection based
 on the behavior it protects, not simply its duration.
 
+Put a new test in the existing file for its area; start a new file only for a
+new module. The core run stays under three minutes on the development Mac. If
+a new core case pushes it over, move an older exhaustive case to extended
+rather than growing the run (D-0175).
+
 Measure with `uv run pytest -q --durations=20` after materially changing the
 selection. Use a stable checkout: migration files changed during the initial
 timing attempt and invalidated that run. The

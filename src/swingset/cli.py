@@ -242,6 +242,34 @@ def _prune_checkpoints(state: Path, created: Path, retention: RetentionConfig) -
     )
 
 
+HOLD_OVERDUE_SECONDS = 48 * 3600
+
+
+def describe_hold(path: Path, *, now: float) -> dict[str, Any]:
+    """The maintenance hold: whether it exists, how old it is, and what it says.
+
+    The marker holds ``who``, ``why`` and ``review-by`` lines. A hold is a
+    runtime interlock for one named review, so one older than 48 hours is
+    reported as overdue (D-0176).
+    """
+    if not path.is_file():
+        return {"present": False}
+    text = path.read_text(errors="replace").strip()
+    age = max(0.0, now - path.stat().st_mtime)
+    fields: dict[str, str] = {}
+    for line in text.splitlines():
+        key, sep, value = line.partition(":")
+        if sep and key.strip() in {"who", "why", "review-by"}:
+            fields[key.strip()] = value.strip()
+    return {
+        "present": True,
+        "age_hours": round(age / 3600, 1),
+        "overdue": age > HOLD_OVERDUE_SECONDS,
+        "text": text,
+        **fields,
+    }
+
+
 def doctor(args: argparse.Namespace) -> dict[str, Any]:
     if getattr(args, "source_event", None) and not getattr(args, "source", None):
         raise ValueError("--source-event requires --source")
@@ -265,6 +293,7 @@ def doctor(args: argparse.Namespace) -> dict[str, Any]:
             policy=_checkpoint_policy(config.retention),
         )
     ]
+    result["operator_hold"] = describe_hold(args.state / "operator-hold", now=time.time())
     if not (args.state / "state.sqlite").exists():
         result["schema_version"] = 0
         return result

@@ -8,4 +8,5 @@ operating instructions. Use [current status](../../docs/status.md) and
 - [First implementation evidence](v1-implementation-evidence.md): local checks and operating receipts.
 - [History and recovery implementation evidence](v2-implementation-evidence.md): dated progress through the later work packages.
 - [Initial scraping plan](scraping-plan.md): the early source rollout and its assumptions.
+- [Status page as of 2026-09-18](status-2026-09-18.md): the last long-form status page, before status became a dashboard.
 - [Initial open questions](initial-open-questions.md): questions from the original design, some since resolved.

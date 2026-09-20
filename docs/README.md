@@ -22,7 +22,7 @@ Each page explains its main point before linking to deeper detail.
 
 Explanations teach the ideas. Reference pages own exact rules. Plans describe
 work still to do; their presence does not mean a feature is running. The
-[status page](status.md) distinguishes local checks, deployment, and publication.
+[status page](status.md) shows what is published, running, held, and next.
 
 The journal preserves what was known or decided at a particular time. Older
 findings can be superseded. Read a decision's status before treating it as a

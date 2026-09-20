@@ -104,6 +104,28 @@ def test_doctor_does_not_wait_for_writer(tmp_path, capsys):
     assert f'"schema_version": {SCHEMA_VERSION}' in capsys.readouterr().out
 
 
+def test_doctor_reports_hold_age_fields_and_overdue(tmp_path, capsys):
+    import json
+    import os
+    import time
+
+    with open_database(tmp_path):
+        pass
+    marker = tmp_path / "operator-hold"
+    marker.write_text("who: sandile\nwhy: checking the 2019 rounds\nreview-by: 2026-09-22\n")
+    three_days_ago = time.time() - 3 * 24 * 3600
+    os.utime(marker, (three_days_ago, three_days_ago))
+    assert main(["doctor", "--state", str(tmp_path)]) == 0
+    first_document = json.JSONDecoder().raw_decode(capsys.readouterr().out)[0]
+    hold = first_document["operator_hold"]
+    assert hold["present"] and hold["overdue"] and hold["age_hours"] >= 71
+    assert hold["who"] == "sandile" and hold["review-by"] == "2026-09-22"
+    marker.unlink()
+    assert main(["doctor", "--state", str(tmp_path)]) == 0
+    first_document = json.JSONDecoder().raw_decode(capsys.readouterr().out)[0]
+    assert first_document["operator_hold"] == {"present": False}
+
+
 def test_restore_pending_blocks_mutations_but_allows_diagnosis(tmp_path):
     with open_database(tmp_path):
         pass
