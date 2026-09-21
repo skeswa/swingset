@@ -17,7 +17,7 @@ from urllib.parse import parse_qs, urlencode, urlsplit
 
 from swingset.fetch.archive import Archive, digest
 from swingset.fetch.wayback import parse_cdx
-from swingset.project.history import phase_two_allowed
+from swingset.project.history import phase_two_allowed, projection_answer_cached
 from swingset.sources import get_page_kind
 from swingset.state.controls import ActionScope, matching_pauses
 from swingset.state.db import Database
@@ -351,11 +351,12 @@ def reconcile(
         return 0
     deadline = time.monotonic() + wall_seconds
     conn = database.connection
-    accepted = {
-        int(row[0])
-        for row in conn.execute("SELECT year FROM history_acceptance")
-        if phase_two_allowed(conn, int(row[0]))
-    }
+    with projection_answer_cached():
+        accepted = {
+            int(row[0])
+            for row in conn.execute("SELECT year FROM history_acceptance")
+            if phase_two_allowed(conn, int(row[0]))
+        }
     if not accepted:
         return 0
     sites = tuple(

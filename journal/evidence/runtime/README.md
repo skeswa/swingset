@@ -4,16 +4,17 @@ Check migrations, controls, scheduling, checkpoints, and isolated replay.
 
 [All evidence](../README.md) · [Investigations](../../investigations/runtime.md)
 
-| Bundle                                                                       | What it supports                                                                                                                               |
-| ---------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| [h11](h11/)                                                                  | [Checking the missing-work inventory (H11)](../../investigations/2026/h11-acceptance-2026-09-13.md)                                            |
-| [h12](h12/)                                                                  | [Checking isolated work and retries (H12)](../../investigations/2026/h12-acceptance-2026-09-13.md)                                             |
-| [h13](h13/)                                                                  | [Checking pause controls and status reports (H13)](../../investigations/2026/h13-acceptance-2026-09-13.md)                                     |
-| [h14](h14/)                                                                  | [Checking fair scheduling (H14)](../../investigations/2026/h14-acceptance-2026-09-13.md)                                                       |
-| [h15](h15/)                                                                  | [Checking saved outputs and their inputs (H15)](../../investigations/2026/h15-acceptance-2026-09-13.md)                                        |
-| [Event completion, 2026-09-16](event-completion-2026-09-16/)                 | [Retained event pages and bounded turns](../../investigations/2026/event-completion-2026-09-16.md)                                             |
-| [Normalized request lookup, 2026-09-16](normalized-request-lookup-20260916/) | [Candidate-limit reproduction and proposed lookup options](../../investigations/2026/normalized-request-lookup-2026-09-16.md); not implemented |
-| [Continuation, 2026-09-17](v2-continuation-2026-09-17/)                      | [Fresh checkpoint, guarded operations and integration](../../investigations/2026/v2-continuation-2026-09-17.md)                                |
+| Bundle                                                                         | What it supports                                                                                                                               |
+| ------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| [Global Grand Prix aliases, 2026-09-23](global-grand-prix-aliases-2026-09-23/) | Three reviewed month-scoped aliases accepted; history projection pending                                                                       |
+| [h11](h11/)                                                                    | [Checking the missing-work inventory (H11)](../../investigations/2026/h11-acceptance-2026-09-13.md)                                            |
+| [h12](h12/)                                                                    | [Checking isolated work and retries (H12)](../../investigations/2026/h12-acceptance-2026-09-13.md)                                             |
+| [h13](h13/)                                                                    | [Checking pause controls and status reports (H13)](../../investigations/2026/h13-acceptance-2026-09-13.md)                                     |
+| [h14](h14/)                                                                    | [Checking fair scheduling (H14)](../../investigations/2026/h14-acceptance-2026-09-13.md)                                                       |
+| [h15](h15/)                                                                    | [Checking saved outputs and their inputs (H15)](../../investigations/2026/h15-acceptance-2026-09-13.md)                                        |
+| [Event completion, 2026-09-16](event-completion-2026-09-16/)                   | [Retained event pages and bounded turns](../../investigations/2026/event-completion-2026-09-16.md)                                             |
+| [Normalized request lookup, 2026-09-16](normalized-request-lookup-20260916/)   | [Candidate-limit reproduction and proposed lookup options](../../investigations/2026/normalized-request-lookup-2026-09-16.md); not implemented |
+| [Continuation, 2026-09-17](v2-continuation-2026-09-17/)                        | [Fresh checkpoint, guarded operations and integration](../../investigations/2026/v2-continuation-2026-09-17.md)                                |
 
 | [Extension rollout, 2026-09-17](event-extension-2026-09-17/) | [Current held schema-28 handoff](../../investigations/2026/event-extension-operating-handoff-2026-09-17.md), frozen validation, deployment, migration and restore receipts |
 | [Input rehearsal, 2026-09-17](extension-input-rehearsal-2026-09-17/) | Disposable checkpoint copy, exact input acceptance and bounded offline turns; no live acceptance |
@@ -21,6 +22,17 @@ Check migrations, controls, scheduling, checkpoints, and isolated replay.
 | [Worker disk bound, 2026-09-18](worker-disk-bound-2026-09-18/) | [Worker disk exhaustion and its bound](../../investigations/2026/worker-disk-exhaustion-2026-09-18.md); removals, bound, pinned hotfix deployment |
 | [State storage measurement, 2026-09-18](state-storage-measurement-2026-09-18/) | [Measuring where state storage goes](../../investigations/2026/state-storage-measurement-2026-09-18.md); dbstat receipts, backup timing, schema-32 migration, index and JSON attribution, JSON structure profile, the full-copy `WITHOUT ROWID` prototype, and the A0/A1 source JSON compression benchmark |
 
+| [Candidate 012, 2026-09-21](candidate-012-2026-09-21/) | [D-0188](../../decisions/0188-alert-on-failing-or-stalled-cycles-and-stop-re-queuing-on-config-switches.md); the watchdog, its first run, and the switch |
+| [Candidate 013, 2026-09-21](candidate-013-2026-09-21/) | [D-0189](../../decisions/0189-stop-publishing-until-identity-output-is-recovered.md); publication off, newsletter year bound, and the switch |
+| [Disk cleanup, 2026-09-21](disk-cleanup-2026-09-21/) | Ten passed-gate checkpoints removed and Nix garbage collected after an independent check; 211.7 GB to 81.6 GB |
+| [Spacing baselines, 2026-09-21](spacing-baselines-2026-09-21/) | [D-0190](../../decisions/0190-record-spacing-baselines-for-the-origin-hosts-from-the-eight-day-gap.md); six origin hosts unblocked after eight days without a fetch |
+| [Candidate 014, 2026-09-21](candidate-014-2026-09-21/) | [D-0191](../../decisions/0191-detach-registry-placements-when-the-calendar-drops-an-event.md); the calendar delete fix and the switch |
+| [Disk full recovery, 2026-09-22](disk-full-recovery-2026-09-22/) | [D-0192](../../decisions/0192-a-failed-backup-waits-for-the-next-timer-run.md); the backup restart loop, the cleanup and the unit fix |
+| [Candidate 011, 2026-09-21](candidate-011-2026-09-21/) | [D-0187](../../decisions/0187-review-dismissals-year-scoped-aliases-and-non-fatal-builds.md); the build-failure diagnosis, the manual link run, the switch and the first cycle |
+| [Candidate 010, 2026-09-21](candidate-010-2026-09-21/) | [D-0185](../../decisions/0185-deploy-main-as-candidate-010-with-a-forty-minute-cycle.md); checkpoint, switch, schema 29 to 32 migration and first cycle |
+| [Candidate 009, 2026-09-21](candidate-009-2026-09-21/) | [D-0182](../../decisions/0182-batch-offline-selection-and-defer-builds-under-backlog.md); the selection profile, the switch, and the first cycle at batch throughput |
+| [Candidate 008, 2026-09-21](candidate-008-2026-09-21/) | [D-0181](../../decisions/0181-answer-the-year-gate-once-per-offers-pass.md); the acquisition stall profile, the switch, and the first cycle that drains the backlog |
+| [Candidate 007, 2026-09-21](candidate-007-2026-09-21/) | [D-0179](../../decisions/0179-prove-the-release-closure-before-the-bounded-write.md); one receipt for the timing evidence, the switch, and the first cycle on the fixed build completion |
 | [Collection resume, 2026-09-20](collection-resume-2026-09-20/) | [D-0176](../../decisions/0176-resume-automatic-collection-and-give-the-hold-an-owner-and-expiry.md); one receipt for the uv-cache ownership repair, hold removal and first post-hold cycle |
 | [Core test suite, 2026-09-18](core-test-suite-2026-09-18/) | [Test selection and passing timing](../../investigations/2026/pytest-suite-review-2026-09-18.md#implemented-core-selection-and-passing-timing); default core, extended crash validation and code hashes |
 

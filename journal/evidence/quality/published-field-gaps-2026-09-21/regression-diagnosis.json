@@ -1,0 +1,639 @@
+{
+  "operation": "Read-only diagnosis of the 0923f27 to 138352e regression",
+  "at": "2026-09-21T16:05:57.473977+00:00",
+  "source": "/nix/store/pff4khpvr0paq74fs55g8d6q2vhkwm5j-source",
+  "source_hashes": {
+    "src/swingset/build/closure.py": "722cbde43322881cf5b53512d317d43b81573e1f4fd0b398fb4b329a69297c18",
+    "src/swingset/build/closure_rows.py": "982f8b4eb1bdd96ad8473882b312242ec4a45b3cf0c68bc4a0426de2683798e7",
+    "src/swingset/build/identity_policy.py": "0e502a97d9a4fde3629d73e24464a49924a001c66f77d0788671fbe84a035a5b",
+    "src/swingset/schedule/cycle.py": "6f422c2adfc218c3a4e3dff5d27ac98809bdf201eed8bc2242f0d15e5e9842f9",
+    "src/swingset/publish/service.py": "d9fe6acc984544609a993741f0a4c922d0d9428ce788e97f7e2a98b2a6db6f74"
+  },
+  "cand_b29fcd8b24904908": {
+    "repository_commit": "uncommitted:pff4khpvr0paq74fs55g8d6q2vhkwm5j-source",
+    "run_id": "run_20260921T093853Z",
+    "cutoff": "2026-09-21T09:39:09.359422+00:00",
+    "history_anchor": [
+      {
+        "generation_id": "dg_ee55aa83f088514f611c9ad97f31602ec055ed9868ce8c93cd8452750dad6076",
+        "created_at": "2026-09-16T20:53:48.762575+00:00",
+        "run_id": "run_20260916T205100Z",
+        "row_count": 200597,
+        "input_fingerprint": "dcf811207feddc5d2ef1cdf17be16f3a69653b8d5c6dd4ad4ab3e471717ef651",
+        "dependency_set_id": "2869357fc41e2121192739c2a21a16a1bc92a855a5b2ae49c9ec7dd7014e807a"
+      }
+    ],
+    "selected_counts": {
+      "link/event": 2541,
+      "project/calendar": 2,
+      "project/dancer": 29048,
+      "project/event": 2541,
+      "project/history": 1,
+      "project/inventory": 1,
+      "project/map": 1,
+      "project/source_event": 467,
+      "project/source_index": 384
+    },
+    "link_inventory": {
+      "compatible_selected_generation": 2541,
+      "unmaterialized_scope": 375
+    },
+    "source_support_states": {
+      "legacy_unassessed": 22724,
+      "accepted": 35445
+    },
+    "row_omissions": {
+      "basis": "unsupported event scopes",
+      "count": 0
+    },
+    "support_withdrawals": {
+      "reasons": {
+        "support_checks": 30253
+      },
+      "removed_rows": {},
+      "withdrawn_claims": {}
+    },
+    "default_join_counts": {
+      "accepted": 29294,
+      "accepted_legacy": 2523,
+      "accuracy_gate_pending": 260,
+      "source_reference_unavailable": 3222
+    }
+  },
+  "cand_80719e178655435d": {
+    "repository_commit": "uncommitted:pff4khpvr0paq74fs55g8d6q2vhkwm5j-source",
+    "run_id": "run_20260921T101908Z",
+    "cutoff": "2026-09-21T10:19:25.232863+00:00",
+    "history_anchor": [
+      {
+        "generation_id": "dg_238a7f74b8df4d5996fb7941ae978b9de1d04cb6feb30c7076877aeb443a7fd6",
+        "created_at": "2026-09-21T10:02:38.019076+00:00",
+        "run_id": "run_20260921T093853Z",
+        "row_count": 200970,
+        "input_fingerprint": "57d7f2fa78b994d6000b0336c03146d5eb54f70d248807c33363c6f225f29f11",
+        "dependency_set_id": "da0a7e25c12c0b27545194ad1acc82b4c6935ed8f5e5d0adaeff59a59c3ac81f"
+      }
+    ],
+    "selected_counts": {
+      "link/event": 685,
+      "project/calendar": 2,
+      "project/dancer": 29048,
+      "project/event": 2916,
+      "project/history": 1,
+      "project/inventory": 1,
+      "project/map": 1,
+      "project/source_event": 467,
+      "project/source_index": 384
+    },
+    "link_inventory": {
+      "compatible_link_generation_unavailable": 2231,
+      "compatible_selected_generation": 685
+    },
+    "source_support_states": {
+      "legacy_unassessed": 24596,
+      "accepted": 33573
+    },
+    "row_omissions": {
+      "basis": "unsupported event scopes",
+      "count": 810
+    },
+    "support_withdrawals": {
+      "reasons": {
+        "support_checks": 28786
+      },
+      "removed_rows": {},
+      "withdrawn_claims": {}
+    },
+    "default_join_counts": {}
+  },
+  "selected_generation_changes": {
+    "project/dancer": {
+      "replaced": 29048,
+      "replaced_same_output_digest": 29048
+    },
+    "project/event": {
+      "replaced": 2541,
+      "replaced_same_output_digest": 2490,
+      "added": 375
+    },
+    "link/event": {
+      "removed": 1899,
+      "replaced": 642,
+      "replaced_same_output_digest": 642,
+      "added": 43
+    },
+    "project/source_event": {
+      "replaced": 467,
+      "replaced_same_output_digest": 467
+    },
+    "project/source_index": {
+      "replaced": 384,
+      "replaced_same_output_digest": 384
+    },
+    "project/history": {
+      "replaced": 1
+    },
+    "project/inventory": {
+      "replaced": 1
+    },
+    "project/calendar": {
+      "replaced": 2,
+      "replaced_same_output_digest": 2
+    },
+    "project/map": {
+      "replaced": 1
+    }
+  },
+  "generation_change_examples": [
+    {
+      "scope": [
+        "project",
+        "dancer",
+        "1"
+      ],
+      "before": {
+        "generation_id": "dg_c1c0a765be7a25539595925ff4def522ef182425935e5349019b87b09af537b6",
+        "created_at": "2026-09-16T20:36:35.600471+00:00",
+        "run_id": "run_20260916T203629Z",
+        "output_digest": "3ee2ce61e75a3a1f3f95ed4837860421eb4f0edbcb06ac72900ccbd998e8f3ad",
+        "row_count": 4
+      },
+      "after": {
+        "generation_id": "dg_1fbfc22697632b0d15935b39ee17fa24bcb115e49e17c564bd86f7c6eb8bc27b",
+        "created_at": "2026-09-21T05:52:46.870106+00:00",
+        "run_id": "run_20260921T053630Z",
+        "output_digest": "3ee2ce61e75a3a1f3f95ed4837860421eb4f0edbcb06ac72900ccbd998e8f3ad",
+        "row_count": 4
+      },
+      "changed_recipe_keys": [
+        "inputs"
+      ],
+      "changed_recipe_inputs": {
+        "recipe/runtime": [
+          "a82195b31e177abb211842713e7b298fd7775dcde50488d6db6e7c43da09a05a",
+          "e11f493444638743399a1cd79b94987e3c36f97bd589ab1b994cc8d306057ceb"
+        ],
+        "overrides/series_aliases.csv": [
+          "92366188e4295b901772dbe1cc3e1f12116fab46be9765a577a8845e31815642",
+          "a24c333220bfafc80fcd129b6052c84be5fd3b56e3d6d1b0db958306739adcf9"
+        ],
+        "overrides/event_aliases.csv": [
+          "3fb16a5e6eab2923e3d157341f80bef4a5a5d5685e4f2288e304d79be074570d",
+          "2a0ef9ae578fe194a512f490b6cb80d99d6b78133b57e5409c0f52dad575d9da"
+        ]
+      }
+    },
+    {
+      "scope": [
+        "project",
+        "event",
+        "2010-01-americas-classic"
+      ],
+      "before": {
+        "generation_id": "dg_9b983eea50d0acba24f252ad1c84e82f4ac0b18dadf6d755103d30fcc5ff9504",
+        "created_at": "2026-09-16T20:47:22.196534+00:00",
+        "run_id": "run_20260916T203629Z",
+        "output_digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "row_count": 0
+      },
+      "after": {
+        "generation_id": "dg_fcfad011d0909a657df752c7ae16ababc8c1fe0b8e7c63213e4d847ef3d75ca0",
+        "created_at": "2026-09-21T08:53:57.334269+00:00",
+        "run_id": "run_20260921T081806Z",
+        "output_digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "row_count": 0
+      },
+      "changed_recipe_keys": [
+        "inputs"
+      ],
+      "changed_recipe_inputs": {
+        "recipe/runtime": [
+          "a82195b31e177abb211842713e7b298fd7775dcde50488d6db6e7c43da09a05a",
+          "e11f493444638743399a1cd79b94987e3c36f97bd589ab1b994cc8d306057ceb"
+        ],
+        "overrides/series_aliases.csv": [
+          "92366188e4295b901772dbe1cc3e1f12116fab46be9765a577a8845e31815642",
+          "a24c333220bfafc80fcd129b6052c84be5fd3b56e3d6d1b0db958306739adcf9"
+        ],
+        "overrides/event_aliases.csv": [
+          "3fb16a5e6eab2923e3d157341f80bef4a5a5d5685e4f2288e304d79be074570d",
+          "2a0ef9ae578fe194a512f490b6cb80d99d6b78133b57e5409c0f52dad575d9da"
+        ]
+      }
+    },
+    {
+      "scope": [
+        "project",
+        "history",
+        "all"
+      ],
+      "before": {
+        "generation_id": "dg_ee55aa83f088514f611c9ad97f31602ec055ed9868ce8c93cd8452750dad6076",
+        "created_at": "2026-09-16T20:53:48.762575+00:00",
+        "run_id": "run_20260916T205100Z",
+        "output_digest": "9a92fd1af13e352e6629f1d9c18049ef5dfcb7e4fb21fbbee09b190de421abf3",
+        "row_count": 200597
+      },
+      "after": {
+        "generation_id": "dg_238a7f74b8df4d5996fb7941ae978b9de1d04cb6feb30c7076877aeb443a7fd6",
+        "created_at": "2026-09-21T10:02:38.019076+00:00",
+        "run_id": "run_20260921T093853Z",
+        "output_digest": "ee4b51a6586e98e5da7f130200ba0669d810833ee092ec68f5f59d6c6fd4f96b",
+        "row_count": 200970
+      },
+      "changed_recipe_keys": [
+        "inputs"
+      ],
+      "changed_recipe_inputs": {
+        "recipe/runtime": [
+          "a82195b31e177abb211842713e7b298fd7775dcde50488d6db6e7c43da09a05a",
+          "e11f493444638743399a1cd79b94987e3c36f97bd589ab1b994cc8d306057ceb"
+        ],
+        "overrides/series_aliases.csv": [
+          "92366188e4295b901772dbe1cc3e1f12116fab46be9765a577a8845e31815642",
+          "a24c333220bfafc80fcd129b6052c84be5fd3b56e3d6d1b0db958306739adcf9"
+        ],
+        "overrides/event_aliases.csv": [
+          "3fb16a5e6eab2923e3d157341f80bef4a5a5d5685e4f2288e304d79be074570d",
+          "2a0ef9ae578fe194a512f490b6cb80d99d6b78133b57e5409c0f52dad575d9da"
+        ]
+      }
+    }
+  ],
+  "link_selection_replay": {
+    "nonempty_old_links": 178,
+    "outcomes": {
+      "accepted -> mixed_dependency_generations": 178
+    },
+    "examples": [
+      {
+        "event": "2018-11-cozyswing",
+        "link_generation": "dg_2ae3a6c5615c071b829295b43da4283a15e27646c510a771ddadc88054e7b454",
+        "previous": "accepted",
+        "regressed": "mixed_dependency_generations"
+      },
+      {
+        "event": "2019-02-carnival-swing-cologne",
+        "link_generation": "dg_e55be4b189f7a2aa193e9edfbc6cd79feabe02a27b731f35c9880a8921756800",
+        "previous": "accepted",
+        "regressed": "mixed_dependency_generations"
+      },
+      {
+        "event": "2020-01-budafest",
+        "link_generation": "dg_8e3cf2eb6f2d8a5d4091a19253d72927e14b0df2d90013b4d32ee2a351616606",
+        "previous": "accepted",
+        "regressed": "mixed_dependency_generations"
+      }
+    ]
+  },
+  "history_generations_between_cutoffs": [
+    {
+      "generation_id": "dg_238a7f74b8df4d5996fb7941ae978b9de1d04cb6feb30c7076877aeb443a7fd6",
+      "created_at": "2026-09-21T10:02:38.019076+00:00",
+      "run_id": "run_20260921T093853Z",
+      "row_count": 200970
+    }
+  ],
+  "exit_code": 0,
+  "reconstruction": {
+    "operation": "Reconstruct the published structural losses in scratch",
+    "at": "2026-09-21T16:07:31.119297+00:00",
+    "source": "/nix/store/pff4khpvr0paq74fs55g8d6q2vhkwm5j-source",
+    "manifest_sha256": "383b38318d411f2353cf8f268fea7cc432e54799e7c4ffa8ff319512b9bec178",
+    "removed_events": 436,
+    "added_events": 0,
+    "omitted_event_sample": [
+      "2010-01-floorplay-new-years-swing-vacation",
+      "2010-01-new-year-s-dancin-eve",
+      "2010-02-capital-swing-dance-convention",
+      "2010-04-los-angeles-premiere-dance-classic",
+      "2010-04-seattle-s-easter-swing"
+    ],
+    "reconstruction_counts": {
+      "legacy_unassessed_retained": 349303,
+      "partial_overlay_without_structural_base": 766,
+      "legacy_owned_values_not_published": 3008
+    },
+    "omission_count": 810,
+    "event_set_matches_published": true,
+    "rejected_by_table_reason": [
+      {
+        "table": "entries",
+        "reason": "legacy_owned_values_not_published",
+        "rows": 75
+      },
+      {
+        "table": "events",
+        "reason": "legacy_owned_values_not_published",
+        "rows": 859
+      },
+      {
+        "table": "placements",
+        "reason": "legacy_owned_values_not_published",
+        "rows": 1330
+      },
+      {
+        "table": "source_events",
+        "reason": "legacy_owned_values_not_published",
+        "rows": 744
+      }
+    ],
+    "removed_events_by_reason": {
+      "source_support_unavailable": 435
+    },
+    "removed_events_with_direct_rejection": 435,
+    "remaining_table_counts": {
+      "entries": 58558,
+      "placements": 14115,
+      "identity_links": 0,
+      "link_candidates": 0
+    },
+    "exit_code": 0,
+    "validation_limits": "Replayed row reconstruction only. Verified retained closure commitment, unchanged revocation digest and baseline file hashes; skipped full raw-artifact closure validation. Scratch output was neither certified nor published."
+  },
+  "structural_loss_diagnosis": {
+    "lost_without_selected_structural_event": [
+      {
+        "event_id": "2026-01-monterey-swinfest",
+        "name": "Monterey Swinfest  2026",
+        "source": "scoringdance",
+        "snapshot_id": "snap_20260910T060237Z_ec3a9683fbdf",
+        "series_id": "slug-monterey-swinfest",
+        "start_date": "2026-01-15",
+        "end_date": "2026-01-15"
+      }
+    ],
+    "lost_with_rejected_output": 435,
+    "rejected_examples_by_table": {
+      "entries": {
+        "event_id": "2020-01-budafest",
+        "record_key": "[\"2020-01-budafest/open-strictly/L-502\"]",
+        "support_state": "legacy_unassessed",
+        "generation": "dg_a8f5fd25ae11af330b09ccf8966e20d0ca9254a06f814d3efb4127169cb7c3da",
+        "changed_fields": [
+          "partner_entry_id",
+          "partner_name_raw"
+        ],
+        "changes": {
+          "partner_entry_id": {
+            "before": null,
+            "after": "2020-01-budafest/open-strictly/F-502"
+          },
+          "partner_name_raw": {
+            "before": null,
+            "after": "Ani Fullar"
+          }
+        }
+      },
+      "placements": {
+        "event_id": "2020-01-budafest",
+        "record_key": "[\"2020-01-budafest/open-strictly/final/place-1\"]",
+        "support_state": "legacy_unassessed",
+        "generation": "dg_a8f5fd25ae11af330b09ccf8966e20d0ca9254a06f814d3efb4127169cb7c3da",
+        "changed_fields": [
+          "follower_entry_id"
+        ],
+        "changes": {
+          "follower_entry_id": {
+            "before": "2020-01-budafest/open-strictly/F-name-coleen-man",
+            "after": "2020-01-budafest/open-strictly/F-648"
+          }
+        }
+      },
+      "events": {
+        "event_id": "2010-01-floorplay-new-years-swing-vacation",
+        "record_key": "[\"2010-01-floorplay-new-years-swing-vacation\"]",
+        "support_state": "legacy_unassessed",
+        "generation": "dg_2c6c5465cff093288b9e9f1f0d429282e608b755cb3412806ffd50509ca54361",
+        "changed_fields": [
+          "date_precision",
+          "end_date",
+          "history_source",
+          "parser_version",
+          "snapshot_id",
+          "source",
+          "sources",
+          "start_date",
+          "website"
+        ],
+        "changes": {
+          "date_precision": {
+            "before": "month",
+            "after": "day"
+          },
+          "end_date": {
+            "before": null,
+            "after": "2010-01-03"
+          },
+          "history_source": {
+            "before": [
+              "registry"
+            ],
+            "after": "[\"registry\", \"swingdancecouncil\"]"
+          },
+          "parser_version": {
+            "before": "3",
+            "after": "2"
+          },
+          "snapshot_id": {
+            "before": "snap_20260911T163317Z_d8fab4329407",
+            "after": "snap_20260913T050503Z_1dc9d7a88150"
+          },
+          "source": {
+            "before": "wsdc_registry",
+            "after": "swingdancecouncil"
+          },
+          "sources": {
+            "before": [
+              "wsdc_registry"
+            ],
+            "after": "[\"swingdancecouncil\", \"wsdc_registry\"]"
+          },
+          "start_date": {
+            "before": null,
+            "after": "2009-12-30"
+          },
+          "website": {
+            "before": null,
+            "after": "http://www.floorplayswing.com"
+          }
+        }
+      }
+    },
+    "runs": [
+      {
+        "run_id": "run_20260921T093853Z",
+        "candidate_id": "cand_b29fcd8b24904908",
+        "failed": false,
+        "error": null,
+        "publication": {
+          "candidate_id": "cand_b29fcd8b24904908",
+          "commit": "0923f27fb995c625feb704e70308349a832cc5f2",
+          "reason": null,
+          "state": "published"
+        },
+        "duration_seconds": 2414.824512,
+        "stages": [
+          "build",
+          "project",
+          "link"
+        ],
+        "pending_before": {
+          "active": false,
+          "pending": {
+            "link": 2916,
+            "parse": 198,
+            "project": 1
+          },
+          "pending_parse_bytes": 50799704,
+          "reasons": [],
+          "repair_requests_per_cycle": 2
+        },
+        "pending_after": {
+          "active": false,
+          "pending": {
+            "link": 2231,
+            "parse": 198
+          },
+          "pending_parse_bytes": 50799704,
+          "reasons": [],
+          "repair_requests_per_cycle": 2
+        },
+        "phase_seconds": {
+          "acquisition": 1000.54719,
+          "offline": 1004.970644,
+          "reconciliation": 15.597555
+        }
+      },
+      {
+        "run_id": "run_20260921T101908Z",
+        "candidate_id": "cand_80719e178655435d",
+        "failed": false,
+        "error": null,
+        "publication": {
+          "candidate_id": "cand_80719e178655435d",
+          "commit": "138352ef5e9ec25e12b60dc6acb85db808c5e77f",
+          "reason": null,
+          "state": "published"
+        },
+        "duration_seconds": 2412.064272,
+        "stages": [
+          "build",
+          "link"
+        ],
+        "pending_before": {
+          "active": false,
+          "pending": {
+            "link": 2231,
+            "parse": 198
+          },
+          "pending_parse_bytes": 50799704,
+          "reasons": [],
+          "repair_requests_per_cycle": 2
+        },
+        "pending_after": {
+          "active": false,
+          "pending": {
+            "link": 1542,
+            "parse": 198
+          },
+          "pending_parse_bytes": 50799704,
+          "reasons": [],
+          "repair_requests_per_cycle": 2
+        },
+        "phase_seconds": {
+          "acquisition": 1000.448988,
+          "offline": 982.515105,
+          "reconciliation": 16.090551
+        }
+      },
+      {
+        "run_id": "run_20260921T105921Z",
+        "candidate_id": null,
+        "failed": true,
+        "error": "BuildError: callback_marks references missing entry 2020-01-budafest/open-strictly/L-502",
+        "publication": null,
+        "duration_seconds": 167.511356,
+        "stages": [],
+        "pending_before": {
+          "active": false,
+          "pending": {
+            "link": 1542,
+            "parse": 198
+          },
+          "pending_parse_bytes": 50799704,
+          "reasons": [],
+          "repair_requests_per_cycle": 2
+        },
+        "pending_after": null,
+        "phase_seconds": {
+          "acquisition": 0.0,
+          "offline": 0.0,
+          "reconciliation": 14.757447
+        }
+      }
+    ],
+    "exit_code": 0
+  },
+  "monterey_alias": {
+    "cand_b29fcd8b24904908": [
+      {
+        "event_id": "2026-01-monterey-swinfest",
+        "match_confidence": 0.5,
+        "match_method": "name_date",
+        "source": "scoringdance",
+        "source_ref": "scoringdance:272"
+      }
+    ],
+    "cand_80719e178655435d": [
+      {
+        "event_id": "2026-01-monterey-swing-fest",
+        "match_confidence": 1.0,
+        "match_method": "override",
+        "source": "scoringdance",
+        "source_ref": "scoringdance:272"
+      }
+    ]
+  },
+  "recovery_gate_fixture": {
+    "populated_baseline": {
+      "wsdc_id": 100,
+      "registry_points_leader": 3,
+      "default_join_counts": {
+        "accepted": 1
+      }
+    },
+    "null_baseline": {
+      "wsdc_id": null,
+      "registry_points_leader": null,
+      "default_join_counts": {
+        "accuracy_gate_pending": 1
+      }
+    }
+  },
+  "recovery_gate_fixture_limits": "Controlled existing test fixture with accepted source support and exact printed identity; same evidence and normal build mode, only baseline wsdc_id differs. This is not a production recovery build.",
+  "focused_tests": {
+    "command": "nix develop -c uv run pytest -q --full-suite tests/test_h16_acceptance.py::test_incompatible_link_generation_cannot_join_new_structural_closure tests/build/test_identity_policy.py::test_correction_cannot_promote_current_registry_evidence_absent_from_baseline tests/build/test_closure_event_alternatives.py",
+    "result": "12 passed in 3.13s",
+    "exit_code": 0
+  },
+  "commands": [
+    "orb -m swingset -u root env LD_LIBRARY_PATH=<installed wrapper libraries> /var/lib/swingset/venv/bin/python /mnt/mac/private/tmp/swingset-regression-20260921/trace_release.py",
+    "orb -m swingset -u root env LD_LIBRARY_PATH=<installed wrapper libraries> /var/lib/swingset/venv/bin/python /mnt/mac/private/tmp/swingset-regression-20260921/reconstruct_loss.py",
+    "orb -m swingset -u root env LD_LIBRARY_PATH=<installed wrapper libraries> /var/lib/swingset/venv/bin/python /mnt/mac/private/tmp/swingset-regression-20260921/explain_omissions.py",
+    "nix develop -c uv run python /private/tmp/swingset-regression-20260921/recovery_gate.py"
+  ],
+  "scratch_script_sha256": {
+    "reconstruct_loss.py": "a6820f83d8647de3370958c70d6a016777130da257af55f9fecb0f671b7edefb",
+    "explain_omissions.py": "34c696b84670e53faf7c09ce64a8d13c60f21855145fbfc0ebf781e9843ccafb",
+    "recovery_gate.py": "e6a41ab4ea27d566fa3481b4a7f3faab235716e3da8a23dc5652421d93100df1",
+    "trace_release.py": "9a198a10b67247172fc4bc390a1d24a731a292546bfd69794506575f3f5c6a44"
+  },
+  "finished_at": "2026-09-21T16:11:34.726091+00:00",
+  "limits": [
+    "Existing production state opened with mode=ro and query_only=ON; no source requests or production mutations.",
+    "Production replay imported the exact Nix source that built both compared releases.",
+    "Raw logs, scripts and rehearsal output remain in scratch; this receipt retains summaries and hashes.",
+    "No release or recovery behavior was changed."
+  ]
+}

@@ -453,6 +453,11 @@ RECORD hashes identify dependencies; they do not audit every installed binary.
 Manual version labels remain descriptive. Relevant override and policy inputs
 join each stage's recipe; scheduler allocations do not.
 
+Known cost: the runtime recipe covers the whole package for every stage, so
+any source change re-parses, re-projects and re-links everything, even when
+the output is identical. Scoping the recipe per stage and page kind is
+[queued](../plans/README.md#maintenance-queue).
+
 The projection order is calendar, source index, and dancer scopes; history
 inventory; source mapping; event scopes; then history association and coverage.
 Inventory includes occurrence and listing enrichment. Previous inventory output
@@ -729,7 +734,7 @@ named by one unchanged finding refuse every other finding for that owner
 `config/sources.toml` may carry a `[retention]` table. It does not carry one
 today, and an absent table means the defaults, which live in `RetentionConfig`
 in `src/swingset/config.py`. Adding the table is how an operator changes any of
-them: `max_database_bytes` (default 8,000,000,000) is the most
+them: `max_database_bytes` (default 32,000,000,000 since D-0186) is the most
 `state.sqlite` may be on disk; `recent_window` (default 3) is how many recent
 generations of each scope are roots; `collect_older_than` (default one day) is
 how old a disposable candidate directory must be before an apply may remove it,

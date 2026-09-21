@@ -1,0 +1,89 @@
+{
+  "operation": "Deploy main as candidate 010: schema 29 to 32, forty-minute cycle, CDX indexing, nested-span rule",
+  "decision": "D-0185",
+  "operator": "claude (Claude Code session), under D-0183",
+  "candidate": {
+    "tree": "/private/tmp/swingset-c010, rsync of the working copy without .jj, .git, tmp, caches and journal/evidence",
+    "full_suite_before_last_two_changes": "1 failed (pre-existing), 2436 passed in 512.51s",
+    "core_suite_after": "see core_suite",
+    "revision": "working copy wywqotxp (main plus the revisions described in jj log) at 2026-09-21 02:34 UTC"
+  },
+  "preflight": {
+    "at_utc": "2026-09-21T02:28:02Z",
+    "system": "/nix/store/jiq8vq9c1jf9vcis5ysdx1xsga4fwbyv-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+    "schema": 29,
+    "pending": {
+      "parse": 28926,
+      "project": 13
+    },
+    "hold": "written with who/why/review-by; timer and service stopped"
+  },
+  "checkpoint": {
+    "path": "/var/lib/swingset/checkpoints/pre-schema32-20260921",
+    "local_only": true,
+    "bytes": "11 GB",
+    "duration_seconds": 171,
+    "note": "first attempt failed on a root-owned Codex operation receipt under operations/; ownership of operations, checkpoints and inputs was corrected to swingset (4,177 files) and the second attempt passed"
+  },
+  "switch": {
+    "at_utc": "2026-09-21T02:34:16Z",
+    "command": "nixos-rebuild switch --flake path:/mnt/mac/private/tmp/swingset-c010#orb --impure",
+    "system": "/nix/store/8xw2msj8pkgif171jznz7xmqwbh8c26r-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+    "source": "/nix/store/cbyh4bl43qarxy2x77ywc9hlj48vy5ih-source",
+    "package": "/nix/store/yi3b3wl3ym5z43c89s6b3rwlm5j2rlvv-swingset",
+    "cycle_budget": "40m",
+    "duration_seconds": 10
+  },
+  "migration": {
+    "started_utc": "2026-09-21T02:44:27Z",
+    "schema_markers_seen": [
+      "30 at 02:44:46",
+      "31 at 02:45:06",
+      "32 at 02:46:46"
+    ],
+    "file_bytes_after": 9096290304,
+    "note": "over the 8,000,000,000-byte retention cap, so the pipeline paused itself; gc --reclaim (in-place VACUUM, 133 s) freed 1,564,090,368 bytes to 7,532,199,936; resumed at 03:03 UTC. gc --plan and gc --apply printed nothing because the writer was in use by a cycle (exit 1: state is already in use); run them under hold with the timer stopped next time. Reclaim alone was enough."
+  },
+  "post_check": {
+    "schema": 32,
+    "hold_removed_utc": "2026-09-21T02:44:26Z",
+    "timers": "cycle timer restarted 03:03 UTC",
+    "re-queued_by_the_runtime_change": {
+      "parse": 31821,
+      "project": 30081
+    },
+    "first_cycle": "run_20260921T024634Z: 66 s, no error, everything held by the size-cap pause"
+  },
+  "first_cycle": {
+    "run_id": "run_20260921T030253Z",
+    "duration_seconds": 2421,
+    "phase_seconds": {
+      "reconciliation": 155.9,
+      "acquisition": 1.6,
+      "offline": 2242.3
+    },
+    "build": "deferred (backlog)",
+    "attempts": {
+      "parse_succeeded": 8846,
+      "parse_blocked": 99,
+      "parse_superseded": 12,
+      "parse_transient": 3,
+      "project_succeeded": 10242
+    },
+    "failed": false,
+    "archive_index": "not run: backpressure active for the whole cycle, as designed",
+    "note": "19,202 units in one cycle against 3,906 under candidate 009's twelve-minute cycle"
+  },
+  "core_suite": {
+    "result": "1 failed, 990 passed, 1448 deselected in 146.46s",
+    "note": "the one failure is the pre-existing environment-caused case in tests/publish/test_publication_controls.py"
+  },
+  "cap_raise": {
+    "at_utc": "2026-09-21T04:55:55Z",
+    "decision": "D-0186",
+    "system": "/nix/store/hl9cki5mg4d4sh2ym905lcl489l9xnbc-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+    "source": "/nix/store/pff4khpvr0paq74fs55g8d6q2vhkwm5j-source",
+    "why": "the drain crossed 8 GB at 04:45 UTC (8,260,198,400 bytes) and paused itself again",
+    "effect": "pause cleared, resumed 04:57 UTC; the config-only switch still re-queued all 31,821 parse units (projections kept at 13,152), so every switch restarts the parse drain"
+  }
+}

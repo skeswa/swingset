@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import sqlite3
+from collections.abc import Callable
 from dataclasses import dataclass, replace
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Protocol
@@ -116,7 +118,13 @@ def _parent_ready(
 
 
 def _candidate(
-    database: Database, config: Config, clock: Clock, item: PlannedPage, plan: PlatformPlan
+    database: Database,
+    config: Config,
+    clock: Clock,
+    item: PlannedPage,
+    plan: PlatformPlan,
+    *,
+    year_allowed: Callable[[int], bool] | None = None,
 ) -> tuple[WatchSpec | None, Capture | None, str]:
     conn, page = database.connection, item.page
     if not config.enabled(page.source):
@@ -140,7 +148,11 @@ def _candidate(
     if item.event.last_day >= clock.now().date():
         return None, None, "event_not_historical"
     if reason := phase_two_gate(
-        conn, source=page.source, source_ref=page.source_ref, page_kind=page.page_kind
+        conn,
+        source=page.source,
+        source_ref=page.source_ref,
+        page_kind=page.page_kind,
+        year_allowed=year_allowed,
     ):
         return None, None, reason
     actual = conn.execute(
@@ -192,17 +204,35 @@ def offers(
     plan: PlatformPlan | None = None,
     run_id: str | None = None,
     timing: OfferTiming | None = None,
+    deadline: datetime | None = None,
 ) -> tuple[WatchSpec, ...]:
     """Expose the finite eligible plan to ordinary rotation without scheduling it.
 
     Plan order admits newer events first. All waiting candidates remain visible
     together, so that order cannot override an already enrolled event turn.
     Dispatch repeats the year, parent, capture, and source gates before mutation.
+
+    The year gate is answered once per year for the whole pass: it walks every
+    pending projection unit, and asking it per page made one pass over 6,247
+    pages take 43 minutes (D-0181). A ``deadline`` stops the pass early; the
+    pages not reached are offered on a later pass.
     """
+    from swingset.log import log
+    from swingset.project.history import projection_answer_cached
+
     if timing is not None:
         timing.begin(connection=database.connection, config=config, clock=clock, run_id=run_id)
     plan = plan or retained_plan(database.connection, history_start=config.history_start)
-    options = [(item, _candidate(database, config, clock, item, plan)) for item in plan.pages]
+    year_allowed = _year_gate(database.connection)
+    options: list[tuple[PlannedPage, tuple[WatchSpec | None, Capture | None, str]]] = []
+    with projection_answer_cached():
+        for item in plan.pages:
+            if deadline is not None and clock.now() >= deadline:
+                log("history_offers_truncated", evaluated=len(options), pages=len(plan.pages))
+                break
+            options.append(
+                (item, _candidate(database, config, clock, item, plan, year_allowed=year_allowed))
+            )
     archive_sources = {item.page.source for item, (spec, _, _) in options if spec is not None}
     result: dict[str, WatchSpec] = {}
     for item, (spec, _, reason) in options:
@@ -231,6 +261,35 @@ def offer(
 ) -> WatchSpec | None:
     """Compatibility for callers requesting only the plan's first candidate."""
     return next(iter(offers(database, config, clock, plan=plan, run_id=run_id)), None)
+
+
+def _year_gate(conn: sqlite3.Connection) -> Callable[[int], bool]:
+    """Answer the phase-two year gate once per year and the projection question once.
+
+    The projection question walks every pending derivation and costs seconds on
+    a large database, so one pass over thousands of plan pages must not repeat
+    it per page or per year (D-0181, D-0195).
+    """
+    from swingset.project.history import pending_inventory_projection, phase_two_allowed
+
+    years: dict[int, bool] = {}
+    pending: list[bool] = []
+
+    def year_allowed(year: int) -> bool:
+        if year not in years:
+            if not pending:
+                pending.append(pending_inventory_projection(conn))
+            years[year] = phase_two_allowed(conn, year, pending=pending[0])
+        return years[year]
+
+    return year_allowed
+
+
+def _spec_id(item: PlannedPage) -> str:
+    page = item.page
+    return WatchSpec(
+        "", page.source, page.kind, "GET", page.url, page.page_kind, source_ref=page.source_ref
+    ).watch_id
 
 
 def dispatch_one(
@@ -262,13 +321,23 @@ def dispatch_one(
     blocked = "no_eligible_capture"
     from swingset.schedule.event_timing_observer import checkpoint, resume
 
+    # An allocated turn names its watch, so only that page needs evaluating.
+    # Everything else is one bounded write, and evaluating thousands of pages
+    # inside it exceeded the write deadline on 2026-09-23 (D-0195).
+    pages = plan.pages
+    if target_watch_id is not None:
+        pages = [item for item in plan.pages if _spec_id(item) == target_watch_id] or plan.pages
+    from swingset.project.history import projection_answer_cached
+
+    year_allowed = _year_gate(conn)
     checkpoint()
     try:
-        with database.transaction():
+        with projection_answer_cached(), database.transaction():
             if not allocated and (reason := _busy(database, config, clock, deadline)):
                 return Dispatch(reason)
             options = [
-                (item, _candidate(database, config, clock, item, plan)) for item in plan.pages
+                (item, _candidate(database, config, clock, item, plan, year_allowed=year_allowed))
+                for item in pages
             ]
             archive_sources = {
                 item.page.source for item, (spec, _, _) in options if spec is not None

@@ -88,6 +88,9 @@ def parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Rewrite state.sqlite in place so freed pages leave the file",
     )
+    accept_year = commands.add_parser("accept-year", parents=[shared])
+    accept_year.add_argument("--year", type=int, required=True)
+    accept_year.add_argument("--by", required=True, help="who accepts: the reviewer and session")
     hold = commands.add_parser("hold", parents=[shared])
     hold.add_argument("action", choices=("add", "list", "remove"))
     hold.add_argument("--generation", action="append", default=[], metavar="ID", help="repeatable")
@@ -998,6 +1001,33 @@ def _control(args: argparse.Namespace) -> int:
     return code
 
 
+def _accept_year(args: argparse.Namespace) -> int:
+    """Record a reviewed year's event list as accepted, in one bounded write.
+
+    The projector refuses while the year has open history findings or the
+    inventory projection is pending, so acceptance cannot outrun the evidence
+    (D-0180).
+    """
+    from swingset.project.history import accept_year
+
+    if not (args.by or "").strip():
+        raise ValueError("accept-year requires --by")
+    now = SystemClock().now()
+    with open_database(args.state, lock_timeout=args.lock_timeout) as database:
+        with database.transaction() as conn:
+            accept_year(conn, args.year, accepted_by=args.by, accepted_at=now.isoformat())
+            row = conn.execute(
+                "SELECT year,accepted_at,accepted_by,inventory_digest FROM history_acceptance WHERE year=?",
+                (args.year,),
+            ).fetchone()
+    print(
+        json.dumps(
+            dict(zip(("year", "accepted_at", "accepted_by", "inventory_digest"), row, strict=True))
+        )
+    )
+    return 0
+
+
 def _hold(args: argparse.Namespace) -> int:
     """Read and write retention holds under the control lock, not the writer lock.
 
@@ -1046,6 +1076,12 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "hold":
         try:
             return _hold(args)
+        except (OSError, ValueError, RuntimeError) as exc:
+            log("error", message=str(exc))
+            return 1
+    if args.command == "accept-year":
+        try:
+            return _accept_year(args)
         except (OSError, ValueError, RuntimeError) as exc:
             log("error", message=str(exc))
             return 1

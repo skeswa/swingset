@@ -1,0 +1,803 @@
+{
+  "operation": "Read-only published data quality investigation",
+  "started_at": "2026-09-21T15:52:29.275110+00:00",
+  "candidate_path": "/var/lib/swingset/candidates/cand_80719e178655435d",
+  "publication": {
+    "candidate_id": "cand_80719e178655435d",
+    "closure_digest": "528c72348850314f99a169b3530f257bebe84c4900b6454f7f6f9f54e4b81077",
+    "commit": "138352ef5e9ec25e12b60dc6acb85db808c5e77f",
+    "correction_age_basis": "recorded_pending_corrections",
+    "correction_detected_at": null,
+    "correction_latency_seconds": null,
+    "evidence_cutoff": "2026-09-21T10:19:25.232863+00:00",
+    "latency_is_upper_bound": false,
+    "verified_at": "2026-09-21T10:26:05.488427+00:00"
+  },
+  "manifest_sha256": "383b38318d411f2353cf8f268fea7cc432e54799e7c4ffa8ff319512b9bec178",
+  "repository_commit": "uncommitted:pff4khpvr0paq74fs55g8d6q2vhkwm5j-source",
+  "row_counts": {
+    "callback_marks": 288502,
+    "callbacks": 59064,
+    "changelog": 19132932,
+    "contests": 2005,
+    "coverage": 6429,
+    "dancers": 27784,
+    "entries": 58558,
+    "events": 2105,
+    "final_marks": 83355,
+    "heats": 0,
+    "identity_links": 0,
+    "judges": 2818,
+    "link_candidates": 0,
+    "placements": 14115,
+    "registry_placements": 197990,
+    "review_queue": 36082,
+    "rounds": 2934,
+    "snapshots": 31759
+  },
+  "queries": {
+    "live_counts": {
+      "sql": "SELECT (SELECT count(*) FROM identity_links) AS identity_links, (SELECT count(*) FROM link_candidates) AS link_candidates, (SELECT count(*) FROM heats) AS heats, (SELECT count(*) FROM entries) AS entries, (SELECT count(*) FROM placements) AS placements",
+      "parameters": [],
+      "rows": [
+        {
+          "identity_links": 97421,
+          "link_candidates": 91047,
+          "heats": 0,
+          "entries": 96115,
+          "placements": 20236
+        }
+      ]
+    },
+    "live_points": {
+      "sql": "SELECT count(*) AS rows,count(registry_points_leader) AS leader_points,count(registry_points_follower) AS follower_points,sum(registry_confirmed) AS confirmed,count(points_matches_expected) AS checked FROM placements",
+      "parameters": [],
+      "rows": [
+        {
+          "rows": 20236,
+          "leader_points": 2426,
+          "follower_points": 2398,
+          "confirmed": 2300,
+          "checked": 2414
+        }
+      ]
+    },
+    "live_links": {
+      "sql": "SELECT status,method,count(*) AS rows FROM identity_links GROUP BY status,method",
+      "parameters": [],
+      "rows": [
+        {
+          "status": "confirmed",
+          "method": "registry_placement",
+          "rows": 5350
+        },
+        {
+          "status": "confirmed",
+          "method": "source_id",
+          "rows": 29949
+        },
+        {
+          "status": "possible",
+          "method": "assignment",
+          "rows": 1701
+        },
+        {
+          "status": "possible",
+          "method": "name_unique",
+          "rows": 3230
+        },
+        {
+          "status": "probable",
+          "method": "assignment",
+          "rows": 4527
+        },
+        {
+          "status": "probable",
+          "method": "name_unique",
+          "rows": 24624
+        },
+        {
+          "status": "unmatched",
+          "method": "none",
+          "rows": 28040
+        }
+      ]
+    },
+    "live_event_sources": {
+      "sql": "SELECT source,count(*) AS rows,count(city) AS city,count(region) AS region,count(country) AS country,count(start_date) AS start_date,count(end_date) AS end_date FROM events GROUP BY source",
+      "parameters": [],
+      "rows": [
+        {
+          "source": "eepro",
+          "rows": 95,
+          "city": 0,
+          "region": 0,
+          "country": 0,
+          "start_date": 95,
+          "end_date": 95
+        },
+        {
+          "source": "scoringdance",
+          "rows": 327,
+          "city": 0,
+          "region": 0,
+          "country": 0,
+          "start_date": 327,
+          "end_date": 327
+        },
+        {
+          "source": "swingdancecouncil",
+          "rows": 613,
+          "city": 0,
+          "region": 0,
+          "country": 0,
+          "start_date": 552,
+          "end_date": 552
+        },
+        {
+          "source": "wdr",
+          "rows": 9,
+          "city": 0,
+          "region": 0,
+          "country": 0,
+          "start_date": 9,
+          "end_date": 9
+        },
+        {
+          "source": "wsdc_calendar",
+          "rows": 953,
+          "city": 169,
+          "region": 149,
+          "country": 169,
+          "start_date": 953,
+          "end_date": 953
+        },
+        {
+          "source": "wsdc_newsletter",
+          "rows": 700,
+          "city": 0,
+          "region": 0,
+          "country": 0,
+          "start_date": 700,
+          "end_date": 700
+        },
+        {
+          "source": "wsdc_registry",
+          "rows": 218,
+          "city": 0,
+          "region": 0,
+          "country": 0,
+          "start_date": 0,
+          "end_date": 0
+        }
+      ]
+    },
+    "pending_work": {
+      "sql": "SELECT stage,unit_kind,count(*) AS rows FROM pending_work GROUP BY stage,unit_kind",
+      "parameters": [],
+      "rows": [
+        {
+          "stage": "link",
+          "unit_kind": "event",
+          "rows": 1063
+        },
+        {
+          "stage": "parse",
+          "unit_kind": "snapshot",
+          "rows": 24895
+        },
+        {
+          "stage": "project",
+          "unit_kind": "history",
+          "rows": 1
+        }
+      ]
+    },
+    "location_available_but_not_projected": {
+      "sql": "SELECT se.source,count(*) AS rows,sum(e.city IS NULL) AS missing_city,sum(e.country IS NULL) AS missing_country FROM source_event_map m JOIN source_events se ON se.source=m.source AND se.source_ref=m.source_ref JOIN events e ON e.event_id=m.event_id WHERE se.location_raw IS NOT NULL AND trim(se.location_raw)!='' GROUP BY se.source",
+      "parameters": [],
+      "rows": []
+    },
+    "location_examples": {
+      "sql": "SELECT e.event_id,se.source,se.source_ref,se.location_raw,e.city,e.region,e.country FROM source_event_map m JOIN source_events se ON se.source=m.source AND se.source_ref=m.source_ref JOIN events e ON e.event_id=m.event_id WHERE se.location_raw IS NOT NULL AND trim(se.location_raw)!='' AND e.city IS NULL LIMIT 5",
+      "parameters": [],
+      "rows": []
+    },
+    "mapped_dates_available_but_missing": {
+      "sql": "SELECT se.source,count(*) AS rows FROM source_event_map m JOIN source_events se ON se.source=m.source AND se.source_ref=m.source_ref JOIN events e ON e.event_id=m.event_id WHERE se.start_date IS NOT NULL AND se.end_date IS NOT NULL AND (e.start_date IS NULL OR e.end_date IS NULL) GROUP BY se.source",
+      "parameters": [],
+      "rows": []
+    }
+  },
+  "published_placements": {
+    "rows": 14115,
+    "non_null": {
+      "registry_points_leader": 0,
+      "registry_points_follower": 0,
+      "points_matches_expected": 0,
+      "leader_wsdc_id": 0,
+      "follower_wsdc_id": 0
+    },
+    "registry_confirmed_true": 0
+  },
+  "published_empty_tables": {
+    "heats": 0,
+    "identity_links": 0,
+    "link_candidates": 0
+  },
+  "published_entries": {
+    "rows": 58558,
+    "wsdc_id_non_null": 0,
+    "link_status": {
+      "unmatched": 58558
+    }
+  },
+  "published_events": {
+    "rows": 2105,
+    "nulls": {
+      "city": 1936,
+      "region": 1956,
+      "country": 1936,
+      "start_date": 254,
+      "end_date": 254
+    },
+    "by_source": {
+      "eepro": {
+        "rows": 95,
+        "nulls": {
+          "city": 95,
+          "region": 95,
+          "country": 95,
+          "start_date": 0,
+          "end_date": 0
+        }
+      },
+      "scoringdance": {
+        "rows": 177,
+        "nulls": {
+          "city": 177,
+          "region": 177,
+          "country": 177,
+          "start_date": 0,
+          "end_date": 0
+        }
+      },
+      "swingdancecouncil": {
+        "rows": 457,
+        "nulls": {
+          "city": 457,
+          "region": 457,
+          "country": 457,
+          "start_date": 36,
+          "end_date": 36
+        }
+      },
+      "wdr": {
+        "rows": 9,
+        "nulls": {
+          "city": 9,
+          "region": 9,
+          "country": 9,
+          "start_date": 0,
+          "end_date": 0
+        }
+      },
+      "wsdc_calendar": {
+        "rows": 624,
+        "nulls": {
+          "city": 455,
+          "region": 475,
+          "country": 455,
+          "start_date": 0,
+          "end_date": 0
+        }
+      },
+      "wsdc_newsletter": {
+        "rows": 525,
+        "nulls": {
+          "city": 525,
+          "region": 525,
+          "country": 525,
+          "start_date": 0,
+          "end_date": 0
+        }
+      },
+      "wsdc_registry": {
+        "rows": 218,
+        "nulls": {
+          "city": 218,
+          "region": 218,
+          "country": 218,
+          "start_date": 218,
+          "end_date": 218
+        }
+      }
+    },
+    "by_date_precision": {
+      "day": {
+        "rows": 1851,
+        "nulls": {
+          "city": 1682,
+          "region": 1702,
+          "country": 1682,
+          "start_date": 0,
+          "end_date": 0
+        }
+      },
+      "month": {
+        "rows": 254,
+        "nulls": {
+          "city": 254,
+          "region": 254,
+          "country": 254,
+          "start_date": 254,
+          "end_date": 254
+        }
+      }
+    },
+    "by_coverage_tier": {
+      "index_only": {
+        "rows": 1780,
+        "nulls": {
+          "city": 1611,
+          "region": 1631,
+          "country": 1611,
+          "start_date": 36,
+          "end_date": 36
+        }
+      },
+      "registry_only": {
+        "rows": 218,
+        "nulls": {
+          "city": 218,
+          "region": 218,
+          "country": 218,
+          "start_date": 218,
+          "end_date": 218
+        }
+      },
+      "sheets_partial": {
+        "rows": 107,
+        "nulls": {
+          "city": 107,
+          "region": 107,
+          "country": 107,
+          "start_date": 0,
+          "end_date": 0
+        }
+      }
+    },
+    "missing_dates_examples": [
+      {
+        "event_id": "2010-01-americas-classic",
+        "name": "Americas Classic",
+        "source": "wsdc_registry",
+        "date_precision": "month",
+        "event_month": "2010-01",
+        "coverage_tier": "registry_only"
+      },
+      {
+        "event_id": "2010-01-new-year-s-dance-camp",
+        "name": "New Year's Dance Camp",
+        "source": "wsdc_registry",
+        "date_precision": "month",
+        "event_month": "2010-01",
+        "coverage_tier": "registry_only"
+      },
+      {
+        "event_id": "2010-01-spotlight-dance-challenge",
+        "name": "Spotlight Dance Challenge",
+        "source": "wsdc_registry",
+        "date_precision": "month",
+        "event_month": "2010-01",
+        "coverage_tier": "registry_only"
+      },
+      {
+        "event_id": "2010-02-da-dance-camp",
+        "name": "Da Dance Camp",
+        "source": "wsdc_registry",
+        "date_precision": "month",
+        "event_month": "2010-02",
+        "coverage_tier": "registry_only"
+      },
+      {
+        "event_id": "2010-03-reno-dance-sensation",
+        "name": "Reno Dance Sensation",
+        "source": "wsdc_registry",
+        "date_precision": "month",
+        "event_month": "2010-03",
+        "coverage_tier": "registry_only"
+      }
+    ]
+  },
+  "published_selected_generations": {
+    "selected": 33505,
+    "found": 33505,
+    "by_stage_kind": {
+      "link/event": 685,
+      "project/dancer": 29048,
+      "project/calendar": 2,
+      "project/event": 2916,
+      "project/source_event": 467,
+      "project/map": 1,
+      "project/history": 1,
+      "project/inventory": 1,
+      "project/source_index": 384
+    }
+  },
+  "release_policy_summary": {
+    "accuracy_expansions": "withheld_pending_H17",
+    "baseline_commit": "0923f27fb995c625feb704e70308349a832cc5f2",
+    "default_join_counts": {},
+    "legacy_policy": "Published baseline support may remain unassessed; no revocation, new join, or removal authority is permitted.",
+    "mode": "closure"
+  },
+  "closure_summary": {
+    "baseline": {
+      "commit": "0923f27fb995c625feb704e70308349a832cc5f2",
+      "manifest_hash": "b9d7f90bcecaab0b568aa505f446d08d9007445256dcc4bacb2689344e7e5072"
+    },
+    "cutoff": "2026-09-21T10:19:25.232863+00:00",
+    "digest": "528c72348850314f99a169b3530f257bebe84c4900b6454f7f6f9f54e4b81077",
+    "event_coverage": {
+      "digest": "779a63ccd779128b9a5b8623327e8e32b2c51102f46e45356c7b90a3af27eb6d",
+      "omitted_subjects": 0
+    },
+    "format": "release-closure-public-v1",
+    "inventory_digest": "d0504f6864855561eb420c1a53d1b39f8a19a7d0b9a2a23b5cfb6b3454b343a9",
+    "private_digest": "db0972f76ab52dff885df2df5a40c514a1831a67ed487d9ad9cb25c1395bc590",
+    "support_token": "08eb6ab6da58beb56c501a0f2d4c75cd04cb7563bd87d3287cd2216095e7d662"
+  },
+  "finished_at": "2026-09-21T15:52:29.960747+00:00",
+  "exit_code": 0,
+  "trace": {
+    "at": "2026-09-21T15:53:31.237620+00:00",
+    "queries": {
+      "calendar_locations": {
+        "sql": "SELECT w.source,count(*) AS observations,sum(length(json_extract(o.payload_json,'$.location_raw'))>0) AS with_location,sum(json_extract(o.payload_json,'$.country_code_raw') IS NOT NULL) AS with_country FROM observations o JOIN watches w USING(watch_id) WHERE o.scope_kind='calendar' GROUP BY w.source",
+        "rows": [
+          {
+            "source": "swingdancecouncil",
+            "observations": 3195,
+            "with_location": 3195,
+            "with_country": 0
+          },
+          {
+            "source": "wsdc_calendar",
+            "observations": 17014,
+            "with_location": 4050,
+            "with_country": 2086
+          },
+          {
+            "source": "wsdc_newsletter",
+            "observations": 731,
+            "with_location": 23,
+            "with_country": 0
+          }
+        ]
+      },
+      "calendar_location_missing_examples": {
+        "sql": "SELECT DISTINCT e.event_id,e.name,e.source,json_extract(o.payload_json,'$.location_raw') AS location_raw,json_extract(o.payload_json,'$.country_code_raw') AS country_raw,e.start_date,e.end_date FROM events e JOIN observations o ON json_extract(o.payload_json,'$.name_raw')=e.name AND json_extract(o.payload_json,'$.end_date_raw')=e.end_date WHERE o.scope_kind='calendar' AND e.city IS NULL AND length(json_extract(o.payload_json,'$.location_raw'))>0 LIMIT 5",
+        "rows": [
+          {
+            "event_id": "2010-03-chicago-classic",
+            "name": "Chicago Classic",
+            "source": "swingdancecouncil",
+            "location_raw": "Chicago, IL",
+            "country_raw": null,
+            "start_date": "2010-03-12",
+            "end_date": "2010-03-14"
+          },
+          {
+            "event_id": "2010-03-high-desert-dance-classic",
+            "name": "High Desert Dance Classic",
+            "source": "swingdancecouncil",
+            "location_raw": "Lancaster, CA",
+            "country_raw": null,
+            "start_date": "2010-03-12",
+            "end_date": "2010-03-14"
+          },
+          {
+            "event_id": "2010-03-novice-invitational",
+            "name": "Novice Invitational",
+            "source": "swingdancecouncil",
+            "location_raw": "Houston, TX",
+            "country_raw": null,
+            "start_date": "2010-03-19",
+            "end_date": "2010-03-21"
+          },
+          {
+            "event_id": "2010-04-music-city-swing-dance-championships",
+            "name": "Music City Swing Dance Championships",
+            "source": "swingdancecouncil",
+            "location_raw": "Nashville, TN",
+            "country_raw": null,
+            "start_date": "2010-04-01",
+            "end_date": "2010-04-04"
+          },
+          {
+            "event_id": "2010-04-calgary-dance-stampede",
+            "name": "Calgary Dance Stampede",
+            "source": "swingdancecouncil",
+            "location_raw": "Calgary, Alberta Canada",
+            "country_raw": null,
+            "start_date": "2010-04-16",
+            "end_date": "2010-04-18"
+          }
+        ]
+      },
+      "missing_date_findings": {
+        "sql": "SELECT kind,count(*) AS rows FROM findings WHERE closed_at IS NULL AND subject_kind IN ('history_listing','history_year','source_event') GROUP BY kind",
+        "rows": [
+          {
+            "kind": "acquisition_gate",
+            "rows": 7
+          },
+          {
+            "kind": "conflict",
+            "rows": 4
+          },
+          {
+            "kind": "phase1_incomplete",
+            "rows": 17
+          },
+          {
+            "kind": "series_alias",
+            "rows": 45
+          }
+        ]
+      },
+      "source_event_dates": {
+        "sql": "SELECT source,count(*) AS rows,count(start_date) AS dated,count(location_raw) AS located FROM source_events GROUP BY source",
+        "rows": [
+          {
+            "source": "eepro",
+            "rows": 72,
+            "dated": 72,
+            "located": 0
+          },
+          {
+            "source": "scoringdance",
+            "rows": 383,
+            "dated": 319,
+            "located": 0
+          }
+        ]
+      }
+    },
+    "selected_links": {
+      "rows": 685,
+      "nonempty_generations": 0,
+      "total_output_rows": 0,
+      "created_at_range": [
+        "2026-09-21T10:02:58.472024+00:00",
+        "2026-09-21T10:18:52.676114+00:00"
+      ]
+    },
+    "selected_link_output_tables": {},
+    "published_result_events": {
+      "events_with_entries": 107,
+      "with_selected_link": 0
+    },
+    "link_samples": [],
+    "result_event_example": "2021-09-midland-swing-open",
+    "example_link_history": [
+      {
+        "generation_id": "dg_01124f5bf5dae9011374cb62c6a5b448d74f1949c1fe55d01bcd6b0200165efc",
+        "row_count": 691,
+        "created_at": "2026-09-21T15:08:06.056855+00:00",
+        "dependency_set_id": "67bc04b7733dce2e156ad85d97d9f61c65e2a6c627d0458d2c025fac85e2947b",
+        "selected": false
+      },
+      {
+        "generation_id": "dg_b859288abf824417e848e525aeec87553bfade89a9f85efe1db5f933ba7b0609",
+        "row_count": 691,
+        "created_at": "2026-09-16T21:39:51.975712+00:00",
+        "dependency_set_id": "affc067347ca991acce78125ac963572c95cfc881188fc89aab06d99b0ebfec9",
+        "selected": false
+      }
+    ],
+    "exit_code": 0
+  },
+  "comparison": {
+    "at": "2026-09-21T15:54:43.751176+00:00",
+    "releases": [
+      {
+        "candidate_id": "cand_0e94f73007664350",
+        "publication": {
+          "candidate_id": "cand_0e94f73007664350",
+          "closure_digest": "e5273bffa36930b9273b1198dda780e33721ea1286220138abbef29a1aeddf5f",
+          "commit": "35db6a7dfbb91b455db62eed8441b9d3383fb6a5",
+          "correction_age_basis": "recorded_pending_corrections",
+          "correction_detected_at": null,
+          "correction_latency_seconds": null,
+          "evidence_cutoff": "2026-09-21T00:56:14.930170+00:00",
+          "latency_is_upper_bound": false,
+          "verified_at": "2026-09-21T01:02:13.624919+00:00"
+        },
+        "manifest_sha256": "3ef924b87ca44bfa0bf72399641745c5ccc0bb6fad057c86c5b0fdc91e3c3c1f",
+        "row_counts": {
+          "events": 2541,
+          "entries": 93820,
+          "placements": 20236,
+          "identity_links": 98751,
+          "link_candidates": 92499,
+          "heats": 0
+        },
+        "entries_with_wsdc_id": 34955,
+        "placements_with_leader_points": 2348,
+        "placements_with_follower_points": 2310,
+        "placements_confirmed": 2209,
+        "placements_checked": 2154
+      },
+      {
+        "candidate_id": "cand_b29fcd8b24904908",
+        "publication": {
+          "candidate_id": "cand_b29fcd8b24904908",
+          "closure_digest": "5bed2a01233c351f77c35a13ec561268ae2013c7bfbf9a3189d03786261dca1e",
+          "commit": "0923f27fb995c625feb704e70308349a832cc5f2",
+          "correction_age_basis": "recorded_pending_corrections",
+          "correction_detected_at": null,
+          "correction_latency_seconds": null,
+          "evidence_cutoff": "2026-09-21T09:39:09.359422+00:00",
+          "latency_is_upper_bound": false,
+          "verified_at": "2026-09-21T09:45:27.773718+00:00"
+        },
+        "manifest_sha256": "b9d7f90bcecaab0b568aa505f446d08d9007445256dcc4bacb2689344e7e5072",
+        "row_counts": {
+          "events": 2541,
+          "entries": 93820,
+          "placements": 20236,
+          "identity_links": 98751,
+          "link_candidates": 92499,
+          "heats": 0
+        },
+        "entries_with_wsdc_id": 31817,
+        "placements_with_leader_points": 2348,
+        "placements_with_follower_points": 2310,
+        "placements_confirmed": 2209,
+        "placements_checked": 2154
+      },
+      {
+        "candidate_id": "cand_80719e178655435d",
+        "publication": {
+          "candidate_id": "cand_80719e178655435d",
+          "closure_digest": "528c72348850314f99a169b3530f257bebe84c4900b6454f7f6f9f54e4b81077",
+          "commit": "138352ef5e9ec25e12b60dc6acb85db808c5e77f",
+          "correction_age_basis": "recorded_pending_corrections",
+          "correction_detected_at": null,
+          "correction_latency_seconds": null,
+          "evidence_cutoff": "2026-09-21T10:19:25.232863+00:00",
+          "latency_is_upper_bound": false,
+          "verified_at": "2026-09-21T10:26:05.488427+00:00"
+        },
+        "manifest_sha256": "383b38318d411f2353cf8f268fea7cc432e54799e7c4ffa8ff319512b9bec178",
+        "row_counts": {
+          "events": 2105,
+          "entries": 58558,
+          "placements": 14115,
+          "identity_links": 0,
+          "link_candidates": 0,
+          "heats": 0
+        },
+        "entries_with_wsdc_id": 0,
+        "placements_with_leader_points": 0,
+        "placements_with_follower_points": 0,
+        "placements_confirmed": 0,
+        "placements_checked": 0
+      }
+    ],
+    "example_incompatible_link": {
+      "event_id": "2021-09-midland-swing-open",
+      "generation_id": "dg_b859288abf824417e848e525aeec87553bfade89a9f85efe1db5f933ba7b0609",
+      "mismatched_dependencies": [
+        {
+          "scope": [
+            "project",
+            "dancer",
+            "4072"
+          ],
+          "link_requires": "dg_00005e984841df30b98ca878c981a0f7ca383dc0dff1fe85ea5370f08c3d521a",
+          "release_selected": "dg_fe6dacbf9743728b909e7826ae62000f2a6c7b68cd5eba616072daeb35fcd122"
+        },
+        {
+          "scope": [
+            "project",
+            "dancer",
+            "20652"
+          ],
+          "link_requires": "dg_0000aed4f4ba97378ac466c21e911cab0460f3bd5b0d1538d0c768d983833f5e",
+          "release_selected": "dg_60a6a6a994ed5c79806d987a2f9ed7a1fe0e9555515e9ca73a56dc4d4c1dfad0"
+        },
+        {
+          "scope": [
+            "project",
+            "dancer",
+            "17787"
+          ],
+          "link_requires": "dg_0006457eddd55b190e38ddcc35ff7e2b9d98ad98f8be366749869b6568902e0b",
+          "release_selected": "dg_b008c312f1286e9145765a724b5e0c46b5b28b67fc1ea3dee4b716040b6b4c16"
+        },
+        {
+          "scope": [
+            "project",
+            "dancer",
+            "8146"
+          ],
+          "link_requires": "dg_0008e45c9c1139e6e7709c7daa935cde16a8cf443d64c44ecea48bcd0605bb31",
+          "release_selected": "dg_d5975d4c913dbb7429c4437b0275f839ad3bf1d671f2eac2d813e087e9b5191a"
+        },
+        {
+          "scope": [
+            "project",
+            "dancer",
+            "28598"
+          ],
+          "link_requires": "dg_000d140691461c428f5268c0f5674330bad0ef5c7e7c87a38693c64ef6a06510",
+          "release_selected": "dg_f08bf2b9476a8b32b2f38e3aaf9a236fbf2f652157cde7383b51cd6c47ead797"
+        }
+      ],
+      "mismatched_dependency_count": 29050
+    },
+    "published_missing_city_with_exact_name_and_end_date_observation": {
+      "count": 913,
+      "examples": [
+        {
+          "event_id": "2010-02-dance-camp-chicago",
+          "name": "Dance Camp Chicago",
+          "location_raw": "Elmhurst, IL"
+        },
+        {
+          "event_id": "2010-02-sweetheart-swing-classic",
+          "name": "Sweetheart Swing Classic",
+          "location_raw": "Talahassee, FL"
+        },
+        {
+          "event_id": "2010-03-chicago-classic",
+          "name": "Chicago Classic",
+          "location_raw": "Chicago, IL"
+        },
+        {
+          "event_id": "2010-03-high-desert-dance-classic",
+          "name": "High Desert Dance Classic",
+          "location_raw": "Lancaster, CA"
+        },
+        {
+          "event_id": "2010-03-novice-invitational",
+          "name": "Novice Invitational",
+          "location_raw": "Houston, TX"
+        }
+      ],
+      "limit": "Raw observation presence is not proof of accepted source support or correct country normalization."
+    },
+    "exit_code": 0
+  },
+  "commands": [
+    "orb -m swingset -u root env LD_LIBRARY_PATH=<installed swingset wrapper value> /var/lib/swingset/venv/bin/python /mnt/mac/private/tmp/swingset-quality-20260921/measure_quality.py",
+    "orb -m swingset -u root env LD_LIBRARY_PATH=<installed swingset wrapper value> /var/lib/swingset/venv/bin/python /mnt/mac/private/tmp/swingset-quality-20260921/trace_quality.py",
+    "orb -m swingset -u root env LD_LIBRARY_PATH=<installed swingset wrapper value> /var/lib/swingset/venv/bin/python /mnt/mac/private/tmp/swingset-quality-20260921/compare_release.py"
+  ],
+  "scratch_script_sha256": {
+    "measure_quality.py": "ab0727dfc1825a1c93f47d52de055e6195adc8c933216db208fa0d454a176ce4",
+    "trace_quality.py": "5402d2fe01ed54a50347d89dd70fab0da82a447dbe0350b0b26d64bcd0841d13",
+    "compare_release.py": "99035274b946e85a9c193dec9cea28c45efe8c0165aa49e59c9a21fd34fbeac6"
+  },
+  "code_sha256": {
+    "src/swingset/build/closure.py": "722cbde43322881cf5b53512d317d43b81573e1f4fd0b398fb4b329a69297c18",
+    "src/swingset/build/closure_rows.py": "982f8b4eb1bdd96ad8473882b312242ec4a45b3cf0c68bc4a0426de2683798e7",
+    "src/swingset/build/identity_policy.py": "0e502a97d9a4fde3629d73e24464a49924a001c66f77d0788671fbe84a035a5b",
+    "src/swingset/link/effects.py": "e36a6af08db15950e7d859849e73c6ce4569131536cb19d74d14f2b28e3356a1",
+    "src/swingset/project/history.py": "270e650a432d3f2c0b1b1b33727d47c3ca45214abb270ac7e5180931d394c1d7",
+    "src/swingset/project/events.py": "49c59ad5db3875768c011d0bb8eb77159d6b699f53e2d4a4d8488c92dba26a7f",
+    "src/swingset/publish/card.py": "f4ac75109b43785d5e62c7216348514dda2c556631b27878928e2f51906c3e87"
+  },
+  "limitations": [
+    "Read-only worker inspection; no fresh source requests, production writes, rebuild or publication.",
+    "Published artifacts were read from the worker candidate named by its PUBLISHED receipt; Hub head was not independently queried.",
+    "Parquet hashes checked against manifests for measured tables; other historical row counts are manifest counts.",
+    "Live SQL counts describe later worker state, not the release cutoff.",
+    "Source code inspected in the existing uncommitted checkout; runtime and release source pins are recorded separately.",
+    "Location text matches identify enrichment candidates, not approved facts or normalized country codes."
+  ],
+  "worker_source": "/nix/store/a9x1147rkfc4nh1bjhhxqd7bpyy47vyz-source"
+}

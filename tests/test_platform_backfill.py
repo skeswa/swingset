@@ -805,6 +805,57 @@ def test_all_historical_offers_are_visible_without_creating_controls(fixture):
     assert offers(fixture.db, fixture.config, fixture.clock, plan=plan) == ()
 
 
+def test_offers_answer_the_year_gate_once_per_year_and_stop_at_the_deadline(fixture, monkeypatch):
+    from datetime import timedelta
+
+    from swingset.history import backfill
+    from swingset.project import history as history_module
+
+    review_contract(fixture)
+    other = KnownEvent(
+        EVENT.event_id, "eepro", "eepro:other2019", 2019, EVENT.event_month, EVENT.end_date
+    )
+    fixture.conn.execute(
+        "INSERT INTO source_event_map VALUES (?,?,?,'explicit',1)",
+        (other.source, other.source_ref, other.event_id),
+    )
+    accept(fixture)
+    other_capture = Capture(
+        "https://eepro.com/results/other2019/", "20190501000000", "other", "text/html", 100
+    )
+    plan = plan_platform((EVENT, other), (("eepro", CAPTURES[0]), ("eepro", other_capture)))
+    calls = []
+    original = history_module.phase_two_allowed
+    walks = []
+    original_pending = history_module._pending_inventory_projection
+
+    def counted(conn, year, **kwargs):
+        calls.append(year)
+        return original(conn, year, **kwargs)
+
+    def counted_pending(conn):
+        walks.append(True)
+        return original_pending(conn)
+
+    monkeypatch.setattr(history_module, "phase_two_allowed", counted)
+    monkeypatch.setattr(history_module, "_pending_inventory_projection", counted_pending)
+    candidates = backfill.offers(fixture.db, fixture.config, fixture.clock, plan=plan)
+    assert len(candidates) == 2
+    # Two pages in one year: the gate that walks every pending projection unit
+    # ran once, not once per page (D-0181), and the walk itself ran once for
+    # the whole pass, not once per year (D-0195).
+    assert calls == [2019]
+    assert len(walks) == 1
+    # A deadline already reached offers nothing and evaluates no page.
+    calls.clear()
+    reached = fixture.clock.now() - timedelta(seconds=1)
+    assert (
+        backfill.offers(fixture.db, fixture.config, fixture.clock, plan=plan, deadline=reached)
+        == ()
+    )
+    assert calls == []
+
+
 def test_pause_after_offer_prevents_allocated_capture_advancement(fixture):
     from swingset.history.backfill import offer
     from swingset.state.controls import Selector, change_control
@@ -835,3 +886,57 @@ def test_pause_after_offer_prevents_allocated_capture_advancement(fixture):
     assert result.reason == "operator_pause"
     assert not fetcher.calls
     assert fixture.conn.execute("SELECT count(*) FROM watches").fetchone()[0] == 0
+
+
+def test_allocated_dispatch_evaluates_only_its_watch_and_walks_projection_once(
+    fixture, monkeypatch
+):
+    from swingset.history import backfill
+    from swingset.project import history as history_module
+
+    review_contract(fixture)
+    other = KnownEvent(
+        EVENT.event_id, "eepro", "eepro:other2019", 2019, EVENT.event_month, EVENT.end_date
+    )
+    fixture.conn.execute(
+        "INSERT INTO source_event_map VALUES (?,?,?,'explicit',1)",
+        (other.source, other.source_ref, other.event_id),
+    )
+    accept(fixture)
+    other_capture = Capture(
+        "https://eepro.com/results/other2019/", "20190501000000", "other", "text/html", 100
+    )
+    plan = plan_platform((EVENT, other), (("eepro", CAPTURES[0]), ("eepro", other_capture)))
+    offered = backfill.offers(fixture.db, fixture.config, fixture.clock, plan=plan)
+    target = offered[0].watch_id
+    evaluated = []
+    original_candidate = backfill._candidate
+    walks = []
+    original_pending = history_module._pending_inventory_projection
+
+    def counted_candidate(database, config, clock, item, plan, **kwargs):
+        evaluated.append(item.page.url)
+        return original_candidate(database, config, clock, item, plan, **kwargs)
+
+    def counted_pending(conn):
+        walks.append(True)
+        return original_pending(conn)
+
+    monkeypatch.setattr(backfill, "_candidate", counted_candidate)
+    monkeypatch.setattr(history_module, "_pending_inventory_projection", counted_pending)
+    result = backfill.dispatch_one(
+        fixture.db,
+        fixture.config,
+        fixture.clock,
+        fixture.run,
+        deadline=fixture.clock.now() + timedelta(minutes=5),
+        fetcher=recorder(),
+        plan=plan,
+        allocated=True,
+        target_watch_id=target,
+    )
+    # A turn allocated to one watch evaluates that page only, inside the
+    # bounded write, and answers the projection question once (D-0195).
+    assert result.watch_id == target
+    assert len(evaluated) == 1
+    assert len(walks) <= 1

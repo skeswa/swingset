@@ -90,6 +90,15 @@ def replace_scope(
                 ).rowcount
                 if removed_links or removed_candidates:
                     bump_revision(conn, "links")
+            if table == "events":
+                # A registry placement points at its event without a cascade.
+                # When the live calendar drops a past event that the registry
+                # has already reported, detach the placement; the inventory
+                # projection that follows creates the registry-backed event
+                # and links the placement to it again (D-0191).
+                conn.execute(
+                    "UPDATE registry_placements SET event_id=NULL WHERE event_id=?", (key[0],)
+                )
             conn.execute(f"DELETE FROM {table} WHERE {where}", tuple(key))
             changed = True
     for table in _INSERT_ORDER:

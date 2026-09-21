@@ -1,0 +1,65 @@
+{
+  "operation": "Accept three reviewed Global Grand Prix series aliases",
+  "at_utc": "2026-09-23T21:55:27.393633+00:00",
+  "operator": "Codex under D-0183",
+  "reviewer": "Claude Opus under D-0180, 2026-09-23",
+  "decision_rules": [
+    "D-0180",
+    "D-0187"
+  ],
+  "preflight": {
+    "accepted_alias_sha256": "a2a9a3b633a527712f63e4261553d4365bb9b46ccd31bde3af3f69c7c450eda4",
+    "finding_ids": [
+      "b2e156586f9cc433",
+      "a6f114c841e9076b"
+    ],
+    "registry_placements": {
+      "2025-12/wsdc-342": 117,
+      "2026-09/wsdc-409": 3
+    }
+  },
+  "change": {
+    "path": "overrides/series_aliases.csv",
+    "atomic_replace": true,
+    "rows_added": 3,
+    "sha256": "03a996ffa8097d26e5e7db3fd2c4a2afb8050fd3216857f8f826ac4081be0020"
+  },
+  "checks": {
+    "override_validation_exit_code": 0,
+    "alias_lookup": {
+      "2025-12/calendar": "wsdc-342",
+      "2026-09/calendar": "wsdc-409",
+      "2026-09/scoringdance": "wsdc-409"
+    },
+    "history_inventory_tests": "9 passed",
+    "core_tests": "993 passed, 1 known publication-control subprocess failure",
+    "fmt_exit_code": 0
+  },
+  "production": {
+    "read_command": "orb -m swingset -u root /var/lib/swingset/venv/bin/python3 -c <read-only SQLite postcheck>",
+    "read_exit_code": 0,
+    "run_id": "run_20260923T211306Z",
+    "run_finished_at": "2026-09-23T21:53:28.129711+00:00",
+    "run_failed": false,
+    "run_error": null,
+    "accepted_inputs": [
+      "overrides/series_aliases.csv"
+    ],
+    "accepted_digest": "03a996ffa8097d26e5e7db3fd2c4a2afb8050fd3216857f8f826ac4081be0020",
+    "findings": {
+      "a6f114c841e9076b": "needs_review",
+      "b2e156586f9cc433": "needs_review"
+    },
+    "history_pending": 1,
+    "latest_history_finished_at": "2026-09-23T11:42:09.574169+00:00",
+    "latest_fetched_at": "2026-09-23T21:23:44.126290+00:00",
+    "latest_request_at": "2026-09-23T21:25:41.942566+00:00",
+    "pauses": 0,
+    "pending": {
+      "link": 2932,
+      "parse": 432,
+      "project": 8
+    }
+  },
+  "remaining": "History projection did not run in the acceptance cycle; both findings and the split 2026 event rows await its next successful pass."
+}

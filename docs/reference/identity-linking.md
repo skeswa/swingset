@@ -113,14 +113,14 @@ record is invalid. Do not invent a number or force a match to fill the column.
 
 ## Link status
 
-| `link_status` | Meaning                                                                                  | Typical confidence |
-| ------------- | ---------------------------------------------------------------------------------------- | ------------------ |
-| `confirmed`   | source printed the WSDC id, or the registry shows the placement, or a human confirmed it | 1.0                |
-| `probable`    | exactly one candidate above 0.9 and constraints hold                                     | 0.9 to 0.99        |
-| `possible`    | best candidate between 0.7 and 0.9, or two candidates close together                     | 0.5 to 0.9         |
-| `ambiguous`   | multiple candidates, none clearly best                                                   | below 0.5          |
-| `unmatched`   | no candidate above 0.5. Common for Newcomers with no WSDC number yet                     | 0                  |
-| `suppressed`  | removed on request; `wsdc_id` and `name_raw` are null                                    | -                  |
+| `link_status` | Meaning                                                                                     | Typical confidence |
+| ------------- | ------------------------------------------------------------------------------------------- | ------------------ |
+| `confirmed`   | source printed the WSDC id, or the registry shows the placement, or a reviewer confirmed it | 1.0                |
+| `probable`    | exactly one candidate above 0.9 and constraints hold                                        | 0.9 to 0.99        |
+| `possible`    | best candidate between 0.7 and 0.9, or two candidates close together                        | 0.5 to 0.9         |
+| `ambiguous`   | multiple candidates, none clearly best                                                      | below 0.5          |
+| `unmatched`   | no candidate above 0.5. Common for Newcomers with no WSDC number yet                        | 0                  |
+| `suppressed`  | removed on request; `wsdc_id` and `name_raw` are null                                       | -                  |
 
 `entries.wsdc_id` and `judges.wsdc_id` are populated only for
 `confirmed`. This publication safeguard applies before H3 to H5 scoring
@@ -289,9 +289,11 @@ H8–H9 do not authorize unreviewed default-join expansion.
 
 `python -m swingset.link.evaluation` samples a settled local state and evaluates
 externally supplied adjudications. It makes no requests, changes no links, and
-writes new local JSON artifacts. These mechanics do not complete H17's human
-review gate. Reviewed public precision remains unavailable until a reviewed
-sample names the published population it represents.
+writes new local JSON artifacts. Under [D-0180](../../journal/decisions/0180-agents-adjudicate-year-acceptance-and-identity-review.md)
+a review agent supplies the adjudications from the packet's frozen evidence
+and the local dataset, without fetching from source sites. Reviewed public
+precision remains unavailable until a reviewed sample names the published
+population it represents.
 
 ```sh
 uv run python -m swingset.link.evaluation sample \
@@ -399,4 +401,5 @@ artifacts are visible. The packet includes the unchanged sample, a blank JSON
 review template, and an unavailable evaluation report. Form entries remain in
 the browser until the reviewer downloads `adjudications.json`; no answers are
 preselected. Evaluate that downloaded file with the command above. A packet is
-review material, not evidence that a human review occurred.
+review material, not evidence that a review occurred; the adjudications file
+and its evaluation report are.

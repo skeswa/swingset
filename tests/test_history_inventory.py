@@ -270,6 +270,148 @@ def test_later_observed_listing_corrects_dates_without_losing_corroboration(tmp_
         ).fetchone()
 
 
+def test_single_day_result_span_inside_listed_weekend_is_one_edition(tmp_path):
+    with open_database(tmp_path) as db:
+        conn = db.connection
+        conn.execute("INSERT INTO runs VALUES ('run',?,NULL,1,NULL)", (NOW,))
+        registry(conn)
+        weekend = CalendarRow(
+            "calendar_row",
+            "Example Swing",
+            "2012-07-20",
+            "2012-07-22",
+            "registry",
+            "City",
+            None,
+            None,
+            (),
+        )
+        finals_day = CalendarRow(
+            "calendar_row",
+            "Example Swing",
+            "2012-07-21",
+            "2012-07-21",
+            "registry",
+            "City",
+            None,
+            None,
+            (),
+        )
+        evidence(
+            conn,
+            weekend,
+            source="wsdc_calendar",
+            scope="calendar",
+            ref="wsdc-history",
+            snapshot="listing",
+        )
+        conn.execute(
+            "INSERT INTO observations VALUES ('obs-day','watch-listing','listing','calendar_row','calendar','wsdc-history',1,'1','1',?)",
+            (encode_payload(finals_day),),
+        )
+        reconcile_history(conn, now=NOW, run_id="run")
+        # Nested spans are one edition dated by the widest span (D-0184).
+        assert not conn.execute(
+            "SELECT 1 FROM findings WHERE kind='event_alias' AND closed_at IS NULL"
+        ).fetchone()
+        assert tuple(
+            conn.execute("SELECT start_date,end_date,date_precision FROM events").fetchone()
+        ) == ("2012-07-20", "2012-07-22", "day")
+
+
+def test_registry_month_beside_a_new_year_span_is_one_edition(tmp_path):
+    from swingset.project.history import _widest_span
+
+    # The registry files December points; the listing runs into January.
+    assert _widest_span({("2010-12", "2010-12"), ("2010-12-30", "2011-01-01")}) == (
+        "2010-12-30",
+        "2011-01-01",
+    )
+    # A reporting month neither at the start nor the end stays ambiguous.
+    assert _widest_span({("2014-03", "2014-03"), ("2014-04-17", "2014-04-20")}) is None
+    # Partly overlapping dated spans stay ambiguous.
+    assert _widest_span({("2012-09-05", "2012-09-08"), ("2012-09-06", "2012-09-09")}) is None
+    # Nested dated spans resolve to the widest.
+    assert _widest_span({("2012-07-21", "2012-07-21"), ("2012-07-20", "2012-07-22")}) == (
+        "2012-07-20",
+        "2012-07-22",
+    )
+
+
+def test_dated_alias_rows_pick_the_series_of_the_listing_month():
+    from swingset.project.history import _alias_for, _alias_map
+
+    body = (
+        b"printed_name,series_id,source,note,from_month,to_month\n"
+        b"Swingtime in the Rockies,wsdc-47,swingdancecouncil,current,,\n"
+        b"Swingtime in the Rockies,wsdc-66,swingdancecouncil,2010 id,2010-01,2010-12\n"
+        b"Swingtime in the Rockies,wsdc-66,swingdancecouncil,2014 to 2017 id,2014-01,2017-12\n"
+    )
+    aliases = _alias_map(body)
+    slug = next(iter(aliases))
+    assert _alias_for(aliases, slug, "2010-08") == "wsdc-66"
+    assert _alias_for(aliases, slug, "2012-07") == "wsdc-47"
+    assert _alias_for(aliases, slug, "2016-07") == "wsdc-66"
+    assert _alias_for(aliases, slug, "2025-07") == "wsdc-47"
+    assert _alias_for(aliases, "unknown-name", "2025-07") is None
+
+
+def test_a_dismissed_finding_is_not_opened_again(tmp_path):
+    from swingset.project.history import dismissed_findings
+
+    reviews = (
+        b"kind,subject_id,decision,reviewer,note\n"
+        b"event_alias,2012-08-example-swing,dismiss,claude,one edition; listings disagree by a day\n"
+    )
+    assert dismissed_findings(reviews) == {("event_alias", "2012-08-example-swing")}
+    with open_database(tmp_path) as db:
+        conn = db.connection
+        conn.execute("INSERT INTO runs VALUES ('run',?,NULL,1,NULL)", (NOW,))
+        registry(conn)
+        first = CalendarRow(
+            "calendar_row",
+            "Example Swing",
+            "2012-07-20",
+            "2012-07-22",
+            "registry",
+            "City",
+            None,
+            None,
+            (),
+        )
+        second = CalendarRow(
+            "calendar_row",
+            "Example Swing",
+            "2012-07-27",
+            "2012-07-29",
+            "registry",
+            "City",
+            None,
+            None,
+            (),
+        )
+        evidence(
+            conn,
+            first,
+            source="wsdc_calendar",
+            scope="calendar",
+            ref="wsdc-history",
+            snapshot="listing",
+        )
+        conn.execute(
+            "INSERT INTO observations VALUES ('obs-second','watch-listing','listing','calendar_row','calendar','wsdc-history',1,'1','1',?)",
+            (encode_payload(second),),
+        )
+        reconcile_history(conn, now=NOW, run_id="run", reviews=reviews)
+        open_rows = [
+            tuple(row)
+            for row in conn.execute(
+                "SELECT kind,subject_id,summary FROM findings WHERE kind='event_alias' AND closed_at IS NULL"
+            )
+        ]
+        assert not open_rows, open_rows
+
+
 def test_two_editions_in_same_capture_require_review(tmp_path):
     with open_database(tmp_path) as db:
         conn = db.connection

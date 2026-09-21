@@ -1,0 +1,106 @@
+{
+  "operation": "Capture the pending phase-one pages, resynchronize the year findings, accept clean years",
+  "decisions": [
+    "D-0180",
+    "D-0187",
+    "D-0193"
+  ],
+  "operator": "claude (Claude Code session), under D-0183",
+  "finding": "the per-year phase1_incomplete findings are recomputed only by the intake and review commands, so the 87 dismissals of 2026-09-21 had not reached the year gate; 17 catalog captures from 2025 and 2026 (CDX-discovered) had never been fetched; 4 events-map captures in finding status were gaps regardless of their dismissed parse failures",
+  "pass_1": {
+    "hold_utc": "2026-09-22T18:56Z",
+    "cycle_ended_utc": "2026-09-22T19:20:40Z",
+    "intake": "journal/tools/collection/intake_phase1.py run --max-targets 40: 40 targets handled, ledger parsed 163, empty 37, pending 5, finding 4, duplicate 4",
+    "review": "intake_phase1.py review (reconcile) with PYTHONPATH at the working-copy src so the D-0193 rule applied before its deploy; findings are derived state",
+    "gaps_after": "5 per year (the five 2026 captures still pending), plus the two 2022 newsletters for 2019, 2022 and 2023",
+    "accepted": [],
+    "hold_removed_utc": "2026-09-22T19:23:48Z"
+  },
+  "pass_2": {
+    "hold_utc": "2026-09-22T19:24Z",
+    "cycle_ended_utc": "2026-09-22T20:03Z",
+    "intake": "the remaining 5 captures fetched; ledger parsed 165, empty 38, finding 6, duplicate 4, pending 0",
+    "gaps_after": "two 2026 captures of worldsdc.com/events/ whose Wayback replay was zstd-encoded and stored undecoded (finding status), plus the two 2022 newsletters",
+    "accepted": [],
+    "hold_removed_utc": "2026-09-22T20:07:14Z"
+  },
+  "dismissals_added": "June 2022 newsletter (owner's evidence: Odyssey 2022 never ran, 2023 was a relaunch); the two undecoded captures (parse_failure by watch, phase1_capture by target), to be dropped once the decoder ships",
+  "pass_3": {
+    "at_utc": "2026-09-22T21:28Z",
+    "review": "with the accepted dismissals (digest 2367f9f9): phase-one gaps closed for all years but 2019, 2022, 2023 (September 2022 newsletter); the review tool had not passed reviews= to the inventory step and reopened alias findings; fixed in journal/tools/collection/intake_phase1.py",
+    "accepted": []
+  },
+  "pass_4_5": {
+    "at_utc": "2026-09-23T02:53Z",
+    "accepted": [
+      2010,
+      2011,
+      2013,
+      2021
+    ],
+    "note": "the September 2022 newsletter dismissed on the owner's direction (weight of evidence); the review then cleared 2019, 2022, 2023; acceptance of the other eleven refused while projection was pending"
+  },
+  "self_pause": "2026-09-23T02:56Z the pipeline paused itself at 32.6 GB (cap 32 GB); unnoticed until 05:41 because no watch was running; cap raised to 48 GB and resumed 05:45 UTC (D-0194); the switch also carried the D-0193 change to history/closure.py, which candidate 014 had not included, so recipe/runtime changed and all 32,519 parse units re-queued at 05:45 UTC, so projection settles about five hours later",
+  "remaining": "none for acceptance; the four undecoded-capture dismissals and the two newsletter dismissals are reversible by deleting their rows (a later review reopens the year)",
+  "candidate_015": {
+    "switch_utc": "2026-09-23T05:44Z",
+    "system": "/nix/store/hy1cxq5a0bz1qanznnxvy1a8ayqydfqi-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+    "changed_from_014": [
+      "src/swingset/history/closure.py (D-0193)",
+      "config/sources.toml retention cap 48GB (D-0194)",
+      "nix/module.nix backup unit (D-0192), already switched in earlier"
+    ],
+    "hold": "written 05:43, cycle stopped, switch, resume --all, hold removed 05:45:15Z",
+    "effect": "recipe/runtime changed (closure.py), all 32,519 parse units re-queued"
+  },
+  "final": {
+    "history_unit_utc": "2026-09-23T11:42:09Z",
+    "projection_settled_utc": "2026-09-23T11:43Z",
+    "hold": "11:50:08Z to 11:59:24Z",
+    "accepted_utc": "2026-09-23T11:50:09Z to 11:58:39Z",
+    "accepted_by": "claude review agents (opus, sonnet) and session on the owner's direction, D-0180, 2026-09-22",
+    "years": [
+      2010,
+      2011,
+      2012,
+      2013,
+      2014,
+      2015,
+      2016,
+      2017,
+      2018,
+      2019,
+      2020,
+      2021,
+      2022,
+      2023,
+      2024,
+      2025,
+      2026
+    ],
+    "command": "swingset accept-year --state /var/lib/swingset --year Y --by ..."
+  },
+  "candidate_016": {
+    "trigger": "run_20260923T115924Z failed=true WriteDeadlineExceeded at the start of acquisition, the first cycle after all years were accepted (phase two opened)",
+    "reproduction": "scratch copy /var/tmp/swingset-wddebug-20260923: offers pass 98.0 s with 9 projection walks of 8 s (deployed source); 32.8 s with one walk (fixed source); prepare_event_turns 0.9 s",
+    "changed_from_015": [
+      "src/swingset/project/history.py (projection_answer_cached, phase_two_allowed pending=)",
+      "src/swingset/history/backfill.py (_year_gate, _spec_id, targeted dispatch)",
+      "src/swingset/history/event_sites.py (cached review loop)",
+      "src/swingset/config.py (RetentionConfig default 48 GB)"
+    ],
+    "tests": "126 passed across backfill, event-site, origin-dispatch, projection-gate and phase-one suites; core suite 2 failed / 992 passed: the known environment case in tests/publish/test_publication_controls.py and test_retention_policy_inputs (the default cap now matches the shipped 48 GB; rerun 36 passed)",
+    "prebuild": "/nix/store/amb4gzax7abyfd6z8xl4hcwhvlh9ia14-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+    "confirmation": "run_20260923T121621Z failed the same way (WriteDeadlineExceeded after 113 s of reconciliation, acquisition 0 s)",
+    "hold_utc": "2026-09-23T12:21Z",
+    "switch_utc": "2026-09-23T12:24:57Z",
+    "system": "/nix/store/75s2j6g0gsa9axsx0886pdyw6bg5nxjz-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+    "source": "/nix/store/raq8h2707asnrjmj8whi2hq2y763fh2k-source",
+    "hold_removed_utc": "2026-09-23T12:24:57Z",
+    "first_cycle": "run_20260923T122458Z failed=false; acquisition skipped under backpressure (31,655 parse units re-queued by the source change), offline 2,170 s; the dispatch path is exercised once the backlog drains"
+  },
+  "candidate_017": {
+    "what": "config-only: retention cap 64 GB (D-0196); RetentionConfig default stays 48 GB so recipe/runtime is unchanged; the retention test now reads the shipped table",
+    "switch": "2026-09-23T13:05:46Z, hold lifted the same second; parse pending stayed at 27,245 (no re-queue: recipe/runtime unchanged); source 9ql18g3bfnav7jzdy7x0l65gs0vsp2l6"
+  }
+}

@@ -21,7 +21,7 @@ from dataclasses import asdict
 from pathlib import Path
 
 from swingset.clock import FakeClock
-from swingset.config import RetentionConfig
+from swingset.config import parse_retention
 from swingset.state.db import open_database
 from swingset.state.derivations import desired
 from swingset.state.inputs import accept, capture
@@ -43,13 +43,22 @@ def workspace(tmp_path: Path) -> tuple[Path, Path, Path]:
 def raise_the_cap(config: Path) -> None:
     """Exactly what the operation guide tells an operator to do when the cap is hit."""
     sources = config / "sources.toml"
-    sources.write_text(sources.read_text() + RAISED_CAP)
+    # The shipped configuration already carries a [retention] table (D-0186);
+    # replace it rather than append a second one.
+    body = sources.read_text()
+    assert "[retention]" in body
+    body = body[: body.index("[retention]")] + RAISED_CAP.lstrip("\n")
+    sources.write_text(body)
 
 
 def test_the_bundle_records_the_retention_limits_as_values(tmp_path: Path) -> None:
     config, overrides, state = workspace(tmp_path)
     first = capture(config, overrides, state, {})
-    assert json.loads(first.files["policy/retention.json"]) == asdict(RetentionConfig())
+    # The shipped [retention] table is the oracle: its cap may differ from the
+    # dataclass default between decisions (D-0196), and the bundle must
+    # record the shipped values.
+    shipped = parse_retention((config / "sources.toml").read_bytes())
+    assert json.loads(first.files["policy/retention.json"]) == asdict(shipped)
     assert (first.path / "policy/retention.json").is_file()
 
     raise_the_cap(config)

@@ -7,13 +7,64 @@ import re
 import sqlite3
 from collections import Counter, defaultdict
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime
+from typing import Any
 from urllib.parse import urlsplit
 
+import httpx
+
 from swingset.fetch.wayback import Capture, select_captures
+from swingset.log import log
+from swingset.sources.base import ExtractError
 from swingset.state.findings import Finding
 
 PLATFORMS = frozenset({"eepro", "scoringdance", "dcn", "wdr"})
+
+# One CDX query per source, prefix and capture year is step 1 of every
+# platform's backfill section in docs/reference/sources/. Rows land in
+# archive_captures and become the captures the plan above selects from.
+PLATFORM_PREFIXES: dict[str, tuple[str, ...]] = {
+    "eepro": ("eepro.com/results/*",),
+    "scoringdance": ("scoring.dance/enUS/events/*",),
+    "dcn": ("danceconvention.net/eventdirector/en/eventpage/*",),
+    "wdr": ("scores.worlddanceregistry.com/*",),
+}
+
+
+def index_platform_archives(
+    client: Any,
+    config: Any,
+    clock: Any,
+    *,
+    history_start: date,
+    deadline: datetime,
+) -> dict[str, int]:
+    """Run the due CDX queries for enabled platforms until the deadline (D-0184).
+
+    Finished years are queried once and the two most recent years refresh
+    every ninety days (``query_due``), so a steady state costs a few requests.
+    Returns the CDX pages stored per source; the caller records it.
+    """
+    stored: dict[str, int] = {}
+    for source in sorted(PLATFORM_PREFIXES):
+        if not config.enabled(source):
+            continue
+        for prefix in PLATFORM_PREFIXES[source]:
+            for year in range(history_start.year, clock.now().year + 1):
+                if clock.now() >= deadline:
+                    return stored
+                try:
+                    pages = client.index_archive(
+                        source=source, prefix=prefix, year=year, deadline=deadline
+                    )
+                except (ExtractError, ValueError, OSError, httpx.HTTPError) as exc:
+                    # A bad or unreachable index answer costs this source its
+                    # slice of the cycle, never the cycle itself.
+                    log("archive_index_failed", source=source, year=year, error=str(exc)[:200])
+                    break
+                if pages:
+                    stored[source] = stored.get(source, 0) + int(pages)
+    return stored
 
 
 @dataclass(frozen=True)

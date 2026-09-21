@@ -75,53 +75,73 @@ def complete(
 ) -> None:
     # Hash potentially large files outside the short SQLite write transaction.
     verify_candidate_files(result.path)
+    pinned = selection.context.get("release_closure")
     try:
         with (
-            database.transaction() as conn,
-            validation_scope(conn),
-            artifact_source(conn, Archive(database.state_dir)),
+            validation_scope(database.connection),
+            artifact_source(database.connection, Archive(database.state_dir)),
         ):
-            if baseline_commit(database) != selection.context["baseline_commit"]:
-                raise SupersededWorkError("build baseline changed before completion")
-            accepted = conn.execute(
-                "SELECT value FROM meta WHERE key='input_bundle_hash'"
-            ).fetchone()
-            if accepted is None or accepted[0] != selection.context["input_bundle_hash"]:
-                raise SupersededWorkError("build input bundle changed before completion")
-            pinned = selection.context.get("release_closure")
             if pinned is not None:
-                # complete() below fully validates desired closure inputs before
-                # writing output, after rows, and again when certifying. Proof
-                # retention shares that transaction and rolls back on failure.
-                retain(conn, pinned)
-                if correction_token(conn, closure=pinned) != selection.context.get(
-                    "correction_token"
-                ):
-                    raise SupersededWorkError("correction policy changed before build completion")
-            derivations.complete(
-                conn,
-                selection,
-                rows=(
-                    derivations.OutputRow(
-                        "artifact",
-                        result.candidate_id,
-                        {
-                            "candidate_id": result.candidate_id,
-                            "path": str(result.path.resolve()),
-                            "manifest_hash": result.manifest_hash,
-                            "content_hash": result.content_hash,
-                        },
-                    ),
-                ),
-                now=now,
-                run_id=run_id,
-            )
+                # Prove the closure in an unbounded read snapshot first. The
+                # write below rechecks that proof's exact evidence at each of
+                # its three boundaries, so evidence changed after this point
+                # still rejects and rolls back; only the full graph walk moves
+                # out of the 45-second write bound (D-0179).
+                from .closure import validate
+
+                with database.transaction(immediate=False) as conn:
+                    validate(conn, pinned)
+            with database.transaction() as conn:
+                _complete_in_transaction(conn, database, selection, result, now=now, run_id=run_id)
     except (SupersededWorkError, ClosureError) as error:
         # The immutable files can survive a stale worker. They cannot become a
         # selected generation or be reused for publication after rejection.
         if not (result.path / "PUBLISHED").exists():
             reject_candidate(result.path, str(error))
         raise BuildError(str(error)) from error
+
+
+def _complete_in_transaction(
+    conn: sqlite3.Connection,
+    database: Database,
+    selection: derivations.Selection,
+    result: BuildResult,
+    *,
+    now: datetime,
+    run_id: str,
+) -> None:
+    if baseline_commit(database) != selection.context["baseline_commit"]:
+        raise SupersededWorkError("build baseline changed before completion")
+    accepted = conn.execute("SELECT value FROM meta WHERE key='input_bundle_hash'").fetchone()
+    if accepted is None or accepted[0] != selection.context["input_bundle_hash"]:
+        raise SupersededWorkError("build input bundle changed before completion")
+    pinned = selection.context.get("release_closure")
+    if pinned is not None:
+        # complete() below rechecks the closure proof before writing output,
+        # after rows, and again when certifying, and falls back to the full
+        # validation when the proof's evidence changed. Proof retention shares
+        # that transaction and rolls back on failure.
+        retain(conn, pinned)
+        if correction_token(conn, closure=pinned) != selection.context.get("correction_token"):
+            raise SupersededWorkError("correction policy changed before build completion")
+    derivations.complete(
+        conn,
+        selection,
+        rows=(
+            derivations.OutputRow(
+                "artifact",
+                result.candidate_id,
+                {
+                    "candidate_id": result.candidate_id,
+                    "path": str(result.path.resolve()),
+                    "manifest_hash": result.manifest_hash,
+                    "content_hash": result.content_hash,
+                },
+            ),
+        ),
+        now=now,
+        run_id=run_id,
+    )
 
 
 def completed(conn: sqlite3.Connection, candidate_id: str, manifest_hash: str) -> bool:

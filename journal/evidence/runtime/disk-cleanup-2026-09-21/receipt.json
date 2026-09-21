@@ -1,0 +1,29 @@
+{
+  "operation": "Remove ten passed-gate checkpoints and collect Nix garbage on the worker",
+  "operator": "claude (Claude Code session), under D-0183; owner supplied the cleanup list",
+  "trigger": "OrbStack cap 274.9 GB, 211.7 GB used; df inside the machine does not show the cap",
+  "review": {
+    "by": "claude review agent (opus), read-only",
+    "verdict": "all ten safe: gates passed, no RESTORE_PENDING, all complete, no open handles, live state is a superset; Nix collection safe: the current system closure holds the venv python, ExecStart and config source",
+    "conditions": "keep pre-schema32-20260921 until identity recovery ships; rename the 04:23 UTC timer checkpoint"
+  },
+  "removed_utc": "2026-09-21T21:02:07Z to 21:02:20Z",
+  "command": "swingset backup --state /var/lib/swingset --remove-checkpoint NAME",
+  "removed": "v2-pre-deploy-20260913T0417Z, v2-g1-verified-20260913T0428Z, v2-v1-published-20260913T0543Z, v2-v3-published-20260913T0715Z, v2-v4-published-cand_7f8cf9bcbf7e4a60, h16-before-extension-20260917-002 and -003, extension28-held-20260917-002, -003 and -004",
+  "kept": "h16-published-20260917, pre-schema32-20260921, run_20260913T040007Z (policy)",
+  "renamed": "run_20260921T042341Z to pre-regression-schema32-20260921T0423Z",
+  "nix": {
+    "command": "nix-collect-garbage --delete-older-than 7d",
+    "result": "1619 store paths deleted, 68103 MiB freed; generations 37 to 50 remain; /nix/store 73G to 3.2G"
+  },
+  "post_check": {
+    "orb_disk_usage_gb": {
+      "before": 211.7,
+      "after": 81.6
+    },
+    "checkpoints_dir": "85G to 32G",
+    "system": "unchanged",
+    "cycle": "kept running; timers active"
+  },
+  "follow_up": "21:17 UTC nix-only switch to system q7jfppipf0mw: swingset-disk, quota-aware df, watchdog alert under 100 GB free; no work re-queued (parse pending stayed 198)"
+}

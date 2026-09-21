@@ -3,7 +3,7 @@
 import json
 import os
 from collections import Counter
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import asdict
 from datetime import datetime, timedelta
 from hashlib import sha256
@@ -14,8 +14,9 @@ from uuid import uuid4
 import httpx
 
 from swingset import __version__
-from swingset.build.builder import BuildResult
+from swingset.build.builder import BuildError, BuildResult
 from swingset.clock import Clock
+from swingset.config import Config
 from swingset.fetch.archive import Archive, canonical, durable_write
 from swingset.fetch.client import FetchClient
 from swingset.fetch.recovery import LocalCheckpointRecovery
@@ -28,7 +29,7 @@ from swingset.schedule.fairness import (
     WatchChoice,
     backpressure,
     next_delay,
-    next_offline,
+    next_offline_batch,
     next_watch,
     prepare_event_turns,
     record_offline_service,
@@ -57,9 +58,16 @@ from swingset.state.work_fingerprints import input_fingerprint
 
 
 def repository_identity(package_root: Path | None = None) -> str:
-    """Return the deployed revision, or a deterministic digest for local source."""
+    """Return the deployed revision, or a deterministic digest for local source.
+
+    A path-flake deployment exports an ``uncommitted:<store name>`` marker that
+    changes on every switch, including config-only ones, and every parse and
+    projection unit is fingerprinted with this identity. Such a marker is
+    ignored in favour of the digest of the Python sources, so only a change
+    to the code itself re-queues work (D-0188).
+    """
     revision = os.environ.get("SWINGSET_REVISION", "").strip()
-    if revision:
+    if revision and not revision.startswith("uncommitted:"):
         return revision
 
     root = package_root or Path(__file__).resolve().parents[1]
@@ -121,6 +129,32 @@ def build(
         return build_release(
             database, bundle, clock, run_id, remote, correction_only=correction_only
         )
+
+
+# Units selected per read snapshot in the offline phase (D-0182).
+OFFLINE_BATCH = 64
+
+
+def build_deferred_for_backlog(
+    state_dir: Path, config: Config, *, pressure: Mapping[str, Any], now: datetime
+) -> bool:
+    """While backpressure is active, rebuild at most once per configured interval.
+
+    A build and publication take several minutes of a twelve-minute cycle.
+    While a backlog keeps backpressure active, publishing every cycle starves
+    the offline phase that drains it, so a fresh enough baseline defers the
+    build (D-0182). A cycle with no backlog still builds whenever rows change.
+    """
+    if not pressure.get("active"):
+        return False
+    published = state_dir / "baseline" / "PUBLISHED"
+    if not published.is_file():
+        return False
+    verified = json.loads(published.read_bytes()).get("verified_at")
+    if not verified:
+        return False
+    age = (now - datetime.fromisoformat(str(verified))).total_seconds()
+    return age < config.scheduler.backlog_publish_interval_seconds
 
 
 def run_cycle(
@@ -390,9 +424,20 @@ def run_cycle(
 
             began = clock.now()
             issued = False
+            # Under backpressure no historical request can be admitted, so the
+            # plan pass that finds them is skipped; otherwise it stops at the
+            # phase deadline instead of consuming the whole cycle (D-0181).
+            pressure = backpressure(database.connection, bundle.config)
             offered_pages = (
-                offers(database, bundle.config, clock, run_id=run_id, timing=archive_offers())
-                if not stop()
+                offers(
+                    database,
+                    bundle.config,
+                    clock,
+                    run_id=run_id,
+                    timing=archive_offers(),
+                    deadline=until,
+                )
+                if not stop() and not pressure["active"]
                 else ()
             )
             extra: list[WatchChoice] = []
@@ -511,6 +556,27 @@ def run_cycle(
                     summary["bytes_by_host"][host] = (
                         summary["bytes_by_host"].get(host, 0) + result.body_bytes
                     )
+            index_seconds = bundle.config.scheduler.archive_index_seconds
+            if (
+                index_seconds is not None
+                and not stop()
+                and not pressure["active"]
+                and clock.now() < until
+            ):
+                from swingset.history.platform import index_platform_archives
+
+                # Step 1 of every platform backfill: index the archive's
+                # captures with the acquisition time left after the pages
+                # already offered had their turn, so indexing never takes a
+                # dispatch's host slot (D-0184). Newly indexed captures are
+                # offered from the next pass on.
+                summary["archive_index"] = index_platform_archives(
+                    client(),
+                    bundle.config,
+                    clock,
+                    history_start=bundle.config.history_start,
+                    deadline=min(until, clock.now() + timedelta(seconds=index_seconds)),
+                )
             summary["scheduler"]["phase_seconds"]["acquisition"] += (
                 clock.now() - began
             ).total_seconds()
@@ -545,7 +611,14 @@ def run_cycle(
                             run_saved_crosscheck_if_due(database, archive, clock.now(), run_id)
                     except ControlPaused as exc:
                         held("registry_crosscheck", exc)
-            if not stop():
+            if not stop() and build_deferred_for_backlog(
+                database.state_dir,
+                bundle.config,
+                pressure=backpressure(database.connection, bundle.config),
+                now=clock.now(),
+            ):
+                summary["build_deferred"] = "backlog"
+            elif not stop():
                 try:
                     candidate = build(
                         database, bundle, clock, run_id, remote=hub if not dry_run else None
@@ -562,6 +635,13 @@ def run_cycle(
                             summary["publish_commit"] = published.commit
                 except ControlPaused as exc:
                     held("build", exc)
+                except BuildError as exc:
+                    # A build that cannot assemble a consistent candidate is
+                    # reported, not fatal: the offline phase that follows is
+                    # what brings the stale generation it tripped over up to
+                    # date (D-0187).
+                    summary["build_error"] = f"{type(exc).__name__}: {exc}"
+                    log("build_failed", error=str(exc)[:300])
 
         # A retained compatible release gets a publication opportunity before
         # continuously arriving work can consume this cycle's entire budget.
@@ -571,40 +651,44 @@ def run_cycle(
             acquisition(min(deadline, clock.now() + timedelta(seconds=split.acquisition_seconds)))
         while not stop():
             began = clock.now()
-            while (
-                not stop()
-                and (
-                    unit := next_offline(
-                        database.connection, now=clock.now(), allowed=offline_allowed
-                    )
+            while not stop() and (
+                batch := next_offline_batch(
+                    database.connection,
+                    now=clock.now(),
+                    allowed=offline_allowed,
+                    limit=OFFLINE_BATCH,
                 )
-                is not None
             ):
-                attempt = derive_one(database, archive, unit, bundle, clock, run_id)
-                if attempt.reason == "operator_pause":
-                    continue
-                completed = latest_attempt(database.connection, unit)
-                assert completed is not None
-                attempted_inputs.setdefault(unit, set()).add(str(completed["input_fingerprint"]))
-                with database.transaction() as conn:
-                    record_offline_service(conn, unit, now=clock.now())
-                if unit.stage not in summary["stages"]:
-                    summary["stages"].append(unit.stage)
-                if attempt.failed:
-                    summary["unit_failures"].append(
-                        {
-                            "stage": unit.stage,
-                            "unit_kind": unit.unit_kind,
-                            "unit_id": unit.unit_id,
-                            "reason": attempt.reason,
-                        }
+                for unit in batch:
+                    if stop():
+                        break
+                    attempt = derive_one(database, archive, unit, bundle, clock, run_id)
+                    if attempt.reason == "operator_pause":
+                        continue
+                    completed = latest_attempt(database.connection, unit)
+                    assert completed is not None
+                    attempted_inputs.setdefault(unit, set()).add(
+                        str(completed["input_fingerprint"])
                     )
-                if unit.stage == "parse" and attempt.source is not None:
-                    attempts[attempt.source] += 1
-                    failures[attempt.source] += int(attempt.failed)
-                    if attempt.source == "wsdc_registry":
-                        with database.transaction():
-                            advance_sweep(database, now=clock.now())
+                    with database.transaction() as conn:
+                        record_offline_service(conn, unit, now=clock.now())
+                    if unit.stage not in summary["stages"]:
+                        summary["stages"].append(unit.stage)
+                    if attempt.failed:
+                        summary["unit_failures"].append(
+                            {
+                                "stage": unit.stage,
+                                "unit_kind": unit.unit_kind,
+                                "unit_id": unit.unit_id,
+                                "reason": attempt.reason,
+                            }
+                        )
+                    if unit.stage == "parse" and attempt.source is not None:
+                        attempts[attempt.source] += 1
+                        failures[attempt.source] += int(attempt.failed)
+                        if attempt.source == "wsdc_registry":
+                            with database.transaction():
+                                advance_sweep(database, now=clock.now())
             # Builds and saved interpretation consume offline time before any
             # unused share is lent back to collection.
             settle_offline()

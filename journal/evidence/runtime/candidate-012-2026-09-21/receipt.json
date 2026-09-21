@@ -1,0 +1,76 @@
+{
+  "operation": "Deploy candidate 012: watchdog and alerts; repository identity independent of the store path",
+  "decision": "D-0188",
+  "operator": "claude (Claude Code session), under D-0183",
+  "candidate": {
+    "tree": "/private/tmp/swingset-c010 refreshed from the working copy",
+    "changed_from_011": [
+      "nix/module.nix (swingset-watchdog service and timer, OnFailure hook, alertCommand and watchdogQuietSeconds options)",
+      "src/swingset/schedule/cycle.py (repository_identity ignores uncommitted: markers)",
+      "AGENTS.md, docs/guides/operation.md (alerts), D-0188"
+    ],
+    "prebuild": "nixos-rebuild build on the worker; watchdog script /nix/store/7wq2pii5nzz3y6i7cdyq0r1wkkxca7g8-swingset-watchdog ran once with exit 0 and no alert, because the manual link run's record sat between the failed cycles"
+  },
+  "preflight": {
+    "at_utc": "2026-09-21T15:53:29Z",
+    "system": "/nix/store/a5k4nlqj8q0xl8c6s9yqx03fk7vjr11w-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+    "pending": {
+      "link": 1063,
+      "parse": 24895,
+      "project": 1
+    },
+    "hold": "written with who/why/review-by; timer and service stopped between cycles"
+  },
+  "switch": {
+    "at_utc": "2026-09-21T15:53:38Z",
+    "command": "nixos-rebuild switch --flake path:/mnt/mac/private/tmp/swingset-c010#orb --impure",
+    "system": "/nix/store/dyj5nhrs9ykcappa3l0ddfrl7idn7q5a-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+    "new_units": [
+      "swingset-watchdog.timer"
+    ],
+    "duration_seconds": 9
+  },
+  "post_check": {
+    "watchdog_timer": "active",
+    "hold_removed_utc": "2026-09-21T15:53:40Z",
+    "first_cycle": "see first_cycle"
+  },
+  "first_cycle": {
+    "run_id": "run_20260921T155338Z",
+    "finished_utc": "2026-09-21T16:34:07Z",
+    "failed": false,
+    "accepted_inputs": [
+      "recipe/runtime",
+      "version/repository"
+    ],
+    "note": "the identity change re-queued every parse unit once, as expected",
+    "phase_seconds": {
+      "reconciliation": 17.6,
+      "acquisition": 1.4,
+      "offline": 2385.8
+    },
+    "attempts": {
+      "parse_succeeded": 6926,
+      "parse_blocked": 99,
+      "parse_superseded": 12,
+      "parse_transient": 3,
+      "project_succeeded": 8386
+    },
+    "pending_after": {
+      "parse": 24895,
+      "project": 1,
+      "link": 1063
+    },
+    "open_year_findings": {
+      "series_alias": 45,
+      "event_alias": 34,
+      "phase1_incomplete": 17
+    },
+    "build": "deferred for backlog",
+    "alerts": "none"
+  },
+  "core_suite": {
+    "result": "1 failed, 992 passed, 1453 deselected in 198.96s",
+    "note": "the one failure is the pre-existing environment-caused case in tests/publish/test_publication_controls.py"
+  }
+}

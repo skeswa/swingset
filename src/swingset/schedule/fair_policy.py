@@ -33,6 +33,12 @@ class SchedulerConfig:
     event_pressure_max_age_seconds: float = 86400
     event_pressure_refresh_events: int = 8
     event_pressure_probe_pages: int = 32
+    # While a parse or projection backlog keeps backpressure active, rebuild
+    # and publish at most this often so the offline phase gets the cycle.
+    backlog_publish_interval_seconds: float = 21600
+    # Seconds of each acquisition phase spent indexing platform archives (CDX)
+    # after offered pages had their turn; unset means no indexing (D-0184).
+    archive_index_seconds: float | None = None
 
     def __post_init__(self) -> None:
         for field in fields(self):
@@ -42,6 +48,7 @@ class SchedulerConfig:
                 in {
                     "event_acquisition_service_alarm_seconds",
                     "event_acquisition_progress_alarm_seconds",
+                    "archive_index_seconds",
                 }
                 and value is None
             ):

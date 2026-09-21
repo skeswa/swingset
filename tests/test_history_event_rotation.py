@@ -70,7 +70,7 @@ def test_newer_historical_offers_join_behind_admitted_waiting_events(event, monk
         f.conn.execute("UPDATE watches SET next_check_at=NULL")
         f.conn.execute("DELETE FROM pending_work")
 
-    def eligible(database, configuration, time, item, plan):
+    def eligible(database, configuration, time, item, plan, **_):
         return specifications[item.page.url], None, "eligible"
 
     monkeypatch.setattr(backfill, "_candidate", eligible)

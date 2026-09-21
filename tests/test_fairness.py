@@ -9,7 +9,13 @@ import pytest
 from swingset.clock import FakeClock
 from swingset.config import Config
 from swingset.schedule.fair_policy import SchedulerConfig, allocation, parse_scheduler
-from swingset.schedule.fairness import backpressure, next_offline, record_offline_service, report
+from swingset.schedule.fairness import (
+    backpressure,
+    next_offline,
+    next_offline_batch,
+    record_offline_service,
+    report,
+)
 from swingset.state.attempts import begin_attempt, finish_attempt
 from swingset.state.db import open_database
 from swingset.state.inputs import accept, capture
@@ -56,7 +62,11 @@ def test_scheduler_bundle_change_is_accepted_without_reinterpreting_sources(tmp_
         accept(db, first, clock)
         db.connection.execute("DELETE FROM pending_work")
         path = config / "sources.toml"
-        path.write_text(path.read_text() + "\n[scheduling]\npending_parse_items=501\n")
+        # The shipped configuration already carries a [scheduling] table.
+        body = path.read_text()
+        body = body.replace("[scheduling]\n", "[scheduling]\npending_parse_items=501\n", 1)
+        assert "pending_parse_items=501" in body
+        path.write_text(body)
         second = capture(config, overrides, state, {})
         assert second.config.scheduler.pending_parse_items == 501
         assert second.digest != first.digest
@@ -174,3 +184,50 @@ def test_daily_fair_share_counts_have_a_day_bounded_index(tmp_path):
             "SEARCH scheduler_requests USING COVERING INDEX scheduler_requests_class (day=?)"
             in plan
         )
+
+
+def test_offline_batch_matches_single_selection_order_and_stays_within_one_group(tmp_path):
+    clock = FakeClock()
+    units = [
+        WorkUnit("parse", "snapshot", "a"),
+        WorkUnit("parse", "snapshot", "b"),
+        WorkUnit("parse", "snapshot", "c"),
+        WorkUnit("project", "dancer", "dancer"),
+    ]
+    with open_database(tmp_path) as db:
+        enqueue(db.connection, units, enqueued_at=clock.now().isoformat())
+        first = next_offline(db.connection, now=clock.now())
+        batch = next_offline_batch(db.connection, now=clock.now(), limit=2)
+        assert first is not None and batch[0] == first
+        assert len(batch) == 2 and len(set(batch)) == 2
+        # A batch is one selection group: parse snapshots here, never mixed
+        # with the dancer projection that a later group would serve.
+        assert {unit.stage for unit in batch} == {"parse"}
+        rest = next_offline_batch(db.connection, now=clock.now(), exclude=batch, limit=10)
+        assert batch[0] not in rest and batch[1] not in rest
+        assert WorkUnit("parse", "snapshot", "c") in rest
+        assert next_offline_batch(db.connection, now=clock.now(), exclude=units, limit=10) == []
+
+
+def test_build_is_deferred_only_while_backlog_and_fresh_baseline_coincide(tmp_path):
+    import json
+    from datetime import UTC, datetime, timedelta
+
+    from swingset.config import Config
+    from swingset.schedule.cycle import build_deferred_for_backlog
+
+    config = Config({}, {})
+    now = datetime(2026, 9, 21, 2, 0, tzinfo=UTC)
+    (tmp_path / "candidates" / "cand_x").mkdir(parents=True)
+    (tmp_path / "baseline").symlink_to(tmp_path / "candidates" / "cand_x")
+    published = tmp_path / "candidates" / "cand_x" / "PUBLISHED"
+    active = {"active": True}
+    # No baseline receipt yet: build.
+    assert not build_deferred_for_backlog(tmp_path, config, pressure=active, now=now)
+    published.write_text(json.dumps({"verified_at": (now - timedelta(hours=1)).isoformat()}))
+    assert build_deferred_for_backlog(tmp_path, config, pressure=active, now=now)
+    # No backlog: build as before.
+    assert not build_deferred_for_backlog(tmp_path, config, pressure={"active": False}, now=now)
+    # An old enough baseline builds even under backlog.
+    published.write_text(json.dumps({"verified_at": (now - timedelta(hours=7)).isoformat()}))
+    assert build_deferred_for_backlog(tmp_path, config, pressure=active, now=now) is False

@@ -19,7 +19,7 @@ from swingset.config import Config
 from swingset.history.acquisition import is_phase_one_index
 from swingset.state.control_scopes import for_watch
 from swingset.state.controls import ActionScope, matching_pauses
-from swingset.state.work import WorkUnit, next_work
+from swingset.state.work import WorkUnit
 
 from .event_capacity import Selection as CapacitySelection
 from .event_turns import Selection
@@ -457,18 +457,39 @@ def next_offline(
     allowed: Callable[[WorkUnit], bool] | None = None,
     exclude: Collection[WorkUnit] = (),
 ) -> WorkUnit | None:
+    units = next_offline_batch(conn, now=now, allowed=allowed, exclude=exclude, limit=1)
+    return units[0] if units else None
+
+
+def next_offline_batch(
+    conn: sqlite3.Connection,
+    *,
+    now: datetime,
+    allowed: Callable[[WorkUnit], bool] | None = None,
+    exclude: Collection[WorkUnit] = (),
+    limit: int = 64,
+) -> list[WorkUnit]:
+    """Up to ``limit`` eligible units from one read snapshot, in selection order.
+
+    Selecting one unit costs seconds on a large database because currentness
+    is recomputed for thousands of candidates, and the memo that makes repeat
+    answers cheap lives only inside one snapshot. Taking a batch per snapshot
+    amortizes that cost; every unit is re-validated when it is derived, so a
+    stale pick is superseded, never wrong (D-0182).
+    """
     from swingset.state.derivation_query import read_snapshot
 
     # All stage/kind candidates share one owned read snapshot and bounded
     # currentness answers. Caller-owned mutable transactions remain uncached.
     owns_snapshot = not conn.in_transaction
     with read_snapshot(conn):
-        return _next_offline(
+        return _next_offline_batch(
             conn,
             now=now,
             allowed=allowed,
             exclude=exclude,
             shared_link_precheck=owns_snapshot,
+            limit=max(1, limit),
         )
 
 
@@ -480,8 +501,25 @@ def _next_offline(
     exclude: Collection[WorkUnit] = (),
     shared_link_precheck: bool = False,
 ) -> WorkUnit | None:
-    from swingset.state.derivations import available, known_units
+    units = _next_offline_batch(
+        conn, now=now, allowed=allowed, exclude=exclude, shared_link_precheck=shared_link_precheck
+    )
+    return units[0] if units else None
 
+
+def _next_offline_batch(
+    conn: sqlite3.Connection,
+    *,
+    now: datetime,
+    allowed: Callable[[WorkUnit], bool] | None = None,
+    exclude: Collection[WorkUnit] = (),
+    shared_link_precheck: bool = False,
+    limit: int = 1,
+) -> list[WorkUnit]:
+    from swingset.state.derivations import available, known_units
+    from swingset.state.work import iter_work
+
+    selected: list[WorkUnit] = []
     derived = available(conn)
     if derived:
         kinds = {
@@ -546,12 +584,16 @@ def _next_offline(
         def group_allowed(unit: WorkUnit, kind: str = kind) -> bool:
             return bool(unit.unit_kind == kind and (allowed is None or allowed(unit)))
 
-        unit = next_work(
+        for unit in iter_work(
             conn, stage, now=now, exclude=exclude, allowed=group_allowed, unit_kind=kind
-        )
-        if unit:
-            return unit
-    return None
+        ):
+            selected.append(unit)
+            if len(selected) >= limit:
+                return selected
+        if selected:
+            # One group per batch keeps the recorded service order honest.
+            return selected
+    return selected
 
 
 def record_offline_service(conn: sqlite3.Connection, unit: WorkUnit, *, now: datetime) -> None:

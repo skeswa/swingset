@@ -4,7 +4,7 @@ Recorded: 2026-09-17
 Decided by: owner, 2026-09-17, Sandile Keswa; source: Owner reply about H17 reviewers: “We will build a website to handle this in the future”  
 Topic: Human accuracy evaluation  
 Supersedes: —  
-Superseded by: —
+Superseded by: [D-0180](0180-agents-adjudicate-year-acceptance-and-identity-review.md)
 
 ## Decision
 

@@ -76,3 +76,45 @@ def test_empty_scope_removes_owned_rows(tmp_path) -> None:
                 projected_at="2026-09-08T01:00:00Z",
             )
         assert conn.execute("SELECT count(*) FROM events").fetchone()[0] == 0
+
+
+def test_dropped_calendar_event_detaches_its_registry_placements(tmp_path) -> None:
+    with open_database(tmp_path, lock=False) as database:
+        conn = database.connection
+        conn.execute(
+            "INSERT INTO runs(run_id,started_at,dry_run) VALUES ('run_a','2026-09-08T00:00:00Z',0)"
+        )
+        with database.transaction():
+            replace_scope(
+                conn,
+                scope_kind="calendar",
+                scope_id="wsdc",
+                projection=Projection((event("run_a", "2026-09-08T00:00:00Z"),)),
+                run_id="run_a",
+                projected_at="2026-09-08T00:00:00Z",
+            )
+            columns = [row[1] for row in conn.execute("PRAGMA table_info(dancers)")]
+            types = {row[1]: row[2] for row in conn.execute("PRAGMA table_info(dancers)")}
+            values = [1 if types[name] == "INTEGER" else "x" for name in columns]
+            conn.execute(
+                f"INSERT INTO dancers({','.join(columns)}) VALUES ({','.join('?' for _ in columns)})",
+                values,
+            )
+            conn.execute(
+                "INSERT INTO registry_placements VALUES (1,'leader','wcs','novice','slug-summer-hummer','Summer Hummer','2026-08','2026-08-summer-hummer','1',10,'wsdc_registry','snap_r','1','2026-09-08T00:00:00Z','2026-09-08T00:00:00Z','run_a')"
+            )
+        # The live calendar stops listing an event once it has passed. The
+        # registry row must survive the delete, unlinked, not block it.
+        with database.transaction():
+            replace_scope(
+                conn,
+                scope_kind="calendar",
+                scope_id="wsdc",
+                projection=Projection(),
+                run_id="run_a",
+                projected_at="2026-09-21T22:05:00Z",
+            )
+        assert conn.execute("SELECT count(*) FROM events").fetchone()[0] == 0
+        assert [tuple(row) for row in conn.execute("SELECT event_id FROM registry_placements")] == [
+            (None,)
+        ]

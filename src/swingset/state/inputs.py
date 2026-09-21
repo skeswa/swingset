@@ -158,3 +158,18 @@ def accept(database: Database, bundle: InputBundle, clock: Clock) -> set[str]:
         if available(conn):
             refresh(conn, clock.now())
     return changed
+
+
+def accepted_override(database: Database, name: str) -> bytes:
+    """The bytes of one file in the accepted input bundle, or empty when absent.
+
+    Readers outside a recipe, such as the year-gap review, use this so they
+    see the same override the projector was given (D-0187).
+    """
+    row = database.connection.execute(
+        "SELECT value FROM meta WHERE key='input_bundle_hash'"
+    ).fetchone()
+    if row is None:
+        return b""
+    path = database.state_dir / "inputs" / str(row[0]) / name
+    return path.read_bytes() if path.is_file() else b""

@@ -432,3 +432,55 @@ def test_empty_cdx_probe_is_complete_and_raw_response_is_retained(tmp_path):
         assert row[0] == 0 and row[1]
         receipt = json.loads(next((tmp_path / "archive-cdx").glob("*/probe.json")).read_bytes())
         assert archive.read_body(receipt["body_sha256"]) == b"[]"
+
+
+def test_platform_archive_indexing_covers_enabled_platforms_and_stops_at_deadline(tmp_path):
+    from swingset.history.platform import PLATFORM_PREFIXES, index_platform_archives
+
+    clock = FakeClock()
+    requests = []
+
+    def respond(request):
+        requests.append(str(request.url))
+        if request.url.path == "/robots.txt":
+            return httpx.Response(404)
+        if "showNumPages" in request.url.params:
+            return httpx.Response(200, json={"pages": 1})
+        return httpx.Response(200, content=CDX)
+
+    with open_database(tmp_path) as db:
+        archive = Archive(tmp_path / "archive")
+        config = Config(
+            {"web.archive.org": HostConfig(min_gap_seconds=0, daily_request_budget=1000)},
+            {"eepro": SourceConfig(True), "scoringdance": SourceConfig(False)},
+        )
+        client = FetchClient(
+            db.connection, config, clock, archive, transport=httpx.MockTransport(respond)
+        )
+        stored = index_platform_archives(
+            client,
+            config,
+            clock,
+            history_start=date(2025, 1, 1),
+            deadline=clock.now() + timedelta(seconds=600),
+        )
+        assert stored == {"eepro": 2}
+        assert all("eepro.com" in url for url in requests if "cdx" in url)
+        assert not any("scoring.dance" in url for url in requests)
+        assert (
+            db.connection.execute(
+                "SELECT count(*) FROM archive_queries WHERE source='eepro'"
+            ).fetchone()[0]
+            == 2
+        )
+        # A reached deadline queries nothing more.
+        before = len(requests)
+        assert (
+            index_platform_archives(
+                client, config, clock, history_start=date(2025, 1, 1), deadline=clock.now()
+            )
+            == {}
+        )
+        assert len(requests) == before
+        assert set(PLATFORM_PREFIXES) == {"eepro", "scoringdance", "dcn", "wdr"}
+        client.close()

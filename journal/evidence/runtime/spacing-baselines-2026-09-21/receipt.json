@@ -1,0 +1,68 @@
+{
+  "operation": "Record legacy request-spacing baselines for six origin hosts",
+  "decision": "D-0190",
+  "operator": "claude (Claude Code session), under D-0183",
+  "preflight": {
+    "finding": "newest snapshot 2026-09-13T05:54:42Z; about 6,100 watches due; each cycle admitted about 900 fetch turns with no request (unit traffic 7 KB); gate reason: legacy request spacing unknown",
+    "hold_written_utc": "2026-09-21T21:39:52Z",
+    "cycle_ended_utc": "2026-09-21T21:58:53Z",
+    "preview": "six hosts with a null gap, 0 unsettled requests, no crawl-delay in retained robots"
+  },
+  "applied_utc": "2026-09-21T21:59:07Z",
+  "command": "scratch script calling Gate.establish_spacing_baseline(host, gap_seconds=10, stopped_at=last snapshot, evidence_ref) in one writer transaction",
+  "hosts": {
+    "eepro.com": [
+      "2026-09-13",
+      730,
+      "sha256:06b0dc558034e",
+      "baseline_e91fc918cbd84873a80689035d32b1a0"
+    ],
+    "points.worldsdc.com": [
+      "2026-09-13",
+      29539,
+      "sha256:f65d4357d59c6",
+      "baseline_159a037764eb4d7e95545cef69afee18"
+    ],
+    "scores.worlddanceregistry.com": [
+      "2026-09-12",
+      34,
+      "sha256:87efc390f135a",
+      "baseline_f3fef4941eac48ebb287bd5203040d77"
+    ],
+    "scoring.dance": [
+      "2026-09-13",
+      2400,
+      "sha256:13088c5f0e8d3",
+      "baseline_b36cf88ae7044d35a8c74b6a8c32e695"
+    ],
+    "worldsdc.com": [
+      "2026-09-13",
+      10,
+      "sha256:daf7b8232ec5f",
+      "baseline_0ee6b2845657444ba621cbbfe97ba207"
+    ],
+    "www.worldsdc.com": [
+      "2026-09-13",
+      57,
+      "sha256:971ac6d89fcb7",
+      "baseline_c30054bdd6e4467e915b0012fddd6e14"
+    ]
+  },
+  "hosts_columns": "last paid day, paid requests before, evidence ref prefix (full value in host_request_spacing_baselines), reservation",
+  "hold_removed_utc": "2026-09-21T21:59:08Z",
+  "post_check": {
+    "at_utc": "2026-09-21T22:19:27Z",
+    "first_request_utc": "2026-09-21T22:03:13Z",
+    "requests": 23,
+    "min_gap_seconds": {
+      "scoring.dance": 5.3,
+      "eepro.com": 5.4,
+      "points.worldsdc.com": 5.7,
+      "scores.worlddanceregistry.com": 5.8,
+      "worldsdc.com": 6.1,
+      "web.archive.org": 10.7
+    },
+    "snapshots": "8 origin, HTTP 200, Ok",
+    "pauses": "web.archive.org throttled and paused 15 minutes by policy"
+  }
+}

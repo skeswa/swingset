@@ -5,12 +5,16 @@ from __future__ import annotations
 import json
 import re
 import sqlite3
+from collections.abc import Collection
 from datetime import date
 from typing import Any
 
 from swingset.history.catalog import CALENDAR_PATHS, Target
 from swingset.sources import get_page_kind
 from swingset.state.findings import Finding, replace_findings
+
+
+NEWSLETTER_ISSUE_RE = re.compile(r"/uploads/(20\d\d)/\d\d/")
 
 
 def affected_years(target: Target, final_year: int) -> set[int]:
@@ -24,6 +28,14 @@ def affected_years(target: Target, final_year: int) -> set[int]:
         # same two-year horizon even before their dates can be interpreted.
         horizon = 2
         return set(range(max(2010, first), min(final_year, first + horizon) + 1))
+    if target.source == "wsdc_newsletter":
+        # A newsletter is fetched live, so it has no capture timestamp, but its
+        # upload path carries the issue date and its sidebar lists the coming
+        # months. Only that year and the next can be missing an edition.
+        match = NEWSLETTER_ISSUE_RE.search(target.url)
+        if match:
+            first = int(match.group(1))
+            return set(range(max(2010, first), min(final_year, first + 1) + 1))
     return set(range(2016, final_year + 1))
 
 
@@ -34,14 +46,21 @@ def year_gaps(
     *,
     final_year: int,
     history_start: date,
+    dismissed: Collection[tuple[str, str]] = (),
 ) -> dict[int, list[dict[str, Any]]]:
     gaps: dict[int, list[dict[str, Any]]] = {
         year: [] for year in range(history_start.year, final_year + 1)
     }
     warnings: dict[str, list[dict[str, Any]]] = {}
+    reviewed: set[str] = set()
     for row in conn.execute(
-        "SELECT snapshot_id,summary,evidence_json FROM findings WHERE closed_at IS NULL AND owner_kind IN ('parse','parse_failure','phase1_capture')"
+        "SELECT snapshot_id,summary,evidence_json,kind,subject_id FROM findings WHERE closed_at IS NULL AND owner_kind IN ('parse','parse_failure','phase1_capture')"
     ):
+        if (str(row[3]), str(row[4])) in dismissed:
+            # A reviewer looked at this warning and found it does not affect
+            # the year's event list (D-0187).
+            reviewed.add(str(row[0]))
+            continue
         warnings.setdefault(str(row[0]), []).append(
             {"summary": str(row[1]), "evidence": json.loads(row[2])}
         )
@@ -61,6 +80,14 @@ def year_gaps(
                     }
                 )
         if receipt["status"] in {"parsed", "empty", "duplicate"} and not notes:
+            continue
+        if (
+            receipt["status"] == "finding"
+            and not notes
+            and str(receipt.get("snapshot_id")) in reviewed
+        ):
+            # The capture's parse failure was reviewed and dismissed, so the
+            # page holds nothing the year's event list needs (D-0187).
             continue
         relevant = affected_years(target, final_year)
         if notes:

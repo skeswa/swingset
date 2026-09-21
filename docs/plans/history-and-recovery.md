@@ -60,15 +60,15 @@ three, L is a weekend or more. Sizes for the backfill packages are
 estimates made here; the rollout's sizes are the rollout's. Record completed
 stages and their evidence in [current status](../status.md).
 
-| Stage | Work                                                      | Depends on                             | Done when                                                                                                                                                                                            | Size                                                  |
-| ----- | --------------------------------------------------------- | -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
-| V1    | H1, H2, H3, H4, H5                                        | none                                   | Each revision's scenarios pass; G1 passes, including its fallback if needed; a correction release removes the audit's known wrong dancer joins and preserves withheld judge IDs                      | 5 S                                                   |
-| V2    | WP11, then WP12 and WP13 together                         | none                                   | Every registry occurrence since 2010 has one `events` row; the `coverage` table is published; each year 2010 to 2026 is `events_accepted` or has open findings naming why not                        | 3 M                                                   |
-| V3    | H8, H9, H10                                               | V1                                     | The override file is the journal; `probable` links no longer populate default `wsdc_id`; a correction-only release exists and has been exercised once against the live dataset                       | 3 M                                                   |
-| V4    | H6, then H7                                               | V1                                     | Shadow reports over the v1 archive and the phase 1 captures are reviewed; admission is enforced for registry lookups, scoring indexes, and round sheets; v1 evidence is bootstrapped as legacy       | 2 M                                                   |
-| V5    | WP15, then WP14 and WP16, year by year                    | V2, V3, V4                             | New events enter newest first; admitted events receive bounded turns under H14. Sheets pass H7 and H10 and publish with archive versus origin coverage; gaps remain explicit                         | 2 M, 1 S, plus three to six weeks of archive fetching |
-| V6    | H11–H17, including the H14/H16 event-completion extension | V3, V4; H11 and H17 may start any time | Original and extension scenarios pass; doctor explains unfinished events; listed pages receive bounded service under continuous discovery; releases report completion separately from local progress | 6 M, 1 S originally; extension estimate pending       |
-| V7    | H18                                                       | V5, V6                                 | Each requirement kind is enabled one at a time and passes its scenarios under retries, crashes, and reordered work; the restore drill passes with outstanding repairs                                | L                                                     |
+| Stage | Work                                                      | Depends on                             | Done when                                                                                                                                                                                                                                                                                                                               | Size                                                  |
+| ----- | --------------------------------------------------------- | -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
+| V1    | H1, H2, H3, H4, H5                                        | none                                   | Each revision's scenarios pass; G1 passes, including its fallback if needed; a correction release removes the audit's known wrong dancer joins and preserves withheld judge IDs                                                                                                                                                         | 5 S                                                   |
+| V2    | WP11, then WP12 and WP13 together                         | none                                   | Every registry occurrence since 2010 has one `events` row; the `coverage` table is published; each year 2010 to 2026 is `events_accepted` by a review agent (D-0180) or has open findings naming why not; met 2026-09-23, all seventeen accepted ([receipt](../../journal/evidence/runtime/v5-year-acceptance-2026-09-22/receipt.json)) | 3 M                                                   |
+| V3    | H8, H9, H10                                               | V1                                     | The override file is the journal; `probable` links no longer populate default `wsdc_id`; a correction-only release exists and has been exercised once against the live dataset                                                                                                                                                          | 3 M                                                   |
+| V4    | H6, then H7                                               | V1                                     | Shadow reports over the v1 archive and the phase 1 captures are reviewed; admission is enforced for registry lookups, scoring indexes, and round sheets; v1 evidence is bootstrapped as legacy                                                                                                                                          | 2 M                                                   |
+| V5    | WP15, then WP14 and WP16, year by year                    | V2, V3, V4                             | New events enter newest first; admitted events receive bounded turns under H14. Sheets pass H7 and H10 and publish with archive versus origin coverage; gaps remain explicit                                                                                                                                                            | 2 M, 1 S, plus three to six weeks of archive fetching |
+| V6    | H11–H17, including the H14/H16 event-completion extension | V3, V4; H11 and H17 may start any time | Original and extension scenarios pass; doctor explains unfinished events; listed pages receive bounded service under continuous discovery; releases report completion separately from local progress                                                                                                                                    | 6 M, 1 S originally; extension estimate pending       |
+| V7    | H18                                                       | V5, V6                                 | Each requirement kind is enabled one at a time and passes its scenarios under retries, crashes, and reordered work; the restore drill passes with outstanding repairs                                                                                                                                                                   | L                                                     |
 
 Every stage ends with a published dataset that is strictly better than
 the last, as [milestones](milestones.md) requires. V1 publishes
@@ -102,7 +102,29 @@ H16 validation, withdrawing the earlier network-related deferral. Follow
 [current status](../status.md) for the runtime hold and release gates.
 
 V6 is not done until the extension's fake-clock scenarios and measured cohort
-service pass, and the new coverage is published with truthful gaps. V7 still
+service pass, and the new coverage is published with truthful gaps.
+
+**What V5's new sources still need, found 2026-09-21.** Step Right and DCN
+have parsers, admission contracts and projection in `main`, but no
+acquisition path: the archive plan in `history/platform.py` covers only
+`eepro`, `scoringdance`, `dcn` and `wdr` pages that already map to a known
+event, discovery fetches index URLs from the origin only, and no host or
+source entry exists for either. Step Right needs an archive-only index
+bootstrap (one CDX-selected capture of `/events`, admitted through the index
+contract, whose declared event and round pages then enter the plan) and its
+own `recognize` rules. DCN's modern results payload is still unimplemented
+(M4), so only its legacy pages and PDFs can be planned. Until that lands, V5
+rows come from the 2018 to 2026 platform plan and from EEPro's archived
+year indexes, which extend the plan into 2010 to 2017 as they are parsed.
+
+**Operating acceptance, defined 2026-09-21.** The extension has run unheld
+since 2026-09-20 23:09 UTC. A review agent accepts V6 operation when 48
+consecutive hours of cycle summaries show all of: at least nine of every ten
+cycles finish without a cycle-level error; the pending parse count is lower at
+the end of the window than at its start; at least one automatic publication
+per calendar day; and doctor's event inventory reports listed pages receiving
+service with blockers explained. The agent records the acceptance as a
+decision that links the cycle summaries it read (D-0180). V7 still
 depends on V5 and V6; H18 must restore and resume unfinished event turns as well
 as its existing repair work. No stage is newly activated by this plan update.
 

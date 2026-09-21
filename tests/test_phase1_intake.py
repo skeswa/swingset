@@ -181,3 +181,77 @@ def test_pending_catalog_and_invalid_dates_keep_year_gate_closed(tmp_path):
             history_start=date(2010, 1, 1),
         )
         assert all(gaps[year] for year in (2015, 2016, 2017))
+
+
+def test_newsletter_issue_year_bounds_its_affected_years():
+    from swingset.history.closure import affected_years
+
+    issue = Target(
+        "wsdc_newsletter",
+        "http://www.worldsdc.com/wp-content/uploads/2022/06/WSDC-Newsleter-Vol-22-June-2022.pdf",
+        "wsdc_newsletter.events",
+    )
+    # A live newsletter has no capture timestamp; its upload path dates the
+    # issue, and its sidebar reaches into the next year at most.
+    assert affected_years(issue, 2026) == {2022, 2023}
+    undated = Target(
+        "wsdc_newsletter", "http://www.worldsdc.com/newsletter/", "wsdc_newsletter.index"
+    )
+    assert affected_years(undated, 2018) == {2016, 2017, 2018}
+
+
+def test_dismissed_parse_failure_clears_a_finding_status_capture(tmp_path):
+    from datetime import date
+
+    from swingset.history.closure import year_gaps
+    from swingset.state.findings import Finding, replace_findings
+
+    target = Target(
+        "wsdc_calendar",
+        "http://www.worldsdc.com:80/events-map/",
+        "wsdc_calendar.events",
+        "20160710033710",
+    )
+    with open_database(tmp_path) as db:
+        conn = db.connection
+        conn.execute("INSERT INTO runs VALUES ('run','2016-01-01',NULL,1,NULL)")
+        conn.execute(
+            "INSERT INTO watches(watch_id,source,kind,method,url,parser,state) VALUES ('w','wsdc_calendar','index','GET','https://example.test','wsdc_calendar.events','sealed')"
+        )
+        conn.execute(
+            "INSERT INTO snapshots(snapshot_id,watch_id,method,url,fetched_at,http_status,body_bytes,content_changed,run_id,classification) VALUES ('capture','w','GET','https://example.test','2016-01-01',200,1,1,'run','Ok')"
+        )
+        replace_findings(
+            conn,
+            owner_kind="parse_failure",
+            owner_id="capture",
+            findings=(
+                Finding(
+                    "parse_failure",
+                    "watch",
+                    "w",
+                    "error",
+                    "captured map marker lacks a name or printed date",
+                    {},
+                ),
+            ),
+            opened_at="2016-01-01",
+            run_id="run",
+        )
+        conn.execute("UPDATE findings SET snapshot_id='capture' WHERE owner_kind='parse_failure'")
+        ledger = {target.target_id: {"status": "finding", "snapshot_id": "capture"}}
+        # A capture whose parser failed keeps every year open until a reviewer
+        # dismisses that failure (D-0187); a map widget with unnamed markers
+        # holds nothing an event list needs.
+        assert year_gaps(conn, (target,), ledger, final_year=2017, history_start=date(2010, 1, 1))[
+            2016
+        ]
+        gaps = year_gaps(
+            conn,
+            (target,),
+            ledger,
+            final_year=2017,
+            history_start=date(2010, 1, 1),
+            dismissed={("parse_failure", "w")},
+        )
+        assert not any(gaps.values())

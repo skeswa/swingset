@@ -1,0 +1,55 @@
+{
+  "actor": "codex",
+  "at_utc": "2026-09-24T14:54:14Z",
+  "commands": [
+    {
+      "command": "write /var/lib/swingset/operator-hold with owner, reason, review-by",
+      "exit_code": 0
+    },
+    {
+      "command": "systemctl stop swingset-cycle.timer swingset-backup.timer swingset-summary.timer",
+      "exit_code": 0
+    },
+    {
+      "command": "systemctl stop swingset-cycle.service swingset-backup.service swingset-summary.service",
+      "exit_code": 0,
+      "note": "active cycle exceeded stop-sigterm timeout and systemd killed it with SIGKILL"
+    },
+    {
+      "command": "swingset pause --all --actor codex --reason owner requested pause",
+      "exit_code": 0
+    },
+    {
+      "command": "systemctl reset-failed swingset-cycle.service swingset-backup.service swingset-summary.service",
+      "exit_code": 0
+    }
+  ],
+  "hold": {
+    "owner": "codex (owner request)",
+    "path": "/var/lib/swingset/operator-hold",
+    "review_by": "2026-09-25",
+    "sha256": "7e691950c0cec7075aab3908433cf5c3b81b3ee2616d1cc7d974604ff419ec3f"
+  },
+  "note": "The database is already over its cap. The paused admission belongs to the interrupted build; recovery and pause drain need checking before a resume.",
+  "operation": "owner-requested worker pause",
+  "pause": {
+    "draining_attempts": 1,
+    "id": "pause_d0be838a34f84d2aa37ec1ed0881683d",
+    "persisted": true,
+    "resume_selector": "--all",
+    "scope": "all",
+    "state": "pausing"
+  },
+  "postcheck": {
+    "backup_service": "inactive",
+    "backup_timer": "inactive",
+    "cycle_service": "inactive",
+    "cycle_timer": "inactive",
+    "database_bytes": 64084664320,
+    "database_cap_bytes": 64000000000,
+    "disk_quota_free_gb": 91.3,
+    "summary_service": "inactive",
+    "summary_timer": "inactive",
+    "swingset_processes": 0
+  }
+}

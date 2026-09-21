@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import sqlite3
-from collections.abc import Callable, Collection, Iterable, Mapping
+from collections.abc import Callable, Collection, Iterable, Iterator, Mapping
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
@@ -92,6 +92,31 @@ def next_work(
     allowed: Callable[[WorkUnit], bool] | None = None,
     unit_kind: str | None = None,
 ) -> WorkUnit | None:
+    return next(
+        iter_work(
+            conn,
+            stage,
+            now=now,
+            fingerprint=fingerprint,
+            exclude=exclude,
+            allowed=allowed,
+            unit_kind=unit_kind,
+        ),
+        None,
+    )
+
+
+def iter_work(
+    conn: sqlite3.Connection,
+    stage: str,
+    *,
+    now: datetime | None = None,
+    fingerprint: Callable[[WorkUnit], str] | None = None,
+    exclude: Collection[WorkUnit] = (),
+    allowed: Callable[[WorkUnit], bool] | None = None,
+    unit_kind: str | None = None,
+) -> Iterator[WorkUnit]:
+    """Eligible units in selection order, walking the candidates once (D-0182)."""
     order = (
         "CASE unit_kind WHEN 'map' THEN 0 WHEN 'history' THEN 2 ELSE 1 END,enqueued_at,unit_kind,unit_id"
         if stage == "project"
@@ -125,7 +150,8 @@ def next_work(
         if derived and not derivations.ready(conn, unit):
             continue
         if not attempts_available:
-            return unit
+            yield unit
+            continue
         from .attempts import eligible, latest_attempt
         from .work_fingerprints import input_fingerprint
 
@@ -135,8 +161,7 @@ def next_work(
             fingerprint(unit) if fingerprint else input_fingerprint(conn, unit),
             now or datetime.now(UTC),
         ):
-            return unit
-    return None
+            yield unit
 
 
 def unfinished_units(
@@ -265,7 +290,7 @@ def affected_work(conn: sqlite3.Connection, input_name: str) -> Iterable[WorkUni
         ):
             units.add(WorkUnit("project", "map", "all"))
         return tuple(sorted(units))
-    if input_name == "overrides/series_aliases.csv":
+    if input_name in {"overrides/series_aliases.csv", "overrides/finding_reviews.csv"}:
         if conn.execute(
             "SELECT 1 FROM events UNION SELECT 1 FROM registry_placements UNION SELECT 1 FROM observations WHERE scope_kind='calendar' LIMIT 1"
         ).fetchone():

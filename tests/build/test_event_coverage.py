@@ -391,3 +391,26 @@ def test_serialized_witness_budget_cannot_create_partial_positive_entry(event, m
     omitted = captured(f)
     assert omitted["entries"] == [] and omitted["omitted_subjects"] == 1
     event_coverage.validate(f.conn, omitted, selected_support=())
+
+
+def test_proof_fingerprint_has_its_own_byte_cap(event, monkeypatch):
+    """A closure whose parents exceed the validation cap can still keep a proof."""
+    from swingset.build.closure_validation import _ReadSet
+
+    f = event
+    admit_parent(f, ["one.htm"])
+    finish_bootstrap(f)
+    witness = captured(f)
+    readset = _ReadSet.capture(
+        {
+            "selected": [],
+            "dependency_sets": [],
+            "source_support": [],
+            "event_coverage": witness,
+        },
+        [],
+    )
+    assert readset.fingerprint(f.conn) is not None
+    assert event_coverage._Reader(f.conn).total_bytes == event_coverage.MAX_TOTAL_BYTES
+    monkeypatch.setattr(event_coverage, "MAX_FINGERPRINT_BYTES", 1)
+    assert readset.fingerprint(f.conn) is None

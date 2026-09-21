@@ -1,0 +1,70 @@
+{
+  "operation": "Deploy candidate 011: non-fatal build failures, year-scoped aliases, reviewed dismissals",
+  "decision": "D-0187",
+  "operator": "claude (Claude Code session), under D-0183",
+  "diagnosis": {
+    "build_failures": "17 cycles from 10:59 UTC failed with BuildError callback_marks references missing entry 2020-01-budafest/open-strictly/L-502: today's projection generation (08:17 UTC, 1,182 entries) paired with a link generation from 2026-09-16 (1,101 entries); the failure aborted each cycle before the 1,542 pending link units could run",
+    "manual_link_run": "swingset link started 14:58 UTC with the timer stopped; see link_run"
+  },
+  "candidate": {
+    "tree": "/private/tmp/swingset-c010 refreshed from the working copy",
+    "changed_from_010": [
+      "src/swingset/schedule/cycle.py (BuildError reported, cycle continues)",
+      "src/swingset/project/history.py (dated alias rows, reviewed dismissals, registry-month span rule)",
+      "src/swingset/state/override_validation.py, recipes.py, work.py, project/materialization.py, project/process.py, history/closure.py, history/intake.py, history/review.py, state/inputs.py (finding_reviews.csv plumbing)",
+      "config/sources.toml and config.py (32 GB cap)",
+      "overrides/finding_reviews.csv (empty)"
+    ]
+  },
+  "link_run": {
+    "started_utc": "2026-09-21T14:58:02Z",
+    "stopped_utc": "2026-09-21T15:11:49Z",
+    "note": "swingset link with the timer stopped; link pending fell 1,542 -> 1,063 in 14 minutes at about one unit per 4 seconds (single-unit selection); stopped at a unit boundary so the batched offline phase of candidate 011 finishes the rest"
+  },
+  "preflight": {
+    "at_utc": "2026-09-21T15:11:49Z",
+    "system": "/nix/store/hl9cki5mg4d4sh2ym905lcl489l9xnbc-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+    "pending": {
+      "link": 1063,
+      "parse": 198
+    },
+    "hold": "written with who/why/review-by"
+  },
+  "switch": {
+    "at_utc": "2026-09-21T15:11:58Z",
+    "command": "nixos-rebuild switch --flake path:/mnt/mac/private/tmp/swingset-c010#orb --impure",
+    "system": "/nix/store/a5k4nlqj8q0xl8c6s9yqx03fk7vjr11w-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+    "source": "/nix/store/a9x1147rkfc4nh1bjhhxqd7bpyy47vyz-source",
+    "duration_seconds": 9
+  },
+  "post_check": {
+    "finding_reviews_in_recipes": true,
+    "hold_removed_utc": "2026-09-21T15:12:20Z",
+    "timer_and_cycle": "started"
+  },
+  "first_cycle": {
+    "run_id": "run_20260921T151159Z",
+    "duration_seconds": 2431,
+    "phase_seconds": {
+      "reconciliation": 19.7,
+      "acquisition": 1.5,
+      "offline": 2385.8
+    },
+    "attempts": {
+      "parse_succeeded": 6926,
+      "parse_blocked": 99,
+      "project_succeeded": 8258
+    },
+    "failed": false,
+    "build": "deferred (backlog)",
+    "pending_after": {
+      "link": 1063,
+      "parse": 24895,
+      "project": 1
+    }
+  },
+  "core_suite": {
+    "result": "1 failed, 991 passed, 1453 deselected in 150.63s",
+    "note": "the one failure is the pre-existing environment-caused case in tests/publish/test_publication_controls.py"
+  }
+}

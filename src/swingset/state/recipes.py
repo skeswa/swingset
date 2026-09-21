@@ -100,6 +100,7 @@ def recipe_inputs(conn: sqlite3.Connection, stage: str) -> dict[str, str]:
             "overrides/event_aliases.csv",
             "overrides/source_urls.csv",
             "overrides/series_aliases.csv",
+            "overrides/finding_reviews.csv",
         },
         "link": common
         | {"link/weights.toml", "overrides/nicknames.csv", "overrides/identity_overrides.csv"},

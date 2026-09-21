@@ -148,6 +148,20 @@ memory-backed and cannot safely hold the full archive. A locally verified
 checkpoint is not remotely acknowledged until the upload and manifest check
 finish. Retain failed-attempt receipts and use a new attempt path when retrying.
 
+## Alerts
+
+`swingset-watchdog` runs every 30 minutes and after any cycle failure. It
+appends to `/var/lib/swingset/ALERTS.log` and logs at error level when three
+cycles in a row failed or no cycle has finished for two hours while the
+pipeline is unheld. It also alerts when the newest fetched page is older than
+`services.swingset.staleFetchSeconds` (two days) while unheld, because a gate
+that skips every request is not a failure and nothing else reports it
+([D-0190](../../journal/decisions/0190-record-spacing-baselines-for-the-origin-hosts-from-the-eight-day-gap.md)),
+and when the disk quota runs low ([disk space](#disk-space)). Set `services.swingset.alertCommand` to forward alerts,
+for example `curl -s -d @- https://ntfy.sh/<topic>`; the alert text arrives
+on standard input. Read the log with `journalctl -t swingset-watchdog`
+([D-0188](../../journal/decisions/0188-alert-on-failing-or-stalled-cycles-and-stop-re-queuing-on-config-switches.md)).
+
 ## Pause, resume, source switches, and stopping
 
 ```sh
@@ -198,8 +212,15 @@ an in-flight commit must reconcile its receipt before its pause is fully drained
 
 The worker's disk is bounded by OrbStack at 256 GiB
 (`orb config set machine.swingset.disk_bytes 274877906944`), enforced as a
-btrfs quota, so `df` inside the machine does not show it; `orb info swingset`
-on the Mac does. Inside that bound, three things use most of the space:
+btrfs quota. The kernel's `statfs` ignores btrfs quotas, so plain `df` reports
+the host volume instead. Three things show the real number. `swingset-disk`
+on the worker prints used, cap and free from the quota group. The worker's
+`df` is a wrapper that prints the normal table and then that same line on
+standard error. `orb info swingset` on the Mac agrees with both. The watchdog
+alerts when less than `services.swingset.diskMinFreeBytes` is free (default
+100 GB, the trigger in AGENTS.md). Only root may read the quota, so other
+users see the value the watchdog cached in `/run/swingset-disk` within the
+last half hour. Inside that bound, three things use most of the space:
 the live state, local checkpoints under `/var/lib/swingset/checkpoints`, and
 rehearsal scratch under `/var/tmp/swingset-*`. Each rehearsal or checkpoint is
 a full copy of the state, several gigabytes, so copies must not accumulate.
@@ -281,8 +302,8 @@ keep working; fetching and derivation wait.
 
 Resuming on its own pauses again on the next cycle, because the file is still
 over the cap. Either shrink it with apply and reclaim below, or raise
-`max_database_bytes` in the `[retention]` table of `config/sources.toml` (add
-the table; it is absent by default) and deploy. Then resume with
+`max_database_bytes` in the `[retention]` table of `config/sources.toml` (64 GB
+since [D-0196](../../journal/decisions/0196-raise-the-database-size-cap-to-64-gb.md)) and deploy. Then resume with
 `swingset resume --all --reason "..."`.
 
 Adding or changing that table recomputes nothing. The next cycle captures a new

@@ -75,7 +75,7 @@ class RetentionConfig:
     and stay, and how long an abandoned temporary directory waits.
     """
 
-    max_database_bytes: int = 8_000_000_000
+    max_database_bytes: int = 48_000_000_000
     recent_window: int = 3
     collect_older_than: float = 86400
     checkpoint_keep_recent: int = 2

@@ -126,6 +126,16 @@ def test_doctor_reports_hold_age_fields_and_overdue(tmp_path, capsys):
     assert first_document["operator_hold"] == {"present": False}
 
 
+def test_accept_year_refuses_without_event_evidence_and_records_when_it_can(tmp_path, capsys):
+    with open_database(tmp_path):
+        pass
+    assert main(["accept-year", "--year", "2012", "--by", "claude", "--state", str(tmp_path)]) == 1
+    assert "cannot accept a year without event evidence" in capsys.readouterr().err
+    assert main(["accept-year", "--year", "2012", "--by", " ", "--state", str(tmp_path)]) == 1
+    with open_database(tmp_path) as db:
+        assert db.connection.execute("SELECT COUNT(*) FROM history_acceptance").fetchone()[0] == 0
+
+
 def test_restore_pending_blocks_mutations_but_allows_diagnosis(tmp_path):
     with open_database(tmp_path):
         pass

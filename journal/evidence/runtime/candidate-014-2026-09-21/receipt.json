@@ -1,0 +1,30 @@
+{
+  "operation": "Deploy candidate 014: detach registry placements before deleting a dropped calendar event",
+  "decision": "D-0191",
+  "operator": "claude (Claude Code session), under D-0183",
+  "trigger": "run_20260921T215908Z failed=true: project/calendar/wsdc blocked, IntegrityError FOREIGN KEY constraint failed on DELETE FROM events WHERE event_id='2026-09-trilogy-swing' (one registry placement referenced it)",
+  "reproduction": "sqlite backup copy in /var/tmp/swingset-fkdebug-20260921: the deployed source fails on that delete; the candidate source projects the unit with output_committed",
+  "changed_from_013": [
+    "src/swingset/project/writer.py",
+    "nix/module.nix (swingset-disk, quota-aware df, low-quota and stale-fetch alerts; switched in earlier as nix-only updates)"
+  ],
+  "tests": "tests/test_project.py plus history and map-retention tests: 33 passed; core suite 1 failed, 993 passed (the known environment case in tests/publish/test_publication_controls.py)",
+  "prebuild": "/nix/store/qz2p70y51wnxrz46c9ih0aynf2aky555-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+  "preflight": {
+    "hold_written_utc": "2026-09-21T22:48Z",
+    "previous_system": "/nix/store/k1ajsf2gr4hpbyj75rg305impki7vwmw-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+    "last_cycle": "run_20260921T223945Z finished 23:20 UTC"
+  },
+  "switch": {
+    "at_utc": "2026-09-21T23:20:17Z",
+    "command": "nixos-rebuild switch --flake path:/mnt/mac/private/tmp/swingset-c010#orb --impure",
+    "system": "/nix/store/qz2p70y51wnxrz46c9ih0aynf2aky555-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+    "source": "/nix/store/q3jrjppr3s1iq8glpk96rnakhl4rq1r7-source",
+    "duration_seconds": 9
+  },
+  "post_check": {
+    "hold_removed_utc": "2026-09-21T23:20:26Z",
+    "timers": "cycle and watchdog active",
+    "first_cycle": "project/calendar/wsdc succeeded (output_committed) at 23:23:53 UTC; 2026-09-trilogy-swing removed; unlinked registry placements 38,877 before, 38,882 after (5 detached, relinked by the inventory projection); the source change re-queued 31,867 parse units"
+  }
+}

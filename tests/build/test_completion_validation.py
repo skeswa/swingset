@@ -19,7 +19,9 @@ def test_completion_validates_before_output_after_rows_and_before_certificate(
 
     def checked(conn, value):
         assert conn.in_transaction
-        events.append("validate")
+        events.append(
+            "validate" if conn.execute("PRAGMA query_only").fetchone()[0] == 0 else "proof"
+        )
         return validate(conn, value)
 
     def finishing(*args, **kwargs):
@@ -41,12 +43,16 @@ def test_completion_validates_before_output_after_rows_and_before_certificate(
 
     monkeypatch.setattr(generations, "complete", finishing)
     result = service.build_release(f.db, f.bundle, f.clock, f.run)
+    # The closure is proved once in a read snapshot before the bounded write,
+    # then rechecked at the three write boundaries (D-0179).
+    assert events.count("proof") == 1
     assert events.count("validate") == 3
     # SQLite traces an INSERT again while entering its triggers. The rows stream
     # in first and the label is written from what was stored, so the generation
     # follows them; the re-check after the rows still rolls everything back
     # together.
     assert [kind for kind, _ in groupby(events)] == [
+        "proof",
         "validate",
         "artifact",
         "generation",

@@ -1,0 +1,58 @@
+{
+  "operation": "Deploy candidate 013: publication off until identity output is recovered; newsletter findings bound to their issue year",
+  "decision": "D-0189",
+  "operator": "claude (Claude Code session), under D-0183",
+  "candidate": {
+    "tree": "/private/tmp/swingset-c010 refreshed from the working copy",
+    "changed_from_012": [
+      "nix/hosts/orb.nix: dryRun = true",
+      "src/swingset/history/closure.py: newsletter findings affect the issue year and the next",
+      "overrides/finding_reviews.csv: two dismissals (scoring.dance event 179; WSDC newsletter Vol 29)",
+      "D-0189, status, candidate history"
+    ],
+    "prebuild": "nixos-rebuild build, 6 s; cycle unit ends in --dry-run"
+  },
+  "trigger": "published-field-gaps-2026-09-21: release 138352e has no identity links and 435 fewer events; the 6 h backlog deferral expired 16:26 UTC",
+  "preflight": {
+    "hold_written_utc": "2026-09-21T16:17:56Z",
+    "hold": "who/why/review-by; the running 012 cycle finished first",
+    "at_utc": "2026-09-21T16:34:09Z",
+    "system": "/nix/store/dyj5nhrs9ykcappa3l0ddfrl7idn7q5a-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+    "last_cycle": "run_20260921T155338Z finished 16:34:07 UTC, failed=false, build deferred",
+    "pending": {
+      "parse": 24895,
+      "project": 1,
+      "link": 1063
+    }
+  },
+  "switch": {
+    "at_utc": "2026-09-21T16:34:09Z",
+    "command": "nixos-rebuild switch --flake path:/mnt/mac/private/tmp/swingset-c010#orb --impure",
+    "system": "/nix/store/g7jqmsl4c2z6z4k6sp5adah6cjawnrmb-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+    "source": "/nix/store/wcbgwmw8cb8qdhkf1pg84bvsrsyzsscn-source",
+    "duration_seconds": 8
+  },
+  "post_check": {
+    "hold_removed_utc": "2026-09-21T16:34:17Z",
+    "timers": {
+      "swingset-cycle.timer": "active",
+      "swingset-watchdog.timer": "active"
+    },
+    "first_cycle": {
+      "run_id": "run_20260921T163418Z",
+      "started_utc": "2026-09-21T16:34:18Z",
+      "dry_run": true
+    },
+    "pending_at_start": {
+      "parse": 31821,
+      "project": 1,
+      "link": 1063
+    },
+    "note": "the source change re-queued every parse unit once more"
+  },
+  "core_suite": {
+    "result": "1 failed, 992 passed, 1454 deselected in 146.79s",
+    "note": "the one failure is the pre-existing environment case in tests/publish/test_publication_controls.py"
+  },
+  "focused_tests": "test_phase1_intake + test_history_inventory: 14 passed; test_config + test_history_inventory: 25 passed"
+}

@@ -12,6 +12,7 @@ _HEADERS = {
     "nicknames.csv": {"nickname", "canonical"},
     "source_urls.csv": {"event_id", "source", "kind", "url", "parser", "notes"},
     "suppressions.csv": {"reason", "date"},
+    "finding_reviews.csv": {"kind", "subject_id", "decision", "reviewer", "note"},
 }
 _REQUIRED = {
     "series_aliases.csv": ("printed_name", "series_id", "source"),
@@ -19,13 +20,15 @@ _REQUIRED = {
     "nicknames.csv": ("nickname", "canonical"),
     "source_urls.csv": ("event_id", "source", "kind", "url", "parser"),
     "suppressions.csv": ("reason", "date"),
+    "finding_reviews.csv": ("kind", "subject_id", "decision", "reviewer"),
 }
 _KEYS = {
-    "series_aliases.csv": ("printed_name",),
+    "series_aliases.csv": ("printed_name", "from_month"),
     "event_aliases.csv": ("source", "source_ref"),
     "nicknames.csv": ("nickname",),
     "source_urls.csv": ("source", "url"),
     "suppressions.csv": ("wsdc_id", "name_norm"),
+    "finding_reviews.csv": ("kind", "subject_id"),
 }
 
 
@@ -54,6 +57,21 @@ def validate_override(path: Path, body: bytes) -> None:
                     raise ValueError(f"empty {name}")
             if row.get("date"):
                 date.fromisoformat(row["date"])
+            if path.name == "finding_reviews.csv" and row["decision"].strip() != "dismiss":
+                raise ValueError("finding review decision must be dismiss")
+            if path.name == "series_aliases.csv":
+                months = [(row.get(name) or "").strip() for name in ("from_month", "to_month")]
+                for value in months:
+                    if value and not (
+                        len(value) == 7
+                        and value[4] == "-"
+                        and value[:4].isdigit()
+                        and value[5:].isdigit()
+                        and 1 <= int(value[5:]) <= 12
+                    ):
+                        raise ValueError(f"alias month must be yyyy-mm, not {value!r}")
+                if months[0] and months[1] and months[0] > months[1]:
+                    raise ValueError("alias from_month is after to_month")
             if path.name == "suppressions.csv":
                 wsdc_id = row.get("wsdc_id", "").strip()
                 if not wsdc_id and not row.get("name_norm", "").strip():

@@ -348,3 +348,49 @@ def test_cycle_reports_publication_held_reason_without_claiming_failure(
             ).fetchone()[0]
             == "settled"
         )
+
+
+def test_build_failure_is_reported_and_does_not_abort_the_cycle(
+    tmp_path, configuration, monkeypatch
+):
+    from swingset.build.builder import BuildError
+
+    config, overrides = configuration
+    clock = FakeClock()
+
+    def failing_build(*_args, **_kwargs):
+        raise BuildError("callback_marks references missing entry x")
+
+    monkeypatch.setattr("swingset.schedule.cycle.build", failing_build)
+    with open_database(tmp_path / "state") as db:
+        seed_held(db, clock)
+        result = run_cycle(
+            db,
+            config_dir=config,
+            overrides_dir=overrides,
+            clock=clock,
+            transport=httpx.MockTransport(
+                lambda request: (
+                    httpx.Response(404)
+                    if request.url.path == "/robots.txt"
+                    else httpx.Response(200, content=FIXTURE)
+                )
+            ),
+        )
+        # The build could not assemble a candidate, but the cycle went on to
+        # fetch and derive, which is what repairs a stale generation (D-0187).
+        assert result["build_error"].startswith("BuildError: callback_marks")
+        assert result["checked"] >= 1
+        assert "parse" in result["stages"]
+
+
+def test_repository_identity_ignores_uncommitted_store_markers(monkeypatch):
+    from swingset.schedule.cycle import repository_identity
+
+    monkeypatch.setenv("SWINGSET_REVISION", "uncommitted:abc123-source")
+    digest = repository_identity()
+    assert digest.startswith("source-sha256:")
+    monkeypatch.setenv("SWINGSET_REVISION", "uncommitted:def456-source")
+    assert repository_identity() == digest
+    monkeypatch.setenv("SWINGSET_REVISION", "e136d95efdc7")
+    assert repository_identity() == "e136d95efdc7"

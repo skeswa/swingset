@@ -3,6 +3,11 @@
 [Browse by topic](../README.md). Dates in each record describe its evidence.
 A missing original date is not inferred from file modification time.
 
+- 2026-09-23: [Global Grand Prix series review](global-grand-prix-alias-review-2026-09-23.md).
+- 2026-09-23: [Why every deploy re-derives the whole graph, and what it costs](derivation-invalidation-2026-09-23.md).
+- 2026-09-22: [Using the Codex CLI for scripted web lookups](codex-exec-lookups-2026-09-22.md).
+- 2026-09-22: [Eight undated newsletter listings from 2022](undated-newsletter-listings-2026-09-22.md).
+- 2026-09-21: [Why published points, identity tables, and event metadata are missing](published-field-gaps-2026-09-21.md).
 - 2026-09-18: [Which pytest cases are worth keeping?](pytest-suite-review-2026-09-18.md).
 - 2026-09-18: [Restore activation skipped admissions before schema 19](restore-activation-admission-recovery-2026-09-18.md).
 - 2026-09-18: [Measuring where state storage goes](state-storage-measurement-2026-09-18.md).

@@ -1,0 +1,31 @@
+{
+  "operation": "Recover the worker from a full disk caused by a backup restart loop",
+  "decision": "D-0192",
+  "operator": "claude (Claude Code session), under D-0183",
+  "cause": "04:04 UTC backup failed on 'checkpoint archive exceeds the 20 GiB transport limit' (live database 23.6 GB) after writing its 26 GB local copy; Restart=on-failure retried every minute; six copies by 04:39 UTC filled the 274.9 GB quota; 619 cycles then failed with 'database or disk is full'; the watchdog could not append to ALERTS.log until 16:05 UTC",
+  "detected_utc": "2026-09-22T16:11Z",
+  "hold_written_utc": "2026-09-22T16:11Z",
+  "steps": [
+    "16:12 stop swingset-backup.service (NRestarts=590); rm the session's own scratch copy /var/tmp/swingset-fkdebug-20260921 (19 GB): 21.7 GB free",
+    "16:15 independent read-only check by an Opus review agent: all six copies complete and size-consistent with checkpoint.json; the newest is a strict superset of the others; no RESTORE_PENDING; no open handles; nothing in docs or journal pins a run_* checkpoint",
+    "16:15 rm -rf run_20260922T040417Z, run_20260922T041111Z, run_20260922T041753Z, run_20260922T042458Z (kept the two newest, as checkpoint_keep_recent=2 would): 132.6 GB free",
+    "16:16 swingset gc --reclaim: 24,063,983,616 to 23,777,902,592 bytes in 11m51s; no free list, so the size is live rows",
+    "16:30 swingset gc --plan killed by the cgroup OOM at 8.3 GB RSS (exit 137); not retried",
+    "16:37 nixos-rebuild switch to s6vgpsh90f266gy307m5vb8zp5a27pmj: backup unit without Restart, with OnFailure=swingset-watchdog and an ExecStartPre room check (quota free >= 2 x state size + 20 GB); hold removed; cycle started"
+  ],
+  "post_check": {
+    "free_after_utc": "2026-09-22T16:38Z",
+    "quota": "142.1 GB used of 274.9 GB",
+    "checkpoints_kept": [
+      "h16-published-20260917",
+      "pre-schema32-20260921",
+      "pre-regression-schema32-20260921T0423Z",
+      "run_20260913T040007Z",
+      "run_20260922T043152Z",
+      "run_20260922T043903Z"
+    ],
+    "first_cycle": "pending"
+  },
+  "remaining": "remote checkpoints fail while the archive exceeds 20 GiB (queued: split transport); gc --plan needs a memory-bounded planner on a 24 GB database",
+  "follow_up_2026_09_23": "04:00 backup wrote run_20260923T040002Z (26 GB) and failed on transport as expected, no restart; with three timer copies the quota fell to 86 GB free and the watchdog's low-disk alert fired every half hour; removed run_20260922T043152Z at 06:07 UTC, the oldest of the three, which is what checkpoint_keep_recent=2 would prune after the next successful backup"
+}

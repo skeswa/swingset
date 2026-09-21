@@ -128,8 +128,10 @@ def test_runtime_acceptance_skips_manual_crosscheck_but_keeps_parser_work(
 
         unknown_unit = WorkUnit("parse", "snapshot", "unknown-parser-snapshot")
         unknown_failure = derive_one(database, archive, unknown_unit, second, clock, run_id)
-        assert unknown_failure.failed
-        assert unknown_failure.reason == "unit_exception"
+        # An unknown parser is parked for a month, not counted as a failure
+        # every cycle (D-0182).
+        assert not unknown_failure.failed
+        assert unknown_failure.reason == "unsupported_page_kind"
         blocked_attempt = database.connection.execute(
             "SELECT attempt_id,outcome,reason_code,evidence_json,requirement_id "
             "FROM work_attempts WHERE stage='parse' AND unit_id=? "
@@ -137,7 +139,7 @@ def test_runtime_acceptance_skips_manual_crosscheck_but_keeps_parser_work(
             (unknown_unit.unit_id,),
         ).fetchone()
         assert blocked_attempt is not None
-        assert tuple(blocked_attempt)[1:3] == ("blocked", "unit_exception")
+        assert tuple(blocked_attempt)[1:3] == ("transient", "unsupported_page_kind")
         assert json.loads(blocked_attempt[3]) == {
             "exception": "KeyError",
             "message": "'unknown page kind: wsdc_registry.future_page'",

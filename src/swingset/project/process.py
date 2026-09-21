@@ -117,6 +117,7 @@ def _dispatch(
             now=now,
             run_id=run_id,
             aliases=bundle.files.get("overrides/series_aliases.csv", b""),
+            reviews=bundle.files.get("overrides/finding_reviews.csv", b""),
             history_start=history_start,
         )
     if unit.unit_kind == "map":

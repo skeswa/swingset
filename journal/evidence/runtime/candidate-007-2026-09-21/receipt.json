@@ -1,0 +1,76 @@
+{
+  "operation": "Deploy candidate 007: build completion proves the release closure before the bounded write",
+  "decision": "D-0179",
+  "operator": "claude (Claude Code session), on the owner's instruction of 2026-09-21",
+  "diagnosis": {
+    "symptom": "every cycle after the first post-hold cycle failed at build completion: WriteDeadlineExceeded (atomic write over 45 s), once ClosureError local_page_support_unverifiable; the failure aborted the cycle before parse work",
+    "measured_read_only_on_the_live_database": {
+      "full closure validation": "16.9 s and 17.6 s (two runs); three run inside the write bound at completion",
+      "proof fingerprint": "unavailable: event_evidence_byte_budget at entry 62 of 63 after 33,538,191 bytes against a 32 MiB cap (63 entries, 378 parents, 1,851 snapshots)",
+      "with the fix (PYTHONPATH to the candidate tree)": "proof pass 17.68 s in a read snapshot; in-write rechecks 4.76 s, 5.89 s, 5.58 s"
+    },
+    "enumerations": "source_event_enumerations grew 0 -> 400 over the four cycles; the closure grows with them"
+  },
+  "candidate": {
+    "base": "deployed candidate 006 source /nix/store/rgyryll4d55rgzscdqhjcwmkr325a76f-source copied to /private/tmp/swingset-c007",
+    "changed_from_base": [
+      "src/swingset/build/closure_validation.py",
+      "src/swingset/build/event_coverage.py",
+      "src/swingset/build/generations.py",
+      "nix/module.nix (restores the swingset-scratch-clean unit from main)"
+    ],
+    "identical_to_main_for_those_modules": true,
+    "not_from_main_because": "main is schema 32 and the database migrates on open; schemas 30 to 32 stay undeployed until reviewed",
+    "tests_on_main_tree": "118 passed: tests/build/test_completion_validation.py, test_closure_validation_scope.py, test_event_coverage.py, test_event_local_coverage.py, test_unavailable_coverage.py, tests/test_write_deadline.py; ruff and mypy clean",
+    "core_suite": "see core_suite below"
+  },
+  "preflight": {
+    "at_utc": "2026-09-21T00:50:11Z",
+    "system": "/nix/store/mni8kwh2472nrfljz1v6kydrvx7f2m70-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+    "package": "/nix/store/lcay4ij6fa093g7wfk4g2imdsqza7d32-swingset",
+    "source": "/nix/store/rgyryll4d55rgzscdqhjcwmkr325a76f-source",
+    "schema": 29,
+    "failed_cycles_since_resume": 3,
+    "hold": "none; written at 00:54:48Z with who/why/review-by for the switch, cycle timer and service stopped"
+  },
+  "switch": [
+    {
+      "at_utc": "2026-09-21T00:55:04Z",
+      "command": "nixos-rebuild switch --flake path:/mnt/mac/private/tmp/swingset-c007#orb --impure",
+      "system": "/nix/store/5kdad49h4ixxbj2m2fdn4wpr6fk2pd6i-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+      "source": "/nix/store/izdy7amlkifv9zfq1p33w4znfjvp0n8l-source",
+      "note": "stopped swingset-scratch-clean.timer because candidate 006's module predates it"
+    },
+    {
+      "at_utc": "2026-09-21T00:55:52Z",
+      "command": "same, after copying main's nix/module.nix into the candidate",
+      "system": "/nix/store/3k3kqy87sqk210mr143rixsca2q54d12-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+      "source": "/nix/store/f01in5xv7kwnc2vngqyhsragjf5gj5ff-source",
+      "timers": [
+        "swingset-cycle",
+        "swingset-backup",
+        "swingset-summary",
+        "swingset-scratch-clean"
+      ]
+    }
+  ],
+  "post_check": {
+    "fix_present_in_deployed_source": "MAX_FINGERPRINT_BYTES in event_coverage.py and _complete_in_transaction in generations.py",
+    "venv_rebound_by_ExecStartPre": "swingset==0.1.0 from /nix/store/f01in5xv7kwnc2vngqyhsragjf5gj5ff-source",
+    "hold_removed_utc": "2026-09-21T00:55:52Z",
+    "first_cycle": "built and published; see first_cycle"
+  },
+  "first_cycle": {
+    "run_started_utc": "2026-09-21T00:55:52Z",
+    "built": "cand_0e94f73007664350 at 01:02:13Z",
+    "published": {
+      "commit": "35db6a7dfbb91b455db62eed8441b9d3383fb6a5",
+      "hub_commit_utc": "2026-09-21T01:02:05Z"
+    },
+    "note": "build completion passed inside the write bound; the cycle then continued into its acquisition phase"
+  },
+  "core_suite": {
+    "result": "1 failed, 986 passed, 1446 deselected in 156.68s (0:02:36)",
+    "note": "the one failure is the pre-existing environment-caused case in tests/publish/test_publication_controls.py that fails on this Mac before and after the change"
+  }
+}

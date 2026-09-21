@@ -1,0 +1,63 @@
+{
+  "operation": "Deploy candidate 009: batch offline selection, defer builds under backlog, park unsupported page kinds",
+  "decision": "D-0182",
+  "operator": "claude (Claude Code session), on the owner's instruction of 2026-09-21",
+  "diagnosis": {
+    "candidate_008_first_cycle": "run_20260921T013317Z: reconciliation 21.6 s, acquisition 1.3 s, offline 223.0 s; 54 attempts (15 parse, 36 project succeeded, 3 crosscheck blocked with KeyError unknown page kind registry_crosscheck); execution 8.3 s, mean gap between attempts 4.0 s; build and publish took about 7 min; failed=true from the 3 crosscheck units",
+    "selection_profile_read_only": "next_offline 4.4 s per call: currentness recomputed for ~9,000 candidate units per pick (derivations.desired -> dependencies -> json canonicalization), memo discarded with the snapshot",
+    "backlog": "pending parse 31,821 -> 31,806 after the cycle"
+  },
+  "candidate": {
+    "base": "candidate 008 tree /private/tmp/swingset-c007",
+    "changed_from_base": [
+      "src/swingset/state/work.py (iter_work)",
+      "src/swingset/schedule/fairness.py (next_offline_batch)",
+      "src/swingset/schedule/cycle.py (batched offline loop, build_deferred_for_backlog)",
+      "src/swingset/schedule/derive.py (unsupported_page_kind)",
+      "src/swingset/schedule/fair_policy.py (backlog_publish_interval_seconds)"
+    ],
+    "same_change_on_main": true
+  },
+  "preflight": {
+    "at_utc": "2026-09-21T01:55:06Z",
+    "system": "/nix/store/dhslxypv8g6bz4l8yg0fgd6w6j03sf8l-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+    "hold": "written with who/why/review-by; timer and service stopped"
+  },
+  "switch": {
+    "at_utc": "2026-09-21T01:55:17Z",
+    "command": "nixos-rebuild switch --flake path:/mnt/mac/private/tmp/swingset-c007#orb --impure",
+    "system": "/nix/store/jiq8vq9c1jf9vcis5ysdx1xsga4fwbyv-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+    "source": "/nix/store/rvqis8150al3jzxvhvbkqaz2hzbx3vpr-source",
+    "duration_seconds": 11
+  },
+  "post_check": {
+    "fix_present_in_deployed_source": "next_offline_batch in cycle.py; backlog_publish_interval_seconds in fair_policy.py",
+    "timers": 7,
+    "hold_removed_utc": "2026-09-21T01:55:29Z",
+    "first_cycle": "started 01:55:29Z; see first_cycle"
+  },
+  "first_cycle": {
+    "run_id": "run_20260921T015518Z",
+    "duration_seconds": 748,
+    "phase_seconds": {
+      "reconciliation": 176.2,
+      "acquisition": 1.3,
+      "offline": 547.6
+    },
+    "build": "deferred (backlog; baseline younger than six hours)",
+    "attempts": {
+      "parse_succeeded": 1179,
+      "parse_blocked_parse_failed": 97,
+      "parse_transient": 3,
+      "parse_superseded": 1,
+      "project_succeeded": 2626
+    },
+    "pending_parse": "31,806 -> 30,642",
+    "failed": false,
+    "note": "1,280 parse attempts in one cycle against 18 under candidate 008"
+  },
+  "core_suite": {
+    "result": "1 failed, 989 passed, 1447 deselected in 140.01s",
+    "note": "the one failure is the pre-existing environment-caused case in tests/publish/test_publication_controls.py"
+  }
+}

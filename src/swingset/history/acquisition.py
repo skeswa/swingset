@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import sqlite3
+from collections.abc import Callable
 
 from swingset.admission.contracts import contract_version
 from swingset.project.history import phase_two_allowed
@@ -41,9 +42,18 @@ def archive_watch_gate(
 
 
 def phase_two_gate(
-    conn: sqlite3.Connection, *, source: str, source_ref: str | None, page_kind: str
+    conn: sqlite3.Connection,
+    *,
+    source: str,
+    source_ref: str | None,
+    page_kind: str,
+    year_allowed: Callable[[int], bool] | None = None,
 ) -> str | None:
-    """Return a stable stop reason. Call within the same transaction as watch insertion."""
+    """Return a stable stop reason. Call within the same transaction as watch insertion.
+
+    ``year_allowed`` lets one pass over many pages answer the year gate once
+    per year instead of once per page.
+    """
     if page_kind.split(".")[0] != source:
         return "history_page_kind_source_mismatch"
     event = conn.execute(
@@ -52,7 +62,12 @@ def phase_two_gate(
     ).fetchone()
     if event is None:
         return "history_event_unmapped"
-    if not phase_two_allowed(conn, int(event[0])):
+    allowed = (
+        year_allowed(int(event[0]))
+        if year_allowed is not None
+        else phase_two_allowed(conn, int(event[0]))
+    )
+    if not allowed:
         return "history_year_unaccepted"
     try:
         get_page_kind(page_kind)

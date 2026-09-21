@@ -24,3 +24,17 @@ index_urls = ["https://scoring.dance/sitemap.xml", "https://scoring.dance/enUS/e
 [sources.wdr]
 enabled = true
 index_urls = []
+
+# Each acquisition phase ends with up to this many seconds of CDX index
+# queries for the enabled platforms, one per source, prefix and capture year;
+# finished years are queried once (D-0184). Unset disables the step.
+[scheduling]
+archive_index_seconds = 120
+
+# The live database may grow to this size before the pipeline pauses itself
+# (D-0186; D-0194 and D-0196 raised it while the retention planner cannot
+# run and every source change re-derives the whole graph). Deleting rows
+# frees pages but not file space; see the operation guide's disk-space
+# section for reclaim.
+[retention]
+max_database_bytes = "64GB"

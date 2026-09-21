@@ -22,6 +22,18 @@ are fine when each owns distinct files. Do not write transfer prompts for a
 successor: a new session starts from this file and `docs/status.md`, so keep
 both current instead.
 
+## Watching unattended work
+
+A background wait on production fires on failure signals, not only on
+progress: a cycle summary with `failed=true` or an `error`, a pause, a
+hold older than an hour, or a line in `/var/lib/swingset/ALERTS.log`. After
+a resume or a deploy, confirm that pages are being fetched, not only that
+cycles finish: a gate that skips every request reports no failure (D-0190). It
+also fires when nothing has progressed for 60 minutes, and it never runs
+longer than two hours without reporting. On the worker the
+`swingset-watchdog` timer logs and, when `services.swingset.alertCommand`
+is set, sends the same alerts (D-0188).
+
 ## Version control: use jj, not git
 
 This is a colocated [Jujutsu](https://jj-vcs.github.io/jj/) repo (`.jj/`

@@ -134,22 +134,35 @@ def derive_one(
         # A unit's transaction has rolled back. Keep its token and diagnostic,
         # then allow independent units to use already committed evidence.
         transient = isinstance(exc, OSError)
+        # A retained page whose parser this runtime does not know (a manual
+        # artifact on its own replay path, D-0097) is parked for a month rather
+        # than retried and counted as a failure every cycle (D-0182).
+        unsupported = isinstance(exc, KeyError) and "unknown page kind" in str(exc)
         reason = (
             "write_deadline_exceeded"
             if isinstance(exc, WriteDeadlineExceeded)
             else "unit_io_error"
             if transient
+            else "unsupported_page_kind"
+            if unsupported
             else "unit_exception"
+        )
+        retry_at = (
+            clock.now() + timedelta(seconds=60)
+            if transient
+            else clock.now() + timedelta(days=30)
+            if unsupported
+            else None
         )
         with database.transaction() as conn:
             finish_attempt(
                 database,
                 attempt,
-                outcome="transient" if transient else "blocked",
+                outcome="transient" if transient or unsupported else "blocked",
                 reason_code=reason,
                 now=clock.now(),
-                retry_at=clock.now() + timedelta(seconds=60) if transient else None,
+                retry_at=retry_at,
                 evidence={"exception": type(exc).__name__, "message": str(exc)},
             )
             settle(conn, action_id, now=clock.now(), outcome=reason)
-        return DerivationOutcome(source, True, reason)
+        return DerivationOutcome(source, not unsupported, reason)

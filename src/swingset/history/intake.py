@@ -18,6 +18,7 @@ from swingset.fetch.client import FetchClient
 from swingset.fetch.wayback import schedule_capture
 from swingset.history.catalog import Target, load_catalog, save_catalog
 from swingset.history.closure import synchronize_year_findings, year_gaps
+from swingset.project.history import dismissed_findings
 from swingset.schedule.parse import parse_snapshot
 from swingset.schedule.watches import upsert_watch
 from swingset.sources import get_page_kind
@@ -25,6 +26,7 @@ from swingset.sources.base import WatchSpec
 from swingset.sources.wsdc_newsletter.index import is_issue_url
 from swingset.state.db import Database
 from swingset.state.findings import Finding, replace_findings
+from swingset.state.inputs import accepted_override
 from swingset.state.work import WorkUnit
 
 
@@ -129,6 +131,9 @@ def run_intake(
                 statuses,
                 final_year=clock.now().year,
                 history_start=config.history_start,
+                dismissed=dismissed_findings(
+                    accepted_override(database, "overrides/finding_reviews.csv")
+                ),
             ),
             now=clock.now().isoformat(),
             run_id=run_id,
@@ -316,6 +321,9 @@ def run_intake(
                 statuses,
                 final_year=clock.now().year,
                 history_start=config.history_start,
+                dismissed=dismissed_findings(
+                    accepted_override(database, "overrides/finding_reviews.csv")
+                ),
             ),
             now=clock.now().isoformat(),
             run_id=run_id,

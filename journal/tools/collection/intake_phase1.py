@@ -161,6 +161,7 @@ def main() -> None:
                     args.output or args.state / "phase1-review",
                     now=SystemClock().now().isoformat(),
                     aliases=(args.repo / "overrides/series_aliases.csv").read_bytes(),
+                    reviews=(args.repo / "overrides/finding_reviews.csv").read_bytes(),
                     reconcile=not readonly,
                 )
                 print(

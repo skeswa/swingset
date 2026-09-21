@@ -13,10 +13,16 @@ from swingset.fetch.archive import canonical, durable_write
 from swingset.history.catalog import load_catalog
 from swingset.history.closure import synchronize_year_findings, year_gaps
 from swingset.model.history import HISTORY_START
-from swingset.project.history import finalize_history, prepare_inventory, reconcile_history
+from swingset.project.history import (
+    dismissed_findings,
+    finalize_history,
+    prepare_inventory,
+    reconcile_history,
+)
 from swingset.project.materialization import helper_recipe, materializing
 from swingset.state.db import Database
 from swingset.state.derivations import available, pending_units
+from swingset.state.inputs import accepted_override
 from swingset.state.work import WorkUnit
 
 
@@ -28,6 +34,7 @@ def review_pack(
     aliases: bytes = b"",
     history_start: date = HISTORY_START,
     reconcile: bool = True,
+    reviews: bytes = b"",
 ) -> dict[str, Any]:
     run_id = "read-only-review"
     if reconcile:
@@ -43,7 +50,12 @@ def review_pack(
                     recipe=recipe,
                 ):
                     prepare_inventory(
-                        conn, now=now, run_id=run_id, aliases=aliases, history_start=history_start
+                        conn,
+                        now=now,
+                        run_id=run_id,
+                        aliases=aliases,
+                        history_start=history_start,
+                        reviews=reviews,
                     )
                 with materializing(
                     conn,
@@ -55,7 +67,12 @@ def review_pack(
                     finalize_history(conn, now=now, history_start=history_start)
             else:
                 reconcile_history(
-                    conn, now=now, run_id=run_id, aliases=aliases, history_start=history_start
+                    conn,
+                    now=now,
+                    run_id=run_id,
+                    aliases=aliases,
+                    history_start=history_start,
+                    reviews=reviews,
                 )
     ledger_path = database.state_dir / "phase1-ledger.json"
     ledger = json.loads(ledger_path.read_bytes()) if ledger_path.exists() else {"targets": {}}
@@ -79,6 +96,7 @@ def review_pack(
         targets,
         final_year=int(now[:4]),
         history_start=history_start,
+        dismissed=dismissed_findings(accepted_override(database, "overrides/finding_reviews.csv")),
     )
     if reconcile:
         with database.transaction() as conn:

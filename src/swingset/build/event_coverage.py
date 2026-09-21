@@ -28,6 +28,11 @@ MAX_MEMBERS = 4096
 MAX_TOTAL_MEMBERS = 32768
 MAX_JSON_BYTES = 1024 * 1024
 MAX_TOTAL_BYTES = 32 * 1024 * 1024
+# The proof fingerprint hashes every parent generation row in full, so it
+# reads far more than a validation pass. Its reader keeps the per-row cap and
+# gets a larger total; a proof that cannot be taken only costs a full
+# validation, never correctness (D-0179).
+MAX_FINGERPRINT_BYTES = 256 * 1024 * 1024
 MAX_WITNESS_BYTES = 32 * 1024 * 1024
 
 PUBLIC_FIELDS = {
@@ -59,8 +64,9 @@ def _instant(value: str) -> datetime:
 
 
 class _Reader:
-    def __init__(self, conn: sqlite3.Connection):
+    def __init__(self, conn: sqlite3.Connection, *, total_bytes: int | None = None):
         self.conn = conn
+        self.total_bytes = MAX_TOTAL_BYTES if total_bytes is None else total_bytes
         self.bytes = self.members = 0
         self.columns: dict[str, list[str]] = {}
         self.revoked: list[tuple[Any, ...]] | None = None
@@ -76,7 +82,7 @@ class _Reader:
         columns = self.columns[table]
         size = "+".join(f'coalesce(length(CAST("{c}" AS BLOB)),0)' for c in columns)
         fields = ",".join(f'CASE WHEN ({size})<=? THEN "{c}" END AS "{c}"' for c in columns)
-        bound = min(MAX_JSON_BYTES, MAX_TOTAL_BYTES - self.bytes)
+        bound = min(MAX_JSON_BYTES, self.total_bytes - self.bytes)
         if bound <= 0:
             raise _Unavailable("event_evidence_byte_budget")
         cursor = self.conn.execute(
@@ -91,7 +97,7 @@ class _Reader:
                 if row["_bytes"] > bound:
                     raise _Unavailable("event_evidence_byte_budget")
                 self.bytes += row["_bytes"]
-                if self.bytes > MAX_TOTAL_BYTES:
+                if self.bytes > self.total_bytes:
                     raise _Unavailable("event_evidence_byte_budget")
                 result.append({key: row[key] for key in columns})
         finally:
@@ -518,7 +524,7 @@ def finalize(tables: Mapping[str, list[dict[str, Any]]], witness: Mapping[str, A
 
 def fingerprint(conn: sqlite3.Connection, witness: Mapping[str, Any]) -> str | None:
     """Hash bounded raw evidence; proof caches retain identifiers, not payloads."""
-    reader = _Reader(conn)
+    reader = _Reader(conn, total_bytes=MAX_FINGERPRINT_BYTES)
     values: list[str] = []
     try:
         for snapshot in witness["snapshots"]:

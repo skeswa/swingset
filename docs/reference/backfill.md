@@ -44,16 +44,23 @@ it.
 **Phase 1, the event list.** One `events` row per WSDC event edition
 that ended in the year, with these four properties:
 
-| Property             | Source of truth                                                                                | Acceptance                                                                                                       |
-| -------------------- | ---------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| The edition was held | a registry occurrence (points were awarded); failing that, a parsed score sheet                | every registry occurrence in the year has exactly one `events` row                                               |
-| Start and end dates  | a listing published before or during the event (calendar, old WSDC site, newsletter, platform) | every edition a listing dates carries `date_precision = day`; the rest are `month` and counted in the card       |
-| Series identity      | the registry series id, through `series_aliases.csv` for every printed name                    | no listing row in the year is left unresolved; each unresolved name is a finding until a human adds an alias     |
-| Status               | listing type and flags (registry, trial, cancelled, hiatus) and newsletter approval notices    | every listing-only edition (no occurrence) carries `held = listed` or `held = cancelled`, never silently dropped |
+| Property             | Source of truth                                                                                | Acceptance                                                                                                          |
+| -------------------- | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| The edition was held | a registry occurrence (points were awarded); failing that, a parsed score sheet                | every registry occurrence in the year has exactly one `events` row                                                  |
+| Start and end dates  | a listing published before or during the event (calendar, old WSDC site, newsletter, platform) | every edition a listing dates carries `date_precision = day`; the rest are `month` and counted in the card          |
+| Series identity      | the registry series id, through `series_aliases.csv` for every printed name                    | no listing row in the year is left unresolved; each unresolved name is a finding until a review agent adds an alias |
+| Status               | listing type and flags (registry, trial, cancelled, hiatus) and newsletter approval notices    | every listing-only edition (no occurrence) carries `held = listed` or `held = cancelled`, never silently dropped    |
 
 Acceptance is per year, recorded in the `coverage` table as
-`events_accepted = true`, and is the owner's call after the findings for
-that year are empty. Editions that awarded no points and appeared on no
+`events_accepted = true`, and is a review agent's call after the findings for
+that year are empty ([D-0180](../../journal/decisions/0180-agents-adjudicate-year-acceptance-and-identity-review.md)). A capture's
+open warning or parse failure counts against every year it could cover
+until a reviewer dismisses it in `finding_reviews.csv`
+([D-0187](../../journal/decisions/0187-review-dismissals-year-scoped-aliases-and-non-fatal-builds.md),
+[D-0193](../../journal/decisions/0193-a-dismissed-parse-failure-clears-its-capture-from-the-year-gate.md)).
+The per-year findings are recomputed only by the phase-one intake and review
+commands (`journal/tools/collection/intake_phase1.py run` and `review`), not
+by the cycle, so run the review after editing dismissals. Editions that awarded no points and appeared on no
 listing cannot be found by any source and are out of scope by
 construction; the card says so.
 
@@ -205,17 +212,18 @@ the override for anything the rule gets wrong.
 
 Schema is pre-1.0 until M6 closes, so these land without ceremony.
 
-| Table                                | Change                                                                                                                                                                                                                                                                                                                                                        |
-| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `events`                             | `start_date`, `end_date` nullable; new `event_month` (string `yyyy-mm`, not null), `date_precision` enum `day` or `month`, `held` enum `held`, `listed`, `cancelled`, `coverage_tier` enum from the table above, `history_source` list (which of `registry`, `calendar`, `swingdancecouncil`, `newsletter`, `platform`, `steprightsolutions` named the event) |
-| `series_aliases.csv` (override, new) | `printed_name`, `series_id`, `source`, `note`; reviewed by hand, never written by the pipeline; lives beside `event_aliases.csv` ([repository layout](../how-it-works/code-map.md))                                                                                                                                                                           |
-| `coverage`                           | also `events_accepted` per year (phase 1 sign-off), `events_day_precision`, `events_listed_only`                                                                                                                                                                                                                                                              |
-| `snapshots` (internal and published) | `via` enum `origin`, `wayback`, `manual`; `captured_at` timestamp (Memento datetime for `wayback`, equal to `fetched_at` otherwise); `archive_url`; `observed_at` = `captured_at`                                                                                                                                                                             |
-| `archive_captures` (internal, new)   | `source`, `url`, `timestamp`, `digest`, `status`, `mimetype`, `length`, `queried_at`, `cdx_query_id`; the CDX index we hold for each source, so selection can be redone without asking the archive again                                                                                                                                                      |
-| `coverage` (published, new)          | one row per `year`, `source`, `via`: events, contests, rounds, entries, and events per tier; built from current state; this is the card's coverage table                                                                                                                                                                                                      |
-| `contests.source` / `source` enum    | new value `steprightsolutions`                                                                                                                                                                                                                                                                                                                                |
-| `rounds.callback_legend`             | Step Right uses `legacy_3` (marks `1`, `2`, `3`)                                                                                                                                                                                                                                                                                                              |
-| `judges`                             | round rosters with `anonymous = true` marks: Step Right names the panel but shuffles the columns, so marks attach to `anon-<n>` judge ids while named judges are recorded on the round with `marks_attributed = false`                                                                                                                                        |
+| Table                                 | Change                                                                                                                                                                                                                                                                                                                                                        |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `events`                              | `start_date`, `end_date` nullable; new `event_month` (string `yyyy-mm`, not null), `date_precision` enum `day` or `month`, `held` enum `held`, `listed`, `cancelled`, `coverage_tier` enum from the table above, `history_source` list (which of `registry`, `calendar`, `swingdancecouncil`, `newsletter`, `platform`, `steprightsolutions` named the event) |
+| `series_aliases.csv` (override, new)  | `printed_name`, `series_id`, `source`, `note`, and optional `from_month`, `to_month` (`yyyy-mm`, inclusive) for a name whose registry id changed between eras; reviewed, never written by the pipeline; lives beside `event_aliases.csv` ([repository layout](../how-it-works/code-map.md))                                                                   |
+| `finding_reviews.csv` (override, new) | `kind`, `subject_id`, `decision` (`dismiss`), `reviewer`, `note`; a reviewed dismissal that the inventory projector and the phase-one gap review honor, so it survives re-projection ([D-0187](../../journal/decisions/0187-review-dismissals-year-scoped-aliases-and-non-fatal-builds.md))                                                                   |
+| `coverage`                            | also `events_accepted` per year (phase 1 sign-off), `events_day_precision`, `events_listed_only`                                                                                                                                                                                                                                                              |
+| `snapshots` (internal and published)  | `via` enum `origin`, `wayback`, `manual`; `captured_at` timestamp (Memento datetime for `wayback`, equal to `fetched_at` otherwise); `archive_url`; `observed_at` = `captured_at`                                                                                                                                                                             |
+| `archive_captures` (internal, new)    | `source`, `url`, `timestamp`, `digest`, `status`, `mimetype`, `length`, `queried_at`, `cdx_query_id`; the CDX index we hold for each source, so selection can be redone without asking the archive again                                                                                                                                                      |
+| `coverage` (published, new)           | one row per `year`, `source`, `via`: events, contests, rounds, entries, and events per tier; built from current state; this is the card's coverage table                                                                                                                                                                                                      |
+| `contests.source` / `source` enum     | new value `steprightsolutions`                                                                                                                                                                                                                                                                                                                                |
+| `rounds.callback_legend`              | Step Right uses `legacy_3` (marks `1`, `2`, `3`)                                                                                                                                                                                                                                                                                                              |
+| `judges`                              | round rosters with `anonymous = true` marks: Step Right names the panel but shuffles the columns, so marks attach to `anon-<n>` judge ids while named judges are recorded on the round with `marks_attributed = false`                                                                                                                                        |
 
 Evidence time. [Architecture](architecture.md#observations-and-projections)
 resolves conflicts by later `fetched_at`. For history that is wrong: a
@@ -240,6 +248,9 @@ URL and an `observed_at`.
   `showNumPages=true` probe. Never a whole-history query over a large
   prefix: those took 8 to 24 s of the archive's time and three timed out
   at 30 s on 2026-09-11.
+- Each cycle that is not under backpressure runs the due queries for every
+  enabled platform within 120 seconds of its acquisition phase, before it
+  offers plan pages ([D-0184](../../journal/decisions/0184-index-platform-archives-in-the-cycle-and-treat-nested-spans-as-one-edition.md)).
 - CDX rows are stored in `archive_captures` with the query id. A year's
   query is repeated only when the source's playbook says the year is
   still being captured (the current and previous calendar year), on a

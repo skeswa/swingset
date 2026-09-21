@@ -46,8 +46,12 @@ def config_with(tmp_path: Path, retention: str) -> list[str]:
     directory = tmp_path / "config"
     directory.mkdir()
     (directory / "hosts.toml").write_bytes(Path("config/hosts.toml").read_bytes())
+    # The shipped configuration already carries a [retention] table (D-0186);
+    # the test's values replace it rather than declare a second one.
+    shipped = Path("config/sources.toml").read_text()
+    shipped = shipped[: shipped.index("[retention]")]
     (directory / "sources.toml").write_bytes(
-        Path("config/sources.toml").read_bytes() + f"\n[retention]\n{retention}".encode()
+        shipped.encode() + f"\n[retention]\n{retention}".encode()
     )
     return ["--config", str(directory), "--overrides", "overrides"]
 

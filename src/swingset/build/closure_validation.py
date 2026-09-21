@@ -133,9 +133,13 @@ _scope: ContextVar[_Scope | None] = ContextVar("closure_validation_scope", defau
 
 @contextmanager
 def validation_scope(conn: sqlite3.Connection) -> Iterator[None]:
-    """Limit proof reuse to one completion operation; retain no parsed payloads."""
-    if not conn.in_transaction:
-        raise ValueError("closure proof reuse requires a transaction")
+    """Limit proof reuse to one completion operation; retain no parsed payloads.
+
+    The scope may open before the transactions it serves, so a proof taken in
+    a read snapshot can be rechecked inside the bounded write that follows.
+    ``unchanged`` and ``remember`` still require an open transaction at the
+    moment they run, and every reuse rechecks the proof's exact evidence.
+    """
     token = _scope.set(_Scope(conn))
     try:
         yield
@@ -162,6 +166,12 @@ def remember(conn: sqlite3.Connection, manifest: Mapping[str, Any], sources: Ite
         return
     read_set = _ReadSet.capture(manifest, sources)
     fingerprint = read_set.fingerprint(conn)
+    if fingerprint is None:
+        from swingset.log import log
+
+        # Without a proof every later boundary repeats the full validation,
+        # which is what made build completion outgrow its write bound.
+        log("closure_proof_unavailable", manifest_digest=str(manifest["digest"]))
     scope.proof = (
         _Proof(str(manifest["digest"]), read_set, fingerprint) if fingerprint is not None else None
     )

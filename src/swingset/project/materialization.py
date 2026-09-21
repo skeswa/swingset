@@ -154,7 +154,12 @@ def helper_recipe(
     if "recipe/runtime" in accepted:
         return None
     names = (
-        {"overrides/event_aliases.csv", "overrides/source_urls.csv", "overrides/series_aliases.csv"}
+        {
+            "overrides/event_aliases.csv",
+            "overrides/source_urls.csv",
+            "overrides/series_aliases.csv",
+            "overrides/finding_reviews.csv",
+        }
         if stage == "project"
         else {"link/weights.toml", "overrides/nicknames.csv", "overrides/identity_overrides.csv"}
     )

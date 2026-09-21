@@ -1,0 +1,50 @@
+{
+  "operation": "Deploy candidate 008: bound the historical offers pass and add accept-year",
+  "decisions": [
+    "D-0181",
+    "D-0180"
+  ],
+  "operator": "claude (Claude Code session), on the owner's instruction of 2026-09-21",
+  "diagnosis": {
+    "symptom": "candidate 007's first cycle published at 01:02 UTC, then stayed in its acquisition phase; the first post-hold cycle had spent 2,668 s there issuing zero requests with offline 0.0 s, so the parse backlog of 31,821 units never drained",
+    "measured_read_only_on_the_live_database": {
+      "retained_plan": "6,247 pages in 7.0 s",
+      "_candidate per page": "0.41 s, all in phase_two_gate -> phase_two_allowed -> pending_inventory_projection -> pending_units over 32,445 pending project units",
+      "whole pass": "about 43 minutes"
+    }
+  },
+  "candidate": {
+    "base": "candidate 007 tree /private/tmp/swingset-c007",
+    "changed_from_base": [
+      "src/swingset/history/backfill.py",
+      "src/swingset/history/acquisition.py",
+      "src/swingset/schedule/cycle.py (offers skipped under backpressure, bounded by the phase deadline)",
+      "src/swingset/cli.py (accept-year command)"
+    ],
+    "same_change_on_main": true
+  },
+  "override_change_in_the_same_window": "overrides/series_aliases.csv grew from 0 to 606 reviewed rows (D-0180 review agents); validated with validate_override before the switch; the next cycle captures it as an input",
+  "preflight": {
+    "at_utc": "2026-09-21T01:28:23Z",
+    "system": "/nix/store/3k3kqy87sqk210mr143rixsca2q54d12-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+    "hold": "written with who/why/review-by; cycle timer and service stopped (the service was in the stalled acquisition phase and exited failed on SIGTERM)"
+  },
+  "switch": {
+    "at_utc": "2026-09-21T01:33:05Z",
+    "command": "nixos-rebuild switch --flake path:/mnt/mac/private/tmp/swingset-c007#orb --impure",
+    "system": "/nix/store/dhslxypv8g6bz4l8yg0fgd6w6j03sf8l-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+    "source": "/nix/store/3an8n5ildj8svxrrgh1alrdz6cjmxb9q-source",
+    "duration_seconds": 11
+  },
+  "post_check": {
+    "fix_present_in_deployed_source": "history_offers_truncated in backfill.py; accept-year in cli.py",
+    "timers": 7,
+    "hold_removed_utc": "2026-09-21T01:33:17Z",
+    "venv_rebound_by_ExecStartPre": "Installed 1 package"
+  },
+  "first_cycle": {},
+  "core_suite": {
+    "result": "1 failed, 987 passed, 1447 deselected in 167.66s",
+    "note": "the one failure is the pre-existing environment-caused case in tests/publish/test_publication_controls.py"
+  }
+}

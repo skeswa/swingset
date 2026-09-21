@@ -6,7 +6,9 @@ import csv
 import io
 import json
 import sqlite3
-from contextlib import nullcontext
+from collections.abc import Iterator
+from contextlib import contextmanager, nullcontext
+from contextvars import ContextVar
 from datetime import date, datetime
 from hashlib import sha256
 from uuid import uuid4
@@ -43,13 +45,12 @@ def prepare_inventory(
     run_id: str,
     aliases: bytes = b"",
     history_start: date = HISTORY_START,
+    reviews: bytes = b"",
 ) -> bool:
     """Create missing occurrence rows; enrich stable ids without guessing series names."""
     before = _inventory_state(conn)
-    alias_map = {
-        series_slug(row["printed_name"]): row["series_id"]
-        for row in csv.DictReader(io.StringIO(aliases.decode()))
-    }
+    alias_map = _alias_map(aliases)
+    dismissed = dismissed_findings(reviews)
     occurrences = list(
         conn.execute(
             "SELECT series_id,event_month,series_name_raw,snapshot_id,parser_version,first_seen_at,last_seen_at,run_id FROM registry_placements ORDER BY last_seen_at,snapshot_id"
@@ -81,7 +82,8 @@ def prepare_inventory(
                 )
                 if (
                     series_slug(str(event[1])) == series_slug(name)
-                    or alias_map.get(series_slug(str(event[1]))) == series
+                    or _alias_for(alias_map, series_slug(str(event[1])), str(event[2])[:7])
+                    == series
                 )
                 and len(str(event[2])) == 7
                 and (str(event[2]) == month or _next_month(str(event[2])) == month)
@@ -183,11 +185,13 @@ def prepare_inventory(
         month = payload.end_date_raw[:7]
         year = int(month[:4])
         normalized = series_slug(payload.name_raw)
-        candidates = (
-            {alias_map[normalized]} if normalized in alias_map else names.get(normalized, set())
-        )
+        aliased = _alias_for(alias_map, normalized, month)
+        candidates = {aliased} if aliased else names.get(normalized, set())
         if len(candidates) != 1:
-            findings.setdefault(year, []).append(
+            _open(
+                findings,
+                year,
+                dismissed,
                 Finding(
                     "series_alias",
                     "history_listing",
@@ -201,7 +205,7 @@ def prepare_inventory(
                     },
                     snapshot_id=str(row[2]),
                     suggested_override=f"{payload.name_raw},listed-{normalized},{row[4]},review series identity",
-                )
+                ),
             )
             continue
         series = next(iter(candidates))
@@ -215,7 +219,10 @@ def prepare_inventory(
             )
         )
         if len(matches) > 1:
-            findings.setdefault(year, []).append(
+            _open(
+                findings,
+                year,
+                dismissed,
                 Finding(
                     "event_alias",
                     "history_listing",
@@ -223,7 +230,7 @@ def prepare_inventory(
                     "warning",
                     "Listing matches multiple registry occurrences",
                     {"year": year, "event_ids": [r[0] for r in matches]},
-                )
+                ),
             )
             continue
         event_id = str(matches[0][0]) if matches else f"{month}-{normalized}"
@@ -247,8 +254,23 @@ def prepare_inventory(
             any(len(values) > 1 for values in snapshot_spans.values())
             or len({p.end_date_raw[:7] for p, _ in dated_candidates}) > 1
         )
+        # A results platform often records one day of a weekend that a listing
+        # dates in full. Spans that nest inside one widest span are one
+        # edition; the widest span is its dates (D-0184). Two spans that
+        # overlap only partly, or not at all, stay a review finding.
+        widest = _widest_span(spans)
+        if ambiguous and widest is not None:
+            ambiguous = False
+            dated_candidates = [
+                item
+                for item in dated_candidates
+                if (item[0].start_date_raw, item[0].end_date_raw) == widest
+            ] or dated_candidates
         if ambiguous:
-            findings.setdefault(year, []).append(
+            _open(
+                findings,
+                year,
+                dismissed,
                 Finding(
                     "event_alias",
                     "event",
@@ -256,11 +278,13 @@ def prepare_inventory(
                     "warning",
                     "Multiple dated editions match one registry occurrence",
                     {"year": year, "date_spans": sorted(spans)},
-                )
+                ),
             )
             continue
         normalized = series_slug(payload.name_raw)
-        series = alias_map.get(normalized) or next(iter(names[normalized]))
+        series = _alias_for(alias_map, normalized, payload.end_date_raw[:7]) or next(
+            iter(names[normalized])
+        )
         source = str(row[4])
         previous = conn.execute("SELECT * FROM events WHERE event_id=?", (event_id,)).fetchone()
         sources = {str(evidence[4]) for _, evidence in dated_candidates}
@@ -354,10 +378,11 @@ def reconcile_history(
     run_id: str,
     aliases: bytes = b"",
     history_start: date = HISTORY_START,
+    reviews: bytes = b"",
 ) -> bool:
     """Compatibility entry point for a complete inventory and coverage refresh."""
     changed = prepare_inventory(
-        conn, now=now, run_id=run_id, aliases=aliases, history_start=history_start
+        conn, now=now, run_id=run_id, aliases=aliases, reviews=reviews, history_start=history_start
     )
     finalize_history(conn, now=now, history_start=history_start)
     return changed
@@ -400,7 +425,115 @@ def _inventory_digest(conn: sqlite3.Connection, year: int | None = None) -> str:
     return sha256(json.dumps([tuple(row) for row in rows]).encode()).hexdigest()
 
 
+AliasMap = dict[str, list[tuple[str, str, str]]]
+
+
+def dismissed_findings(reviews: bytes) -> set[tuple[str, str]]:
+    """(kind, subject_id) pairs a reviewer dismissed in overrides/finding_reviews.csv."""
+    return {
+        (row["kind"].strip(), row["subject_id"].strip())
+        for row in csv.DictReader(io.StringIO(reviews.decode()))
+        if row.get("decision", "").strip() == "dismiss"
+    }
+
+
+def _open(
+    findings: dict[int, list[Finding]],
+    year: int,
+    dismissed: set[tuple[str, str]],
+    finding: Finding,
+) -> None:
+    """Record a finding unless a reviewer dismissed this exact subject (D-0187)."""
+    if (finding.kind, finding.subject_id) not in dismissed:
+        findings.setdefault(year, []).append(finding)
+
+
+def _alias_map(aliases: bytes) -> AliasMap:
+    """Printed-name slug to (from_month, to_month, series_id) rows.
+
+    A row with empty months applies to every month. A row with months applies
+    to listings whose reporting month falls inside them, so one printed name
+    can point at the registry id that held it in each era (D-0187).
+    """
+    result: AliasMap = {}
+    for row in csv.DictReader(io.StringIO(aliases.decode())):
+        result.setdefault(series_slug(row["printed_name"]), []).append(
+            (
+                (row.get("from_month") or "").strip(),
+                (row.get("to_month") or "").strip(),
+                row["series_id"].strip(),
+            )
+        )
+    return result
+
+
+def _alias_for(alias_map: AliasMap, slug: str, month: str) -> str | None:
+    """The series for a slug in a month; a dated row beats an undated one."""
+    fallback = None
+    for start, end, series in alias_map.get(slug, ()):
+        if not start and not end:
+            fallback = fallback or series
+        elif (not start or start <= month) and (not end or month <= end):
+            return series
+    return fallback
+
+
+def _widest_span(spans: set[tuple[str, str]]) -> tuple[str, str] | None:
+    """The one dated span that contains every other, or None when spans disagree.
+
+    A month-only span (``yyyy-mm`` on both ends, the registry's reporting
+    month) belongs to the edition whose dated span starts or ends in that
+    month; New Year events that cross a month boundary are the common case.
+    """
+    dated = {span for span in spans if len(span[0]) == 10 and len(span[1]) == 10}
+    months = {span[0] for span in spans if len(span[0]) == 7 and span[0] == span[1]}
+    if len(dated) + len(months) != len(spans):
+        return None
+    if not dated:
+        return next(iter(spans)) if len(spans) == 1 else None
+    widest = max(dated, key=lambda span: (span[1], "" if span[0] else "~"))
+    widest = min((span for span in dated if span[1] == widest[1]), key=lambda span: span[0])
+    for start, end in dated:
+        if not (widest[0] <= start and end <= widest[1]):
+            return None
+    if any(month not in {widest[0][:7], widest[1][:7]} for month in months):
+        return None
+    return widest
+
+
+_PROJECTION_ANSWERS: ContextVar[dict[int, bool] | None] = ContextVar(
+    "projection_answers", default=None
+)
+
+
+@contextmanager
+def projection_answer_cached() -> Iterator[None]:
+    """Answer the pending-projection question once for a whole pass.
+
+    The question walks every pending derivation unit and costs seconds on a
+    large database. A pass over thousands of plan pages, or a review over
+    many event sites, asks it through several call paths; inside this
+    context every path gets the first answer (D-0195). Nothing inside a pass
+    changes the answer, because the pass itself projects nothing.
+    """
+    token = _PROJECTION_ANSWERS.set({})
+    try:
+        yield
+    finally:
+        _PROJECTION_ANSWERS.reset(token)
+
+
 def pending_inventory_projection(conn: sqlite3.Connection) -> bool:
+    answers = _PROJECTION_ANSWERS.get()
+    if answers is not None:
+        key = id(conn)
+        if key not in answers:
+            answers[key] = _pending_inventory_projection(conn)
+        return answers[key]
+    return _pending_inventory_projection(conn)
+
+
+def _pending_inventory_projection(conn: sqlite3.Connection) -> bool:
     """Only known result-only dispatches are proven neutral for every year's inventory.
 
     process._replace_event projects no Event records, hence writes none of the
@@ -516,8 +649,15 @@ def accept_year(
         conn.execute(f"RELEASE {savepoint}")
 
 
-def phase_two_allowed(conn: sqlite3.Connection, year: int) -> bool:
-    if pending_inventory_projection(conn):
+def phase_two_allowed(conn: sqlite3.Connection, year: int, *, pending: bool | None = None) -> bool:
+    """Whether phase-two acquisition may start for ``year``.
+
+    ``pending`` lets a caller that asks about many years answer the
+    projection question once; it costs seconds on a large database.
+    """
+    if pending is None:
+        pending = pending_inventory_projection(conn)
+    if pending:
         return False
     accepted = conn.execute(
         "SELECT inventory_digest FROM history_acceptance WHERE year=?", (year,)

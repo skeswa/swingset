@@ -73,3 +73,43 @@ def test_retention_refuses_an_age_floor_that_protects_nothing(body: bytes, messa
 def test_retention_accepts_the_smallest_age_floor_that_still_protects() -> None:
     assert parse_retention(b'[retention]\ncollect_older_than = "1s"\n').collect_older_than == 1
     assert parse_retention(b"[retention]\ncheckpoint_max_age = 0\n").checkpoint_max_age == 0
+
+
+def test_series_alias_rows_may_carry_a_month_range(tmp_path):
+    import pytest
+
+    from swingset.state.override_validation import validate_override
+
+    path = tmp_path / "series_aliases.csv"
+    good = (
+        "printed_name,series_id,source,note,from_month,to_month\n"
+        "Name,wsdc-1,calendar,,,\n"
+        "Name,wsdc-2,calendar,,2014-01,2017-12\n"
+    )
+    validate_override(path, good.encode())
+    with pytest.raises(ValueError, match="yyyy-mm"):
+        validate_override(path, good.replace("2014-01", "2014").encode())
+    with pytest.raises(ValueError, match="after"):
+        validate_override(path, good.replace("2014-01", "2018-01").encode())
+    with pytest.raises(ValueError, match="duplicate"):
+        validate_override(path, (good + "Name,wsdc-3,calendar,,2014-01,2015-12\n").encode())
+
+
+def test_finding_reviews_override_accepts_only_dismissals(tmp_path):
+    import pytest
+
+    from swingset.state.override_validation import validate_override
+
+    path = tmp_path / "finding_reviews.csv"
+    validate_override(
+        path, b"kind,subject_id,decision,reviewer,note\nevent_alias,x,dismiss,claude,why\n"
+    )
+    with pytest.raises(ValueError, match="dismiss"):
+        validate_override(
+            path, b"kind,subject_id,decision,reviewer,note\nevent_alias,x,accept,claude,why\n"
+        )
+    with pytest.raises(ValueError, match="duplicate"):
+        validate_override(
+            path,
+            b"kind,subject_id,decision,reviewer,note\nevent_alias,x,dismiss,a,\nevent_alias,x,dismiss,b,\n",
+        )

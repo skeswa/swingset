@@ -4,7 +4,7 @@ Recorded: 2026-09-20
 Decided by: owner, 2026-09-20; source: session instruction "Until further notice, you do not need owner approval for any decisions"  
 Topic: Documentation  
 Supersedes: [D-0169](0169-agents-decide-and-record-and-ask-only-for-high-impact-choices.md) for its owner-approval threshold  
-Superseded by: —
+Superseded by: [D-0183](0183-agents-also-decide-deployments-and-publication.md) for deployment and publication
 
 ## Decision
 

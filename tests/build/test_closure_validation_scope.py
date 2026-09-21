@@ -285,6 +285,9 @@ def test_actual_completion_rejects_late_mutation_and_rolls_back_proof_and_output
 
         def validate(conn, pinned_manifest):
             assert conn.in_transaction
+            if conn.execute("PRAGMA query_only").fetchone()[0]:
+                # The proof pass in the read snapshot is not a write boundary.
+                return original_validate(conn, pinned_manifest)
             calls.append(len(calls) + 1)
             if len(calls) == at_boundary:
                 # At the second boundary output rows already exist. At the
@@ -412,3 +415,37 @@ def test_reuse_does_not_retain_reconstructed_graph_or_decoded_source_documents(
         assert all(reference() is None for reference in graphs + documents)
         closure.validate(f.conn, manifest)
         assert len(graphs) == 1
+
+
+def test_proof_from_read_snapshot_is_reused_inside_the_later_write(release_state, monkeypatch):
+    """The scope opens before both transactions; the write only rechecks evidence."""
+    f = release_state
+    manifest = pinned(f)
+    calls = count_reconstruction(monkeypatch)
+    with validation_scope(f.conn):
+        with f.db.transaction(immediate=False):
+            closure.validate(f.conn, manifest)
+        assert calls == [f.conn]
+        with f.db.transaction():
+            for _ in range(3):
+                closure.validate(f.conn, manifest)
+        assert calls == [f.conn]
+    # Outside the scope nothing is remembered.
+    closure.validate(f.conn, manifest)
+    assert calls == [f.conn, f.conn]
+
+
+def test_proof_from_read_snapshot_still_rejects_evidence_changed_before_the_write(release_state):
+    f = release_state
+    manifest = pinned(f)
+    item, source = accepted_witness(manifest)
+    with validation_scope(f.conn):
+        with f.db.transaction(immediate=False):
+            closure.validate(f.conn, manifest)
+        with f.db.transaction():
+            f.conn.execute(
+                "UPDATE source_generations SET state='revoked' WHERE generation_id=?",
+                (source["generation_id"],),
+            )
+            with pytest.raises(ClosureError):
+                closure.validate(f.conn, manifest)

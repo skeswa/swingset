@@ -7,7 +7,13 @@ This page describes the tables published in the dataset. An event contains conte
 All published tables are Parquet. Types are Arrow types. `id` columns are
 strings. Timestamps are UTC with microsecond precision. Dates are
 `date32`. Enums are strings with a fixed vocabulary listed in
-`docs/reference/enums.md` (to be written) and enforced at build time.
+[the enum reference](enums.md) and enforced at build time.
+
+Schema availability does not establish populated data. The
+[2026-09-21 quality investigation](../../journal/investigations/2026/published-field-gaps-2026-09-21.md)
+documents the published identity regression and metadata gaps. Missing exact
+event dates must be read with `date_precision` and `event_month`; registry
+reporting months do not establish exact event dates.
 
 ## Identifiers
 
@@ -145,6 +151,9 @@ table: `source` (enum), `snapshot_id`, `parser_version`, `first_seen_at`,
 
 **`heats`**
 
+Reserved for public heat assignments. No current adapter/projector produces
+these rows; heat collection remains milestone M5 work.
+
 | Column        | Type   | Notes                       |
 | ------------- | ------ | --------------------------- |
 | `heat_id`     | string | key with `entry_id`         |
@@ -203,23 +212,23 @@ table: `source` (enum), `snapshot_id`, `parser_version`, `first_seen_at`,
 
 **`placements`**
 
-| Column                                               | Type       | Notes                                                                                                                                                                                   |
-| ---------------------------------------------------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `placement_id`                                       | string     | key                                                                                                                                                                                     |
-| `round_id`                                           | string     |                                                                                                                                                                                         |
-| `contest_id`                                         | string     |                                                                                                                                                                                         |
-| `event_id`                                           | string     |                                                                                                                                                                                         |
-| `place`                                              | int8       |                                                                                                                                                                                         |
-| `leader_entry_id`                                    | string     | nullable for couple entries                                                                                                                                                             |
-| `follower_entry_id`                                  | string     | nullable for couple entries                                                                                                                                                             |
-| `couple_entry_id`                                    | string     | nullable for J&J                                                                                                                                                                        |
-| `leader_wsdc_id`, `follower_wsdc_id`                 | int32      | denormalized current links                                                                                                                                                              |
-| `marks_sorted`                                       | string     | e.g. `1-1-1-2-2-4-5`                                                                                                                                                                    |
-| `tally`                                              | list<int8> | Relative Placement column counts                                                                                                                                                        |
-| `registry_points_leader`, `registry_points_follower` | int16      | nullable; from the registry once posted                                                                                                                                                 |
-| `registry_confirmed`                                 | bool       | both sides found in registry for this event and division                                                                                                                                |
-| `points_matches_expected`                            | bool       | nullable; null until the registry posts. True when the registry's points equal what [WSDC rules](wsdc-rules.md) predicts from the prelims field size. A data-quality flag, not a claim. |
-| (prov)                                               |            |                                                                                                                                                                                         |
+| Column                                               | Type       | Notes                                                                                                                                                                                                                     |
+| ---------------------------------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `placement_id`                                       | string     | key                                                                                                                                                                                                                       |
+| `round_id`                                           | string     |                                                                                                                                                                                                                           |
+| `contest_id`                                         | string     |                                                                                                                                                                                                                           |
+| `event_id`                                           | string     |                                                                                                                                                                                                                           |
+| `place`                                              | int8       |                                                                                                                                                                                                                           |
+| `leader_entry_id`                                    | string     | nullable for couple entries                                                                                                                                                                                               |
+| `follower_entry_id`                                  | string     | nullable for couple entries                                                                                                                                                                                               |
+| `couple_entry_id`                                    | string     | nullable for J&J                                                                                                                                                                                                          |
+| `leader_wsdc_id`, `follower_wsdc_id`                 | int32      | denormalized current links                                                                                                                                                                                                |
+| `marks_sorted`                                       | string     | e.g. `1-1-1-2-2-4-5`                                                                                                                                                                                                      |
+| `tally`                                              | list<int8> | Relative Placement column counts                                                                                                                                                                                          |
+| `registry_points_leader`, `registry_points_follower` | int16      | nullable; requires a published individual identity and matching registry person, role, event, division, dance style, and exact place in a points-eligible contest                                                         |
+| `registry_confirmed`                                 | bool       | true only when both sides have matching registry points; false also covers missing or inapplicable evidence, not just disagreement                                                                                        |
+| `points_matches_expected`                            | bool       | nullable; requires registry points and adequate preliminary field-size evidence for each available side. Compares those points with the [points rules](wsdc-rules.md); null means no supported check, not a failed check. |
+| (prov)                                               |            |                                                                                                                                                                                                                           |
 
 No `expected_points` or `tier` column is published. Both are computed
 internally to produce the flag and can be recomputed by anyone from
