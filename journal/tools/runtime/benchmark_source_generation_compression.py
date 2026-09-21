@@ -26,7 +26,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-TOOL_VERSION = "benchmark-source-generation-compression-v1"
+TOOL_VERSION = "benchmark-source-generation-compression-v2"
 REPORT_FORMAT = "source-generation-compression-benchmark-v1"
 RECEIPT_FORMAT = "source-generation-compression-benchmark-receipt-v1"
 EXPECTED_SCHEMA_VERSION = 29
@@ -827,14 +827,23 @@ def _query_parameters(connection: sqlite3.Connection) -> dict[str, tuple[object,
         "SELECT generation_id,unit_key FROM source_generations ORDER BY generation_id LIMIT 1"
     ).fetchone()
     require(row is not None, "benchmark requires at least one source generation")
+    source_expr = (
+        "CASE WHEN json_valid(recipe_json) AND json_type(recipe_json,'$.context.source')='text' "
+        "THEN json_extract(recipe_json,'$.context.source') END"
+    )
+    snapshot_expr = (
+        "CASE WHEN json_valid(recipe_json) THEN "
+        "json_extract(recipe_json,'$.context.snapshot_id') END"
+    )
+    # Pick values that exist so the measured reads return rows. A NULL parameter
+    # would make both layouts return nothing and compare equal for no reason.
     source = connection.execute(
-        "SELECT CASE WHEN json_valid(recipe_json) AND json_type(recipe_json,'$.context.source')='text' "
-        "THEN json_extract(recipe_json,'$.context.source') END FROM source_generations "
-        "WHERE json_valid(recipe_json) LIMIT 1"
+        f"SELECT {source_expr} FROM source_generations WHERE {source_expr} IS NOT NULL "
+        "ORDER BY generation_id LIMIT 1"
     ).fetchone()
     snapshot = connection.execute(
-        "SELECT CASE WHEN json_valid(recipe_json) THEN "
-        "json_extract(recipe_json,'$.context.snapshot_id') END FROM source_generations LIMIT 1"
+        f"SELECT {snapshot_expr} FROM source_generations WHERE {snapshot_expr} IS NOT NULL "
+        "ORDER BY generation_id LIMIT 1"
     ).fetchone()
     return {
         "generation": (row[0],),
@@ -859,24 +868,28 @@ def query_benchmark(
                 "SELECT generation_id,state,created_at FROM source_generations WHERE unit_key=? ORDER BY created_at,generation_id",
                 "unit",
                 None,
+                True,
             ),
             (
                 "retained_source",
                 "SELECT generation_id FROM source_generations WHERE recipe_source=?",
                 "source",
                 None,
+                False,
             ),
             (
                 "snapshot",
                 "SELECT generation_id FROM source_generations WHERE recipe_snapshot_id=?",
                 "snapshot",
                 None,
+                False,
             ),
             (
                 "point_documents",
                 "SELECT manifest_zlib,manifest_bytes,recipe_zlib,recipe_bytes,result_zlib,result_bytes,report_zlib,report_bytes FROM source_generation_documents WHERE generation_id=?",
                 "generation",
                 "documents",
+                True,
             ),
         )
     else:
@@ -888,35 +901,41 @@ def query_benchmark(
                 "SELECT generation_id,state,created_at FROM source_generations WHERE unit_key=? ORDER BY created_at,generation_id",
                 "unit",
                 None,
+                True,
             ),
             (
                 "retained_source",
                 f"SELECT generation_id FROM source_generations WHERE {source_expr}=?",
                 "source",
                 None,
+                False,
             ),
             (
                 "snapshot",
                 f"SELECT generation_id FROM source_generations WHERE {snapshot_expr}=?",
                 "snapshot",
                 None,
+                False,
             ),
             (
                 "point_documents",
                 "SELECT manifest_json,recipe_json,result_json,report_json FROM source_generations WHERE generation_id=?",
                 "generation",
                 "text_documents",
+                True,
             ),
         )
     results = []
-    for name, sql, kind, decoder in specs:
+    for name, sql, kind, decoder, ordered in specs:
         params = parameters[kind]
         plan = [str(row[3]) for row in connection.execute("EXPLAIN QUERY PLAN " + sql, params)]
         timings: list[float] = []
         digest_value = None
+        multiset_value = None
         returned = None
         for _ in range(repeats):
             digest = hashlib.sha256()
+            row_digests: list[bytes] = []
             count = 0
             started = time.perf_counter()
             for row in connection.execute(sql, params):
@@ -935,16 +954,24 @@ def query_benchmark(
                 else:
                     values = tuple(row)
                 _update_framed(digest, values)
+                row_digest = hashlib.sha256()
+                _update_framed(row_digest, values)
+                row_digests.append(row_digest.digest())
             timings.append(time.perf_counter() - started)
             returned = count
             digest_value = digest.hexdigest()
+            multiset = hashlib.sha256()
+            _update_raw_framed(multiset, sorted(row_digests))
+            multiset_value = multiset.hexdigest()
         results.append(
             {
                 "name": name,
                 "sql": sql,
                 "plan": plan,
+                "ordered": ordered,
                 "rows_returned": returned,
                 "output_sha256": digest_value,
+                "output_multiset_sha256": multiset_value,
                 "repeats": repeats,
                 "seconds": timings,
                 "best_seconds": min(timings),
@@ -1021,6 +1048,38 @@ def _gzip_bound(layout: dict[str, Any]) -> bool:
     )
 
 
+def query_outputs_equivalent(
+    baseline_queries: dict[str, dict[str, Any]],
+    candidate_queries: dict[str, dict[str, Any]],
+) -> bool:
+    """Compare read results across layouts without demanding the same row order.
+
+    A1 serves `retained_source` from an ordinary index and scans a much narrower
+    anchor for `snapshot`, so SQLite may return the same rows in a different
+    order. Neither statement has an ORDER BY, so that reordering is allowed and
+    those reads are compared as multisets. A read whose SQL does fix the order
+    must still match byte for byte in that order. An empty read proves nothing,
+    so every read must return at least one row.
+    """
+    if set(baseline_queries) != set(candidate_queries):
+        return False
+    for name, candidate in candidate_queries.items():
+        baseline = baseline_queries[name]
+        if baseline["rows_returned"] != candidate["rows_returned"]:
+            return False
+        if int(candidate["rows_returned"]) < 1:
+            return False
+        if baseline["output_multiset_sha256"] != candidate["output_multiset_sha256"]:
+            return False
+        if (
+            baseline["ordered"]
+            and candidate["ordered"]
+            and baseline["output_sha256"] != candidate["output_sha256"]
+        ):
+            return False
+    return True
+
+
 def gate_results(
     source: dict[str, Any],
     baseline: dict[str, Any],
@@ -1033,11 +1092,7 @@ def gate_results(
     source_content = source["content"]
     candidate_queries = {item["name"]: item for item in candidate["queries"]}
     baseline_queries = {item["name"]: item for item in baseline["queries"]}
-    query_outputs_match = all(
-        baseline_queries[name]["rows_returned"] == item["rows_returned"]
-        and baseline_queries[name]["output_sha256"] == item["output_sha256"]
-        for name, item in candidate_queries.items()
-    )
+    query_outputs_match = query_outputs_equivalent(baseline_queries, candidate_queries)
     content_keys = (
         "rows",
         "document_bytes",
@@ -1172,6 +1227,11 @@ def gate_results(
         ),
         "candidate_content_matches_source": all(
             candidate["content"][key] == source_content[key] for key in content_keys
+        ),
+        "candidate_build_matches_content": (
+            candidate["build"]["rows_streamed"] == candidate["content"]["rows"]
+            and candidate["build"]["raw_document_bytes"]
+            == candidate["content"]["total_document_bytes"]
         ),
         "baseline_integrity": baseline["integrity"]["passed"],
         "candidate_integrity": candidate["integrity"]["passed"],
@@ -1367,6 +1427,8 @@ def run(
             "Timings are local observations, not service levels.",
             "Deterministic gzip of SQLite is a backup-size proxy, not a checkpoint.",
             "Peak scratch is sampled and can miss a shorter transient maximum.",
+            "Each layout runs ANALYZE on its own source-generation tables before VACUUM: "
+            "one table for the baseline, two for the candidate.",
         ],
     }
     output.parent.mkdir(parents=True, exist_ok=True)

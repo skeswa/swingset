@@ -4,9 +4,11 @@ Status: **parked on 2026-09-20**
 ([D-0175](../../journal/decisions/0175-fewer-records-receipts-not-bundles-and-tiered-review.md)).
 The measured database is 5.0 GB on a disk with more than 400 GB free, so no
 step here reopens until a measurement receipt shows the live database over
-20 GB or the worker disk under 100 GB free. One exception: on 2026-09-20 the owner asked to finish the A0/A1 source JSON
-compression benchmark (attempt 003, [D-0174](../../journal/decisions/0174-benchmark-one-exact-source-json-compression-layout.md))
-and record its decision, so those benchmark tools stay in `journal/tools/runtime`. Earlier status, 2026-09-17: Steps 2 and 3 are implemented and tested offline
+20 GB or the worker disk under 100 GB free. The one open exception is closed:
+the A0/A1 source JSON compression benchmark ran on 2026-09-21 and
+[D-0178](../../journal/decisions/0178-keep-inline-source-json-and-hold-a1-until-the-size-trigger.md)
+keeps the inline layout, which finishes step 2a. Its tools stay in
+`journal/tools/runtime`. Earlier status, 2026-09-17: Steps 2 and 3 are implemented and tested offline
 as of 2026-09-18; step 1's measurement ran the same day and its decision
 ([D-0166](../../journal/decisions/0166-hold-interning-back-until-rows-repeat-and-cut-indexes-first.md))
 is accepted: interning waits for rows that repeat, the migrations were
@@ -253,9 +255,21 @@ table. Recipe facts used by SQL stay directly queryable. Structural interning
 is deferred; no JSON production schema or deployment is selected. The
 benchmark tool and 10 focused fixture tests are implemented as of 2026-09-20.
 The fixture run proves exact reconstruction, identity, extracted-field,
-one-to-one, integrity, immutability, cascade and fencing gates. The full-copy
-measurement remains open because the earlier 5 GB scratch restore has been
-pruned; it needs a fresh disposable restore of the held checkpoint.
+one-to-one, integrity, immutability, cascade and fencing gates.
+
+**Step 2a is done as of 2026-09-21.** The full-copy benchmark ran on the sealed
+schema-29 restore and passed all 20 gates. A1 cut the database by 553,709,568
+bytes (11.4%) and the `source_generations` object by 75.8%, and turned two
+`json_extract` scans into an index search and a narrow scan. Its deterministic
+gzip proxy grew by 71,481,365 bytes (14.3%), so the durable-history cost is not
+settled; checkpoints are uncompressed `connection.backup()` copies, and no real
+checkpoint was measured under A1.
+[D-0178](../../journal/decisions/0178-keep-inline-source-json-and-hold-a1-until-the-size-trigger.md)
+keeps the inline layout and holds A1 as the first candidate if the state-size
+trigger fires. The
+[investigation](../../journal/investigations/2026/state-storage-measurement-2026-09-18.md#full-copy-a0a1-source-json-compression-benchmark-2026-09-21)
+records the run and its
+[receipt](../../journal/evidence/runtime/state-storage-measurement-2026-09-18/source-json-compression-receipt-004.json).
 
 ## 7. Step 3: work out what is needed, then remove the rest carefully
 

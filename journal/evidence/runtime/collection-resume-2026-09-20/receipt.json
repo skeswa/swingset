@@ -31,23 +31,60 @@
       "restore_pending": false,
       "controls_state": "running",
       "operator_pauses": [],
-      "pending_work": [{ "stage": "parse", "count": 31821 }, { "stage": "project", "count": 1 }],
+      "pending_work": [
+        {
+          "stage": "parse",
+          "count": 31821
+        },
+        {
+          "stage": "project",
+          "count": 1
+        }
+      ],
       "last_publish": "2a6c7dc744fb36eabb5163c0a527d787d3721f4f",
       "awaiting_publication_candidates": []
     }
   },
   "removal": {
-    "commands": ["rm /var/lib/swingset/operator-hold", "systemctl start swingset-cycle.service"],
+    "commands": [
+      "rm /var/lib/swingset/operator-hold",
+      "systemctl start swingset-cycle.service"
+    ],
     "at_utc": "2026-09-20T23:09:58Z",
-    "timers_already_active": ["swingset-cycle.timer", "swingset-backup.timer", "swingset-summary.timer", "swingset-scratch-clean.timer"],
+    "timers_already_active": [
+      "swingset-cycle.timer",
+      "swingset-backup.timer",
+      "swingset-summary.timer",
+      "swingset-scratch-clean.timer"
+    ],
     "runtime_drop_ins_or_masks": "none present"
   },
   "first_cycle": {
+    "run_id": "run_20260920T230958Z",
     "started_utc": "2026-09-20T23:09:58Z",
+    "finished_utc": "2026-09-21T00:01:14Z",
     "exec_start_pre": "uv: Audited 25 packages in 1ms (sync passed)",
-    "observed_at_utc": "2026-09-20T23:44:21Z",
-    "state": "still running: python at 99% CPU, 3.2 GB RSS, parsing the backlog",
+    "outcome": "failed=false, stopped at the budget, stages=[build], accepted_inputs=[version/repository], duration 3076 s, 6.3 GB memory peak",
+    "published": {
+      "candidate_id": "cand_53b35623143a4c8b",
+      "commit": "2a065dd345b709bc77591fbe0ba94958ae7b3d36",
+      "hub_commit_utc": "2026-09-20T23:16:08Z"
+    },
     "how_to_read_the_outcome": "journalctl -u swingset-cycle --since 2026-09-20 | grep 'event=\"cycle\"'"
   },
-  "unchanged": ["no deployment, migration, schema, config or override change", "no network request made by the operator", "public dataset baseline 2a6c7dc unchanged at the time of the receipt"]
+  "unchanged": [
+    "no deployment, migration, schema, config or override change",
+    "no network request made by the operator",
+    "public dataset baseline 2a6c7dc unchanged at the time of the receipt"
+  ],
+  "following_cycles": [
+    {
+      "run_id": "run_20260921T000116Z",
+      "outcome": "failed after 120 s: ClosureError local_page_support_unverifiable during build closure validation"
+    },
+    {
+      "run_id": "run_20260921T001655Z",
+      "outcome": "failed after 406 s: WriteDeadlineExceeded (atomic write over 45 s, rolled back) while a 13 GiB benchmark ran on the same disk"
+    }
+  ]
 }

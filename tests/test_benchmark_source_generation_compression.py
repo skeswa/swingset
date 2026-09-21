@@ -492,3 +492,100 @@ def test_source_sidecars_are_refused_before_outputs(
         run_benchmark(source, tmp_path / "result")
 
     assert not (tmp_path / "result/scratch").exists()
+
+
+def _query(name: str, *, ordered: bool, rows: int, order: str, multiset: str) -> dict[str, object]:
+    return {
+        "name": name,
+        "ordered": ordered,
+        "rows_returned": rows,
+        "output_sha256": order,
+        "output_multiset_sha256": multiset,
+    }
+
+
+def test_reordered_unordered_reads_pass_while_changed_rows_and_orders_fail() -> None:
+    """A1 may return the same rows in a new order; it may not change the rows."""
+    baseline = {
+        "unit_history": _query("unit_history", ordered=True, rows=2, order="a", multiset="m"),
+        "retained_source": _query(
+            "retained_source", ordered=False, rows=3, order="b", multiset="n"
+        ),
+    }
+    same = {
+        "unit_history": _query("unit_history", ordered=True, rows=2, order="a", multiset="m"),
+        "retained_source": _query(
+            "retained_source", ordered=False, rows=3, order="b", multiset="n"
+        ),
+    }
+    assert BENCHMARK.query_outputs_equivalent(baseline, same) is True
+
+    reordered = dict(same)
+    reordered["retained_source"] = _query(
+        "retained_source", ordered=False, rows=3, order="DIFFERENT", multiset="n"
+    )
+    assert BENCHMARK.query_outputs_equivalent(baseline, reordered) is True
+
+    changed_rows = dict(same)
+    changed_rows["retained_source"] = _query(
+        "retained_source", ordered=False, rows=3, order="b", multiset="DIFFERENT"
+    )
+    assert BENCHMARK.query_outputs_equivalent(baseline, changed_rows) is False
+
+    lost_row = dict(same)
+    lost_row["retained_source"] = _query(
+        "retained_source", ordered=False, rows=2, order="b", multiset="n"
+    )
+    assert BENCHMARK.query_outputs_equivalent(baseline, lost_row) is False
+
+    reordered_ordered_read = dict(same)
+    reordered_ordered_read["unit_history"] = _query(
+        "unit_history", ordered=True, rows=2, order="DIFFERENT", multiset="m"
+    )
+    assert BENCHMARK.query_outputs_equivalent(baseline, reordered_ordered_read) is False
+
+    assert BENCHMARK.query_outputs_equivalent(baseline, {"unit_history": same["unit_history"]}) is (
+        False
+    )
+
+    # Two empty reads agree on nothing, so they cannot pass the gate.
+    empty_baseline = dict(baseline)
+    empty_baseline["retained_source"] = _query(
+        "retained_source", ordered=False, rows=0, order="e", multiset="e"
+    )
+    empty_candidate = dict(same)
+    empty_candidate["retained_source"] = _query(
+        "retained_source", ordered=False, rows=0, order="e", multiset="e"
+    )
+    assert BENCHMARK.query_outputs_equivalent(empty_baseline, empty_candidate) is False
+
+
+def test_fixture_reads_record_both_digests_and_their_order_sensitivity(tmp_path: Path) -> None:
+    source, _ = make_schema29(tmp_path / "input")
+    report = run_benchmark(source, tmp_path / "result")
+
+    assert report["gates"]["checks"]["query_outputs_match"] is True
+    assert report["gates"]["checks"]["candidate_build_matches_content"] is True
+    expected = {
+        "unit_history": True,
+        "retained_source": False,
+        "snapshot": False,
+        "point_documents": True,
+    }
+    for layout in ("baseline", "compressed"):
+        queries = {item["name"]: item for item in report["layouts"][layout]["queries"]}
+        assert {name: item["ordered"] for name, item in queries.items()} == expected
+        for item in queries.values():
+            assert item["rows_returned"] >= 1
+            assert len(item["output_sha256"]) == 64
+            assert len(item["output_multiset_sha256"]) == 64
+
+    # Read parameters must come from rows that have the value, never from a
+    # NULL that would make every layout return nothing. The fixture's only text
+    # sources are "alpha" and "fixture"; 42 is not text and must not be chosen.
+    with sqlite3.connect(
+        f"file:{source / 'state.sqlite'}?mode=ro&immutable=1", uri=True
+    ) as connection:
+        parameters = BENCHMARK._query_parameters(connection)
+    assert parameters["source"][0] in {"alpha", "fixture"}
+    assert parameters["snapshot"][0] is not None

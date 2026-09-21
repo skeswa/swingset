@@ -200,6 +200,7 @@ that links the old one.
 | [D-0175](0175-fewer-records-receipts-not-bundles-and-tiered-review.md)                | Fewer records, receipts not bundles, and tiered review                                              | Process                                           |
 | [D-0176](0176-resume-automatic-collection-and-give-the-hold-an-owner-and-expiry.md)   | Resume automatic collection and publication; give the hold an owner and an expiry                   | Release operations                                |
 | [D-0177](0177-keep-only-maintained-tools-in-the-journal.md)                           | Keep only maintained tools in the journal                                                           | Research tools                                    |
+| [D-0178](0178-keep-inline-source-json-and-hold-a1-until-the-size-trigger.md)          | Keep the inline source-generation JSON layout and hold A1 until the size trigger                    | State retention and recovery cost                 |
 
 The [legacy decision log](legacy-design-review.md) preserves the original
 review notes. It is historical evidence, not a second list of current rules.

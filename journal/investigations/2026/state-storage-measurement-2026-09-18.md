@@ -572,8 +572,102 @@ external triggers and views around the anchor rebuild. The fixture includes
 both regression shapes, and all 10 focused tests and seven suite-selection
 tests pass. Failed scratch was removed. The sealed source still has SHA-256
 `5840f97da69c42adb6e60132418c64c04505ae043a650723c84ff38644c64265` and
-5,016,936,448 bytes. Attempt 003 is the next full run; there is no retained
-compression report or receipt yet.
+5,016,936,448 bytes.
+
+### Full-copy A0/A1 source JSON compression benchmark, 2026-09-21
+
+Attempt 003 ran the full benchmark on the worker against the same sealed
+schema-29 restore and produced the size result below, but it failed one gate,
+`query_outputs_match`. That failure was a defect in the benchmark, not in A1.
+Two of the four measured reads have no `ORDER BY`, and A1 legitimately changes
+which object serves them: `retained_source` moves from a full scan to an
+ordinary index on `recipe_source`, and `snapshot` scans an anchor that is now
+narrow. SQLite therefore returned the same rows in a different order, and the
+tool compared an order-sensitive digest. Both reads were confirmed to return
+identical row sets, 111 and 3 rows. The tool now records an order-independent
+`output_multiset_sha256` beside `output_sha256` and marks each read as ordered
+or unordered; a read whose SQL fixes the order must still match in that order.
+Attempt 004 re-ran the corrected tool and passed all 20 gates with byte-identical
+sizes. Attempt 003 is not retained.
+
+Attempt 004 ran as root on host `swingset` with Python 3.12.13, SQLite 3.50.4
+and zlib 1.3.2, under `nice -n 10` while production was parsing its backlog. It
+copied the 5,016,936,448-byte source twice, compacted both copies the same way,
+and rebuilt the candidate. It took 388.9 seconds and peaked at 14,362,401,160
+bytes of scratch. The source was verified before and after: same SHA-256, same
+size, no write-ahead log, shared-memory file or rollback journal. Retained
+output:
+
+- [compression receipt](../../evidence/runtime/state-storage-measurement-2026-09-18/source-json-compression-receipt-004.json),
+  SHA-256 `e32d8deff7cf0cd5881adbfb87bb235149ea042efa8f33d0d165f9dfc42c72a7`.
+
+The 65,573-byte full report stays in worker scratch under the evidence rules;
+its SHA-256 is
+`606b7c423b606b0eba40e169dbbc9408c4d7d9bc985818f36e1330c7899bf70d`. The
+corrected tool's SHA-256 is
+`9cb6080794997ad73f518ca64247e829d8dfe1d3fd854d92182f2c9885011cce`.
+
+An independent read of the attempt 004 report on 2026-09-21 reconciled every
+delta, per-object total and content digest and confirmed the result. It found
+three gaps in the tool, none of which changes attempt 004: the read gate could
+pass on empty result sets if a read parameter were NULL, nothing tied the
+rebuild counters `rows_streamed` and `raw_document_bytes` to the content
+profile, and the ANALYZE difference between layouts was unrecorded. The tool is
+now v2: read parameters come from rows that have the value, every measured read
+must return a row, a `candidate_build_matches_content` gate ties the rebuild
+counters to the content profile, and the ANALYZE difference is a listed limit.
+Its SHA-256 is
+`663de161bc750da8e4ff00bc0c36c42a4c00894c40f61d9247fda2d549c2236b`. Attempt
+004 stands as a v1 result; the next run uses v2.
+
+| Measure                              | A0 compact baseline |            A1 |                Change |
+| ------------------------------------ | ------------------: | ------------: | --------------------: |
+| Whole database                       |       4,859,154,432 | 4,305,444,864 | −553,709,568 (−11.4%) |
+| `source_generations` and its indexes |         730,222,592 |   176,508,928 | −553,713,664 (−75.8%) |
+| Deterministic gzip proxy             |         499,507,387 |   570,988,752 |  +71,481,365 (+14.3%) |
+
+The 32,189 generations hold 686,890,362 logical UTF-8 document bytes, which
+became 116,539,106 bytes as independent zlib-6 streams, a ratio of 5.89. That
+reproduces the earlier logical profile exactly. The ratio is not the storage
+outcome: the document table is 155,774,976 bytes, so its keys, four byte
+counts, four digests and page waste add about 39 MB, a quarter of the table.
+All six anchor indexes are byte-identical between layouts, so the whole saving
+comes from the tables. The candidate rebuild took
+15.53 seconds and its vacuum 76.47 seconds; the baseline vacuum took 68.32
+seconds. Those are single-run observations, not service levels.
+
+Every gate passed. Both copies reproduced the source's exact document,
+metadata and extracted-field streams; every generation identity and input
+fingerprint recomputed; one-to-one integrity, foreign keys, `integrity_check`,
+immutability on both tables, the deferred document-delete rejection, the A1
+schema and trigger shape and the unchanged external dependents all held. Both
+layouts had an empty free list, and each gzip proxy was bound by hash and
+identity to the database bytes it describes.
+
+Reads improved where A1 puts a real column behind an index. Best of three
+samples: `retained_source` went from 0.148316 to 0.000089 seconds because a
+full scan calling `json_extract` became a plain index search; `snapshot` went
+from 0.138430 to 0.002325 seconds because the scan now reads an 11 MB anchor
+instead of a 720 MB one; `unit_history` was unchanged at 8 microseconds. The
+one regression is the full-document point read, 0.000022 to 0.000064 seconds,
+which is the cost of four zlib decodes.
+
+The result the benchmark did not settle is the durable-history cost. The
+deterministic gzip proxy moved the other way: pre-compressing each document
+removes redundancy that a whole-file compressor was already exploiting, so the
+candidate's archive is 14.3% larger even though its database file is 11.4%
+smaller. That figure describes gzip alone. DEFLATE looks back only 32 KiB, so a
+codec with a long window would find more of A0's cross-generation repetition;
+the direction is likely to hold but the size is not transferable. That proxy is
+also not a Swingset checkpoint. Checkpoints are written by
+`connection.backup()` and copied without compression, so the proxy describes a
+hypothetical compressed archive rather than what the worker stores today; what
+a real checkpoint costs under A1 is unmeasured.
+
+[D-0178](../../decisions/0178-keep-inline-source-json-and-hold-a1-until-the-size-trigger.md)
+records the outcome: the inline layout stays, A1 is not designed into a
+production schema, and it is the first candidate to revisit if the state-size
+trigger in `AGENTS.md` fires. That closes step 2a.
 
 ## Known local test failure
 
