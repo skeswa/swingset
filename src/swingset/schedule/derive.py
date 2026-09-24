@@ -15,6 +15,31 @@ from swingset.state.inputs import InputBundle
 from swingset.state.work import WorkUnit
 from swingset.state.write_deadline import WriteDeadlineExceeded
 
+# The history projection stores ~200k rows in one write: 55 to 82 seconds on
+# the 2026-09-24 database. It runs at most twice a day (D-0199), so it gets a
+# named allowance instead of the 45-second bound (D-0198).
+HISTORY_WRITE_SECONDS = 300.0
+
+# Retry delays for a unit whose write overran the deadline: 15 minutes,
+# doubling per consecutive overrun, never more than six hours apart.
+DEADLINE_RETRY_FIRST = timedelta(minutes=15)
+DEADLINE_RETRY_LONGEST = timedelta(hours=6)
+
+
+def deadline_backoff(database: Database, unit: WorkUnit) -> timedelta:
+    """Delay before the next attempt, from this unit's run of consecutive overruns."""
+    overruns = 0
+    for (reason,) in database.connection.execute(
+        "SELECT reason_code FROM work_attempts WHERE stage=? AND unit_kind=? AND unit_id=? "
+        "AND outcome!='running' ORDER BY attempt_id DESC LIMIT 8",
+        (unit.stage, unit.unit_kind, unit.unit_id),
+    ):
+        if reason != "write_deadline_exceeded":
+            break
+        overruns += 1
+    delay: timedelta = DEADLINE_RETRY_FIRST * (2**overruns)
+    return min(delay, DEADLINE_RETRY_LONGEST)
+
 
 @dataclass(frozen=True)
 class DerivationOutcome:
@@ -67,8 +92,17 @@ def derive_one(
         else None
     )
     source = str(source_row[0]) if source_row else None
+    from contextlib import nullcontext
+
+    from swingset.state.write_deadline import allowance
+
+    extended = (
+        allowance(HISTORY_WRITE_SECONDS)
+        if (unit.stage, unit.unit_kind) == ("project", "history")
+        else nullcontext()
+    )
     try:
-        with database.transaction():
+        with extended, database.transaction():
             if unit.stage == "parse":
                 parsed = parse_snapshot(database, archive, unit, clock, run_id)
                 source = parsed.source
@@ -134,6 +168,10 @@ def derive_one(
         # A unit's transaction has rolled back. Keep its token and diagnostic,
         # then allow independent units to use already committed evidence.
         transient = isinstance(exc, OSError)
+        # A write that overran the bound rolled back whole. It is not a defect
+        # in the inputs, so it retries with a doubling delay instead of waiting
+        # for an input change that may never come (D-0198).
+        overran = isinstance(exc, WriteDeadlineExceeded)
         # A retained page whose parser this runtime does not know (a manual
         # artifact on its own replay path, D-0097) is parked for a month rather
         # than retried and counted as a failure every cycle (D-0182).
@@ -152,13 +190,15 @@ def derive_one(
             if transient
             else clock.now() + timedelta(days=30)
             if unsupported
+            else clock.now() + deadline_backoff(database, unit)
+            if overran
             else None
         )
         with database.transaction() as conn:
             finish_attempt(
                 database,
                 attempt,
-                outcome="transient" if transient or unsupported else "blocked",
+                outcome="transient" if transient or unsupported or overran else "blocked",
                 reason_code=reason,
                 now=clock.now(),
                 retry_at=retry_at,

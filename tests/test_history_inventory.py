@@ -117,6 +117,13 @@ def test_occurrence_floor_dates_and_phase_two_gates(tmp_path):
         conn.execute(
             "UPDATE derivation_scopes SET materialized_generation_id=NULL WHERE stage='project' AND unit_kind='history'"
         )
+        # A pending history projection writes no inventory digest column, so
+        # it neither closes phase two nor blocks acceptance (D-0198).
+        assert phase_two_allowed(conn, 2012)
+        accept_year(conn, 2012, accepted_by="owner", accepted_at=NOW)
+        conn.execute(
+            "UPDATE derivation_scopes SET materialized_generation_id=NULL WHERE stage='project' AND unit_kind='inventory'"
+        )
         assert not phase_two_allowed(conn, 2012)
         with pytest.raises(ValueError, match="projection is pending"):
             accept_year(conn, 2012, accepted_by="owner", accepted_at=NOW)

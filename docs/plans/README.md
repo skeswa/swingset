@@ -4,15 +4,17 @@ Plans describe remaining work and how to prove it is complete. They do not
 establish that a feature is deployed. Start with [current status](../status.md)
 for the latest retained operating evidence.
 
-| Goal                                               | Plan                                                              | Read first                                      |
-| -------------------------------------------------- | ----------------------------------------------------------------- | ----------------------------------------------- |
-| Recover identity output and missing event metadata | [Data quality recovery](data-quality.md)                          | Measured regression and release checks          |
-| Add historical results while improving recovery    | [History and recovery sequence](history-and-recovery.md)          | Stage order and gates                           |
-| Preserve corrections and recover safely            | [Recovery rollout](recovery/README.md)                            | Work packages and acceptance scenarios          |
-| Bound operational storage without losing history   | [Bounded state and durable archive](bounded-state-and-archive.md) | Stages, gates, and known limits                 |
-| Stop re-deriving output that has not changed       | [Derivation invalidation](derivation-invalidation.md)             | Measured waste, then the ordered steps          |
-| Fill historical gaps from event sites              | [Historical source collection](historical-sources.md)             | Source restrictions and review requirements     |
-| Move to PostgreSQL and Dokploy                     | [Migration](postgres-migration/README.md)                         | Approach, then the relevant implementation step |
+| Goal                                                          | Plan                                                              | Read first                                      |
+| ------------------------------------------------------------- | ----------------------------------------------------------------- | ----------------------------------------------- |
+| **Active, all other plans paused:** scale and tolerate faults | [Target architecture](architecture.md)                            | Invariants, then the phase plan                 |
+| Run unattended without stalling                               | [Stability](stability.md)                                         | The rules, then the production sequence         |
+| Recover identity output and missing event metadata            | [Data quality recovery](data-quality.md)                          | Measured regression and release checks          |
+| Add historical results while improving recovery               | [History and recovery sequence](history-and-recovery.md)          | Stage order and gates                           |
+| Preserve corrections and recover safely                       | [Recovery rollout](recovery/README.md)                            | Work packages and acceptance scenarios          |
+| Bound operational storage without losing history              | [Bounded state and durable archive](bounded-state-and-archive.md) | Stages, gates, and known limits                 |
+| Stop re-deriving output that has not changed                  | [Derivation invalidation](derivation-invalidation.md)             | Measured waste, then the ordered steps          |
+| Fill historical gaps from event sites                         | [Historical source collection](historical-sources.md)             | Source restrictions and review requirements     |
+| Move to PostgreSQL and Dokploy                                | [Migration](postgres-migration/README.md)                         | Approach, then the relevant implementation step |
 
 The [project milestones](milestones.md) define dataset outcomes across these
 plans. Earlier rollout documents live in the [archive](../../journal/archive/README.md).
@@ -30,6 +32,13 @@ plans. Earlier rollout documents live in the [archive](../../journal/archive/REA
 Use descriptive titles in new writing and retain these IDs only to connect
 existing plans and evidence. A new proposal belongs in a
 [decision record](../../journal/decisions/README.md) when it changes a lasting choice.
+
+## Paused plans
+
+On 2026-09-25 the owner paused current work to implement the
+[target architecture](architecture.md). The plans above stay as references
+and resume when a phase of that plan says so. Operating the worker safely is
+not paused.
 
 ## Maintenance queue
 
@@ -50,8 +59,9 @@ weekly session.
 4. [Derivation invalidation](derivation-invalidation.md): measured and planned
    on 2026-09-23, not started. One edited line changes every unit's recipe, so
    every deploy re-parses 32,522 snapshots and re-derives the whole graph;
-   99.98% of the replacing generations produce byte-identical output, and
-   80% of the 40.6 GB database is redundant and uncollectable. The plan's
+   99.98% of the replacing generations produce byte-identical output. Its step
+   3 collection of unnamed closure proofs shipped early in candidate 018
+   (D-0200); superseded row references and parse evidence remain. The plan's
    trigger is a full day of clean phase-two cycles. Estimated at six to nine
    working days, about two calendar weeks; write steps 1, 2 and 5 offline
    while the gate is closed and ship them in one switch, so the whole-graph

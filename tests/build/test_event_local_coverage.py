@@ -161,7 +161,11 @@ def test_actual_completion_rechecks_files_after_cached_sql_proof(
             nonlocal calls
             calls += 1
             if calls == boundary:
-                path = artifact(selection.context["release_closure"], database.state_dir, kind)
+                path = artifact(
+                    closure.hydrate(f.conn, selection.context["release_closure"]),
+                    database.state_dir,
+                    kind,
+                )
                 if damage == "missing":
                     path.unlink()
                 else:
@@ -447,3 +451,19 @@ def test_missing_or_invalid_policy_is_not_replaced_with_runtime_defaults(event, 
     witness["digest"] = digest({key: value for key, value in witness.items() if key != "digest"})
     with artifact_source(f.conn, f.archive), pytest.raises(ClosureError, match="policy_invalid"):
         event_coverage.validate(f.conn, witness, selected_support=())
+
+
+def test_page_reads_get_their_own_time_window_after_a_slow_closure_walk(event):
+    # The budget was made before the closure walk, and the walk's ~24 seconds
+    # counted against the page reads' 30, failing builds at random (D-0199).
+    import time
+
+    from swingset.build.event_local_coverage import check_artifacts
+
+    f = event
+    prepare(f)
+    witness = capture(f)
+    with artifact_source(f.conn, f.archive):
+        budget = check_artifacts(f.conn, witness)
+        budget.deadline = time.monotonic() - 1
+        event_coverage.validate(f.conn, witness, selected_support=(), local_budget=budget)

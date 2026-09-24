@@ -106,6 +106,10 @@ class Budget:
             or time.monotonic() >= self.deadline
         )
 
+    def restart_clock(self) -> None:
+        """Give the next phase its full time budget; byte and row counts carry on."""
+        self.deadline = time.monotonic() + self.limits.seconds
+
     def tick(self) -> None:
         if time.monotonic() >= self.deadline:
             raise _Unknown("time_budget")

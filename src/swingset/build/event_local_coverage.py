@@ -306,6 +306,10 @@ def validate(conn: sqlite3.Connection, witness: Mapping[str, Any], budget: Budge
     if budget is None:
         budget = check_artifacts(conn, witness)
     assert budget is not None
+    # The artifact check that made this budget ran before the whole closure
+    # walk. Counting that walk against the page reads failed builds at random
+    # on a slower or busier machine (D-0199); the reads get their own window.
+    budget.restart_clock()
     try:
         for page in _pages(witness):
             if not revalidate_positive(conn, budget.archive, page, budget=budget):

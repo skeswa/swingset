@@ -3,6 +3,7 @@
 import signal
 import sqlite3
 import time
+from datetime import timedelta
 from pathlib import Path
 
 import pytest
@@ -78,7 +79,7 @@ def test_existing_later_alarm_is_restored_with_elapsed_time(tmp_path, monkeypatc
             signal.setitimer(signal.ITIMER_REAL, *previous_timer)
 
 
-def test_timed_out_derivation_is_latched_while_independent_output_commits(tmp_path, monkeypatch):
+def test_timed_out_derivation_backs_off_while_independent_output_commits(tmp_path, monkeypatch):
     import swingset.project
     from swingset.clock import FakeClock
     from swingset.config import Config
@@ -132,6 +133,33 @@ def test_timed_out_derivation_is_latched_while_independent_output_commits(tmp_pa
         assert next_work(db.connection, "project", now=clock.now()) is None
         assert tuple(
             db.connection.execute(
-                "SELECT outcome,reason_code FROM work_attempts WHERE unit_id='slow'"
+                "SELECT outcome,reason_code,retry_at FROM work_attempts WHERE unit_id='slow'"
             ).fetchone()
-        ) == ("blocked", "write_deadline_exceeded")
+        ) == (
+            "transient",
+            "write_deadline_exceeded",
+            (clock.now() + timedelta(minutes=15)).isoformat(),
+        )
+        # An overrun is retried without an input change or an operator, and
+        # each consecutive overrun doubles the wait (D-0198).
+        clock.sleep(15 * 60)
+        assert next_work(db.connection, "project", now=clock.now()) == slow
+        monkeypatch.setattr(write_deadline, "WRITE_SECONDS", 0.03)
+        assert derive_one(db, Archive(tmp_path), slow, bundle, clock, run).reason == (
+            "write_deadline_exceeded"
+        )
+        latest = db.connection.execute(
+            "SELECT outcome,retry_at FROM work_attempts WHERE unit_id='slow' ORDER BY attempt_id DESC"
+        ).fetchone()
+        assert tuple(latest) == ("transient", (clock.now() + timedelta(minutes=30)).isoformat())
+
+
+def test_an_allowance_extends_only_the_write_it_wraps(tmp_path, monkeypatch):
+    from swingset.state.write_deadline import allowance, bounded_write
+
+    monkeypatch.setattr(write_deadline, "WRITE_SECONDS", 0.05)
+    conn = sqlite3.connect(tmp_path / "x.sqlite")
+    with allowance(0.5), bounded_write(conn):
+        time.sleep(0.1)
+    with pytest.raises(WriteDeadlineExceeded), bounded_write(conn):
+        time.sleep(0.1)

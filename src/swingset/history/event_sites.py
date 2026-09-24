@@ -412,7 +412,10 @@ def reconcile(
         computed.append((site, findings))
     if not computed:
         return 0
-    with database.transaction():
+    # Answer the projection question once for this write, not once per site:
+    # each answer costs about ten seconds on the production database, and ten
+    # of them overran the 45-second bound and aborted every cycle (D-0201).
+    with projection_answer_cached(), database.transaction():
         current_sites = tuple(
             Site(str(row[0]), int(row[1]), str(row[2]))
             for row in conn.execute(

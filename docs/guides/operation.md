@@ -178,8 +178,9 @@ admitted work drains, then `paused`. `--wait` waits for that drain; a wait timeo
 retains the persisted pause. A control-servicing timeout means no change was
 persisted. Doctor reports the pause ID, reason, expiry and exact resume selector.
 Worker write phases have a 45-second limit inside the default 60-second control
-bound. A deadline failure rolls back output and remains visible for review or
-explicit retry. Earlier deployed runtimes still wait behind the cycle lock.
+bound; the history projection alone has 300 seconds. A deadline failure rolls
+back output and retries with a doubling delay, from 15 minutes to six hours
+(D-0198). Earlier deployed runtimes still wait behind the cycle lock.
 
 To stop the scheduled worker immediately:
 

@@ -102,7 +102,7 @@ def state(tmp_path):
         yield state
 
 
-def test_real_result_dispatch_is_inventory_neutral_but_followup_history_still_blocks(state):
+def test_real_result_dispatch_and_its_followup_history_are_inventory_neutral(state):
     retain_listing(state)
     unit = WorkUnit("project", "event", "held")
     enqueue(state.conn, (unit,), enqueued_at=state.clock.now().isoformat())
@@ -114,8 +114,16 @@ def test_real_result_dispatch_is_inventory_neutral_but_followup_history_still_bl
     before = tuple(state.conn.execute("SELECT * FROM events").fetchone())
     process_unit(state.db, unit, SimpleNamespace(files={}), state.clock, state.run)
     assert tuple(state.conn.execute("SELECT * FROM events").fetchone()) == before
-    assert pending_inventory_projection(state.conn)
-    assert not phase_two_allowed(state.conn, 2019)
+    # The event re-queued history. With derivations it only finalizes
+    # associations and coverage, which no year digest reads, so a fetched sheet
+    # no longer closes the gate for the next one (D-0198).
+    from swingset.state import derivations
+
+    assert WorkUnit("project", "history", "all") in set(
+        derivations.pending_units(state.conn, "project")
+    )
+    assert not pending_inventory_projection(state.conn)
+    assert phase_two_allowed(state.conn, 2019)
 
 
 @pytest.mark.parametrize(
@@ -124,7 +132,6 @@ def test_real_result_dispatch_is_inventory_neutral_but_followup_history_still_bl
         ("map", "all"),
         ("calendar", "2026"),
         ("source_index", "2026"),
-        ("history", "all"),
         ("dancer", "123"),
         ("source_event", "unmapped"),
         ("event", "unknown"),
@@ -186,9 +193,10 @@ def test_source_event_requires_retained_unambiguous_mapping_before_neutral_dispa
     state.conn.execute(
         "INSERT INTO source_event_map VALUES ('eepro','eepro:held','held','explicit',1)"
     )
-    # The new source scope itself changes history's dependency closure. Complete
-    # that closure first; a subsequent source-only revision is inventory neutral.
-    assert pending_inventory_projection(state.conn)
+    # The new source scope changes only history's dependency closure, and a
+    # pending history no longer blocks (D-0198). Complete it anyway; a
+    # subsequent source-only revision is inventory neutral.
+    assert not pending_inventory_projection(state.conn)
     drain(state)
     state.conn.execute(
         "UPDATE observations SET payload_json=replace(payload_json,'null','\"revised evidence\"') WHERE observation_id='listing'"

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import contextlib
+import contextvars
 import signal
 import sqlite3
 import threading
@@ -11,6 +12,28 @@ from collections.abc import Iterator
 from types import FrameType
 
 WRITE_SECONDS = 45.0
+_ALLOWANCE: contextvars.ContextVar[float | None] = contextvars.ContextVar(
+    "write_allowance", default=None
+)
+
+
+@contextlib.contextmanager
+def allowance(seconds: float) -> Iterator[None]:
+    """Give the next bounded write a longer, named limit than WRITE_SECONDS.
+
+    Only for a unit that cannot be split and that runs rarely: a control
+    waiting on it waits this long instead (D-0198).
+    """
+    token = _ALLOWANCE.set(seconds)
+    try:
+        yield
+    finally:
+        _ALLOWANCE.reset(token)
+
+
+def _limit() -> float:
+    extended = _ALLOWANCE.get()
+    return WRITE_SECONDS if extended is None else max(WRITE_SECONDS, extended)
 
 
 class WriteDeadlineExceeded(RuntimeError):
@@ -33,10 +56,11 @@ def bounded_write(conn: sqlite3.Connection) -> Iterator[None]:
     if threading.current_thread() is not threading.main_thread():
         raise RuntimeError("bounded pipeline writes require the process main thread")
     started = time.monotonic()
+    limit = _limit()
     previous_handler = signal.getsignal(signal.SIGALRM)
     previous_delay, previous_interval = signal.getitimer(signal.ITIMER_REAL)
     # Do not silently replace a caller's earlier deadline or recurring alarm.
-    if previous_interval or 0 < previous_delay <= WRITE_SECONDS:
+    if previous_interval or 0 < previous_delay <= limit:
         raise RuntimeError("pipeline write deadline conflicts with an active earlier timer")
     expired = False
 
@@ -47,20 +71,20 @@ def bounded_write(conn: sqlite3.Connection) -> Iterator[None]:
 
     def progress() -> int:
         nonlocal expired
-        expired = expired or time.monotonic() - started >= WRITE_SECONDS
+        expired = expired or time.monotonic() - started >= limit
         return int(expired)
 
     signal.signal(signal.SIGALRM, timeout)
     conn.set_progress_handler(progress, 1000)
-    signal.setitimer(signal.ITIMER_REAL, WRITE_SECONDS)
+    signal.setitimer(signal.ITIMER_REAL, limit)
     try:
         yield
-        if expired or time.monotonic() - started >= WRITE_SECONDS:
+        if expired or time.monotonic() - started >= limit:
             raise _Expired()
     except BaseException as error:
         if expired:
             raise WriteDeadlineExceeded(
-                f"atomic write exceeded {WRITE_SECONDS:g} seconds; output rolled back"
+                f"atomic write exceeded {limit:g} seconds; output rolled back"
             ) from error
         raise
     finally:

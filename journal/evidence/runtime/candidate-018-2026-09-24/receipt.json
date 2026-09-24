@@ -1,0 +1,160 @@
+{
+  "operation": "candidate 018 switch, release-closure proof collection, reclaim and resume",
+  "actor": "claude (session claude-rearch)",
+  "decisions": [
+    "D-0198",
+    "D-0199",
+    "D-0200"
+  ],
+  "independent_check": {
+    "reviewer": "second agent (Claude Opus), 2026-09-24",
+    "verdict": "APPROVE WITH CONDITIONS for the switch and for collection plus reclaim; no blockers; delta review after fixes kept both approvals",
+    "conditions": {
+      "C1_venv_runs_018": "swingset gc --help from the service environment listed --closures and --collect-closures",
+      "C2_watch_first_build": "open: the first build is due no earlier than about 20:51 UTC (interval counts the 14:51 admission)",
+      "C3_hold_through_collection": "operator hold kept through the switch, collection and reclaim; the switch restarted three timers, which were stopped again",
+      "C4_quota_before_reclaim": "swingset-disk 91.0 GB free before reclaim; TMPDIR and SQLITE_TMPDIR set to /var/tmp",
+      "C5_plan_digest_matches_rehearsal": "5aa403566ba1f2a585fd1e3dc10330c9cd2133899e7f7d561a82561331b7d0b9 on the worker and in the rehearsal"
+    }
+  },
+  "tests": {
+    "full_suite": "2467 passed, 0 failed (nix develop -c uv run pytest -q --full-suite, 2026-09-24)",
+    "core_suite_after_last_change": "1012 passed, 0 failed"
+  },
+  "backup": {
+    "path": "Mac ~/swingset-offload/state-20260924.sqlite",
+    "bytes": 64084664320,
+    "sha256": "f3ca54f3ac74e304476034edd52db41b971a66a5bd656171e4ec39916520330f",
+    "receipt": "../stability-rehearsal-2026-09-24/receipt.json"
+  },
+  "preflight": {
+    "at_utc": "2026-09-24T17:36:18Z",
+    "hold_present": true,
+    "units_inactive": [
+      "swingset-cycle.timer",
+      "swingset-cycle.service",
+      "swingset-backup.timer",
+      "swingset-summary.timer"
+    ],
+    "system_before": "/nix/store/2q18rn5jnz2l8fmdsp40hvsc5kbgwl5j-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+    "database_bytes": 64084664320,
+    "database_unchanged_since_pause": true,
+    "quota_free_gb": 91.3,
+    "hold_rewritten": {
+      "owner": "claude (session claude-rearch), taking over from codex",
+      "sha256": "5b37553cbc41e2ef28805b60d3f239e490ae53cecd5181bfd8a0d855dbe6d0fe"
+    }
+  },
+  "switch": {
+    "command": "nixos-rebuild switch --flake path:/mnt/mac/private/tmp/swingset-c018#orb --impure",
+    "deploy_tree": "rsync of the working copy without .jj, .git, tmp, .venv and journal/evidence; src and config byte-equal to the reviewed change",
+    "started_utc": "2026-09-24T17:36:25Z",
+    "finished_utc": "2026-09-24T17:36:36Z",
+    "exit_code": 0,
+    "system_after": "/nix/store/pjdgzq162j236vwlm4302wkn4s1gb92i-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+    "package": "/nix/store/rv1d55q4fpbjkpz2q4467gkkm9facr50-swingset",
+    "source": "/nix/store/iyasgyjzrm51bw90x1fnzrf6z022ng1w-source",
+    "rollback": "switch to system_before; schema unchanged at 32"
+  },
+  "plan": {
+    "command": "swingset gc --closures",
+    "window_utc": [
+      "2026-09-24T17:37:01Z",
+      "2026-09-24T17:38:21Z"
+    ],
+    "exit_code": 0,
+    "digest": "5aa403566ba1f2a585fd1e3dc10330c9cd2133899e7f7d561a82561331b7d0b9",
+    "proofs": 157,
+    "proof_bytes": 36313112718,
+    "kept": 11,
+    "kept_bytes": 2390679274,
+    "collectable": 146,
+    "collectable_bytes": 33922433444,
+    "side_effects": "recover_admissions settled the build admitted at 14:51:35 UTC; accept took candidate 018 inputs and re-queued every parse and projection"
+  },
+  "collection": {
+    "command": "swingset gc --collect-closures 5aa403566ba1f2a585fd1e3dc10330c9cd2133899e7f7d561a82561331b7d0b9",
+    "window_utc": [
+      "2026-09-24T17:38:31Z",
+      "2026-09-24T17:42:29Z"
+    ],
+    "exit_code": 0,
+    "worker_receipt": "/var/lib/swingset/gc/receipts/closure-proofs-20260924T173834Z.json",
+    "worker_receipt_sha256": "603545ec6b072c910ab72d2be942db3047d5a5abc4d499ac30bc510b342ef1b0",
+    "removed": 146,
+    "removed_bytes": 33922433444,
+    "removed_ids_sorted_sha256": "13a4af38ace6d914e6bedefec59dfc7b51e99798844604f7329e877fc988c751",
+    "error": null,
+    "freelist_pages_after": 8289962
+  },
+  "reclaim": {
+    "command": "TMPDIR=/var/tmp SQLITE_TMPDIR=/var/tmp swingset gc --reclaim --lock-timeout 120",
+    "window_utc": [
+      "2026-09-24T17:42:38Z",
+      "2026-09-24T18:01:47Z"
+    ],
+    "exit_code": 0,
+    "file_bytes_before": 64093458432,
+    "file_bytes_after": 29409513472,
+    "file_bytes_freed": 34683944960,
+    "quota_free_gb_after": 125.8
+  },
+  "postcheck": {
+    "quick_check": "ok",
+    "quick_check_seconds": 139.0,
+    "no_delete_trigger_present": true,
+    "generations_missing_dependency_set": 0,
+    "baseline_closure_hydrates": true,
+    "collectable_after": 0,
+    "unsettled_admissions": 0,
+    "pending_after_accept": {
+      "link": 2932,
+      "parse": 33798,
+      "project": 1
+    }
+  },
+  "resume": {
+    "at_utc": "2026-09-24T18:05:11Z",
+    "commands": [
+      "swingset resume --all --reason ...",
+      "rm /var/lib/swingset/operator-hold",
+      "systemctl start swingset-cycle.timer swingset-backup.timer swingset-summary.timer"
+    ],
+    "control_state": "running",
+    "pause_resumed": "pause_d0be838a34f84d2aa37ec1ed0881683d"
+  },
+  "first_cycles": {
+    "run_20260924T180511Z": {
+      "failed": false,
+      "error": null,
+      "build_error": null,
+      "build_deferred": "interval",
+      "stages": [
+        "project",
+        "parse"
+      ],
+      "checked": 0,
+      "changed": 0,
+      "duration_seconds": 2431.1,
+      "phase_seconds": {
+        "acquisition": 1.2,
+        "offline": 2396.1,
+        "reconciliation": 3.3
+      },
+      "parse_failures": 2,
+      "file_bytes_at_start": 29409517568,
+      "over_cap": false
+    },
+    "pending_at_2026-09-24T18:47Z": {
+      "link": 2932,
+      "parse": 26801,
+      "project": 1
+    },
+    "quota_free_gb_at_18:45Z": 125.2,
+    "not_yet_verified": [
+      "platform score-sheet snapshots via Wayback (0 so far; phase two waits for the re-derived dancer and inventory units, and acquisition is throttled by backpressure while ~27k parses drain)",
+      "first 018 build (due no earlier than about 20:51 UTC)",
+      "history projection under the 300 s allowance"
+    ]
+  }
+}

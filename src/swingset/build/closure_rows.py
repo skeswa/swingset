@@ -160,30 +160,99 @@ def _put(
 
 
 def _event(conn: sqlite3.Connection, table: str, key: str, row: Mapping[str, Any]) -> str | None:
+    """The event a row belongs to, through parents kept or rejected.
+
+    A rejected parent still names its event. Looking only at kept rows let a
+    callback mark whose contest and entry were both rejected resolve to no
+    event, survive its event's omission, and fail the whole build (D-0199).
+    """
     if row.get("event_id"):
         return str(row["event_id"])
-    for field, target in (
-        ("contest_id", "contests"),
-        ("round_id", "rounds"),
-        ("entry_id", "entries"),
-        ("placement_id", "placements"),
-    ):
-        if target == table or not row.get(field):
-            continue
-        parent = conn.execute(
-            "SELECT payload FROM rows WHERE table_name=? AND record_key=?",
-            (target, canonical([row[field]])),
-        ).fetchone()
-        if parent:
-            value = _event(conn, target, canonical([row[field]]), json.loads(parent[0]))
-            if value:
-                return value
+    # Kept parents first, across every field; rejected ones only when no kept
+    # parent names the event.
+    for source in ("rows", "rejected"):
+        for field, target in (
+            ("contest_id", "contests"),
+            ("round_id", "rounds"),
+            ("entry_id", "entries"),
+            ("placement_id", "placements"),
+            ("judge_id", "judges"),
+        ):
+            if target == table or not row.get(field):
+                continue
+            parent_key = canonical([row[field]])
+            for (payload,) in conn.execute(
+                f"SELECT payload FROM {source} WHERE table_name=? AND record_key=?",
+                (target, parent_key),
+            ):
+                value = _event(conn, target, parent_key, json.loads(payload))
+                if value:
+                    return value
     return str(json.loads(key)[0]) if table == "events" else None
+
+
+# The references builder._validate refuses to publish dangling, and whether
+# it also refuses a null one.
+_REFERENCES = (
+    ("callback_marks", "entry_id", "entries", True),
+    ("callbacks", "entry_id", "entries", True),
+    ("heats", "entry_id", "entries", True),
+    ("callback_marks", "round_id", "rounds", True),
+    ("callbacks", "round_id", "rounds", True),
+    ("callback_marks", "judge_id", "judges", True),
+    ("placements", "leader_entry_id", "entries", False),
+    ("placements", "follower_entry_id", "entries", False),
+    ("placements", "couple_entry_id", "entries", False),
+)
+
+
+def _dangling(conn: sqlite3.Connection) -> Iterator[tuple[str, str, dict[str, Any]]]:
+    tables = sorted({table for table, _, _, _ in _REFERENCES})
+    for table in tables:
+        checks = [
+            (field, target, required)
+            for name, field, target, required in _REFERENCES
+            if name == table
+        ]
+        for key, payload in conn.execute(
+            "SELECT record_key,payload FROM rows WHERE table_name=?", (table,)
+        ):
+            row = json.loads(payload)
+            for field, target, required in checks:
+                value = row.get(field)
+                missing = (
+                    required
+                    if value is None
+                    else not conn.execute(
+                        "SELECT 1 FROM rows WHERE table_name=? AND record_key=?",
+                        (target, canonical([value])),
+                    ).fetchone()
+                )
+                if missing:
+                    yield table, key, row
+                    break
+
+
+def _remove_events(
+    conn: sqlite3.Connection, events: set[str], dancers: set[Any] | frozenset[Any] = frozenset()
+) -> None:
+    # Resolve descendants while all structural parent rows still exist.
+    conn.execute("DELETE FROM to_remove")
+    for table, key, payload in conn.execute("SELECT table_name,record_key,payload FROM rows"):
+        row = json.loads(payload)
+        if table in {"dancers", "registry_placements"} and row.get("wsdc_id") in dancers:
+            conn.execute("INSERT OR IGNORE INTO to_remove VALUES (?,?)", (table, key))
+        elif table != "registry_placements" and _event(conn, table, key, row) in events:
+            conn.execute("INSERT OR IGNORE INTO to_remove VALUES (?,?)", (table, key))
+    conn.execute(
+        "DELETE FROM rows WHERE (table_name,record_key) IN (SELECT table_name,record_key FROM to_remove)"
+    )
 
 
 def _close(conn: sqlite3.Connection, result: ReconstructedRows) -> None:
     omitted_events = set()
     omitted_dancers = set()
+    conn.execute("CREATE INDEX IF NOT EXISTS rejected_key ON rejected(table_name,record_key)")
     for table, key, payload, reason in conn.execute("SELECT * FROM rejected"):
         result.counts[reason] += 1
         if (
@@ -204,23 +273,37 @@ def _close(conn: sqlite3.Connection, result: ReconstructedRows) -> None:
             omitted_events.add(event)
         if table in {"dancers", "registry_placements"} and row.get("wsdc_id") is not None:
             omitted_dancers.add(row["wsdc_id"])
-    conn.execute("CREATE TABLE omitted_events(event_id TEXT PRIMARY KEY)")
-    conn.executemany(
-        "INSERT INTO omitted_events VALUES (?)", ((value,) for value in sorted(omitted_events))
-    )
-    # Resolve descendants while all structural parent rows still exist.
     conn.execute(
         "CREATE TABLE to_remove(table_name TEXT,record_key TEXT,PRIMARY KEY(table_name,record_key))"
     )
-    for table, key, payload in conn.execute("SELECT table_name,record_key,payload FROM rows"):
-        row = json.loads(payload)
-        if table in {"dancers", "registry_placements"} and row.get("wsdc_id") in omitted_dancers:
-            conn.execute("INSERT OR IGNORE INTO to_remove VALUES (?,?)", (table, key))
-        elif table != "registry_placements" and _event(conn, table, key, row) in omitted_events:
-            conn.execute("INSERT OR IGNORE INTO to_remove VALUES (?,?)", (table, key))
-    conn.execute(
-        "DELETE FROM rows WHERE (table_name,record_key) IN (SELECT table_name,record_key FROM to_remove)"
+    _remove_events(conn, omitted_events, omitted_dancers)
+    # Safety net: an event left with a reference the builder would refuse is
+    # withheld whole, like any other unsupported event, rather than failing
+    # the release. A row whose event cannot be named is dropped alone.
+    dangling_events: set[str] = set()
+    while True:
+        found: set[str] = set()
+        for table, key, row in list(_dangling(conn)):
+            event = _event(conn, table, key, row)
+            if event is None:
+                conn.execute("DELETE FROM rows WHERE table_name=? AND record_key=?", (table, key))
+                result.counts["unattributed_dangling_row_dropped"] += 1
+            elif event in omitted_events | dangling_events:
+                # Its event is already withheld; the row goes with it.
+                conn.execute("DELETE FROM rows WHERE table_name=? AND record_key=?", (table, key))
+                result.counts["withheld_dangling_row_dropped"] += 1
+            else:
+                found.add(event)
+        if not found:
+            break
+        dangling_events |= found
+        _remove_events(conn, found)
+    conn.execute("CREATE TABLE omitted_events(event_id TEXT PRIMARY KEY)")
+    conn.executemany(
+        "INSERT INTO omitted_events VALUES (?)",
+        ((value,) for value in sorted(omitted_events | dangling_events)),
     )
+    omitted_events |= dangling_events
     for event in sorted(omitted_events):
         result.omissions.append(
             {
@@ -228,7 +311,9 @@ def _close(conn: sqlite3.Connection, result: ReconstructedRows) -> None:
                 "unit_kind": "event",
                 "unit_id": event,
                 "status": "withheld",
-                "reason": "source_support_unavailable",
+                "reason": "dangling_reference"
+                if event in dangling_events
+                else "source_support_unavailable",
             }
         )
     # Null associations and identity claims whose structural/registry support was omitted.

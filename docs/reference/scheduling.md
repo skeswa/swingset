@@ -176,7 +176,12 @@ it. One response can cross a threshold; these are admission high-water
 marks, not hard limits on an unknown response size. Offline work continues.
 
 `[scheduling]` in `config/sources.toml` configures cycle shares, the service
-gap, high-water marks, repair request count, and watch recovery clocks.
+gap, high-water marks, repair request count, and watch recovery clocks. Two
+settings pace the units that read the whole graph: `build_interval_seconds`
+admits a release build at most that often, failed or not, and
+`history_interval_seconds` re-materializes `project/history/all` at most that
+often. Production sets 6 and 12 hours; unset means every cycle
+([D-0199](../../journal/decisions/0199-contain-build-failures-and-pace-global-units.md)).
 Changing these settings captures a new input bundle without relabeling
 source interpretations. The measured load and the distinction between
 observations and initial objectives are in

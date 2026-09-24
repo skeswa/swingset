@@ -449,3 +449,30 @@ def test_review_keeps_pinning_the_cdx_bodies_its_proposals_were_read_from(sites,
         input_bundle_hash=None,
     )
     assert blob.relative_to(state).as_posix() in checkpoint.files
+
+
+def test_review_answers_the_projection_question_once_per_write(sites, monkeypatch):
+    # Each answer costs about ten seconds in production; asking once per site
+    # inside the 45-second write aborted every cycle on 2026-09-25 (D-0201).
+    from swingset.project import history
+
+    row = dict(sites.conn.execute("SELECT * FROM events").fetchone())
+    columns = tuple(row)
+    for suffix in ("second", "third"):
+        row["event_id"] = f"2019-02-{suffix}"
+        sites.conn.execute(
+            f"INSERT INTO events VALUES ({','.join('?' for _ in columns)})",
+            tuple(row[name] for name in columns),
+        )
+    accept(sites)
+    original = history._pending_inventory_projection
+    answers = []
+
+    def counted(conn):
+        answers.append(conn.in_transaction)
+        return original(conn)
+
+    monkeypatch.setattr(history, "_pending_inventory_projection", counted)
+    assert reconcile(sites.db, now=sites.clock.now(), run_id=sites.run) == 3
+    # Once for the read pass, once inside the write, never once per site.
+    assert len(answers) == 2

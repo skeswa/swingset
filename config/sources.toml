@@ -30,6 +30,11 @@ index_urls = []
 # finished years are queried once (D-0184). Unset disables the step.
 [scheduling]
 archive_index_seconds = 120
+# Each release build walks the whole closure (minutes, ~6 GB of memory), and
+# each history generation writes ~200k row references and re-queues every
+# link unit. Pace both; neither gates acquisition (D-0198, D-0199).
+build_interval_seconds = 21600
+history_interval_seconds = 43200
 
 # The live database may grow to this size before the pipeline pauses itself
 # (D-0186; D-0194 and D-0196 raised it while the retention planner cannot

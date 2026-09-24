@@ -88,6 +88,16 @@ def parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Rewrite state.sqlite in place so freed pages leave the file",
     )
+    step.add_argument(
+        "--closures",
+        action="store_true",
+        help="Say which release-closure proofs nothing names; remove nothing (D-0200)",
+    )
+    step.add_argument(
+        "--collect-closures",
+        metavar="PLAN_DIGEST",
+        help="Remove the unnamed release-closure proofs that plan listed (D-0200)",
+    )
     accept_year = commands.add_parser("accept-year", parents=[shared])
     accept_year.add_argument("--year", type=int, required=True)
     accept_year.add_argument("--by", required=True, help="who accepts: the reviewer and session")
@@ -854,7 +864,30 @@ def _mutate(args: argparse.Namespace, database: Database, stopped: list[bool]) -
         from swingset.state.retention_apply import apply_plan, reclaim
 
         policy = bundle.config.retention
-        if args.reclaim:
+        if args.closures or args.collect_closures:
+            from swingset.state import closure_collection
+
+            closures: dict[str, Any]
+            if args.collect_closures:
+                closures = closure_collection.collect(
+                    database,
+                    plan_digest=args.collect_closures,
+                    now=clock.now(),
+                    timeout=args.lock_timeout,
+                )
+            else:
+                proof_plan = closure_collection.plan(database.connection, args.state)
+                closures = {
+                    key: proof_plan[key]
+                    for key in ("digest", "proofs", "proof_bytes", "kept_bytes")
+                } | {
+                    "collectable": len(proof_plan["collectable"]),
+                    "collectable_bytes": proof_plan["collectable_bytes"],
+                    "kept": proof_plan["kept"],
+                    "next": f"gc --collect-closures {proof_plan['digest']}",
+                }
+            print(json.dumps(closures, indent=2))
+        elif args.reclaim:
             print(
                 json.dumps(reclaim(database, now=clock.now(), timeout=args.lock_timeout), indent=2)
             )

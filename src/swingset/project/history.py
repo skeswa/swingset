@@ -364,8 +364,17 @@ def finalize_history(
     conn: sqlite3.Connection, *, now: str, history_start: date = HISTORY_START
 ) -> None:
     """Associate occurrences and count coverage after map and event output settle."""
+    # Rewrite only associations that change. Rewriting all ~200k rows each run
+    # fired the history fence trigger per row inside the 45-second write
+    # bound (D-0199).
+    association = (
+        "(SELECT e.event_id FROM events e WHERE e.series_id=registry_placements.series_id "
+        "AND e.event_month=substr(registry_placements.event_month,1,7) "
+        "ORDER BY e.event_id LIMIT 1)"
+    )
     conn.execute(
-        "UPDATE registry_placements SET event_id=(SELECT e.event_id FROM events e WHERE e.series_id=registry_placements.series_id AND e.event_month=substr(registry_placements.event_month,1,7) ORDER BY e.event_id LIMIT 1) WHERE event_month>=?",
+        f"UPDATE registry_placements SET event_id={association} "
+        f"WHERE event_month>=? AND event_id IS NOT {association}",
         (history_start.strftime("%Y-%m"),),
     )
     rebuild_coverage(conn, now=now)
@@ -540,17 +549,26 @@ def _pending_inventory_projection(conn: sqlite3.Connection) -> bool:
     _inventory_digest columns. Its writer can still retire prior scope-owned
     Event rows, so those legacy scopes fail closed. A source_event is neutral
     only when dispatch already has its unambiguous mapping; otherwise it may
-    invoke the global map projector. Registry, history, discovery and unknown
-    units can add or move occurrences and remain blocking regardless of year.
+    invoke the global map projector. Registry, discovery and unknown units can
+    add or move occurrences and remain blocking regardless of year.
+
+    With derivations, the history unit only runs finalize_history: it writes
+    registry_placements.event_id, events.coverage_tier and coverage, none of
+    which _inventory_digest reads. Every fetched sheet re-queues it, so letting
+    it block would close the gate that fetches the next sheet (D-0198). The
+    legacy path rebuilds the inventory and still blocks.
     """
     from swingset.state.derivations import available, pending_units
 
+    derived = available(conn)
     units = (
         ((unit.unit_kind, unit.unit_id) for unit in pending_units(conn, "project"))
-        if available(conn)
+        if derived
         else conn.execute("SELECT unit_kind,unit_id FROM pending_work WHERE stage='project'")
     )
     for kind, identifier in units:
+        if kind == "history" and derived:
+            continue
         event_id = identifier
         if kind == "source_event":
             sources = conn.execute(

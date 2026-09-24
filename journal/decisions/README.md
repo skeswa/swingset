@@ -219,7 +219,11 @@ that links the old one.
 | [D-0194](0194-raise-the-database-size-cap-to-48-gb.md)                                       | Raise the database size cap to 48 GB                                                                | Retention                                         |
 | [D-0195](0195-answer-the-projection-question-once-per-pass.md)                               | Answer the projection question once per pass                                                        | Acquisition                                       |
 | [D-0196](0196-raise-the-database-size-cap-to-64-gb.md)                                       | Raise the database size cap to 64 GB                                                                | Retention                                         |
-| [D-0197](0197-pause-worker-for-failure-and-capacity-review.md)                                | Pause the worker for failure and capacity review                                                    | Operations                                        |
+| [D-0197](0197-pause-worker-for-failure-and-capacity-review.md)                               | Pause the worker for failure and capacity review                                                    | Operations                                        |
+| [D-0198](0198-history-no-longer-gates-acquisition-and-deadline-overruns-retry.md)            | History no longer gates acquisition, and deadline overruns retry                                    | Acquisition                                       |
+| [D-0199](0199-contain-build-failures-and-pace-global-units.md)                               | Contain build failures and pace the global units                                                    | Build                                             |
+| [D-0200](0200-collect-release-closure-proofs-nothing-names.md)                               | Collect release-closure proofs that nothing names                                                   | Retention                                         |
+| [D-0201](0201-a-failed-bookkeeping-stage-never-aborts-a-cycle.md)                            | A failed bookkeeping stage never aborts a cycle                                                     | Operations                                        |
 
 The [legacy decision log](legacy-design-review.md) preserves the original
 review notes. It is historical evidence, not a second list of current rules.

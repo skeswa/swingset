@@ -1,0 +1,43 @@
+{
+  "operation": "candidate 019 switch: contain pre-acquisition stage overruns, one projection answer per event-site write",
+  "actor": "claude (session claude-rearch)",
+  "decision": "D-0201",
+  "diagnosis": {
+    "symptom": "from 2026-09-25T01:32Z most cycles ended failed=true after ~55 s with WriteDeadlineExceeded, before acquisition",
+    "stack": "cycle.py run_cycle -> history/event_sites.py reconcile:428 phase_two_allowed -> _pending_inventory_projection -> derivations.pending_units (captured by faulthandler on a copy of the 2026-09-25 16:08 UTC database, on the worker)",
+    "cost_per_answer_seconds": 10.2,
+    "hold": "placed 2026-09-25T16:10Z by claude, removed 2026-09-25T16:27:51Z"
+  },
+  "tests": {"full_suite": "2470 passed, 0 failed"},
+  "preflight": {
+    "hold_present": true,
+    "cycle_unit": "failed (last cycle 16:01 UTC)",
+    "system_before": "/nix/store/pjdgzq162j236vwlm4302wkn4s1gb92i-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+    "database_bytes": 35195252736,
+    "quota_free_gb": 46.5,
+    "pending": {"link": 2932, "parse": 610, "project": 1}
+  },
+  "switch": {
+    "command": "nixos-rebuild switch --flake path:/mnt/mac/private/tmp/swingset-c019#orb --impure",
+    "window_utc": ["2026-09-25T16:27:32Z", "2026-09-25T16:27:43Z"],
+    "exit_code": 0,
+    "system_after": "/nix/store/mc72x6jz8aaq5qj65f4qvhpc5h3dld0d-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+    "package": "/nix/store/6fkn9jm2p8zkmc7ganx3in5lgalz1zd9-swingset",
+    "source": "/nix/store/mhh4as434dzryjdprypjicpyzmfpknm7-source",
+    "rollback": "switch to system_before (candidate 018); schema unchanged at 32"
+  },
+  "postcheck": {
+    "fix_present_in_source": true,
+    "resumed_utc": "2026-09-25T16:27:51Z",
+    "first_cycle_started_utc": "2026-09-25T16:31:36Z",
+    "first_cycle_alive_past_55s": true,
+    "first_cycle_summary": "pending; see status"
+  },
+  "candidate_018_outcome_before_this_switch": {
+    "re_derivation": "parse backlog 33,798 -> 610 (parked residue) by about 01:30 UTC",
+    "history_projection": "settled 2026-09-25T01:11Z in 24 s",
+    "builds_completed_utc": ["2026-09-24T21:29Z", "2026-09-25T04:17Z", "2026-09-25T12:02Z"],
+    "first_platform_score_sheets": {"wayback_platform_snapshots": 21, "latest_utc": "2026-09-25T12:26:32Z", "scheduler_requests_since_resume": {"eepro.com": 260, "scoring.dance": 121, "points.worldsdc.com": 120, "web.archive.org": 26, "scores.worlddanceregistry.com": 3}},
+    "backup_2026-09-25T04:00Z": "local checkpoint written (36 GB), upload refused at the 20 GiB transport limit; the 12:00 retry refused by the room check (83 GB free, 119 GB needed)"
+  }
+}

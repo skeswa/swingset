@@ -136,3 +136,111 @@ def test_partial_history_patch_cannot_replace_a_rejected_structural_event():
         assert list(result.iter_table("judges")) == []
         assert result.counts["legacy_owned_values_not_published"] == 1
         assert result.omissions[0]["unit_id"] == "event"
+
+
+def budafest_shaped(conn):
+    """The 2026-09-21 shape: a kept round and marks under a rejected contest and entry."""
+    _put(conn, "events", '["event"]', {"event_id": "event", "series_id": "wsdc-184"})
+    _put(conn, "judges", '["judge"]', {"judge_id": "judge", "event_id": "event"})
+    _put(conn, "rounds", '["round"]', {"round_id": "round", "contest_id": "contest"})
+    for table, key, row in (
+        ("contests", '["contest"]', {"contest_id": "contest", "event_id": "event"}),
+        (
+            "entries",
+            '["entry"]',
+            {"entry_id": "entry", "contest_id": "contest", "event_id": "event"},
+        ),
+    ):
+        conn.execute(
+            "INSERT INTO rejected VALUES (?,?,?,?)",
+            (table, key, json.dumps(row), "legacy_owned_values_not_published"),
+        )
+    _put(
+        conn,
+        "callback_marks",
+        '["round","entry","judge"]',
+        {"round_id": "round", "entry_id": "entry", "judge_id": "judge"},
+    )
+
+
+def test_marks_under_a_rejected_contest_and_entry_follow_their_event_out():
+    # A mark resolved its event only through kept parents, so it survived the
+    # omission and failed every build for three days (D-0199).
+    with closing(spool()) as conn:
+        budafest_shaped(conn)
+        result = ReconstructedRows(conn)
+        _close(conn, result)
+        assert list(result.iter_table("callback_marks")) == []
+        assert list(result.iter_table("rounds")) == []
+        assert [item["unit_id"] for item in result.omissions] == ["event"]
+        assert result.omissions[0]["reason"] == "source_support_unavailable"
+
+
+def test_a_dangling_reference_withholds_its_event_instead_of_failing_the_release():
+    with closing(spool()) as conn:
+        _put(conn, "events", '["kept"]', {"event_id": "kept"})
+        _put(conn, "events", '["event"]', {"event_id": "event"})
+        _put(conn, "judges", '["judge"]', {"judge_id": "judge", "event_id": "event"})
+        _put(conn, "rounds", '["round"]', {"round_id": "round", "event_id": "event"})
+        # Neither kept nor rejected: nothing upstream explains the missing entry.
+        _put(
+            conn,
+            "callback_marks",
+            '["round","missing","judge"]',
+            {"round_id": "round", "entry_id": "missing", "judge_id": "judge"},
+        )
+        # An orphan whose event cannot be named at all is dropped alone.
+        _put(
+            conn,
+            "callbacks",
+            '["nowhere","missing"]',
+            {"round_id": "nowhere", "entry_id": "missing"},
+        )
+        result = ReconstructedRows(conn)
+        _close(conn, result)
+        assert [row["event_id"] for row in result.iter_table("events")] == ["kept"]
+        assert list(result.iter_table("callback_marks")) == []
+        assert list(result.iter_table("callbacks")) == []
+        assert result.omissions == [
+            {
+                "stage": "project",
+                "unit_kind": "event",
+                "unit_id": "event",
+                "status": "withheld",
+                "reason": "dangling_reference",
+            }
+        ]
+        assert result.counts["unattributed_dangling_row_dropped"] == 1
+
+
+def test_null_references_and_rows_of_withheld_events_never_reach_the_builder():
+    with closing(spool()) as conn:
+        _put(conn, "events", '["event"]', {"event_id": "event"})
+        _put(conn, "rounds", '["round"]', {"round_id": "round", "event_id": "event"})
+        # The builder refuses a mark with no entry at all, not only a missing one.
+        _put(
+            conn,
+            "callback_marks",
+            '["round",null,"judge"]',
+            {"round_id": "round", "entry_id": None, "judge_id": "judge"},
+        )
+        # A second event already withheld for its source keeps a dangling mark
+        # whose parents are gone; it must leave with its event.
+        conn.execute(
+            "INSERT INTO rejected VALUES ('events','[\"gone\"]',?,'source_revoked')",
+            (json.dumps({"event_id": "gone"}),),
+        )
+        _put(
+            conn,
+            "callbacks",
+            '["gone-round","gone-entry"]',
+            {"round_id": "gone-round", "entry_id": "gone-entry", "event_id": "gone"},
+        )
+        result = ReconstructedRows(conn)
+        _close(conn, result)
+        assert list(result.iter_table("callback_marks")) == []
+        assert list(result.iter_table("callbacks")) == []
+        assert {item["unit_id"]: item["reason"] for item in result.omissions} == {
+            "event": "dangling_reference",
+            "gone": "source_support_unavailable",
+        }

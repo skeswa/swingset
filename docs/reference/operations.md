@@ -137,6 +137,14 @@ digest, removes the files the plan named, and writes one receipt. If an earlier
 apply was killed before its files went, it also finishes the files its own fresh
 plan still calls removable and leaves the rest, naming them in that note's
 receipt.
+`gc --closures` lists the release-closure proofs in the database and names
+every reason one is kept; it removes nothing and prints the digest to collect.
+`gc --collect-closures <digest>` recomputes that list under both locks, stops
+if it moved, removes each proof nothing names in its own transaction, and
+writes a receipt under `gc/receipts/`
+([D-0200](../../journal/decisions/0200-collect-release-closure-proofs-nothing-names.md)).
+It deletes data, so a production run needs a verified backup and an
+independent check first.
 `gc --reclaim` rewrites `state.sqlite` in place so the pages a removal freed
 leave the file. Run apply, then reclaim, then resume. A schema migration that
 drops a table frees pages the same way, so reclaim follows one of those too.
@@ -161,8 +169,9 @@ Worker write phases have a 45-second wall-clock limit, leaving time for rollback
 and control servicing within the default 60-second bound. The limit interrupts
 Python work and long SQLite statements. Nested transactions inherit the outer
 deadline. A timed-out derivation rolls back, retains its queue token, and records
-`write_deadline_exceeded`; unchanged work waits for a changed input or explicit
-retry. Worker writes run on the process main thread. Read snapshots, including
+`write_deadline_exceeded` as a transient outcome: it retries after 15 minutes,
+doubling per consecutive overrun, at most six hours apart. The history
+projection alone has a 300-second limit. A control arriving during that write fails at its 60-second lock timeout unless it passes `--lock-timeout 330`; `systemctl stop` kills the process after 45 seconds, and the write rolls back either way. ([D-0198](../../journal/decisions/0198-history-no-longer-gates-acquisition-and-deadline-overruns-retry.md)). Worker writes run on the process main thread. Read snapshots, including
 release construction, do not hold SQLite's writer and have no write deadline.
 Explicit schema migrations remain held maintenance operations. A shorter
 operator timeout may still expire before a valid bounded unit drains.

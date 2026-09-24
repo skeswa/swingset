@@ -14,6 +14,7 @@ from swingset.state import derivations
 from swingset.state.attempts import SupersededWorkError
 from swingset.state.db import Database
 from swingset.state.work import WorkUnit
+from swingset.state.write_deadline import WriteDeadlineExceeded
 
 from .builder import BuildError, BuildResult
 from .closure import ClosureError, ReleaseClosure, hydrate, retain
@@ -56,12 +57,17 @@ def select(
         else "settled",
     }
     if pinned is not None:
-        context["release_closure"] = pinned
+        from .closure import public_manifest
+
+        # The recipe names the private proof by digest. Embedding it stored a
+        # second copy of the whole closure in every build generation (D-0199).
+        context["release_closure"] = public_manifest(pinned)
         context["correction_token"] = correction_token(database.connection, closure=pinned)
     return derivations.desired(
         database.connection,
         WorkUnit("build", "correction" if correction_only else "release", "all"),
         context=context,
+        closure=pinned,
     )
 
 
@@ -72,12 +78,38 @@ def complete(
     *,
     now: datetime,
     run_id: str,
+    closure: Mapping[str, Any] | None = None,
 ) -> None:
+    """``closure`` is the build's private proof when it is already in memory."""
     # Hash potentially large files outside the short SQLite write transaction.
     verify_candidate_files(result.path)
     pinned = selection.context.get("release_closure")
+    from contextlib import nullcontext
+
+    from .closure import known_proof
+
     try:
+        # Resolve the named proof once, before the bounded write, instead of at
+        # each of its boundaries (D-0199).
+        # A second decoded copy of the 235 MB proof pushed the build near the
+        # worker's 8 GB memory limit, so reuse the caller's when it has one.
+        in_memory = (
+            closure
+            if closure is not None
+            and closure.get("format") == "release-closure-v1"
+            and pinned is not None
+            and closure.get("digest") == pinned.get("private_digest")
+            else None
+        )
+        proof = (
+            known_proof(
+                in_memory if in_memory is not None else hydrate(database.connection, pinned)
+            )
+            if pinned is not None
+            else nullcontext()
+        )
         with (
+            proof,
             validation_scope(database.connection),
             artifact_source(database.connection, Archive(database.state_dir)),
         ):
@@ -93,7 +125,9 @@ def complete(
                     validate(conn, pinned)
             with database.transaction() as conn:
                 _complete_in_transaction(conn, database, selection, result, now=now, run_id=run_id)
-    except (SupersededWorkError, ClosureError) as error:
+    except (SupersededWorkError, ClosureError, WriteDeadlineExceeded) as error:
+        # An overrun is contained like any other failed completion; it used to
+        # escape as a non-build error and abort the whole cycle (D-0199).
         # The immutable files can survive a stale worker. They cannot become a
         # selected generation or be reused for publication after rejection.
         if not (result.path / "PUBLISHED").exists():

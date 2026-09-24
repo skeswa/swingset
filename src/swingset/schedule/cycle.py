@@ -2,8 +2,10 @@
 
 import json
 import os
+import sqlite3
 from collections import Counter
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Iterator, Mapping
+from contextlib import contextmanager
 from dataclasses import asdict
 from datetime import datetime, timedelta
 from hashlib import sha256
@@ -15,6 +17,7 @@ import httpx
 
 from swingset import __version__
 from swingset.build.builder import BuildError, BuildResult
+from swingset.build.closure_manifest import ClosureError
 from swingset.clock import Clock
 from swingset.config import Config
 from swingset.fetch.archive import Archive, canonical, durable_write
@@ -55,6 +58,7 @@ from swingset.state.db import SCHEMA_VERSION, Database
 from swingset.state.inputs import InputBundle, accept, capture
 from swingset.state.work import WorkUnit, unfinished_units
 from swingset.state.work_fingerprints import input_fingerprint
+from swingset.state.write_deadline import WriteDeadlineExceeded
 
 
 def repository_identity(package_root: Path | None = None) -> str:
@@ -157,6 +161,41 @@ def build_deferred_for_backlog(
     return age < config.scheduler.backlog_publish_interval_seconds
 
 
+def build_deferred_for_interval(conn: sqlite3.Connection, config: Config, *, now: datetime) -> bool:
+    """Whether a build was admitted within the configured build interval.
+
+    Every admitted attempt counts, failed or reused: each one selects and
+    validates the whole release closure, which takes minutes (D-0199).
+    """
+    interval = config.scheduler.build_interval_seconds
+    if interval is None:
+        return False
+    row = conn.execute(
+        "SELECT MAX(admitted_at) FROM execution_admissions WHERE action_kind='build'"
+    ).fetchone()
+    if row is None or row[0] is None:
+        return False
+    return (now - datetime.fromisoformat(str(row[0]))).total_seconds() < interval
+
+
+def history_deferred_for_interval(
+    conn: sqlite3.Connection, config: Config, unit: WorkUnit, *, now: datetime
+) -> bool:
+    """Whether the global history projection materialized within its interval."""
+    interval = config.scheduler.history_interval_seconds
+    if interval is None or (unit.stage, unit.unit_kind) != ("project", "history"):
+        return False
+    row = conn.execute(
+        "SELECT g.created_at FROM derivation_scopes s JOIN derivation_generations g "
+        "ON g.generation_id=s.materialized_generation_id "
+        "WHERE s.stage='project' AND s.unit_kind='history' AND s.unit_id=?",
+        (unit.unit_id,),
+    ).fetchone()
+    if row is None:
+        return False
+    return (now - datetime.fromisoformat(str(row[0]))).total_seconds() < interval
+
+
 def run_cycle(
     database: Database,
     *,
@@ -209,6 +248,22 @@ def run_cycle(
             {"action": action, "reason": "operator_pause", "pauses": exc.pauses}
         )
 
+    summary["stage_errors"] = []
+
+    @contextmanager
+    def contained(stage: str) -> Iterator[None]:
+        """A bookkeeping stage that overruns its write is skipped, not fatal.
+
+        Its write rolled back whole. Letting it escape aborted every cycle
+        before acquisition for eleven hours on 2026-09-25 (D-0201); the cycle
+        still reports failed=true so the watchdog sees it.
+        """
+        try:
+            yield
+        except WriteDeadlineExceeded as exc:
+            summary["stage_errors"].append({"stage": stage, "error": str(exc)})
+            log("stage_failed", stage=stage, error=str(exc)[:300])
+
     try:
         bundle = capture(config_dir, overrides_dir, database.state_dir, versions())
         summary["accepted_inputs"] = sorted(accept(database, bundle, clock))
@@ -225,7 +280,8 @@ def run_cycle(
         from swingset.schedule.event_enumerations import bootstrap as bootstrap_events
 
         if not stop():
-            summary["event_enumerations"] = bootstrap_events(database, now=clock.now())
+            with contained("event_enumerations"):
+                summary["event_enumerations"] = bootstrap_events(database, now=clock.now())
             from swingset.state.work import recover_parse_hints
 
             # Reconstruct disposable queue hints from retained metadata. Normal
@@ -233,34 +289,38 @@ def run_cycle(
             recovery_now = clock.now()
             recovery_seconds = min(2.0, (deadline - recovery_now).total_seconds())
             if recovery_seconds > 0 and not should_stop():
-                summary["parse_hint_recovery"] = recover_parse_hints(
-                    database,
-                    now=recovery_now,
-                    wall_seconds=recovery_seconds,
-                )
+                with contained("parse_hint_recovery"):
+                    summary["parse_hint_recovery"] = recover_parse_hints(
+                        database,
+                        now=recovery_now,
+                        wall_seconds=recovery_seconds,
+                    )
             from swingset.schedule.event_pressure import bootstrap as bootstrap_pressure
 
-            summary["event_pressure_bootstrap"] = bootstrap_pressure(
-                database, bundle.config, now=clock.now()
-            )
+            with contained("event_pressure_bootstrap"):
+                summary["event_pressure_bootstrap"] = bootstrap_pressure(
+                    database, bundle.config, now=clock.now()
+                )
             from swingset.schedule.event_blocker_history import refresh as observe_event_blockers
 
             # Diagnostic bookkeeping may observe a pause without starting
             # paused acquisition, artifact verification, or derivation work.
-            summary["event_blocker_observations"] = observe_event_blockers(
-                database,
-                bundle.config,
-                now=clock.now(),
-                run_id=run_id,
-                operator_hold=(database.state_dir / "operator-hold").is_file(),
-            )
+            with contained("event_blocker_observations"):
+                summary["event_blocker_observations"] = observe_event_blockers(
+                    database,
+                    bundle.config,
+                    now=clock.now(),
+                    run_id=run_id,
+                    operator_hold=(database.state_dir / "operator-hold").is_file(),
+                )
         from swingset.state.requirements import scan
         from swingset.state.verification import verification_summary
 
         if not stop():
-            summary["requirements_scanned"] = scan(
-                database, clock.now(), run_id, history_start=bundle.config.history_start
-            )
+            with contained("requirements_scan"):
+                summary["requirements_scanned"] = scan(
+                    database, clock.now(), run_id, history_start=bundle.config.history_start
+                )
         if (
             not stop()
             and database.connection.execute("SELECT 1 FROM history_acceptance LIMIT 1").fetchone()
@@ -287,6 +347,9 @@ def run_cycle(
                     )
             except ControlPaused as exc:
                 held("event_site_review", exc)
+            except WriteDeadlineExceeded as exc:
+                summary["stage_errors"].append({"stage": "event_site_review", "error": str(exc)})
+                log("stage_failed", stage="event_site_review", error=str(exc)[:300])
         summary["registry_verification"] = verification_summary(database.connection, clock.now())
         if hub is not None:
             reconciled = reconcile(database.state_dir, hub, dry_run=dry_run)
@@ -361,6 +424,11 @@ def run_cycle(
                     )
             except ControlPaused as exc:
                 held("event_pressure_refresh", exc)
+            except WriteDeadlineExceeded as exc:
+                summary["stage_errors"].append(
+                    {"stage": "event_pressure_refresh", "error": str(exc)}
+                )
+                log("stage_failed", stage="event_pressure_refresh", error=str(exc)[:300])
         if not stop():
             from swingset.schedule.event_progress import refresh as refresh_progress
 
@@ -393,11 +461,20 @@ def run_cycle(
                     )
             except ControlPaused as exc:
                 held("event_progress_refresh", exc)
+            except WriteDeadlineExceeded as exc:
+                summary["stage_errors"].append(
+                    {"stage": "event_progress_refresh", "error": str(exc)}
+                )
+                log("stage_failed", stage="event_progress_refresh", error=str(exc)[:300])
         visited_watches: set[str] = set()
         attempted_inputs: dict[WorkUnit, set[str]] = {}
 
         def offline_allowed(unit: WorkUnit) -> bool:
             if not allowed(unit):
+                return False
+            if history_deferred_for_interval(
+                database.connection, bundle.config, unit, now=clock.now()
+            ):
                 return False
             previous = attempted_inputs.get(unit)
             return previous is None or input_fingerprint(database.connection, unit) not in previous
@@ -611,7 +688,11 @@ def run_cycle(
                             run_saved_crosscheck_if_due(database, archive, clock.now(), run_id)
                     except ControlPaused as exc:
                         held("registry_crosscheck", exc)
-            if not stop() and build_deferred_for_backlog(
+            if not stop() and build_deferred_for_interval(
+                database.connection, bundle.config, now=clock.now()
+            ):
+                summary["build_deferred"] = "interval"
+            elif not stop() and build_deferred_for_backlog(
                 database.state_dir,
                 bundle.config,
                 pressure=backpressure(database.connection, bundle.config),
@@ -635,11 +716,13 @@ def run_cycle(
                             summary["publish_commit"] = published.commit
                 except ControlPaused as exc:
                     held("build", exc)
-                except BuildError as exc:
+                except (BuildError, ClosureError) as exc:
                     # A build that cannot assemble a consistent candidate is
                     # reported, not fatal: the offline phase that follows is
                     # what brings the stale generation it tripped over up to
-                    # date (D-0187).
+                    # date (D-0187). A closure that fails validation is the
+                    # same kind of failure; letting it escape aborted the whole
+                    # cycle, fetching included (D-0199).
                     summary["build_error"] = f"{type(exc).__name__}: {exc}"
                     log("build_failed", error=str(exc)[:300])
 
@@ -714,9 +797,14 @@ def run_cycle(
         ]
         summary["parse_errors"] = dict(failures)
         summary["restored_artifacts"] = recovery.restored
-        summary["failed"] = any(
-            failures[source] / count > 0.1 for source, count in attempts.items()
-        ) or any(item["stage"] != "parse" for item in summary["unit_failures"])
+        # A build error stays non-fatal so offline work continues (D-0187), but
+        # it is a failure: 96 of 100 cycles reported failed=false on one (D-0199).
+        summary["failed"] = (
+            any(failures[source] / count > 0.1 for source, count in attempts.items())
+            or any(item["stage"] != "parse" for item in summary["unit_failures"])
+            or "build_error" in summary
+            or bool(summary["stage_errors"])
+        )
         paused = [
             dict(row)
             for row in database.connection.execute(

@@ -96,16 +96,32 @@ def build_release(
         )
         if reused is not None:
             from .closure import validate
+            from .closure_manifest import ClosureError
 
             retained_policy = json.loads((reused.path / "_meta/manifest.json").read_bytes())[
                 "release_policy"
             ]
-            validate(conn, retained_policy["closure"])
-            # An acknowledged baseline already has its durable build and remote
-            # receipts. Reading it again cannot advance publication progress.
-            if (reused.path / "PUBLISHED").exists():
-                return reused
-            pinned_manifest = retained_policy["closure"]
+            try:
+                validate(conn, retained_policy["closure"])
+            except ClosureError as error:
+                # The proof is retained only after the files are durable, so an
+                # attempt stopped between the two leaves a candidate without it.
+                # Such a candidate cannot be reused; build afresh (D-0199).
+                if (
+                    str(error) != "private_closure_proof_unavailable"
+                    or (reused.path / "PUBLISHED").exists()
+                ):
+                    raise
+                from swingset.publish.safety import reject_candidate
+
+                reject_candidate(reused.path, str(error))
+                reused = None
+            else:
+                # An acknowledged baseline already has its durable build and
+                # remote receipts. Reading it again cannot advance publication.
+                if (reused.path / "PUBLISHED").exists():
+                    return reused
+                pinned_manifest = retained_policy["closure"]
         selection = (
             generations.select(
                 database,
@@ -255,12 +271,8 @@ def build_release(
         return reused
     assert data is not None
     if pinned_manifest is not None:
-        from .closure import public_manifest, retain
+        from .closure import public_manifest
 
-        # Retained input proof is not a completed build. Persist it before the
-        # file phase so an interruption can reuse the exact cutoff afterward.
-        with database.transaction() as conn:
-            retain(conn, pinned_manifest)
         policy = dict(data.release_policy or {})
         policy["closure"] = public_manifest(pinned_manifest)
         policy["row_omissions"] = {
@@ -313,6 +325,21 @@ def build_release(
         card_renderer=render_card,
         rows_finalizer=finalize_rows,
     )
+    if pinned_manifest is not None:
+        from .closure import retain
+
+        # Retain the private proof only once the candidate that names it is
+        # durable. Retaining it first stored a new copy on every failed
+        # attempt, since its cutoff differs each time (D-0199).
+        with database.transaction() as conn:
+            retain(conn, pinned_manifest)
     if selection is not None:
-        generations.complete(database, selection, result, now=clock.now(), run_id=run_id)
+        generations.complete(
+            database,
+            selection,
+            result,
+            now=clock.now(),
+            run_id=run_id,
+            closure=pinned_manifest,
+        )
     return result

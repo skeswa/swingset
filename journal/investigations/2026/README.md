@@ -3,6 +3,7 @@
 [Browse by topic](../README.md). Dates in each record describe its evidence.
 A missing original date is not inferred from file modification time.
 
+- 2026-09-24: [Why the worker stalled: one bad release row, a monolithic history write, and a gate between them](build-failure-and-history-deadline-2026-09-24.md).
 - 2026-09-23: [Global Grand Prix series review](global-grand-prix-alias-review-2026-09-23.md).
 - 2026-09-23: [Why every deploy re-derives the whole graph, and what it costs](derivation-invalidation-2026-09-23.md).
 - 2026-09-22: [Using the Codex CLI for scripted web lookups](codex-exec-lookups-2026-09-22.md).

@@ -102,16 +102,28 @@ def desired(
     *,
     recipe: Mapping[str, str] | None = None,
     context: Mapping[str, Any] | None = None,
+    closure: Mapping[str, Any] | None = None,
     _validate_artifacts: bool = True,
 ) -> Selection:
+    """``closure`` is the private release closure a build context names by digest.
+
+    A caller that has not retained it yet passes it here; otherwise it is read
+    back from the digest in ``context["release_closure"]``.
+    """
     from .derivation_dependencies import dependencies
 
     policy = dict(recipe) if recipe is not None else recipe_inputs(conn, unit.stage)
     captured_context = dict(context or {})
     pinned = captured_context.get("release_closure") if unit.stage == "build" else None
     if pinned is not None:
-        from swingset.build.closure import validate
+        from swingset.build.closure import hydrate, validate
 
+        if closure is not None:
+            if pinned.get("private_digest", pinned.get("digest")) != closure["digest"]:
+                raise ValueError("build closure does not match the context it is named by")
+            pinned = closure
+        else:
+            pinned = hydrate(conn, pinned)
         validate(conn, pinned)
         manifest = [
             {

@@ -13,7 +13,6 @@ from swingset.history.catalog import CALENDAR_PATHS, Target
 from swingset.sources import get_page_kind
 from swingset.state.findings import Finding, replace_findings
 
-
 NEWSLETTER_ISSUE_RE = re.compile(r"/uploads/(20\d\d)/\d\d/")
 
 

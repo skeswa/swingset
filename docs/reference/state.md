@@ -600,9 +600,10 @@ When those tables exist, activation also advances their observation epoch in
 the same transaction. The transaction commits before `RESTORE_PENDING` is
 removed; schemas through 11 remain compatible and perform neither change.
 
-Outer immediate worker transactions enforce a 45-second wall-clock deadline;
-savepoints inherit it. Interrupted output rolls back before the attempt records
-its blocked outcome. Read snapshots remain available to a concurrently serviced
+Outer immediate worker transactions enforce a 45-second wall-clock deadline, or
+a longer named allowance for the history projection (300 seconds); savepoints
+inherit it. Interrupted output rolls back before the attempt records its
+transient outcome and retry time (D-0198). Read snapshots remain available to a concurrently serviced
 control and do not consume this write budget. A long unit cannot keep reacquiring
 the write lock ahead of a waiting control.
 

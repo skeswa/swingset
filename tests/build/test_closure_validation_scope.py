@@ -262,7 +262,8 @@ def test_actual_completion_rejects_late_mutation_and_rolls_back_proof_and_output
 
     def finishing(database, selection, result, **kwargs):
         candidates.append(result)
-        manifest = selection.context["release_closure"]
+        # The build context names the private proof by digest (D-0199).
+        manifest = closure.hydrate(f.conn, selection.context["release_closure"])
         item, source = accepted_witness(manifest)
         generations_before = tuple(
             f.conn.execute(

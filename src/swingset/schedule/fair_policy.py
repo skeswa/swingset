@@ -39,6 +39,13 @@ class SchedulerConfig:
     # Seconds of each acquisition phase spent indexing platform archives (CDX)
     # after offered pages had their turn; unset means no indexing (D-0184).
     archive_index_seconds: float | None = None
+    # Admit a release build at most this often, whatever changed; unset means
+    # every cycle may build. Each attempt walks the whole graph (D-0199).
+    build_interval_seconds: float | None = None
+    # Re-materialize the global history projection at most this often. Every
+    # event projection re-queues it, and each new history generation writes
+    # ~200k row references and re-queues every link unit (D-0199).
+    history_interval_seconds: float | None = None
 
     def __post_init__(self) -> None:
         for field in fields(self):
@@ -49,6 +56,8 @@ class SchedulerConfig:
                     "event_acquisition_service_alarm_seconds",
                     "event_acquisition_progress_alarm_seconds",
                     "archive_index_seconds",
+                    "build_interval_seconds",
+                    "history_interval_seconds",
                 }
                 and value is None
             ):

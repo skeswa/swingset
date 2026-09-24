@@ -366,7 +366,11 @@ spent on a page the archive has.
   estimate, not a measured completion guarantee.
 - Phase 2 watches for a year are created only when `events_accepted`
   is true for that year. Until then the year's sheets are not fetched,
-  however cheap they are.
+  however cheap they are. A pending projection that can move the event list
+  (inventory, map, calendar, source index, dancer, an unmapped source event)
+  also holds phase 2. A pending `project/history/all` does not: it writes only
+  event associations and coverage, which the year's acceptance digest does not
+  read ([D-0198](../../journal/decisions/0198-history-no-longer-gates-acquisition-and-deadline-overruns-retry.md)).
 - New state `sealed`: a watch whose event ended more than two years ago,
   or whose origin host is marked dead in its playbook, is never fetched
   again after a successful parse. Reparsing from the archive is

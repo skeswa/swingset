@@ -86,7 +86,7 @@ def test_changed_retained_support_rejects_before_output_and_rolls_back_retention
 
     def finishing(database, selection, result, **kwargs):
         candidates.append(result)
-        pinned = selection.context["release_closure"]
+        pinned = closure.hydrate(f.conn, selection.context["release_closure"])
         accepted = next(item for item in pinned["source_support"] if item["source_generations"])
         receipt = accepted["source_generations"][0]
         with f.db.transaction():
@@ -144,3 +144,116 @@ def test_changed_retained_support_rejects_before_output_and_rolls_back_retention
     assert (result.path / "BUILT").is_file()
     assert (result.path / "REJECTED").is_file()
     assert not generations.completed(f.conn, result.candidate_id, result.manifest_hash)
+
+
+def closure_proofs(conn):
+    return {
+        row[0]
+        for row in conn.execute(
+            "SELECT dependency_set_id FROM derivation_dependency_sets "
+            "WHERE substr(manifest_json,1,40) LIKE '{\"baseline\":%'"
+        )
+    }
+
+
+def test_failed_build_attempt_retains_no_closure_proof(release_state, monkeypatch):
+    # Each attempt's closure carries its own cutoff, so a proof retained before
+    # the files stored a new 235 MB copy on every failed attempt (D-0199).
+    f = release_state
+    before = closure_proofs(f.conn)
+
+    def failing(*args, **kwargs):
+        raise BuildError("callback_marks references missing entry injected")
+
+    monkeypatch.setattr(service, "build_candidate", failing)
+    for _ in range(2):
+        with pytest.raises(BuildError, match="injected"):
+            service.build_release(f.db, f.bundle, f.clock, f.run)
+        f.clock.sleep(60)
+    assert closure_proofs(f.conn) == before
+
+
+def test_build_generation_names_its_closure_proof_by_digest(release_state):
+    import json
+
+    f = release_state
+    result = service.build_release(f.db, f.bundle, f.clock, f.run)
+    assert generations.completed(f.conn, result.candidate_id, result.manifest_hash)
+    (recipe,) = (
+        json.loads(row[0])
+        for row in f.conn.execute(
+            "SELECT recipe_json FROM derivation_generations WHERE stage='build' AND unit_kind='release'"
+        )
+    )
+    named = recipe["context"]["release_closure"]
+    assert named["format"] == "release-closure-public-v1"
+    assert named["private_digest"] in closure_proofs(f.conn)
+    assert closure.hydrate(f.conn, named)["digest"] == named["private_digest"]
+
+
+def test_candidate_left_without_its_proof_is_rebuilt_not_reused(release_state, monkeypatch):
+    f = release_state
+
+    def interrupted(conn, value):
+        raise KeyboardInterrupt("after the candidate files, before the proof")
+
+    import json
+
+    def built():
+        return {path.parent for path in (f.db.state_dir / "candidates").glob("*/BUILT")}
+
+    existing = built()
+    monkeypatch.setattr(closure, "retain", interrupted)
+    with pytest.raises(KeyboardInterrupt):
+        service.build_release(f.db, f.bundle, f.clock, f.run)
+    monkeypatch.undo()
+    (orphan,) = built() - existing
+    policy = json.loads((orphan / "_meta/manifest.json").read_bytes())["release_policy"]
+    assert policy["closure"]["private_digest"] not in closure_proofs(f.conn)
+    f.clock.sleep(60)
+    result = service.build_release(f.db, f.bundle, f.clock, f.run)
+    assert result.path != orphan and not result.reused
+    assert (orphan / "REJECTED").is_file()
+    assert generations.completed(f.conn, result.candidate_id, result.manifest_hash)
+
+
+def test_completion_uses_the_proof_the_build_holds(release_state, monkeypatch):
+    # Each read decodes the whole 235 MB proof; completion used to repeat it at
+    # every boundary inside its bounded write, beside the build's own copy
+    # (D-0199).
+    f = release_state
+    complete = generations.complete
+    reads = []
+
+    def finishing(*args, **kwargs):
+        f.conn.set_trace_callback(
+            lambda sql: (
+                reads.append(sql)
+                if sql.startswith("SELECT manifest_json FROM derivation_dependency_sets")
+                else None
+            )
+        )
+        try:
+            return complete(*args, **kwargs)
+        finally:
+            f.conn.set_trace_callback(None)
+
+    monkeypatch.setattr(generations, "complete", finishing)
+    result = service.build_release(f.db, f.bundle, f.clock, f.run)
+    assert generations.completed(f.conn, result.candidate_id, result.manifest_hash)
+    assert reads == []
+
+
+def test_a_completion_overrun_is_a_build_error_not_a_cycle_abort(release_state, monkeypatch):
+    from swingset.state import derivations
+    from swingset.state.write_deadline import WriteDeadlineExceeded
+
+    f = release_state
+
+    def overran(*args, **kwargs):
+        raise WriteDeadlineExceeded("atomic write exceeded 45 seconds; output rolled back")
+
+    monkeypatch.setattr(derivations, "complete", overran)
+    with pytest.raises(BuildError, match="exceeded 45 seconds"):
+        service.build_release(f.db, f.bundle, f.clock, f.run)
+    assert list((f.db.state_dir / "candidates").glob("*/REJECTED"))

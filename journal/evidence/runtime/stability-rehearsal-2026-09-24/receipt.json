@@ -1,0 +1,125 @@
+{
+  "operation": "backup of the paused production database and rehearsal of candidate 018 on clones of it",
+  "actor": "claude (session claude-rearch)",
+  "at_utc": "2026-09-24T16:10:00Z",
+  "backup": {
+    "command": "cp --sparse=never /var/lib/swingset/state.sqlite /mnt/mac/Users/skeswa/swingset-offload/state-20260924.sqlite (worker under operator hold, all units inactive, WAL 0 bytes)",
+    "copied_utc": [
+      "2026-09-24T15:07:39Z",
+      "2026-09-24T15:10:17Z"
+    ],
+    "bytes": 64084664320,
+    "sha256_worker": "f3ca54f3ac74e304476034edd52db41b971a66a5bd656171e4ec39916520330f",
+    "sha256_mac": "f3ca54f3ac74e304476034edd52db41b971a66a5bd656171e4ec39916520330f",
+    "location": "Mac ~/swingset-offload/state-20260924.sqlite, outside the worker quota",
+    "exit_code": 0
+  },
+  "rehearsal_environment": {
+    "clones": "APFS clonefile copies of the backup plus the worker state directory without checkpoints, operations, runs and tmp",
+    "deployed_source": "/nix/store/9ql18g3bfnav7jzdy7x0l65gs0vsp2l6-source (candidate 017)",
+    "python": "3.12.13, SQLite 3.50.4, same versions as the worker",
+    "caveat": "the Mac interpreter differs, so recipe/runtime re-queues on a clone; closure selection ignores desired fingerprints"
+  },
+  "build": {
+    "candidate_017": {
+      "result": "BuildError: callback_marks references missing entry 2020-01-budafest/open-strictly/L-502",
+      "seconds": 261.3,
+      "new_closure_proof_bytes": 235394776,
+      "pages_grew": 59673,
+      "peak_rss_bytes": 5934634192,
+      "diagnosis": {
+        "budafest_rejected": {
+          "callback_marks": 6471,
+          "callbacks": 1288,
+          "contests": 8,
+          "entries": 998,
+          "final_marks": 714,
+          "judges": 41,
+          "placements": 102,
+          "rounds": 20,
+          "events": 2
+        },
+        "mark_event_resolution": null,
+        "mark_round_kept": true,
+        "entry_kept": false,
+        "budafest_omitted": true,
+        "omitted_events": 1135
+      }
+    },
+    "candidate_018": {
+      "result": "candidate built and generation completed",
+      "final_source_run": {
+        "seconds": 411.4,
+        "peak_rss_bytes": 5482905600,
+        "new_closure_proof_bytes": 235394776,
+        "build_generation_recipe_bytes": 2300634
+      },
+      "first_source_run": {
+        "seconds": 466.0,
+        "peak_rss_bytes": 6117933056,
+        "note": "before the proof was verified once per completion; 7,429,455,872 bytes peak with an intermediate cache"
+      },
+      "nondeterministic_failure_found": "BuildError local_page_support_unverifiable (time_budget): the 30 s local-page budget started before the ~24 s closure walk; fixed by restarting it at local validation",
+      "row_omissions": 1135,
+      "previous_build_generation_recipe_bytes": 223005991
+    }
+  },
+  "history_projection": {
+    "candidate_017_bound_lifted": {
+      "seconds": 82.0,
+      "write_seconds": 55.1,
+      "store_rows": 201073,
+      "store_seconds": 46.4,
+      "commit_seconds": 24.4,
+      "finalize_history_seconds": 2.0
+    },
+    "candidate_018_production_limits": {
+      "outcome": "succeeded",
+      "write_seconds": 47.4,
+      "total_seconds": 70.9,
+      "pages_grew": 27944
+    }
+  },
+  "closure_collection": {
+    "plan_seconds": 16.3,
+    "plan_digest_on_clone": "5aa403566ba1f2a585fd1e3dc10330c9cd2133899e7f7d561a82561331b7d0b9",
+    "proofs": 157,
+    "proof_bytes": 36313112718,
+    "kept": 11,
+    "kept_bytes": 2390679274,
+    "collected": 146,
+    "collected_bytes": 33922433444,
+    "collect_seconds": 141.4,
+    "secure_delete": 1,
+    "reclaim_seconds": 991.2,
+    "file_bytes_before": 64084664320,
+    "file_bytes_after": 29401350144,
+    "quick_check": "ok",
+    "generations_missing_dependency_set": 0,
+    "no_delete_trigger_restored": true,
+    "baseline_closure_hydrates": true,
+    "collectable_after": 0,
+    "peak_rss_bytes": 4341661696
+  },
+  "deploy_cost_basis": {
+    "requeue_2026-09-23T05:45Z": {
+      "parse_generations": 30589,
+      "project_generations": 32194,
+      "cycles": 7,
+      "file_growth_bytes": 2499821568,
+      "failed_build_proof_bytes": 1647716763
+    },
+    "requeue_2026-09-23T12:24Z": {
+      "parse_generations": 28925,
+      "project_generations": 30146,
+      "cycles": 7,
+      "file_growth_bytes": 2436550656,
+      "failed_build_proof_bytes": 1647741354
+    }
+  },
+  "production_changed": false,
+  "tests": {
+    "full_suite": "see production receipt",
+    "pre_existing_failure_fixed": "dev shell PYTHONPATH leak from nixpkgs mypy (Python 3.13) broke test_process_death_retains_active_pause_drain_until_recovery"
+  }
+}

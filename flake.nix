@@ -27,7 +27,6 @@
               uv
               nodejs
               ruff
-              mypy
             ];
             UV_PYTHON = "${pkgs.python312}/bin/python3.12";
             UV_PYTHON_DOWNLOADS = "never";
@@ -46,6 +45,12 @@
                 rmdir "$NIX_BUILD_TOP" 2>/dev/null || true
               fi
               export TMPDIR=/tmp TEMPDIR=/tmp TMP=/tmp TEMP=/tmp NIX_BUILD_TOP=/tmp
+              # A Python package in this shell exports its own site-packages on
+              # PYTHONPATH. nixpkgs' mypy did, for Python 3.13, so the 3.12
+              # project interpreter loaded 3.13 packages and a subprocess that
+              # set its own PYTHONPATH saw a different runtime identity. mypy
+              # comes from the uv dev group instead; keep PYTHONPATH empty.
+              unset PYTHONPATH
             '';
           };
         }

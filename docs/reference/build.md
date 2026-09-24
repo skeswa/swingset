@@ -97,7 +97,14 @@ H16 selects retained immutable generations at an evidence cutoff. One history
 generation anchors its exact event, registry, inventory, and alias dependencies.
 A link generation joins only when its dependencies match that anchor. An
 unrelated unfinished parse does not block a coherent release. Missing,
-unsupported, and incompatible scopes remain disclosed omissions. The older
+unsupported, and incompatible scopes remain disclosed omissions. A row's event
+is resolved through its parents, kept or rejected. When an event's kept rows
+would still leave a reference the builder refuses (a mark, callback or heat
+without its entry, round or judge; a placement without its entry), the whole
+event is withheld and listed in `row_omissions` with reason
+`dangling_reference`; a row whose event cannot be named is dropped alone. One
+bad event never fails the release
+([D-0199](../../journal/decisions/0199-contain-build-failures-and-pace-global-units.md)). The older
 canonical-table reader keeps its settled-work precondition for callers that
 explicitly request that view.
 
@@ -126,8 +133,12 @@ generation. Missing or corrupt candidate files force a fresh candidate even
 when its manifest and `BUILT` remain. The recorded generation describes local
 materialization; only a publication receipt establishes published progress.
 
-Before writing candidate files, retain the exact private cutoff proof in a
-short transaction. This records inputs, not build completion. The public
+After the candidate files are durable, and before the build generation is
+completed, retain the exact private cutoff proof in a short transaction. A
+failed attempt retains nothing; a candidate left without its proof is rejected
+and rebuilt, never reused. The build generation's recipe names the proof by
+its public manifest, not a copy (D-0199). This records inputs, not build
+completion. The public
 manifest contains opaque generation IDs and proof hashes; source locators,
 recipes, and private policy notes remain in local immutable storage. Publication
 requires both the verified file closure and the durable build-generation receipt.

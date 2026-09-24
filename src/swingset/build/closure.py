@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import json
 import sqlite3
-from collections.abc import Mapping
+from collections.abc import Iterator, Mapping
+from contextlib import contextmanager
+from contextvars import ContextVar
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -262,9 +264,10 @@ def validate(conn: sqlite3.Connection, value: ReleaseClosure | Mapping[str, Any]
     from .closure_validation import remember, unchanged
 
     manifest = value.manifest() if isinstance(value, ReleaseClosure) else hydrate(conn, value)
-    if manifest.get("format") != "release-closure-v1" or digest(
-        {k: v for k, v in manifest.items() if k != "digest"}
-    ) != manifest.get("digest"):
+    if manifest.get("format") != "release-closure-v1" or (
+        not _verified(manifest)
+        and digest({k: v for k, v in manifest.items() if k != "digest"}) != manifest.get("digest")
+    ):
         raise ClosureError("closure_manifest_digest_mismatch")
     from .event_local_coverage import check_artifacts
 
@@ -371,6 +374,12 @@ def retain(conn: sqlite3.Connection, value: ReleaseClosure | Mapping[str, Any]) 
     if not conn.in_transaction:
         raise ClosureError("closure_retention_requires_output_transaction")
     manifest = value.manifest() if isinstance(value, ReleaseClosure) else hydrate(conn, value)
+    if conn.execute(
+        "SELECT 1 FROM derivation_dependency_sets WHERE dependency_set_id=?",
+        (str(manifest["digest"]),),
+    ).fetchone():
+        # Content-addressed and immutable: the stored proof is these bytes.
+        return
     private = {key: item for key, item in manifest.items() if key != "digest"}
     if digest(private) != manifest["digest"]:
         raise ClosureError("closure_manifest_digest_mismatch")
@@ -378,6 +387,42 @@ def retain(conn: sqlite3.Connection, value: ReleaseClosure | Mapping[str, Any]) 
         "INSERT OR IGNORE INTO derivation_dependency_sets VALUES (?,?)",
         (manifest["digest"], canonical(private)),
     )
+
+
+_known_proofs: ContextVar[dict[str, tuple[Mapping[str, Any], str]] | None] = ContextVar(
+    "known_closure_proofs", default=None
+)
+
+
+@contextmanager
+def known_proof(private: Mapping[str, Any]) -> Iterator[None]:
+    """Verify one private proof once, then reuse it for a single operation.
+
+    Build completion names its proof by digest and resolves and validates it at
+    four boundaries inside one bounded write. Recomputing digests over its
+    235 MB each time cost seconds and ratcheted memory toward the worker's
+    8 GB limit (D-0199). The digest and the public commitment are checked here,
+    once; later uses of the same objects skip only those two recomputations.
+    """
+    if digest({key: item for key, item in private.items() if key != "digest"}) != private.get(
+        "digest"
+    ):
+        raise ClosureError("closure_manifest_digest_mismatch")
+    public = public_manifest(private)
+    token = _known_proofs.set({str(private["digest"]): (private, str(public["digest"]))})
+    try:
+        yield
+    finally:
+        _known_proofs.reset(token)
+
+
+def _verified(manifest: Mapping[str, Any]) -> bool:
+    """Whether these are the exact objects known_proof already verified."""
+    entry = (_known_proofs.get() or {}).get(str(manifest.get("digest")))
+    if entry is None:
+        return False
+    known = entry[0]
+    return manifest.keys() == known.keys() and all(manifest[key] is known[key] for key in known)
 
 
 def hydrate(conn: sqlite3.Connection, value: Mapping[str, Any]) -> dict[str, Any]:
@@ -388,6 +433,12 @@ def hydrate(conn: sqlite3.Connection, value: Mapping[str, Any]) -> dict[str, Any
         "digest"
     ):
         raise ClosureError("public_closure_digest_mismatch")
+    entry = (_known_proofs.get() or {}).get(str(manifest["private_digest"]))
+    if entry is not None:
+        # The public digest covers every public field, private_digest included.
+        if manifest["digest"] != entry[1]:
+            raise ClosureError("public_closure_commitment_mismatch")
+        return dict(entry[0])
     row = conn.execute(
         "SELECT manifest_json FROM derivation_dependency_sets WHERE dependency_set_id=?",
         (manifest["private_digest"],),

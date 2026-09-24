@@ -326,7 +326,9 @@ def dispatch_one(
     # inside it exceeded the write deadline on 2026-09-23 (D-0195).
     pages = plan.pages
     if target_watch_id is not None:
-        pages = [item for item in plan.pages if _spec_id(item) == target_watch_id] or plan.pages
+        pages = (
+            tuple(item for item in plan.pages if _spec_id(item) == target_watch_id) or plan.pages
+        )
     from swingset.project.history import projection_answer_cached
 
     year_allowed = _year_gate(conn)

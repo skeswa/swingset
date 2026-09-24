@@ -350,15 +350,20 @@ def test_cycle_reports_publication_held_reason_without_claiming_failure(
         )
 
 
+@pytest.mark.parametrize("kind", ["build", "closure"])
 def test_build_failure_is_reported_and_does_not_abort_the_cycle(
-    tmp_path, configuration, monkeypatch
+    tmp_path, configuration, monkeypatch, kind
 ):
     from swingset.build.builder import BuildError
+    from swingset.build.closure_manifest import ClosureError
 
     config, overrides = configuration
     clock = FakeClock()
 
     def failing_build(*_args, **_kwargs):
+        # A closure that fails validation is contained the same way (D-0199).
+        if kind == "closure":
+            raise ClosureError("callback_marks local_page_support_unverifiable")
         raise BuildError("callback_marks references missing entry x")
 
     monkeypatch.setattr("swingset.schedule.cycle.build", failing_build)
@@ -379,9 +384,37 @@ def test_build_failure_is_reported_and_does_not_abort_the_cycle(
         )
         # The build could not assemble a candidate, but the cycle went on to
         # fetch and derive, which is what repairs a stale generation (D-0187).
-        assert result["build_error"].startswith("BuildError: callback_marks")
+        assert result["build_error"].split(": ")[1].startswith("callback_marks")
         assert result["checked"] >= 1
         assert "parse" in result["stages"]
+        # Non-fatal is not healthy: the watchdog alerts on failed=true, and 63
+        # cycles once reported failed=false over one build error (D-0199).
+        assert result["failed"]
+
+
+def test_build_interval_defers_any_build_admitted_within_it(tmp_path):
+    from datetime import timedelta
+    from types import SimpleNamespace
+
+    from swingset.schedule.cycle import build_deferred_for_interval
+    from swingset.schedule.fair_policy import SchedulerConfig
+
+    clock = FakeClock()
+    unset = SimpleNamespace(scheduler=SchedulerConfig())
+    hourly = SimpleNamespace(scheduler=SchedulerConfig(build_interval_seconds=3600))
+    with open_database(tmp_path / "state") as db:
+        assert not build_deferred_for_interval(db.connection, hourly, now=clock.now())
+        db.connection.execute(
+            "INSERT INTO execution_admissions(action_id,action_kind,admitted_at,control_revision,all_sources,all_kinds,state,outcome) "
+            "VALUES ('build_x','build',?,0,1,1,'settled','failed')",
+            (clock.now().isoformat(),),
+        )
+        assert not build_deferred_for_interval(db.connection, unset, now=clock.now())
+        later = clock.now() + timedelta(minutes=59)
+        assert build_deferred_for_interval(db.connection, hourly, now=later)
+        assert not build_deferred_for_interval(
+            db.connection, hourly, now=later + timedelta(minutes=1)
+        )
 
 
 def test_repository_identity_ignores_uncommitted_store_markers(monkeypatch):
@@ -394,3 +427,83 @@ def test_repository_identity_ignores_uncommitted_store_markers(monkeypatch):
     assert repository_identity() == digest
     monkeypatch.setenv("SWINGSET_REVISION", "e136d95efdc7")
     assert repository_identity() == "e136d95efdc7"
+
+
+def test_history_interval_defers_only_a_recently_materialized_history(tmp_path):
+    from datetime import timedelta
+    from types import SimpleNamespace
+
+    from swingset.schedule.cycle import history_deferred_for_interval
+    from swingset.schedule.fair_policy import SchedulerConfig
+    from swingset.state.work import WorkUnit
+
+    clock = FakeClock()
+    daily = SimpleNamespace(scheduler=SchedulerConfig(history_interval_seconds=86400))
+    history = WorkUnit("project", "history", "all")
+    with open_database(tmp_path / "state") as db:
+        conn = db.connection
+        run = db.start_run(clock.now())
+        assert not history_deferred_for_interval(conn, daily, history, now=clock.now())
+        conn.execute(
+            "INSERT INTO derivation_scopes(stage,unit_kind,unit_id,registered_at) VALUES ('project','history','all',?)",
+            (clock.now().isoformat(),),
+        )
+        conn.execute("INSERT INTO derivation_dependency_sets VALUES ('empty','[]')")
+        conn.execute(
+            "INSERT INTO derivation_generations VALUES ('dg_h','project','history','all','f','{}','empty',NULL,'d',0,?,?)",
+            (clock.now().isoformat(), run),
+        )
+        conn.execute(
+            "UPDATE derivation_scopes SET materialized_generation_id='dg_h' WHERE unit_kind='history'"
+        )
+        later = clock.now() + timedelta(hours=23)
+        assert history_deferred_for_interval(conn, daily, history, now=later)
+        assert not history_deferred_for_interval(
+            conn, daily, WorkUnit("project", "event", "x"), now=later
+        )
+        assert not history_deferred_for_interval(
+            conn, SimpleNamespace(scheduler=SchedulerConfig()), history, now=later
+        )
+        assert not history_deferred_for_interval(
+            conn, daily, history, now=later + timedelta(hours=1)
+        )
+
+
+def test_a_bookkeeping_stage_overrun_is_recorded_and_the_cycle_still_fetches(
+    tmp_path, configuration, monkeypatch
+):
+    # An overrun in a pre-acquisition stage aborted every cycle before it
+    # fetched anything for eleven hours on 2026-09-25 (D-0201).
+    from swingset.state import requirements
+    from swingset.state.write_deadline import WriteDeadlineExceeded
+
+    config, overrides = configuration
+    clock = FakeClock()
+
+    def overran(*_args, **_kwargs):
+        raise WriteDeadlineExceeded("atomic write exceeded 45 seconds; output rolled back")
+
+    monkeypatch.setattr(requirements, "scan", overran)
+    with open_database(tmp_path / "state") as db:
+        seed_held(db, clock)
+        result = run_cycle(
+            db,
+            config_dir=config,
+            overrides_dir=overrides,
+            clock=clock,
+            transport=httpx.MockTransport(
+                lambda request: (
+                    httpx.Response(404)
+                    if request.url.path == "/robots.txt"
+                    else httpx.Response(200, content=FIXTURE)
+                )
+            ),
+        )
+        assert result["stage_errors"] == [
+            {
+                "stage": "requirements_scan",
+                "error": "atomic write exceeded 45 seconds; output rolled back",
+            }
+        ]
+        assert result["failed"] and "error" not in result
+        assert result["checked"] >= 1
