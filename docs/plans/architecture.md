@@ -2,7 +2,8 @@
 
 Adopted 2026-09-25 by the owner ("move the proposal to plans … pause current
 work and implement this plan"). Other plans are paused until this one's phases
-land, except operating the worker safely. Nothing here is implemented yet.
+land, except operating the worker safely. Phase 0 is implemented offline and
+not deployed (section 9); nothing else is implemented yet.
 Figures come from `docs/status.md`, the
 [stall investigation](../../journal/investigations/2026/build-failure-and-history-deadline-2026-09-24.md),
 the [derivation investigation](../../journal/investigations/2026/derivation-invalidation-2026-09-23.md)
@@ -209,7 +210,9 @@ and its firing becomes an alarm, because under I2 it should never fire.
 row `(host_or_watch, reason, since, expires_at)`; the watchdog alarms when
 `now > expires_at` and the reason is still current, and the daily summary
 lists reasons by count. "Legacy spacing unknown" would have alarmed in an
-hour, not eight days.
+hour, not eight days. Phase 0 alarms on that state and on `Blocked` host
+pauses from existing tables; the record itself needs a table and a package
+change, so it lands in phase 2.
 
 **Idempotent effects.** Publication already uses expected-parent commits
 (`publish/service.py`). Backups become idempotent by naming segments by
@@ -346,22 +349,126 @@ first and alone.
 - No cap raises. If the file grows, find the writer.
 - Disable the event-site review and the pressure and progress refreshes by
   config (they are optional stages), removing the D-0201 path entirely.
+  _Implemented, not deployed_
+  ([D-0204](../../journal/decisions/0204-turn-off-the-event-bookkeeping-stages-and-open-the-pressure-gate.md)):
+  `[stages]` in `config/sources.toml` turns off the site review, pressure,
+  progress refresh and blocker observations, and pressure off opens its gate.
+  The switches are package code (a whole-graph re-derivation), so they ship
+  with phase 1's switch; the 019 package ignores the table. Turning pressure
+  back on, which a rollback to 019 also does, needs no command: the cycle's
+  pressure bootstrap drains the dirty rows the triggers kept, 100 watches a
+  cycle, holding new-event admission until they drain. Starts whose request
+  stored no page stay uncounted until that watch is fetched again.
 - Watchdog on progress: alarm when `max(fetched_at)` or the newest generation
-  is older than 2 hours while unheld (the `staleFetchSeconds` check exists;
-  add the generation check).
+  is older than 2 hours while unheld. _Implemented, not deployed_
+  ([D-0202](../../journal/decisions/0202-the-watchdog-alarms-on-progress-within-two-hours.md)):
+  keyed lines repeated at most every 2 hours; fetching measured by requests,
+  not stored pages, with a budget-spent exception; progress per stage with
+  ready work, clocked from when the work became runnable (links: when history
+  materialized after their last progress, or came due and did not run;
+  `project/history` clocked from when it came due); the size-cap pause; the
+  two known silent gates (legacy spacing unknown, `Blocked` host pause) and a
+  host answering only 429 or 5xx; an overdue hold, an inactive timer, a failed
+  backup; and `[watchdog-blind]` for any check that could not run twice. Every
+  query is tested against the real migrations. The general guard record and a
+  clock for blocked units stay in phase 2.
 - Remote backups: pause the upload with a standing alert line, keep the
-  verified Mac copy current weekly by hand, until phase 4. Backups are
-  refused today (the room check wants 119 GB; 46 GB is free) because local
-  checkpoints are pruned only after an upload that always fails. Prune the
-  oldest timer checkpoints after an independent check, since it deletes data,
-  and let a local-only backup prune its own predecessors.
+  verified Mac copy current weekly by hand, until phase 4. Backups are refused
+  (the 12:00 UTC check on 2026-09-25 wanted 119 GB; the 16:10 UTC preflight
+  receipt shows 46.5 GB free) because local checkpoints are pruned only after
+  an upload that always fails. Prune the oldest timer checkpoints after an
+  independent check, since it deletes data, and let a local-only backup prune
+  its own predecessors. _Implemented, not deployed_
+  ([D-0203](../../journal/decisions/0203-back-up-locally-and-keep-one-checkpoint-until-segmented-backups.md)):
+  `backupUpload = false` on orb runs `backup --local` with a one-copy room
+  check, `[retention]` keeps one timer checkpoint, and the watchdog adds
+  `[backup-upload-paused]` (daily), `[backup-stale]` (36 h) and
+  `[backup-failed]`. A local backup verifies its new copy (`verify_checkpoint`
+  with `quick_check`) after releasing the writer lock and before it prunes; a
+  failed copy is renamed `failed-run_*`, replacing any older one, its run
+  record says failed, and the backup fails without pruning (package code,
+  ships with 0b). On a clone of the 16:10 copy on the Mac the read-back took
+  about 6 minutes (`quick_check` 199 s, `ok`) and the whole backup about 10,
+  at 320 MB peak memory; the worker may be slower, and the unit stops a local
+  backup after 6 hours. The one-time prune of old `run_*` checkpoints stays an
+  operator `rm` after the independent check, and the switch comes after it:
+  whenever more than about 69.5 GB is free, the one-copy room check passes and
+  the first timer run would otherwise prune unchecked
+  ([local-only backups](../guides/operation.md#local-only-backups)).
+- Two changes. 0a is `config/`, `nix/`, the watchdog, docs and records, and
+  deploys on the 019 package with no re-queue. 0b is the package code and its
+  tests, and ships with phase 1's switch. `tests/test_config.py` and
+  `tests/backup/test_backup_prune_wiring.py` split by hunk: their stage and
+  read-back tests go with 0b. The 0a tree alone passes the core suite.
 - Deploys: batch, and diff the deploy tree's `src/` against the deployed
   store before every switch.
 
-**Phase 1: pay the last re-derivation (6 to 9 days).** Invalidation plan
-steps 1, 2 and 5 (output cutoff at derive and parse, scoped recipes) in one
-switch, plus the equivalence table (migration 33). _Accept when_ a deploy
-touching no parser re-queues zero parse units (receipt), a re-run with
+_Phase 0 status: implemented offline 2026-09-25, not deployed._ Acceptance
+ran on APFS clones of the 16:10 UTC production copy on the Mac, with no
+network (a mock transport answers 304 or 404), one
+[receipt](../../journal/evidence/runtime/architecture-phase0-rehearsal-2026-09/receipt.json):
+
+| Check                          | Result                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| R0, module eval                | `backupUpload = false` gives `backup --local`, a one-copy room check, a 6 h timeout and the watchdog's `--backup-upload 0`; `true` keeps two copies, no timeout and no backup flags.                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| R1, 0a re-queues nothing       | 019 code. After a baseline accept (the Mac interpreter re-queues 33,906 parse units), accepting the 0a config changed only `config/sources.toml` and `policy/retention.json`; pending work stayed link/event 2,932, parse/snapshot 33,906, project/history 1 (2.0 s). `config/sources.toml` is in the project work fingerprint, so a pending project unit whose latest attempt is blocked would become eligible again (a retry, not a re-queue); the copy has none.                                                                                                                                                                               |
+| R2, one 900 s cycle, 0b vs 019 | Parent code and config against the working copy with `[stages]` off, each on a fresh clone. Both `failed=false`, no stage errors, one parse failure each (the same page). The new summary lacks the five stage keys and lists the four in `stages_disabled`; reconciliation 1.7 s against 2.6 s (the site review had nothing to review). Backpressure from the Mac re-queue held all requests in both, so a second pair lifted it by config: (new against 019) 170 requests against 152, no pressure denials against 2,748, no `event_index` watch due in either, first request after about 9 minutes in both, peak memory 4.3 GB against 4.9 GB. |
+| R3, watchdog on real data      | At 16:10Z: `[stale-fetch]` (3 h) and `[stale-progress]` (link 2 h 58 m with 2,932 ready; project/history). At 13:30Z: nothing. With `--backup-upload 0`: also `[backup-stale]` and `[backup-upload-paused]`. 0.04 to 0.27 s a run.                                                                                                                                                                                                                                                                                                                                                                                                                |
+| R4, local backup, working copy | 407 s, 331 MB peak, a 35.8 GB checkpoint; read-back `ok` in 294 s; both fake `run_*` checkpoints pruned, the operator-named one and the new copy kept.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| Tests                          | Core suite 1,151 passed; the full suite passed 2,606 in the second review; `ruff` and `mypy` clean. The 0a tree alone (019 `src/`) passed its core suite in review.                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+
+Conditions from review, carried to the switches:
+
+- Split the working change into a 0a change and a 0b change before phase 1
+  edits the shared files. The 0a tree's `src/` must equal `1b95eff`; re-run
+  R1 on it before the 0a switch.
+- 0a deploys on the 019 package, which has no read-back. From the first timer
+  backup after the switch, each unchecked new copy deletes its predecessor.
+  The Mac byte copy must be current and verified before the switch and
+  refreshed weekly after; the deletion's independent check acknowledges this
+  window.
+- 0b ships only with phase 1's switch. A rollback to 019, or turning pressure
+  back on, closes `event_index` expansion on every host until the dirty rows
+  drain (about 5 hours per week the stage was off), and busy hosts can stay
+  latched high after that. Phase 1's rollback plan names this, and the
+  operator watches `event_index` requests by host for a day after
+  ([stage switches](../reference/scheduling.md#stage-switches)).
+- Phase 1's post-check records the worker's `checkpoint-verify` seconds and
+  the state size without `checkpoints/` against the 55 GB phase 4 trigger.
+
+Deploy steps (operator; the owner is
+[local-only backups](../guides/operation.md#local-only-backups)):
+
+1. 0a: build the deploy tree from the 0a change and diff its `src/` against
+   the deployed store (must be empty). Refresh and verify the Mac byte copy;
+   preflight receipt.
+2. Independent check, with a written verdict, of the deletion list: every
+   `run_*` but the newest, plus the `blobs/` and `extracts/` closure check.
+3. Stop `swingset-backup.timer`. Remove the approved directories as root,
+   then `systemctl reset-failed swingset-backup.service`; receipt.
+4. `nixos-rebuild switch` to the 0a tree, start the timer; post-check receipt
+   (next backup writes one copy and prunes its predecessor; pending counts by
+   stage unchanged after the first cycle; `[backup-upload-paused]` once).
+5. 0b: with phase 1's switch, under its hold, byte copy and receipts; its
+   post-check adds `stages_disabled` in cycle summaries, no stage errors from
+   the four stages, and `event_index` requests on formerly latched hosts.
+
+Deploy cost: 0a is one rebuild of minutes, no re-queue, no migration, one
+independent check, one manual deletion of about 94 GB, and a 35 GB Mac copy.
+Rollback is the previous system generation, which brings back refused
+backups. 0b adds nothing to phase 1's switch. Alone it would cost a
+whole-graph re-derivation (33,906 parses, 4 to 9 hours, several GB). After
+it, each local backup adds a read-back of about 5 minutes on the Mac, likely
+longer on the worker.
+
+**Phase 1: pay the last re-derivation (6 to 9 days).** Invalidation plan steps
+1, 2 and 5 (output cutoff at derive and parse, scoped recipes) in one switch,
+plus the equivalence table (migration 33). Its post-check receipt also carries
+0b's: the first local backup's `checkpoint-verify` result and seconds, and the
+state size without `checkpoints/` against the phase 4 trigger. Its rollback
+plan names the pressure drain that a return to 019 starts (phase 0
+conditions). _Accept when_ a
+deploy touching no parser re-queues zero parse units (receipt), a re-run with
 identical output writes no generation, and the file grows by under 100 MB
 across a code-only deploy.
 
@@ -390,18 +497,24 @@ one minute of derive time; the manifest is under 5 MB and identical across two
 attempts with unchanged inputs; a release that would drop identity links is
 refused with a reason.
 
-**Phase 4: storage lifecycle and backups (about 2 weeks).** Payloads,
-parse results and manifests to the blob store with a lifecycle row per
-class; streaming mark-sweep across all classes; segmented incremental backup
-with weekly automated restore verification; migration of retained
+**Phase 4: storage lifecycle and backups (about 2 weeks).** _Trigger:_ start
+it, or raise the quota, when the state without checkpoints passes about 55 GB;
+one local checkpoint then leaves little room (D-0203). No alarm watches it yet
+(maintenance queue); post-check receipts carry the size. Payloads, parse
+results and manifests to the blob store with a lifecycle row per class;
+streaming mark-sweep across all classes; segmented incremental backup with
+weekly automated restore verification; migration of retained
 `derivation_payloads` out of the file, then reclaim. Deletes data, so it takes
 the independent check. _Accept when_ the file is under 15 GB, the daily backup
-uploads and verifies, the restore drill passes on the worker in scratch, and
-a month of receipts shows the blob store within budget.
+uploads and verifies, the restore drill passes on the worker in scratch, and a
+month of receipts shows the blob store within budget.
 
 **Phase 5: removals (about 2 weeks, one subsystem per switch).** The table
 in section 8, each behind its replacement's receipts, with tests deleted in
-the same change. _Accept when_ core suite time drops, the table count is under
+the same change. The `event_*` dependency report also covers the writers
+that outlive the phase 0 stage switches: the migration 0019 pressure
+triggers and the `event_stage_operations` rows appended per fetched or
+parsed snapshot. _Accept when_ core suite time drops, the table count is under
 80, and the code map fits the five loops.
 
 **Phase 6, triggered, not scheduled.** PostgreSQL per the triggers in 6.4.

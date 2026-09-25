@@ -48,6 +48,7 @@ from swingset.sources import get_page_kind, sources
 from swingset.state.attempts import latest_attempt, recover_interrupted
 from swingset.state.control_scopes import for_publication, for_unit, for_watch, unit_allowed
 from swingset.state.controls import (
+    ActionScope,
     ControlPaused,
     matching_pauses,
     operation,
@@ -277,6 +278,11 @@ def run_cycle(
             max_database_bytes=bundle.config.retention.max_database_bytes,
             now=clock.now(),
         )
+        # A stage switched off in `[stages]` is skipped whole: no operation, no
+        # query, no summary key. Turning off `event_pressure` also opens its
+        # acquisition gate (event_pressure._enabled).
+        stages = bundle.config.stages
+        summary["stages_disabled"] = stages.disabled()
         from swingset.schedule.event_enumerations import bootstrap as bootstrap_events
 
         if not stop():
@@ -295,24 +301,28 @@ def run_cycle(
                         now=recovery_now,
                         wall_seconds=recovery_seconds,
                     )
-            from swingset.schedule.event_pressure import bootstrap as bootstrap_pressure
+            if stages.event_pressure:
+                from swingset.schedule.event_pressure import bootstrap as bootstrap_pressure
 
-            with contained("event_pressure_bootstrap"):
-                summary["event_pressure_bootstrap"] = bootstrap_pressure(
-                    database, bundle.config, now=clock.now()
+                with contained("event_pressure_bootstrap"):
+                    summary["event_pressure_bootstrap"] = bootstrap_pressure(
+                        database, bundle.config, now=clock.now()
+                    )
+            if stages.event_blocker_observations:
+                from swingset.schedule.event_blocker_history import (
+                    refresh as observe_event_blockers,
                 )
-            from swingset.schedule.event_blocker_history import refresh as observe_event_blockers
 
-            # Diagnostic bookkeeping may observe a pause without starting
-            # paused acquisition, artifact verification, or derivation work.
-            with contained("event_blocker_observations"):
-                summary["event_blocker_observations"] = observe_event_blockers(
-                    database,
-                    bundle.config,
-                    now=clock.now(),
-                    run_id=run_id,
-                    operator_hold=(database.state_dir / "operator-hold").is_file(),
-                )
+                # Diagnostic bookkeeping may observe a pause without starting
+                # paused acquisition, artifact verification, or derivation work.
+                with contained("event_blocker_observations"):
+                    summary["event_blocker_observations"] = observe_event_blockers(
+                        database,
+                        bundle.config,
+                        now=clock.now(),
+                        run_id=run_id,
+                        operator_hold=(database.state_dir / "operator-hold").is_file(),
+                    )
         from swingset.state.requirements import scan
         from swingset.state.verification import verification_summary
 
@@ -322,11 +332,11 @@ def run_cycle(
                     database, clock.now(), run_id, history_start=bundle.config.history_start
                 )
         if (
-            not stop()
+            stages.event_site_review
+            and not stop()
             and database.connection.execute("SELECT 1 FROM history_acceptance LIMIT 1").fetchone()
         ):
             from swingset.history.event_sites import reconcile as review_event_sites
-            from swingset.state.controls import ActionScope
 
             try:
                 with operation(
@@ -392,9 +402,8 @@ def run_cycle(
             discover(database, bundle, clock.now())
             if bundle.config.enabled("wsdc_registry"):
                 discover_registry(database, clock.now())
-        if not stop():
+        if stages.event_pressure and not stop():
             from swingset.schedule.event_pressure import refresh as refresh_pressure
-            from swingset.state.controls import ActionScope
 
             try:
                 with operation(
@@ -429,7 +438,7 @@ def run_cycle(
                     {"stage": "event_pressure_refresh", "error": str(exc)}
                 )
                 log("stage_failed", stage="event_pressure_refresh", error=str(exc)[:300])
-        if not stop():
+        if stages.event_progress_refresh and not stop():
             from swingset.schedule.event_progress import refresh as refresh_progress
 
             try:

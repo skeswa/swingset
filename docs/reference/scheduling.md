@@ -276,6 +276,7 @@ watermark, defer discretionary event-index expansion; do not delete its watches
 or stop processing links from an already acquired index. When the count falls
 below the watermark, expansion becomes eligible again.
 
+Production turns this gate off by config; see [Stage switches](#stage-switches).
 The local implementation observes started source events per request host. An
 unfetched event index alone does not count as started. The initial thresholds
 defer additional event indexes above 100 unresolved events and reopen below
@@ -345,6 +346,52 @@ recovery cannot refund issued requests or grant a fresh turn by restarting.
 Progress commits with the stage output it describes. Budget resets and resume
 preserve pending membership, turn position, cooldowns, and completed work.
 Operator holds remain effective and earn no extra requests or accumulated burst.
+
+### Stage switches
+
+The top-level `[stages]` table of `config/sources.toml` turns optional event
+bookkeeping off. Every key defaults to `true`. An unknown key or a value that is
+not `true` or `false` stops config loading.
+
+| Key                          | When `false`                                                                                                                                                         |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `event_site_review`          | The cycle skips the event-site review and its `history_acceptance` probe.                                                                                            |
+| `event_pressure`             | The cycle skips pressure bootstrap and refresh. The gate opens: no `event_index` watch is denied, and starts, request debits and event turns write no pressure rows. |
+| `event_progress_refresh`     | The cycle skips the progress refresh.                                                                                                                                |
+| `event_blocker_observations` | The cycle skips blocker observations.                                                                                                                                |
+
+A skipped stage starts no operation and leaves no key in the cycle summary. The
+summary's `stages_disabled` lists the keys set to `false`. Pressure must open
+its gate when off: nothing then refreshes observations or drains dirty rows, so
+stale subjects or pending metadata would close expansion for good. Doctor and
+the event report show the pressure gate as `disabled`. Stored pressure,
+progress and blocker rows stay as they were. Two writers do not stop: the
+migration 0019 triggers still mark a changed watch or snapshot dirty in
+`event_pressure_dirty` (at most one row per watch; a re-bootstrap drains
+them), and a fetched or parsed snapshot still appends an
+`event_stage_operations` row, so that table keeps growing with snapshots.
+Only pressure gates acquisition; the other three feed reports and
+diagnostics.
+
+Production sets all four keys to `false`
+([D-0204](../../journal/decisions/0204-turn-off-the-event-bookkeeping-stages-and-open-the-pressure-gate.md)),
+so no bookkeeping stage runs before acquisition and nothing they write gates
+it. The code default stays `true`. The table takes effect with the phase 1
+package; the 019 package ignores it, and all four stages run until then.
+Turning `event_pressure` back on, by config or by rolling the package back to
+019, needs no command. The cycle's pressure bootstrap drains
+`event_pressure_dirty` 100 watches a cycle, and `metadata_pending` defers
+new-event admission on every host until the dirty event watches drain. Each
+drained result or event-index watch with a stored page, or a declared result
+obligation, is enrolled as started, so every such page fetched while pressure
+was off is counted. A request that stored no page while it was off is not,
+until that watch is requested again; until then the gate undercounts those
+starts and can admit a few too many events. On the 2026-09-25 16:10 UTC copy
+about 1,900 watches got new snapshots per week, so expect about 5 hours of
+closed expansion per week the stage was off. Hosts whose subjects went stale
+can then stay latched high until the refresh, eight events a cycle, catches
+up. The watchdog does not see either, so watch `event_index` requests by host
+for a day after turning pressure back on.
 
 ### Reporting and acceptance
 

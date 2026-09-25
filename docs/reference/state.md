@@ -732,10 +732,11 @@ named by one unchanged finding refuse every other finding for that owner
 
 ### Knobs
 
-`config/sources.toml` may carry a `[retention]` table. It does not carry one
-today, and an absent table means the defaults, which live in `RetentionConfig`
-in `src/swingset/config.py`. Adding the table is how an operator changes any of
-them: `max_database_bytes` (default 32,000,000,000 since D-0186) is the most
+`config/sources.toml` may carry a `[retention]` table. An absent table or key
+means the default, which lives in `RetentionConfig` in `src/swingset/config.py`.
+Production sets `max_database_bytes = "64GB"` and the two checkpoint values
+below. Setting a key is how an operator changes any of them:
+`max_database_bytes` (default 32,000,000,000 since D-0186) is the most
 `state.sqlite` may be on disk; `recent_window` (default 3) is how many recent
 generations of each scope are roots; `collect_older_than` (default one day) is
 how old a disposable candidate directory must be before an apply may remove it,
@@ -744,11 +745,10 @@ a build still writing its candidate and a removal. Every value is checked when
 the table is read: a size cap or window below one, a keep-recent below one, an
 age floor below one second, and a negative checkpoint age are all refused
 ([D-0163](../../journal/decisions/0163-every-retention-value-is-checked-where-the-table-is-read.md)).
-Doctor reports usage against the first two, and reports bytes in use, file
-size, write-ahead log size and free-list bytes separately, because deleting rows
-frees pages to SQLite's free list without shrinking the file. Crossing the cap
-sets one whole-pipeline operator pause; reading, controls and recovery keep
-working
+Doctor reports usage against the first two, and reports bytes in use, file size,
+write-ahead log size and free-list bytes separately, because deleting rows frees
+pages to SQLite's free list without shrinking the file. Crossing the cap sets
+one whole-pipeline operator pause; reading, controls and recovery keep working
 ([D-0141](../../journal/decisions/0141-two-retention-limits-and-the-collector-age-become-policy.md),
 [D-0142](../../journal/decisions/0142-the-size-cap-sets-one-whole-pipeline-pause-and-never-rewrites-one.md)).
 
@@ -761,6 +761,16 @@ directory waits. They are policy for disk on the worker, not for the database,
 and they never decide anything about a directory under any other name
 ([D-0152](../../journal/decisions/0152-the-backup-command-prunes-its-own-checkpoints.md),
 [D-0154](../../journal/decisions/0154-policy-removes-only-what-the-code-wrote-and-sizes-it-once.md)).
+Production sets `checkpoint_keep_recent = 1` and `checkpoint_max_age = "0s"`:
+backups are local only until segmented backups, a checkpoint is about 36 GB,
+and the disk cannot hold two with the pipeline's headroom. Each successful
+backup keeps the one it wrote and removes every older `run_*`
+([D-0203](../../journal/decisions/0203-back-up-locally-and-keep-one-checkpoint-until-segmented-backups.md)).
+The runway is short (rough estimate): steady free space is about 218 GB less
+twice the state size S, so `[disk-low]` stays on past S ≈ 59 GB and the
+backup room check refuses past S ≈ 66 GB. Phase 4 of the
+[architecture plan](../plans/architecture.md) starts, or the quota rises, at
+S ≈ 55 GB.
 
 `gc --apply` frees pages inside the file and `gc --reclaim` gives them back to
 the filesystem, which is what the cap measures. Raising `max_database_bytes` is

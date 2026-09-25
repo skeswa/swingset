@@ -84,12 +84,32 @@ class RetentionConfig:
 
 
 @dataclass(frozen=True)
+class StageConfig:
+    """Which optional event bookkeeping stages a cycle runs.
+
+    All default on, which is the behaviour before the switches existed. A stage
+    that is off is skipped entirely. Turning `event_pressure` off also opens its
+    acquisition gate: stale or unsynced pressure must not close `event_index`
+    expansion when nothing refreshes it.
+    """
+
+    event_site_review: bool = True
+    event_pressure: bool = True
+    event_progress_refresh: bool = True
+    event_blocker_observations: bool = True
+
+    def disabled(self) -> list[str]:
+        return sorted(f.name for f in fields(self) if not getattr(self, f.name))
+
+
+@dataclass(frozen=True)
 class Config:
     hosts: Mapping[str, HostConfig]
     sources: Mapping[str, SourceConfig]
     history_start: date = history.HISTORY_START
     scheduler: SchedulerConfig = SchedulerConfig()
     retention: RetentionConfig = RetentionConfig()
+    stages: StageConfig = StageConfig()
 
     def host(self, name: str) -> HostConfig:
         return self.hosts.get(name, HostConfig())
@@ -174,6 +194,19 @@ def parse_retention(body: bytes) -> RetentionConfig:
     return result
 
 
+def parse_stages(body: bytes) -> StageConfig:
+    """Read the top-level `[stages]` table of sources.toml; absent means all on."""
+    values = tomllib.loads(body.decode()).get("stages", {})
+    if not isinstance(values, dict):
+        raise ValueError("stages must be a table")
+    if unknown := values.keys() - {field.name for field in fields(StageConfig)}:
+        raise ValueError(f"unknown stages: {sorted(unknown)}")
+    for name, value in values.items():
+        if not isinstance(value, bool):
+            raise ValueError(f"stage {name} must be true or false")
+    return StageConfig(**values)
+
+
 def parse_history_start(body: bytes) -> date:
     """Read the top-level `history_start` of sources.toml; absent means the enshrined default."""
     raw = tomllib.loads(body.decode())
@@ -190,4 +223,5 @@ def load_config(directory: Path = Path("config")) -> Config:
         parse_history_start(sources),
         parse_scheduler(sources),
         parse_retention(sources),
+        parse_stages(sources),
     )

@@ -4,7 +4,7 @@ Recorded: 2026-09-18
 Decided by: agent  
 Topic: Worker disk space  
 Supersedes: —  
-Superseded by: —
+Superseded by: in production while upload is paused, [D-0203](0203-back-up-locally-and-keep-one-checkpoint-until-segmented-backups.md) keeps one checkpoint and prunes after a local read-back
 
 ## Decision
 

@@ -9,7 +9,7 @@ import os
 import signal
 import sys
 import time
-from dataclasses import asdict
+from dataclasses import asdict, dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -255,6 +255,122 @@ def _prune_checkpoints(state: Path, created: Path, retention: RetentionConfig) -
     )
 
 
+#: A local checkpoint that fails verification is renamed with this prefix. The
+#: name is outside the timer's namespace, so pruning, `[backup-stale]` and an
+#: operator never count it as the newest good copy, and retention policy never
+#: removes it; nix/watchdog.py reports it as `[backup-failed]` until it is
+#: removed. Only the newest failed copy is kept (D-0203).
+FAILED_CHECKPOINT_PREFIX = "failed-"
+
+
+def _verify_local_checkpoint(created: Path) -> str | None:
+    """Why the new checkpoint is not safe to keep alone, or None.
+
+    A local backup has no upload to prove its copy, and pruning after it can
+    leave that copy as the only one (D-0203). So the whole copy is read back
+    as a restore would read it: closure, every file hash, the schema, foreign
+    keys and the artifact closure, with `PRAGMA quick_check` in place of the
+    slower `integrity_check` that restore still runs. Any exception is a
+    verdict, not a crash: a malformed manifest can raise TypeError, and the
+    copy must still leave the timer namespace.
+    """
+    from swingset.backup.checkpoint import verify_checkpoint
+    from swingset.state.db import SCHEMA_VERSION
+
+    started = time.monotonic()
+    problem: str | None = None
+    try:
+        verify_checkpoint(created, maximum_schema_version=SCHEMA_VERSION, quick=True)
+    except Exception as exc:
+        problem = f"{type(exc).__name__}: {exc}"
+    log(
+        "checkpoint-verify",
+        checkpoint=str(created),
+        ok=problem is None,
+        seconds=round(time.monotonic() - started, 3),
+    )
+    return problem
+
+
+@dataclass(frozen=True)
+class ReadBack:
+    """A local checkpoint `_mutate` wrote, to verify once the writer lock is released."""
+
+    checkpoint: Path
+    retention: RetentionConfig
+    run_id: str
+
+
+def _verify_then_prune(state: Path, read_back: ReadBack) -> None:
+    """Verify a local checkpoint, then prune older ones under the writer lock.
+
+    The read-back runs after the backup released `state.lock`: the copy is an
+    independent file, so cycles need not wait the minutes it takes. The prune
+    takes the lock again, since a cycle may be reading an older checkpoint to
+    recover a file. A copy that fails is renamed out of the timer namespace
+    first, so nothing after it can leave it under a timer name. Then, only in
+    `state/checkpoints`, any older failed copy is removed so a repeated
+    failure cannot fill the disk a full copy a day; a removal that fails is
+    logged, not raised. The run's record is rewritten as failed and the
+    backup fails; no good checkpoint is removed. The path is printed only
+    once the copy has passed.
+    """
+    import shutil
+
+    from swingset.backup.pruning import TIMER_NAME
+    from swingset.build.files import fsync_dir
+
+    created = read_back.checkpoint
+    problem = _verify_local_checkpoint(created)
+    if problem is None:
+        print(created)
+        with open_database(state, lock_timeout=None):
+            _prune_checkpoints(state, created, read_back.retention)
+        return
+    failed = created.with_name(FAILED_CHECKPOINT_PREFIX + created.name)
+    os.replace(created, failed)
+    fsync_dir(failed.parent)
+    removed: list[str] = []
+    # Only the timer's directory: a --destination elsewhere is the operator's.
+    if failed.parent.resolve() == (state / "checkpoints").resolve():
+        # Only a name this code gives: an operator's directory never matches.
+        older = sorted(
+            path
+            for path in failed.parent.iterdir()
+            if path.name != failed.name
+            and path.name.startswith(FAILED_CHECKPOINT_PREFIX)
+            and TIMER_NAME.match(path.name.removeprefix(FAILED_CHECKPOINT_PREFIX))
+            and path.is_dir()
+            and not path.is_symlink()
+        )
+        for path in older:
+            try:
+                shutil.rmtree(path)
+            except OSError as exc:
+                log(
+                    "failed-checkpoint-removal-failed",
+                    checkpoint=str(path),
+                    message=f"{type(exc).__name__}: {exc}",
+                )
+            else:
+                removed.append(path.name)
+    log(
+        "checkpoint-prune-skipped",
+        checkpoint=str(failed),
+        reason="verification failed",
+        detail=problem,
+        removed_failed=removed,
+    )
+    error = (
+        f"checkpoint {created.name} failed verification and was renamed {failed.name}: {problem}"
+    )
+    # The run record was written as a success before the read-back; make it
+    # agree with the exit code.
+    with open_database(state, lock_timeout=None) as database:
+        _write_failed_run(database, read_back.run_id, "backup", error)
+    raise RuntimeError(error)
+
+
 HOLD_OVERDUE_SECONDS = 48 * 3600
 
 
@@ -493,26 +609,38 @@ def _finish_failed_manual_run(
     ).fetchone()
     if row is None or str(row[0]) in previous_unfinished:
         return
+    _write_failed_run(database, str(row[0]), command, f"{type(error).__name__}: {error}")
+
+
+def _write_failed_run(database: Database, run_id: str, command: str, error: str) -> None:
+    """Record a run as failed with `error`, keeping any summary it already has."""
+    row = database.connection.execute(
+        "SELECT summary_json FROM runs WHERE run_id=?", (run_id,)
+    ).fetchone()
+    completed: dict[str, Any] = (
+        json.loads(row[0])
+        if row is not None and row[0]
+        else {"run_id": run_id, "command": command, "stopped": False}
+    )
     finished_at = SystemClock().now().isoformat()
-    completed = {
-        "run_id": str(row[0]),
-        "command": command,
-        "finished_at": finished_at,
-        "stopped": False,
-        "failed": True,
-        "error": f"{type(error).__name__}: {error}",
-    }
+    completed.update(finished_at=finished_at, failed=True, error=error)
     from swingset.fetch.archive import canonical, durable_write
 
-    durable_write(database.state_dir / "runs" / f"{row[0]}.json", canonical(completed))
+    durable_write(database.state_dir / "runs" / f"{run_id}.json", canonical(completed))
     with database.transaction() as conn:
         conn.execute(
             "UPDATE runs SET finished_at=?,summary_json=? WHERE run_id=?",
-            (finished_at, json.dumps(completed, sort_keys=True), row[0]),
+            (finished_at, json.dumps(completed, sort_keys=True), run_id),
         )
 
 
-def _mutate(args: argparse.Namespace, database: Database, stopped: list[bool]) -> int:
+def _mutate(
+    args: argparse.Namespace,
+    database: Database,
+    stopped: list[bool],
+    read_back: list[ReadBack],
+) -> int:
+    """Run one locked command; a local backup appends its deferred read-back."""
     from swingset.fetch.archive import Archive
     from swingset.schedule.cycle import build, run_cycle, versions
     from swingset.state.inputs import accept, capture
@@ -833,7 +961,10 @@ def _mutate(args: argparse.Namespace, database: Database, stopped: list[bool]) -
             input_bundle_hash=bundle.digest,
         )
         if args.local:
-            print(checkpoint.path)
+            # A copy that will be read back is printed once it passes
+            # (_verify_then_prune); --no-prune skips that read-back.
+            if args.no_prune:
+                print(checkpoint.path)
         else:
             from swingset.backup.archive import upload_checkpoint
             from swingset.backup.huggingface import HuggingFaceArchive
@@ -858,7 +989,14 @@ def _mutate(args: argparse.Namespace, database: Database, stopped: list[bool]) -
         # Only a checkpoint that was written, and uploaded when it had to be,
         # lets older ones go. A failure above raises before this line.
         if not args.no_prune:
-            _prune_checkpoints(args.state, checkpoint.path, bundle.config.retention)
+            if args.local:
+                # A local copy is read back before older ones may go, so a bad
+                # copy never replaces the last good one. That runs after the
+                # writer lock is released; see _verify_then_prune. An upload is
+                # its own check.
+                read_back.append(ReadBack(checkpoint.path, bundle.config.retention, run_id))
+            else:
+                _prune_checkpoints(args.state, checkpoint.path, bundle.config.retention)
     elif command == "gc":
         from swingset.state.retention import enforce_size_cap, plan, write_plan
         from swingset.state.retention_apply import apply_plan, reclaim
@@ -1263,11 +1401,17 @@ def main(argv: list[str] | None = None) -> int:
                     "SELECT run_id FROM runs WHERE finished_at IS NULL"
                 )
             }
+            # A local backup's read-back runs below, once the writer lock
+            # is released (_verify_then_prune).
+            read_back: list[ReadBack] = []
             try:
-                return _mutate(args, database, stopped)
+                code = _mutate(args, database, stopped, read_back)
             except Exception as error:
                 _finish_failed_manual_run(database, args.command, error, previous_unfinished)
                 raise
+        if code == 0 and read_back:
+            _verify_then_prune(args.state, read_back[0])
+        return code
     except DatabaseLockedError as exc:
         if getattr(args, "timer", False):
             log("skipped-overlap", message=str(exc))

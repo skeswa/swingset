@@ -16,6 +16,11 @@
     # bookkeeping) small next to the offline phase that drains backlogs; the
     # 15-minute timer simply skips ticks while a cycle runs (D-0185).
     cycleBudget = "40m";
+    # The archive transport refuses a file over 20 GiB and a checkpoint is
+    # about 36 GB, so no upload can succeed. Back up locally, keep one timer
+    # checkpoint, and keep the Mac byte copy current by hand until segmented
+    # backups land (D-0203).
+    backupUpload = false;
   };
   nix.settings.experimental-features = [
     "nix-command"

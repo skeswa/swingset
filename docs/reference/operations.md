@@ -41,17 +41,26 @@ alone never enables publication. State layout is defined in
 
 ## Timers
 
-| Unit                     | Schedule                                                    | What it runs                  |
-| ------------------------ | ----------------------------------------------------------- | ----------------------------- |
-| `swingset-cycle.timer`   | every 15 min, `RandomizedDelaySec=120`                      | `swingset cycle --budget 12m` |
-| `swingset-backup.timer`  | Mon-Thu 04:00; Fri-Sun 04:00, 12:00, 20:00 (box local time) | `swingset backup`             |
-| `swingset-summary.timer` | daily 08:00                                                 | `swingset summary`            |
+| Unit                           | Schedule                                                        | What it runs                                                       |
+| ------------------------------ | --------------------------------------------------------------- | ------------------------------------------------------------------ |
+| `swingset-cycle.timer`         | every 15 min, `RandomizedDelaySec=120`                          | `swingset cycle --budget <cycleBudget>` (default `12m`; orb `40m`) |
+| `swingset-watchdog.timer`      | every 30 min at :05 and :35, and after a failed cycle or backup | `nix/watchdog.py` ([alerts](../guides/operation.md#alerts))        |
+| `swingset-backup.timer`        | Mon-Thu 04:00; Fri-Sun 04:00, 12:00, 20:00 (box local time)     | `swingset backup`; `--local` when `backupUpload = false` (orb)     |
+| `swingset-summary.timer`       | daily 08:00                                                     | `swingset summary`                                                 |
+| `swingset-scratch-clean.timer` | daily 05:00                                                     | removes idle `/var/tmp/swingset-*` rehearsal scratch               |
 
 Timers use `Persistent=true`. The 15-minute timer is the floor;
 [scheduling](scheduling.md) decides what is due. Backup lock waits do
-not count as completed backups. The backup service retries failures
-with `Restart=on-failure` and `RestartSec=60`; doctor reports its last
-successful checkpoint so retrying cannot conceal stale backups.
+not count as completed backups. A failed backup does not restart; it runs
+the watchdog and waits for the next timer run
+([D-0192](../../journal/decisions/0192-a-failed-backup-waits-for-the-next-timer-run.md)).
+Before starting, the backup refuses when the disk quota cannot hold two
+copies of the state plus 20 GB, or one copy when upload is off. Doctor
+reports the last successful checkpoint, and with upload off the watchdog
+alerts on a stale local one, so a stale backup stays visible
+([D-0203](../../journal/decisions/0203-back-up-locally-and-keep-one-checkpoint-until-segmented-backups.md)).
+With upload off, the unit stops a backup after 6 hours; with upload on it has
+no limit.
 
 ## Cycle
 

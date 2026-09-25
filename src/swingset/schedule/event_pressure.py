@@ -24,6 +24,15 @@ def available(conn: sqlite3.Connection) -> bool:
     )
 
 
+def _enabled(config: Config) -> bool:
+    """`[stages] event_pressure = false` turns the whole gate off, failing open.
+
+    Nothing refreshes observations or drains dirty rows then, so stale subjects
+    or pending metadata would otherwise close `event_index` expansion for good.
+    """
+    return config.stages.event_pressure
+
+
 def _json(value: Any) -> str:
     return json.dumps(value, sort_keys=True, separators=(",", ":"))
 
@@ -83,7 +92,7 @@ def record_started(
     conn: sqlite3.Connection, config: Config, *, watch_id: str | None, host: str, now: datetime
 ) -> None:
     """Join the actual request debit transaction, including robots and redirects."""
-    if not available(conn) or watch_id is None:
+    if not _enabled(config) or not available(conn) or watch_id is None:
         return
     if not conn.in_transaction:
         raise RuntimeError("event pressure starts require the request debit transaction")
@@ -120,6 +129,8 @@ def sync(
     """Enroll bounded dirty watch metadata; verification is a separate operation."""
     if not available(conn):
         return {"supported": False, "processed": 0}
+    if not _enabled(config):
+        return {"supported": True, "disabled": True, "processed": 0}
     if not conn.in_transaction:
         raise RuntimeError("pressure metadata synchronization requires a transaction")
     if isinstance(limit, bool) or not isinstance(limit, int) or not 1 <= limit <= 100:
@@ -213,6 +224,16 @@ def admission(
     """Read compact hints only. An open expansion gate grants no fetch permission."""
     if not available(conn):
         return {"supported": False, "deferred": False, "reason": "pressure_schema_unavailable"}
+    if not _enabled(config):
+        return {
+            "supported": True,
+            "disabled": True,
+            "host": host,
+            "deferred": False,
+            "watermark_deferred": False,
+            "metadata_pending": False,
+            "reason": None,
+        }
     captured = policy(config)
     counts: dict[str, int] = {}
     for row in conn.execute(
@@ -277,7 +298,7 @@ def request_denial(
     now: datetime,
     host_decisions: dict[str, dict[str, Any]] | None = None,
 ) -> str | None:
-    if not available(conn) or watch_id is None:
+    if not _enabled(config) or not available(conn) or watch_id is None:
         return None
     watch = conn.execute("SELECT * FROM watches WHERE watch_id=?", (watch_id,)).fetchone()
     if watch is None or purpose(watch["parser"]) != "event_index":
@@ -338,6 +359,17 @@ def report(
 ) -> dict[str, Any]:
     if not available(conn):
         return {"supported": False, "reason": "pressure_schema_unavailable"}
+    if not _enabled(config):
+        return {
+            "supported": True,
+            "disabled": True,
+            "deferred": False,
+            "snapshot_at": now.astimezone(UTC).isoformat(),
+            "subjects": [],
+            "hosts": [],
+            "metadata_pending": False,
+            "basis": "event pressure stage is off; expansion is not gated",
+        }
     captured = policy(config)
     subjects = []
     for row in conn.execute(
@@ -384,6 +416,8 @@ def refresh(
     max_events: int | None = None,
     wall_seconds: float = 5.0,
 ) -> dict[str, Any]:
+    if not _enabled(config):
+        return {"disabled": True}
     from .event_pressure_refresh import refresh as run
 
     return run(database, archive, config, now=now, max_events=max_events, wall_seconds=wall_seconds)

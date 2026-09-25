@@ -3,7 +3,14 @@ from pathlib import Path
 
 import pytest
 
-from swingset.config import Config, load_config, parse_history_start, parse_retention
+from swingset.config import (
+    Config,
+    StageConfig,
+    load_config,
+    parse_history_start,
+    parse_retention,
+    parse_stages,
+)
 from swingset.model.history import HISTORY_START, in_history
 
 
@@ -73,6 +80,65 @@ def test_retention_refuses_an_age_floor_that_protects_nothing(body: bytes, messa
 def test_retention_accepts_the_smallest_age_floor_that_still_protects() -> None:
     assert parse_retention(b'[retention]\ncollect_older_than = "1s"\n').collect_older_than == 1
     assert parse_retention(b"[retention]\ncheckpoint_max_age = 0\n").checkpoint_max_age == 0
+
+
+def test_production_retention_keeps_one_local_checkpoint() -> None:
+    """Local-only backups keep one timer checkpoint until phase 4 (D-0203)."""
+    config = Path(__file__).resolve().parents[1] / "config"
+    retention = load_config(config).retention
+    assert retention.checkpoint_keep_recent == 1
+    assert retention.checkpoint_max_age == 0
+    assert retention == parse_retention((config / "sources.toml").read_bytes())
+
+
+STAGES = (
+    "event_site_review",
+    "event_pressure",
+    "event_progress_refresh",
+    "event_blocker_observations",
+)
+
+
+def test_stages_default_on_when_the_table_is_absent() -> None:
+    stages = parse_stages(b"[sources.wdr]\nenabled = true\n")
+    assert stages == StageConfig() == Config({}, {}).stages
+    assert all(getattr(stages, name) for name in STAGES)
+    assert stages.disabled() == []
+    assert parse_stages(b"[stages]\n") == StageConfig()
+
+
+@pytest.mark.parametrize("name", STAGES)
+def test_each_stage_switch_parses(name: str) -> None:
+    stages = parse_stages(f"[stages]\n{name} = false\n".encode())
+    assert not getattr(stages, name)
+    assert all(getattr(stages, other) for other in STAGES if other != name)
+    assert stages.disabled() == [name]
+    assert parse_stages(f"[stages]\n{name} = true\n".encode()) == StageConfig()
+
+
+@pytest.mark.parametrize(
+    ("body", "message"),
+    [
+        (b"[stages]\nevent_timing = false\n", "unknown stages"),
+        (b"[stages]\nevent_pressure = 0\n", "true or false"),
+        (b'[stages]\nevent_site_review = "false"\n', "true or false"),
+        (b"stages = false\n", "table"),
+    ],
+)
+def test_stages_reject_unknown_keys_and_non_bools(body: bytes, message: str) -> None:
+    with pytest.raises(ValueError, match=message):
+        parse_stages(body)
+
+
+def test_load_config_reads_stages(tmp_path: Path) -> None:
+    config = Path(__file__).resolve().parents[1] / "config"
+    # Production turns all four bookkeeping stages off (D-0204).
+    assert load_config(config).stages.disabled() == sorted(STAGES)
+    copy = tmp_path / "config"
+    copy.mkdir()
+    (copy / "hosts.toml").write_bytes((config / "hosts.toml").read_bytes())
+    (copy / "sources.toml").write_bytes(b"[stages]\nevent_pressure = false\n")
+    assert load_config(copy).stages.disabled() == ["event_pressure"]
 
 
 def test_series_alias_rows_may_carry_a_month_range(tmp_path):

@@ -111,6 +111,7 @@ def test_paused_backlog_does_not_starve_real_independent_fetch_and_projection(
         assert result["held_units"][0]["unit_id"] == "held"
         assert result["held_units"][0]["pauses"][0]["reason"] == "source review"
         assert "https://worldsdc.com/events/" in requests
+        assert result["stages_disabled"] == []
 
 
 def test_all_pause_blocks_build_and_derivation_but_preserves_bookkeeping(
@@ -507,3 +508,72 @@ def test_a_bookkeeping_stage_overrun_is_recorded_and_the_cycle_still_fetches(
         ]
         assert result["failed"] and "error" not in result
         assert result["checked"] >= 1
+
+
+def test_stages_switched_off_are_skipped_and_the_cycle_still_fetches(
+    tmp_path, configuration, monkeypatch
+):
+    from swingset.history import event_sites
+    from swingset.schedule import event_blocker_history, event_pressure, event_progress
+
+    config, overrides = configuration
+    with (config / "sources.toml").open("a") as file:
+        file.write(
+            "[stages]\nevent_site_review = false\nevent_pressure = false\n"
+            "event_progress_refresh = false\nevent_blocker_observations = false\n"
+        )
+    clock = FakeClock()
+
+    def skipped(*_args, **_kwargs):
+        raise AssertionError("a stage switched off must not run")
+
+    for module, name in (
+        (event_sites, "reconcile"),
+        (event_pressure, "bootstrap"),
+        (event_pressure, "refresh"),
+        (event_progress, "refresh"),
+        (event_blocker_history, "refresh"),
+    ):
+        monkeypatch.setattr(module, name, skipped)
+    requests = []
+
+    def transport(request):
+        requests.append(str(request.url))
+        return (
+            httpx.Response(404)
+            if request.url.path == "/robots.txt"
+            else httpx.Response(200, content=FIXTURE)
+        )
+
+    with open_database(tmp_path / "state") as db:
+        # An accepted year would let the site review run if it were on.
+        db.connection.execute(
+            "INSERT INTO history_acceptance VALUES (2010,?,'test','digest')",
+            (clock.now().isoformat(),),
+        )
+        result = run_cycle(
+            db,
+            config_dir=config,
+            overrides_dir=overrides,
+            clock=clock,
+            transport=httpx.MockTransport(transport),
+        )
+    stages = [
+        "event_blocker_observations",
+        "event_pressure",
+        "event_progress_refresh",
+        "event_site_review",
+    ]
+    assert result["stages_disabled"] == stages
+    for key in (
+        "event_sites_reviewed",
+        "event_pressure_bootstrap",
+        "event_pressure_refresh",
+        "event_progress_refresh",
+        "event_blocker_observations",
+    ):
+        assert key not in result
+    assert result["stage_errors"] == [] and result["held_operations"] == []
+    assert not result["failed"]
+    assert "https://worldsdc.com/events/" in requests
+    assert result["checked"] >= 1

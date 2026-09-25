@@ -43,3 +43,19 @@ history_interval_seconds = 43200
 # section for reclaim.
 [retention]
 max_database_bytes = "64GB"
+# Backups are local only until segmented backups (architecture phase 4;
+# D-0203): each successful backup removes every older run_* checkpoint and
+# keeps the one it wrote. Operator-named checkpoints are never touched.
+checkpoint_keep_recent = 1
+checkpoint_max_age = "0s"
+
+# Optional event bookkeeping is off in production (D-0204). Nothing these
+# stages write gates acquisition once pressure is off: the pressure gate opens.
+# Their code and stored rows stay. Takes effect with the phase 1 package; the
+# 019 package ignores this table. See docs/reference/scheduling.md,
+# "Stage switches".
+[stages]
+event_site_review = false
+event_pressure = false
+event_progress_refresh = false
+event_blocker_observations = false

@@ -148,19 +148,150 @@ memory-backed and cannot safely hold the full archive. A locally verified
 checkpoint is not remotely acknowledged until the upload and manifest check
 finish. Retain failed-attempt receipts and use a new attempt path when retrying.
 
+### Local-only backups
+
+The transport refuses a file over 20 GiB and a production checkpoint is about
+36 GB, so no upload can succeed until segmented backups (architecture phase 4).
+Production therefore sets `services.swingset.backupUpload = false`
+([D-0203](../../journal/decisions/0203-back-up-locally-and-keep-one-checkpoint-until-segmented-backups.md)):
+
+- The timer runs `swingset backup --local`. It needs no token.
+- The room check wants one copy of the state (without `checkpoints/`) plus
+  20 GB free, not two copies.
+- Production `[retention]` keeps one timer checkpoint:
+  `checkpoint_keep_recent = 1` and `checkpoint_max_age = "0s"`. Each
+  successful backup removes every older `run_*` checkpoint and keeps the one
+  it wrote; named ones stay. Only the newest copy is then left for
+  `LocalCheckpointRecovery` to restore a lost blob or extract from.
+- Before it prunes, a local backup verifies the new copy as a restore reads
+  it: closure, file hashes, schema, foreign keys and artifact closure, with
+  `PRAGMA quick_check` in place of `integrity_check`. This runs after the
+  backup releases `state.lock`, so cycles do not wait; the prune takes the
+  lock again. It logs `checkpoint-verify` with its seconds. On a clone of
+  the 35 GB state on the Mac (2026-09-25) the read-back took about 6 minutes
+  (`quick_check` alone 199 s, result `ok`; `integrity_check` 9.8 minutes),
+  the whole local backup about 10 minutes, at 320 MB peak memory. Expect the
+  worker to be slower; the unit stops a local backup after 6 hours. A copy
+  that fails is renamed `failed-run_*` first, no good checkpoint is removed,
+  the run record is rewritten as failed, and the backup fails. In
+  `checkpoints/` only the newest failed copy is kept: the next failure
+  removes the older one, and a removal that fails is logged
+  (`failed-checkpoint-removal-failed`). With `--destination` elsewhere, the
+  copy is only renamed. Inspect it, then remove it with
+  `swingset backup --remove-checkpoint failed-run_...`. The backup prints
+  the checkpoint path only after the copy passes. `--no-prune` skips the
+  read-back too. This is a package change deployed with phase 1's switch;
+  until then a local backup prunes without it, so the Mac byte copy is the
+  fallback.
+- The watchdog logs `[backup-upload-paused]` once a day, `[backup-stale]`
+  when the newest complete `run_*` checkpoint is older than
+  `backupMaxAgeSeconds` (36 hours) or missing, and `[backup-failed]` while
+  the backup unit is failed (room check refused, copy or verification error)
+  or a `failed-run_*` copy exists.
+- The Mac byte copy is the only copy off the machine. Refresh it weekly.
+
+Switching production to local-only backups deletes about 94 GB of old
+checkpoints, so follow this order. The one-copy room check needs about
+69.5 GB. The candidate 019 preflight receipt showed 46.5 GB free at 16:10 UTC
+on 2026-09-25, but free space moves with scratch copies; whenever it is above
+69.5 GB, the first timer run after the switch writes a copy and prunes every
+older `run_*` at once, and until phase 1's package that prune has no
+read-back.
+
+1. Refresh the Mac byte copy and verify it. Preflight receipt: system
+   generation, quota free, `doctor` checkpoint list, pending counts by stage.
+2. Independent check by a second agent, with a written verdict, of the
+   deletion list: every `run_*` but the newest. It also lists the `blobs/` and
+   `extracts/` paths in the older checkpoints' manifests but not the newest
+   one's, and confirms live state references none of them (or that the
+   artifact verification summary on live state shows zero missing).
+3. The operator removes the approved directories as root (`rm -rf`; timer
+   names cannot be removed with `--remove-checkpoint`), with a receipt of
+   names, bytes and quota before and after. Then
+   `systemctl reset-failed swingset-backup.service`: the refused backups left
+   it failed, and `[backup-failed]` would fire until a backup succeeds.
+4. `nixos-rebuild switch`. If the switch must come first, stop
+   `swingset-backup.timer` before it and start it after step 3.
+5. Post-check receipt: the next backup writes one checkpoint and keeps free
+   space above `diskMinFreeBytes` after its prune; pending counts by stage are
+   unchanged after the first cycle.
+
+A local backup briefly holds two checkpoints, so free space dips by about
+36 GB during each one; while the backup unit runs, `[disk-low]` fires only
+below the 20 GB headroom its room check kept. As the state grows,
+`[disk-low]` stays on past a state size of about 59 GB and the room check
+refuses past about 66 GB (rough estimates). Nothing alarms before then, so
+each post-check receipt records the state size without `checkpoints/`
+against the 55 GB phase 4 trigger in the
+[architecture plan](../plans/architecture.md).
+
 ## Alerts
 
-`swingset-watchdog` runs every 30 minutes and after any cycle failure. It
-appends to `/var/lib/swingset/ALERTS.log` and logs at error level when three
-cycles in a row failed or no cycle has finished for two hours while the
-pipeline is unheld. It also alerts when the newest fetched page is older than
-`services.swingset.staleFetchSeconds` (two days) while unheld, because a gate
-that skips every request is not a failure and nothing else reports it
-([D-0190](../../journal/decisions/0190-record-spacing-baselines-for-the-origin-hosts-from-the-eight-day-gap.md)),
-and when the disk quota runs low ([disk space](#disk-space)). Set `services.swingset.alertCommand` to forward alerts,
-for example `curl -s -d @- https://ntfy.sh/<topic>`; the alert text arrives
-on standard input. Read the log with `journalctl -t swingset-watchdog`
-([D-0188](../../journal/decisions/0188-alert-on-failing-or-stalled-cycles-and-stop-re-queuing-on-config-switches.md)).
+`swingset-watchdog` runs every 30 minutes and after any cycle or backup
+failure. It appends to `/var/lib/swingset/ALERTS.log`, logs at error level,
+and pipes to `services.swingset.alertCommand` when set, for example
+`curl -s -d @- https://ntfy.sh/<topic>`; the alert text arrives on standard
+input. Read the log with `journalctl -t swingset-watchdog`
+([D-0188](../../journal/decisions/0188-alert-on-failing-or-stalled-cycles-and-stop-re-queuing-on-config-switches.md),
+[D-0202](../../journal/decisions/0202-the-watchdog-alarms-on-progress-within-two-hours.md)).
+
+Each line starts with a key. A key already logged within
+`watchdogRepeatSeconds` (two hours) is not sent again. For the gate keys,
+`[host-failing]`, `[backup-failed]` and `[watchdog-blind]` only the same text
+is held back, so a newly blocked host repeats at once. With `alertCommand`
+set, the unit also sends one `[watchdog-alive]` line a day to it, not to
+`ALERTS.log`; a missing one means the watchdog timer or the notifier stopped.
+
+| Key                      | Fires when                                                                                                                                                                                | Held |
+| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- |
+| `[watchdog-blind]`       | a check could not run twice in a row, a second apart (a missing table, a bad stamp); names each one. The other checks still run                                                           | yes  |
+| `[watchdog-error]`       | `watchdog.py` crashed or exited nonzero; the wrapper writes it, at most once per `watchdogRepeatSeconds`, and the script's stderr goes to the journal                                     | yes  |
+| `[cycles-failing]`       | the last three cycles failed; records of other commands (backup, gc) do not count here or in `[cycles-quiet]`                                                                             | yes  |
+| `[size-cap-pause]`       | the size-cap pause is active ([retention](#retention-plans-and-holds))                                                                                                                    | yes  |
+| `[hold-overdue]`         | the `operator-hold` file or an all-scope pause is older than 48 hours, or an all-scope pause has no `created_at` (age unknown); repeats daily                                             | yes  |
+| `[timer-inactive]`       | nothing holds the worker and `swingset-cycle.timer` is not active                                                                                                                         | —    |
+| `[cycles-quiet]`         | no cycle finished for `watchdogQuietSeconds` (two hours)                                                                                                                                  | no   |
+| `[stale-fetch]`          | no request for `staleFetchSeconds` (two hours); names the stored-page age, hosts that spent today's budget and the ready parse backlog, since backpressure holds requests                 | no   |
+| `[budgets-spent]`        | in place of `[stale-fetch]` when every host that fetched today has spent its daily request or byte budget; repeats daily                                                                  | no   |
+| `[stale-progress]`       | a stage with ready units made no progress for `staleProgressSeconds` (two hours) since its work became runnable; one clock per stage, and one for `project/history`                       | no   |
+| `[gate-legacy-spacing]`  | a host's request spacing is unknown, so the gate skips it with no expiry ([D-0190](../../journal/decisions/0190-record-spacing-baselines-for-the-origin-hosts-from-the-eight-day-gap.md)) | yes  |
+| `[gate-host-blocked]`    | a host is paused as `Blocked`                                                                                                                                                             | yes  |
+| `[host-failing]`         | a host's last four or more responses were all 429 or 5xx; clears on its next success                                                                                                      | yes  |
+| `[disk-low]`             | the disk quota runs low ([disk space](#disk-space)); while a backup runs, only below its 20 GB headroom                                                                                   | yes  |
+| `[backup-failed]`        | `swingset-backup.service` is failed, or a `failed-run_*` checkpoint exists ([local-only backups](#local-only-backups))                                                                    | yes  |
+| `[backup-stale]`         | upload is off and the newest complete `run_*` checkpoint is older than `backupMaxAgeSeconds` (36 hours), or there is none                                                                 | yes  |
+| `[backup-upload-paused]` | upload is off; names the newest local checkpoint and its age; repeats at most once a day                                                                                                  | yes  |
+
+"Held" says whether the line still fires while held. Held means the
+`operator-hold` file exists or an all-scope operator pause other than the size
+cap is active; an inactive cycle timer silences the same lines and raises
+`[timer-inactive]` instead. A scoped pause (source, kind or host) is not a
+hold: if it holds all ready work, `[stale-progress]` fires, so use an
+all-scope pause or `operator-hold`. A gate that skips every request is not a
+failure, so only the fetch and progress lines report it. Requests count, not
+stored pages: a 304 stores nothing. A ready unit is one whose latest attempt
+is absent or succeeded, has a retry requested since, or is transient or
+interrupted with its retry time past. A blocked or failed unit is not ready
+and raises nothing. A stage's clock is the later of its last progress (a
+generation or a succeeded attempt) and when its oldest ready unit was queued,
+so an idle stage given new work is not a stall. A re-queue moves a unit's
+queue time, so a stage whose ready units upstream churn keeps re-queuing stays
+silent however long it has not progressed. `project/history` is paced, so it
+has its own clock: from when it came due (its output's time plus
+`history_interval_seconds`, or its queue time when it has no output) or its
+last success or output, whichever is later. Every link waits for it, so links
+are clocked from when history last materialized after their last progress, or
+from when it came due and did not run, whichever is earlier. Links that
+progressed after history's newest output wait by design until it is due again.
+The budgets and the interval come from `config/`, not overrides; a sweep day's
+larger points budget is not read.
+
+The checks live in `nix/watchdog.py`, a standard-library script with offline
+tests in `tests/test_watchdog.py`, which also run every query against the
+real migrations. The unit passes it the timer and backup unit states and the
+disk quota. It sends each alert to the journal and `alertCommand` (60-second
+limit) first, then stamps and appends it to `ALERTS.log`, so a full disk
+cannot silence it, and keeps the log to its last 1 MiB.
 
 ## Pause, resume, source switches, and stopping
 
@@ -234,7 +365,9 @@ a full copy of the state, several gigabytes, so copies must not accumulate.
   `journal/evidence/` are the durable record; a scratch copy never is.
 - Checkpoints: after it has written one, the backup command prunes timer
   checkpoints (`run_*`) by policy, keeping the newest two and anything under
-  two days old, and removes abandoned temporary directories after a day. It
+  two days old by default, and removes abandoned temporary directories after
+  a day. Production keeps only the newest while backups are local only
+  ([local-only backups](#local-only-backups)). It
   never removes the checkpoint it just wrote, and it logs what it removed and
   kept (`event="checkpoints-pruned"`). Those three numbers are the
   `checkpoint_` values of the `[retention]` table (see
@@ -245,12 +378,13 @@ a full copy of the state, several gigabytes, so copies must not accumulate.
   the directory it names by hand.
 - Named checkpoints: a directory whose name is not `run_*` and not a
   `.<name>.tmp-<hex>` copy is an operator's, and policy never removes it, at
-  any age, finished or not. Remove one by name with
-  `swingset backup --remove-checkpoint NAME` once the gate it protected has
-  passed; that makes no backup, and it refuses while a restore into this state
-  directory is pending. An interrupted `cp -a` leaves a directory with no
-  `checkpoint.json`, which nothing can restore from: doctor lists it as
-  incomplete, and it stays until you remove it by name.
+  any age, finished or not. A `failed-run_*` directory is a local copy that
+  failed its verification ([local-only backups](#local-only-backups)). Remove
+  one by name with `swingset backup --remove-checkpoint NAME` once the gate it
+  protected has passed; that makes no backup, and it refuses while a restore
+  into this state directory is pending. An interrupted `cp -a` leaves a
+  directory with no `checkpoint.json`, which nothing can restore from: doctor
+  lists it as incomplete, and it stays until you remove it by name.
 - A restore reading a checkpoint from this machine into a _different_ state
   directory leaves no mark here, and a `run_*` checkpoint it is reading can be
   pruned under it. Rename that checkpoint before starting such a restore.

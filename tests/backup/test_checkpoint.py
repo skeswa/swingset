@@ -149,6 +149,48 @@ def test_changed_checkpoint_file_is_rejected(tmp_path: Path) -> None:
         verify_checkpoint(checkpoint.path, maximum_schema_version=1)
 
 
+@pytest.mark.parametrize("quick", [True, False])
+def test_a_copy_hashed_after_it_went_bad_fails_the_database_check(
+    tmp_path: Path, quick: bool
+) -> None:
+    """The file hashes only prove the copy is what was hashed; the database
+    check must catch a copy that was already bad (D-0203)."""
+    source = tmp_path / "source"
+    connection = state(source)
+    # A table nothing but quick_check or integrity_check reads, spanning pages.
+    connection.execute("CREATE TABLE filler(body BLOB)")
+    connection.executemany("INSERT INTO filler VALUES (?)", [(b"x" * 900,) for _ in range(40)])
+    connection.commit()
+    checkpoint = create_checkpoint(
+        source,
+        connection,
+        tmp_path / "checkpoint",
+        schema_version=1,
+        versions={},
+        input_bundle_hash=None,
+    )
+    connection.close()
+    database = checkpoint.path / "state.sqlite"
+    copy = sqlite3.connect(database)
+    (root,) = copy.execute("SELECT rootpage FROM sqlite_master WHERE name='filler'").fetchone()
+    copy.close()
+    size = int.from_bytes(database.read_bytes()[16:18], "big")
+    with database.open("r+b") as handle:
+        handle.seek((root - 1) * size)
+        handle.write(b"\xa5" * size)
+    manifest_path = checkpoint.path / "checkpoint.json"
+    manifest = json.loads(manifest_path.read_text())
+    manifest["files"]["state.sqlite"] = {
+        **manifest["files"]["state.sqlite"],
+        "sha256": hashlib.sha256(database.read_bytes()).hexdigest(),
+        "size": database.stat().st_size,
+    }
+    manifest_path.write_text(json.dumps(manifest))
+    with pytest.raises((CheckpointError, sqlite3.DatabaseError)) as caught:
+        verify_checkpoint(checkpoint.path, maximum_schema_version=1, quick=quick)
+    assert "file failed verification" not in str(caught.value)
+
+
 def test_missing_referenced_extract_blocks_checkpoint(tmp_path: Path) -> None:
     source = tmp_path / "source"
     connection = state(source)

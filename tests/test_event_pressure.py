@@ -17,7 +17,7 @@ from swingset.backup.checkpoint import (
     verify_restored_public,
 )
 from swingset.build.files import sha256_file
-from swingset.config import Config, HostConfig, SourceConfig
+from swingset.config import Config, HostConfig, SourceConfig, StageConfig
 from swingset.fetch.controls import issue
 from swingset.fetch.politeness import Gate, Grant, Paused
 from swingset.schedule import event_pressure as pressure
@@ -99,6 +99,74 @@ def test_unfetched_indexes_never_create_initial_admission_deadlock(event):
     row = f.conn.execute("SELECT source_ref,start_basis FROM event_pressure_subjects").fetchone()
     assert tuple(row) == ("eepro:0", "issued_request")
     assert f.conn.execute("SELECT sum(requests) FROM host_budget").fetchone()[0] == 1
+
+
+def test_pressure_stage_off_opens_the_gate_and_writes_nothing(event):
+    """With `[stages] event_pressure = false` nothing refreshes observations or
+    drains dirty rows, so the gate must fail open instead of closing expansion."""
+    f, policy = event, config(event_pressure_max_age_seconds=1)
+    off = replace(policy, stages=StageConfig(event_pressure=False))
+    cohort(f, policy)
+    refresh(f, policy)
+    f.corpus.clock.sleep(2)
+    assert gate(f, policy)["states"] == {"stale": 3}
+    assert gate(f, policy)["watermark_deferred"]
+    assert f.conn.execute("SELECT deferred FROM event_pressure_latches").fetchone()[0] == 1
+    newcomer = index(f, "newcomer")
+    now = f.corpus.clock.now()
+
+    def denial(policy):
+        return pressure.request_denial(
+            f.conn, policy, watch_id=newcomer.watch_id, host="eepro.com", now=now
+        )
+
+    assert denial(policy) == "event expansion pressure"
+    assert denial(off) is None
+    closed = gate(f, off)
+    assert closed["disabled"] and not closed["deferred"] and closed["reason"] is None
+    shown = pressure.report(f.conn, off, now=now)
+    assert shown["disabled"] and not shown["deferred"] and shown["hosts"] == []
+    assert refresh(f, off) == {"disabled": True}
+
+    def tables():
+        return {
+            table: sorted(tuple(row) for row in f.conn.execute(f"SELECT * FROM {table}"))
+            for table in (
+                "event_pressure_dirty",
+                "event_pressure_subjects",
+                "event_pressure_watches",
+                "event_pressure_hosts",
+                "event_pressure_latches",
+            )
+        }
+
+    before = tables()
+    assert before["event_pressure_dirty"] == [(newcomer.watch_id,)]
+    with f.db.transaction() as conn:
+        assert pressure.sync(conn, off, now=now) == {
+            "supported": True,
+            "disabled": True,
+            "processed": 0,
+        }
+        pressure.record_started(conn, off, watch_id=newcomer.watch_id, host="eepro.com", now=now)
+        prepare_event_turns(conn, off, now=now)
+    assert pressure.bootstrap(f.db, off, now=now)["disabled"]
+    assert tables() == before
+    grant, _ = issue(
+        f.db,
+        Gate(f.conn, off, f.corpus.clock),
+        f.corpus.clock,
+        host="eepro.com",
+        source="eepro",
+        watch=newcomer,
+        page_kind=newcomer.parser,
+        crawl_delay=0,
+        sweep=False,
+    )
+    assert isinstance(grant, Grant)
+    after = tables()
+    assert after["event_pressure_subjects"] == before["event_pressure_subjects"]
+    assert after["event_pressure_latches"] == before["event_pressure_latches"]
 
 
 @pytest.mark.parametrize("interrupted", [False, True])

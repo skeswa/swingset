@@ -17,10 +17,11 @@ from typing import Any
 
 import pytest
 
-from swingset.cli import main
+import swingset.cli as cli
+from swingset.backup.pruning import TIMER_NAME
+from swingset.cli import FAILED_CHECKPOINT_PREFIX, main
 
 DAY = 86400.0
-CONFIG = ["--config", "config", "--overrides", "overrides"]
 
 
 def checkpoint(
@@ -44,7 +45,7 @@ def checkpoint(
 def config_with(tmp_path: Path, retention: str) -> list[str]:
     """The repository config with a `[retention]` table appended."""
     directory = tmp_path / "config"
-    directory.mkdir()
+    directory.mkdir(exist_ok=True)
     (directory / "hosts.toml").write_bytes(Path("config/hosts.toml").read_bytes())
     # The shipped configuration already carries a [retention] table (D-0186);
     # the test's values replace it rather than declare a second one.
@@ -56,8 +57,17 @@ def config_with(tmp_path: Path, retention: str) -> list[str]:
     return ["--config", str(directory), "--overrides", "overrides"]
 
 
+def defaults(tmp_path: Path) -> list[str]:
+    """The repository config with the code's default checkpoint policy.
+
+    Production keeps one checkpoint while backups are local only (D-0203);
+    these tests pin the defaults, which keep two.
+    """
+    return config_with(tmp_path, "")
+
+
 def backup(state: Path, *flags: str) -> int:
-    return main(["backup", "--local", "--state", str(state), *CONFIG, *flags])
+    return main(["backup", "--local", "--state", str(state), *defaults(state.parent), *flags])
 
 
 def field(line: str, key: str) -> object:
@@ -168,14 +178,16 @@ def test_remove_checkpoint_refuses_a_timer_name_and_a_missing_one(tmp_path: Path
                 "h16-published-20260917",
                 "--state",
                 str(state),
-                *CONFIG,
+                *defaults(tmp_path),
             ]
         )
         == 1
     )
     assert named.is_dir()
     # An unset shell variable is an empty name: an error, never a backup.
-    assert main(["backup", "--remove-checkpoint", "", "--state", str(state), *CONFIG]) == 1
+    assert (
+        main(["backup", "--remove-checkpoint", "", "--state", str(state), *defaults(tmp_path)]) == 1
+    )
     assert not (state / "state.sqlite").exists()
 
 
@@ -189,7 +201,7 @@ def test_doctor_reports_every_checkpoint_and_removes_nothing(
     fresh = checkpoint(checkpoints, "run_20260918T040000Z", age_days=0.25)
     named = checkpoint(checkpoints, "h16-published-20260917", age_days=40)
     incomplete = checkpoint(checkpoints, ".run_20240102T040000Z.tmp-a", age_days=30, complete=False)
-    assert main(["doctor", "--json", "--state", str(state), *CONFIG]) == 0
+    assert main(["doctor", "--json", "--state", str(state), *defaults(tmp_path)]) == 0
     report = {entry["name"]: entry for entry in json.loads(capsys.readouterr().out)["checkpoints"]}
     assert set(report) == {path.name for path in (old, kept, fresh, named, incomplete)}
     assert not report[kept.name]["prunes"]
@@ -286,7 +298,7 @@ def test_doctor_survives_a_file_that_vanishes_under_its_walk(
         return real(self, *args, **kwargs)  # type: ignore[arg-type]
 
     monkeypatch.setattr(Path, "stat", flaky)
-    assert main(["doctor", "--json", "--state", str(state), *CONFIG]) == 0
+    assert main(["doctor", "--json", "--state", str(state), *defaults(tmp_path)]) == 0
     report = {entry["name"]: entry for entry in json.loads(capsys.readouterr().out)["checkpoints"]}
     assert set(report) == {stale.name, kept.name}
     assert report[stale.name]["bytes"] == 16 + 2 * 8  # the two files still there
@@ -352,7 +364,7 @@ def test_an_uploaded_backup_prunes_after_the_upload(
     monkeypatch.setenv("HF_TOKEN", "token")
     monkeypatch.setattr(huggingface_module, "HuggingFaceArchive", FakeArchive)
     monkeypatch.setattr(archive_module, "upload_checkpoint", upload)
-    assert main(["backup", "--state", str(state), *CONFIG]) == 0
+    assert main(["backup", "--state", str(state), *defaults(tmp_path)]) == 0
     assert len(uploaded) == 1
     assert 'event="checkpoints-pruned"' in capsys.readouterr().err
     assert not old[0].exists() and not old[1].exists() and old[2].is_dir()
@@ -383,7 +395,7 @@ def test_a_failed_upload_prunes_nothing(
     monkeypatch.setenv("HF_TOKEN", "token")
     monkeypatch.setattr(huggingface_module, "HuggingFaceArchive", FakeArchive)
     monkeypatch.setattr(archive_module, "upload_checkpoint", refuse)
-    assert main(["backup", "--state", str(state), *CONFIG]) == 1
+    assert main(["backup", "--state", str(state), *defaults(tmp_path)]) == 1
     err = capsys.readouterr().err
     assert 'event="checkpoints-pruned"' not in err
     assert all(path.is_dir() for path in old)
@@ -428,3 +440,391 @@ def test_a_pending_restore_stops_the_automatic_prune(
     assert "restore verification is pending" in err
     assert 'event="checkpoints-pruned"' not in err
     assert all(path.is_dir() for path in old)
+
+
+def damage_database(database: Path, *, table: str | None = None) -> None:
+    """Overwrite one page of a SQLite file with junk, as a bad copy would carry.
+
+    Without `table`, the second page; with it, the root page of that table,
+    which neither the schema check nor the foreign-key or closure checks read,
+    so only `quick_check` or `integrity_check` can see it.
+    """
+    import sqlite3
+
+    size = int.from_bytes(database.read_bytes()[16:18], "big")
+    page = 2
+    if table is not None:
+        connection = sqlite3.connect(database)
+        try:
+            (page,) = connection.execute(
+                "SELECT rootpage FROM sqlite_master WHERE name = ?", (table,)
+            ).fetchone()
+        finally:
+            connection.close()
+    with database.open("r+b") as handle:
+        handle.seek((page - 1) * size)
+        handle.write(b"\xa5" * size)
+
+
+def corrupt_new_checkpoints(
+    monkeypatch: pytest.MonkeyPatch, *, written_bad: bool = False
+) -> list[Path]:
+    """Make every checkpoint the backup writes carry a damaged database.
+
+    By default the copy is damaged after its manifest was written, so its
+    file hash no longer matches. `written_bad` damages a table only
+    `quick_check` reads and rewrites the manifest's hash and size to match,
+    as a copy that was already bad when it was hashed would be. Returns the
+    paths it damaged.
+    """
+    import swingset.backup.checkpoint as checkpoint_module
+    from swingset.build.files import sha256_file
+
+    real = checkpoint_module.create_checkpoint
+    damaged: list[Path] = []
+
+    def damaging(*args: Any, **kwargs: Any) -> Any:
+        written = real(*args, **kwargs)
+        database = written.path / "state.sqlite"
+        damage_database(database, table="host_budget" if written_bad else None)
+        if written_bad:
+            manifest_path = written.path / "checkpoint.json"
+            manifest = json.loads(manifest_path.read_text())
+            manifest["files"]["state.sqlite"] = {
+                **manifest["files"]["state.sqlite"],
+                "sha256": sha256_file(database),
+                "size": database.stat().st_size,
+            }
+            manifest_path.write_text(json.dumps(manifest))
+        damaged.append(written.path)
+        return written
+
+    monkeypatch.setattr(checkpoint_module, "create_checkpoint", damaging)
+    return damaged
+
+
+def test_a_local_checkpoint_that_fails_verification_is_renamed_and_prunes_nothing(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """With one kept checkpoint (D-0203), a bad copy must not replace the last good one.
+
+    It leaves the timer namespace, so neither pruning nor the watchdog takes it
+    for the newest good copy, and the backup fails.
+    """
+    config = config_with(tmp_path, "checkpoint_keep_recent = 1\ncheckpoint_max_age = 0\n")
+    state = tmp_path / "state"
+    checkpoints = state / "checkpoints"
+    good = checkpoint(checkpoints, "run_20260101T040000Z", age_days=1)
+    damaged = corrupt_new_checkpoints(monkeypatch)
+    assert main(["backup", "--local", "--state", str(state), *config]) == 1
+    err = capsys.readouterr().err
+    skipped = [
+        line for line in err.splitlines() if line.startswith('event="checkpoint-prune-skipped"')
+    ]
+    assert len(skipped) == 1
+    assert field(skipped[0], "reason") == "verification failed"
+    verified = [line for line in err.splitlines() if line.startswith('event="checkpoint-verify"')]
+    assert len(verified) == 1 and field(verified[0], "ok") is False
+    assert 'event="checkpoints-pruned"' not in err
+    assert 'event="error"' in err
+    assert good.is_dir() and len(damaged) == 1 and not damaged[0].exists()
+    failed = damaged[0].with_name(FAILED_CHECKPOINT_PREFIX + damaged[0].name)
+    assert failed.is_dir() and not TIMER_NAME.match(failed.name)
+    # The run record agrees with the exit code, on disk and in the runs row.
+    run_id = damaged[0].name
+    record = json.loads((state / "runs" / f"{run_id}.json").read_text())
+    assert record["failed"] is True and record["command"] == "backup"
+    assert "failed verification" in record["error"] and "held_units" in record
+    import sqlite3
+
+    connection = sqlite3.connect(state / "state.sqlite")
+    try:
+        (summary,) = connection.execute(
+            "SELECT summary_json FROM runs WHERE run_id=?", (run_id,)
+        ).fetchone()
+    finally:
+        connection.close()
+    assert json.loads(summary)["failed"] is True
+    # Policy never removes it; the operator does, by name.
+    assert main(["backup", "--remove-checkpoint", failed.name, "--state", str(state), *config]) == 0
+    assert not failed.exists()
+
+
+def test_a_local_checkpoint_written_bad_fails_the_database_check(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A copy whose hash matches its manifest is caught by `quick_check` alone."""
+    config = config_with(tmp_path, "checkpoint_keep_recent = 1\ncheckpoint_max_age = 0\n")
+    state = tmp_path / "state"
+    good = checkpoint(state / "checkpoints", "run_20260101T040000Z", age_days=1)
+    damaged = corrupt_new_checkpoints(monkeypatch, written_bad=True)
+    assert main(["backup", "--local", "--state", str(state), *config]) == 1
+    captured = capsys.readouterr()
+    skipped = [
+        line
+        for line in captured.err.splitlines()
+        if line.startswith('event="checkpoint-prune-skipped"')
+    ]
+    assert len(skipped) == 1
+    detail = str(field(skipped[0], "detail"))
+    assert "file failed verification" not in detail
+    assert "closure differs" not in detail
+    assert 'event="checkpoints-pruned"' not in captured.err
+    # A copy that failed is never printed as the backup's result.
+    assert captured.out == ""
+    assert good.is_dir() and not damaged[0].exists()
+    assert damaged[0].with_name(FAILED_CHECKPOINT_PREFIX + damaged[0].name).is_dir()
+
+
+def test_only_the_newest_failed_copy_is_kept(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A failure every day must not fill the disk a full copy at a time (D-0203)."""
+    config = config_with(tmp_path, "checkpoint_keep_recent = 1\ncheckpoint_max_age = 0\n")
+    state = tmp_path / "state"
+    checkpoints = state / "checkpoints"
+    good = checkpoint(checkpoints, "run_20260101T040000Z", age_days=3)
+    earlier = checkpoint(checkpoints, "failed-run_20260102T040000Z", age_days=2)
+    by_hand = checkpoint(checkpoints, "failed-before-switch", age_days=2)
+    damaged = corrupt_new_checkpoints(monkeypatch)
+    assert main(["backup", "--local", "--state", str(state), *config]) == 1
+    err = capsys.readouterr().err
+    skipped = next(
+        line for line in err.splitlines() if line.startswith('event="checkpoint-prune-skipped"')
+    )
+    assert field(skipped, "removed_failed") == [earlier.name]
+    assert not earlier.exists()
+    assert good.is_dir() and by_hand.is_dir()
+    assert damaged[0].with_name(FAILED_CHECKPOINT_PREFIX + damaged[0].name).is_dir()
+
+
+def test_a_failed_removal_of_an_older_copy_still_renames_the_bad_one(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """The bad copy leaves the timer namespace before anything can fail."""
+    import shutil
+
+    config = config_with(tmp_path, "checkpoint_keep_recent = 1\ncheckpoint_max_age = 0\n")
+    state = tmp_path / "state"
+    checkpoints = state / "checkpoints"
+    good = checkpoint(checkpoints, "run_20260101T040000Z", age_days=3)
+    earlier = checkpoint(checkpoints, "failed-run_20260102T040000Z", age_days=2)
+    damaged = corrupt_new_checkpoints(monkeypatch)
+
+    def refusing(path: Any, *args: Any, **kwargs: Any) -> None:
+        raise PermissionError(f"cannot remove {path}")
+
+    monkeypatch.setattr(shutil, "rmtree", refusing)
+    assert main(["backup", "--local", "--state", str(state), *config]) == 1
+    err = capsys.readouterr().err
+    assert 'event="failed-checkpoint-removal-failed"' in err
+    skipped = next(
+        line for line in err.splitlines() if line.startswith('event="checkpoint-prune-skipped"')
+    )
+    assert field(skipped, "removed_failed") == []
+    assert not damaged[0].exists()
+    assert damaged[0].with_name(FAILED_CHECKPOINT_PREFIX + damaged[0].name).is_dir()
+    assert good.is_dir() and earlier.is_dir()
+
+
+def test_a_failed_copy_outside_the_checkpoints_directory_removes_nothing_there(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """With --destination elsewhere, the directory is the operator's: rename only."""
+    config = config_with(tmp_path, "checkpoint_keep_recent = 1\ncheckpoint_max_age = 0\n")
+    state = tmp_path / "state"
+    elsewhere = tmp_path / "elsewhere"
+    theirs = checkpoint(elsewhere, "failed-run_20260102T040000Z", age_days=2)
+    damaged = corrupt_new_checkpoints(monkeypatch)
+    destination = elsewhere / "run_20260103T040000Z"
+    argv = ["backup", "--local", "--destination", str(destination), "--state", str(state)]
+    assert main([*argv, *config]) == 1
+    assert damaged == [destination] and not destination.exists()
+    assert (elsewhere / f"{FAILED_CHECKPOINT_PREFIX}{destination.name}").is_dir()
+    assert theirs.is_dir()
+
+
+def test_a_malformed_manifest_fails_verification_instead_of_crashing(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Any exception from the read-back is a verdict, so the copy is renamed."""
+    import swingset.backup.checkpoint as checkpoint_module
+
+    config = config_with(tmp_path, "checkpoint_keep_recent = 1\ncheckpoint_max_age = 0\n")
+    state = tmp_path / "state"
+    good = checkpoint(state / "checkpoints", "run_20260101T040000Z", age_days=1)
+    real = checkpoint_module.create_checkpoint
+    written_paths: list[Path] = []
+
+    def listing(*args: Any, **kwargs: Any) -> Any:
+        written = real(*args, **kwargs)
+        manifest_path = written.path / "checkpoint.json"
+        manifest = json.loads(manifest_path.read_text())
+        # int(None) raises TypeError, which the read-back once let escape.
+        manifest["schema_version"] = None
+        manifest_path.write_text(json.dumps(manifest))
+        written_paths.append(written.path)
+        return written
+
+    monkeypatch.setattr(checkpoint_module, "create_checkpoint", listing)
+    assert main(["backup", "--local", "--state", str(state), *config]) == 1
+    err = capsys.readouterr().err
+    verified = next(
+        line for line in err.splitlines() if line.startswith('event="checkpoint-verify"')
+    )
+    assert field(verified, "ok") is False
+    assert "TypeError" in err
+    assert not written_paths[0].exists()
+    assert written_paths[0].with_name(FAILED_CHECKPOINT_PREFIX + written_paths[0].name).is_dir()
+    assert good.is_dir()
+
+
+def test_a_local_checkpoint_with_an_extra_file_fails_verification(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """The read-back covers the files beside the database, not only state.sqlite."""
+    import swingset.backup.checkpoint as checkpoint_module
+
+    config = config_with(tmp_path, "checkpoint_keep_recent = 1\ncheckpoint_max_age = 0\n")
+    state = tmp_path / "state"
+    good = checkpoint(state / "checkpoints", "run_20260101T040000Z", age_days=1)
+    real = checkpoint_module.create_checkpoint
+
+    def adding(*args: Any, **kwargs: Any) -> Any:
+        written = real(*args, **kwargs)
+        # A file the manifest does not name appears in the copy.
+        (written.path / "inputs").mkdir(exist_ok=True)
+        (written.path / "inputs" / "stray.json").write_text("{}")
+        return written
+
+    monkeypatch.setattr(checkpoint_module, "create_checkpoint", adding)
+    assert main(["backup", "--local", "--state", str(state), *config]) == 1
+    err = capsys.readouterr().err
+    assert "checkpoint closure differs" in err and "extra=['inputs/stray.json']" in err
+    assert good.is_dir()
+
+
+def test_a_local_checkpoint_missing_a_closure_file_fails_verification(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    import swingset.backup.checkpoint as checkpoint_module
+
+    config = config_with(tmp_path, "checkpoint_keep_recent = 1\ncheckpoint_max_age = 0\n")
+    state = tmp_path / "state"
+    good = checkpoint(state / "checkpoints", "run_20260101T040000Z", age_days=1)
+    real = checkpoint_module.create_checkpoint
+    lost: list[str] = []
+
+    def losing(*args: Any, **kwargs: Any) -> Any:
+        written = real(*args, **kwargs)
+        # A file the manifest names goes missing after the copy.
+        name = next(name for name in written.files if name != "state.sqlite")
+        (written.path / name).unlink()
+        lost.append(name)
+        return written
+
+    monkeypatch.setattr(checkpoint_module, "create_checkpoint", losing)
+    assert main(["backup", "--local", "--state", str(state), *config]) == 1
+    err = capsys.readouterr().err
+    assert "checkpoint closure differs" in err and f"missing={lost!r}" in err
+    assert good.is_dir()
+
+
+def test_a_local_checkpoint_that_passes_verification_prunes_as_before(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    config = config_with(tmp_path, "checkpoint_keep_recent = 1\ncheckpoint_max_age = 0\n")
+    state = tmp_path / "state"
+    old = checkpoint(state / "checkpoints", "run_20260101T040000Z", age_days=1)
+    assert main(["backup", "--local", "--state", str(state), *config]) == 0
+    captured = capsys.readouterr()
+    err = captured.err
+    (printed,) = captured.out.splitlines()
+    assert Path(printed).parent == state / "checkpoints"
+    assert TIMER_NAME.match(Path(printed).name) and (Path(printed) / "checkpoint.json").is_file()
+    verified = [line for line in err.splitlines() if line.startswith('event="checkpoint-verify"')]
+    assert len(verified) == 1 and field(verified[0], "ok") is True
+    assert isinstance(field(verified[0], "seconds"), float | int)
+    assert 'event="checkpoints-pruned"' in err
+    assert not old.exists()
+
+
+def test_a_local_verification_runs_without_the_writer_lock(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Cycles need not wait for the read-back; the prune takes the lock again."""
+    import fcntl
+
+    import swingset.backup.checkpoint as checkpoint_module
+
+    state = tmp_path / "state"
+    seen: list[str] = []
+    real_verify = checkpoint_module.verify_checkpoint
+    real_prune = cli._prune_checkpoints
+
+    def free() -> bool:
+        with (state / "state.lock").open("a+b") as handle:
+            try:
+                fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except BlockingIOError:
+                return False
+            fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+            return True
+
+    def verify(*args: Any, **kwargs: Any) -> Any:
+        seen.append(f"verify quick={kwargs.get('quick')} free={free()}")
+        return real_verify(*args, **kwargs)
+
+    def prune(*args: Any, **kwargs: Any) -> None:
+        seen.append(f"prune free={free()}")
+        real_prune(*args, **kwargs)
+
+    monkeypatch.setattr(checkpoint_module, "verify_checkpoint", verify)
+    monkeypatch.setattr(cli, "_prune_checkpoints", prune)
+    assert backup(state) == 0
+    assert seen == ["verify quick=True free=True", "prune free=False"]
+
+
+def test_an_uploaded_backup_skips_the_local_verification(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """The upload is the check in that mode; its wiring is unchanged."""
+    import swingset.backup.archive as archive_module
+    import swingset.backup.huggingface as huggingface_module
+
+    class FakeArchive:
+        def __init__(self, repo: str, token: str) -> None:
+            self.repo = repo
+
+    monkeypatch.setenv("HF_TOKEN", "token")
+    monkeypatch.setattr(huggingface_module, "HuggingFaceArchive", FakeArchive)
+    monkeypatch.setattr(archive_module, "upload_checkpoint", lambda written, archive: "a" * 40)
+    corrupt_new_checkpoints(monkeypatch)
+    state = tmp_path / "state"
+    assert main(["backup", "--state", str(state), *defaults(tmp_path)]) == 0
+    err = capsys.readouterr().err
+    assert 'event="checkpoint-verify"' not in err
+    assert 'event="checkpoints-pruned"' in err
+
+
+def test_the_watchdog_copies_the_failed_checkpoint_prefix() -> None:
+    """nix/watchdog.py cannot import the package; it keeps its own copy."""
+    import importlib.util
+
+    script = Path(__file__).resolve().parents[2] / "nix" / "watchdog.py"
+    spec = importlib.util.spec_from_file_location("swingset_watchdog_prefix", script)
+    assert spec is not None and spec.loader is not None
+    watchdog = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(watchdog)
+    assert watchdog.FAILED_PREFIX == FAILED_CHECKPOINT_PREFIX
+
+
+def test_no_prune_prints_the_local_checkpoint_without_a_read_back(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    state = tmp_path / "state"
+    assert backup(state, "--no-prune") == 0
+    captured = capsys.readouterr()
+    assert 'event="checkpoint-verify"' not in captured.err
+    (printed,) = captured.out.splitlines()
+    assert (Path(printed) / "checkpoint.json").is_file()

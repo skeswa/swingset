@@ -87,9 +87,7 @@ weekly session.
    reuse a local checkpoint younger than an hour instead of copying again,
    and link the content-addressed blobs into a new checkpoint instead of
    rewriting them, since only the database changes between copies. Touches
-   backup and restore, so it takes the full suite. Also make the watchdog
-   call `logger` before it writes to the alert log, so a full disk cannot
-   silence it.
+   backup and restore, so it takes the full suite.
 7. Decode zstd replays from the Wayback Machine. Two 2026 captures of
    `worldsdc.com/events/` were archived with `content-encoding: zstd`; the
    replay path stored the still-encoded bytes as the body and the parser saw
@@ -99,3 +97,7 @@ weekly session.
    dismissal rows from `finding_reviews.csv` (2026-09-22).
 8. Human identity review website (H17) and the JesAnn history page as a site:
    deferred, see [D-0055](../../journal/decisions/0055-defer-human-adjudication-to-a-review-website.md).
+9. A watchdog `[state-size]` line when the state without `checkpoints/`
+   passes the 55 GB phase 4 trigger of the
+   [architecture plan](architecture.md). Until then post-check receipts
+   carry that size, and the first alarm is `[disk-low]` near 59 GB.

@@ -125,6 +125,7 @@ core = [
   "tests/test_uninterned_schema.py",
   "tests/test_v2_migrations.py",
   "tests/test_watch_recovery.py",
+  "tests/test_watchdog.py",
   "tests/test_wayback.py",
   "tests/test_work_attempts.py::test_recovery_of_old_running_attempt_cannot_revive_newer_completed_work",
   "tests/test_work_attempts.py::test_success_and_output_roll_back_together_and_retry_commits_once",

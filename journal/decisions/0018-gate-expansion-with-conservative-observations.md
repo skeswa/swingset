@@ -4,7 +4,7 @@ Recorded: 2026-09-16
 Decided by: agent  
 Topic: Scheduling  
 Supersedes: —  
-Superseded by: —
+Superseded by: in production only, [D-0204](0204-turn-off-the-event-bookkeeping-stages-and-open-the-pressure-gate.md) turns the gate off by config
 
 ## Decision
 

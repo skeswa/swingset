@@ -164,7 +164,16 @@ def create_checkpoint(
         raise
 
 
-def verify_checkpoint(checkpoint: Path, *, maximum_schema_version: int) -> dict[str, Any]:
+def verify_checkpoint(
+    checkpoint: Path, *, maximum_schema_version: int, quick: bool = False
+) -> dict[str, Any]:
+    """Check a checkpoint's closure, file hashes, database and candidates.
+
+    `quick` runs `PRAGMA quick_check` in place of `integrity_check`: it skips
+    the index-content cross checks, which on a full state copy cost more than
+    the rest together. A local backup verifies its new copy this way before
+    older ones may go (D-0203); restore always runs the full check.
+    """
     manifest_path = checkpoint / "checkpoint.json"
     if not manifest_path.is_file():
         raise CheckpointError("checkpoint manifest is missing")
@@ -192,7 +201,9 @@ def verify_checkpoint(checkpoint: Path, *, maximum_schema_version: int) -> dict[
     )
     try:
         _check_database_schema(connection, int(manifest["schema_version"]))
-        integrity = connection.execute("PRAGMA integrity_check").fetchone()
+        integrity = connection.execute(
+            "PRAGMA quick_check" if quick else "PRAGMA integrity_check"
+        ).fetchone()
         foreign_keys = connection.execute("PRAGMA foreign_key_check").fetchall()
         if integrity is None or integrity[0] != "ok" or foreign_keys:
             raise CheckpointError("checkpoint database failed integrity checks")

@@ -1,0 +1,65 @@
+{
+  "operation": "architecture phase 0 acceptance rehearsal (R0 to R4) on clones of the production copy",
+  "actor": "claude (session claude-rearch)",
+  "at_utc": "2026-09-25T22:55:00Z",
+  "host": "Mac, not the worker; Python 3.12.13, SQLite 3.50.4",
+  "source_copy": "~/swingset-offload/rehearsal/diag (35 GB state.sqlite, production 2026-09-25 16:10 UTC), never modified; each run on its own APFS clone, all clones deleted",
+  "code": {
+    "parent": "1b95eff (candidate 019), via git archive, PYTHONPATH=<base>/src",
+    "working_copy": "jj change pzooxmkp (phase 0a+0b, not split)",
+    "watchdog_sha256": "7cd8e3accde8ca1bb5070ce8736a47535b7007e09980992e1769af5b6bed2738",
+    "config_sources_sha256": "c3601a1d0dd735ab4f139b9c84b7280470b308e6e35f77f719a9b5e492a3f801"
+  },
+  "network": "none; httpx.MockTransport answers 304 to a conditional request, else 404; hub=None, dry_run=True, HF_TOKEN unset",
+  "caveat": "the Mac interpreter re-queues recipe/runtime (33,906 parse units) on every clone, which turns on backpressure",
+  "r0_module_eval": {
+    "command": "nix eval --impure --json (stub aarch64-linux host, getFlake path:<checkout>), backupUpload false and true",
+    "seconds": 38.5,
+    "exit_code": 0,
+    "upload_false": "backup ExecStart ends --local; room check need = 1 * du(state excl checkpoints) + 20 GB, message 'local only'; TimeoutStartSec 6h; watchdog gets --backup-upload 0 --backup-max-age 129600",
+    "upload_true": "no --local; need = 2 * du + 20 GB; TimeoutStartSec infinity; watchdog gets no backup-upload flag"
+  },
+  "r1_config_only_accept_019_code": {
+    "baseline_accept_parent_config": { "changed": ["recipe/runtime", "version/repository"], "parse_snapshot_before_after": [610, 33906], "seconds": 5.4 },
+    "accept_0a_config": { "changed": ["config/sources.toml", "policy/retention.json"], "seconds": 2.0 },
+    "pending_before_equals_after": { "link/event": 2932, "parse/snapshot": 33906, "project/history": 1 },
+    "exit_code": 0
+  },
+  "r2_cycle_budget_900": {
+    "as_specified": {
+      "note": "backpressure active on both clones (Mac re-queue), so no requests in either",
+      "base_019": { "phase_seconds": { "reconciliation": 2.55, "acquisition": 1.61, "offline": 427.1 }, "stage_errors": 0, "requests": 0, "pressure_denials": { "event expansion pressure": 18 }, "unit_failures": 1, "failed": false, "peak_rss_bytes": 4630511616, "wall_seconds": 930.3 },
+      "new_0b": { "phase_seconds": { "reconciliation": 1.69, "acquisition": 0.96, "offline": 428.4 }, "stage_errors": 0, "stages_disabled": ["event_blocker_observations", "event_pressure", "event_progress_refresh", "event_site_review"], "requests": 0, "pressure_denials": {}, "unit_failures": 1, "failed": false, "peak_rss_bytes": 5086052352, "wall_seconds": 936.0 },
+      "summary_keys_only_in_base": ["event_blocker_observations", "event_pressure_bootstrap", "event_pressure_refresh", "event_progress_refresh", "event_sites_reviewed"],
+      "summary_keys_only_in_new": ["stages_disabled"],
+      "event_sites_reviewed_base": 0,
+      "unit_failure": "parse snap_20260910T053258Z_4cb7269b4f0d parse_failed (scoringdance), same in both"
+    },
+    "backpressure_lifted": {
+      "note": "fresh clones; both configs add [scheduling] pending_parse_bytes=1e11, pending_parse_items=1e7, pending_work_items=1e7 so requests flow",
+      "base_019": { "phase_seconds": { "reconciliation": 2.03, "acquisition": 375.4, "offline": 35.2 }, "stage_errors": 0, "requests": 152, "conditional": 100, "by_host": { "points.worldsdc.com": 51, "eepro.com": 51, "scoring.dance": 50 }, "by_purpose": { "result": 98, "discovery": 54 }, "event_index_requests": 0, "pressure_denials": { "event expansion pressure": 2748 }, "unit_failures": 0, "failed": false, "first_request_seconds": 519.8, "peak_rss_bytes": 4882841600 },
+      "new_0b": { "phase_seconds": { "reconciliation": 1.27, "acquisition": 375.0, "offline": 9.1 }, "stage_errors": 0, "requests": 170, "conditional": 112, "by_host": { "points.worldsdc.com": 57, "eepro.com": 57, "scoring.dance": 56 }, "by_purpose": { "result": 110, "discovery": 60 }, "event_index_requests": 0, "pressure_denials": {}, "unit_failures": 0, "failed": false, "first_request_seconds": 548.1, "peak_rss_bytes": 4332683264 }
+    },
+    "exit_codes": [0, 0, 0, 0]
+  },
+  "r3_watchdog_read_only": {
+    "command": "python nix/watchdog.py --state <clone> --config config --quiet 7200 --stale-fetch 7200 --stale-progress 7200 --repeat 7200 --disk-min-free 1e11 --timer-active 1 --now T (ALERTS.log moved aside, no quota given)",
+    "t_16_10Z": ["stale-fetch 3 h", "stale-progress link 2 h 58 m with 2932 ready; project/history 2 h 58 m (due 13:11 UTC)"],
+    "t_13_30Z": [],
+    "t_16_10Z_backup_upload_0": ["stale-fetch", "stale-progress", "backup-stale (no complete run_*)", "backup-upload-paused"],
+    "seconds": [0.27, 0.04, 0.04],
+    "exit_codes": [0, 0, 0]
+  },
+  "r4_local_backup_working_copy": {
+    "command": "swingset backup --local --state <clone> --config config --overrides overrides",
+    "seeded": ["run_20260920T040000Z", "run_20260921T040000Z", "hold-operator"],
+    "exit_code": 0,
+    "wall_seconds": 407.3,
+    "peak_rss_bytes": 330596352,
+    "checkpoint_bytes": 35784513961,
+    "checkpoint_files": 66069,
+    "checkpoint_verify": { "ok": true, "seconds": 293.8 },
+    "pruned": ["run_20260920T040000Z", "run_20260921T040000Z"],
+    "kept": ["hold-operator", "run_20260925T213912Z"]
+  }
+}
