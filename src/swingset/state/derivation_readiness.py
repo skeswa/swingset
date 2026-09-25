@@ -68,7 +68,11 @@ def _dancers_current(
     *,
     current: Callable[[sqlite3.Connection, WorkUnit], bool],
 ) -> bool:
-    """Verify the full cohort from immutable certificates or ordinary fallback."""
+    """Verify the full cohort from immutable certificates or ordinary fallback.
+
+    Dancers have no prerequisites, so ``certificate()`` adds no replay epoch
+    for them and ``base_certificate`` here stays its exact mirror.
+    """
     pointers = {
         str(row[0]): tuple(row[1:])
         for row in conn.execute(
@@ -95,7 +99,7 @@ def _dancers_current(
         "SELECT version FROM derivation_input_versions WHERE namespace='watch_sources' AND input_key='all'"
     ).fetchone()
     source_version = int(source[0]) if source else 0
-    recipe = recipe_inputs(conn, "project")
+    recipe = recipe_inputs(conn, "project", "dancer")
     for unit in units:
         pointer = pointers.get(unit.unit_id)
         if pointer is not None and pointer[0] is not None and pointer[1] is not None:

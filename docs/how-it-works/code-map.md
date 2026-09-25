@@ -6,18 +6,18 @@ lives in [`cli.py`](../../src/swingset/cli.py).
 
 ## Pipeline modules
 
-| Task                         | Module       | Start reading                                                                                                  |
-| ---------------------------- | ------------ | -------------------------------------------------------------------------------------------------------------- |
-| Choose due work              | `schedule/`  | [cycle.py](../../src/swingset/schedule/cycle.py), [fairness.py](../../src/swingset/schedule/fairness.py)       |
-| Request and save pages       | `fetch/`     | [client.py](../../src/swingset/fetch/client.py), [archive.py](../../src/swingset/fetch/archive.py)             |
-| Understand a source's pages  | `sources/`   | [base.py](../../src/swingset/sources/base.py), then that source's `adapter.py`                                 |
-| Check source interpretations | `admission/` | [contracts.py](../../src/swingset/admission/contracts.py), [select.py](../../src/swingset/admission/select.py) |
-| Combine source facts         | `project/`   | [map.py](../../src/swingset/project/map.py), [writer.py](../../src/swingset/project/writer.py)                 |
-| Resolve person matches       | `link/`      | [service.py](../../src/swingset/link/service.py), [resolution.py](../../src/swingset/link/resolution.py)       |
-| Collect historical results   | `history/`   | [catalog.py](../../src/swingset/history/catalog.py), [backfill.py](../../src/swingset/history/backfill.py)     |
-| Build a candidate            | `build/`     | [builder.py](../../src/swingset/build/builder.py), [closure.py](../../src/swingset/build/closure.py)           |
-| Publish and reconcile        | `publish/`   | [service.py](../../src/swingset/publish/service.py)                                                            |
-| Back up and restore          | `backup/`    | [checkpoint.py](../../src/swingset/backup/checkpoint.py), [pruning.py](../../src/swingset/backup/pruning.py)   |
+| Task                         | Module       | Start reading                                                                                                                                                |
+| ---------------------------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Choose due work              | `schedule/`  | [cycle.py](../../src/swingset/schedule/cycle.py), [fairness.py](../../src/swingset/schedule/fairness.py), [pacing.py](../../src/swingset/schedule/pacing.py) |
+| Request and save pages       | `fetch/`     | [client.py](../../src/swingset/fetch/client.py), [archive.py](../../src/swingset/fetch/archive.py)                                                           |
+| Understand a source's pages  | `sources/`   | [base.py](../../src/swingset/sources/base.py), [registry.py](../../src/swingset/sources/registry.py), then that source's `adapter.py`                        |
+| Check source interpretations | `admission/` | [contracts.py](../../src/swingset/admission/contracts.py), [select.py](../../src/swingset/admission/select.py)                                               |
+| Combine source facts         | `project/`   | [map.py](../../src/swingset/project/map.py), [writer.py](../../src/swingset/project/writer.py)                                                               |
+| Resolve person matches       | `link/`      | [service.py](../../src/swingset/link/service.py), [resolution.py](../../src/swingset/link/resolution.py)                                                     |
+| Collect historical results   | `history/`   | [catalog.py](../../src/swingset/history/catalog.py), [backfill.py](../../src/swingset/history/backfill.py)                                                   |
+| Build a candidate            | `build/`     | [builder.py](../../src/swingset/build/builder.py), [closure.py](../../src/swingset/build/closure.py)                                                         |
+| Publish and reconcile        | `publish/`   | [service.py](../../src/swingset/publish/service.py)                                                                                                          |
+| Back up and restore          | `backup/`    | [checkpoint.py](../../src/swingset/backup/checkpoint.py), [pruning.py](../../src/swingset/backup/pruning.py)                                                 |
 
 These modules live under `src/swingset/`. For their exact responsibilities,
 see [architecture](../reference/architecture.md).
@@ -28,8 +28,10 @@ see [architecture](../reference/architecture.md).
 names and source labels. `state/` owns the database, accepted inputs, work
 records, and migrations. Start with [db.py](../../src/swingset/state/db.py),
 [work.py](../../src/swingset/state/work.py), and
-[derivations.py](../../src/swingset/state/derivations.py). Each distinct output
-row is stored once;
+[derivations.py](../../src/swingset/state/derivations.py). Output cutoff lives
+there and in `admission/generations.py`; [cutoff.py](../../src/swingset/cutoff.py)
+holds its off switch and [recipe_scope.py](../../src/swingset/state/recipe_scope.py)
+decides which code each recipe names. Each distinct output row is stored once;
 [derivation_payload_migration.py](../../src/swingset/state/derivation_payload_migration.py)
 is the one-time fill and check that migration 32 runs.
 

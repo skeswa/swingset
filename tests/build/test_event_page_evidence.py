@@ -109,8 +109,12 @@ def test_older_accepted_generation_survives_later_blocked_reinterpretation(event
 def test_related_revocation_rejects_previous_accepted_support(event):
     f = event
     context, old = ready(f)
+    # A differing report: an identical re-parse is cut off to `old` (D-0205).
     other, _ = f.corpus.stage(
-        context, report_change=lambda report: replace(report, proposed_removal="watch")
+        context,
+        report_change=lambda report: replace(
+            report, proposed_removal="none" if report.proposed_removal == "watch" else "watch"
+        ),
     )
     assert other != old
     f.conn.execute("UPDATE source_generations SET state='revoked' WHERE generation_id=?", (other,))

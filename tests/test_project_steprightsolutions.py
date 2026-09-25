@@ -20,7 +20,7 @@ from swingset.project.process import PROJECTOR_VERSION
 from swingset.project.writer import Projection
 from swingset.sources.base import ParseContext
 from swingset.sources.records import Cell, ResultRow, ResultTable, RoundSheet
-from swingset.sources.steprightsolutions import RoundPage
+from swingset.sources.steprightsolutions.adapter import RoundPage
 from swingset.sources.steprightsolutions.records import (
     StepRightEventSheet,
     StepRightIndexRow,

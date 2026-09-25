@@ -51,7 +51,7 @@ def store_parse_result(
         str(current_snapshot[0]),
         str(current_snapshot[1]),
     )
-    from swingset.history.acquisition import PHASE1_KINDS
+    from swingset.sources.phase_one import PHASE1_KINDS
 
     archive_index = (
         str(snapshot[1]) == "wayback"
@@ -186,11 +186,36 @@ def store_parse_result(
         opened_at=parsed_at,
         run_id=run_id,
     )
-    conn.execute(
-        "UPDATE snapshots SET parse_status='ok',parsed_at=?,extract_version=?,parser_version=? WHERE snapshot_id=?",
-        (parsed_at, str(extract_version), str(parser_version), context.snapshot_id),
+    mark_parsed(
+        conn,
+        context.snapshot_id,
+        extract_version=extract_version,
+        parser_version=parser_version,
+        parsed_at=parsed_at,
     )
     return changed
+
+
+def mark_parsed(
+    conn: sqlite3.Connection,
+    snapshot_id: str,
+    *,
+    extract_version: int | str,
+    parser_version: int | str,
+    parsed_at: str,
+) -> None:
+    """Record a successful parse on the snapshot row.
+
+    `store_parse_result` does this as part of admission. A parse cut off to
+    the unit's accepted generation skips admission, so the caller records it
+    here: a failed attempt in between (a parser regression, then its fix)
+    would otherwise leave the snapshot `failed` (D-0205).
+    """
+    conn.execute(
+        "UPDATE snapshots SET parse_status='ok',parsed_at=?,extract_version=?,parser_version=? "
+        "WHERE snapshot_id=?",
+        (parsed_at, str(extract_version), str(parser_version), snapshot_id),
+    )
 
 
 def load_scope(conn: sqlite3.Connection, scope_kind: str, scope_id: str) -> tuple[object, ...]:

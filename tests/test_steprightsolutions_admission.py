@@ -8,7 +8,7 @@ import pytest
 
 from swingset.admission.contracts import contract_version, inspect
 from swingset.sources.base import ParseContext, ParseError
-from swingset.sources.steprightsolutions import EventPage, IndexPage, RoundPage
+from swingset.sources.steprightsolutions.adapter import EventPage, IndexPage, RoundPage
 
 FIXTURES = Path(__file__).parent / "fixtures/sources/steprightsolutions"
 PROVENANCE = {

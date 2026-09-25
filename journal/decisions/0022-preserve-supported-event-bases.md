@@ -4,7 +4,7 @@ Recorded: 2026-09-16
 Decided by: agent  
 Topic: Event preservation  
 Supersedes: —  
-Superseded by: —
+Superseded by: in part, [D-0205](0205-cut-off-identical-derivation-output.md) (a re-run with identical output keeps its generation id)
 
 ## Decision
 

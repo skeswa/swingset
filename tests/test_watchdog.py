@@ -104,7 +104,7 @@ CREATE TABLE work_attempts (
     attempt_id INTEGER PRIMARY KEY AUTOINCREMENT,
     stage TEXT NOT NULL, unit_kind TEXT NOT NULL, unit_id TEXT NOT NULL,
     retry_generation INTEGER NOT NULL DEFAULT 0, finished_at TEXT,
-    outcome TEXT NOT NULL, retry_at TEXT);
+    outcome TEXT NOT NULL, retry_at TEXT, reason_code TEXT);
 CREATE TABLE pending_work (stage TEXT, unit_kind TEXT, unit_id TEXT, enqueued_at TEXT NOT NULL,
     PRIMARY KEY(stage, unit_kind, unit_id));
 CREATE TABLE work_generations (stage TEXT, unit_kind TEXT, unit_id TEXT,
@@ -174,6 +174,18 @@ class State:
         self.sql("INSERT INTO derivation_scopes VALUES ('project','history','all',?)", generation)
         return self.pending("all", stage="project", kind="history")
 
+    def history_output(self, at: str) -> "State":
+        """project/history's current output, made then, with nothing queued."""
+        generation = self._id()
+        self.sql(
+            "INSERT INTO derivation_generations VALUES (?,'project','history','all',?)",
+            generation,
+            at,
+        )
+        return self.sql(
+            "INSERT INTO derivation_scopes VALUES ('project','history','all',?)", generation
+        )
+
     def pause(
         self,
         reason: str,
@@ -211,10 +223,11 @@ class State:
         finished: str | None = "2026-09-25T10:00:00+00:00",
         retry_at: str | None = None,
         retry_generation: int = 0,
+        reason: str | None = None,
     ) -> "State":
         return self.sql(
             "INSERT INTO work_attempts(stage,unit_kind,unit_id,retry_generation,finished_at,"
-            "outcome,retry_at) VALUES (?,?,?,?,?,?,?)",
+            "outcome,retry_at,reason_code) VALUES (?,?,?,?,?,?,?,?)",
             stage,
             kind,
             unit,
@@ -222,6 +235,7 @@ class State:
             finished,
             outcome,
             retry_at,
+            reason,
         )
 
     def pending(
@@ -291,6 +305,37 @@ def test_the_script_copies_the_package_constants() -> None:
     assert watchdog.HOLD_OVERDUE_SECONDS == HOLD_OVERDUE_SECONDS
 
 
+def test_the_replay_and_pacing_sets_follow_the_package() -> None:
+    """REPLAY_CAUSES and PACED_BY_INVENTORY are hand copies; a drift would
+    silence `[replay-loop]` or the inventory wait, or raise false alarms."""
+    from swingset.state.derivation_dependencies import _REPLAYED
+
+    read = {
+        f"{stage}/{kind}": {f"project/{cause}" for cause in causes}
+        for (stage, kind), causes in _REPLAYED.items()
+    }
+    assert set(watchdog.REPLAY_CAUSES) == set(read)
+    # An event and its source events are one consistency group: each one's
+    # generation is a real input change for the other (prerequisites).
+    group = {"project/event": {"project/source_event"}, "project/source_event": {"project/event"}}
+    for key, causes in watchdog.REPLAY_CAUSES.items():
+        assert read[key] <= causes, key
+        assert causes - read[key] <= group.get(key, set()), key
+    # The paced inventory and every project kind that reads it, directly or
+    # not, except history, which has its own pacing.
+    paced = {"inventory"}
+    while True:
+        more = {
+            kind
+            for (stage, kind), causes in _REPLAYED.items()
+            if stage == "project" and kind != "history" and causes & paced
+        }
+        if more <= paced:
+            break
+        paced |= more
+    assert watchdog.PACED_BY_INVENTORY == paced
+
+
 def test_every_query_runs_against_the_real_schema(tmp_path: Path) -> None:
     """A migration that renames what the watchdog reads fails here, not silently."""
     with open_database(tmp_path, lock=False):
@@ -299,7 +344,17 @@ def test_every_query_runs_against_the_real_schema(tmp_path: Path) -> None:
     try:
         for sql in watchdog.QUERIES.values():
             assert isinstance(
-                db.execute(sql, {"stage": "link", "day": "2026-09-25", "streak": 4}).fetchall(),
+                db.execute(
+                    sql,
+                    {
+                        "stage": "link",
+                        "kind": "event",
+                        "unit": "u",
+                        "limit": 3,
+                        "day": "2026-09-25",
+                        "streak": 4,
+                    },
+                ).fetchall(),
                 list,
             )
     finally:
@@ -311,6 +366,7 @@ def test_the_script_reads_the_shipped_config_as_the_package_does() -> None:
     config = load_config(Path("config"))
     limits = watchdog._config("config")
     assert limits.history_interval == config.scheduler.history_interval_seconds == 43200
+    assert limits.inventory_interval == config.scheduler.inventory_interval_seconds == 43200
     assert limits.requests == {
         host: config.host(host).daily_request_budget for host in config.hosts
     }
@@ -320,6 +376,21 @@ def test_the_script_reads_the_shipped_config_as_the_package_does() -> None:
         if (budget := config.host(host).daily_byte_budget) is not None
     }
     assert limits.bytes == {"danceconvention.net": 300_000_000}
+    assert limits.size_cap == config.retention.max_database_bytes == 64_000_000_000
+
+
+@pytest.mark.parametrize("near", [False, True])
+def test_a_database_file_near_the_retention_cap_alerts(tmp_path: Path, near: bool) -> None:
+    State(tmp_path).fetched(NOW).close()
+    size = (tmp_path / "state.sqlite").stat().st_size
+    # 90% of the cap is the line: just under it, then just over it.
+    cap = size * 10 // 9 - 1 if near else size * 10 // 9 + 10
+    config = tmp_path / "config"
+    config.mkdir()
+    (config / "hosts.toml").write_text("")
+    (config / "sources.toml").write_text(f"[retention]\nmax_database_bytes = {cap}\n")
+    alerts = ["size-cap-near"] if near else []
+    assert _keys(_run(tmp_path, extra=["--config", str(config)])) == alerts
 
 
 def test_a_healthy_state_prints_nothing(tmp_path: Path) -> None:
@@ -446,7 +517,9 @@ def test_a_scheduler_request_counts_as_fetching(tmp_path: Path) -> None:
     assert _run(tmp_path) == []
 
 
-def _config(tmp_path: Path, *, history: int | None = 43200) -> list[str]:
+def _config(
+    tmp_path: Path, *, history: int | None = 43200, inventory: int | None = None
+) -> list[str]:
     directory = tmp_path / "config"
     directory.mkdir()
     (directory / "hosts.toml").write_text(
@@ -456,6 +529,10 @@ def _config(tmp_path: Path, *, history: int | None = 43200) -> list[str]:
         'daily_byte_budget = "300MB"\n'
     )
     scheduling = f"[scheduling]\nhistory_interval_seconds = {history}\n" if history else ""
+    if inventory:
+        scheduling = (scheduling or "[scheduling]\n") + (
+            f"inventory_interval_seconds = {inventory}\n"
+        )
     (directory / "sources.toml").write_text(scheduling)
     return ["--config", str(directory)]
 
@@ -701,6 +778,316 @@ def test_a_history_that_never_materialized_is_clocked_from_its_queue_time(
     assert _keys(_run(tmp_path, extra=_config(tmp_path))) == alerts
 
 
+@pytest.mark.parametrize(
+    "cutoff, alerts", [(None, ["stale-progress"]), ("2026-09-25T15:00:00+00:00", [])]
+)
+def test_a_history_cutoff_counts_as_materializing(
+    tmp_path: Path, cutoff: str | None, alerts: list[str]
+) -> None:
+    # After schema 33 a history re-run with identical output keeps its old
+    # generation and records an equivalence; its interval starts then.
+    state = State(tmp_path).fetched(NOW).history("2026-09-24T10:10:00+00:00")
+    state.sql(
+        "CREATE TABLE derivation_equivalences (stage TEXT, unit_kind TEXT, unit_id TEXT,"
+        " generation_id TEXT, created_at TEXT)"
+    )
+    state.sql("CREATE TABLE source_equivalences (unit_key TEXT, input_fingerprint TEXT)")
+    if cutoff is not None:
+        generation = state.db.execute(
+            "SELECT materialized_generation_id FROM derivation_scopes"
+        ).fetchone()[0]
+        state.sql(
+            "INSERT INTO derivation_equivalences VALUES ('project','history','all',?,?)",
+            generation,
+            cutoff,
+        )
+    state.close()
+    assert _keys(_run(tmp_path, extra=_config(tmp_path))) == alerts
+
+
+@pytest.mark.parametrize(
+    "generations, alerts",
+    [
+        ({}, ["replay-loop"]),
+        ({"project/event": 1}, []),
+        ({"project/map": 1}, []),
+        ({"link/event": 3}, ["replay-loop"]),
+        # A dancer change is unrelated work: it explains neither kind.
+        ({"project/dancer": 1}, ["replay-loop"]),
+    ],
+)
+def test_replay_epochs_moving_every_cycle_without_generations_alert(
+    tmp_path: Path, generations: dict[str, int], alerts: list[str]
+) -> None:
+    State(tmp_path).fetched(NOW).close()
+    record = {
+        "finished_at": NOW,
+        "derivation": {
+            "generations": {},
+            "equivalences": {"project/event": 2933},
+            "replay_bumps": {"project/event": 1, "project/source_event": 1},
+        },
+    }
+    last = {**record, "derivation": {**record["derivation"], "generations": generations}}
+    _write_runs(tmp_path, record, record, last)
+    assert _keys(_run(tmp_path)) == alerts
+    # The same generations in every cycle hide the loop no more than in one.
+    _write_runs(tmp_path, last, last, last)
+    assert _keys(_run(tmp_path)) == alerts
+    # Two such cycles are not yet a loop.
+    _write_runs(tmp_path, {"finished_at": NOW}, record, last)
+    assert _run(tmp_path) == []
+
+
+@pytest.mark.parametrize(
+    "history, interval, failed, alerts",
+    [
+        # History materialized an hour ago: not due, so the map waits by design.
+        ("2026-09-25T15:10:00+00:00", 43200, None, []),
+        # History came due at 15:00 but has not consumed the inventory made at
+        # 14:00, so the gate keeps holding it and the map waits by design.
+        ("2026-09-25T03:00:00+00:00", 43200, None, []),
+        # History came due at 12:00 and the inventory made at 14:00 since was
+        # interrupted: the gate lets it run, so the map is stalled.
+        ("2026-09-25T00:00:00+00:00", 43200, None, ["stale-progress"]),
+        # History is due and consumed that inventory: the gate is open, so the
+        # map is stalled.
+        ("2026-09-25T14:30:00+00:00", 3600, None, ["stale-progress"]),
+        ("2026-09-25T14:30:00+00:00", 3600, "succeeded", ["stale-progress"]),
+        # A history whose latest attempt failed does not open the gate (D-0210).
+        ("2026-09-25T14:30:00+00:00", 3600, "transient", []),
+    ],
+)
+def test_units_waiting_for_the_paced_inventory_are_not_a_stall(
+    tmp_path: Path, history: str, interval: int, failed: str | None, alerts: list[str]
+) -> None:
+    state = State(tmp_path).fetched(NOW)
+    state.history_output(history)
+    if failed is not None:
+        state.attempt("all", failed, stage="project", kind="history", finished=QUEUED)
+    state.sql(
+        "INSERT INTO derivation_generations VALUES ('inv','project','inventory','all',?)",
+        "2026-09-25T14:00:00+00:00",
+    )
+    state.sql("INSERT INTO derivation_scopes VALUES ('project','inventory','all','inv')")
+    # A dancer change queued the inventory, which the gate holds back.
+    state.pending("all", stage="project", kind="inventory", enqueued="2026-09-25T10:00:00+00:00")
+    state.attempt("m0", "succeeded", stage="project", kind="map", finished=QUEUED)
+    state.pending("all", stage="project", kind="map", enqueued="2026-09-25T10:00:00+00:00")
+    state.close()
+    lines = _run(tmp_path, extra=_config(tmp_path, history=interval, inventory=43200))
+    assert _keys(lines) == alerts
+    # Without the inventory interval the same map is a stall either way.
+    (tmp_path / "config" / "sources.toml").write_text("")
+    assert _keys(_run(tmp_path, extra=["--config", str(tmp_path / "config")])) == ["stale-progress"]
+
+
+def test_a_due_history_waiting_for_the_paced_inventory_is_not_a_stall(tmp_path: Path) -> None:
+    """History due at 12:00 needs the inventory made at 11:00, which the gate
+    holds until 23:00."""
+    state = State(tmp_path).fetched(NOW)
+    state.history("2026-09-25T00:00:00+00:00")
+    state.sql(
+        "INSERT INTO derivation_generations VALUES ('inv','project','inventory','all',?)",
+        "2026-09-25T11:00:00+00:00",
+    )
+    state.sql("INSERT INTO derivation_scopes VALUES ('project','inventory','all','inv')")
+    state.pending("all", stage="project", kind="inventory", enqueued="2026-09-25T11:30:00+00:00")
+    state.close()
+    assert _run(tmp_path, extra=_config(tmp_path, inventory=43200)) == []
+    # Unpaced, history due four hours ago with no run is a stall.
+    (tmp_path / "config" / "sources.toml").write_text(
+        "[scheduling]\nhistory_interval_seconds = 43200\n"
+    )
+    assert _keys(_run(tmp_path, extra=["--config", str(tmp_path / "config")])) == ["stale-progress"]
+
+
+@pytest.mark.parametrize("links", [False, True])
+def test_a_history_starved_by_interrupted_cascades_alarms(tmp_path: Path, links: bool) -> None:
+    """History came due on 09-23 and every cascade since was interrupted by a
+    dancer change (phase 1 review). Its clock starts at the first inventory
+    made since it came due and later ones do not move it, so the starvation
+    alarms with or without a link unit queued."""
+    state = State(tmp_path).fetched(NOW)
+    state.history("2026-09-22T12:00:00+00:00")
+    state.attempt(
+        "all", "succeeded", stage="project", kind="history", finished="2026-09-22T12:00:00+00:00"
+    )
+    for day in ("23", "24"):
+        state.generation(f"2026-09-{day}T02:00:00+00:00", stage="project", kind="inventory")
+    state.sql(
+        "INSERT INTO derivation_generations VALUES ('inv','project','inventory','all',?)",
+        "2026-09-25T14:00:00+00:00",
+    )
+    state.sql("INSERT INTO derivation_scopes VALUES ('project','inventory','all','inv')")
+    # A dancer change interrupted this cascade too.
+    state.pending("all", stage="project", kind="inventory", enqueued="2026-09-25T15:00:00+00:00")
+    if links:
+        state.attempt(
+            "l0", "succeeded", stage="link", kind="event", finished="2026-09-22T13:00:00+00:00"
+        )
+        state.pending("l1", stage="link", kind="event", enqueued="2026-09-25T15:00:00+00:00")
+    state.close()
+    lines = _run(tmp_path, extra=_config(tmp_path, inventory=43200))
+    assert "stale-progress" in _keys(lines)
+    assert "project/history" in lines[0]
+    assert "cascade from the inventory at 2026-09-23 02:00 UTC" in lines[0]
+    assert "interrupted since 2026-09-25 14:00 UTC" in lines[0]
+
+
+def test_a_cascade_after_a_late_history_is_clocked_from_its_start(tmp_path: Path) -> None:
+    """History came due at 03:00 while the inventory waited out its interval;
+    the inventory ran at 15:00 and its cascade is running. History gets the
+    full stall allowance from 15:00, not from 03:00."""
+    state = State(tmp_path).fetched(NOW)
+    state.history("2026-09-24T15:00:00+00:00")
+    state.sql(
+        "INSERT INTO derivation_generations VALUES ('inv','project','inventory','all',?)",
+        "2026-09-25T15:00:00+00:00",
+    )
+    state.sql("INSERT INTO derivation_scopes VALUES ('project','inventory','all','inv')")
+    state.close()
+    config = _config(tmp_path, inventory=43200)
+    assert _run(tmp_path, extra=config) == []
+    later = _run(tmp_path, extra=config, now="2026-09-25T17:30:00+00:00")
+    assert _keys(later) == ["stale-progress"]
+    assert "cascade from the inventory at 2026-09-25 15:00 UTC" in later[0]
+
+
+def test_the_deferred_inventory_itself_is_not_a_stall(tmp_path: Path) -> None:
+    state = State(tmp_path).fetched(NOW)
+    # History made an hour ago: not due.
+    state.history_output("2026-09-25T15:10:00+00:00")
+    # The inventory materialized at 13:00, within its 12-hour interval.
+    state.sql(
+        "INSERT INTO derivation_generations VALUES ('inv','project','inventory','all',?)",
+        "2026-09-25T13:00:00+00:00",
+    )
+    state.sql("INSERT INTO derivation_scopes VALUES ('project','inventory','all','inv')")
+    # A dancer succeeded at 13:30 and queued the inventory then.
+    state.attempt(
+        "d1", "succeeded", stage="project", kind="dancer", finished="2026-09-25T13:30:00+00:00"
+    )
+    state.pending("all", stage="project", kind="inventory", enqueued="2026-09-25T13:30:00+00:00")
+    state.close()
+    lines = _run(tmp_path, extra=_config(tmp_path, inventory=43200))
+    assert lines == []
+
+
+def test_a_runnable_event_stalls_while_the_inventory_is_current(tmp_path: Path) -> None:
+    state = State(tmp_path).fetched(NOW)
+    # History and the inventory both materialized within their intervals.
+    state.generation("2026-09-25T04:30:00+00:00", stage="project", kind="history")
+    state.sql(
+        "INSERT INTO derivation_generations VALUES ('inv','project','inventory','all',?)",
+        "2026-09-25T13:00:00+00:00",
+    )
+    state.sql("INSERT INTO derivation_scopes VALUES ('project','inventory','all','inv')")
+    # The inventory is current and not pending, so nothing holds this event.
+    state.attempt(
+        "e0", "succeeded", stage="project", kind="event", finished="2026-09-25T04:00:00+00:00"
+    )
+    state.pending("e1", stage="project", kind="event", enqueued="2026-09-25T04:00:00+00:00")
+    state.close()
+    lines = _run(tmp_path, extra=_config(tmp_path, inventory=43200))
+    assert _keys(lines) == ["stale-progress"]
+
+
+@pytest.mark.parametrize(
+    "reasons, alerts",
+    [
+        # Three retries in a row failed the same way: the unit never heals.
+        (["unit_exception"] * 3, ["unit-failing"]),
+        (["nondeterministic_output"] * 3, ["unit-failing"]),
+        # Two are not yet a pattern; mixed reasons are not one failure.
+        (["unit_exception"] * 2, []),
+        (["unit_exception", "write_deadline_exceeded", "unit_exception"], []),
+        # Retried by design, but an I/O error hours apart is not passing.
+        (["unit_io_error"] * 3, ["unit-failing"]),
+        (["unsupported_page_kind"] * 3, []),
+    ],
+)
+def test_a_unit_failing_every_retry_alerts(
+    tmp_path: Path, reasons: list[str], alerts: list[str]
+) -> None:
+    state = State(tmp_path).fetched(NOW)
+    # Retries hours apart, each on its own clock, between healthy cycles.
+    for hour, reason in enumerate(reasons):
+        state.attempt(
+            "event-a",
+            "transient",
+            stage="project",
+            kind="event",
+            finished=f"2026-09-25T{hour * 6:02d}:00:00+00:00",
+            retry_at="2026-09-25T23:00:00+00:00",
+            reason=reason,
+        )
+    state.pending("event-a", stage="project", kind="event", enqueued=NOW)
+    state.close()
+    lines = _run(tmp_path)
+    assert _keys(lines) == alerts
+    if alerts:
+        assert "project/event/event-a" in lines[0]
+
+
+@pytest.mark.parametrize("tries, alerts", [(3, []), (19, []), (20, ["unit-failing"])])
+def test_an_io_error_alerts_once_it_keeps_repeating(
+    tmp_path: Path, tries: int, alerts: list[str]
+) -> None:
+    """An I/O error retries in a minute by design; one that fails every retry
+    (a corrupt blob, a permission error) sets no failed=true, so only this
+    line names it (I3, I4)."""
+    state = State(tmp_path).fetched(NOW)
+    for minute in range(tries):
+        state.attempt(
+            "snap",
+            "transient",
+            stage="parse",
+            kind="snapshot",
+            finished=f"2026-09-25T15:{30 + minute:02d}:00+00:00",
+            reason="unit_io_error",
+        )
+    state.pending("snap", stage="parse", kind="snapshot", enqueued=NOW)
+    state.close()
+    assert _keys(_run(tmp_path)) == alerts
+
+
+def test_a_unit_that_succeeded_after_failing_does_not_alert(tmp_path: Path) -> None:
+    state = State(tmp_path).fetched(NOW)
+    for _ in range(3):
+        state.attempt(
+            "event-a", "transient", stage="project", kind="event", reason="unit_exception"
+        )
+    state.attempt("event-a", "succeeded", stage="project", kind="event")
+    state.pending("event-a", stage="project", kind="event", enqueued=NOW)
+    state.close()
+    assert _run(tmp_path) == []
+
+
+def test_state_over_its_size_alert_alerts_without_counting_checkpoints(tmp_path: Path) -> None:
+    State(tmp_path).fetched(NOW).close()
+    (tmp_path / "blobs").mkdir()
+    (tmp_path / "blobs" / "a").write_bytes(b"x" * 4096)
+    (tmp_path / "checkpoints" / "run_20260925T000000Z").mkdir(parents=True)
+    (tmp_path / "checkpoints" / "run_20260925T000000Z" / "state.sqlite").write_bytes(
+        b"x" * 1_000_000
+    )
+    # The service's Python environment and uv cache are code, not state.
+    for name in ("venv", "uv-cache"):
+        (tmp_path / name / "lib").mkdir(parents=True)
+        (tmp_path / name / "lib" / "big").write_bytes(b"x" * 1_000_000)
+    skipped = {"checkpoints", "venv", "uv-cache"}
+    size = sum(
+        path.stat().st_size
+        for path in tmp_path.rglob("*")
+        if path.is_file() and path.relative_to(tmp_path).parts[0] not in skipped
+    )
+    assert _run(tmp_path, extra=["--state-size-alert", str(size)]) == []
+    lines = _run(tmp_path, extra=["--state-size-alert", str(size - 1)])
+    assert _keys(lines) == ["state-size"]
+    assert "architecture phase 4" in lines[0]
+
+
 def test_a_blocked_history_is_not_ready(tmp_path: Path) -> None:
     # Like any unit whose latest attempt is blocked: silent until phase 2.
     state = State(tmp_path).fetched(NOW).history("2026-09-24T10:10:00+00:00")
@@ -716,6 +1103,35 @@ def test_a_re_queue_restarts_a_stage_clock(tmp_path: Path) -> None:
     state.attempt("e0", "succeeded", stage="project", finished="2026-09-20T00:00:00+00:00")
     state.pending("e1", stage="project", enqueued="2026-09-25T16:00:00+00:00").close()
     assert _run(tmp_path) == []
+
+
+def test_a_code_scope_change_that_derive_never_runs_alarms(tmp_path: Path) -> None:
+    """I4 after phase 1: a code-only accept makes project units stale by
+    fingerprint alone. Its queue hints let the watchdog see them, so a derive
+    that never picks them up alarms after two hours."""
+    from swingset.state.work import accept_inputs, affected_work
+
+    with open_database(tmp_path, lock=False) as database:
+        with database.transaction() as conn:
+            conn.executemany(
+                "INSERT INTO derivation_scopes(stage,unit_kind,unit_id,registered_at) "
+                "VALUES ('project','event',?,?)",
+                (("e1", QUEUED), ("e2", QUEUED)),
+            )
+    # The watchdog reads the file as immutable, so each step closes it first.
+    assert _run(tmp_path) == []
+    with open_database(tmp_path, lock=False) as database:
+        accept_inputs(
+            database,
+            "pipeline",
+            {"recipe/code/project/event": "changed"},
+            lambda name, old, new, conn: affected_work(conn, name),
+            accepted_at="2026-09-25T13:00:00+00:00",
+        )
+    assert _run(tmp_path, now="2026-09-25T14:59:00+00:00") == []
+    assert _run(tmp_path) == [
+        "[stale-progress] no progress while unheld: project 3 h 10 m with 2 ready"
+    ]
 
 
 #: The 2026-09-25 history output (production, 16:10 UTC copy) and when it
@@ -1373,6 +1789,19 @@ def test_a_failed_backup_unit_alerts_under_a_hold(tmp_path: Path) -> None:
     ]
 
 
+def test_a_failed_summary_unit_alerts(tmp_path: Path) -> None:
+    """The digest runs near its 5 GB cap; killed there it must not go dark."""
+    assert _run(tmp_path) == []
+    line = (
+        "[summary-failed] swingset-summary.service failed, possibly at its 5 GB memory cap;"
+        " read journalctl -u swingset-summary"
+    )
+    assert _run(tmp_path, extra=["--summary-failed", "1"]) == [line]
+    # A hold stops the digest from starting, not the failed state.
+    (tmp_path / "operator-hold").touch()
+    assert _run(tmp_path, timer=0, extra=["--summary-failed", "1"]) == [line]
+
+
 def test_a_copy_that_failed_its_read_back_alerts_and_is_not_the_newest(tmp_path: Path) -> None:
     # The bad copy is newer than the last good one but must not mask it.
     _checkpoint(tmp_path, "run_20260923T040000Z", "2026-09-23T04:30:00+00:00")
@@ -1387,3 +1816,160 @@ def test_a_copy_that_failed_its_read_back_alerts_and_is_not_the_newest(tmp_path:
         " (services.swingset.backupUpload = false); newest local checkpoint"
         " run_20260923T040000Z is 59 h old; keep the Mac byte copy current weekly",
     ]
+
+
+def test_equivalences_past_the_collector_trigger_alert(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Nothing collects equivalences before invalidation step 3; the row count
+    of either table is D-0208's trigger, and this line is its clock."""
+    monkeypatch.setattr(watchdog, "EQUIVALENCE_ROWS", 2)
+    monkeypatch.setattr(watchdog, "SOURCE_EQUIVALENCE_ROWS", 2)
+    state = State(tmp_path).fetched(NOW)
+    state.sql(
+        "CREATE TABLE derivation_equivalences (stage TEXT, unit_kind TEXT, unit_id TEXT,"
+        " generation_id TEXT, created_at TEXT)"
+    )
+    state.sql("CREATE TABLE source_equivalences (unit_key TEXT, input_fingerprint TEXT)")
+    for unit in ("1", "2"):
+        state.sql(
+            "INSERT INTO derivation_equivalences VALUES ('project','dancer',?,'g',?)", unit, NOW
+        )
+    assert _run(tmp_path) == []
+    state.sql("INSERT INTO derivation_equivalences VALUES ('project','dancer','3','g',?)", NOW)
+    lines = _run(tmp_path)
+    assert _keys(lines) == ["equivalences"]
+    assert "derivation_equivalences holds 3 rows, over 2" in lines[0]
+    # Step 3 deletes rows: the count clears the line although the largest
+    # rowid stays past the mark.
+    state.sql("DELETE FROM derivation_equivalences WHERE unit_id = '1'")
+    assert _run(tmp_path) == []
+    # Source equivalences carry a recipe each and have their own trigger.
+    for fingerprint in ("a", "b", "c"):
+        state.sql("INSERT INTO source_equivalences VALUES ('u', ?)", fingerprint)
+    state.close()
+    lines = _run(tmp_path)
+    assert _keys(lines) == ["equivalences"]
+    assert "source_equivalences holds 3 rows, over 2" in lines[0]
+
+
+@pytest.mark.parametrize(
+    "broken, alerts",
+    [
+        ({}, []),
+        ({"derivation_error": "OperationalError: database is locked"}, ["report-failing"]),
+        ({"controls_error": "OperationalError: disk I/O error"}, ["report-failing"]),
+        ({"derivation": None}, ["report-failing"]),
+    ],
+)
+def test_a_failing_cycle_report_alerts(
+    tmp_path: Path, broken: dict[str, object], alerts: list[str]
+) -> None:
+    # A record without `derivation` blinds [replay-loop]; that must not read
+    # as healthy (I4).
+    State(tmp_path).fetched(NOW).close()
+    record: dict[str, object] = {
+        "finished_at": NOW,
+        "readiness_errors": {},
+        "controls": {},
+        "derivation": {"generations": {}, "equivalences": {}, "replay_bumps": {}},
+    }
+    last = {key: value for key, value in {**record, **broken}.items() if value is not None}
+    _write_runs(tmp_path, record, record, last)
+    lines = _run(tmp_path)
+    assert _keys(lines) == alerts
+    if "derivation_error" in broken:
+        assert "database is locked" in lines[0]
+    # Records from before phase 1 carry none of these reports.
+    _write_runs(tmp_path, {"finished_at": NOW}, {"finished_at": NOW}, {"finished_at": NOW})
+    assert _run(tmp_path) == []
+
+
+def test_the_inventory_wait_lifts_on_a_calendar_replay_or_generation(tmp_path: Path) -> None:
+    """The mirror of the gate's calendar rules (schedule/pacing), on the real
+    schema. The inventory was made at 13:00 within its interval and history,
+    made at 03:00, has not consumed it, so the map after it waits by design.
+    A calendar replay epoch the inventory has not read, or a calendar
+    generation newer than it, lifts the wait: the map is then a stall. A
+    run that reads the new epoch, or the new calendar, paces it again."""
+    from swingset.state import derivations
+
+    config = _config(tmp_path, inventory=43200)
+    with open_database(tmp_path, lock=False) as database:
+        conn = database.connection
+        run = database.start_run(datetime.fromisoformat("2026-09-25T00:00:00+00:00"))
+        conn.execute("INSERT OR IGNORE INTO derivation_dependency_sets VALUES ('empty','[]')")
+        conn.execute("INSERT OR IGNORE INTO derivation_recipes VALUES ('r','{}')")
+
+        def generation(kind: str, scope: str, generation_id: str, at: str) -> None:
+            conn.execute(
+                "INSERT OR IGNORE INTO derivation_scopes(stage,unit_kind,unit_id,registered_at) "
+                "VALUES ('project',?,?,?)",
+                (kind, scope, at),
+            )
+            conn.execute(
+                "INSERT INTO derivation_generations VALUES "
+                "(?,'project',?,?,'f','{}','empty',NULL,'d',0,?,?)",
+                (generation_id, kind, scope, at, run),
+            )
+            conn.execute(
+                "UPDATE derivation_scopes SET materialized_generation_id=? "
+                "WHERE stage='project' AND unit_kind=? AND unit_id=?",
+                (generation_id, kind, scope),
+            )
+
+        def equivalence(epoch: int, at: str) -> None:
+            read = f'[{{"key":["project","calendar"],"kind":"replay","version":{epoch}}}]'
+            conn.execute(
+                "INSERT OR IGNORE INTO derivation_dependency_sets VALUES (?,?)",
+                (f"read{epoch}", read),
+            )
+            conn.execute(
+                "INSERT INTO derivation_equivalences VALUES "
+                "('project','inventory','all',?,'inv','r',?,?,?)",
+                (f"f{epoch}-{at}", f"read{epoch}", at, run),
+            )
+
+        generation("calendar", "wsdc", "cal0", "2026-09-25T01:00:00+00:00")
+        generation("history", "all", "hist", "2026-09-25T03:00:00+00:00")
+        generation("inventory", "all", "inv", "2026-09-25T13:00:00+00:00")
+        conn.execute(
+            "INSERT INTO work_attempts(stage,unit_kind,unit_id,queue_generation,"
+            "retry_generation,work_token,input_fingerprint,run_id,started_at,finished_at,"
+            "outcome,reason_code) VALUES ('project','map','all',1,0,'t','f',?,?,?,"
+            "'succeeded','output_committed')",
+            (run, "2026-09-25T10:00:00+00:00", "2026-09-25T10:00:00+00:00"),
+        )
+
+        def queue() -> None:
+            # Only the inventory and the map it holds, whatever a replay queued.
+            conn.execute("DELETE FROM pending_work")
+            conn.execute(
+                "INSERT INTO pending_work VALUES "
+                "('project','inventory','all','2026-09-25T13:30:00+00:00'),"
+                "('project','map','all','2026-09-25T10:00:00+00:00')"
+            )
+
+        def stalled() -> bool:
+            # The watchdog reads the main file only (immutable=1).
+            conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+            lines = _run(tmp_path, extra=config, repeat=0)
+            assert "watchdog-blind" not in _keys(lines)
+            return "stale-progress" in _keys(lines)
+
+        queue()
+        assert not stalled()
+        with database.transaction():
+            derivations.bump_replay(conn, "project", "calendar", now=NOW)
+        queue()
+        assert stalled()
+        # The inventory's next run read epoch 1; it was made at 13:30, so it
+        # is paced again and the map waits.
+        equivalence(1, "2026-09-25T13:30:00+00:00")
+        assert not stalled()
+        # The wsdc calendar mints a generation after it: the gate lets the
+        # inventory run again.
+        generation("calendar", "wsdc", "cal1", "2026-09-25T13:45:00+00:00")
+        assert stalled()
+        equivalence(1, "2026-09-25T13:50:00+00:00")
+        assert not stalled()

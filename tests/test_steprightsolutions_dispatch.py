@@ -7,7 +7,7 @@ from swingset.clock import FakeClock
 from swingset.project.process import process_unit
 from swingset.sources.base import ParseContext, ParseResult
 from swingset.sources.records import SourceEventRow
-from swingset.sources.steprightsolutions import EventPage, IndexPage
+from swingset.sources.steprightsolutions.adapter import EventPage, IndexPage
 from swingset.sources.steprightsolutions.records import StepRightEventSheet
 from swingset.state.db import Database, open_database
 from swingset.state.observations import store_parse_result

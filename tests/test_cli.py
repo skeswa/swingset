@@ -104,6 +104,27 @@ def test_doctor_does_not_wait_for_writer(tmp_path, capsys):
     assert f'"schema_version": {SCHEMA_VERSION}' in capsys.readouterr().out
 
 
+def test_doctor_and_summary_walk_the_retention_plan_only_when_asked(tmp_path, capsys, monkeypatch):
+    """The walk needed 13 GB on the 35 GB copy, past the 8 GB worker, and the
+    daily summary ran it. Both report the file's bytes unless `--retention`."""
+    import swingset.state.retention as retention
+
+    with open_database(tmp_path):
+        pass
+    walks = []
+    real = retention.report
+    monkeypatch.setattr(retention, "report", lambda *a, **k: walks.append(1) or real(*a, **k))
+    for command in ("doctor", "summary"):
+        assert main([command, "--state", str(tmp_path), "--json"]) == 0
+        document = json.JSONDecoder().raw_decode(capsys.readouterr().out)[0]
+        assert document["retention"]["usage"]["file_bytes"] > 0
+        assert "walk" in document["retention"] and "plan_digest" not in document["retention"]
+    assert walks == []
+    assert main(["doctor", "--state", str(tmp_path), "--json", "--retention"]) == 0
+    document = json.JSONDecoder().raw_decode(capsys.readouterr().out)[0]
+    assert walks == [1] and "plan_digest" in document["retention"]
+
+
 def test_doctor_reports_hold_age_fields_and_overdue(tmp_path, capsys):
     import json
     import os

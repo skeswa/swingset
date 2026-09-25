@@ -69,6 +69,12 @@ def parser() -> argparse.ArgumentParser:
             command.add_argument("--kind")
             command.add_argument("--requirement")
             command.add_argument("--since", type=datetime.fromisoformat)
+            command.add_argument(
+                "--retention",
+                action="store_true",
+                help="Also walk the retention plan (gc --plan's walk; at production "
+                "size it needs more memory than the 8 GB worker has)",
+            )
     collect = commands.add_parser("gc", parents=[shared])
     # Bare `gc` summarises the plan and removes nothing. Nothing removes
     # anything without a plan digest and both locks.
@@ -97,6 +103,12 @@ def parser() -> argparse.ArgumentParser:
         "--collect-closures",
         metavar="PLAN_DIGEST",
         help="Remove the unnamed release-closure proofs that plan listed (D-0200)",
+    )
+    collect.add_argument(
+        "--candidates-only",
+        action="store_true",
+        help="With --plan or --apply: candidate directories only, walking no graph, "
+        "so it runs on the worker",
     )
     accept_year = commands.add_parser("accept-year", parents=[shared])
     accept_year.add_argument("--year", type=int, required=True)
@@ -526,7 +538,19 @@ def doctor(args: argparse.Namespace) -> dict[str, Any]:
                         "SELECT reason,granted_at FROM derivation_payload_removal_authority"
                     )
                 ]
-            if conn.execute(
+            if not getattr(args, "retention", False):
+                from swingset.state.retention import usage
+
+                # The plan walk holds the whole graph: 13 GB and 13 minutes on
+                # the 35 GB copy, past the 8 GB worker. Doctor and the daily
+                # summary report the file's bytes; `--retention` walks.
+                result["retention"] = {
+                    "usage": usage(conn, args.state),
+                    "over_size_cap": (args.state / "state.sqlite").stat().st_size
+                    > config.retention.max_database_bytes,
+                    "walk": "skipped; pass --retention (gc --plan's walk)",
+                }
+            elif conn.execute(
                 "SELECT 1 FROM sqlite_master WHERE name='derivation_generations'"
             ).fetchone():
                 from swingset.state.retention import report as retention_report
@@ -1002,7 +1026,36 @@ def _mutate(
         from swingset.state.retention_apply import apply_plan, reclaim
 
         policy = bundle.config.retention
-        if args.closures or args.collect_closures:
+        if args.candidates_only and not (args.plan or args.apply):
+            raise ValueError("--candidates-only goes with --plan or --apply")
+        if args.candidates_only and args.plan:
+            from swingset.state.retention import candidate_plan, equivalence_totals
+            from swingset.state.retention_apply import eligibility
+
+            pruning = candidate_plan(
+                database.connection, args.state, collect_older_than=policy.collect_older_than
+            )
+            print(
+                json.dumps(
+                    {
+                        "digest": pruning.digest,
+                        "totals": pruning.content["totals"],
+                        # What an apply now would remove; the rest wait out
+                        # their age floor.
+                        "eligibility": eligibility(pruning, now=clock.now()),
+                        # Counted, not walked, so the worker can report
+                        # D-0208's trigger; not part of the plan's digest.
+                        "equivalences": equivalence_totals(database.connection),
+                        "plan": str(write_plan(args.state, pruning)),
+                        "next": [
+                            f"gc --apply {pruning.digest} --candidates-only removes the "
+                            "removable candidates that plan names, under both locks"
+                        ],
+                    },
+                    indent=2,
+                )
+            )
+        elif args.closures or args.collect_closures:
             from swingset.state import closure_collection
 
             closures: dict[str, Any]
@@ -1030,20 +1083,27 @@ def _mutate(
                 json.dumps(reclaim(database, now=clock.now(), timeout=args.lock_timeout), indent=2)
             )
         elif args.apply:
-            print(
-                json.dumps(
-                    apply_plan(
-                        database,
-                        plan_digest=args.apply,
-                        max_database_bytes=policy.max_database_bytes,
-                        recent_window=policy.recent_window,
-                        collect_older_than=policy.collect_older_than,
-                        now=clock.now(),
-                        timeout=args.lock_timeout,
-                    ),
-                    indent=2,
-                )
+            applied = apply_plan(
+                database,
+                plan_digest=args.apply,
+                max_database_bytes=policy.max_database_bytes,
+                recent_window=policy.recent_window,
+                collect_older_than=policy.collect_older_than,
+                now=clock.now(),
+                timeout=args.lock_timeout,
+                candidates_only=args.candidates_only,
             )
+            print(json.dumps(applied, indent=2))
+            waiting = applied.get("eligibility", {})
+            if waiting.get("not_yet_eligible") and not waiting.get("eligible_now"):
+                # Exit 0 with empty lists reads as success; say why nothing went.
+                print(
+                    f"gc --apply: the plan names {waiting['not_yet_eligible']} removable files"
+                    " but none has passed its age floor yet; the earliest can go after"
+                    f" {waiting['earliest_eligible_after']}. A copied or restored state"
+                    " directory resets the floor.",
+                    file=sys.stderr,
+                )
         else:
             # Planning is also when the cap is noticed: an operator asking what
             # could go should be told the pipeline is already over its limit.
@@ -1177,15 +1237,25 @@ def _accept_year(args: argparse.Namespace) -> int:
 
     The projector refuses while the year has open history findings or the
     inventory projection is pending, so acceptance cannot outrun the evidence
-    (D-0180).
+    (D-0180). An inventory the configured pacing gate holds does not count as
+    pending: acceptance then records the committed event list, as the
+    phase-two gate reads it (D-0210). The cutoff switch applies (D-0205).
     """
+    from swingset import cutoff
     from swingset.project.history import accept_year
+    from swingset.schedule import pacing
 
     if not (args.by or "").strip():
         raise ValueError("accept-year requires --by")
-    now = SystemClock().now()
+    config = load_config(args.config)
+    clock = SystemClock()
+    now = clock.now()
     with open_database(args.state, lock_timeout=args.lock_timeout) as database:
-        with database.transaction() as conn:
+        with (
+            pacing.configured(config.scheduler, clock.now),
+            cutoff.configured(config.derivation.cutoff),
+            database.transaction() as conn,
+        ):
             accept_year(conn, args.year, accepted_by=args.by, accepted_at=now.isoformat())
             row = conn.execute(
                 "SELECT year,accepted_at,accepted_by,inventory_digest FROM history_acceptance WHERE year=?",

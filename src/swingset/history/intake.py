@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit, urlunsplit
 
+from swingset import cutoff
 from swingset.clock import Clock
 from swingset.config import Config, SourceConfig
 from swingset.fetch.archive import Archive, canonical, durable_write
@@ -218,13 +219,14 @@ def run_intake(
                         )
                     if snapshot is None or snapshot["classification"] != "Ok":
                         raise ValueError("event-list fetch did not return a usable 200 response")
-                attempt = parse_snapshot(
-                    database,
-                    archive,
-                    WorkUnit("parse", "snapshot", str(snapshot["snapshot_id"])),
-                    clock,
-                    run_id,
-                )
+                with cutoff.configured(config.derivation.cutoff):
+                    attempt = parse_snapshot(
+                        database,
+                        archive,
+                        WorkUnit("parse", "snapshot", str(snapshot["snapshot_id"])),
+                        clock,
+                        run_id,
+                    )
                 if attempt.failed:
                     raise ValueError(
                         "event-list parser failed; see archived body and parse finding"

@@ -24,6 +24,7 @@ from swingset.schedule.event_evidence import (
     admission_reason,
     decode_generation,
     request_id,
+    revoked_evidence,
     timestamp,
 )
 from swingset.schedule.event_evidence import request as normalize_request
@@ -211,7 +212,7 @@ class _Evidence:
         )
         if self.revoked is None:
             revoked = reader.read(
-                "SELECT unit_key,input_fingerprint,recipe_json FROM source_generations WHERE state='revoked' ORDER BY generation_id",
+                revoked_evidence(self.conn),
                 (),
                 ("unit_key", "input_fingerprint", "recipe_json"),
                 cap=reader.limits.candidates,

@@ -89,7 +89,7 @@ def test_missing_or_forged_current_input_proof_never_hides_changed_facts(
     f.conn.execute(
         "UPDATE observations SET payload_json=replace(payload_json,'Diane','Changed') WHERE scope_kind='dancer'"
     )
-    signature = certificate(f.conn, unit, recipe_inputs(f.conn, "project"), {})
+    signature = certificate(f.conn, unit, recipe_inputs(f.conn, "project", unit.unit_kind), {})
     proof, key = materialized_proof(derivations.selected_generation(f.conn, unit), signature)
     f.conn.execute(
         "UPDATE derivation_scopes SET materialized_signature=? WHERE stage='project' AND unit_kind='dancer' AND unit_id='1'",
@@ -188,7 +188,7 @@ def test_changed_accepted_recipe_invalidates_bulk_and_individual_proofs(registry
     f = registry_fixture
     assert compare(f)
     f.conn.execute(
-        "UPDATE accepted_inputs SET digest='new-reviewed-runtime' WHERE consumer='pipeline' AND input_name='recipe/runtime'"
+        "UPDATE accepted_inputs SET digest='new-reviewed-runtime' WHERE consumer='pipeline' AND input_name='recipe/env'"
     )
     assert not compare(f)
 

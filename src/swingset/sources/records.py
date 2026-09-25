@@ -4,6 +4,10 @@ from dataclasses import dataclass
 
 from swingset.model.observations import register_observation_type
 
+# SHA-256 of the one verified WSDC registry miss body. The adapter and the
+# registry contract share it here so the contract never imports the adapter.
+VERIFIED_MISS_SHA256 = "8437bd0ef46a19c9a7c294c53e0429b40e76ebbd5fe9fd73a9025752495ddb1c"
+
 
 @dataclass(frozen=True)
 class CalendarRow:

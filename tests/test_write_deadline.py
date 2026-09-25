@@ -154,6 +154,49 @@ def test_timed_out_derivation_backs_off_while_independent_output_commits(tmp_pat
         assert tuple(latest) == ("transient", (clock.now() + timedelta(minutes=30)).isoformat())
 
 
+@pytest.mark.parametrize("nondeterministic", [False, True])
+def test_a_unit_that_raises_keeps_a_doubling_retry_clock(tmp_path, monkeypatch, nondeterministic):
+    import swingset.project
+    from swingset.clock import FakeClock
+    from swingset.config import Config
+    from swingset.fetch.archive import Archive
+    from swingset.schedule.derive import derive_one
+    from swingset.state.derivations import NondeterministicOutputError
+    from swingset.state.inputs import InputBundle
+    from swingset.state.work import WorkUnit, enqueue, next_work
+
+    clock = FakeClock()
+    bundle = InputBundle("test", Path(tmp_path), {}, Config({}, {}))
+    unit = WorkUnit("project", "dancer", "broken")
+    # Output that differs for identical inputs is a failure too, not a benign
+    # supersession that parks the unit with no clock.
+    error = NondeterministicOutputError if nondeterministic else RuntimeError
+    reason = "nondeterministic_output" if nondeterministic else "unit_exception"
+
+    def project(*_args, selection=None):
+        raise error("defect in code outside the unit's recipe")
+
+    monkeypatch.setattr(swingset.project, "process_unit", project)
+    with open_database(tmp_path) as db:
+        run = db.start_run(clock.now())
+        enqueue(db.connection, [unit], enqueued_at=clock.now().isoformat())
+        for delay in (15, 30):
+            outcome = derive_one(db, Archive(tmp_path), unit, bundle, clock, run)
+            assert outcome.failed and outcome.reason == reason
+            latest = db.connection.execute(
+                "SELECT outcome,retry_at FROM work_attempts ORDER BY attempt_id DESC"
+            ).fetchone()
+            # Every non-success has a clock (I3): no input change or operator
+            # retry is needed for a fixed deploy to pick the unit up again.
+            assert tuple(latest) == (
+                "transient",
+                (clock.now() + timedelta(minutes=delay)).isoformat(),
+            )
+            assert next_work(db.connection, "project", now=clock.now()) is None
+            clock.sleep(delay * 60)
+            assert next_work(db.connection, "project", now=clock.now()) == unit
+
+
 def test_an_allowance_extends_only_the_write_it_wraps(tmp_path, monkeypatch):
     from swingset.state.write_deadline import allowance, bounded_write
 

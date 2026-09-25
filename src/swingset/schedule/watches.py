@@ -79,7 +79,7 @@ def _insert_watch(
     )
     inserted = cursor.rowcount > 0
     if inserted and spec.archive_url:
-        from swingset.history.acquisition import PHASE1_KINDS
+        from swingset.sources.phase_one import PHASE1_KINDS
 
         conn.execute(
             "UPDATE watches SET state='backfill',priority=? WHERE watch_id=?",

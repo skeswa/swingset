@@ -27,7 +27,7 @@ def test_blocked_event_fleet_checks_shared_map_once_and_selects_same_healthy_wor
         )
     assert derivations.current(f.conn, shared)
     f.conn.execute(
-        "UPDATE accepted_inputs SET digest='new reviewed recipe' WHERE input_name='recipe/runtime'"
+        "UPDATE accepted_inputs SET digest='new reviewed recipe' WHERE input_name='recipe/env'"
     )
     fleet = [WorkUnit("project", "event", f"blocked-{i}") for i in range(40)]
     healthy = WorkUnit("parse", "snapshot", "healthy")

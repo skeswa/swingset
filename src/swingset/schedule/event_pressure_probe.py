@@ -16,7 +16,14 @@ from swingset.admission.evidence_budget import Budget, _Unknown
 from swingset.admission.evidence_budget import Limits as Limits
 from swingset.fetch.archive import Archive
 
-from .event_evidence import admission_reason, decode_generation, request, request_id, timestamp
+from .event_evidence import (
+    admission_reason,
+    decode_generation,
+    request,
+    request_id,
+    revoked_evidence,
+    timestamp,
+)
 
 FORMAT = "event-pressure-probe-v1"
 _DEFAULT_LIMITS = Limits()
@@ -60,7 +67,7 @@ class _Probe(Budget):
             if len(manifest) > self.limits.manifest_members:
                 raise _Unknown("manifest_member_budget")
             revoked = self.read(
-                "SELECT unit_key,input_fingerprint,recipe_json FROM source_generations WHERE state='revoked' ORDER BY generation_id",
+                revoked_evidence(self.conn),
                 (),
                 ("unit_key", "input_fingerprint", "recipe_json"),
                 cap=self.limits.candidates,

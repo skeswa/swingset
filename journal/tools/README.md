@@ -27,13 +27,14 @@ the sources remain in history at commit `e136d95`.
 - [Dataset quality](quality/README.md): inspect a saved dataset, explain missing results, and run the Jes Test.
 - [Source interpretation checks](admission/README.md): run admission contracts offline and acquire one reviewed fixture.
 - [Worker state and recovery](runtime/README.md): measure state storage, benchmark layouts on a disposable copy, and replay derivations on scratch.
-- [Builds and releases](releases/README.md): audit a built candidate offline.
+- [Builds and releases](releases/README.md): audit a built candidate offline, or compare two.
 
 ## Repository checks
 
 - `mise run evidence-size` (`evidence_size.py`): tracked evidence sizes, the
-  1 MiB per-file limit and the 200 KiB new-evidence budget per change. It
-  writes no files.
+  1 MiB per-file limit and the 200 KiB new-evidence budget per change,
+  measured from `trunk()`. `mise run evidence-size -- --from @-` measures one
+  change of an unpushed stack. It writes no files.
 - `mise run session-start -- --label <you>` and `mise run session-end`
   (`agent_session.py`): take and release the one agent-session lock for this
   checkout.

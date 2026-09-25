@@ -295,7 +295,7 @@ def test_missing_parser_has_stable_fingerprint_and_does_not_block_healthy_select
         assert next_work(db.connection, "parse", now=NOW) == BAD
 
 
-@pytest.mark.parametrize("change", ["body", "recipe", "policy"])
+@pytest.mark.parametrize("change", ["body", "recipe", "package", "policy"])
 def test_parse_changed_evidence_recipe_or_admission_policy_reopens_retry(tmp_path, change):
     with open_database(tmp_path) as db:
         run, _ = snapshot(db)
@@ -305,6 +305,13 @@ def test_parse_changed_evidence_recipe_or_admission_policy_reopens_retry(tmp_pat
         if change == "body":
             db.connection.execute("UPDATE snapshots SET body_sha256=?", ("b" * 64,))
         elif change == "recipe":
+            db.connection.execute(
+                "INSERT INTO accepted_inputs "
+                "VALUES ('pipeline','recipe/code/parse/wsdc_registry.dancer','new-code')"
+            )
+        elif change == "package":
+            # A fix outside the kind's scopes (admission, observations) still
+            # re-opens a blocked parse, though it re-parses nothing (D-0207).
             db.connection.execute(
                 "INSERT INTO accepted_inputs VALUES ('pipeline','version/repository','new-code')"
             )
@@ -331,3 +338,153 @@ def test_project_fingerprint_is_scoped_to_its_own_observations(tmp_path):
             (watch.watch_id, BAD.unit_id),
         )
         assert input_fingerprint(db.connection, GOOD) != first
+
+
+def test_a_committed_derivation_keeps_its_attempt_but_not_its_admission(tmp_path, monkeypatch):
+    """Per-unit bookkeeping of a run that committed carries nothing its work
+    attempt does not (D-0213): the settled admission and its scope rows go in
+    the output transaction, and a success with no requirement finding adds no
+    requirement attempt. A failure keeps all three, and a later success is
+    recorded against the finding it satisfies."""
+    from pathlib import Path
+
+    import swingset.project
+    from swingset.clock import FakeClock
+    from swingset.config import Config
+    from swingset.fetch.archive import Archive
+    from swingset.schedule.derive import derive_one
+    from swingset.state import derivations
+    from swingset.state.inputs import InputBundle
+
+    clock = FakeClock()
+    bundle = InputBundle("test", Path(tmp_path), {}, Config({}, {}))
+    failing = {"broken"}
+
+    def project(db, unit, *_args, selection=None):
+        if unit.unit_id in failing:
+            raise RuntimeError("fixture failure")
+        derivations.complete(db.connection, selection, rows=(), now=clock.now(), run_id=run)
+        db.connection.execute("DELETE FROM pending_work WHERE unit_id=?", (unit.unit_id,))
+
+    monkeypatch.setattr(swingset.project, "process_unit", project)
+
+    def bookkeeping(conn, unit_id):
+        attempt = conn.execute(
+            "SELECT attempt_id FROM work_attempts WHERE unit_id=? ORDER BY attempt_id DESC",
+            (unit_id,),
+        ).fetchone()[0]
+        admissions = conn.execute(
+            "SELECT action_id,state,outcome FROM execution_admissions WHERE work_attempt_id=?",
+            (attempt,),
+        ).fetchall()
+        scopes = sum(
+            conn.execute(
+                "SELECT count(*) FROM execution_dependencies WHERE action_id=?", (row[0],)
+            ).fetchone()[0]
+            for row in admissions
+        )
+        requirement = conn.execute(
+            "SELECT outcome FROM requirement_attempts WHERE attempt_id=?", (f"work:{attempt}",)
+        ).fetchall()
+        return [tuple(row[1:]) for row in admissions], scopes, [row[0] for row in requirement]
+
+    with open_database(tmp_path) as db:
+        conn = db.connection
+        run = db.start_run(clock.now())
+        units = [WorkUnit("project", "dancer", name) for name in ("healthy", "broken")]
+        enqueue(conn, units, enqueued_at=clock.now().isoformat())
+        assert not derive_one(db, Archive(tmp_path), units[0], bundle, clock, run).failed
+        assert derive_one(db, Archive(tmp_path), units[1], bundle, clock, run).failed
+        assert bookkeeping(conn, "healthy") == ([], 0, [])
+        admissions, scopes, requirement = bookkeeping(conn, "broken")
+        assert admissions == [("settled", "unit_exception")] and scopes > 0
+        assert requirement == ["transient"]
+        failing.clear()
+        clock.sleep(24 * 3600)
+        assert not derive_one(db, Archive(tmp_path), units[1], bundle, clock, run).failed
+        assert bookkeeping(conn, "broken") == ([], 0, ["succeeded"])
+        assert conn.execute(
+            "SELECT state,attempt_count FROM findings WHERE owner_kind='requirement' "
+            'AND evidence_json LIKE \'%"unit_id":"broken"%\''
+        ).fetchone()[:] == ("satisfied", 2)
+        assert conn.execute("SELECT count(*) FROM work_attempts").fetchone()[0] == 3
+
+
+def test_a_supersession_with_unchanged_inputs_retries_on_a_clock(tmp_path, monkeypatch):
+    """I3: a superseded attempt re-opens only when its inputs move. One whose
+    inputs did not move (a relabel, a fence) would park the unit forever, so
+    it is transient with a clock; one whose inputs moved stays superseded."""
+    from pathlib import Path
+
+    import swingset.project
+    from swingset.clock import FakeClock
+    from swingset.config import Config
+    from swingset.fetch.archive import Archive
+    from swingset.schedule import derive as derive_module
+    from swingset.schedule.derive import derive_one
+    from swingset.state import derivations
+    from swingset.state.inputs import InputBundle
+
+    clock = FakeClock()
+    bundle = InputBundle("test", Path(tmp_path), {}, Config({}, {}))
+
+    def project(db, unit, *_args, selection=None):
+        raise SupersededWorkError("a newer attempt owns this work")
+
+    monkeypatch.setattr(swingset.project, "process_unit", project)
+    unit = WorkUnit("project", "dancer", "d1")
+    with open_database(tmp_path) as db:
+        conn = db.connection
+        run = db.start_run(clock.now())
+        enqueue(conn, (unit,), enqueued_at=clock.now().isoformat())
+        outcome = derive_one(db, Archive(tmp_path), unit, bundle, clock, run)
+        assert outcome.reason == "inputs_changed_spurious" and not outcome.failed
+        row = latest_attempt(conn, unit)
+        assert (row["outcome"], row["reason_code"]) == ("transient", "inputs_changed_spurious")
+        assert row["retry_at"] is not None
+        fingerprint = derivations.desired(conn, unit).fingerprint
+        assert not eligible(conn, unit, fingerprint, clock.now())
+        assert eligible(conn, unit, fingerprint, clock.now() + timedelta(minutes=16))
+        # The check compares the attempt's fingerprint with the unit's now.
+        assert derive_module._inputs_unchanged(db, unit, fingerprint)
+        assert not derive_module._inputs_unchanged(db, unit, "moved")
+        # Inputs that really moved while it ran: superseded, and the move
+        # re-opens it.
+        clock.sleep(16 * 60)
+        asked = []
+
+        def moved(_db, asked_unit, attempted):
+            asked.append((asked_unit, attempted))
+            return False
+
+        monkeypatch.setattr(derive_module, "_inputs_unchanged", moved)
+        assert derive_one(db, Archive(tmp_path), unit, bundle, clock, run).reason == (
+            "inputs_changed"
+        )
+        assert latest_attempt(conn, unit)["outcome"] == "superseded"
+        assert asked == [(unit, fingerprint)]
+
+
+def test_a_committed_parse_keeps_its_attempt_but_not_its_admission(tmp_path):
+    """D-0213 for parse units: a parse run that committed leaves no execution
+    admission, no scope rows and no requirement attempt, only its work attempt."""
+    from pathlib import Path
+
+    from test_admission import Corpus
+
+    from swingset.config import Config
+    from swingset.schedule.derive import derive_one
+    from swingset.state.inputs import InputBundle
+
+    bundle = InputBundle("test", Path(tmp_path), {}, Config({}, {}))
+    with open_database(tmp_path) as db:
+        corpus = Corpus(db)
+        corpus.snapshot("one")
+        unit = WorkUnit("parse", "snapshot", "one")
+        outcome = derive_one(db, corpus.archive, unit, bundle, corpus.clock, corpus.run)
+        assert not outcome.failed and outcome.reason is None
+        conn = db.connection
+        attempt = latest_attempt(conn, unit)
+        assert attempt["outcome"] == "succeeded"
+        for table in ("execution_admissions", "execution_dependencies", "requirement_attempts"):
+            assert conn.execute(f"SELECT count(*) FROM {table}").fetchone()[0] == 0, table

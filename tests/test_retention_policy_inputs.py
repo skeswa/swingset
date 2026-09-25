@@ -104,5 +104,6 @@ def test_a_retention_limit_is_no_stage_recipe_input(tmp_path: Path) -> None:
         conn = database.connection
         accept(database, capture(config, overrides, state, {}), clock)
         for stage in ("project", "link", "build", "parse"):
-            assert "policy/retention.json" not in recipe_inputs(conn, stage)
+            kind = "wsdc_calendar.events" if stage == "parse" else "event"
+            assert "policy/retention.json" not in recipe_inputs(conn, stage, kind)
         assert tuple(affected_work(conn, "policy/retention.json")) == ()

@@ -163,12 +163,31 @@ claims that an output committed successfully.
 A cycle excludes an already attempted input fingerprint, rather than the
 whole unit. Later parses can add inputs to a shared projection and let it
 run again in that cycle. Repeating the same bytes and recipe does not unlock
-a blocked attempt. Once offline work settles, saved interpretation and a
+a blocked attempt. A derivation that raises is not blocked: it retries after
+15 minutes, doubling per consecutive failure with the same reason up to six
+hours, and each retry counts as a failure in the cycle summary
+([D-0211](../../journal/decisions/0211-a-derivation-that-raises-retries-on-a-clock.md)); the
+watchdog's `[unit-failing]` names a unit whose last three attempts failed the
+same way. The summary's `derivation` key reports generations and equivalences
+written, by `stage/kind`, and the replay epochs a cutoff moved. If that read,
+the replay-epoch read at the start of the cycle, or the controls read fails,
+the record keeps `derivation_error` or `controls_error` instead, and is still
+written; without a starting read the replay bumps are left out. The watchdog's
+`[report-failing]` names a record with either key or without `derivation`.
+`current_hints_dropped` counts project and link hints offline selection found
+current and deleted; a failed delete is noted as `current_hints_error`, does
+not fail the cycle, and no watchdog line reads it yet. A kind whose
+recipe cannot be formed is skipped and named in `readiness_errors`, which
+fails the cycle. Once offline work settles, saved interpretation and a
 build receive offline time before unused time is lent back to collection.
 Cycle receipts report actual phase time separately from configured shares.
 
 Acquisition pauses when pending parse work reaches 1,000 items or 128 MiB
-of distinct retained bodies, or total pending work reaches 10,000 items.
+of distinct retained bodies, or pending work reaches 10,000 items. With
+derivations that count is parse rows only: project and link rows are hints
+that code-scope accepts and replay epochs queue for the watchdog, and a
+derivation backlog does not pause acquisition
+([D-0214](../../journal/decisions/0214-a-derivation-backlog-does-not-pause-acquisition.md)).
 Two actual requests per cycle remain available for explicitly identified
 identity dependencies. Ordinary unfetched rounds do not receive that
 reserve. Robots, redirects, retries, and failed issued requests consume
@@ -182,6 +201,30 @@ admits a release build at most that often, failed or not, and
 `history_interval_seconds` re-materializes `project/history/all` at most that
 often. Production sets 6 and 12 hours; unset means every cycle
 ([D-0199](../../journal/decisions/0199-contain-build-failures-and-pace-global-units.md)).
+`inventory_interval_seconds` (12 hours) paces `project/inventory/all` the same
+way. A due history lifts it only once history has consumed the inventory it
+has; otherwise a dancer change during the cascade would restart it. With equal
+intervals that never happens, so the inventory runs at most twice a day,
+plus once per calendar change below. A
+history whose latest attempt failed does not count as due. An inventory made
+at or after history came due started a cascade that a dancer change then
+interrupted; from then on the inventory runs whenever it is stale until
+history lands, so a dancer change in every cascade cannot starve history
+([D-0210](../../journal/decisions/0210-pace-the-inventory-like-history.md)).
+A calendar replay the inventory has not read (its epoch is newer than the
+highest one the inventory's current output recorded, over its generation and
+every equivalence) lifts the wait as well, and so does a calendar generation
+newer than the inventory's output (except `wsdc-history`, which writes no
+rows): either rewrote live `events` columns the inventory enriched.
+Each new inventory re-mints the map, every event, history and every link. Both
+intervals start at the newer of the kept generation's time and its latest
+cutoff (`derivations.materialized_at`). The rule lives in
+`schedule/pacing.py`. The cycle names its scheduler there, so the phase-two
+gate and `accept-year` treat a held inventory (`pacing.holds`: not current and
+made within its interval), and the map behind it, as not pending and read the
+committed event list (I5). A current inventory holds nothing, so a pending
+map behind it counts as pending. The cycle summary's
+`phase_two_refusals` counts that gate's refusals by reason.
 Changing these settings captures a new input bundle without relabeling
 source interpretations. The measured load and the distinction between
 observations and initial objectives are in

@@ -179,18 +179,7 @@ def retain_resolution(
     reason: str,
     now: str,
 ) -> None:
-    values = (
-        kind,
-        identifier,
-        json.dumps(resolution.ref_ids),
-        json.dumps(resolution.decision_ids),
-        resolution.policy_version,
-        resolution.token.digest,
-        resolution.token.generation,
-        state,
-        reason,
-        now,
-    )
+    values = (kind, identifier, *resolution_columns(resolution, state=state, reason=reason), now)
     conn.execute(
         "INSERT INTO identity_link_resolutions VALUES (?,?,?,?,?,?,?,?,?,?) ON CONFLICT(subject_kind,subject_id) DO UPDATE SET ref_ids_json=excluded.ref_ids_json,decision_ids_json=excluded.decision_ids_json,policy_version=excluded.policy_version,journal_digest=excluded.journal_digest,journal_generation=excluded.journal_generation,state=excluded.state,reason=excluded.reason,asserted_at=excluded.asserted_at",
         values,
@@ -204,15 +193,6 @@ def retain_resolution(
         if row is None
         else dict(zip((field[0] for field in cursor.description), row, strict=True))
     )
-    evidence = {
-        "refs": resolution.ref_ids,
-        "decisions": resolution.decision_ids,
-        "migrations": resolution.migration_ids,
-        "policy_version": resolution.policy_version,
-        "journal_digest": resolution.token.digest,
-        "journal_generation": resolution.token.generation,
-        "reason": reason,
-    }
     conn.execute(
         "INSERT INTO identity_link_history(subject_kind,subject_id,state,assertion_json,resolution_json,recorded_at) VALUES (?,?,?,?,?,?)",
         (
@@ -220,7 +200,38 @@ def retain_resolution(
             identifier,
             state,
             json.dumps(assertion, sort_keys=True),
-            json.dumps(evidence, sort_keys=True),
+            resolution_evidence(resolution, reason=reason),
             now,
         ),
+    )
+
+
+def resolution_columns(
+    resolution: DecisionResolution, *, state: str, reason: str
+) -> tuple[object, ...]:
+    """`identity_link_resolutions` columns after the subject, without `asserted_at`."""
+    return (
+        json.dumps(resolution.ref_ids),
+        json.dumps(resolution.decision_ids),
+        resolution.policy_version,
+        resolution.token.digest,
+        resolution.token.generation,
+        state,
+        reason,
+    )
+
+
+def resolution_evidence(resolution: DecisionResolution, *, reason: str) -> str:
+    """The `resolution_json` an identity history row records."""
+    return json.dumps(
+        {
+            "refs": resolution.ref_ids,
+            "decisions": resolution.decision_ids,
+            "migrations": resolution.migration_ids,
+            "policy_version": resolution.policy_version,
+            "journal_digest": resolution.token.digest,
+            "journal_generation": resolution.token.generation,
+            "reason": reason,
+        },
+        sort_keys=True,
     )

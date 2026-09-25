@@ -158,14 +158,17 @@ def _requirement(
         reason if state != "satisfied" else None,
         next_eligible_at=retry_at,
     )
-    # Successful ordinary work need not create an otherwise nonexistent finding.
+    # Successful ordinary work need not create an otherwise nonexistent finding,
+    # nor an attempt row for one: the work attempt already records it, and a
+    # unit that never failed would add one row per run forever (D-0213).
     if (
-        outcome != "succeeded"
-        or conn.execute(
+        outcome == "succeeded"
+        and not conn.execute(
             "SELECT 1 FROM findings WHERE finding_id=?", (requirement.identifier,)
         ).fetchone()
     ):
-        reconcile_requirement(conn, requirement, now, attempt.run_id)
+        return requirement.identifier
+    reconcile_requirement(conn, requirement, now, attempt.run_id)
     record_attempt(conn, requirement.identifier, f"work:{attempt.attempt_id}", now, outcome)
     # H11's bounded support scan can reconstruct a deleted inventory row from
     # this durable owner record without losing its attempt count or retry latch.

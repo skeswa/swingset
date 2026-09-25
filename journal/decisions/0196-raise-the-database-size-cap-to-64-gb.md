@@ -4,7 +4,7 @@ Recorded: 2026-09-23
 Decided by: agent, 2026-09-23, under D-0183  
 Topic: Retention  
 Supersedes: the 48 GB figure in [D-0194](0194-raise-the-database-size-cap-to-48-gb.md)  
-Superseded by: —
+Superseded by: in part, [D-0208](0208-keep-the-64-gb-cap-until-closure-collection.md): the cap's exit condition is invalidation step 3
 
 ## Decision
 

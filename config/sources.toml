@@ -19,7 +19,10 @@ index_urls = ["https://eepro.com/results/event.php"]
 
 [sources.scoringdance]
 enabled = true
-index_urls = ["https://scoring.dance/sitemap.xml", "https://scoring.dance/enUS/events/"]
+index_urls = [
+  "https://scoring.dance/sitemap.xml",
+  "https://scoring.dance/enUS/events/",
+]
 
 [sources.wdr]
 enabled = true
@@ -32,9 +35,12 @@ index_urls = []
 archive_index_seconds = 120
 # Each release build walks the whole closure (minutes, ~6 GB of memory), and
 # each history generation writes ~200k row references and re-queues every
-# link unit. Pace both; neither gates acquisition (D-0198, D-0199).
+# link unit. Pace both; neither gates acquisition (D-0198, D-0199). Each
+# inventory generation re-mints the map, every event, history and every link
+# (about 0.4 GB), so it waits too, unless history is due (D-0210).
 build_interval_seconds = 21600
 history_interval_seconds = 43200
+inventory_interval_seconds = 43200
 
 # The live database may grow to this size before the pipeline pauses itself
 # (D-0186; D-0194 and D-0196 raised it while the retention planner cannot

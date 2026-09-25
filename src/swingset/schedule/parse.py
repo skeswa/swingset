@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from datetime import timedelta
 
 from swingset.admission.contracts import contract_version, inspect
-from swingset.admission.generations import begin_attempt, stage_generation
+from swingset.admission.generations import begin_attempt, stage, stage_generation
 from swingset.admission.report import Coverage, Field, Guard, evaluate
 from swingset.admission.select import admit_generation, complete_token
 from swingset.admission.support import generation_failure_codes
@@ -15,7 +15,7 @@ from swingset.sources import get_page_kind
 from swingset.sources.base import ExtractError, ParseContext, ParseError, ParseResult
 from swingset.state.db import Database
 from swingset.state.findings import Finding, replace_findings
-from swingset.state.observations import store_parse_result
+from swingset.state.observations import mark_parsed, store_parse_result
 from swingset.state.verification import finish_interpretation
 from swingset.state.work import WorkUnit, bump_revision
 
@@ -54,22 +54,30 @@ def parse_snapshot(
     finding_owner = ctx.snapshot_id if archive_index else ctx.watch_id
     now = clock.now().isoformat()
     inputs = begin_attempt(conn, ctx, page.EXTRACT_VERSION, page.PARSER_VERSION)
-    runtime_recipe = next(
-        (
-            value
-            for consumer, name, value in inputs.accepted_inputs
-            if consumer == "pipeline" and name == "recipe/runtime"
-        ),
-        None,
-    )
+    # The kind's extract code scope decides whether a cached extract is still
+    # valid (D-0207); a bundle from before scopes has only `recipe/runtime`.
+    accepted = {
+        name: value for consumer, name, value in inputs.accepted_inputs if consumer == "pipeline"
+    }
+    extract_recipe = accepted.get(f"recipe/code/extract/{ctx.kind}", accepted.get("recipe/runtime"))
     has_recipe_cache = "extract_recipe_sha256" in row.keys()
-    recipe_changed = runtime_recipe is not None and (
-        not has_recipe_cache or row["extract_recipe_sha256"] != runtime_recipe
+    recipe_changed = extract_recipe is not None and (
+        not has_recipe_cache or row["extract_recipe_sha256"] != extract_recipe
     )
     sha = row["extract_sha256"]
+    # A stored extract is canonical JSON, keys sorted. A kind whose parse
+    # output follows the body's key order (registry placements, WDR) would
+    # differ from its accepted generation, which a fresh extract made, and
+    # never cut off; it always extracts from the body (json.loads, cheap).
+    ordered = bool(getattr(page, "ORDERED_EXTRACT", False))
     result = ParseResult()
     try:
-        if not sha or str(row["extract_version"]) != str(page.EXTRACT_VERSION) or recipe_changed:
+        if (
+            not sha
+            or str(row["extract_version"]) != str(page.EXTRACT_VERSION)
+            or recipe_changed
+            or ordered
+        ):
             extract = page.extract(archive.read_body(str(row["body_sha256"])))
             sha = archive.store_extract(extract)
         else:
@@ -87,16 +95,19 @@ def parse_snapshot(
         # Commit evidence first: a failed or interrupted admission must leave its
         # complete proposed action available without exposing half its output.
         with database.transaction() as tx:
-            generation = stage_generation(
-                tx, archive, inputs, str(sha), result, report, now=now, run_id=run_id
-            )
+            staged = stage(tx, archive, inputs, str(sha), result, report, now=now, run_id=run_id)
+        generation = staged.generation_id
         with database.transaction() as tx:
             before = tx.execute(
                 "SELECT parse_status,parser_version FROM snapshots WHERE snapshot_id=?",
                 (unit.unit_id,),
             ).fetchone()
             try:
-                selection = admit_generation(database, archive, generation, now=now, run_id=run_id)
+                # A byte-identical repeat of a held generation is held again
+                # without a new generation or decision (D-0212).
+                selection = staged.repeated or admit_generation(
+                    database, archive, generation, now=now, run_id=run_id
+                )
                 if selection not in {"shadow", "accepted"}:
                     if selection != "superseded":
                         complete_token(tx, ctx.snapshot_id, inputs.work_token)
@@ -138,6 +149,24 @@ def parse_snapshot(
                         )
                         or result.legitimate_empty,
                     )
+                elif (
+                    tx.execute(
+                        "SELECT 1 FROM snapshots WHERE snapshot_id=? AND parse_status='ok' "
+                        "AND extract_version IS ? AND parser_version IS ?",
+                        (unit.unit_id, str(page.EXTRACT_VERSION), str(page.PARSER_VERSION)),
+                    ).fetchone()
+                    is None
+                ):
+                    # Cut off to the accepted generation: admission did not
+                    # run, so a failure recorded since it was accepted is
+                    # cleared here, before the registry reads the status.
+                    mark_parsed(
+                        tx,
+                        unit.unit_id,
+                        extract_version=page.EXTRACT_VERSION,
+                        parser_version=page.PARSER_VERSION,
+                        parsed_at=now,
+                    )
             except ValueError as exc:
                 raise ParseError(str(exc)) from exc
             tx.execute(
@@ -147,7 +176,7 @@ def parse_snapshot(
             if has_recipe_cache:
                 tx.execute(
                     "UPDATE snapshots SET extract_recipe_sha256=? WHERE snapshot_id=?",
-                    (runtime_recipe, unit.unit_id),
+                    (extract_recipe, unit.unit_id),
                 )
             after = tx.execute(
                 "SELECT parse_status,parser_version FROM snapshots WHERE snapshot_id=?",
@@ -263,7 +292,7 @@ def parse_snapshot(
             if has_recipe_cache:
                 tx.execute(
                     "UPDATE snapshots SET extract_recipe_sha256=? WHERE snapshot_id=?",
-                    (None if isinstance(exc, ExtractError) else runtime_recipe, unit.unit_id),
+                    (None if isinstance(exc, ExtractError) else extract_recipe, unit.unit_id),
                 )
             after = tx.execute(
                 "SELECT parse_status,parser_version FROM snapshots WHERE snapshot_id=?",

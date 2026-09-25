@@ -47,7 +47,10 @@ def base_certificate(
     watch_versions: Iterable[tuple[str, int]],
     watch_sources_version: int,
 ) -> str:
-    """Exact calendar/dancer certificate from a single retained input snapshot."""
+    """Exact calendar/dancer certificate from a single retained input snapshot.
+
+    These kinds have no prerequisites, so no replay epoch enters the basis.
+    """
     basis = _basis(unit, recipe, context)
     basis.append(("raw", _json((unit.unit_kind, unit.unit_id)), raw_version))
     basis.extend(("watch", watch_id, version) for watch_id, version in watch_versions)
@@ -69,7 +72,17 @@ def certificate(
         ).fetchone()
         basis.append((namespace, key, int(row[0]) if row else 0))
 
+    replayed: set[tuple[str, str]] = set()
+
+    def replay(kind: str, stage: str = "project") -> None:
+        # Mirrors the direct replay entries of dependencies(): a cutoff that
+        # changed live rows moves this epoch without minting a new id.
+        if (stage, kind) not in replayed:
+            replayed.add((stage, kind))
+            token("replayed", _json((stage, kind)))
+
     def selected(kind: str, identifier: str = "all") -> None:
+        replay(kind)
         basis.append(
             (
                 "selected",
@@ -81,6 +94,7 @@ def certificate(
 
     def epoch(kind: str, stage: str = "project") -> None:
         token("selected", _json((stage, kind)))
+        replay(kind, stage)
 
     def raw(kind: str, identifier: str) -> None:
         token("raw", _json((kind, identifier)))

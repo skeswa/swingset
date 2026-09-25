@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from datetime import timedelta
 from uuid import uuid4
 
+from swingset import cutoff
 from swingset.clock import Clock
 from swingset.fetch.archive import Archive, ArtifactUnavailable
 from swingset.schedule.parse import parse_snapshot
@@ -20,25 +21,55 @@ from swingset.state.write_deadline import WriteDeadlineExceeded
 # named allowance instead of the 45-second bound (D-0198).
 HISTORY_WRITE_SECONDS = 300.0
 
-# Retry delays for a unit whose write overran the deadline: 15 minutes,
-# doubling per consecutive overrun, never more than six hours apart.
+# Retry delays for a unit whose write overran the deadline, or that raised:
+# 15 minutes, doubling per consecutive failure with the same reason, never
+# more than six hours apart.
 DEADLINE_RETRY_FIRST = timedelta(minutes=15)
 DEADLINE_RETRY_LONGEST = timedelta(hours=6)
 
 
-def deadline_backoff(database: Database, unit: WorkUnit) -> timedelta:
-    """Delay before the next attempt, from this unit's run of consecutive overruns."""
+def deadline_backoff(
+    database: Database, unit: WorkUnit, reason: str = "write_deadline_exceeded"
+) -> timedelta:
+    """Delay before the next attempt, from this unit's run of the same failure."""
     overruns = 0
-    for (reason,) in database.connection.execute(
+    for (previous,) in database.connection.execute(
         "SELECT reason_code FROM work_attempts WHERE stage=? AND unit_kind=? AND unit_id=? "
         "AND outcome!='running' ORDER BY attempt_id DESC LIMIT 8",
         (unit.stage, unit.unit_kind, unit.unit_id),
     ):
-        if reason != "write_deadline_exceeded":
+        if previous != reason:
             break
         overruns += 1
     delay: timedelta = DEADLINE_RETRY_FIRST * (2**overruns)
     return min(delay, DEADLINE_RETRY_LONGEST)
+
+
+def _inputs_unchanged(database: Database, unit: WorkUnit, fingerprint: str) -> bool:
+    """Whether the unit's input fingerprint still equals its attempt's.
+
+    A fingerprint that cannot be formed counts as changed.
+    """
+    from swingset.state import derivations
+    from swingset.state.work_fingerprints import input_fingerprint
+
+    conn = database.connection
+    try:
+        if unit.stage in {"project", "link"} and derivations.available(conn):
+            return derivations.desired(conn, unit).fingerprint == fingerprint
+        return input_fingerprint(conn, unit) == fingerprint
+    except Exception:
+        return False
+
+
+def _cutoff_on(bundle: InputBundle) -> bool:
+    """The bundle's `[derivation] cutoff` switch; on when it carries no config.
+
+    A parse reads nothing else from its bundle, and some callers pass none.
+    """
+    config = getattr(bundle, "config", None)
+    derivation = getattr(config, "derivation", None)
+    return True if derivation is None else bool(derivation.cutoff)
 
 
 @dataclass(frozen=True)
@@ -102,7 +133,7 @@ def derive_one(
         else nullcontext()
     )
     try:
-        with extended, database.transaction():
+        with extended, cutoff.configured(_cutoff_on(bundle)), database.transaction():
             if unit.stage == "parse":
                 parsed = parse_snapshot(database, archive, unit, clock, run_id)
                 source = parsed.source
@@ -134,7 +165,13 @@ def derive_one(
                 reason_code="output_committed",
                 now=clock.now(),
             )
-            settle(database.connection, action_id, now=clock.now(), outcome="output_committed")
+            settle(
+                database.connection,
+                action_id,
+                now=clock.now(),
+                outcome="output_committed",
+                forget=True,
+            )
         return DerivationOutcome(source)
     except ArtifactUnavailable as exc:
         with database.transaction() as conn:
@@ -154,51 +191,62 @@ def derive_one(
             settle(conn, action_id, now=clock.now(), outcome="artifact_unavailable")
         return DerivationOutcome(source, True, "artifact_unavailable")
     except SupersededWorkError:
+        # A supersession re-opens only when the unit's inputs move. When they
+        # have not (a relabel, a fence, "a newer attempt owns this work"),
+        # nothing would ever re-open it: give it a clock instead (I3), which
+        # `[unit-failing]` reports if it keeps happening.
+        spurious = _inputs_unchanged(database, unit, attempt.fingerprint)
+        reason = "inputs_changed_spurious" if spurious else "inputs_changed"
+        retry_at = clock.now() + deadline_backoff(database, unit, reason) if spurious else None
         with database.transaction() as conn:
             finish_attempt(
                 database,
                 attempt,
-                outcome="superseded",
-                reason_code="inputs_changed",
+                outcome="transient" if spurious else "superseded",
+                reason_code=reason,
                 now=clock.now(),
+                retry_at=retry_at,
             )
-            settle(conn, action_id, now=clock.now(), outcome="inputs_changed")
-        return DerivationOutcome(source, False, "inputs_changed")
+            settle(conn, action_id, now=clock.now(), outcome=reason)
+        return DerivationOutcome(source, False, reason)
     except Exception as exc:
         # A unit's transaction has rolled back. Keep its token and diagnostic,
         # then allow independent units to use already committed evidence.
         transient = isinstance(exc, OSError)
-        # A write that overran the bound rolled back whole. It is not a defect
-        # in the inputs, so it retries with a doubling delay instead of waiting
-        # for an input change that may never come (D-0198).
-        overran = isinstance(exc, WriteDeadlineExceeded)
         # A retained page whose parser this runtime does not know (a manual
         # artifact on its own replay path, D-0097) is parked for a month rather
         # than retried and counted as a failure every cycle (D-0182).
         unsupported = isinstance(exc, KeyError) and "unknown page kind" in str(exc)
+        from swingset.state.derivations import NondeterministicOutputError
+
         reason = (
             "write_deadline_exceeded"
             if isinstance(exc, WriteDeadlineExceeded)
+            else "nondeterministic_output"
+            if isinstance(exc, NondeterministicOutputError)
             else "unit_io_error"
             if transient
             else "unsupported_page_kind"
             if unsupported
             else "unit_exception"
         )
+        # A write that overran the bound rolled back whole and retries with a
+        # doubling delay instead of waiting for an input change that may never
+        # come (D-0198). Any other exception gets the same clock (I3): a deploy
+        # that fixes the code is picked up without an operator retry, and each
+        # retry reports the failure again.
         retry_at = (
             clock.now() + timedelta(seconds=60)
             if transient
             else clock.now() + timedelta(days=30)
             if unsupported
-            else clock.now() + deadline_backoff(database, unit)
-            if overran
-            else None
+            else clock.now() + deadline_backoff(database, unit, reason)
         )
         with database.transaction() as conn:
             finish_attempt(
                 database,
                 attempt,
-                outcome="transient" if transient or unsupported or overran else "blocked",
+                outcome="transient",
                 reason_code=reason,
                 now=clock.now(),
                 retry_at=retry_at,

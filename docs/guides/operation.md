@@ -33,7 +33,14 @@ Run state and control commands as the service user. Both `state.lock` and
 wrong owner, stop ordinary jobs and inspect it before repair; never delete or
 replace a lock file to fix permissions. See the
 [H16 ownership repair](../../journal/decisions/0033-repair-production-control-lock-ownership.md).
-`doctor` reads without taking the writer lock. `runs/*.json` holds per-cycle
+`doctor` reads without taking the writer lock. It and `summary` report the
+database's bytes (`retention.usage`) but walk the retention plan only with
+`--retention`: the walk took 13 GB on the 35 GB copy, past the 8 GB worker, so
+run that form on a Mac clone. Without it `summary` peaked at 4.5 GB there
+(4.4 GB of it the publication report's closure check); its unit is capped at
+5 GB (`MemoryMax`) and is the kernel's first choice when memory runs out;
+a failed run raises `[summary-failed]`.
+`runs/*.json` holds per-cycle
 counts, stages, host pauses, errors, and the graceful-stop flag. A hard kill can
 lose the final run log; SQLite transactions and already durable artifacts remain
 the recovery source.
@@ -221,8 +228,9 @@ A local backup briefly holds two checkpoints, so free space dips by about
 below the 20 GB headroom its room check kept. As the state grows,
 `[disk-low]` stays on past a state size of about 59 GB and the room check
 refuses past about 66 GB (rough estimates). Nothing alarms before then, so
-each post-check receipt records the state size without `checkpoints/`
-against the 55 GB phase 4 trigger in the
+each post-check receipt records the `[state-size]` measure (the state
+without `checkpoints/`, `venv/` and `uv-cache/`) against the 55 GB phase 4
+trigger in the
 [architecture plan](../plans/architecture.md).
 
 ## Alerts
@@ -242,25 +250,32 @@ is held back, so a newly blocked host repeats at once. With `alertCommand`
 set, the unit also sends one `[watchdog-alive]` line a day to it, not to
 `ALERTS.log`; a missing one means the watchdog timer or the notifier stopped.
 
-| Key                      | Fires when                                                                                                                                                                                | Held |
-| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- |
-| `[watchdog-blind]`       | a check could not run twice in a row, a second apart (a missing table, a bad stamp); names each one. The other checks still run                                                           | yes  |
-| `[watchdog-error]`       | `watchdog.py` crashed or exited nonzero; the wrapper writes it, at most once per `watchdogRepeatSeconds`, and the script's stderr goes to the journal                                     | yes  |
-| `[cycles-failing]`       | the last three cycles failed; records of other commands (backup, gc) do not count here or in `[cycles-quiet]`                                                                             | yes  |
-| `[size-cap-pause]`       | the size-cap pause is active ([retention](#retention-plans-and-holds))                                                                                                                    | yes  |
-| `[hold-overdue]`         | the `operator-hold` file or an all-scope pause is older than 48 hours, or an all-scope pause has no `created_at` (age unknown); repeats daily                                             | yes  |
-| `[timer-inactive]`       | nothing holds the worker and `swingset-cycle.timer` is not active                                                                                                                         | —    |
-| `[cycles-quiet]`         | no cycle finished for `watchdogQuietSeconds` (two hours)                                                                                                                                  | no   |
-| `[stale-fetch]`          | no request for `staleFetchSeconds` (two hours); names the stored-page age, hosts that spent today's budget and the ready parse backlog, since backpressure holds requests                 | no   |
-| `[budgets-spent]`        | in place of `[stale-fetch]` when every host that fetched today has spent its daily request or byte budget; repeats daily                                                                  | no   |
-| `[stale-progress]`       | a stage with ready units made no progress for `staleProgressSeconds` (two hours) since its work became runnable; one clock per stage, and one for `project/history`                       | no   |
-| `[gate-legacy-spacing]`  | a host's request spacing is unknown, so the gate skips it with no expiry ([D-0190](../../journal/decisions/0190-record-spacing-baselines-for-the-origin-hosts-from-the-eight-day-gap.md)) | yes  |
-| `[gate-host-blocked]`    | a host is paused as `Blocked`                                                                                                                                                             | yes  |
-| `[host-failing]`         | a host's last four or more responses were all 429 or 5xx; clears on its next success                                                                                                      | yes  |
-| `[disk-low]`             | the disk quota runs low ([disk space](#disk-space)); while a backup runs, only below its 20 GB headroom                                                                                   | yes  |
-| `[backup-failed]`        | `swingset-backup.service` is failed, or a `failed-run_*` checkpoint exists ([local-only backups](#local-only-backups))                                                                    | yes  |
-| `[backup-stale]`         | upload is off and the newest complete `run_*` checkpoint is older than `backupMaxAgeSeconds` (36 hours), or there is none                                                                 | yes  |
-| `[backup-upload-paused]` | upload is off; names the newest local checkpoint and its age; repeats at most once a day                                                                                                  | yes  |
+| Key                      | Fires when                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | Held |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---- |
+| `[watchdog-blind]`       | a check could not run twice in a row, a second apart (a missing table, a bad stamp); names each one. The other checks still run                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | yes  |
+| `[watchdog-error]`       | `watchdog.py` crashed or exited nonzero; the wrapper writes it, at most once per `watchdogRepeatSeconds`, and the script's stderr goes to the journal                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | yes  |
+| `[cycles-failing]`       | the last three cycles failed; records of other commands (backup, gc) do not count here or in `[cycles-quiet]`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | yes  |
+| `[unit-failing]`         | a queued unit's last three finished attempts all failed for the same reason; names up to five units and their reasons. Retries on a clock never make three failing cycles in a row, so `[cycles-failing]` misses such a unit. `unit_io_error` and `unsupported_page_kind` retry by design and do not count, except an I/O error that failed its last 20 attempts or an unbroken run of three or more whose oldest is over an hour old (a corrupt blob, a permission error)                                                                                                                                                                                                                                                                                         | yes  |
+| `[size-cap-pause]`       | the size-cap pause is active ([retention](#retention-plans-and-holds))                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | yes  |
+| `[hold-overdue]`         | the `operator-hold` file or an all-scope pause is older than 48 hours, or an all-scope pause has no `created_at` (age unknown); repeats daily                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | yes  |
+| `[timer-inactive]`       | nothing holds the worker and `swingset-cycle.timer` is not active                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | —    |
+| `[cycles-quiet]`         | no cycle finished for `watchdogQuietSeconds` (two hours)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | no   |
+| `[stale-fetch]`          | no request for `staleFetchSeconds` (two hours); names the stored-page age, hosts that spent today's budget and the ready parse backlog, since backpressure holds requests                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | no   |
+| `[budgets-spent]`        | in place of `[stale-fetch]` when every host that fetched today has spent its daily request or byte budget; repeats daily                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | no   |
+| `[stale-progress]`       | a stage with ready units made no progress for `staleProgressSeconds` (two hours) since its work became runnable; one clock per stage, and one for `project/history`. Links waiting for the paced history are not a stall, nor is a queued inventory held by its interval with the map, event and source-event units behind it, nor a due history whose clock then starts at that inventory's next run ([D-0210](../../journal/decisions/0210-pace-the-inventory-like-history.md)). A due history's clock starts at the first inventory run since it came due; later runs do not move it, so a history starved by interrupted cascades fires, noted "cascade from the inventory at ..., interrupted since ..." A current inventory that is not queued holds nothing | no   |
+| `[gate-legacy-spacing]`  | a host's request spacing is unknown, so the gate skips it with no expiry ([D-0190](../../journal/decisions/0190-record-spacing-baselines-for-the-origin-hosts-from-the-eight-day-gap.md))                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | yes  |
+| `[gate-host-blocked]`    | a host is paused as `Blocked`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | yes  |
+| `[host-failing]`         | a host's last four or more responses were all 429 or 5xx; clears on its next success                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               | yes  |
+| `[disk-low]`             | the disk quota runs low ([disk space](#disk-space)); while a backup runs, only below its 20 GB headroom                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | yes  |
+| `[backup-failed]`        | `swingset-backup.service` is failed, or a `failed-run_*` checkpoint exists ([local-only backups](#local-only-backups))                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | yes  |
+| `[summary-failed]`       | `swingset-summary.service` is failed, possibly killed at its 5 GB memory cap (`MemoryMax`); the daily digest stops until a run succeeds                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | yes  |
+| `[backup-stale]`         | upload is off and the newest complete `run_*` checkpoint is older than `backupMaxAgeSeconds` (36 hours), or there is none                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | yes  |
+| `[backup-upload-paused]` | upload is off; names the newest local checkpoint and its age; repeats at most once a day                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | yes  |
+| `[state-size]`           | the state directory without `checkpoints/`, `venv/` and `uv-cache/` holds more than 50 GB (`--state-size-alert`), 5 GB before architecture phase 4's trigger, which uses the same measure; repeats at most once a day                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | yes  |
+| `[size-cap-near]`        | `state.sqlite` is over 90% of `[retention] max_database_bytes` (57.6 GB of 64 GB), where the size-cap pause stops the pipeline; repeats at most once a day                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | yes  |
+| `[replay-loop]`          | one kind's replay epoch moved in each of the last three cycles and none wrote a generation of that kind or of a kind it reads: two kinds replaying each other. Unrelated generations, such as dancer changes, do not hide it ([D-0205](../../journal/decisions/0205-cut-off-identical-derivation-output.md))                                                                                                                                                                                                                                                                                                                                                                                                                                                       | yes  |
+| `[report-failing]`       | a cycle report failed in one of the last three cycles (`derivation_error`, `controls_error`) or a record lacks `derivation`, so `[replay-loop]` cannot see that cycle; names the latest error                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | yes  |
+| `[equivalences]`         | `derivation_equivalences` or `source_equivalences` holds more than 500,000 rows (counted, so the line clears once collection deletes them); nothing collects them before invalidation step 3, which then starts ahead of phase 2 ([D-0208](../../journal/decisions/0208-keep-the-64-gb-cap-until-closure-collection.md)); repeats at most once a day                                                                                                                                                                                                                                                                                                                                                                                                               | yes  |
 
 "Held" says whether the line still fires while held. Held means the
 `operator-hold` file exists or an all-scope operator pause other than the size
@@ -271,8 +286,9 @@ all-scope pause or `operator-hold`. A gate that skips every request is not a
 failure, so only the fetch and progress lines report it. Requests count, not
 stored pages: a 304 stores nothing. A ready unit is one whose latest attempt
 is absent or succeeded, has a retry requested since, or is transient or
-interrupted with its retry time past. A blocked or failed unit is not ready
-and raises nothing. A stage's clock is the later of its last progress (a
+interrupted with its retry time past. A blocked unit is not ready and raises
+nothing; a derivation that raised is transient with a retry clock of 15
+minutes to six hours, so it is ready again when that passes. A stage's clock is the later of its last progress (a
 generation or a succeeded attempt) and when its oldest ready unit was queued,
 so an idle stage given new work is not a stall. A re-queue moves a unit's
 queue time, so a stage whose ready units upstream churn keeps re-queuing stays
@@ -400,6 +416,30 @@ a full copy of the state, several gigabytes, so copies must not accumulate.
   `swingset gc` on its own, which prints the same summary and points at the
   commands that act. `swingset gc --apply <fingerprint>` removes what that plan
   named. `swingset gc --reclaim` shrinks the file afterwards.
+- When `[state-size]` fires: remove superseded candidates. Every build
+  leaves a candidate directory of about 190 MB that nothing prunes; on the
+  2026-09-25 copy, 87 of them held 5.9 GB. On the worker use
+  `swingset gc --plan --candidates-only`: it lists them as
+  `superseded_candidate` (it keeps referenced candidates, the five newest
+  others and any a selected build generation names) and walks no graph.
+  `swingset gc --apply <fingerprint> --candidates-only` removes what that
+  plan named once it is past its age floor (`collect_older_than` after the
+  directory's modification time). The plan's `eligibility` and the apply's
+  receipt count the files eligible now and the rest with the earliest time
+  they can go; an apply that can remove none says so on stderr. A copied or
+  restored state directory resets the modification times and so the floor.
+  The apply deletes data, so it takes an independent check with a
+  written verdict first
+  ([removing what a plan named](#removing-what-a-plan-named)). The full
+  `gc --plan` walks every generation's dependencies and does not fit the
+  8 GB worker (12.1 GB resident on a Mac clone of the 2026-09-25 copy), so
+  run it only on a Mac clone of a byte copy. `swingset gc
+--collect-closures` frees only proofs of failed builds; a successful
+  build's proof stays named. Then compare the growth rate with the phase 1
+  post-check receipt and its expected dates for 55 and 64 GB, and ask the
+  owner whether invalidation step 3 moves ahead of phase 2
+  ([D-0208](../../journal/decisions/0208-keep-the-64-gb-cap-until-closure-collection.md)).
+  Nothing else frees space before phase 4.
 
 To see what is using space: `sudo du -xh -d1 /var/tmp /var/lib/swingset | sort -h`.
 
@@ -412,11 +452,15 @@ its old size on disk and in every backup. See
 ### Retention plans and holds
 
 ```sh
-uv run swingset gc --plan --state /var/lib/swingset
-uv run swingset doctor --json --state /var/lib/swingset | jq .retention
+# On a Mac clone: the walk needs more memory than the 8 GB worker has.
+uv run swingset gc --plan --state ~/swingset-offload/<clone>
+uv run swingset doctor --json --retention --state ~/swingset-offload/<clone> | jq .retention
 ```
 
-The plan lands in `/var/lib/swingset/gc/plans/<fingerprint>.json`, named by its
+Neither fits the worker: the full plan peaked at 12.1 GB and the retention
+walk at 13 GB on the 35 GB copy. On the worker use
+`gc --plan --candidates-only`, and `doctor` without `--retention`, which
+reports the file's bytes only. The plan lands in `<state>/gc/plans/<fingerprint>.json`, named by its
 own fingerprint, and the same state always produces the same file. Plans are not
 copied into backups. A plan names every artifact file, so the newest ten are
 kept and older ones go as new plans are written.
@@ -453,6 +497,14 @@ or the values, so no work is queued and no generation is rebuilt
 uv run swingset gc --plan --state /var/lib/swingset
 uv run swingset gc --apply <fingerprint> --state /var/lib/swingset
 uv run swingset gc --reclaim --state /var/lib/swingset
+```
+
+On the worker, plan and apply candidate directories only; the full plan runs
+on a Mac clone of a byte copy:
+
+```sh
+uv run swingset gc --plan --candidates-only --state /var/lib/swingset
+uv run swingset gc --apply <fingerprint> --candidates-only --state /var/lib/swingset
 ```
 
 `swingset gc` with no flag prints the same summary and removes nothing. It does
@@ -573,6 +625,82 @@ sudo rm /var/lib/swingset/operator-hold
 sudo systemctl unmask --runtime swingset-cycle.service swingset-backup.service swingset-summary.service swingset-cycle.timer swingset-backup.timer swingset-summary.timer
 sudo systemctl start swingset-cycle.timer swingset-backup.timer swingset-summary.timer
 ```
+
+### Rolling back a migration
+
+A switch that migrates the database (phase 1 moves it to schema 33) is
+rolled back to the previous system generation plus the byte copy its
+preflight took; the older code refuses the newer schema. SQLite replays any
+valid write-ahead log it finds beside the file, so a newer
+`state.sqlite-wal` left next to the restored copy corrupts it. After a crash
+or a killed unit that log can hold committed frames. So:
+
+1. Write `operator-hold` with owner, reason and review date, and stop the
+   timers and units, the watchdog's too:
+
+   ```sh
+   sudo systemctl stop swingset-cycle.timer swingset-backup.timer swingset-summary.timer swingset-watchdog.timer
+   sudo systemctl stop swingset-cycle.service swingset-backup.service swingset-summary.service swingset-watchdog.service
+   ```
+
+2. Switch to the previous generation
+   (`sudo /nix/var/nix/profiles/system-<N>-link/bin/switch-to-configuration switch`).
+   Stop any timer the switch restarted.
+3. Move `state.sqlite`, `state.sqlite-wal` and `state.sqlite-shm` out of the
+   state directory, together, into a dated directory beside it. Do not
+   delete them; that takes the independent check.
+4. Check free space first: `df` of the state directory must exceed the
+   preflight file's size plus 10 GB, since the moved-aside newer file
+   stays on the same quota. If it does not, move that file to the Mac
+   (`/mnt/mac`) first, or stop and ask; a copy that fails partway leaves no
+   `state.sqlite` in place. Then copy the preflight's file back as
+   `state.sqlite`, owned by `swingset`, and check its sha256 against the
+   preflight receipt. Stop if it differs. Phase 1 keeps that copy on the
+   Mac, so the copy reads `/mnt/mac`.
+5. Move every `run_*` checkpoint written since the switch out of
+   `checkpoints/`, so a backup on the old code does not take a newer-schema
+   copy as the newest.
+6. Check without `doctor`, which does not fit the worker at this size:
+   the restored file's schema is the old code's (32 for phase 1),
+
+   ```sh
+   sudo -u swingset /var/lib/swingset/venv/bin/python -c "import sqlite3; print(sqlite3.connect('file:/var/lib/swingset/state.sqlite?mode=ro', uri=True).execute('PRAGMA user_version').fetchone())"
+   ```
+
+   and `systemctl is-active` shows every timer and unit stopped. Then remove
+   the hold, start the timers as above and `swingset-watchdog.timer`, and
+   check the first cycle's summary in `runs/` (`failed=false`, no
+   `schema` error). Run `doctor` only on a Mac clone. Record each step's
+   result in one receipt.
+
+## Output cutoff
+
+A parse or derivation whose output is identical keeps its generation and
+records an equivalence
+([D-0205](../../journal/decisions/0205-cut-off-identical-derivation-output.md)).
+`[derivation] cutoff = false` in `config/sources.toml` turns that off for cycle
+work, `run_intake` and `accept-year`: each re-run mints a new generation.
+Paths that read no config keep cutoff on: the offline evidence imports and
+`review_pack`, which only the research tool `intake_phase1.py` calls. It stops
+new cutoffs only. Recorded equivalences stay valid, so a wrong one (a missed
+witness, a stale kept id) stays current and is never re-minted by the switch
+alone.
+
+To re-mint after a bad cutoff, set `cutoff = false` and deploy with a byte
+change inside the affected code scope, for example a comment in
+`schedule/cycle.py` for every project and link unit. The new fingerprints have
+no equivalences, so every unit in the scope re-runs and mints. Turn cutoff back
+on in a later deploy.
+
+That costs what a deploy cost before phase 1. For `schedule/cycle.py` it is
+about 35,800 project and link generations and about 1.5 GB (1.3 GB of project
+and 0.25 GB of link rows on the Mac copy), 4 to 9 hours of CPU, and links
+withheld until the link drain ends (the phase 1 receipt, `r2_replay.A`).
+Narrow it where you can: a comment inside the affected kind's projector
+module re-mints only that kind when its scope differs from the others. Most
+project scopes share the import cycle today, so most such comments still
+reach every project and link unit
+([F4](../plans/architecture.md#9-migration-plan)).
 
 ## Reparse and registry work
 

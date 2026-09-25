@@ -55,7 +55,7 @@ def state(tmp_path: Path) -> Path:
         """
     )
     manifest = compact({SECRETS[0]: SECRETS[3]})
-    accepted_item = ["pipeline", "recipe/runtime", SECRETS[3]]
+    accepted_item = ["pipeline", "recipe/env", SECRETS[3]]
     recipe = {
         "accepted_inputs": [accepted_item],
         "archive_url": SECRETS[1],
@@ -89,7 +89,7 @@ def test_profile_reports_only_fixed_aggregate_structure(state: Path) -> None:
     report = PROFILE.profile(state)
     manifest_body = compact({SECRETS[0]: SECRETS[3]}).encode()
     recipe_value = {
-        "accepted_inputs": [["pipeline", "recipe/runtime", SECRETS[3]]],
+        "accepted_inputs": [["pipeline", "recipe/env", SECRETS[3]]],
         "archive_url": SECRETS[1],
     }
     recipe_bodies = (compact(recipe_value).encode(), json.dumps(recipe_value).encode())
@@ -126,7 +126,7 @@ def test_profile_reports_only_fixed_aggregate_structure(state: Path) -> None:
 
     paths = {item["path"]: item for item in report["structural_paths"]}
     accepted = paths["recipe_json.accepted_inputs[]"]
-    item = PROFILE.canonical(["pipeline", "recipe/runtime", SECRETS[3]])
+    item = PROFILE.canonical(["pipeline", "recipe/env", SECRETS[3]])
     assert accepted["rows_with_array"] == 2
     assert accepted["occurrences"] == 2
     assert accepted["distinct_items"] == 1

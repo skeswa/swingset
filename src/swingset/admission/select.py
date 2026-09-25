@@ -14,9 +14,10 @@ from swingset.state.observations import store_parse_result
 
 from .generations import (
     AttemptInputs,
-    accepted_inputs,
     current_snapshot,
     deserialize_result,
+    parse_inputs,
+    revoked_fingerprint,
     selected_snapshot,
 )
 from .removal import wdr_preserves_rows
@@ -28,6 +29,40 @@ def complete_token(conn: sqlite3.Connection, snapshot_id: str, token: str | None
             "DELETE FROM pending_work WHERE stage='parse' AND unit_kind='snapshot' AND unit_id=? AND enqueued_at=?",
             (snapshot_id, token),
         )
+
+
+def source_materialized_for(
+    conn: sqlite3.Connection, unit_key: str, generation_id: str | None, fingerprint: str
+) -> bool:
+    """Whether a source generation is a parse of this unit's input fingerprint.
+
+    It is when the generation was staged for that fingerprint, or when a
+    `source_equivalences` row says a later parse with that fingerprint produced
+    the same result. Before schema 33 there are no equivalences.
+    """
+    if generation_id is None:
+        return False
+    row = conn.execute(
+        "SELECT input_fingerprint FROM source_generations WHERE generation_id=? AND unit_key=?",
+        (generation_id, unit_key),
+    ).fetchone()
+    if row is None:
+        return False
+    if row[0] == fingerprint:
+        return True
+    try:
+        return (
+            conn.execute(
+                "SELECT 1 FROM source_equivalences WHERE unit_key=? AND input_fingerprint=? "
+                "AND generation_id=?",
+                (unit_key, fingerprint, generation_id),
+            ).fetchone()
+            is not None
+        )
+    except sqlite3.OperationalError as exc:
+        if "no such table" in str(exc):
+            return False
+        raise
 
 
 def admit_generation(
@@ -76,16 +111,14 @@ def admit_generation(
         unit = conn.execute(
             "SELECT * FROM source_units WHERE unit_key=?", (row["unit_key"],)
         ).fetchone()
-        revoked = conn.execute(
-            "SELECT 1 FROM source_generations WHERE unit_key=? AND input_fingerprint=? AND state='revoked' LIMIT 1",
-            (row["unit_key"], row["input_fingerprint"]),
-        ).fetchone()
-        if revoked is not None:
+        if revoked_fingerprint(conn, str(row["unit_key"]), str(row["input_fingerprint"])):
             complete_token(conn, ctx.snapshot_id, attempt.work_token)
             return _decide(
                 conn, generation_id, "revoked", "input_generation_revoked", now, revision
             )
         if row["state"] == "accepted" and unit["accepted_generation_id"] == generation_id:
+            # Also a parse cut off to this generation (D-0205): its side effects
+            # are not replayed, and the caller completes the work token.
             return "accepted"
         work = conn.execute(
             "SELECT enqueued_at FROM pending_work WHERE stage='parse' AND unit_kind='snapshot' AND unit_id=?",
@@ -94,10 +127,13 @@ def admit_generation(
         current_token = None if work is None else work[0]
         page = get_page_kind(ctx.kind)
         current = (
-            unit["desired_fingerprint"] == row["input_fingerprint"]
+            unit["desired_fingerprint"] is not None
+            and source_materialized_for(
+                conn, str(row["unit_key"]), generation_id, str(unit["desired_fingerprint"])
+            )
             and unit["accepted_generation_id"] == attempt.previous_generation_id
             and current_snapshot(conn, attempt)
-            and accepted_inputs(conn) == attempt.accepted_inputs
+            and parse_inputs(conn, ctx.kind) == attempt.accepted_inputs
             and current_token == attempt.work_token
             and str(page.EXTRACT_VERSION) == attempt.extract_version
             and str(page.PARSER_VERSION) == attempt.parser_version

@@ -68,6 +68,26 @@ produced them. Accepting either version change enqueues every archived
 snapshot of that kind in the same transaction as the accepted version.
 An extractor bump re-extracts before parsing and invalidates the cached
 watch fingerprint's version; a parser bump can use the stored extract.
+A kind's code scopes act the same way without a label bump
+([D-0207](../../journal/decisions/0207-scope-code-recipes-by-import-closure.md)):
+a change in `recipe/code/extract/<kind>` counts as an extractor bump, and one
+in `recipe/code/parse/<kind>` as a parser bump. A snapshot re-extracts when it
+has no extract, its `EXTRACT_VERSION` changed, or its
+`extract_recipe_sha256` differs from the extract scope's digest; a successful
+extract stores that digest. A stored extract is key-sorted JSON, so a kind
+whose parse output follows the body's key order (`ORDERED_EXTRACT`: the
+registry and both WDR kinds) always extracts from the body; otherwise a
+re-parse from the stored extract differed from the accepted generation and
+never cut off (about 23% of registry snapshots on the 16:10 copy). A
+`recipe/env` change re-parses every snapshot.
+Every parse scope also holds the parse writers (`recipe_scope.PARSE_WRITERS`:
+admission select and support, observations, verification, findings,
+`history/acquisition`, `intent`, `origin_dispatch`, `fetch/wayback`), so an
+edit there re-parses every kind. Other code re-queues no snapshot; see
+[state](state.md#derivation-generations-h15) for how scopes are built. A
+blocked parse attempt still re-opens on any package change
+(`version/repository` is in the parse retry fingerprint), so a fix deployed
+anywhere reaches the attempts it blocked without re-parsing the rest.
 After re-extraction, only the watch's current snapshot can update its
 cached content fingerprint, and only at the current extractor version.
 An older archived body must never replace that cache.
@@ -108,6 +128,12 @@ calendar, with the identifiers in [architecture](architecture.md#observations-an
 
 [Implementation plan](../../journal/archive/v1-implementation-plan.md) owns build order. This
 inventory names parser output, before canonical projection.
+
+[`sources/registry.py`](../../src/swingset/sources/registry.py) names each
+registered source's adapter module (`ADAPTERS`) and each page kind's owner
+(`KIND_OWNERS`). `get_page_kind` imports only the owner, so one kind's parse
+code does not import other sources. A new page kind needs a row there; a test
+checks the table against every adapter's `page_kinds`. DCN is not registered.
 
 | Page kind                                     | Input                    | Observations and watch specs                                         |
 | --------------------------------------------- | ------------------------ | -------------------------------------------------------------------- |
@@ -252,6 +278,30 @@ scope invalidations, the accepted pointer, and token-specific completion
 together. A stale snapshot can complete only its own obsolete work; newer
 snapshot or requeued-input work remains pending. An interrupted transaction
 exposes the old complete generation; replay after commit is idempotent.
+
+A re-parse that repeats its kept generation is cut off at staging (D-0205).
+The kept generation is the unit's accepted one, or, for a `shadow` kind with
+no pointer, the undecided generation its desired fingerprint names. Cutoff
+needs equal result, report and contract, a byte-equal manifest (labels,
+snapshot ids, digests and times), a current snapshot and unchanged inputs, and
+no revoked generation for the new fingerprint, directly or through an
+equivalence. It writes a `source_equivalences` row and the desired
+fingerprint, and returns the kept id; admission then returns `accepted` at
+once. For an enforced kind, observations, revisions, watches from
+`result.watches` and `interpreted` events are not rewritten, so a change in
+what those writers produce for an unchanged result needs a `PARSER_VERSION`
+bump or an explicit re-admit; a shadow kind rewrites its observations on every
+parse. The snapshot row is still marked parsed (`parse_status='ok'`, versions,
+time) when it is not already, before the registry re-reads it: a failed
+attempt in between (a parser regression, then its fix) would otherwise leave
+it `failed`, its registry checks unusable and its unit counted as withheld. An enforced unit whose newest generation is held in `needs_review` or
+`waiting_for_inputs` keeps it too when admission would hold the repeat the
+same way: the contract is unreviewed, or it is reviewed and the report's own
+failures decide (D-0212). The parse reports that state with no generation or
+decision; a parse failure repeats the same way. A changed result, a new snapshot or a version label bump still stages a
+generation. Revoking a generation revokes its equivalent fingerprints too:
+the same inputs parsed again are decided `revoked`. `[derivation] cutoff =
+false` turns parse cutoff off with derivation cutoff.
 
 EEPro and scoring.dance round documents may retire only claims owned by their
 watch. Registry lookups, WDR rounds, and historical event discovery grant no

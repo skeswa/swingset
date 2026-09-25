@@ -18,6 +18,7 @@ from swingset.schedule.event_evidence import (
     decode_generation,
     request,
     request_id,
+    revoked_evidence,
 )
 
 from .closure_manifest import ClosureError, digest
@@ -104,6 +105,27 @@ class _Reader:
             cursor.close()
         return result
 
+    def revoked_rows(self) -> list[tuple[Any, ...]]:
+        """Revoked evidence by the query every evidence reader shares.
+
+        That query also covers the fingerprints cut off to a revoked
+        generation (D-0205), one row per revoked generation and label, so re-
+        parses do not grow it. At most 128 rows, charged to the byte budget.
+        """
+        if self.revoked is None:
+            cursor = self.conn.execute(f"SELECT * FROM ({revoked_evidence(self.conn)}) LIMIT 129")
+            try:
+                found = [tuple(row) for row in cursor]
+            finally:
+                cursor.close()
+            if len(found) > 128:
+                raise _Unavailable("event_evidence_row_budget")
+            self.bytes += sum(len(str(value).encode()) for row in found for value in row)
+            if self.bytes > self.total_bytes:
+                raise _Unavailable("event_evidence_byte_budget")
+            self.revoked = found
+        return self.revoked
+
     def enumeration(self, identifier: str) -> tuple[dict[str, Any], list[dict[str, Any]]]:
         rows = self.rows("source_event_enumerations", "enumeration_id=?", (identifier,), limit=1)
         if not rows:
@@ -153,14 +175,7 @@ class _Reader:
         value = decode_generation(rows[0], identifier)
         if _instant(value["created_at"]) > _instant(cutoff):
             raise _Unavailable("event_parent_after_cutoff")
-        if self.revoked is None:
-            revoked = self.rows(
-                "source_generations", "state='revoked' ORDER BY generation_id", (), limit=128
-            )
-            self.revoked = [
-                (r["unit_key"], r["input_fingerprint"], r["recipe_json"]) for r in revoked
-            ]
-        reason = admission_reason(self.conn, value, revoked_rows=self.revoked)
+        reason = admission_reason(self.conn, value, revoked_rows=self.revoked_rows())
         if reason:
             raise _Unavailable(reason)
         manifest = value["manifest"]

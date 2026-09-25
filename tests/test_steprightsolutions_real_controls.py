@@ -9,7 +9,7 @@ import pytest
 
 from swingset.model.observations import decode_payload, encode_payload
 from swingset.sources.base import ExtractError, ParseContext, ParseError
-from swingset.sources.steprightsolutions import EventPage, IndexPage, RoundPage
+from swingset.sources.steprightsolutions.adapter import EventPage, IndexPage, RoundPage
 
 FIXTURES = Path(__file__).parent / "fixtures/sources/steprightsolutions"
 PROVENANCE = {

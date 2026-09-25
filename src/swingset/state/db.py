@@ -14,7 +14,7 @@ from typing import IO, Self
 from swingset.clock import Clock, SystemClock
 from swingset.model.ids import run_id as make_run_id
 
-SCHEMA_VERSION = 32
+SCHEMA_VERSION = 33
 
 
 class DatabaseLockedError(RuntimeError):
@@ -230,9 +230,10 @@ def _migrate(database: Database) -> None:
 
                 # SQLite cannot hash, so the fill, the comparison of every
                 # generation label, and the drop of the old table happen here,
-                # inside the migration transaction. Interning is the last
-                # migration so that schemas 30 and 31 deploy without it; see
-                # journal/decisions/0167-intern-derivation-payloads-in-the-last-migration.md.
+                # inside the migration transaction. Interning was the last
+                # migration, so that schemas 30 and 31 deploy without it, until
+                # 33 (journal/decisions/0167-intern-derivation-payloads-in-the-last-migration.md,
+                # journal/decisions/0206-add-migration-33-after-interning.md).
                 intern_derivation_payloads(conn)
             if version >= 12:
                 from .publication_fence import install_publication_fences

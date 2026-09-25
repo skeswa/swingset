@@ -103,6 +103,14 @@ class StageConfig:
 
 
 @dataclass(frozen=True)
+class DerivationConfig:
+    """`[derivation]` in sources.toml. `cutoff = false` turns off output cutoff
+    (D-0205): every re-run mints a new generation again, at schema 33."""
+
+    cutoff: bool = True
+
+
+@dataclass(frozen=True)
 class Config:
     hosts: Mapping[str, HostConfig]
     sources: Mapping[str, SourceConfig]
@@ -110,6 +118,7 @@ class Config:
     scheduler: SchedulerConfig = SchedulerConfig()
     retention: RetentionConfig = RetentionConfig()
     stages: StageConfig = StageConfig()
+    derivation: DerivationConfig = DerivationConfig()
 
     def host(self, name: str) -> HostConfig:
         return self.hosts.get(name, HostConfig())
@@ -207,6 +216,19 @@ def parse_stages(body: bytes) -> StageConfig:
     return StageConfig(**values)
 
 
+def parse_derivation(body: bytes) -> DerivationConfig:
+    """Read the top-level `[derivation]` table of sources.toml; absent means cutoff on."""
+    values = tomllib.loads(body.decode()).get("derivation", {})
+    if not isinstance(values, dict):
+        raise ValueError("derivation must be a table")
+    if unknown := values.keys() - {field.name for field in fields(DerivationConfig)}:
+        raise ValueError(f"unknown derivation settings: {sorted(unknown)}")
+    for name, value in values.items():
+        if not isinstance(value, bool):
+            raise ValueError(f"derivation {name} must be true or false")
+    return DerivationConfig(**values)
+
+
 def parse_history_start(body: bytes) -> date:
     """Read the top-level `history_start` of sources.toml; absent means the enshrined default."""
     raw = tomllib.loads(body.decode())
@@ -224,4 +246,5 @@ def load_config(directory: Path = Path("config")) -> Config:
         parse_scheduler(sources),
         parse_retention(sources),
         parse_stages(sources),
+        parse_derivation(sources),
     )

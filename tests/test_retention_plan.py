@@ -66,7 +66,7 @@ def generation(
         members = [{"kind": "dependency_set", "key": "selected", "fingerprint": inner}]
     set_id = dependency_set(conn, members)
     output = hashlib.sha256()
-    # Interning is the last migration, so this fixture writes whichever shape
+    # Interning came late (schema 32), so this fixture writes whichever shape
     # the database it was given actually has.
     shared = derivations.interned(conn)
     for ordinal, (table, key, payload) in enumerate(rows):
@@ -111,6 +111,33 @@ def point_at(conn: sqlite3.Connection, scope: tuple[str, str, str], generation_i
         "WHERE stage=? AND unit_kind=? AND unit_id=?",
         (generation_id, *scope),
     )
+
+
+def equivalence(
+    conn: sqlite3.Connection,
+    run: str,
+    generation_id: str,
+    scope: tuple[str, str, str],
+    *,
+    depends_on: tuple[tuple[str, tuple[str, str, str]], ...] = (),
+    fingerprint: str = "equivalent-fingerprint",
+) -> str:
+    """Say a later run of `scope` with other inputs produced `generation_id` again."""
+    set_id = dependency_set(
+        conn,
+        [
+            {"kind": "derivation", "key": list(key), "generation_id": identifier}
+            for identifier, key in depends_on
+        ],
+    )
+    recipe = canonical({"inputs": {}, "context": {}, "continuity": {}})
+    recipe_sha256 = hashlib.sha256(recipe.encode()).hexdigest()
+    conn.execute("INSERT OR IGNORE INTO derivation_recipes VALUES (?,?)", (recipe_sha256, recipe))
+    conn.execute(
+        "INSERT INTO derivation_equivalences VALUES (?,?,?,?,?,?,?,?,?)",
+        (*scope, fingerprint, generation_id, recipe_sha256, set_id, NOW.isoformat(), run),
+    )
+    return set_id
 
 
 PROJECT_A = ("project", "event", "event-a")
@@ -190,6 +217,77 @@ def test_the_plan_is_recomputed_on_unchanged_state(tmp_path: Path) -> None:
         without = {key: value for key, value in content.items() if key != "digest"}
         assert retention._digest(without) == first.digest
         assert "created_at" not in content and "at" not in content
+
+
+#: The digest parent code 45d32250, before equivalences existed, computes for
+#: `history()` with `KNOBS`. The walk must not change a plan with no
+#: equivalences. Recompute it from that tree if the fixture changes.
+HISTORY_PLAN_DIGEST = "63e52c8516852d6b072cf33e0fcb8e2ed4ecb1a2f1872e26b5a9b9d4bdf5a28f"
+
+
+def test_the_plan_digest_is_unchanged_without_equivalences(tmp_path: Path) -> None:
+    with open_database(tmp_path / "state", lock=False) as database:
+        history(database)
+        assert (
+            database.connection.execute("SELECT count(*) FROM derivation_equivalences").fetchone()[
+                0
+            ]
+            == 0
+        )
+        assert plan(database.connection, database.state_dir, **KNOBS).digest == (
+            HISTORY_PLAN_DIGEST
+        )
+
+
+def test_the_walk_follows_the_dependency_sets_of_equivalences(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A generation named only by an equivalence's inputs stays local."""
+    with open_database(tmp_path / "state", lock=False) as database:
+        conn = database.connection
+        history(database)
+        before = planned(database, recent_window=1)
+        assert "dg_b1" in listed(before, "archivable")
+        run = database.start_run(NOW)
+        with database.transaction():
+            # The kept link generation now also stands for a run that read the
+            # other project scope's older generation.
+            equivalence(conn, run, "dg_link_a", LINK_A, depends_on=(("dg_b1", PROJECT_B),))
+            # An equivalence that repeats the generation's own inputs adds nothing.
+            own = conn.execute(
+                "SELECT dependency_set_id FROM derivation_generations WHERE generation_id=?",
+                ("dg_link_a",),
+            ).fetchone()[0]
+            conn.execute(
+                "INSERT INTO derivation_equivalences SELECT stage,unit_kind,unit_id,"
+                "'own-fingerprint',generation_id,recipe_sha256,?,created_at,run_id "
+                "FROM derivation_equivalences LIMIT 1",
+                (own,),
+            )
+        after = planned(database, recent_window=1)
+        assert "dg_b1" in listed(after, "local")
+        # The plan reports the cutoff's rows for the collector (D-0206).
+        totals = plan(conn, database.state_dir, **KNOBS).content["equivalences"]
+        assert totals["derivation_equivalences"] == 2
+        assert totals["root_sets"] >= 1 and totals["root_set_bytes"] > 0
+        assert "pointer" in reasons(after, "dg_b1")
+        assert listed(after, "local") == listed(before, "local") | {"dg_b1"}
+
+        decoded: list[str | None] = []
+        real = retention._children
+
+        def counted(conn: sqlite3.Connection, set_id: str | None) -> tuple[str, ...]:
+            decoded.append(set_id)
+            return real(conn, set_id)
+
+        monkeypatch.setattr(retention, "_children", counted)
+        reached, absent = retention.reachable(
+            conn, (retention.Root("hold", "test", ("dg_link_a", "dg_a2", "dg_b2")),)
+        )
+        assert {"dg_a1", "dg_b1"} <= set(reached) and not absent
+        # Each dependency set is decoded once, however many generations or
+        # equivalences name it.
+        assert len(decoded) == len(set(decoded))
 
 
 def test_the_window_is_2_and_one_scope_has_two_recent_generations(tmp_path: Path) -> None:

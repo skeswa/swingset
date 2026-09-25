@@ -356,8 +356,16 @@ def settle(
     now: datetime,
     outcome: str,
     uncertain: bool = False,
+    forget: bool = False,
 ) -> None:
-    """Join the output or reconciled receipt transaction; never acquire control.lock."""
+    """Join the output or reconciled receipt transaction; never acquire control.lock.
+
+    ``forget`` removes the settled admission and its scope rows in the same
+    transaction. A derivation that committed its output passes it: only an
+    unsettled admission is ever read (pause drains, recovery, the publication
+    fence), and its work attempt keeps the run, times and outcome. About
+    2 KB a unit run otherwise stays forever (D-0213).
+    """
     if not conn.in_transaction:
         raise ValueError("admission settlement requires the output transaction")
     cursor = conn.execute(
@@ -376,6 +384,9 @@ def settle(
         ).fetchone()
     ):
         raise ValueError("unknown execution admission")
+    if forget and not uncertain:
+        conn.execute("DELETE FROM execution_dependencies WHERE action_id=?", (action_id,))
+        conn.execute("DELETE FROM execution_admissions WHERE action_id=?", (action_id,))
 
 
 def bind_work_attempt(conn: sqlite3.Connection, action_id: str, attempt_id: int) -> None:

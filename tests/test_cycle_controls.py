@@ -12,6 +12,7 @@ from swingset.publish.service import PublishResult
 from swingset.schedule.cycle import run_cycle, versions
 from swingset.schedule.watches import upsert_watch
 from swingset.sources.base import WatchSpec
+from swingset.state import derivations
 from swingset.state.controls import Selector, change_control
 from swingset.state.db import open_database
 from swingset.state.findings import Finding, replace_findings
@@ -434,7 +435,7 @@ def test_history_interval_defers_only_a_recently_materialized_history(tmp_path):
     from datetime import timedelta
     from types import SimpleNamespace
 
-    from swingset.schedule.cycle import history_deferred_for_interval
+    from swingset.schedule.cycle import deferred_for_interval
     from swingset.schedule.fair_policy import SchedulerConfig
     from swingset.state.work import WorkUnit
 
@@ -444,30 +445,329 @@ def test_history_interval_defers_only_a_recently_materialized_history(tmp_path):
     with open_database(tmp_path / "state") as db:
         conn = db.connection
         run = db.start_run(clock.now())
-        assert not history_deferred_for_interval(conn, daily, history, now=clock.now())
-        conn.execute(
-            "INSERT INTO derivation_scopes(stage,unit_kind,unit_id,registered_at) VALUES ('project','history','all',?)",
-            (clock.now().isoformat(),),
-        )
-        conn.execute("INSERT INTO derivation_dependency_sets VALUES ('empty','[]')")
-        conn.execute(
-            "INSERT INTO derivation_generations VALUES ('dg_h','project','history','all','f','{}','empty',NULL,'d',0,?,?)",
-            (clock.now().isoformat(), run),
-        )
-        conn.execute(
-            "UPDATE derivation_scopes SET materialized_generation_id='dg_h' WHERE unit_kind='history'"
-        )
+        assert not deferred_for_interval(conn, daily, history, now=clock.now())
+        _materialize(conn, "history", "dg_h", clock.now(), run)
         later = clock.now() + timedelta(hours=23)
-        assert history_deferred_for_interval(conn, daily, history, now=later)
-        assert not history_deferred_for_interval(
-            conn, daily, WorkUnit("project", "event", "x"), now=later
-        )
-        assert not history_deferred_for_interval(
+        assert deferred_for_interval(conn, daily, history, now=later)
+        assert not deferred_for_interval(conn, daily, WorkUnit("project", "event", "x"), now=later)
+        assert not deferred_for_interval(
             conn, SimpleNamespace(scheduler=SchedulerConfig()), history, now=later
         )
-        assert not history_deferred_for_interval(
-            conn, daily, history, now=later + timedelta(hours=1)
+        assert not deferred_for_interval(conn, daily, history, now=later + timedelta(hours=1))
+        # A later run that cut off to the same generation restarts the interval.
+        _equivalence(conn, "history", "dg_h", clock.now() + timedelta(hours=20), run)
+        assert deferred_for_interval(conn, daily, history, now=later + timedelta(hours=1))
+
+
+def _materialize(conn, kind, generation, at, run):
+    conn.execute(
+        "INSERT INTO derivation_scopes(stage,unit_kind,unit_id,registered_at) "
+        "VALUES ('project',?,'all',?)",
+        (kind, at.isoformat()),
+    )
+    conn.execute("INSERT OR IGNORE INTO derivation_dependency_sets VALUES ('empty','[]')")
+    conn.execute(
+        "INSERT INTO derivation_generations VALUES (?,'project',?,'all','f','{}','empty',NULL,'d',0,?,?)",
+        (generation, kind, at.isoformat(), run),
+    )
+    conn.execute(
+        "UPDATE derivation_scopes SET materialized_generation_id=? WHERE unit_kind=?",
+        (generation, kind),
+    )
+
+
+def _equivalence(conn, kind, generation, at, run):
+    conn.execute("INSERT OR IGNORE INTO derivation_recipes VALUES ('r','{}')")
+    conn.execute(
+        "INSERT INTO derivation_equivalences VALUES ('project',?,'all',?,?,'r','empty',?,?)",
+        (kind, "f-" + at.isoformat(), generation, at.isoformat(), run),
+    )
+
+
+def _attempt(conn, kind, at, run, outcome):
+    conn.execute(
+        "INSERT INTO work_attempts(stage,unit_kind,unit_id,queue_generation,retry_generation,"
+        "work_token,input_fingerprint,run_id,started_at,finished_at,outcome,reason_code) "
+        "VALUES ('project',?,'all',1,0,'t','f',?,?,?,?,'derivation_failed')",
+        (kind, run, at.isoformat(), at.isoformat(), outcome),
+    )
+
+
+def test_inventory_waits_its_interval_unless_a_due_history_consumed_it(tmp_path):
+    from datetime import timedelta
+    from types import SimpleNamespace
+
+    from swingset.schedule.cycle import deferred_for_interval
+    from swingset.schedule.fair_policy import SchedulerConfig
+    from swingset.state.work import WorkUnit
+
+    clock = FakeClock()
+    paced = SimpleNamespace(
+        scheduler=SchedulerConfig(history_interval_seconds=43200, inventory_interval_seconds=43200)
+    )
+    inventory = WorkUnit("project", "inventory", "all")
+    with open_database(tmp_path / "state") as db:
+        conn = db.connection
+        run = db.start_run(clock.now())
+        start = clock.now()
+        _materialize(conn, "history", "dg_h", start, run)
+        _materialize(conn, "inventory", "dg_i", start + timedelta(hours=1), run)
+        # Within both intervals the inventory waits.
+        assert deferred_for_interval(conn, paced, inventory, now=start + timedelta(hours=6))
+        # With no inventory interval nothing waits.
+        unpaced = SimpleNamespace(scheduler=SchedulerConfig(history_interval_seconds=43200))
+        assert not deferred_for_interval(conn, unpaced, inventory, now=start + timedelta(hours=6))
+        # With no history interval the inventory keeps its own.
+        alone = SimpleNamespace(scheduler=SchedulerConfig(inventory_interval_seconds=43200))
+        assert deferred_for_interval(conn, alone, inventory, now=start + timedelta(hours=12))
+        assert not deferred_for_interval(conn, alone, inventory, now=start + timedelta(hours=14))
+        # History is due but has not consumed the inventory made after it: a
+        # dancer change during that cascade re-queued the inventory, and
+        # running it now would start the cascade over, so it keeps its
+        # interval (review of D-0210).
+        assert deferred_for_interval(conn, paced, inventory, now=start + timedelta(hours=12))
+        assert not deferred_for_interval(conn, paced, inventory, now=start + timedelta(hours=13))
+
+    # A due history that consumed the inventory lifts the wait: it needs a
+    # current one and never waits for a second cascade.
+    quick = SimpleNamespace(
+        scheduler=SchedulerConfig(history_interval_seconds=21600, inventory_interval_seconds=43200)
+    )
+    with open_database(tmp_path / "second") as db:
+        conn = db.connection
+        run = db.start_run(clock.now())
+        start = clock.now()
+        _materialize(conn, "inventory", "dg_i", start + timedelta(hours=1), run)
+        _materialize(conn, "history", "dg_h", start + timedelta(hours=2), run)
+        assert deferred_for_interval(conn, quick, inventory, now=start + timedelta(hours=7))
+        assert not deferred_for_interval(conn, quick, inventory, now=start + timedelta(hours=9))
+        # A history whose latest attempt failed is not due here, so a history
+        # that keeps failing cannot unpace the inventory (D-0210).
+        _attempt(conn, "history", start + timedelta(hours=9), run, "transient")
+        assert deferred_for_interval(conn, quick, inventory, now=start + timedelta(hours=9))
+        _attempt(conn, "history", start + timedelta(hours=9, minutes=30), run, "superseded")
+        assert not deferred_for_interval(conn, quick, inventory, now=start + timedelta(hours=10))
+        # A history that cut off before the inventory's latest cutoff has not
+        # consumed it either.
+        _equivalence(conn, "inventory", "dg_i", start + timedelta(hours=3), run)
+        assert deferred_for_interval(conn, quick, inventory, now=start + timedelta(hours=10))
+
+
+def test_an_interrupted_cascade_unpaces_the_inventory_until_history_lands(tmp_path):
+    """History needs a current inventory. If a dancer change interrupts every
+    cascade, a paced inventory would hold history back forever (phase 1
+    review): once an inventory has materialized since history came due, the
+    inventory runs whenever it is stale until history lands."""
+    from datetime import timedelta
+    from types import SimpleNamespace
+
+    from swingset.schedule.cycle import deferred_for_interval
+    from swingset.schedule.fair_policy import SchedulerConfig
+    from swingset.state.work import WorkUnit
+
+    clock = FakeClock()
+    paced = SimpleNamespace(
+        scheduler=SchedulerConfig(history_interval_seconds=43200, inventory_interval_seconds=43200)
+    )
+    inventory = WorkUnit("project", "inventory", "all")
+    with open_database(tmp_path / "state") as db:
+        conn = db.connection
+        run = db.start_run(clock.now())
+        start = clock.now()
+        _materialize(conn, "history", "dg_h", start, run)
+        # History came due at +12h; this inventory ran before that, so its
+        # cascade is the one history waits for: it keeps its interval.
+        _materialize(conn, "inventory", "dg_i", start + timedelta(hours=11), run)
+        assert deferred_for_interval(conn, paced, inventory, now=start + timedelta(hours=14))
+        # The next one ran at +23h, after history came due, and a dancer
+        # change interrupted its cascade too: history is starving, so the
+        # inventory no longer waits.
+        _equivalence(conn, "inventory", "dg_i", start + timedelta(hours=23), run)
+        assert not deferred_for_interval(conn, paced, inventory, now=start + timedelta(hours=24))
+        # A history that keeps failing still paces it.
+        _attempt(conn, "history", start + timedelta(hours=24), run, "transient")
+        assert deferred_for_interval(conn, paced, inventory, now=start + timedelta(hours=24))
+        # Once history lands, the inventory is paced again.
+        _attempt(conn, "history", start + timedelta(hours=25), run, "succeeded")
+        _equivalence(conn, "history", "dg_h", start + timedelta(hours=25), run)
+        _equivalence(conn, "inventory", "dg_i", start + timedelta(hours=26), run)
+        assert deferred_for_interval(conn, paced, inventory, now=start + timedelta(hours=27))
+
+
+def test_a_calendar_replay_the_inventory_has_not_read_lifts_its_wait(tmp_path):
+    """F2: a calendar replay rewrites live `events` columns the inventory
+    enriched. While pacing held that inventory, the phase-two gate and
+    `accept-year` read calendar-only values. The gate lets it run instead,
+    and the watchdog's mirror of the gate agrees."""
+    import importlib.util
+    import sqlite3
+    from datetime import timedelta
+    from pathlib import Path
+    from types import SimpleNamespace
+
+    from swingset.schedule.cycle import deferred_for_interval
+    from swingset.schedule.fair_policy import SchedulerConfig
+    from swingset.schedule.pacing import calendar_replayed
+    from swingset.state.work import WorkUnit
+
+    spec = importlib.util.spec_from_file_location(
+        "swingset_watchdog_pacing", Path(__file__).resolve().parents[1] / "nix/watchdog.py"
+    )
+    assert spec is not None and spec.loader is not None
+    watchdog = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(watchdog)
+
+    def mirrored() -> bool:
+        db = sqlite3.connect(f"file:{tmp_path / 'state/state.sqlite'}?mode=ro", uri=True)
+        try:
+            return bool(watchdog._calendar_replayed(db))
+        finally:
+            db.close()
+
+    clock = FakeClock()
+    paced = SimpleNamespace(scheduler=SchedulerConfig(inventory_interval_seconds=43200))
+    inventory = WorkUnit("project", "inventory", "all")
+    with open_database(tmp_path / "state") as db:
+        conn = db.connection
+        run = db.start_run(clock.now())
+        start = clock.now()
+        _materialize(conn, "inventory", "dg_i", start, run)
+        later = start + timedelta(hours=1)
+        assert deferred_for_interval(conn, paced, inventory, now=later)
+        assert not calendar_replayed(conn, inventory) and not mirrored()
+        # The key the calendar's own cutoff moves, not a copy of it.
+        with db.transaction():
+            derivations.bump_replay(conn, "project", "calendar", now=start)
+        assert calendar_replayed(conn, inventory) and mirrored()
+        assert not deferred_for_interval(conn, paced, inventory, now=later)
+        conn.execute("INSERT OR IGNORE INTO derivation_recipes VALUES ('r','{}')")
+
+        def reads(epoch: int, hours: int) -> None:
+            """The inventory's next run, a cutoff, read `epoch`."""
+            read = f'[{{"key":["project","calendar"],"kind":"replay","version":{epoch}}}]'
+            conn.execute(
+                "INSERT OR IGNORE INTO derivation_dependency_sets VALUES (?,?)",
+                (f"read{epoch}", read),
+            )
+            conn.execute(
+                "INSERT INTO derivation_equivalences VALUES "
+                "('project','inventory','all',?,'dg_i','r',?,?,?)",
+                (f"f{epoch}", f"read{epoch}", (start + timedelta(hours=hours)).isoformat(), run),
+            )
+
+        reads(1, 2)
+        assert not calendar_replayed(conn, inventory) and not mirrored()
+        assert deferred_for_interval(conn, paced, inventory, now=start + timedelta(hours=3))
+        # A second replay and the run that read it: the newest read counts,
+        # not the first equivalence.
+        with db.transaction():
+            derivations.bump_replay(conn, "project", "calendar", now=start)
+        assert calendar_replayed(conn, inventory) and mirrored()
+        reads(2, 3)
+        assert not calendar_replayed(conn, inventory) and not mirrored()
+        assert deferred_for_interval(conn, paced, inventory, now=start + timedelta(hours=4))
+
+
+def test_a_calendar_generation_newer_than_the_inventory_lifts_its_wait(tmp_path):
+    """A calendar that mints a generation rewrites its live `events` rows and
+    drops the inventory's enrichment, as a replay does. The gate lets the
+    inventory run, and the watchdog's mirror of the gate agrees; the
+    `wsdc-history` calendar writes no rows and lifts nothing."""
+    from datetime import timedelta
+    from types import SimpleNamespace
+
+    from swingset.schedule.cycle import deferred_for_interval
+    from swingset.schedule.fair_policy import SchedulerConfig
+    from swingset.schedule.pacing import calendar_regenerated
+    from swingset.state.work import WorkUnit
+
+    clock = FakeClock()
+    paced = SimpleNamespace(scheduler=SchedulerConfig(inventory_interval_seconds=43200))
+    inventory = WorkUnit("project", "inventory", "all")
+
+    def calendar(scope, generation, at, run):
+        conn.execute(
+            "INSERT OR IGNORE INTO derivation_scopes(stage,unit_kind,unit_id,registered_at) "
+            "VALUES ('project','calendar',?,?)",
+            (scope, at.isoformat()),
         )
+        conn.execute(
+            "INSERT INTO derivation_generations VALUES "
+            "(?,'project','calendar',?,'f','{}','empty',NULL,'d',0,?,?)",
+            (generation, scope, at.isoformat(), run),
+        )
+        conn.execute(
+            "UPDATE derivation_scopes SET materialized_generation_id=? "
+            "WHERE unit_kind='calendar' AND unit_id=?",
+            (generation, scope),
+        )
+
+    with open_database(tmp_path / "state") as db:
+        conn = db.connection
+        run = db.start_run(clock.now())
+        start = clock.now()
+        _materialize(conn, "inventory", "dg_i", start, run)
+        calendar("wsdc", "dg_c0", start - timedelta(hours=1), run)
+        later = start + timedelta(hours=2)
+        assert not calendar_regenerated(conn, inventory)
+        assert deferred_for_interval(conn, paced, inventory, now=later)
+        calendar("wsdc-history", "dg_h1", start + timedelta(hours=1), run)
+        assert not calendar_regenerated(conn, inventory)
+        assert deferred_for_interval(conn, paced, inventory, now=later)
+        calendar("wsdc", "dg_c1", start + timedelta(hours=1), run)
+        assert calendar_regenerated(conn, inventory)
+        assert not deferred_for_interval(conn, paced, inventory, now=later)
+        # The inventory's next run read that calendar: paced again.
+        _equivalence(conn, "inventory", "dg_i", start + timedelta(hours=1, minutes=30), run)
+        assert not calendar_regenerated(conn, inventory)
+        assert deferred_for_interval(conn, paced, inventory, now=later)
+
+
+def test_a_kind_without_a_code_scope_is_named_and_fails_the_cycle(
+    tmp_path, configuration, monkeypatch
+):
+    # Offline selection skips a kind whose recipe cannot be formed so the
+    # other kinds keep running (I1), but the cycle must say so: without the
+    # summary key and failed=true that kind would stop silently.
+    from swingset.state import recipe_scope
+
+    config, overrides = configuration
+    clock = FakeClock()
+    real = recipe_scope.manifest
+
+    def without_dancer(files):
+        value = real(files)
+        scopes = dict(value["scopes"])
+        scopes.pop("recipe/code/project/dancer")
+        return {**value, "scopes": scopes}
+
+    monkeypatch.setattr(recipe_scope, "manifest", without_dancer)
+
+    def offline(_request):
+        return httpx.Response(503)
+
+    with open_database(tmp_path / "state") as db:
+        run = db.start_run(clock.now())
+        # A dancer with a generation: readiness compares its certificate,
+        # which reads the recipe.
+        _materialize(db.connection, "dancer", "dg_d", clock.now(), run)
+        enqueue(
+            db.connection,
+            [WorkUnit("project", "dancer", "all")],
+            enqueued_at=clock.now().isoformat(),
+        )
+        result = run_cycle(
+            db,
+            config_dir=config,
+            overrides_dir=overrides,
+            clock=clock,
+            transport=httpx.MockTransport(offline),
+        )
+        assert result["readiness_errors"] == {
+            "project/dancer": "accepted runtime has no code scope recipe/code/project/dancer"
+        }
+        assert result["failed"]
+        assert result["phase_two_refusals"] == {}
 
 
 def test_a_bookkeeping_stage_overrun_is_recorded_and_the_cycle_still_fetches(
@@ -508,6 +808,61 @@ def test_a_bookkeeping_stage_overrun_is_recorded_and_the_cycle_still_fetches(
         ]
         assert result["failed"] and "error" not in result
         assert result["checked"] >= 1
+
+
+def test_a_failed_report_read_still_writes_the_run_record(tmp_path, configuration, monkeypatch):
+    # The watchdog reads each cycle's record (I4); a report query that fails
+    # after the work, or after an earlier error, must not lose it.
+    import json
+
+    from swingset.state import derivations
+
+    config, overrides = configuration
+    clock = FakeClock()
+
+    def locked(*_args, **_kwargs):
+        raise RuntimeError("database is locked")
+
+    monkeypatch.setattr(derivations, "cycle_progress", locked)
+    monkeypatch.setattr("swingset.schedule.cycle.status", locked)
+    with open_database(tmp_path / "state") as db:
+        result = run_cycle(db, config_dir=config, overrides_dir=overrides, clock=clock, budget=0)
+        assert result["derivation_error"] == "RuntimeError: database is locked"
+        assert result["controls_error"] == "RuntimeError: database is locked"
+        assert "derivation" not in result and "controls" not in result
+        stored = db.connection.execute(
+            "SELECT summary_json FROM runs WHERE run_id=?", (result["run_id"],)
+        ).fetchone()[0]
+        assert json.loads(stored)["derivation_error"] == result["derivation_error"]
+        record = tmp_path / "state" / "runs" / f"{result['run_id']}.json"
+        assert json.loads(record.read_bytes())["run_id"] == result["run_id"]
+
+
+def test_a_failed_replay_epoch_read_is_noted_and_the_run_record_written(
+    tmp_path, configuration, monkeypatch
+):
+    # The epochs are read before the cycle's work; a failure there used to
+    # escape before any run record existed.
+    import json
+
+    from swingset.state import derivations
+
+    config, overrides = configuration
+
+    def locked(*_args, **_kwargs):
+        raise RuntimeError("database is locked")
+
+    monkeypatch.setattr(derivations, "replay_epochs", locked)
+    with open_database(tmp_path / "state") as db:
+        result = run_cycle(
+            db, config_dir=config, overrides_dir=overrides, clock=FakeClock(), budget=0
+        )
+        assert result["derivation_error"] == "RuntimeError: database is locked"
+        # The rest of the report is kept; replay bumps are left out, not guessed.
+        assert "replay_bumps" not in result["derivation"]
+        assert "generations" in result["derivation"]
+        record = tmp_path / "state" / "runs" / f"{result['run_id']}.json"
+        assert json.loads(record.read_bytes())["derivation_error"] == result["derivation_error"]
 
 
 def test_stages_switched_off_are_skipped_and_the_cycle_still_fetches(
@@ -577,3 +932,53 @@ def test_stages_switched_off_are_skipped_and_the_cycle_still_fetches(
     assert not result["failed"]
     assert "https://worldsdc.com/events/" in requests
     assert result["checked"] >= 1
+
+
+def test_a_cycle_deletes_hints_for_units_that_are_already_current(tmp_path, configuration):
+    """A revert deploy re-queues hints for units that are current again. The
+    cycle's offline selection deletes them, so the watchdog does not count
+    them as ready work forever (I4)."""
+    config, overrides = configuration
+    clock = FakeClock()
+
+    def transport(request):
+        return (
+            httpx.Response(404)
+            if request.url.path == "/robots.txt"
+            else httpx.Response(200, content=FIXTURE)
+        )
+
+    with open_database(tmp_path / "state") as db:
+        first = run_cycle(
+            db,
+            config_dir=config,
+            overrides_dir=overrides,
+            clock=clock,
+            transport=httpx.MockTransport(transport),
+        )
+        assert not first["failed"]
+        conn = db.connection
+        current = [
+            unit
+            for stage in ("project", "link")
+            for unit in derivations.known_units(conn, stage)
+            if derivations.current(conn, unit)
+        ]
+        assert current
+        with db.transaction():
+            enqueue(conn, current, enqueued_at=clock.now().isoformat())
+        second = run_cycle(
+            db,
+            config_dir=config,
+            overrides_dir=overrides,
+            clock=clock,
+            transport=httpx.MockTransport(transport),
+        )
+        assert not second["failed"]
+        assert second["current_hints_dropped"] == len(current)
+        assert (
+            conn.execute(
+                "SELECT count(*) FROM pending_work WHERE stage IN ('project','link')"
+            ).fetchone()[0]
+            == 0
+        )

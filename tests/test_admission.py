@@ -256,6 +256,26 @@ def test_admission_crash_rolls_back_pointer_observations_and_work(tmp_path):
         )
 
 
+def test_an_input_outside_the_kinds_parse_recipe_does_not_supersede(tmp_path):
+    """Admission currency compares only the page kind's parse inputs (D-0207)."""
+    with open_database(tmp_path) as db:
+        c = Corpus(db)
+        ctx = c.snapshot("one")
+        generation, _ = c.stage(ctx)
+        c.review(generation)
+        c.conn.executemany(
+            "INSERT INTO accepted_inputs VALUES ('pipeline',?,'new-digest')",
+            (
+                ("manual_extract",),
+                ("overrides/event_aliases.csv",),
+                ("recipe/code/project/event",),
+                ("recipe/code/parse/another.kind",),
+                ("version/repository",),
+            ),
+        )
+        assert c.admit(generation) == "accepted"
+
+
 @pytest.mark.parametrize("change", ["input", "work", "snapshot"])
 def test_changed_desired_input_cannot_clear_new_work(tmp_path, change):
     with open_database(tmp_path) as db:
@@ -265,7 +285,8 @@ def test_changed_desired_input_cannot_clear_new_work(tmp_path, change):
         c.review(generation)
         if change == "input":
             c.conn.execute(
-                "INSERT INTO accepted_inputs VALUES ('pipeline','manual_extract','new-digest')"
+                "INSERT INTO accepted_inputs VALUES ('pipeline',?,'new-digest')",
+                (f"recipe/code/parse/{ctx.kind}",),
             )
         elif change == "work":
             enqueue(
@@ -867,3 +888,706 @@ def test_public_admission_reason_codes_never_include_dynamic_exception_details(t
             ),
         )
         assert generation_failure_codes(c.conn, generation) == ("manifest_artifact_invalid",)
+
+
+def _rows(conn, sql):
+    return tuple(tuple(r) for r in conn.execute(sql))
+
+
+def _runtime(conn, value):
+    conn.execute(
+        "INSERT INTO accepted_inputs(consumer,input_name,digest) VALUES ('pipeline','recipe/env',?) "
+        "ON CONFLICT(consumer,input_name) DO UPDATE SET digest=excluded.digest",
+        (value,),
+    )
+
+
+def test_identical_reparse_under_changed_runtime_cuts_off_to_accepted_generation(tmp_path):
+    from swingset.admission.select import source_materialized_for
+
+    with open_database(tmp_path) as db:
+        c = Corpus(db)
+        ctx = c.snapshot("one")
+        first, _ = c.stage(ctx)
+        c.review(first)
+        assert c.admit(first) == "accepted"
+        before = {
+            table: _rows(c.conn, "SELECT * FROM " + table)
+            for table in ("observations", "revisions", "admission_decisions")
+        }
+        project = _rows(c.conn, "SELECT * FROM pending_work WHERE stage!='parse'")
+        _runtime(c.conn, "runtime-2")
+        enqueue(c.conn, (WorkUnit("parse", "snapshot", "one"),), enqueued_at="2099-01-01")
+        attempt = parse_snapshot(
+            db, c.archive, WorkUnit("parse", "snapshot", "one"), c.clock, c.run
+        )
+        assert not attempt.failed and attempt.selection is None
+        assert c.conn.execute("SELECT COUNT(*) FROM source_generations").fetchone()[0] == 1
+        equivalences = _rows(
+            c.conn, "SELECT unit_key,input_fingerprint,generation_id FROM source_equivalences"
+        )
+        assert len(equivalences) == 1 and equivalences[0][2] == first
+        unit = c.conn.execute(
+            "SELECT accepted_generation_id,desired_fingerprint FROM source_units"
+        ).fetchone()
+        assert tuple(unit) == (first, equivalences[0][1])
+        assert source_materialized_for(c.conn, equivalences[0][0], first, unit[1])
+        assert (
+            c.conn.execute(
+                "SELECT state FROM source_generations WHERE generation_id=?", (first,)
+            ).fetchone()[0]
+            == "accepted"
+        )
+        for table, rows in before.items():
+            assert _rows(c.conn, "SELECT * FROM " + table) == rows, table
+        assert _rows(c.conn, "SELECT * FROM pending_work WHERE stage!='parse'") == project
+        assert (
+            c.conn.execute("SELECT COUNT(*) FROM pending_work WHERE stage='parse'").fetchone()[0]
+            == 0
+        )
+        # A repeat of the same fingerprint adds nothing.
+        enqueue(c.conn, (WorkUnit("parse", "snapshot", "one"),), enqueued_at="2099-01-02")
+        assert c.stage(ctx)[0] == first
+        assert c.conn.execute("SELECT COUNT(*) FROM source_equivalences").fetchone()[0] == 1
+
+
+def test_with_cutoff_off_an_identical_reparse_stages_a_generation(tmp_path):
+    from swingset import cutoff
+
+    with open_database(tmp_path) as db:
+        c = Corpus(db)
+        ctx = c.snapshot("one")
+        first, _ = c.stage(ctx)
+        c.review(first)
+        assert c.admit(first) == "accepted"
+        _runtime(c.conn, "runtime-2")
+        enqueue(c.conn, (WorkUnit("parse", "snapshot", "one"),), enqueued_at="2099-01-01")
+        with cutoff.configured(False):
+            again, _ = c.stage(ctx)
+        assert again != first
+        assert c.admit(again) == "accepted"
+        assert c.conn.execute("SELECT COUNT(*) FROM source_equivalences").fetchone()[0] == 0
+
+
+def test_changed_result_or_parser_label_still_writes_and_admits_a_generation(tmp_path, monkeypatch):
+    with open_database(tmp_path) as db:
+        c = Corpus(db)
+        ctx = c.snapshot("one")
+        first, _ = c.stage(ctx)
+        c.review(first)
+        assert c.admit(first) == "accepted"
+        _runtime(c.conn, "runtime-2")
+        enqueue(c.conn, (WorkUnit("parse", "snapshot", "one"),), enqueued_at="2099-01-01")
+        changed, _ = c.stage(
+            ctx,
+            result_change=lambda r: replace(r, legitimate_empty=not r.legitimate_empty),
+        )
+        assert changed != first
+        assert c.admit(changed) == "accepted"
+        # An identical result under a new parser label is a new generation too.
+        monkeypatch.setattr(RoundPage, "PARSER_VERSION", RoundPage.PARSER_VERSION + 1)
+        enqueue(c.conn, (WorkUnit("parse", "snapshot", "one"),), enqueued_at="2099-01-02")
+        relabeled, _ = c.stage(
+            ctx,
+            result_change=lambda r: replace(r, legitimate_empty=not r.legitimate_empty),
+        )
+        assert relabeled not in {first, changed}
+        assert c.admit(relabeled) == "accepted"
+        assert c.conn.execute("SELECT COUNT(*) FROM source_generations").fetchone()[0] == 3
+        assert c.conn.execute("SELECT COUNT(*) FROM source_equivalences").fetchone()[0] == 0
+        assert (
+            c.conn.execute("SELECT accepted_generation_id FROM source_units").fetchone()[0]
+            == relabeled
+        )
+
+
+def test_revoked_inputs_are_decided_by_admission_not_cut_off(tmp_path):
+    from swingset.admission.select import revoke_generation
+
+    def wrong(r):
+        return replace(r, legitimate_empty=not r.legitimate_empty)
+
+    with open_database(tmp_path) as db:
+        c = Corpus(db)
+        ctx = c.snapshot("one")
+        first, _ = c.stage(ctx)
+        c.review(first)
+        assert c.admit(first) == "accepted"
+        revoke_generation(
+            db, first, reason="Synthetic explicit revocation", now=ctx.fetched_at, run_id=c.run
+        )
+        enqueue(c.conn, (WorkUnit("parse", "snapshot", "one"),), enqueued_at="2099-01-01")
+        retry, _ = c.stage(ctx)
+        assert retry != first
+        assert c.admit(retry) == "revoked"
+        # The accepted generation matches, but the new fingerprint was revoked.
+        second = c.snapshot("two")
+        kept, _ = c.stage(second)
+        assert c.admit(kept) == "accepted"
+        _runtime(c.conn, "runtime-2")
+        enqueue(c.conn, (WorkUnit("parse", "snapshot", "two"),), enqueued_at="2099-01-02")
+        bad, _ = c.stage(second, result_change=wrong)
+        assert c.admit(bad) == "accepted"
+        revoke_generation(
+            db, bad, reason="Synthetic explicit revocation", now=ctx.fetched_at, run_id=c.run
+        )
+        assert (
+            c.conn.execute("SELECT accepted_generation_id FROM source_units").fetchone()[0] == kept
+        )
+        enqueue(c.conn, (WorkUnit("parse", "snapshot", "two"),), enqueued_at="2099-01-03")
+        again, _ = c.stage(second)
+        assert again not in {kept, bad}
+        assert c.admit(again) == "revoked"
+        assert c.conn.execute("SELECT COUNT(*) FROM source_equivalences").fetchone()[0] == 0
+
+
+def test_revocation_after_a_cutoff_also_revokes_the_equivalent_inputs(tmp_path):
+    from swingset.admission.select import revoke_generation
+    from swingset.schedule.event_evidence import (
+        admission_reason,
+        decode_generation,
+        revoked_evidence,
+    )
+
+    with open_database(tmp_path) as db:
+        c = Corpus(db)
+        ctx = c.snapshot("one")
+        first, _ = c.stage(ctx)
+        c.review(first)
+        assert c.admit(first) == "accepted"
+        # A deploy re-parses the snapshot identically: the parse cuts off to
+        # the accepted generation under the new fingerprint.
+        _runtime(c.conn, "runtime-2")
+        enqueue(c.conn, (WorkUnit("parse", "snapshot", "one"),), enqueued_at="2099-01-01")
+        assert c.stage(ctx)[0] == first
+        equivalent = c.conn.execute("SELECT desired_fingerprint FROM source_units").fetchone()[0]
+        revoke_generation(
+            db, first, reason="Synthetic explicit revocation", now=ctx.fetched_at, run_id=c.run
+        )
+        # The query every evidence reader uses (admission_reason, page
+        # evidence, the pressure probe, the build) covers the equivalent
+        # fingerprint: it names the same recipe, so the revoked generation's
+        # own snapshot and parser label already match it, and the row is left
+        # out rather than counted against the readers' budgets.
+        revoked = [tuple(row) for row in c.conn.execute(revoked_evidence(c.conn))]
+        assert [row[1] for row in revoked] == [
+            c.conn.execute(
+                "SELECT input_fingerprint FROM source_generations WHERE generation_id=?", (first,)
+            ).fetchone()[0]
+        ]
+        # The build's copy reads the same query, capped at 128 rows.
+        from swingset.build.event_coverage import _Reader
+
+        assert _Reader(c.conn).revoked_rows() == revoked
+        # The same inputs parse again: a new generation with the equivalent
+        # fingerprint, which admission refuses as the revoked evidence.
+        enqueue(c.conn, (WorkUnit("parse", "snapshot", "one"),), enqueued_at="2099-01-02")
+        again, _ = c.stage(ctx)
+        assert again != first
+        assert (
+            c.conn.execute(
+                "SELECT input_fingerprint FROM source_generations WHERE generation_id=?", (again,)
+            ).fetchone()[0]
+            == equivalent
+        )
+        value = decode_generation(
+            c.conn.execute(
+                "SELECT * FROM source_generations WHERE generation_id=?", (again,)
+            ).fetchone(),
+            again,
+        )
+        assert value["state"] != "revoked"
+        assert admission_reason(c.conn, value) == "source_evidence_revoked"
+        assert c.admit(again) == "revoked"
+
+
+def _relabeled_equivalence(c, monkeypatch, ctx, revoked_id):
+    """Stage `ctx` under another parser label, then record its fingerprint as
+    equivalent to `revoked_id`. A cutoff keeps labels byte-equal, so no real
+    equivalence differs in label from its generation; the query keeps such a
+    row anyway, and only that row can name the new generation."""
+    from swingset.sources import get_page_kind
+
+    monkeypatch.setattr(get_page_kind(ctx.kind), "PARSER_VERSION", "relabeled")
+    enqueue(c.conn, (WorkUnit("parse", "snapshot", ctx.snapshot_id),), enqueued_at="2099-01-03")
+    other, _ = c.stage(ctx)
+    row = c.conn.execute(
+        "SELECT unit_key,input_fingerprint,recipe_json FROM source_generations "
+        "WHERE generation_id=?",
+        (other,),
+    ).fetchone()
+    c.conn.execute(
+        "INSERT INTO source_equivalences(unit_key,input_fingerprint,generation_id,recipe_json,"
+        "work_token,created_at,run_id) VALUES (?,?,?,?,NULL,?,?)",
+        (*tuple(row)[:2], revoked_id, row[2], c.clock.now().isoformat(), c.run),
+    )
+    return other
+
+
+def test_the_build_withholds_a_generation_equivalent_to_revoked_evidence(tmp_path, monkeypatch):
+    """The build's event-coverage reader reads the revoked evidence through the
+    shared query: a generation whose fingerprint was cut off to a revoked one
+    is withheld, as admission refuses it (D-0205)."""
+    from swingset.admission.select import revoke_generation
+    from swingset.build.event_coverage import _Reader, _Unavailable
+
+    with open_database(tmp_path) as db:
+        c = Corpus(db)
+        ctx = c.snapshot("one")
+        first, _ = c.stage(ctx)
+        c.review(first)
+        assert c.admit(first) == "accepted"
+        other = _relabeled_equivalence(c, monkeypatch, ctx, first)
+        revoke_generation(
+            db, first, reason="Synthetic explicit revocation", now=ctx.fetched_at, run_id=c.run
+        )
+        with pytest.raises(_Unavailable, match="^source_evidence_revoked$"):
+            _Reader(c.conn).parent(other, "2999-01-01T00:00:00+00:00")
+
+
+def test_equivalences_do_not_spend_the_revoked_evidence_budgets(tmp_path, monkeypatch):
+    """Each deploy that re-parses a unit adds an equivalence. Twenty revoked
+    generations re-parsed seven times each must not exhaust the readers' row
+    budgets, or every event's coverage evidence fails (phase 1 review)."""
+    from swingset.admission.select import revoke_generation
+    from swingset.build.event_coverage import _Reader, _Unavailable
+    from swingset.schedule.event_evidence import revoked_evidence
+
+    with open_database(tmp_path) as db:
+        c = Corpus(db)
+        ctx = c.snapshot("one")
+        first, _ = c.stage(ctx)
+        c.review(first)
+        assert c.admit(first) == "accepted"
+        relabeled = _relabeled_equivalence(c, monkeypatch, ctx, first)
+        revoke_generation(
+            db, first, reason="Synthetic explicit revocation", now=ctx.fetched_at, run_id=c.run
+        )
+        template = dict(
+            c.conn.execute(
+                "SELECT * FROM source_generations WHERE generation_id=?", (first,)
+            ).fetchone()
+        )
+
+        def revoked(start, count):
+            for index in range(start, start + count):
+                row = {
+                    **template,
+                    "generation_id": f"gen_copy_{index}",
+                    "input_fingerprint": f"copy-{index}",
+                }
+                c.conn.execute(
+                    f"INSERT INTO source_generations({','.join(row)}) "
+                    f"VALUES ({','.join('?' * len(row))})",
+                    tuple(row.values()),
+                )
+                for deploy in range(7):
+                    recipe = json.loads(template["recipe_json"])
+                    recipe["accepted_inputs"] = {"recipe/env": f"deploy-{deploy}"}
+                    c.conn.execute(
+                        "INSERT INTO source_equivalences(unit_key,input_fingerprint,generation_id,"
+                        "recipe_json,work_token,created_at,run_id) VALUES (?,?,?,?,NULL,?,?)",
+                        (
+                            template["unit_key"],
+                            f"copy-{index}-{deploy}",
+                            row["generation_id"],
+                            json.dumps(recipe),
+                            c.clock.now().isoformat(),
+                            c.run,
+                        ),
+                    )
+
+        revoked(0, 19)
+        rows = [tuple(row) for row in c.conn.execute(revoked_evidence(c.conn))]
+        # One row per revoked generation, plus the relabeled equivalence.
+        assert len(rows) == 21
+        assert sum("relabeled" in row[2] for row in rows) == 1
+        assert len(_Reader(c.conn).revoked_rows()) == 21
+        # The budget of 128 rows still holds: 128 revoked generations and
+        # the relabeled equivalence pass it.
+        revoked(19, 108)
+        with pytest.raises(_Unavailable, match="event_evidence_row_budget"):
+            _Reader(c.conn).revoked_rows()
+        assert relabeled
+
+
+def _blocking(failure):
+    """A report change that holds a generation: needs_review or waiting_for_inputs."""
+
+    def block(report):
+        fields, guards = report.fields, ()
+        if failure == "critical_unknown":
+            fields += (Field("new_critical_header", "unknown", "No interpretation contract"),)
+        elif failure == "missing_date":
+            guards = (Guard("required_date_missing", False, "Missing occurrence date"),)
+        else:
+            guards = (Guard("manifest_artifact_missing", False, "Restore the input first"),)
+        return evaluate(
+            report.page_kind,
+            report.contract_version,
+            fields,
+            report.coverage,
+            guards=guards,
+            removal="watch",
+        )
+
+    return block
+
+
+def _held_unit(c, monkeypatch, failure):
+    """An enforced kind and a second watch whose parse is held by `failure`."""
+    import swingset.schedule.parse as parse_module
+
+    control, _ = c.stage(c.snapshot("control"))
+    c.review(control)
+    assert c.admit(control) == "accepted"
+    other = replace(c.spec, url="https://eepro.com/results/test/other.htm")
+    upsert_watch(c.conn, other, c.clock.now())
+    c.snapshot("other", spec=other)
+    block = _blocking(failure)
+    monkeypatch.setattr(parse_module, "inspect", lambda *args: block(inspect(*args)))
+    return WorkUnit("parse", "snapshot", "other")
+
+
+def _parse(db, c, unit):
+    return parse_snapshot(db, c.archive, unit, c.clock, c.run)
+
+
+@pytest.mark.parametrize(
+    "failure,state",
+    [
+        ("critical_unknown", "needs_review"),
+        ("missing_date", "needs_review"),
+        ("artifact_missing", "waiting_for_inputs"),
+    ],
+)
+def test_a_held_unit_that_parses_identically_keeps_its_generation(
+    tmp_path, monkeypatch, failure, state
+):
+    """R3: 0.85% of re-parses repeated a held generation byte for byte. The
+    repeat is held in the same state without a new generation or decision:
+    the reviewed contract and the report's own failures decide it (D-0212)."""
+    with open_database(tmp_path) as db:
+        c = Corpus(db)
+        unit = _held_unit(c, monkeypatch, failure)
+        first = _parse(db, c, unit)
+        assert not first.failed and first.selection == state
+        held = _rows(c.conn, "SELECT generation_id FROM source_generations WHERE state!='accepted'")
+        assert len(held) == 1
+        decisions = _rows(c.conn, "SELECT * FROM admission_decisions")
+        _runtime(c.conn, "runtime-2")
+        enqueue(c.conn, (unit,), enqueued_at="2099-01-01")
+        again = _parse(db, c, unit)
+        assert not again.failed and again.selection == state
+        assert (
+            _rows(c.conn, "SELECT generation_id FROM source_generations WHERE state!='accepted'")
+            == held
+        )
+        assert _rows(c.conn, "SELECT generation_id FROM source_equivalences") == held
+        assert _rows(c.conn, "SELECT * FROM admission_decisions") == decisions
+        # The work token is completed as a fresh held parse's would be.
+        assert not c.conn.execute(
+            "SELECT 1 FROM pending_work WHERE stage='parse' AND unit_id='other'"
+        ).fetchone()
+        # A repeat at the same fingerprint (a retry) is held too.
+        enqueue(c.conn, (unit,), enqueued_at="2099-01-02")
+        assert _parse(db, c, unit).selection == state
+        assert c.conn.execute("SELECT COUNT(*) FROM source_generations").fetchone()[0] == 2
+        # With cutoff off, every repeat is staged and decided again.
+        from swingset import cutoff
+
+        enqueue(c.conn, (unit,), enqueued_at="2099-01-03")
+        with cutoff.configured(False):
+            assert _parse(db, c, unit).selection == state
+        assert c.conn.execute("SELECT COUNT(*) FROM source_generations").fetchone()[0] == 3
+
+
+def test_a_held_repeat_that_admission_would_decide_differently_is_staged(tmp_path, monkeypatch):
+    """Held for an unreviewed contract, then the contract is reviewed: the same
+    bytes now wait for inputs, so the repeat is staged and admitted afresh."""
+    with open_database(tmp_path) as db:
+        c = Corpus(db)
+        unit = _held_unit(c, monkeypatch, "artifact_missing")
+        c.conn.execute("UPDATE admission_policies SET reviewed_report_digest=NULL")
+        assert _parse(db, c, unit).selection == "needs_review"
+        _runtime(c.conn, "runtime-2")
+        enqueue(c.conn, (unit,), enqueued_at="2099-01-01")
+        # Still unreviewed: the same bytes are held for review again.
+        assert _parse(db, c, unit).selection == "needs_review"
+        assert c.conn.execute("SELECT COUNT(*) FROM source_equivalences").fetchone()[0] == 1
+        policy = c.conn.execute(
+            "SELECT reviewed_report_digest FROM admission_policies WHERE page_kind=?",
+            (c.spec.parser,),
+        ).fetchone()
+        assert policy[0] is None
+        c.conn.execute("UPDATE admission_policies SET reviewed_report_digest='reviewed'")
+        _runtime(c.conn, "runtime-3")
+        enqueue(c.conn, (unit,), enqueued_at="2099-01-02")
+        assert _parse(db, c, unit).selection == "waiting_for_inputs"
+        assert c.conn.execute("SELECT COUNT(*) FROM source_generations").fetchone()[0] == 3
+        assert c.conn.execute("SELECT COUNT(*) FROM source_equivalences").fetchone()[0] == 1
+
+
+def test_a_parse_failure_that_repeats_keeps_its_generation(tmp_path, monkeypatch):
+    """A parse that fails the same way under a new runtime stages nothing new."""
+    from swingset.sources.base import ParseError
+
+    with open_database(tmp_path) as db:
+        c = Corpus(db)
+        _held_unit(c, monkeypatch, "critical_unknown")
+
+        def fail(self, extract, ctx):
+            raise ParseError("layout changed")
+
+        monkeypatch.setattr(RoundPage, "parse", fail)
+        unit = WorkUnit("parse", "snapshot", "other")
+        assert _parse(db, c, unit).failed
+        count = c.conn.execute("SELECT COUNT(*) FROM source_generations").fetchone()[0]
+        _runtime(c.conn, "runtime-2")
+        enqueue(c.conn, (unit,), enqueued_at="2099-01-01")
+        assert _parse(db, c, unit).failed
+        assert c.conn.execute("SELECT COUNT(*) FROM source_generations").fetchone()[0] == count
+        assert c.conn.execute("SELECT COUNT(*) FROM source_equivalences").fetchone()[0] == 1
+
+
+def test_shadow_phase_one_index_reparse_cuts_off(tmp_path):
+    with open_database(tmp_path) as db:
+        c = Corpus(db)
+        spec = WatchSpec(
+            "",
+            "swingdancecouncil",
+            "index",
+            "GET",
+            "https://swingdancecouncil.com/events.html",
+            "swingdancecouncil.events",
+        )
+        upsert_watch(c.conn, spec, c.clock.now())
+        body = (
+            b"<table><tr><td>Jan 2 - 3, 2011</td><td>First Swing</td><td>Denver</td></tr></table>"
+        )
+        ctx = c.snapshot("capture", body, spec=spec, via="wayback")
+        first, _ = c.stage(ctx, body=body)
+        assert c.admit(first) == "shadow"
+        _runtime(c.conn, "runtime-2")
+        enqueue(c.conn, (WorkUnit("parse", "snapshot", "capture"),), enqueued_at="2099-01-01")
+        again, _ = c.stage(ctx, body=body)
+        assert again == first
+        assert c.conn.execute("SELECT COUNT(*) FROM source_generations").fetchone()[0] == 1
+        assert (
+            c.conn.execute("SELECT generation_id FROM source_equivalences").fetchone()[0] == first
+        )
+        # The next repeat finds the same generation through the equivalence.
+        _runtime(c.conn, "runtime-3")
+        enqueue(c.conn, (WorkUnit("parse", "snapshot", "capture"),), enqueued_at="2099-01-02")
+        assert c.stage(ctx, body=body)[0] == first
+        assert c.conn.execute("SELECT COUNT(*) FROM source_equivalences").fetchone()[0] == 2
+        changed = body.replace(b"Denver", b"Boulder")
+        c.archive.store_body(changed)
+        assert c.stage(ctx, body=changed)[0] != first
+
+
+def test_a_generation_current_through_an_equivalence_is_decided_on_its_merits(tmp_path):
+    with open_database(tmp_path) as db:
+        c = Corpus(db)
+        spec = WatchSpec(
+            "",
+            "swingdancecouncil",
+            "index",
+            "GET",
+            "https://swingdancecouncil.com/events.html",
+            "swingdancecouncil.events",
+        )
+        upsert_watch(c.conn, spec, c.clock.now())
+        body = (
+            b"<table><tr><td>Jan 2 - 3, 2011</td><td>First Swing</td><td>Denver</td></tr></table>"
+        )
+        ctx = c.snapshot("capture", body, spec=spec, via="wayback")
+        first, _ = c.stage(ctx, body=body)
+        assert c.admit(first) == "shadow"
+        # A shadow re-parse under another runtime cuts off to the same
+        # generation; the unit's desired fingerprint is now the equivalent one.
+        _runtime(c.conn, "runtime-2")
+        enqueue(c.conn, (WorkUnit("parse", "snapshot", "capture"),), enqueued_at="2099-01-01")
+        assert c.stage(ctx, body=body)[0] == first
+        desired = c.conn.execute("SELECT desired_fingerprint FROM source_units").fetchone()[0]
+        own = c.conn.execute(
+            "SELECT input_fingerprint FROM source_generations WHERE generation_id=?", (first,)
+        ).fetchone()[0]
+        assert desired != own
+        # The runtime goes back and the kind becomes enforced: the generation
+        # is a parse of the desired inputs through its equivalence, so it is
+        # decided on its merits, not superseded.
+        c.conn.execute("DELETE FROM accepted_inputs WHERE input_name='recipe/env'")
+        token = c.conn.execute(
+            "SELECT work_token FROM source_generations WHERE generation_id=?", (first,)
+        ).fetchone()[0]
+        c.conn.execute(
+            "INSERT INTO pending_work VALUES ('parse','snapshot','capture',?) "
+            "ON CONFLICT DO UPDATE SET enqueued_at=excluded.enqueued_at",
+            (token,),
+        )
+        c.conn.execute(
+            "UPDATE admission_policies SET mode='enforce',policy_revision='enforced' "
+            "WHERE page_kind='swingdancecouncil.events'"
+        )
+        assert c.admit(first) not in {"superseded", "shadow"}
+
+
+def _snapshot_status(conn, snapshot_id):
+    return tuple(
+        conn.execute(
+            "SELECT parse_status,extract_status FROM snapshots WHERE snapshot_id=?", (snapshot_id,)
+        ).fetchone()
+    )
+
+
+def test_a_repaired_parse_that_cuts_off_restores_the_snapshot_status(tmp_path, monkeypatch):
+    """A parser regression marks the snapshot failed; the fix deploy parses
+    it identically and cuts off to the accepted generation. The snapshot is
+    parsed again, and a registry check reads it as usable (not
+    `interpretation_failed`), without a new generation."""
+    from swingset.sources.base import ParseError
+    from swingset.sources.wsdc_registry.adapter import SOURCE, DancerPage
+    from swingset.state.verification import record_check
+
+    with open_database(tmp_path) as db:
+        c = Corpus(db)
+        spec = SOURCE.watch(1)
+        upsert_watch(c.conn, spec, c.clock.now())
+        body = Path("src/swingset/sources/wsdc_registry/fixtures/lookup-1.body").read_bytes()
+        ctx = c.snapshot("found", body, spec=spec)
+        unit = WorkUnit("parse", "snapshot", "found")
+        # The registry is ORDERED_EXTRACT: every attempt extracts from the body.
+        assert not _parse(db, c, unit).failed
+        first, token = c.conn.execute(
+            "SELECT generation_id,work_token FROM source_generations"
+        ).fetchone()
+        c.review(first)
+        enqueue(c.conn, (unit,), enqueued_at=token)
+        assert c.admit(first) == "accepted"
+        record_check(
+            c.conn,
+            c.archive,
+            watch_id=spec.watch_id,
+            checked_at=ctx.fetched_at,
+            http_status=200,
+            body_sha256=c.archive.store_body(body),
+            successful=True,
+            snapshot_id="found",
+        )
+
+        def usable():
+            return _rows(
+                c.conn, "SELECT usable,reason FROM registry_verifications ORDER BY verification_id"
+            )
+
+        assert usable() == ((1, "verified"),)
+        original = DancerPage.parse
+
+        def regression(self, extract, ctx):
+            raise ParseError("regression")
+
+        monkeypatch.setattr(DancerPage, "parse", regression)
+        _runtime(c.conn, "runtime-bad")
+        enqueue(c.conn, (unit,), enqueued_at="2099-01-01")
+        assert _parse(db, c, unit).failed
+        assert _snapshot_status(c.conn, "found")[0] == "failed"
+        assert usable() == ((0, "interpretation_failed"),)
+        monkeypatch.setattr(DancerPage, "parse", original)
+        _runtime(c.conn, "runtime-fixed")
+        enqueue(c.conn, (unit,), enqueued_at="2099-01-02")
+        repaired = _parse(db, c, unit)
+        assert not repaired.failed
+        assert _snapshot_status(c.conn, "found") == ("ok", "ok")
+        assert usable() == ((1, "verified"),)
+        # Cut off: the failure's generation and the accepted one, no third.
+        assert (
+            c.conn.execute(
+                "SELECT COUNT(*) FROM source_generations WHERE state='accepted'"
+            ).fetchone()[0]
+            == 1
+        )
+        assert (
+            c.conn.execute("SELECT accepted_generation_id FROM source_units").fetchone()[0] == first
+        )
+        assert _rows(c.conn, "SELECT generation_id FROM source_equivalences")[-1] == (first,)
+
+
+def test_an_identical_reparse_of_a_superseded_snapshot_does_not_cut_off(tmp_path):
+    """A re-parse of a snapshot the watch no longer selects writes no
+    equivalence and leaves the unit's desired fingerprint alone."""
+    with open_database(tmp_path) as db:
+        c = Corpus(db)
+        ctx = c.snapshot("one")
+        first, _ = c.stage(ctx)
+        c.review(first)
+        assert c.admit(first) == "accepted"
+        desired = c.conn.execute("SELECT desired_fingerprint FROM source_units").fetchone()[0]
+        c.snapshot("two")
+        _runtime(c.conn, "runtime-2")
+        enqueue(c.conn, (WorkUnit("parse", "snapshot", "one"),), enqueued_at="2099-01-01")
+        assert c.stage(ctx)[0] != first
+        assert c.conn.execute("SELECT COUNT(*) FROM source_equivalences").fetchone()[0] == 0
+        assert (
+            c.conn.execute("SELECT desired_fingerprint FROM source_units").fetchone()[0] == desired
+        )
+
+
+def test_only_a_held_newest_generation_is_kept_through_the_held_path(tmp_path):
+    """D-0212 keeps a newest generation only in `needs_review` or
+    `waiting_for_inputs`. An undecided `staged` generation (admission never
+    ran, as after a crash) is not a held repeat: the parse stages a new one."""
+    with open_database(tmp_path) as db:
+        c = Corpus(db)
+        control, _ = c.stage(c.snapshot("control"))
+        c.review(control)
+        assert c.admit(control) == "accepted"
+        other = replace(c.spec, url="https://eepro.com/results/test/other.htm")
+        upsert_watch(c.conn, other, c.clock.now())
+        ctx = c.snapshot("other", spec=other)
+        first, report = c.stage(ctx)
+        assert report.state == "staged"
+        _runtime(c.conn, "runtime-2")
+        enqueue(c.conn, (WorkUnit("parse", "snapshot", "other"),), enqueued_at="2099-01-01")
+        again, _ = c.stage(ctx)
+        assert again != first
+        assert c.conn.execute("SELECT COUNT(*) FROM source_equivalences").fetchone()[0] == 0
+
+
+def test_an_ordered_json_extract_is_parsed_fresh_so_a_reparse_cuts_off(tmp_path):
+    """A stored extract is key-sorted JSON. The registry's parse follows the
+    body's key order, so a re-parse from the stored extract (an environment
+    or parser-only change leaves the extract scope alone) differed from the
+    accepted generation and minted a new one: about 23% of registry and some
+    WDR snapshots on the 16:10 copy. Such kinds always extract fresh."""
+    from swingset.fetch.archive import canonical
+    from swingset.sources import get_page_kind
+    from swingset.sources.wsdc_registry.adapter import SOURCE
+
+    with open_database(tmp_path) as db:
+        c = Corpus(db)
+        spec = SOURCE.watch(1)
+        upsert_watch(c.conn, spec, c.clock.now())
+        body = Path("src/swingset/sources/wsdc_registry/fixtures/lookup-1.body").read_bytes()
+        ctx = c.snapshot("found", body, spec=spec)
+        page = get_page_kind(ctx.kind)
+        extract = page.extract(body)
+        # The fixture is one whose order matters.
+        assert page.parse(extract, ctx) != page.parse(json.loads(canonical(extract)), ctx)
+        assert all(
+            getattr(get_page_kind(kind), "ORDERED_EXTRACT", False)
+            for kind in ("wsdc_registry.dancer", "wdr.rounds", "wdr.awards")
+        )
+        unit = WorkUnit("parse", "snapshot", "found")
+        assert not _parse(db, c, unit).failed
+        first, token = c.conn.execute(
+            "SELECT generation_id,work_token FROM source_generations"
+        ).fetchone()
+        c.review(first)
+        enqueue(c.conn, (unit,), enqueued_at=token)
+        assert c.admit(first) == "accepted"
+        _runtime(c.conn, "runtime-2")
+        enqueue(c.conn, (unit,), enqueued_at="2099-01-01")
+        assert not _parse(db, c, unit).failed
+        assert c.conn.execute("SELECT COUNT(*) FROM source_generations").fetchone()[0] == 1
+        assert _rows(c.conn, "SELECT generation_id FROM source_equivalences") == ((first,),)

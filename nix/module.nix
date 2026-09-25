@@ -270,6 +270,13 @@ in
           else
             backup_failed=0
           fi
+          # The daily digest runs near its memory cap; a failed one stays
+          # failed until the next day's run succeeds.
+          if $systemctl is-failed --quiet swingset-summary.service; then
+            summary_failed=1
+          else
+            summary_failed=0
+          fi
           # A running backup holds two checkpoints for a while (D-0203). A
           # oneshot unit is "activating" while its command runs.
           case "$($systemctl is-active swingset-backup.service || true)" in
@@ -289,6 +296,7 @@ in
             --disk-min-free ${toString cfg.diskMinFreeBytes} \
             --timer-active "$timer" \
             --backup-failed "$backup_failed" \
+            --summary-failed "$summary_failed" \
             --backup-active "$backup_active"${
               lib.optionalString (
                 !cfg.backupUpload
@@ -404,11 +412,23 @@ in
     };
     systemd.services.swingset-summary = {
       description = "swingset daily journal digest";
-      unitConfig.ConditionPathExists = "!${cfg.stateDir}/operator-hold";
+      unitConfig = {
+        ConditionPathExists = "!${cfg.stateDir}/operator-hold";
+        # Killed at its memory cap, the digest would stop without a word
+        # (`[summary-failed]`).
+        OnFailure = [ "swingset-watchdog.service" ];
+      };
       environment = env;
       serviceConfig = common // {
         Type = "oneshot";
         ExecStart = "${cfg.package}/bin/swingset summary ${args}";
+        # The digest shares the 8 GB machine with the cycle (up to about
+        # 6.3 GB with a build). Without the retention walk it peaked at
+        # 4.5 GB on the 35 GB copy, 4.4 GB of it the publication report's
+        # closure check; the walk alone took 13 GB. Cap it, and let the
+        # kernel pick it over the cycle when memory runs out.
+        MemoryMax = "5G";
+        OOMScoreAdjust = 800;
       };
     };
     systemd.timers.swingset-summary = {

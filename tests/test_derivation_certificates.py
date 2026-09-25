@@ -67,7 +67,7 @@ def test_false_mutable_cache_claim_has_no_immutable_completion_proof(source_fixt
         "UPDATE observations SET payload_json=replace(payload_json,'Alice Example','Changed')"
     )
     generation = derivations.selected_generation(f.conn, unit)
-    signature = certificate(f.conn, unit, recipe_inputs(f.conn, "project"), {})
+    signature = certificate(f.conn, unit, recipe_inputs(f.conn, "project", unit.unit_kind), {})
     proof = derivations.canonical({"generation_id": generation, "certificate": signature})
     f.conn.execute(
         "UPDATE derivation_scopes SET desired_fingerprint=?,materialized_signature=? WHERE stage=? AND unit_kind=? AND unit_id=?",
@@ -196,3 +196,162 @@ def test_row_iteration_source_change_cannot_be_certified(source_fixture):
             )
     assert derivations.selected_generation(f.conn, unit) == before
     assert derivations.current(f.conn, unit)
+
+
+def settled(fixture):
+    """Every project scope and link event-a materialized, with a calendar and a dancer."""
+    from test_h15_acceptance import drain_project
+
+    from swingset.link.service import link_event
+
+    f = fixture
+    with f.db.transaction():
+        for kind, identifier in (("calendar", "calendar-x"), ("dancer", "1")):
+            f.conn.execute(
+                "INSERT INTO derivation_scopes(stage,unit_kind,unit_id,registered_at) VALUES ('project',?,?,?)",
+                (kind, identifier, f.corpus.clock.now().isoformat()),
+            )
+    drain_project(f)
+    link_event(f.db, "event-a", f.bundle, f.corpus.clock, f.corpus.run)
+    units = [
+        WorkUnit(*row)
+        for row in f.conn.execute(
+            "SELECT stage,unit_kind,unit_id FROM derivation_scopes "
+            "WHERE materialized_generation_id IS NOT NULL ORDER BY 1,2,3"
+        )
+    ]
+    assert {unit.unit_kind for unit in units if unit.stage == "project"} == {
+        "calendar",
+        "dancer",
+        "inventory",
+        "map",
+        "event",
+        "source_event",
+        "history",
+    }
+    assert WorkUnit("link", "event", "event-a") in units
+    assert all(derivations.current(f.conn, unit) for unit in units)
+    return units
+
+
+def proofs(conn, units):
+    """Each unit's certificate and desired fingerprint, both recomputed."""
+    return {
+        unit: (
+            certificate(conn, unit, recipe_inputs(conn, unit.stage, unit.unit_kind), {}),
+            derivations.desired(conn, unit).fingerprint,
+        )
+        for unit in units
+    }
+
+
+@pytest.mark.parametrize(
+    ("kind", "stale"),
+    [
+        ("calendar", {("project", "inventory"), ("project", "history")}),
+        ("dancer", {("project", "inventory"), ("project", "history"), ("link", "event")}),
+        # The fixture has no source_index scope: an empty cohort's epoch still
+        # moves certificate and fingerprint together.
+        ("source_index", {("project", "inventory"), ("project", "history")}),
+        ("inventory", {("project", "map"), ("project", "history")}),
+        (
+            "map",
+            {("project", "event"), ("project", "source_event"), ("project", "history")},
+        ),
+        ("event", {("project", "source_event"), ("project", "history"), ("link", "event")}),
+        ("source_event", {("project", "history")}),
+    ],
+)
+def test_a_replay_epoch_reaches_exactly_the_kinds_that_depend_on_it(source_fixture, kind, stale):
+    f = source_fixture
+    units = settled(f)
+    before = proofs(f.conn, units)
+    with f.db.transaction():
+        assert derivations.bump_replay(f.conn, "project", kind) == 1
+        assert derivations.bump_replay(f.conn, "project", kind) == 2
+    after = proofs(f.conn, units)
+    for unit in units:
+        moved = (unit.stage, unit.unit_kind) in stale
+        # Stale by certificate and by fingerprint, never by one alone.
+        assert (after[unit][0] != before[unit][0]) is moved, unit
+        assert (after[unit][1] != before[unit][1]) is moved, unit
+        assert derivations.current(f.conn, unit) is not moved, unit
+    replays = [
+        item
+        for item in derivations.desired(f.conn, WorkUnit("project", "history", "all")).dependencies
+        if item["kind"] == "replay"
+    ]
+    assert {tuple(item["key"]): item["version"] for item in replays} == {
+        ("project", name): 2 if name == kind else 0
+        for name in (
+            "calendar",
+            "source_index",
+            "dancer",
+            "inventory",
+            "map",
+            "event",
+            "source_event",
+        )
+    }
+
+
+def test_a_replay_epoch_is_never_a_selected_group_member(source_fixture):
+    f = source_fixture
+    settled(f)
+    unit = WorkUnit("project", "history", "all")
+    before = derivations.desired(f.conn, unit)
+    with f.db.transaction():
+        derivations.bump_replay(f.conn, "project", "calendar")
+    after = derivations.desired(f.conn, unit)
+    assert after.fingerprint != before.fingerprint
+    groups = {
+        item["key"]: item["fingerprint"]
+        for item in after.dependencies
+        if item["kind"] == "dependency_set"
+    }
+    assert groups == {
+        item["key"]: item["fingerprint"]
+        for item in before.dependencies
+        if item["kind"] == "dependency_set"
+    }
+    assert not any(
+        member.get("kind") == "replay"
+        for members in after.dependency_sets.values()
+        for member in members
+    )
+
+
+def test_bump_replay_requires_the_output_transaction(source_fixture):
+    with pytest.raises(ValueError, match="output transaction"):
+        derivations.bump_replay(source_fixture.conn, "project", "calendar")
+
+
+@pytest.mark.parametrize("change", ["none", "replay", "raw", "new"])
+def test_bulk_dancer_readiness_equals_current(source_fixture, change):
+    """A raw token alone misses the certificate and takes the full comparison."""
+    from swingset.state.derivation_dependencies import dancer_prerequisites
+    from swingset.state.derivation_readiness import dancers_current
+
+    f = source_fixture
+    settled(f)
+    with f.db.transaction():
+        if change == "replay":
+            for kind in ("calendar", "dancer", "history"):
+                derivations.bump_replay(f.conn, "project", kind)
+        elif change == "raw":
+            f.conn.execute(
+                "INSERT INTO derivation_input_versions VALUES ('raw','[\"dancer\",\"1\"]',1) "
+                "ON CONFLICT(namespace,input_key) DO UPDATE SET version=version+1"
+            )
+        elif change == "new":
+            f.conn.execute(
+                "INSERT INTO derivation_scopes(stage,unit_kind,unit_id,registered_at) "
+                "VALUES ('project','dancer','2',?)",
+                (f.corpus.clock.now().isoformat(),),
+            )
+    with f.db.transaction():
+        cohort = dancer_prerequisites(f.conn)
+        assert WorkUnit("project", "dancer", "1") in cohort
+        expected = all(derivations.current(f.conn, unit) for unit in cohort)
+        assert expected is (change != "new")
+        assert dancers_current(f.conn, cohort, current=derivations.current) is expected

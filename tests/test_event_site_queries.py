@@ -462,9 +462,11 @@ def test_backpressure_cannot_use_repair_reserve_for_event_site_query(sites):
     c.gate.config = c.config
     from swingset.state.work import WorkUnit, enqueue
 
+    # Parse work: project and link rows are derivation hints and do not
+    # pause acquisition (D-0214).
     enqueue(
         sites.conn,
-        [WorkUnit("link", "event", SITE.event_id)],
+        [WorkUnit("parse", "snapshot", "pending-parse")],
         enqueued_at=sites.clock.now().isoformat(),
     )
     try:

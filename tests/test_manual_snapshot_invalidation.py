@@ -14,19 +14,21 @@ from swingset.schedule.registry import replay_crosscheck
 from swingset.schedule.watches import upsert_watch
 from swingset.sources import get_page_kind
 from swingset.sources.base import WatchSpec
-from swingset.state import inputs
+from swingset.state import inputs, recipe_scope
 from swingset.state.db import Database, open_database
 from swingset.state.work import WorkUnit
 
 
 def _runtime_artifact(marker: bytes) -> dict[str, bytes]:
-    runtime = {"runtime/swingset/__init__.py": marker}
+    """A scoped bundle whose only change between markers is its environment."""
+    runtime = {"runtime/swingset/__init__.py": b"", "runtime/environment.json": marker}
     runtime["recipes/runtime.json"] = canonical(
         {
             "format": "swingset-runtime-recipe-v1",
             "files": {name: digest(body) for name, body in runtime.items()},
         }
     )
+    runtime["recipes/scopes.json"] = canonical(recipe_scope.manifest(runtime))
     return runtime
 
 
@@ -98,7 +100,7 @@ def test_runtime_acceptance_skips_manual_crosscheck_but_keeps_parser_work(
         monkeypatch.setattr(inputs, "capture_runtime", lambda: _runtime_artifact(b"second\n"))
         second = inputs.capture(Path("config"), Path("overrides"), state, {})
         changed = inputs.accept(database, second, clock)
-        assert "recipe/runtime" in changed
+        assert "recipe/env" in changed
 
         pending = {
             str(row[0])
@@ -185,7 +187,7 @@ def test_runtime_acceptance_skips_manual_crosscheck_but_keeps_parser_work(
         )
         monkeypatch.setattr(inputs, "capture_runtime", lambda: _runtime_artifact(b"third\n"))
         third = inputs.capture(Path("config"), Path("overrides"), state, {})
-        assert "recipe/runtime" in inputs.accept(database, third, clock)
+        assert "recipe/env" in inputs.accept(database, third, clock)
         assert (
             database.connection.execute(
                 "SELECT enqueued_at FROM pending_work WHERE stage='parse' AND unit_id=?",

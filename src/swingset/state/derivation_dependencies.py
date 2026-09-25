@@ -281,6 +281,36 @@ def _raw(conn: sqlite3.Connection, unit: WorkUnit) -> list[dict[str, Any]]:
     return result
 
 
+# The prerequisite kinds whose replay epoch a unit's certificate reads
+# whether or not that kind has any scope yet (derivation_signatures.certificate
+# reads them by epoch). A source_event's events depend on its mapping, so both
+# sides read them only when mapped.
+_REPLAYED: dict[tuple[str, str], frozenset[str]] = {
+    ("project", "inventory"): BASE,
+    ("project", "map"): frozenset({"inventory"}),
+    ("project", "event"): frozenset({"map"}),
+    ("project", "source_event"): frozenset({"map"}),
+    ("project", "history"): BASE | {"inventory", "map", "event", "source_event"},
+    ("link", "event"): frozenset({"dancer", "event", "history"}),
+}
+
+
+def replay_dependents(stage: str, kind: str) -> tuple[tuple[str, str], ...]:
+    """The (stage, kind) pairs whose fingerprints read this kind's replay epoch."""
+    if stage != "project":
+        return ()
+    return tuple(sorted(key for key, kinds in _REPLAYED.items() if kind in kinds))
+
+
+def replayed_kinds(unit: WorkUnit) -> set[tuple[str, str]]:
+    """Replay epochs the certificate reads even when a kind has no scopes.
+
+    Without these, an empty cohort's epoch moved the certificate but not the
+    fingerprint: the fast path missed forever while the slow path said current.
+    """
+    return {("project", kind) for kind in _REPLAYED.get((unit.stage, unit.unit_kind), ())}
+
+
 def dependencies(
     conn: sqlite3.Connection,
     unit: WorkUnit,
@@ -296,7 +326,17 @@ def dependencies(
         result.append({"kind": "dependency_set", "key": name, "fingerprint": identifier})
 
     required = prerequisites(conn, unit)
-    for stage, kind in sorted({(item.stage, item.unit_kind) for item in required}):
+    replayed = replay_versions(conn)
+    present = {(item.stage, item.unit_kind) for item in required}
+    for stage, kind in sorted(present | replayed_kinds(unit)):
+        # A direct entry, never a selected_* member: group fingerprints stay
+        # generation ids only, and a cutoff that changed live rows still
+        # reaches every dependent through this per-kind epoch.
+        result.append(
+            {"kind": "replay", "key": [stage, kind], "version": replayed.get((stage, kind), 0)}
+        )
+        if (stage, kind) not in present:
+            continue
         members = tuple(item for item in required if (item.stage, item.unit_kind) == (stage, kind))
         # Base registry sets are shared by every event. Cache one exact ordered
         # manifest in this read snapshot, instead of re-reading it per event.
@@ -459,6 +499,17 @@ def dependencies(
 
         result.append({"kind": "admission", "key": "selection", "value": selection_digest(conn)})
     return result, sets
+
+
+def replay_versions(conn: sqlite3.Connection) -> dict[tuple[str, str], int]:
+    """Every per-kind replay epoch; a missing token is version 0."""
+    versions = {}
+    for key, version in conn.execute(
+        "SELECT input_key,version FROM derivation_input_versions WHERE namespace='replayed'"
+    ):
+        stage, kind = json.loads(key)
+        versions[(str(stage), str(kind))] = int(version)
+    return versions
 
 
 def _selected_members(

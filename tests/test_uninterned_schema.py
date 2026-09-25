@@ -132,7 +132,7 @@ def test_holds_and_doctor_run_on_a_database_without_interning(
 
     from swingset.cli import main
 
-    assert main(["doctor", "--state", str(state), "--json"]) == 0
+    assert main(["doctor", "--state", str(state), "--json", "--retention"]) == 0
     with open_database(state, lock=False) as database:
         assert_not_interned(database)
 

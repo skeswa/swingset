@@ -57,17 +57,15 @@ weekly session.
    ([plan note](history-and-recovery.md#event-completion-follow-up-in-v6)).
    This is release work, queued here only until the parse backlog drains.
 4. [Derivation invalidation](derivation-invalidation.md): measured and planned
-   on 2026-09-23, not started. One edited line changes every unit's recipe, so
-   every deploy re-parses 32,522 snapshots and re-derives the whole graph;
-   99.98% of the replacing generations produce byte-identical output. Its step
-   3 collection of unnamed closure proofs shipped early in candidate 018
-   (D-0200); superseded row references and parse evidence remain. The plan's
-   trigger is a full day of clean phase-two cycles. Estimated at six to nine
-   working days, about two calendar weeks; write steps 1, 2 and 5 offline
-   while the gate is closed and ship them in one switch, so the whole-graph
-   re-derivation is paid once and never again. Until then, batch every
-   Python change and prefer none. This replaces the former
-   items 4 and 8, which are folded into it
+   on 2026-09-23; steps 1, 2 and 5 are implemented offline as the target
+   architecture's phase 1, not deployed, to ship in one switch. Until then one
+   edited line changes every unit's recipe, so every deploy re-parses 32,522
+   snapshots and re-derives the whole graph; 99.98% of the replacing
+   generations produce byte-identical output. Batch every Python change and
+   prefer none. Its step 3 collection of unnamed closure proofs shipped early
+   in candidate 018 (D-0200); superseded row references and parse evidence
+   remain. The plan's trigger is a full day of clean phase-two cycles. This
+   replaces the former items 4 and 8, which are folded into it
    ([investigation](../../journal/investigations/2026/derivation-invalidation-2026-09-23.md)).
 5. A dismissed `event_alias` finding should also settle the event's dates. Today
    the dismissal only hides the finding: the inventory projector skips the
@@ -97,7 +95,22 @@ weekly session.
    dismissal rows from `finding_reviews.csv` (2026-09-22).
 8. Human identity review website (H17) and the JesAnn history page as a site:
    deferred, see [D-0055](../../journal/decisions/0055-defer-human-adjudication-to-a-review-website.md).
-9. A watchdog `[state-size]` line when the state without `checkpoints/`
-   passes the 55 GB phase 4 trigger of the
-   [architecture plan](architecture.md). Until then post-check receipts
-   carry that size, and the first alarm is `[disk-low]` near 59 GB.
+9. Bring the core test run back under three minutes. On 2026-09-26 it took
+   194 s for 1,264 tests alone on the Mac (228 s in the phase 1 review; about
+   203 s at phase 0). Most of the rise is new tests in existing core files.
+   Profile with `--durations=30` and move exhaustive parameters to extended,
+   keeping each behavior the [testing guide](../guides/testing.md#what-the-core-protects)
+   lists in core; the 33-page cohort alone takes about 20 s. After phase 1's
+   last review round: 1,277 tests in 193 s. No phase 1 test is among the 40
+   slowest (each under 0.5 s), so moving them would not help; the 22
+   `test_restart_at_pipeline_checkpoint` cases take about 2 s each (45 s).
+   Accepted as debt for phase 1's switch (at close, 2026-09-27: 1,304 tests in 196 to 255 s);
+   both slow groups are behaviours the testing guide keeps in core, so the
+   fix is faster fixtures, not a smaller selection.
+10. Bound the memory of the publication report's closure check. It holds a
+    whole closure (I10): `swingset summary` peaked at 4.5 GB on the 35 GB
+    copy, 4.4 GB of it this check, under the unit's 5 GB cap, and the file
+    grows about 5 GB a day. Stream the closure instead of holding it, and
+    record the worker's `MemoryPeak` for `swingset-summary.service` first
+    (the phase 1 post-check has it). `[summary-failed]` fires if the cap is
+    hit before then.

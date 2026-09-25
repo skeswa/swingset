@@ -53,10 +53,9 @@ def process_unit(
         ):
             return False
         if unit.unit_kind == "calendar" and selection is None and available(conn):
-            from swingset.state.derivations import desired, selected_generation
+            from swingset.state.derivations import current_for
 
-            proposed = desired(conn, unit, recipe=helper_recipe(conn, bundle.files, "project"))
-            if proposed.generation_id == selected_generation(conn, unit):
+            if current_for(conn, unit, recipe=helper_recipe(conn, bundle.files, "project")):
                 # Inventory may have enriched this selected calendar's rows.
                 # Replaying a current base generation must not overwrite it.
                 conn.execute(

@@ -83,7 +83,9 @@ Build captures one read snapshot and the input bundle. Its fingerprint contains:
   items, and the card, including suppressions, source configuration,
   event aliases, and source URL overrides;
 - schema, package, extractor, parser, projector, and linker versions,
-  captured repository/source identity, the exact captured runtime recipe,
+  captured repository/source identity, the build's code scope and
+  `recipe/env`
+  ([D-0207](../../journal/decisions/0207-scope-code-recipes-by-import-closure.md)),
   plus the card template hash.
 
 Link output is only one input. Canonical corrections must reach build

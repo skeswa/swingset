@@ -71,7 +71,14 @@ def backpressure(conn: sqlite3.Connection, config: Config) -> dict[str, Any]:
         reasons.append("pending_parse_bytes")
     if counts.get("parse", 0) >= config.scheduler.pending_parse_items:
         reasons.append("pending_parse_items")
-    if sum(counts.values()) >= config.scheduler.pending_work_items:
+    # With derivations, project and link rows are hints: derive re-checks
+    # fingerprints, and a code-scope accept or a replay epoch queues every
+    # unit it makes stale (state/work.derivation_hints). A derivation backlog
+    # does not pause acquisition (I5, D-0214); parse work still does.
+    from swingset.state.derivations import available
+
+    total = counts.get("parse", 0) if available(conn) else sum(counts.values())
+    if total >= config.scheduler.pending_work_items:
         reasons.append("pending_work_items")
     return {
         "active": bool(reasons),
@@ -468,8 +475,15 @@ def next_offline_batch(
     allowed: Callable[[WorkUnit], bool] | None = None,
     exclude: Collection[WorkUnit] = (),
     limit: int = 64,
+    errors: dict[str, str] | None = None,
+    current_hints: dict[WorkUnit, str] | None = None,
 ) -> list[WorkUnit]:
     """Up to ``limit`` eligible units from one read snapshot, in selection order.
+
+    A kind whose recipe cannot be formed (`RecipeScopeMissing`) is skipped and
+    named in ``errors`` by `stage/kind`; the other kinds stay runnable (I1).
+    Project and link hints the walk found current land in ``current_hints``,
+    for the caller to delete after the snapshot (`derivations.drop_current_hints`).
 
     Selecting one unit costs seconds on a large database because currentness
     is recomputed for thousands of candidates, and the memo that makes repeat
@@ -490,6 +504,8 @@ def next_offline_batch(
             exclude=exclude,
             shared_link_precheck=owns_snapshot,
             limit=max(1, limit),
+            errors=errors,
+            current_hints=current_hints,
         )
 
 
@@ -515,8 +531,11 @@ def _next_offline_batch(
     exclude: Collection[WorkUnit] = (),
     shared_link_precheck: bool = False,
     limit: int = 1,
+    errors: dict[str, str] | None = None,
+    current_hints: dict[WorkUnit, str] | None = None,
 ) -> list[WorkUnit]:
     from swingset.state.derivations import available, known_units
+    from swingset.state.recipes import RecipeScopeMissing
     from swingset.state.work import iter_work
 
     selected: list[WorkUnit] = []
@@ -571,25 +590,36 @@ def _next_offline_batch(
             "CASE p.unit_kind WHEN 'map' THEN 0 WHEN 'history' THEN 2 ELSE 1 END,p.unit_kind"
         ).fetchall()
     for stage, kind, _ in groups:
-        if derived and shared_link_precheck and stage == "link":
-            from swingset.state.derivation_readiness import all_dancers_current
-
-            # Every ordinary link needs this same database-defined cohort. Check
-            # it before candidate currentness expands per-event dependencies.
-            # Caller transactions (including consistency groups) keep the full
-            # existing path; a true answer never bypasses per-event checks.
-            if not all_dancers_current(conn):
-                continue
 
         def group_allowed(unit: WorkUnit, kind: str = kind) -> bool:
             return bool(unit.unit_kind == kind and (allowed is None or allowed(unit)))
 
-        for unit in iter_work(
-            conn, stage, now=now, exclude=exclude, allowed=group_allowed, unit_kind=kind
-        ):
-            selected.append(unit)
-            if len(selected) >= limit:
-                return selected
+        try:
+            if derived and shared_link_precheck and stage == "link":
+                from swingset.state.derivation_readiness import all_dancers_current
+
+                # Every ordinary link needs this same database-defined cohort. Check
+                # it before candidate currentness expands per-event dependencies.
+                # Caller transactions (including consistency groups) keep the full
+                # existing path; a true answer never bypasses per-event checks.
+                if not all_dancers_current(conn):
+                    continue
+            for unit in iter_work(
+                conn,
+                stage,
+                now=now,
+                exclude=exclude,
+                allowed=group_allowed,
+                unit_kind=kind,
+                current_hints=current_hints,
+            ):
+                selected.append(unit)
+                if len(selected) >= limit:
+                    return selected
+        except RecipeScopeMissing as exc:
+            # A defect in one kind's code scope must not stall every kind.
+            if errors is not None:
+                errors[f"{stage}/{kind}"] = str(exc)[:200]
         if selected:
             # One group per batch keeps the recorded service order honest.
             return selected

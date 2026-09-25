@@ -46,6 +46,10 @@ class SchedulerConfig:
     # event projection re-queues it, and each new history generation writes
     # ~200k row references and re-queues every link unit (D-0199).
     history_interval_seconds: float | None = None
+    # Re-materialize the global inventory at most this often, unless history
+    # is due. One inventory generation re-mints the map, every event, history
+    # and every link, 0.4 GB each time (D-0210).
+    inventory_interval_seconds: float | None = None
 
     def __post_init__(self) -> None:
         for field in fields(self):
@@ -58,6 +62,7 @@ class SchedulerConfig:
                     "archive_index_seconds",
                     "build_interval_seconds",
                     "history_interval_seconds",
+                    "inventory_interval_seconds",
                 }
                 and value is None
             ):

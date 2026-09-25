@@ -45,7 +45,7 @@ from __future__ import annotations
 import json
 import shutil
 import sqlite3
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -54,7 +54,7 @@ from swingset.build.files import canonical_json, durable_write, fsync_dir
 from .control_lock import control_lock
 from .db import Database
 from .derivations import interned
-from .retention import Plan, RetentionError, plan, usage
+from .retention import Plan, RetentionError, candidate_plan, plan, usage
 
 APPLY_RECEIPT_FORMAT = "retention-apply-receipt-v1"
 RECLAIM_RECEIPT_FORMAT = "retention-reclaim-receipt-v1"
@@ -92,8 +92,12 @@ def apply_plan(
     collect_older_than: float,
     now: datetime,
     timeout: float = 60,
+    candidates_only: bool = False,
 ) -> dict[str, Any]:
     """Remove exactly what one plan named, under the writer and control locks.
+
+    With `candidates_only` the plan is `retention.candidate_plan`, which walks
+    no graph, so the apply runs on the worker where the full plan cannot.
 
     The caller holds the writer lock already, because that is what opening the
     state database for writing takes. This adds the control lock, in that
@@ -119,17 +123,22 @@ def apply_plan(
             return _write_receipt(
                 state_dir, f"{plan_digest}.json", dict(json.loads(str(recorded["receipt_json"])))
             )
-        fresh = plan(
-            conn,
-            state_dir,
-            max_database_bytes=max_database_bytes,
-            recent_window=recent_window,
-            collect_older_than=collect_older_than,
+        fresh = (
+            candidate_plan(conn, state_dir, collect_older_than=collect_older_than)
+            if candidates_only
+            else plan(
+                conn,
+                state_dir,
+                max_database_bytes=max_database_bytes,
+                recent_window=recent_window,
+                collect_older_than=collect_older_than,
+            )
         )
         if fresh.digest != plan_digest:
+            again = "gc --plan --candidates-only" if candidates_only else "gc --plan"
             raise RetentionError(
                 f"plan {plan_digest} is not the plan of this state, which is {fresh.digest}; "
-                "nothing was removed. Write a new plan with gc --plan and apply that one"
+                f"nothing was removed. Write a new plan with {again} and apply that one"
             )
         eligible = eligible_files(fresh, now=now)
         planned_files = eligible
@@ -186,9 +195,34 @@ def apply_plan(
             "removed_payload_bytes": removed_payload_bytes,
             "resumed": finished,
             "totals": dict(fresh.content["totals"]),
+            "eligibility": eligibility(fresh, now=now),
         }
         _finish_note(database, plan_digest, receipt=receipt, now=now)
     return _write_receipt(state_dir, f"{plan_digest}.json", receipt)
+
+
+def eligibility(value: Plan, *, now: datetime) -> dict[str, Any]:
+    """How many removable files an apply at `now` would remove, and when the rest can go.
+
+    A plan's totals count every removable file; an apply removes only those
+    past their age floor. A copied or restored state directory has fresh
+    modification times, so nothing in it is eligible for a full floor.
+    """
+    moment = now.timestamp()
+    removable = [row for row in value.content["files"] if row["list"] == "removable"]
+    ready = len(eligible_files(value, now=now))
+    floors = [
+        float(row["eligible_after"])
+        for row in removable
+        if "eligible_after" in row and float(row["eligible_after"]) > moment
+    ]
+    return {
+        "eligible_now": ready,
+        "not_yet_eligible": len(removable) - ready,
+        "earliest_eligible_after": (
+            datetime.fromtimestamp(min(floors), UTC).isoformat() if floors else None
+        ),
+    }
 
 
 def eligible_files(value: Plan, *, now: datetime) -> tuple[str, ...]:
@@ -225,7 +259,7 @@ def eligible_payloads(conn: sqlite3.Connection, value: Plan) -> tuple[str, ...]:
     returns nothing there too, and an apply on such a database removes files
     only.
     """
-    if not interned(conn):
+    if not interned(conn) or "generations" not in value.content:
         return ()
     eligible = sorted(
         str(row["generation_id"])

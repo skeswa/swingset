@@ -4,11 +4,13 @@ The limits, from D-0106 and D-0175:
 
 - no tracked file may exceed 1 MiB;
 - one change may add or modify at most 200 KiB under ``journal/evidence/``,
-  measured from ``trunk()`` to the working copy.
+  measured from ``trunk()`` to the working copy. ``--from REV`` measures from
+  another revision, such as ``@-`` for the newest change of an unpushed stack.
 """
 
 from __future__ import annotations
 
+import argparse
 import hashlib
 import subprocess
 from collections import defaultdict
@@ -29,14 +31,14 @@ def _jj(root: Path, *args: str) -> bytes:
     return result.stdout
 
 
-def changed_evidence(root: Path) -> list[tuple[int, str]] | None:
-    """Evidence files added or modified since trunk, with working-tree sizes.
+def changed_evidence(root: Path, base: str = "trunk()") -> list[tuple[int, str]] | None:
+    """Evidence files added or modified since `base`, with working-tree sizes.
 
     Returns None when trunk cannot be resolved, for example in a clone with
     no remote, so the caller can say the budget was not checked.
     """
     try:
-        out = _jj(root, "diff", "--from", "trunk()", "--to", "@", "--summary")
+        out = _jj(root, "diff", "--from", base, "--to", "@", "--summary")
     except subprocess.CalledProcessError:
         return None
     rows: list[tuple[int, str]] = []
@@ -51,6 +53,14 @@ def changed_evidence(root: Path) -> list[tuple[int, str]] | None:
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--from",
+        dest="base",
+        default="trunk()",
+        help="revision the new-evidence budget is measured from (default trunk())",
+    )
+    base = parser.parse_args().base
     root = Path(__file__).resolve().parents[2]
     # Use jj's tracked inventory, not the much larger ignored scratch output.
     rows: list[tuple[int, str]] = []
@@ -104,13 +114,13 @@ def main() -> None:
             print(f"    {name}")
 
     failed = False
-    changed = changed_evidence(root)
+    changed = changed_evidence(root, base)
     if changed is None:
-        print("New-evidence budget not checked: trunk() did not resolve.")
+        print(f"New-evidence budget not checked: {base} did not resolve.")
     else:
         added = sum(size for size, _ in changed)
         print(
-            f"New or changed evidence since trunk: {len(changed)} files, "
+            f"New or changed evidence since {base}: {len(changed)} files, "
             f"{added / 1024:.0f} KiB (budget {NEW_EVIDENCE_BUDGET // 1024} KiB)"
         )
         if added > NEW_EVIDENCE_BUDGET:

@@ -40,7 +40,7 @@ def _derivation_inventory(conn: sqlite3.Connection, tables: set[str]) -> dict[st
 
     pending = Counter(unit.stage for unit in unfinished_units(conn))
     return {
-        "basis": "parse tokens; desired versus materialized fingerprints for projection and linking",
+        "basis": "parse tokens; desired versus materialized fingerprints for projection and linking, a materialization counting when its generation or an equivalence names the desired fingerprint",
         "scope": "all known retained scopes, including previously materialized scopes",
         "pending": [{"stage": stage, "count": count} for stage, count in sorted(pending.items())],
         "registered_scopes": [

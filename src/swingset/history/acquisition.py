@@ -3,20 +3,32 @@
 from __future__ import annotations
 
 import sqlite3
-from collections.abc import Callable
+from collections import Counter
+from collections.abc import Callable, Iterator
+from contextlib import contextmanager
+from contextvars import ContextVar
 
 from swingset.admission.contracts import contract_version
 from swingset.project.history import phase_two_allowed
 from swingset.sources import get_page_kind
+from swingset.sources.phase_one import PHASE1_KINDS
 
-PHASE1_KINDS = frozenset(
-    {
-        "swingdancecouncil.events",
-        "wsdc_calendar.events",
-        "wsdc_newsletter.events",
-        "wsdc_newsletter.index",
-    }
-)
+_REFUSALS: ContextVar[Counter[str] | None] = ContextVar("phase_two_refusals", default=None)
+
+
+@contextmanager
+def phase_two_refusals() -> Iterator[Counter[str]]:
+    """Count the phase-two gate's refusals by reason, for the block.
+
+    The cycle reports the count, so a gate that stays closed for hours shows
+    as a number while other fetches keep `[stale-fetch]` quiet (I4).
+    """
+    counted: Counter[str] = Counter()
+    token = _REFUSALS.set(counted)
+    try:
+        yield counted
+    finally:
+        _REFUSALS.reset(token)
 
 
 def is_phase_one_index(source: str, page_kind: str, watch_kind: str) -> bool:
@@ -54,6 +66,23 @@ def phase_two_gate(
     ``year_allowed`` lets one pass over many pages answer the year gate once
     per year instead of once per page.
     """
+    reason = _phase_two_gate(
+        conn, source=source, source_ref=source_ref, page_kind=page_kind, year_allowed=year_allowed
+    )
+    counted = _REFUSALS.get()
+    if reason is not None and counted is not None:
+        counted[reason] += 1
+    return reason
+
+
+def _phase_two_gate(
+    conn: sqlite3.Connection,
+    *,
+    source: str,
+    source_ref: str | None,
+    page_kind: str,
+    year_allowed: Callable[[int], bool] | None,
+) -> str | None:
     if page_kind.split(".")[0] != source:
         return "history_page_kind_source_mismatch"
     event = conn.execute(

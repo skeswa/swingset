@@ -22,6 +22,12 @@ The headline numbers it has to move:
 
 This replaces maintenance queue items 4 and 8.
 
+Status: steps 1, 2 and 5 are implemented offline as phase 1 of the
+[target architecture](architecture.md), not deployed; that phase lists what
+changed from the text below (F1 to F4), the deploy steps and the rehearsal.
+Step 3's collection of unnamed closure proofs shipped in candidate 018
+(D-0200); step 4's cache per dependency set came with step 1.
+
 ## When this may start
 
 Not before **the worker has run phase two cleanly for a full day**: 24 hours of
@@ -33,7 +39,8 @@ and stays off until identity output is recovered; this plan does not turn it
 back on.
 
 Steps 1 and 2 may be written and tested offline before that, since neither
-touches the worker until its own deploy step.
+touches the worker until its own deploy step. Steps 1, 2 and 5 were written
+that way; the gate, or an explicit waiver, still applies to their switch.
 
 ## How much checking
 
@@ -96,6 +103,35 @@ Changes this forces, from the investigation's sweep:
 - `state/requirement_report.py` and the doctor and replay docs count unfinished
   work by raw fingerprint comparison and would over-report forever.
 
+_Implemented offline_ ([D-0205](../../journal/decisions/0205-cut-off-identical-derivation-output.md),
+[D-0206](../../journal/decisions/0206-add-migration-33-after-interning.md)).
+Migration 33 adds `derivation_equivalences`, `derivation_recipes` (a
+kind's recipes are shared, so a deploy writes about 10 MB, not 50) and
+`source_equivalences`. `complete()` reads the rows once without writing,
+checks both fences, then decides. It cuts off only a `project` or `link`
+unit whose pointer is the one its selection saw, and only when all three
+hold:
+
+- **Closure-stable.** Its direct `derivation` entries and its `selected_*`,
+  `source_observations` and `calendar_observations` groups equal the kept
+  generation's. These are all that release closure and retention follow, so
+  a kept id never names a stale dancer, and the retention hazard above cannot
+  arise. A real upstream change still mints downstream.
+- **Replay witnessed.** If the replay moved one of six live revisions, the
+  kind's `replayed` epoch moves, and dependents, whose fingerprints and
+  certificates include it, re-run.
+- **Not pinned.** This replaces the lone-unit rule: only a group member whose
+  provisional id a sibling captured is refused. A `source_event` nesting its
+  event's reuse still cuts off.
+
+A re-run whose output differs stores its rows from a second read, which must
+give the same label. History owns `events.coverage_tier`, so map and calendar
+output leave it out. Their generations from before phase 1 recorded it, so the
+comparison takes that one column out of the kept rows first; without that the
+first switch minted about 6,300 generations and withheld every link until the
+links re-ran
+([D-0212](../../journal/decisions/0212-cut-off-across-the-moved-column-and-held-parses.md)).
+
 Excluded: `stage == "build"`. Build output is an artifact row naming a
 filesystem path, so two builds never produce identical bytes, and reuse there
 is already gated on `_artifact_valid`.
@@ -108,7 +144,9 @@ published `first_seen_at`, `last_seen_at`, `asserted_at` and `run_id` come from
 the selected generation's row, so they become "when these bytes were first
 derived" rather than "when they were last confirmed".
 
-**Decision records.** One record for the rule, carving it out of
+**Decision records** (written: D-0205, D-0206, and
+[D-0208](../../journal/decisions/0208-keep-the-64-gb-cap-until-closure-collection.md)
+for D-0196). One record for the rule, carving it out of
 [D-0022](../../journal/decisions/0022-preserve-supported-event-bases.md), which
 says "Do not transplant or relabel old generations to avoid that replay": the
 rule performs the replay in full and only declines to mint a new label
@@ -156,6 +194,20 @@ own recipe says.
 generation's `input_fingerprint` to decide whether an attempt is current, so it
 needs the same lookup as `_current()` in step 1.
 
+_Implemented offline_ (D-0205). Cutoff needs the exact manifest (labels,
+snapshot ids and times included), the result, the report and the contract
+version to equal the kept generation's, current inputs, and no revoked
+generation with the new fingerprint. So a label bump or a new snapshot with
+the same body still writes a generation. The kept generation is the accepted
+one, or, for a unit with no pointer, the newest undecided one its desired
+fingerprint names. For an enforced kind it may also be the unit's newest
+generation held in `needs_review` or `waiting_for_inputs`, when admission
+would hold the repeat the same way (the contract unreviewed, or reviewed and
+the report's failures decide); the parse reports that state with no new
+generation or decision (D-0212). Admission side effects are not replayed for
+an identical result. Migration 33 also stops a `desired_fingerprint` write from moving
+the `watch` token.
+
 Note for the measurement: five page kinds have a null `previous_generation_id`
 on every row — `wsdc_calendar.events`, `swingdancecouncil.events`,
 `wsdc_newsletter.events`, `wdr.awards`, `wsdc_newsletter.index` — so they are
@@ -165,8 +217,9 @@ to behave the same.
 **Tests.** In `tests/test_admission.py`: a re-parse with an identical result
 under a changed runtime recipe writes no new source generation, the unit stays
 accepted, and no project unit is enqueued. A changed result still writes one
-and still goes through admission. Revocation, `needs_review` and
-`waiting_for_inputs` are unaffected. Full suite.
+and still goes through admission. Revocation is unaffected. A held unit's
+identical repeat keeps its generation; one admission would now decide
+differently is staged. Full suite.
 
 **Receipts.** Preflight with the `source_generations` count and bytes;
 post-check after a cycle following a code-only switch, with the rows written,
@@ -199,6 +252,31 @@ This step recovers what is there and stops the double storage.
 - Let `gc --apply` remove an archivable manifest. This is the first thing other
   than a payload that an apply may delete, so it takes its own decision record
   and its own immutability carve-out.
+- Collect the cutoff's rows too (schema 33, [D-0206](../../journal/decisions/0206-add-migration-33-after-interning.md)).
+  `derivation_equivalences` has foreign keys to `derivation_generations` and
+  `derivation_dependency_sets`, so a manifest or generation an equivalence
+  names is not collectable while the equivalence lives. An equivalence is
+  live while its fingerprint is its scope's `desired_fingerprint` or it is the
+  newest naming the scope's pointer; a `source_equivalences` row while its
+  fingerprint is its unit's `desired_fingerprint`; a `derivation_recipes` row
+  while a live equivalence names it. The reachability walk counts live ones
+  as roots, and the apply deletes the rest, one row per transaction, with
+  the same trigger lift `closure_collection` uses. Migration 33's
+  `*_no_delete` triggers refuse every delete today, so this step adds a
+  migration that recreates them to allow a delete only while a
+  `equivalence_collection` authority row exists (the pattern of
+  `derivation_payload_removal_authority`), which the apply writes and removes
+  in the same transaction. A code-only deploy adds about 35,800 derivation
+  equivalences and about 39,600 dependency sets (about 32 MB, phase 1 R10) and
+  no source equivalences; a `recipe/env` or all-parse-scope change adds up to
+  33,900 source equivalences (about 35 MB). The plan and the post-check report
+  their counts and bytes. When it starts is the owner's third open decision in
+  the [architecture plan](architecture.md#open-decisions-for-the-owner): at
+  the post-check's measured growth the file reaches the 64 GB cap within
+  about two weeks of phase 1's switch. The watchdog's
+  `[equivalences]` counts rows with `count(*)`, not the largest rowid, so the
+  line clears once this collection deletes them; if that count grows too
+  slow for the watchdog's read budget, keep a counter instead.
 
 **Tests.** In `tests/test_retention_plan.py` and `tests/test_retention_apply.py`:
 a manifest a retained candidate's `private_digest` names is local and survives
@@ -252,8 +330,9 @@ Replace the single `recipe/runtime` input with one per stage and page kind:
 Compute the closure statically over the AST, counting every `import` and `from`
 statement wherever it appears, including inside functions — this codebase uses
 function-local imports heavily. Over-approximation is the safe direction. The
-package has exactly one dynamic import, `__import__("datetime")` in
-`schedule/cycle.py`, naming a standard-library module.
+package has two dynamic imports: `__import__("datetime")` in
+`schedule/cycle.py`, naming a standard-library module, and the owner lookup in
+`sources/registry.py`, which the entry table names by hand.
 
 Before selecting per-kind parser closures, split the source registry in
 `sources/__init__.py`: its function-local imports name every adapter. A literal
@@ -261,6 +340,9 @@ transitive walk from the current registry would put every adapter in every
 parser recipe and re-queue all page kinds when one changes. The new lookup
 must retain explicit ownership of each page kind and include the code that
 dispatches to it in that kind's closure.
+Done: `sources/registry.py` holds `ADAPTERS` and `KIND_OWNERS` and imports
+only the owner. The registry contract and admission generations no longer
+import an adapter or `history/acquisition.py`.
 
 The entry table mapping a stage and kind to its module is written by hand, but
 bytes still decide, so a forgotten version bump cannot hide a change. Keep the
@@ -284,6 +366,18 @@ Note for scale: 29,059 of the 31,821 retained snapshots are registry dancer
 pages, so a change under `sources/wsdc_registry` still costs most of a full
 pass. The saving is on the changes that should cost nothing.
 
+_Implemented offline_
+([D-0207](../../journal/decisions/0207-scope-code-recipes-by-import-closure.md)).
+`state/recipe_scope.py` holds the entry table and `EXCLUDED`. A parse scope
+is 39 to 47 files and an extract scope 17 to 24. Project, link and build
+scopes are about 214 files each, because the package is one import cycle;
+an edit inside it re-runs every project and link unit until the target
+architecture's phase 2 splits it. `schedule/parse.py` and the parse writers
+(admission, observations, verification, findings, watch clocks) count by
+their own bytes only. `recipe/runtime` stays as a constant, so old bundles reproduce. No
+module is parse-only for a single kind, so "editing a parser" below means an
+adapter.
+
 **Tests.** A new `tests/test_recipe_scoping.py`: the declared closures union
 with an explicitly listed excluded set to exactly the package, so nothing is
 unattributed; a function-local import is in the closure; editing a fixture
@@ -303,13 +397,13 @@ repo, calibrated on the week's fixes: a single-file production fix took two to
 four hours from diagnosis to deployed change, with the five-hour re-derivation
 dominating the wall clock. Update this section when a step lands.
 
-| Step                                       | Effort       | Deploy cost                                             |
-| ------------------------------------------ | ------------ | ------------------------------------------------------- |
-| 1. Early cutoff for derivations            | 2 to 3 days  | Python change: one full re-derivation, about five hours |
-| 2. Early cutoff for parse                  | 1 day        | Python change: same                                     |
-| 3. Store the release closure once, collect | 1 to 2 days  | Deletes data: rehearsal on a scratch copy, second agent |
-| 4. Planner that fits in memory             | 0.5 to 1 day | Python change; may shrink after step 3                  |
-| 5. Scoped recipes from the import graph    | 1 to 2 days  | Python change: the last re-derivation any deploy causes |
+| Step                                       | Effort       | Deploy cost                                             | Status (2026-09-25)                                                |
+| ------------------------------------------ | ------------ | ------------------------------------------------------- | ------------------------------------------------------------------ |
+| 1. Early cutoff for derivations            | 2 to 3 days  | Python change: one full re-derivation, about five hours | Implemented offline, not deployed (architecture phase 1)           |
+| 2. Early cutoff for parse                  | 1 day        | Python change: same                                     | Implemented offline, not deployed (architecture phase 1)           |
+| 3. Store the release closure once, collect | 1 to 2 days  | Deletes data: rehearsal on a scratch copy, second agent | Unnamed proofs collectable since candidate 018 (D-0200); rest open |
+| 4. Planner that fits in memory             | 0.5 to 1 day | Python change; may shrink after step 3                  | Cache per dependency set done with step 1; streaming open          |
+| 5. Scoped recipes from the import graph    | 1 to 2 days  | Python change: the last re-derivation any deploy causes | Implemented offline, not deployed (architecture phase 1)           |
 
 Six to nine working days of effort, about two calendar weeks with the gate
 above, the full-suite runs (about ten minutes each), the second agent's
@@ -341,7 +435,7 @@ nothing after step 5 and only their own projections before it.
   link, shown by a receipt and by a release closure that keeps its links.
 - The database is under 25 GB after step 3 and a reclaim, from 40.6 GB, and
   stops growing per deploy. `retention.max_database_bytes` comes back down
-  from 64 GB with its own record. Getting to about 8 GB needs the out-of-scope
+  from 64 GB with its own record after step 3 (D-0208). Getting to about 8 GB needs the out-of-scope
   step below.
 - `gc --plan` completes on the live database inside the memory limit.
 

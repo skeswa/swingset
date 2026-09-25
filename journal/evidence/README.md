@@ -57,7 +57,8 @@ evidence.
 - no tracked file may exceed **1 MiB**; files that large belong in a verified
   external archive with a small retained receipt (D-0106);
 - one change may add or modify at most **200 KiB** under `journal/evidence/`,
-  measured from `trunk()` to the working copy (D-0175).
+  measured from `trunk()` to the working copy (D-0175). In an unpushed stack,
+  `mise run evidence-size -- --from @-` measures the newest change alone.
 
 Reference existing retained files by path and SHA-256 instead of copying them.
 Keep the smallest real fixtures that cover the tested behavior. Keep candidate

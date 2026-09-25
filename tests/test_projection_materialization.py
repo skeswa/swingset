@@ -70,6 +70,32 @@ def test_inventory_does_not_claim_unenriched_map_placeholders(tmp_path):
         assert set(coverage[0].payload) == {"event_id", "coverage_tier"}
 
 
+def test_history_alone_owns_the_events_coverage_tier(tmp_path):
+    # History rewrites coverage_tier after the calendar and the map ran, so
+    # recording it in their output would make every re-run of theirs differ
+    # from its own generation and never cut off (D-0205).
+    with open_database(tmp_path) as db:
+        conn = db.connection
+        seed(conn)
+        conn.execute("UPDATE events SET coverage_tier='complete' WHERE event_id='event'")
+        for kind, identifier in (("calendar", "2026"), ("override_events", "all")):
+            conn.execute(
+                "INSERT INTO canonical_scope_rows VALUES (?,?,'events',json_array('event'))",
+                (kind, identifier),
+            )
+        for unit in (WorkUnit("project", "calendar", "2026"), WorkUnit("project", "map", "all")):
+            events = [row for row in output_rows(conn, unit) if row.table == "events"]
+            assert len(events) == 1, unit
+            assert "coverage_tier" not in events[0].payload, unit
+            assert events[0].payload["event_id"] == "event"
+        history = [
+            row
+            for row in output_rows(conn, WorkUnit("project", "history", "all"))
+            if row.table == "events"
+        ]
+        assert [row.payload["coverage_tier"] for row in history] == ["complete"]
+
+
 def acceptance_fixture(db):
     from materialized_fixture import materialize_seeded_outputs
 

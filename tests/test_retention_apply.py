@@ -932,6 +932,114 @@ def test_reclaim_refuses_without_the_writer_lock(tmp_path: Path) -> None:
 # ---------------------------------------------------------------------------
 
 
+def removable_candidates(content: dict[str, Any]) -> list[str]:
+    return [
+        str(row["path"])
+        for row in content["files"]
+        if row["list"] == "removable" and str(row["path"]).startswith("candidates/")
+    ]
+
+
+def test_a_candidate_plan_walks_no_graph_and_names_what_the_full_plan_does(
+    tmp_path: Path, monkeypatch: Any
+) -> None:
+    """The worker cannot finish the full plan's graph walk (I10), so candidate
+    pruning has a plan and an apply that never start one."""
+    state = tmp_path / "state"
+    with open_database(state) as database:
+        history(database)
+        aged_candidates(state)
+        full = planned(database)
+        monkeypatch.setattr(
+            retention, "reachable", lambda *_a, **_k: pytest.fail("candidate plan walked the graph")
+        )
+        pruning = retention.candidate_plan(
+            database.connection, state, collect_older_than=KNOBS["collect_older_than"]
+        )
+        assert removable_candidates(pruning.content) == ["candidates/cand_0"]
+        assert removable_candidates(pruning.content) == removable_candidates(full.content)
+        assert pruning.content["totals"]["removable_candidates"] == 1
+        assert pruning.content["totals"]["removable_candidate_bytes"] > 0
+        # A stale digest removes nothing.
+        with pytest.raises(RetentionError, match="--candidates-only"):
+            applied(database, full.digest, candidates_only=True)
+        assert (state / "candidates" / "cand_0").is_dir()
+        receipt = applied(database, pruning.digest, candidates_only=True)
+        assert receipt["removed_files"] == ["candidates/cand_0"]
+        assert receipt["planned_payloads"] == []
+        assert not (state / "candidates" / "cand_0").exists()
+        assert all((state / "candidates" / name).is_dir() for name in CANDIDATES[1:])
+
+
+def test_neither_plan_removes_a_candidate_a_selected_build_names(tmp_path: Path) -> None:
+    """A build reuses the candidate its generation names, however old."""
+    from test_retention_plan import generation, point_at
+
+    state = tmp_path / "state"
+    with open_database(state) as database:
+        history(database)
+        aged_candidates(state)
+        run = database.start_run(NOW)
+        with database.transaction() as conn:
+            scope = ("build", "correction", "all")
+            generation(conn, run, "dg_build", scope, rows=(("artifact", "cand_0", {"n": 1}),))
+            point_at(conn, scope, "dg_build")
+        pruning = retention.candidate_plan(
+            database.connection, state, collect_older_than=KNOBS["collect_older_than"]
+        )
+        assert removable_candidates(pruning.content) == []
+        assert removable_candidates(planned(database).content) == []
+        assert {"path": "candidates/cand_0", "list": "local", "why": "built_candidate"} in (
+            pruning.content["files"]
+        )
+
+
+def test_gc_candidates_only_plans_and_applies(tmp_path: Path, capsys: Any) -> None:
+    from swingset.cli import main
+
+    state = tmp_path / "state"
+    with open_database(state) as database:
+        history(database)
+        aged_candidates(state)
+    assert main(["gc", "--plan", "--candidates-only", "--state", str(state)]) == 0
+    written = json.loads(capsys.readouterr().out)
+    assert Path(written["plan"]).is_file()
+    assert written["totals"]["removable_candidates"] == 1
+    assert written["equivalences"]["derivation_equivalences"] == 0
+    assert (
+        main(["gc", "--apply", written["digest"], "--candidates-only", "--state", str(state)]) == 0
+    )
+    assert json.loads(capsys.readouterr().out)["removed_files"] == ["candidates/cand_0"]
+    assert main(["gc", "--candidates-only", "--state", str(state)]) == 1
+
+
+def test_an_apply_before_the_age_floor_says_why_nothing_went(tmp_path: Path, capsys: Any) -> None:
+    """A copied state directory has fresh modification times: the plan names
+    removable candidates, but none is past its floor. The apply must say so
+    instead of reading as a successful empty run (phase 1 review)."""
+    from swingset.cli import main
+
+    state = tmp_path / "state"
+    with open_database(state) as database:
+        history(database)
+        for path in aged_candidates(state):
+            os.utime(path, None)
+    assert main(["gc", "--plan", "--candidates-only", "--state", str(state)]) == 0
+    written = json.loads(capsys.readouterr().out)
+    assert written["totals"]["removable_candidates"] == 1
+    assert written["eligibility"]["eligible_now"] == 0
+    assert written["eligibility"]["not_yet_eligible"] == 1
+    assert written["eligibility"]["earliest_eligible_after"]
+    command = ["gc", "--apply", written["digest"], "--candidates-only", "--state", str(state)]
+    assert main(command) == 0
+    captured = capsys.readouterr()
+    receipt = json.loads(captured.out)
+    assert receipt["removed_files"] == []
+    assert receipt["eligibility"]["eligible_now"] == 0
+    assert receipt["eligibility"]["not_yet_eligible"] == 1
+    assert "none has passed its age floor" in captured.err
+
+
 def test_the_gc_command_plans_applies_and_reclaims(tmp_path: Path, capsys: Any) -> None:
     """Bare gc removes nothing and points at the three commands that act."""
     from swingset.cli import main

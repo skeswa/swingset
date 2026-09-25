@@ -57,5 +57,11 @@ overrides are captured from `services.swingset.overridesDir` every cycle.
 The manifest records the clean repository revision or an explicit uncommitted
 source-store identity. Local development falls back to a digest of the Python
 sources. A code identity change invalidates the build; parser and projector
-changes still require their respective version bumps. Captured runtime recipes
-also detect changed bytes when a manual version stays the same.
+changes still require their respective version bumps. Each stage's code scope
+and `recipe/env` also detect changed bytes when a manual version stays the same
+([D-0207](../../journal/decisions/0207-scope-code-recipes-by-import-closure.md)).
+`recipe/env` reads the interpreter, the installed distributions and
+pyproject's `[project]` table. A deploy that changes any of them (a runtime
+dependency, the interpreter) re-parses every snapshot, about 33,900, for 4
+to 12 hours with fetching held by the parse backlog; batch such changes. A
+`[tool.*]` edit or a dev-tool bump in `uv.lock` re-parses nothing.

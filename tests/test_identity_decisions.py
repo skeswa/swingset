@@ -14,7 +14,7 @@ from swingset.link.service import link_event
 from swingset.state.db import open_database
 from swingset.state.identity_journal import accept_journal, encode_journal, token
 from swingset.state.identity_references import ReferenceReader, record_migration, retain_binding
-from swingset.state.work import WorkUnit, enqueue
+from swingset.state.work import WorkUnit, bump_revision, enqueue
 
 CLOCK = FakeClock(datetime(2026, 9, 13, tzinfo=UTC))
 
@@ -59,6 +59,251 @@ def linked(db, identifier):
             "SELECT wsdc_id,method,status FROM identity_links WHERE subject_id=?", (identifier,)
         ).fetchone()
     )
+
+
+def test_an_unchanged_rerun_appends_no_identity_history(tmp_path):
+    def history(db):
+        return db.connection.execute(
+            "SELECT state FROM identity_link_history WHERE subject_id=? ORDER BY history_id",
+            (identifier,),
+        ).fetchall()
+
+    with open_database(tmp_path) as db:
+        identifier, binding = setup(db)
+        positive = decision(binding, "same_person")
+        accept(db, positive)
+        run(db)
+        before = history(db)
+        link = tuple(db.connection.execute("SELECT * FROM identity_links").fetchall())
+        candidates = tuple(db.connection.execute("SELECT * FROM link_candidates").fetchall())
+        CLOCK.sleep(60)
+        run(db)
+        # Nothing changed: no superseded/accepted pair, and the rows keep the
+        # run that asserted them (D-0209).
+        assert history(db) == before
+        assert tuple(db.connection.execute("SELECT * FROM identity_links").fetchall()) == link
+        assert (
+            tuple(db.connection.execute("SELECT * FROM link_candidates").fetchall()) == candidates
+        )
+        hold = decision(binding, "hold_unlinked", "NONE", "hold", positive.decision_id)
+        accept(db, positive, hold)
+        run(db)
+        assert [row[0] for row in history(db)][len(before) :] == ["superseded", "revoked"]
+
+
+def test_a_changed_resolution_alone_is_rewritten(tmp_path):
+    def resolution(db):
+        return db.connection.execute(
+            "SELECT decision_ids_json,journal_generation FROM identity_link_resolutions "
+            "WHERE subject_id=?",
+            (identifier,),
+        ).fetchone()
+
+    def history(db):
+        return db.connection.execute(
+            "SELECT state,resolution_json FROM identity_link_history WHERE subject_id=? "
+            "ORDER BY history_id",
+            (identifier,),
+        ).fetchall()
+
+    with open_database(tmp_path) as db:
+        identifier, binding = setup(db)
+        positive = decision(binding, "same_person")
+        accept(db, positive)
+        run(db)
+        before = history(db)
+        assert tuple(resolution(db)) == ('["review-1"]', 1)
+        # A second reviewed positive for the same number changes the evidence
+        # and the journal token, not the link or its candidates (D-0209).
+        accept(db, positive, decision(binding, "same_person", "100", "review-2"))
+        CLOCK.sleep(60)
+        run(db)
+        assert linked(db, identifier) == (100, "manual", "confirmed")
+        assert tuple(resolution(db)) == ('["review-1", "review-2"]', 2)
+        added = history(db)[len(before) :]
+        assert [row[0] for row in added] == ["superseded", "accepted"]
+        assert json.loads(added[1][1])["decisions"] == ["review-1", "review-2"]
+
+
+def test_a_resolution_row_or_history_head_that_drifted_is_rewritten(tmp_path):
+    # Each check in persistence._unchanged has its own signal: the resolution
+    # columns, and the history head's resolution_json, which alone records the
+    # migration ids. A drift in either one alone is rewritten (D-0209).
+    def resolution(db):
+        return tuple(
+            db.connection.execute(
+                "SELECT ref_ids_json,decision_ids_json,policy_version,journal_digest,"
+                "journal_generation,state,reason FROM identity_link_resolutions "
+                "WHERE subject_id=?",
+                (identifier,),
+            ).fetchone()
+        )
+
+    def head(db):
+        return tuple(
+            db.connection.execute(
+                "SELECT state,resolution_json FROM identity_link_history "
+                "WHERE subject_id=? ORDER BY history_id DESC LIMIT 1",
+                (identifier,),
+            ).fetchone()
+        )
+
+    with open_database(tmp_path) as db:
+        identifier, binding = setup(db)
+        accept(db, decision(binding, "same_person"))
+        run(db)
+        expected, current = resolution(db), head(db)
+        db.connection.execute(
+            "UPDATE identity_link_resolutions SET reason='drifted' WHERE subject_id=?",
+            (identifier,),
+        )
+        CLOCK.sleep(60)
+        run(db)
+        assert resolution(db) == expected
+        assert head(db) == current
+        recorded = json.loads(current[1])
+        drifted = json.dumps({**recorded, "migrations": ["unrecorded"]}, sort_keys=True)
+        db.connection.execute(
+            "INSERT INTO identity_link_history(subject_kind,subject_id,state,assertion_json,"
+            "resolution_json,recorded_at) SELECT subject_kind,subject_id,state,assertion_json,"
+            "?,recorded_at FROM identity_link_history WHERE subject_id=? "
+            "ORDER BY history_id DESC LIMIT 1",
+            (drifted, identifier),
+        )
+        CLOCK.sleep(60)
+        run(db)
+        assert head(db) == current
+        assert resolution(db) == expected
+
+
+def test_a_changed_link_row_alone_is_rewritten(tmp_path, monkeypatch):
+    import swingset.link.service as service
+
+    def history(db):
+        return db.connection.execute(
+            "SELECT state,assertion_json FROM identity_link_history WHERE subject_id=? "
+            "ORDER BY history_id",
+            (identifier,),
+        ).fetchall()
+
+    def version(db):
+        return db.connection.execute(
+            "SELECT linker_version FROM identity_links WHERE subject_id=?", (identifier,)
+        ).fetchone()[0]
+
+    def deploy(db, digest):
+        # A code change in the link scope: same inputs, a new recipe.
+        with db.transaction() as conn:
+            conn.execute(
+                "INSERT INTO accepted_inputs VALUES ('pipeline','recipe/code/link',?) "
+                "ON CONFLICT(consumer,input_name) DO UPDATE SET digest=excluded.digest",
+                (digest,),
+            )
+
+    with open_database(tmp_path) as db:
+        identifier, binding = setup(db)
+        accept(db, decision(binding, "same_person"))
+        run(db)
+        before = history(db)
+        # A code-only linker change keeps the candidates and the resolution;
+        # the link row differs only in its version (D-0209).
+        monkeypatch.setattr(service, "LINKER_VERSION", "next")
+        deploy(db, "code-2")
+        CLOCK.sleep(60)
+        run(db)
+        assert version(db) == "next"
+        added = history(db)[len(before) :]
+        assert [row[0] for row in added] == ["superseded", "accepted"]
+        assert json.loads(added[1][1])["linker_version"] == "next"
+        # A link row that drifted from the history head is rewritten.
+        before = history(db)
+        db.connection.execute(
+            "UPDATE identity_links SET confidence=0.5 WHERE subject_id=?", (identifier,)
+        )
+        deploy(db, "code-3")
+        run(db)
+        assert [row[0] for row in history(db)[len(before) :]] == ["superseded", "accepted"]
+        assert json.loads(history(db)[-1][1])["confidence"] != 0.5
+        # So is a history head whose assertion no longer names the link row.
+        head = db.connection.execute(
+            "SELECT subject_kind,state,assertion_json,resolution_json,recorded_at "
+            "FROM identity_link_history WHERE subject_id=? ORDER BY history_id DESC LIMIT 1",
+            (identifier,),
+        ).fetchone()
+        stale = {**json.loads(head[2]), "linker_version": "9"}
+        db.connection.execute(
+            "INSERT INTO identity_link_history(subject_kind,subject_id,state,assertion_json,"
+            "resolution_json,recorded_at) VALUES (?,?,?,?,?,?)",
+            (head[0], identifier, head[1], json.dumps(stale, sort_keys=True), head[3], head[4]),
+        )
+        before = history(db)
+        deploy(db, "code-4")
+        run(db)
+        added = history(db)[len(before) :]
+        assert [row[0] for row in added] == ["superseded", "accepted"]
+        assert json.loads(added[1][1])["linker_version"] == "next"
+
+
+def test_an_unchanged_subject_still_restores_its_entry_columns(tmp_path):
+    with open_database(tmp_path) as db:
+        identifier, binding = setup(db)
+        accept(db, decision(binding, "same_person"))
+        run(db)
+        history = db.connection.execute("SELECT COUNT(*) FROM identity_link_history").fetchone()
+        db.connection.execute(
+            "UPDATE entries SET wsdc_id=NULL,link_status='unmatched',link_confidence=0 "
+            "WHERE entry_id=?",
+            (identifier,),
+        )
+        with db.transaction() as conn:
+            conn.execute(
+                "INSERT INTO accepted_inputs VALUES ('pipeline','recipe/code/link','code-2') "
+                "ON CONFLICT(consumer,input_name) DO UPDATE SET digest=excluded.digest"
+            )
+        CLOCK.sleep(60)
+        run(db)
+        # The link is unchanged, so no history pair (D-0209); the entry's copy
+        # of it is rewritten on every run all the same.
+        assert (
+            db.connection.execute("SELECT COUNT(*) FROM identity_link_history").fetchone()
+            == history
+        )
+        assert tuple(
+            db.connection.execute(
+                "SELECT wsdc_id,link_status FROM entries WHERE entry_id=?", (identifier,)
+            ).fetchone()
+        ) == (100, "confirmed")
+
+
+def test_changed_candidates_alone_are_rewritten(tmp_path):
+    def candidates(db):
+        return [
+            tuple(row)
+            for row in db.connection.execute(
+                "SELECT wsdc_id,score,rank,chosen FROM link_candidates WHERE subject_id=? "
+                "ORDER BY rank",
+                (identifier,),
+            )
+        ]
+
+    with open_database(tmp_path) as db:
+        identifier, binding = setup(db)
+        accept(db, decision(binding, "same_person"))
+        run(db)
+        assert candidates(db) == [(100, 1.0, 1, 1), (101, 1.0, 2, 0)]
+        # A registry change lowers the other candidate's score; the reviewed
+        # link and its resolution stay as they were (D-0209).
+        db.connection.execute(
+            "UPDATE dancers SET last_name='Leeson',name_norm='alex leeson',recent_year=2019 "
+            "WHERE wsdc_id=101"
+        )
+        bump_revision(db.connection, "dancers")
+        CLOCK.sleep(60)
+        run(db)
+        assert linked(db, identifier) == (100, "manual", "confirmed")
+        rows = candidates(db)
+        assert [row[0] for row in rows] == [100, 101]
+        assert rows[1][1] < 1.0
 
 
 def test_hold_requires_explicit_supersession_and_retains_history(tmp_path):

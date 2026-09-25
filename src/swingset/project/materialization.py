@@ -27,6 +27,25 @@ _EXTRA_KEYS = {
     "link_candidates": ("subject_kind", "subject_id", "wsdc_id"),
     "identity_link_resolutions": ("subject_kind", "subject_id"),
 }
+# Columns the history generation owns on rows another scope owns. History
+# rewrites them after that scope ran, so recording them there would make every
+# re-run of the owner differ from its own generation and never cut off (D-0205).
+_HISTORY_COLUMNS = {"events": ("coverage_tier",)}
+# Kinds whose output never passes through `_owned`: none of their generations
+# recorded a history column (inventory left it out before phase 1 too).
+_UNOWNED_KINDS = frozenset({"inventory", "history", "source_index", "source_event"})
+
+
+def moved_columns(unit: WorkUnit) -> Mapping[str, tuple[str, ...]]:
+    """History columns this unit's generations from before phase 1 recorded.
+
+    Their output leaves them out now, so the cutoff comparison takes them out
+    of the kept generation too; otherwise the first switch would mint every
+    such scope once and, by F1, every link (D-0212).
+    """
+    if unit.stage == "project" and unit.unit_kind not in _UNOWNED_KINDS:
+        return _HISTORY_COLUMNS
+    return {}
 
 
 def _rows(
@@ -76,7 +95,7 @@ def _owned(conn: sqlite3.Connection, kind: str, identifier: str) -> Iterator[Out
             table,
             query=query,
             parameters=(kind, identifier, table),
-            exclude=TABLES[table].owner_columns,
+            exclude=(*TABLES[table].owner_columns, *_HISTORY_COLUMNS.get(table, ())),
         )
 
 
@@ -145,13 +164,18 @@ def output_rows(conn: sqlite3.Connection, unit: WorkUnit) -> Iterator[OutputRow]
 def helper_recipe(
     conn: sqlite3.Connection, files: Mapping[str, bytes], stage: str
 ) -> dict[str, str] | None:
-    """Identify explicit helper bundles before a runtime bundle has been accepted."""
+    """Identify explicit helper bundles before a runtime bundle has been accepted.
+
+    A runtime is accepted once `recipe/env` (or, for a bundle from before
+    D-0207, `recipe/runtime`) is. Without one there are no code scopes, so the
+    recipe needs no unit kind.
+    """
     from hashlib import sha256
 
     from swingset.state.recipes import recipe_inputs
 
     accepted = recipe_inputs(conn, stage)
-    if "recipe/runtime" in accepted:
+    if "recipe/env" in accepted or "recipe/runtime" in accepted:
         return None
     names = (
         {
@@ -220,7 +244,16 @@ def materializing(
         if selection is not None and captured.fingerprint != selection.fingerprint:
             raise SupersededWorkError("selected inputs changed before projection or linking")
         yield captured
-        derivations.complete(conn, captured, rows=output_rows(conn, unit), now=now, run_id=run_id)
+        # A callable lets complete() read the output twice: once to compare it
+        # with the selected generation, and once more to store it if it differs.
+        derivations.complete(
+            conn,
+            captured,
+            rows=lambda: output_rows(conn, unit),
+            now=now,
+            run_id=run_id,
+            moved=moved_columns(unit),
+        )
         conn.execute(
             "DELETE FROM pending_work WHERE stage=? AND unit_kind=? AND unit_id=?",
             (unit.stage, unit.unit_kind, unit.unit_id),

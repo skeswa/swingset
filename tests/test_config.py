@@ -5,8 +5,10 @@ import pytest
 
 from swingset.config import (
     Config,
+    DerivationConfig,
     StageConfig,
     load_config,
+    parse_derivation,
     parse_history_start,
     parse_retention,
     parse_stages,
@@ -139,6 +141,56 @@ def test_load_config_reads_stages(tmp_path: Path) -> None:
     (copy / "hosts.toml").write_bytes((config / "hosts.toml").read_bytes())
     (copy / "sources.toml").write_bytes(b"[stages]\nevent_pressure = false\n")
     assert load_config(copy).stages.disabled() == ["event_pressure"]
+
+
+def test_derivation_cutoff_defaults_on_and_can_be_turned_off(tmp_path: Path) -> None:
+    assert parse_derivation(b"") == DerivationConfig() == Config({}, {}).derivation
+    assert DerivationConfig().cutoff
+    assert not parse_derivation(b"[derivation]\ncutoff = false\n").cutoff
+    for body, message in (
+        (b"[derivation]\ncutoff = 0\n", "true or false"),
+        (b"[derivation]\nreplay = false\n", "unknown derivation"),
+        (b"derivation = false\n", "table"),
+    ):
+        with pytest.raises(ValueError, match=message):
+            parse_derivation(body)
+    config = Path(__file__).resolve().parents[1] / "config"
+    # Production runs with cutoff on and paces the inventory (D-0205, D-0210).
+    loaded = load_config(config)
+    assert loaded.derivation.cutoff
+    assert loaded.scheduler.inventory_interval_seconds == 43200
+
+
+def test_derive_one_applies_the_bundles_cutoff_switch(tmp_path: Path, monkeypatch) -> None:
+    from dataclasses import replace
+
+    import swingset.project
+    from swingset import cutoff
+    from swingset.clock import FakeClock
+    from swingset.fetch.archive import Archive
+    from swingset.schedule.derive import derive_one
+    from swingset.state.db import open_database
+    from swingset.state.inputs import InputBundle
+    from swingset.state.work import WorkUnit, enqueue
+
+    seen = []
+
+    def project(*_args, selection=None):
+        seen.append(cutoff.enabled())
+        raise RuntimeError("stop after reading the switch")
+
+    monkeypatch.setattr(swingset.project, "process_unit", project)
+    clock = FakeClock()
+    on = InputBundle("test", tmp_path, {}, Config({}, {}))
+    off = replace(on, config=replace(on.config, derivation=DerivationConfig(cutoff=False)))
+    with open_database(tmp_path / "state") as db:
+        run = db.start_run(clock.now())
+        for index, bundle in enumerate((off, on)):
+            unit = WorkUnit("project", "dancer", str(index))
+            enqueue(db.connection, [unit], enqueued_at=clock.now().isoformat())
+            derive_one(db, Archive(tmp_path), unit, bundle, clock, run)
+    assert seen == [False, True]
+    assert cutoff.enabled()
 
 
 def test_series_alias_rows_may_carry_a_month_range(tmp_path):

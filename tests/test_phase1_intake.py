@@ -101,6 +101,55 @@ def test_intake_resumes_skips_digest_duplicates_and_explains_failures(tmp_path):
         assert len(calls) == 3
 
 
+def test_intake_parses_under_the_configured_cutoff_switch(tmp_path, monkeypatch):
+    from dataclasses import replace
+
+    from swingset import cutoff
+    from swingset.config import DerivationConfig
+    from swingset.history import intake
+
+    body = Path(
+        "src/swingset/sources/swingdancecouncil/fixtures/council-20120825.html"
+    ).read_bytes()
+    seen = []
+    parse = intake.parse_snapshot
+
+    def spy(*args, **kwargs):
+        seen.append(cutoff.enabled())
+        return parse(*args, **kwargs)
+
+    monkeypatch.setattr(intake, "parse_snapshot", spy)
+    catalog = tmp_path / "phase1-catalog.json"
+    save_catalog(
+        catalog,
+        (
+            Target(
+                "swingdancecouncil",
+                "http://swingdancecouncil.com/ActiveServerPages/UpcomingEvents.asp",
+                "swingdancecouncil.events",
+                "20120825221508",
+                "digest1",
+            ),
+        ),
+    )
+    with open_database(tmp_path) as db:
+        run_intake(
+            db,
+            catalog,
+            config=replace(Config({}, {}), derivation=DerivationConfig(cutoff=False)),
+            clock=FakeClock(),
+            transport=httpx.MockTransport(
+                lambda request: (
+                    httpx.Response(404)
+                    if request.url.path == "/robots.txt"
+                    else httpx.Response(200, content=body)
+                )
+            ),
+        )
+    # `[derivation] cutoff = false` reaches operator parses too (D-0205).
+    assert seen == [False]
+
+
 def test_newsletter_index_keeps_same_host_issue_pdfs():
     from swingset.sources.base import ParseContext
 

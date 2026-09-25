@@ -115,8 +115,13 @@ def iter_work(
     exclude: Collection[WorkUnit] = (),
     allowed: Callable[[WorkUnit], bool] | None = None,
     unit_kind: str | None = None,
+    current_hints: dict[WorkUnit, str] | None = None,
 ) -> Iterator[WorkUnit]:
-    """Eligible units in selection order, walking the candidates once (D-0182)."""
+    """Eligible units in selection order, walking the candidates once (D-0182).
+
+    ``current_hints`` collects project and link hints found current
+    (`derivations.candidate_units`).
+    """
     order = (
         "CASE unit_kind WHEN 'map' THEN 0 WHEN 'history' THEN 2 ELSE 1 END,enqueued_at,unit_kind,unit_id"
         if stage == "project"
@@ -130,7 +135,7 @@ def iter_work(
 
     derived = stage in {"project", "link"} and derivations.available(conn)
     units = (
-        derivations.candidate_units(conn, stage, kind=unit_kind)
+        derivations.candidate_units(conn, stage, kind=unit_kind, current_hints=current_hints)
         if derived
         else (
             WorkUnit(str(row[0]), str(row[1]), str(row[2]))
@@ -229,20 +234,38 @@ def bump_revision(conn: sqlite3.Connection, name: str) -> None:
 
 
 def affected_work(conn: sqlite3.Connection, input_name: str) -> Iterable[WorkUnit]:
-    """The centralized invalidation map from the state contract."""
-    if input_name == "recipe/runtime":
+    """The centralized invalidation map from the state contract.
+
+    Code scopes (D-0207): an extract or parse scope invalidates like its kind's
+    version label. A project or link scope queues that kind's units, and
+    `recipe/env` and the legacy package-wide `recipe/runtime` queue every
+    parse, project and link unit. Derivations see these inputs in their
+    fingerprints anyway; the queue rows are hints, so the watchdog, which
+    reads only `pending_work`, sees the backlog (I4). The build is paced and
+    needs none.
+    """
+    if input_name.startswith("recipe/code/extract/"):
+        input_name = "version/extract/" + input_name.removeprefix("recipe/code/extract/")
+    elif input_name.startswith("recipe/code/parse/"):
+        input_name = "version/parser/" + input_name.removeprefix("recipe/code/parse/")
+    elif input_name.startswith("recipe/code/"):
+        return derivation_hints(conn, input_name.removeprefix("recipe/code/"))
+    if input_name in {"recipe/env", "recipe/runtime"}:
         manual_crosscheck = (
             "source='crosscheck' AND kind='registry_dump' AND method='MANUAL' "
             "AND parser='registry_crosscheck'"
         )
         conn.execute(f"UPDATE watches SET extract_version=NULL WHERE NOT ({manual_crosscheck})")
-        return tuple(
-            WorkUnit("parse", "snapshot", str(row[0]))
-            for row in conn.execute(
-                "SELECT s.snapshot_id FROM snapshots s JOIN watches w USING(watch_id) "
-                "WHERE NOT (w.source='crosscheck' AND w.kind='registry_dump' "
-                "AND w.method='MANUAL' AND w.parser='registry_crosscheck')"
-            )
+        return (
+            *(
+                WorkUnit("parse", "snapshot", str(row[0]))
+                for row in conn.execute(
+                    "SELECT s.snapshot_id FROM snapshots s JOIN watches w USING(watch_id) "
+                    "WHERE NOT (w.source='crosscheck' AND w.kind='registry_dump' "
+                    "AND w.method='MANUAL' AND w.parser='registry_crosscheck')"
+                )
+            ),
+            *derivation_hints(conn, None),
         )
     if input_name.startswith(("extract_version:", "version/extract/")):
         kind = input_name.rsplit(":" if ":" in input_name else "/", 1)[1]
@@ -322,6 +345,24 @@ def affected_work(conn: sqlite3.Connection, input_name: str) -> Iterable[WorkUni
             "SELECT event_id FROM events UNION SELECT substr(subject_id,1,instr(subject_id,'/')-1) FROM identity_links WHERE instr(subject_id,'/')>0"
         )
         return tuple(WorkUnit("link", "event", str(row[0])) for row in rows)
+    return ()
+
+
+def derivation_hints(conn: sqlite3.Connection, scope: str | None) -> tuple[WorkUnit, ...]:
+    """Queue hints for the derivation units a code scope names.
+
+    `project/<kind>` names that kind's units, `link` every link unit, and
+    None (the environment) every project and link unit; `build` names none.
+    """
+    from .derivations import known_units
+
+    if scope is None:
+        return (*known_units(conn, "project"), *known_units(conn, "link"))
+    if scope == "link":
+        return tuple(known_units(conn, "link"))
+    if scope.startswith("project/"):
+        kind = scope.removeprefix("project/")
+        return tuple(unit for unit in known_units(conn, "project") if unit.unit_kind == kind)
     return ()
 
 

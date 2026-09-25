@@ -40,6 +40,12 @@ def input_fingerprint(
     add(("work-attempt-v1", unit.stage, unit.unit_kind, unit.unit_id))
     selected = {"version/repository", "recipe/runtime"}
     if unit.stage == "parse":
+        # The page kind's own recipe and labels (D-0207), plus the whole
+        # package: a parse unit runs admission, observation and verification
+        # code outside its kind's scope, and a deploy that fixes it must
+        # re-open the attempts it blocked. This is retry identity only; it
+        # re-opens blocked units, never re-queues parsed ones.
+        selected = {"version/repository"}
         row = conn.execute(
             "SELECT s.body_sha256,s.body_bytes,s.url,s.via,s.archive_url,s.captured_at,w.parser,w.source_ref,w.source,w.url,w.archive_url "
             "FROM snapshots s JOIN watches w USING(watch_id) WHERE snapshot_id=?",
@@ -55,7 +61,9 @@ def input_fingerprint(
                 add(("unavailable_parser", row[6]))
             else:
                 add((page.EXTRACT_VERSION, page.PARSER_VERSION))
-            selected.update({f"version/extract/{row[6]}", f"version/parser/{row[6]}"})
+            from swingset.admission.generations import parse_input_names
+
+            selected.update(parse_input_names(str(row[6])))
             query("SELECT * FROM admission_policies WHERE page_kind=?", (row[6],))
     elif unit.stage == "project":
         selected.update(

@@ -5,7 +5,7 @@ import os
 import sqlite3
 from collections import Counter
 from collections.abc import Callable, Iterator, Mapping
-from contextlib import contextmanager
+from contextlib import ExitStack, contextmanager
 from dataclasses import asdict
 from datetime import datetime, timedelta
 from hashlib import sha256
@@ -23,8 +23,10 @@ from swingset.config import Config
 from swingset.fetch.archive import Archive, canonical, durable_write
 from swingset.fetch.client import FetchClient
 from swingset.fetch.recovery import LocalCheckpointRecovery
+from swingset.history.acquisition import phase_two_refusals
 from swingset.log import log
 from swingset.publish.service import Hub, publish, reconcile
+from swingset.schedule import pacing
 from swingset.schedule.derive import derive_one
 from swingset.schedule.discover import discover
 from swingset.schedule.fair_policy import allocation
@@ -45,6 +47,7 @@ from swingset.schedule.registry import (
 )
 from swingset.schedule.watches import refresh_policy
 from swingset.sources import get_page_kind, sources
+from swingset.state import derivations
 from swingset.state.attempts import latest_attempt, recover_interrupted
 from swingset.state.control_scopes import for_publication, for_unit, for_watch, unit_allowed
 from swingset.state.controls import (
@@ -179,22 +182,25 @@ def build_deferred_for_interval(conn: sqlite3.Connection, config: Config, *, now
     return (now - datetime.fromisoformat(str(row[0]))).total_seconds() < interval
 
 
-def history_deferred_for_interval(
+def deferred_for_interval(
     conn: sqlite3.Connection, config: Config, unit: WorkUnit, *, now: datetime
 ) -> bool:
-    """Whether the global history projection materialized within its interval."""
-    interval = config.scheduler.history_interval_seconds
-    if interval is None or (unit.stage, unit.unit_kind) != ("project", "history"):
-        return False
-    row = conn.execute(
-        "SELECT g.created_at FROM derivation_scopes s JOIN derivation_generations g "
-        "ON g.generation_id=s.materialized_generation_id "
-        "WHERE s.stage='project' AND s.unit_kind='history' AND s.unit_id=?",
-        (unit.unit_id,),
-    ).fetchone()
-    if row is None:
-        return False
-    return (now - datetime.fromisoformat(str(row[0]))).total_seconds() < interval
+    """Whether a paced global projection waits its interval (schedule/pacing.py).
+
+    `project/history` waits `history_interval_seconds` (D-0199) and
+    `project/inventory` `inventory_interval_seconds` (D-0210), unless history
+    is due and has consumed the inventory it has.
+    """
+    return pacing.deferred(conn, config.scheduler, unit, now=now)
+
+
+def _report(summary: dict[str, Any], key: str, read: Callable[[], Any]) -> None:
+    """Store one report under `key`, or its error under `<key>_error`."""
+    try:
+        summary[key] = read()
+    except Exception as exc:
+        summary[f"{key}_error"] = f"{type(exc).__name__}: {exc}"[:200]
+        log("report_failed", report=key, error=str(exc)[:300])
 
 
 def run_cycle(
@@ -250,6 +256,9 @@ def run_cycle(
         )
 
     summary["stage_errors"] = []
+    # Derivation kinds offline selection skipped because their recipe could
+    # not be formed, by `stage/kind` (schedule/fairness.next_offline_batch).
+    summary["readiness_errors"] = {}
 
     @contextmanager
     def contained(stage: str) -> Iterator[None]:
@@ -265,8 +274,22 @@ def run_cycle(
             summary["stage_errors"].append({"stage": stage, "error": str(exc)})
             log("stage_failed", stage=stage, error=str(exc)[:300])
 
+    # Read before the work so the report can name the epochs it moved. A
+    # failed read must not cost the run record either: it is noted, and the
+    # report then leaves replay bumps out.
+    replayed_before: dict[str, int] | None = None
+    _report(summary, "replay_epochs", lambda: derivations.replay_epochs(database.connection))
+    if "replay_epochs_error" in summary:
+        summary["derivation_error"] = summary.pop("replay_epochs_error")
+    else:
+        replayed_before = summary.pop("replay_epochs")
+    # Held for the run: the pacing gate that readers outside scheduling ask
+    # (schedule/pacing.holds), and the phase-two gate's refusals by reason.
+    scoped = ExitStack()
+    refused = scoped.enter_context(phase_two_refusals())
     try:
         bundle = capture(config_dir, overrides_dir, database.state_dir, versions())
+        scoped.enter_context(pacing.configured(bundle.config.scheduler, clock.now))
         summary["accepted_inputs"] = sorted(accept(database, bundle, clock))
         from swingset.state.retention import enforce_size_cap
 
@@ -481,9 +504,7 @@ def run_cycle(
         def offline_allowed(unit: WorkUnit) -> bool:
             if not allowed(unit):
                 return False
-            if history_deferred_for_interval(
-                database.connection, bundle.config, unit, now=clock.now()
-            ):
+            if deferred_for_interval(database.connection, bundle.config, unit, now=clock.now()):
                 return False
             previous = attempted_inputs.get(unit)
             return previous is None or input_fingerprint(database.connection, unit) not in previous
@@ -741,16 +762,34 @@ def run_cycle(
             settle_offline()
         if not stop():
             acquisition(min(deadline, clock.now() + timedelta(seconds=split.acquisition_seconds)))
+
+        def offline_batch() -> list[WorkUnit]:
+            # A project or link hint whose unit is already current (a revert
+            # deploy) is deleted once the selection's read snapshot closes;
+            # otherwise the watchdog counts it as ready work forever (I4).
+            found: dict[WorkUnit, str] = {}
+            batch = next_offline_batch(
+                database.connection,
+                now=clock.now(),
+                allowed=offline_allowed,
+                limit=OFFLINE_BATCH,
+                errors=summary["readiness_errors"],
+                current_hints=found,
+            )
+            # Housekeeping: a failed delete is noted and retried next batch,
+            # never fatal to the cycle.
+            try:
+                dropped = derivations.drop_current_hints(database, found)
+            except (sqlite3.Error, WriteDeadlineExceeded) as exc:
+                summary["current_hints_error"] = f"{type(exc).__name__}: {exc}"[:200]
+                dropped = 0
+            if dropped:
+                summary["current_hints_dropped"] = summary.get("current_hints_dropped", 0) + dropped
+            return batch
+
         while not stop():
             began = clock.now()
-            while not stop() and (
-                batch := next_offline_batch(
-                    database.connection,
-                    now=clock.now(),
-                    allowed=offline_allowed,
-                    limit=OFFLINE_BATCH,
-                )
-            ):
+            while not stop() and (batch := offline_batch()):
                 for unit in batch:
                     if stop():
                         break
@@ -813,6 +852,7 @@ def run_cycle(
             or any(item["stage"] != "parse" for item in summary["unit_failures"])
             or "build_error" in summary
             or bool(summary["stage_errors"])
+            or bool(summary["readiness_errors"])
         )
         paused = [
             dict(row)
@@ -830,9 +870,22 @@ def run_cycle(
         summary["error"] = f"{type(exc).__name__}: {exc}"
         raise
     finally:
+        scoped.close()
+        # A gate that stays closed for hours shows as a count here (I4).
+        summary["phase_two_refusals"] = dict(sorted(refused.items()))
         if fetcher is not None:
             fetcher.close()
-        summary["controls"] = status(database.connection, now=clock.now())
+        # The run record below is what the watchdog reads (I4), so a report
+        # query that fails (a locked or full database, or the error that
+        # ended the cycle) is noted in it instead of losing it.
+        _report(summary, "controls", lambda: status(database.connection, now=clock.now()))
+        # What derivation did: generations and cutoffs by kind, and the
+        # replay epochs a cutoff moved, which the watchdog watches for a loop.
+        _report(
+            summary,
+            "derivation",
+            lambda: derivations.cycle_progress(database.connection, run_id, replayed_before),
+        )
         summary["stopped"] = should_stop() or clock.now() >= deadline
         summary["duration_seconds"] = (clock.now() - started).total_seconds()
         summary["finished_at"] = clock.now().isoformat()

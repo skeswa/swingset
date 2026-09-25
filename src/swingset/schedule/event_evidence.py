@@ -76,6 +76,51 @@ def decode_generation(row: Mapping[str, Any], identifier: str) -> dict[str, Any]
     return result
 
 
+# Revoked evidence: each revoked generation's own fingerprint and recipe, plus
+# the fingerprints a parse cutoff recorded as equivalent to it (D-0205). A
+# later parse with any of those inputs repeats the revoked evidence. Readers
+# refuse a candidate whose fingerprint, or whose recipe's snapshot and parser
+# label, matches a row. The same fingerprint means the same recipe, so an
+# equivalence whose label equals its generation's adds nothing and is left
+# out; the rest are kept one per label. A cutoff keeps labels byte-equal, so
+# today the rows are one per revoked generation however many deploys re-parsed
+# it, and the readers' row budgets count revoked generations. An equivalence
+# whose recipe is not valid JSON is kept, so readers name it invalid.
+_LABEL = (
+    "CASE WHEN json_valid({0}.recipe_json) THEN "
+    "json_array(json_extract({0}.recipe_json,'$.context.snapshot_id'),"
+    "json_extract({0}.recipe_json,'$.parser_version')) END"
+)
+REVOKED_EVIDENCE = (
+    "SELECT unit_key,input_fingerprint,recipe_json FROM ("
+    "SELECT generation_id,unit_key,input_fingerprint,recipe_json FROM source_generations "
+    "WHERE state='revoked' UNION ALL "
+    "SELECT g.generation_id,e.unit_key,min(e.input_fingerprint),e.recipe_json "
+    "FROM source_equivalences e JOIN source_generations g "
+    "ON g.generation_id=e.generation_id AND g.unit_key=e.unit_key WHERE g.state='revoked' "
+    f"AND {_LABEL.format('e')} IS NOT {_LABEL.format('g')} "
+    f"GROUP BY g.generation_id,e.unit_key,{_LABEL.format('e')},"
+    "CASE WHEN json_valid(e.recipe_json) THEN NULL ELSE e.input_fingerprint END) "
+    "ORDER BY generation_id,input_fingerprint"
+)
+#: The same before schema 33, which has no equivalences.
+REVOKED_EVIDENCE_32 = (
+    "SELECT unit_key,input_fingerprint,recipe_json FROM source_generations "
+    "WHERE state='revoked' ORDER BY generation_id,input_fingerprint"
+)
+
+
+def revoked_evidence(conn: sqlite3.Connection) -> str:
+    """The revoked-evidence query this file's schema supports.
+
+    A read-only open skips migration, so a reader can meet schema 32 (D-0206).
+    """
+    has_equivalences = conn.execute(
+        "SELECT 1 FROM sqlite_master WHERE type='table' AND name='source_equivalences'"
+    ).fetchone()
+    return REVOKED_EVIDENCE if has_equivalences else REVOKED_EVIDENCE_32
+
+
 def admission_reason(
     conn: sqlite3.Connection,
     value: Mapping[str, Any],
@@ -87,9 +132,7 @@ def admission_reason(
         return "source_generation_revoked"
     context = value["recipe"]["context"]
     if revoked_rows is None:
-        revoked_rows = conn.execute(
-            "SELECT unit_key,input_fingerprint,recipe_json FROM source_generations WHERE state='revoked'"
-        )
+        revoked_rows = conn.execute(revoked_evidence(conn))
     for revoked in revoked_rows:
         if (revoked[0], revoked[1]) == (value["unit_key"], value["input_fingerprint"]):
             return "source_evidence_revoked"

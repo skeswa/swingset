@@ -125,7 +125,12 @@ def complete(
                     validate(conn, pinned)
             with database.transaction() as conn:
                 _complete_in_transaction(conn, database, selection, result, now=now, run_id=run_id)
-    except (SupersededWorkError, ClosureError, WriteDeadlineExceeded) as error:
+    except (
+        SupersededWorkError,
+        derivations.NondeterministicOutputError,
+        ClosureError,
+        WriteDeadlineExceeded,
+    ) as error:
         # An overrun is contained like any other failed completion; it used to
         # escape as a non-build error and abort the whole cycle (D-0199).
         # The immutable files can survive a stale worker. They cannot become a

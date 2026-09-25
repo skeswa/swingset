@@ -29,4 +29,4 @@ Keeping those times separate helps prevent old evidence from replacing newer fac
 - [Scheduling](../reference/scheduling.md): which work runs next.
 - [Historical collection](../reference/backfill.md): dates, archive selection, and coverage.
 - [Source guides](../reference/sources/README.md): details for each site.
-- Code: [fetch](../../src/swingset/fetch/client.py) and [source adapters](../../src/swingset/sources/__init__.py).
+- Code: [fetch](../../src/swingset/fetch/client.py) and [source adapters](../../src/swingset/sources/registry.py).

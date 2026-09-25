@@ -49,6 +49,7 @@ from .derivations import interned
 ARTIFACT_DIRECTORIES = ("blobs", "extracts", "inputs")
 HOLD_FORMAT = "retention-hold-v1"
 PLAN_FORMAT = "retention-plan-v1"
+CANDIDATE_PLAN_FORMAT = "retention-candidate-plan-v1"
 SIZE_CAP_REASON = "state database file is over its retention size cap"
 #: What an operator can actually do about the cap. `gc --apply` frees pages
 #: inside the file and `gc --reclaim` gives them back to the filesystem, which
@@ -615,13 +616,29 @@ def archived_generations(conn: sqlite3.Connection) -> frozenset[str]:
     )
 
 
-def _dependency_sets(conn: sqlite3.Connection) -> dict[str, str | None]:
-    return {
-        str(row[0]): (None if row[1] is None else str(row[1]))
+def _dependency_sets(conn: sqlite3.Connection) -> dict[str, tuple[str, ...]]:
+    """Every labelled generation and the dependency sets that name its inputs.
+
+    A generation's own set comes first. An equivalence says a later run with
+    other inputs produced the same output, so its set names inputs the kept
+    generation now stands for; the walk follows those too
+    ([D-0206](../../../journal/decisions/0206-add-migration-33-after-interning.md)).
+    """
+    sets: dict[str, tuple[str, ...]] = {
+        str(row[0]): (() if row[1] is None else (str(row[1]),))
         for row in conn.execute(
             "SELECT generation_id,dependency_set_id FROM derivation_generations"
         )
     }
+    if "derivation_equivalences" in _tables(conn):
+        for generation_id, set_id in conn.execute(
+            "SELECT DISTINCT generation_id,dependency_set_id FROM derivation_equivalences "
+            "ORDER BY generation_id,dependency_set_id"
+        ):
+            named = sets.get(str(generation_id))
+            if named is not None and str(set_id) not in named:
+                sets[str(generation_id)] = (*named, str(set_id))
+    return sets
 
 
 def _children(conn: sqlite3.Connection, dependency_set_id: str | None) -> tuple[str, ...]:
@@ -652,17 +669,25 @@ def reachable(
     the walk, so it is reported rather than followed.
     """
     sets = _dependency_sets(conn)
+    # Keyed by dependency set, not generation: many generations and their
+    # equivalences share one set, and each set is decoded once. Sets that name
+    # the same children share one tuple: each history replay records a new
+    # root set naming the same ~32k generations, so memory follows distinct
+    # children, not the number of deploys (I10).
     edges: dict[str, tuple[str, ...]] = {}
+    shared: dict[tuple[str, ...], tuple[str, ...]] = {}
 
-    def children(generation_id: str) -> tuple[str, ...]:
-        if generation_id not in edges:
-            try:
-                edges[generation_id] = _children(conn, sets[generation_id])
-            except ClosureError as exc:
-                raise RetentionError(
-                    f"unreadable dependency manifest for generation {generation_id}: {exc}"
-                ) from exc
-        return edges[generation_id]
+    def children(generation_id: str) -> Iterator[str]:
+        for set_id in sets[generation_id]:
+            if set_id not in edges:
+                try:
+                    found = _children(conn, set_id)
+                    edges[set_id] = shared.setdefault(found, found)
+                except ClosureError as exc:
+                    raise RetentionError(
+                        f"unreadable dependency manifest for generation {generation_id}: {exc}"
+                    ) from exc
+            yield from edges[set_id]
 
     reasons: dict[str, set[str]] = {}
     absent: set[str] = set()
@@ -849,7 +874,64 @@ def plan(
         "unknown": unknown,
         "totals": _totals(generations, reached, unknown, files, measured),
     }
+    # Only when there are any, so a plan without them keeps its digest.
+    equivalences = equivalence_totals(conn)
+    if equivalences and (
+        equivalences["derivation_equivalences"] or equivalences["source_equivalences"]
+    ):
+        content["equivalences"] = equivalences
     return Plan({**content, "digest": _digest(content)})
+
+
+def equivalence_totals(conn: sqlite3.Connection) -> dict[str, int] | None:
+    """Output-cutoff rows (schema 33) and how many the collector rule keeps.
+
+    Nothing collects them yet (invalidation step 3). A derivation equivalence
+    stays live while its fingerprint is the scope's desired one or it is the
+    newest naming the scope's pointer; a source equivalence while its
+    fingerprint is the unit's desired one ([D-0206](../../../journal/decisions/0206-add-migration-33-after-interning.md)).
+    Root sets are dependency sets only equivalences name. None before schema 33.
+    """
+    if "derivation_equivalences" not in _tables(conn):
+        return None
+
+    def one(sql: str) -> int:
+        return int(conn.execute(sql).fetchone()[0] or 0)
+
+    return {
+        "derivation_equivalences": one("SELECT count(*) FROM derivation_equivalences"),
+        "derivation_equivalences_live": one(
+            "SELECT count(*) FROM derivation_equivalences e JOIN derivation_scopes s "
+            "USING(stage,unit_kind,unit_id) WHERE e.input_fingerprint=s.desired_fingerprint "
+            "OR (e.generation_id=s.materialized_generation_id AND e.created_at=("
+            "SELECT max(n.created_at) FROM derivation_equivalences n WHERE n.stage=e.stage "
+            "AND n.unit_kind=e.unit_kind AND n.unit_id=e.unit_id "
+            "AND n.generation_id=e.generation_id))"
+        ),
+        "derivation_recipes": one("SELECT count(*) FROM derivation_recipes"),
+        "derivation_recipe_bytes": one(
+            "SELECT sum(octet_length(recipe_json)) FROM derivation_recipes"
+        ),
+        "root_sets": one(
+            "SELECT count(DISTINCT e.dependency_set_id) FROM derivation_equivalences e "
+            "WHERE NOT EXISTS (SELECT 1 FROM derivation_generations g "
+            "WHERE g.dependency_set_id=e.dependency_set_id)"
+        ),
+        "root_set_bytes": one(
+            "SELECT sum(octet_length(d.manifest_json)) FROM derivation_dependency_sets d "
+            "WHERE d.dependency_set_id IN (SELECT e.dependency_set_id "
+            "FROM derivation_equivalences e WHERE NOT EXISTS (SELECT 1 FROM "
+            "derivation_generations g WHERE g.dependency_set_id=e.dependency_set_id))"
+        ),
+        "source_equivalences": one("SELECT count(*) FROM source_equivalences"),
+        "source_equivalences_live": one(
+            "SELECT count(*) FROM source_equivalences e JOIN source_units u "
+            "USING(unit_key) WHERE e.input_fingerprint=u.desired_fingerprint"
+        ),
+        "source_recipe_bytes": one(
+            "SELECT sum(octet_length(recipe_json)) FROM source_equivalences"
+        ),
+    }
 
 
 def _generation_rows(
@@ -919,8 +1001,9 @@ def _file_rows(
 
     A file nothing declares is unknown, and unknown is never eligible. A
     candidate directory is different: the collector already keeps the baseline,
-    every pending candidate and the five newest built ones, and drops the rest,
-    so those are named `removable` for the apply step to act on.
+    every pending candidate, the five newest built ones and any a selected
+    build generation names, and drops the rest, so those are named `removable`
+    for the apply step to act on (`_candidate_rows`).
 
     A removable candidate carries `eligible_after`: its own modification time
     plus the collector's age floor. That floor is the only thing standing
@@ -949,7 +1032,51 @@ def _file_rows(
             rows.append(
                 {"path": relative, "list": listed, "why": why, "bytes": path.stat().st_size}
             )
+    rows.extend(_candidate_rows(conn, state_dir, collect_older_than=collect_older_than))
+    return rows, unknown, missing
+
+
+def built_candidates(conn: sqlite3.Connection) -> set[str]:
+    """Candidate ids the selected build generations name (release, correction).
+
+    A build reuses the candidate its generation names, so neither plan
+    removes one, whatever its age.
+    """
+    if not _has_derivation_rows(conn):
+        return set()
+    return {
+        str(row[0])
+        for row in conn.execute(
+            "SELECT r.record_key FROM derivation_scopes s JOIN derivation_rows r "
+            "ON r.generation_id=s.materialized_generation_id "
+            "WHERE s.stage='build' AND r.table_name='artifact'"
+        )
+    }
+
+
+def _has_derivation_rows(conn: sqlite3.Connection) -> bool:
+    names = {
+        str(row[0])
+        for row in conn.execute(
+            "SELECT name FROM sqlite_master WHERE name IN ('derivation_scopes','derivation_rows')"
+        )
+    }
+    return names == {"derivation_scopes", "derivation_rows"}
+
+
+def _candidate_rows(
+    conn: sqlite3.Connection, state_dir: Path, *, collect_older_than: float
+) -> list[dict[str, Any]]:
+    """Each candidate directory, kept or removable, as both plans list it.
+
+    Kept: the baseline, every pending candidate, the five newest built ones
+    and any a selected build generation names. The rest are removable once
+    past the age floor.
+    """
+    candidates = referenced_candidates(state_dir)
     retained = {path.resolve() for path in disposable_candidates(state_dir)[:5]} | candidates
+    built = built_candidates(conn)
+    rows: list[dict[str, Any]] = []
     candidate_root = state_dir / "candidates"
     if candidate_root.is_dir():
         for path in sorted(candidate_root.iterdir()):
@@ -966,6 +1093,10 @@ def _file_rows(
                 rows.append(
                     {"path": _relative(state_dir, path), "list": "local", "why": "recent_candidate"}
                 )
+            elif path.name in built:
+                rows.append(
+                    {"path": _relative(state_dir, path), "list": "local", "why": "built_candidate"}
+                )
             else:
                 rows.append(
                     {
@@ -980,7 +1111,37 @@ def _file_rows(
                         "eligible_after": path.stat().st_mtime + collect_older_than,
                     }
                 )
-    return rows, unknown, missing
+    return rows
+
+
+def _tree_bytes(path: Path) -> int:
+    return sum(item.stat().st_size for item in path.rglob("*") if item.is_file())
+
+
+def candidate_plan(conn: sqlite3.Connection, state_dir: Path, *, collect_older_than: float) -> Plan:
+    """A plan that names candidate directories only and walks no graph.
+
+    The full plan walks every generation's dependencies, which the 8 GB worker
+    cannot finish. This one reads the candidate directories, the baseline and
+    pending markers and the selected build generations, so it runs where disk
+    is short. `gc --apply --candidates-only` recomputes it under both locks.
+    Its removable rows are the full plan's removable candidate rows.
+    """
+    files = _candidate_rows(conn, state_dir, collect_older_than=collect_older_than)
+    removable = [row for row in files if row["list"] == "removable"]
+    content: dict[str, Any] = {
+        "format": CANDIDATE_PLAN_FORMAT,
+        "knobs": {"collect_older_than": collect_older_than},
+        "files": files,
+        "totals": {
+            "candidates": len(files),
+            "removable_candidates": len(removable),
+            "removable_candidate_bytes": sum(
+                _tree_bytes(state_dir / str(row["path"])) for row in removable
+            ),
+        },
+    }
+    return Plan({**content, "digest": _digest(content)})
 
 
 def _relative(state_dir: Path, path: Path) -> str:

@@ -13,7 +13,7 @@ from swingset.state.work import WorkUnit, enqueue
 
 def test_stale_shared_cohort_avoids_per_event_dependencies(registry_fixture, monkeypatch):
     f = registry_fixture
-    f.conn.execute("UPDATE accepted_inputs SET digest='changed' WHERE input_name='recipe/runtime'")
+    f.conn.execute("UPDATE accepted_inputs SET digest='changed' WHERE input_name='recipe/env'")
     calls = []
     original = derivation_dependencies.dancer_prerequisites
 
@@ -54,9 +54,7 @@ def test_caller_transaction_write_and_rollback_recompute(registry_fixture):
     with f.db.transaction(), derivation_query.read_snapshot(f.conn):
         assert all_dancers_current(f.conn)
         f.conn.execute("SAVEPOINT change")
-        f.conn.execute(
-            "UPDATE accepted_inputs SET digest='changed' WHERE input_name='recipe/runtime'"
-        )
+        f.conn.execute("UPDATE accepted_inputs SET digest='changed' WHERE input_name='recipe/env'")
         assert not all_dancers_current(f.conn)
         f.conn.execute("ROLLBACK TO change")
         f.conn.execute("RELEASE change")
@@ -69,7 +67,7 @@ def test_concurrent_input_change_visible_only_after_snapshot(registry_fixture):
         with derivation_query.read_snapshot(f.conn):
             assert all_dancers_current(f.conn)
             other.execute(
-                "UPDATE accepted_inputs SET digest='changed' WHERE input_name='recipe/runtime'"
+                "UPDATE accepted_inputs SET digest='changed' WHERE input_name='recipe/env'"
             )
             assert all_dancers_current(f.conn)
         with derivation_query.read_snapshot(f.conn):

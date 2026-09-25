@@ -8,6 +8,7 @@ from swingset.clock import FakeClock
 from swingset.project.materialization import output_rows
 from swingset.project.process import process_unit
 from swingset.state.derivations import capture, current, selected_generation
+from swingset.state.recipe_scope import PROJECTORS
 from swingset.state.work import WorkUnit
 
 
@@ -19,8 +20,15 @@ def test_scheduled_undated_proxy_preserves_enriched_map(enriched_source_event): 
     mapping = WorkUnit("project", "map", "all")
     with db.transaction():
         conn.execute(
-            "INSERT INTO accepted_inputs VALUES ('pipeline','recipe/runtime','fixture-runtime')"
+            "INSERT INTO accepted_inputs VALUES ('pipeline','recipe/env','fixture-runtime') "
+            "ON CONFLICT(consumer,input_name) DO UPDATE SET digest=excluded.digest"
         )
+        # A scoped runtime names every project code scope (recipes fail closed).
+        for kind in PROJECTORS:
+            conn.execute(
+                "INSERT OR IGNORE INTO accepted_inputs VALUES ('pipeline',?,'fixture-scope')",
+                (f"recipe/code/project/{kind}",),
+            )
         conn.execute(
             "UPDATE source_events SET source_ref=? WHERE source_ref='109'", (proxy.unit_id,)
         )

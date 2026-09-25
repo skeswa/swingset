@@ -146,6 +146,27 @@ def test_pending_item_pressure_does_not_require_artifact_rows(tmp_path):
         assert report["active"]
 
 
+def test_derivation_hints_do_not_pause_acquisition(tmp_path):
+    """A code-only deploy queues every project and link unit as a hint; a
+    derivation backlog must not close fetching (D-0214). Parse work does."""
+    with open_database(tmp_path) as db:
+        config = Config({}, {}, scheduler=replace(SchedulerConfig(), pending_work_items=3))
+        at = FakeClock().now().isoformat()
+        enqueue(
+            db.connection,
+            (
+                *(WorkUnit("project", "dancer", str(i)) for i in range(5)),
+                *(WorkUnit("link", "event", str(i)) for i in range(5)),
+            ),
+            enqueued_at=at,
+        )
+        assert not backpressure(db.connection, config)["active"]
+        enqueue(
+            db.connection, (WorkUnit("parse", "snapshot", str(i)) for i in range(3)), enqueued_at=at
+        )
+        assert backpressure(db.connection, config)["reasons"] == ["pending_work_items"]
+
+
 def test_report_keeps_objectives_separate_and_supports_unmigrated_schema12(tmp_path):
     clock = FakeClock()
     with open_database(tmp_path) as db:
@@ -231,3 +252,39 @@ def test_build_is_deferred_only_while_backlog_and_fresh_baseline_coincide(tmp_pa
     # An old enough baseline builds even under backlog.
     published.write_text(json.dumps({"verified_at": (now - timedelta(hours=7)).isoformat()}))
     assert build_deferred_for_backlog(tmp_path, config, pressure=active, now=now) is False
+
+
+def test_a_kind_without_a_code_scope_leaves_the_other_kinds_runnable(tmp_path, monkeypatch):
+    # recipe_inputs fails closed for a kind with no accepted code scope. On
+    # the readiness path (a unit with a generation compares its certificate,
+    # which reads the recipe) that error must cost only that kind (I1).
+    from swingset.state import derivations
+    from swingset.state.recipes import recipe_inputs
+
+    ready = derivations.ready
+
+    def certified(conn, unit):
+        recipe_inputs(conn, unit.stage, unit.unit_kind)
+        return ready(conn, unit)
+
+    monkeypatch.setattr(derivations, "ready", certified)
+    clock = FakeClock()
+    dancer = WorkUnit("project", "dancer", "dancer")
+    calendar = WorkUnit("project", "calendar", "calendar")
+    with open_database(tmp_path) as db:
+        conn = db.connection
+        conn.executemany(
+            "INSERT INTO accepted_inputs VALUES ('pipeline',?,?)",
+            (("recipe/env", "env"), ("recipe/code/project/calendar", "calendar")),
+        )
+        enqueue(conn, [dancer, calendar], enqueued_at=clock.now().isoformat())
+        errors: dict[str, str] = {}
+        selected = []
+        while batch := next_offline_batch(
+            conn, now=clock.now(), exclude=selected, limit=10, errors=errors
+        ):
+            selected.extend(batch)
+        assert selected == [calendar]
+        assert errors == {
+            "project/dancer": "accepted runtime has no code scope recipe/code/project/dancer"
+        }

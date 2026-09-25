@@ -144,7 +144,9 @@ already processed under the previous bundle.
 | Changed input                                                                                                   | Work enqueued in the same transaction                                                                                               |
 | --------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
 | New snapshot                                                                                                    | Parse that snapshot                                                                                                                 |
-| Captured runtime artifact changes, even with unchanged version labels                                           | Parse retained snapshots with the new recipe; project and link desired fingerprints change                                          |
+| `recipe/env`: interpreter, installed distributions, pyproject's `[project]` table                               | Parse every retained snapshot; queue every project and link unit as a hint; identical output keeps its generation                   |
+| A kind's extract or parse code scope, even with unchanged version labels                                        | As that kind's `EXTRACT_VERSION` or `PARSER_VERSION` change below                                                                   |
+| A project, link or build code scope                                                                             | Queue that kind's project units, or every link unit, as hints; build none. Identical output keeps its generation                    |
 | `EXTRACT_VERSION` for a page kind                                                                               | Parse every archived snapshot of that kind, re-extracting before parsing; invalidate the watch's cached extract fingerprint version |
 | `PARSER_VERSION` for a page kind                                                                                | Parse every archived snapshot of that kind from its stored extract                                                                  |
 | Successful parse changing current observations                                                                  | Project their old and new scopes; calendar or index changes enqueue the map unit                                                    |
@@ -179,7 +181,17 @@ an observation also removes its former canonical rows.
 Link drains one event at a time, applying assignment, link rows,
 candidates, and linked columns in one transaction. It does not dirty
 itself through its own writes. Every unit deletes its queue hint only
-in the transaction committing its output. Project and link commit their
+in the transaction committing its output. A project or link hint whose unit
+is already current (an A->B->A deploy) is deleted by offline selection once
+its read snapshot closes, unless it was queued again since
+(`derivations.drop_current_hints`). It matches a hint by an unchanged
+`enqueued_at`. That is safe only because selection and the delete run back
+to back under the single writer, and because a hint only helps the
+watchdog: `candidate_units` also walks every known unit, so a lost hint
+loses no work. Keep no write between the two. Each delete bumps
+`history_dispatch_fence` (the 0029 trigger), so a large drop, about 35,800
+after an A->B->A deploy, voids any acquisition dispatch proof taken earlier
+in that cycle, as unit runs already do. Project and link commit their
 materialized generation in that transaction too. If a unit cannot complete,
 it remains unfinished and downstream stages do not consume partial work.
 Parse's handled failures are defined in [parsing](parsing.md#version-changes-and-failures).
@@ -252,7 +264,9 @@ postcondition check for review findings.
 
 `finding_support` retains the accepted owner evidence for review findings.
 `requirement_transitions` and `requirement_attempts` survive inventory-row
-loss. `requirement_scan` stores a bounded keyset cursor across all retained
+loss. A work attempt that succeeds with no finding for its requirement writes
+no `requirement_attempts` row (D-0213), so a finding's `attempt_count` counts
+from its first unmet attempt. `requirement_scan` stores a bounded keyset cursor across all retained
 years. Each cycle checks at most 100 scopes before ordinary work. A later
 page or pass recreates a deleted requirement from its support. Removed scopes
 retire explicitly; they are not counted as successful repairs.
@@ -442,21 +456,75 @@ SQLite change tokens advance in the same transaction as relevant inputs.
 Completion records a signature of those tokens and the selected recipe. An
 unchanged signature permits reuse of the already checked exact manifest; changed
 tokens require the full comparison. Tokens cannot create a materialized pointer.
+A `watch` token, and the `source_selections` token that source_index and
+inventory certificates read, move when a watch's snapshots change or when a
+source unit's `watch_id`, `unit_key`, `accepted_generation_id` or
+`legacy_snapshot_id` changes; a write of `desired_fingerprint` alone moves
+neither (schema 33).
+Migration 33 also adds the `derivation_recipes`,
+`derivation_equivalences` and `source_equivalences` tables for output cutoff.
+A generation is materialized for a fingerprint when it was written for that
+fingerprint or an equivalence row names the scope, the fingerprint and that
+generation (`materialized_for`; `source_materialized_for` for parse). Reuse in
+`desired()`, the slow path of `current()`, and the calendar replay guard
+(`current_for`) all ask this; an equivalence for another generation of the
+scope does not count. Build still also checks its artifacts.
+Each prerequisite kind has a `replayed` token, keyed `[stage, kind]`. A
+unit's dependencies list it as a direct `replay` entry per prerequisite kind,
+never inside a `selected_*` set, and its certificate adds it wherever it reads a
+kind's selected epoch or generation. `bump_replay` moves it, so dependents
+re-run when a cutoff keeps a generation id but changes live rows. It also
+queues a hint for every registered unit of each kind that reads the epoch
+(`INSERT OR IGNORE`, so a queued unit keeps its time; a new one gets the
+run's clock), since the watchdog sees only `pending_work`. Calendar,
+dancer and source_index have no prerequisites and no replay entry. Adding the
+entry changed every dependent fingerprint once.
 Shared dependency manifests are memoized only within a query, with changes on
 the same or another connection invalidating that memoization.
 
 Each selection binds its scope, recipe, ordered dependencies, and context.
-Recipes retain package source, SQL schemas and other package data, project lock
-inputs when present, interpreter identity, and installed dependency manifest
-digests. The captured files remain in the immutable input bundle. Installed
-RECORD hashes identify dependencies; they do not audit every installed binary.
-Manual version labels remain descriptive. Relevant override and policy inputs
-join each stage's recipe; scheduler allocations do not.
+The input bundle keeps every package file, SQL schemas and package data
+included, plus project lock inputs, interpreter identity and installed
+dependency manifest digests. Installed RECORD hashes identify dependencies;
+they do not audit every installed binary. Manual version labels remain
+descriptive. Relevant override and policy inputs join each stage's recipe;
+scheduler allocations do not.
 
-Known cost: the runtime recipe covers the whole package for every stage, so
-any source change re-parses, re-projects and re-links everything, even when
-the output is identical. Scoping the recipe per stage and page kind is
-[queued](../plans/README.md#maintenance-queue).
+A recipe names code by scope, not the whole package
+([D-0207](../../journal/decisions/0207-scope-code-recipes-by-import-closure.md)).
+`recipes/scopes.json` lists, by digest, the files in each scope's static import
+closure over the captured bytes: every `import` anywhere in a module, parent
+package `__init__` files, and non-Python files beside a reached module or in
+its non-package subdirectories; never fixtures. `state/recipe_scope.py` holds
+the entries:
+
+| Scope                             | Entries                                                                                                                                                                                 |
+| --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `recipe/code/extract/<kind>`      | `sources.registry`, the owning adapter, `fetch.archive`                                                                                                                                 |
+| `recipe/code/parse/<kind>`        | the extract entries' registry and adapter, `admission.contracts`, `.report`, `.generations`, `model.observations`; `schedule.parse` and `recipe_scope.PARSE_WRITERS` by their own bytes |
+| `recipe/code/project/<unit_kind>` | `project.process`, `project.materialization`, the kind's projector                                                                                                                      |
+| `recipe/code/link`                | `link.service`, `link.persistence`                                                                                                                                                      |
+| `recipe/code/build`               | `build.service`, `build.generations`                                                                                                                                                    |
+
+`recipe/env` digests `environment.json` and `project.json`, pyproject's
+`[project]` table; the whole `pyproject.toml` and `uv.lock` are kept in the
+bundle but a `[tool.*]` edit or a dev-dependency bump changes no recipe. A
+project unit's recipe is its kind's project scope, `recipe/env`,
+`policy/history_start` and its overrides; link and build likewise. A parse
+recipe is `recipe/env`, `policy/history_start` and the kind's two scopes.
+Every package path is in a scope or in `EXCLUDED`, with a reason; a test
+enforces this. A bundle captured before scopes still yields the package-wide
+`recipe/runtime`; after the first scoped bundle that input stays at the
+absent digest.
+
+Known cost: the package is one import cycle, so each project, link and build
+scope holds about 214 files. An edit inside the cycle re-runs every project and
+link unit; identical output keeps its generation (below), so this costs CPU,
+not generations. Parse scopes hold 39 to 47 files, and a non-parser change
+re-queues no parse. A shallow entry adds its own bytes and its packages'
+`__init__`, not its imports or data files; tests pin which of its imports
+fall outside its scope. A parse _retry_ still keys on `version/repository`,
+so any deploy re-opens blocked parse attempts without re-parsing others.
 
 The projection order is calendar, source index, and dancer scopes; history
 inventory; source mapping; event scopes; then history association and coverage.
@@ -512,9 +580,11 @@ otherwise it raises and the whole migration rolls back with the old table
 intact. It needs about twice the old table's bytes free while it runs. The drop
 returns pages to SQLite's free list and does not shrink the file on disk.
 
-Interning is the last migration on purpose, so schemas 30 and 31 are deployable
-without it
-([D-0167](../../journal/decisions/0167-intern-derivation-payloads-in-the-last-migration.md)).
+Interning was the last migration on purpose, so schemas 30 and 31 are
+deployable without it
+([D-0167](../../journal/decisions/0167-intern-derivation-payloads-in-the-last-migration.md));
+migration 33 follows it now that production is interned
+([D-0206](../../journal/decisions/0206-add-migration-33-after-interning.md)).
 At those schemas `derivation_rows` is still the one table: `retain_output`
 writes it directly, no payload bytes can be missing, no payload can be removed,
 and the plan says which of the two shapes it measured under
@@ -522,7 +592,7 @@ and the plan says which of the two shapes it measured under
 either way, because it is a table before the split and a view after it.
 
 Completion rechecks the selected inputs and prior materialized pointer. It reads
-the output rows once. A new generation streams them through `retain_output`,
+the output rows once unless it considers a cutoff (below). A new generation streams them through `retain_output`,
 which stores them and records the generation from what it stored; a repeat of an
 existing generation only fingerprints them and is rejected when the digest or row
 count differs; it reads and writes no stored row, and it does not bring archived
@@ -535,7 +605,59 @@ generations retain exact dependency references even after newer inputs arrive.
 Equal inputs with different output are rejected. H12 attempt controls still
 govern retries; they cannot make unfinished derivations disappear.
 
-Snapshot extract reuse additionally requires its captured runtime recipe hash.
+A project or link re-run whose output equals its selected generation's keeps
+that id: an early cutoff
+([D-0205](../../journal/decisions/0205-cut-off-identical-derivation-output.md)).
+`complete()` takes its rows as a callable or a sequence, which it may read
+twice; `materializing()` passes a callable, and a bare iterator never cuts
+off. It considers a cutoff only when the pointer is the one the selection saw,
+no sibling in its consistency group captured its provisional id (such a member
+is pinned), and its closure groups equal the kept generation's: direct
+`derivation` entries and the `selected_*`, `source_observations` and
+`calendar_observations` sets. Release closure and retention follow only those,
+so every walk over the kept id matches one over the re-run. It then reads the
+rows once without writing, fences the inputs again, and compares the digest and
+row count with the kept label. On a match it stores the dependency sets, a
+`derivation_recipes` row and a `derivation_equivalences` row, and updates only
+`desired_fingerprint`; the pointer and the `selected` epoch stay. The group,
+`selected_generation()` and the certificate use the kept id. If `canonical`,
+`dancers`, `links`, `source_event_map`, `source_events` or `observations`
+moved between capture and completion, the replay rewrote live rows, and the
+kind's replay epoch moves once the group has certified. Otherwise it stores the
+rows from a second read, which must match the first. Build never cuts off.
+`events.coverage_tier` belongs to history, so no other scope's output records
+it. A calendar, map, event or dancer generation from before phase 1 did, so the
+comparison takes that one column out of the kept rows first
+(`materialization.moved_columns`,
+[D-0212](../../journal/decisions/0212-cut-off-across-the-moved-column-and-held-parses.md));
+the build applies history's value last either way. A re-run of a generation it reuses, by fingerprint or equivalence, moves
+the replay epoch the same way, and a calendar, inventory or map reuse replays
+the continuity support recorded with that equivalence. Output that differs
+for identical inputs raises `NondeterministicOutputError`, a failed attempt
+with a retry clock. `[derivation] cutoff = false` in `config/sources.toml`
+turns cutoff off for parse and derivation alike (`swingset/cutoff.py`, set per
+unit by `derive_one`, by `run_intake` and by `accept-year`; the offline
+evidence and recording imports and `review_pack` take no config and keep it
+on); recorded equivalences stay readable.
+`recipe_inputs` fails closed: once `recipe/env` is accepted, a project, link
+or build unit whose code scope is not accepted raises `RecipeScopeMissing`.
+Offline selection then skips that kind only, names it in the cycle summary's
+`readiness_errors` and fails the cycle; the other kinds keep running.
+`pending_units` counts such a unit as pending, so readers that ask whether
+work remains fail closed instead of raising out of the cycle.
+
+Equivalences, their recipes and their root dependency sets are immutable, not
+permanent (D-0206). Nothing collects them yet; invalidation step 3 will, by
+this rule: a derivation equivalence is live while its fingerprint is the
+scope's `desired_fingerprint` or it is the newest naming the scope's pointer;
+a source equivalence while its fingerprint is the unit's; a recipe while a
+live equivalence names it. `gc --plan` reports their counts, live counts,
+recipe bytes and the root sets only equivalences name, under `equivalences`.
+A code-only deploy adds about 35,800 derivation equivalences and 33,000 root
+sets.
+
+Snapshot extract reuse additionally requires the kind's extract scope digest
+(`recipe/runtime` for a bundle from before scopes).
 An unchanged body and manual extractor version cannot reuse an extract from a
 different artifact. A failed extraction never relabels a previous extract.
 
@@ -564,10 +686,33 @@ selected archive URL, rather than the greatest historical capture time. The
 attempt retains that selected URL so a changed watch can veto stale completion.
 
 Selection compares current inputs and guards in the same transaction as the
-observation writer and downstream invalidation. A source miss is dated absence
+observation writer and downstream invalidation. The recipe's inputs, and that
+comparison, cover only the page kind's parse inputs: its recipe and its two
+version labels (`admission.generations.parse_inputs`, D-0207). An unrelated
+accepted input does not supersede an in-flight parse. A source miss is dated absence
 evidence, never deletion permission. Revocation records its explicit evidence,
 withdraws only that generation's source claims, and cannot be reversed by
 retrying the same input fingerprint.
+
+Migration 33 adds immutable `source_equivalences(unit_key, input_fingerprint,
+generation_id, recipe_json, work_token, created_at, run_id)`. A re-parse whose
+result, report, contract and manifest equal the kept generation's writes one
+row instead of a generation (D-0205; rules in
+[parsing](parsing.md#source-admission-h6-and-h7)). The kept generation is the
+accepted one, a shadow unit's undecided one, or an enforced unit's newest
+generation held in `needs_review` or `waiting_for_inputs` when admission would
+hold the parse the same way; the parse then reports that state with no new
+decision (D-0212). A repeat of the kept
+fingerprint writes nothing. `admission.select.source_materialized_for` treats a
+row as a parse of that fingerprint, and admission's currency check uses it.
+Updating only `desired_fingerprint` moves no derivation watch token. A revoked
+generation also revokes the fingerprints its equivalences name
+(`admission.generations.revoked_fingerprint`; the evidence readers use
+`schedule.event_evidence.REVOKED_EVIDENCE`), so the same inputs cannot be
+accepted again after a cutoff. The readers also refuse by snapshot and
+parser label, and an equivalence shares its generation's recipe label, so
+that query returns one row per revoked generation, plus any equivalence
+whose label differs; re-parses do not spend the readers' row budgets.
 
 `admission.support.interpretation_support` is the read-only publication check.
 It distinguishes accepted support, explicit revocation, legacy unassessed
@@ -591,6 +736,11 @@ run/work-attempt/candidate references and active, uncertain or settled state.
 A request additionally records its host. Local derivations have no host scope.
 The short control mutex serializes pause servicing with new admission; output
 settlement joins the existing unit transaction without reacquiring that mutex.
+A parse, project or link unit that commits its output deletes its admission and
+dependency rows in that transaction; only unsettled admissions are read, and
+its work attempt keeps the run, times and outcome. Every other outcome and
+action kind keeps its settled admission
+([D-0213](../../journal/decisions/0213-keep-no-bookkeeping-a-committed-run-does-not-need.md)).
 An acknowledged pause fences later admissions while prior work drains.
 Restore activation recovers abandoned admissions for every schema that has
 `execution_admissions`, starting at schema 12. Local and request actions settle
@@ -672,7 +822,9 @@ for one scope; the walk collects by generation id and allows many per scope, and
 the one-per-scope rule stays where it is, in release validation. It does not
 follow `previous_generation_id`. So a recent link generation keeps the older
 project generation it was built from, even after that scope has moved on, and
-the window only picks roots; it never replaces the walk.
+the window only picks roots; it never replaces the walk. A generation with
+equivalences also names their dependency sets, and the walk follows those too.
+Each dependency set is decoded once per walk, however many generations share it.
 
 Files are the same closure a checkpoint uses: everything snapshots, source
 generations, hosts, open findings' declared references, input bundles, the

@@ -146,6 +146,11 @@ digest, removes the files the plan named, and writes one receipt. If an earlier
 apply was killed before its files went, it also finishes the files its own fresh
 plan still calls removable and leaves the rest, naming them in that note's
 receipt.
+`--candidates-only` with `--plan` or `--apply` plans and applies candidate
+directories alone (`retention.candidate_plan`): no graph walk, so it fits the
+8 GB worker, where the full plan does not. It names the same removable
+candidates as the full plan, keeps any a selected build generation names, and
+prints the equivalence counts (D-0208's trigger) outside its digest.
 `gc --closures` lists the release-closure proofs in the database and names
 every reason one is kept; it removes nothing and prints the digest to collect.
 `gc --collect-closures <digest>` recomputes that list under both locks, stops

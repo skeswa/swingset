@@ -6,7 +6,7 @@ from swingset.model.observations import decode_payload, encode_payload
 from swingset.sources import get_page_kind
 from swingset.sources.base import ExtractError, ParseContext, ParseError
 from swingset.sources.records import RoundSheet
-from swingset.sources.steprightsolutions import SOURCE, EventPage, IndexPage, RoundPage
+from swingset.sources.steprightsolutions.adapter import SOURCE, EventPage, IndexPage, RoundPage
 from swingset.sources.steprightsolutions.records import callback_mark
 
 FIXTURES = Path(__file__).parent / "fixtures" / "sources" / "steprightsolutions"

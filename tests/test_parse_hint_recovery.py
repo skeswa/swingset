@@ -205,7 +205,10 @@ def test_relevant_changed_fingerprint_reopens_own_terminal_attempt(event):
         f.db, attempt, outcome="blocked", reason_code="retained_guard", now=f.corpus.clock.now()
     )
     forget(f, unit)
-    f.conn.execute("INSERT INTO accepted_inputs VALUES('pipeline','recipe/runtime','changed')")
+    f.conn.execute(
+        "INSERT INTO accepted_inputs VALUES('pipeline','recipe/env','changed') "
+        "ON CONFLICT(consumer,input_name) DO UPDATE SET digest=excluded.digest"
+    )
     assert recover(f)["enqueued"] == 1
     assert next_work(f.conn, "parse", now=f.corpus.clock.now()) == unit
     assert (

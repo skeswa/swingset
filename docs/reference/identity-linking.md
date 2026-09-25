@@ -276,7 +276,10 @@ registry numbers remain named, unmatched, and fully usable in marks.
 
 Each committed resolution records its token and cause. Accepted, revoked,
 unresolved, and superseded assertions remain in append-only history, including
-assertions removed by canonical reprojection. Linking rechecks the journal token
+assertions removed by canonical reprojection. A re-run that would write the
+same link, candidates, resolution and evidence leaves the subject's rows and
+history alone, so history holds one row pair per change, not per run
+([D-0209](../../journal/decisions/0209-identity-history-records-changes-only.md)). Linking rechecks the journal token
 inside its write transaction. A concurrent acceptance rolls back obsolete output
 and leaves required relinking queued. Checkpoint tests restore the journal,
 accepted input and artifacts, and reference migrations exactly; an unaccepted

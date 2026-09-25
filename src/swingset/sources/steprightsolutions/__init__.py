@@ -1,3 +1,1 @@
-from .adapter import SOURCE, EventPage, IndexPage, RoundPage
-
-__all__ = ["SOURCE", "EventPage", "IndexPage", "RoundPage"]
+"""StepRightSolutions. Import `adapter` or `records` directly; this package imports nothing."""

@@ -1,0 +1,119 @@
+{
+  "operation": "architecture phase 0a: approved deletion of three timer checkpoints, switch to the 0a tree (progress watchdog, local-only backups), first local backup",
+  "actor": "claude (session claude-rearch)",
+  "decisions": [
+    "D-0202",
+    "D-0203"
+  ],
+  "independent_check": {
+    "reviewer": "second agent (Claude Opus), read-only, 2026-09-26 20:57-21:30 UTC",
+    "verdict": "APPROVE WITH CONDITIONS",
+    "findings": "run_20260925T040025Z verified with the full restore check (640 s); 0 blobs/extracts/inputs unique to the three deleted checkpoints; room after deletion about 134.7 GB against 83.6 GB needed"
+  },
+  "backup_copy": {
+    "path": "Mac ~/swingset-offload/state-20260926.sqlite",
+    "method": "SQLite backup API from the live database, 2026-09-26T20:56:49Z to 21:00:37Z",
+    "bytes": 46632091648,
+    "quick_check": "ok",
+    "sha256": "d497c17213a617091020a2d6a68e01a0466482c27a409bd4bba70e73f2a1f283",
+    "older_copy_kept": "~/swingset-offload/state-20260924.sqlite (sha256 f3ca54f3...0330f)"
+  },
+  "deploy_tree": {
+    "path": "/private/tmp/swingset-c020",
+    "built_from": "git archive 45d32250 (architecture phase 0) with src/ replaced by 1b95eff (candidate 019)",
+    "src_identical_to_deployed_019": true,
+    "files_compared": 397,
+    "differs_from_019_in": [
+      "config/sources.toml",
+      "nix/hosts/orb.nix",
+      "nix/module.nix",
+      "nix/watchdog.py"
+    ]
+  },
+  "preflight": {
+    "at_utc": "2026-09-26T21:10:41Z",
+    "system_before": "/nix/store/mc72x6jz8aaq5qj65f4qvhpc5h3dld0d-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+    "quota_free_gb": 69.2,
+    "database_bytes": 46631956480,
+    "hold": "written before stopping units; the running cycle was stopped (interrupted work rolls back and is recovered)"
+  },
+  "deletion": {
+    "window_utc": [
+      "2026-09-26T21:10:41Z",
+      "2026-09-26T21:11:32Z"
+    ],
+    "removed": {
+      "run_20260913T040007Z": 1521399516,
+      "run_20260922T043903Z": 27485429979,
+      "run_20260923T040002Z": 36522162330
+    },
+    "removed_bytes": 65528991825,
+    "kept": [
+      "run_20260925T040025Z",
+      "h16-published-20260917",
+      "pre-schema32-20260921",
+      "pre-regression-schema32-20260921T0423Z"
+    ],
+    "quota_free_gb_after": 135.4
+  },
+  "switch": {
+    "command": "nixos-rebuild switch --flake path:/mnt/mac/private/tmp/swingset-c020#orb --impure",
+    "window_utc": [
+      "2026-09-26T21:12:15Z",
+      "2026-09-26T21:12:25Z"
+    ],
+    "exit_code": 0,
+    "system_after": "/nix/store/2kljvg2s2hgq7l2xy0nig24icv412r0m-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+    "package": "/nix/store/0slaqa63r4fmff7psp4qrc2kqdy4jah8-swingset",
+    "source": "/nix/store/ib0ffimfq63avk84aq5zdl1li0sclarq-source",
+    "backup_execstart": "swingset backup --local",
+    "rollback": "switch to system_before (candidate 019); brings back refused backups"
+  },
+  "resume": {
+    "hold_removed_utc": "2026-09-26T21:12:33Z",
+    "timers": [
+      "swingset-cycle.timer",
+      "swingset-summary.timer",
+      "swingset-backup.timer"
+    ]
+  },
+  "watchdog_first_run": [
+    "[backup-stale] newest local checkpoint run_20260925T040025Z is 41 h old, over the 36 h limit",
+    "[backup-upload-paused] remote backup upload is paused (services.swingset.backupUpload = false); ..."
+  ],
+  "first_local_backup": {
+    "window_utc": [
+      "2026-09-26T21:12:38Z",
+      "2026-09-26T21:22:15Z"
+    ],
+    "result": "success",
+    "checkpoint": "run_20260926T211242Z",
+    "bytes": 51500607048,
+    "pruned": {
+      "run_20260925T040025Z": 37450338750
+    },
+    "named_checkpoints_kept": 3
+  },
+  "postcheck": {
+    "verify_checkpoint_full": {
+      "checkpoint": "run_20260926T211242Z",
+      "result": "VERIFY OK",
+      "seconds": 744,
+      "baseline_candidate": "cand_80719e178655435d"
+    },
+    "checkpoints_after": [
+      "h16-published-20260917",
+      "pre-regression-schema32-20260921T0423Z",
+      "pre-schema32-20260921",
+      "run_20260926T211242Z"
+    ],
+    "state_bytes_excluding_checkpoints": 63625865286,
+    "checkpoint_bytes": 83279103850,
+    "quota_free_gb_at_2026-09-26T21:35:27Z": 121.3,
+    "reviewer_conditions": "all met: timer stopped before rm; exactly three removed; quota rose 66.2 GB; Mac copies kept; reset-failed, switch, timer restart in order; first backup succeeded and pruned only run_20260925T040025Z; full verify of the new copy passed",
+    "open": [
+      "refresh the Mac database copy weekly until phase 0b's read-back is deployed",
+      "live database 46.6 GB growing about 5 GB a day from projection churn; phase 1 switch is time-sensitive before the 64 GB cap"
+    ]
+  }
+}

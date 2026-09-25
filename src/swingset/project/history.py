@@ -557,10 +557,21 @@ def _pending_inventory_projection(conn: sqlite3.Connection) -> bool:
     which _inventory_digest reads. Every fetched sheet re-queues it, so letting
     it block would close the gate that fetches the next sheet (D-0198). The
     legacy path rebuilds the inventory and still blocks.
+
+    An inventory the pacing gate holds (D-0210), one not current and made
+    within its interval, writes nothing until that interval ends, and the map
+    behind it needs a current inventory, so neither blocks: the gate reads
+    the committed event list, a fact (I5), and the accepted digest still
+    closes a year whose list the paced inventory later changes. A current inventory holds nothing, so a pending map can run
+    and blocks. Only a run that names its scheduler (schedule/pacing) holds
+    one. A unit whose code scope is not accepted counts as pending
+    (`derivations.pending_units`) and is judged like any other.
     """
+    from swingset.schedule import pacing
     from swingset.state.derivations import available, pending_units
 
     derived = available(conn)
+    held = derived and pacing.holds(conn, pacing.INVENTORY)
     units = (
         ((unit.unit_kind, unit.unit_id) for unit in pending_units(conn, "project"))
         if derived
@@ -568,6 +579,8 @@ def _pending_inventory_projection(conn: sqlite3.Connection) -> bool:
     )
     for kind, identifier in units:
         if kind == "history" and derived:
+            continue
+        if held and kind in {"inventory", "map"}:
             continue
         event_id = identifier
         if kind == "source_event":

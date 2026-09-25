@@ -66,7 +66,7 @@ def test_changed_cohort_and_input_get_independent_answers(registry_fixture):
         assert not dancers_current(f.conn, (DANCER, unknown), current=derivations.current)
         assert len(reads) == 2
     f.conn.execute(
-        "UPDATE accepted_inputs SET digest='changed-runtime' WHERE input_name='recipe/runtime'"
+        "UPDATE accepted_inputs SET digest='changed-runtime' WHERE input_name='recipe/env'"
     )
     with derivation_query.read_snapshot(f.conn):
         assert not dancers_current(f.conn, (DANCER,), current=derivations.current)

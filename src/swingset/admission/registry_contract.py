@@ -3,7 +3,7 @@
 from typing import Any
 
 from swingset.sources.base import ParseResult
-from swingset.sources.records import DancerLookup
+from swingset.sources.records import VERIFIED_MISS_SHA256, DancerLookup
 
 from .accounting import account_keys
 from .report import Field, Guard
@@ -18,8 +18,6 @@ def registry_accounting(
     if not isinstance(extract, dict) or payload is None:
         return None, 0
     if payload.outcome == "not_found":
-        from swingset.sources.wsdc_registry.adapter import VERIFIED_MISS_SHA256
-
         exact = extract == {"type": "verified_not_found", "evidence_sha256": VERIFIED_MISS_SHA256}
         guards.append(
             Guard(

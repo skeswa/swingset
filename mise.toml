@@ -43,7 +43,7 @@ run = [
   # .py — ruff's formatter. Its excludes live in pyproject.toml ([tool.ruff]).
   "ruff format .",
   # .json, .md, .yml, .html — oxfmt, repo-wide. Machine-written and captured
-  # files are excluded via .gitignore + .prettierignore, both of which oxfmt
-  # reads by default.
+  # files, and .toml (taplo's), are excluded via .gitignore + .prettierignore,
+  # both of which oxfmt reads by default.
   "oxfmt",
 ]

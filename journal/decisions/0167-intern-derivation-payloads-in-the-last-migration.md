@@ -4,7 +4,7 @@ Recorded: 2026-09-18
 Decided by: agent  
 Topic: State retention and recovery cost  
 Supersedes: —  
-Superseded by: —
+Superseded by: in part, [D-0206](0206-add-migration-33-after-interning.md): interning is no longer the last migration
 
 ## Decision
 

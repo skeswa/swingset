@@ -2,8 +2,8 @@
 
 Adopted 2026-09-25 by the owner ("move the proposal to plans … pause current
 work and implement this plan"). Other plans are paused until this one's phases
-land, except operating the worker safely. Phase 0 is implemented offline and
-not deployed (section 9); nothing else is implemented yet.
+land, except operating the worker safely. Phases 0 and 1 are implemented
+offline and not deployed (section 9); nothing else is implemented yet.
 Figures come from `docs/status.md`, the
 [stall investigation](../../journal/investigations/2026/build-failure-and-history-deadline-2026-09-24.md),
 the [derivation investigation](../../journal/investigations/2026/derivation-invalidation-2026-09-23.md)
@@ -22,6 +22,25 @@ These change earlier records and are not settled by adopting this plan:
 2. **Removing the `event_*` subsystem** (section 8, phase 5). Before any
    removal, a check must show that no published table or column is computed
    from the tables being removed. Removal waits for that check and the owner.
+3. **What happens first as the 64 GB cap nears** (section 9, phase 1
+   capacity). The 0a receipt (2026-09-26 21:35 UTC) measured a 46.6 GB file
+   growing about 5 GB a day, 63.6 GB of state without `checkpoints/`, and
+   121.3 GB of quota free. The 55 GB phase 4 trigger has passed. Under 019
+   the file reaches the cap, which pauses the pipeline, about 2026-09-30;
+   after phase 1's switch, at an estimated 1.5 to 2 GB a day, about ten days
+   after it. Local backups need free space of the state plus 20 GB and lose
+   margin at two to three times the daily growth, so they are refused within
+   days of the switch. The choices: (a) raise the cap under a record amending
+   D-0208; (b) start phase 4 or invalidation step 3 now; (c) remove the three
+   named checkpoints (`h16-published-20260917`,
+   `pre-regression-schema32-20260921T0423Z`, `pre-schema32-20260921`,
+   31.8 GB) after an independent check. Phase 1's step 3 needs this call
+   recorded before its go.
+
+Phase 1's growth target, an earlier open decision, was settled on 2026-09-26
+under D-0183: trim the per-unit bookkeeping at its cause
+([D-0213](../../journal/decisions/0213-keep-no-bookkeeping-a-committed-run-does-not-need.md))
+and keep the whole deploy under the target (section 9).
 
 ## 1. The problem in one paragraph
 
@@ -129,12 +148,13 @@ over-approximation (record a table when in doubt) is the safe direction.
 
 ### 4.3 Early cutoff and scoped recipes
 
-Adopt steps 1, 2 and 5 of `docs/plans/derivation-invalidation.md` unchanged:
-if a re-run's output digest equals the current generation's, record an
-equivalence and move no pointer; a recipe names the digest of the import
-closure of the code that stage and kind actually runs, plus a separate
-environment digest. These are prerequisites for everything below and are the
-last whole-graph re-derivation.
+Adopt steps 1, 2 and 5 of `docs/plans/derivation-invalidation.md`, with the
+four changes phase 1 found (section 9, F1 to F4): if a re-run's output digest
+equals the current generation's and the dependencies a release follows are
+unchanged, record an equivalence and move no pointer; a recipe names the
+digest of the import closure of the code that stage and kind actually runs,
+plus a separate environment digest. These are prerequisites for everything
+below and are the last whole-graph re-derivation.
 
 ### 4.4 Releases assembled from partition artifacts
 
@@ -277,6 +297,14 @@ The room check from D-0192 stays; it becomes rarely relevant at these sizes.
 | Headroom          | ≥ 50 GB               | watchdog `diskMinFreeBytes`               |
 | Memory per step   | ≤ 1.5 GB resident     | per-partition builds; streaming collector |
 
+Measured against the memory row in the phase 1 rehearsal: the one
+`project/inventory` unit takes the cycle process from 0.87 GB to about
+4.0 GB (4.3 GB with cutoff off, 4.06 GB on the parent code), and a build
+takes about 6 GB, on the 8 GB worker. The rehearsal's other peaks (R5
+2.07 GB, R7 3.92 GB) differ for a reason its receipt does not show; the
+inventory alone reaches the higher one. Phase 1's post-check records the
+cycle service's peak on the cycles that run the inventory or a build.
+
 ### 6.4 SQLite or PostgreSQL
 
 SQLite stays adequate for one machine and five short-write processes: the
@@ -295,7 +323,8 @@ investigation's judgment stands: the planner died of Python heap, not of SQLite.
 - **Cost proportional to change.** Scoped recipes (4.3) mean a change to
   `history/closure.py` re-queues nothing and a change to `sources/eepro`
   re-parses EEPro pages only. Output cutoff means even those write no new
-  generation when bytes match.
+  generation when bytes match. Until phase 2 splits the import cycle, an edit
+  inside it still re-runs every project and link unit (F4): CPU, not rows.
 - **Versioned interpreters.** `EXTRACT_VERSION` and `PARSER_VERSION` labels
   (`schedule/cycle.versions`) are replaced by the code digest per page kind;
   the hand-written numbers can no longer be forgotten.
@@ -434,7 +463,8 @@ Conditions from review, carried to the switches:
   operator watches `event_index` requests by host for a day after
   ([stage switches](../reference/scheduling.md#stage-switches)).
 - Phase 1's post-check records the worker's `checkpoint-verify` seconds and
-  the state size without `checkpoints/` against the 55 GB phase 4 trigger.
+  the `[state-size]` measure against the 55 GB phase 4 trigger, which the 0a
+  receipt shows already passed (open decision 3).
 
 Deploy steps (operator; the owner is
 [local-only backups](../guides/operation.md#local-only-backups)):
@@ -465,21 +495,773 @@ longer on the worker.
 1, 2 and 5 (output cutoff at derive and parse, scoped recipes) in one switch,
 plus the equivalence table (migration 33). Its post-check receipt also carries
 0b's: the first local backup's `checkpoint-verify` result and seconds, and the
-state size without `checkpoints/` against the phase 4 trigger. Its rollback
+`[state-size]` measure against the phase 4 trigger. Its rollback
 plan names the pressure drain that a return to 019 starts (phase 0
 conditions). _Accept when_ a
 deploy touching no parser re-queues zero parse units (receipt), a re-run with
-identical output writes no generation, and the file grows by under 100 MB
-across a code-only deploy.
+identical output writes no generation, and a code-only deploy grows the
+file by under 100 MB, per-unit bookkeeping included (settled 2026-09-26 under
+D-0183 by trimming the bookkeeping, D-0213; R10 measured 84 MB).
+
+_Phase 1 status: implemented offline 2026-09-25, rehearsed and review-fixed 2026-09-26, open items resolved 2026-09-27, closed 2026-09-27 after the eighth review round and a closing rehearsal on the final tree (R11); not deployed. Every acceptance check passes offline: a `cycle.py` edit queues 0 parses, identical re-runs write 0 project generations and 1 link generation (a real change), and the code-only drain grows the file 77.5 MB (84 MB by table). The first switch from a current state mints no project generation and keeps every link. The production canary (deploy step 7) is the acceptance of record._ Records:
+[D-0205](../../journal/decisions/0205-cut-off-identical-derivation-output.md)
+(cutoff),
+[D-0206](../../journal/decisions/0206-add-migration-33-after-interning.md)
+(migration 33),
+[D-0207](../../journal/decisions/0207-scope-code-recipes-by-import-closure.md)
+(scoped recipes),
+[D-0208](../../journal/decisions/0208-keep-the-64-gb-cap-until-closure-collection.md)
+(the 64 GB cap stays until invalidation step 3),
+[D-0209](../../journal/decisions/0209-identity-history-records-changes-only.md)
+(identity history records changes only),
+[D-0210](../../journal/decisions/0210-pace-the-inventory-like-history.md)
+(the inventory is paced like history),
+[D-0211](../../journal/decisions/0211-a-derivation-that-raises-retries-on-a-clock.md)
+(a derivation that raises retries on a clock),
+[D-0212](../../journal/decisions/0212-cut-off-across-the-moved-column-and-held-parses.md)
+(cutoff across the moved coverage column and for held parses),
+[D-0213](../../journal/decisions/0213-keep-no-bookkeeping-a-committed-run-does-not-need.md)
+(no bookkeeping a committed run does not need) and
+[D-0214](../../journal/decisions/0214-a-derivation-backlog-does-not-pause-acquisition.md)
+(a derivation backlog does not pause acquisition). The rules live in
+[local state](../reference/state.md) (H15, H7, invalidation) and
+[parsing](../reference/parsing.md) (admission, versions).
+
+Four findings changed steps 1, 2 and 5 as written:
+
+- **F1, closure-stable.** Cutoff on output alone publishes stale data. The
+  release closure and the retention walk follow each generation's recorded
+  dependencies, and history names every dancer generation. If dancer D
+  becomes D' and history re-runs with identical output, a kept history still
+  names D: the next closure publishes D's row, or withholds every link that
+  names D'. So a unit cuts off only when its direct `derivation` entries and
+  its `selected_*`, `source_observations` and `calendar_observations` groups
+  equal the kept generation's. `build/` needs no change. Code-only and no-op
+  re-runs cut off; a real upstream change still mints new ids downstream, as
+  today, until phase 3's read sets.
+- **F2, replay epochs.** A replay can overwrite live rows another stage
+  enriched: on the 16:10 copy, inventory had changed `wsdc_status` on 4 of
+  160 `wsdc` calendar rows. With the pointer kept, inventory would stay
+  current and the enrichment would be lost. So `capture()` keeps a witness of
+  six revisions (`canonical`, `dancers`, `links`, `source_event_map`,
+  `source_events`, `observations`). A cutoff that moved any of them bumps a
+  per-kind `replayed` token, which dependents' fingerprints and certificates
+  include, so they re-run and cut off in turn with no new id. Calendar,
+  dancer and source_index have no prerequisites and carry no token.
+- **F3, pinning, not lone units.** A scheduled `source_event` unit nests its
+  event's reuse, so "no cutoff in a group of more than one" would mint all
+  469 source_event ids each deploy and, through F1, every history and link.
+  Instead a member whose provisional id a sibling captured is pinned and
+  never cuts off; siblings see the kept id.
+- **F4, one import cycle.** A static walk from `state/db.py`,
+  `project/process.py`, `link/service.py` or `build/service.py` reaches 191
+  of 233 modules. After three import moves (the source registry split,
+  `VERIFIED_MISS_SHA256` into `sources/records.py`, `PHASE1_KINDS` into
+  `sources/phase_one.py`) a parse scope is 28 to 36 files (39 to 47 with the parse writers) and an extract
+  scope 17 to 24. Project, link and build scopes stay at about 214 files, so
+  an edit inside the cycle re-runs every project and link unit. Phase 2
+  splits the cycle. `schedule/parse.py` enters parse scopes by its own bytes
+  only; a test pins its imports.
+
+Smaller choices made in the work:
+
+- History owns `events.coverage_tier`. Map and calendar output no longer
+  include it: history rewrites it later, so every map re-run differed from
+  its own generation and minted new ids down to the links.
+- Parse cutoff covers the five shadow index kinds, whose generations never
+  chain: their kept generation is the newest undecided one whose fingerprint,
+  or an equivalence of it, is the desired one.
+- `recipe/runtime` stays in every stage's inputs. After the switch it is the
+  absent digest and never changes, so bundles captured before it reproduce.
+- No module is parse-only for a single kind: the admission modules and the
+  parse writers are in all 17 parse scopes. Parse narrows per kind through
+  its adapter.
+
+Review fixes (2026-09-26), each with a test that fails without it:
+
+- **Revocation follows equivalences.** Revoking a generation revokes every
+  fingerprint cut off to it, in admission, parse cutoff and the four
+  evidence readers (the build's included). Before, the same inputs parsed
+  again were accepted by admission. The readers already refused any parse of
+  a revoked snapshot under the same parser label. A cutoff keeps labels
+  byte-equal, so the shared query (`revoked_evidence`) leaves out an
+  equivalence with its generation's label and returns one row per revoked
+  generation however many deploys re-parsed it; the readers' row budgets
+  stay budgets of revoked generations. Tests pin the query, its budget and
+  the build's use of it.
+- **Parse writers are in every parse scope.** `admission/select.py`,
+  `support.py`, `state/observations.py`, `verification.py`, `findings.py`,
+  `history/acquisition.py`, `intent.py`, `origin_dispatch.py` and
+  `fetch/wayback.py` write what a parse unit leaves behind; each enters every
+  parse scope by its own bytes (parse scopes are now 39 to 47 files). A test
+  pins every import of `schedule/parse.py` and of each writer that falls
+  outside the scope. Shallow entries add no data files, so a migration
+  re-parses nothing.
+- **Every non-success has a clock (I3).** The parse retry fingerprint keeps
+  `version/repository`, so a fix anywhere re-opens blocked parse attempts
+  (a few units, not a re-parse). A derivation that raises retries after 15
+  minutes, doubling to six hours, and is reported each time
+  ([D-0211](../../journal/decisions/0211-a-derivation-that-raises-retries-on-a-clock.md));
+  output that differs for identical inputs is `NondeterministicOutputError`,
+  a failure, not a silent supersession.
+- **Link history records changes only (D-0209).** A link re-run leaves an
+  unchanged subject's rows alone, so no `identity_link_history` pair is
+  appended. This was 208 MB of R5's 415 MB.
+- **The inventory is paced (D-0210).** At most once per 12 hours; a due
+  history lifts that only once it has consumed the inventory, so a dancer
+  change mid-cascade cannot restart the cascade. At most two cascades a day,
+  plus one per calendar replay or calendar generation the inventory has not
+  read (see steady-state growth). A failing history is not due. Once an inventory
+  has run since history came due and its cascade was interrupted too, the
+  inventory runs whenever it is stale until history lands, so a dancer change
+  in every cascade cannot starve history. The watchdog mirrors the gate and
+  clocks a due history from the first inventory run since it came due, so
+  starvation alarms. Both paced gates count a cutoff as a materialization, as
+  does the watchdog's history clock. A held inventory (not current, made
+  within its interval) and the map behind it do not close the phase-two gate
+  or `accept-year`: they read the committed event list (I5), and the cycle
+  counts that gate's refusals by reason. A current inventory holds nothing,
+  so a pending map behind it blocks.
+- **Operator controls.** `[derivation] cutoff = false` turns cutoff off at
+  schema 33, a forward fix short of the byte-copy rollback. The cycle
+  summary's `derivation` key counts generations, equivalences and replay
+  bumps by kind; the watchdog adds `[replay-loop]` (an epoch moving three
+  cycles running with no generation of that kind or a kind it reads, so
+  unrelated dancer changes do not hide it), `[state-size]` (over 50 GB
+  without `checkpoints/`, `venv/` and `uv-cache/`) and `[unit-failing]` (a
+  queued unit whose last three attempts failed for the same reason; an I/O
+  error, retried by design, once it has failed 20 times running or for over
+  an hour). A
+  report query that fails, including the replay-epoch read at the start of a
+  cycle, is noted in the cycle record (`derivation_error`,
+  `controls_error`) instead of losing it. The switch stops new cutoffs only; undoing a bad
+  one takes a deploy that changes the affected code scope
+  ([output cutoff](../guides/operation.md#output-cutoff)).
+- **Candidate pruning fits the worker.** `gc --plan --candidates-only` and
+  `gc --apply --candidates-only` list and remove superseded candidates
+  without the graph walk the 8 GB worker cannot finish (the full plan peaked
+  at 12.1 GB on a clone), and both plans keep any candidate a selected build
+  generation names. An apply reports how many removable files are past
+  their age floor (`eligibility`) and says on stderr when none is: a copied
+  or restored state directory resets that floor. The watchdog adds
+  `[equivalences]` (over 500,000 rows in `derivation_equivalences` or in
+  `source_equivalences`, D-0208's trigger) and `[report-failing]` (a cycle
+  report failed or `derivation` is missing).
+- **Smaller.** A reuse through an equivalence replays that equivalence's
+  continuity support and moves the replay epoch when it rewrote live rows;
+  migration 33 also narrows the `source_selections` trigger; `recipe_inputs`
+  fails closed when a unit's code scope is not accepted, and offline
+  selection then skips that kind only and names it in the cycle summary's
+  `readiness_errors`, which fails the cycle, and every other reader counts
+  such a unit as pending; `gc --plan` reports
+  equivalence counts and the collector rule (D-0206, invalidation step 3);
+  the retention walk shares identical decoded children;
+  `mise run evidence-size -- --from @-` measures one change of a stack.
+
+Final review fixes (2026-09-27), each with a test that fails without it:
+
+- **A repaired parse is parsed again.** A parse cut off to the accepted
+  generation skipped admission, the only writer of `parse_status='ok'`, so a
+  parser regression and its fix left every snapshot of the kind `failed`:
+  registry checks turned unusable, coverage counted the unit withheld, and
+  parse recovery kept picking it. The cutoff path marks the snapshot parsed
+  before the registry re-reads it (D-0205).
+- **Ordered JSON extracts parse fresh.** A stored extract is key-sorted, and
+  the registry's and WDR's parse output follows the body's key order. A
+  re-parse from the stored extract (any `recipe/env` or parser-only change)
+  differed from the accepted generation for about 23% of registry and some
+  WDR snapshots on the 16:10 copy, so it never cut off. Those kinds
+  (`ORDERED_EXTRACT`) always extract from the body.
+- **Stale-by-fingerprint work shows (I4).** A project or link code scope, or
+  `recipe/env`, queues hints for the units it makes stale, and a replay epoch
+  queues its readers' units, so the watchdog's `[stale-progress]` sees a
+  derive that never picks them up. Derivation rows no longer count toward
+  the 10,000-item acquisition mark
+  ([D-0214](../../journal/decisions/0214-a-derivation-backlog-does-not-pause-acquisition.md)):
+  a project-scope deploy queues about 32,900 units, and events wait up to 12
+  hours behind the paced inventory.
+- **`doctor` and `summary` fit the worker.** Both walked the retention plan,
+  13 GB on the 35 GB copy; they now report the file's bytes and walk only
+  with `--retention`. Summary peaked at 4.5 GB without it, 4.4 GB of that
+  the publication report's closure check; its unit has `MemoryMax=5G` and
+  `OOMScoreAdjust=800`. The rollback's check uses `PRAGMA user_version`.
+- **Smaller.** A calendar replay the inventory has not read lifts its wait
+  (F2; D-0210). A supersession whose inputs did not move retries on D-0211's
+  clock. `recipe/env` digests the installed distributions and pyproject's
+  `[project]` table, not the whole `pyproject.toml` and `uv.lock`, so a
+  tooling edit re-parses nothing. The watchdog adds `[size-cap-near]` (the
+  file over 90% of the retention cap), mirrors the calendar-replay rule, and
+  a test pins `REPLAY_CAUSES` and `PACED_BY_INVENTORY` to the package. A
+  parse-unit D-0213 test and the D-0213 and supersession tests join the core
+  run. The core run's time over three minutes (maintenance item 9) is
+  accepted debt for this switch: no phase 1 test is among its slowest, and
+  the slow ones (the 33-page cohort, the crash boundaries) are behaviours
+  the testing guide keeps in core.
+
+Seventh review round (2026-09-27), each with a test that fails without it:
+
+- **No hint outlives its unit's currency.** Only a unit run deleted its
+  hint, so an A->B->A deploy (a revert before or after the drain) left about
+  35,800 hints for current units, which the watchdog counted as ready work:
+  a permanent false `[stale-progress]`. Offline selection now records the
+  hints it finds current and deletes them after its read snapshot, unless
+  queued again since; the cycle summary counts them
+  (`current_hints_dropped`).
+- **A new calendar generation lifts the inventory wait.** It rewrites the
+  calendar's `events` rows as a replay does, dropping the inventory's
+  enrichment (F2's other half). The epoch the inventory read is the highest
+  over its generation and every equivalence, not the latest row's. The
+  watchdog mirrors both, tested on the real schema.
+- **Smaller.** A replay hint carries the run's clock, not the wall clock.
+  `swingset-summary` has `OnFailure` and the watchdog a `[summary-failed]`
+  line, so a digest killed at its 5 GB cap does not go dark (a
+  bounded-memory closure check is maintenance item 10). The supersession
+  test patches `_inputs_unchanged` instead of branching on transaction
+  state.
+- **The final tree re-checked.** Before this round, review re-ran three
+  900 s switch cycles on a clone with the final tree (`src` 6b3c8f12):
+  7,418 parses (7,482 before), 170 superseded and 3 `needs_review` source
+  generations (unchanged), no derivation generation but the first cycle's
+  build, peak memory 6.32, 4.03 and 4.20 GB, file growth 311 MB (307 MB
+  before), `failed=true` only on the known scoringdance snapshot. Queuing
+  the hints (31.7k project, 2.9k link) took the accept from 8.2 to 14.6 s
+  and raised no new watchdog line (scratch receipt `rev-p1-ops8`, not
+  retained).
+
+Closing review (round 8, 2026-09-27) found no blocker or major. It re-checked
+the seventh-round fixes (each has a test that kills its main mutant; 13 of 22
+mutants killed in one review, survivors below) and I1, I3, I4 and I5 for
+regressions. Conditions carried to the deploy:
+
+- The preconditions in the deploy steps still apply: the publish tier's
+  independent check with a written verdict, a byte copy before the switch,
+  and the canary switch (step 7) within 48 hours of the post-check.
+- Open decision 3 (what comes first as the 64 GB cap nears) is recorded
+  before the go, as step 3's go/no-go requires.
+- The minor findings below are in this plan and the operation guide before
+  the deploy (done at close: the rollback's free-space check, the hint drop
+  invariant and its fence bump in [local state](../reference/state.md),
+  `current_hints_error` in [scheduling](../reference/scheduling.md)).
+
+Carried forward (none stalls production or loses data):
+
+- **Test gaps (surviving mutants).** Nothing pins that the D-0212 strip
+  (`derivations._without`) removes only `events.coverage_tier`; stripping
+  `first_seen_at` too survives (more conservative, not stale). Nothing pins
+  that `pacing.calendar_replayed` takes the highest epoch (`read =
+int(version)` survives); the watchdog's `calendar_made` exclusion of
+  `wsdc-history`; the group path of a replay hint's run clock; the
+  `current_hints_error` path; the `created_at > made` boundary in
+  `calendar_regenerated` (`>=` is harmless). Earlier survivors stand:
+  `mark_parsed_always`, `fair_parse_only`, `without_strip_all_tables`.
+- **Watchdog.** `inventory_paced` needs an inventory hint, while
+  `pacing.holds` holds any stale inventory; a stale inventory with no hint
+  (made stale by an upstream generation that queued nothing) lets map, event
+  and source-event hints count as ready, a false `[stale-progress]` for up
+  to 12 hours. A failing history retries on D-0211's clock and shows only as
+  `failed=true` until `[unit-failing]` names it after three same-reason
+  failures (about 1.75 hours). A hint dropped for a unit that later goes
+  stale without a new hint is found by `candidate_units`' fallback, so
+  scheduling is whole, but the watchdog, which reads `pending_work`, cannot
+  see it.
+- **Revert cost.** An A->B->A deploy drops the current hints (29,463 on the
+  first pass, 0 on the second), but the inventory, map, events, source
+  events, history and links stay stale, since B's drain moved the replay
+  epochs. The inventory B made is inside its 12-hour interval, so the
+  cascade waits up to 12 hours with `[stale-progress] ... project units wait
+for the paced inventory`. Expected, not a fault.
+- **Hint drop.** `drop_current_hints` deletes by unchanged `enqueued_at` and
+  bumps `history_dispatch_fence` once per row; after a revert one batch
+  deletes about 35,800 and voids that cycle's earlier dispatch proofs. The
+  post-check watches it.
+- **I6 debt.** Equivalences, their recipes and root sets have no collector
+  in this phase; each replay-epoch cascade adds about 35,000 equivalence
+  rows. Only `[equivalences]` at 500,000 bounds them (D-0208).
+- **Core time.** 1,304 tests in 196 to 255 s, over the three-minute rule
+  (maintenance item 9).
+
+Committing: phase 0's change is not pushed, so `mise run evidence-size`
+against `trunk()` counts its evidence too (276 KiB against 200). Check phase
+1's change alone with `mise run evidence-size -- --from @-` (50 KiB), and
+phase 0's from its own parent.
+
+Acceptance ran on 2026-09-26 on APFS clones of the 16:10 UTC copy on the Mac,
+with no network: parent code (phase 0, `45d32250`) on one clone, the new code
+on the other, since the Mac interpreter re-queues every parse on both. Drivers
+call `accept`, `derive_one` and `build.closure.select` directly. One
+[receipt](../../journal/evidence/runtime/architecture-phase1-rehearsal-2026-09/receipt.json):
+the closing run (R11) at its top level, the 2026-09-26 runs (R0 to R8)
+under `earlier_2026_09_26`. Production receipts are the evidence.
+
+| Check                               | Expected                                                                                                                                             | Result                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| R0, migration 33                    | Minutes, `foreign_key_check` included; 019 code refuses schema 33                                                                                    | 60 s on a warm cache, almost all of it the `foreign_key_check` (review: 176 s under load); no violations; the file grew 57 KB. Phase 0 code refuses: "database schema 33 is newer than supported 32".                                                                                                                                                                                                                                                                                                                    |
+| R1, first accept                    | Both re-queue about 33,906 parse units                                                                                                               | Both enqueue 33,903 parse units (33,906 pending). The new code changes `recipe/env`, `recipe/runtime` and all 44 scope names.                                                                                                                                                                                                                                                                                                                                                                                            |
+| R2, the 2026-09-21 replay           | Parent mints about one generation per unit and withholds links; new mints only where output differs, keeps every link                                | Parent: 35,801 generations for 35,801 units; every link withheld until the links re-ran. New: 6,339, once. The 29,077 dancers, 384 source indexes and one calendar cut off. The `wsdc` calendar differs only in `events.coverage_tier`, which history now owns, and by F1 inventory, map, all events, source events, history and links mint once too. Both withhold every link between the drains; after them both select all 2,933 (773 before).                                                                        |
+| R3, parse sample                    | Source generations only where results differ; no project unit pending from an equivalence                                                            | 2,000 snapshots. Parent: 2,000 generations; 2,104 project and 240 link units stale. New: 1,976 equivalences, 24 generations, 0 units stale. Of the 24, 7 differ from the accepted result. The other 17 repeat a `needs_review` or `waiting_for_inputs` generation, which parse cutoff does not keep.                                                                                                                                                                                                                     |
+| R4, code-only accepts               | `schedule/cycle.py` comment: project, link and build scopes only, 0 parses; `sources/eepro` comment: its extract and parse scopes and snapshots only | `cycle.py`: the 10 project, link and build scopes and `version/repository`; 0 parses. The same tree again: nothing. The eepro comment: its 3 extract and 3 parse scopes and `version/repository`; 560 eepro snapshots, no others.                                                                                                                                                                                                                                                                                        |
+| R5, growth after a code-only accept | 0 generations; under 100 MB                                                                                                                          | **Generations met, growth not.** After the `cycle.py` accept, all 35,801 units re-ran: 0 project generations and 1 link generation, whose output really changed. The history anchor and all 2,933 links stayed selected throughout. The file grew 415 MB: link history about 208 MB of rows, and per-unit admissions, attempts, equivalences and root sets. History took 6 s.                                                                                                                                            |
+| R7, R2 and R5 with the review fixes | R5 without identity history                                                                                                                          | Fresh clone, review-fix tree. R2: 6,340 generations, 1.74 GB, 9,068 s. The `cycle.py` accept changed the 10 project, link and build scopes and `version/repository`; 0 parses. The drain re-ran 35,801 units: 1 link generation (the same real change), 35,800 equivalences, all units current after, 8,476 s. The file grew 170 MB: derivation rows, equivalences and root sets 65 MB, identity history 0.05 MB (208 MB in R5), execution admissions and their dependencies 86 MB, work and requirement attempts 18 MB. |
+| R8, final tree, project only        | The R7 numbers hold on the final review-fix tree                                                                                                     | Review's own clone, `src` 7a1f88c7: migration 0 violations (176 s under load); R1 33,903 parses; R2 project 3,406 generations; R5 0 generations, 146 MB (R7 145 MB); links on a 300-link sample 0 generations and 2.15 MB after the accept. R9 re-checked it on the final tree (below).                                                                                                                                                                                                                                  |
+| R10, open items (D-0212, D-0213)    | First switch keeps every link; code-only growth under 100 MB                                                                                         | Clone B made current by the parent code, then switched: 0 project generations, 1 link generation (a real change), every link selected throughout; 95 MB. Clone A after its switch drains, the `cycle.py` accept: 0 project and 1 link generation, 84 MB (65 derivation rows, 0.05 identity history, 19 bookkeeping). Migration 59 to 83 s, 0 violations.                                                                                                                                                                 |
+| R11, closing rehearsal, final tree  | R0 to R5 on the tree that ships                                                                                                                      | See below.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| Tests                               | Zero failures                                                                                                                                        | Final tree (2026-09-27): core suite 1,304 passed (196 to 255 s; over the three-minute rule, accepted debt, maintenance item 9); full suite 2,813 passed (749 s); `ruff` and `mypy` clean                                                                                                                                                                                                                                                                                                                                 |
+
+R11, the closing rehearsal (2026-09-27; `src` of the working copy
+`392165732a13`; three clones of the 16:10 copy, all deleted; same
+[receipt](../../journal/evidence/runtime/architecture-phase1-rehearsal-2026-09/receipt.json),
+top level):
+
+- **R0.** Migration 33 with its `foreign_key_check`: 67 s (73 s on a
+  second clone), 0 violations, the file 57 KB larger. Phase 0
+  code then refuses: "database schema 33 is newer than supported 32".
+- **R1.** Both codes queue 33,903 parse units. The new code also queues a
+  hint for each of the 35,801 project and link units.
+- **R2, the copy as it is.** Parent: 32,868 project and 2,933 link
+  generations, 2.08 GB, every link withheld between the drains. New: the
+  293 generations of the cascade in flight on the copy (245 events, 47
+  source events, history), 32,575 equivalences, 314 MB; then 2,933 link
+  generations and 605 MB, as R10's clone A. Both withhold every link
+  between the drains and select all 2,933 after (773 before).
+- **R2, from a current state.** The parent's drained clone, switched: 0
+  project generations, 32,868 equivalences, 71 MB; links 1 generation (the
+  real change), 2,932 equivalences, 58 history rows, 19 MB. The history
+  anchor and all 2,933 selected links stay throughout; 2,932 keep their
+  generation.
+- **R3.** 2,000 snapshots. Parent: 2,000 source generations, 1,864 project
+  and 240 link units stale. New: 1,992 equivalences, 8 generations (7
+  `eepro.round` results that differ from the accepted one, then superseded,
+  and one calendar), 0 units stale. The 17 held repeats of R3 now cut off
+  (D-0212).
+- **R4.** `cycle.py` comment: the 10 project, link and build scopes and
+  `version/repository`, 0 parses (hints for the 35,801 units). The same
+  tree again: nothing. Back to B after R5: the same 10 scopes, 0 parses,
+  6,338 units stale (the revert cost). The eepro comment: its 3 extract and
+  3 parse scopes and `version/repository`; 560 eepro snapshots, nothing
+  else.
+- **R5.** After the `cycle.py` accept, all 35,801 units re-ran: 0 project
+  and 1 link generation (the same real change), 35,800 equivalences,
+  replay bumps on calendar, inventory and map, 0 units stale and 0 hints
+  left. The history anchor and all 2,933 links stayed selected. Growth
+  77.5 MB by `page_count` (84 MB by `dbstat`: root sets 32, equivalences 31,
+  work attempts 13, execution dependency index pages 5.5, identity history
+  0.05). Peak 3.8 GB, 10,233 s on the Mac.
+
+R8 in full: migration 0 violations, 176 s under load. R1: 33,903 parses. R2
+project: 3,406 generations, 29,462 equivalences, one `project/map` replay
+bump; 0 units not current. R5 after the `cycle.py` comment: 0 parses, 0
+generations, 32,868 equivalences, 146 MB project growth (R7 145 MB); 0 not
+current. R3 and R4 as above. Links, on a 300-link sample of a clone of the
+16:10 copy: the switch drain minted the 300 and added 5,363
+`identity_link_history` rows (73 MB); after the `cycle.py` accept they wrote
+0 generations and 300 equivalences, 0 history rows, moved no link or event
+replay epoch and grew 2.15 MB (about 21 MB for 2,933).
+
+R9, the final tree. The fixes after R8 are not all outside `derive_one`:
+`derivation_dependencies.replayed_kinds` puts the replay epoch of every
+prerequisite kind into a unit's dependencies, which changes fingerprints for
+inventory, map, event, source-event, history and link units, and the build's
+event coverage reads `revoked_evidence`. So the fourth review re-ran R8 on a
+clone of the 16:10 copy with `src` identical to the working copy at 18:50 UTC
+(scratch `workflow/rev-p1-ops6/outb/*.json`; the clone was deleted). The
+numbers hold exactly. Migration: 125 s under load, 0 foreign-key violations.
+R1: 33,903 parses. R2 project: 3,406 generations, 29,462 equivalences, one
+map bump, 1,135 MB, peak 3.89 GB. Links on the 300 sample: 300 generations,
+5,363 history rows, 73 MB. After the `cycle.py` comment accept: 0 parses
+queued; project 0 generations, 32,868 equivalences, bumps on calendar,
+inventory and map, 145 MB, peak 4.03 GB; links 0 generations, 300
+equivalences, 0 history rows, 2.15 MB; 0 project units not current. The
+receipt's `after_this_recheck` note predates R9. The fifth fix round (the
+starvation breaker, `pacing.holds`, one `revoked_evidence` row per revoked
+generation, watchdog lines, `gc` eligibility and the candidate comparison
+tool) is in scheduling, reporting, evidence readers and tools, and changes
+no fingerprint.
+
+R10, the open items (2026-09-27, decided by the operator under D-0183), each
+with a test that fails without it
+([receipt](../../journal/evidence/runtime/architecture-phase1-rehearsal-2026-09/open-items-receipt.json)):
+
+- **The first switch cuts off (D-0212).** The cutoff comparison takes
+  `events.coverage_tier` out of a calendar, map, event or dancer scope's kept
+  rows. Clone B was first made current with the parent code (all 2,933 links
+  selected), then switched: 0 project generations, 32,868 equivalences, and
+  every link selected throughout, the same link ids and history anchor as
+  before. The link drain wrote 1 generation (the real change R7 found), 2,932
+  equivalences and 58 history rows. The switch drain grew the file 95 MB
+  (76 project, 19 links); the parent's drain on the same clone grew 2.08 GB.
+  Clone A, the copy as it is, caught a cascade in flight (map at 12:47, older
+  history and 292 events and source events). Those 293 minted, differing from
+  their kept generations only in `selected_project_map`, and through history
+  all 2,933 links; the deploy's first drain finishes that cascade too.
+- **Held parses cut off (D-0212).** An enforced unit keeps its newest held
+  generation when admission would hold the repeat the same way.
+- **Growth is under 100 MB (D-0213).** A committed unit run deletes its
+  admission and dependency rows, and a success with no finding writes no
+  requirement attempt. On clone A after the switch drains, the `cycle.py`
+  comment accept (10 project, link and build scopes and
+  `version/repository`; 0 parses) re-ran all 35,801 units: 0 project and 1
+  link generation, 0 units not current after, and 84 MB of growth (65 project,
+  19 links): 65 MB of derivation rows, equivalences and root sets, 0.05 MB of
+  identity history, 13 MB of work attempts and 5.6 MB of page splits in the
+  execution dependency indexes (no rows kept). R7 grew 170 MB.
+- **The four majors of the last review** hold: the watchdog applies the
+  inventory's wait only while no inventory has materialized since history
+  came due, and `pacing.deferred` lets the inventory run once one has (the
+  starvation breaker); `run_cycle` configures the pacing gate; the build's
+  event-coverage reader uses `revoked_evidence`; and
+  `journal/tools/releases/compare_candidates.py` is in deploy step 6. Each
+  test was re-checked by removing its fix.
+
+What the rehearsal found:
+
+- **The first switch minted once (fixed, R10).** Moving `events.coverage_tier`
+  to history changed the `wsdc` calendar's output, so the first drain wrote
+  about 6,300 generations and withheld every link until the links re-ran.
+  The comparison now leaves that column out of the kept rows (D-0212).
+- **Growth (fixed, R10).** R5 grew 415 MB, 208 MB of it
+  `identity_link_history` re-appended by link re-runs with identical output
+  (D-0209). R7 then grew 170 MB: 65 MB of derivation rows, equivalences and
+  root sets, and 104 MB of per-unit bookkeeping every unit run wrote (an
+  execution admission with about nine dependency rows, a work attempt and a
+  requirement attempt; about 2.9 KB a unit with indexes). A committed run now
+  keeps only its work attempt (D-0213).
+- **Parse cutoff kept only accepted generations (fixed).** A unit whose
+  latest generation is `needs_review` or `waiting_for_inputs` minted an
+  identical one on each re-parse (0.85% of the sample). It now keeps it when
+  admission would hold the repeat the same way (D-0212).
+- **Replay epochs make a revert cost CPU and time.** Accepting the unedited
+  tree after R5 made 6,338 units stale, since calendar, inventory and map
+  moved their epochs in R5. They cut off, but behind the paced inventory:
+  up to 12 hours (carried forward, revert cost).
+- **Listing ready links is slow.** Both codes take 26 to 29 minutes to list
+  2,933 links, because `ready()` recomputes `all_dancers_current` (0.6 s) for
+  each link outside a read-only snapshot. This is pre-existing. On the Mac, a
+  full drain took 35 minutes for projects and about 2 hours for links.
+
+Steady-state growth. Phase 1 removes per-deploy generations, not the growth
+of ordinary work. Each dancer change re-mints the inventory and, by F1, the
+map, every event and source event, history and every link. On the 16:10 copy,
+19 dancer changes on 2026-09-25 gave 5 such cascades with identical output
+(18 in two days): 12,138 event and 1,513 source-event generations, about
+0.43 GB a cascade. Each build (2 to 3 a day) adds a 244 MB proof to the file
+and a candidate directory of about 190 MB that nothing prunes. The worker
+measured more than the copy: the 0a receipt (2026-09-26 21:35 UTC) shows a
+46.6 GB file growing about 5 GB a day under 019's unpaced cascades (31,057
+event generations since 2026-09-25), 63.6 GB of state without `checkpoints/`
+(with `venv/` and `uv-cache/`, which `[state-size]` leaves out; their size is
+unmeasured), and 121.3 GB of quota free. So `[state-size]` (50 GB) and the
+55 GB phase 4 trigger have already passed. With the inventory gate (D-0210,
+at most two cascades a day, plus one per calendar replay or calendar
+generation) the copy suggests about 1.5 to 2 GB a day for the
+file; that is an estimate, not a worker measurement, and the post-check
+measures it. From about 48 GB after the switch (file at the switch plus about
+1.2 GB, see cost) that reaches the 64 GB cap in about 8 to 11 days, before
+phase 2 or invalidation step 3 exist; under 019 the cap comes about
+2026-09-30. Local backups need free space of the state without checkpoints
+plus 20 GB (about 84 GB at 0a, 37 GB of margin) and lose margin at two to
+three times the daily growth, since the state, the checkpoint and the need
+all grow. The order of what comes first is open decision 3. Removing
+superseded candidates (`gc --plan --candidates-only`, then
+`gc --apply --candidates-only` after an independent check; it walks no graph,
+so it runs on the worker) frees about 5 GB once; `gc --collect-closures` frees
+only proofs of failed builds, since a build generation or candidate names
+every other proof. Phase 3's read sets remove the cascade and phase 4 the
+bytes (D-0208).
+
+Deploy steps (operator; one switch with 0b):
+
+Preconditions: 0a deployed and post-checked; the
+[invalidation plan's gate](derivation-invalidation.md#when-this-may-start) (a
+clean day of the running candidate) or an explicit waiver; the publish tier's
+independent check of the diff and the rehearsal, with a written verdict; a
+current Mac byte copy.
+
+1. Build the deploy tree from the 0b and phase 1 change; its `src/` must
+   equal the reviewed change.
+2. Hold for steps 2 to 4 only, with owner, reason and a review date 24
+   hours out: write `operator-hold`, stop `swingset-cycle.timer` and
+   `swingset-backup.timer`, and wait for any running unit
+   ([holds](../guides/operation.md#holds)).
+3. With every unit stopped, checkpoint the WAL as the service user:
+
+   ```sh
+   sudo -u swingset /var/lib/swingset/venv/bin/python -c "import sqlite3; print(sqlite3.connect('/var/lib/swingset/state.sqlite').execute('PRAGMA wal_checkpoint(TRUNCATE)').fetchone())"
+   stat -c %s /var/lib/swingset/state.sqlite-wal
+   ```
+
+   The row must be `(0, N, N)`: 0 means not busy, and every frame was
+   checkpointed. The WAL must then be 0 bytes (or absent). Otherwise a unit
+   still holds the database: find it, stop it and repeat; never copy
+   `state.sqlite` alone while its WAL has frames. Then byte-copy
+   `state.sqlite` (46.6 GB at 0a, about 5 GB more a day until the switch) to
+   the Mac through `/mnt/mac`, as the stability plan and 0a did, next to the
+   weekly copies in `~/swingset-offload/`. On the Mac it takes no quota, so
+   local backups keep running through the drain and the canary, and the
+   rollback copies it back. Preflight receipt: the copy's sha256, schema
+   32, file size, `derivation_generations` and `source_generations` counts
+   and bytes, pending work by stage, the pending parse units whose last
+   attempt was blocked (`parse_failed`, `needs_review`, `waiting_for_inputs`;
+   9, 281 and 8 on the 16:10 copy), accepted inputs, `du` of `candidates/`,
+   `venv/` and `uv-cache/`, the `[state-size]` measure, quota free, and the
+   published candidate's id. Its rows are compared in step 6 with the tool
+   below; keep the candidate directory (`gc` never removes the published
+   one).
+
+   Go/no-go, in the receipt: the file and the state's growth per day,
+   measured from the 0a receipt to now; the days until the file reaches
+   64 GB, from its size plus about 1.2 GB for the switch at the measured
+   rate and at 1.5 to 2 GB a day; and the days until local backups are
+   refused, from the margin (quota free minus `du` of the state without
+   `checkpoints/` minus 20 GB) over two to three times the daily growth.
+   Go only with open decision 3 recorded and at least 3 days to the cap after
+   the switch. If the copy must stay on the worker (the Mac cannot take it),
+   put it at `/var/lib/swingset-phase1-copy/state.sqlite`, outside the state
+   directory. Then about 121 GB free at 0a less the copy leaves about 70 GB:
+   `[disk-low]` (under 100 GB) fires at once, the one-copy room check
+   (about 84 GB at 0a) refuses every backup until step 8, `[backup-stale]`
+   fires 36 hours after the last one, and there is no backup from the switch
+   until step 8. Keep `swingset-backup.timer` stopped then and say so in the
+   receipt.
+
+4. `nixos-rebuild switch`. A switch can restart stopped timers, so check
+   `systemctl is-active swingset-backup.timer` after it and, if step 3 kept
+   the copy on the worker, stop it again; record both in the receipt. Then
+   end the hold: remove `operator-hold` and
+   `systemctl start swingset-cycle.timer`. Start `swingset-backup.timer`
+   unless step 3 kept the copy on the worker; then it waits for step 8. The
+   marker blocks every cycle and backup, so none runs until this step. The
+   first cycle is long: it migrates to 33 (1 to 5 minutes; R0 took 60 s on
+   the Mac with a warm cache, 125 to 176 s in review under load, all on the
+   35 GB copy; the worker has 8 GB of memory for a file of about 50 GB) and
+   accepts the scoped
+   recipes: every parse unit is re-queued once and every derivation is not
+   current once. It will probably also build, since the last build is older
+   than the 6-hour interval: on a clone that build ran from pre-switch
+   generations, withheld links, added a 244 MB proof and a candidate useless
+   for release, peaked at 6.3 GB, the highest of the drain on the 8 GB
+   worker, and used most of the 900 s budget, so only 473 parses ran. The
+   next cycle ran 3,177 parses at 4.2 GB and deferred the build. This build
+   is accepted as the switch's cost; record its `MemoryPeak` in the watch
+   receipt.
+5. Watch the drain per `AGENTS.md`. It is watching, not a hold: the preflight
+   receipt names its owner and a review date 24 hours out. The parse drain
+   takes about 4 to 12 hours for 33,906 parses (review measured 730 and
+   2,150 parses in two 900 s cycles; candidate 018 took about 7.5 hours);
+   with production's 40-minute cycles that is about 6 to 17 cycles. The
+   paced inventory can add up to 12 hours. Expected while the parse backlog is
+   above the backpressure marks (1,000 items or 128 MiB): 0 requests a
+   cycle, `[stale-fetch]` after two hours, and `[stale-progress]` on links
+   until history runs. The project and link hints (about 35,800) do not hold
+   fetching (D-0214). Expected from the first watchdog run and to stay:
+   `[state-size]` (the measure is over 50 GB), and `[size-cap-near]` once
+   the file passes 57.6 GB. Expected once step 3's margin runs out, or at
+   once if the copy stayed on the worker: the room check refuses each
+   backup, which fails the unit (`[backup-failed]`), and `[backup-stale]`
+   fires 36 hours after the last one. `[disk-low]` fires when free
+   space falls under 100 GB, at once if the copy stayed on the worker,
+   within days otherwise. About 300 blocked parse units re-open because
+   `version/repository` changed; the 9 that ended `parse_failed` (on the
+   copy) fail again, and when few other parses of their source run in a
+   cycle they trip the per-source 10% rule, so `failed=true` caused only by
+   those snapshots is expected (the review saw it on a scoringdance page
+   blocked since 2026-09-23). Any other `failed=true` is not. Check that
+   fetching resumes once the parse queue is under the marks, not in the
+   first cycles.
+   After the first cycle, builds run at most once per 6 hours under
+   backpressure, each a 244 MB
+   proof and a candidate of about 190 MB. A successful build's proof stays
+   named by its build generation and candidate; `gc --collect-closures`
+   removes only a failed build's. Confirm the drain
+   (0 pending project and link units, fetching resumed) or, at the review
+   date, record why not.
+6. Post-check receipt after the drain. Expected: no project or link
+   generation for the switch itself (R10), only those of a cascade in flight
+   at the switch (on the copy, 293 project and all 2,933 link generations;
+   019 cascades every few hours, so expect one) and real output changes
+   (1 link in R10), each listed with its cause; source generations for
+   superseded older snapshots and held repeats that read live state (6% of
+   3,070 in review's two cycles, fewer now held repeats cut off); about
+   33,900 source and 35,800 derivation equivalences; one proof per build; and
+   ordinary cascades, each about 3,400 project and 2,933 link generations,
+   at most two a day plus one per calendar replay or calendar generation
+   (D-0210); count the inventory runs a calendar lifted. List anything else. Also record pending
+   project and link units (0 after the drain), `derivation_input_versions`
+   rows with namespace `replayed`, the `pending_work` rows for project and
+   link (`SELECT stage,count(*) FROM pending_work WHERE stage IN
+('project','link') GROUP BY stage`) against the pending units, which must
+   match (a gap is a lingering hint), the cycle summaries' `derivation`
+   counts, `current_hints_dropped` (a large drop voids that cycle's
+   dispatch proofs through `history_dispatch_fence`; note any) and any
+   `current_hints_error`,
+   `gc --plan --candidates-only`'s `equivalences`, file growth attributed as
+   in step 7 (the switch's equivalences, root sets, recipes and bookkeeping
+   apart from the in-flight cascade's generations, ordinary cascades and
+   build proofs), parse units re-queued, history
+   unit seconds; the migration's seconds from the first cycle's log; the
+   cycle service's peak memory (`systemctl show -p MemoryPeak`) on cycles
+   that ran the inventory or a build, against about 3.5 to 3.9 GB for a
+   cycle with the inventory unit (both codes, on fresh clones) and about
+   6 GB with a build, not the receipt's 2.23 GB project-drain peak;
+   `swingset-summary.service`'s `MemoryPeak` against its 5 GB cap (4.5 GB on
+   the copy);
+   the `derivation_equivalences` and `source_equivalences` row counts
+   (D-0208's collector trigger; `[equivalences]` fires when either passes
+   500,000); the measured daily growth of the
+   `[state-size]` measure and of the file, and the dates they reach 55 and
+   64 GB; link numbers (link/event generations and equivalences,
+   `identity_link_history` rows added, and `replay_bumps` for `link/event`,
+   0 in steady state); plus 0b's
+   `stages_disabled`, the first local backup's `checkpoint-verify` result
+   and seconds, and the `[state-size]` measure against the 55 GB phase 4
+   trigger. Compare the published candidate named in step 3 with the first
+   candidate built after the drain (0 pending project and link units;
+   builds during the drain withhold every link), as the service user:
+
+   ```sh
+   cd "$(systemctl show -p WorkingDirectory --value swingset-cycle.service)"
+   sudo -u swingset env TMPDIR=/var/tmp /var/lib/swingset/venv/bin/python \
+     -m journal.tools.releases.compare_candidates \
+     /var/lib/swingset/candidates/<published> \
+     /var/lib/swingset/candidates/<first-after-drain> /var/tmp/phase1-compare.json
+   ```
+
+   It runs from the deployed source tree, where `python -m` finds
+   `journal/`, and spills to `/var/tmp`, not the small `/tmp`. It leaves out `run_id`, `first_seen_at`, `last_seen_at` and
+   `asserted_at`, caps DuckDB at 1 GB (1.5 GB resident and 5 minutes for two
+   of the copy's candidates), and lists per table the rows, the keys added,
+   removed and changed, and which columns changed. Put the counts and
+   changed columns in the receipt and explain every difference. Only real
+   source changes, per-build columns (`evidence_cutoff`, `health_as_of` and
+   the like) and the `coverage_tier` cascade's rows (R2: events' tier, now
+   written by history, and the rows that carry it) may differ. The full `gc --plan` does not fit the worker; run it only
+   on a Mac clone of a byte copy. The rehearsal compared counts and
+   selections, not published rows.
+
+7. A canary switch whose only change is a comment in `schedule/cycle.py`,
+   held only for the switch as in steps 2 and 4. It re-runs every project
+   and link unit and re-parses nothing; the drain takes up to about 24 hours,
+   because the inventory and history each wait up to 12 (D-0210). Fetching,
+   ordinary cascades and builds go on meanwhile, so whole-file growth says
+   nothing about the canary. Its measure is the bytes it wrote: after the
+   drain, on a Mac clone of a byte copy, the rows the canary's re-runs added
+   (`derivation_equivalences` and the `derivation_dependency_sets` and
+   `derivation_recipes` rows they name, `identity_link_history`, and
+   `work_attempts`), counted by the runs since the canary's accept and
+   priced at each table's bytes per row from `dbstat`. Receipt: 0 parse
+   units re-queued by scopes (the blocked parse units re-open again, about
+   300; their source generations are counted apart); 0 derivation
+   generations for the canary, or the few with real output changes, listed;
+   generations of ordinary cascades and each build's proof listed
+   separately; the canary's bytes per table (pass: under 100 MB; R10 84 MB
+   for 35,801 units). This is the phase's acceptance.
+8. After the post-check and the canary pass, keep the Mac copy as that
+   week's copy. If step 3 kept the copy on the worker, an independent check
+   of its removal, then remove it with a receipt and start the backup
+   timer.
+
+Cost: one rebuild; migration 33 (1 to 5 minutes; the first cycle after the
+switch is long); the last whole-graph
+re-derivation, 4 to 9 hours of CPU: every
+snapshot re-extracted and re-parsed once (about 33,906, since the extract
+reuse key changes meaning; extracts are content-addressed), and every project
+and link unit re-run, since every recipe changes. It writes
+about 33,906 parse equivalences (about 35 MB) and 35,000 derivation
+equivalences (10 to 15 MB); no generation for the `coverage_tier` move
+(R11: 90 MB for the derivation drain from a current state, against 2.08 GB
+for the parent code). Production runs 019 unpaced and will almost surely
+switch with a cascade in flight, as the copy did in R10 and R11: expect
+about 0.9 GB of derivation growth (R11: 314 MB for 293 project and 605 MB
+for 2,933 link generations) plus the first cycle's build (a 244 MB proof); three real
+cycles on the final tree in review added 307 MB, 244 MB of it the build. So
+about 1.2 GB, which step 3's go/no-go uses. Add a byte copy of about 47 to
+55 GB to the Mac and the canary: up to about 24 hours of drain behind the
+paced inventory and history, and an operator watch for it. After it, a
+code-only deploy costs CPU for what its scopes name (R11: 2.8 hours on the
+Mac for a cycle-module edit, half of it listing links) and near-zero
+generations, and 78 to 84 MB of rows (R11), about 19 MB of it bookkeeping.
+The file does not shrink; the 64 GB cap stays (D-0208).
+
+Rollback: the previous system generation is 0a (schema 32), which refuses
+schema 33, so rollback is that generation plus the step 3 byte copy; work
+since the switch is lost and re-fetched. SQLite replays any valid
+write-ahead log beside the file, so a schema-33 `state.sqlite-wal` left next
+to the restored copy corrupts it, and a rollback after a crash or a killed
+unit is exactly when that log holds committed frames. The steps are in the
+[operation guide](../guides/operation.md#rolling-back-a-migration): write
+`operator-hold`; stop the cycle, backup, summary and watchdog timers and
+units; switch to the 0a generation; move `state.sqlite`, `state.sqlite-wal`
+and `state.sqlite-shm` aside; check free space for the copy (the moved-aside
+file stays on the quota); copy the step 3 file back and check its sha256
+against the preflight receipt; move any schema-33 `run_*` checkpoint out of
+`checkpoints/`, so a 0a backup does not take it as the newest; then remove
+the hold and start the timers. Code and
+config roll back together: code older than phase 1 rejects phase 1's
+`sources.toml` ("unknown scheduling settings", for
+`inventory_interval_seconds`), so never run it with phase 1's config. 0b
+ships in this switch, so returning to 0a turns event pressure back on:
+`event_index` expansion stays closed until the dirty rows drain (about 5
+hours per week the stage was off), busy hosts may stay latched, and the
+operator watches `event_index` requests by host for a day.
+
+Known limits:
+
+- Parse cutoff keeps a held generation only when admission would hold the
+  repeat the same way from its bytes and the contract review (D-0212). A hold
+  that reads live state (manifest checks, retained WDR rows) still mints an
+  identical generation on each re-parse.
+- For an enforced kind, admission side effects (observation rewrite, watches,
+  `interpreted` events) are not replayed for an identical parse result. An
+  edit to a parse writer re-parses every kind, but a change in what it writes
+  for an unchanged result needs a re-admit or a `PARSER_VERSION` bump
+  (D-0205).
+- Equivalences, their recipes and root sets are not collected until
+  invalidation step 3, which has the rule (D-0206). A code-only deploy that
+  touches no parser adds about 35,800 derivation equivalences and about
+  39,600 `derivation_dependency_sets` rows (33,753 project and 5,866 link
+  root sets, about 32 MB, the largest share of R10's 65 MB) and no source
+  equivalences. A deploy that changes `recipe/env` or every parse scope also
+  adds up to 33,900 source equivalences (about 35 MB). `[equivalences]`
+  fires past 500,000 rows in either equivalence table: after about 13
+  code-only deploys beyond the switch's 35,800 for derivations, and about 14
+  environment or all-parse deploys for sources. It does not count root
+  sets, which grow as fast; step 3's collector removes them with their
+  equivalences. Past the trigger, step 3 moves ahead of phase 2 (D-0208). A committed unit run keeps only its
+  `work_attempts` row (D-0213); failed runs keep their admission, and the
+  1.9 GB of bookkeeping already on the copy (746,339 settled admissions with
+  5.8 million dependency rows) stays. Phase 2's `work_queue` and phase 4's
+  sweep own it.
+- The paced inventory delays new events and dancer facts in events, history
+  and links by up to 12 hours, and history by a further interval when a
+  dancer change interrupts the cascade it waits on (D-0210).
+- Published `first_seen_at`, `last_seen_at`, `asserted_at` and `run_id` come
+  from the first derivation.
+- A re-run whose output differs reads its rows twice inside its write
+  transaction; in R2 the history unit took 60 s this way (54 s on the parent
+  code), well within its 300 s allowance.
+- Replay epochs are per kind: one dancer replay that flips a live
+  `registry_placements.event_id` re-runs all 2,932 links (CPU; they cut off).
+- `admission.support.selection_digest` includes `desired_fingerprint`, so any
+  re-parse still forces a rebuild (pre-existing).
+- A parse that ends `blocked` (`parse_failed`, or admission `needs_review` or
+  `waiting_for_inputs`) has no retry clock; it re-opens only when
+  `version/repository` changes, on a deploy (pre-existing, I3). Phase 2's
+  `work_queue` gives it one (`waiting_input` and `quarantined` with
+  `next_attempt_at`).
+- A unit exception retries on a clock of 15 minutes to 6 hours, so a unit
+  that fails every retry never makes three failing cycles in a row; the
+  watchdog's `[unit-failing]` names it instead.
 
 **Phase 2: split the cycle and fix the queue (about 2 weeks).** Five systemd
 units; `acquisition_plan` written by `plan` and read by `acquire`;
-`work_queue` with leases, backoff and quarantine; chunked generation writes;
+`work_queue` with leases, backoff and quarantine, and `waiting_input` and
+`quarantined` states with `next_attempt_at`, so a blocked parse gets a retry
+clock (a phase 1 known limit); chunked generation writes;
 per-loop progress counters and the reason-with-expiry table for guards; the
 `bounded_write` alarm demoted to a safety net. The event-site review and the
-history gate are deleted from the acquisition path in this phase. _Accept
-when_ `kill -9` of any loop mid-write leaves the other four progressing on
-the next tick; a unit that raises three times is quarantined with one alert
+history gate are deleted from the acquisition path in this phase. Breaking the
+import cycle along the loop boundaries narrows the project, link and build
+recipes (F4). _Accept when_ `kill -9` of any loop mid-write leaves the other
+four progressing on the next tick; a unit that raises three times is quarantined with one alert
 line and the queue keeps draining; `acquire` issues origin and Wayback
 requests while `derive` holds blocked units; no `bounded_write` alarm fires
 in a week.
@@ -489,18 +1271,20 @@ in a week.
 per-source-index plus per-event resolution; link units record read sets with
 a reverse index; `release` builds partition artifacts with per-partition
 withholding, a small manifest, streamed key joins, the strictly-better gate,
-and the `coverage` reduce. Retain the old closure path behind a flag for one
-release. _Accept when_ one corrupt event withholds only itself in a build; a
-release build peaks under 2 GB resident and finishes under 10 minutes; a
-single fetched score sheet re-derives one event, its links and its year, under
-one minute of derive time; the manifest is under 5 MB and identical across two
+and the `coverage` reduce. Read sets lift F1's limit: a real upstream change
+then re-mints only the units that read it. Retain the old closure path behind
+a flag for one release. _Accept when_ one corrupt event withholds only itself
+in a build; a release build peaks under 2 GB resident and finishes under 10
+minutes; a single fetched score sheet re-derives one event, its links and its
+year, under one minute of derive time; the manifest is under 5 MB and identical across two
 attempts with unchanged inputs; a release that would drop identity links is
 refused with a reason.
 
 **Phase 4: storage lifecycle and backups (about 2 weeks).** _Trigger:_ start
-it, or raise the quota, when the state without checkpoints passes about 55 GB;
-one local checkpoint then leaves little room (D-0203). No alarm watches it yet
-(maintenance queue); post-check receipts carry the size. Payloads, parse
+it, or raise the quota, when the state without `checkpoints/`, `venv/` and
+`uv-cache/` passes about 55 GB; one local checkpoint then leaves little room
+(D-0203). The watchdog's `[state-size]` uses that measure and fires 5 GB
+earlier, at 50 GB; post-check receipts carry the size. Payloads, parse
 results and manifests to the blob store with a lifecycle row per class;
 streaming mark-sweep across all classes; segmented incremental backup with
 weekly automated restore verification; migration of retained

@@ -29,17 +29,17 @@ is the entry point for implementation and operating evidence.
 
 ## Runtime and shared terms
 
-| Rule                                                 | Owner                                     |
-| ---------------------------------------------------- | ----------------------------------------- |
-| Module ownership and evidence flow                   | [Architecture](architecture.md)           |
-| Stored evidence, work, and invalidation              | [Local state](state.md)                   |
-| Changes in each SQLite schema version                | [Schema history](schema-history.md)       |
-| Changes and validation in each runtime source freeze | [Candidate history](candidate-history.md) |
-| Worker lifecycle, controls, and recovery             | [Operations](operations.md)               |
-| Cross-module recovery guarantees and target behavior | [Recovery contract](recovery.md)          |
-| Runtime tools                                        | [Technology](technology.md)               |
-| Data use, removals, and source terms                 | [Ethics and privacy](ethics-and-legal.md) |
-| Meaning of shared terms                              | [Glossary](glossary.md)                   |
+| Rule                                                                | Owner                                     |
+| ------------------------------------------------------------------- | ----------------------------------------- |
+| Module ownership and evidence flow                                  | [Architecture](architecture.md)           |
+| Stored evidence, work, invalidation, output cutoff and code recipes | [Local state](state.md)                   |
+| Changes in each SQLite schema version                               | [Schema history](schema-history.md)       |
+| Changes and validation in each runtime source freeze                | [Candidate history](candidate-history.md) |
+| Worker lifecycle, controls, and recovery                            | [Operations](operations.md)               |
+| Cross-module recovery guarantees and target behavior                | [Recovery contract](recovery.md)          |
+| Runtime tools                                                       | [Technology](technology.md)               |
+| Data use, removals, and source terms                                | [Ethics and privacy](ethics-and-legal.md) |
+| Meaning of shared terms                                             | [Glossary](glossary.md)                   |
 
 Use [task guides](../guides/README.md) for commands,
 [decisions](../../journal/decisions/README.md) for reasons behind lasting choices,

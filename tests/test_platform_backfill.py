@@ -219,6 +219,239 @@ def test_wrong_kind_or_changed_inventory_cannot_reuse_acceptance(fixture):
     )
 
 
+def test_a_paced_inventory_leaves_phase_two_open_for_an_accepted_year(fixture):
+    """A dancer change queues the inventory, and the pacing gate holds it for
+    hours (D-0210). The phase-two gate then reads the committed event list, a
+    fact (I5), instead of closing every year until the inventory runs."""
+    from materialized_fixture import output_rows
+
+    from swingset.history.acquisition import phase_two_refusals
+    from swingset.schedule import pacing
+    from swingset.schedule.fair_policy import SchedulerConfig
+    from swingset.state import derivations
+    from swingset.state.work import WorkUnit, enqueue
+
+    accept(fixture)
+    review_contract(fixture)
+
+    def gate():
+        return phase_two_gate(
+            fixture.conn, source="eepro", source_ref=EVENT.source_ref, page_kind="eepro.autoindex"
+        )
+
+    assert gate() is None
+    # The cycle runs the changed dancer; the inventory it re-queued waits.
+    dancer = WorkUnit("project", "dancer", "999")
+    enqueue(fixture.conn, (dancer,), enqueued_at=fixture.clock.now().isoformat())
+    derivations.refresh(fixture.conn, fixture.clock.now())
+    with fixture.db.transaction():
+        selection = derivations.capture(fixture.conn, dancer, now=fixture.clock.now())
+        derivations.complete(
+            fixture.conn,
+            selection,
+            rows=output_rows(fixture.conn, dancer),
+            now=fixture.clock.now(),
+            run_id=fixture.run,
+        )
+    assert WorkUnit("project", "inventory", "all") in set(
+        derivations.pending_units(fixture.conn, "project")
+    )
+    paced = SchedulerConfig(history_interval_seconds=43200, inventory_interval_seconds=43200)
+    # Outside a run that names its scheduler nothing is held: it waits.
+    assert gate() == "history_year_unaccepted"
+    with pytest.raises(ValueError, match="projection is pending"):
+        accept_year(
+            fixture.conn, 2019, accepted_by="owner", accepted_at=fixture.clock.now().isoformat()
+        )
+    with phase_two_refusals() as refused, pacing.configured(paced, fixture.clock.now):
+        assert gate() is None
+        assert gate() is None
+        # accept-year names its scheduler too: it records the committed list.
+        accept_year(
+            fixture.conn, 2019, accepted_by="owner", accepted_at=fixture.clock.now().isoformat()
+        )
+        assert gate() is None
+    assert refused == {}
+    # Once its interval ends the inventory is due and blocks again, and the
+    # refusal is counted for the cycle summary (I4).
+    later = fixture.clock.now() + timedelta(hours=13)
+    with phase_two_refusals() as refused, pacing.configured(paced, lambda: later):
+        assert gate() == "history_year_unaccepted"
+    assert refused == {"history_year_unaccepted": 1}
+
+
+def _dancer_change(fixture):
+    """A changed dancer materializes and re-queues the inventory."""
+    from materialized_fixture import output_rows
+
+    from swingset.state import derivations
+    from swingset.state.work import WorkUnit, enqueue
+
+    dancer = WorkUnit("project", "dancer", "999")
+    enqueue(fixture.conn, (dancer,), enqueued_at=fixture.clock.now().isoformat())
+    derivations.refresh(fixture.conn, fixture.clock.now())
+    with fixture.db.transaction():
+        selection = derivations.capture(fixture.conn, dancer, now=fixture.clock.now())
+        derivations.complete(
+            fixture.conn,
+            selection,
+            rows=output_rows(fixture.conn, dancer),
+            now=fixture.clock.now(),
+            run_id=fixture.run,
+        )
+
+
+@pytest.mark.parametrize("dancer_changed", [True, False])
+def test_a_pending_map_blocks_phase_two_unless_the_inventory_is_held(fixture, dancer_changed):
+    """The gate skips the map only behind an inventory the pacing gate holds:
+    the map needs a current inventory, so it cannot write until that one
+    runs. A current inventory made within its interval holds nothing, and a
+    pending map behind it can change the event list now."""
+    from swingset.schedule import pacing
+    from swingset.schedule.fair_policy import SchedulerConfig
+    from swingset.state import derivations
+    from swingset.state.work import WorkUnit
+
+    accept(fixture)
+    review_contract(fixture)
+    if dancer_changed:
+        _dancer_change(fixture)
+    # An inventory cutoff that changed live rows moves its replay epoch: the
+    # map is pending while the inventory keeps its generation.
+    with fixture.db.transaction():
+        derivations.bump_replay(fixture.conn, "project", "inventory")
+    pending = set(derivations.pending_units(fixture.conn, "project"))
+    assert WorkUnit("project", "map", "all") in pending
+    assert (WorkUnit("project", "inventory", "all") in pending) is dancer_changed
+    paced = SchedulerConfig(history_interval_seconds=43200, inventory_interval_seconds=43200)
+    with pacing.configured(paced, fixture.clock.now):
+        assert pacing.holds(fixture.conn, pacing.INVENTORY) is dancer_changed
+        reason = phase_two_gate(
+            fixture.conn, source="eepro", source_ref=EVENT.source_ref, page_kind="eepro.autoindex"
+        )
+    assert reason == (None if dancer_changed else "history_year_unaccepted")
+
+
+@pytest.mark.parametrize("paced", [True, False])
+def test_the_cycle_names_its_scheduler_for_the_phase_two_gate(
+    fixture, tmp_path, monkeypatch, paced
+):
+    """The cycle configures the pacing gate (schedule/pacing.configured) for
+    the whole run. Without it a held inventory closes phase two for every
+    year until it runs (D-0210), and no other test would notice."""
+    import shutil
+
+    from swingset.history import backfill
+    from swingset.schedule.cycle import run_cycle, versions
+    from swingset.state.inputs import accept as accept_inputs
+    from swingset.state.inputs import capture as capture_inputs
+
+    config, overrides = tmp_path / "config", tmp_path / "overrides"
+    shutil.copytree("config", config)
+    shutil.copytree("overrides", overrides)
+    scheduling = "[scheduling]\nhistory_interval_seconds = 43200\n"
+    if paced:
+        scheduling += "inventory_interval_seconds = 43200\n"
+    (config / "sources.toml").write_text(scheduling)
+    # Accept the inputs the cycle will accept, so the seeded outputs are
+    # current under them and only the paced inventory is pending.
+    bundle = capture_inputs(config, overrides, fixture.db.state_dir, versions())
+    accept_inputs(fixture.db, bundle, fixture.clock)
+    accept(fixture)
+    review_contract(fixture)
+    _dancer_change(fixture)
+    gates = []
+
+    def offers(*_args, **_kwargs):
+        # Where the cycle plans phase-two pages: ask the real gate.
+        gates.append(
+            phase_two_gate(
+                fixture.conn,
+                source="eepro",
+                source_ref=EVENT.source_ref,
+                page_kind="eepro.autoindex",
+            )
+        )
+        return ()
+
+    monkeypatch.setattr(backfill, "offers", offers)
+    result = run_cycle(
+        fixture.db,
+        config_dir=config,
+        overrides_dir=overrides,
+        clock=fixture.clock,
+        transport=httpx.MockTransport(lambda _request: httpx.Response(503)),
+    )
+    assert gates
+    if paced:
+        assert set(gates) == {None}
+        assert "history_year_unaccepted" not in result["phase_two_refusals"]
+    else:
+        assert "history_year_unaccepted" in gates
+        assert result["phase_two_refusals"]["history_year_unaccepted"] >= 1
+
+
+@pytest.mark.parametrize("paced", [True, False])
+def test_the_accept_year_command_names_its_scheduler(fixture, tmp_path, monkeypatch, paced):
+    """`swingset accept-year` configures the pacing gate from its config: a
+    year can be accepted while the gate holds the inventory (D-0210)."""
+    from contextlib import contextmanager
+
+    from swingset import cli
+
+    review_contract(fixture)
+    materialize_seeded_outputs(fixture.db, now=fixture.clock.now(), run_id=fixture.run)
+    _dancer_change(fixture)
+
+    @contextmanager
+    def the_fixture(*_args, **_kwargs):
+        yield fixture.db
+
+    monkeypatch.setattr(cli, "open_database", the_fixture)
+    monkeypatch.setattr(cli, "SystemClock", lambda: fixture.clock)
+    config = tmp_path / "config"
+    config.mkdir()
+    (config / "hosts.toml").write_text("")
+    scheduling = "[scheduling]\nhistory_interval_seconds = 43200\n"
+    if paced:
+        scheduling += "inventory_interval_seconds = 43200\n"
+    (config / "sources.toml").write_text(scheduling)
+    command = ["accept-year", "--year", "2019", "--by", "owner"]
+    code = cli.main([*command, "--state", str(tmp_path), "--config", str(config)])
+    recorded = fixture.conn.execute(
+        "SELECT count(*) FROM history_acceptance WHERE year=2019"
+    ).fetchone()[0]
+    assert (code, recorded) == ((0, 1) if paced else (1, 0))
+
+
+@pytest.mark.parametrize("on", [True, False])
+def test_the_accept_year_command_applies_the_cutoff_switch(fixture, tmp_path, monkeypatch, on):
+    from contextlib import contextmanager
+
+    from swingset import cli, cutoff
+    from swingset.project import history
+
+    @contextmanager
+    def the_fixture(*_args, **_kwargs):
+        yield fixture.db
+
+    seen = []
+
+    def record(*_args, **_kwargs):
+        seen.append(cutoff.enabled())
+        raise ValueError("recorded")
+
+    monkeypatch.setattr(cli, "open_database", the_fixture)
+    monkeypatch.setattr(history, "accept_year", record)
+    config = tmp_path / "config"
+    config.mkdir()
+    (config / "hosts.toml").write_text("")
+    (config / "sources.toml").write_text(f"[derivation]\ncutoff = {str(on).lower()}\n")
+    command = ["accept-year", "--year", "2019", "--by", "owner", "--state", str(tmp_path)]
+    assert cli.main([*command, "--config", str(config)]) == 1
+    assert seen == [on]
+
+
 def test_index_label_cannot_bypass_phase_two_gate(fixture):
     assert (
         archive_watch_gate(

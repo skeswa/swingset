@@ -46,6 +46,8 @@ class RoundsPage:
     kind = "wdr.rounds"
     EXTRACT_VERSION = 1
     PARSER_VERSION = 3
+    #: The JSON's key order reaches the parse output; see `schedule/parse.py`.
+    ORDERED_EXTRACT = True
     change_mode = "validators"
 
     def extract(self, body: bytes) -> JsonValue:
@@ -183,6 +185,8 @@ class AwardsPage:
     kind = "wdr.awards"
     EXTRACT_VERSION = 1
     PARSER_VERSION = 1
+    #: The JSON's key order reaches the parse output; see `schedule/parse.py`.
+    ORDERED_EXTRACT = True
     change_mode = "validators"
 
     def extract(self, body: bytes) -> JsonValue:

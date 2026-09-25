@@ -47,7 +47,7 @@ def test_stale_group_skips_candidate_currentness_and_selects_same_healthy_work(
 ):
     f = registry_fixture
     fleet, healthy = demand(f)
-    f.conn.execute("UPDATE accepted_inputs SET digest='changed' WHERE input_name='recipe/runtime'")
+    f.conn.execute("UPDATE accepted_inputs SET digest='changed' WHERE input_name='recipe/env'")
     calls = link_calls(monkeypatch)
 
     def allowed(unit):
@@ -112,7 +112,7 @@ def test_physical_unregistered_dancer_without_queue_blocks_then_next_snapshot_re
 def test_caller_transaction_does_not_get_early_group_precheck(registry_fixture, monkeypatch):
     f = registry_fixture
     fleet, healthy = demand(f, 2)
-    f.conn.execute("UPDATE accepted_inputs SET digest='changed' WHERE input_name='recipe/runtime'")
+    f.conn.execute("UPDATE accepted_inputs SET digest='changed' WHERE input_name='recipe/env'")
     calls = link_calls(monkeypatch)
     with f.db.transaction():
         assert (
@@ -155,7 +155,7 @@ def test_shared_false_does_not_skip_healthy_parse_or_bypass_controls_and_exclusi
 ):
     f = registry_fixture
     fleet, healthy = demand(f, 2)
-    f.conn.execute("UPDATE accepted_inputs SET digest='changed' WHERE input_name='recipe/runtime'")
+    f.conn.execute("UPDATE accepted_inputs SET digest='changed' WHERE input_name='recipe/env'")
 
     def allowed(unit):
         return (unit in fleet or unit == healthy) and unit_allowed(

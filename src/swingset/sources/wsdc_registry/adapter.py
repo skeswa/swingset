@@ -18,9 +18,7 @@ from ..base import (
     WatchSpec,
 )
 from ..interpretation import declared
-from ..records import DancerLookup, RegistryPlacement
-
-VERIFIED_MISS_SHA256 = "8437bd0ef46a19c9a7c294c53e0429b40e76ebbd5fe9fd73a9025752495ddb1c"
+from ..records import VERIFIED_MISS_SHA256, DancerLookup, RegistryPlacement
 
 
 def is_verified_miss(body: bytes, status: int) -> bool:
@@ -39,6 +37,8 @@ class DancerPage:
     kind = "wsdc_registry.dancer"
     EXTRACT_VERSION = 2
     PARSER_VERSION = 3
+    #: The JSON's key order reaches the parse output; see `schedule/parse.py`.
+    ORDERED_EXTRACT = True
     change_mode = "body_hash"
 
     def extract(self, body: bytes) -> JsonValue:

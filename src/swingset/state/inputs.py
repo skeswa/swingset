@@ -11,6 +11,7 @@ from types import MappingProxyType
 from swingset.clock import Clock
 from swingset.config import (
     Config,
+    parse_derivation,
     parse_history_start,
     parse_hosts,
     parse_retention,
@@ -72,6 +73,7 @@ def capture(
         parse_scheduler(files["config/sources.toml"]),
         parse_retention(files["config/sources.toml"]),
         parse_stages(files["config/sources.toml"]),
+        parse_derivation(files["config/sources.toml"]),
     )
     # The retention limits as values, not as the bytes they were read from. An
     # absent `[retention]` table means the defaults, so a bundle that carried
