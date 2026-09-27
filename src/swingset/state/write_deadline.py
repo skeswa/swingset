@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import contextlib
-import contextvars
 import signal
 import sqlite3
 import threading
@@ -11,29 +10,32 @@ import time
 from collections.abc import Iterator
 from types import FrameType
 
-WRITE_SECONDS = 45.0
-_ALLOWANCE: contextvars.ContextVar[float | None] = contextvars.ContextVar(
-    "write_allowance", default=None
-)
+# A safety net, not the bound: every write is small by construction (I2), so
+# a firing is an alarm (D-0217). No unit gets a longer limit.
+WRITE_SECONDS = 60.0
+_fired = 0
 
 
-@contextlib.contextmanager
-def allowance(seconds: float) -> Iterator[None]:
-    """Give the next bounded write a longer, named limit than WRITE_SECONDS.
+def fired() -> int:
+    """How many writes this process has cut off at the deadline."""
+    return _fired
 
-    Only for a unit that cannot be split and that runs rarely: a control
-    waiting on it waits this long instead (D-0198).
+
+def run_counters(fired_before: int = 0) -> dict[str, float | int]:
+    """The write counters a run record carries (D-0217).
+
+    `fired_before` is `fired()` at the run's start; the timing counters come
+    from `state/db.py`, which the run resets when it starts.
     """
-    token = _ALLOWANCE.set(seconds)
-    try:
-        yield
-    finally:
-        _ALLOWANCE.reset(token)
+    from .db import write_counters
 
-
-def _limit() -> float:
-    extended = _ALLOWANCE.get()
-    return WRITE_SECONDS if extended is None else max(WRITE_SECONDS, extended)
+    counters = write_counters()
+    return {
+        "write_deadline_fired": fired() - fired_before,
+        "write_seconds_max": counters["write_seconds_max"],
+        "write_wait_seconds_max": counters["write_wait_seconds_max"],
+        "write_lock_timeouts": counters["write_lock_timeouts"],
+    }
 
 
 class WriteDeadlineExceeded(RuntimeError):
@@ -52,11 +54,14 @@ def bounded_write(conn: sqlite3.Connection) -> Iterator[None]:
     The pipeline owns its SQLite writer on the main process thread. Operator
     controls use a separate connection and do not enter this worker boundary.
     Read snapshots and explicit maintenance migrations do not enter it either.
+    The caller begins its transaction before entering, so time spent waiting
+    for another process's write is not counted against the bound (D-0215).
     """
     if threading.current_thread() is not threading.main_thread():
         raise RuntimeError("bounded pipeline writes require the process main thread")
+    global _fired
     started = time.monotonic()
-    limit = _limit()
+    limit = WRITE_SECONDS
     previous_handler = signal.getsignal(signal.SIGALRM)
     previous_delay, previous_interval = signal.getitimer(signal.ITIMER_REAL)
     # Do not silently replace a caller's earlier deadline or recurring alarm.
@@ -79,10 +84,14 @@ def bounded_write(conn: sqlite3.Connection) -> Iterator[None]:
     signal.setitimer(signal.ITIMER_REAL, limit)
     try:
         yield
-        if expired or time.monotonic() - started >= limit:
+        # A body that ran past the limit before the alarm could land (it lands
+        # only between bytecodes) is cut off the same way.
+        expired = expired or time.monotonic() - started >= limit
+        if expired:
             raise _Expired()
     except BaseException as error:
         if expired:
+            _fired += 1
             raise WriteDeadlineExceeded(
                 f"atomic write exceeded {limit:g} seconds; output rolled back"
             ) from error

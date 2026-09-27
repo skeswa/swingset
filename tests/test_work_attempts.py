@@ -488,3 +488,26 @@ def test_a_committed_parse_keeps_its_attempt_but_not_its_admission(tmp_path):
         assert attempt["outcome"] == "succeeded"
         for table in ("execution_admissions", "execution_dependencies", "requirement_attempts"):
             assert conn.execute(f"SELECT count(*) FROM {table}").fetchone()[0] == 0, table
+
+
+def test_a_running_attempt_is_eligible_once_its_queue_lease_is_dead(tmp_path):
+    """A process that died mid-attempt is recovered lazily by the next lease (D-0216)."""
+    from swingset.state import queue
+
+    with open_database(tmp_path) as db:
+        run = seed(db, BAD)
+        begin_attempt(db, BAD, now=NOW, run_id=run, fingerprint="same-input")
+        # Begun outside the queue: only the exclusive recovery closes it.
+        assert not eligible(db.connection, BAD, "same-input", NOW)
+        with db.transaction():
+            queue.lease(db, BAD, owner=queue.Owner("derive", run), now=NOW)
+        expired = NOW + timedelta(seconds=1800)
+        assert not eligible(db.connection, BAD, "same-input", NOW)
+        assert eligible(db.connection, BAD, "same-input", expired)
+        with queue.owning("cycle", "other"):
+            assert not eligible(db.connection, BAD, "same-input", NOW)
+        with queue.owning("derive", "next"):
+            # This process holds the derive loop's lock: the old run is dead.
+            assert eligible(db.connection, BAD, "same-input", NOW)
+        with queue.owning("cli", "operator", exclusive=True):
+            assert eligible(db.connection, BAD, "same-input", NOW)

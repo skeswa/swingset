@@ -190,7 +190,9 @@ def test_pending_catalog_and_invalid_dates_keep_year_gate_closed(tmp_path):
     )
     with open_database(tmp_path) as db:
         conn = db.connection
-        conn.execute("INSERT INTO runs VALUES ('run','2016-01-01',NULL,1,NULL)")
+        conn.execute(
+            "INSERT INTO runs(run_id,started_at,finished_at,dry_run,summary_json) VALUES ('run','2016-01-01',NULL,1,NULL)"
+        )
         pending = year_gaps(conn, (target,), {}, final_year=2017, history_start=date(2010, 1, 1))
         assert pending[2015] and pending[2016] and pending[2017]
         assert not pending[2014]
@@ -263,7 +265,9 @@ def test_dismissed_parse_failure_clears_a_finding_status_capture(tmp_path):
     )
     with open_database(tmp_path) as db:
         conn = db.connection
-        conn.execute("INSERT INTO runs VALUES ('run','2016-01-01',NULL,1,NULL)")
+        conn.execute(
+            "INSERT INTO runs(run_id,started_at,finished_at,dry_run,summary_json) VALUES ('run','2016-01-01',NULL,1,NULL)"
+        )
         conn.execute(
             "INSERT INTO watches(watch_id,source,kind,method,url,parser,state) VALUES ('w','wsdc_calendar','index','GET','https://example.test','wsdc_calendar.events','sealed')"
         )

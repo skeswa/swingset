@@ -1,12 +1,14 @@
 """Operator commands sharing the same lock, input capture and durable stages."""
 
 import argparse
+import contextlib
 import getpass
 import hashlib
 import json
 import math
 import os
 import signal
+import sqlite3
 import sys
 import time
 from dataclasses import asdict, dataclass
@@ -23,6 +25,16 @@ from swingset.state.db import Database, DatabaseLockedError, open_database
 
 if TYPE_CHECKING:
     from swingset.backup.pruning import PrunePolicy
+
+
+#: Loop commands built so far and their default budgets in seconds.
+LOOP_BUDGETS = {
+    "acquire": 240.0,
+    "plan": 600.0,
+    "derive": 240.0,
+    "release": 1800.0,
+    "maintain": 1200.0,
+}
 
 
 def parser() -> argparse.ArgumentParser:
@@ -126,6 +138,15 @@ def parser() -> argparse.ArgumentParser:
     mode.add_argument("--publish", dest="dry_run", action="store_false")
     cycle.add_argument("--budget", type=duration, default=720)
     cycle.add_argument("--timer", action="store_true")
+    # One tick of a loop (D-0215); budgets are the timer units' defaults.
+    for name, budget in LOOP_BUDGETS.items():
+        loop = commands.add_parser(name, parents=[shared], help=f"Run one {name} loop tick")
+        loop.add_argument("--budget", type=duration, default=budget)
+        loop.add_argument("--timer", action="store_true")
+        if name == "release":
+            publishing = loop.add_mutually_exclusive_group()
+            publishing.add_argument("--dry-run", dest="dry_run", action="store_true", default=True)
+            publishing.add_argument("--publish", dest="dry_run", action="store_false")
     cohort = commands.add_parser("cohort", parents=[shared])
     cohort.add_argument("name")
     cohort.add_argument("--source")
@@ -166,6 +187,24 @@ def parser() -> argparse.ArgumentParser:
     dump_input.add_argument("dump", type=Path, nargs="?")
     dump_input.add_argument("--blob", help="Replay a dump by its archived SHA-256")
     crosscheck.add_argument("--archive-only", action="store_true")
+    work_queue = commands.add_parser(
+        "queue", parents=[shared], help="Show the work queue, or requeue waiting units"
+    )
+    work_queue.add_argument("action", nargs="?", choices=("requeue",))
+    work_queue.add_argument(
+        "--queue-state",
+        choices=("ready", "leased", "waiting_input", "quarantined"),
+        help="list the units in this state (default: quarantined)",
+    )
+    work_queue.add_argument("--json", action="store_true")
+    requeued = work_queue.add_mutually_exclusive_group()
+    requeued.add_argument(
+        "--error-class", help="requeue: every unit whose last failure is this class"
+    )
+    requeued.add_argument("--unit", metavar="STAGE/KIND/ID", help="requeue: one unit")
+    work_queue.add_argument("--stage", choices=("parse", "project", "link"))
+    work_queue.add_argument("--kind")
+    work_queue.add_argument("--by", help="requeue: who asks, the operator and session")
     enums = commands.add_parser("enums")
     enums.add_argument("--write", action="store_true")
     backup = commands.add_parser("backup", parents=[shared])
@@ -566,6 +605,11 @@ def doctor(args: argparse.Namespace) -> dict[str, Any]:
                     collect_older_than=config.retention.collect_older_than,
                     detail_limit=200 if getattr(args, "json", False) else 20,
                 )
+            from swingset.state import guards
+
+            # Why fetches are held, by reason, and the rows still seen after
+            # their expiry (D-0219).
+            result["guards"] = guards.report(conn, now=now)
             result["open_findings"] = conn.execute(
                 "SELECT COUNT(*) FROM findings WHERE closed_at IS NULL"
             ).fetchone()[0]
@@ -621,6 +665,7 @@ def daily_summary(result: dict[str, Any]) -> None:
         registry_verification=result.get("registry_verification"),
         registry_cursors=result.get("registry_cursors"),
         derivation_payload_removal_grants=result.get("derivation_payload_removal_grants", []),
+        guards=result.get("guards"),
     )
 
 
@@ -658,6 +703,55 @@ def _write_failed_run(database: Database, run_id: str, command: str, error: str)
         )
 
 
+def _loop(args: argparse.Namespace, stopped: list[bool]) -> int:
+    """One loop tick; exit 1 when it failed. A busy lock escapes as a skip."""
+    from swingset.loops import acquire, derive, maintain, plan, release
+    from swingset.loops.runtime import Tick, tick
+
+    body = {
+        "acquire": acquire.run,
+        "plan": plan.run,
+        "derive": derive.run,
+        "release": release.run,
+        "maintain": maintain.run,
+    }[args.command]
+    # Only release publishes, and only with --publish.
+    dry_run = getattr(args, "dry_run", True)
+    current: Tick
+    with tick(
+        args.command,
+        state=args.state,
+        config_dir=args.config,
+        overrides_dir=args.overrides,
+        clock=SystemClock(),
+        budget=args.budget,
+        should_stop=lambda: stopped[0],
+        timer=args.timer,
+        hub=None if dry_run else hub(),
+        dry_run=dry_run,
+    ) as current:
+        from swingset.state.queue import stop_marker
+
+        marker = stop_marker(args.state, current.run_id)
+
+        def requested(_signum: int, _frame: object) -> None:
+            # A stop request is noted on disk, so a kill after the stop
+            # timeout is not counted as the running unit's death.
+            stopped[0] = True
+            with contextlib.suppress(OSError):
+                marker.parent.mkdir(parents=True, exist_ok=True)
+                marker.write_bytes(b"")
+
+        previous = signal.signal(signal.SIGTERM, requested)
+        try:
+            if stopped[0]:
+                requested(signal.SIGTERM, None)
+            body(current)
+        finally:
+            signal.signal(signal.SIGTERM, previous)
+    return int(bool(current.record and current.record["failed"]))
+
+
 def _mutate(
     args: argparse.Namespace,
     database: Database,
@@ -684,12 +778,15 @@ def _mutate(
             should_stop=lambda: stopped[0],
         )
         return int(cycle_result["failed"])
+    from swingset.state import queue
     from swingset.state.attempts import recover_interrupted
     from swingset.state.controls import recover_admissions
 
     with database.transaction() as conn:
         recover_admissions(conn, now=clock.now())
         recover_interrupted(database, now=clock.now())
+        # This process holds the exclusive lock: every lease is dead (D-0216).
+        queue.release_all(conn, clock.now())
     bundle = capture(args.config, args.overrides, args.state, versions())
     accept(database, bundle, clock)
     run_id = database.start_run(clock.now(), dry_run=command != "publish")
@@ -876,33 +973,37 @@ def _mutate(
                 held_units.pop(unit, None)
             return not pauses
 
-        while (
-            not stopped[0]
-            and (
-                unit := next_work(
-                    database.connection,
-                    command,
-                    now=clock.now(),
-                    exclude=attempted,
-                    allowed=allowed,
+        with queue.owning("cli", run_id, exclusive=True):
+            while (
+                not stopped[0]
+                and (
+                    unit := next_work(
+                        database.connection,
+                        command,
+                        now=clock.now(),
+                        exclude=attempted,
+                        allowed=allowed,
+                    )
                 )
-            )
-            is not None
-        ):
-            attempted.add(unit)
-            derived = derive_one(database, archive, unit, bundle, clock, run_id)
-            if derived.source is not None:
-                attempts[derived.source] += 1
-                failures[derived.source] += int(derived.failed)
-            elif derived.failed:
-                command_failed = True
-            if derived.reason == "operator_pause":
-                allowed(unit)
-            if derived.source == "wsdc_registry" and not derived.failed:
-                from swingset.schedule.registry import advance_sweep
+                is not None
+            ):
+                attempted.add(unit)
+                derived = derive_one(database, archive, unit, bundle, clock, run_id)
+                if derived.reason in {"control_timeout", "lease_busy"}:
+                    log("unit-skipped", unit=asdict(unit), reason=derived.reason)
+                    continue
+                if derived.source is not None and not derived.waiting_repeat:
+                    attempts[derived.source] += 1
+                    failures[derived.source] += int(derived.failed)
+                elif derived.failed:
+                    command_failed = True
+                if derived.reason == "operator_pause":
+                    allowed(unit)
+                if derived.source == "wsdc_registry" and not derived.failed:
+                    from swingset.schedule.registry import advance_sweep
 
-                with database.transaction():
-                    advance_sweep(database, now=clock.now())
+                    with database.transaction():
+                        advance_sweep(database, now=clock.now())
         if held_units:
             log(
                 "derivation-held",
@@ -1233,34 +1334,54 @@ def _control(args: argparse.Namespace) -> int:
 
 
 def _accept_year(args: argparse.Namespace) -> int:
-    """Record a reviewed year's event list as accepted, in one bounded write.
+    """Record a reviewed year's event list as accepted, then store history in chunks.
 
     The projector refuses while the year has open history findings or the
     inventory projection is pending, so acceptance cannot outrun the evidence
     (D-0180). An inventory the configured pacing gate holds does not count as
     pending: acceptance then records the committed event list, as the
     phase-two gate reads it (D-0210). The cutoff switch applies (D-0205).
+
+    The acceptance and history's live rows commit in one bounded write (step
+    A); the history generation (about 201,000 references) then stores in
+    chunks and its pointer flips in one short write, as `derive_one` stores
+    it (WP4, D-0217). If that stops, the acceptance stands and the derive
+    loop resumes the building generation.
     """
     from swingset import cutoff
     from swingset.project.history import accept_year
     from swingset.schedule import pacing
+    from swingset.state import derivations
+    from swingset.state.work import WorkUnit
 
     if not (args.by or "").strip():
         raise ValueError("accept-year requires --by")
     config = load_config(args.config)
     clock = SystemClock()
     now = clock.now()
+    history = WorkUnit("project", "history", "all")
     with open_database(args.state, lock_timeout=args.lock_timeout) as database:
         with (
             pacing.configured(config.scheduler, clock.now),
             cutoff.configured(config.derivation.cutoff),
-            database.transaction() as conn,
+            derivations.chunking(database.connection, history) as chunk,
         ):
-            accept_year(conn, args.year, accepted_by=args.by, accepted_at=now.isoformat())
-            row = conn.execute(
-                "SELECT year,accepted_at,accepted_by,inventory_digest FROM history_acceptance WHERE year=?",
-                (args.year,),
-            ).fetchone()
+            with database.transaction() as conn:
+                accept_year(conn, args.year, accepted_by=args.by, accepted_at=now.isoformat())
+                row = conn.execute(
+                    "SELECT year,accepted_at,accepted_by,inventory_digest FROM history_acceptance WHERE year=?",
+                    (args.year,),
+                ).fetchone()
+            if chunk.deferred is not None:
+
+                def finished(write: sqlite3.Connection) -> None:
+                    write.execute(
+                        "DELETE FROM pending_work WHERE stage=? AND unit_kind=? AND unit_id=?",
+                        (history.stage, history.unit_kind, history.unit_id),
+                    )
+
+                derivations.finish_building(database, chunk.deferred, commit=finished)
+                derivations.collect_orphans(database, history, keep=None)
     print(
         json.dumps(
             dict(zip(("year", "accepted_at", "accepted_by", "inventory_digest"), row, strict=True))
@@ -1305,9 +1426,85 @@ def _hold(args: argparse.Namespace) -> int:
     return 0
 
 
+def _queue(args: argparse.Namespace) -> int:
+    """Report the work queue, or requeue quarantined and waiting units (D-0216).
+
+    The report opens read-only. A requeue is one short write that takes no
+    process lock, like a pause: it sets the rows ready with no failures
+    counted and asks for a retry, so the next derive picks them up.
+    """
+    from swingset.state import queue
+    from swingset.state.work import WorkUnit
+
+    clock = SystemClock()
+    if args.action != "requeue":
+        if args.error_class or args.unit or args.by:
+            raise ValueError("--error-class, --unit and --by belong to `queue requeue`")
+        with open_database(args.state, lock=False, read_only=True) as database:
+            result = queue.report(database.connection, clock.now(), state=args.queue_state)
+        if args.json:
+            print(json.dumps(result, indent=2, default=str))
+            return 0
+        states = result["states"]
+        assert isinstance(states, dict)
+        print(" ".join(f"{state}={count}" for state, count in states.items()))
+        oldest = result["oldest_ready_seconds"]
+        if oldest is not None:
+            print(f"oldest due ready row: {int(float(str(oldest)) // 60)} min")
+        classes = result["classes"]
+        assert isinstance(classes, dict)
+        for name, count in classes.items():
+            print(f"class {name or '-'}: {count}")
+        units = result["units"]
+        assert isinstance(units, list)
+        for item in units:
+            print(
+                f"{item['unit']} {item['state']} after {item['attempts']} x {item['error_class']}"
+                f" until {item['next_attempt_at']}: {(item['last_error'] or '')[:120]}"
+            )
+        return 0
+    if not (args.by or "").strip():
+        raise ValueError("queue requeue requires --by")
+    unit = None
+    if args.unit:
+        parts = args.unit.split("/", 2)
+        if len(parts) != 3 or not all(parts):
+            raise ValueError("--unit takes STAGE/KIND/ID")
+        unit = WorkUnit(*parts)
+    elif not args.error_class:
+        raise ValueError("queue requeue requires --error-class or --unit")
+    with open_database(args.state, lock=False, lock_timeout=args.lock_timeout) as database:
+        with database.transaction() as conn:
+            units = queue.requeue(
+                conn,
+                now=clock.now(),
+                by=args.by,
+                error_class=args.error_class,
+                unit=unit,
+                stage=args.stage,
+                kind=args.kind,
+            )
+    print(
+        json.dumps(
+            {
+                "requeued": [f"{item.stage}/{item.unit_kind}/{item.unit_id}" for item in units],
+                "by": args.by.strip(),
+            },
+            indent=2,
+        )
+    )
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     args = parser().parse_args(argv)
     stopped = [False]
+    if args.command == "queue":
+        try:
+            return _queue(args)
+        except (OSError, ValueError, RuntimeError) as exc:
+            log("error", message=str(exc))
+            return 1
     if args.command in {"pause", "resume"}:
         try:
             return _control(args)
@@ -1424,6 +1621,8 @@ def main(argv: list[str] | None = None) -> int:
             return 1
     previous = signal.signal(signal.SIGTERM, lambda _signum, _frame: stopped.__setitem__(0, True))
     try:
+        if args.command in LOOP_BUDGETS:
+            return _loop(args, stopped)
         if args.command == "restore":
             from swingset.backup.checkpoint import restore_from_checkpoint
 

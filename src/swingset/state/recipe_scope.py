@@ -50,8 +50,9 @@ class Entry:
 
 
 # The projector module of each project unit kind. `project.process` imports all
-# of them, so today the closures agree; the table keeps the scope names stable
-# for when phase 2 splits the import cycle.
+# of them, so today the closures agree. Phase 2 took the scheduler out of the
+# import cycle, not the projectors; the table keeps the scope names stable for
+# a later split.
 PROJECTORS: dict[str, str] = {
     "calendar": "project.events",
     "dancer": "project.registry",
@@ -79,38 +80,90 @@ PARSE_WRITERS: tuple[str, ...] = (
     "state.verification",
 )
 
+_ACQUIRE = "acquisition; it fetches, gates and stores pages that parse reads"
+_EVENTS = "event acquisition bookkeeping; the cycle and plan loop run it"
+_SCHEDULE = "scheduling; it runs stages through the modules the scopes name"
+
 # Package paths no recipe names. A path ending in "/" covers its directory.
+# Since `versions.py` left `schedule/cycle.py`, no project, link or build
+# closure reaches the scheduler or acquisition (architecture plan, F4).
 EXCLUDED: dict[str, str] = {
-    "cli.py": "command-line entry; it runs stages through the modules the scopes name",
     "admission/corpus.py": "offline admission corpus export",
+    "admission/enumeration_evidence.py": _EVENTS,
+    "admission/event_declarations.py": _EVENTS,
+    "admission/event_retirement.py": _EVENTS,
+    "admission/parent_evidence.py": _EVENTS,
     "admission/policy.py": "operator commands that change admission policy rows",
     "backup/": "backups copy state and do not derive it",
     "build/event_page_evidence.py": "offline event-page evidence report",
     "build/identity_restriction.py": "offline identity restriction report",
+    "cli.py": "command-line entry; it runs stages through the modules the scopes name",
+    "fetch/cdx.py": _ACQUIRE,
+    "fetch/client.py": _ACQUIRE,
+    "fetch/controls.py": _ACQUIRE,
+    "fetch/eligibility.py": _ACQUIRE,
+    "fetch/limits.py": _ACQUIRE,
+    "fetch/politeness.py": _ACQUIRE,
+    "fetch/recovery.py": "restores retained artifacts from local checkpoints before a stage reads them",
+    "fetch/robots.py": _ACQUIRE,
     "history/aliases.py": "operator alias review",
+    "history/archive_timing.py": _ACQUIRE,
+    "history/backfill.py": _ACQUIRE,
+    "history/captures.py": _ACQUIRE,
     "history/catalog.py": "offline history catalog report",
     "history/closure.py": "year-gap review; it writes findings, not derivations",
     "history/discovery.py": "acquisition discovery commands",
     "history/event_site_intake.py": "acquisition intake commands",
     "history/event_site_queries.py": "acquisition intake queries",
+    "history/event_sites.py": _ACQUIRE,
     "history/intake.py": "acquisition intake commands",
+    "history/origin.py": _ACQUIRE,
+    "history/platform.py": _ACQUIRE,
     "history/review.py": "operator year-gap review",
     "history/transfer.py": "operator transfer commands",
     "link/evaluation.py": "offline linker evaluation",
     "link/evaluation_input.py": "offline linker evaluation",
     "link/evaluation_packet.py": "offline linker evaluation",
     "link/overrides.py": "operator identity override commands",
+    "loops/": "loop ticks; they run stages through the modules the scopes name",
+    "schedule/acquisition.py": _ACQUIRE,
+    "schedule/cycle.py": _SCHEDULE,
+    "schedule/derive.py": _SCHEDULE,
+    "schedule/discover.py": _ACQUIRE,
+    "schedule/event_accounting.py": _EVENTS,
     "schedule/event_accounting_report.py": "event acquisition report",
+    "schedule/event_blocker_history.py": _EVENTS,
+    "schedule/event_capacity.py": _EVENTS,
+    "schedule/event_enumerations.py": _EVENTS,
+    "schedule/event_gaps.py": _EVENTS,
     "schedule/event_history.py": "event acquisition report",
     "schedule/event_inventory.py": "event acquisition report",
+    "schedule/event_pressure.py": _EVENTS,
+    "schedule/event_pressure_probe.py": _EVENTS,
+    "schedule/event_pressure_refresh.py": _EVENTS,
+    "schedule/event_progress.py": _EVENTS,
     "schedule/event_progress_report.py": "event acquisition report",
     "schedule/event_publication.py": "event acquisition report",
+    "schedule/event_readiness.py": _EVENTS,
     "schedule/event_report.py": "event acquisition report",
+    "schedule/event_request_kind.py": _EVENTS,
+    "schedule/event_retirement.py": _EVENTS,
     "schedule/event_service.py": "event acquisition commands",
+    "schedule/event_timing.py": _EVENTS,
+    "schedule/event_timing_observer.py": _EVENTS,
+    "schedule/event_turns.py": _EVENTS,
+    "schedule/fairness.py": _SCHEDULE,
+    "schedule/offline.py": _SCHEDULE,
+    "schedule/registry.py": _ACQUIRE,
     "sources/dcn/": "unregistered source; no page kind resolves to it",
+    "state/acquisition_plan.py": "loop plan rows; acquisition reads them, no derivation does",
     "state/closure_collection.py": "operator retention commands",
+    "state/control_scopes.py": "control dependencies of admission and status; the stages check controls, not outputs",
     "state/control_time.py": "operator control commands",
+    "state/event_progress.py": _EVENTS,
+    "state/guards.py": "fetch guard reasons; acquisition writes them, no derivation reads them",
     "state/lag_report.py": "status report",
+    "state/loop_state.py": "loop tick status; reports read it, no derivation does",
     "state/publication_report.py": "status report",
     "state/requirement_report.py": "status report",
     "state/retention_apply.py": "operator retention commands",

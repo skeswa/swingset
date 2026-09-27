@@ -233,3 +233,132 @@ def test_process_death_retains_active_pause_drain_until_recovery(release):
         if child.poll() is None:
             child.kill()
         child.communicate(timeout=5)
+
+
+def test_the_release_loop_publishes_through_a_hub(tmp_path, monkeypatch):
+    """A release tick reconciles, builds and publishes (WP9); a dry run only builds."""
+    import shutil
+
+    from test_recovery import FakeHub
+
+    from swingset.clock import FakeClock
+    from swingset.config import load_config
+    from swingset.loops import release as release_loop
+    from swingset.loops.runtime import tick
+    from swingset.state.db import open_database
+    from swingset.state.inputs import accept, capture
+    from swingset.versions import versions
+
+    monkeypatch.setenv("SWINGSET_REVISION", "publication-safety-fixture")
+    config, overrides, state = tmp_path / "config", tmp_path / "overrides", tmp_path / "state"
+    shutil.copytree("config", config)
+    overrides.mkdir()
+    (overrides / "identity_overrides.csv").write_text(
+        "decision_id,source,source_event,contest,round,participant,wsdc_id,decision,evidence,reason,author,date,supersedes\n"
+    )
+    (overrides / "suppressions.csv").write_text("wsdc_id,name_norm,reason,date\n")
+    clock, hub = FakeClock(), FakeHub()
+    with open_database(state) as database:
+        accept(database, capture(config, overrides, state, versions()), clock)
+        database.connection.execute("DELETE FROM pending_work")
+
+    def release_tick(*, dry_run):
+        with tick(
+            "release",
+            state=state,
+            config_dir=config,
+            overrides_dir=overrides,
+            clock=clock,
+            budget=1800,
+            hub=hub,
+            dry_run=dry_run,
+        ) as current:
+            release_loop.run(current, disk_file=tmp_path / "no-disk-quota")
+        assert current.record is not None and not current.record["failed"], current.record
+        return current.record
+
+    published = release_tick(dry_run=False)
+    assert not published["dry_run"] and published["reconciliation"]["state"] == "none"
+    assert published["publication"]["state"] == "published" and hub.calls == 1
+    assert published["publish_commit"] == hub.current == "commit-1"
+    assert published["counters"]["publications"] == 1 and published["progress"] >= 1
+    assert (state / "baseline").is_symlink()
+    # Past the shipped build interval, a dry run with the same hub reconciles
+    # and builds but commits nothing.
+    clock.sleep(load_config(config).scheduler.build_interval_seconds + 3600)
+    dry = release_tick(dry_run=True)
+    assert dry["dry_run"] and dry["reconciliation"]["state"] == "none"
+    assert dry["candidate_id"] and "publication" not in dry and hub.calls == 1
+    with open_database(state, lock=False) as database:
+        assert database.connection.execute(
+            "SELECT state,outcome FROM execution_admissions WHERE action_kind='publication'"
+        ).fetchone()[:] == ("settled", "published")
+        assert (
+            database.connection.execute(
+                "SELECT dry_run FROM runs WHERE run_id=?", (published["run_id"],)
+            ).fetchone()[0]
+            == 0
+        )
+
+
+def test_a_publication_waits_out_a_busy_writer_at_admission_and_settle(release):
+    """A loop's write can hold SQLite past the old 5 s busy timeout; the
+    publication's admission and its settle after the upload wait as any
+    writer does (F7), so the fence never stays up for want of a retry.
+    The connection's timeout is asserted; the writers hold a second each,
+    so the core suite does not wait out the old 5 s."""
+    import threading
+    import time
+
+    from swingset.publish.safety import _connection
+
+    database, _, _, _, hub, candidate = release
+    path = database.state_dir / "state.sqlite"
+    probe = _connection(database.state_dir)
+    assert probe is not None
+    try:
+        assert probe.execute("PRAGMA busy_timeout").fetchone()[0] >= 70000
+    finally:
+        probe.close()
+    holders: list[threading.Thread] = []
+
+    def busy(seconds: float = 1.0) -> None:
+        started = threading.Event()
+
+        def hold() -> None:
+            other = sqlite3.connect(path, isolation_level=None)
+            try:
+                other.execute("BEGIN IMMEDIATE")
+                started.set()
+                time.sleep(seconds)
+                other.execute("COMMIT")
+            finally:
+                other.close()
+
+        thread = threading.Thread(target=hold)
+        thread.start()
+        assert started.wait(5)
+        holders.append(thread)
+
+    upload = hub.create_commit
+
+    def create_commit(**kwargs):
+        sha = upload(**kwargs)
+        busy()  # the settle after the upload meets a busy writer
+        return sha
+
+    hub.create_commit = create_commit
+    busy()  # the admission meets a busy writer
+    try:
+        result = publish(database.state_dir, candidate.path, hub)
+    finally:
+        for thread in holders:
+            thread.join()
+    assert result.state == "published" and hub.calls == 1
+    assert len(holders) == 2
+    assert (
+        database.connection.execute(
+            "SELECT count(*) FROM execution_admissions WHERE state<>'settled'"
+        ).fetchone()[0]
+        == 0
+    )

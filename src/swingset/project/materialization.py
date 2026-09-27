@@ -224,13 +224,19 @@ def materializing(
     selection: Selection | None = None,
     recipe: Mapping[str, str] | None = None,
 ) -> Iterator[Selection | None]:
-    """Capture, write and finish a scope inside its caller's bounded transaction."""
+    """Capture, write and finish a scope inside its caller's bounded transaction.
+
+    Inside `derive_one`, a large unit alone in its group only writes its live
+    rows and a building row here (step A); `derive_one` then stores its output
+    in chunks and completes it, deleting its `pending_work` row (WP4).
+    """
     from swingset.state import derivations
     from swingset.state.attempts import SupersededWorkError
 
     if not derivations.available(conn):
         yield None
         return
+    staged = derivations.stageable(conn, unit)
     with derivations.group(conn):
         captured = derivations.capture(
             conn,
@@ -244,6 +250,15 @@ def materializing(
         if selection is not None and captured.fingerprint != selection.fingerprint:
             raise SupersededWorkError("selected inputs changed before projection or linking")
         yield captured
+        if staged and derivations.stage(
+            conn,
+            captured,
+            output=lambda reader: output_rows(reader, unit),
+            now=now,
+            run_id=run_id,
+            moved=moved_columns(unit),
+        ):
+            return
         # A callable lets complete() read the output twice: once to compare it
         # with the selected generation, and once more to store it if it differs.
         derivations.complete(

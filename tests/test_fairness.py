@@ -288,3 +288,46 @@ def test_a_kind_without_a_code_scope_leaves_the_other_kinds_runnable(tmp_path, m
         assert errors == {
             "project/dancer": "accepted runtime has no code scope recipe/code/project/dancer"
         }
+
+
+def test_backpressure_counts_only_parse_units_derive_could_run(tmp_path):
+    """Blocked, backing-off and quarantined parses do not close acquisition (D-0216)."""
+    from swingset.state.queue import at
+
+    now = FakeClock().now()
+    config = Config(
+        {},
+        {},
+        scheduler=replace(SchedulerConfig(), pending_parse_items=2000, pending_work_items=2000),
+    )
+
+    def queued(conn, first, states, next_attempt):
+        units = [WorkUnit("parse", "snapshot", f"s{i}") for i in range(first, first + 2000)]
+        enqueue(conn, units, enqueued_at=now.isoformat())
+        conn.executemany(
+            "INSERT INTO work_queue(stage,unit_kind,unit_id,partition,state,next_attempt_at,"
+            "lease_owner,lease_until,enqueued_at,updated_at) "
+            "VALUES ('parse','snapshot',?,?,?,?,?,?,?,?)",
+            [
+                (unit.unit_id, f"snapshot/{unit.unit_id}", state, next_attempt)
+                + (("derive:r", at(now)) if state == "leased" else (None, None))
+                + (at(now), at(now))
+                for i, unit in enumerate(units)
+                for state in [states[i % len(states)]]
+            ],
+        )
+
+    with open_database(tmp_path) as db:
+        conn = db.connection
+        # 2,000 parse units wait on a clock: for input, in quarantine, or backing off.
+        queued(conn, 0, ("waiting_input", "quarantined", "ready"), at(now + timedelta(hours=1)))
+        report = backpressure(conn, config, now=now)
+        assert (report["pending"]["parse"], report["runnable_parse"]) == (2000, 0)
+        assert not report["active"]
+        # 2,000 that derive could run now hold acquisition.
+        queued(conn, 2000, ("ready", "leased"), at(now))
+        report = backpressure(conn, config, now=now)
+        assert report["runnable_parse"] == 2000
+        assert report["reasons"] == ["pending_parse_items", "pending_work_items"]
+        # A backoff that ends makes its unit runnable again.
+        assert backpressure(conn, config, now=now + timedelta(hours=2))["runnable_parse"] == 2666

@@ -371,6 +371,16 @@ spent on a page the archive has.
   also holds phase 2. A pending `project/history/all` does not: it writes only
   event associations and coverage, which the year's acceptance digest does not
   read ([D-0198](../../journal/decisions/0198-history-no-longer-gates-acquisition-and-deadline-overruns-retry.md)).
+  The acquire, plan and derive loops do not ask about pending projections at
+  all: acceptance, the accepted digest against the committed event list, open
+  findings and the H7/H10 switches decide, and the digest closes the year once
+  a changed list is committed. The cycle and `accept-year` keep the pending
+  check ([D-0218](../../journal/decisions/0218-the-loops-judge-the-year-gate-on-facts-and-acquire-from-a-plan-table.md)).
+- In the loops, the plan loop evaluates the retained plan every 30 minutes
+  and writes each page's reason to `acquisition_plan`; acquire offers the
+  eligible rows in plan order and dispatch repeats every gate from facts
+  before it schedules a capture or origin request
+  ([scheduling: loops](scheduling.md#loops)).
 - New state `sealed`: a watch whose event ended more than two years ago,
   or whose origin host is marked dead in its playbook, is never fetched
   again after a successful parse. Reparsing from the archive is

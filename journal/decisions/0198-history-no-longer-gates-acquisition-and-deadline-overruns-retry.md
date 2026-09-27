@@ -4,7 +4,7 @@ Recorded: 2026-09-24
 Decided by: agent, 2026-09-24, under D-0183  
 Topic: Acquisition  
 Supersedes: the history clause of the projection gate in [D-0195](0195-answer-the-projection-question-once-per-pass.md)  
-Superseded by: in part, [D-0211](0211-a-derivation-that-raises-retries-on-a-clock.md) (the retry clock covers every exception a derivation raises)
+Superseded by: in part, [D-0211](0211-a-derivation-that-raises-retries-on-a-clock.md) (the retry clock covers every exception a derivation raises); in part, [D-0217](0217-large-generations-store-in-chunks-and-the-write-deadline-is-an-alarm.md) (no history write allowance; every write has the 60-second alarm)
 
 ## Decision
 

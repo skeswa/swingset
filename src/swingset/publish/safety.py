@@ -81,8 +81,8 @@ def _validate_candidate(
                 "sealed publication requires its state and current input paths"
             )
         from swingset.build.identity_policy import correction_token
-        from swingset.schedule.cycle import versions
         from swingset.state.inputs import capture
+        from swingset.versions import versions
 
         selected_closure = policy.get("closure") if policy.get("mode") == "closure" else None
         if policy.get("mode") == "closure":
@@ -138,7 +138,10 @@ def _connection(state_dir: Path) -> sqlite3.Connection | None:
     path = state_dir / "state.sqlite"
     if not path.is_file():
         return None
-    conn = sqlite3.connect(path, isolation_level=None)
+    from swingset.state.db import BUSY_TIMEOUT_SECONDS
+
+    # Loops write beside a publication, so a write here waits as theirs do (F7).
+    conn = sqlite3.connect(path, isolation_level=None, timeout=BUSY_TIMEOUT_SECONDS)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys=ON")
     conn.execute("PRAGMA synchronous=FULL")
@@ -196,14 +199,22 @@ def publication_boundary(state_dir: Path, candidate: Path) -> Iterator[None]:
         try:
             yield
         except BaseException:
-            with database.transaction():
-                settle(
-                    conn,
-                    action_id,
-                    now=datetime.now(UTC),
-                    outcome="receipt_reconciliation_required",
-                    uncertain=True,
-                )
+            # A lost settle leaves the fence up until release's recovery, so
+            # a busy writer gets a second wait.
+            for last in (False, True):
+                try:
+                    with database.transaction():
+                        settle(
+                            conn,
+                            action_id,
+                            now=datetime.now(UTC),
+                            outcome="receipt_reconciliation_required",
+                            uncertain=True,
+                        )
+                    break
+                except sqlite3.OperationalError:
+                    if last:
+                        raise
             raise
         else:
             with database.transaction():

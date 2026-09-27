@@ -13,7 +13,10 @@ OLD = datetime(2019, 4, 1, tzinfo=UTC)
 
 def fixture(db):
     conn = db.connection
-    conn.execute("INSERT INTO runs VALUES ('run',?,NULL,1,NULL)", (NOW.isoformat(),))
+    conn.execute(
+        "INSERT INTO runs(run_id,started_at,finished_at,dry_run,summary_json) VALUES ('run',?,NULL,1,NULL)",
+        (NOW.isoformat(),),
+    )
     conn.execute(
         "INSERT INTO watches(watch_id,source,kind,method,url,parser,source_ref,state,current_observation_snapshot_id,ever_ok) VALUES ('watch','eepro','round','GET','https://example.test/round','eepro.round','eepro:event','live','old',1)"
     )

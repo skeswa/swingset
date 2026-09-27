@@ -106,7 +106,13 @@ weekly session.
    `test_restart_at_pipeline_checkpoint` cases take about 2 s each (45 s).
    Accepted as debt for phase 1's switch (at close, 2026-09-27: 1,304 tests in 196 to 255 s);
    both slow groups are behaviours the testing guide keeps in core, so the
-   fix is faster fixtures, not a smaller selection.
+   fix is faster fixtures, not a smaller selection. After phase 2
+   (2026-09-27): 1,492 tests in 245 s. Its seven new core files add 122
+   cases and about 31 s; 21 s of it is `test_loop_isolation.py` and
+   `test_loops.py`, which run whole loop ticks, some in subprocesses.
+   After phase 2's second review fixes (2026-09-28): 1,537 tests in 284 s
+   on the Mac; the busy-writer publication test no longer waits out 5 s.
+   At phase 2's close (2026-09-29): 1,537 tests in 252 s.
 10. Bound the memory of the publication report's closure check. It holds a
     whole closure (I10): `swingset summary` peaked at 4.5 GB on the 35 GB
     copy, 4.4 GB of it this check, under the unit's 5 GB cap, and the file

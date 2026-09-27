@@ -270,8 +270,43 @@ def test_a_history_closure_edit_changes_nothing(package):
     assert changed(code(package), code(edit(package, "history/closure.py"))) == set()
 
 
-def test_a_cycle_edit_changes_only_project_link_and_build(package):
-    difference = changed(code(package), code(edit(package, "schedule/cycle.py")))
+# The scheduler, the loops and acquisition run stages; no derivation's output
+# depends on their bytes, so no project, link or build scope names them (F4).
+SCHEDULER = (
+    "schedule/cycle.py",
+    "schedule/derive.py",
+    "schedule/offline.py",
+    "schedule/fairness.py",
+    "schedule/acquisition.py",
+    "fetch/client.py",
+    "history/backfill.py",
+)
+
+
+def test_the_scheduler_and_the_loops_are_in_no_scope(package):
+    scopes = recipe_scope.manifest(package)["scopes"]
+    assert isinstance(scopes, dict)
+    loops = {
+        path.removeprefix(PREFIX)
+        for path in recipe_scope.package_paths(package)
+        if path.startswith(PREFIX + "loops/")
+    }
+    assert "loops/runtime.py" in loops and "loops/release.py" in loops
+    for name, paths in scopes.items():
+        named = {path.removeprefix(PREFIX) for path in paths}
+        assert not named & (loops | set(SCHEDULER)), (name, named & (loops | set(SCHEDULER)))
+    # The build scope still holds what the build and its publication checks run.
+    build = {path.removeprefix(PREFIX) for path in scopes["recipe/code/build"]}
+    assert {"versions.py", "publish/safety.py", "build/closure.py"} <= build
+
+
+@pytest.mark.parametrize("path", [*SCHEDULER, "loops/runtime.py", "loops/derive.py"])
+def test_a_scheduler_or_loop_edit_changes_no_recipe(package, path):
+    assert changed(code(package), code(edit(package, path))) == set()
+
+
+def test_a_versions_edit_changes_only_project_link_and_build(package):
+    difference = changed(code(package), code(edit(package, "versions.py")))
     expected = {
         name
         for name in code(package)
@@ -279,6 +314,30 @@ def test_a_cycle_edit_changes_only_project_link_and_build(package):
     }
     assert len(expected) == 10
     assert difference == expected
+
+
+def test_repository_identity_is_unchanged_by_the_move_to_versions(monkeypatch):
+    import hashlib
+
+    from swingset import versions
+    from swingset.schedule import cycle
+
+    monkeypatch.delenv("SWINGSET_REVISION", raising=False)
+    assert cycle.repository_identity is versions.repository_identity
+    assert cycle.versions is versions.versions
+    # The digest root is still the package directory, as it was from
+    # schedule/cycle.py, so an unchanged tree keeps its identity (D-0188).
+    root = Path(cycle.__file__).resolve().parents[1]
+    assert root == Path(swingset.__file__).resolve().parent
+    expected = hashlib.sha256()
+    for path in sorted(root.rglob("*.py")):
+        relative = path.relative_to(root).as_posix().encode()
+        body = path.read_bytes()
+        expected.update(len(relative).to_bytes(4, "big") + relative)
+        expected.update(len(body).to_bytes(8, "big") + body)
+    identity = f"source-sha256:{expected.hexdigest()}"
+    assert versions.repository_identity() == identity
+    assert versions.versions()["repository"] == identity
 
 
 def _watch(conn, source, parser, number, now, run_id):
@@ -306,7 +365,7 @@ def _accept(database, files, clock, monkeypatch):
     return inputs.accept(database, bundle, clock)
 
 
-def test_an_adapter_edit_requeues_only_its_kinds_and_a_cycle_edit_no_parse(
+def test_an_adapter_edit_requeues_only_its_kinds_and_a_versions_edit_no_parse(
     package, tmp_path, monkeypatch
 ):
     now = datetime(2026, 9, 25, tzinfo=UTC)
@@ -338,8 +397,8 @@ def test_an_adapter_edit_requeues_only_its_kinds_and_a_cycle_edit_no_parse(
 
         # Acceptance: a code-only change to a non-parser module re-queues no parse.
         conn.execute("DELETE FROM pending_work")
-        cycle = edit(edited, "schedule/cycle.py")
-        accepted = _accept(database, cycle, clock, monkeypatch)
+        versions = edit(edited, "versions.py")
+        accepted = _accept(database, versions, clock, monkeypatch)
         assert accepted and all(
             name.startswith(("recipe/code/project/", "recipe/code/link", "recipe/code/build"))
             for name in accepted
@@ -347,6 +406,10 @@ def test_an_adapter_edit_requeues_only_its_kinds_and_a_cycle_edit_no_parse(
         assert (
             conn.execute("SELECT COUNT(*) FROM pending_work WHERE stage='parse'").fetchone()[0] == 0
         )
+        # A cycle edit changes no recipe and queues nothing (F4).
+        queued = conn.execute("SELECT COUNT(*) FROM pending_work").fetchone()[0]
+        assert _accept(database, edit(versions, "schedule/cycle.py"), clock, monkeypatch) == set()
+        assert conn.execute("SELECT COUNT(*) FROM pending_work").fetchone()[0] == queued
 
 
 def test_no_parse_closure_reaches_another_sources_adapter(package):

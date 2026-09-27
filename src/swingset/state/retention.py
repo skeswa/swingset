@@ -464,15 +464,28 @@ def _window_roots(conn: sqlite3.Connection, *, window: int) -> Iterator[Root]:
     """
     if window < 1:
         return
+    unfinished = _unfinished(conn)
     for stage, unit_kind, unit_id, generation_id in conn.execute(
         "SELECT stage,unit_kind,unit_id,generation_id FROM ("
         "SELECT stage,unit_kind,unit_id,generation_id,"
         "row_number() OVER (PARTITION BY stage,unit_kind,unit_id "
         "ORDER BY created_at DESC,rowid DESC) AS position FROM derivation_generations"
-        ") WHERE position<=? ORDER BY stage,unit_kind,unit_id,generation_id",
+        f"{unfinished}) WHERE position<=? ORDER BY stage,unit_kind,unit_id,generation_id",
         (window,),
     ):
         yield Root("window", f"{stage}/{unit_kind}/{unit_id}", (str(generation_id),))
+
+
+def _unfinished(conn: sqlite3.Connection) -> str:
+    """A WHERE clause leaving out generations a staged completion has not finished.
+
+    Such a generation was never selected: it takes no window slot from a
+    finished one, and the plan lists it `incomplete` (D-0217).
+    """
+    from .derivations import unfinished_excluded
+
+    condition = unfinished_excluded(conn)
+    return " WHERE 1" + condition if condition else ""
 
 
 # ---------------------------------------------------------------------------
@@ -967,6 +980,12 @@ def _generation_rows(
         ):
             references[str(row[0])] = (int(row[1]), int(row[1]))
             payload_bytes[str(row[0])] = int(row[2])
+    building = (
+        {str(row[0]) for row in conn.execute("SELECT generation_id FROM derivation_building")}
+        if "derivation_building" in _tables(conn)
+        else set()
+    )
+    shared = interned(conn)
     rows = []
     for generation_id, stage, unit_kind, unit_id, row_count in conn.execute(
         "SELECT generation_id,stage,unit_kind,unit_id,row_count FROM derivation_generations "
@@ -975,6 +994,10 @@ def _generation_rows(
         identifier = str(generation_id)
         reference_count, payload_count = references.get(identifier, (0, 0))
         reasons = sorted(reached.get(identifier, ()))
+        # Unfinished staged output nothing selects: never local, never archived.
+        incomplete = not reasons and (
+            identifier in building or (shared and reference_count < int(row_count))
+        )
         rows.append(
             {
                 "generation_id": identifier,
@@ -983,7 +1006,7 @@ def _generation_rows(
                 "reference_count": reference_count,
                 "payload_count": payload_count,
                 "payload_bytes": payload_bytes.get(identifier, 0),
-                "list": "local" if reasons else "archivable",
+                "list": "local" if reasons else "incomplete" if incomplete else "archivable",
                 "why": reasons,
                 # Whether step 4 has put these bytes somewhere else. Only an
                 # archivable generation with this flag may lose its bytes, and
@@ -1157,11 +1180,15 @@ def _totals(
 ) -> dict[str, Any]:
     local = [row for row in generations if row["list"] == "local"]
     archivable = [row for row in generations if row["list"] == "archivable"]
+    incomplete = sum(1 for row in generations if row["list"] == "incomplete")
     by_reason: dict[str, int] = {}
     for reasons in reached.values():
         for reason in reasons:
             by_reason[reason] = by_reason.get(reason, 0) + 1
+    # Only when there are any, so a plan without them keeps its digest.
+    extra = {"incomplete_generations": incomplete} if incomplete else {}
     return {
+        **extra,
         "local_generations": len(local),
         "archivable_generations": len(archivable),
         # Archivable generations whose bytes step 4 has already put somewhere

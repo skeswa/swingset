@@ -2,7 +2,7 @@
 
 Adopted 2026-09-25 by the owner ("move the proposal to plans … pause current
 work and implement this plan"). Other plans are paused until this one's phases
-land, except operating the worker safely. Phases 0 and 1 are implemented
+land, except operating the worker safely. Phases 0, 1 and 2 are implemented
 offline and not deployed (section 9); nothing else is implemented yet.
 Figures come from `docs/status.md`, the
 [stall investigation](../../journal/investigations/2026/build-failure-and-history-deadline-2026-09-24.md),
@@ -79,15 +79,19 @@ services, each a short-lived process on its own timer, each owning a distinct
 set of tables (one writer per table) and reading the others' tables only as
 facts. Splitting into files can follow once ownership is clean; it is not
 required for the isolation, because SQLite in WAL mode handles several
-processes when each write is short (I2), and the existing writer lock in
-`state/control_lock.py` already serializes cross-process writes.
+processes when each write is short (I2). The process lock is not: it was
+held exclusive for a process's life, so phase 2 made it a reader-writer lock
+(F5, [D-0215](../../journal/decisions/0215-loops-share-the-state-under-a-reader-writer-lock.md)).
+Two tables keep two writers: `watches` (acquire, and derive's parse
+admission and link effects) and `cursors` (acquire, derive, and plan's
+enumeration cursors); each write is short and SQLite serializes them.
 
 | Loop         | Cadence                   | Owns (writes)                                                                           | Reads                                   | Progress counter                              | SLO / alarm                                                                                  |
 | ------------ | ------------------------- | --------------------------------------------------------------------------------------- | --------------------------------------- | --------------------------------------------- | -------------------------------------------------------------------------------------------- |
 | **acquire**  | every 5 min, 4 min budget | `watches`, `snapshots`, `hosts`, `host_budget`, spacing, `archive_captures`, blob store | `acquisition_plan`, operator pauses     | requests issued per host; snapshots stored    | a host with due work and no `Paused` reason issues ≥1 request per hour; `Paused` past expiry |
 | **plan**     | every 30 min              | `acquisition_plan` (which watches and archive pages are eligible, with a reason)        | canonical tables, findings, acceptances | plan rows refreshed                           | plan age < 2 h                                                                               |
 | **derive**   | every 5 min, 4 min budget | `work_queue`, generations, payloads, canonical tables, links                            | snapshots, blobs, overrides             | generations written; queue depth by state     | queue oldest ready unit < 6 h; quarantine count change → alert                               |
-| **release**  | every 6 h                 | partition artifacts, candidates, `PUBLISHED`, baseline                                  | generations, overrides                  | partitions built/withheld; commits            | a candidate per 24 h; withheld partitions listed; publication strictly better or refused     |
+| **release**  | hourly; builds every 6 h  | partition artifacts, candidates, `PUBLISHED`, baseline                                  | generations, overrides                  | partitions built/withheld; commits            | a candidate per 24 h; withheld partitions listed; publication strictly better or refused     |
 | **maintain** | daily                     | collector marks, checkpoints, restore drills                                            | roots                                   | bytes collected; checkpoint segments uploaded | DB and blob store under budget; last verified backup < 48 h                                  |
 
 **Contracts between loops are tables and content-addressed files, never
@@ -106,6 +110,47 @@ timer tick; systemd `OnFailure` runs the watchdog, as `nix/module.nix` already
 does for the cycle. Within `derive`, the domain is a queue unit; within
 `release`, a partition. Operator pause scopes shrink to per-loop, per-host and
 per-source flags, which is what `state/controls.py` is used for in practice.
+Phase 2 keeps today's scopes; the loops stop with their timers, and
+loop-scoped pauses wait for phase 5, when the controls are simplified.
+
+Built in WP7: the tick frame (`loops/runtime.py`), `derive` and `maintain`, and
+their CLI commands; the cycle and derive share `schedule/offline.py`
+([scheduling: loops](../reference/scheduling.md#loops)). A publication's fence
+also refuses `runs`, `loop_state` and `guard_reasons` writes, so a tick that
+finds one writes only its record file and the `loop:<l> publication_in_flight`
+guard cannot be stored while the fence stands; narrowing the fence (phase 3)
+fixes both.
+
+Built in WP8: `plan` and `acquire` and their CLI commands
+([D-0218](../../journal/decisions/0218-the-loops-judge-the-year-gate-on-facts-and-acquire-from-a-plan-table.md)).
+`phase_two_allowed` and `history/acquisition.py` stay, since they are in every
+parse scope (F12); inside the loops the year gate reads facts only
+(`facts_only_year_gate()` in `project/history.py`), so the pending-projection
+walk no longer runs in acquisition. Plan's reasons are the candidate's and the
+year gate's (`year_unaccepted`, `acceptance_digest_changed`,
+`year_findings_open`, `h7_h10_not_deployed`), not `awaits_index`. The cycle,
+plan and acquire share the acquisition pass and the event bookkeeping stages
+(`schedule/acquisition.py`, beside `schedule/offline.py`: the cycle imports
+it, so it cannot live in `loops/`, which recipes exclude). Plan still runs
+the `event_*` stages that `[stages]` enables (open decision 2).
+
+Built in WP9: `release` and its CLI command, `release --dry-run|--publish`
+([scheduling: loops](../reference/scheduling.md#loops)). It ticks hourly, not
+every 6 h: `build_interval_seconds` paces builds (F16). It reads live tables
+through the build as the cycle did; reading committed generations only is
+phase 3. Each build holds `heavy.lock` exclusive, so derive starts no unit
+meanwhile (F10). It skips while the disk quota has less than
+`release_min_free_bytes` (30 GB) free, with a `loop:release` guard.
+
+Built in WP11: `services.swingset.loops.enable` (default false) swaps the
+cycle unit for the five loop services and timers, each with its own timeout
+and memory cap; every unit's `uv sync` runs under `flock` (F11)
+([deployment: loops](../guides/deployment.md#switching-to-the-loops)). With
+it on, the watchdog runs `--loops 1`: `[loop-quiet]`, `[loop-failing]` and
+`[plan-stale]` replace the cycle checks, and `[replay-loop]` reads derive
+ticks. `[wal-large]` (frames not yet reset, since the file never shrinks) and
+`[building-orphans]` run in both modes. The module evaluates both ways; the
+switch is the operator's.
 
 ## 4. Data model for scale
 
@@ -216,6 +261,17 @@ report command; a code fix re-queues them by error class. `SupersededWorkError`
 stays as-is (inputs changed; requeue with attempts unchanged). Leases expire,
 so a killed worker's units return to `ready` without a recovery pass;
 `state/attempts.recover_interrupted` and `controls.recover_admissions` go away.
+Built in WP3 as an overlay (F14,
+[D-0216](../../journal/decisions/0216-the-work-queue-leases-backs-off-and-quarantines.md)):
+`pending_work` and derivation currency still say what needs doing, and a
+`work_queue` row exists only for a leased or failing unit
+([state: work queue](../reference/state.md#work-queue)). A blocked parse
+waits for input on a 24 h to 7 day clock instead of quarantining. Recovery
+stays: each loop tick closes its own dead runs, and a lease taken over
+finishes the dead attempt. A unit whose process died in its attempt (a kill,
+an OOM, a stop timeout) fails as `process_interrupted`, and one whose
+admission raised fails on its queue row alone, so both back off and
+quarantine like any failure. Folding the other tables in is phase 5.
 
 **Bounded writes by construction.** A generation is written in chunks of
 about 5,000 rows, each its own short transaction into content-addressed
@@ -224,6 +280,18 @@ scope pointer in one statement (`derivations.complete` already separates
 retention from the pointer flip). A crash leaves unreferenced payloads for the
 collector (I6, I8). The `bounded_write` alarm stays as a safety net at 60 s
 and its firing becomes an alarm, because under I2 it should never fire.
+Built in phase 2 (WP4): a project or link unit's output is read back from its
+live rows, so the live write commits first with a `derivation_building` row,
+then the chunks, then one short transaction flips the pointer and finishes the
+attempt. `project/history` and units whose kept generation exceeds 5,000 rows
+stage, `accept-year`'s history included; the rest keep one transaction
+([state](../reference/state.md#derivation-generations-h15)). A unit with a
+building row is not current; its next successful run deletes building rows
+of other inputs. Partial generations stay (they are immutable), and no
+closure or retention window reads them.
+Built in WP5: every write has the one 60 s alarm, history's 300 s allowance
+is gone, and run records count firings for the watchdog's `[write-deadline]`
+([D-0217](../../journal/decisions/0217-large-generations-store-in-chunks-and-the-write-deadline-is-an-alarm.md)).
 
 **Guards fail closed with a clock.** Every branch that returns `Paused`,
 `Wait` or `skipped` in `fetch/politeness.py` and `fetch/client.py` writes a
@@ -233,6 +301,14 @@ lists reasons by count. "Legacy spacing unknown" would have alarmed in an
 hour, not eight days. Phase 0 alarms on that state and on `Blocked` host
 pauses from existing tables; the record itself needs a table and a package
 change, so it lands in phase 2.
+Built in WP6: the client counts guards by host, watch or loop, each pass
+writes them to `guard_reasons` with an expiry per reason, and the watchdog
+prints `[guard-expired]` and a daily `[guards]` count
+([fetch guards](../reference/fetching.md#guards),
+[D-0219](../../journal/decisions/0219-every-guard-that-holds-a-fetch-has-a-reason-with-an-expiry.md)).
+"Still current" reads as seen after the expiry. The scheduler's own
+pre-filter (paused or spent hosts, operator pauses, backpressure) records no
+guard; those reach the table only when a skip reaches the client.
 
 **Idempotent effects.** Publication already uses expected-parent commits
 (`publish/service.py`). Backups become idempotent by naming segments by
@@ -243,7 +319,11 @@ already in `politeness.acquire`.
 `snapshots` without a parse generation exceed a byte budget; `derive` stops
 leasing `project` units when the release loop is more than two intervals
 behind; `release` refuses to start when free disk is under the scratch it
-needs. All three are counters the watchdog can read.
+needs. All three are counters the watchdog can read. Phase 2 built the
+first (counting only parse work derive can run now, D-0216) and the third
+(`release_min_free_bytes`). Derive's release-lag knob waits for phase 3,
+when release reads partition artifacts; until then a build holds `heavy.lock`
+and derive starts no unit.
 
 ## 6. State and storage
 
@@ -323,10 +403,11 @@ investigation's judgment stands: the planner died of Python heap, not of SQLite.
 - **Cost proportional to change.** Scoped recipes (4.3) mean a change to
   `history/closure.py` re-queues nothing and a change to `sources/eepro`
   re-parses EEPro pages only. Output cutoff means even those write no new
-  generation when bytes match. Until phase 2 splits the import cycle, an edit
-  inside it still re-runs every project and link unit (F4): CPU, not rows.
+  generation when bytes match. An edit to the shared storage, projection or
+  build modules still re-runs every project and link unit (F4): CPU, not
+  rows. Scheduler, loop and acquisition edits re-run nothing (WP12).
 - **Versioned interpreters.** `EXTRACT_VERSION` and `PARSER_VERSION` labels
-  (`schedule/cycle.versions`) are replaced by the code digest per page kind;
+  (`versions.versions`) are replaced by the code digest per page kind;
   the hand-written numbers can no longer be forgotten.
 - **Shadow cycles on the worker image.** A `swingset-shadow` unit takes a
   reflink copy of the live state (btrfs `cp --reflink`, seconds, no extra
@@ -560,7 +641,7 @@ Four findings changed steps 1, 2 and 5 as written:
   `sources/phase_one.py`) a parse scope is 28 to 36 files (39 to 47 with the parse writers) and an extract
   scope 17 to 24. Project, link and build scopes stay at about 214 files, so
   an edit inside the cycle re-runs every project and link unit. Phase 2
-  splits the cycle. `schedule/parse.py` enters parse scopes by its own bytes
+  splits the cycle (WP12, below). `schedule/parse.py` enters parse scopes by its own bytes
   only; a test pins its imports.
 
 Smaller choices made in the work:
@@ -1137,8 +1218,9 @@ current Mac byte copy.
    on a Mac clone of a byte copy. The rehearsal compared counts and
    selections, not published rows.
 
-7. A canary switch whose only change is a comment in `schedule/cycle.py`,
-   held only for the switch as in steps 2 and 4. It re-runs every project
+7. A canary switch whose only change is a comment in `schedule/cycle.py`
+   (in a tree with phase 2's WP12, `versions.py`; the cycle is then in no
+   scope), held only for the switch as in steps 2 and 4. It re-runs every project
    and link unit and re-parses nothing; the drain takes up to about 24 hours,
    because the inventory and history each wait up to 12 (D-0210). Fetching,
    ordinary cascades and builds go on meanwhile, so whole-file growth says
@@ -1237,7 +1319,8 @@ Known limits:
   from the first derivation.
 - A re-run whose output differs reads its rows twice inside its write
   transaction; in R2 the history unit took 60 s this way (54 s on the parent
-  code), well within its 300 s allowance.
+  code), well within its 300 s allowance. Phase 2 removed the allowance
+  (D-0217): the rows are stored in chunks after the live write.
 - Replay epochs are per kind: one dancer replay that flips a live
   `registry_placements.event_id` re-runs all 2,932 links (CPU; they cut off).
 - `admission.support.selection_digest` includes `desired_fingerprint`, so any
@@ -1249,7 +1332,9 @@ Known limits:
   `next_attempt_at`).
 - A unit exception retries on a clock of 15 minutes to 6 hours, so a unit
   that fails every retry never makes three failing cycles in a row; the
-  watchdog's `[unit-failing]` names it instead.
+  watchdog's `[unit-failing]` named it. Phase 2 (WP3, D-0216) quarantines it
+  at the third failure of one class instead and retires `[unit-failing]` for
+  `[unit-quarantined]`.
 
 **Phase 2: split the cycle and fix the queue (about 2 weeks).** Five systemd
 units; `acquisition_plan` written by `plan` and read by `acquire`;
@@ -1266,13 +1351,500 @@ line and the queue keeps draining; `acquire` issues origin and Wayback
 requests while `derive` holds blocked units; no `bounded_write` alarm fires
 in a week.
 
+_Phase 2 status: implemented offline 2026-09-27 (work packages WP1 to
+WP13), rehearsed the same day (WP14), review-fixed in two rounds (2026-09-27
+and 2026-09-28), closed 2026-09-29 after a third review with no blocker or
+major and a closing rehearsal of the final tree, R0 to R10
+([receipt](../../journal/evidence/runtime/architecture-phase2-rehearsal-2026-09/receipt.json));
+not deployed. The cycle stays the service until
+`services.swingset.loops.enable` is set. The first three acceptance checks
+pass offline (WP10) and on the clones; the week without an alarm is
+production's. One item stays open before switch 2b (the stop marker, below).
+The history gate is not deleted: its module is in every parse scope (F12),
+so in the loops it reads facts only (F13). The event-site review stays off
+by config (phase 0)._
+Records:
+[D-0215](../../journal/decisions/0215-loops-share-the-state-under-a-reader-writer-lock.md)
+(the reader-writer lock, table writers, publication as a pause, the heavy
+lock),
+[D-0216](../../journal/decisions/0216-the-work-queue-leases-backs-off-and-quarantines.md)
+(the work queue; narrows D-0211 and D-0214),
+[D-0217](../../journal/decisions/0217-large-generations-store-in-chunks-and-the-write-deadline-is-an-alarm.md)
+(staged generations, the 60 s alarm; replaces D-0198's history allowance),
+[D-0218](../../journal/decisions/0218-the-loops-judge-the-year-gate-on-facts-and-acquire-from-a-plan-table.md)
+(facts-only year gate, the plan table; acceptance stays an acquisition input,
+open decision 1) and
+[D-0219](../../journal/decisions/0219-every-guard-that-holds-a-fetch-has-a-reason-with-an-expiry.md)
+(guard reasons with expiries). Migration 34 adds `runs.loop`, `work_queue`,
+`acquisition_plan`, `guard_reasons`, `loop_state` and `derivation_building`
+([schema history](../reference/schema-history.md)).
+
+Twelve findings changed the phase as written:
+
+- **F5, one process lock.** `open_database` held `state.lock` exclusive for
+  the life of the process, so five processes could not coexist;
+  `control.lock` is a short admission mutex, not a writer lock. Loops now
+  hold `state.lock` shared plus their own `loop-<name>.lock`; every
+  exclusive holder (cycle, CLI mutations, backup, restore, `gc`,
+  `accept-year`) first takes `state.intent`, so a waiting writer is not
+  starved and new ticks skip while it waits (WP2).
+- **F6, publication fences stop every write.** The fence aborts any write
+  to a non-control table while a publication is active. With loops, a
+  publish would fail every derive unit and fetch write. An active
+  publication is a pause for the other loops, checked before a unit or
+  request starts. A unit write that still meets it writes nothing more (the
+  queue and attempt tables are fenced too); the next tick after the
+  publication closes the attempt as `publication_fenced`, retried in 60 s
+  and never counted. A tick whose start meets it skips.
+- **F7, the write bound included the lock wait.** `bounded_write` started
+  before `BEGIN IMMEDIATE`, and the default busy timeout was 5 s. Now
+  `BEGIN IMMEDIATE` waits up to 70 s on every writable connection, the
+  publication boundary's included, counted, and only the body is bounded;
+  admissions wait 90 s for `control.lock`. A `ControlTimeout` or a busy
+  timeout skips the unit or request and counts nothing.
+- **F8, generations are read back from live rows.** A project or link unit
+  writes live tables, then stores its generation from them, so the live
+  write commits first. A commits live rows and a `derivation_building` row;
+  pass 1 labels the output from a read snapshot; B stores refs in chunks of
+  5,000; C flips the pointer and finishes the attempt. Between A and C the
+  unit is not current, so no dependent runs. Generation ids are
+  deterministic, so a killed B resumes by ordinal (WP4). The building row
+  keeps the first capture's witness and a sticky "live rows moved" flag, so
+  a resumed cutoff still moves the replay epoch (review fix).
+- **F9, blocked parses closed acquisition.** Backpressure counted every
+  parse row in `pending_work`, blocked ones included. It now counts only
+  parse units derive could run now (WP3).
+- **F10, memory.** A build peaks near 6.3 GB and the inventory unit near
+  4 GB on the 8 GB worker. While release builds it holds `heavy.lock`
+  exclusive (WP7, WP9). R3 showed parse-only derive ticks beside a build at
+  2.1 to 2.9 GB (8.2 to 9.2 GB with the build) and up to 3.9 GB elsewhere,
+  and the per-unit `MemoryMax` caps sum to 17 GB, so they bound no total.
+  Derive now starts no unit while release builds (review fix), and switch
+  2b is gated on the worker's measured peaks (step 8).
+- **F11, `uv sync` races.** Every unit syncs one venv in `ExecStartPre`;
+  it now runs under `flock` (WP11).
+- **F12, 58 files enter every parse or extract scope.** Editing one
+  re-parses every snapshot (33,900; 4 to 9 hours). They include
+  `history/acquisition.py`, `history/origin_dispatch.py`,
+  `history/intent.py`, `fetch/wayback.py`, `fetch/archive.py`,
+  `schedule/parse.py`, `state/{findings,observations,verification}.py`,
+  `admission/*`, `model/*`, `sources/*`, `cutoff.py` and five package
+  `__init__.py` files (so `__version__` is never bumped). No work package
+  edits them; a scope guard checked every package (0 parse or extract
+  scopes changed).
+- **F13, one derivation predicate in acquisition.** The year gate read
+  facts except `pending_inventory_projection`. In the loops the gate is
+  facts only (`facts_only_year_gate()` in `project/history.py`, outside the
+  parse scopes); `plan` runs the offers pass and writes `acquisition_plan`,
+  and `acquire` re-checks its target from facts (WP8). The cycle and
+  `accept-year` keep the pending question.
+- **F14, the queue is an overlay.** `pending_work` and derivation currency
+  still say what needs doing; `work_queue` holds leases, clocks, waiting and
+  quarantine, one row per leased or failing unit, deleted on success.
+  Folding `pending_work`, `work_generations` and the requirement tables into
+  it is phase 5. This keeps one definition of unfinished work, shared by
+  the cycle and the loops, and a small migration (seeding reads the latest
+  attempts of pending units only).
+- **F15, quarantine storms.** A linker bug could quarantine up to 2,933
+  units at once. The watchdog prints one line per quarantined unit up to 5
+  per run, else one line by error class.
+- **F16, cadence.** A 6 h release timer behind a 6 h build interval builds
+  every 12 h. Release ticks hourly; `build_interval_seconds` paces builds.
+
+Deferred, each with its phase:
+
+- Loop-scoped operator pauses: phase 5. Today's `all`, host, source and
+  kind pauses still apply; a loop stops with its timer.
+- Narrowing the publication fence: phase 3, when release reads partition
+  artifacts. Until then a publish pauses the other loops (F6), and a tick
+  that finds one writes only its record file.
+- Derive's release-lag knob (section 5): phase 3. The heavy lock covers the
+  memory case now.
+- Removing the cycle: phase 5. Until then both orchestrations share
+  `schedule/offline.py` and `schedule/acquisition.py`, and both are tested.
+
+Built in WP10: `tests/test_loop_isolation.py` (core) is the offline
+acceptance of the first three checks. A subprocess (`tests/helpers/loop_fault.py`)
+SIGKILLs each loop inside a write, derive twice (a single-path unit, and
+between two chunks of a staged history generation), and acquire also during
+a request, after its admission committed. The other four ticks progress; the
+killed loop's next tick fails its dead run, leaves no running attempt, lease
+or active admission (with a run or without one), and resumes the building
+generation after the dead unit's backoff. An exclusive open waits for a
+running derive tick and holds the next acquire tick (`skipped-overlap`). The
+review added a unit whose admission raises, a unit that SIGKILLs its process
+three times (both quarantined while the others drain) and a publication
+that fences a unit mid-write (never counted). The week without an alarm is
+production's check.
+
+Built in WP12 (F4): `versions()` and `repository_identity()` moved to
+`versions.py`; the digest still covers the package directory, so an
+unchanged tree keeps its identity. `publish/safety.py` had imported them
+from `schedule/cycle.py`, and that one edge put the scheduler, acquisition
+and the loops' shared code in every project, link and build scope. Those
+scopes went from 222 files (216 at phase 1) to 168, and the build scope to
+174; `schedule/cycle.py`, `loops/`, `fetch/client.py`,
+`history/backfill.py` and `schedule/fairness.py` are in none, and 43 such
+paths joined `EXCLUDED` with reasons. Cutting the lazy `state/derivations.py`
+imports of `build.closure` and `publish.safety` was measured and dropped: it
+removes no file, since `model/schema.py` reaches `build/` and
+`state/findings.py` reaches `publish/` (both F12 files). Parse and extract
+scopes are unchanged. The first accept of this tree re-runs every project
+and link unit once; cutoff keeps their ids.
+
+Rehearsal, on APFS clones of the 16:10 UTC copy on the Mac with no network.
+WP14 ran on 2026-09-27 on the tree before both review rounds; the closing
+rehearsal ran R0 to R10 again on the final tree on 2026-09-29, and the
+[receipt](../../journal/evidence/runtime/architecture-phase2-rehearsal-2026-09/receipt.json)
+holds the closing numbers with a summary of the first run and of the
+review's own short run. Each clone first accepts the parent tree (phase 1,
+`0a53bd4d`), since the Mac interpreter re-queues every parse on a first
+accept (I9), then the phase 2 tree. Harness processes stand in for the
+timers; a mock transport answers 304 for known URLs and 404 otherwise.
+Timings are lower bounds for the worker.
+
+| Check                       | Expected                                                                                                                                                   | Closing result (final tree)                                                                                                                                              |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| R0, migration 34            | Minutes at most; 0 `foreign_key_check` violations; growth under 1 MB; `waiting_input` about the blocked parse count; phase 1 code refuses schema 34        | Met: 63 to 75 s, 0 violations, 340 kB, 301 `waiting_input`; refused                                                                                                      |
+| R1, accept                  | Only the 10 project, link and build scopes and `version/repository` change; 0 parses queued                                                                | Met: those 11 inputs in under 6 s; 0 parses; 35,801 project and link hints                                                                                               |
+| R2, cycle mode              | Parent and new cycle both fail only on the known scoringdance snapshot; new summary keys present; requests within 10%; `write_deadline_fired` 0            | Met on parity: both unfailed, 12 new keys and none lost, 0 firings, writes up to 13.2 s; request counts (13 and 93) not comparable (finding 4)                           |
+| R3, five loops for 2 to 3 h | No tick fails except known parse failures; acquire requests throughout, builds included; 0 lock and control timeouts; each loop's longest write under 30 s | Met: 152 min, 0 timeouts and firings, one derive tick failed on the known snapshot, requests in every 10 min and during the build; longest write 12.9 s (build complete) |
+| R4, `kill -9` of each loop  | The other loops' next ticks progress; the killed loop recovers its run, leases and attempts; `quick_check` ok                                              | Met: seven kills, derive's in its claim, admission and output write; each recovered; `quick_check` ok, nothing left open                                                 |
+| R5, staged history          | Label equals the kept generation's; A under 30 s; each chunk under 5 s; a resume stores no duplicate ordinal; no building row left                         | Met: equal label on an unchanged re-run, A 2.1 s, 41 chunks up to 2.8 s, C 12 to 14 s; a kill in chunk 2 resumed whole                                                   |
+| R6, poison unit             | Quarantined at the third failure; one `[unit-quarantined]` line; the queue keeps draining                                                                  | Met: quarantined at attempt 3, one line, 20 units per tick drained                                                                                                       |
+| R7, blocked derive          | With 1,500 parse units `waiting_input` at production backpressure marks, acquire issues requests                                                           | Met: 20,991 parse units waiting, backpressure off, 29 requests (6 Wayback)                                                                                               |
+| R8, watchdog in loops mode  | Only expected lines, each explained                                                                                                                        | Met: `[stale-progress]` (the copy's link backlog), then R6's `[loop-failing]` and `[unit-quarantined]`                                                                   |
+| R9, module evaluation       | Off: cycle units only. On: five services and timers, no cycle, `flock` in every `ExecStartPre`, watchdog `--loops 1`                                       | Met                                                                                                                                                                      |
+| R10, suites                 | Core, full, ruff, mypy and the scope guard: zero failures                                                                                                  | Met: core 1,537; full 3,044 plus 3 tests that pinned the pre-D-0220 config, fixed and re-run; ruff, mypy, scope guard 0                                                  |
+
+Rehearsal findings. From the first run (2026-09-27):
+
+1. The release generation completes in one write: 35.8 s beside a second
+   build then, 12.9 s alone and 13.2 s in a cycle at close. Settled as a
+   gate: step 5 measures it on the worker, and 2b waits for it to be under
+   30 s or for the write to be chunked as WP4 chunks history.
+2. `accept-year` stored history on the single path in one 61 s write.
+   Fixed: the command stages history (A, chunks, C), as derive does.
+3. Request admissions carried no run, so a killed acquire tick left its
+   request admission active. Fixed: the admission carries the tick's run,
+   and acquire's recovery settles it (at close no admission was left).
+4. An acquisition pass ends when no watch is selectable but the next is
+   due now (delay 0), in both trees: cycle requests ranged 13 to 111 from
+   one copy, and 15 of 35 acquire ticks ended before 200 of 240 s at close.
+   Open; sleep briefly instead. It makes the 25 % request gate noisy.
+5. A derive tick with a failing unit fails, so a quarantine also raises
+   `[loop-failing]`; each retry of the known scoringdance snapshots fails
+   one tick.
+
+From the closing run:
+
+6. Memory. Cycle H's `peak_rss_bytes` was 6.66 GB; release's 7G cap is
+   1.13 times that, under step 5's 1.15. If the worker reads the same,
+   raise release's `MemoryMax` to 7.5G before 2b. The release loop peaked
+   at 6.1 GB (1.23). Derive peaked at 4.6 GB, 86 % of its 5G cap, on ticks
+   mixing project and parse units, without the inventory.
+7. Step C of the staged history takes 8 to 14 s on the final tree (5.8 s
+   in the first run): under the 30 s target. Step 4 records the worker's.
+8. A killed build counts toward the build interval (D-0199 counts admitted
+   attempts). In production a build killed at release's cap delays the next
+   by 6 h.
+
+Review fixes (2026-09-27, offline; rehearsed at close):
+
+- A staged completion kept its replay bump only when A and C ran in one
+  process: a retry after a killed A captured the moved revisions and cut
+  off without telling dependents. The building row now keeps the first
+  witness and a sticky flag (`derivations.building_moved`), and
+  `complete()` applies the same rule.
+- An exception in derive's admission (capture, lease, attempt) failed the
+  whole tick and left nothing on a clock, so one defective unit stopped
+  derive. It is now the unit's `unit_exception` failure on its queue row,
+  and selection honours that row (`queue.holds`).
+- A unit that kills its process (an OOM at derive's 5 GB cap, a stop
+  timeout) was retried every tick and never quarantined. Its death is a
+  `process_interrupted` failure, counted by the loop's recovery or a
+  takeover; the offline loop rotates the kind group at admission.
+- The fenced path wrote the fenced queue tables and raised. A fenced or
+  busy write now writes nothing and is closed uncounted by the next tick;
+  a fenced run start skips the tick.
+- The publication connection had the default 5 s busy timeout. It has the
+  70 s one, and its uncertain settle retries once.
+- Orphaned building rows had no collector. A unit with a building row is
+  not current, its next run deletes the others' rows, and partial
+  generations are kept out of closures, retention windows and the
+  retention plan's local and archivable lists (`incomplete`).
+- The watchdog counted finished ticks, not progress. `[loop-idle]` reads
+  `loop_state.last_progress_at`; release ticks that only waited for the
+  build interval no longer break `[loop-failing]`'s streak, so repeated
+  build failures alert; `[loop-quiet]` waits for a running backup; plan and
+  release waits leave `loop:<name>` guards with expiries.
+- Smaller: a fetch whose control admission times out skips instead of
+  failing the tick; maintain prunes every loop record after 30 days and
+  deletes queue rows with nothing left to do; derive names at most 20 held
+  units, and only under a pause; release treats a disk reading older than
+  an hour as unknown; records carry `peak_rss_bytes`.
+
+Second review fixes (2026-09-28, offline; rehearsed at close), each with a
+test that fails without it:
+
+- A partial staged generation whose building row was collected was reused
+  as whole when a unit's inputs returned to it: the pointer selected 3 of 4
+  refs and the unit was current. Step A now gives the new building row the
+  recorded label, the single path finishes it inline, and step C counts a
+  reused generation's references too.
+- A process that died inside derive's admission (capture, lease, attempt)
+  left nothing, so the unit took every tick. The lease and the kind-group
+  rotation now commit first; a dead run's lease with no running attempt
+  is the unit's `process_interrupted` failure (recovery or takeover).
+- One acquisition choice that raised ended the acquire tick. Each choice is
+  contained: contention skips the request; any other error holds the
+  watch (`request_error`, 1 h doubling, 7 d from the third), which the
+  pass's flush keeps and a served request clears (D-0219).
+- Smaller: an exception that escapes a unit is its counted
+  `unit_exception`; a tick killed after SIGTERM leaves `runs/<run>.stop`
+  and counts nothing; a recovery record that rolled back is no ending;
+  derive progress counts only committed output; plan contains each
+  bookkeeping stage and `projection_pending`; a fetch compares with the
+  watch row as it is after the request, so a parse reset is not undone;
+  maintain compacts loop `runs` rows after 30 days and counts partial
+  generations (`[incomplete-generations]`); `venv.lock` is a lock, never
+  state; the cycle summary carries `peak_rss_bytes`.
+
+Closing review (round 3, 2026-09-28) found no blocker or major. It re-read
+and re-tested the round 1 and 2 fixes (partial-generation reuse, death inside
+the admission, escaped exceptions, fenced or busy writes left uncounted) and
+killed 20 of 24 mutants of the round 2 fixes; core 1,537 passed, full 3,047,
+ruff and mypy clean, scope guard 0. It also ran a short R3 and R4 on the
+final tree (clone `diag-p2-r3A`, deleted). Conditions carried to the
+switches:
+
+- The publish tier's independent check, with a written verdict, before 2a
+  (release publishes).
+- Step 2's byte copy verified by sha256 and `quick_check` before 2a: the
+  first 04:00 backup after 2a prunes the schema-33 checkpoints, so the copy
+  is the only way back to phase 1.
+- Step 5's gates met before 2b (the build's `complete` write under 30 s on
+  the worker, release's `MemoryMax` at least 1.15 times the cycle's
+  `peak_rss_bytes`, requests per hour per host within 25 %), and step 8's
+  (release plus derive under about 7 GB) after it.
+- Every switch while the loops are on, the 2b to 2a rollback included,
+  writes `operator-hold` and waits until no `swingset-*` unit is active.
+- Before 2b: the stop-marker timeout case below is fixed or accepted by the
+  owner.
+- A short R3 and R4 on the final tree before 2a: done, by the reviewer and
+  by the closing rehearsal.
+
+Open before switch 2b:
+
+- **Stop marker versus start timeout.** systemd's `TimeoutStartSec` expiry
+  (derive: 30 min) sends SIGTERM, which writes `runs/<run>.stop` as a
+  deploy stop does, then SIGKILL 120 s later. A unit that overruns outside
+  a bounded write (staged pass 1, the B loop, a reader snapshot) dies
+  uncounted, retries in 60 s (`fenced_retry`) and never quarantines: derive
+  alternates a 32-minute tick on it with a normal one, and no alarm fires
+  (`[loop-failing]` needs three failed ticks in a row; `[loop-idle]` sees
+  progress). Round 1 counted a stop timeout; round 2's marker undid that.
+  Not reachable on today's data (derive ticks at most 290 s in R3). Fix:
+  write the marker only for a stop the operator asked for (a hold or a
+  deploy), or count a marked death whose tick outlived its start timeout.
+
+Carried forward (none loses data; each is rare or costs throughput):
+
+- **A failed step C.** Live rows depend on their own history. If C fails
+  after A committed and the inputs later return to the pointer's exact
+  fingerprint, the retry reuses the pointer's generation, but the abandoned
+  A moved `coverage.last_changed_at`, so the compare fails as
+  `nondeterministic_output`; history quarantines after three and links wait
+  until a history input changes (scratch probe
+  `rr3-corr/t/test_orphan_anchor.py`). Separately, a generation B stored in
+  full whose C failed is whole once `collect_orphans` deletes its building
+  row, and `build/closure.select` picks history anchors and link generations
+  newest by `created_at`, not by pointer: a later cutoff to an older pointer
+  can let the release closure take it. History's `last_changed_at` masks
+  this; a link unit over 5,000 rows could hit it. No test covers it.
+- **Cycle to loops.** Loop recovery settles only runs whose `runs.loop` is
+  that loop. A cycle killed before 2b leaves an unfinished run, active
+  request and operation admissions nothing settles in loops mode, and
+  cycle-owned leases that hold their units `lease_busy` for up to 30
+  minutes. Step 7 lets the cycle finish; never stop it mid-run.
+- **Containment gaps.** Derive's `contained()` catches only
+  `WriteDeadlineExceeded`, so a fence or busy timeout in the tick-start
+  `queue.wake` or `parse_hint_recovery` fails the tick instead of skipping
+  it. `discover()`, `discover_registry()`, `offers()` and `_pass`'s
+  `prepare()` and `select()` are outside the per-choice containment: a
+  defect or bad row there fails every acquire tick (I1); `[loop-failing]`
+  alerts after 15 minutes. If `queue.fail` itself raises a non-sqlite error
+  in `_admission_failed`, the lease stays with the finished run and the unit
+  retries every tick with no clock (needs a second defect, in the queue).
+- **Quarantine after admission deaths.** A `died_unclaimed` row has no
+  input fingerprint, so such a unit waits out the seven days even after its
+  inputs change ([local state](../reference/state.md#work-queue)).
+- **Watchdog.** `[loop-idle]` for acquire is silent while any `host:*` or
+  `loop:acquire` guard was seen in the last hour, so one guarded host hides
+  an acquire stall on the others (the D-0190 pattern); `[guard-expired]`
+  covers only the guarded host.
+- **Heavy lock with a hub.** With a hub configured, `correcting` is true
+  whenever any unit is unfinished, so every hourly release tick takes
+  `heavy.lock` exclusive and blocks derive's unit starts even when
+  `correction_needed()` is false. Throughput only; production runs dry-run.
+- **Derive's 5G cap.** Nothing gates it against the inventory's peak (about
+  4 GB on the Mac, unmeasured beside other work). On the worker three OOM
+  kills quarantine `project/inventory` for seven days and new events stop
+  until an operator requeues; `[unit-quarantined]` alerts. Measure it in
+  2a's drain.
+- **Test gaps (surviving mutants).** The `queue.lease` takeover branch to
+  `died_unclaimed`; the CLI SIGTERM handler writing `runs/<run>.stop`; the
+  fetch's commit-time compare (`moved = False` survives); the cycle's
+  `failed` from `request_failures(summary)`.
+- **Smaller.** `_admission_failed`'s docstring still says the admission
+  rolled back its lease; core takes 284 s (467 s under load), over the
+  three-minute rule (maintenance item 9).
+
+Deploy steps (operator; two switches, 2a then 2b):
+
+Preconditions: phase 1 deployed, post-checked and its canary passed; open
+decision 3 recorded; the gates of steps 5 and 8 met before 2b; the
+publish tier's independent check of the diff and the rehearsal, with a
+written verdict (release publishes); a current Mac byte copy, verified by
+sha256 and `quick_check`; before 2b, the stop-marker item above fixed or
+accepted by the owner.
+
+Switch 2a, the package in cycle mode (`loops.enable = false`):
+
+1. Build the deploy tree; its `src/` equals the reviewed change. Run the
+   scope guard against it with the phase 1 deployed tree as baseline: 0
+   parse or extract scopes changed.
+2. Hold (owner, reason, review date 24 h out); stop the cycle and backup
+   timers; wait for running units; checkpoint the WAL to `(0, N, N)` with
+   an empty WAL, as phase 1 step 3; byte-copy `state.sqlite` to the Mac.
+   Preflight receipt: sha256 and `quick_check` of the worker file and of the
+   Mac copy (the first 04:00 backup after 2a prunes every schema-33
+   checkpoint, so the copy is the only way back), schema 33, size, pending
+   by stage, blocked parse units, units whose last three attempts failed
+   alike, accepted inputs, quota free, published candidate id.
+3. `nixos-rebuild switch`; end the hold; start the timers. The first cycle
+   migrates to 34 (63 to 75 s on the Mac, plus a `foreign_key_check` of
+   about a minute if the operator runs one) and accepts the 10 project, link and build
+   scopes and `version/repository`: 0 parses. About 300 blocked parse units
+   become `waiting_input` on a 24 h clock.
+4. Watch the drain per `AGENTS.md`: all 35,800 project and link units re-run
+   and cut off. The inventory and history wait up to 12 h each (D-0210), so
+   up to about 24 h. History takes the staged path: record its A and C
+   seconds and chunk count (2.1 s, 12 to 14 s and 41 on the Mac). Record
+   the inventory tick's `peak_rss_bytes` against derive's 5G cap.
+5. Post-check 2a receipt: 0 parse units queued by scopes; derivation
+   generations only for cascades and real changes (listed); growth
+   attributed (about 80 MB); queue by state, each quarantine explained;
+   guards by reason; `write_deadline_fired` 0 and `write_seconds_max`; the
+   candidate comparison as phase 1 step 6. Three numbers gate 2b:
+   - the build's `complete` write: `write_seconds_max` of a cycle that
+     built. Over 30 s, 2b waits until that write is chunked (finding 1);
+   - the cycle's `peak_rss_bytes` (resident memory, in its summary) over
+     cycles that built: release's `MemoryMax` (7G) must be at least 1.15
+     times the largest, else raise the cap before 2b (the Mac read
+     6.66 GB, which would need 7.5G, finding 6). systemd's
+     `MemoryPeak` counts page cache of the 35 to 46 GB database file and
+     reads near the machine's RAM whatever the process uses; record it as
+     information only;
+   - requests per hour by host over 24 h against the week before 2a: each
+     host with at least 20 requests a day within 25 %. A shortfall is
+     explained or rolls 2a back (R2 could not compare, finding 4).
+
+Switch 2b, the loops (`loops.enable = true`; `src/` unchanged, so no recipe
+changes):
+
+6. Build the tree; the `src/` diff against 2a is empty; only `nix/` changes.
+7. Short hold; stop `swingset-cycle.timer`; wait for the running cycle to
+   finish on its own (a killed cycle leaves a run, admissions and leases
+   the loops do not settle);
+   `nixos-rebuild switch` (the cycle units go, the five loop units and timers
+   come); end the hold.
+8. Watch for 24 h: requests per hour by host against the 2a week (fetching
+   goes on during builds and drains); every loop ticks; no `[loop-*]`,
+   `[write-deadline]`, `[lease-stuck]` or `[building-orphans]` line;
+   `peak_rss_bytes` per loop from the tick records (`MemoryPeak` as
+   information only, it includes page cache); acquire's over ticks that
+   fetched real 200 bodies, since its 1G cap was sized on R3's bodiless
+   mock and is unverified until then; release builds while derive starts
+   no unit (`heavy_deferred`); the 04:00 backup completes and the loops
+   resume after it; WAL size. Gate: release's `peak_rss_bytes` plus that
+   of the largest derive tick that overlapped a build with parse work
+   queued stays under about 7 GB, else roll back to 2a.
+9. Post-check 2b receipt: ticks and failures per loop, requests per hour,
+   derive units per hour, plan age, quarantine count, guards by reason,
+   write and wait maxima, memory peaks, WAL maximum. Optional, on the
+   operator's call: `systemctl kill -s KILL swingset-derive.service` during a
+   tick, then confirm the other loops' next ticks and derive's recovery.
+10. Acceptance of record: seven days after 2b with no `[write-deadline]`
+    line and no loop stalled.
+
+Rollback: 2b to 2a is `loops.enable = false` and a switch, done as step 7:
+write `operator-hold`, wait until no `swingset-*` unit is active, switch,
+remove the hold. Without the hold systemd stops derive mid-unit and kills
+it after 120 s; the stop marker keeps that death uncounted, but a hold
+means no unit is cut off at all. Any later switch with the loops on
+follows the same steps. The cycle takes the exclusive lock and releases
+every lease, and a building generation resumes on its unit's next run. 2a to phase 1 needs step 2's byte copy
+(phase 1 code refuses schema 34), following
+[rolling back a migration](../guides/operation.md#rolling-back-a-migration);
+work since the switch is lost and re-fetched.
+
+Cost: 2a is one rebuild, migration 34, one re-run of every project and link
+unit (35,801 on the copy; CPU of a code-only deploy: phase 1's R11 took
+2.8 h on the Mac; the drain waits up to about 24 h behind the paced
+inventory and history), about 80 MB of equivalences, root sets and
+bookkeeping plus 340 kB for migration 34, 0 parses, about 300 blocked parse
+retries, a byte copy of about 50 to 65 GB, and the independent check. If
+the worker's cycle peak matches the Mac's, raising release's cap to 7.5G is
+a one-line `nix/` change in 2b. 2b is minutes, no re-queue, and a day of
+watching. After it fetching
+no longer stops for builds or drains, and a failing unit costs three
+attempts, not every cycle.
+
+Known limits after phase 2:
+
+- One SQLite writer for five processes. A long single write (the inventory,
+  the build's proof row, a code-scope `accept`) blocks the others for its
+  length; each loop's run record carries `write_seconds_max`,
+  `write_wait_seconds_max` and `write_lock_timeouts`, which feed the
+  PostgreSQL trigger (6.4).
+- Loops skip while an exclusive command waits or runs: the daily backup
+  pauses fetching for its length, and so does a publication (F6).
+- The loops' year gate may fetch sheets for an accepted year whose event
+  list a pending projection is about to change; the digest check closes the
+  year once the list commits (D-0218).
+- Blocked parses retry daily to weekly instead of never; a quarantined unit
+  waits seven days unless its input changes or an operator requeues it
+  (D-0216).
+- The build's `complete` write is one transaction (finding 1): the 2a gate
+  decides whether it must be chunked before 2b.
+- About 600 run rows a day instead of 96; `maintain` prunes idle record
+  files after 14 days and every loop record after 30, and compacts the
+  rows' summaries to a stub after 30 days; the stub rows stay. The
+  watchdog still globs `runs/`.
+- Partial generations whose building row was collected (inputs changed
+  between B and C) keep their refs and payloads until phase 4 collects
+  them; maintain counts them and `[incomplete-generations]` fires above
+  three.
+- Derive waits whole while release builds; a long build delays parse work
+  and can raise backpressure.
+- A build killed mid-run (release's cap, a stop) counts toward the build
+  interval, so the next build waits the full 6 h (D-0199).
+- The watchdog reads with `immutable=1` and lags one checkpoint; more
+  writers mean more `[watchdog-blind]` retries.
+- Two orchestrations until phase 5 removes the cycle. In cycle mode (2a,
+  or after a rollback) a unit that kills the process is retried every
+  cycle, uncounted, as before phase 2; only the loops count deaths.
+
 **Phase 3: partition the globals and the release (about 3 weeks).**
 `project/history/all` becomes `year/<yyyy>`; `project/map/all` becomes
 per-source-index plus per-event resolution; link units record read sets with
 a reverse index; `release` builds partition artifacts with per-partition
 withholding, a small manifest, streamed key joins, the strictly-better gate,
 and the `coverage` reduce. Read sets lift F1's limit: a real upstream change
-then re-mints only the units that read it. Retain the old closure path behind
+then re-mints only the units that read it. Release reading partition
+artifacts lets the publication fence narrow to its own tables, and gives
+derive its release-lag knob (both deferred from phase 2). Retain the old closure path behind
 a flag for one release. _Accept when_ one corrupt event withholds only itself
 in a build; a release build peaks under 2 GB resident and finishes under 10
 minutes; a single fetched score sheet re-derives one event, its links and its
@@ -1286,7 +1858,9 @@ it, or raise the quota, when the state without `checkpoints/`, `venv/` and
 (D-0203). The watchdog's `[state-size]` uses that measure and fires 5 GB
 earlier, at 50 GB; post-check receipts carry the size. Payloads, parse
 results and manifests to the blob store with a lifecycle row per class;
-streaming mark-sweep across all classes; segmented incremental backup with
+streaming mark-sweep across all classes, including partial derivation
+generations older than a day that no pointer, equivalence or building row
+names (D-0217); segmented incremental backup with
 weekly automated restore verification; migration of retained
 `derivation_payloads` out of the file, then reclaim. Deletes data, so it takes
 the independent check. _Accept when_ the file is under 15 GB, the daily backup
@@ -1295,7 +1869,10 @@ month of receipts shows the blob store within budget.
 
 **Phase 5: removals (about 2 weeks, one subsystem per switch).** The table
 in section 8, each behind its replacement's receipts, with tests deleted in
-the same change. The `event_*` dependency report also covers the writers
+the same change. It also removes the cycle, folds `pending_work`,
+`work_generations` and the requirement tables into `work_queue` (F14), and
+shrinks operator pauses to loop, host and source scopes (deferred from
+phase 2). The `event_*` dependency report also covers the writers
 that outlive the phase 0 stage switches: the migration 0019 pressure
 triggers and the `event_stage_operations` rows appended per fetched or
 parsed snapshot. _Accept when_ core suite time drops, the table count is under

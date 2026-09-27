@@ -10,6 +10,7 @@ The scheduler chooses which request or local task runs next. This page defines p
 - [Watch states and intervals](#watch-states-and-intervals)
 - [Discovery](#discovery)
 - [Work order](#work-order)
+- [Loops](#loops)
 - [Event completion](#event-completion)
 - [Registry verification consumers (H2)](#registry-verification-consumers-h2)
 
@@ -129,7 +130,7 @@ Reconciliation and supported corrections run first. The initial 720-second
 cycle reserves 30 seconds for reconciliation, 300 for acquisition, and 390
 for offline work, including building. Unused allocations can be borrowed.
 These shares are operating objectives, not permission to exceed a host
-limit or the 45-second semantic write deadline. A zero budget still accepts
+limit or the 60-second write alarm. A zero budget still accepts
 inputs and starts no work.
 
 Acquisition divides each host's existing request allowance between new,
@@ -163,12 +164,21 @@ claims that an output committed successfully.
 A cycle excludes an already attempted input fingerprint, rather than the
 whole unit. Later parses can add inputs to a shared projection and let it
 run again in that cycle. Repeating the same bytes and recipe does not unlock
-a blocked attempt. A derivation that raises is not blocked: it retries after
-15 minutes, doubling per consecutive failure with the same reason up to six
-hours, and each retry counts as a failure in the cycle summary
-([D-0211](../../journal/decisions/0211-a-derivation-that-raises-retries-on-a-clock.md)); the
-watchdog's `[unit-failing]` names a unit whose last three attempts failed the
-same way. The summary's `derivation` key reports generations and equivalences
+a blocked attempt on its own. Every failure gets a clock from the work queue
+([D-0216](../../journal/decisions/0216-the-work-queue-leases-backs-off-and-quarantines.md);
+[state: work queue](state.md#work-queue)). A derivation that raises retries
+after 15 minutes, doubling per consecutive failure of one class up to six
+hours, and each retry counts as a failure in the cycle summary; the third
+quarantines the unit for seven days (the twentieth for `unit_io_error`), and
+the watchdog's `[unit-quarantined]` names it. A blocked parse or a missing
+artifact waits 24 hours doubling to seven days, then retries; a retry that
+ends the same way counts in `waiting_repeats`, not as a failure, and not in
+the per-source 10% rule. A unit another live owner leases is skipped
+(`queue.lease_busy`), as is one whose admission timed out on the control lock
+(`control_timeouts`). The cycle wakes due queue rows once (`queue.woken`),
+releases every lease after its recovery (`queue.released`), names units it
+quarantined (`queue.quarantined`) and reports rows by state (`queue_states`).
+The summary's `derivation` key reports generations and equivalences
 written, by `stage/kind`, and the replay epochs a cutoff moved. If that read,
 the replay-epoch read at the start of the cycle, or the controls read fails,
 the record keeps `derivation_error` or `controls_error` instead, and is still
@@ -188,6 +198,11 @@ derivations that count is parse rows only: project and link rows are hints
 that code-scope accepts and replay epochs queue for the watchdog, and a
 derivation backlog does not pause acquisition
 ([D-0214](../../journal/decisions/0214-a-derivation-backlog-does-not-pause-acquisition.md)).
+Only parse units derive could run now count, by items and by bytes: no queue
+row, a lease, or `ready` and due. A parse waiting on a clock (backing off,
+waiting for input, quarantined) does not hold acquisition
+([D-0216](../../journal/decisions/0216-the-work-queue-leases-backs-off-and-quarantines.md));
+the report's `runnable_parse` gives the count.
 Two actual requests per cycle remain available for explicitly identified
 identity dependencies. Ordinary unfetched rounds do not receive that
 reserve. Robots, redirects, retries, and failed issued requests consume
@@ -201,6 +216,8 @@ admits a release build at most that often, failed or not, and
 `history_interval_seconds` re-materializes `project/history/all` at most that
 often. Production sets 6 and 12 hours; unset means every cycle
 ([D-0199](../../journal/decisions/0199-contain-build-failures-and-pace-global-units.md)).
+`release_min_free_bytes` (default 30 GB) is the free disk the release loop
+needs before it builds.
 `inventory_interval_seconds` (12 hours) paces `project/inventory/all` the same
 way. A due history lifts it only once history has consumed the inventory it
 has; otherwise a dancer change during the cascade would restart it. With equal
@@ -237,6 +254,65 @@ same parent link does not reset these clocks. A newly observed parent-child
 relationship or actual recovered dates can reactivate the watch without
 inventing dates. Manual operator pauses remain separate, as described in
 [operations](operations.md#locks-and-operator-commands).
+
+## Loops
+
+Phase 2 splits the cycle into loops, each a short timer tick that holds
+`state.lock` shared and its own `loop-<name>.lock`
+([D-0215](../../journal/decisions/0215-loops-share-the-state-under-a-reader-writer-lock.md);
+[state: locks](state.md#locks)). All five are built; the cycle stays the
+default until the nix switch. The cycle and
+derive share one offline loop (`schedule/offline.py`), and the cycle, plan and
+acquire share the acquisition pass and the event bookkeeping stages
+(`schedule/acquisition.py`), so both orchestrations select, attempt and count the
+same way and the cycle's summary is unchanged.
+
+Every tick (`loops/runtime.tick`):
+
+1. Opens the state shared. A busy loop lock, a waiting or running writer, or a
+   migration another process won skips the tick (`skipped-overlap` under
+   `--timer`, exit 1 by hand).
+2. Settles the active admissions of this loop's open runs: the loop lock
+   proves them dead. Release also settles a stale publication as uncertain.
+3. Skips when a publication is in flight, or when one admitted since fences
+   the run's start: its fence refuses every write, `runs` and `loop_state`
+   included (F6). The record is only `runs/<run_id>-<loop>.json`, with
+   `skipped: publication_in_flight`.
+4. Starts a `runs` row with `loop` set and closes the loop's other open runs:
+   `failed`, `process_interrupted`, unless the run's record file says it
+   finished (its last row write met a fence). Their running attempts finish
+   `interrupted`. A run that died counts a `process_interrupted` failure of
+   each such unit, which backs off and quarantines at the third; a run that
+   finished on its own left the attempt behind a fenced or busy write, which
+   retries in 60 s uncounted ([state: work queue](state.md#work-queue)).
+   A lease the dead run holds with no running attempt is a death in the
+   unit's admission and counts the same. Nothing counts when the run wrote
+   `runs/<run_id>.stop` before it died: systemd asked it to stop (SIGTERM)
+   and killed it at `TimeoutStopSec`. A record file that says
+   `process_interrupted` was written by a recovery that rolled back and is
+   no ending. The other leases are released.
+5. Captures the input bundle. Only derive accepts it; plan and release skip
+   (`inputs_not_accepted`, guard `loop:<name> inputs_not_accepted`, 1 h)
+   until the accepted bundle matches.
+6. Leases as `<loop>:<run_id>`, counts phase-two refusals, and, for plan and
+   derive, names the pacing gate's scheduler. Acquire, plan and derive judge
+   the phase-two year gate on facts alone, never on a pending projection
+   ([D-0218](../../journal/decisions/0218-the-loops-judge-the-year-gate-on-facts-and-acquire-from-a-plan-table.md);
+   [backfill: scheduling](backfill.md#scheduling)).
+7. Writes `runs/<run_id>.json`, the `runs` row and `loop_state`
+   (`last_progress_at` moves only when the tick made progress). The record
+   carries `loop`, `counters`, `progress`, `failed`, `error`, `stopped`,
+   `skipped`, `duration_seconds`, `control_timeouts`, `peak_rss_bytes` (the
+   process's peak resident memory) and the write counters.
+   The CLI exits 1 when `failed`.
+
+| Loop       | Tick                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                | Progress                                                                           |
+| ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| `acquire`  | Discovers configured and registry watches, then runs one acquisition pass to its deadline: due watches and the eligible `acquisition_plan` page rows, in plan order, compete under the fair policy; each history dispatch re-checks its target from facts before any mutation. A row whose page left the retained plan waits for the next plan tick (`stale_plan_rows`). Under backpressure no row is offered and the archive index is skipped, as in the cycle. The event-timing observer wraps the pass but gets no archive offer proofs, since the rows were judged in an earlier tick. Flushes the pass's guards. It stops before the next request once a publication starts. A choice that raises stops only itself (`request_errors`): a busy or locked write, a write-deadline overrun, a publication fence, an operator pause or a control-lock timeout skips the request; any other exception holds its watch (guard `watch:<id> request_error`) for an hour, doubling, and a week from the third in a row, and a request that goes through clears it. The archive index and the guard flush still run. `failed` on a stage error, a request error other than a skip, or a `Blocked` host. | requests issued (fetches plus CDX pages)                                           |
+| `plan`     | Runs the event bookkeeping stages as the cycle does (`[stages]` switches apply), the requirements scan and the registry verification summary. Then writes `acquisition_plan`: one row per `events.year` (`eligible`, `year_unaccepted`, `acceptance_digest_changed`, `year_findings_open` or `h7_h10_not_deployed`; `detail_json` holds the accepted digest and, as information only, `projection_pending`) and one per planned page (`eligible` or the candidate's stop reason, with `rank` in plan order and `via` archive or origin). Rows are upserted in transactions of 5,000; year rows not written are deleted, and page rows not written only when the pass was not cut by its deadline (30 s are kept for the write).                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | plan rows written                                                                  |
+| `derive`   | Wakes due queue rows, enforces the size cap, rebuilds parse hints (2 s), then runs the offline loop to its deadline. Without the heavy lock (release is building) it starts no unit (`heavy_deferred`): a build and a parse tick together outgrew the 8 GB worker on the Mac (F10). It stops before the next unit once a publication starts. The registry crosscheck runs, with the heavy lock, when no parse or project unit waits. An exception that escapes a unit fails that unit (`unit_exception:<type>`), counted. `failed` is the cycle's rule without the build and host terms.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | units whose output committed; other outcomes count under `not_completed` by reason |
+| `release`  | Skips while `/run/swingset-disk` shows under `release_min_free_bytes` free (`disk`; guard `loop:release release_disk_low`, cleared by the next tick with room). With a hub (`--publish`), reconciles a pending publication, then builds a correction while work is queued and the baseline needs one. Builds a candidate unless `build_interval_seconds` or the backlog rule defers it (`build_deferred`). Each build holds `heavy.lock` exclusive, waiting up to 15 minutes, else skips (`heavy_busy`, guard `loop:release heavy_busy`, 3 h); meanwhile derive starts no unit. A `/run/swingset-disk` reading older than an hour is unknown (`disk.stale`). The record carries `build_attempted` and `build_interval_seconds` for the watchdog. Publishes with `--publish`. A `BuildError` or `ClosureError` is reported (`build_error`, `correction_error`) and fails the tick without raising ([D-0187](../../journal/decisions/0187-review-dismissals-year-scoped-aliases-and-non-fatal-builds.md), [D-0199](../../journal/decisions/0199-contain-build-failures-and-pace-global-units.md)). The build and publish steps are the cycle's (`schedule/cycle.build_and_publish`, `correct`).       | a build, a publication or a landed reconcile                                       |
+| `maintain` | `wal_checkpoint(PASSIVE)` and the WAL size; deletes guard rows unseen for 7 days, idle loop records (no progress, not failed) and stop markers older than 14 days, and every loop record after 30 days; compacts the `summary_json` of loop `runs` rows older than 30 days to a stub (loop, failed, progress, finished_at), 5,000 a tick; drops `work_queue` rows whose unit has nothing left to do ([state: work queue](state.md#work-queue)); counts building generations, those untouched for 24 hours, and partial generations no building row names (`incomplete_generations`); reports the size cap, controls and guard reasons.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | each task done                                                                     |
 
 ## Event completion
 
@@ -390,11 +466,18 @@ Progress commits with the stage output it describes. Budget resets and resume
 preserve pending membership, turn position, cooldowns, and completed work.
 Operator holds remain effective and earn no extra requests or accumulated burst.
 
+Each acquisition pass ends by writing its guards: why the client held a fetch,
+by host, watch or loop, with an expiry. A request clears its host's and
+watch's rows. The cycle and acquire summaries carry `guards` (passes, rows
+written and cleared) and `guard_reasons` (rows by reason). Rules and expiries:
+[fetch layer, guards](fetching.md#guards).
+
 ### Stage switches
 
 The top-level `[stages]` table of `config/sources.toml` turns optional event
 bookkeeping off. Every key defaults to `true`. An unknown key or a value that is
-not `true` or `false` stops config loading.
+not `true` or `false` stops config loading. The plan loop runs these stages
+under the same switches.
 
 | Key                          | When `false`                                                                                                                                                         |
 | ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

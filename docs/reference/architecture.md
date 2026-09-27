@@ -94,16 +94,18 @@ or revision counters.
 
 ## Module boundaries
 
-| Owner           | Contract                                                                                                                                                                              |
-| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `sources/`      | Pure extract and parse functions, watch seeds, source polling policy; see [parsing](parsing.md#source-interface)                                                                      |
-| `schedule/`     | Host and class fairness, durable turns for source events, and page selection through the existing `next_watch(...)` interface; see [event completion](scheduling.md#event-completion) |
-| `project/`      | Pure map and scope projections, plus the transactional writer                                                                                                                         |
-| `link/`         | Per-event assignment and identity assertions; writes only link-owned fields and tables                                                                                                |
-| `state/work.py` | Accept changed inputs, enqueue affected units, and commit a unit's output and completion together                                                                                     |
-| `build/`        | Read a settled database and captured files; produce immutable publication contents                                                                                                    |
-| `publish/`      | Own candidate markers, remote commit acknowledgment, and baseline promotion                                                                                                           |
-| `backup/`       | Copy the complete recoverable state and verify it on restore                                                                                                                          |
+| Owner            | Contract                                                                                                                                                                              |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `sources/`       | Pure extract and parse functions, watch seeds, source polling policy; see [parsing](parsing.md#source-interface)                                                                      |
+| `schedule/`      | Host and class fairness, durable turns for source events, and page selection through the existing `next_watch(...)` interface; see [event completion](scheduling.md#event-completion) |
+| `loops/`         | One tick of each phase 2 loop (acquire, plan, derive, release, maintain) and the shared tick frame; see [scheduling: loops](scheduling.md#loops)                                      |
+| `project/`       | Pure map and scope projections, plus the transactional writer                                                                                                                         |
+| `link/`          | Per-event assignment and identity assertions; writes only link-owned fields and tables                                                                                                |
+| `state/work.py`  | Accept changed inputs, enqueue affected units, and commit a unit's output and completion together                                                                                     |
+| `state/queue.py` | Leases, failure clocks, waiting and quarantine over that work; see [work queue](state.md#work-queue)                                                                                  |
+| `build/`         | Read a settled database and captured files; produce immutable publication contents                                                                                                    |
+| `publish/`       | Own candidate markers, remote commit acknowledgment, and baseline promotion                                                                                                           |
+| `backup/`        | Copy the complete recoverable state and verify it on restore                                                                                                                          |
 
 `project_map(index_obs, calendar_obs, aliases, source_urls)` returns a
 `SourceEventMap`. `project(scope, observations, context)` returns a

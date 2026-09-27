@@ -158,14 +158,21 @@ def iter_work(
             yield unit
             continue
         from .attempts import eligible, latest_attempt
+        from .queue import holds
         from .work_fingerprints import input_fingerprint
 
-        if latest_attempt(conn, unit) is None or eligible(
-            conn,
-            unit,
-            fingerprint(unit) if fingerprint else input_fingerprint(conn, unit),
-            now or datetime.now(UTC),
+        moment = now or datetime.now(UTC)
+
+        def current(unit: WorkUnit = unit) -> str:
+            return fingerprint(unit) if fingerprint else input_fingerprint(conn, unit)
+
+        latest = latest_attempt(conn, unit)
+        if (latest is None or latest["outcome"] in {"succeeded", "superseded"}) and holds(
+            conn, unit, moment, current
         ):
+            # No attempt carries this failure's clock: the queue row does.
+            continue
+        if latest is None or eligible(conn, unit, current(), moment):
             yield unit
 
 

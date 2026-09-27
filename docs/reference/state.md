@@ -14,6 +14,7 @@ Local state is what the worker keeps between runs: saved evidence, database rows
 - [Acceptance cases](#acceptance-cases)
 - [Requirement inventory in shadow (H11)](#requirement-inventory-in-shadow-h11)
 - [Isolated work attempts (H12)](#isolated-work-attempts-h12)
+- [Work queue](#work-queue)
 - [Event completion persistence (H14 extension)](#event-completion-persistence-h14-extension)
 - [Derivation generations (H15)](#derivation-generations-h15)
 - [Accepted source generations (H7)](#accepted-source-generations-h7)
@@ -29,25 +30,30 @@ what each numbered migration changes and links to its exact SQL.
 
 Internal tables:
 
-| Table              | Key columns                     | Purpose                                                                                                                                                                                                                                                                                                    |
-| ------------------ | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `meta`             | `key`                           | `schema_version`, `installed_at`, current input bundle hash                                                                                                                                                                                                                                                |
-| `runs`             | `run_id`                        | `started_at`, `finished_at`, `dry_run`, `summary_json`                                                                                                                                                                                                                                                     |
-| `hosts`            | `host`                          | `next_allowed_at`, `paused_until`, `pause_reason`, `pause_streak`, `robots_sha256`, `robots_fetched_at`, `robots_status`                                                                                                                                                                                   |
-| `operator_pauses`  | `scope_kind`, `scope_id`        | operator-requested all, host, source, or requirement-kind pause; stable pause ID, actor, reason, revision, creation time and nullable expiry; separate from automatic host pauses                                                                                                                          |
-| `host_budget`      | `host`, `day`                   | `requests`, `bytes`                                                                                                                                                                                                                                                                                        |
-| `cursors`          | `name`                          | `value`; durable bootstrap and new-id probe positions and miss counts; `registry_probe_started_at`, `registry_probe_last_completed_at`, `registry_probe_next_at` preserve freshness and cadence across restarts                                                                                            |
-| `watches`          | `watch_id`                      | every column in [scheduling](scheduling.md#watches) plus `fingerprint`, `extract_version`, `priority`, `created_by_snapshot_id`, `parent_watch_id`, `ever_ok`, current observation snapshot id                                                                                                             |
-| `snapshots`        | `snapshot_id`                   | every column in [fetching](fetching.md#archive) plus `via`, `archive_url`, `captured_at`, `observed_at`, `headers_json`, `classification`, `extract_status`, `extract_sha256`, `parse_status`, `parsed_at`, `extract_version`, `parser_version` (versions last attempted)                                  |
-| `archive_captures` | `source`, `url`, `timestamp`    | `digest`, `status`, `mimetype`, `length`, `queried_at`, `cdx_query_id`; the Wayback CDX index we hold per source, so capture selection can be redone offline ([backfill](backfill.md#the-wayback-transport))                                                                                               |
-| `observations`     | `observation_id`                | `watch_id`, `snapshot_id`, `kind`, `scope_kind` (`source_event`, `dancer`, `source_index`, `calendar`), `scope_id` (a source reference such as `eepro:asc2025`, never a canonical id), `seq`, `extract_version`, `parser_version`, `payload_json`; indexed by `watch_id` and by (`scope_kind`, `scope_id`) |
-| `source_event_map` | `source`, `source_ref`          | `event_id`, `match_method` (`name_date`, `alias`, `override`), `match_confidence`; the projection that resolves observation scopes to events; rewritten whenever index or calendar observations, `event_aliases.csv`, or `source_urls.csv` change                                                          |
-| `revisions`        | `name`                          | monotonically increasing counter per set (`observations`, `source_event_map`, `source_events`, `canonical`, `dancers`, `links`, `findings`, `snapshots`), bumped in the writing transaction                                                                                                                |
-| `pending_work`     | `stage`, `unit_kind`, `unit_id` | `enqueued_at`; coalesced work for parse, project, and link; presence means unfinished                                                                                                                                                                                                                      |
-| `accepted_inputs`  | `consumer`, `input_name`        | `digest`; the input value whose invalidation work has been committed, not a stage completion record                                                                                                                                                                                                        |
-| `findings`         | `finding_id`                    | `kind`, `subject_kind`, `subject_id`, `watch_id`, `snapshot_id`, `severity`, `summary`, `evidence_json`, `suggested_override`, `opened_at`, `run_id`, `closed_at`, `closed_by`                                                                                                                             |
-| `source_events`    | `source`, `source_ref`          | projection of index observations: `name_raw`, `start_date`, `end_date`, `location_raw`, `url`, plus provenance; joins to `source_event_map` for the `event_id`                                                                                                                                             |
-| `backup_uploads`   | `path`                          | `sha256`, `uploaded_at`; upload optimization only, verified against the selected archive commit on restore                                                                                                                                                                                                 |
+| Table                 | Key columns                     | Purpose                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| --------------------- | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `meta`                | `key`                           | `schema_version`, `installed_at`, current input bundle hash                                                                                                                                                                                                                                                                                                                                                                                             |
+| `runs`                | `run_id`                        | `started_at`, `finished_at`, `dry_run`, `summary_json`, `loop` (the owning loop; NULL for the cycle and the CLI); maintain compacts a loop row's summary to a stub after 30 days                                                                                                                                                                                                                                                                        |
+| `hosts`               | `host`                          | `next_allowed_at`, `paused_until`, `pause_reason`, `pause_streak`, `robots_sha256`, `robots_fetched_at`, `robots_status`                                                                                                                                                                                                                                                                                                                                |
+| `operator_pauses`     | `scope_kind`, `scope_id`        | operator-requested all, host, source, or requirement-kind pause; stable pause ID, actor, reason, revision, creation time and nullable expiry; separate from automatic host pauses                                                                                                                                                                                                                                                                       |
+| `host_budget`         | `host`, `day`                   | `requests`, `bytes`                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| `cursors`             | `name`                          | `value`; durable bootstrap and new-id probe positions and miss counts; `registry_probe_started_at`, `registry_probe_last_completed_at`, `registry_probe_next_at` preserve freshness and cadence across restarts                                                                                                                                                                                                                                         |
+| `watches`             | `watch_id`                      | every column in [scheduling](scheduling.md#watches) plus `fingerprint`, `extract_version`, `priority`, `created_by_snapshot_id`, `parent_watch_id`, `ever_ok`, current observation snapshot id                                                                                                                                                                                                                                                          |
+| `snapshots`           | `snapshot_id`                   | every column in [fetching](fetching.md#archive) plus `via`, `archive_url`, `captured_at`, `observed_at`, `headers_json`, `classification`, `extract_status`, `extract_sha256`, `parse_status`, `parsed_at`, `extract_version`, `parser_version` (versions last attempted)                                                                                                                                                                               |
+| `archive_captures`    | `source`, `url`, `timestamp`    | `digest`, `status`, `mimetype`, `length`, `queried_at`, `cdx_query_id`; the Wayback CDX index we hold per source, so capture selection can be redone offline ([backfill](backfill.md#the-wayback-transport))                                                                                                                                                                                                                                            |
+| `observations`        | `observation_id`                | `watch_id`, `snapshot_id`, `kind`, `scope_kind` (`source_event`, `dancer`, `source_index`, `calendar`), `scope_id` (a source reference such as `eepro:asc2025`, never a canonical id), `seq`, `extract_version`, `parser_version`, `payload_json`; indexed by `watch_id` and by (`scope_kind`, `scope_id`)                                                                                                                                              |
+| `source_event_map`    | `source`, `source_ref`          | `event_id`, `match_method` (`name_date`, `alias`, `override`), `match_confidence`; the projection that resolves observation scopes to events; rewritten whenever index or calendar observations, `event_aliases.csv`, or `source_urls.csv` change                                                                                                                                                                                                       |
+| `revisions`           | `name`                          | monotonically increasing counter per set (`observations`, `source_event_map`, `source_events`, `canonical`, `dancers`, `links`, `findings`, `snapshots`), bumped in the writing transaction                                                                                                                                                                                                                                                             |
+| `pending_work`        | `stage`, `unit_kind`, `unit_id` | `enqueued_at`; coalesced work for parse, project, and link; presence means unfinished                                                                                                                                                                                                                                                                                                                                                                   |
+| `work_queue`          | `stage`, `unit_kind`, `unit_id` | overlay on `pending_work` and derivation currency: `state` (`ready`, `leased`, `waiting_input`, `quarantined`), `attempts`, `error_class`, `input_fingerprint`, lease owner and expiry, `next_attempt_at`, last reason and error; a row exists only while a unit is leased or failing. A leased row has an owner and expiry; a waiting or quarantined row has a clock. Migration 34 seeds rows for failing pending units; see [Work queue](#work-queue) |
+| `acquisition_plan`    | `plan_key`                      | `year:<yyyy>` or `page:<watch_id>` rows the plan loop writes and acquire reads ([D-0218](../../journal/decisions/0218-the-loops-judge-the-year-gate-on-facts-and-acquire-from-a-plan-table.md)): `reason` (`eligible` or the gate's stop reason), `rank`, source, URLs, `detail_json`, `planned_at`, `run_id`. A pass cut by its deadline keeps older page rows; a whole pass deletes them                                                              |
+| `guard_reasons`       | `subject`, `reason`             | why a fetch is held: subject `host:`, `watch:` or `loop:`, the loop that saw it, `since`, `last_seen_at`, `expires_at`, `seen` ([guards](fetching.md#guards))                                                                                                                                                                                                                                                                                           |
+| `loop_state`          | `loop`                          | each loop's latest tick: run, start and finish, `failed`, `error`, `counters_json`, `last_progress_at`                                                                                                                                                                                                                                                                                                                                                  |
+| `derivation_building` | `generation_id`                 | a generation whose rows are being stored in chunks after its live write: unit, fingerprint, witness, label digest and rows, `rows_stored`                                                                                                                                                                                                                                                                                                               |
+| `accepted_inputs`     | `consumer`, `input_name`        | `digest`; the input value whose invalidation work has been committed, not a stage completion record                                                                                                                                                                                                                                                                                                                                                     |
+| `findings`            | `finding_id`                    | `kind`, `subject_kind`, `subject_id`, `watch_id`, `snapshot_id`, `severity`, `summary`, `evidence_json`, `suggested_override`, `opened_at`, `run_id`, `closed_at`, `closed_by`                                                                                                                                                                                                                                                                          |
+| `source_events`       | `source`, `source_ref`          | projection of index observations: `name_raw`, `start_date`, `end_date`, `location_raw`, `url`, plus provenance; joins to `source_event_map` for the `event_id`                                                                                                                                                                                                                                                                                          |
+| `backup_uploads`      | `path`                          | `sha256`, `uploaded_at`; upload optimization only, verified against the selected archive commit on restore                                                                                                                                                                                                                                                                                                                                              |
 
 Canonical tables use the published columns in [data model](data-model.md#tables).
 Their `snapshot_id` provenance names the winning observation's snapshot.
@@ -97,6 +103,10 @@ holds/<hold_id>.json           one retention hold: who, why, when, what it keeps
 gc/plans/<digest>.json         written retention plans; disposable, not backed up
 gc/receipts/<name>.json        one receipt per apply and per reclaim; not backed up
 RESTORE_PENDING                present until restore verification succeeds
+state.intent, state.lock       reader-writer lock pair (below); never state
+heavy.intent, heavy.lock       keeps release builds and derive's units apart
+loop-<name>.lock               one per loop; a second instance of a loop fails
+control.lock                   short admission and control mutex
 runs/
 venv/                          disposable; rebuilt from the lock
 uv-cache/                      disposable
@@ -113,6 +123,37 @@ GC is manual in v1, removes nothing except through `gc --apply`, from a written
 plan, under both locks, and the only files it removes are candidate directories
 no release or recent build claims, once they are older than
 `retention.collect_older_than`. See [retention](#retention).
+
+### Locks
+
+`state/rwlock.py` owns the protocol
+([D-0215](../../journal/decisions/0215-loops-share-the-state-under-a-reader-writer-lock.md)).
+Lock files are `flock` locks, never copied into a checkpoint and never removed
+by a restore.
+
+- **Exclusive** (the default `open_database` mode): the cycle, every CLI
+  mutation, backup, restore, `gc`, `accept-year`. Take `state.intent`, then
+  `state.lock`, both exclusive, within the command's lock timeout (0 in timer
+  mode: skip as `skipped-overlap`). Hold both for the handle's life. Only this
+  mode migrates, and only it is the writer lock (`holds_writer_lock`).
+- **Shared** (`mode="shared"`, a named loop): take `loop-<name>.lock`
+  exclusive, `state.intent` shared, `state.lock` shared, then release the
+  intent. Every step is non-blocking; a failure raises `DatabaseLockedError`
+  with reason `loop running`, `writer pending` or `writer running`, and the
+  loop skips its tick. A waiting exclusive holder owns the intent, so no new
+  tick starts in front of it.
+- **Migration handoff**: a shared open of an older schema raises reason
+  `migration pending`. `open_for_loop` then tries one non-blocking exclusive
+  open, which migrates, and reopens shared; a loop that loses that race skips.
+- **Heavy pair**: release takes `heavy.intent` and `heavy.lock` exclusive
+  (waiting up to 900 s); derive takes them shared, non-blocking, and starts
+  no unit in a tick that cannot (F10).
+
+Order: `loop-<name>.lock`, `state.intent`, `state.lock`, `control.lock`, SQLite.
+Every writable connection waits up to 70 s for SQLite's writer (busy timeout),
+the publication boundary's included (`publish/safety._connection`). An
+admission waits up to 90 s for `control.lock`, then raises `ControlTimeout`.
+Either timeout skips the unit or request and counts nothing.
 
 ## Invalidation
 
@@ -304,9 +345,12 @@ control retries; H15 owns desired/materialized derivation generations.
 
 Blocked and unavailable work does not retry the same inputs merely because
 another cycle or inventory scan runs. Changed relevant inputs or an explicit
-`request_retry` releases that latch. Transient and interrupted outcomes have a
-future deadline. After acquiring the process lock, restart converts abandoned
-running attempts to interrupted outcomes; it does not infer success.
+`request_retry` releases that latch; the work queue's waiting clock makes that
+request when it comes due. Transient and interrupted outcomes have a future
+deadline, which the work queue sets. After taking the exclusive lock, the cycle
+and the CLI convert abandoned running attempts to interrupted outcomes and
+release every lease; they do not infer success. A running attempt whose queue
+lease is dead is eligible, and the next lease closes it (see below).
 
 A failed work unit has a `work_attempt` requirement with the exact unit and
 fingerprint, outcome evidence, reason, and next action. Its retained
@@ -315,6 +359,75 @@ row without resetting eligibility. Restoring an artifact does not satisfy the
 work requirement; its output still has to commit. Doctor counts durable
 running rows even before a unit has its first finding. Legacy running mirrors
 are deduplicated. This records attempt state, not operating-system liveness.
+
+## Work queue
+
+Migration 34 adds `work_queue`, an overlay on `pending_work` and derivation
+currency ([D-0216](../../journal/decisions/0216-the-work-queue-leases-backs-off-and-quarantines.md)).
+A row exists only while a unit is leased or failing; success deletes it in
+the output transaction. `state/queue.py` owns the policy.
+
+- **Lease.** `derive_one` leases its unit in a short claim transaction that
+  commits before the admission's capture, as
+  `<loop>:<run_id>` for 30 minutes (`cycle` and `cli` for those processes). A
+  live lease of another owner skips the unit (`lease_busy`). A lease is dead
+  when it expired, when its owner is this process's own loop, or when this
+  process holds the exclusive lock. Taking over a dead lease finishes its
+  running attempt `interrupted` (`process_interrupted`) and settles its
+  admission in the same transaction; the unit then waits on the failure
+  clock below instead of running (`process_interrupted` outcome, nothing
+  run). The cycle and the `parse`, `project` and `link` commands call
+  `release_all` after their recovery; a loop tick closes its own dead runs'
+  attempts the same way and releases their leases.
+- **Process death.** An attempt whose run died (a kill, an OOM at a
+  `MemoryMax`, a stop timeout) is a `process_interrupted` failure, so a unit
+  that kills its process quarantines at the third. A dead run's lease with
+  no running attempt died in the admission and counts the same
+  (`queue.died_unclaimed`). Its row has no input fingerprint, so a unit
+  quarantined by three such deaths waits out the seven days even when its
+  inputs change. One whose run finished on its own (its `runs`
+  row or record file) was left by a fenced or busy write:
+  `publication_fenced`, uncounted. So is one whose run wrote
+  `runs/<run_id>.stop` (SIGTERM, then a kill at the stop timeout).
+- **Escaped exception.** An exception that escapes `derive_one` leaves its
+  attempt running; the offline loop closes it as a counted
+  `unit_exception:<type>` failure (`queue.escaped`), unless that write is
+  fenced or busy.
+- **Admission failure.** An exception in the admission (capture, attempt)
+  rolls it back and records a `unit_exception:*` failure on the
+  row alone, with no attempt. Selection honours such a row
+  (`queue.holds`): a waiting, quarantined or not-yet-due row holds a unit
+  whose latest attempt is absent, succeeded or superseded while its inputs
+  are the failed ones. A fence or busy error in the admission, an operator
+  pause or a control timeout writes nothing and gives the claimed lease back.
+- **Orphans.** The maintain loop deletes rows whose unit has nothing left to
+  do: no `pending_work` row, no running attempt, not leased, and for project
+  and link units current.
+- **Failure class.** The attempt's reason, plus `:<ExceptionType>` for
+  `unit_exception`. Failures count while the class and input fingerprint stay
+  the same; either change restarts at 1.
+
+| Class                                                                                                           | Row                      | Clock                          | Quarantine        |
+| --------------------------------------------------------------------------------------------------------------- | ------------------------ | ------------------------------ | ----------------- |
+| `unit_exception:*`, `write_deadline_exceeded`, `nondeterministic_output`, `inputs_changed_spurious`, and others | `ready`                  | 15 min × 2^(n−1), at most 6 h  | at 3, for 7 days  |
+| `unit_io_error`                                                                                                 | `ready`                  | 60 s                           | at 20, for 7 days |
+| `parse_failed`, `admission_*` (blocked parses), `artifact_unavailable`                                          | `waiting_input`          | 24 h × 2^(n−1), at most 7 days | never             |
+| `unsupported_page_kind`                                                                                         | `waiting_input`          | 30 days                        | never             |
+| `process_interrupted` (the unit's process died)                                                                 | `ready`                  | 15 min × 2^(n−1), at most 6 h  | at 3, for 7 days  |
+| `publication_fenced`, `write_lock_timeout`                                                                      | `ready`, count unchanged | 60 s                           | never             |
+
+A transient attempt's `retry_at` is the row's clock, so `attempts.eligible`
+and the queue agree; a new input fingerprint makes a quarantined unit
+eligible at once. `queue.wake` turns due `waiting_input` and `quarantined`
+rows `ready` and calls `request_retry` for a blocked or unavailable unit; the
+cycle calls it once per cycle, derive once per tick. A retry of a waiting unit that ends the same
+way is a `waiting_repeats`, not a failure. A real supersession
+(`inputs_changed`), a `ControlTimeout` in the admission and a fence or busy
+error (in the admission or while processing) change nothing: derive writes no
+fenced table, and the next tick's recovery closes an attempt left open
+uncounted.
+`swingset queue` reports rows; `swingset queue requeue` sets matching
+quarantined or waiting rows `ready` with no count and requests a retry.
 
 ## Event completion persistence (H14 extension)
 
@@ -517,8 +630,13 @@ enforces this. A bundle captured before scopes still yields the package-wide
 `recipe/runtime`; after the first scoped bundle that input stays at the
 absent digest.
 
-Known cost: the package is one import cycle, so each project, link and build
-scope holds about 214 files. An edit inside the cycle re-runs every project and
+Known cost: the storage, projection, link and build modules still import
+each other, so each project and link scope holds 168 files and the build
+scope 174. The scheduler, the loops and acquisition (`schedule/cycle.py`,
+`loops/`, `fetch/client.py`, `history/backfill.py`, `schedule/fairness.py`
+and the like) are in no scope: an edit there re-runs nothing. `versions()` and
+`repository_identity()` live in `versions.py` for that reason (the cycle
+re-exports them). An edit inside a shared module re-runs every project and
 link unit; identical output keeps its generation (below), so this costs CPU,
 not generations. Parse scopes hold 39 to 47 files, and a non-parser change
 re-queues no parse. A shallow entry adds its own bytes and its packages'
@@ -639,6 +757,64 @@ turns cutoff off for parse and derivation alike (`swingset/cutoff.py`, set per
 unit by `derive_one`, by `run_intake` and by `accept-year`; the offline
 evidence and recording imports and `review_pack` take no config and keep it
 on); recorded equivalences stay readable.
+
+Large units complete in stages, so no write holds the whole output (phase 2,
+WP4). A completion stages when `derive_one` runs it (`derivations.chunking`),
+no other unit's group is open, its own group completes nothing else, and it is
+`project/history` or its kept generation has more than `CHUNK_ROWS` (5,000)
+rows. The `accept-year` command stages history the same way: its
+acceptance commits with history's live rows (A), then B and C run as below;
+if they stop, the derive loop resumes the building generation. Grouped
+completions such as a `source_event` with its event, and callers already in
+a transaction, keep the single path.
+
+- **A**, the processing transaction: live rows as before, the same checks as
+  `complete()`, and a `derivation_building` row (generation id, fingerprint,
+  the first capture's witness, the end-of-A witness, and a sticky `moved`
+  flag). A resumed A keeps the first witness and never clears `moved`, and
+  another generation's building row of the unit sets it: a retry's own
+  capture already sees what a killed A moved. The pointer, attempt, queue
+  row and `pending_work` row stay. A commits.
+- **Pass 1** reads the output from `Database.reader()`, a read-only second
+  connection pinned to one snapshot, and labels it. A label that differs from
+  the building label, or from the recorded label of a generation it reuses,
+  raises `NondeterministicOutputError`. Output equal to the kept generation's
+  (the cutoff rule above) goes to C.
+- **B** stores a new generation in write transactions of `CHUNK_ROWS` rows
+  from a fresh snapshot. The first writes the generation row with the pass-1
+  label and the building label. An ordinal already stored must match its
+  table, key and payload digest; the rest are inserted. `rows_stored`
+  reports progress only; the stored references decide what B skips. The stream's digest must equal the label.
+- **C**, one short transaction: the inputs fence, a pointer check, then the
+  equivalence or the pointer flip (a new generation must have every row
+  referenced), the replay epoch when a cutoff or reuse follows an A that
+  moved live rows (the building row's `moved`, or any other building row of
+  the unit; `complete()` applies the same rule),
+  dependency checks, the certificate, the building row's delete,
+  `finish_attempt(succeeded)`, the admission's settle, `queue.succeed` and the
+  `pending_work` delete.
+
+Between A and C live rows lead the pointer. A unit with any building row is
+not current, so no dependent runs and the unit itself runs again, even when
+its inputs went back to the pointer's. A failure after A finishes the attempt
+transient and keeps the building row. A retry with the same inputs has the
+same generation id: A reruns, B verifies the stored ordinals and continues. A
+building row whose generation row is gone starts over. A partial generation
+whose building row was collected is still building: when the unit's inputs
+return to it, A gives the new building row its recorded label and B finishes
+it. C counts the references of
+a reused generation too, so the pointer never selects a partial one. An input change makes
+a new id, and C of the old run raises `SupersededWorkError`. The unit's next
+successful run deletes the building rows of other ids
+(`derivations.collect_orphans`, I6). Generations and references are
+immutable, so a partial generation stays; `unfinished_excluded` keeps it,
+and any generation still building, out of the release closure's generation
+lists and the retention window, and the retention plan lists it
+`incomplete`. A single-path completion that meets a partial generation of
+its own id, with or without a building row, finishes storing it inline. `cycle_progress` skips ids in
+`derivation_building`. The maintain loop counts building rows, and the
+watchdog's `[building-orphans]` names any not advanced for 24 hours.
+
 `recipe_inputs` fails closed: once `recipe/env` is accepted, a project, link
 or build unit whose code scope is not accepted raises `RecipeScopeMissing`.
 Offline selection then skips that kind only, names it in the cycle summary's
@@ -750,10 +926,21 @@ When those tables exist, activation also advances their observation epoch in
 the same transaction. The transaction commits before `RESTORE_PENDING` is
 removed; schemas through 11 remain compatible and perform neither change.
 
-Outer immediate worker transactions enforce a 45-second wall-clock deadline, or
-a longer named allowance for the history projection (300 seconds); savepoints
-inherit it. Interrupted output rolls back before the attempt records its
-transient outcome and retry time (D-0198). Read snapshots remain available to a concurrently serviced
+Outer immediate worker transactions run under a 60-second wall-clock alarm,
+the same for every unit; savepoints inherit it. Writes are small by
+construction (I2), so the alarm is a safety net: a firing rolls the write back
+and counts in `write_deadline.fired()` ([D-0217](../../journal/decisions/0217-large-generations-store-in-chunks-and-the-write-deadline-is-an-alarm.md)). The deadline starts
+once `BEGIN IMMEDIATE` holds SQLite's writer: time spent waiting for another
+process's write is not counted against it. Each process counts `writes`,
+`write_wait_seconds_total` and `_max`, `write_seconds_max` (writer held, begin
+to commit) and `write_lock_timeouts` (a busy timeout, raised as
+`sqlite3.OperationalError`). A run resets them at its start, and its record
+carries `write_deadline_fired`, `write_seconds_max`, `write_wait_seconds_max`
+and `write_lock_timeouts` for that run (`write_deadline.run_counters`). Cycle
+summaries and loop records also carry `peak_rss_bytes`, the process's peak
+resident memory, which the phase 2 memory gates read.
+Interrupted output rolls back before the attempt records its transient outcome
+and retry time (D-0198). Read snapshots remain available to a concurrently serviced
 control and do not consume this write budget. A long unit cannot keep reacquiring
 the write lock ahead of a waiting control.
 

@@ -239,7 +239,8 @@ def test_wallclock_reserves_atomic_worker_bound_without_starting_next_unit(
         return result
 
     monkeypatch.setattr(replay, "derive_one", spend)
-    result = execute(arranged, tmp_path / "bounded.json", max_seconds=60)
+    # Ten seconds of room beyond the reserved atomic bound (WRITE_SECONDS + 5).
+    result = execute(arranged, tmp_path / "bounded.json", max_seconds=replay.WRITE_SECONDS + 15)
     assert result["status"] == "bounded_stop" and len(calls) == 1
     assert result["elapsed_seconds"] == 11
     assert result["completed"] == 1

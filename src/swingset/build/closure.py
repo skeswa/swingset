@@ -164,8 +164,15 @@ def select(
     at = cutoff.astimezone(UTC).isoformat()
     chosen = _Selection(conn, at)
     inventory: list[dict[str, Any]] = []
+    # A generation still being stored in chunks, or one a staged run stopped
+    # storing, is not output (WP4).
+    from swingset.state.derivations import unfinished_excluded
+
+    building = unfinished_excluded(conn)
     anchors = conn.execute(
-        "SELECT generation_id FROM derivation_generations WHERE stage='project' AND unit_kind='history' AND unit_id='all' AND julianday(created_at)<=julianday(?) ORDER BY julianday(created_at) DESC,rowid DESC",
+        "SELECT generation_id FROM derivation_generations WHERE stage='project' AND unit_kind='history' AND unit_id='all' AND julianday(created_at)<=julianday(?)"
+        + building
+        + " ORDER BY julianday(created_at) DESC,rowid DESC",
         (at,),
     )
     for (identifier,) in anchors:
@@ -182,7 +189,9 @@ def select(
     for event in sorted(events):
         linked = False
         for (identifier,) in conn.execute(
-            "SELECT generation_id FROM derivation_generations WHERE stage='link' AND unit_kind='event' AND unit_id=? AND julianday(created_at)<=julianday(?) ORDER BY julianday(created_at) DESC,rowid DESC",
+            "SELECT generation_id FROM derivation_generations WHERE stage='link' AND unit_kind='event' AND unit_id=? AND julianday(created_at)<=julianday(?)"
+            + building
+            + " ORDER BY julianday(created_at) DESC,rowid DESC",
             (event, at),
         ):
             candidate = _Selection(conn, at)

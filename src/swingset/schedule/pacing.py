@@ -57,7 +57,7 @@ def deferred(
     during the cascade does not start the cascade over: the inventory keeps
     its interval, and history runs after the next one. A history whose latest
     attempt failed is not due here, so one that keeps failing cannot unpace
-    the inventory; `[unit-failing]` names it.
+    the inventory; `[unit-quarantined]` names it (D-0216).
     """
     if unit.stage != "project" or unit.unit_kind not in {"history", "inventory"}:
         return False

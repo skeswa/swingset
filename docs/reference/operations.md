@@ -41,14 +41,22 @@ alone never enables publication. State layout is defined in
 
 ## Timers
 
-| Unit                           | Schedule                                                        | What it runs                                                       |
-| ------------------------------ | --------------------------------------------------------------- | ------------------------------------------------------------------ |
-| `swingset-cycle.timer`         | every 15 min, `RandomizedDelaySec=120`                          | `swingset cycle --budget <cycleBudget>` (default `12m`; orb `40m`) |
-| `swingset-watchdog.timer`      | every 30 min at :05 and :35, and after a failed cycle or backup | `nix/watchdog.py` ([alerts](../guides/operation.md#alerts))        |
-| `swingset-backup.timer`        | Mon-Thu 04:00; Fri-Sun 04:00, 12:00, 20:00 (box local time)     | `swingset backup`; `--local` when `backupUpload = false` (orb)     |
-| `swingset-summary.timer`       | daily 08:00                                                     | `swingset summary`                                                 |
-| `swingset-scratch-clean.timer` | daily 05:00                                                     | removes idle `/var/tmp/swingset-*` rehearsal scratch               |
+| Unit                           | Schedule                                                                   | What it runs                                                                                  |
+| ------------------------------ | -------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| `swingset-cycle.timer`         | every 15 min, `RandomizedDelaySec=120`; loops off only                     | `swingset cycle --budget <cycleBudget>` (default `12m`; orb `40m`)                            |
+| `swingset-acquire.timer`       | loops on: every 5 min at :00, `RandomizedDelaySec=20`                      | `swingset acquire --budget <acquireBudget>` (`4m`)                                            |
+| `swingset-derive.timer`        | loops on: every 5 min at :02, `RandomizedDelaySec=20`                      | `swingset derive --budget <deriveBudget>` (`4m`)                                              |
+| `swingset-plan.timer`          | loops on: every 30 min at :10 and :40                                      | `swingset plan --budget <planBudget>` (`10m`)                                                 |
+| `swingset-release.timer`       | loops on: hourly at :20                                                    | `swingset release --budget <releaseBudget>` (`30m`), `--dry-run` or `--publish` from `dryRun` |
+| `swingset-maintain.timer`      | loops on: daily 03:30                                                      | `swingset maintain --budget <maintainBudget>` (`20m`)                                         |
+| `swingset-watchdog.timer`      | every 30 min at :05 and :35, and after a failed cycle, loop tick or backup | `nix/watchdog.py` ([alerts](../guides/operation.md#alerts))                                   |
+| `swingset-backup.timer`        | Mon-Thu 04:00; Fri-Sun 04:00, 12:00, 20:00 (box local time)                | `swingset backup`; `--local` when `backupUpload = false` (orb)                                |
+| `swingset-summary.timer`       | daily 08:00                                                                | `swingset summary`                                                                            |
+| `swingset-scratch-clean.timer` | daily 05:00                                                                | removes idle `/var/tmp/swingset-*` rehearsal scratch                                          |
 
+`services.swingset.loops.enable` picks the cycle or the five loops
+([deployment: loops](../guides/deployment.md#switching-to-the-loops)). Every
+unit's `uv sync` runs under `flock` on `<stateDir>/venv.lock`.
 Timers use `Persistent=true`. The 15-minute timer is the floor;
 [scheduling](scheduling.md) decides what is due. Backup lock waits do
 not count as completed backups. A failed backup does not restart; it runs
@@ -179,13 +187,19 @@ admitted work may drain. `--wait` waits up to sixty seconds by default for that
 drain. A wait timeout or interruption preserves the pause and reports the
 remaining admissions; it never reports that no change occurred.
 
-Worker write phases have a 45-second wall-clock limit, leaving time for rollback
-and control servicing within the default 60-second bound. The limit interrupts
+Worker write phases have a 60-second wall-clock alarm, the same for every unit
+([D-0217](../../journal/decisions/0217-large-generations-store-in-chunks-and-the-write-deadline-is-an-alarm.md)).
+Writes are small by construction, so a firing is an alarm. The limit interrupts
 Python work and long SQLite statements. Nested transactions inherit the outer
 deadline. A timed-out derivation rolls back, retains its queue token, and records
 `write_deadline_exceeded` as a transient outcome: it retries after 15 minutes,
-doubling per consecutive overrun, at most six hours apart. The history
-projection alone has a 300-second limit. A control arriving during that write fails at its 60-second lock timeout unless it passes `--lock-timeout 330`; `systemctl stop` kills the process after 45 seconds, and the write rolls back either way. ([D-0198](../../journal/decisions/0198-history-no-longer-gates-acquisition-and-deadline-overruns-retry.md)). Worker writes run on the process main thread. Read snapshots, including
+doubling per consecutive overrun, at most six hours apart, and is quarantined
+at the third
+([D-0216](../../journal/decisions/0216-the-work-queue-leases-backs-off-and-quarantines.md)).
+A control arriving during a write that runs to the alarm can time out at its
+default 60 seconds; pass `--lock-timeout 90`. `systemctl stop` kills the
+process after 45 seconds, and the write rolls back either way. Worker writes
+run on the process main thread. Read snapshots, including
 release construction, do not hold SQLite's writer and have no write deadline.
 Explicit schema migrations remain held maintenance operations. A shorter
 operator timeout may still expire before a valid bounded unit drains.

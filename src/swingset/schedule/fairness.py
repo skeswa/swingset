@@ -11,7 +11,7 @@ from collections.abc import Callable, Collection, Iterable, Iterator
 from contextlib import contextmanager
 from contextvars import ContextVar
 from dataclasses import asdict, dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 from urllib.parse import urlsplit
 
@@ -59,17 +59,54 @@ def servicing(choice: WatchChoice, *, run_id: str) -> Iterator[None]:
         _service.reset(token)
 
 
-def backpressure(conn: sqlite3.Connection, config: Config) -> dict[str, Any]:
+# Parse rows derive could run now: no queue row, a lease, or ready and due.
+# A row waiting on a clock (a backoff, waiting for input, quarantined) does
+# not hold acquisition (D-0216, F9).
+_RUNNABLE_PARSE = (
+    "FROM pending_work p LEFT JOIN work_queue q "
+    "ON q.stage=p.stage AND q.unit_kind=p.unit_kind AND q.unit_id=p.unit_id "
+    "WHERE p.stage='parse' AND (q.state IS NULL OR q.state='leased' OR "
+    "(q.state='ready' AND (q.next_attempt_at IS NULL OR q.next_attempt_at<=:now)))"
+)
+
+
+def backpressure(
+    conn: sqlite3.Connection, config: Config, *, now: datetime | None = None
+) -> dict[str, Any]:
+    """Whether pending parse work should hold acquisition.
+
+    Only parse units derive could run now count, by items and by bytes;
+    before schema 34 every pending parse row does.
+    """
     counts = dict(conn.execute("SELECT stage,count(*) FROM pending_work GROUP BY stage"))
-    size = conn.execute(
-        "SELECT coalesce(sum(size),0) FROM (SELECT s.body_sha256,max(s.body_bytes) AS size "
-        "FROM pending_work p JOIN snapshots s ON p.unit_id=s.snapshot_id "
-        "WHERE p.stage='parse' GROUP BY s.body_sha256)"
-    ).fetchone()[0]
+    queued = (
+        conn.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='work_queue'"
+        ).fetchone()
+        is not None
+    )
+    if queued:
+        from swingset.state.queue import at
+
+        moment = {"now": at(now or datetime.now(UTC))}
+        runnable = int(conn.execute("SELECT count(*) " + _RUNNABLE_PARSE, moment).fetchone()[0])
+        size = conn.execute(
+            "SELECT coalesce(sum(size),0) FROM (SELECT s.body_sha256,max(s.body_bytes) AS size "
+            "FROM snapshots s JOIN (SELECT p.unit_id " + _RUNNABLE_PARSE + ") r "
+            "ON r.unit_id=s.snapshot_id GROUP BY s.body_sha256)",
+            moment,
+        ).fetchone()[0]
+    else:
+        runnable = int(counts.get("parse", 0))
+        size = conn.execute(
+            "SELECT coalesce(sum(size),0) FROM (SELECT s.body_sha256,max(s.body_bytes) AS size "
+            "FROM pending_work p JOIN snapshots s ON p.unit_id=s.snapshot_id "
+            "WHERE p.stage='parse' GROUP BY s.body_sha256)"
+        ).fetchone()[0]
     reasons = []
     if size >= config.scheduler.pending_parse_bytes:
         reasons.append("pending_parse_bytes")
-    if counts.get("parse", 0) >= config.scheduler.pending_parse_items:
+    if runnable >= config.scheduler.pending_parse_items:
         reasons.append("pending_parse_items")
     # With derivations, project and link rows are hints: derive re-checks
     # fingerprints, and a code-scope accept or a replay epoch queues every
@@ -77,13 +114,18 @@ def backpressure(conn: sqlite3.Connection, config: Config) -> dict[str, Any]:
     # does not pause acquisition (I5, D-0214); parse work still does.
     from swingset.state.derivations import available
 
-    total = counts.get("parse", 0) if available(conn) else sum(counts.values())
+    total = (
+        runnable
+        if available(conn)
+        else runnable + sum(count for stage, count in counts.items() if stage != "parse")
+    )
     if total >= config.scheduler.pending_work_items:
         reasons.append("pending_work_items")
     return {
         "active": bool(reasons),
         "reasons": reasons,
         "pending": counts,
+        "runnable_parse": runnable,
         "pending_parse_bytes": size,
         "repair_requests_per_cycle": config.scheduler.repair_requests_per_cycle,
     }
@@ -146,7 +188,7 @@ def report(conn: sqlite3.Connection, config: Config, *, now: datetime) -> dict[s
         if supported
         else None,
         "attribution_note": "Issued HTTP only; pre-policy debits remain charged but unattributed. Wall ages include pauses and do not establish eligible service-gap performance.",
-        "backpressure": backpressure(conn, config),
+        "backpressure": backpressure(conn, config, now=now),
     }
 
 
@@ -161,7 +203,7 @@ def request_denial(
 ) -> str | None:
     """Called before the durable host debit, including for robots and redirects."""
     service = None if independent else _service.get()
-    if backpressure(conn, config)["active"] and (
+    if backpressure(conn, config, now=now)["active"] and (
         service is None
         or not service.choice.repair
         or not _repair_capacity(conn, config, service.run_id)
@@ -218,7 +260,9 @@ def record_request(
             service.choice.key if service else watch_id or source,
             service.run_id if service else None,
             bool(service and service.choice.repair),
-            bool(service and service.choice.repair and backpressure(conn, config)["active"]),
+            bool(
+                service and service.choice.repair and backpressure(conn, config, now=now)["active"]
+            ),
             now.isoformat(),
         ),
     )
@@ -341,7 +385,7 @@ def _eligible(
     from .event_pressure import request_denial as expansion_denial
 
     host_decisions: dict[str, dict[str, Any]] = {}
-    pressure = bool(backpressure(conn, config)["active"])
+    pressure = bool(backpressure(conn, config, now=now)["active"])
     if pressure and run_id is not None and not _repair_capacity(conn, config, run_id):
         return
     seen = set(exclude)

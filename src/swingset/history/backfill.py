@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import sqlite3
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass, replace
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Protocol
@@ -196,6 +196,59 @@ def _candidate(
     return spec, capture, "eligible"
 
 
+def _options(
+    database: Database,
+    config: Config,
+    clock: Clock,
+    plan: PlatformPlan,
+    *,
+    deadline: datetime | None,
+) -> tuple[list[tuple[PlannedPage, tuple[WatchSpec | None, Capture | None, str]]], bool]:
+    """Evaluate plan pages in order until ``deadline``; also say whether it cut the pass."""
+    from swingset.log import log
+    from swingset.project.history import projection_answer_cached
+
+    year_allowed = _year_gate(database.connection)
+    options: list[tuple[PlannedPage, tuple[WatchSpec | None, Capture | None, str]]] = []
+    with projection_answer_cached():
+        for item in plan.pages:
+            if deadline is not None and clock.now() >= deadline:
+                log("history_offers_truncated", evaluated=len(options), pages=len(plan.pages))
+                return options, True
+            options.append(
+                (item, _candidate(database, config, clock, item, plan, year_allowed=year_allowed))
+            )
+    return options, False
+
+
+def _with_origin(
+    database: Database,
+    config: Config,
+    clock: Clock,
+    plan: PlatformPlan,
+    options: list[tuple[PlannedPage, tuple[WatchSpec | None, Capture | None, str]]],
+    *,
+    run_id: str | None,
+) -> Iterator[tuple[PlannedPage, WatchSpec | None, str, str | None]]:
+    """Each page's offer: its archive spec, else the origin fallback where it applies.
+
+    Yields the page, the spec to offer (or None), the `_candidate` reason and
+    the origin fallback's reason when it ran.
+    """
+    archive_sources = {item.page.source for item, (spec, _, _) in options if spec is not None}
+    for item, (spec, _, reason) in options:
+        origin: str | None = None
+        if (
+            spec is None
+            and reason in {"capture_gap_exhausted", "operator_pause"}
+            and item.page.source not in archive_sources
+        ):
+            from swingset.history.origin_dispatch import candidate
+
+            spec, _, origin = candidate(database, config, clock, item, plan, run_id=run_id)
+        yield item, spec, reason, origin
+
+
 def offers(
     database: Database,
     config: Config,
@@ -217,38 +270,88 @@ def offers(
     pages take 43 minutes (D-0181). A ``deadline`` stops the pass early; the
     pages not reached are offered on a later pass.
     """
-    from swingset.log import log
-    from swingset.project.history import projection_answer_cached
-
     if timing is not None:
         timing.begin(connection=database.connection, config=config, clock=clock, run_id=run_id)
     plan = plan or retained_plan(database.connection, history_start=config.history_start)
-    year_allowed = _year_gate(database.connection)
-    options: list[tuple[PlannedPage, tuple[WatchSpec | None, Capture | None, str]]] = []
-    with projection_answer_cached():
-        for item in plan.pages:
-            if deadline is not None and clock.now() >= deadline:
-                log("history_offers_truncated", evaluated=len(options), pages=len(plan.pages))
-                break
-            options.append(
-                (item, _candidate(database, config, clock, item, plan, year_allowed=year_allowed))
-            )
-    archive_sources = {item.page.source for item, (spec, _, _) in options if spec is not None}
+    options, _ = _options(database, config, clock, plan, deadline=deadline)
     result: dict[str, WatchSpec] = {}
-    for item, (spec, _, reason) in options:
-        if (
-            spec is None
-            and reason in {"capture_gap_exhausted", "operator_pause"}
-            and item.page.source not in archive_sources
-        ):
-            from swingset.history.origin_dispatch import candidate
-
-            spec, _, _ = candidate(database, config, clock, item, plan, run_id=run_id)
+    for _, spec, _, _ in _with_origin(database, config, clock, plan, options, run_id=run_id):
         if spec is not None:
             result.setdefault(spec.watch_id, spec)
     if timing is not None:
         timing.finish(result)
     return tuple(result.values())
+
+
+@dataclass(frozen=True)
+class PagePlan:
+    """One planned page as the plan loop records it (D-0218).
+
+    ``spec`` is what acquire offers when ``eligible``: the archive capture's
+    spec, or the origin fallback's (no ``archive_url``). ``reason`` is
+    ``eligible`` or the `_candidate` stop reason; ``origin_reason`` is the
+    origin fallback's answer when it ran.
+    """
+
+    item: PlannedPage
+    watch_id: str
+    rank: int
+    reason: str
+    spec: WatchSpec | None = None
+    origin_reason: str | None = None
+
+    @property
+    def eligible(self) -> bool:
+        return self.spec is not None
+
+
+@dataclass(frozen=True)
+class PlannedPages:
+    pages: tuple[PagePlan, ...]
+    #: The deadline cut the pass: pages after the last one were not evaluated.
+    truncated: bool
+    evaluated: int
+
+
+def plan_pages(
+    database: Database,
+    config: Config,
+    clock: Clock,
+    *,
+    run_id: str,
+    deadline: datetime | None,
+    plan: PlatformPlan | None = None,
+) -> PlannedPages:
+    """Evaluate the retained plan as `offers` does and keep every page's reason.
+
+    One row per watch, in plan order: the first eligible page of a watch, as
+    `offers` would offer it, else the watch's first page. ``rank`` is the
+    page's position in the plan. Nothing is written.
+    """
+    from swingset.project.history import projection_answer_cached
+
+    plan = plan or retained_plan(database.connection, history_start=config.history_start)
+    with projection_answer_cached():
+        options, truncated = _options(database, config, clock, plan, deadline=deadline)
+        chosen: dict[str, PagePlan] = {}
+        for rank, (item, spec, reason, origin) in enumerate(
+            _with_origin(database, config, clock, plan, options, run_id=run_id)
+        ):
+            watch_id = page_watch_id(item)
+            page = PagePlan(
+                item,
+                watch_id,
+                rank,
+                "eligible" if spec is not None else reason,
+                spec,
+                origin,
+            )
+            previous = chosen.get(watch_id)
+            if previous is None or (page.eligible and not previous.eligible):
+                chosen[watch_id] = page
+    return PlannedPages(
+        tuple(sorted(chosen.values(), key=lambda page: page.rank)), truncated, len(options)
+    )
 
 
 def offer(
@@ -270,7 +373,11 @@ def _year_gate(conn: sqlite3.Connection) -> Callable[[int], bool]:
     a large database, so one pass over thousands of plan pages must not repeat
     it per page or per year (D-0181, D-0195).
     """
-    from swingset.project.history import pending_inventory_projection, phase_two_allowed
+    from swingset.project.history import (
+        facts_only,
+        pending_inventory_projection,
+        phase_two_allowed,
+    )
 
     years: dict[int, bool] = {}
     pending: list[bool] = []
@@ -278,14 +385,16 @@ def _year_gate(conn: sqlite3.Connection) -> Callable[[int], bool]:
     def year_allowed(year: int) -> bool:
         if year not in years:
             if not pending:
-                pending.append(pending_inventory_projection(conn))
+                # The facts-only gate never asks the question (D-0218).
+                pending.append(False if facts_only() else pending_inventory_projection(conn))
             years[year] = phase_two_allowed(conn, year, pending=pending[0])
         return years[year]
 
     return year_allowed
 
 
-def _spec_id(item: PlannedPage) -> str:
+def page_watch_id(item: PlannedPage) -> str:
+    """The watch a planned page dispatches to; plan rows and offers are keyed by it."""
     page = item.page
     return WatchSpec(
         "", page.source, page.kind, "GET", page.url, page.page_kind, source_ref=page.source_ref
@@ -327,7 +436,8 @@ def dispatch_one(
     pages = plan.pages
     if target_watch_id is not None:
         pages = (
-            tuple(item for item in plan.pages if _spec_id(item) == target_watch_id) or plan.pages
+            tuple(item for item in plan.pages if page_watch_id(item) == target_watch_id)
+            or plan.pages
         )
     from swingset.project.history import projection_answer_cached
 

@@ -100,7 +100,10 @@ def acceptance_fixture(db):
     from materialized_fixture import materialize_seeded_outputs
 
     now = "2026-01-05T00:00:00Z"
-    db.connection.execute("INSERT INTO runs VALUES ('run',?,NULL,1,NULL)", (now,))
+    db.connection.execute(
+        "INSERT INTO runs(run_id,started_at,finished_at,dry_run,summary_json) VALUES ('run',?,NULL,1,NULL)",
+        (now,),
+    )
     seed(db.connection)
     materialize_seeded_outputs(db, now=now, run_id="run")
     return now

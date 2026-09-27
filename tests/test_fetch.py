@@ -19,6 +19,7 @@ from swingset.sources.wdr import RoundsPage
 from swingset.sources.wsdc_calendar import EventsPage
 from swingset.sources.wsdc_registry import DancerPage
 from swingset.sources.wsdc_registry.adapter import SOURCE as REGISTRY_SOURCE
+from swingset.state import guards
 from swingset.state.db import open_database
 from swingset.state.work import WorkUnit
 
@@ -157,6 +158,67 @@ def test_fetch_conditional_no_cookies_archive_and_fingerprint(tmp_path):
             == BODY
         )
         client.close()
+
+
+def test_a_watch_reset_during_a_request_is_not_undone(tmp_path):
+    """Derive's registry parse can clear a watch's body, fingerprint and
+    validators while acquire's request for it is in flight (two writers,
+    D-0215). The fetch compares with the reset row, so the same body counts
+    as changed and is queued for parse; the reset is not written over."""
+    import sqlite3
+
+    clock = FakeClock()
+    reset: list[bool] = []
+
+    def handler(request):
+        if request.url.path == "/robots.txt":
+            return httpx.Response(404)
+        if reset:
+            # Another process resets the watch before this response lands.
+            reset.clear()
+            other = sqlite3.connect(tmp_path / "state.sqlite")
+            other.execute(
+                "UPDATE watches SET body_sha256=NULL,fingerprint=NULL,etag=NULL,last_modified=NULL"
+            )
+            other.commit()
+            other.close()
+        return httpx.Response(200, content=BODY, headers={"ETag": '"one"'})
+
+    with open_database(tmp_path) as db:
+        run = db.start_run(clock.now(), dry_run=True)
+        upsert_watch(
+            db.connection,
+            WatchSpec(
+                "w1",
+                "wsdc_calendar",
+                "index",
+                "GET",
+                "https://example.test/events",
+                "wsdc_calendar.events",
+            ),
+            clock.now(),
+        )
+        client = FetchClient(
+            db.connection,
+            config(),
+            clock,
+            Archive(tmp_path),
+            transport=httpx.MockTransport(handler),
+        )
+        try:
+            watch_id = db.connection.execute("SELECT watch_id FROM watches").fetchone()[0]
+            assert client.fetch(watch_id, EventsPage(), run).changed
+            clock.sleep(10)
+            reset.append(True)
+            again = client.fetch(watch_id, EventsPage(), run)
+            assert again.changed and not again.nonce_unchanged
+            assert db.connection.execute("SELECT COUNT(*) FROM snapshots").fetchone()[0] == 2
+            body, etag = db.connection.execute(
+                "SELECT body_sha256,etag FROM watches WHERE watch_id=?", (watch_id,)
+            ).fetchone()
+            assert body is not None and etag == '"one"'
+        finally:
+            client.close()
 
 
 @pytest.mark.parametrize("second_response", ["full", "not_modified"])
@@ -628,3 +690,112 @@ def test_gzip_and_identity_bodies_archive_decoded_source_bytes(tmp_path, encodin
         ).fetchone()[0]
         assert Archive(tmp_path).read_body(body_hash) == BODY
         client.close()
+
+
+def _calendar_watch(db, clock, url="https://example.test/events"):
+    spec = WatchSpec("", "wsdc_calendar", "index", "GET", url, "wsdc_calendar.events")
+    upsert_watch(db.connection, spec, clock.now())
+    return spec.watch_id
+
+
+def test_a_held_fetch_is_a_guard_until_a_request_clears_its_host(tmp_path):
+    """D-0219: the client counts guards by subject; a pass flushes them."""
+    clock = FakeClock()
+    with open_database(tmp_path) as db:
+        run = db.start_run(clock.now())
+        watch_id = _calendar_watch(db, clock)
+        client = FetchClient(
+            db.connection,
+            config(budget=0),
+            clock,
+            Archive(tmp_path),
+            transport=httpx.MockTransport(
+                lambda request: httpx.Response(404 if request.url.path == "/robots.txt" else 304)
+            ),
+        )
+        try:
+            assert client.fetch(watch_id, EventsPage(), run).skipped == "request budget"
+            assert client.fetch(watch_id, EventsPage(), run).skipped == "request budget"
+            assert client.guards.seen == {("host:example.test", "request budget"): 2}
+            assert client.guards.flush(db, clock.now()) == {"recorded": 1, "cleared": 0}
+            assert not client.guards.seen
+            row = guards.get(db.connection, "host:example.test", "request budget")
+            assert row is not None
+            assert (row.loop, row.seen, row.expires_at) == (
+                "cycle",
+                2,
+                "2026-01-02T01:00:00.000000Z",
+            )
+            # The next day's budget lets a request go: the host is not held.
+            clock.current += timedelta(days=1)
+            client.config = config()
+            client.gate.config = client.config
+            assert client.fetch(watch_id, EventsPage(), run).skipped is None
+            assert client.guards.issued == {"host:example.test", f"watch:{watch_id}", "loop:cycle"}
+            assert client.guards.flush(db, clock.now()) == {"recorded": 0, "cleared": 1}
+            assert guards.counts_by_reason(db.connection) == {}
+        finally:
+            client.close()
+
+
+def test_robots_and_a_disabled_source_are_watch_guards(tmp_path):
+    clock = FakeClock()
+    with open_database(tmp_path) as db:
+        run = db.start_run(clock.now())
+        watch_id = _calendar_watch(db, clock)
+        client = FetchClient(
+            db.connection,
+            config(),
+            clock,
+            Archive(tmp_path),
+            transport=httpx.MockTransport(
+                lambda request: httpx.Response(200, text="User-agent: *\nDisallow: /\n")
+            ),
+        )
+        try:
+            assert client.fetch(watch_id, EventsPage(), run).skipped == "robots disallow"
+            client.config = Config({}, {"wsdc_calendar": SourceConfig(False)})
+            assert client.fetch(watch_id, EventsPage(), run).skipped == "source disabled"
+            # The robots request itself went out, so the host is not held.
+            assert client.guards.seen == {
+                (f"watch:{watch_id}", "robots disallow"): 1,
+                (f"watch:{watch_id}", "source disabled"): 1,
+            }
+            assert client.guards.issued == {"host:example.test", f"watch:{watch_id}", "loop:cycle"}
+        finally:
+            client.close()
+
+
+def test_an_operator_pause_is_a_host_guard_until_the_pause_ends(tmp_path):
+    from swingset.state.controls import Selector, change_control
+
+    clock = FakeClock()
+    with open_database(tmp_path) as db:
+        run = db.start_run(clock.now())
+        watch_id = _calendar_watch(db, clock)
+        until = clock.now() + timedelta(hours=6)
+        change_control(
+            tmp_path,
+            selector=Selector("host", "example.test"),
+            paused=True,
+            actor="test",
+            reason="test",
+            now=clock.now(),
+            until=until,
+        )
+        client = FetchClient(
+            db.connection,
+            config(),
+            clock,
+            Archive(tmp_path),
+            transport=httpx.MockTransport(lambda _request: httpx.Response(304)),
+            loop="acquire",
+        )
+        try:
+            assert client.fetch(watch_id, EventsPage(), run).skipped == "operator"
+            client.guards.flush(db, clock.now())
+            row = guards.get(db.connection, "host:example.test", "operator")
+            assert row is not None and row.loop == "acquire"
+            assert row.expires_at == guards.at(until)
+        finally:
+            client.close()

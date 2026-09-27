@@ -11,7 +11,9 @@ def v1_state(path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         patch.setattr(db, "SCHEMA_VERSION", 1)
         with db.open_database(path, lock=False) as database:
             conn = database.connection
-            conn.execute("INSERT INTO runs VALUES ('run','2026-09-12T00:00:00Z',NULL,1,NULL)")
+            conn.execute(
+                "INSERT INTO runs(run_id,started_at,finished_at,dry_run,summary_json) VALUES ('run','2026-09-12T00:00:00Z',NULL,1,NULL)"
+            )
             conn.execute(
                 "INSERT INTO events(event_id,series_id,name,year,start_date,end_date,wsdc_status,sources,source,snapshot_id,parser_version,first_seen_at,last_seen_at,run_id) "
                 "VALUES ('event','series','Example',2026,'2026-09-01','2026-09-02','registry','[]','wsdc_calendar','snapshot','1','2026-09-12T00:00:00Z','2026-09-12T00:00:00Z','run')"

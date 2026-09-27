@@ -14,6 +14,7 @@ from contextlib import contextmanager
 from contextvars import ContextVar
 from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime
+from itertools import islice
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -104,6 +105,8 @@ class _Group:
     # Replay epochs to move once every member is certified, with the run
     # clock of the member that moved each.
     replays: dict[tuple[str, str], str] = field(default_factory=dict)
+    # Members whose completion was deferred to a staged finish (`stage`).
+    staged: set[WorkUnit] = field(default_factory=set)
 
 
 _group: ContextVar[_Group | None] = ContextVar("derivation_consistency_group", default=None)
@@ -278,11 +281,18 @@ def cycle_progress(
     replay epochs that moved since `replayed_before`. Without a starting read
     (`None`) the replay bumps are left out, not guessed."""
 
-    def by_kind(table: str) -> dict[str, int]:
+    # A generation still being stored in chunks is not progress yet (WP4).
+    building = (
+        " AND generation_id NOT IN (SELECT generation_id FROM derivation_building)"
+        if building_available(conn)
+        else ""
+    )
+
+    def by_kind(table: str, extra: str = "") -> dict[str, int]:
         return {
             f"{stage}/{kind}": int(count)
             for stage, kind, count in conn.execute(
-                f"SELECT stage,unit_kind,count(*) FROM {table} WHERE run_id=? GROUP BY 1,2",
+                f"SELECT stage,unit_kind,count(*) FROM {table} WHERE run_id=?{extra} GROUP BY 1,2",
                 (run_id,),
             )
         }
@@ -294,7 +304,7 @@ def cycle_progress(
             raise
         equivalences = {}
     result = {
-        "generations": by_kind("derivation_generations"),
+        "generations": by_kind("derivation_generations", building),
         "equivalences": equivalences,
     }
     if replayed_before is not None:
@@ -524,12 +534,15 @@ def group(conn: sqlite3.Connection) -> Iterator[None]:
         yield
         if set(active.selected) != active.completed:
             raise SupersededWorkError("consistency group has unfinished generations")
-        for selection in active.selected.values():
-            _validate_dependencies(conn, selection)
+        # A staged member is validated and certified when it finishes.
+        for unit, selection in active.selected.items():
+            if unit not in active.staged:
+                _validate_dependencies(conn, selection)
         # Inline children selected reserved parents; certify after every pointer
         # in the atomic group has reached its committed generation.
         for unit, selection in active.selected.items():
-            _certify(conn, selection, active.effective.get(unit, selection.generation_id))
+            if unit not in active.staged:
+                _certify(conn, selection, active.effective.get(unit, selection.generation_id))
         # A member's own replay epoch never enters its own inputs, but it can
         # enter a sibling's. Move it only after every member is certified, so
         # the sibling re-runs later instead of failing its fence now.
@@ -645,6 +658,26 @@ def _recorded_label(conn: sqlite3.Connection, generation_id: str) -> tuple[str, 
         (generation_id,),
     ).fetchone()
     return None if row is None else (str(row[0]), int(row[1]))
+
+
+def _partial_label(conn: sqlite3.Connection, generation_id: str) -> tuple[str, int] | None:
+    """The recorded label of a generation with rows still to store, else None.
+
+    Such a generation is one a staged run stopped storing. Its building row
+    may be gone (`collect_orphans`), so only its references say it is not
+    whole. Rows are stored by ordinal in committed order (a chunk at a time,
+    or all at once), so a partial generation always lacks its last ordinal:
+    one index probe answers, as in `unfinished_excluded`, and a repeat of a
+    whole generation reads none of its rows.
+    """
+    recorded = _recorded_label(conn, generation_id)
+    if recorded is None or recorded[1] == 0 or not interned(conn) or not building_available(conn):
+        return None
+    last = conn.execute(
+        "SELECT 1 FROM derivation_row_refs WHERE generation_id=? AND ordinal=?",
+        (generation_id, recorded[1] - 1),
+    ).fetchone()
+    return recorded if last is None else None
 
 
 def _payload_bytes_missing(conn: sqlite3.Connection, generation_id: str) -> bool:
@@ -953,42 +986,7 @@ def complete(
     """
     if not conn.in_transaction:
         raise ValueError("materialization must share the output transaction")
-    captured = digest(
-        {
-            "format": "derivation-v1",
-            "scope": _key(selection.unit),
-            "recipe": dict(selection.recipe),
-            "dependencies": selection.dependencies,
-            "context": dict(selection.context),
-        }
-    )
-    if (
-        captured != selection.fingerprint
-        or digest(selection.continuity) != selection.continuity_digest
-        or any(digest(members) != key for key, members in selection.dependency_sets.items())
-    ):
-        raise SupersededWorkError("captured derivation manifest was modified")
-    current = desired(
-        conn,
-        selection.unit,
-        recipe=selection.recipe if selection.explicit_recipe else None,
-        context=selection.context,
-        _validate_artifacts=False,
-    )
-    conn.execute(
-        "INSERT OR IGNORE INTO derivation_scopes(stage,unit_kind,unit_id,registered_at) VALUES (?,?,?,?)",
-        (*_key(selection.unit), _at(now)),
-    )
-    pointer = conn.execute(
-        "SELECT materialized_generation_id FROM derivation_scopes WHERE stage=? AND unit_kind=? AND unit_id=?",
-        _key(selection.unit),
-    ).fetchone()
-    if (
-        current.fingerprint != selection.fingerprint
-        or pointer is None
-        or pointer[0] not in (selection.previous_generation_id, selection.generation_id)
-    ):
-        raise SupersededWorkError("derivation inputs changed while output was being computed")
+    pointer = _check_capture(conn, selection, now)
     active = _group.get()
     if active is not None and active.connection is not conn:
         active = None
@@ -998,7 +996,17 @@ def complete(
         "SELECT output_digest,row_count FROM derivation_generations WHERE generation_id=?",
         (selection.generation_id,),
     ).fetchone()
-    if existing is not None:
+    building = _building_label(conn, selection.generation_id)
+    if existing is not None and building is None:
+        # A partial generation whose building row was collected is still
+        # building: it must never be reused as whole.
+        building = _partial_label(conn, selection.generation_id)
+    if existing is not None and building is not None:
+        # A staged completion stored part of this generation and stopped: store
+        # the rest here, verifying the rows already there.
+        _store_all(conn, selection.generation_id, _once(rows), building, now=_at(now))
+        existing = None
+    elif existing is not None:
         # A repeat of identical inputs reads its rows once and must reproduce the
         # recorded output. It writes nothing: the references and payloads of that
         # generation are already stored, and both are immutable.
@@ -1010,13 +1018,13 @@ def complete(
             )
     else:
         label: tuple[str, int] | None = None
-        if replay is not None and _cutoff_candidate(conn, selection, pointer[0], active):
+        if replay is not None and _cutoff_candidate(conn, selection, pointer, active):
             # Pass 1 reads the output without writing, then the inputs are
             # fenced again; the decision comes strictly after both fences.
             label = _fingerprint(_offered(replay()))
             _fence(conn, selection, "derivation inputs changed while output was being compared")
-            if _same_output(conn, str(pointer[0]), label, moved or {}):
-                kept = str(pointer[0])
+            if _same_output(conn, str(pointer), label, moved or {}):
+                kept = str(pointer)
         if kept is not None:
             _record_equivalence(conn, selection, kept, now=now, run_id=run_id)
         else:
@@ -1062,7 +1070,12 @@ def complete(
     # does a re-run of the generation it reuses, by fingerprint or equivalence.
     replayed = (
         kept is not None or (existing is not None and selection.unit.stage in {"project", "link"})
-    ) and (selection.witness is None or selection.witness != _witness(conn))
+    ) and (
+        selection.witness is None
+        or selection.witness != _witness(conn)
+        # A staged A of this unit committed live rows before this run captured.
+        or building_moved(conn, selection.unit, selection.generation_id)
+    )
     if active is not None:
         active.completed.add(selection.unit)
         active.effective[selection.unit] = effective
@@ -1073,6 +1086,621 @@ def complete(
         _certify(conn, selection, effective)
         if replayed:
             bump_replay(conn, selection.unit.stage, selection.unit.unit_kind, now=now)
+    if building_available(conn):
+        # This completion finished a generation a staged run had started.
+        conn.execute(
+            "DELETE FROM derivation_building WHERE generation_id=?", (selection.generation_id,)
+        )
+    return effective
+
+
+def _check_capture(
+    conn: sqlite3.Connection, selection: Selection, now: datetime | str
+) -> str | None:
+    """Check a selection against its inputs now and return the scope pointer.
+
+    The captured manifest must be unmodified, the inputs unchanged, and the
+    pointer still the capture's (or the generation it selected).
+    """
+    captured = digest(
+        {
+            "format": "derivation-v1",
+            "scope": _key(selection.unit),
+            "recipe": dict(selection.recipe),
+            "dependencies": selection.dependencies,
+            "context": dict(selection.context),
+        }
+    )
+    if (
+        captured != selection.fingerprint
+        or digest(selection.continuity) != selection.continuity_digest
+        or any(digest(members) != key for key, members in selection.dependency_sets.items())
+    ):
+        raise SupersededWorkError("captured derivation manifest was modified")
+    current = desired(
+        conn,
+        selection.unit,
+        recipe=selection.recipe if selection.explicit_recipe else None,
+        context=selection.context,
+        _validate_artifacts=False,
+    )
+    conn.execute(
+        "INSERT OR IGNORE INTO derivation_scopes(stage,unit_kind,unit_id,registered_at) VALUES (?,?,?,?)",
+        (*_key(selection.unit), _at(now)),
+    )
+    pointer = conn.execute(
+        "SELECT materialized_generation_id FROM derivation_scopes WHERE stage=? AND unit_kind=? AND unit_id=?",
+        _key(selection.unit),
+    ).fetchone()
+    if (
+        current.fingerprint != selection.fingerprint
+        or pointer is None
+        or pointer[0] not in (selection.previous_generation_id, selection.generation_id)
+    ):
+        raise SupersededWorkError("derivation inputs changed while output was being computed")
+    return None if pointer[0] is None else str(pointer[0])
+
+
+# ---------------------------------------------------------------------------
+# Staged completion (WP4)
+# ---------------------------------------------------------------------------
+
+#: Output rows one staged write transaction stores. A unit takes the staged
+#: path when it is project/history or its kept generation has more rows.
+CHUNK_ROWS = 5000
+
+Output = Callable[[sqlite3.Connection], Iterable[OutputRow]]
+
+
+@dataclass(frozen=True)
+class Deferred:
+    """A completion after step A: live rows committed, output not yet stored.
+
+    ``output`` reads the unit's output rows from a connection. ``candidate``
+    is the kept generation a cutoff may keep, decided in A. ``written`` is
+    the live-write witness at the end of A; against the capture's witness it
+    says whether the unit's replay moved live rows.
+    """
+
+    selection: Selection
+    moved: Moved
+    now: str
+    run_id: str
+    output: Output = field(repr=False)
+    candidate: str | None = None
+    written: tuple[tuple[str, int], ...] | None = None
+
+
+@dataclass
+class Chunking:
+    """One processing transaction's permission to stage one unit."""
+
+    connection: sqlite3.Connection
+    unit: WorkUnit
+    enabled: bool
+    deferred: Deferred | None = None
+
+
+_chunking: ContextVar[Chunking | None] = ContextVar("derivation_chunking", default=None)
+
+
+@contextmanager
+def chunking(conn: sqlite3.Connection, unit: WorkUnit) -> Iterator[Chunking]:
+    """Let ``unit``'s completion inside the next transaction take the staged path.
+
+    Only `derive_one` sets this, around its processing transaction. A caller
+    already inside a transaction (such as `accept-year`) never stages, since
+    A must commit before its output is read from another connection.
+    """
+    context = Chunking(conn, unit, enabled=not conn.in_transaction)
+    token = _chunking.set(context)
+    try:
+        yield context
+    finally:
+        _chunking.reset(token)
+
+
+def building_available(conn: sqlite3.Connection) -> bool:
+    return (
+        conn.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='derivation_building'"
+        ).fetchone()
+        is not None
+    )
+
+
+def stageable(conn: sqlite3.Connection, unit: WorkUnit) -> bool:
+    """Whether a completion of ``unit`` about to be captured may be staged.
+
+    Asked before the unit opens its consistency group: a unit captured
+    inside another's group completes with it, in one transaction.
+    """
+    context = _chunking.get()
+    if (
+        context is None
+        or not context.enabled
+        or context.connection is not conn
+        or context.unit != unit
+        or context.deferred is not None
+        or _group.get() is not None
+        or unit.stage not in {"project", "link"}
+        or not building_available(conn)
+    ):
+        return False
+    if (unit.stage, unit.unit_kind) == ("project", "history"):
+        return True
+    row = conn.execute(
+        "SELECT g.row_count FROM derivation_scopes s JOIN derivation_generations g "
+        "ON g.generation_id=s.materialized_generation_id "
+        "WHERE s.stage=? AND s.unit_kind=? AND s.unit_id=?",
+        _key(unit),
+    ).fetchone()
+    return row is not None and int(row[0]) > CHUNK_ROWS
+
+
+def stage(
+    conn: sqlite3.Connection,
+    selection: Selection,
+    *,
+    output: Output,
+    now: datetime | str,
+    run_id: str,
+    moved: Moved | None = None,
+) -> Deferred | None:
+    """Step A of a staged completion, inside the processing transaction.
+
+    Runs the checks `complete` runs, then records a building row instead of
+    reading the output; the scope pointer, attempt and queue are left for
+    step C. Returns None, and the caller completes inline, when the unit's
+    group has other members.
+    """
+    if not conn.in_transaction:
+        raise ValueError("materialization must share the output transaction")
+    active = _group.get()
+    if (
+        active is None
+        or active.connection is not conn
+        or set(active.selected) != {selection.unit}
+        or selection.unit in active.completed
+    ):
+        return None
+    context = _chunking.get()
+    if context is None or context.connection is not conn or context.unit != selection.unit:
+        return None
+    pointer = _check_capture(conn, selection, now)
+    candidate = pointer if _cutoff_candidate(conn, selection, pointer, active) else None
+    written = _witness(conn)
+    at = _at(now)
+    generation_id = selection.generation_id
+    # The first capture's witness and a sticky "moved" flag survive a resume:
+    # a retry's own capture already sees what an earlier A moved, and its A
+    # rewrites nothing, so only the stored record says the live rows moved
+    # under the pointer. Another generation's building row of this unit is an
+    # earlier A that committed live rows for other inputs; it counts as moved.
+    first = selection.witness
+    live_moved = first is None or first != written
+    for other, stored in conn.execute(
+        "SELECT generation_id,witness_json FROM derivation_building "
+        "WHERE stage=? AND unit_kind=? AND unit_id=?",
+        _key(selection.unit),
+    ).fetchall():
+        if other != generation_id:
+            live_moved = True
+            continue
+        recorded = _stored_witness(stored)
+        first = recorded.captured
+        live_moved = live_moved or recorded.moved
+    witness = canonical(
+        {
+            "captured": None if first is None else [list(i) for i in first],
+            "written": [list(item) for item in written],
+            "moved": live_moved,
+        }
+    )
+    row = conn.execute(
+        "SELECT label_digest FROM derivation_building WHERE generation_id=?", (generation_id,)
+    ).fetchone()
+    if row is None:
+        conn.execute(
+            "INSERT INTO derivation_building(generation_id,stage,unit_kind,unit_id,"
+            "input_fingerprint,witness_json,run_id,started_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?)",
+            (generation_id, *_key(selection.unit), selection.fingerprint, witness, run_id, at, at),
+        )
+    else:
+        # A resume. B stores whatever is missing: `_store_chunk` checks the
+        # references themselves, and `rows_stored` only reports progress, so
+        # a generation row that is gone (a restore from an older copy) needs
+        # no reset here; `_begin_generation` writes it again.
+        conn.execute(
+            "UPDATE derivation_building SET witness_json=?,run_id=?,updated_at=? "
+            "WHERE generation_id=?",
+            (witness, run_id, at, generation_id),
+        )
+    partial = _partial_label(conn, generation_id)
+    if partial is not None:
+        # A partial generation whose building row was collected: B resumes it
+        # by ordinal under its recorded label instead of reusing it as whole.
+        conn.execute(
+            "UPDATE derivation_building SET label_digest=?,label_rows=? WHERE generation_id=?",
+            (*partial, generation_id),
+        )
+    active.completed.add(selection.unit)
+    active.staged.add(selection.unit)
+    deferred = Deferred(
+        selection,
+        dict(moved or {}),
+        at,
+        run_id,
+        output,
+        candidate=candidate,
+        written=written,
+    )
+    context.deferred = deferred
+    return deferred
+
+
+def finish_building(
+    database: Database,
+    deferred: Deferred,
+    *,
+    commit: Callable[[sqlite3.Connection], None] | None = None,
+) -> str:
+    """Pass 1, step B and step C of a staged completion; return the effective id.
+
+    Pass 1 labels the output from a read snapshot and decides between a
+    cutoff, a reuse and a new generation. B stores a new generation's rows,
+    ``CHUNK_ROWS`` per write transaction, verifying rows a killed run already
+    stored. C flips the pointer (or records the equivalence) in one short
+    transaction, in which ``commit`` also runs.
+    """
+    selection = deferred.selection
+    generation_id = selection.generation_id
+    kept: str | None = None
+    existing = False
+    with database.reader() as reader:
+        label = _fingerprint(_offered(deferred.output(reader)))
+        if not reader.execute(
+            "SELECT 1 FROM derivation_building WHERE generation_id=?", (generation_id,)
+        ).fetchone():
+            raise SupersededWorkError("staged generation lost its building row")
+        building = _building_label(reader, generation_id)
+        recorded = _recorded_label(reader, generation_id)
+        if building is not None:
+            if label != building:
+                raise NondeterministicOutputError("derivation output is not deterministic")
+        elif recorded is not None:
+            existing = True
+            if not _same_output(reader, generation_id, label, deferred.moved):
+                raise NondeterministicOutputError(
+                    "identical derivation inputs produced different output"
+                )
+        elif deferred.candidate is not None and _same_output(
+            reader, deferred.candidate, label, deferred.moved
+        ):
+            kept = deferred.candidate
+    if kept is None and not existing:
+        _store_building(database, deferred, label)
+    with database.transaction() as conn:
+        effective = _finish(conn, deferred, kept=kept, existing=existing)
+        if commit is not None:
+            commit(conn)
+    return effective
+
+
+@dataclass(frozen=True)
+class _StoredWitness:
+    captured: tuple[tuple[str, int], ...] | None
+    moved: bool
+
+
+def _stored_witness(value: str | None) -> _StoredWitness:
+    """A building row's witness: the first capture, and whether any A moved live rows.
+
+    A row written before the flag existed moved when its two witnesses differ;
+    one that cannot be read counts as moved.
+    """
+    try:
+        data = json.loads(value or "null")
+    except ValueError:
+        data = None
+    if not isinstance(data, dict):
+        return _StoredWitness(None, True)
+    captured = data.get("captured")
+    first = None if captured is None else tuple((str(n), int(v)) for n, v in captured)
+    written = tuple((str(n), int(v)) for n, v in data.get("written") or ())
+    moved = data.get("moved")
+    if not isinstance(moved, bool):
+        moved = first is None or first != written
+    return _StoredWitness(first, moved)
+
+
+def building_moved(conn: sqlite3.Connection, unit: WorkUnit, generation_id: str) -> bool:
+    """Whether a staged step A of ``unit`` moved its live rows under its pointer.
+
+    True when the building row of ``generation_id`` says an A moved them, or
+    when a building row of another generation of the unit exists: that A
+    committed live rows for other inputs and never finished.
+    """
+    if not building_available(conn):
+        return False
+    return any(
+        other != generation_id or _stored_witness(stored).moved
+        for other, stored in conn.execute(
+            "SELECT generation_id,witness_json FROM derivation_building "
+            "WHERE stage=? AND unit_kind=? AND unit_id=?",
+            _key(unit),
+        )
+    )
+
+
+def building(conn: sqlite3.Connection, unit: WorkUnit) -> bool:
+    """Whether a staged completion of ``unit`` committed its live rows and has not finished."""
+    return (
+        building_available(conn)
+        and conn.execute(
+            "SELECT 1 FROM derivation_building WHERE stage=? AND unit_kind=? AND unit_id=? LIMIT 1",
+            _key(unit),
+        ).fetchone()
+        is not None
+    )
+
+
+def unfinished_excluded(conn: sqlite3.Connection, table: str = "derivation_generations") -> str:
+    """An SQL condition, starting with AND, that leaves out unfinished staged output.
+
+    A generation still building, or one a staged run stopped storing (fewer
+    references than its label counts; chunks store whole, by ordinal), was
+    never selected and must not be read as output: not by a release closure
+    at a cutoff, not as a retention window root (F8, I6). ``table`` names the
+    `derivation_generations` row being tested.
+    """
+    clauses = []
+    if building_available(conn):
+        clauses.append(
+            f" AND {table}.generation_id NOT IN (SELECT generation_id FROM derivation_building)"
+        )
+    if interned(conn):
+        clauses.append(
+            " AND coalesce((SELECT max(r.ordinal)+1 FROM derivation_row_refs r "
+            f"WHERE r.generation_id={table}.generation_id),0)>={table}.row_count"
+        )
+    return "".join(clauses)
+
+
+def incomplete_generations(conn: sqlite3.Connection) -> dict[str, int]:
+    """Partial generations no building row names: how many, and their references.
+
+    `collect_orphans` leaves these when a unit's inputs changed between B
+    and C. They are never read as output and nothing collects them yet
+    (phase 4, D-0217), so maintain counts them and the watchdog names a
+    growing count. One indexed lookup per generation.
+    """
+    if not interned(conn):
+        return {"rows": 0, "refs": 0}
+    building = (
+        " AND g.generation_id NOT IN (SELECT generation_id FROM derivation_building)"
+        if building_available(conn)
+        else ""
+    )
+    rows, refs = conn.execute(
+        "SELECT count(*),coalesce(sum(stored),0) FROM (SELECT g.row_count,"
+        "coalesce((SELECT max(r.ordinal)+1 FROM derivation_row_refs r "
+        "WHERE r.generation_id=g.generation_id),0) AS stored "
+        f"FROM derivation_generations g WHERE 1{building}) WHERE stored<row_count"
+    ).fetchone()
+    return {"rows": int(rows), "refs": int(refs)}
+
+
+def collect_orphans(database: Database, unit: WorkUnit, *, keep: str | None) -> int:
+    """Delete ``unit``'s building rows other than ``keep``'s, once its run finished (I6).
+
+    Such a row is a step A whose inputs changed before its C. While it
+    exists the unit is not current, so the unit runs again, counts it as a
+    live-row move (`building_moved`) and then drops it here. Generations and
+    row references are immutable: a partial generation its B left stays, no
+    reader takes it for output (`unfinished_excluded`), and the retention
+    plan lists it `incomplete`, never local or archivable. A later run with
+    the same inputs resumes it by ordinal. Returns the rows deleted.
+    """
+    if not building_available(database.connection):
+        return 0
+    with database.transaction() as conn:
+        return int(
+            conn.execute(
+                "DELETE FROM derivation_building WHERE stage=? AND unit_kind=? AND unit_id=? "
+                "AND generation_id IS NOT ?",
+                (*_key(unit), keep),
+            ).rowcount
+        )
+
+
+def _building_label(conn: sqlite3.Connection, generation_id: str) -> tuple[str, int] | None:
+    """The label a staged run is storing a generation under, if it got that far."""
+    if not building_available(conn):
+        return None
+    row = conn.execute(
+        "SELECT label_digest,label_rows FROM derivation_building WHERE generation_id=?",
+        (generation_id,),
+    ).fetchone()
+    return None if row is None or row[0] is None else (str(row[0]), int(row[1]))
+
+
+def _store_building(database: Database, deferred: Deferred, label: tuple[str, int]) -> None:
+    """Step B: store a new generation's rows in chunks, resuming by ordinal."""
+    selection = deferred.selection
+    generation_id = selection.generation_id
+    output = hashlib.sha256()
+    count = 0
+    with database.reader() as reader:
+        rows = iter(deferred.output(reader))
+        first = 0
+        while True:
+            batch = list(islice(rows, CHUNK_ROWS))
+            with database.transaction() as conn:
+                if first == 0:
+                    _begin_generation(conn, deferred, label)
+                for item in _store_chunk(conn, generation_id, first, batch, now=deferred.now):
+                    count += 1
+                    output.update(canonical(item).encode() + b"\n")
+            first += len(batch)
+            if len(batch) < CHUNK_ROWS:
+                break
+    if (output.hexdigest(), count) != label:
+        raise NondeterministicOutputError("derivation output is not deterministic")
+
+
+def _begin_generation(conn: sqlite3.Connection, deferred: Deferred, label: tuple[str, int]) -> None:
+    """Write the generation row under its pass-1 label, once, and the building label."""
+    selection = deferred.selection
+    generation_id = selection.generation_id
+    if _recorded_label(conn, generation_id) is None:
+        conn.execute(
+            "INSERT INTO derivation_generations VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+            (
+                generation_id,
+                *_key(selection.unit),
+                selection.fingerprint,
+                _generation_recipe(selection),
+                _store_dependency_sets(conn, selection),
+                selection.previous_generation_id,
+                *label,
+                deferred.now,
+                deferred.run_id,
+            ),
+        )
+        # Without its generation row no reference can have committed, so the
+        # progress count starts again.
+        conn.execute(
+            "UPDATE derivation_building SET rows_stored=0 WHERE generation_id=?", (generation_id,)
+        )
+    elif _recorded_label(conn, generation_id) != label:
+        raise NondeterministicOutputError("derivation output is not deterministic")
+    conn.execute(
+        "UPDATE derivation_building SET label_digest=?,label_rows=?,updated_at=? "
+        "WHERE generation_id=?",
+        (*label, deferred.now, generation_id),
+    )
+
+
+def _store_chunk(
+    conn: sqlite3.Connection,
+    generation_id: str,
+    first: int,
+    rows: Sequence[OutputRow],
+    *,
+    now: str,
+) -> Iterator[tuple[str, str, str]]:
+    """Store rows at ordinals ``first`` onward; a row already stored must match.
+
+    Yields the stream items the label is computed from.
+    """
+    stored = {
+        int(ordinal): (str(table), str(key), str(sha))
+        for ordinal, table, key, sha in conn.execute(
+            "SELECT ordinal,table_name,record_key,payload_sha256 FROM derivation_row_refs "
+            "WHERE generation_id=? AND ordinal>=? AND ordinal<?",
+            (generation_id, first, first + len(rows)),
+        )
+    }
+    for ordinal, row in enumerate(rows, first):
+        payload = canonical(dict(row.payload))
+        payload_sha256 = hashlib.sha256(payload.encode()).hexdigest()
+        have = stored.get(ordinal)
+        if have is None:
+            conn.execute(
+                "INSERT OR IGNORE INTO derivation_payloads VALUES (?,?)", (payload_sha256, payload)
+            )
+            conn.execute(
+                "INSERT INTO derivation_row_refs VALUES (?,?,?,?,?)",
+                (generation_id, ordinal, row.table, row.key, payload_sha256),
+            )
+        elif have != (row.table, row.key, payload_sha256):
+            raise NondeterministicOutputError("a stored row of a building generation differs")
+        yield row.table, row.key, payload
+    conn.execute(
+        "UPDATE derivation_building SET rows_stored=max(rows_stored,?),updated_at=? "
+        "WHERE generation_id=?",
+        (first + len(rows), now, generation_id),
+    )
+
+
+def _store_all(
+    conn: sqlite3.Connection,
+    generation_id: str,
+    rows: Iterable[OutputRow],
+    label: tuple[str, int],
+    *,
+    now: str,
+) -> None:
+    """Finish a building generation inline, in the caller's transaction."""
+    iterator = iter(rows)
+
+    def stream() -> Iterator[tuple[str, str, str]]:
+        first = 0
+        while batch := list(islice(iterator, CHUNK_ROWS)):
+            yield from _store_chunk(conn, generation_id, first, batch, now=now)
+            first += len(batch)
+
+    if _fingerprint(stream()) != label:
+        raise NondeterministicOutputError("derivation output is not deterministic")
+    _check_stored(conn, generation_id, label)
+
+
+def _check_stored(conn: sqlite3.Connection, generation_id: str, label: tuple[str, int]) -> None:
+    """A generation is whole when its label is recorded and every row is referenced."""
+    references = conn.execute(
+        "SELECT count(*) FROM derivation_row_refs WHERE generation_id=?", (generation_id,)
+    ).fetchone()[0]
+    if _recorded_label(conn, generation_id) != label or int(references) != label[1]:
+        raise SupersededWorkError("staged generation is incomplete")
+
+
+def _finish(
+    conn: sqlite3.Connection, deferred: Deferred, *, kept: str | None, existing: bool
+) -> str:
+    """Step C: fence, flip or keep, replay, certify; inside the caller's transaction."""
+    selection = deferred.selection
+    unit = selection.unit
+    generation_id = selection.generation_id
+    _fence(conn, selection, "derivation inputs changed while output was being stored")
+    pointer = conn.execute(
+        "SELECT materialized_generation_id FROM derivation_scopes WHERE stage=? AND unit_kind=? AND unit_id=?",
+        _key(unit),
+    ).fetchone()
+    allowed = (kept,) if kept is not None else (selection.previous_generation_id, generation_id)
+    if pointer is None or pointer[0] not in allowed:
+        raise SupersededWorkError("derivation pointer moved while output was being stored")
+    if kept is not None:
+        _record_equivalence(conn, selection, kept, now=deferred.now, run_id=deferred.run_id)
+        conn.execute(
+            "UPDATE derivation_scopes SET desired_fingerprint=? WHERE stage=? AND unit_kind=? AND unit_id=?",
+            (selection.fingerprint, *_key(unit)),
+        )
+    else:
+        label = _recorded_label(conn, generation_id)
+        if label is None:
+            raise SupersededWorkError("staged generation was removed before it was selected")
+        # A reused generation is checked too: one indexed count guards the
+        # pointer against a partial generation taken for whole.
+        _check_stored(conn, generation_id, label)
+        conn.execute(
+            "UPDATE derivation_scopes SET desired_fingerprint=?,materialized_generation_id=? WHERE stage=? AND unit_kind=? AND unit_id=?",
+            (selection.fingerprint, generation_id, *_key(unit)),
+        )
+    effective = kept if kept is not None else generation_id
+    # As in `complete`: a cutoff or a reuse whose replay moved live rows in A
+    # tells dependents through the kind's replay epoch. The building row says
+    # whether any A of this unit moved them, a killed earlier one included.
+    replayed = (kept is not None or (existing and unit.stage in {"project", "link"})) and (
+        selection.witness is None
+        or selection.witness != deferred.written
+        or building_moved(conn, unit, generation_id)
+    )
+    _validate_dependencies(conn, selection)
+    _certify(conn, selection, effective)
+    if replayed:
+        bump_replay(conn, unit.stage, unit.unit_kind, now=deferred.now)
+    conn.execute("DELETE FROM derivation_building WHERE generation_id=?", (generation_id,))
     return effective
 
 
@@ -1101,6 +1729,11 @@ def _current(
         _key(unit),
     ).fetchone()
     if pointer is None or pointer[0] is None:
+        return False
+    if unit.stage in {"project", "link"} and building(conn, unit):
+        # A staged A committed live rows its pointer does not stand for,
+        # possibly for inputs since reverted: the unit runs until a C (and
+        # `collect_orphans`) settles them (F8, I6).
         return False
     if unit.stage != "build" and pointer[1] is not None:
         from .derivation_signatures import certificate, materialized_proof

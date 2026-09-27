@@ -50,6 +50,9 @@ class SchedulerConfig:
     # is due. One inventory generation re-mints the map, every event, history
     # and every link, 0.4 GB each time (D-0210).
     inventory_interval_seconds: float | None = None
+    # The release loop skips its tick while the worker's disk quota has less
+    # than this many bytes free: a build writes a full candidate (D-0215).
+    release_min_free_bytes: int = 30_000_000_000
 
     def __post_init__(self) -> None:
         for field in fields(self):

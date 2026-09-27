@@ -61,6 +61,12 @@ def eligible(conn: sqlite3.Connection, unit: WorkUnit, fingerprint: str, now: da
         return True
     if row["outcome"] == "succeeded":
         return True
+    if row["outcome"] == "running":
+        # A process that died mid-attempt leaves it running. Once its queue
+        # lease is dead, the next lease closes it and retries (D-0216).
+        from .queue import running_lease_dead
+
+        return running_lease_dead(conn, unit, now)
     return (
         row["outcome"] in {"transient", "interrupted"}
         and row["retry_at"] is not None
@@ -75,12 +81,18 @@ def begin_attempt(
     now: datetime,
     run_id: str,
     fingerprint: str | None = None,
+    after_takeover: bool = False,
 ) -> Attempt:
-    """Commit before doing work, so process death leaves a recoverable attempt."""
+    """Commit before doing work, so process death leaves a recoverable attempt.
+
+    `after_takeover`: the caller's lease just closed a dead lease's running
+    attempt as interrupted (`queue.lease`), in this transaction, so its
+    one-second retry clock does not make the unit wait.
+    """
     at = _at(now)
     with database.transaction() as conn:
         fingerprint = fingerprint or input_fingerprint(conn, unit)
-        if not eligible(conn, unit, fingerprint, now):
+        if not after_takeover and not eligible(conn, unit, fingerprint, now):
             raise ValueError("work is not eligible for another attempt")
         from .derivations import available
 

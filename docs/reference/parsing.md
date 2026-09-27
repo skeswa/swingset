@@ -96,9 +96,11 @@ A successful parse commits observations when eligible, warning findings,
 new watch specs, downstream work, attempted versions, and work completion
 together. A handled extract or parse failure records diagnostic evidence
 and attempted versions, leaves last-good observations unchanged, and
-completes that attempt. It is not retried indefinitely by checking
-`parse_status != ok`. A version bump or `swingset reparse` explicitly
-enqueues another attempt; a new fetch creates its own snapshot work.
+completes that attempt. It is not retried by checking `parse_status != ok`:
+it waits for input on the work queue's clock, a day doubling to a week, and
+is then retried ([state: work queue](state.md#work-queue)). A version bump or
+`swingset reparse` enqueues another attempt at once; a new fetch creates its
+own snapshot work.
 Unexpected errors roll back and leave work pending. Failure counts and
 run failure thresholds remain as specified in [operations](operations.md#observability).
 

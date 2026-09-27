@@ -523,8 +523,12 @@ def projection_answer_cached() -> Iterator[None]:
     large database. A pass over thousands of plan pages, or a review over
     many event sites, asks it through several call paths; inside this
     context every path gets the first answer (D-0195). Nothing inside a pass
-    changes the answer, because the pass itself projects nothing.
+    changes the answer, because the pass itself projects nothing. Nested
+    passes share the outer answer.
     """
+    if _PROJECTION_ANSWERS.get() is not None:
+        yield
+        return
     token = _PROJECTION_ANSWERS.set({})
     try:
         yield
@@ -532,7 +536,45 @@ def projection_answer_cached() -> Iterator[None]:
         _PROJECTION_ANSWERS.reset(token)
 
 
+_FACTS_ONLY: ContextVar[bool] = ContextVar("facts_only_year_gate", default=False)
+
+
+@contextmanager
+def facts_only_year_gate() -> Iterator[None]:
+    """Judge the phase-two year gate on facts alone (D-0218).
+
+    Inside this context `pending_inventory_projection` answers False without
+    walking the pending derivation units, and `phase_two_allowed` ignores the
+    pending question: the gate reads the committed event list, its accepted
+    digest, open findings and the H7/H10 switches, all facts (I5). The
+    acquire, plan and derive loops run inside it, so no derivation predicate
+    runs in acquisition. The cycle and `accept-year` keep the pending check.
+    """
+    token = _FACTS_ONLY.set(True)
+    try:
+        yield
+    finally:
+        _FACTS_ONLY.reset(token)
+
+
+def facts_only() -> bool:
+    """Whether the year gate is judged on facts alone (`facts_only_year_gate`)."""
+    return _FACTS_ONLY.get()
+
+
 def pending_inventory_projection(conn: sqlite3.Connection) -> bool:
+    """Whether a pending unit may change the event list; False on facts alone."""
+    if facts_only():
+        return False
+    return projection_pending(conn)
+
+
+def projection_pending(conn: sqlite3.Connection) -> bool:
+    """The pending-projection answer whatever the gate's mode.
+
+    `accept-year` refuses on it, and the plan loop records it as
+    information. Inside `projection_answer_cached` it is computed once.
+    """
     answers = _PROJECTION_ANSWERS.get()
     if answers is not None:
         key = id(conn)
@@ -634,7 +676,8 @@ def accept_year(
         with boundary:
             if not accepted_by.strip():
                 raise ValueError("year acceptance requires a named owner")
-            if pending_inventory_projection(conn):
+            # Accepting always asks, even inside the facts-only gate.
+            if projection_pending(conn):
                 raise ValueError("event-list projection is pending")
             if conn.execute(
                 "SELECT 1 FROM findings WHERE owner_kind IN ('history_year','phase1_year') AND owner_id=? AND closed_at IS NULL",
@@ -651,7 +694,7 @@ def accept_year(
                 if run_id is None:
                     run_id = "history_acceptance_" + uuid4().hex
                     conn.execute(
-                        "INSERT INTO runs VALUES (?,?,?,0,?)",
+                        "INSERT INTO runs(run_id,started_at,finished_at,dry_run,summary_json) VALUES (?,?,?,0,?)",
                         (
                             run_id,
                             accepted_at,
@@ -684,32 +727,55 @@ def phase_two_allowed(conn: sqlite3.Connection, year: int, *, pending: bool | No
     """Whether phase-two acquisition may start for ``year``.
 
     ``pending`` lets a caller that asks about many years answer the
-    projection question once; it costs seconds on a large database.
+    projection question once; it costs seconds on a large database. Inside
+    `facts_only_year_gate` the question is not asked.
     """
-    if pending is None:
+    if facts_only():
+        pending = False
+    elif pending is None:
         pending = pending_inventory_projection(conn)
     if pending:
         return False
+    return year_gate_reason(conn, year) is None
+
+
+#: Why the year gate is closed, in the order `year_gate_reason` reports them.
+YEAR_GATE_REASONS = (
+    "year_unaccepted",
+    "acceptance_digest_changed",
+    "year_findings_open",
+    "h7_h10_not_deployed",
+)
+
+
+def year_gate_reason(conn: sqlite3.Connection, year: int) -> str | None:
+    """The first fact that closes phase two for ``year``, or None when it is open.
+
+    Facts only: acceptance, the accepted digest against the committed event
+    list, open event-list findings, and the H7 and H10 switches. The pending
+    projection is the caller's question (`phase_two_allowed`).
+    """
     accepted = conn.execute(
         "SELECT inventory_digest FROM history_acceptance WHERE year=?", (year,)
     ).fetchone()
+    if not accepted:
+        return "year_unaccepted"
+    if accepted[0] != _inventory_digest(conn, year):
+        return "acceptance_digest_changed"
     if conn.execute(
         "SELECT 1 FROM findings WHERE owner_kind IN ('history_year','phase1_year') AND owner_id=? AND closed_at IS NULL",
         (str(year),),
     ).fetchone():
-        return False
+        return "year_findings_open"
     deployed = {
         r[0]: r[1]
         for r in conn.execute(
             "SELECT key,value FROM meta WHERE key IN ('h7_deployed','h10_deployed')"
         )
     }
-    return bool(
-        accepted
-        and accepted[0] == _inventory_digest(conn, year)
-        and deployed.get("h7_deployed") == "true"
-        and deployed.get("h10_deployed") == "true"
-    )
+    if deployed.get("h7_deployed") != "true" or deployed.get("h10_deployed") != "true":
+        return "h7_h10_not_deployed"
+    return None
 
 
 def rebuild_coverage(conn: sqlite3.Connection, *, now: str) -> None:

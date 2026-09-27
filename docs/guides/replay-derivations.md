@@ -56,7 +56,7 @@ every 100 attempted units and on exit. They include selection time, worker
 time, completed workers, failed outcomes, and final generation count.
 
 The default invocation budget is 600 seconds (60–3600 permitted). The runner
-reserves the normal 45-second atomic worker limit plus five seconds before
+reserves the normal 60-second write alarm plus five seconds before
 starting another unit. `--max-units` supports a smaller measured run. A stopped
 run retains unfinished work; `current` is reported only after the complete
 project/link desired query has no unfinished scopes. This is an isolated replay

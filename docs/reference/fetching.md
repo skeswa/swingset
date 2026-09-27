@@ -8,6 +8,7 @@ This page owns the rules for requesting and saving source pages. A host is the w
 
 - [Identity](#identity)
 - [Politeness rules](#politeness-rules)
+- [Guards](#guards)
 - [Response classification](#response-classification)
 - [Change detection](#change-detection)
 - [Archive](#archive)
@@ -97,6 +98,55 @@ Reservation cannot override a source, kind, host, or global pause, a host
 cooldown, a byte limit, or the Archive's 200-request daily budget. See
 [fair scheduling](scheduling.md#work-order) for initial allocations and
 the measured load behind them.
+
+## Guards
+
+A guard is a reason the client did not send a request
+([D-0219](../../journal/decisions/0219-every-guard-that-holds-a-fetch-has-a-reason-with-an-expiry.md)).
+`FetchClient.guards` counts each guard skip and `Paused` grant by subject and
+reason. Each acquisition pass, the cycle's or acquire's, writes them to
+`guard_reasons` in one transaction (`state/guards.flush`). A row keeps `since` and moves
+`last_seen_at`, `seen` and `expires_at`. A subject that issued a request in the
+pass (its host, its watch and the loop) loses its rows, and its skips in that
+pass are dropped.
+
+| Reason                                                                                                      | Subject | Expires                                                   |
+| ----------------------------------------------------------------------------------------------------------- | ------- | --------------------------------------------------------- |
+| `legacy request spacing unknown`, `request spacing recovery required`, `request spacing schema unavailable` | host    | `since` + 1 h                                             |
+| `Throttled`, `ServerError`, `Blocked` (host pause)                                                          | host    | `hosts.paused_until` + 1 h                                |
+| `request budget`, `byte budget`                                                                             | host    | next UTC midnight after `since` + 1 h                     |
+| `operator`                                                                                                  | host    | the pause's `until_at`, or `since` + 48 h                 |
+| `pending work backpressure`                                                                                 | loop    | `since` + 12 h                                            |
+| `event expansion pressure`, `event pressure metadata pending`                                               | host    | `since` + 24 h                                            |
+| `publication_in_flight`, `release_disk_low`, `inputs_not_accepted` (plan, release)                          | loop    | `since` + 1 h                                             |
+| `heavy_busy` (release)                                                                                      | loop    | `since` + 3 h                                             |
+| history gate reasons, `robots disallow`, `source disabled`                                                  | watch   | `since` + 30 d; written once a UTC day                    |
+| `request_error` (the acquisition pass's choice raised; not contention)                                      | watch   | last failure + 1 h, doubling; 7 d from the third in a row |
+
+Waits, deadline skips (`budget`, `budget or stop`), request limits and
+terminal watch states (`sealed`, `archive required`, `capture already
+archived`) are not guards. The scheduler leaves out watches it knows are
+held (source off, host paused or over budget, operator pause, backpressure,
+event expansion), so those reasons become rows only when a skip reaches the
+client; the spacing reasons always do. The watchdog alarms on a host or loop
+row seen after its expiry within the last 2 hours
+([operation](../guides/operation.md)); watch rows are counted only.
+`swingset doctor` and `summary` report `guards`: counts by reason and the rows
+seen past their expiry. A whole loop tick that skips leaves its own
+`loop:<name>` row (`inputs_not_accepted`, `heavy_busy`, `release_disk_low`),
+deleted by the next tick past the reason. A `request_error` row is written
+when the failure happens, not by the flush. The flush leaves it, even for
+a watch whose request went out before the error; the pass skips the watch
+until the row expires, and a served request deletes it. A busy or locked
+write, a write-deadline overrun, a publication fence, an operator pause and
+a control-lock timeout skip the request and write nothing (F7).
+
+A request admission carries the issuing run (the watch's run, or the
+client's), so the loop's recovery settles one a killed tick left active.
+An admission that waits past 90 s for `control.lock` (`ControlTimeout`) or
+past the busy timeout for SQLite admits nothing: the fetch returns
+`skipped: control_timeout` (counted in the run's `control_timeouts`) or the
+request waits for a later pass (F7).
 
 ## Response classification
 

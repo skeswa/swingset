@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import contextlib
-import fcntl
 import json
 import os
 import shutil
@@ -18,6 +17,7 @@ from swingset.publish.service import Hub, RemoteCommit, pending_candidates
 from swingset.state.retention import RetentionError
 from swingset.state.retention import artifact_closure as _artifact_closure
 from swingset.state.retention import referenced_candidates as _referenced_candidates
+from swingset.state.rwlock import is_lock_file
 
 
 @dataclass(frozen=True)
@@ -116,7 +116,11 @@ def create_checkpoint(
             finally:
                 snapshot.close()
             for source in state_dir.rglob("*"):
-                if not source.is_file() or source.name in EXCLUDED_NAMES:
+                if (
+                    not source.is_file()
+                    or source.name in EXCLUDED_NAMES
+                    or (source.parent == state_dir and is_lock_file(source.name))
+                ):
                     continue
                 relative = source.relative_to(state_dir)
                 if relative == Path("state.sqlite") or relative.parts[0] in EXCLUDED_TOP_LEVEL:
@@ -279,33 +283,25 @@ def restore_from_checkpoint(
 ) -> None:
     """Install, remotely verify, and activate a checkpoint under the writer lock."""
     from swingset.state.control_lock import control_lock
+    from swingset.state.rwlock import LockBusy, exclusive
 
     if maximum_schema_version is None:
         from swingset.state.db import SCHEMA_VERSION
 
         maximum_schema_version = SCHEMA_VERSION
     state_dir.mkdir(parents=True, exist_ok=True)
-    lock_path = state_dir / "state.lock"
-    lock_file = lock_path.open("a+b")
-    started = clock.now()
+    # The exclusive pair, as every writer takes it: a waiting restore holds the
+    # intent, so no loop starts a tick in front of it (D-0215).
     try:
-        while True:
-            try:
-                fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
-                break
-            except BlockingIOError as error:
-                if (clock.now() - started).total_seconds() >= lock_timeout:
-                    raise CheckpointError(
-                        f"state writer lock timed out after {lock_timeout:g} seconds"
-                    ) from error
-                clock.sleep(0.1)
+        locks = exclusive(state_dir, timeout=lock_timeout, clock=clock)
+    except LockBusy as error:
+        raise CheckpointError(
+            f"state writer lock timed out after {lock_timeout:g} seconds"
+        ) from error
+    try:
         with control_lock(state_dir, timeout=lock_timeout):
             marker = state_dir / "RESTORE_PENDING"
-            existing = [
-                path
-                for path in state_dir.iterdir()
-                if path.name not in {"state.lock", "control.lock"}
-            ]
+            existing = [path for path in state_dir.iterdir() if not is_lock_file(path.name)]
             if existing and not marker.is_file():
                 raise CheckpointError("restore target contains an active or unmarked state")
             if marker.is_file():
@@ -324,8 +320,7 @@ def restore_from_checkpoint(
             verify_restored_public(state_dir, hub)
             activate_restored_state(state_dir)
     finally:
-        fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
-        lock_file.close()
+        locks.release()
 
 
 def activate_restored_state(state_dir: Path) -> None:

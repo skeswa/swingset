@@ -14,7 +14,7 @@ orb -m swingset
 cd /Users/skeswa/repos/skeswa/swingset
 sudo nixos-rebuild switch --flake .#orb --impure
 systemctl list-timers 'swingset-*'
-journalctl -u swingset-cycle -f
+journalctl -u swingset-cycle -f      # with the loops on: journalctl -u 'swingset-*' -f
 ```
 
 The machine is bounded to 256 GiB of disk (`disk_bytes`), and the restore
@@ -34,6 +34,60 @@ contents: a migration that drops a table, such as schema 32, frees pages to
 SQLite's free list without shrinking the file. Run `swingset gc --reclaim` after
 such a switch, as the [operation guide](operation.md#disk-space) says, or the
 old size stays on disk and in every backup.
+
+## Switching to the loops
+
+`services.swingset.loops.enable` (default false) replaces `swingset-cycle` with
+five oneshot services and timers
+([D-0215](../../journal/decisions/0215-loops-share-the-state-under-a-reader-writer-lock.md),
+[scheduling: loops](../reference/scheduling.md#loops)). A switch that turns it
+on removes the cycle's service and timer, and systemd stops them; turning it
+off does the reverse. `dryRun` picks `--dry-run` or `--publish` for release.
+Turn it on in a switch of its own, with `src/` unchanged, after the same
+package has migrated to schema 34 and drained in cycle mode
+([phase 2 deploy steps](../plans/architecture.md#9-migration-plan)). A loop
+never migrates while others run: a tick that finds an older schema tries one
+exclusive open, which migrates, or skips.
+
+| Unit                | Timer                            | Budget option (default)  | `TimeoutStartSec` | `MemoryMax`, `OOMScoreAdjust` |
+| ------------------- | -------------------------------- | ------------------------ | ----------------- | ----------------------------- |
+| `swingset-acquire`  | `*:0/5`, `RandomizedDelaySec=20` | `acquireBudget` (`4m`)   | 10 min            | 1G, -200                      |
+| `swingset-derive`   | `*:2/5`, `RandomizedDelaySec=20` | `deriveBudget` (`4m`)    | 30 min            | 5G                            |
+| `swingset-plan`     | `*:10/30`                        | `planBudget` (`10m`)     | 20 min            | 2G                            |
+| `swingset-release`  | `*:20` hourly                    | `releaseBudget` (`30m`)  | 60 min            | 7G, 500                       |
+| `swingset-maintain` | daily 03:30                      | `maintainBudget` (`20m`) | 30 min            | 2G                            |
+
+All are `Persistent=true`, skip while `operator-hold` exists and run the
+watchdog when they fail. Derive gets `TimeoutStopSec=120`, the others 45 s.
+Each memory cap bounds its own unit, not the sum: together they allow
+17 GB on the 8 GB machine. On the Mac a build peaked at 6.3 GB and a
+parse-only derive tick beside it at 2 to 3.9 GB, so derive starts no unit
+while release builds (it holds `heavy.lock`). When memory runs out the
+kernel kills `swingset-summary` first (`OOMScoreAdjust=800`), then release
+(500). Switch 2b is gated on resident memory, the `peak_rss_bytes` of the
+cycle's summary and of the loop records: release's 7G cap must be at least
+1.15 times the cycle's peak over cycles that built, and release plus derive
+during a build must stay under about 7 GB
+([phase 2 deploy steps](../plans/architecture.md#9-migration-plan)).
+systemd's `MemoryPeak` counts page cache charged to the unit, which reading
+the database file fills, so it is information only. Acquire's 1G was sized
+on a mock that returned no bodies; it is unverified until step 8 records
+acquire ticks that fetched real pages.
+
+Any switch while the loops are on, the rollback to the cycle included,
+writes `operator-hold` first, waits until `systemctl list-units
+'swingset-*'` shows no active unit, switches and removes the hold. systemd
+stops a removed or changed unit with SIGTERM and kills derive after 120 s;
+a staged history unit can take longer. The tick notes the stop request
+(`runs/<run>.stop`), so that kill is not counted against the unit, but the
+hold avoids cutting the unit off at all. With the loops on, the watchdog runs with
+`--loops 1`: it checks all five timers and the loop records instead of the
+cycle's ([alerts](operation.md#alerts)).
+
+Every unit's `ExecStartPre` runs `uv sync` under `flock -w 600
+<stateDir>/venv.lock`, loops on or off, so two units starting together after
+a deploy do not install into the one venv at once. A sync that waits ten
+minutes fails its unit.
 
 Use `jj status` before evaluating newly created files with a Git-backed flake.
 `path:.#orb` also works during initial bootstrapping. The host configuration

@@ -764,14 +764,20 @@ def test_repeat_of_identical_inputs_does_not_read_the_whole_generation_again(tmp
         assert repeat == first
         assert conn.execute("SELECT count(*) FROM derivation_row_refs").fetchone()[0] == 50
         # Not one stored row is read or written again: no view join, no count
-        # over the references, nothing.
-        assert not [
+        # over the references, nothing. One index probe of the last ordinal
+        # says the generation is whole, not a partial staged one (D-0217).
+        probe = f"SELECT 1 FROM derivation_row_refs WHERE generation_id='{first}' AND ordinal=49"
+        touched = [
             statement
             for statement in statements
-            if "derivation_rows" in statement
-            or "derivation_row_refs" in statement
-            or "derivation_payloads" in statement
+            if not statement.startswith("SELECT 1 FROM sqlite_master")
+            and (
+                "derivation_rows" in statement
+                or "derivation_row_refs" in statement
+                or "derivation_payloads" in statement
+            )
         ]
+        assert touched == [probe]
 
 
 # The pre-interning shape of retained output, copied from migration 0014 and the
@@ -903,3 +909,87 @@ def test_a_real_release_rebuilds_the_same_way_after_the_migration(
         with pytest.raises(ClosureError, match="selected_output_digest_mismatch"):
             with reconstruct(conn, closure, directory=tmp_path / "evicted", baseline=baseline):
                 pass
+
+
+def stage_then_stop(database, unit, rows, recipe, *, stop_at: int):
+    """A staged completion whose step B stops in chunk ``stop_at`` (WP4)."""
+    conn = database.connection
+    run_id = database.start_run(NOW)
+    real = derivations._store_chunk
+    calls = 0
+
+    def store(*args, **kwargs):
+        nonlocal calls
+        calls += 1
+        if calls == stop_at:
+            raise RuntimeError("stopped in step B")
+        yield from real(*args, **kwargs)
+
+    with derivations.chunking(conn, unit) as chunk:
+        with database.transaction(), derivations.group(conn):
+            selection = derivations.capture(conn, unit, now=NOW, recipe=recipe)
+            assert derivations.stage(
+                conn, selection, output=lambda reader: iter(rows), now=NOW, run_id=run_id
+            )
+        derivations._store_chunk = store
+        try:
+            with pytest.raises(RuntimeError, match="stopped in step B"):
+                derivations.finish_building(database, chunk.deferred)
+        finally:
+            derivations._store_chunk = real
+    return selection.generation_id
+
+
+def test_a_single_path_completion_finishes_a_generation_a_staged_run_left(tmp_path, monkeypatch):
+    unit = WorkUnit("project", "event", "staged")
+    rows = [
+        derivations.OutputRow("entries", f'["e{index}"]', {"entry_id": f"e{index}"})
+        for index in range(5)
+    ]
+    monkeypatch.setattr(derivations, "CHUNK_ROWS", 2)
+    with open_database(tmp_path / "state", lock=False) as database:
+        conn = database.connection
+        generation = stage_then_stop(database, unit, rows, {"recipe/test": "one"}, stop_at=2)
+        assert tuple(
+            conn.execute(
+                "SELECT label_rows,rows_stored FROM derivation_building WHERE generation_id=?",
+                (generation,),
+            ).fetchone()
+        ) == (5, 2)
+        # The partial generation is labelled but selected by nothing.
+        assert derivations.selected_generation(conn, unit) is None
+        assert completed_generation(database, unit, rows, {"recipe/test": "one"}) == generation
+        assert derivations.selected_generation(conn, unit) == generation
+        assert [
+            tuple(row)
+            for row in conn.execute(
+                "SELECT ordinal,record_key FROM derivation_row_refs WHERE generation_id=? "
+                "ORDER BY ordinal",
+                (generation,),
+            )
+        ] == [(index, f'["e{index}"]') for index in range(5)]
+        assert conn.execute("SELECT count(*) FROM derivation_building").fetchone()[0] == 0
+
+
+def test_a_stored_row_that_differs_on_resume_is_nondeterministic(tmp_path, monkeypatch):
+    unit = WorkUnit("project", "event", "staged")
+    rows = [
+        derivations.OutputRow("entries", f'["e{index}"]', {"entry_id": f"e{index}"})
+        for index in range(5)
+    ]
+    monkeypatch.setattr(derivations, "CHUNK_ROWS", 2)
+    with open_database(tmp_path / "state", lock=False) as database:
+        conn = database.connection
+        generation = stage_then_stop(database, unit, rows, {"recipe/test": "one"}, stop_at=2)
+        changed = [
+            derivations.OutputRow(row.table, row.key, {**row.payload, "v": 1}) for row in rows
+        ]
+        with pytest.raises(derivations.NondeterministicOutputError):
+            completed_generation(database, unit, changed, {"recipe/test": "one"})
+        assert derivations.selected_generation(conn, unit) is None
+        assert (
+            conn.execute(
+                "SELECT rows_stored FROM derivation_building WHERE generation_id=?", (generation,)
+            ).fetchone()[0]
+            == 2
+        )

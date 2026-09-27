@@ -35,7 +35,8 @@ def checkpoint():
         return "inputs_accepted"
     if caller == ("swingset.fetch.client", "_fetch") and "snapshot_id" in frame.f_locals:
         return "snapshot_saved"
-    if caller == ("swingset.schedule.derive", "derive_one"):
+    # derive_one's processing transaction opens in its nested `process`.
+    if caller == ("swingset.schedule.derive", "process"):
         unit = frame.f_locals["unit"]
         return f"{unit.stage}_{unit.unit_kind}_completed"
     if caller == ("swingset.build.generations", "complete"):

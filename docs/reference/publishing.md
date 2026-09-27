@@ -143,6 +143,18 @@ work queues to be drained; they report pending work instead of bypassing
 it. Use cycle to drain that work. All publication entry points reject
 `RESTORE_PENDING`.
 
+The release loop runs the cycle's build and publish steps once an hour
+([scheduling: loops](scheduling.md#loops)). `swingset release --publish`
+reconciles first, then builds and publishes as the cycle does.
+`--dry-run`, the default, has no hub: it neither reconciles nor publishes,
+and only builds. A release tick settles a publication admission that a dead
+process left active as uncertain, so reconcile decides it. While a
+publication is active its fence refuses every write outside the control
+tables, so the other loops pause: each checks before a unit or request
+starts, and a unit write that still meets the fence retries in 60 s
+([D-0215](../../journal/decisions/0215-loops-share-the-state-under-a-reader-writer-lock.md)).
+Narrowing the fence is architecture phase 3.
+
 Reading the head is allowed in a dry run. A dry run creates no Hub
 commit; it may complete an already acknowledged local promotion. A
 publication request with a lost response is reconciled before retrying.

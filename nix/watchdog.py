@@ -1,4 +1,4 @@
-"""Checks behind the swingset-watchdog unit (D-0188, D-0202, D-0203).
+"""Checks behind the swingset-watchdog unit (D-0188, D-0202, D-0203, D-0215, D-0219).
 
 Prints one alert per line and nothing when all is well. Each line starts
 with a stable key in brackets, such as `[stale-fetch]`. A key already logged
@@ -8,6 +8,11 @@ once. The unit's shell wrapper reads the timer, backup and summary unit states
 and the disk quota, passes them in, and appends whatever this prints to ALERTS.log
 with a UTC stamp. Standard library only: the unit runs it with the system
 python3, not the project environment.
+
+With `--loops 1` the worker runs the five loop timers instead of the cycle
+(services.swingset.loops.enable): the cycle checks go quiet and the loop
+checks (`[loop-quiet]`, `[loop-failing]`, `[loop-idle]`, `[plan-stale]`) read
+the loops' run records, `loop_state` and plan rows instead.
 
 Each check reads on its own. A check that raises is named in one
 `[watchdog-blind]` line instead of silencing the checks after it, so the
@@ -22,6 +27,7 @@ import json
 import os
 import re
 import sqlite3
+import struct
 import sys
 import time
 import tomllib
@@ -58,23 +64,75 @@ SAME_TEXT_KEYS = frozenset(
         "host-failing",
         "backup-failed",
         "watchdog-blind",
+        "unit-quarantined",
+        "write-deadline",
+        "guard-expired",
+        "loop-quiet",
+        "loop-failing",
+        "loop-idle",
     }
 )
 #: A host whose last this many responses were all 429 or 5xx is failing.
 #: Its backoff (fetch/politeness.py) is then two hours or more.
 FAILING_STREAK = 4
-#: A queued unit whose last this many finished attempts all failed with the
-#: same reason fails every retry (schedule/derive.py gives each a clock).
-UNIT_FAILING_ATTEMPTS = 3
-#: Reasons retried by design: an I/O error retries in a minute, and a page
-#: kind this runtime does not know waits a month (D-0182).
-EXPECTED_RETRIES = frozenset({"unit_io_error", "unsupported_page_kind"})
-#: An I/O error that repeats is no longer a passing one (a corrupt blob, a
-#: permission error): it fails the unit once its last this many attempts
-#: all hit it, or once the oldest of an unbroken run of at least
-#: UNIT_FAILING_ATTEMPTS is older than IO_ERROR_SECONDS.
-IO_ERROR_ATTEMPTS = 20
-IO_ERROR_SECONDS = 3600
+#: [unit-quarantined] names units quarantined this recently, and repeats a
+#: line no sooner, so each quarantine logs one line (D-0216).
+QUARANTINE_WINDOW = 7200
+#: Up to this many quarantined units get a line each; more get one line by
+#: class, so a code bug that quarantines thousands cannot flood ALERTS.log.
+QUARANTINE_LINES = 5
+#: A lease this far past its end belongs to no live loop (D-0216).
+LEASE_STUCK_SECONDS = 600
+#: [write-deadline] reads run records finished this recently, and repeats a
+#: line no sooner (D-0217).
+WRITE_DEADLINE_WINDOW = 7200
+#: At most this many of the newest run records are read for it.
+WRITE_DEADLINE_RECORDS = 500
+#: [guard-expired] names guards seen past their expiry this recently: a
+#: reason that stopped being seen has cleared or is no longer tried (D-0219).
+GUARD_SEEN_WINDOW = 7200
+#: Up to this many expired guards get a line each; more get one line by reason.
+GUARD_LINES = 5
+#: With --loops 1: how long each loop may go without a finished tick while
+#: unheld and its timer active, about three timer intervals with slack
+#: (nix/module.nix: acquire and derive every 5 minutes, plan every 30,
+#: release hourly, maintain daily).
+LOOP_QUIET = {
+    "acquire": 1800,
+    "plan": 7200,
+    "derive": 1800,
+    "release": 14400,
+    "maintain": 93600,
+}
+#: A loop whose last this many ticks, skips left out, all failed alerts.
+LOOP_FAILING = 3
+#: With --loops 1: how long each loop may go without progress (loop_state's
+#: last_progress_at) while unheld and its timer active. Skipped and idle
+#: ticks do not reset it. Acquire counts only while no host or acquire guard
+#: explains the silence, derive only while ready work waits; release's window
+#: is its build interval plus RELEASE_IDLE_SLACK, from its newest record.
+LOOP_IDLE = {"acquire": 3600, "derive": 7200, "plan": 7200}
+RELEASE_IDLE_SLACK = 7200
+#: The build interval when no release record names one (config/sources.toml).
+BUILD_INTERVAL_SECONDS = 21600
+#: At most this many of the newest run records are read for the loop checks.
+LOOP_RECORDS = 5000
+#: The plan loop rewrites its year rows every 30 minutes; acquire offers only
+#: planned pages, so a plan older than this starves it (D-0218).
+PLAN_STALE_SECONDS = 7200
+#: WAL frames not yet reset past this many bytes mean checkpoints cannot keep
+#: up, usually because a long read holds an old snapshot.
+WAL_LARGE_BYTES = 4_000_000_000
+#: A staged generation (derivation_building) not advanced for this long is
+#: an orphan: nothing is finishing it (D-0217).
+BUILDING_ORPHAN_SECONDS = 86400
+#: Up to this many orphans are named.
+BUILDING_LINES = 5
+#: Partial generations with no building row (maintain's count) above this
+#: are named: nothing collects them before phase 4 (D-0217).
+INCOMPLETE_GENERATIONS = 3
+#: WAL header magic numbers (either checksum byte order).
+WAL_MAGIC = (0x377F0682, 0x377F0683)
 #: The headroom swingset-backup-room in nix/module.nix keeps free beside a
 #: new checkpoint. While a backup runs, [disk-low] fires only below it.
 BACKUP_HEADROOM_BYTES = 20_000_000_000
@@ -102,17 +160,18 @@ _LOGGED = re.compile(r"^(\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ) \[([a-z0-9-]+)\] ?(.*)
 # A unit is ready when its latest attempt is absent or succeeded, a retry was
 # requested after it, or it is transient/interrupted and its retry time has
 # come. This mirrors state/attempts.eligible without the input fingerprint
-# test, which needs the package. A code-scope or environment accept and a
-# replay epoch queue hints for the units they make stale (state/work.
-# affected_work, derivations.bump_replay), so those show here; a unit made
-# stale only by a new upstream generation is still missed, so the check errs
-# toward silence. A re-queue moves `enqueued_at`
-# (state/work.enqueue), so churn that re-queues every ready unit of a stage
-# restarts that stage's clock. project/history is paced by
-# history_interval_seconds (D-0199), so it has a stage of its own,
-# HISTORY, clocked from when it came due; the link units that wait for it
-# are handled in _link_clock.
-_READY = """
+# test, which needs the package. A unit whose work-queue row waits for input,
+# is quarantined, or backs off to a later time is not ready (D-0216). A
+# code-scope or environment accept and a replay epoch queue hints for the
+# units they make stale (state/work.affected_work, derivations.bump_replay),
+# so those show here; a unit made stale only by a new upstream generation is
+# still missed, so the check errs toward silence. A re-queue moves
+# `enqueued_at` (state/work.enqueue), so churn that re-queues every ready unit
+# of a stage restarts that stage's clock. project/history is paced by
+# history_interval_seconds (D-0199), so it has a stage of its own, HISTORY,
+# clocked from when it came due; the link units that wait for it are handled
+# in _link_clock.
+_READY_33 = """
 SELECT p.stage, p.unit_kind, p.enqueued_at, a.outcome, a.retry_at,
     coalesce(g.retry_generation, 0) > a.retry_generation
 FROM pending_work p
@@ -122,6 +181,14 @@ LEFT JOIN work_attempts a ON a.attempt_id = (
     WHERE w.stage = p.stage AND w.unit_kind = p.unit_kind AND w.unit_id = p.unit_id
     ORDER BY w.attempt_id DESC LIMIT 1)
 """
+_READY = (
+    _READY_33
+    + """LEFT JOIN work_queue q
+    ON q.stage = p.stage AND q.unit_kind = p.unit_kind AND q.unit_id = p.unit_id
+WHERE q.state IS NULL OR q.state = 'leased'
+    OR (q.state = 'ready' AND (q.next_attempt_at IS NULL OR q.next_attempt_at <= :now))
+"""
+)
 #: The stage name project/history units are counted and reported under.
 HISTORY = "project/history"
 #: The kinds whose new generation makes a unit of each kind re-run with a
@@ -160,6 +227,38 @@ QUERIES: dict[str, str] = {
     "issued": "SELECT max(issued_at) FROM scheduler_requests",
     "stored": "SELECT max(fetched_at) FROM snapshots",
     "ready": _READY,
+    # Before schema 34, which has no work queue.
+    "ready_33": _READY_33,
+    "queue_table": "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'work_queue'",
+    # Units quarantined since :since (a queue timestamp, state/queue.at).
+    "quarantined": "SELECT stage, unit_kind, unit_id, attempts, error_class, last_error "
+    "FROM work_queue WHERE state = 'quarantined' AND quarantined_at > :since "
+    "ORDER BY quarantined_at, stage, unit_kind, unit_id",
+    # Leases that ended before :since and were never closed or taken over.
+    "lease_stuck": "SELECT stage, unit_kind, unit_id, lease_owner, lease_until FROM work_queue "
+    "WHERE state = 'leased' AND lease_until < :since ORDER BY lease_until",
+    "guard_table": "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'guard_reasons'",
+    # Guards still seen after their expiry, and seen since :since (a queue
+    # timestamp). Watch rows are counted only (swingset.state.guards).
+    "guard_expired": "SELECT subject, reason, since, expires_at FROM guard_reasons "
+    "WHERE subject NOT LIKE 'watch:%' AND last_seen_at > expires_at AND last_seen_at > :since "
+    "ORDER BY expires_at, subject, reason",
+    "guard_counts": "SELECT reason, count(*) FROM guard_reasons GROUP BY reason "
+    "ORDER BY count(*) DESC, reason",
+    "loop_state_table": "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'loop_state'",
+    # When each loop last made progress (loops/runtime.py; ISO stamps).
+    "loop_progress": "SELECT loop, last_progress_at FROM loop_state",
+    # Host and acquire guards seen since :since: acquisition is held on purpose.
+    "guards_recent": "SELECT count(*) FROM guard_reasons WHERE last_seen_at > :since "
+    "AND (subject LIKE 'host:%' OR subject = 'loop:acquire')",
+    "plan_table": "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'acquisition_plan'",
+    # When the plan loop last wrote a row (loops/plan.py; an ISO stamp).
+    "plan_newest": "SELECT max(planned_at) FROM acquisition_plan",
+    "building_table": "SELECT 1 FROM sqlite_master WHERE type = 'table' "
+    "AND name = 'derivation_building'",
+    # Every staged generation; the table holds a handful of rows at most.
+    "building": "SELECT stage, unit_kind, unit_id, rows_stored, label_rows, updated_at "
+    "FROM derivation_building ORDER BY updated_at, stage, unit_kind, unit_id",
     "stage_attempt": "SELECT finished_at FROM work_attempts "
     "WHERE stage = :stage AND outcome = 'succeeded' ORDER BY attempt_id DESC LIMIT 1",
     "stage_generation": "SELECT created_at FROM derivation_generations "
@@ -256,16 +355,6 @@ QUERIES: dict[str, str] = {
     # When project/history last succeeded, output or not.
     "history_attempt": "SELECT finished_at FROM work_attempts WHERE stage = 'project' "
     "AND unit_kind = 'history' AND outcome = 'succeeded' ORDER BY attempt_id DESC LIMIT 1",
-    # Queued units whose newest finished attempt failed for an unexpected
-    # reason, and the newest finished attempts of one unit.
-    "unit_failed": "SELECT p.stage, p.unit_kind, p.unit_id FROM pending_work p "
-    "JOIN work_attempts a ON a.attempt_id = (SELECT attempt_id FROM work_attempts w "
-    "WHERE w.stage = p.stage AND w.unit_kind = p.unit_kind AND w.unit_id = p.unit_id "
-    "AND w.finished_at IS NOT NULL ORDER BY w.attempt_id DESC LIMIT 1) "
-    "WHERE a.outcome = 'transient' ORDER BY 1, 2, 3",
-    "unit_attempts": "SELECT outcome, reason_code, finished_at FROM work_attempts "
-    "WHERE stage = :stage AND unit_kind = :kind AND unit_id = :unit "
-    "AND finished_at IS NOT NULL ORDER BY attempt_id DESC LIMIT :limit",
     "budgets": "SELECT host, requests, bytes FROM host_budget WHERE day = :day ORDER BY host",
     # fetch/politeness.py pauses a host whose spacing is unknown: a NULL gap,
     # or no spacing row although the host has spent budget before.
@@ -330,8 +419,25 @@ def _parser() -> argparse.ArgumentParser:
         "--timer-active",
         type=int,
         choices=(0, 1),
-        required=True,
-        help="1 when swingset-cycle.timer is active",
+        help="1 when swingset-cycle.timer is active; required without --loops 1",
+    )
+    parser.add_argument(
+        "--loops",
+        type=int,
+        choices=(0, 1),
+        default=0,
+        help="1 when the five loop timers run instead of the cycle (loops.enable)",
+    )
+    parser.add_argument(
+        "--timers-inactive",
+        default="",
+        help="with --loops 1, comma-separated loops whose swingset-<loop>.timer is not active",
+    )
+    parser.add_argument(
+        "--wal-large",
+        type=int,
+        default=WAL_LARGE_BYTES,
+        help="alert when state.sqlite-wal holds more bytes of frames not yet reset",
     )
     parser.add_argument(
         "--backup-failed",
@@ -395,9 +501,21 @@ def _at(stamp: float) -> str:
     return datetime.fromtimestamp(stamp, UTC).strftime("%Y-%m-%d %H:%M UTC")
 
 
+def _queue_at(stamp: float) -> str:
+    """A work-queue timestamp (swingset.state.queue.at): text order is time order."""
+    return (
+        datetime.fromtimestamp(stamp, UTC).isoformat(timespec="microseconds").replace("+00:00", "Z")
+    )
+
+
 def _duration(seconds: float) -> str:
     minutes = int(seconds // 60)
     return f"{minutes // 60} h {minutes % 60} m"
+
+
+def _span(seconds: int) -> str:
+    """A window: whole minutes under two hours, else whole hours."""
+    return f"{seconds // 60} minutes" if seconds < 7200 else f"{seconds // 3600} h"
 
 
 class Checks:
@@ -617,30 +735,6 @@ def _history_clock(
     return (started if progress is None else max(progress, started)), note
 
 
-def _failing(attempts: list[tuple[str, str | None, str | None]], now: float) -> bool:
-    """Whether a unit's newest finished attempts, newest first, fail every retry.
-
-    The last UNIT_FAILING_ATTEMPTS failed the same way, for a reason not
-    retried by design. An I/O error counts once it repeats: all of the last
-    IO_ERROR_ATTEMPTS, or an unbroken run whose oldest attempt is older than
-    IO_ERROR_SECONDS.
-    """
-    run = []
-    for outcome, reason, finished in attempts:
-        if outcome != "transient" or reason != attempts[0][1]:
-            break
-        run.append(finished)
-    if len(run) < UNIT_FAILING_ATTEMPTS:
-        return False
-    reason = attempts[0][1]
-    if reason == "unit_io_error":
-        oldest = run[-1]
-        return len(run) >= IO_ERROR_ATTEMPTS or (
-            oldest is not None and now - _ts(oldest) > IO_ERROR_SECONDS
-        )
-    return reason not in EXPECTED_RETRIES
-
-
 def _read_facts(
     db: sqlite3.Connection,
     now: float,
@@ -725,10 +819,17 @@ def _read_facts(
     if rows is not None:
         facts["equivalence_rows"], facts["source_equivalence_rows"] = rows
 
+    queued = bool(checks.run("queue", lambda: _one(db, "queue_table"), None))
+
     def ready() -> tuple[Counter[str], dict[str, float]]:
         counted: Counter[str] = Counter()
         oldest: dict[str, float] = {}
-        for stage, kind, enqueued, outcome, retry_at, retried in db.execute(QUERIES["ready"]):
+        rows = (
+            db.execute(QUERIES["ready"], {"now": _queue_at(now)})
+            if queued
+            else db.execute(QUERIES["ready_33"])
+        )
+        for stage, kind, enqueued, outcome, retry_at, retried in rows:
             if stage == "project" and kind == "history":
                 stage = HISTORY
             if paced and stage == "project" and kind in PACED_BY_INVENTORY:
@@ -837,22 +938,87 @@ def _read_facts(
         facts["progress"] = clocks
         facts["progress_notes"] = notes
 
-    def unit_failing() -> list[tuple[str, str]]:
-        # Every retry of such a unit is `transient` with a clock, so no two
-        # failing cycles are consecutive and [cycles-failing] never sees it.
-        found: list[tuple[str, str]] = []
-        for stage, kind, unit in db.execute(QUERIES["unit_failed"]).fetchall():
-            attempts = db.execute(
-                QUERIES["unit_attempts"],
-                {"stage": stage, "kind": kind, "unit": unit, "limit": IO_ERROR_ATTEMPTS},
-            ).fetchall()
-            if _failing(attempts, now):
-                found.append((f"{stage}/{kind}/{unit}", str(attempts[0][1])))
-        return found
-
-    failed_units = checks.run("unit-failing", unit_failing, [])
-    if failed_units:
-        facts["unit_failing"] = failed_units
+    if queued:
+        quarantined = checks.run(
+            "unit-quarantined",
+            lambda: [
+                tuple(row)
+                for row in db.execute(
+                    QUERIES["quarantined"], {"since": _queue_at(now - QUARANTINE_WINDOW)}
+                )
+            ],
+            [],
+        )
+        if quarantined:
+            facts["quarantined"] = quarantined
+        stuck = checks.run(
+            "lease-stuck",
+            lambda: [
+                tuple(row)
+                for row in db.execute(
+                    QUERIES["lease_stuck"], {"since": _queue_at(now - LEASE_STUCK_SECONDS)}
+                )
+            ],
+            [],
+        )
+        if stuck:
+            facts["lease_stuck"] = stuck
+    if checks.run("guards", lambda: _one(db, "guard_table"), None):
+        expired = checks.run(
+            "guard-expired",
+            lambda: [
+                tuple(row)
+                for row in db.execute(
+                    QUERIES["guard_expired"], {"since": _queue_at(now - GUARD_SEEN_WINDOW)}
+                )
+            ],
+            [],
+        )
+        if expired:
+            facts["guard_expired"] = expired
+        counts = checks.run(
+            "guard-counts",
+            lambda: [
+                (str(reason), int(count)) for reason, count in db.execute(QUERIES["guard_counts"])
+            ],
+            [],
+        )
+        if counts:
+            facts["guard_counts"] = counts
+        recent_guards = checks.run(
+            "guards-recent",
+            lambda: _one(db, "guards_recent", since=_queue_at(now - LOOP_IDLE["acquire"])),
+            None,
+        )
+        if recent_guards is not None:
+            facts["guards_recent"] = int(recent_guards)
+    if checks.run("loop-state", lambda: _one(db, "loop_state_table"), None):
+        progress = checks.run(
+            "loop-progress",
+            lambda: {
+                str(loop): (_ts(str(stamp)) if stamp else None)
+                for loop, stamp in db.execute(QUERIES["loop_progress"])
+            },
+            None,
+        )
+        if progress is not None:
+            facts["loop_progress"] = progress
+    if checks.run("plan", lambda: _one(db, "plan_table"), None):
+        planned = checks.run("plan-stale", lambda: _newest(_one(db, "plan_newest")), None)
+        if planned is not None:
+            facts["planned"] = planned
+    if checks.run("building", lambda: _one(db, "building_table"), None):
+        orphans = checks.run(
+            "building-orphans",
+            lambda: [
+                tuple(row)
+                for row in db.execute(QUERIES["building"])
+                if now - _ts(row[5]) > BUILDING_ORPHAN_SECONDS
+            ],
+            [],
+        )
+        if orphans:
+            facts["building_orphans"] = orphans
     day = datetime.fromtimestamp(now, UTC).date().isoformat()
     facts["budgets"] = checks.run(
         "budgets",
@@ -950,9 +1116,9 @@ def _tree_bytes(path: str, skip: frozenset[str] = frozenset()) -> int:
 def _records(state: str) -> list[dict[str, Any]]:
     """The last three cycle records, oldest first.
 
-    A backup, gc or other command writes a record with a `command` field; a
-    cycle's summary has none. Those records must neither reset
-    `[cycles-failing]` nor hold `[cycles-quiet]` back.
+    A backup, gc or other command writes a record with a `command` field, and
+    a loop tick one with `loop`; a cycle's summary has neither. Those records
+    must neither reset `[cycles-failing]` nor hold `[cycles-quiet]` back.
     """
     runs = sorted(glob.glob(os.path.join(state, "runs", "run_*.json")), key=os.path.getmtime)
     records: list[dict[str, Any]] = []
@@ -962,19 +1128,181 @@ def _records(state: str) -> list[dict[str, Any]]:
                 record = json.load(handle)
         except Exception:
             continue
-        if isinstance(record, dict) and record.get("command", "cycle") == "cycle":
+        if (
+            isinstance(record, dict)
+            and record.get("command", "cycle") == "cycle"
+            and not record.get("loop")
+        ):
             records.append(record)
             if len(records) == 3:
                 break
     return records[::-1]
 
 
+class LoopRecords(NamedTuple):
+    """What the loop checks read from the newest run records."""
+
+    #: When each loop's newest tick finished.
+    newest: dict[str, float]
+    #: Each loop's newest ticks that were not skipped, up to LOOP_FAILING,
+    #: newest first.
+    recent: dict[str, list[dict[str, Any]]]
+    #: When the oldest loop tick read finished: no loop missing from `newest`
+    #: ticked since. Older than the longest quiet window when loop ticks run
+    #: back past it.
+    earliest: float | None
+    #: Each loop's newest record, skipped or not.
+    latest: dict[str, dict[str, Any]] = {}
+
+
+def _deferred_only(record: dict[str, Any]) -> bool:
+    """A release tick that only waited for its build interval or backlog.
+
+    It attempted no build or correction, so it neither breaks nor extends a
+    run of failed builds (`[loop-failing]`).
+    """
+    return (
+        record.get("loop") == "release"
+        and bool(record.get("build_deferred"))
+        and not record.get("build_attempted")
+        and not record.get("failed")
+        and not record.get("error")
+    )
+
+
+def _loop_records(state: str, now: float) -> LoopRecords:
+    """The newest loop tick records, read newest first by mtime.
+
+    Reading stops once every loop has LOOP_FAILING ticks that were not
+    skipped, at the first record older than the longest quiet window, or
+    after LOOP_RECORDS files. A record that cannot be read or has a bad stamp
+    is skipped: its loop's own ticks decide.
+    """
+    horizon = now - max(LOOP_QUIET.values())
+    runs = sorted(
+        (
+            (os.path.getmtime(path), path)
+            for path in glob.glob(os.path.join(state, "runs", "run_*.json"))
+        ),
+        reverse=True,
+    )
+    newest: dict[str, float] = {}
+    latest: dict[str, dict[str, Any]] = {}
+    recent: dict[str, list[dict[str, Any]]] = {name: [] for name in LOOP_QUIET}
+    earliest: float | None = None
+    for mtime, path in runs[:LOOP_RECORDS]:
+        try:
+            with open(path) as handle:
+                record = json.load(handle)
+            loop = record.get("loop") if isinstance(record, dict) else None
+            finished = _ts(record["finished_at"]) if loop in LOOP_QUIET else None
+        except Exception:
+            continue
+        if finished is not None:
+            earliest = finished if earliest is None else min(earliest, finished)
+            if finished >= newest.get(loop, finished):
+                latest[loop] = record
+            newest[loop] = max(finished, newest.get(loop, finished))
+            if (
+                not record.get("skipped")
+                and not _deferred_only(record)
+                and len(recent[loop]) < LOOP_FAILING
+            ):
+                recent[loop].append(record)
+        if mtime < horizon:
+            break
+        if len(newest) == len(LOOP_QUIET) and all(
+            len(rows) == LOOP_FAILING for rows in recent.values()
+        ):
+            break
+    return LoopRecords(newest, recent, earliest, latest)
+
+
+def _wal_bytes(state: str) -> tuple[int, int] | None:
+    """Bytes of WAL frames not yet reset, and the WAL file's size.
+
+    SQLite never shrinks the WAL file here (no journal_size_limit), so its
+    size is a high-water mark. After a checkpoint the next writer restarts
+    the log from the top with new salts, and the frames that carry the
+    header's salts are a prefix; a binary search finds its end.
+    """
+    path = os.path.join(state, "state.sqlite-wal")
+    try:
+        size = os.stat(path).st_size
+    except FileNotFoundError:
+        return None
+    with open(path, "rb") as handle:
+        header = handle.read(32)
+        if len(header) < 32:
+            return 0, size
+        magic, _version, page_size = struct.unpack(">III", header[:12])
+        if magic not in WAL_MAGIC or page_size < 512:
+            return size, size
+        frame = page_size + 24
+
+        def current(index: int) -> bool:
+            handle.seek(32 + index * frame + 8)
+            return handle.read(8) == header[16:24]
+
+        low, high = 0, (size - 32) // frame
+        while low < high:
+            middle = (low + high) // 2
+            if current(middle):
+                low = middle + 1
+            else:
+                high = middle
+    return 32 + low * frame, size
+
+
+def _deadline_firings(state: str, now: float) -> dict[str, list[dict[str, Any]]]:
+    """Run records finished in the window whose writes hit the deadline, by loop.
+
+    A cycle's record names no loop; a loop's names its own. The newest
+    records come first; reading stops at the first one older than the window.
+    """
+    runs = sorted(
+        glob.glob(os.path.join(state, "runs", "run_*.json")), key=os.path.getmtime, reverse=True
+    )
+    fired: dict[str, list[dict[str, Any]]] = {}
+    for path in runs[:WRITE_DEADLINE_RECORDS]:
+        try:
+            with open(path) as handle:
+                record = json.load(handle)
+            finished = _ts(record["finished_at"])
+        except Exception:
+            # A bad record or stamp is [cycles-quiet]'s news, not this check's.
+            continue
+        if now - finished > WRITE_DEADLINE_WINDOW:
+            break
+        count = record.get("write_deadline_fired")
+        if isinstance(count, int) and count > 0:
+            fired.setdefault(str(record.get("loop") or "cycle"), []).append(record)
+    return fired
+
+
 def main(argv: list[str]) -> list[str]:
-    args = _parser().parse_args(argv)
+    parser = _parser()
+    args = parser.parse_args(argv)
+    loops = args.loops == 1
+    inactive = [name for name in args.timers_inactive.split(",") if name]
+    if not loops and args.timer_active is None:
+        parser.error("--timer-active is required without --loops 1")
+    if not set(inactive) <= set(LOOP_QUIET):
+        parser.error(f"--timers-inactive names unknown loops: {args.timers_inactive}")
     state = args.state
     now = _ts(args.now) if args.now else time.time()
     checks = Checks()
-    records: list[dict[str, Any]] = checks.run("runs", lambda: _records(state), [])
+    no_loops = LoopRecords({}, {name: [] for name in LOOP_QUIET}, None)
+    ticks: LoopRecords = (
+        checks.run("loop-records", lambda: _loop_records(state, now), no_loops)
+        if loops
+        else no_loops
+    )
+    # With the loops on, the cycle records are history: the cycle checks go
+    # quiet, and [replay-loop] and [report-failing] read derive's ticks.
+    records: list[dict[str, Any]] = [] if loops else checks.run("runs", lambda: _records(state), [])
+    reported = ticks.recent["derive"][::-1] if loops else records
+    noun = "derive ticks" if loops else "cycles"
     limits = checks.run("config", lambda: _config(args.config), Limits({}, {}, None))
     facts = _read_db(state, now, checks, limits)
     alerts: list[tuple[str, str]] = []
@@ -985,6 +1313,9 @@ def main(argv: list[str]) -> list[str]:
         "state-size": max(args.repeat, DAY),
         "size-cap-near": max(args.repeat, DAY),
         "equivalences": max(args.repeat, DAY),
+        "unit-quarantined": QUARANTINE_WINDOW,
+        "write-deadline": WRITE_DEADLINE_WINDOW,
+        "guards": max(args.repeat, DAY),
     }
 
     def failing() -> None:
@@ -1007,9 +1338,9 @@ def main(argv: list[str]) -> list[str]:
         # that kind or of a kind it reads, is two kinds replaying each other,
         # which burns CPU while every unit succeeds. Unrelated generations,
         # such as a dancer change every cycle, do not hide it.
-        if len(records) < 3:
+        if len(reported) < 3:
             return
-        progress = [r.get("derivation") for r in records]
+        progress = [r.get("derivation") for r in reported]
         if not all(isinstance(item, dict) for item in progress):
             return
         written = set().union(*(set(item.get("generations") or {}) for item in progress))
@@ -1021,7 +1352,7 @@ def main(argv: list[str]) -> list[str]:
             alerts.append(
                 (
                     "replay-loop",
-                    f"replay epochs moved in each of the last three cycles with no new"
+                    f"replay epochs moved in each of the last three {noun} with no new"
                     f" generation that explains them: {', '.join(looping)}",
                 )
             )
@@ -1036,7 +1367,7 @@ def main(argv: list[str]) -> list[str]:
         broken = sorted(
             {
                 key
-                for record in records
+                for record in reported
                 if "readiness_errors" in record
                 for key in (
                     *(f"{name}_error" for name in CYCLE_REPORTS if f"{name}_error" in record),
@@ -1048,7 +1379,7 @@ def main(argv: list[str]) -> list[str]:
             latest = next(
                 (
                     str(record.get(key))
-                    for record in reversed(records)
+                    for record in reversed(reported)
                     for key in broken
                     if record.get(key)
                 ),
@@ -1057,9 +1388,10 @@ def main(argv: list[str]) -> list[str]:
             alerts.append(
                 (
                     "report-failing",
-                    f"cycle reports failed in the last three cycles ({', '.join(broken)})"
+                    f"{noun[:-1] if loops else 'cycle'} reports failed in the last three"
+                    f" {noun} ({', '.join(broken)})"
                     + (f"; latest: {latest[:200]}" if latest else "")
-                    + "; [replay-loop] cannot see those cycles",
+                    + f"; [replay-loop] cannot see those {noun}",
                 )
             )
 
@@ -1113,7 +1445,16 @@ def main(argv: list[str]) -> list[str]:
                 " review it or record why it stays (docs/guides/operation.md, holds)",
             )
         )
-    if not held and args.timer_active == 0:
+    if not held and loops and inactive:
+        timers = ", ".join(f"swingset-{name}.timer" for name in inactive)
+        alerts.append(
+            (
+                "timer-inactive",
+                f"{timers} not active and nothing holds the worker;"
+                " start the timers or write operator-hold",
+            )
+        )
+    elif not held and not loops and args.timer_active == 0:
         alerts.append(
             (
                 "timer-inactive",
@@ -1121,7 +1462,110 @@ def main(argv: list[str]) -> list[str]:
                 " start the timer or write operator-hold",
             )
         )
-    watching = not held and args.timer_active == 1
+    watching = not held and not loops and args.timer_active == 1
+    # Fetching and derive each stop with their own timer.
+    fetching = watching or (not held and loops and "acquire" not in inactive)
+    deriving = watching or (not held and loops and "derive" not in inactive)
+
+    def loop_failing() -> None:
+        for name in LOOP_QUIET:
+            rows = ticks.recent[name]
+            if len(rows) == LOOP_FAILING and all(r.get("failed") or r.get("error") for r in rows):
+                reason = next(
+                    (
+                        str(rows[0][key])
+                        for key in ("error", "build_error", "correction_error")
+                        if rows[0].get(key)
+                    ),
+                    "no error named, see its run record",
+                )
+                alerts.append(
+                    (
+                        "loop-failing",
+                        f"{name}: the last {LOOP_FAILING} ticks failed; latest: {reason[:160]}",
+                    )
+                )
+
+    def loop_quiet() -> None:
+        if args.backup_active:
+            # A backup holds the state exclusive: every loop's tick skips
+            # before writing a record until it ends; [backup-*] watch it.
+            return
+        for name, limit in LOOP_QUIET.items():
+            if name in inactive:
+                continue
+            finished = ticks.newest.get(name)
+            if finished is not None:
+                if now - finished > limit:
+                    alerts.append(
+                        (
+                            "loop-quiet",
+                            f"{name}: no tick has finished since {_at(finished)}, over"
+                            f" {_span(limit)} while unheld",
+                        )
+                    )
+            elif ticks.earliest is not None and now - ticks.earliest > limit:
+                alerts.append(
+                    (
+                        "loop-quiet",
+                        f"{name}: no tick on record since {_at(ticks.earliest)}, over"
+                        f" {_span(limit)} while unheld",
+                    )
+                )
+
+    def loop_idle() -> None:
+        progress: dict[str, float | None] = facts.get("loop_progress", {})
+        windows = dict(LOOP_IDLE)
+        released = ticks.latest.get("release") or {}
+        interval = released.get("build_interval_seconds")
+        windows["release"] = (
+            int(interval) if isinstance(interval, int) else BUILD_INTERVAL_SECONDS
+        ) + RELEASE_IDLE_SLACK
+        waiting = sum(ready.values())
+        for name, limit in windows.items():
+            if name in inactive:
+                continue
+            if name == "acquire" and facts.get("guards_recent", 0):
+                continue
+            if name == "derive" and not waiting:
+                continue
+            if name == "release" and released.get("build_deferred") == "interval":
+                # A build (or a reuse, which is no progress) is inside its interval.
+                continue
+            if name not in progress:
+                # No tick has written loop_state yet: [loop-quiet] watches it.
+                continue
+            # A loop that ticked but never progressed is judged from the
+            # oldest tick record read.
+            since = progress[name] if progress[name] is not None else ticks.earliest
+            if since is not None and now - since > limit:
+                alerts.append(
+                    (
+                        "loop-idle",
+                        f"{name}: no progress since {_at(since)}, over {_span(limit)} while"
+                        " unheld; its ticks finish but do nothing (read its run records)",
+                    )
+                )
+
+    def plan_stale() -> None:
+        planned = facts.get("planned")
+        if planned is not None and now - planned > PLAN_STALE_SECONDS:
+            alerts.append(
+                (
+                    "plan-stale",
+                    f"the newest acquisition_plan row was planned at {_at(planned)}, over"
+                    f" {PLAN_STALE_SECONDS // 3600} h ago; acquire offers only planned pages",
+                )
+            )
+
+    ready: Counter[str] = facts.get("ready", Counter())
+    if loops:
+        checks.run("loop-failing", loop_failing, None)
+        if not held:
+            checks.run("loop-quiet", loop_quiet, None)
+            checks.run("loop-idle", loop_idle, None)
+            if "plan" not in inactive:
+                checks.run("plan-stale", plan_stale, None)
 
     def quiet() -> None:
         finished = records[-1].get("finished_at") if records else None
@@ -1137,8 +1581,7 @@ def main(argv: list[str]) -> list[str]:
 
     if watching:
         checks.run("cycles-quiet", quiet, None)
-    ready: Counter[str] = facts.get("ready", Counter())
-    if watching and "requested" in facts:
+    if fetching and "requested" in facts:
         age = now - facts["requested"]
         if age > args.stale_fetch:
             # A host that spent its daily request or byte budget stops by
@@ -1170,7 +1613,7 @@ def main(argv: list[str]) -> list[str]:
                         f"; {ready['parse']} parse units wait, backpressure may be holding requests"
                     )
                 alerts.append(("stale-fetch", text))
-    if watching:
+    if deriving:
         notes = facts.get("progress_notes", {})
         stalled = [
             f"{stage} {_duration(now - clock)} with {ready[stage]} ready"
@@ -1202,15 +1645,131 @@ def main(argv: list[str]) -> list[str]:
             for host, reason, streak, until in facts["failing"]
         )
         alerts.append(("host-failing", f"hosts answering only 429 or 5xx: {hosts}"))
-    if facts.get("unit_failing"):
-        units = facts["unit_failing"]
-        named = ", ".join(f"{unit} ({reason})" for unit, reason in units[:5])
-        more = f" and {len(units) - 5} more" if len(units) > 5 else ""
+    # One line per quarantined unit, or one line by class for a storm (F15).
+    # A quarantine stops the unit's retries, so no cycle fails for it again.
+    quarantined = facts.get("quarantined", [])
+    if 0 < len(quarantined) <= QUARANTINE_LINES:
+        for stage, kind, unit, tries, failure, error in quarantined:
+            alerts.append(
+                (
+                    "unit-quarantined",
+                    f"{stage}/{kind}/{unit} after {tries} x {failure}: {(error or '')[:120]}",
+                )
+            )
+    elif quarantined:
+        classes = Counter(str(row[4]) for row in quarantined)
         alerts.append(
             (
-                "unit-failing",
-                f"{len(units)} queued units failed their last {UNIT_FAILING_ATTEMPTS} attempts"
-                f" for the same reason: {named}{more}",
+                "unit-quarantined",
+                f"{len(quarantined)} units quarantined: "
+                + ", ".join(f"{name} x {count}" for name, count in classes.most_common()),
+            )
+        )
+    if facts.get("lease_stuck"):
+        rows = facts["lease_stuck"]
+        named = ", ".join(
+            f"{stage}/{kind}/{unit} ({owner}, until {_utc(until)})"
+            for stage, kind, unit, owner, until in rows[:5]
+        )
+        more = f" and {len(rows) - 5} more" if len(rows) > 5 else ""
+        alerts.append(
+            (
+                "lease-stuck",
+                f"{len(rows)} work-queue leases ended over {LEASE_STUCK_SECONDS // 60} minutes"
+                f" ago and were not taken over: {named}{more}",
+            )
+        )
+
+    # A guard that holds fetches past its expiry and is still being met (D-0219):
+    # one line per guard, or one line by reason when many expire at once.
+    expired = facts.get("guard_expired", [])
+    if 0 < len(expired) <= GUARD_LINES:
+        for subject, reason, since, expires in expired:
+            alerts.append(
+                (
+                    "guard-expired",
+                    f"{subject} held by {reason} since {_utc(since)},"
+                    f" past its expiry at {_utc(expires)}",
+                )
+            )
+    elif expired:
+        reasons = Counter(str(row[1]) for row in expired)
+        alerts.append(
+            (
+                "guard-expired",
+                f"{len(expired)} guards past their expiry: "
+                + ", ".join(f"{name} x {count}" for name, count in reasons.most_common()),
+            )
+        )
+    if facts.get("guard_counts"):
+        counts = facts["guard_counts"]
+        alerts.append(
+            (
+                "guards",
+                f"{sum(count for _, count in counts)} guard rows: "
+                + ", ".join(f"{reason} x {count}" for reason, count in counts),
+            )
+        )
+
+    def write_deadline() -> None:
+        # Every write is small by construction (I2); the 60 s alarm firing
+        # means one was not, and its unit rolled back (D-0217).
+        for name, rows in sorted(_deadline_firings(state, now).items()):
+            latest = rows[0]
+            total = sum(int(row["write_deadline_fired"]) for row in rows)
+            longest = max(float(row.get("write_seconds_max") or 0) for row in rows)
+            alerts.append(
+                (
+                    "write-deadline",
+                    f"{name}: {total} writes cut off at the deadline in {len(rows)} runs in the"
+                    f" last {WRITE_DEADLINE_WINDOW // 3600} h, latest {latest.get('run_id')};"
+                    f" longest write {longest:.0f} s",
+                )
+            )
+
+    checks.run("write-deadline", write_deadline, None)
+
+    def wal_large() -> None:
+        found = _wal_bytes(state)
+        if found is not None and found[0] > args.wal_large:
+            live, size = found
+            alerts.append(
+                (
+                    "wal-large",
+                    f"state.sqlite-wal holds {live / 1e9:.1f} GB of frames not yet reset"
+                    f" (file {size / 1e9:.1f} GB), over {args.wal_large / 1e9:.1f} GB:"
+                    " checkpoints are not keeping up, usually behind a long read",
+                )
+            )
+
+    checks.run("wal-large", wal_large, None)
+    orphans = facts.get("building_orphans", [])
+    if orphans and not held:
+        named = ", ".join(
+            f"{stage}/{kind}/{unit} ({stored} of {rows if rows is not None else '?'} rows,"
+            f" last {_utc(updated)})"
+            for stage, kind, unit, stored, rows, updated in orphans[:BUILDING_LINES]
+        )
+        more = f" and {len(orphans) - BUILDING_LINES} more" if len(orphans) > BUILDING_LINES else ""
+        alerts.append(
+            (
+                "building-orphans",
+                f"{len(orphans)} staged generations not advanced for"
+                f" {BUILDING_ORPHAN_SECONDS // 3600} h: {named}{more}",
+            )
+        )
+
+    incomplete = (ticks.latest.get("maintain") or {}).get("incomplete_generations") or {}
+    if (
+        isinstance(incomplete, dict)
+        and int(incomplete.get("rows") or 0) > INCOMPLETE_GENERATIONS
+        and not held
+    ):
+        alerts.append(
+            (
+                "incomplete-generations",
+                f"{incomplete['rows']} partial generations ({incomplete.get('refs', 0)}"
+                " references) that nothing finishes or collects; see docs/reference/state.md",
             )
         )
 

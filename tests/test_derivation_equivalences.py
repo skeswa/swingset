@@ -142,6 +142,7 @@ def test_migration_from_schema_32_adds_empty_tables_and_narrows_the_trigger(
                     is None
                 )
 
+    monkeypatch.setattr(db_module, "SCHEMA_VERSION", 33)
     with open_database(state, lock=False) as database:
         conn = database.connection
         assert database.schema_version == 33
@@ -289,7 +290,10 @@ def test_only_fields_derivations_read_bump_the_source_selections_token(tmp_path:
         assert version(conn) > start
 
 
-def test_a_checkpoint_at_schema_33_verifies_and_restores(tmp_path: Path) -> None:
+def test_a_checkpoint_at_schema_33_verifies_and_restores(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(db_module, "SCHEMA_VERSION", 33)
     from swingset.backup.checkpoint import (
         create_checkpoint,
         restore_checkpoint,
@@ -334,6 +338,7 @@ def test_schema_32_code_refuses_a_schema_33_file(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     state = tmp_path / "state"
+    monkeypatch.setattr(db_module, "SCHEMA_VERSION", 33)
     with open_database(state, lock=False) as database:
         assert database.schema_version == 33
     monkeypatch.setattr(db_module, "SCHEMA_VERSION", 32)
@@ -909,7 +914,8 @@ def _watchdog_ready(conn: sqlite3.Connection) -> list[tuple[object, ...]]:
     assert spec is not None and spec.loader is not None
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
-    return list(conn.execute(module.QUERIES["ready"]))
+    # Schema 34 leaves out units waiting on a work-queue clock at :now.
+    return list(conn.execute(module.QUERIES["ready"], {"now": module._queue_at(NOW.timestamp())}))
 
 
 @pytest.mark.parametrize("drained", [False, True])
@@ -961,3 +967,215 @@ def test_a_reverted_deploy_leaves_no_hint_for_a_current_unit(tmp_path: Path, dra
         assert derivations.drop_current_hints(database, found) == 1
         assert _queued(conn) == {link}
         assert [row[:2] for row in _watchdog_ready(conn)] == [("link", "event")]
+
+
+def staged(database: Database, run_id: str, rows, *, move: bool = False) -> str:
+    """One staged completion of UNIT (WP4): step A, then pass 1, B and C."""
+    from swingset.state.work import bump_revision
+
+    conn = database.connection
+    with derivations.chunking(conn, UNIT) as chunk:
+        with database.transaction(), derivations.group(conn):
+            selection = derivations.capture(conn, UNIT, now=NOW)
+            if move:
+                bump_revision(conn, "canonical")
+            assert derivations.stage(
+                conn, selection, output=lambda reader: iter(rows), now=NOW, run_id=run_id
+            )
+        assert chunk.deferred is not None
+        return derivations.finish_building(database, chunk.deferred)
+
+
+def test_a_staged_cutoff_moves_the_replay_epoch_only_when_its_live_write_did(
+    tmp_path: Path,
+) -> None:
+    with open_database(tmp_path / "state", lock=False) as database:
+        conn = database.connection
+        run_id = database.start_run(NOW)
+        accept_runtime(database, "code-1")
+        kept = rerun(database, run_id, ROWS)
+        references = conn.execute("SELECT count(*) FROM derivation_row_refs").fetchone()[0]
+        accept_runtime(database, "code-2")
+        assert staged(database, run_id, ROWS) == kept
+        assert replay_version(conn) == 0
+        accept_runtime(database, "code-3")
+        assert staged(database, run_id, ROWS, move=True) == kept
+        assert replay_version(conn) == 1
+        assert pointer(conn) == kept
+        assert conn.execute("SELECT count(*) FROM derivation_equivalences").fetchone()[0] == 2
+        assert conn.execute("SELECT count(*) FROM derivation_row_refs").fetchone()[0] == references
+        assert conn.execute("SELECT count(*) FROM derivation_building").fetchone()[0] == 0
+        assert derivations.current(conn, UNIT)
+        # Changed output after the same checks stores a new generation.
+        accept_runtime(database, "code-4")
+        changed = [derivations.OutputRow("entries", '["e1"]', {"entry_id": "e2"})]
+        minted = staged(database, run_id, changed)
+        assert minted != kept and pointer(conn) == minted
+        assert derivations.current(conn, UNIT)
+
+
+def test_a_resumed_staged_cutoff_keeps_the_replay_bump_of_an_a_that_died(
+    tmp_path: Path,
+) -> None:
+    """A retry's own capture already sees what a killed A moved; the building
+    row's first witness still tells dependents (review finding, F2)."""
+    from swingset.state.work import bump_revision
+
+    with open_database(tmp_path / "state", lock=False) as database:
+        conn = database.connection
+        run_id = database.start_run(NOW)
+        accept_runtime(database, "code-1")
+        kept = rerun(database, run_id, ROWS)
+        accept_runtime(database, "code-2")
+        # Attempt 1: A rewrites live rows (the witnessed revision moves) and
+        # commits; the process dies before pass 1, B and C.
+        with derivations.chunking(conn, UNIT):
+            with database.transaction(), derivations.group(conn):
+                selection = derivations.capture(conn, UNIT, now=NOW)
+                bump_revision(conn, "canonical")
+                assert derivations.stage(
+                    conn, selection, output=lambda reader: iter(ROWS), now=NOW, run_id=run_id
+                )
+        assert conn.execute("SELECT count(*) FROM derivation_building").fetchone()[0] == 1
+        assert not derivations.current(conn, UNIT)
+        # Attempt 2, same inputs: its A moves nothing, and its output is kept.
+        assert staged(database, run_id, ROWS) == kept
+        assert pointer(conn) == kept
+        assert replay_version(conn) == 1
+        assert conn.execute("SELECT count(*) FROM derivation_building").fetchone()[0] == 0
+        assert derivations.current(conn, UNIT)
+
+
+def test_an_unfinished_a_for_other_inputs_moves_the_replay_epoch_and_is_collected(
+    tmp_path: Path,
+) -> None:
+    """An A whose inputs changed before C committed live rows the pointer does
+    not stand for. The unit is not current until a run settles them, and that
+    run tells dependents even when it only reuses its generation (I6)."""
+    with open_database(tmp_path / "state", lock=False) as database:
+        conn = database.connection
+        run_id = database.start_run(NOW)
+        accept_runtime(database, "code-1")
+        kept = rerun(database, run_id, ROWS)
+        accept_runtime(database, "code-2")
+        with derivations.chunking(conn, UNIT):
+            with database.transaction(), derivations.group(conn):
+                selection = derivations.capture(conn, UNIT, now=NOW)
+                assert derivations.stage(
+                    conn, selection, output=lambda reader: iter(ROWS), now=NOW, run_id=run_id
+                )
+        # The inputs go back to the pointer's own; the building row remains.
+        accept_runtime(database, "code-1")
+        assert derivations.building(conn, UNIT)
+        assert not derivations.current(conn, UNIT)
+        # A single-path run reuses the pointer's generation and moves the epoch.
+        assert rerun(database, run_id, ROWS) == kept
+        assert replay_version(conn) == 1
+        # Its derive_one then drops the orphan row, and the unit is current.
+        assert derivations.collect_orphans(database, UNIT, keep=None) == 1
+        assert not derivations.building(conn, UNIT)
+        assert derivations.current(conn, UNIT)
+
+
+#: Run in a subprocess: derive_one stages UNIT with a live-row move, then the
+#: process is SIGKILLed between A and pass 1.
+_KILL_BETWEEN_A_AND_C = """
+import os, signal, sys
+from datetime import datetime
+from pathlib import Path
+
+sys.path.insert(0, sys.argv[3])
+import swingset.project
+from test_derivation_equivalences import staging_projector
+
+from swingset.clock import FakeClock
+from swingset.fetch.archive import Archive
+from swingset.schedule.derive import derive_one
+from swingset.state import derivations
+from swingset.state.db import open_database
+from test_derivation_equivalences import UNIT
+
+swingset.project.process_unit = staging_projector(move=True)
+
+
+def die(*_args, **_kwargs):
+    os.kill(os.getpid(), signal.SIGKILL)
+
+
+derivations.finish_building = die
+state, now = Path(sys.argv[1]), datetime.fromisoformat(sys.argv[2])
+with open_database(state) as database:
+    run_id = database.start_run(now)
+    derive_one(database, Archive(state), UNIT, None, FakeClock(now), run_id)
+sys.exit(3)
+"""
+
+
+def staging_projector(*, move: bool):
+    """A project processor that stages UNIT's one row, optionally moving live rows in A."""
+
+    def project(database, unit, _bundle, clock, run_id, selection=None):
+        from swingset.state.work import bump_revision
+
+        conn = database.connection
+        with derivations.group(conn):
+            captured = derivations.capture(conn, unit, now=clock.now())
+            if move:
+                bump_revision(conn, "canonical")
+            assert derivations.stage(
+                conn, captured, output=lambda reader: iter(ROWS), now=clock.now(), run_id=run_id
+            )
+
+    return project
+
+
+def test_derive_one_killed_between_a_and_c_still_moves_the_replay_epoch(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import signal
+    import subprocess
+    import sys
+    from datetime import timedelta
+
+    import swingset.project
+    from swingset.clock import FakeClock
+    from swingset.fetch.archive import Archive
+    from swingset.schedule.derive import derive_one
+
+    state = tmp_path / "state"
+    with open_database(state) as database:
+        run_id = database.start_run(NOW)
+        accept_runtime(database, "code-1")
+        kept = rerun(database, run_id, ROWS)
+        accept_runtime(database, "code-2")
+    killed = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            _KILL_BETWEEN_A_AND_C,
+            str(state),
+            NOW.isoformat(),
+            str(Path(__file__).parent),
+        ],
+        capture_output=True,
+        text=True,
+        timeout=120,
+    )
+    assert killed.returncode == -signal.SIGKILL, killed.stderr[-2000:]
+    monkeypatch.setattr(swingset.project, "process_unit", staging_projector(move=False))
+    clock = FakeClock(NOW)
+    with open_database(state) as database:
+        conn = database.connection
+        assert conn.execute("SELECT count(*) FROM derivation_building").fetchone()[0] == 1
+        assert replay_version(conn) == 0 and pointer(conn) == kept
+        run_id = database.start_run(clock.now())
+        # The dead attempt is taken over and counted; the unit backs off.
+        held = derive_one(database, Archive(state), UNIT, None, clock, run_id)
+        assert held.reason == "process_interrupted", held
+        clock.sleep(timedelta(minutes=16).total_seconds())
+        done = derive_one(database, Archive(state), UNIT, None, clock, run_id)
+        assert not done.failed and done.reason is None, done
+        assert pointer(conn) == kept
+        # The resumed A moved nothing itself; the dead one did.
+        assert replay_version(conn) == 1
+        assert conn.execute("SELECT count(*) FROM derivation_building").fetchone()[0] == 0

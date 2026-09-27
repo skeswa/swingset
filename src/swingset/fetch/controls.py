@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import sqlite3
 from uuid import uuid4
 
 from swingset.clock import Clock
@@ -9,6 +10,7 @@ from swingset.fetch.classify import Classification
 from swingset.fetch.limits import RequestContext
 from swingset.fetch.politeness import Gate, Grant, Paused, Wait
 from swingset.schedule.fairness import record_request, request_denial
+from swingset.state.control_lock import ControlTimeout
 from swingset.state.control_scopes import for_watch
 from swingset.state.controls import ControlPaused, admission, settle
 from swingset.state.db import Database
@@ -32,7 +34,14 @@ def issue(
     sweep: bool,
     request_url: str | None = None,
     context: RequestContext | None = None,
+    run_id: str | None = None,
 ) -> tuple[Grant | Wait | Paused, str | None]:
+    """Admit, debit and record one request, or say why it waits.
+
+    ``run_id`` stamps the admission with the issuing run, so the loop's
+    recovery settles it if the process dies during the request (receipt
+    finding 3). A control or busy timeout is a wait, never a failure.
+    """
     from swingset.schedule.event_timing_observer import checkpoint, resume
 
     checkpoint()
@@ -53,6 +62,7 @@ def issue(
             action_kind="request",
             scope=scope,
             now=clock.now(),
+            run_id=run_id,
         ):
             if context:
                 reason = context.check(database.connection, request_url or "", clock.now())
@@ -109,7 +119,11 @@ def issue(
     except ControlPaused:
         resume()
         return Paused("operator"), None
-    except BaseException:
+    except ControlTimeout:
+        # Nothing was admitted: the request waits for a later pass (F7).
+        resume()
+        return Paused("control_timeout"), None
+    except BaseException as exc:
         # No HTTP call follows an unsuccessful admission commit. Roll back a
         # still-open transaction, and release only the in-memory host claim.
         # A committed debit is conservatively retained if commit acknowledgment
@@ -126,7 +140,16 @@ def issue(
                 context.uncertain_admissions += 1
             with database.transaction() as conn:
                 settle(conn, action_id, now=clock.now(), outcome="not_issued")
+        if _locked(exc):
+            # The admission's write outwaited the busy timeout: not issued.
+            resume()
+            return Paused("write_lock_timeout"), None
         raise
+
+
+def _locked(exc: BaseException) -> bool:
+    message = str(exc).lower()
+    return isinstance(exc, sqlite3.OperationalError) and ("locked" in message or "busy" in message)
 
 
 def release(

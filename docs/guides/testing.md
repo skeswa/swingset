@@ -9,6 +9,16 @@ On 2026-09-18, **989 core cases passed in 2 minutes 54 seconds wall time** on
 the development Mac; 2,039 extended cases were deselected. The
 [validation receipt](../../journal/evidence/runtime/core-test-suite-2026-09-18/receipt.json)
 pins the measured code and limits. This is a local test result, not a deployment.
+On 2026-09-27, after architecture phase 2, 1,492 core cases passed in 245 s
+(1,510 deselected), over the three-minute rule
+([maintenance item 9](../plans/README.md)). Phase 2 added seven core files,
+122 cases in about 31 s: `test_rwlock.py`, `test_work_queue.py`,
+`test_chunked_completion.py`, `test_guards.py`, `test_loops.py`,
+`test_acquisition_plan.py` and `test_loop_isolation.py`, which SIGKILLs each
+loop inside a write, acquire inside a request and one poison unit's process
+through `tests/helpers/loop_fault.py`. The review fixes brought core to
+1,537 cases in 284 s on the Mac (2026-09-28); the busy-writer publication
+test now asserts the 70 s busy timeout and holds its writers a second each.
 
 Specialist cases remain available in the extended suite. They include historical
 operation drivers, broader input matrices, detailed reporting, optimization
@@ -52,6 +62,7 @@ an external archive member; see the
 | Collection          | Actual-host budgets, spacing, pause races, archive/origin permission and restart behavior               |
 | End-to-end behavior | Real scoring pipeline, 33-page event completion, restored accounting and scheduling fairness            |
 | Crash recovery      | Before/after ten distinct durable transitions, SIGTERM, no unfinished work and verified candidate files |
+| Loops               | Lock protocol, leases and quarantine, staged generations, guards, and each loop killed mid-write        |
 
 The crash harness discovers transition ordinals from input acceptance, snapshot
 storage, parsing, projection, linking and completed builds. It asserts the

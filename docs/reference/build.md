@@ -250,6 +250,13 @@ the source admission digest, the journal digest and generation, current input
 hashes, and the identity policy version. Public assertions carry safe decision
 references and acceptance state; private reasons stay private.
 
+The cycle, or the release loop's hourly tick, starts a build
+([scheduling: loops](scheduling.md#loops)). `build_interval_seconds` admits one
+at most every 6 hours. In the release loop each build holds `heavy.lock`
+exclusive: a build peaks near 6.3 GB, so derive starts no unit until it ends
+(F10). The loop does not build with under `release_min_free_bytes` (30 GB) of
+disk free. A `BuildError` or `ClosureError` fails the tick without raising.
+
 The publication boundary repeats the correction, closure, and file checks in
 a short admission transaction. Semantic-write fences protect the remote commit;
 no SQLite write transaction is held during the network request. Changed or

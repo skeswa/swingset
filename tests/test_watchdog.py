@@ -4,7 +4,7 @@ import os
 import sqlite3
 import subprocess
 import sys
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from types import ModuleType
 
@@ -15,6 +15,7 @@ from swingset.cli import HOLD_OVERDUE_SECONDS
 from swingset.config import load_config
 from swingset.state.db import open_database
 from swingset.state.retention import SIZE_CAP_REASON
+from swingset.state.work import WorkUnit
 
 SCRIPT = Path(__file__).resolve().parents[1] / "nix" / "watchdog.py"
 NOW = "2026-09-25T16:10:00+00:00"
@@ -116,6 +117,10 @@ CREATE TABLE host_budget (host TEXT, day TEXT, requests INTEGER NOT NULL DEFAULT
     bytes INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(host, day));
 CREATE TABLE hosts (host TEXT PRIMARY KEY, paused_until TEXT, pause_reason TEXT,
     pause_streak INTEGER NOT NULL DEFAULT 0);
+CREATE TABLE work_queue (stage TEXT, unit_kind TEXT, unit_id TEXT, state TEXT NOT NULL,
+    attempts INTEGER NOT NULL DEFAULT 0, error_class TEXT, last_error TEXT, lease_owner TEXT,
+    lease_until TEXT, next_attempt_at TEXT, quarantined_at TEXT,
+    PRIMARY KEY(stage, unit_kind, unit_id));
 """
 
 
@@ -353,6 +358,8 @@ def test_every_query_runs_against_the_real_schema(tmp_path: Path) -> None:
                         "limit": 3,
                         "day": "2026-09-25",
                         "streak": 4,
+                        "now": "2026-09-25T16:10:00.000000Z",
+                        "since": "2026-09-25T14:10:00.000000Z",
                     },
                 ).fetchall(),
                 list,
@@ -376,7 +383,7 @@ def test_the_script_reads_the_shipped_config_as_the_package_does() -> None:
         if (budget := config.host(host).daily_byte_budget) is not None
     }
     assert limits.bytes == {"danceconvention.net": 300_000_000}
-    assert limits.size_cap == config.retention.max_database_bytes == 64_000_000_000
+    assert limits.size_cap == config.retention.max_database_bytes == 72_000_000_000
 
 
 @pytest.mark.parametrize("near", [False, True])
@@ -993,75 +1000,159 @@ def test_a_runnable_event_stalls_while_the_inventory_is_current(tmp_path: Path) 
     assert _keys(lines) == ["stale-progress"]
 
 
+def _failures(state: Path, unit: WorkUnit, reasons: list[str], *, minutes_ago: int = 10) -> None:
+    """Record failures through the package's queue policy on the real schema."""
+    from datetime import timedelta
+
+    from swingset.state import queue
+
+    moment = datetime.fromisoformat(NOW) - timedelta(minutes=minutes_ago)
+    with open_database(state, lock=False) as database, database.transaction() as conn:
+        for reason in reasons:
+            name, _, exception = reason.partition(":")
+            queue.fail(
+                conn,
+                unit,
+                reason=name,
+                exception=exception or None,
+                fingerprint="fp",
+                now=moment,
+                error="boom",
+            )
+
+
+EVENT_A = WorkUnit("project", "event", "event-a")
+
+
 @pytest.mark.parametrize(
     "reasons, alerts",
     [
-        # Three retries in a row failed the same way: the unit never heals.
-        (["unit_exception"] * 3, ["unit-failing"]),
-        (["nondeterministic_output"] * 3, ["unit-failing"]),
-        # Two are not yet a pattern; mixed reasons are not one failure.
-        (["unit_exception"] * 2, []),
-        (["unit_exception", "write_deadline_exceeded", "unit_exception"], []),
-        # Retried by design, but an I/O error hours apart is not passing.
-        (["unit_io_error"] * 3, ["unit-failing"]),
+        # Three failures of one class quarantine the unit: one line names it.
+        (["unit_exception:ValueError"] * 3, ["unit-quarantined"]),
+        (["nondeterministic_output"] * 3, ["unit-quarantined"]),
+        # Two are not yet a pattern; alternating classes are not one failure.
+        (["unit_exception:ValueError"] * 2, []),
+        (["unit_exception:ValueError", "write_deadline_exceeded"] * 3, []),
+        (["unit_exception:ValueError", "unit_exception:KeyError"] * 3, []),
+        # Retried by design: an I/O error needs twenty, an unknown page kind waits.
+        (["unit_io_error"] * 3, []),
         (["unsupported_page_kind"] * 3, []),
     ],
 )
-def test_a_unit_failing_every_retry_alerts(
+def test_a_quarantined_unit_alerts_once(
     tmp_path: Path, reasons: list[str], alerts: list[str]
 ) -> None:
-    state = State(tmp_path).fetched(NOW)
-    # Retries hours apart, each on its own clock, between healthy cycles.
-    for hour, reason in enumerate(reasons):
-        state.attempt(
-            "event-a",
-            "transient",
-            stage="project",
-            kind="event",
-            finished=f"2026-09-25T{hour * 6:02d}:00:00+00:00",
-            retry_at="2026-09-25T23:00:00+00:00",
-            reason=reason,
-        )
-    state.pending("event-a", stage="project", kind="event", enqueued=NOW)
-    state.close()
+    _failures(tmp_path, EVENT_A, reasons)
     lines = _run(tmp_path)
     assert _keys(lines) == alerts
     if alerts:
-        assert "project/event/event-a" in lines[0]
+        assert lines[0].startswith("[unit-quarantined] project/event/event-a after 3 x ")
+        assert lines[0].endswith(": boom")
+        # Logged once: the same line is held back for the whole window.
+        _log(tmp_path, "2026-09-25T16:10:00Z " + lines[0])
+        assert _run(tmp_path, now="2026-09-25T17:30:00+00:00") == []
+    # A quarantine older than the window is not news any more.
+    assert _run(tmp_path, now="2026-09-25T18:05:00+00:00") == []
 
 
-@pytest.mark.parametrize("tries, alerts", [(3, []), (19, []), (20, ["unit-failing"])])
-def test_an_io_error_alerts_once_it_keeps_repeating(
-    tmp_path: Path, tries: int, alerts: list[str]
-) -> None:
+@pytest.mark.parametrize("tries, alerts", [(3, []), (19, []), (20, ["unit-quarantined"])])
+def test_an_io_error_quarantines_at_twenty(tmp_path: Path, tries: int, alerts: list[str]) -> None:
     """An I/O error retries in a minute by design; one that fails every retry
-    (a corrupt blob, a permission error) sets no failed=true, so only this
-    line names it (I3, I4)."""
-    state = State(tmp_path).fetched(NOW)
-    for minute in range(tries):
-        state.attempt(
-            "snap",
-            "transient",
-            stage="parse",
-            kind="snapshot",
-            finished=f"2026-09-25T15:{30 + minute:02d}:00+00:00",
-            reason="unit_io_error",
+    (a corrupt blob, a permission error) is quarantined at twenty (D-0216)."""
+    _failures(tmp_path, WorkUnit("parse", "snapshot", "snap"), ["unit_io_error"] * tries)
+    lines = _run(tmp_path)
+    assert _keys(lines) == alerts
+    if alerts:
+        assert "parse/snapshot/snap after 20 x unit_io_error" in lines[0]
+
+
+def test_a_quarantine_storm_is_one_line_by_class(tmp_path: Path) -> None:
+    for number in range(6):
+        _failures(
+            tmp_path, WorkUnit("link", "event", f"e{number}"), ["unit_exception:TypeError"] * 3
         )
-    state.pending("snap", stage="parse", kind="snapshot", enqueued=NOW)
-    state.close()
-    assert _keys(_run(tmp_path)) == alerts
+    _failures(tmp_path, WorkUnit("project", "event", "x"), ["write_deadline_exceeded"] * 3)
+    lines = _run(tmp_path)
+    assert lines == [
+        "[unit-quarantined] 7 units quarantined: unit_exception:TypeError x 6,"
+        " write_deadline_exceeded x 1"
+    ]
 
 
 def test_a_unit_that_succeeded_after_failing_does_not_alert(tmp_path: Path) -> None:
-    state = State(tmp_path).fetched(NOW)
-    for _ in range(3):
-        state.attempt(
-            "event-a", "transient", stage="project", kind="event", reason="unit_exception"
-        )
-    state.attempt("event-a", "succeeded", stage="project", kind="event")
-    state.pending("event-a", stage="project", kind="event", enqueued=NOW)
-    state.close()
+    from swingset.state import queue
+
+    _failures(tmp_path, EVENT_A, ["unit_exception:ValueError"] * 2)
+    with open_database(tmp_path, lock=False) as database, database.transaction() as conn:
+        queue.succeed(conn, EVENT_A)
     assert _run(tmp_path) == []
+
+
+@pytest.mark.parametrize("minutes, alerts", [(9, []), (11, ["lease-stuck"])])
+def test_a_lease_long_past_its_end_alerts(tmp_path: Path, minutes: int, alerts: list[str]) -> None:
+    from datetime import timedelta
+
+    from swingset.state import queue
+
+    until = datetime.fromisoformat(NOW) - timedelta(minutes=minutes)
+    with open_database(tmp_path, lock=False) as database, database.transaction() as conn:
+        queue.upsert(
+            conn,
+            queue.QueueRow(
+                stage="project",
+                unit_kind="event",
+                unit_id="e1",
+                partition="event/e1",
+                state="leased",
+                attempts=0,
+                error_class=None,
+                input_fingerprint=None,
+                lease_owner="derive:run_1",
+                lease_until=queue.at(until),
+                next_attempt_at=None,
+                last_reason=None,
+                last_error=None,
+                enqueued_at=queue.at(until),
+                updated_at=queue.at(until),
+                quarantined_at=None,
+            ),
+        )
+    lines = _run(tmp_path)
+    assert _keys(lines) == alerts
+    if alerts:
+        assert "project/event/e1 (derive:run_1, until 2026-09-25 15:59 UTC)" in lines[0]
+
+
+@pytest.mark.parametrize(
+    "state, next_attempt, alerts",
+    [
+        ("waiting_input", "2026-09-26T00:00:00.000000Z", []),
+        ("quarantined", "2026-10-02T00:00:00.000000Z", []),
+        ("ready", "2026-09-25T18:00:00.000000Z", []),
+        ("ready", "2026-09-25T12:00:00.000000Z", ["stale-progress"]),
+        ("ready", None, ["stale-progress"]),
+    ],
+)
+def test_units_waiting_on_a_queue_clock_are_not_ready(
+    tmp_path: Path, state: str, next_attempt: str | None, alerts: list[str]
+) -> None:
+    """A unit that waits for input, is quarantined or backs off is no stall."""
+    db = _stalled(tmp_path)
+    db.sql(
+        "INSERT INTO work_queue(stage,unit_kind,unit_id,state,next_attempt_at)"
+        " VALUES ('link','event','e1',?,?)",
+        state,
+        next_attempt,
+    )
+    db.close()
+    assert _keys(_run(tmp_path, stale_fetch=86400)) == alerts
+
+
+def test_ready_units_are_counted_before_schema_34(tmp_path: Path) -> None:
+    db = _stalled(tmp_path)
+    db.sql("DROP TABLE work_queue")
+    db.close()
+    assert _keys(_run(tmp_path, stale_fetch=86400)) == ["stale-progress"]
 
 
 def test_state_over_its_size_alert_alerts_without_counting_checkpoints(tmp_path: Path) -> None:
@@ -1551,6 +1642,60 @@ def test_a_database_read_that_fails_twice_is_blind(tmp_path: Path) -> None:
     )
 
 
+def test_a_write_deadline_firing_in_a_run_record_alerts_by_loop(tmp_path: Path) -> None:
+    """The 60 s alarm should never fire (D-0217): any run that saw it is named."""
+    _write_runs(
+        tmp_path,
+        # Older than two hours: not news any more.
+        {"run_id": "old", "finished_at": "2026-09-25T13:00:00+00:00", "write_deadline_fired": 4},
+        {
+            "run_id": "c1",
+            "finished_at": "2026-09-25T15:00:00+00:00",
+            "write_deadline_fired": 1,
+            "write_seconds_max": 60.4,
+        },
+        {"run_id": "c2", "finished_at": "2026-09-25T15:30:00+00:00", "write_deadline_fired": 0},
+        {
+            "run_id": "d1",
+            "loop": "derive",
+            "finished_at": "2026-09-25T16:00:00+00:00",
+            "write_deadline_fired": 2,
+            "write_seconds_max": 61.2,
+        },
+        {"run_id": "b1", "command": "backup", "finished_at": "2026-09-25T16:05:00+00:00"},
+    )
+    lines = [line for line in _run(tmp_path) if line.startswith("[write-deadline]")]
+    assert lines == [
+        "[write-deadline] cycle: 1 writes cut off at the deadline in 1 runs in the last 2 h,"
+        " latest c1; longest write 60 s",
+        "[write-deadline] derive: 2 writes cut off at the deadline in 1 runs in the last 2 h,"
+        " latest d1; longest write 61 s",
+    ]
+    # Each line logs once for the window; a new firing changes the text.
+    _log(tmp_path, *(f"2026-09-25T16:10:00Z {line}" for line in lines))
+    later = [
+        line
+        for line in _run(tmp_path, now="2026-09-25T16:40:00+00:00")
+        if line.startswith("[write-deadline]")
+    ]
+    assert later == []
+    # Two hours after the last firing the check is quiet.
+    assert not [
+        line
+        for line in _run(tmp_path, now="2026-09-25T18:30:00+00:00")
+        if line.startswith("[write-deadline]")
+    ]
+
+
+def test_run_records_without_firings_do_not_alert(tmp_path: Path) -> None:
+    _write_runs(
+        tmp_path,
+        {"run_id": "r1", "finished_at": NOW, "write_deadline_fired": 0},
+        {"run_id": "r2", "finished_at": NOW},
+    )
+    assert _run(tmp_path) == []
+
+
 def test_a_run_record_that_is_not_an_object_is_skipped(tmp_path: Path) -> None:
     _write_runs(tmp_path, {"run_id": "r1", "finished_at": NOW})
     (tmp_path / "runs" / "run_9999.json").write_text("[1, 2]")
@@ -1973,3 +2118,553 @@ def test_the_inventory_wait_lifts_on_a_calendar_replay_or_generation(tmp_path: P
         assert stalled()
         equivalence(1, "2026-09-25T13:50:00+00:00")
         assert not stalled()
+
+
+def _guard(tmp_path: Path, subject: str, reason: str, *, seen: str, expires: str) -> None:
+    from swingset.state import guards
+
+    with open_database(tmp_path, lock=False) as database, database.transaction() as conn:
+        guards.upsert(
+            conn,
+            guards.GuardRow(
+                subject, reason, "cycle", "2026-09-25T10:00:00.000000Z", seen, expires, 3
+            ),
+        )
+
+
+@pytest.mark.parametrize(
+    "seen, expires, alerts",
+    [
+        # Seen after its expiry and within the last two hours.
+        ("2026-09-25T16:00:00.000000Z", "2026-09-25T11:00:00.000000Z", ["guard-expired"]),
+        # Not yet expired.
+        ("2026-09-25T16:00:00.000000Z", "2026-09-25T17:00:00.000000Z", []),
+        # Stale: last seen over two hours ago, so it cleared or is no longer tried.
+        ("2026-09-25T14:00:00.000000Z", "2026-09-25T11:00:00.000000Z", []),
+        # Expired since it was last seen: not held past its clock.
+        ("2026-09-25T15:30:00.000000Z", "2026-09-25T15:45:00.000000Z", []),
+    ],
+)
+def test_a_guard_seen_past_its_expiry_alerts(
+    tmp_path: Path, seen: str, expires: str, alerts: list[str]
+) -> None:
+    """D-0219: a reason still met after its clock ran out."""
+    _guard(tmp_path, "host:a.test", "legacy request spacing unknown", seen=seen, expires=expires)
+    lines = _run(tmp_path)
+    assert _keys(lines) == [*alerts, "guards"]
+    if alerts:
+        assert lines[0] == (
+            "[guard-expired] host:a.test held by legacy request spacing unknown since"
+            " 2026-09-25 10:00 UTC, past its expiry at 2026-09-25 11:00 UTC"
+        )
+    assert lines[-1] == "[guards] 1 guard rows: legacy request spacing unknown x 1"
+
+
+def test_a_watch_guard_is_counted_never_alarmed(tmp_path: Path) -> None:
+    _guard(
+        tmp_path,
+        "watch:w1",
+        "robots disallow",
+        seen="2026-09-25T16:00:00.000000Z",
+        expires="2026-09-25T11:00:00.000000Z",
+    )
+    assert _run(tmp_path) == ["[guards] 1 guard rows: robots disallow x 1"]
+
+
+def test_many_expired_guards_are_one_line_and_the_count_is_daily(tmp_path: Path) -> None:
+    for index in range(6):
+        _guard(
+            tmp_path,
+            f"host:h{index}.test",
+            "request budget" if index % 2 else "Throttled",
+            seen="2026-09-25T16:00:00.000000Z",
+            expires="2026-09-25T11:00:00.000000Z",
+        )
+    lines = _run(tmp_path)
+    assert lines == [
+        "[guard-expired] 6 guards past their expiry: Throttled x 3, request budget x 3",
+        "[guards] 6 guard rows: Throttled x 3, request budget x 3",
+    ]
+    _log(tmp_path, *(f"2026-09-25T10:00:00Z {line}" for line in lines))
+    # Each line waits out its window: the count a day, the same text --repeat.
+    assert _run(tmp_path) == [lines[0]]
+    assert _run(tmp_path, repeat=86400) == []
+
+
+# The loop checks (services.swingset.loops.enable, D-0215).
+
+LOOPS = ("acquire", "plan", "derive", "release", "maintain")
+
+
+def _loops(
+    state: Path,
+    *,
+    inactive: str = "",
+    now: str = NOW,
+    extra: list[str] | None = None,
+) -> list[str]:
+    """The watchdog as the loops-on wrapper runs it: no --timer-active."""
+    result: list[str] = watchdog.main(
+        [
+            *(extra or []),
+            "--state",
+            str(state),
+            "--loops",
+            "1",
+            f"--timers-inactive={inactive}",
+            *ARGS[:8],
+            "--disk-min-free",
+            "1",
+            "--now",
+            now,
+        ]
+    )
+    return result
+
+
+def _ticks(state: Path, *records: dict[str, object]) -> None:
+    """Loop tick records, each file's mtime at its finish as the runtime writes it."""
+    runs = state / "runs"
+    runs.mkdir(parents=True, exist_ok=True)
+    for index, record in enumerate(records):
+        record = {"run_id": f"run_{index:04d}", "failed": False, **record}
+        path = runs / f"{record['run_id']}.json"
+        path.write_text(json.dumps(record))
+        stamp = datetime.fromisoformat(str(record["finished_at"])).timestamp()
+        os.utime(path, (stamp, stamp))
+
+
+def _fresh(**finished: str) -> list[dict[str, object]]:
+    """One tick of each loop, at the times given or at 16:05."""
+    return [
+        {"loop": name, "finished_at": finished.get(name, "2026-09-25T16:05:00+00:00")}
+        for name in LOOPS
+        if finished.get(name) != "none"
+    ]
+
+
+def _real(state: Path) -> None:
+    with open_database(state, lock=False):
+        pass
+
+
+def _plan(state: Path, planned_at: str) -> None:
+    from swingset.state import acquisition_plan
+
+    with open_database(state, lock=False) as database, database.transaction() as conn:
+        acquisition_plan.upsert(
+            conn,
+            acquisition_plan.PlanRow(
+                acquisition_plan.year_key(2026), "year", "eligible", planned_at, "run_1", year=2026
+            ),
+        )
+
+
+def test_healthy_loops_on_the_real_schema_print_nothing(tmp_path: Path) -> None:
+    _plan(tmp_path, "2026-09-25T15:40:00+00:00")
+    _ticks(tmp_path, *_fresh())
+    assert _loops(tmp_path) == []
+    # With the loops off the same records are not cycles: none has finished.
+    assert _run(tmp_path, quiet=60) == []
+
+
+@pytest.mark.parametrize(
+    "loop, finished, alerts",
+    [
+        ("derive", "2026-09-25T15:41:00+00:00", []),
+        ("derive", "2026-09-25T15:39:00+00:00", ["loop-quiet"]),
+        ("plan", "2026-09-25T14:11:00+00:00", []),
+        ("plan", "2026-09-25T14:09:00+00:00", ["loop-quiet"]),
+        ("release", "2026-09-25T12:09:00+00:00", ["loop-quiet"]),
+        ("maintain", "2026-09-24T14:11:00+00:00", []),
+    ],
+)
+def test_a_loop_with_no_tick_for_three_intervals_is_quiet(
+    tmp_path: Path, loop: str, finished: str, alerts: list[str]
+) -> None:
+    _real(tmp_path)
+    _ticks(tmp_path, *_fresh(**{loop: finished}))
+    lines = _loops(tmp_path)
+    assert _keys(lines) == alerts
+    if alerts:
+        assert lines[0].startswith(f"[loop-quiet] {loop}: no tick has finished since")
+    # An inactive timer names itself instead; a hold silences both.
+    assert _keys(_loops(tmp_path, inactive=loop)) == ["timer-inactive"]
+    (tmp_path / "operator-hold").touch()
+    assert _loops(tmp_path, inactive=loop) == []
+    assert _loops(tmp_path) == []
+
+
+def test_the_quiet_line_names_the_last_tick_and_holds_its_text(tmp_path: Path) -> None:
+    _real(tmp_path)
+    _ticks(tmp_path, *_fresh(derive="2026-09-25T15:00:00+00:00"))
+    lines = _loops(tmp_path)
+    assert lines == [
+        "[loop-quiet] derive: no tick has finished since 2026-09-25 15:00 UTC,"
+        " over 30 minutes while unheld"
+    ]
+    _log(tmp_path, f"2026-09-25T16:10:00Z {lines[0]}")
+    assert _loops(tmp_path, now="2026-09-25T16:30:00+00:00") == []
+    # Cycle mode never reads loop ticks for this.
+    (tmp_path / "ALERTS.log").unlink()
+    assert "loop-quiet" not in _keys(_run(tmp_path))
+
+
+def test_a_loop_that_never_ticked_is_quiet_once_the_others_ran_past_its_window(
+    tmp_path: Path,
+) -> None:
+    _real(tmp_path)
+    # Loops switched on an hour ago: maintain has not had its first 03:30.
+    _ticks(tmp_path, {"loop": "acquire", "finished_at": "2026-09-25T15:10:00+00:00"})
+    _ticks(tmp_path, *_fresh(maintain="none"))
+    assert _loops(tmp_path) == []
+    # Ticks run back past maintain's 26 hours with no maintain tick among them.
+    old = {"run_id": "run_old", "loop": "acquire", "finished_at": "2026-09-24T12:00:00+00:00"}
+    _ticks(tmp_path, old)
+    assert _loops(tmp_path) == [
+        "[loop-quiet] maintain: no tick on record since 2026-09-24 12:00 UTC,"
+        " over 26 h while unheld"
+    ]
+
+
+def test_three_failed_ticks_of_one_loop_alert_even_when_held(tmp_path: Path) -> None:
+    _real(tmp_path)
+    _ticks(
+        tmp_path,
+        *_fresh(release="none"),
+        {"loop": "release", "finished_at": "2026-09-25T13:20:00+00:00", "failed": True},
+        {
+            "loop": "release",
+            "finished_at": "2026-09-25T14:20:00+00:00",
+            "failed": True,
+            "build_error": "BuildError: closure",
+        },
+        # A skip is neither a failure nor a success.
+        {"loop": "release", "finished_at": "2026-09-25T15:00:00+00:00", "skipped": "heavy_busy"},
+        {
+            "loop": "release",
+            "finished_at": "2026-09-25T15:20:00+00:00",
+            "failed": True,
+            "build_error": "BuildError: disk full",
+        },
+    )
+    expected = ["[loop-failing] release: the last 3 ticks failed; latest: BuildError: disk full"]
+    assert _loops(tmp_path) == expected
+    (tmp_path / "operator-hold").touch()
+    assert _loops(tmp_path) == expected
+    # Cycle mode reads cycle records only.
+    assert "loop-failing" not in _keys(_run(tmp_path))
+
+
+def test_a_success_among_the_last_three_ticks_does_not_alert(tmp_path: Path) -> None:
+    _real(tmp_path)
+    failed = {"loop": "derive", "failed": True, "error": "OperationalError: locked"}
+    _ticks(
+        tmp_path,
+        *_fresh(),
+        {**failed, "finished_at": "2026-09-25T16:06:00+00:00"},
+        {"loop": "derive", "finished_at": "2026-09-25T16:07:00+00:00"},
+        {**failed, "finished_at": "2026-09-25T16:08:00+00:00"},
+    )
+    assert _loops(tmp_path) == []
+
+
+@pytest.mark.parametrize(
+    "planned, alerts",
+    [("2026-09-25T14:11:00+00:00", []), ("2026-09-25T14:09:00+00:00", ["plan-stale"])],
+)
+def test_a_plan_older_than_two_hours_alerts_with_the_loops_on(
+    tmp_path: Path, planned: str, alerts: list[str]
+) -> None:
+    _plan(tmp_path, planned)
+    _ticks(tmp_path, *_fresh())
+    lines = _loops(tmp_path)
+    assert _keys(lines) == alerts
+    if alerts:
+        assert lines[0] == (
+            "[plan-stale] the newest acquisition_plan row was planned at 2026-09-25 14:09 UTC,"
+            " over 2 h ago; acquire offers only planned pages"
+        )
+    # The cycle does not plan; a held or stopped plan is not stale.
+    assert _run(tmp_path) == []
+    assert _keys(_loops(tmp_path, inactive="plan")) == ["timer-inactive"]
+    (tmp_path / "operator-hold").touch()
+    assert _loops(tmp_path) == []
+
+
+def test_inactive_loop_timers_are_named_and_stop_only_their_own_stall_check(
+    tmp_path: Path,
+) -> None:
+    _stalled(tmp_path).close()
+    _ticks(tmp_path, *_fresh())
+    assert _keys(_loops(tmp_path)) == ["stale-fetch", "stale-progress"]
+    lines = _loops(tmp_path, inactive="acquire,release")
+    assert _keys(lines) == ["timer-inactive", "stale-progress"]
+    assert lines[0] == (
+        "[timer-inactive] swingset-acquire.timer, swingset-release.timer not active and nothing"
+        " holds the worker; start the timers or write operator-hold"
+    )
+    assert _keys(_loops(tmp_path, inactive="derive")) == ["timer-inactive", "stale-fetch"]
+
+
+def test_the_loop_arguments_are_checked(tmp_path: Path) -> None:
+    with pytest.raises(SystemExit):
+        watchdog.main(["--state", str(tmp_path), *ARGS[:-2]])
+    with pytest.raises(SystemExit):
+        _loops(tmp_path, inactive="cycle")
+
+
+def test_replay_and_report_checks_read_derive_ticks_with_the_loops_on(tmp_path: Path) -> None:
+    _real(tmp_path)
+    derivation = {
+        "generations": {},
+        "equivalences": {},
+        "replay_bumps": {"project/event": 1, "project/source_event": 1},
+    }
+    derive = {"loop": "derive", "readiness_errors": {}, "derivation": derivation}
+    _ticks(
+        tmp_path,
+        *_fresh(),
+        *({**derive, "finished_at": f"2026-09-25T16:0{minute}:00+00:00"} for minute in (6, 7, 8)),
+    )
+    assert _loops(tmp_path) == [
+        "[replay-loop] replay epochs moved in each of the last three derive ticks with no new"
+        " generation that explains them: project/event, project/source_event"
+    ]
+    _ticks(
+        tmp_path,
+        {
+            "run_id": "run_x",
+            "loop": "derive",
+            "finished_at": "2026-09-25T16:09:00+00:00",
+            "readiness_errors": {},
+            "derivation_error": "OperationalError: locked",
+        },
+    )
+    assert _keys(_loops(tmp_path)) == ["report-failing"]
+    assert _loops(tmp_path)[0].startswith(
+        "[report-failing] derive tick reports failed in the last three derive ticks"
+    )
+
+
+def _wal(state: Path) -> sqlite3.Connection:
+    """A live WAL of about 400 KB that nothing has checkpointed."""
+    _real(state)
+    db = sqlite3.connect(state / "state.sqlite")
+    db.execute("PRAGMA wal_autocheckpoint = 0")
+    db.execute("CREATE TABLE filler (x BLOB)")
+    for _ in range(100):
+        db.execute("INSERT INTO filler VALUES (randomblob(4000))")
+        db.commit()
+    return db
+
+
+def test_a_large_wal_alerts_in_both_modes_and_a_reset_one_does_not(tmp_path: Path) -> None:
+    db = _wal(tmp_path)
+    try:
+        live, size = watchdog._wal_bytes(str(tmp_path))
+        assert live == size > 400_000
+        limit = ["--wal-large", "300000"]
+        assert _keys(_run(tmp_path, extra=limit)) == ["wal-large"]
+        (tmp_path / "operator-hold").touch()
+        lines = _loops(tmp_path, extra=limit)
+        assert _keys(lines) == ["wal-large"]
+        assert lines[0].startswith("[wal-large] state.sqlite-wal holds 0.0 GB of frames")
+        # A checkpoint, then a write: the log restarts at the top and the file
+        # keeps its size, which no longer counts.
+        assert db.execute("PRAGMA wal_checkpoint(PASSIVE)").fetchone()[0] == 0
+        db.execute("INSERT INTO filler VALUES (1)")
+        db.commit()
+        live, after = watchdog._wal_bytes(str(tmp_path))
+        assert after == size and live < 50_000
+        assert _run(tmp_path, extra=limit) == []
+    finally:
+        db.close()
+
+
+@pytest.mark.parametrize(
+    "updated, alerts",
+    [("2026-09-24T16:11:00+00:00", []), ("2026-09-24T16:09:00+00:00", ["building-orphans"])],
+)
+def test_a_staged_generation_idle_for_a_day_alerts_in_both_modes(
+    tmp_path: Path, updated: str, alerts: list[str]
+) -> None:
+    _real(tmp_path)
+    with open_database(tmp_path, lock=False) as database, database.transaction() as conn:
+        conn.execute(
+            "INSERT INTO derivation_building(generation_id,stage,unit_kind,unit_id,"
+            "input_fingerprint,label_rows,rows_stored,run_id,started_at,updated_at) "
+            "VALUES ('g1','project','history','all','f',12000,5000,'run_1',?,?)",
+            (updated, updated),
+        )
+    _ticks(tmp_path, *_fresh())
+    _plan(tmp_path, "2026-09-25T16:00:00+00:00")
+    lines = _run(tmp_path)
+    assert _keys(lines) == alerts
+    assert _keys(_loops(tmp_path)) == alerts
+    if alerts:
+        assert lines[0] == (
+            "[building-orphans] 1 staged generations not advanced for 24 h:"
+            " project/history/all (5000 of 12000 rows, last 2026-09-24 16:09 UTC)"
+        )
+    (tmp_path / "operator-hold").touch()
+    assert _run(tmp_path) == []
+
+
+@pytest.mark.parametrize("rows, alerts", [(3, []), (4, ["incomplete-generations"])])
+def test_partial_generations_nothing_collects_alert_above_three(
+    tmp_path: Path, rows: int, alerts: list[str]
+) -> None:
+    _real(tmp_path)
+    maintained = {
+        "loop": "maintain",
+        "finished_at": "2026-09-25T16:06:00+00:00",
+        "incomplete_generations": {"rows": rows, "refs": 12},
+    }
+    _ticks(tmp_path, *_fresh(), maintained)
+    _plan(tmp_path, "2026-09-25T16:00:00+00:00")
+    lines = _loops(tmp_path)
+    assert _keys(lines) == alerts
+    if alerts:
+        assert lines[0].startswith("[incomplete-generations] 4 partial generations (12 references)")
+    (tmp_path / "operator-hold").touch()
+    assert _loops(tmp_path) == []
+
+
+def _progress(state: Path, **last: str | None) -> None:
+    """loop_state rows as ticks write them: each loop's last progress time."""
+    from swingset.state import loop_state
+
+    with open_database(state, lock=False) as database, database.transaction() as conn:
+        for name, stamp in last.items():
+            loop_state.upsert(
+                conn,
+                loop_state.LoopStateRow(
+                    loop=name,  # type: ignore[arg-type]
+                    updated_at="2026-09-25T16:05:00+00:00",
+                    run_id="run_x",
+                    started_at="2026-09-25T16:04:00+00:00",
+                    finished_at="2026-09-25T16:05:00+00:00",
+                    failed=0,
+                    error=None,
+                    counters_json="{}",
+                    last_progress_at=stamp,
+                ),
+            )
+
+
+@pytest.mark.parametrize(
+    "loop, last, alerts",
+    [
+        ("plan", "2026-09-25T14:11:00+00:00", []),
+        ("plan", "2026-09-25T14:09:00+00:00", ["loop-idle"]),
+        ("acquire", "2026-09-25T15:11:00+00:00", []),
+        ("acquire", "2026-09-25T15:09:00+00:00", ["loop-idle"]),
+        # Six hours of build interval plus two of slack.
+        ("release", "2026-09-25T08:11:00+00:00", []),
+        ("release", "2026-09-25T08:09:00+00:00", ["loop-idle"]),
+        # Nothing is ready, so an idle derive is healthy.
+        ("derive", "2026-09-25T10:00:00+00:00", []),
+    ],
+)
+def test_a_loop_whose_ticks_finish_without_progress_is_idle(
+    tmp_path: Path, loop: str, last: str, alerts: list[str]
+) -> None:
+    _plan(tmp_path, "2026-09-25T15:40:00+00:00")
+    _ticks(tmp_path, *_fresh())
+    fresh = "2026-09-25T16:05:00+00:00"
+    last_progress = {name: fresh for name in LOOPS if name != "maintain"}
+    _progress(tmp_path, **{**last_progress, loop: last})
+    lines = _loops(tmp_path)
+    assert _keys(lines) == alerts
+    if alerts:
+        assert lines[0].startswith(f"[loop-idle] {loop}: no progress since")
+    # A hold or a stopped timer silences it.
+    assert "loop-idle" not in _keys(_loops(tmp_path, inactive=loop))
+    (tmp_path / "operator-hold").touch()
+    assert _loops(tmp_path) == []
+
+
+def test_an_idle_acquire_held_by_a_guard_and_a_release_inside_its_interval_are_quiet(
+    tmp_path: Path,
+) -> None:
+    from swingset.state import guards, queue
+
+    _plan(tmp_path, "2026-09-25T15:40:00+00:00")
+    _ticks(
+        tmp_path,
+        *_fresh(release="none"),
+        {
+            "loop": "release",
+            "finished_at": "2026-09-25T16:05:00+00:00",
+            "build_deferred": "interval",
+            "build_interval_seconds": 21600,
+        },
+    )
+    old = "2026-09-25T01:00:00+00:00"
+    _progress(
+        tmp_path,
+        acquire=old,
+        release=old,
+        plan="2026-09-25T16:05:00+00:00",
+        derive="2026-09-25T16:05:00+00:00",
+    )
+    seen = queue.at(datetime(2026, 9, 25, 16, 0, tzinfo=UTC))
+    with open_database(tmp_path, lock=False) as database, database.transaction() as conn:
+        guards.upsert(
+            conn,
+            guards.GuardRow("host:eepro.com", "request budget", "acquire", seen, seen, seen),
+        )
+    assert "loop-idle" not in _keys(_loops(tmp_path))
+
+
+def test_derive_is_idle_only_while_ready_work_waits(tmp_path: Path) -> None:
+    _plan(tmp_path, "2026-09-25T15:40:00+00:00")
+    with open_database(tmp_path, lock=False) as database, database.transaction() as conn:
+        # One parse unit that never had an attempt: ready work.
+        conn.execute(
+            "INSERT INTO pending_work VALUES ('parse','snapshot','snap_ready',"
+            "'2026-09-25T12:00:00+00:00')"
+        )
+    _ticks(tmp_path, *_fresh())
+    fresh = "2026-09-25T16:05:00+00:00"
+    _progress(
+        tmp_path,
+        acquire=fresh,
+        plan=fresh,
+        release=fresh,
+        derive="2026-09-25T13:00:00+00:00",
+    )
+    lines = [line for line in _loops(tmp_path) if line.startswith("[loop-idle]")]
+    assert lines == [
+        "[loop-idle] derive: no progress since 2026-09-25 13:00 UTC, over 2 h while unheld;"
+        " its ticks finish but do nothing (read its run records)"
+    ]
+
+
+def test_builds_that_keep_failing_alert_through_the_deferred_ticks_between_them(
+    tmp_path: Path,
+) -> None:
+    """Release ticks hourly and builds every interval: the ticks that only
+    waited for the interval neither break nor extend a run of failed builds."""
+    _real(tmp_path)
+    failed = {"loop": "release", "failed": True, "build_error": "BuildError: killed"}
+    waited = {"loop": "release", "build_deferred": "interval"}
+    records: list[dict[str, object]] = [*_fresh(release="none")]
+    for hour in (9, 11, 13):
+        stamp = f"2026-09-25T{hour:02}:00:00+00:00"
+        records.append({**failed, "build_attempted": True, "finished_at": stamp})
+        # Five hourly-style ticks that only waited, before the next build.
+        records.extend(
+            {**waited, "finished_at": f"2026-09-25T{hour:02}:{10 * n:02}:00+00:00"}
+            for n in range(1, 6)
+        )
+    _ticks(tmp_path, *records)
+    assert _keys(_loops(tmp_path)) == ["loop-failing"]
+
+
+def test_loop_quiet_waits_for_a_running_backup(tmp_path: Path) -> None:
+    _real(tmp_path)
+    _ticks(tmp_path, *_fresh(derive="2026-09-25T15:00:00+00:00"))
+    assert _keys(_loops(tmp_path)) == ["loop-quiet"]
+    assert "loop-quiet" not in _keys(_loops(tmp_path, extra=["--backup-active", "1"]))

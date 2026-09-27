@@ -5,11 +5,13 @@ import random
 import sqlite3
 import time
 import zlib
+from collections import Counter
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from types import SimpleNamespace
+from typing import Any
 from urllib.parse import urljoin, urlsplit
 from uuid import uuid4
 
@@ -30,12 +32,18 @@ from swingset.sources.base import (
     ExtractError,
     PageKind,
 )
+from swingset.state import guards
+from swingset.state.control_lock import ControlTimeout
 from swingset.state.control_scopes import for_watch
 from swingset.state.controls import ControlPaused, operation
 from swingset.state.db import Database
 from swingset.state.verification import record_check
 
 USER_AGENT = f"swingset/{__version__} (+https://github.com/skeswa/swingset)"
+
+
+#: A fetch skipped because its control admission timed out.
+CONTROL_TIMEOUT = "control_timeout"
 
 
 class FetchDeferred(RuntimeError):
@@ -52,6 +60,73 @@ class FetchResult:
     skipped: str | None = None
 
 
+_UNKNOWN = object()
+
+
+class GuardRecorder:
+    """Why this client's fetches were held, by subject, until a pass flushes.
+
+    Every guard skip and `Paused` grant is counted by `(subject, reason)`; a
+    granted request marks its host, its watch and the loop as not held
+    (D-0219). `flush` writes them in one transaction and starts afresh.
+    """
+
+    def __init__(self, loop: str = "cycle") -> None:
+        self.loop = loop
+        self.seen: Counter[tuple[str, str]] = Counter()
+        self.until: dict[tuple[str, str], str | None] = {}
+        self.issued: set[str] = set()
+
+    def skipped(
+        self,
+        reason: str,
+        *,
+        host: str | None = None,
+        watch_id: str | None = None,
+        history: bool = False,
+        until: object = _UNKNOWN,
+    ) -> None:
+        rule = guards.rule(reason, history=history)
+        if rule is None:
+            return
+        name = guards.subject(rule.subject, host=host, watch_id=watch_id, loop=self.loop)
+        if name is None:
+            return
+        self.seen[(name, reason)] += 1
+        if until is not _UNKNOWN:
+            self.until[(name, reason)] = None if until is None else str(until)
+
+    def requested(self, *, host: str, watch_id: str | None) -> None:
+        self.issued.update(
+            name
+            for name in (
+                guards.subject("host", host=host, loop=self.loop),
+                guards.subject("watch", watch_id=watch_id, loop=self.loop),
+                guards.subject("loop", loop=self.loop),
+            )
+            if name
+        )
+
+    def flush(self, database: Database, now: datetime) -> dict[str, int]:
+        """Write and forget this pass's guards; nothing before migration 34."""
+        seen, until, issued = self.seen, self.until, self.issued
+        self.seen, self.until, self.issued = Counter(), {}, set()
+        if not guards.available(database.connection):
+            return {"recorded": 0, "cleared": 0}
+        with database.transaction() as conn:
+            return guards.flush(
+                conn, loop=self.loop, seen=seen, requested=issued, now=now, until=until
+            )
+
+
+def _pause_end(pauses: list[dict[str, object]]) -> str | None:
+    """The latest end among operator pauses, or None when one is open."""
+    ends = [pause.get("until_at") for pause in pauses]
+    if not ends or any(end is None for end in ends):
+        return None
+    return max(str(end) for end in ends)
+
+
 class FetchClient:
     def __init__(
         self,
@@ -63,8 +138,12 @@ class FetchClient:
         transport: httpx.BaseTransport | None = None,
         random_value: Callable[[], float] = random.random,
         should_stop: Callable[[], bool] = lambda: False,
+        loop: str = "cycle",
+        run_id: str | None = None,
     ) -> None:
         self.connection = connection
+        #: Stamped on request admissions without a watch's own run.
+        self.run_id = run_id
         self.config = config
         self.clock = clock
         self.archive = archive
@@ -83,6 +162,7 @@ class FetchClient:
         )
         self.random_value = random_value
         self.should_stop = should_stop
+        self.guards = GuardRecorder(loop)
 
     def close(self) -> None:
         self.http.close()
@@ -129,10 +209,12 @@ class FetchClient:
         if context and (reason := context.check(self.connection, url, self.clock.now())):
             return None, Classification(Outcome.INVALID), reason
         archive_request = urlsplit(url).hostname == "web.archive.org"
+        watch_id = getattr(watch, "watch_id", None) or None
         for hop in range(4):
             if context and (reason := context.check(self.connection, url, self.clock.now())):
                 return None, Classification(Outcome.INVALID), reason
             if reason := self._history_gate(watch, request_url=url):
+                self.guards.skipped(reason, watch_id=watch_id, history=True)
                 return None, Classification(Outcome.INVALID), reason
             host = urlsplit(url).hostname or ""
             if urlsplit(url).scheme not in ("http", "https") or not host:
@@ -161,8 +243,10 @@ class FetchClient:
                 try:
                     rules = self.robots.policy(url, get_robots)
                 except FetchDeferred as exc:
+                    # The robots request recorded its own guard.
                     return None, Classification(Outcome.INVALID), str(exc)
                 if not rules.allowed:
+                    self.guards.skipped("robots disallow", watch_id=watch_id)
                     return None, Classification(Outcome.INVALID), "robots disallow"
                 crawl_delay = rules.crawl_delay
             response: httpx.Response | None = None
@@ -170,6 +254,7 @@ class FetchClient:
             for attempt in range(4):
                 while True:
                     if reason := self._history_gate(watch, request_url=url):
+                        self.guards.skipped(reason, watch_id=watch_id, history=True)
                         return None, outcome, reason
                     if self.should_stop() or (
                         deadline is not None and self.clock.now() >= deadline
@@ -187,8 +272,10 @@ class FetchClient:
                         sweep=sweep,
                         request_url=url,
                         context=context,
+                        run_id=getattr(watch, "_origin_run_id", None) or self.run_id,
                     )
                     if isinstance(grant, Paused):
+                        self.guards.skipped(grant.reason, host=host, watch_id=watch_id)
                         return None, outcome, grant.reason
                     if isinstance(grant, Wait):
                         if (
@@ -200,6 +287,7 @@ class FetchClient:
                         continue
                     assert isinstance(grant, Grant)
                     assert action_id is not None
+                    self.guards.requested(host=host, watch_id=watch_id)
                     break
                 assert grant.debited_at is not None
                 day = grant.debited_at.date().isoformat()
@@ -373,6 +461,7 @@ class FetchClient:
         if row is None:
             raise ValueError(f"unknown watch {watch_id}")
         if not self.config.enabled(row["source"]):
+            self.guards.skipped("source disabled", watch_id=watch_id)
             return FetchResult(Classification(Outcome.INVALID), skipped="source disabled")
         if row["state"] == "sealed":
             return FetchResult(Classification(Outcome.INVALID), skipped="sealed")
@@ -388,8 +477,21 @@ class FetchClient:
                 run_id=run_id,
             ):
                 return self._fetch(watch_id, page_kind, run_id, deadline=deadline, sweep=sweep)
-        except ControlPaused:
+        except ControlPaused as exc:
+            self.guards.skipped("operator", host=host, until=_pause_end(exc.pauses))
             return FetchResult(Classification(Outcome.INVALID), skipped="operator")
+        except ControlTimeout:
+            # Another process held the control lock past the admission wait:
+            # nothing was admitted, and this request waits for a later pass (F7).
+            return FetchResult(Classification(Outcome.INVALID), skipped=CONTROL_TIMEOUT)
+
+    def _compared(self, watch_id: str) -> tuple[Any, Any, Any, Any] | None:
+        """The watch columns a fetch compares its response with, as they are now."""
+        row = self.connection.execute(
+            "SELECT body_sha256,fingerprint,extract_version,etag FROM watches WHERE watch_id=?",
+            (watch_id,),
+        ).fetchone()
+        return None if row is None else (row[0], row[1], row[2], row[3])
 
     def _fetch(
         self,
@@ -406,6 +508,7 @@ class FetchClient:
             raise ValueError(f"unknown watch {watch_id}")
         watch = SimpleNamespace(**dict(row), _origin_run_id=run_id)
         if not self.config.enabled(watch.source):
+            self.guards.skipped("source disabled", watch_id=watch_id)
             return FetchResult(Classification(Outcome.INVALID), skipped="source disabled")
         if watch.state == "sealed":
             return FetchResult(Classification(Outcome.INVALID), skipped="sealed")
@@ -413,12 +516,14 @@ class FetchClient:
         if watch.source == "steprightsolutions" and not via_archive:
             return FetchResult(Classification(Outcome.INVALID), skipped="archive required")
         if reason := self._history_gate(watch):
+            self.guards.skipped(reason, watch_id=watch_id, history=True)
             return FetchResult(Classification(Outcome.INVALID), skipped=reason)
         if via_archive:
             parsed_url = urlsplit(watch.archive_url)
             if parsed_url.scheme != "https" or parsed_url.hostname != "web.archive.org":
                 raise ValueError("archive replay URL must use https://web.archive.org")
             if reason := self._history_gate(watch):
+                self.guards.skipped(reason, watch_id=watch_id, history=True)
                 return FetchResult(Classification(Outcome.INVALID), skipped=reason)
             prior = conn.execute(
                 "SELECT 1 FROM snapshots WHERE url=? AND (archive_url=? OR requested_archive_url=?) AND http_status=200 AND classification='Ok'",
@@ -471,6 +576,14 @@ class FetchClient:
                         failure_reason="transport_failed",
                     )
             return FetchResult(outcome)
+        # Another loop may have written the watch while the request was in
+        # flight: derive's registry parse clears its body, fingerprint and
+        # validators to force a full refetch. Compare against the row as it
+        # is now, and write the validators back only if it has not moved
+        # again by the commit (D-0215: watches has two writers).
+        compared = self._compared(watch_id)
+        if compared is not None:
+            watch.body_sha256, watch.fingerprint, watch.extract_version, _ = compared
         capture_time = (
             captured_at(dict(response.headers), str(response.url)) if via_archive else now
         )
@@ -537,11 +650,12 @@ class FetchClient:
             self.archive.store_body(body)
             snapshot_id = make_snapshot_id(fetched_at, body_sha, watch_key=watch_id)
         with self.database.transaction():
+            moved = self._compared(watch_id) != compared
             conn.execute(
                 "UPDATE watches SET last_checked_at=?,ever_ok=CASE WHEN ? THEN 1 ELSE ever_ok END WHERE watch_id=?",
                 (now, response.status_code == 200, watch_id),
             )
-            if outcome.outcome == Outcome.OK:
+            if outcome.outcome == Outcome.OK and (changed or not moved):
                 conn.execute(
                     "UPDATE watches SET etag=?,last_modified=? WHERE watch_id=?",
                     (etag, last_modified, watch_id),
@@ -608,7 +722,7 @@ class FetchClient:
                         "UPDATE watches SET fingerprint=?,extract_version=? WHERE watch_id=?",
                         (extract_sha, str(page_kind.EXTRACT_VERSION), watch_id),
                     )
-            elif outcome.outcome in (Outcome.OK, Outcome.NOT_MODIFIED):
+            elif outcome.outcome in (Outcome.OK, Outcome.NOT_MODIFIED) and not moved:
                 conn.execute(
                     "UPDATE watches SET unchanged_streak=unchanged_streak+1 WHERE watch_id=?",
                     (watch_id,),

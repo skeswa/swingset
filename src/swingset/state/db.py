@@ -1,40 +1,91 @@
-"""SQLite lifecycle, migrations, process lock, and transactions."""
+"""SQLite lifecycle, migrations, process locks, and transactions."""
 
 from __future__ import annotations
 
 import contextlib
-import fcntl
 import sqlite3
+import time
 from collections.abc import Iterator
+from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 from types import TracebackType
-from typing import IO, Self
+from typing import Literal, Self
 
 from swingset.clock import Clock, SystemClock
 from swingset.model.ids import run_id as make_run_id
 
-SCHEMA_VERSION = 33
+from .rwlock import Held, LockBusy, exclusive, shared
+
+SCHEMA_VERSION = 34
+#: Seconds SQLite waits for another process's write before `database is locked`.
+#: Writes elsewhere may take up to the write bound, so this is longer (D-0215).
+BUSY_TIMEOUT_SECONDS = 70.0
+MIGRATION_PENDING = "migration pending"
 
 
 class DatabaseLockedError(RuntimeError):
-    pass
+    """The state's locks are held elsewhere; `reason` says why."""
+
+    def __init__(self, message: str, *, reason: str = "in use") -> None:
+        super().__init__(message)
+        self.reason = reason
+
+
+@dataclass
+class WriteCounters:
+    """This process's write transactions: lock waits apart from the bounded body."""
+
+    writes: int = 0
+    write_wait_seconds_total: float = 0.0
+    write_wait_seconds_max: float = 0.0
+    write_seconds_max: float = 0.0
+    write_lock_timeouts: int = 0
+
+
+_counters = WriteCounters()
+
+
+def write_counters() -> dict[str, float | int]:
+    """A copy of the process counters, rounded for a run record."""
+    values = asdict(_counters)
+    return {
+        key: round(value, 3) if isinstance(value, float) else value for key, value in values.items()
+    }
+
+
+def reset_write_counters() -> None:
+    global _counters
+    _counters = WriteCounters()
 
 
 class Database:
-    """An exclusively-owned state database.
+    """A state database and the locks its handle holds.
 
-    The lock covers the object's lifetime. SQLite still provides transactional
-    safety; the lock prevents two pipeline commands from competing semantically.
+    The locks cover the object's lifetime. `exclusive` is the one data writer
+    (the cycle and every CLI mutation); `shared` is a loop, one of several.
+    SQLite still provides transactional safety; the locks keep commands from
+    competing semantically.
     """
 
     def __init__(
-        self, state_dir: Path, connection: sqlite3.Connection, lock_file: IO[bytes] | None
+        self,
+        state_dir: Path,
+        connection: sqlite3.Connection,
+        locks: Held | None,
+        *,
+        loop: str | None = None,
     ) -> None:
         self.state_dir = state_dir
         self.connection = connection
-        self._lock_file = lock_file
+        self._locks = locks
+        self.loop = loop
         self._savepoint = 0
+
+    @property
+    def lock_mode(self) -> str | None:
+        """`exclusive`, `shared`, or None for an unlocked handle."""
+        return None if self._locks is None else self._locks.mode
 
     @property
     def schema_version(self) -> int:
@@ -49,8 +100,9 @@ class Database:
 
         Retention removal asks, because a removal that is not the one data
         writer could race a cycle that is still writing what it is removing.
+        A loop's shared lock is not the writer lock.
         """
-        return self._lock_file is not None
+        return self.lock_mode == "exclusive"
 
     @contextlib.contextmanager
     def transaction(self, *, immediate: bool = True) -> Iterator[sqlite3.Connection]:
@@ -68,25 +120,83 @@ class Database:
             else:
                 self.connection.execute(f"RELEASE {name}")
             return
-        try:
-            from .write_deadline import bounded_write
-
-            boundary = bounded_write(self.connection) if immediate else self._read_snapshot()
-            with boundary:
-                self.connection.execute("BEGIN IMMEDIATE" if immediate else "BEGIN")
-                yield self.connection
-        except BaseException:
-            self.connection.rollback()
-            raise
-        else:
+        if not immediate:
             try:
-                self.connection.commit()
+                with self._read_snapshot():
+                    self.connection.execute("BEGIN")
+                    yield self.connection
             except BaseException:
-                # A deferred constraint fails at COMMIT, and SQLite leaves the
-                # transaction open when it does. Roll it back so the failure
-                # cannot be inherited by the next caller as a savepoint.
                 self.connection.rollback()
                 raise
+            else:
+                self._commit()
+            return
+        from .write_deadline import bounded_write
+
+        # Waiting for another process's write is not this write's time: take
+        # SQLite's writer lock first, under the busy timeout, and bound only
+        # the body (D-0215).
+        waited_from = time.monotonic()
+        try:
+            self.connection.execute("BEGIN IMMEDIATE")
+        except sqlite3.OperationalError as error:
+            if "locked" in str(error) or "busy" in str(error):
+                _counters.write_lock_timeouts += 1
+            raise
+        began = time.monotonic()
+        waited = began - waited_from
+        _counters.writes += 1
+        _counters.write_wait_seconds_total += waited
+        _counters.write_wait_seconds_max = max(_counters.write_wait_seconds_max, waited)
+        try:
+            try:
+                with bounded_write(self.connection):
+                    yield self.connection
+            except BaseException:
+                self.connection.rollback()
+                raise
+            else:
+                self._commit()
+        finally:
+            _counters.write_seconds_max = max(_counters.write_seconds_max, time.monotonic() - began)
+
+    @contextlib.contextmanager
+    def reader(self) -> Iterator[sqlite3.Connection]:
+        """A second, read-only connection pinned to one committed snapshot.
+
+        It sees what was committed when it opened and nothing written after,
+        by this handle or any other. It takes no write lock, so this handle
+        can write in short transactions while it is open.
+        """
+        row = self.connection.execute("PRAGMA database_list").fetchone()
+        location = str(row[2]) if row is not None else ""
+        if not location:
+            raise ValueError("a reader needs a database file")
+        conn = sqlite3.connect(
+            Path(location).as_uri() + "?mode=ro",
+            uri=True,
+            isolation_level=None,
+            timeout=BUSY_TIMEOUT_SECONDS,
+        )
+        try:
+            conn.row_factory = sqlite3.Row
+            conn.execute("PRAGMA foreign_keys = ON")
+            conn.execute("BEGIN")
+            # The first read pins the snapshot.
+            conn.execute("SELECT count(*) FROM sqlite_master").fetchone()
+            yield conn
+        finally:
+            conn.close()
+
+    def _commit(self) -> None:
+        try:
+            self.connection.commit()
+        except BaseException:
+            # A deferred constraint fails at COMMIT, and SQLite leaves the
+            # transaction open when it does. Roll it back so the failure
+            # cannot be inherited by the next caller as a savepoint.
+            self.connection.rollback()
+            raise
 
     @contextlib.contextmanager
     def _read_snapshot(self) -> Iterator[None]:
@@ -114,9 +224,8 @@ class Database:
 
     def close(self) -> None:
         self.connection.close()
-        if self._lock_file is not None:
-            fcntl.flock(self._lock_file.fileno(), fcntl.LOCK_UN)
-            self._lock_file.close()
+        if self._locks is not None:
+            self._locks.release()
 
     def __enter__(self) -> Self:
         return self
@@ -134,12 +243,27 @@ def open_database(
     path: str | Path,
     *,
     lock: bool = True,
+    mode: Literal["exclusive", "shared"] = "exclusive",
+    loop: str | None = None,
     lock_timeout: float | None = 0,
+    busy_timeout: float = BUSY_TIMEOUT_SECONDS,
     clock: Clock | None = None,
     read_only: bool = False,
     allow_restore_pending: bool = False,
 ) -> Database:
-    """Open and migrate a state directory or explicit ``.sqlite`` path."""
+    """Open and migrate a state directory or explicit ``.sqlite`` path.
+
+    `exclusive` (the default) waits up to `lock_timeout` for the state locks
+    and migrates. `shared` is for one named loop: it never waits and never
+    migrates; an older schema raises `DatabaseLockedError` with reason
+    "migration pending" (see `open_for_loop`).
+    """
+    if mode not in {"exclusive", "shared"}:
+        raise ValueError(f"unknown lock mode: {mode}")
+    if mode == "shared" and (loop is None or not lock or read_only):
+        raise ValueError("a shared open is a loop's: it needs a loop name and the lock")
+    if mode == "exclusive" and loop is not None:
+        raise ValueError("only a shared open names a loop")
     requested = Path(path)
     db_path = requested if requested.suffix in {".sqlite", ".db"} else requested / "state.sqlite"
     state_dir = db_path.parent
@@ -147,42 +271,55 @@ def open_database(
         state_dir.mkdir(parents=True, exist_ok=True)
     if not read_only and not allow_restore_pending and (state_dir / "RESTORE_PENDING").exists():
         raise RuntimeError(f"restore verification is pending: {state_dir}")
-    lock_path = state_dir / "state.lock"
-    lock_file: IO[bytes] | None = None
+    locks: Held | None = None
     if lock:
-        lock_file = lock_path.open("a+b")
-        active_clock = clock or SystemClock()
-        started_at = active_clock.now()
-        while True:
-            try:
-                fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
-                break
-            except BlockingIOError as error:
-                if (
-                    lock_timeout is not None
-                    and (active_clock.now() - started_at).total_seconds() >= lock_timeout
-                ):
-                    lock_file.close()
-                    raise DatabaseLockedError(f"state is already in use: {state_dir}") from error
-                active_clock.sleep(0.1)
-    if read_only:
-        conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True, isolation_level=None)
-    else:
-        conn = sqlite3.connect(db_path, isolation_level=None)
-    conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA foreign_keys = ON")
-    if not read_only:
-        conn.execute("PRAGMA journal_mode = WAL")
-        conn.execute("PRAGMA synchronous = FULL")
-    database = Database(state_dir, conn, lock_file)
+        try:
+            locks = (
+                shared(state_dir, loop=loop)
+                if mode == "shared"
+                else exclusive(state_dir, timeout=lock_timeout, clock=clock)
+            )
+        except LockBusy as error:
+            raise DatabaseLockedError(str(error), reason=error.reason) from error
     try:
+        if read_only:
+            conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True, isolation_level=None)
+        else:
+            conn = sqlite3.connect(db_path, isolation_level=None, timeout=busy_timeout)
+    except BaseException:
+        if locks is not None:
+            locks.release()
+        raise
+    database = Database(state_dir, conn, locks, loop=loop)
+    try:
+        conn.row_factory = sqlite3.Row
+        conn.execute("PRAGMA foreign_keys = ON")
         if not read_only:
+            conn.execute("PRAGMA journal_mode = WAL")
+            conn.execute("PRAGMA synchronous = FULL")
+        if mode == "shared":
+            # Holding `state.lock` shared means no restore is running now.
+            if not allow_restore_pending and (state_dir / "RESTORE_PENDING").exists():
+                raise RuntimeError(f"restore verification is pending: {state_dir}")
+            current = int(conn.execute("PRAGMA user_version").fetchone()[0])
+            if current > SCHEMA_VERSION:
+                raise RuntimeError(
+                    f"database schema {current} is newer than supported {SCHEMA_VERSION}"
+                )
+            if current < SCHEMA_VERSION:
+                # Migrations need the one writer; the caller hands off.
+                raise DatabaseLockedError(
+                    f"{MIGRATION_PENDING}: schema {current} < {SCHEMA_VERSION}: {state_dir}",
+                    reason=MIGRATION_PENDING,
+                )
+            _revoke_stale_payload_removal(database)
+        elif not read_only:
             from .control_lock import control_lock
 
             with control_lock(state_dir, timeout=60 if lock_timeout is None else lock_timeout):
                 if not allow_restore_pending and (state_dir / "RESTORE_PENDING").exists():
                     raise RuntimeError(f"restore verification is pending: {state_dir}")
-                _migrate(database)
+                _migrate(database, clock=clock)
                 _revoke_stale_payload_removal(database)
     except BaseException:
         database.close()
@@ -190,7 +327,28 @@ def open_database(
     return database
 
 
-def _migrate(database: Database) -> None:
+def open_for_loop(
+    path: str | Path,
+    loop: str,
+    *,
+    clock: Clock | None = None,
+    busy_timeout: float = BUSY_TIMEOUT_SECONDS,
+) -> Database:
+    """Open shared for a loop, migrating first through one exclusive try.
+
+    A loop that loses the race to migrate, or finds a writer, raises
+    `DatabaseLockedError` and skips its tick.
+    """
+    try:
+        return open_database(path, mode="shared", loop=loop, clock=clock, busy_timeout=busy_timeout)
+    except DatabaseLockedError as error:
+        if error.reason != MIGRATION_PENDING:
+            raise
+    open_database(path, lock_timeout=0, clock=clock, busy_timeout=busy_timeout).close()
+    return open_database(path, mode="shared", loop=loop, clock=clock, busy_timeout=busy_timeout)
+
+
+def _migrate(database: Database, *, clock: Clock | None = None) -> None:
     current = int(database.connection.execute("PRAGMA user_version").fetchone()[0])
     migrations = Path(__file__).with_name("migrations")
     if current > SCHEMA_VERSION:
@@ -235,6 +393,13 @@ def _migrate(database: Database) -> None:
                 # 33 (journal/decisions/0167-intern-derivation-payloads-in-the-last-migration.md,
                 # journal/decisions/0206-add-migration-33-after-interning.md).
                 intern_derivation_payloads(conn)
+            if version == 34:
+                from .queue import seed
+
+                # Each pending unit whose last attempt failed gets its queue row,
+                # so a blocked parse waits on a clock from the first loop tick and
+                # a failing unit keeps its count, short of quarantine.
+                seed(conn, (clock or SystemClock()).now())
             if version >= 12:
                 from .publication_fence import install_publication_fences
 

@@ -137,7 +137,10 @@ def test_real_colour_rows_project_conservatively_and_preserve_registry_evidence(
     now = "2026-09-17T00:00:00+00:00"
     with open_database(tmp_path) as db:
         conn = db.connection
-        conn.execute("INSERT INTO runs VALUES ('run',?,NULL,1,NULL)", (now,))
+        conn.execute(
+            "INSERT INTO runs(run_id,started_at,finished_at,dry_run,summary_json) VALUES ('run',?,NULL,1,NULL)",
+            (now,),
+        )
 
         def evidence(payload, source, scope, ref, snapshot):
             conn.execute(

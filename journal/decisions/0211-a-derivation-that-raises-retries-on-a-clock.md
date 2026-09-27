@@ -4,7 +4,7 @@ Recorded: 2026-09-26
 Decided by: agent, 2026-09-26, under D-0175; source: phase 1 review of the [architecture plan](../../docs/plans/architecture.md) (I3)  
 Topic: Scheduling  
 Supersedes: in part, [D-0198](0198-history-no-longer-gates-acquisition-and-deadline-overruns-retry.md) (its retry clock now covers every exception, not only a deadline overrun)  
-Superseded by: —
+Superseded by: in part, [D-0216](0216-the-work-queue-leases-backs-off-and-quarantines.md) (quarantine after three failures of one class)
 
 ## Decision
 

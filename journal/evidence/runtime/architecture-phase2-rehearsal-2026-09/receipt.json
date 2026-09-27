@@ -1,0 +1,1336 @@
+{
+ "operation": "architecture phase 2 closing rehearsal (R0 to R10) of the final tree on APFS clones of the production copy, no network",
+ "actor": "claude (session claude-rearch)",
+ "at_utc": "2026-09-29T03:36:00Z",
+ "host": "Mac (15 cores, 48 GB), not the worker; project venv Python",
+ "source_copy": "~/swingset-offload/rehearsal/diag (production 2026-09-25 16:10 UTC, schema 32), never opened; clones diag-p2-F (R0, R1, R3 to R8, extra kill), F2 (R5 kill and resume), G (R2 parent), H (R0, R1, R2 final); at most two at a time; all deleted",
+ "diag_unchanged": {
+  "state_sqlite": "35195252736 bytes, mtime 2026-09-25T16:12:08Z, before and after",
+  "wal": "0 bytes, unchanged",
+  "shm": "32768 bytes, unchanged",
+  "files": 78196,
+  "listing_sha256_before_after": [
+   "764d032d6b267e26",
+   "764d032d6b267e26"
+  ]
+ },
+ "code": {
+  "parent": "0a53bd4d via git archive (src, config, overrides, pyproject.toml); py sums 720f3d0f2baa7e41",
+  "final": "working copy pyoovzkz, src snapshot 2026-09-29 00:32 UTC; py sums 6ba5e6479908537a, equal to the review's tree and to the working copy after",
+  "final2_final3": "final plus one, then two, comment lines at the end of project/history.py (R5 only: a new history fingerprint with unchanged inputs)",
+  "harness_sha256": {
+   "h2.py": "8391058ba85da7c9",
+   "r3f.py": "bcbf3b1e90ea15cc"
+  },
+  "command": "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=<tree>/src .venv/bin/python workflow/p2/h2.py <cmd> <clone> <out.json> [args]; R3 driver workflow/p2/r3f.py 150"
+ },
+ "network": "none: httpx.MockTransport answering 304 to conditional requests and 404 otherwise, after 0.2 to 1 s",
+ "caveats": [
+  "Each clone accepted the parent tree first (49 inputs, 33,903 parses and 35,801 project and link hints queued by the Mac interpreter), then the final tree. R3's derive mixed parse and project units (20,991 parse and 15,715 dancer units still pending at its end); history, inventory, map and link units did not run under concurrency. History ran in R5, exclusive.",
+  "Mac timings are lower bounds for the worker (I9).",
+  "R2 ran beside R3's first 35 minutes; G's cycle overlapped R3's first build.",
+  "The mock answers 404 with an empty body; 11 snapshots fetched that way in R7 failed to parse in the extra derive tick (a harness artifact)."
+ ],
+ "r0_migration_34": {
+  "F": {
+   "open_migrate_seconds": 75.0,
+   "foreign_key_check_seconds": 53.8,
+   "foreign_key_violations": 0,
+   "schema_before_after": [
+    33,
+    34
+   ],
+   "growth_bytes": 339968,
+   "seeded": {
+    "waiting_input:admission_needs_review": 281,
+    "waiting_input:admission_waiting_for_inputs": 8,
+    "waiting_input:parse_failed": 9,
+    "waiting_input:unsupported_page_kind": 3
+   },
+   "new_tables": {
+    "work_queue": 301,
+    "acquisition_plan": 0,
+    "guard_reasons": 0,
+    "loop_state": 0,
+    "derivation_building": 0
+   },
+   "runs_loop_column": true
+  },
+  "H": {
+   "open_migrate_seconds": 62.9,
+   "foreign_key_check_seconds": 45.4,
+   "foreign_key_violations": 0,
+   "schema_before_after": [
+    33,
+    34
+   ],
+   "growth_bytes": 339968,
+   "seeded": {
+    "waiting_input:admission_needs_review": 281,
+    "waiting_input:admission_waiting_for_inputs": 8,
+    "waiting_input:parse_failed": 9,
+    "waiting_input:unsupported_page_kind": 3
+   },
+   "new_tables": {
+    "work_queue": 301,
+    "acquisition_plan": 0,
+    "guard_reasons": 0,
+    "loop_state": 0,
+    "derivation_building": 0
+   },
+   "runs_loop_column": true
+  },
+  "parent_refuses": true,
+  "parent_error": "database schema 34 is newer than supported 33",
+  "pending_latest_outcome_before_on_F": {
+   "link:none": 94,
+   "link:succeeded": 2839,
+   "parse:blocked": 298,
+   "parse:succeeded": 33296,
+   "parse:superseded": 309,
+   "parse:transient": 3,
+   "project:succeeded": 32868
+  }
+ },
+ "r1_accept": {
+  "parent_accept_first_on_F": {
+   "seconds": 15.1,
+   "changed_count": 49,
+   "parse_enqueued": 33903
+  },
+  "F": {
+   "changed": [
+    "recipe/code/build",
+    "recipe/code/link",
+    "recipe/code/project/calendar",
+    "recipe/code/project/dancer",
+    "recipe/code/project/event",
+    "recipe/code/project/history",
+    "recipe/code/project/inventory",
+    "recipe/code/project/map",
+    "recipe/code/project/source_event",
+    "recipe/code/project/source_index",
+    "version/repository"
+   ],
+   "seconds": 5.7,
+   "parse_pending_before_after": [
+    33906,
+    33906
+   ],
+   "parse_enqueued_by_accept": 0,
+   "project_link_enqueued": 35801
+  },
+  "H": {
+   "changed": [
+    "recipe/code/build",
+    "recipe/code/link",
+    "recipe/code/project/calendar",
+    "recipe/code/project/dancer",
+    "recipe/code/project/event",
+    "recipe/code/project/history",
+    "recipe/code/project/inventory",
+    "recipe/code/project/map",
+    "recipe/code/project/source_event",
+    "recipe/code/project/source_index",
+    "version/repository"
+   ],
+   "seconds": 5.5,
+   "parse_pending_before_after": [
+    33906,
+    33906
+   ],
+   "parse_enqueued_by_accept": 0,
+   "project_link_enqueued": 35801
+  }
+ },
+ "r2_cycle_mode": {
+  "when": "one clone at a time (G parent, then H final), beside R3 on F",
+  "config": "cfg-r2: production config with pending_parse_* and pending_work_items lifted",
+  "G": {
+   "tree": "parent",
+   "failed": false,
+   "stage_errors": [],
+   "unit_failures": [
+    "snap_20260910T053258Z_4cb7269b4f0d"
+   ],
+   "requests": 13,
+   "requests_by_host": {
+    "scores.worlddanceregistry.com": 3,
+    "eepro.com": 3,
+    "points.worldsdc.com": 3,
+    "scoring.dance": 2,
+    "web.archive.org": 2
+   },
+   "acquisition_seconds": 102.4,
+   "offline_seconds": 275.2,
+   "write_deadline_fired": null,
+   "write_seconds_max": null,
+   "write_wait_seconds_max": null,
+   "write_lock_timeouts": null,
+   "control_timeouts": null,
+   "peak_rss_mb": 5684,
+   "pass_end": [
+    [
+     1790642721.7,
+     "next_watch",
+     null
+    ],
+    [
+     1790642721.9,
+     "next_delay",
+     0.0
+    ]
+   ]
+  },
+  "H": {
+   "tree": "final",
+   "failed": false,
+   "stage_errors": [],
+   "unit_failures": [],
+   "requests": 93,
+   "requests_by_host": {
+    "points.worldsdc.com": 30,
+    "eepro.com": 29,
+    "scoring.dance": 29,
+    "scores.worlddanceregistry.com": 3,
+    "web.archive.org": 2
+   },
+   "acquisition_seconds": 272.1,
+   "offline_seconds": 144.4,
+   "write_deadline_fired": 0,
+   "write_seconds_max": 13.218,
+   "write_wait_seconds_max": 0.0,
+   "write_lock_timeouts": 0,
+   "control_timeouts": 0,
+   "peak_rss_mb": 6353,
+   "pass_end": [
+    [
+     1790643996.4,
+     "next_watch",
+     null
+    ],
+    [
+     1790643996.6,
+     "next_delay",
+     0.0
+    ]
+   ]
+  },
+  "new_summary_keys": [
+   "control_timeouts",
+   "guard_reasons",
+   "guards",
+   "not_completed",
+   "peak_rss_bytes",
+   "queue",
+   "queue_states",
+   "waiting_repeats",
+   "write_deadline_fired",
+   "write_lock_timeouts",
+   "write_seconds_max",
+   "write_wait_seconds_max"
+  ],
+  "keys_lost": []
+ },
+ "r3_loops": {
+  "minutes": 152.3,
+  "config": "cfg-b: production config with pending_parse_* and pending_work_items lifted, build_interval_seconds 3600",
+  "cadence": "acquire and derive back to back with 60 s gaps (budget 240 s), plan every 10 min (600 s), release at 0, 31, 62, 93, 124 min (1800 s), maintain at 5 and 100 min; each tick its own process",
+  "per_loop": {
+   "acquire": {
+    "ticks": 36,
+    "killed": 1,
+    "lock_refused": {},
+    "failed_ticks": 0,
+    "skipped": {},
+    "build_deferred": {},
+    "progress_total": 947,
+    "ticks_with_progress": 35,
+    "write_seconds_max": 0.64,
+    "write_wait_seconds_max": 10.532,
+    "write_lock_timeouts": 0,
+    "control_timeouts": 0,
+    "write_deadline_fired": 0,
+    "longest_writes_harness": [
+     [
+      "_save",
+      10.53,
+      10.0
+     ],
+     [
+      "_save",
+      10.06,
+      8.5
+     ],
+     [
+      "_save",
+      5.59,
+      11.2
+     ]
+    ],
+    "peak_rss_mb": 209,
+    "tick_seconds_max": 256.4,
+    "requests": 969,
+    "checked": 947,
+    "offered": 3636,
+    "history_dispatch": {
+     "null": 1,
+     "dispatched": 34
+    },
+    "stale_plan_rows": 0
+   },
+   "plan": {
+    "ticks": 16,
+    "killed": 1,
+    "lock_refused": {},
+    "failed_ticks": 0,
+    "skipped": {},
+    "build_deferred": {},
+    "progress_total": 95445,
+    "ticks_with_progress": 15,
+    "write_seconds_max": 0.056,
+    "write_wait_seconds_max": 0.486,
+    "write_lock_timeouts": 0,
+    "control_timeouts": 0,
+    "write_deadline_fired": 0,
+    "longest_writes_harness": [
+     [
+      "write",
+      0.53,
+      10.7
+     ],
+     [
+      "write",
+      0.33,
+      20.8
+     ],
+     [
+      "write",
+      0.31,
+      130.8
+     ]
+    ],
+    "peak_rss_mb": 208,
+    "tick_seconds_max": 53.4,
+    "plan_seconds_max": 51.626603
+   },
+   "derive": {
+    "ticks": 39,
+    "killed": 2,
+    "lock_refused": {},
+    "failed_ticks": 1,
+    "skipped": {},
+    "build_deferred": {},
+    "progress_total": 26867,
+    "ticks_with_progress": 27,
+    "write_seconds_max": 3.275,
+    "write_wait_seconds_max": 0.398,
+    "write_lock_timeouts": 0,
+    "control_timeouts": 0,
+    "write_deadline_fired": 0,
+    "longest_writes_harness": [
+     [
+      "process",
+      3.27,
+      9.4
+     ],
+     [
+      "accept",
+      2.09,
+      4.2
+     ],
+     [
+      "accept",
+      2.02,
+      3.1
+     ]
+    ],
+    "peak_rss_mb": 4394,
+    "tick_seconds_max": 254.9,
+    "heavy_deferred_ticks": 10,
+    "units_completed": 26867
+   },
+   "release": {
+    "ticks": 6,
+    "killed": 1,
+    "lock_refused": {},
+    "failed_ticks": 0,
+    "skipped": {},
+    "build_deferred": {
+     "interval": 4
+    },
+    "progress_total": 1,
+    "ticks_with_progress": 1,
+    "write_seconds_max": 12.891,
+    "write_wait_seconds_max": 0.223,
+    "write_lock_timeouts": 0,
+    "control_timeouts": 0,
+    "write_deadline_fired": 0,
+    "longest_writes_harness": [
+     [
+      "complete",
+      12.89,
+      8.4
+     ],
+     [
+      "build_release",
+      2.41,
+      7.9
+     ],
+     [
+      "admission",
+      0.22,
+      0.0
+     ]
+    ],
+    "peak_rss_mb": 5823,
+    "tick_seconds_max": 519.0
+   },
+   "maintain": {
+    "ticks": 3,
+    "killed": 1,
+    "lock_refused": {},
+    "failed_ticks": 0,
+    "skipped": {},
+    "build_deferred": {},
+    "progress_total": 12,
+    "ticks_with_progress": 2,
+    "write_seconds_max": 0.009,
+    "write_wait_seconds_max": 0,
+    "write_lock_timeouts": 0,
+    "control_timeouts": 0,
+    "write_deadline_fired": 0,
+    "longest_writes_harness": [
+     [
+      "run",
+      0.01,
+      100.0
+     ],
+     [
+      "run",
+      0.01,
+      5.0
+     ],
+     [
+      "tick",
+      0.0,
+      5.0
+     ]
+    ],
+    "peak_rss_mb": 152,
+    "tick_seconds_max": 11.3
+   }
+  },
+  "failed_ticks": {
+   "derive": [
+    {
+     "n": "run_20260929T013326Z",
+     "unit_failures": [
+      {
+       "stage": "parse",
+       "unit_kind": "snapshot",
+       "unit_id": "snap_20260911T043231Z_0859efa5a48f",
+       "reason": "parse_failed"
+      }
+     ],
+     "error": null,
+     "build_error": null
+    }
+   ]
+  },
+  "derive_derivation": {
+   "equivalences": {
+    "project/calendar": 2,
+    "project/dancer": 13323,
+    "project/source_index": 384
+   },
+   "replay_bumps": {
+    "project/calendar": 1
+   }
+  },
+  "derive_heavy_deferred": [
+   {
+    "n": 1,
+    "start_min": 0.0,
+    "during_build": true
+   },
+   {
+    "n": 2,
+    "start_min": 1.0,
+    "during_build": true
+   },
+   {
+    "n": 3,
+    "start_min": 2.1,
+    "during_build": true
+   },
+   {
+    "n": 4,
+    "start_min": 3.1,
+    "during_build": true
+   },
+   {
+    "n": 5,
+    "start_min": 4.2,
+    "during_build": true
+   },
+   {
+    "n": 6,
+    "start_min": 5.2,
+    "during_build": true
+   },
+   {
+    "n": 7,
+    "start_min": 6.3,
+    "during_build": true
+   },
+   {
+    "n": 8,
+    "start_min": 7.3,
+    "during_build": true
+   },
+   {
+    "n": 9,
+    "start_min": 8.3,
+    "during_build": true
+   },
+   {
+    "n": 22,
+    "start_min": 66.9,
+    "during_build": true
+   }
+  ],
+  "requests_by_10_min": {
+   "0": 53,
+   "10": 72,
+   "20": 53,
+   "30": 26,
+   "40": 59,
+   "50": 76,
+   "60": 67,
+   "70": 61,
+   "80": 69,
+   "90": 48,
+   "100": 71,
+   "110": 76,
+   "120": 71,
+   "130": 98,
+   "140": 61,
+   "150": 8
+  },
+  "builds": [
+   {
+    "n": 1,
+    "start_min": 0.0,
+    "seconds": 516.1,
+    "killed": false,
+    "requests_during": 53
+   },
+   {
+    "n": 3,
+    "start_min": 65.9,
+    "seconds": 90.0,
+    "killed": true,
+    "requests_during": 3
+   }
+  ],
+  "wal_peak_bytes": 255250512,
+  "acquire_pass_seconds": {
+   "median": 239,
+   "min": 78,
+   "ended_before_200_of_240": 15,
+   "ticks": 35
+  },
+  "check_after": {
+   "quick_check": [
+    "ok"
+   ],
+   "quick_check_seconds": 190.9,
+   "open_loop_runs": {},
+   "interrupted_loop_runs": {
+    "acquire": 1,
+    "derive": 2,
+    "maintain": 1,
+    "plan": 1,
+    "release": 1
+   },
+   "running_attempts": 0,
+   "leased": 0,
+   "active_admissions": {},
+   "building": [],
+   "pending": {
+    "link/event": 2933,
+    "parse/snapshot": 20991,
+    "project/dancer": 15715,
+    "project/event": 2933,
+    "project/history": 1,
+    "project/inventory": 1,
+    "project/map": 1,
+    "project/source_event": 469
+   },
+   "queue": {
+    "by_state": {
+     "parse/ready": 2,
+     "parse/waiting_input": 299
+    },
+    "by_class": {
+     "ready:admission_waiting_for_inputs": 2,
+     "waiting_input:admission_needs_review": 281,
+     "waiting_input:admission_waiting_for_inputs": 6,
+     "waiting_input:parse_failed": 9,
+     "waiting_input:unsupported_page_kind": 3
+    }
+   }
+  }
+ },
+ "r4_kills": {
+  "in_r3": [
+   {
+    "loop": "derive",
+    "tick": 12,
+    "killed_min": 19.8,
+    "seconds_into_tick": 14.7,
+    "how": "inside write 40 of derive_one",
+    "armed_env": true,
+    "others_next_tick": {
+     "acquire": {
+      "start_min": 20.5,
+      "failed": false,
+      "progress": 28,
+      "skipped": null,
+      "build_deferred": null,
+      "lock_refused": null,
+      "unit_failures": 0
+     },
+     "plan": {
+      "start_min": 20.0,
+      "failed": false,
+      "progress": 6363,
+      "skipped": null,
+      "build_deferred": null,
+      "lock_refused": null,
+      "unit_failures": 0
+     },
+     "release": {
+      "start_min": 31.0,
+      "failed": false,
+      "progress": 0,
+      "skipped": null,
+      "build_deferred": "interval",
+      "lock_refused": null,
+      "unit_failures": 0
+     },
+     "maintain": {
+      "start_min": 100.0,
+      "failed": false,
+      "progress": 6,
+      "skipped": null,
+      "build_deferred": null,
+      "lock_refused": null,
+      "unit_failures": 0
+     }
+    },
+    "own_next_tick": {
+     "start_min": 20.8,
+     "recovered": {
+      "admissions": 0,
+      "runs": 1,
+      "completed_from_record": 0,
+      "attempts": 0,
+      "leases": 0
+     },
+     "failed": false,
+     "progress": 1140,
+     "build_deferred": null
+    }
+   },
+   {
+    "loop": "acquire",
+    "tick": 10,
+    "killed_min": 39.4,
+    "seconds_into_tick": 90.9,
+    "how": "loop body timer",
+    "armed_env": true,
+    "others_next_tick": {
+     "plan": {
+      "start_min": 40.0,
+      "failed": false,
+      "progress": 6363,
+      "skipped": null,
+      "build_deferred": null,
+      "lock_refused": null,
+      "unit_failures": 0
+     },
+     "derive": {
+      "start_min": 41.2,
+      "failed": false,
+      "progress": 960,
+      "skipped": null,
+      "build_deferred": null,
+      "lock_refused": null,
+      "unit_failures": 0
+     },
+     "release": {
+      "start_min": 67.4,
+      "failed": false,
+      "progress": 0,
+      "skipped": null,
+      "build_deferred": "interval",
+      "lock_refused": null,
+      "unit_failures": 0
+     },
+     "maintain": {
+      "start_min": 100.0,
+      "failed": false,
+      "progress": 6,
+      "skipped": null,
+      "build_deferred": null,
+      "lock_refused": null,
+      "unit_failures": 0
+     }
+    },
+    "own_next_tick": {
+     "start_min": 40.4,
+     "recovered": {
+      "admissions": 0,
+      "runs": 1,
+      "completed_from_record": 0,
+      "attempts": 0,
+      "leases": 0
+     },
+     "failed": false,
+     "progress": 38,
+     "build_deferred": null
+    }
+   },
+   {
+    "loop": "plan",
+    "tick": 6,
+    "killed_min": 50.7,
+    "seconds_into_tick": 42.0,
+    "how": "inside write 1 of write",
+    "armed_env": true,
+    "others_next_tick": {
+     "acquire": {
+      "start_min": 52.5,
+      "failed": false,
+      "progress": 34,
+      "skipped": null,
+      "build_deferred": null,
+      "lock_refused": null,
+      "unit_failures": 0
+     },
+     "derive": {
+      "start_min": 51.3,
+      "failed": false,
+      "progress": 1018,
+      "skipped": null,
+      "build_deferred": null,
+      "lock_refused": null,
+      "unit_failures": 0
+     },
+     "release": {
+      "start_min": 67.4,
+      "failed": false,
+      "progress": 0,
+      "skipped": null,
+      "build_deferred": "interval",
+      "lock_refused": null,
+      "unit_failures": 0
+     },
+     "maintain": {
+      "start_min": 100.0,
+      "failed": false,
+      "progress": 6,
+      "skipped": null,
+      "build_deferred": null,
+      "lock_refused": null,
+      "unit_failures": 0
+     }
+    },
+    "own_next_tick": {
+     "start_min": 50.7,
+     "recovered": {
+      "admissions": 0,
+      "runs": 1,
+      "completed_from_record": 0,
+      "attempts": 0,
+      "leases": 0
+     },
+     "failed": false,
+     "progress": 6363,
+     "build_deferred": null
+    }
+   },
+   {
+    "loop": "release",
+    "tick": 3,
+    "killed_min": 67.4,
+    "seconds_into_tick": 323.3,
+    "how": "release build timer",
+    "armed_env": true,
+    "others_next_tick": {
+     "acquire": {
+      "start_min": 72.3,
+      "failed": false,
+      "progress": 37,
+      "skipped": null,
+      "build_deferred": null,
+      "lock_refused": null,
+      "unit_failures": 0
+     },
+     "plan": {
+      "start_min": 70.0,
+      "failed": false,
+      "progress": 6363,
+      "skipped": null,
+      "build_deferred": null,
+      "lock_refused": null,
+      "unit_failures": 0
+     },
+     "derive": {
+      "start_min": 67.9,
+      "failed": false,
+      "progress": 896,
+      "skipped": null,
+      "build_deferred": null,
+      "lock_refused": null,
+      "unit_failures": 0
+     },
+     "maintain": {
+      "start_min": 100.0,
+      "failed": false,
+      "progress": 6,
+      "skipped": null,
+      "build_deferred": null,
+      "lock_refused": null,
+      "unit_failures": 0
+     }
+    },
+    "own_next_tick": {
+     "start_min": 67.4,
+     "recovered": {
+      "admissions": 1,
+      "runs": 1,
+      "completed_from_record": 0,
+      "attempts": 0,
+      "leases": 0
+     },
+     "failed": false,
+     "progress": 0,
+     "build_deferred": "interval"
+    }
+   },
+   {
+    "loop": "derive",
+    "tick": 25,
+    "killed_min": 78.3,
+    "seconds_into_tick": 17.4,
+    "how": "inside write 30 of admission",
+    "armed_env": true,
+    "others_next_tick": {
+     "acquire": {
+      "start_min": 82.6,
+      "failed": false,
+      "progress": 38,
+      "skipped": null,
+      "build_deferred": null,
+      "lock_refused": null,
+      "unit_failures": 0
+     },
+     "plan": {
+      "start_min": 80.0,
+      "failed": false,
+      "progress": 6363,
+      "skipped": null,
+      "build_deferred": null,
+      "lock_refused": null,
+      "unit_failures": 0
+     },
+     "release": {
+      "start_min": 93.0,
+      "failed": false,
+      "progress": 0,
+      "skipped": null,
+      "build_deferred": "interval",
+      "lock_refused": null,
+      "unit_failures": 0
+     },
+     "maintain": {
+      "start_min": 100.0,
+      "failed": false,
+      "progress": 6,
+      "skipped": null,
+      "build_deferred": null,
+      "lock_refused": null,
+      "unit_failures": 0
+     }
+    },
+    "own_next_tick": {
+     "start_min": 79.3,
+     "recovered": {
+      "admissions": 1,
+      "runs": 1,
+      "completed_from_record": 0,
+      "attempts": 0,
+      "leases": 1
+     },
+     "failed": false,
+     "progress": 895,
+     "build_deferred": null
+    }
+   },
+   {
+    "loop": "maintain",
+    "tick": 2,
+    "killed_min": 100.0,
+    "seconds_into_tick": 1.1,
+    "how": "inside write 1 of run",
+    "armed_env": true,
+    "others_next_tick": {
+     "acquire": {
+      "start_min": 101.0,
+      "failed": false,
+      "progress": 52,
+      "skipped": null,
+      "build_deferred": null,
+      "lock_refused": null,
+      "unit_failures": 0
+     },
+     "plan": {
+      "start_min": 110.0,
+      "failed": false,
+      "progress": 6363,
+      "skipped": null,
+      "build_deferred": null,
+      "lock_refused": null,
+      "unit_failures": 0
+     },
+     "derive": {
+      "start_min": 104.9,
+      "failed": false,
+      "progress": 1023,
+      "skipped": null,
+      "build_deferred": null,
+      "lock_refused": null,
+      "unit_failures": 0
+     },
+     "release": {
+      "start_min": 124.0,
+      "failed": false,
+      "progress": 0,
+      "skipped": null,
+      "build_deferred": "interval",
+      "lock_refused": null,
+      "unit_failures": 0
+     }
+    },
+    "own_next_tick": {
+     "start_min": 100.0,
+     "recovered": {
+      "admissions": 0,
+      "runs": 1,
+      "completed_from_record": 0,
+      "attempts": 0,
+      "leases": 0
+     },
+     "failed": false,
+     "progress": 6,
+     "build_deferred": null
+    }
+   }
+  ],
+  "extra_output_write_kill": {
+   "what": "on F after R7: SIGKILL derive inside the 20th unit output write ('process'), then one derive tick",
+   "how": "inside write 20 of process",
+   "next_tick": {
+    "recovered": {
+     "admissions": 1,
+     "runs": 1,
+     "completed_from_record": 0,
+     "attempts": 1,
+     "leases": 0
+    },
+    "progress": 1180,
+    "failed": true,
+    "queue_states": {
+     "ready": 4,
+     "leased": 0,
+     "waiting_input": 20999,
+     "quarantined": 1
+    },
+    "failed_why": "20 parse_failed snapshots: 11 empty-body mock 404s fetched in R7 (a harness artifact) and 9 known failures"
+   },
+   "check_after": {
+    "quick_check": [
+     "ok"
+    ],
+    "running_attempts": 0,
+    "leased": 0,
+    "active_admissions": {},
+    "building": [],
+    "open_loop_runs": {},
+    "queue_by_class": {
+     "quarantined:unit_exception:RuntimeError": 1,
+     "ready:admission_needs_review": 1,
+     "ready:admission_waiting_for_inputs": 2,
+     "ready:process_interrupted": 1,
+     "waiting_input:admission_needs_review": 280,
+     "waiting_input:admission_waiting_for_inputs": 6,
+     "waiting_input:blocked": 20690,
+     "waiting_input:parse_failed": 20,
+     "waiting_input:unsupported_page_kind": 3
+    }
+   }
+  }
+ },
+ "r5_staged_history": {
+  "what": "after R3 on F, accept tree final2 (final plus one comment line in project/history.py) so history re-runs with a new fingerprint and unchanged inputs; clone F2 of F. F: clean staged run. F2: SIGKILL inside the second chunk write, then rerun after the retry delay. Cutoff off (cfg-nocut).",
+  "accept_changed": [
+   "recipe/code/build",
+   "recipe/code/link",
+   "recipe/code/project/calendar",
+   "recipe/code/project/dancer",
+   "recipe/code/project/event",
+   "recipe/code/project/history",
+   "recipe/code/project/inventory",
+   "recipe/code/project/map",
+   "recipe/code/project/source_event",
+   "recipe/code/project/source_index",
+   "version/repository"
+  ],
+  "clean_F": {
+   "kept_generation": "dg_0caa47f61d17",
+   "kept_label": [
+    "b25a1f5328bd4c65",
+    201072
+   ],
+   "building_before": [],
+   "outcome": {
+    "failed": false,
+    "reason": null
+   },
+   "selected_after": "dg_efe1df05c2cf",
+   "label_after": [
+    "5d7e9b9d10b8a2bb",
+    201072
+   ],
+   "label_equal_kept": false,
+   "refs": {
+    "rows": 201072,
+    "distinct_ordinals": 201072,
+    "min": 0,
+    "max": 201071
+   },
+   "building_after": 0,
+   "current_after": true,
+   "derive_seconds": 48.9,
+   "a_write_seconds": 2.142,
+   "chunks": 41,
+   "chunk_seconds_max": 2.752,
+   "c_write_seconds": 14.042,
+   "recovered": {
+    "admissions": 0,
+    "interrupted": 0,
+    "leases": 0
+   },
+   "waited_for_retry_seconds": null
+  },
+  "kill_F2": "inside write 2 of _store_building (rows_stored 5000 of 201072)",
+  "resume_F2": {
+   "kept_generation": "dg_0caa47f61d17",
+   "kept_label": [
+    "b25a1f5328bd4c65",
+    201072
+   ],
+   "building_before": [
+    {
+     "rows_stored": 5000,
+     "label_rows": 201072
+    }
+   ],
+   "outcome": {
+    "failed": false,
+    "reason": null
+   },
+   "selected_after": "dg_efe1df05c2cf",
+   "label_after": [
+    "9a70d89e10ceb3df",
+    201072
+   ],
+   "label_equal_kept": false,
+   "refs": {
+    "rows": 201072,
+    "distinct_ordinals": 201072,
+    "min": 0,
+    "max": 201071
+   },
+   "building_after": 0,
+   "current_after": true,
+   "derive_seconds": 45.8,
+   "a_write_seconds": 2.202,
+   "chunks": 41,
+   "chunk_seconds_max": 1.258,
+   "c_write_seconds": 13.561,
+   "recovered": {
+    "admissions": 1,
+    "interrupted": 1,
+    "leases": 1
+   },
+   "waited_for_retry_seconds": 60.4
+  },
+  "label_rerun_F": {
+   "kept_generation": "dg_efe1df05c2cf",
+   "kept_label": [
+    "5d7e9b9d10b8a2bb",
+    201072
+   ],
+   "building_before": [],
+   "outcome": {
+    "failed": false,
+    "reason": null
+   },
+   "selected_after": "dg_fa1ee95e0595",
+   "label_after": [
+    "5d7e9b9d10b8a2bb",
+    201072
+   ],
+   "label_equal_kept": true,
+   "refs": {
+    "rows": 201072,
+    "distinct_ordinals": 201072,
+    "min": 0,
+    "max": 201071
+   },
+   "building_after": 0,
+   "current_after": true,
+   "derive_seconds": 40.5,
+   "a_write_seconds": 2.071,
+   "chunks": 41,
+   "chunk_seconds_max": 1.393,
+   "c_write_seconds": 12.448,
+   "recovered": {
+    "admissions": 0,
+    "interrupted": 0,
+    "leases": 0
+   },
+   "waited_for_retry_seconds": null,
+   "what": "after R6 and R7 on F, accept tree final3 (a second comment line) and re-run history: the kept generation is F's clean run"
+  },
+  "check_F2_after": {
+   "quick_check": [
+    "ok"
+   ],
+   "building": [],
+   "running_attempts": 0,
+   "leased": 0,
+   "active_admissions": {}
+  }
+ },
+ "r6_poison_unit": {
+  "bad_unit": "project/event/2024-02-euro-dance-festival",
+  "policy": "backoff patched to 5 s then 20 s; quarantine threshold unchanged (3)",
+  "selection": "harness restricted derive's batch to the enqueued event units, with the queue's clocks",
+  "ticks": [
+   {
+    "tick": 1,
+    "failed": true,
+    "progress": 20,
+    "bad_row": {
+     "state": "ready",
+     "attempts": 1,
+     "error_class": "unit_exception:RuntimeError",
+     "next_attempt_at": "2026-09-29T03:20:11.343292Z"
+    },
+    "batch": 20,
+    "batch_left_pending": 0,
+    "quarantined": []
+   },
+   {
+    "tick": 2,
+    "failed": true,
+    "progress": 20,
+    "bad_row": {
+     "state": "ready",
+     "attempts": 2,
+     "error_class": "unit_exception:RuntimeError",
+     "next_attempt_at": "2026-09-29T03:20:23.019240Z"
+    },
+    "batch": 20,
+    "batch_left_pending": 0,
+    "quarantined": []
+   },
+   {
+    "tick": 3,
+    "failed": true,
+    "progress": 20,
+    "bad_row": {
+     "state": "quarantined",
+     "attempts": 3,
+     "error_class": "unit_exception:RuntimeError",
+     "next_attempt_at": "2026-10-06T03:20:24.707485Z"
+    },
+    "batch": 20,
+    "batch_left_pending": 0,
+    "quarantined": [
+     "project/event/2024-02-euro-dance-festival"
+    ]
+   }
+  ],
+  "watchdog_lines": [
+   "[loop-failing] derive: the last 3 ticks failed; latest: no error named, see its run record",
+   "[unit-quarantined] project/event/2024-02-euro-dance-festival after 3 x unit_exception:RuntimeError: rehearsal poison: projector bug"
+  ]
+ },
+ "r7_blocked_derive": {
+  "config": "cfg-r7: production config, pending_work_items lifted only (the project and link backlog is the Mac re-queue); parse marks at production",
+  "marked_waiting_input": 20690,
+  "parse_units_added": 0,
+  "pressure_before": {
+   "active": true,
+   "reasons": [
+    "pending_parse_bytes",
+    "pending_parse_items"
+   ],
+   "runnable_parse": 20690,
+   "pending": {
+    "link": 2933,
+    "parse": 20991,
+    "project": 32808
+   }
+  },
+  "pressure_after": {
+   "active": false,
+   "reasons": [],
+   "runnable_parse": 0,
+   "pending": {
+    "link": 2933,
+    "parse": 20991,
+    "project": 32808
+   }
+  },
+  "acquire": {
+   "failed": false,
+   "skipped": null,
+   "progress": 29,
+   "checked": 29,
+   "offered": 43,
+   "history_dispatch": {
+    "reason": "dispatched",
+    "watch_id": "94b6e74dd6e77f8b"
+   },
+   "acquisition_seconds": 239.268811
+  },
+  "requests": 29,
+  "requests_by_host": {
+   "scoring.dance": 12,
+   "points.worldsdc.com": 11,
+   "web.archive.org": 6
+  }
+ },
+ "r8_watchdog": {
+  "flags": "--loops 1 --timers-inactive= --quiet 7200 --stale-fetch 7200 --stale-progress 7200 --repeat 7200 --disk '' ; immutable reads of the clone",
+  "after_r3_r4": [
+   "[stale-progress] no progress while unheld: link 97 h 41 m with 2933 ready (project/history pending since its output at 2026-09-25 01:11 UTC)"
+  ],
+  "after_r6": [
+   "[loop-failing] derive: the last 3 ticks failed; latest: no error named, see its run record",
+   "[unit-quarantined] project/event/2024-02-euro-dance-festival after 3 x unit_exception:RuntimeError: rehearsal poison: projector bug"
+  ],
+  "after_r7": [
+   "[loop-failing] derive: the last 3 ticks failed; latest: no error named, see its run record",
+   "[unit-quarantined] project/event/2024-02-euro-dance-festival after 3 x unit_exception:RuntimeError: rehearsal poison: projector bug"
+  ],
+  "why": "After R3 and R4: [stale-progress] for the copy's link backlog, which waits on project/history (pending since production's 01:11 output; R3's derive never reached it). After R6 and after R7: [loop-failing] derive from R6's three failing ticks and one [unit-quarantined] line for R6's poison unit."
+ },
+ "r9_module_eval": {
+  "command": "nix eval --impure --json --expr 'import workflow/p2/wp11-eval.nix { flake = <repo>; }'",
+  "off": {
+   "services": [
+    "swingset-backup",
+    "swingset-cycle",
+    "swingset-scratch-clean",
+    "swingset-summary",
+    "swingset-watchdog"
+   ],
+   "watchdog_loops": false
+  },
+  "on": {
+   "services": [
+    "swingset-acquire",
+    "swingset-backup",
+    "swingset-derive",
+    "swingset-maintain",
+    "swingset-plan",
+    "swingset-release",
+    "swingset-scratch-clean",
+    "swingset-summary",
+    "swingset-watchdog"
+   ],
+   "cycle_unit": false,
+   "timers": {
+    "swingset-acquire": "*:0/5",
+    "swingset-derive": "*:2/5",
+    "swingset-maintain": "*-*-* 03:30:00",
+    "swingset-plan": "*:10/30",
+    "swingset-release": "*:20"
+   },
+   "flock_in_exec_start_pre": {
+    "swingset-acquire": true,
+    "swingset-backup": false,
+    "swingset-derive": true,
+    "swingset-maintain": true,
+    "swingset-plan": true,
+    "swingset-release": true,
+    "swingset-summary": true
+   },
+   "memory_max": {
+    "swingset-acquire": "1G",
+    "swingset-derive": "5G",
+    "swingset-maintain": "2G",
+    "swingset-plan": "2G",
+    "swingset-release": "7G",
+    "swingset-summary": "5G"
+   },
+   "timeout_start": {
+    "swingset-acquire": "10min",
+    "swingset-derive": "30min",
+    "swingset-maintain": "30min",
+    "swingset-plan": "20min",
+    "swingset-release": "60min"
+   },
+   "watchdog_loops": true
+  },
+  "on_publish_release_exec_ends": "30m --timer --publish"
+ },
+ "r10_suites": {
+  "core": "nix develop -c uv run pytest -q: 1537 passed, 1510 deselected, 252 s",
+  "full": "nix develop -c uv run pytest -q --full-suite: 3044 passed, 3 failed, 769 s. The 3 pinned the shipped config, which D-0220 (written by another session at 03:25 UTC during this run) moved to a 24 h build interval and a 72 GB cap; they now follow the shipped values, and their three files re-ran: 264 passed",
+  "ruff": "ruff check src tests: All checks passed",
+  "mypy": "mypy src: Success, no issues found in 253 source files",
+  "scope_guard": "workflow/p2/scope_guard.py exit 0: 58 parse and extract files, 0 parse or extract scopes changed; project and link scopes 168 files, build 174"
+ },
+ "reviewer_final_tree_run": "2026-09-28 23:51 to 2026-09-29 00:29 UTC, clones diag-p2-r3A and r3B, same src: migration 77 s, foreign_key_check 126 s, 0 violations, +340 kB, 301 waiting_input; parent refuses; accept changed the 11 inputs, 0 parses; history SIGKILL in chunk 2 resumed with 201,072 distinct ordinals, chunks up to 2.8 s, C 8.2 s; sequential ticks with SIGKILL of derive and acquire mid-tick, each next tick recovered 1 run; release built in 484 s at 5.93 GB RSS, complete write 10.9 s, derive heavy-deferred during it, acquire requested throughout; quick_check ok, 0 running attempts, leases or active admissions; watchdog only [stale-progress]",
+ "first_run_2026_09_27": "2026-09-27, tree 4a8b2d9b, before both review rounds: migration 54 s; R3 153.6 min, 0 lock or control timeouts, release complete 35.8 s beside a second build (13.8 s alone), derive waited 35.4 s; R5 A 2.1 s, chunks up to 4.0 s, C 5.8 s, single path 61.35 s; R7 20 requests. Its findings 2 (accept-year single path) and 3 (run-less request admission) were fixed in review round 1; 1 became the step 5 gate; 4 stays open; 5 to 7 are known limits.",
+ "acceptance": {
+  "R0": "met: 75 s on F (63 s on H), foreign_key_check 54 s, 0 violations, growth 339,968 bytes, 301 waiting_input (281 needs_review, 9 parse_failed, 8 waiting_for_inputs, 3 unsupported_page_kind); parent refuses 'database schema 34 is newer than supported 33'",
+  "R1": "met: exactly the 10 project, link and build scopes and version/repository changed (F and H, 5.5 to 5.7 s); 0 parses queued; 35,801 project and link hints",
+  "R2": "met on parity, not on counts: both cycles failed=false with no stage errors (G's only unit failure is the known scoringdance snapshot); final keys a superset (12 new, none lost); write_deadline_fired 0, 0 lock and control timeouts, write max 13.2 s; requests 13 vs 93, not comparable (finding 4)",
+  "R3": "met: 152 min; 0 write_lock_timeouts, control_timeouts and write_deadline firings in every loop; only failed tick: derive on the known scoringdance snapshot; acquire requested in every 10-minute bucket (26 to 98) and during the build (53); longest writes: release complete 12.9 s, derive 3.3 s, acquire 0.6 s, plan 0.06 s, maintain 0.01 s; longest wait 10.5 s (acquire, behind complete)",
+  "R4": "met: six kills (derive in its claim and in its admission, acquire mid-request, plan in a write, release mid-build, maintain in a write) plus derive in a unit's output write; every other loop's next tick unfailed with progress (release interval-deferred by design); each killed loop's next tick recovered its run, and its admission, lease or attempt where one was left; quick_check ok; 0 open runs, running attempts, leases, active admissions or building rows",
+  "R5": "met: label equals the kept generation's (5d7e9b9d..., 201,072 rows) on a re-run with unchanged inputs; A 2.1 s; 41 chunks, at most 2.8 s; a SIGKILL in chunk 2 resumed after the 60 s retry with 201,072 distinct ordinals and the same generation id, no building row left; C 12.4 to 14.0 s",
+  "R6": "met: quarantined at the third failure, one [unit-quarantined] line, 20 other event units completed in each tick",
+  "R7": "met: 20,690 parse units marked waiting_input plus 301 seeded: runnable_parse 0, backpressure off at production marks; one acquire tick issued 29 requests (6 Wayback, history dispatched)",
+  "R8": "met: only expected lines, each explained",
+  "R9": "met: off has the cycle units only; on has the five loop services and timers, no cycle unit, flock in every uv-sync ExecStartPre, watchdog --loops 1, caps 1G/5G/2G/7G/2G",
+  "R10": "see r10_suites"
+ },
+ "findings": [
+  "1. The build's complete write took 12.9 s in R3 (alone) and 13.2 s in cycle H; acquire waited up to 10.5 s behind it. Under 30 s on the Mac; step 5 still measures it on the worker.",
+  "2. Memory: cycle H's peak_rss_bytes is 6,661,980,160; release's 7G cap is 1.13 times that, under step 5's 1.15. If the worker reads the same, raise release's MemoryMax (7.5G) before 2b. The release loop peaked at 6.1 GB (1.23). Derive peaked at 4.6 GB (4,394 MiB, 86 % of its 5G cap) on ticks mixing project and parse units, without the inventory.",
+  "3. Staged history: step C took 12.4 to 14.0 s (5.8 s in the first run, 8.2 s in the review's run), A 2.1 s, chunks at most 2.8 s; all under the 30 s target.",
+  "4. The first run's finding 4 stands: G's cycle made 13 requests and H's 93 from the same copy; 15 of 35 acquire ticks ended their pass before 200 of 240 s (median 30 requests, range 7 to 53).",
+  "5. A killed build counts toward the build interval (D-0199 counts admitted attempts): after the kill at 66 min, release deferred at 93 and 124 min. In production a build killed at release's cap delays the next by 6 h.",
+  "6. derive_one's own top-level write is now the claim, so a kill 'inside derive_one' lands in the claim and leaves only the run; the extra kill inside a unit's output write left an attempt and admission, which the next tick closed as a counted process_interrupted (unit ready on its backoff); the kill in the admission left the lease, which the next tick settled (died_unclaimed)."
+ ]
+}

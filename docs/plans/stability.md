@@ -50,7 +50,7 @@ whole-graph re-derivation (below).
 | Row closure resolves events through rejected parents; dangling references withhold the event | 1    | D-0199 | `tests/build/test_closure_event_alternatives.py` (two new cases)                        |
 | Closure proof retained after the candidate files; build recipe names it by digest            | 2    | D-0199 | `tests/build/test_completion_validation.py` (three new cases)                           |
 | A write-deadline overrun is `transient`, 15 min doubling to 6 h                              | 3    | D-0198 | `tests/test_write_deadline.py`                                                          |
-| History gets a 300 s write allowance                                                         | 3    | D-0198 | `tests/test_write_deadline.py`                                                          |
+| History gets a 300 s write allowance (replaced by D-0217: one 60 s alarm for every write)    | 3    | D-0198 | `tests/test_write_deadline.py`                                                          |
 | `build_interval_seconds` 6 h, `history_interval_seconds` 12 h                                | 4    | D-0199 | `tests/test_cycle_controls.py`                                                          |
 | A build error sets `failed=true`                                                             | 5    | D-0199 | `tests/test_cycle_controls.py`                                                          |
 | A closure validation error is contained like a build error                                   | 1    | D-0199 | `tests/test_cycle_controls.py`                                                          |
@@ -148,7 +148,8 @@ cycle completion alone:
   the derivation invalidation plan.
 - **History still writes ~200k rows per run.** The 300-second allowance
   covers it at twice a day. Moving `registry_placements.event_id` out of the
-  history output removes 98% of those rows.
+  history output removes 98% of those rows. Phase 2 stores them in chunks
+  and drops the allowance (D-0217).
 - **A build peaks near 5.5 GB** against the worker's 8 GB memory limit
   (rehearsal on the Mac, final source). Watch the first builds for an OOM kill.
 - **Found by the independent review, not yet fixed** (verdict in the

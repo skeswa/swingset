@@ -4,7 +4,7 @@ Recorded: 2026-09-27
 Decided by: agent, 2026-09-27, under D-0175; source: phase 1 review finding on the watchdog's blind spot ([architecture plan](../../docs/plans/architecture.md))  
 Topic: Acquisition  
 Supersedes: —  
-Superseded by: —
+Superseded by: in part, [D-0216](0216-the-work-queue-leases-backs-off-and-quarantines.md) (only runnable parse units count)
 
 ## Decision
 

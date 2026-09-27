@@ -1,111 +1,57 @@
 """One budgeted cycle with independent collection and offline service shares."""
 
 import json
-import os
 import sqlite3
-from collections import Counter
-from collections.abc import Callable, Iterator, Mapping
-from contextlib import ExitStack, contextmanager
+from collections.abc import Callable, Mapping
+from contextlib import ExitStack
 from dataclasses import asdict
 from datetime import datetime, timedelta
-from hashlib import sha256
 from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
 import httpx
 
-from swingset import __version__
 from swingset.build.builder import BuildError, BuildResult
 from swingset.build.closure_manifest import ClosureError
 from swingset.clock import Clock
 from swingset.config import Config
 from swingset.fetch.archive import Archive, canonical, durable_write
-from swingset.fetch.client import FetchClient
 from swingset.fetch.recovery import LocalCheckpointRecovery
 from swingset.history.acquisition import phase_two_refusals
 from swingset.log import log
 from swingset.publish.service import Hub, publish, reconcile
 from swingset.schedule import pacing
-from swingset.schedule.derive import derive_one
+from swingset.schedule.acquisition import Acquisition, Bookkeeping, contained, request_failures
 from swingset.schedule.discover import discover
 from swingset.schedule.fair_policy import allocation
 from swingset.schedule.fairness import (
-    WatchChoice,
     backpressure,
     next_delay,
-    next_offline_batch,
     next_watch,
     prepare_event_turns,
-    record_offline_service,
-    servicing,
 )
+from swingset.schedule.offline import Offline, registry_crosscheck
 from swingset.schedule.registry import (
-    advance_sweep,
     discover_registry,
     run_saved_crosscheck_if_due,
 )
-from swingset.schedule.watches import refresh_policy
-from swingset.sources import get_page_kind, sources
-from swingset.state import derivations
-from swingset.state.attempts import latest_attempt, recover_interrupted
-from swingset.state.control_scopes import for_publication, for_unit, for_watch, unit_allowed
+from swingset.sources.base import WatchSpec
+from swingset.state import derivations, guards, queue, write_deadline
+from swingset.state.attempts import recover_interrupted
+from swingset.state.control_scopes import for_publication, for_unit, unit_allowed
 from swingset.state.controls import (
-    ActionScope,
     ControlPaused,
     matching_pauses,
     operation,
     recover_admissions,
     status,
 )
-from swingset.state.db import SCHEMA_VERSION, Database
+from swingset.state.db import SCHEMA_VERSION, Database, reset_write_counters
 from swingset.state.inputs import InputBundle, accept, capture
 from swingset.state.work import WorkUnit, unfinished_units
-from swingset.state.work_fingerprints import input_fingerprint
-from swingset.state.write_deadline import WriteDeadlineExceeded
-
-
-def repository_identity(package_root: Path | None = None) -> str:
-    """Return the deployed revision, or a deterministic digest for local source.
-
-    A path-flake deployment exports an ``uncommitted:<store name>`` marker that
-    changes on every switch, including config-only ones, and every parse and
-    projection unit is fingerprinted with this identity. Such a marker is
-    ignored in favour of the digest of the Python sources, so only a change
-    to the code itself re-queues work (D-0188).
-    """
-    revision = os.environ.get("SWINGSET_REVISION", "").strip()
-    if revision and not revision.startswith("uncommitted:"):
-        return revision
-
-    root = package_root or Path(__file__).resolve().parents[1]
-    digest = sha256()
-    for path in sorted(root.rglob("*.py")):
-        relative = path.relative_to(root).as_posix().encode()
-        digest.update(len(relative).to_bytes(4, "big"))
-        digest.update(relative)
-        body = path.read_bytes()
-        digest.update(len(body).to_bytes(8, "big"))
-        digest.update(body)
-    return f"source-sha256:{digest.hexdigest()}"
-
-
-def versions() -> dict[str, str]:
-    from swingset.link.service import LINKER_VERSION
-    from swingset.project import PROJECTOR_VERSION
-
-    result = {
-        "package": __version__,
-        "projector": str(PROJECTOR_VERSION),
-        "linker": str(LINKER_VERSION),
-        "repository": repository_identity(),
-        "schema": "1",
-    }
-    for source in sources():
-        for name, page in source.page_kinds.items():
-            result[f"extract/{name}"] = str(page.EXTRACT_VERSION)
-            result[f"parser/{name}"] = str(page.PARSER_VERSION)
-    return result
+from swingset.versions import repository_identity as repository_identity
+from swingset.versions import versions as versions
 
 
 def baseline_commit(state_dir: Path) -> str | None:
@@ -139,8 +85,66 @@ def build(
         )
 
 
-# Units selected per read snapshot in the offline phase (D-0182).
-OFFLINE_BATCH = 64
+def correct(
+    database: Database,
+    bundle: InputBundle,
+    clock: Clock,
+    run_id: str,
+    summary: dict[str, Any],
+    *,
+    hub: Hub | None,
+    dry_run: bool,
+) -> BuildResult:
+    """Build a correction-only candidate and, unless a dry run, publish it.
+
+    The caller has checked `build.service.correction_needed`. The cycle and
+    the release loop share this (D-0215).
+    """
+    correction = build(
+        database,
+        bundle,
+        clock,
+        run_id,
+        remote=hub if not dry_run else None,
+        correction_only=True,
+    )
+    summary["correction_candidate_id"] = correction.candidate_id
+    if not dry_run:
+        assert hub is not None
+        corrected = publish(database.state_dir, correction.path, hub)
+        summary["correction_publication"] = asdict(corrected)
+        if corrected.commit:
+            summary["correction_commit"] = corrected.commit
+    return correction
+
+
+def build_and_publish(
+    database: Database,
+    bundle: InputBundle,
+    clock: Clock,
+    run_id: str,
+    summary: dict[str, Any],
+    *,
+    hub: Hub | None,
+    dry_run: bool,
+) -> BuildResult:
+    """Build a candidate and, unless a dry run, publish it; noted in `summary`.
+
+    A new candidate appends `build` to `summary["stages"]`; a reused one does
+    not. The cycle and the release loop share this (D-0215).
+    """
+    candidate = build(database, bundle, clock, run_id, remote=hub if not dry_run else None)
+    if not candidate.reused:
+        summary["stages"].append("build")
+    summary["candidate_id"] = candidate.candidate_id
+    if not dry_run:
+        if hub is None:
+            raise ValueError("publication enabled but no Hub adapter configured")
+        published = publish(database.state_dir, candidate.path, hub, dry_run=False)
+        summary["publication"] = asdict(published)
+        if published.commit:
+            summary["publish_commit"] = published.commit
+    return candidate
 
 
 def build_deferred_for_backlog(
@@ -217,9 +221,15 @@ def run_cycle(
 ) -> dict[str, Any]:
     started = clock.now()
     deadline = started + timedelta(seconds=budget)
+    # The run record carries this run's write timings and deadline firings
+    # (D-0217): start the process counters afresh.
+    reset_write_counters()
+    fired_before = write_deadline.fired()
     with database.transaction() as conn:
         recovered_admissions = recover_admissions(conn, now=started)
         interrupted_attempts = recover_interrupted(database, now=started)
+        # This process holds the exclusive lock: no lease is alive (D-0216).
+        released_leases = queue.release_all(conn, started)
     run_id = database.start_run(started, dry_run=dry_run)
     summary: dict[str, Any] = {
         "run_id": run_id,
@@ -235,14 +245,19 @@ def run_cycle(
         "recovered_admissions": recovered_admissions,
         "interrupted_attempts": interrupted_attempts,
         "held_operations": [],
+        # Work-queue activity this cycle (D-0216). A waiting unit whose retry
+        # ended the way it waited is a repeat, not a failure.
+        "waiting_repeats": 0,
+        "control_timeouts": 0,
+        "queue": {"released": released_leases, "woken": 0, "lease_busy": 0, "quarantined": []},
+        # Guard rows written and cleared by the acquisition passes (D-0219).
+        "guards": {"passes": 0, "recorded": 0, "cleared": 0},
     }
-    attempts: Counter[str] = Counter()
-    failures: Counter[str] = Counter()
     recovery = LocalCheckpointRecovery(
         database.state_dir / "checkpoints", maximum_schema_version=SCHEMA_VERSION
     )
     archive = Archive(database.state_dir, recovery=recovery)
-    fetcher: FetchClient | None = None
+    acquiring: Acquisition | None = None
 
     def stop() -> bool:
         return should_stop() or clock.now() >= deadline
@@ -260,20 +275,6 @@ def run_cycle(
     # not be formed, by `stage/kind` (schedule/fairness.next_offline_batch).
     summary["readiness_errors"] = {}
 
-    @contextmanager
-    def contained(stage: str) -> Iterator[None]:
-        """A bookkeeping stage that overruns its write is skipped, not fatal.
-
-        Its write rolled back whole. Letting it escape aborted every cycle
-        before acquisition for eleven hours on 2026-09-25 (D-0201); the cycle
-        still reports failed=true so the watchdog sees it.
-        """
-        try:
-            yield
-        except WriteDeadlineExceeded as exc:
-            summary["stage_errors"].append({"stage": stage, "error": str(exc)})
-            log("stage_failed", stage=stage, error=str(exc)[:300])
-
     # Read before the work so the report can name the epochs it moved. A
     # failed read must not cost the run record either: it is noted, and the
     # report then leaves replay bumps out.
@@ -287,6 +288,8 @@ def run_cycle(
     # (schedule/pacing.holds), and the phase-two gate's refusals by reason.
     scoped = ExitStack()
     refused = scoped.enter_context(phase_two_refusals())
+    # The cycle is the exclusive process: every lease it meets is dead.
+    scoped.enter_context(queue.owning("cycle", run_id, exclusive=True))
     try:
         bundle = capture(config_dir, overrides_dir, database.state_dir, versions())
         scoped.enter_context(pacing.configured(bundle.config.scheduler, clock.now))
@@ -306,11 +309,15 @@ def run_cycle(
         # acquisition gate (event_pressure._enabled).
         stages = bundle.config.stages
         summary["stages_disabled"] = stages.disabled()
-        from swingset.schedule.event_enumerations import bootstrap as bootstrap_events
+        bookkeeping = Bookkeeping(
+            database, bundle, clock, run_id, summary, deadline=deadline, held=held
+        )
 
         if not stop():
-            with contained("event_enumerations"):
-                summary["event_enumerations"] = bootstrap_events(database, now=clock.now())
+            bookkeeping.enumerations()
+            # Units whose waiting or quarantine clock came due are ready again.
+            with contained(summary, "queue_wake"):
+                summary["queue"]["woken"] = queue.wake(database, clock.now())
             from swingset.state.work import recover_parse_hints
 
             # Reconstruct disposable queue hints from retained metadata. Normal
@@ -318,71 +325,20 @@ def run_cycle(
             recovery_now = clock.now()
             recovery_seconds = min(2.0, (deadline - recovery_now).total_seconds())
             if recovery_seconds > 0 and not should_stop():
-                with contained("parse_hint_recovery"):
+                with contained(summary, "parse_hint_recovery"):
                     summary["parse_hint_recovery"] = recover_parse_hints(
                         database,
                         now=recovery_now,
                         wall_seconds=recovery_seconds,
                     )
-            if stages.event_pressure:
-                from swingset.schedule.event_pressure import bootstrap as bootstrap_pressure
-
-                with contained("event_pressure_bootstrap"):
-                    summary["event_pressure_bootstrap"] = bootstrap_pressure(
-                        database, bundle.config, now=clock.now()
-                    )
-            if stages.event_blocker_observations:
-                from swingset.schedule.event_blocker_history import (
-                    refresh as observe_event_blockers,
-                )
-
-                # Diagnostic bookkeeping may observe a pause without starting
-                # paused acquisition, artifact verification, or derivation work.
-                with contained("event_blocker_observations"):
-                    summary["event_blocker_observations"] = observe_event_blockers(
-                        database,
-                        bundle.config,
-                        now=clock.now(),
-                        run_id=run_id,
-                        operator_hold=(database.state_dir / "operator-hold").is_file(),
-                    )
-        from swingset.state.requirements import scan
+            bookkeeping.pressure_bootstrap()
+            bookkeeping.blocker_observations()
         from swingset.state.verification import verification_summary
 
         if not stop():
-            with contained("requirements_scan"):
-                summary["requirements_scanned"] = scan(
-                    database, clock.now(), run_id, history_start=bundle.config.history_start
-                )
-        if (
-            stages.event_site_review
-            and not stop()
-            and database.connection.execute("SELECT 1 FROM history_acceptance LIMIT 1").fetchone()
-        ):
-            from swingset.history.event_sites import reconcile as review_event_sites
-
-            try:
-                with operation(
-                    database,
-                    action_id="event_sites_" + uuid4().hex,
-                    action_kind="project",
-                    scope=ActionScope(all_sources=True, kinds=frozenset({"source_event_mapping"})),
-                    clock=clock,
-                    run_id=run_id,
-                ):
-                    summary["event_sites_reviewed"] = review_event_sites(
-                        database,
-                        now=clock.now(),
-                        run_id=run_id,
-                        history_start=bundle.config.history_start,
-                        overrides=tuple(bundle.csv("source_urls.csv")),
-                        wall_seconds=min(10, max(0, (deadline - clock.now()).total_seconds())),
-                    )
-            except ControlPaused as exc:
-                held("event_site_review", exc)
-            except WriteDeadlineExceeded as exc:
-                summary["stage_errors"].append({"stage": "event_site_review", "error": str(exc)})
-                log("stage_failed", stage="event_site_review", error=str(exc)[:300])
+            bookkeeping.requirements_scan()
+        if not stop():
+            bookkeeping.site_review()
         summary["registry_verification"] = verification_summary(database.connection, clock.now())
         if hub is not None:
             reconciled = reconcile(database.state_dir, hub, dry_run=dry_run)
@@ -395,20 +351,7 @@ def run_cycle(
 
             if correction_needed(database, bundle):
                 try:
-                    correction = build(
-                        database,
-                        bundle,
-                        clock,
-                        run_id,
-                        remote=hub if not dry_run else None,
-                        correction_only=True,
-                    )
-                    summary["correction_candidate_id"] = correction.candidate_id
-                    if not dry_run:
-                        corrected = publish(database.state_dir, correction.path, hub)
-                        summary["correction_publication"] = asdict(corrected)
-                        if corrected.commit:
-                            summary["correction_commit"] = corrected.commit
+                    correct(database, bundle, clock, run_id, summary, hub=hub, dry_run=dry_run)
                 except ControlPaused as exc:
                     held("correction_build", exc)
         split = allocation(bundle.config, budget)
@@ -419,305 +362,61 @@ def run_cycle(
                 "acquisition": 0.0,
                 "offline": 0.0,
             },
-            "backpressure_before": backpressure(database.connection, bundle.config),
+            "backpressure_before": backpressure(
+                database.connection, bundle.config, now=clock.now()
+            ),
         }
         if not stop():
             discover(database, bundle, clock.now())
             if bundle.config.enabled("wsdc_registry"):
                 discover_registry(database, clock.now())
-        if stages.event_pressure and not stop():
-            from swingset.schedule.event_pressure import refresh as refresh_pressure
-
-            try:
-                with operation(
-                    database,
-                    action_id="event_pressure_" + uuid4().hex,
-                    action_kind="project",
-                    scope=ActionScope(
-                        all_sources=True,
-                        kinds=frozenset(
-                            {
-                                "work_attempt",
-                                "archive_artifact",
-                                "admission_blocked",
-                                "parse_failure",
-                            }
-                        ),
-                    ),
-                    clock=clock,
-                    run_id=run_id,
-                ):
-                    summary["event_pressure_refresh"] = refresh_pressure(
-                        database,
-                        Archive(database.state_dir),
-                        bundle.config,
-                        now=clock.now(),
-                        wall_seconds=min(5.0, max(0.0, (deadline - clock.now()).total_seconds())),
-                    )
-            except ControlPaused as exc:
-                held("event_pressure_refresh", exc)
-            except WriteDeadlineExceeded as exc:
-                summary["stage_errors"].append(
-                    {"stage": "event_pressure_refresh", "error": str(exc)}
-                )
-                log("stage_failed", stage="event_pressure_refresh", error=str(exc)[:300])
-        if stages.event_progress_refresh and not stop():
-            from swingset.schedule.event_progress import refresh as refresh_progress
-
-            try:
-                with operation(
-                    database,
-                    action_id="event_progress_" + uuid4().hex,
-                    action_kind="project",
-                    scope=ActionScope(
-                        all_sources=True,
-                        kinds=frozenset(
-                            {
-                                "work_attempt",
-                                "archive_artifact",
-                                "admission_blocked",
-                                "parse_failure",
-                            }
-                        ),
-                    ),
-                    clock=clock,
-                    run_id=run_id,
-                ):
-                    summary["event_progress_refresh"] = refresh_progress(
-                        database,
-                        Archive(database.state_dir),
-                        bundle.config,
-                        now=clock.now(),
-                        run_id=run_id,
-                        wall_seconds=min(5.0, max(0.0, (deadline - clock.now()).total_seconds())),
-                    )
-            except ControlPaused as exc:
-                held("event_progress_refresh", exc)
-            except WriteDeadlineExceeded as exc:
-                summary["stage_errors"].append(
-                    {"stage": "event_progress_refresh", "error": str(exc)}
-                )
-                log("stage_failed", stage="event_progress_refresh", error=str(exc)[:300])
-        visited_watches: set[str] = set()
-        attempted_inputs: dict[WorkUnit, set[str]] = {}
-
-        def offline_allowed(unit: WorkUnit) -> bool:
-            if not allowed(unit):
-                return False
-            if deferred_for_interval(database.connection, bundle.config, unit, now=clock.now()):
-                return False
-            previous = attempted_inputs.get(unit)
-            return previous is None or input_fingerprint(database.connection, unit) not in previous
-
+        if not stop():
+            bookkeeping.pressure_refresh()
+        if not stop():
+            bookkeeping.progress_refresh()
         summary["unit_failures"] = []
+        offline = Offline(database, archive, bundle, clock, run_id, summary, allowed=allowed)
+        # The pass is shared with the acquire loop (schedule/acquisition.py);
+        # the cycle's offers come from the plan pass itself.
+        passes = acquiring = Acquisition(
+            database,
+            bundle.config,
+            clock,
+            run_id,
+            summary,
+            archive=archive,
+            stop=stop,
+            should_stop=should_stop,
+            transport=transport,
+            prepare=prepare_event_turns,
+            select=next_watch,
+            delay=next_delay,
+        )
 
-        def client() -> FetchClient:
-            nonlocal fetcher
-            if fetcher is None:
-                fetcher = FetchClient(
-                    database.connection,
-                    bundle.config,
-                    clock,
-                    archive,
-                    transport=transport,
-                    should_stop=should_stop,
-                )
-            return fetcher
-
-        def _acquisition(until: datetime) -> bool:
-            from swingset.history.backfill import dispatch_one, offers
+        def offered(until: datetime) -> tuple[WatchSpec, ...]:
+            from swingset.history import backfill
 
             from .event_timing_observer import archive_offers
 
-            began = clock.now()
-            issued = False
-            # Under backpressure no historical request can be admitted, so the
-            # plan pass that finds them is skipped; otherwise it stops at the
-            # phase deadline instead of consuming the whole cycle (D-0181).
-            pressure = backpressure(database.connection, bundle.config)
-            offered_pages = (
-                offers(
-                    database,
-                    bundle.config,
-                    clock,
-                    run_id=run_id,
-                    timing=archive_offers(),
-                    deadline=until,
-                )
-                if not stop() and not pressure["active"]
-                else ()
+            return backfill.offers(
+                database,
+                bundle.config,
+                clock,
+                run_id=run_id,
+                timing=archive_offers(),
+                deadline=until,
             )
-            extra: list[WatchChoice] = []
-            for offered in offered_pages:
-                if offered.watch_id in visited_watches:
-                    continue
-                from urllib.parse import urlsplit
-
-                offered_host = urlsplit(offered.archive_url or offered.url).hostname or ""
-                extra.append(
-                    WatchChoice(
-                        key=offered.watch_id,
-                        watch_id=None,
-                        host=offered_host,
-                        category="old",
-                        scope=for_watch(
-                            database.connection,
-                            source=offered.source,
-                            watch_id=offered.watch_id,
-                            page_kind=offered.parser,
-                            watch_kind=offered.kind,
-                            host=offered_host,
-                        ),
-                        due_at=clock.now(),
-                        archive=bool(offered.archive_url),
-                        history=True,
-                    )
-                )
-            while not stop() and clock.now() < until:
-                from .event_timing_observer import checkpoint, resume
-
-                checkpoint()
-                with database.transaction() as conn:
-                    prepare_event_turns(
-                        conn,
-                        bundle.config,
-                        now=clock.now(),
-                        exclude=visited_watches,
-                        extra_choices=extra,
-                        run_id=run_id,
-                    )
-                resume()
-                choice = next_watch(
-                    database.connection,
-                    bundle.config,
-                    now=clock.now(),
-                    exclude=visited_watches,
-                    extra_choices=extra,
-                    run_id=run_id,
-                )
-                if choice is None:
-                    delay = next_delay(
-                        database.connection,
-                        bundle.config,
-                        now=clock.now(),
-                        exclude=visited_watches,
-                        extra_choices=extra,
-                        run_id=run_id,
-                    )
-                    if delay is None or delay <= 0:
-                        break
-                    clock.sleep(min(delay, (until - clock.now()).total_seconds(), 5))
-                    continue
-                visited_watches.add(choice.key)
-                with servicing(choice, run_id=run_id):
-                    if choice.archive or choice.history:
-                        historical = dispatch_one(
-                            database,
-                            bundle.config,
-                            clock,
-                            run_id,
-                            deadline=until,
-                            fetcher=client(),
-                            allocated=True,
-                            target_watch_id=choice.key,
-                        )
-                        summary["history_dispatch"] = {
-                            "reason": historical.reason,
-                            "watch_id": historical.watch_id,
-                        }
-                        result = historical.result
-                        if result is None:
-                            continue
-                    else:
-                        assert choice.watch_id is not None
-                        row = database.connection.execute(
-                            "SELECT parser,notes,url,archive_url FROM watches WHERE watch_id=?",
-                            (choice.watch_id,),
-                        ).fetchone()
-                        result = client().fetch(
-                            choice.watch_id,
-                            get_page_kind(row["parser"]),
-                            run_id,
-                            deadline=until,
-                            sweep=row["notes"] == "sweep",
-                        )
-                        if not result.skipped:
-                            with database.transaction() as conn:
-                                refresh_policy(
-                                    conn,
-                                    bundle.config,
-                                    choice.watch_id,
-                                    clock.now(),
-                                    outcome=result.classification.outcome,
-                                )
-                                if row["parser"] == "wsdc_registry.dancer":
-                                    advance_sweep(database, now=clock.now())
-                    if result.skipped:
-                        continue
-                    issued = True
-                    summary["checked"] += 1
-                    summary["changed"] += int(result.changed)
-                    summary["not_modified"] += int(result.classification.outcome == "NotModified")
-                    summary["nonce_unchanged"] += int(result.nonce_unchanged)
-                    host = choice.host
-                    summary["bytes_by_host"][host] = (
-                        summary["bytes_by_host"].get(host, 0) + result.body_bytes
-                    )
-            index_seconds = bundle.config.scheduler.archive_index_seconds
-            if (
-                index_seconds is not None
-                and not stop()
-                and not pressure["active"]
-                and clock.now() < until
-            ):
-                from swingset.history.platform import index_platform_archives
-
-                # Step 1 of every platform backfill: index the archive's
-                # captures with the acquisition time left after the pages
-                # already offered had their turn, so indexing never takes a
-                # dispatch's host slot (D-0184). Newly indexed captures are
-                # offered from the next pass on.
-                summary["archive_index"] = index_platform_archives(
-                    client(),
-                    bundle.config,
-                    clock,
-                    history_start=bundle.config.history_start,
-                    deadline=min(until, clock.now() + timedelta(seconds=index_seconds)),
-                )
-            summary["scheduler"]["phase_seconds"]["acquisition"] += (
-                clock.now() - began
-            ).total_seconds()
-            return issued
 
         def acquisition(until: datetime) -> bool:
-            from .event_timing_observer import Observer, observing
-
-            with observing(Observer(database, client(), clock, run_id=run_id, deadline=until)):
-                return _acquisition(until)
+            issued, seconds = passes.run(until, offered)
+            summary["scheduler"]["phase_seconds"]["acquisition"] += seconds
+            return issued
 
         def settle_offline() -> None:
-            if (
-                not stop()
-                and next(iter(unfinished_units(database.connection, ("parse", "project"))), None)
-                is None
-            ):
-                if database.connection.execute(
-                    "SELECT 1 FROM meta WHERE key='registry_crosscheck_due'"
-                ).fetchone():
-                    try:
-                        with operation(
-                            database,
-                            action_id="crosscheck_" + uuid4().hex,
-                            action_kind="registry_crosscheck",
-                            scope=for_unit(
-                                database.connection, WorkUnit("project", "history", "all")
-                            ),
-                            clock=clock,
-                            run_id=run_id,
-                        ):
-                            run_saved_crosscheck_if_due(database, archive, clock.now(), run_id)
-                    except ControlPaused as exc:
-                        held("registry_crosscheck", exc)
+            if not stop():
+                registry_crosscheck(
+                    database, archive, clock, run_id, held=held, run=run_saved_crosscheck_if_due
+                )
             if not stop() and build_deferred_for_interval(
                 database.connection, bundle.config, now=clock.now()
             ):
@@ -725,25 +424,15 @@ def run_cycle(
             elif not stop() and build_deferred_for_backlog(
                 database.state_dir,
                 bundle.config,
-                pressure=backpressure(database.connection, bundle.config),
+                pressure=backpressure(database.connection, bundle.config, now=clock.now()),
                 now=clock.now(),
             ):
                 summary["build_deferred"] = "backlog"
             elif not stop():
                 try:
-                    candidate = build(
-                        database, bundle, clock, run_id, remote=hub if not dry_run else None
+                    build_and_publish(
+                        database, bundle, clock, run_id, summary, hub=hub, dry_run=dry_run
                     )
-                    if not candidate.reused:
-                        summary["stages"].append("build")
-                    summary["candidate_id"] = candidate.candidate_id
-                    if not dry_run:
-                        if hub is None:
-                            raise ValueError("publication enabled but no Hub adapter configured")
-                        published = publish(database.state_dir, candidate.path, hub, dry_run=False)
-                        summary["publication"] = asdict(published)
-                        if published.commit:
-                            summary["publish_commit"] = published.commit
                 except ControlPaused as exc:
                     held("build", exc)
                 except (BuildError, ClosureError) as exc:
@@ -763,63 +452,9 @@ def run_cycle(
         if not stop():
             acquisition(min(deadline, clock.now() + timedelta(seconds=split.acquisition_seconds)))
 
-        def offline_batch() -> list[WorkUnit]:
-            # A project or link hint whose unit is already current (a revert
-            # deploy) is deleted once the selection's read snapshot closes;
-            # otherwise the watchdog counts it as ready work forever (I4).
-            found: dict[WorkUnit, str] = {}
-            batch = next_offline_batch(
-                database.connection,
-                now=clock.now(),
-                allowed=offline_allowed,
-                limit=OFFLINE_BATCH,
-                errors=summary["readiness_errors"],
-                current_hints=found,
-            )
-            # Housekeeping: a failed delete is noted and retried next batch,
-            # never fatal to the cycle.
-            try:
-                dropped = derivations.drop_current_hints(database, found)
-            except (sqlite3.Error, WriteDeadlineExceeded) as exc:
-                summary["current_hints_error"] = f"{type(exc).__name__}: {exc}"[:200]
-                dropped = 0
-            if dropped:
-                summary["current_hints_dropped"] = summary.get("current_hints_dropped", 0) + dropped
-            return batch
-
         while not stop():
             began = clock.now()
-            while not stop() and (batch := offline_batch()):
-                for unit in batch:
-                    if stop():
-                        break
-                    attempt = derive_one(database, archive, unit, bundle, clock, run_id)
-                    if attempt.reason == "operator_pause":
-                        continue
-                    completed = latest_attempt(database.connection, unit)
-                    assert completed is not None
-                    attempted_inputs.setdefault(unit, set()).add(
-                        str(completed["input_fingerprint"])
-                    )
-                    with database.transaction() as conn:
-                        record_offline_service(conn, unit, now=clock.now())
-                    if unit.stage not in summary["stages"]:
-                        summary["stages"].append(unit.stage)
-                    if attempt.failed:
-                        summary["unit_failures"].append(
-                            {
-                                "stage": unit.stage,
-                                "unit_kind": unit.unit_kind,
-                                "unit_id": unit.unit_id,
-                                "reason": attempt.reason,
-                            }
-                        )
-                    if unit.stage == "parse" and attempt.source is not None:
-                        attempts[attempt.source] += 1
-                        failures[attempt.source] += int(attempt.failed)
-                        if attempt.source == "wsdc_registry":
-                            with database.transaction():
-                                advance_sweep(database, now=clock.now())
+            offline.run(stop)
             # Builds and saved interpretation consume offline time before any
             # unused share is lent back to collection.
             settle_offline()
@@ -831,7 +466,7 @@ def run_cycle(
             if stop() or not acquisition(deadline):
                 break
         summary["scheduler"]["backpressure_after"] = backpressure(
-            database.connection, bundle.config
+            database.connection, bundle.config, now=clock.now()
         )
         summary["held_units"] = [
             {
@@ -843,15 +478,17 @@ def run_cycle(
             for unit in unfinished_units(database.connection)
             if not allowed(unit)
         ]
-        summary["parse_errors"] = dict(failures)
+        summary["parse_errors"] = dict(offline.failures)
+        _report(summary, "queue_states", lambda: queue.counts_by_state(database.connection))
+        _report(summary, "guard_reasons", lambda: guards.counts_by_reason(database.connection))
         summary["restored_artifacts"] = recovery.restored
         # A build error stays non-fatal so offline work continues (D-0187), but
         # it is a failure: 96 of 100 cycles reported failed=false on one (D-0199).
         summary["failed"] = (
-            any(failures[source] / count > 0.1 for source, count in attempts.items())
-            or any(item["stage"] != "parse" for item in summary["unit_failures"])
+            offline.failed()
             or "build_error" in summary
             or bool(summary["stage_errors"])
+            or request_failures(summary)
             or bool(summary["readiness_errors"])
         )
         paused = [
@@ -873,8 +510,8 @@ def run_cycle(
         scoped.close()
         # A gate that stays closed for hours shows as a count here (I4).
         summary["phase_two_refusals"] = dict(sorted(refused.items()))
-        if fetcher is not None:
-            fetcher.close()
+        if acquiring is not None:
+            acquiring.close()
         # The run record below is what the watchdog reads (I4), so a report
         # query that fails (a locked or full database, or the error that
         # ended the cycle) is noted in it instead of losing it.
@@ -886,6 +523,12 @@ def run_cycle(
             "derivation",
             lambda: derivations.cycle_progress(database.connection, run_id, replayed_before),
         )
+        summary.update(write_deadline.run_counters(fired_before))
+        # Resident peak, not systemd's MemoryPeak, which counts page cache of
+        # the database file: the phase 2 memory gates read this (step 5).
+        from swingset.loops.runtime import peak_rss_bytes
+
+        summary["peak_rss_bytes"] = peak_rss_bytes()
         summary["stopped"] = should_stop() or clock.now() >= deadline
         summary["duration_seconds"] = (clock.now() - started).total_seconds()
         summary["finished_at"] = clock.now().isoformat()

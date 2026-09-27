@@ -38,7 +38,7 @@ archive_index_seconds = 120
 # link unit. Pace both; neither gates acquisition (D-0198, D-0199). Each
 # inventory generation re-mints the map, every event, history and every link
 # (about 0.4 GB), so it waits too, unless history is due (D-0210).
-build_interval_seconds = 21600
+build_interval_seconds = 86400     # 24 h while the phase 1 switch drains (D-0220)
 history_interval_seconds = 43200
 inventory_interval_seconds = 43200
 
@@ -48,7 +48,7 @@ inventory_interval_seconds = 43200
 # frees pages but not file space; see the operation guide's disk-space
 # section for reclaim.
 [retention]
-max_database_bytes = "64GB"
+max_database_bytes = "72GB" # standing from the phase 1 switch (D-0220)
 # Backups are local only until segmented backups (architecture phase 4;
 # D-0203): each successful backup removes every older run_* checkpoint and
 # keeps the one it wrote. Operator-named checkpoints are never touched.

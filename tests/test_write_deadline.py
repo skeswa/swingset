@@ -2,6 +2,8 @@
 
 import signal
 import sqlite3
+import subprocess
+import sys
 import time
 from datetime import timedelta
 from pathlib import Path
@@ -9,7 +11,7 @@ from pathlib import Path
 import pytest
 
 from swingset.state import write_deadline
-from swingset.state.db import open_database
+from swingset.state.db import open_database, reset_write_counters, write_counters
 from swingset.state.write_deadline import WriteDeadlineExceeded
 
 
@@ -197,12 +199,213 @@ def test_a_unit_that_raises_keeps_a_doubling_retry_clock(tmp_path, monkeypatch, 
             assert next_work(db.connection, "project", now=clock.now()) == unit
 
 
-def test_an_allowance_extends_only_the_write_it_wraps(tmp_path, monkeypatch):
-    from swingset.state.write_deadline import allowance, bounded_write
+def test_no_write_gets_a_longer_bound(tmp_path, monkeypatch):
+    """The 60 s alarm is the one limit; the history allowance is gone (D-0217)."""
+    from swingset.schedule import derive
+    from swingset.state.write_deadline import bounded_write
 
+    assert write_deadline.WRITE_SECONDS == 60.0
+    assert not hasattr(write_deadline, "allowance")
+    assert not hasattr(derive, "HISTORY_WRITE_SECONDS")
     monkeypatch.setattr(write_deadline, "WRITE_SECONDS", 0.05)
     conn = sqlite3.connect(tmp_path / "x.sqlite")
-    with allowance(0.5), bounded_write(conn):
-        time.sleep(0.1)
     with pytest.raises(WriteDeadlineExceeded), bounded_write(conn):
         time.sleep(0.1)
+
+
+def test_a_history_unit_over_the_bound_fails_like_any_other(tmp_path, monkeypatch):
+    import swingset.project
+    from swingset.clock import FakeClock
+    from swingset.config import Config
+    from swingset.fetch.archive import Archive
+    from swingset.schedule.derive import derive_one
+    from swingset.state.inputs import InputBundle
+    from swingset.state.work import WorkUnit, enqueue
+
+    clock = FakeClock()
+    bundle = InputBundle("test", Path(tmp_path), {}, Config({}, {}))
+    history = WorkUnit("project", "history", "all")
+
+    def project(db, unit, *_args, selection=None):
+        while True:
+            pass
+
+    monkeypatch.setattr(swingset.project, "process_unit", project)
+    with open_database(tmp_path) as db:
+        run = db.start_run(clock.now())
+        enqueue(db.connection, [history], enqueued_at=clock.now().isoformat())
+        monkeypatch.setattr(write_deadline, "WRITE_SECONDS", 0.03)
+        before = write_deadline.fired()
+        outcome = derive_one(db, Archive(tmp_path), history, bundle, clock, run)
+        assert outcome.failed and outcome.reason == "write_deadline_exceeded"
+        assert write_deadline.fired() == before + 1
+
+
+class _Monotonic:
+    """A monotonic clock the test moves by hand."""
+
+    def __init__(self) -> None:
+        self.now = 1000.0
+
+    def monotonic(self) -> float:
+        return self.now
+
+
+def test_a_body_past_sixty_seconds_raises_and_is_counted(tmp_path, monkeypatch):
+    from swingset.state.write_deadline import bounded_write
+
+    clock = _Monotonic()
+    monkeypatch.setattr(write_deadline, "time", clock)
+    conn = sqlite3.connect(tmp_path / "x.sqlite")
+    before = write_deadline.fired()
+    with bounded_write(conn):
+        clock.now += 59
+    assert write_deadline.fired() == before
+    with pytest.raises(WriteDeadlineExceeded, match="exceeded 60 seconds"), bounded_write(conn):
+        clock.now += 61
+    assert write_deadline.fired() == before + 1
+    # Any other error in the body is not a firing.
+    with pytest.raises(KeyError), bounded_write(conn):
+        raise KeyError("unrelated")
+    assert write_deadline.fired() == before + 1
+
+
+def test_the_run_counters_report_firings_since_the_start(tmp_path, monkeypatch):
+    with open_database(tmp_path) as db:
+        reset_write_counters()
+        before = write_deadline.fired()
+        with db.transaction() as conn:
+            conn.execute("INSERT INTO meta VALUES ('fast','committed')")
+        assert write_deadline.run_counters(before)["write_deadline_fired"] == 0
+        monkeypatch.setattr(write_deadline, "WRITE_SECONDS", 0.05)
+        with pytest.raises(WriteDeadlineExceeded), db.transaction():
+            time.sleep(0.1)
+        counters = write_deadline.run_counters(before)
+        assert set(counters) == {
+            "write_deadline_fired",
+            "write_seconds_max",
+            "write_wait_seconds_max",
+            "write_lock_timeouts",
+        }
+        assert counters["write_deadline_fired"] == 1
+        assert counters["write_seconds_max"] >= 0.05
+        assert counters["write_lock_timeouts"] == 0
+
+
+def test_the_cycle_summary_carries_the_write_counters(tmp_path, monkeypatch):
+    import json
+    import shutil
+
+    import httpx
+
+    from swingset.clock import FakeClock
+    from swingset.schedule.cycle import run_cycle
+    from swingset.state import requirements
+
+    config, overrides = tmp_path / "config", tmp_path / "overrides"
+    shutil.copytree("config", config)
+    shutil.copytree("overrides", overrides)
+    (config / "sources.toml").write_text("")
+
+    def overran(database, *_args, **_kwargs):
+        # One bookkeeping write runs past a short bound; the rest keep 60 s.
+        with monkeypatch.context() as patch:
+            patch.setattr(write_deadline, "WRITE_SECONDS", 0.05)
+            with database.transaction():
+                time.sleep(0.1)
+
+    def forbidden(_request):
+        raise AssertionError("no source is enabled")
+
+    monkeypatch.setattr(requirements, "scan", overran)
+    with open_database(tmp_path / "state") as db:
+        result = run_cycle(
+            db,
+            config_dir=config,
+            overrides_dir=overrides,
+            clock=FakeClock(),
+            transport=httpx.MockTransport(forbidden),
+        )
+        assert result["write_deadline_fired"] == 1
+        assert result["write_seconds_max"] >= 0.05
+        assert result["write_wait_seconds_max"] >= 0
+        assert result["write_lock_timeouts"] == 0
+        assert result["stage_errors"][0]["stage"] == "requirements_scan"
+        saved = json.loads(
+            db.connection.execute(
+                "SELECT summary_json FROM runs WHERE run_id=?", (result["run_id"],)
+            ).fetchone()[0]
+        )
+        assert saved["write_deadline_fired"] == 1
+        # The next cycle starts its counters afresh.
+        monkeypatch.setattr(requirements, "scan", lambda *_args, **_kwargs: 0)
+        again = run_cycle(
+            db,
+            config_dir=config,
+            overrides_dir=overrides,
+            clock=FakeClock(),
+            transport=httpx.MockTransport(forbidden),
+        )
+        assert again["write_deadline_fired"] == 0
+        assert again["write_seconds_max"] < 0.05
+
+
+_WRITER = """
+import sqlite3, sys, time
+conn = sqlite3.connect(sys.argv[1], isolation_level=None)
+conn.execute("BEGIN IMMEDIATE")
+print("LOCKED", flush=True)
+time.sleep(float(sys.argv[2]))
+conn.commit()
+"""
+
+
+def _hold_sqlite_writer(path: Path, seconds: float) -> subprocess.Popen[str]:
+    child = subprocess.Popen(
+        [sys.executable, "-c", _WRITER, str(path / "state.sqlite"), str(seconds)],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    assert child.stdout is not None and child.stdout.readline().strip() == "LOCKED"
+    return child
+
+
+def test_waiting_for_another_writer_is_counted_but_not_bounded(tmp_path, monkeypatch):
+    with open_database(tmp_path) as db:
+        monkeypatch.setattr(write_deadline, "WRITE_SECONDS", 2)
+        reset_write_counters()
+        child = _hold_sqlite_writer(tmp_path, 3)
+        with db.transaction() as conn:
+            conn.execute("INSERT INTO meta VALUES ('after-wait','committed')")
+        assert child.wait(timeout=10) == 0
+        counters = write_counters()
+        assert counters["writes"] == 1
+        assert counters["write_wait_seconds_max"] >= 2.5
+        assert counters["write_wait_seconds_total"] == counters["write_wait_seconds_max"]
+        assert counters["write_seconds_max"] < 1
+        assert counters["write_lock_timeouts"] == 0
+
+
+def test_a_busy_timeout_raises_and_is_counted(tmp_path):
+    open_database(tmp_path).close()
+    with open_database(tmp_path, busy_timeout=0.2) as db:
+        reset_write_counters()
+        child = _hold_sqlite_writer(tmp_path, 0.6)
+        with pytest.raises(sqlite3.OperationalError, match="locked"):
+            with db.transaction() as conn:
+                conn.execute("INSERT INTO meta VALUES ('never','written')")
+        assert not db.connection.in_transaction
+        assert write_counters()["write_lock_timeouts"] == 1
+        assert write_counters()["writes"] == 0
+        assert child.wait(timeout=10) == 0
+
+
+def test_a_body_over_the_bound_still_raises_and_its_length_is_kept(tmp_path, monkeypatch):
+    with open_database(tmp_path) as db:
+        monkeypatch.setattr(write_deadline, "WRITE_SECONDS", 0.05)
+        reset_write_counters()
+        with pytest.raises(WriteDeadlineExceeded):
+            with db.transaction():
+                time.sleep(0.2)
+        assert write_counters()["write_seconds_max"] >= 0.05

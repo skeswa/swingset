@@ -18,6 +18,9 @@ from swingset.clock import Clock
 from .control_lock import ControlTimeout, control_lock
 from .db import SCHEMA_VERSION, Database
 
+#: An admission waits this long for the control lock before `ControlTimeout`.
+ADMISSION_TIMEOUT_SECONDS = 90.0
+
 BUILTIN_KINDS = frozenset(
     {
         "round_observations",
@@ -306,10 +309,14 @@ def admission(
     run_id: str | None = None,
     work_attempt_id: int | None = None,
     candidate_id: str | None = None,
-    timeout: float = 60,
+    timeout: float = ADMISSION_TIMEOUT_SECONDS,
     validate: Callable[[sqlite3.Connection], None] | None = None,
 ) -> Iterator[sqlite3.Connection]:
-    """Serialize the pause check, attempt registration and caller's issuance writes."""
+    """Serialize the pause check, attempt registration and caller's issuance writes.
+
+    Another process may hold the control lock while its admitted write waits
+    for SQLite, so the wait here outlasts a busy timeout (D-0215).
+    """
     if database.connection.in_transaction:
         raise ValueError("admission must precede the unit's write transaction")
     blocked: list[dict[str, Any]] = []

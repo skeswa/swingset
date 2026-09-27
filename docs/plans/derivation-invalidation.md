@@ -370,9 +370,9 @@ _Implemented offline_
 ([D-0207](../../journal/decisions/0207-scope-code-recipes-by-import-closure.md)).
 `state/recipe_scope.py` holds the entry table and `EXCLUDED`. A parse scope
 is 39 to 47 files and an extract scope 17 to 24. Project, link and build
-scopes are about 214 files each, because the package is one import cycle;
-an edit inside it re-runs every project and link unit until the target
-architecture's phase 2 splits it. `schedule/parse.py` and the parse writers
+scopes were about 214 files each, because the package is one import cycle.
+Phase 2 (WP12) took the scheduler, the loops and acquisition out of them: 168
+project and link files, 174 build. `schedule/parse.py` and the parse writers
 (admission, observations, verification, findings, watch clocks) count by
 their own bytes only. `recipe/runtime` stays as a constant, so old bundles reproduce. No
 module is parse-only for a single kind, so "editing a parser" below means an

@@ -72,7 +72,10 @@ def drain_projection(db):
 def test_occurrence_floor_dates_and_phase_two_gates(tmp_path):
     with open_database(tmp_path) as db:
         conn = db.connection
-        conn.execute("INSERT INTO runs VALUES ('run',?,NULL,1,NULL)", (NOW,))
+        conn.execute(
+            "INSERT INTO runs(run_id,started_at,finished_at,dry_run,summary_json) VALUES ('run',?,NULL,1,NULL)",
+            (NOW,),
+        )
         registry(conn)
         assert reconcile_history(conn, now=NOW, run_id="run")
         event = dict(conn.execute("SELECT * FROM events").fetchone())
@@ -135,7 +138,10 @@ def test_occurrence_floor_dates_and_phase_two_gates(tmp_path):
 def test_unresolved_names_are_findings_and_listing_alias_is_reviewed(tmp_path):
     with open_database(tmp_path) as db:
         conn = db.connection
-        conn.execute("INSERT INTO runs VALUES ('run',?,NULL,1,NULL)", (NOW,))
+        conn.execute(
+            "INSERT INTO runs(run_id,started_at,finished_at,dry_run,summary_json) VALUES ('run',?,NULL,1,NULL)",
+            (NOW,),
+        )
         registry(conn)
         listing = CalendarRow(
             "calendar_row",
@@ -185,7 +191,10 @@ def test_rolling_calendar_keeps_registry_editions_and_legacy_ids(tmp_path):
 
     with open_database(tmp_path) as db:
         conn = db.connection
-        conn.execute("INSERT INTO runs VALUES ('run',?,NULL,1,NULL)", (NOW,))
+        conn.execute(
+            "INSERT INTO runs(run_id,started_at,finished_at,dry_run,summary_json) VALUES ('run',?,NULL,1,NULL)",
+            (NOW,),
+        )
         listing = CalendarRow(
             "calendar_row",
             "Example Swing",
@@ -227,7 +236,10 @@ def test_rolling_calendar_keeps_registry_editions_and_legacy_ids(tmp_path):
 def test_later_observed_listing_corrects_dates_without_losing_corroboration(tmp_path):
     with open_database(tmp_path) as db:
         conn = db.connection
-        conn.execute("INSERT INTO runs VALUES ('run',?,NULL,1,NULL)", (NOW,))
+        conn.execute(
+            "INSERT INTO runs(run_id,started_at,finished_at,dry_run,summary_json) VALUES ('run',?,NULL,1,NULL)",
+            (NOW,),
+        )
         registry(conn)
         old = CalendarRow(
             "calendar_row",
@@ -280,7 +292,10 @@ def test_later_observed_listing_corrects_dates_without_losing_corroboration(tmp_
 def test_single_day_result_span_inside_listed_weekend_is_one_edition(tmp_path):
     with open_database(tmp_path) as db:
         conn = db.connection
-        conn.execute("INSERT INTO runs VALUES ('run',?,NULL,1,NULL)", (NOW,))
+        conn.execute(
+            "INSERT INTO runs(run_id,started_at,finished_at,dry_run,summary_json) VALUES ('run',?,NULL,1,NULL)",
+            (NOW,),
+        )
         registry(conn)
         weekend = CalendarRow(
             "calendar_row",
@@ -373,7 +388,10 @@ def test_a_dismissed_finding_is_not_opened_again(tmp_path):
     assert dismissed_findings(reviews) == {("event_alias", "2012-08-example-swing")}
     with open_database(tmp_path) as db:
         conn = db.connection
-        conn.execute("INSERT INTO runs VALUES ('run',?,NULL,1,NULL)", (NOW,))
+        conn.execute(
+            "INSERT INTO runs(run_id,started_at,finished_at,dry_run,summary_json) VALUES ('run',?,NULL,1,NULL)",
+            (NOW,),
+        )
         registry(conn)
         first = CalendarRow(
             "calendar_row",
@@ -422,7 +440,10 @@ def test_a_dismissed_finding_is_not_opened_again(tmp_path):
 def test_two_editions_in_same_capture_require_review(tmp_path):
     with open_database(tmp_path) as db:
         conn = db.connection
-        conn.execute("INSERT INTO runs VALUES ('run',?,NULL,1,NULL)", (NOW,))
+        conn.execute(
+            "INSERT INTO runs(run_id,started_at,finished_at,dry_run,summary_json) VALUES ('run',?,NULL,1,NULL)",
+            (NOW,),
+        )
         registry(conn)
         first = CalendarRow(
             "calendar_row",
