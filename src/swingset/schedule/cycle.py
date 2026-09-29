@@ -69,6 +69,7 @@ def build(
     remote: Hub | None = None,
     *,
     correction_only: bool = False,
+    report: dict[str, Any] | None = None,
 ) -> BuildResult:
     from swingset.build.service import build_release
 
@@ -81,7 +82,13 @@ def build(
         run_id=run_id,
     ):
         return build_release(
-            database, bundle, clock, run_id, remote, correction_only=correction_only
+            database,
+            bundle,
+            clock,
+            run_id,
+            remote,
+            correction_only=correction_only,
+            report=report,
         )
 
 
@@ -109,6 +116,7 @@ def correct(
         correction_only=True,
     )
     summary["correction_candidate_id"] = correction.candidate_id
+    summary["correction_verdict"] = record_verdict(database, correction)
     if not dry_run:
         assert hub is not None
         corrected = publish(database.state_dir, correction.path, hub)
@@ -116,6 +124,25 @@ def correct(
         if corrected.commit:
             summary["correction_commit"] = corrected.commit
     return correction
+
+
+def record_verdict(database: Database, candidate: BuildResult) -> dict[str, Any]:
+    """The candidate's gate verdict, stored on its release manifest row; the summary form.
+
+    An unreadable candidate is reported, not raised: `publish` reads the
+    verdict again and fails closed.
+    """
+    from swingset.publish import gate
+
+    try:
+        verdict = gate.read(database.state_dir, candidate.path)
+    except (OSError, ValueError, KeyError) as exc:
+        return {"state": "unreadable", "error": f"{type(exc).__name__}: {exc}"[:200]}
+    with database.transaction() as conn:
+        gate.record(conn, candidate.path, verdict)
+    if verdict.get("state") != "pass":
+        log("release_refused", candidate_id=candidate.candidate_id, reason=gate.refusal(verdict))
+    return gate.summary(verdict)
 
 
 def build_and_publish(
@@ -131,12 +158,25 @@ def build_and_publish(
     """Build a candidate and, unless a dry run, publish it; noted in `summary`.
 
     A new candidate appends `build` to `summary["stages"]`; a reused one does
-    not. The cycle and the release loop share this (D-0215).
+    not. A partitioned build notes its release manifest and stage 1's counts
+    under `summary["partitions"]` (D-0224), and every build its gate verdict
+    under `summary["verdict"]`; a refused verdict publishes nothing (D-0225).
+    The cycle and the release loop share this (D-0215).
     """
-    candidate = build(database, bundle, clock, run_id, remote=hub if not dry_run else None)
+    report: dict[str, Any] = {}
+    try:
+        candidate = build(
+            database, bundle, clock, run_id, remote=hub if not dry_run else None, report=report
+        )
+    finally:
+        if report:
+            summary["partitions"] = report
     if not candidate.reused:
         summary["stages"].append("build")
     summary["candidate_id"] = candidate.candidate_id
+    # A dry run evaluates the gate too, so the summary shows what publication
+    # would do (D-0225).
+    summary["verdict"] = record_verdict(database, candidate)
     if not dry_run:
         if hub is None:
             raise ValueError("publication enabled but no Hub adapter configured")
@@ -189,11 +229,10 @@ def build_deferred_for_interval(conn: sqlite3.Connection, config: Config, *, now
 def deferred_for_interval(
     conn: sqlite3.Connection, config: Config, unit: WorkUnit, *, now: datetime
 ) -> bool:
-    """Whether a paced global projection waits its interval (schedule/pacing.py).
+    """Whether the paced inventory waits its interval (schedule/pacing.py).
 
-    `project/history` waits `history_interval_seconds` (D-0199) and
-    `project/inventory` `inventory_interval_seconds` (D-0210), unless history
-    is due and has consumed the inventory it has.
+    `project/inventory` waits `inventory_interval_seconds` (D-0210), unless a
+    calendar rewrote its rows. Years are not paced.
     """
     return pacing.deferred(conn, config.scheduler, unit, now=now)
 

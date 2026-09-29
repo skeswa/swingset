@@ -42,21 +42,26 @@ class SchedulerConfig:
     # Admit a release build at most this often, whatever changed; unset means
     # every cycle may build. Each attempt walks the whole graph (D-0199).
     build_interval_seconds: float | None = None
-    # Re-materialize the global history projection at most this often. Every
-    # event projection re-queues it, and each new history generation writes
-    # ~200k row references and re-queues every link unit (D-0199).
+    # Paced project/history/all (D-0199). That unit is retired for one unit
+    # per year, which is not paced (plan F17); the key is accepted and unused.
     history_interval_seconds: float | None = None
-    # Re-materialize the global inventory at most this often, unless history
-    # is due. One inventory generation re-mints the map, every event, history
-    # and every link, 0.4 GB each time (D-0210).
+    # Re-materialize the global inventory at most this often, unless a
+    # calendar rewrote its rows. One inventory generation re-mints the map,
+    # every event, every year and every link, 0.4 GB each time (D-0210).
     inventory_interval_seconds: float | None = None
     # The release loop skips its tick while the worker's disk quota has less
     # than this many bytes free: a build writes a full candidate (D-0215).
     release_min_free_bytes: int = 30_000_000_000
+    # While builds are due and the release loop has not progressed for this
+    # many build intervals, derive leases only parse and link units (plan
+    # section 5, phase 3). 0 turns the knob off.
+    release_lag_intervals: int = 2
 
     def __post_init__(self) -> None:
         for field in fields(self):
             value = getattr(self, field.name)
+            if field.name == "release_lag_intervals" and value == 0 and type(value) is int:
+                continue
             if (
                 field.name
                 in {

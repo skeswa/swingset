@@ -67,15 +67,22 @@ def _coverage(data: BuildInput) -> str:
 
 
 def _results_coverage(data: BuildInput) -> str:
-    placements = _rows(data, "placements")
-    sources = sorted({str(row.get("source", "unknown")) for row in placements})
+    # One pass: the streamed assembly hands the card lazy tables (plan phase 3, WP8).
+    counts: Counter[str] = Counter()
+    events: dict[str, set[Any]] = {}
+    for row in _rows(data, "placements"):
+        value = row.get("source", "unknown")
+        source = str(value)
+        events.setdefault(source, set())
+        # A row counts under a source only when its value is that text.
+        if value == source:
+            counts[source] += 1
+            if row.get("event_id"):
+                events[source].add(row.get("event_id"))
     lines = ["| Results source | Events with placements | Placements |", "|---|---:|---:|"]
-    for source in sources:
-        records = [row for row in placements if row.get("source", "unknown") == source]
-        lines.append(
-            f"| {source} | {len({row.get('event_id') for row in records if row.get('event_id')})} | {len(records)} |"
-        )
-    return "\n".join(lines) if sources else "No placements are published yet."
+    for source in sorted(events):
+        lines.append(f"| {source} | {len(events[source])} | {counts[source]} |")
+    return "\n".join(lines) if events else "No placements are published yet."
 
 
 def _quality(data: BuildInput) -> str:

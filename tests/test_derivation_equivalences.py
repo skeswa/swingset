@@ -11,6 +11,8 @@ moves forward. The last tests check the writer: `complete()` records an
 equivalence only for replayable rows, moves the replay epoch when its replay
 may have rewritten live rows, and refuses output that differs between reads
 ([D-0205](../journal/decisions/0205-cut-off-identical-derivation-output.md)).
+Output alone decides a cutoff: a kept generation may name a superseded
+upstream one ([D-0224](../journal/decisions/0224-releases-from-partition-artifacts.md)).
 """
 
 from __future__ import annotations
@@ -78,10 +80,11 @@ def fence(conn: sqlite3.Connection) -> int:
 class Fixture:
     """One kept derivation generation and one staged source generation."""
 
-    def __init__(self, database: Database) -> None:
+    def __init__(self, database: Database, kind: str = "event") -> None:
         conn = database.connection
         self.run_id = database.start_run(NOW)
-        unit = WorkUnit("project", "event", "kept")
+        self.kind = kind
+        unit = WorkUnit("project", kind, "kept")
         with database.transaction():
             selection = derivations.capture(conn, unit, now=NOW, recipe={"recipe/test": "one"})
             self.generation_id = derivations.complete(
@@ -110,8 +113,15 @@ class Fixture:
             )
             conn.execute(
                 "INSERT INTO derivation_equivalences VALUES "
-                "('project','event','kept',?,?,'recipe-eq',?,?,?)",
-                (f"fp{suffix}", self.generation_id, self.dependency_set_id, AT, self.run_id),
+                "('project',?,'kept',?,?,'recipe-eq',?,?,?)",
+                (
+                    self.kind,
+                    f"fp{suffix}",
+                    self.generation_id,
+                    self.dependency_set_id,
+                    AT,
+                    self.run_id,
+                ),
             )
         else:
             conn.execute(
@@ -303,7 +313,8 @@ def test_a_checkpoint_at_schema_33_verifies_and_restores(
     state = tmp_path / "state"
     with open_database(state, lock=False) as database:
         conn = database.connection
-        fixture = Fixture(database)
+        # An event's prerequisites read schema 35's proposals; a dancer has none.
+        fixture = Fixture(database, kind="dancer")
         with database.transaction():
             for table in TABLES:
                 fixture.insert(conn, table)
@@ -548,18 +559,19 @@ def test_a_replay_epoch_queues_hints_for_the_kinds_that_read_it(tmp_path: Path) 
                 conn,
                 ("project", "calendar", "wsdc"),
                 ("project", "inventory", "all"),
-                ("project", "map", "all"),
+                ("project", "mapping", "eepro"),
+                ("project", "resolution", "e1"),
                 ("project", "event", "e1"),
-                ("project", "history", "all"),
+                ("project", "year", "2026"),
                 ("link", "event", "e1"),
                 ("link", "event", "e2"),
             )
             conn.execute("INSERT INTO pending_work VALUES ('link','event','e2','2020-01-01')")
         with database.transaction():
-            derivations.bump_replay(conn, "project", "map", now=NOW)
+            derivations.bump_replay(conn, "project", "resolution", now=NOW)
         assert _queued(conn) == {
             ("project", "event", "e1"),
-            ("project", "history", "all"),
+            ("project", "year", "2026"),
             ("link", "event", "e2"),
         }
         assert (
@@ -570,15 +582,16 @@ def test_a_replay_epoch_queues_hints_for_the_kinds_that_read_it(tmp_path: Path) 
         )
         # A new hint carries the run's clock, not the wall clock.
         assert (
-            conn.execute(
-                "SELECT enqueued_at FROM pending_work WHERE unit_kind='history'"
-            ).fetchone()[0]
+            conn.execute("SELECT enqueued_at FROM pending_work WHERE unit_kind='year'").fetchone()[
+                0
+            ]
             == NOW.isoformat()
         )
         with database.transaction():
             derivations.bump_replay(conn, "project", "dancer")
         assert ("project", "inventory", "all") in _queued(conn)
-        assert ("link", "event", "e1") in _queued(conn)
+        # A link reads the dancers it used, not the kind's epoch (plan F20).
+        assert ("link", "event", "e1") not in _queued(conn)
         # Nothing reads a link's replay epoch.
         conn.execute("DELETE FROM pending_work")
         with database.transaction():
@@ -770,6 +783,52 @@ def test_a_reuse_through_an_equivalence_that_rewrote_live_rows_moves_the_replay_
         assert replay_version(conn) == before + 1
 
 
+def test_a_rerun_whose_upstream_reminted_identical_output_cuts_off(tmp_path: Path) -> None:
+    """F1 of D-0205, inverted (D-0224).
+
+    The upstream resolution re-mints (a one-shot iterator never cuts off)
+    with identical output, so the event's dependency names a new generation.
+    The event's own output is identical: it keeps its generation, although
+    that generation names the superseded upstream one. Before D-0224 the
+    closure-stable rule refused this cutoff and minted a new event.
+    """
+    upstream = WorkUnit("project", "resolution", "kept")
+    events = [derivations.OutputRow("events", '["kept"]', {"event_id": "kept"})]
+
+    def run(database: Database, run_id: str, unit: WorkUnit, rows) -> str:
+        with database.transaction():
+            selection = derivations.capture(database.connection, unit, now=NOW)
+            return derivations.complete(
+                database.connection, selection, rows=rows, now=NOW, run_id=run_id
+            )
+
+    with open_database(tmp_path / "state", lock=False) as database:
+        conn = database.connection
+        run_id = database.start_run(NOW)
+        accept_runtime(database, "code-1")
+        with database.transaction():
+            conn.execute(
+                "INSERT OR IGNORE INTO accepted_inputs "
+                "VALUES ('pipeline','recipe/code/project/resolution','scope')"
+            )
+        first_upstream = run(database, run_id, upstream, events)
+        kept = run(database, run_id, UNIT, ROWS)
+        assert first_upstream in json.dumps(derivations.desired(conn, UNIT).dependency_sets)
+        accept_runtime(database, "code-2")
+        second_upstream = run(database, run_id, upstream, iter(events))
+        assert second_upstream != first_upstream
+        assert derivations.desired(conn, UNIT).generation_id != kept
+        assert run(database, run_id, UNIT, ROWS) == kept
+        assert pointer(conn) == kept
+        assert (
+            conn.execute(
+                "SELECT count(*) FROM derivation_equivalences WHERE unit_kind='event'"
+            ).fetchone()[0]
+            == 1
+        )
+        assert derivations.current(conn, UNIT)
+
+
 def test_an_input_that_moves_during_the_comparison_writes_no_equivalence(
     tmp_path: Path,
 ) -> None:
@@ -873,13 +932,14 @@ def test_projection_materialization_leaves_the_moved_column_out_of_the_compariso
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """`materializing` names the moved columns of the unit's kind (D-0212):
-    an event scope keeps a generation that recorded `coverage_tier`, and
-    history, which owns that column, never leaves it out."""
+    an event scope keeps a generation that recorded `coverage_tier`, and a
+    year (history before), which owns that column, never leaves it out."""
     from swingset.project import materialization
 
     assert materialization.moved_columns(UNIT) == TIER
     assert materialization.moved_columns(WorkUnit("project", "calendar", "wsdc")) == TIER
     assert materialization.moved_columns(WorkUnit("project", "history", "all")) == {}
+    assert materialization.moved_columns(WorkUnit("project", "year", "2026")) == {}
     assert materialization.moved_columns(WorkUnit("link", "event", "e")) == {}
     old = [derivations.OutputRow("events", '["ev1"]', EVENT_ROW)]
     new = [

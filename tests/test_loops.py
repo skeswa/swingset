@@ -12,7 +12,7 @@ from swingset.cli import main
 from swingset.clock import FakeClock
 from swingset.config import load_config
 from swingset.loops import derive, maintain
-from swingset.loops.runtime import tick
+from swingset.loops.runtime import PUBLICATION_IN_FLIGHT, tick
 from swingset.state import guards, queue, rwlock
 from swingset.state.db import DatabaseLockedError, open_database
 from swingset.state.work import WorkUnit
@@ -287,6 +287,166 @@ def test_a_tick_skips_while_a_publication_is_in_flight(dirs):
     assert not _derive(dirs, clock)["skipped"]
 
 
+def test_a_closure_publication_pauses_the_loops_and_a_narrow_one_does_not(dirs, projected):
+    """A partitioned publication fences only its own tables (WP10): derive
+    ticks through it; maintain and release, which write those tables, skip."""
+    state = dirs[0]
+    clock = FakeClock()
+    _accepted(dirs, clock)
+    _enqueue(state, clock, ["a", "b"])
+    with open_database(state) as db:
+        _admit(db.connection, "publication_narrow_1", "publication_narrow", None, clock)
+    clock.sleep(60)
+    record = _derive(dirs, clock)
+    assert record["skipped"] is None and not record["failed"], record
+    assert record["progress"] == 2 and sorted(projected) == ["a", "b"]
+    assert PUBLICATION_IN_FLIGHT not in record["counters"]
+    with _tick("maintain", dirs, clock) as current:
+        maintain.run(current)
+    assert current.record is not None and current.record["skipped"] == PUBLICATION_IN_FLIGHT
+    # The narrow publication ends; a closure-mode one pauses derive again.
+    _enqueue(state, clock, ["c"])
+    with open_database(state) as db:
+        db.connection.execute(
+            "UPDATE execution_admissions SET state='settled',settled_at=?,outcome='published'",
+            (clock.now().isoformat(),),
+        )
+        _admit(db.connection, "publication_2", "publication", None, clock)
+    clock.sleep(60)
+    paused = _derive(dirs, clock)
+    assert paused["skipped"] == PUBLICATION_IN_FLIGHT and "c" not in projected
+
+
+def _release_row(state, clock, run_id, skipped, *, completed_build=False):
+    """A release tick that finished now, skipped for `skipped` (None: it ran)."""
+    with open_database(state) as db:
+        db.connection.execute(
+            "INSERT INTO runs(run_id,started_at,finished_at,dry_run,loop,summary_json) "
+            "VALUES (?,?,?,1,'release',?)",
+            (
+                run_id,
+                clock.now().isoformat(),
+                clock.now().isoformat(),
+                json.dumps({"loop": "release", "skipped": skipped}),
+            ),
+        )
+        if completed_build:
+            db.connection.execute(
+                "INSERT INTO execution_admissions(action_id,action_kind,admitted_at,"
+                "control_revision,run_id,all_sources,all_kinds,state,settled_at,outcome) "
+                "VALUES (?,'build',?,0,?,1,1,'settled',?,'completed')",
+                (f"build-{run_id}", clock.now().isoformat(), run_id, clock.now().isoformat()),
+            )
+
+
+def test_the_release_lag_knob_holds_project_units_and_leaves_a_guard(dirs, projected):
+    """Builds are due, release has not progressed for two build intervals and
+    its ticks were skipped because derive held the heavy lock: derive runs
+    parse and link units only, and says so with a clocked guard."""
+    from swingset.loops.derive import RELEASE_LAG
+
+    state = dirs[0]
+    clock = FakeClock()
+    _accepted(dirs, clock)
+    built = _release_tick(dirs, clock)
+    assert built["candidate_id"] and built["progress"] == 1
+    interval = load_config(dirs[1]).scheduler.build_interval_seconds
+    assert load_config(dirs[1]).scheduler.release_lag_intervals == 2
+    clock.sleep(3 * interval)
+    _release_row(state, clock, "release_busy", "heavy_busy")
+    _enqueue(state, clock, ["a", "b"])
+    held = _derive(dirs, clock)
+    assert not held["failed"] and held["counters"][RELEASE_LAG] == 1
+    assert held["release_lag"] == {
+        "since": built["finished_at"],
+        "release_lag_intervals": 2,
+        "build_interval_seconds": interval,
+        "engaged": True,
+        "cause": "heavy_busy",
+    }
+    assert "project" not in held["stages"] and projected == []
+    with open_database(state) as db:
+        row = guards.get(db.connection, "loop:derive", RELEASE_LAG)
+        assert row is not None and row.loop == "derive"
+        assert row.expires_at == queue.at(clock.now() + timedelta(hours=1))
+    # 0 turns the knob off.
+    sources = dirs[1] / "sources.toml"
+    shipped = sources.read_text()
+    sources.write_text(shipped.replace("release_lag_intervals = 2", "release_lag_intervals = 0"))
+    clock.sleep(60)
+    off = _derive(dirs, clock)
+    assert RELEASE_LAG not in off["counters"] and sorted(projected) == ["a", "b"]
+    with open_database(state) as db:
+        assert guards.get(db.connection, "loop:derive", RELEASE_LAG) is None
+    # Back on: a release that built within the interval is not behind.
+    sources.write_text(shipped)
+    clock.sleep(60)
+    _accepted(dirs, clock)
+    assert _release_tick(dirs, clock)["candidate_id"]
+    _enqueue(state, clock, ["c"])
+    clock.sleep(60)
+    caught_up = _derive(dirs, clock)
+    assert RELEASE_LAG not in caught_up["counters"] and "c" in projected
+
+
+@pytest.mark.parametrize("skipped", [None, "operator_pause", "disk", "not_ticking"])
+def test_a_release_behind_for_other_causes_leaves_derive_alone(dirs, projected, skipped):
+    """Holding project units cannot help a release that is stopped, paused or
+    out of disk: the lag is reported and derive leases project units (I5)."""
+    from swingset.loops.derive import RELEASE_LAG
+
+    state = dirs[0]
+    clock = FakeClock()
+    _accepted(dirs, clock)
+    assert _release_tick(dirs, clock)["candidate_id"]
+    interval = load_config(dirs[1]).scheduler.build_interval_seconds
+    clock.sleep(3 * interval)
+    if skipped != "not_ticking":
+        _release_row(state, clock, "release_other", skipped)
+    _enqueue(state, clock, ["a", "b"])
+    record = _derive(dirs, clock)
+    assert RELEASE_LAG not in record["counters"] and sorted(projected) == ["a", "b"]
+    lag = record["release_lag"]
+    assert lag["engaged"] is False
+    assert (
+        lag["cause"]
+        == {
+            None: "release_not_building",
+            "operator_pause": "operator_pause",
+            "disk": "disk",
+            "not_ticking": "release_not_ticking",
+        }[skipped]
+    )
+    with open_database(state) as db:
+        assert guards.get(db.connection, "loop:derive", RELEASE_LAG) is None
+
+
+def test_a_completed_build_is_release_progress(dirs):
+    """A reused candidate writes nothing, but its completed build admission
+    means release is current: no lag, though its last progress is old."""
+    from swingset.loops.derive import release_lag
+
+    state = dirs[0]
+    clock = FakeClock()
+    _accepted(dirs, clock)
+    assert _release_tick(dirs, clock)["candidate_id"]
+    config = load_config(dirs[1])
+    interval = config.scheduler.build_interval_seconds
+    clock.sleep(3 * interval)
+    _release_row(state, clock, "release_busy", "heavy_busy")
+    with open_database(state) as db:
+        assert release_lag(db.connection, config, now=clock.now())["engaged"] is True
+    clock.sleep(interval + 60)
+    _release_row(state, clock, "release_reused", None, completed_build=True)
+    with open_database(state) as db:
+        conn = db.connection
+        conn.execute(
+            "UPDATE execution_admissions SET admitted_at=? WHERE action_kind='build'",
+            ((clock.now() - timedelta(seconds=interval + 1)).isoformat(),),
+        )
+        assert release_lag(conn, config, now=clock.now()) is None
+
+
 def test_plan_skips_until_derive_accepts_the_inputs(dirs):
     clock = FakeClock()
     with _tick("plan", dirs, clock) as current:
@@ -441,7 +601,10 @@ def test_maintain_prunes_and_checkpoints(dirs):
     assert record["building"] == {"rows": 1, "stale": 1}
     assert record["queue_orphans"] == 1
     assert set(record["wal"]) == {"busy", "frames", "checkpointed", "bytes"}
-    assert record["progress"] == 6
+    assert record["artifacts"]["removed"] == 0
+    # The weekly verify sample ran: nothing is derived here to verify.
+    assert record["verify"]["mismatches"] == []
+    assert record["progress"] == 8
     with open_database(state, lock=False) as db:
         subjects = [
             row[0]
@@ -511,10 +674,10 @@ def test_the_cycle_summary_keeps_its_keys(dirs):
         event_enumerations event_pressure_bootstrap event_pressure_refresh
         event_progress_refresh failed finished_at guard_reasons guards held_operations
         held_units interrupted_attempts nonce_unchanged not_modified parse_errors
-        parse_hint_recovery paused_hosts peak_rss_bytes phase_two_refusals queue queue_states
+        parse_hint_recovery partitions paused_hosts peak_rss_bytes phase_two_refusals queue queue_states
         readiness_errors recovered_admissions registry_verification requirements_scanned
         restored_artifacts retention_cap run_id scheduler stage_errors stages
-        stages_disabled stopped unit_failures waiting_repeats write_deadline_fired
+        stages_disabled stopped unit_failures verdict waiting_repeats write_deadline_fired
         write_lock_timeouts write_seconds_max write_wait_seconds_max""".split()
     )
 
@@ -760,6 +923,25 @@ def test_acquire_fetches_an_eligible_plan_row_and_a_due_watch_on_facts_alone(
         assert loop == "acquire"
 
 
+def test_plan_and_acquire_tick_through_a_narrow_publication(dirs, history):
+    """A partitioned publication leaves acquisition running (WP10)."""
+    with open_database(dirs[0]) as db:
+        _admit(db.connection, "publication_narrow_1", "publication_narrow", None, history.clock)
+    planned = _plan_tick(dirs, history.clock)
+    assert planned["skipped"] is None and not planned["failed"], planned
+    seen, handler = _requests()
+    record = _acquire_tick(dirs, history.clock, handler)
+    assert record["skipped"] is None and not record["failed"], record
+    assert record["offered"] == 1 and record["progress"] >= 2 and seen
+    with open_database(dirs[0]) as db:
+        assert (
+            db.connection.execute(
+                "SELECT state FROM execution_admissions WHERE action_id='publication_narrow_1'"
+            ).fetchone()[0]
+            == "active"
+        )
+
+
 def test_a_request_that_raises_holds_its_watch_and_the_pass_goes_on(dirs, history, monkeypatch):
     """One poisoned plan row stops only itself (I1): the due origin watch is
     fetched in the same tick and later ones, the tick reports the error, and
@@ -952,6 +1134,14 @@ def _accepted(dirs, clock):
     assert not record["failed"]
 
 
+def _release_path(dirs, path):
+    """Set `[release] path` in the test's config copy (whole and closure take the heavy lock)."""
+    sources = dirs[1] / "sources.toml"
+    body = sources.read_text()
+    assert 'path = "partitioned"' in body
+    sources.write_text(body.replace('path = "partitioned"', f'path = "{path}"'))
+
+
 def test_a_release_tick_builds_then_defers_inside_the_build_interval(dirs):
     clock = FakeClock()
     assert _release_tick(dirs, clock)["skipped"] == "inputs_not_accepted"
@@ -982,12 +1172,13 @@ def test_a_release_tick_builds_then_defers_inside_the_build_interval(dirs):
 
 
 def test_derive_starts_no_unit_while_release_builds(dirs, projected, monkeypatch):
-    """No project unit and no parse unit starts beside a build (F10)."""
+    """No project unit and no parse unit starts beside a whole build (F10)."""
     from swingset.schedule import cycle
     from swingset.state.work import enqueue
 
     state = dirs[0]
     clock = FakeClock()
+    _release_path(dirs, "whole")
     _accepted(dirs, clock)
     _enqueue(state, clock, ["a", "b"])
     with open_database(state) as db:
@@ -1026,9 +1217,51 @@ def test_derive_starts_no_unit_while_release_builds(dirs, projected, monkeypatch
     assert sorted(projected) == ["a", "b"]
 
 
+@pytest.mark.parametrize("locked", [True, False])
+def test_a_streamed_build_takes_the_heavy_lock_until_streamed_lock_is_off(
+    dirs, projected, monkeypatch, locked
+):
+    """A partitioned build holds the heavy lock by default: the rehearsal
+    measured 6.7 GB before F26's fix. With `streamed_lock = false` (after the
+    worker measures it under 2 GB beside derive), derive runs beside it."""
+    from swingset.schedule import cycle
+
+    state = dirs[0]
+    clock = FakeClock()
+    if not locked:
+        sources = dirs[1] / "sources.toml"
+        body = sources.read_text()
+        assert "streamed_lock = true" in body
+        sources.write_text(body.replace("streamed_lock = true", "streamed_lock = false"))
+    _accepted(dirs, clock)
+    _enqueue(state, clock, ["a", "b"])
+    original = cycle.build
+    during = []
+
+    def build(*args, **kwargs):
+        during.append(_derive(dirs, clock))
+        if not locked:
+            rwlock.heavy_exclusive(state, timeout=0).release()
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(cycle, "build", build)
+    record = _release_tick(dirs, clock)
+    assert record["candidate_id"] and not record["failed"]
+    assert record["heavy_lock"] is locked
+    assert record["partitions"]["path"] == "partitioned"
+    (derived,) = during
+    assert not derived["failed"]
+    if locked:
+        assert derived["counters"]["heavy_deferred"] == 1 and derived["progress"] == 0
+    else:
+        assert "heavy_deferred" not in derived["counters"]
+        assert derived["progress"] == 2 and sorted(projected) == ["a", "b"]
+
+
 def test_release_skips_when_derive_holds_the_heavy_lock_past_its_wait(dirs):
     state = dirs[0]
     clock = FakeClock()
+    _release_path(dirs, "whole")
     _accepted(dirs, clock)
     heavy = rwlock.heavy_shared(state)
     try:
@@ -1115,6 +1348,7 @@ def test_whole_tick_skips_leave_loop_guards_with_expiries(dirs):
     `guard_reasons`, with a clock, and the row goes once a tick gets past it."""
     state = dirs[0]
     clock = FakeClock()
+    _release_path(dirs, "whole")
     assert _release_tick(dirs, clock)["skipped"] == "inputs_not_accepted"
     with open_database(state) as db:
         row = guards.get(db.connection, "loop:release", "inputs_not_accepted")

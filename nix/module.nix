@@ -50,8 +50,12 @@ let
   # not their sum (17 GB together). On the Mac a build peaked at 6.3 GB and
   # a parse-only derive tick beside it at 2 to 3.9 GB, more than the 8 GB
   # worker, so derive starts no unit while release holds the heavy lock.
-  # The kernel kills release first and acquire last. Switch 2b is gated on
-  # the worker's measured MemoryPeak (docs/plans/architecture.md, phase 2).
+  # Every build holds it, a partitioned one included, while `[release]
+  # streamed_lock` is true (the default): phase 3's rehearsal measured the
+  # partitioned build at 6.7 GB before F26's fix, and the lock comes off only
+  # after the worker's post-check shows it under 2 GB beside derive. The
+  # kernel kills release first and acquire last. Switch 2b is gated on the
+  # worker's measured MemoryPeak (docs/plans/architecture.md, phase 2).
   loopUnits = {
     acquire = {
       description = "Discover and fetch swingset sources";

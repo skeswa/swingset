@@ -59,8 +59,14 @@ def base_certificate(
 
 
 def certificate(
-    conn: sqlite3.Connection, unit: WorkUnit, recipe: Mapping[str, str], context: Mapping[str, Any]
+    conn: sqlite3.Connection,
+    unit: WorkUnit,
+    recipe: Mapping[str, str],
+    context: Mapping[str, Any],
+    *,
+    reads: Iterable[str] | None = None,
 ) -> str:
+    """``reads`` is a link's read set, else its recorded one (plan F20)."""
     from .derivations import selected_generation
 
     basis = _basis(unit, recipe, context)
@@ -103,6 +109,15 @@ def certificate(
             (kind, identifier),
         ):
             token("watch", row[0])
+
+    def resolution(identifier: str) -> None:
+        # The fingerprint reads the resolution epoch even for an event with
+        # no resolution unit; a unit that appears changes the basis too.
+        from .derivation_dependencies import resolution_unit
+
+        replay("resolution")
+        basis.append(("resolution", identifier, resolution_unit(conn, identifier) is not None))
+        selected("resolution", identifier)
 
     def event(identifier: str) -> None:
         raw("event", identifier)
@@ -161,57 +176,69 @@ def certificate(
                 token(name, "all")
             for name in ("calendar", "source_index", "dancer"):
                 epoch(name)
-        elif kind == "map":
+        elif kind == "mapping":
+            # Its listings (any source_events change moves this token), its
+            # index pages (any index pointer), and the catalog it matches
+            # against: the calendars and the inventory.
+            token("inventory_sources", "all")
+            epoch("source_index")
+            epoch("calendar")
             selected("inventory")
+        elif kind == "resolution":
+            from .derivation_dependencies import resolution_proposals
+
+            # No token follows the proposals; they are few and indexed by
+            # event, so the certificate names them directly.
+            epoch("calendar")
+            selected("inventory")
+            basis.append(("proposals", resolution_proposals(conn, unit.unit_id)))
         elif kind == "event":
-            selected("map")
+            resolution(unit.unit_id)
             event(unit.unit_id)
         elif kind == "source_event":
-            selected("map")
+            replay("resolution")
             raw(kind, unit.unit_id)
             token("source_mapping", unit.unit_id)
             for row in conn.execute(
                 "SELECT DISTINCT event_id FROM source_event_map WHERE source_ref=? ORDER BY event_id",
                 (unit.unit_id,),
             ):
+                resolution(row[0])
                 selected("event", row[0])
-        elif kind == "history":
-            for name in ("history_acceptance", "history_findings", "snapshot_basis"):
-                token(name, "all")
+        elif kind == "year":
+            from .derivation_dependencies import _associated_elsewhere, _year_events
+
+            # Its placements, acceptance, findings and transport.
             for name in (
-                "calendar",
-                "source_index",
-                "dancer",
-                "inventory",
-                "map",
-                "event",
-                "source_event",
+                "inventory_registry",
+                "history_acceptance",
+                "history_findings",
+                "snapshot_basis",
             ):
-                epoch(name)
+                token(name, "all")
+            selected("inventory")
+            epoch("calendar")
+            # The fingerprint reads these epochs even with no such prerequisite.
+            replay("dancer")
+            replay("event")
+            for item in _year_events(conn, unit.unit_id):
+                resolution(item.unit_id)
+                selected("event", item.unit_id)
+            # No token moves with `event_id`. The year counts placements
+            # reported in another year that name its events (a December
+            # event's January placements), whose association another year or
+            # a dancer's reconcile writes: they are few and indexed, so the
+            # certificate names them directly.
+            basis.append(("associated_elsewhere", _associated_elsewhere(conn, unit.unit_id)))
     elif unit.stage == "link":
-        token("reference_migrations", "all")
-        selected("history")
-        selected("event", unit.unit_id)
-        epoch("dancer")
+        from .derivation_dependencies import link_inputs, recorded_reads
+
+        # Its source observations by token, and each read key's value: the
+        # dancers it used, its event, its content digests and its pool (F20).
         event(unit.unit_id)
-        token("canonical", unit.unit_id)
-        for row in conn.execute(
-            "SELECT round_id FROM rounds WHERE contest_id IN (SELECT contest_id FROM contests WHERE event_id=?) ORDER BY round_id",
-            (unit.unit_id,),
-        ):
-            token("missing_identity", row[0])
-        basis.extend(
-            tuple(row)
-            for row in conn.execute(
-                "SELECT name,value FROM revisions WHERE name IN ('dancers','identity_decisions') ORDER BY name"
-            )
-        )
-        basis.extend(
-            tuple(row)
-            for row in conn.execute(
-                "SELECT key,value FROM meta WHERE key='identity_journal_digest'"
-            )
-        )
+        keys = sorted(set(reads) if reads is not None else recorded_reads(conn, unit))
+        values = link_inputs(conn, unit.unit_id, keys)
+        basis.append(("reads", [[key, values[key]] for key in keys]))
     else:
         # Build validity includes filesystem evidence, so it deliberately has no
         # fast certificate path. Return a stable value for receipt bookkeeping.

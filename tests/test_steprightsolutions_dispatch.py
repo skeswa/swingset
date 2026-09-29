@@ -168,7 +168,8 @@ def test_event_detail_dispatch_refreshes_source_event_and_map(tmp_path: Path) ->
         assert {
             WorkUnit("project", "source_event", SOURCE_REF),
             WorkUnit("project", "source_index", SOURCE_REF),
-            WorkUnit("project", "map", "all"),
+            # The retired whole map's hint becomes the source's mapping (F19).
+            WorkUnit("project", "mapping", "steprightsolutions"),
         }.issubset(pending)
 
         drain_projects(database, clock, run_id)

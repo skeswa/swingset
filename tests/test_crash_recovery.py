@@ -18,17 +18,24 @@ CHECKPOINTS = (
     "parse_snapshot_completed",
     "project_calendar_completed",
     "project_inventory_completed",
-    "project_map_completed",
+    # A calendar-only cycle has no listing, so no mapping or resolution unit
+    # (plan F19); the map checkpoint went with project/map/all.
     "project_event_completed",
-    "project_history_completed",
+    "project_year_completed",
     "link_event_completed",
     "build_completed",
 )
 
 
-def invoke(state, overrides, config, fault="none"):
+#: The listing variant's own checkpoints: the mapping and resolution units a
+#: listing brings (plan F19), including the first run's move of ownership out
+#: of the retired map scopes.
+LISTING_CHECKPOINTS = ("project_mapping_completed", "project_resolution_completed")
+
+
+def invoke(state, overrides, config, fault="none", variant=""):
     return subprocess.run(
-        [sys.executable, str(SCRIPT), str(state), str(overrides), str(config), fault],
+        [sys.executable, str(SCRIPT), str(state), str(overrides), str(config), fault, variant],
         capture_output=True,
         text=True,
         timeout=15,
@@ -146,3 +153,31 @@ def test_sigterm_stops_at_boundary_and_next_cycle_finishes(tmp_path):
     restarted = invoke(state, overrides, config)
     assert restarted.returncode == 0, restarted.stderr
     assert len(belief(state)) == 1
+
+
+@pytest.fixture(scope="module")
+def listing_cycle(tmp_path_factory):
+    tmp_path = tmp_path_factory.mktemp("listing-cycle")
+    overrides, config = setup_inputs(tmp_path)
+    normal = invoke(tmp_path / "normal", overrides, config, variant="listing")
+    assert normal.returncode == 0, normal.stderr
+    trace = json.loads(normal.stdout)
+    assert set(LISTING_CHECKPOINTS) <= set(trace["checkpoints"])
+    expected = belief(tmp_path / "normal")
+    assert len(expected) == 2
+    return overrides, config, trace, expected
+
+
+@pytest.mark.extended
+@pytest.mark.parametrize("checkpoint", LISTING_CHECKPOINTS)
+@pytest.mark.parametrize("side", ("before", "after"))
+def test_restart_at_a_mapping_or_resolution_checkpoint(tmp_path, listing_cycle, checkpoint, side):
+    overrides, config, trace, expected = listing_cycle
+    state = tmp_path / "crashed"
+    crashed = invoke(
+        state, overrides, config, f"{side}:{trace['checkpoints'][checkpoint]}", "listing"
+    )
+    assert crashed.returncode == 91, (side, checkpoint, crashed.stderr)
+    restarted = invoke(state, overrides, config, variant="listing")
+    assert restarted.returncode == 0, restarted.stderr
+    assert belief(state) == expected, (side, checkpoint)

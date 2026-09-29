@@ -11,6 +11,9 @@ A build prepares a complete proposed dataset from saved state. That proposed ver
 - [Review queue](#review-queue)
 - [Acceptance cases](#acceptance-cases)
 - [History memory and quality metadata](#history-memory-and-quality-metadata)
+- [Partition artifacts](#partition-artifacts)
+- [Partitioned releases](#partitioned-releases)
+  - [Streamed assembly](#streamed-assembly)
 
 `build` materializes the tables from SQLite into Parquet under
 `candidates/<candidate_id>/data/<table>/`.
@@ -39,6 +42,11 @@ A build prepares a complete proposed dataset from saved state. That proposed ver
   - `entries.wsdc_id` set only when `link_status` is `confirmed`;
   - a bib per role per event maps to at most one `wsdc_id`;
   - no suppressed `wsdc_id` or name appears anywhere.
+
+  Each check but the last is one function in `build/builder.py` (`CHECKS`),
+  so a [partition artifact](#partition-artifacts) runs the same checks on its
+  own rows.
+
 - Suppression is applied here, last, from `overrides/suppressions.csv`:
   matching entries and judges retain their structural rows and marks while
   personal names, initials, location, and default IDs become null. Entries
@@ -95,10 +103,26 @@ review item, or card field belongs in this dependency list. Revisions
 advance only on changed data. Run logs, budget counters, and unchanged
 poll timestamps are not published inputs.
 
-H16 selects retained immutable generations at an evidence cutoff. One history
-generation anchors its exact event, registry, inventory, and alias dependencies.
-A link generation joins only when its dependencies match that anchor. An
-unrelated unfinished parse does not block a coherent release. Missing,
+The default release reads partition artifacts
+([partitioned releases](#partitioned-releases)). The closure path below runs
+only with `[release] path = "closure"`, or before schema 35.
+
+H16 selects retained immutable generations at an evidence cutoff
+(`build/closure.select`). Anchors are added in order: every year's generation
+in year order (its pointer when made by the cutoff, else its newest one then),
+each bringing its events, calendars, inventory, resolutions and alias
+dependencies;
+then every source event's and every dancer's pointer. An anchor is skipped
+when its walk reaches a generation an earlier anchor selected differently, or
+a project scope's generation other than that scope's own anchor. Since output
+cutoff no longer checks the walk (D-0224), a kept year can reach a superseded
+event or dancer through a kept inventory; that year is skipped and its events
+are withheld with reason `year_anchor_conflict`, never published stale. A
+skipped source event or dancer keeps what the years selected. Without a year
+anchor nothing is selected. The retired `project/history/all` is neither selected nor listed
+(plan F22). A link generation joins only when its dependencies match what the
+anchors selected. An unrelated unfinished parse does not block a coherent
+release. Missing,
 unsupported, and incompatible scopes remain disclosed omissions. A row's event
 is resolved through its parents, kept or rejected. When an event's kept rows
 would still leave a reference the builder refuses (a mark, callback or heat
@@ -252,16 +276,235 @@ references and acceptance state; private reasons stay private.
 
 The cycle, or the release loop's hourly tick, starts a build
 ([scheduling: loops](scheduling.md#loops)). `build_interval_seconds` admits one
-at most every 6 hours. In the release loop each build holds `heavy.lock`
-exclusive: a build peaks near 6.3 GB, so derive starts no unit until it ends
-(F10). The loop does not build with under `release_min_free_bytes` (30 GB) of
+at most every 6 hours. In the release loop every build and every correction
+holds `heavy.lock` exclusive, so derive starts no unit until it ends (F10): a
+whole or closure build peaks near 6.3 GB, and a partitioned one keeps the
+lock while `[release] streamed_lock` is true (the default) until the worker
+measures it under 2 GB beside derive. The loop does not build with under `release_min_free_bytes` (30 GB) of
 disk free. A `BuildError` or `ClosureError` fails the tick without raising.
 
-The publication boundary repeats the correction, closure, and file checks in
-a short admission transaction. Semantic-write fences protect the remote commit;
+The publication boundary repeats the correction, closure (for a partitioned
+candidate, manifest and artifact; [publishing](publishing.md#candidate-and-baseline)),
+and file checks in a short admission transaction. Semantic-write fences protect the remote commit;
 no SQLite write transaction is held during the network request. Changed or
 invalid inputs reject the candidate and retire its unlanded intent. A lost
 response is reconciled first: an already-landed commit is acknowledged, then
 newly accepted decisions require the next correction. An unlanded intent
 cannot submit during restore verification. The receipt records correction
 latency; recovered network outcomes report an upper bound.
+
+## Partition artifacts
+
+Stage 1 of a [partitioned release](#partitioned-releases) (architecture plan
+phase 3). Each release build runs it first. The command
+`swingset partitions build [--only <partition>]` runs it alone;
+`partitions list` and `partitions show <name>` read the rows. `build` prints
+counts, bytes written, seconds and peak memory.
+
+Selection reads the current pointers (`derivation_scopes`) only: no live
+rows, no dependency walk, no unfinished generation, no retired kind. A
+dancer generation joins the batch of the WSDC id its `dancers` rows carry
+(its scope id except after a lookup redirect), where the year's patch of its
+placements lands.
+
+**Consistency.** An event partition is built only when every unit it reads
+whole (its event, resolution and link) is current, so the link's identity
+rows were computed from that event generation and those dancers, and the
+event from that resolution. Otherwise it keeps the artifact it last built
+(the build report's `kept_not_current` counts kept artifacts; the row records
+`kept_not_current_since`, which the next rebuild clears and the watchdog's
+`[partitions-stale]` reads past 48 hours), or is withheld as
+`units_not_current` with none; a kept artifact whose support was revoked
+since is withheld (`source_revoked`). The content digest also names the event
+generation each link recorded reading. When two event partitions both hold a
+listing's `source_event_map` row (a map move built mid-drain), the one whose
+units are current keeps it, else the one holding the event the live map
+names; the other is withheld as `listing_claimed_elsewhere` under an inputs
+digest no reuse matches, so the claim is contested again each build and the
+loser is built once the other claim goes.
+
+A prior artifact is reused or kept only when it is intact: its sidecar
+hashes to its digest and every file it lists has the recorded sha256
+(`artifact_store.intact`, about 73 MB read a build). A damaged one is built
+again, and the write replaces the damaged directory. `partitioned.prepare`
+checks every built artifact once more after stage 1 and, if one was damaged
+meanwhile, runs stage 1 again at once (`damaged_rebuilt`).
+
+| Partition         | Holds                                                                                                                                                                                                                        |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `event/<E>`       | The `events` row merged from the calendar, inventory and `resolution/E` generations, then the year's tier patch; `event/E`'s rows; `link/E`'s patches and identity rows; `resolution/E`'s `source_event_map` rows            |
+| `event/<E1>+<E2>` | Events joined because a row of an event generation names more than one (the `support_closure._EventScopes` rule: its `event_id` and the events of the contest, round, entry, judge or placement it names in that generation) |
+| `dancers/<k>`     | `k = wsdc_id // 512`: dancer and registry placement rows, each placement's `event_id` patched from the year generation of its month                                                                                          |
+| `year/<Y>`        | The year generation's `coverage` rows                                                                                                                                                                                        |
+
+Rows merge in `closure_rows.reconstruct`'s rank order and rule (a patch needs
+a base row; processing columns come from each generation). Within a partition
+the build then closes what `reconstruct` closes: identity rows whose subject
+is absent go, and a placement's dancer follows its entry's.
+
+**Inputs digest.** It covers `(scope, generation_id, output_digest)` of each
+generation read whole; `(scope, table, key, payload sha256)` of each row taken
+from a generation many partitions share (calendar, inventory, year), in merge
+order; each snapshot and parser its rows name, with its standing and
+accepted source generations; a digest of the live observations of each pair
+no generation recorded; the revocation digest; `recipe/env`,
+`recipe/code/build`, `policy/history_start` and the partition modules' bytes;
+the history start; and the baseline commit and manifest hash when a row's
+support is legacy. An unchanged digest keeps the artifact and rewrites no row.
+Processing columns (`run_id`, `first_seen_at`, `last_seen_at`) are not in it,
+so a kept artifact keeps those of the build that last changed its facts.
+
+**Checks.** Each failure withholds that partition, with its reason and
+detail in `release_partitions`, and nothing else:
+
+| Reason                                                                                                                               | When                                                                                                                                 |
+| ------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `source_revoked`, `source_support_unavailable`                                                                                       | A row's snapshot and parser has a revoked source generation, or none accepted and the row differs from the baseline                  |
+| `dangling_reference`                                                                                                                 | A mark, callback, heat or placement names an entry, round or judge the partition lacks                                               |
+| `generation_output_digest_mismatch`                                                                                                  | A generation read does not match its row count and output digest                                                                     |
+| `partition_error`                                                                                                                    | Selection (`events_of`), extraction, a check, the Arrow conversion or the write raised; the detail has the error's class and message |
+| `units_not_current`, `listing_claimed_elsewhere`                                                                                     | See consistency above                                                                                                                |
+| `invalid_enum`, `invalid_event_dates`, `missing_reference`, `callback_counts_disagree`, `invalid_placements`, `unsupported_identity` | The builder's checks above, on the partition's rows                                                                                  |
+
+Support comes from the accepted source generations, never a clock (plan
+F24): accepted means an accepted admission decision, the current contract and
+no report failures. It is matched per observation, as `closure_support` does
+(D-0022): a pair is `accepted` only when each observation its rows came from
+(those its generations recorded reading, else the snapshot's live ones) is
+held, with the same scope, kind, seq, payload and extract version, by an
+accepted generation of that snapshot and parser. The sidecar's `support`
+holds the result; the manifest's support is its union. The closure path
+credited only the generation a unit had selected, so a row from an older,
+still admitted snapshot of a re-fetched page counted as legacy there (R4's
+four events). A dancer whose rows lack support leaves its batch and is
+listed in the sidecar's `withheld_subjects`; entries and links that name it
+are closed at assembly.
+
+**Files.** One Parquet file per non-empty table, in the public schema
+(`source_event_map` has its own), sorted by primary key, and `sidecar.json`
+(partition, inputs and their digest, every generation read, withheld
+subjects, counts, and each file's rows and sha256) under
+`state/partitions/<aa>/<digest>/`. The digest is the sidecar's sha256. A
+write goes to `partitions/.tmp-<id>/`, is fsynced and renamed; a crash leaves
+no row. The maintain loop's collector removes what nothing names
+([state: partition artifacts](state.md#partition-artifacts)).
+
+Phase 3b, which deletes `closure_rows`, first moves `_NEUTRAL`,
+`_REFERENCES`, `_legacy_matches` and its baseline loader, which the partition
+modules import.
+
+## Partitioned releases
+
+`[release] path` in `config/sources.toml` picks how a release is assembled
+([D-0224](../../journal/decisions/0224-releases-from-partition-artifacts.md)).
+It is read from the accepted bundle at build time and is not a derivation
+input, so a change re-queues nothing.
+
+| `path`                  | Build                                                                                                                                                                                                                                |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `partitioned` (default) | Stage 1, the manifest, then the [streamed assembly](#streamed-assembly): one partition at a time                                                                                                                                     |
+| `whole`                 | Stage 1, the manifest, then every artifact loaded into `BuildInput` and the builder run unchanged                                                                                                                                    |
+| `closure`               | The phase 2 [closure path](#build-inputs); also what runs before schema 35. After the phase 3 switch it builds a release with no events (F30) and the gate refuses it; `whole` is the fallback. A correction-only build is unchanged |
+
+**Manifest.** `release-manifest-v1`, canonical JSON:
+
+| Field                           | Holds                                                                                                        |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `built`, `withheld`             | Sorted `[partition, artifact_digest]` and `[partition, reason]` from `release_partitions` after stage 1      |
+| `overrides_digest`              | The hashes of the override files assembly reads: `identity_overrides.csv`, `suppressions.csv`                |
+| `code`                          | `recipe/env` and `recipe/code/build`                                                                         |
+| `baseline_commit`               | The acknowledged baseline's commit                                                                           |
+| `support_digest`, `revocations` | The union of the artifacts' support (`[snapshot, parser, state, accepted generations]`) and the revocations  |
+| `correction_token`              | `identity_policy.correction_token` with the support digest, admission policies and revocations as admission  |
+| `evidence_cutoff`               | The newest `created_at` among the generations and accepted source generations the built artifacts name (F24) |
+
+No clock, run id or path, so two attempts on the same pointers and inputs
+write the same bytes. The manifest lists stage 1's verdicts only: a
+partition the assembly withholds (`assembly_check:<check>`) stays under
+`built` here and in `release_partitions`; the release record names it in
+`partitions.assembly_withheld` and `release_policy.partitions` counts it. It is stored as `state/partitions/manifests/<digest>.json`
+(digest = sha256 of the bytes) with a `release_manifests` row that names the
+candidate it built. Build code: `build/manifest.py` (format, files, tokens),
+`build/partitioned.py` (stage 1, manifest, assembly input).
+
+**Whole assembly.** Every built artifact's rows load into public tables. Across
+partitions, as `closure_rows._close` does: a dancer an artifact withheld, or
+any dancer of a withheld `dancers/<k>` batch, leaves the entries, judges and
+identity rows that name it; a registry placement whose event is not in the
+release loses its `event_id`; a placement's dancer follows its entry's. The
+key check (`assembly.close_keys`) then closes every other WSDC id the rows
+name without a `dancers` row: entries and judges lose the join, identity
+links and candidates go, and placements follow. `release_policy.partitions`
+counts `identity_of_withheld_dancer_closed`,
+`identity_of_absent_dancer_closed` and
+`registry_association_outside_release`. The closure path has no such check,
+so it can publish a join to a dancer the release lacks.
+`snapshots` are the snapshots the artifacts' support names; `review_queue`
+comes from open findings, as in the closure path. Then the pipeline after
+reconstruction runs unchanged: `close_revoked_support`, the identity policy,
+suppressions, `enrich_coverage` (support from the artifacts, withheld
+partitions as omissions), event coverage, and `build_candidate`. Coverage,
+snapshots and the review queue carry per-build columns and may differ from
+the closure path's; the fact tables match on settled state
+(`tests/build/test_release_paths.py`).
+
+### Streamed assembly
+
+`build/assembly.py` publishes the `whole` assembly's rows while Python holds
+one partition at a time. DuckDB runs with `memory_limit = 1GB`, two threads and
+its file cache off, and spills under `state/tmp/assembly-<id>/`, which the
+build removes; a killed build's directory goes at the next build once it is a
+day old.
+
+| Step                  | What it does                                                                                                                                                                                                                                                                                                                            |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Pass 1 (DuckDB)       | Over the artifacts' key columns: the release's events; the WSDC ids of entries, judges, identity links, candidates and placements with no `dancers` row; registry `event_id`s outside the release; every (snapshot, parser) the rows name, each checked for revocation once. Revoked dancers and registry ids                           |
+| Revoked partitions    | An event partition with a revoked row is closed first (`Revocations.omitted_events`), so the events left are known before any row is written                                                                                                                                                                                            |
+| Dancer batches        | Key check of registry events, then revocation (`close_registry`, `withdraw`)                                                                                                                                                                                                                                                            |
+| Event partitions      | Key checks, revocation, then the identity policy (`IdentityPolicy.apply`) with that partition's baseline entries and judges and the registry facts naming its placements' events                                                                                                                                                        |
+| Suppression           | Only with a selector in `suppressions.csv`: `learn` sweeps every staged dancer, entry and judge to a fixed point, then each partition is transformed                                                                                                                                                                                    |
+| Annotation and checks | Per partition: scope status and evidence time (`coverage.annotate`), then the builder's `CHECKS` (after the suppression pass when there is one). A failure withholds that partition (`assembly_check:<check>`): its omission reaches coverage, its events' registry associations are detached, entries naming its dancers lose the join |
+| Release level         | Snapshots the support names, the review queue from findings, coverage from the year fragments plus scope rows from SQL aggregates (`Assembly.fact_counts`), and event coverage rows                                                                                                                                                     |
+| Candidate             | Each table sorted by primary key from DuckDB into public Parquet (marks by event year), identity counts from SQL, the changelog, the card from lazy tables                                                                                                                                                                              |
+
+Rows go to staging files between steps, one row group per partition. The
+changelog is a per-table DuckDB full outer join of the new files with the
+baseline's, each key's pair compared by `changelog.change_rows` (the
+`whole` comparison), sorted on disk and merged with the baseline changelog.
+Suppression convergence (up to 32 passes) re-streams the partitions; with
+`suppressions.csv` empty it is one pass. Rows equal `whole`'s; file bytes
+need not (`tests/build/test_assembly.py` compares with
+`compare_candidates.py`).
+
+Memory: no unit of work holds more than one partition, one batch or one
+release-level list (snapshots, review queue, coverage, events) in Python;
+`Assembly.meter` counts them. The support items coverage reads stream from
+the manifest's support with only `recipe.context.source` of each accepted
+source generation (F26: whole recipes were 3.9 GB of the rehearsal's 6.75 GB).
+A synthetic release of 200,000 placements and 400,000 marks peaks under
+600 MB, and the whole partitioned build (stage 1, support, assembly) over
+40,000 accepted recipes of 4 kB under 900 MB, where loading whole recipes
+took 1.4 GB (`tests/build/test_assembly_memory.py`, extended). The final
+sort of the largest table is DuckDB's. The summary's `partitions` key adds
+`assembly_seconds` and `assembly_peak_rows`.
+
+The `whole` path applies the same per-partition checks
+(`assembly.withhold_invalid`) after its suppressions and before coverage,
+grouping rows by the events they name and dancers by batch.
+
+**Candidate.** `release_policy` has `mode = "partitioned"`, `path`,
+`manifest_digest`, `evidence_cutoff`, `withheld` (count, digest, count by
+reason), `partitions` and `build_trigger`, instead of the public closure. The
+build generation's context names `release_manifest`, the correction token and
+the build trigger; its only dependency is the manifest, and the scope is
+current only while the candidate files and the manifest file verify.
+
+**Reuse.** The trigger is the manifest without its baseline commit, the path,
+public health and the bundle. An unchanged manifest reuses the candidate
+within the daily health bucket; the acknowledged baseline stays quiet after
+its own publication. A new path builds afresh.
+
+**Completion.** After the files are durable, the write rechecks the baseline,
+the bundle and the correction token, then records the build generation. A
+token that moved during stage 1 or assembly fails the build before it is
+written.

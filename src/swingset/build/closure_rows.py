@@ -391,9 +391,12 @@ def reconstruct(
                 "dancer": 0,
                 "inventory": 1,
                 "map": 2,
+                "mapping": 2,
+                "resolution": 2,
                 "event": 3,
                 "source_event": 4,
                 "history": 5,
+                "year": 5,
             }
             selected = sorted(
                 closure.selected,
@@ -446,8 +449,10 @@ def reconstruct(
                         generation["stage"] == "link"
                         and table in {"entries", "judges", "placements"}
                     ) or (
+                        # A year (history before plan F17) patches the tier
+                        # and the association onto rows other scopes own.
                         generation["stage"] == "project"
-                        and generation["unit_kind"] == "history"
+                        and generation["unit_kind"] in {"history", "year"}
                         and table in {"events", "registry_placements"}
                     )
                     if not _put(spool, table, key, payload, patch=patch):

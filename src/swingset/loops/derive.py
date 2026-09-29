@@ -1,16 +1,24 @@
-"""The derive loop: parse, project and link whatever is runnable (D-0215)."""
+"""The derive loop: parse, project and link whatever is runnable (D-0215).
+
+Release-lag knob (plan section 5, phase 3): while builds are due and the
+release loop has not progressed for `release_lag_intervals` build intervals,
+a tick leases only parse and link units, so project work does not crowd out
+a release that is behind. It counts `release_lag` and keeps the guard
+`loop:derive release_lag`, whose one-hour expiry the watchdog reads (I3).
+"""
 
 from __future__ import annotations
 
 import sqlite3
 from collections.abc import Callable
 from dataclasses import asdict
-from datetime import datetime
+from datetime import UTC, datetime, timedelta
+from typing import TYPE_CHECKING, Any
 
 from swingset.fetch.archive import Archive
 from swingset.fetch.recovery import LocalCheckpointRecovery
 from swingset.log import log
-from swingset.loops.runtime import PUBLICATION_IN_FLIGHT, Tick, publication_active
+from swingset.loops.runtime import PUBLICATION_IN_FLIGHT, Tick, note_skip, publication_active
 from swingset.schedule.offline import Offline, registry_crosscheck
 from swingset.state import derivations, queue, rwlock
 from swingset.state.control_scopes import for_unit, unit_allowed
@@ -19,8 +27,99 @@ from swingset.state.db import SCHEMA_VERSION
 from swingset.state.work import WorkUnit, unfinished_units
 from swingset.state.write_deadline import WriteDeadlineExceeded
 
+if TYPE_CHECKING:
+    from swingset.config import Config
+
 #: Seconds of a tick given to rebuilding lost parse hints.
 HINT_RECOVERY_SECONDS = 2.0
+#: The guard reason, and counter, of a tick the release-lag knob narrowed.
+RELEASE_LAG = "release_lag"
+#: The stages a lagging release leaves derive.
+LAG_STAGES = frozenset({"parse", "link"})
+
+
+#: Release skip reasons that mean it lacked capacity derive can give back:
+#: the heavy lock was busy. A pause, the disk guard or a publication in
+#: flight is not helped by holding derive's project units.
+CAPACITY_SKIPS = frozenset({"heavy_busy"})
+
+
+def release_lag(
+    conn: sqlite3.Connection, config: Config, *, now: datetime
+) -> dict[str, Any] | None:
+    """Whether release is behind, and whether derive holds project units for it.
+
+    Release is behind when a build is due (none admitted within the build
+    interval) and its last progress is older than `release_lag_intervals`
+    build intervals. A completed build attempt counts as progress too: a
+    reused candidate means release is current, though it writes nothing.
+    With no progress on record the clock starts at release's first tick.
+    None when it is not behind, the knob is 0, the interval unset, or release
+    never ticked.
+
+    Behind, the knob engages (`engaged`) only when release ticked within the
+    build interval and a tick was skipped for capacity derive holds
+    (`CAPACITY_SKIPS`): then holding project units helps it (I5). A release
+    that is stopped, paused, guarded on disk or failing is reported with its
+    `cause` and derive runs as usual.
+    """
+    from swingset.schedule.cycle import build_deferred_for_interval
+
+    scheduler = config.scheduler
+    intervals, interval = scheduler.release_lag_intervals, scheduler.build_interval_seconds
+    if not intervals or interval is None:
+        return None
+    try:
+        if build_deferred_for_interval(conn, config, now=now):
+            return None
+        row = conn.execute(
+            "SELECT last_progress_at FROM loop_state WHERE loop='release'"
+        ).fetchone()
+        if row is None:
+            return None
+        completed = conn.execute(
+            "SELECT MAX(settled_at) FROM execution_admissions "
+            "WHERE action_kind='build' AND outcome='completed'"
+        ).fetchone()[0]
+        first = conn.execute("SELECT MIN(started_at) FROM runs WHERE loop='release'").fetchone()[0]
+        recent = [
+            str(value[0]) if value[0] is not None else None
+            for value in conn.execute(
+                "SELECT json_extract(summary_json,'$.skipped') FROM runs WHERE loop='release' "
+                "AND finished_at > ? AND json_valid(summary_json) ORDER BY finished_at DESC",
+                ((now - timedelta(seconds=interval)).isoformat(),),
+            )
+        ]
+    except sqlite3.Error:
+        return None
+    marks = [str(value) for value in (row[0], completed) if value]
+    since_text = max(marks, key=_moment) if marks else first
+    if not since_text:
+        return None
+    since = _moment(str(since_text))
+    limit = intervals * interval
+    if (now - since).total_seconds() <= limit:
+        return None
+    capacity = sorted({value for value in recent if value in CAPACITY_SKIPS})
+    cause = (
+        capacity[0]
+        if capacity
+        else "release_not_ticking"
+        if not recent
+        else next((value for value in recent if value), "release_not_building")
+    )
+    return {
+        "since": since.isoformat(),
+        "release_lag_intervals": intervals,
+        "build_interval_seconds": interval,
+        "engaged": bool(capacity),
+        "cause": cause,
+    }
+
+
+def _moment(value: str) -> datetime:
+    moment = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    return moment if moment.tzinfo is not None else moment.replace(tzinfo=UTC)
 
 
 def run(tick: Tick) -> None:
@@ -76,11 +175,20 @@ def run(tick: Tick) -> None:
             )
 
         contained("parse_hint_recovery", hints)
-    # Release holds the heavy lock while it builds. A build peaks near 6.3 GB
-    # and parse-only derive ticks beside it reached 2 to 3.9 GB in the WP14
-    # rehearsal, more than the 8 GB worker has, so derive starts no unit until
-    # the build ends (F10). Parse work waits; acquisition's backpressure
-    # counts it as before.
+    # Every build holds the heavy lock while `[release] streamed_lock` is
+    # true (the default; a whole or closure build always): builds peaked at
+    # 2 to 6.3 GB, and parse-only derive ticks beside one reached 2 to 3.9 GB
+    # in the WP14 rehearsal, more than the 8 GB worker has, so derive starts
+    # no unit until the build ends (F10). Parse work waits; acquisition's
+    # backpressure counts it.
+    lag = release_lag(conn, tick.bundle.config, now=clock.now())
+    if lag is not None:
+        summary[RELEASE_LAG] = lag
+        log("release_lag", **lag)
+    engaged = lag is not None and bool(lag["engaged"])
+    if engaged:
+        tick.counters[RELEASE_LAG] += 1
+    note_skip(tick, RELEASE_LAG, skipped=engaged)
     heavy: rwlock.Held | None = None
     try:
         heavy = rwlock.heavy_shared(database.state_dir)
@@ -89,7 +197,7 @@ def run(tick: Tick) -> None:
         summary["heavy_deferred"] = True
     if heavy is not None:
         try:
-            _offline(tick)
+            _offline(tick, stages=LAG_STAGES if engaged else None)
         finally:
             heavy.release()
     summary["derivation"] = derivations.cycle_progress(conn, tick.run_id, replayed_before)
@@ -122,7 +230,7 @@ def held_units(conn: sqlite3.Connection, now: datetime) -> dict[str, object]:
     return {"count": count, "units": named}
 
 
-def _offline(tick: Tick) -> None:
+def _offline(tick: Tick, *, stages: frozenset[str] | None = None) -> None:
     database, clock, summary = tick.database, tick.clock, tick.summary
     assert tick.bundle is not None
     recovery = LocalCheckpointRecovery(
@@ -153,6 +261,7 @@ def _offline(tick: Tick) -> None:
         tick.run_id,
         summary,
         allowed=allowed,
+        stages=stages,
     )
     offline.run(stop)
     if not stop():

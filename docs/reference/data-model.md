@@ -47,10 +47,21 @@ use the month results were reported (**unverified**; checked during the
 bootstrap sweep by comparing registry months to calendar dates). This
 lets registry placements match event editions by series name and month.
 The implementation preserves registry `wsdc-*` and calendar `slug-*` series
-IDs and stores the reconciled edition in `registry_placements.event_id`;
+IDs and stores the reconciled edition in `registry_placements.event_id`,
+which the year unit of the placement's reporting month sets
+([state](state.md#year-units));
 consumers join on that nullable event ID
 without tolerance logic. A series that runs twice in one month gets a
 `-2` suffix.
+
+A results-site listing with no override and no single catalog match (same
+normalized name, overlapping dates) gets a generated `event_id` from its end
+date and name, and a placeholder event with `wsdc_status` `unknown`. The
+internal table `source_event_proposals` holds each listing's proposed target
+and that placeholder, one set per source; one resolution unit per event turns
+them into its `source_event_map` rows and its event row
+([state](state.md#mapping-per-source-resolution-per-event-plan-f19)).
+Proposals are not published.
 
 If a source shows no bib (DCN payload before its PDF is parsed), the
 entry id uses `<role letter>-name-<name slug>` and is rewritten to the bib
@@ -362,8 +373,11 @@ otherwise; fetching an old capture today does not make its facts newer.
 The public key is `scope_kind`, `scope_id`, `source`, `via`. `scope_kind`
 is `source`, `year`, or `event`. The pending event-completion extension adds
 `source_event` as specified below. Source rows have a null year. The internal
-SQLite table remains keyed by year, source, and transport. Release construction
-adds scope rows and metadata without changing canonical fact generations.
+SQLite table remains keyed by year, source, and transport; each year unit
+writes its own year's rows. Release construction takes those rows from the
+`year/<Y>` partitions and adds scope rows and metadata without changing
+canonical fact generations. A withheld partition is an omission with its
+reason ([build](build.md#partition-artifacts)).
 
 Year rows retain `events`, `contests`, `rounds`, `entries`,
 `events_registry_only`, `events_index_only`, `events_sheets_partial`,

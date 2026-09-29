@@ -17,7 +17,7 @@ from swingset.model.ids import run_id as make_run_id
 
 from .rwlock import Held, LockBusy, exclusive, shared
 
-SCHEMA_VERSION = 34
+SCHEMA_VERSION = 35
 #: Seconds SQLite waits for another process's write before `database is locked`.
 #: Writes elsewhere may take up to the write bound, so this is longer (D-0215).
 BUSY_TIMEOUT_SECONDS = 70.0

@@ -1,0 +1,1262 @@
+{
+ "operation": "architecture phase 3 re-rehearsal after the review fixes (F26 to F29 and the review findings) on APFS clones of the production copy, no network",
+ "actor": "claude (session claude-rearch)",
+ "at_utc": "2026-09-30T15:08:40Z",
+ "host": "Mac (15 cores, 48 GB), not the worker; project venv Python 3.12",
+ "source_copy": "~/swingset-offload/rehearsal/diag (production 2026-09-29 04:07 UTC, schema 32), never opened; clones diag-p3-A2 (phase 2 parent, drained), diag-p3-B2 (A2 plus the fixed tree), diag-p3-C (B2 plus the final tree); all deleted",
+ "diag_unchanged": {
+  "state_sqlite_bytes": 64718315520,
+  "state_sqlite_mtime_ns": 1790654850554998303,
+  "files": 78194,
+  "listing_sha256": "222150cb62504032",
+  "equals_first_rehearsal": true
+ },
+ "code": {
+  "parent": "9dacbb68 (phase 2) via git archive",
+  "tree_b2": "working copy src snapshot 2026-09-30 07:36 UTC (review fixes, before F28's value compare and the digest groups)",
+  "tree_c": "working copy src 2026-09-30 20:05 UTC (final); differs from B2's in build/partitions.py, project/history.py, state/derivation_dependencies.py",
+  "tree_b2_nolock": "tree_b2 with [release] streamed_lock = false (R12 only)",
+  "harness_sha256": {
+   "cmp2.py": "0cb10ecf73b75689",
+   "cmpdump.py": "3dcd3ae0065d9fba",
+   "dump.py": "e7976ee6807b3975",
+   "h3.py": "13295ad2f3d1fa4c",
+   "r67.py": "5763ed9cfbb04e09",
+   "r6b.py": "50aed3dee48bf650",
+   "rgrow.py": "a598ae534260bb51",
+   "rmem.py": "913512b9fec5e429",
+   "rmisc.py": "cabefd759c09a844",
+   "rtick.py": "2a348182ec12b25e"
+  },
+  "command": "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=<tree>/src .venv/bin/python <script> <cmd> <clone> <out.json> [args] under /usr/bin/time -l"
+ },
+ "network": "none: httpx.MockTransport; R6b, R7 and C's dancer changes serve one modified body; C's last steps also refuse any AF_INET connect in the harness",
+ "caveats": [
+  "The Mac interpreter re-queues every parse (I9): 36,264 parse units stay pending; drains run project and link units with inventory pacing off.",
+  "Timings are lower bounds for the worker; B2's R2 and C's drain ran beside other rehearsal steps or test suites.",
+  "B2 ran the interim F28 fix (compact writes only): it restamped 98 newsletter events, withheld from B2's candidates as source_support_unavailable; C cannot undo that restamp."
+ ],
+ "a2_parent": {
+  "drain_seconds": 14442.9,
+  "growth_bytes": 666066944,
+  "build": {
+   "candidate": "cand_7eb49779131a4d85",
+   "seconds": 623.0,
+   "peak_rss_bytes": 7021887488,
+   "growth_bytes": 266059776,
+   "partitions": null,
+   "verdict": null
+  },
+  "build_peak_rss_bytes": 7021887488
+ },
+ "r0_migration_35": {
+  "open_migrate_seconds": 170.7,
+  "foreign_key_check_seconds": 183.4,
+  "violations": 0,
+  "growth_bytes": 69632,
+  "schema": [
+   34,
+   35
+  ],
+  "parent_refuses": "RuntimeError: database schema 35 is newer than supported 34"
+ },
+ "r1_accept": {
+  "seconds": 10.6,
+  "changed": [
+   "config/sources.toml",
+   "overrides/release_decreases.csv",
+   "recipe/code/build",
+   "recipe/code/link",
+   "recipe/code/project/calendar",
+   "recipe/code/project/dancer",
+   "recipe/code/project/event",
+   "recipe/code/project/history",
+   "recipe/code/project/inventory",
+   "recipe/code/project/map",
+   "recipe/code/project/mapping",
+   "recipe/code/project/resolution",
+   "recipe/code/project/source_event",
+   "recipe/code/project/source_index",
+   "recipe/code/project/year",
+   "version/repository"
+  ],
+  "enqueued": {
+   "link/event": 2934,
+   "project/calendar": 2,
+   "project/dancer": 29117,
+   "project/event": 2934,
+   "project/inventory": 1,
+   "project/mapping": 3,
+   "project/resolution": 413,
+   "project/source_event": 470,
+   "project/source_index": 384,
+   "project/year": 21
+  },
+  "parses_enqueued": 0
+ },
+ "r2_switch_drain": {
+  "drain_seconds": 10135.8,
+  "growth_bytes": 391335936,
+  "delta": {
+   "generations": {
+    "project/inventory": 1,
+    "project/mapping": 3,
+    "project/resolution": 413,
+    "project/year": 21
+   },
+   "equivalences": {
+    "link/event": 4494,
+    "project/calendar": 2,
+    "project/dancer": 29117,
+    "project/event": 2934,
+    "project/source_event": 470,
+    "project/source_index": 384
+   },
+   "scopes": {}
+  },
+  "dbstat_top": {
+   "derivation_dependency_sets": 159649792,
+   "derivation_reads_key": 40067072,
+   "derivation_reads": 38912000,
+   "derivation_row_refs": 38408192,
+   "derivation_row_refs_payload": 15454208,
+   "derivation_equivalences": 14094336,
+   "work_attempts": 10567680,
+   "derivation_equivalences_generation": 3244032
+  },
+  "readiness": {
+   "links": 2934,
+   "ready": 2934,
+   "ready_seconds": 13.08,
+   "current": 2934
+  },
+  "parity_with_a2": {
+   "source_event_map": {
+    "a": 413,
+    "b": 413,
+    "only_a": 0,
+    "only_b": 0,
+    "differ": 0,
+    "columns_differing": {}
+   },
+   "events": {
+    "a": 2933,
+    "b": 2933,
+    "only_a": 0,
+    "only_b": 0,
+    "differ": 1557,
+    "columns_differing": {
+     "sources": 1557,
+     "history_source": 1557,
+     "parser_version": 98
+    }
+   },
+   "registry_placements": {
+    "a": 198398,
+    "b": 198398,
+    "only_a": 0,
+    "only_b": 0,
+    "differ": 0,
+    "columns_differing": {}
+   },
+   "coverage": {
+    "a": 63,
+    "b": 63,
+    "only_a": 0,
+    "only_b": 0,
+    "differ": 0,
+    "columns_differing": {}
+   },
+   "placements": {
+    "a": 35979,
+    "b": 35979,
+    "only_a": 0,
+    "only_b": 0,
+    "differ": 0,
+    "columns_differing": {}
+   },
+   "identity_links": {
+    "a": 191142,
+    "b": 191142,
+    "only_a": 0,
+    "only_b": 0,
+    "differ": 0,
+    "columns_differing": {}
+   },
+   "findings": {
+    "a": 76,
+    "b": 76,
+    "only_a": 0,
+    "only_b": 0,
+    "differ": 0,
+    "columns_differing": {}
+   }
+  }
+ },
+ "r3_partitioned_build": {
+  "cold": {
+   "candidate": "cand_6ac6cc54802e4a4c",
+   "seconds": 611.4,
+   "peak_rss_bytes": 1726300160,
+   "growth_bytes": 4218880,
+   "partitions": {
+    "manifest_digest": "5158a5e5b947df7f",
+    "manifest_bytes": 278882,
+    "partitions": 3012,
+    "built": 1782,
+    "withheld": 1230,
+    "withheld_by_reason": {
+     "source_support_unavailable": 1230
+    },
+    "multi_event": 0,
+    "rebuilt": 3012,
+    "reused": 0,
+    "artifacts_bytes": 72560374,
+    "seconds": 238.073,
+    "assembly": "streamed",
+    "assembly_seconds": 368.592
+   },
+   "verdict": {
+    "state": "refused",
+    "reasons": [
+     "decrease:events 2105->1703"
+    ]
+   }
+  },
+  "cold_process_peak_rss_bytes": 1726300160,
+  "second": {
+   "candidate": "cand_6ac6cc54802e4a4c",
+   "seconds": 71.0,
+   "peak_rss_bytes": 322469888,
+   "growth_bytes": 4096,
+   "partitions": {
+    "manifest_digest": "5158a5e5b947df7f",
+    "manifest_bytes": 278882,
+    "partitions": 3012,
+    "built": 1782,
+    "withheld": 1230,
+    "withheld_by_reason": {
+     "source_support_unavailable": 1230
+    },
+    "multi_event": 0,
+    "rebuilt": 0,
+    "reused": 3012,
+    "artifacts_bytes": 72560374,
+    "seconds": 66.162
+   },
+   "verdict": {
+    "state": "refused",
+    "reasons": [
+     "decrease:events 2105->1703"
+    ]
+   }
+  }
+ },
+ "r4_parity": {
+  "whole": {
+   "candidate": "cand_6a6c5df7675d48c7",
+   "seconds": 453.4,
+   "peak_rss_bytes": 3439624192,
+   "growth_bytes": 4096,
+   "partitions": {
+    "manifest_digest": "5158a5e5b947df7f",
+    "manifest_bytes": 278882,
+    "partitions": 3012,
+    "built": 1782,
+    "withheld": 1230,
+    "withheld_by_reason": {
+     "source_support_unavailable": 1230
+    },
+    "multi_event": 0,
+    "rebuilt": 0,
+    "reused": 3012,
+    "artifacts_bytes": 72560374,
+    "seconds": 88.796
+   },
+   "verdict": {
+    "state": "refused",
+    "reasons": [
+     "decrease:events 2105->1703"
+    ]
+   }
+  },
+  "whole_process_peak_rss_bytes": 3439624192,
+  "closure_a2_vs_partitioned_b2": {
+   "changelog": {
+    "rows": [
+     22119392,
+     22098651
+    ],
+    "added": 2965719,
+    "removed": 2986460,
+    "changed": 0,
+    "changed_columns": null
+   },
+   "contests": {
+    "rows": [
+     2990,
+     2990
+    ],
+    "added": 0,
+    "removed": 0,
+    "changed": 379,
+    "changed_columns": {
+     "scope_status": 379
+    }
+   },
+   "coverage": {
+    "rows": [
+     4770,
+     4683
+    ],
+    "added": 98,
+    "removed": 185,
+    "changed": 4585,
+    "changed_columns": {
+     "acquired_units": 157,
+     "acquisition_denominator": 9,
+     "acquisition_unknown_pages": 3,
+     "discovered_units": 6,
+     "enumeration_complete": 3,
+     "enumeration_id": 3,
+     "enumeration_snapshot_ids": 3,
+     "events": 10,
+     "events_day_precision": 2,
+     "events_index_only": 2,
+     "events_listed_only": 1,
+     "evidence_cutoff": 4585,
+     "evidence_observed_at": 1,
+     "interpretation_denominator": 160,
+     "interpretation_unknown_pages": 3,
+     "interpreted_units": 152,
+     "last_changed_at": 4045,
+     "listed_pages": 3,
+     "mapped_units": 150,
+     "mapping_denominator": 152,
+     "missing_scopes": 1,
+     "represented_pages": 19,
+     "scope_reasons": 288,
+     "scope_status": 22,
+     "selected_interpreted_pages": 21,
+     "unassessed_units": 131,
+     "usable_verified_at": 478,
+     "withheld_scopes": 1,
+     "withheld_units": 2
+    }
+   },
+   "entries": {
+    "rows": [
+     107012,
+     107012
+    ],
+    "added": 0,
+    "removed": 0,
+    "changed": 7796,
+    "changed_columns": {
+     "scope_status": 7796
+    }
+   },
+   "events": {
+    "rows": [
+     1801,
+     1703
+    ],
+    "added": 0,
+    "removed": 98,
+    "changed": 4,
+    "changed_columns": {
+     "scope_status": 4
+    }
+   },
+   "identity_links": {
+    "rows": [
+     113300,
+     113248
+    ],
+    "added": 0,
+    "removed": 52,
+    "changed": 0,
+    "changed_columns": null
+   },
+   "judges": {
+    "rows": [
+     6288,
+     6288
+    ],
+    "added": 0,
+    "removed": 0,
+    "changed": 223,
+    "changed_columns": {
+     "scope_status": 223
+    }
+   },
+   "placements": {
+    "rows": [
+     22427,
+     22427
+    ],
+    "added": 0,
+    "removed": 0,
+    "changed": 2636,
+    "changed_columns": {
+     "scope_status": 2636
+    }
+   },
+   "registry_placements": {
+    "rows": [
+     198398,
+     198398
+    ],
+    "added": 0,
+    "removed": 0,
+    "changed": 7212,
+    "changed_columns": {
+     "event_id": 7212
+    }
+   },
+   "rounds": {
+    "rows": [
+     4755,
+     4755
+    ],
+    "added": 0,
+    "removed": 0,
+    "changed": 559,
+    "changed_columns": {
+     "scope_status": 559
+    }
+   },
+   "snapshots": {
+    "rows": [
+     35723,
+     30946
+    ],
+    "added": 0,
+    "removed": 4777,
+    "changed": 0,
+    "changed_columns": null
+   }
+  },
+  "whole_vs_partitioned": {
+   "changelog": {
+    "rows": [
+     22098651,
+     22098651
+    ],
+    "added": 2965719,
+    "removed": 2965719,
+    "changed": 0,
+    "changed_columns": null
+   },
+   "coverage": {
+    "rows": [
+     4683,
+     4683
+    ],
+    "added": 0,
+    "removed": 0,
+    "changed": 4683,
+    "changed_columns": {
+     "last_changed_at": 4143,
+     "evidence_cutoff": 4683,
+     "usable_verified_at": 477
+    }
+   }
+  },
+  "compare_memory_limit": "4GB (the tool's 1GB default ran out of memory on the whole-versus-partitioned pair)"
+ },
+ "r6b_settled_prerequisites": {
+  "dancer_change": {
+   "wsdc_id": 1010,
+   "readers": 15,
+   "snapshot": "snap_20260930T191512Z_2a3d5d820886_e6af24edd1b7"
+  },
+  "inventory_held": true,
+  "quarantined_event": {
+   "event": "2026-01-austin-swing-dance-championships",
+   "current": false
+  },
+  "ready_before_derive": {
+   "year_2026": true,
+   "link_E": true
+  },
+  "event_units": [
+   [
+    "project/source_event/eepro:asdc2026",
+    "succeeded",
+    0.2
+   ],
+   [
+    "parse/snapshot/snap_20260930T191647Z_d9360a6d4bc1_4cd7b4ba7d34",
+    "succeeded",
+    0.0
+   ],
+   [
+    "project/event/2026-08-bristol-swing-fiesta",
+    "succeeded",
+    1.7
+   ],
+   [
+    "project/source_event/scoringdance:418",
+    "succeeded",
+    0.1
+   ],
+   [
+    "project/year/2026",
+    "succeeded",
+    3.5
+   ],
+   [
+    "link/event/2026-08-bristol-swing-fiesta",
+    "succeeded",
+    3.2
+   ]
+  ],
+  "event_unit_seconds": 8.8,
+  "inventory_ran": false,
+  "quarantined_event_ran": false,
+  "by_kind": {
+   "project/source_event": 2,
+   "project/year": 14,
+   "link/event": 63,
+   "parse/snapshot": 1,
+   "project/event": 1
+  },
+  "settled": {
+   "paced": [
+    "project/inventory/all"
+   ],
+   "quarantined": [
+    "project/event/2026-01-austin-swing-dance-championships"
+   ]
+  }
+ },
+ "r7_dancer_b2": {
+  "change": {
+   "wsdc_id": 10258,
+   "role": "leader",
+   "division": "INT",
+   "points": [
+    8,
+    9
+   ]
+  },
+  "readers_of_dancer": 40,
+  "units": {
+   "link/event": 79,
+   "parse/snapshot": 1,
+   "project/dancer": 1,
+   "project/inventory": 1,
+   "project/year": 13
+  },
+  "new_generations": {
+   "project/dancer": 1
+  },
+  "new_equivalences": {
+   "link/event": 79,
+   "project/inventory": 1,
+   "project/year": 13
+  },
+  "derive_wall_seconds": 449.7,
+  "unit_seconds_total": 192.1,
+  "unit_seconds_max": [
+   [
+    "project/inventory/all",
+    21.4
+   ],
+   [
+    "link/event/2025-01-budafest",
+    6.9
+   ],
+   [
+    "project/year/2017",
+    6.7
+   ]
+  ],
+  "growth_bytes": 174694400,
+  "pending_project_link_after": 0,
+  "next_build_rebuilt": [
+   "dancers/20:built:"
+  ]
+ },
+ "r7_name_b2": {
+  "links_queued": 33,
+  "links_queued_readers": 14,
+  "links_queued_by_probe_only": 19,
+  "pool_bumped_events": 14,
+  "rest": {
+   "delta": {
+    "generations": {
+     "link/event": 14
+    },
+    "equivalences": {
+     "link/event": 19,
+     "project/inventory": 1,
+     "project/year": 11
+    },
+    "scopes": {}
+   },
+   "growth_bytes": 181125120
+  }
+ },
+ "r8b_confirmed_links": {
+  "confirmed": [
+   500,
+   0
+  ],
+  "refused": {
+   "state": "refused",
+   "reasons": [
+    "decrease:confirmed_links 500->0"
+   ]
+  },
+  "floor_at_candidate": {
+   "state": "pass",
+   "reasons": []
+  },
+  "floor_above_candidate": {
+   "state": "refused",
+   "reasons": [
+    "decrease:confirmed_links 500->0"
+   ]
+  }
+ },
+ "r11_verify": {
+  "links": {
+   "kinds": {
+    "link": {
+     "units": 2934,
+     "target": 30,
+     "verified": 30,
+     "matched": 30,
+     "not_current": 0,
+     "superseded": 0,
+     "failed": 0
+    }
+   },
+   "seconds": 47.097,
+   "complete": true,
+   "peak_rss_bytes": 179683328,
+   "longest_unit_seconds": 9.723
+  },
+  "years": {
+   "kinds": {
+    "year": {
+     "units": 21,
+     "target": 21,
+     "verified": 21,
+     "matched": 21,
+     "not_current": 0,
+     "superseded": 0,
+     "failed": 0
+    }
+   },
+   "seconds": 81.572,
+   "complete": true,
+   "peak_rss_bytes": 317227008,
+   "longest_unit_seconds": 6.74
+  },
+  "seeded": {
+   "link": "2025-07-saunaswing",
+   "wsdc_id": 12205,
+   "old_name": [
+    "Jussi",
+    "Kiskila"
+   ],
+   "still_current": true
+  },
+  "seeded_mismatches": [
+   [
+    "link/event/2025-07-saunaswing",
+    null
+   ]
+  ],
+  "alerted": true,
+  "alert_line": "2026-09-30T19:25:21Z [read-set-miss] link/event/2025-07-saunaswing: pointer d890d922fa7c (1235 rows), re-derived c197bc08073d (1233 rows) (verify sample)"
+ },
+ "r12_build_beside_derive": {
+  "build": {
+   "candidate": "cand_5f0dbb3fa0ec4a17",
+   "seconds": 456.2,
+   "peak_rss_bytes": 1750876160,
+   "growth_bytes": null,
+   "partitions": {
+    "manifest_digest": "6af14be25c820f00",
+    "manifest_bytes": 278882,
+    "partitions": 3012,
+    "built": 1782,
+    "withheld": 1230,
+    "withheld_by_reason": {
+     "source_support_unavailable": 1230
+    },
+    "multi_event": 0,
+    "rebuilt": 16,
+    "reused": 2996,
+    "artifacts_bytes": 74969223,
+    "seconds": 106.792,
+    "assembly": "streamed",
+    "assembly_seconds": 339.223
+   },
+   "verdict": {
+    "state": "refused",
+    "reasons": [
+     "decrease:events 2105->1703"
+    ]
+   },
+   "heavy_lock": false
+  },
+  "build_process_peak_rss_bytes": 1750876160,
+  "derive": {
+   "change": {
+    "wsdc_id": 10258,
+    "role": "leader",
+    "division": "INT",
+    "points": [
+     9,
+     10
+    ]
+   },
+   "readers_of_dancer": 40,
+   "units": {
+    "link/event": 79,
+    "parse/snapshot": 1,
+    "project/dancer": 1,
+    "project/inventory": 1,
+    "project/year": 13
+   },
+   "new_generations": {
+    "project/dancer": 1
+   },
+   "new_equivalences": {
+    "link/event": 79,
+    "project/inventory": 2,
+    "project/year": 13
+   },
+   "derive_wall_seconds": 528.4,
+   "unit_seconds_total": 212.1,
+   "unit_seconds_max": [
+    [
+     "project/inventory/all",
+     23.9
+    ],
+    [
+     "project/inventory/all",
+     22.4
+    ],
+    [
+     "link/event/2024-08-swingtime-denver",
+     6.1
+    ]
+   ],
+   "growth_bytes": 272101376,
+   "pending_project_link_after": 0
+  },
+  "derive_process_peak_rss_bytes": 4233412608,
+  "overlap": "the build started once the derive's fetch logged and ran inside the derive (inventory, years, links)"
+ },
+ "b2_end_state": {
+  "quick_check": [
+   "ok"
+  ],
+  "running_attempts": 0,
+  "building": 0,
+  "active_admissions": {},
+  "queue": {
+   "parse/waiting_input": 499
+  },
+  "reopen_migrate_seconds": 0.0
+ },
+ "c_final_tree": {
+  "accept": {
+   "changed": [
+    "config/sources.toml",
+    "recipe/code/build",
+    "recipe/code/link",
+    "recipe/code/project/calendar",
+    "recipe/code/project/dancer",
+    "recipe/code/project/event",
+    "recipe/code/project/inventory",
+    "recipe/code/project/mapping",
+    "recipe/code/project/resolution",
+    "recipe/code/project/source_event",
+    "recipe/code/project/source_index",
+    "recipe/code/project/year",
+    "version/repository"
+   ],
+   "enqueued": {
+    "link/event": 2934,
+    "project/calendar": 2,
+    "project/dancer": 29117,
+    "project/event": 2934,
+    "project/inventory": 1,
+    "project/mapping": 3,
+    "project/resolution": 413,
+    "project/source_event": 470,
+    "project/source_index": 384,
+    "project/year": 21
+   }
+  },
+  "drain": {
+   "note": "two parts: the Mac slept during the first (wall-clock tick budgets ran out, two idle ticks ended it with 25,021 dancers pending); two dancer-change runs then drained 6,528 more (4,864 and 1,664) beside their change and are not counted as inventory runs; the second part ran under caffeinate",
+   "drain_seconds": [
+    3424.2,
+    14545.6
+   ],
+   "growth_bytes": [
+    16695296,
+    47128576
+   ],
+   "delta": [
+    {
+     "generations": {},
+     "equivalences": {
+      "link/event": 2521,
+      "project/calendar": 2,
+      "project/dancer": 4096,
+      "project/event": 2521,
+      "project/source_event": 57,
+      "project/source_index": 384
+     },
+     "scopes": {}
+    },
+    {
+     "generations": {
+      "project/dancer": 1
+     },
+     "equivalences": {
+      "link/event": 457,
+      "project/dancer": 17661,
+      "project/event": 3170,
+      "project/inventory": 1,
+      "project/mapping": 3,
+      "project/resolution": 413,
+      "project/source_event": 706,
+      "project/year": 40
+     },
+     "scopes": {}
+    }
+   ],
+   "dbstat_top": {
+    "derivation_dependency_sets": 18546688,
+    "derivation_equivalences": 8470528,
+    "work_attempts": 6262784,
+    "derivation_equivalences_generation": 1945600,
+    "derivation_equivalences_dependencies": 1875968,
+    "derivation_equivalences_recipe": 1806336,
+    "pending_work_order_idx": -1429504,
+    "pending_work": -1261568
+   }
+  },
+  "ready": {
+   "links": 2934,
+   "ready": 2934,
+   "ready_seconds": 12.31,
+   "current": 2934
+  },
+  "inventory_runs": [
+   {
+    "change": {
+     "wsdc_id": 10258,
+     "role": "leader",
+     "division": "INT",
+     "points": [
+      12,
+      13
+     ]
+    },
+    "readers_of_dancer": 40,
+    "units": {
+     "link/event": 79,
+     "parse/snapshot": 1,
+     "project/dancer": 1,
+     "project/inventory": 1,
+     "project/year": 13
+    },
+    "new_generations": {
+     "project/dancer": 1
+    },
+    "new_equivalences": {
+     "link/event": 79,
+     "project/inventory": 1,
+     "project/year": 13
+    },
+    "derive_wall_seconds": 363.6,
+    "unit_seconds_total": 131.5,
+    "unit_seconds_max": [
+     [
+      "project/inventory/all",
+      13.7
+     ],
+     [
+      "link/event/2024-08-swingtime-denver",
+      4.1
+     ],
+     [
+      "link/event/2025-02-rose-city-swing",
+      3.7
+     ]
+    ],
+    "growth_bytes": 14548992,
+    "pending_project_link_after": 0,
+    "dbstat_top": {
+     "derivation_dependency_sets": 14278656,
+     "derivation_reads": 36864,
+     "derivation_equivalences": 32768,
+     "work_attempts": 28672,
+     "derivation_equivalences_generation": 20480,
+     "derivation_payloads": 16384,
+     "work_attempts_unit": 8192,
+     "derivation_reads_key": 8192
+    }
+   },
+   {
+    "change": {
+     "wsdc_id": 10258,
+     "role": "leader",
+     "division": "INT",
+     "points": [
+      13,
+      14
+     ]
+    },
+    "readers_of_dancer": 40,
+    "units": {
+     "link/event": 79,
+     "parse/snapshot": 1,
+     "project/dancer": 1,
+     "project/inventory": 1,
+     "project/year": 13
+    },
+    "new_generations": {
+     "project/dancer": 1
+    },
+    "new_equivalences": {
+     "link/event": 79,
+     "project/inventory": 1,
+     "project/year": 13
+    },
+    "derive_wall_seconds": 379.4,
+    "unit_seconds_total": 142.7,
+    "unit_seconds_max": [
+     [
+      "project/inventory/all",
+      14.1
+     ],
+     [
+      "project/year/2025",
+      4.3
+     ],
+     [
+      "link/event/2024-08-swingtime-denver",
+      4.1
+     ]
+    ],
+    "growth_bytes": 12120064,
+    "pending_project_link_after": 0,
+    "dbstat_top": {
+     "derivation_dependency_sets": 11919360,
+     "derivation_equivalences": 36864,
+     "work_attempts": 24576,
+     "derivation_reads": -20480,
+     "derivation_payloads": 20480,
+     "runs": 8192,
+     "derivation_row_refs": 8192,
+     "derivation_equivalences_recipe": 8192
+    }
+   }
+  ],
+  "build": {
+   "candidate": "cand_ff407dbe5a3645e4",
+   "seconds": 445.3,
+   "peak_rss_bytes": 2382249984,
+   "growth_bytes": 491520,
+   "partitions": {
+    "manifest_digest": "df055a8c6c9ceb7f",
+    "manifest_bytes": 278882,
+    "partitions": 3012,
+    "built": 1782,
+    "withheld": 1230,
+    "withheld_by_reason": {
+     "source_support_unavailable": 1230
+    },
+    "multi_event": 0,
+    "rebuilt": 3012,
+    "reused": 0,
+    "artifacts_bytes": 148070534,
+    "seconds": 178.015,
+    "assembly": "streamed",
+    "assembly_seconds": 264.432
+   },
+   "verdict": {
+    "state": "refused",
+    "reasons": [
+     "decrease:events 2105->1703"
+    ]
+   }
+  },
+  "build_process_peak_rss_bytes": 2387230720,
+  "second_build": {
+   "candidate": "cand_ff407dbe5a3645e4",
+   "seconds": 33.2,
+   "peak_rss_bytes": 320012288,
+   "growth_bytes": 0,
+   "partitions": {
+    "manifest_digest": "df055a8c6c9ceb7f",
+    "manifest_bytes": 278882,
+    "partitions": 3012,
+    "built": 1782,
+    "withheld": 1230,
+    "withheld_by_reason": {
+     "source_support_unavailable": 1230
+    },
+    "multi_event": 0,
+    "rebuilt": 0,
+    "reused": 3012,
+    "artifacts_bytes": 148070534,
+    "seconds": 31.856
+   },
+   "verdict": {
+    "state": "refused",
+    "reasons": [
+     "decrease:events 2105->1703"
+    ]
+   }
+  },
+  "end_state": {
+   "quick_check": [
+    "ok"
+   ],
+   "running_attempts": 0,
+   "building": 0,
+   "active_admissions": {},
+   "queue": {
+    "parse/ready": 496,
+    "parse/waiting_input": 3
+   }
+  },
+  "build_memory_profile": {
+   "rmem": {
+    "duckdb_memory_limit": "1GB",
+    "build_seconds": 462.9,
+    "process_peak_rss_bytes": 2206416896,
+    "rebuilt": 3012,
+    "phases_mb": [
+     [
+      "partitioned.prepare",
+      185,
+      490,
+      191.3
+     ],
+     [
+      "generations.select",
+      491,
+      491,
+      0.0
+     ],
+     [
+      "partitioned.source_support",
+      491,
+      491,
+      0.0
+     ],
+     [
+      "Assembly.run",
+      491,
+      1617,
+      75.8
+     ],
+     [
+      "service._metadata",
+      1617,
+      1617,
+      0.0
+     ],
+     [
+      "Assembly.write",
+      1617,
+      2066,
+      195.2
+     ]
+    ],
+    "largest_jumps": [
+     [
+      1066,
+      1310,
+      "assembly.py:1189:fact_counts"
+     ],
+     [
+      869,
+      1066,
+      "assembly.py:1118:fact_counts"
+     ],
+     [
+      1401,
+      1535,
+      "coverage.py:328:inventory"
+     ],
+     [
+      767,
+      869,
+      "core.py:1223:close"
+     ],
+     [
+      1909,
+      2004,
+      "builder.py:432:_sorted_parquet_rows"
+     ],
+     [
+      1310,
+      1401,
+      "coverage.py:315:inventory"
+     ]
+    ]
+   },
+   "rmem512": {
+    "duckdb_memory_limit": "512MB",
+    "build_seconds": 434.8,
+    "process_peak_rss_bytes": 2188115968,
+    "rebuilt": 3012,
+    "phases_mb": [
+     [
+      "partitioned.prepare",
+      185,
+      496,
+      158.0
+     ],
+     [
+      "generations.select",
+      499,
+      499,
+      0.0
+     ],
+     [
+      "partitioned.source_support",
+      499,
+      499,
+      0.0
+     ],
+     [
+      "Assembly.run",
+      500,
+      1741,
+      79.8
+     ],
+     [
+      "service._metadata",
+      1741,
+      1741,
+      0.0
+     ],
+     [
+      "Assembly.write",
+      1741,
+      1976,
+      196.3
+     ]
+    ],
+    "largest_jumps": [
+     [
+      942,
+      1264,
+      "assembly.py:845:_query"
+     ],
+     [
+      468,
+      614,
+      "assembly.py:582:_pass_one"
+     ],
+     [
+      1264,
+      1398,
+      "coverage.py:315:inventory"
+     ],
+     [
+      1619,
+      1741,
+      "event_coverage.py:252:capture"
+     ],
+     [
+      828,
+      942,
+      "correction_age.py:73:correction_age"
+     ],
+     [
+      1398,
+      1512,
+      "coverage.py:322:inventory"
+     ]
+    ]
+   }
+  },
+  "notes": [
+   "The drain's first inventory under the final tree rewrote 7 events of the rolling calendar window that a resolution also writes, and moved the inventory and resolution replay epochs once (run_20261001T220935Z, run_20261001T222937Z); the drain then re-ran 3,170 events, 706 source events and 457 links as equivalences. The two inventory runs after it moved no epoch.",
+   "Build memory: three full rebuilds on C peaked 2.19 to 2.39 GB (process ru_maxrss), against 1.73 GB for B2's R3; a 512MB DuckDB limit did not lower it. The growth is in the assembly (fact counts, coverage, the changelog merge), not stage 1 (0.5 GB)."
+  ],
+  "candidate_vs_b2_r12": {
+   "changelog": {
+    "rows": [
+     22099042,
+     22099042
+    ],
+    "added": 2966110,
+    "removed": 2966110,
+    "changed": 0,
+    "changed_columns": null
+   },
+   "coverage": {
+    "rows": [
+     4683,
+     4683
+    ],
+    "added": 0,
+    "removed": 0,
+    "changed": 4683,
+    "changed_columns": {
+     "last_changed_at": 4143,
+     "evidence_cutoff": 4683,
+     "evidence_observed_at": 39,
+     "usable_verified_at": 516,
+     "health_as_of": 4206
+    }
+   },
+   "dancers": {
+    "rows": [
+     27871,
+     27871
+    ],
+    "added": 0,
+    "removed": 0,
+    "changed": 1,
+    "changed_columns": {
+     "registry_fetched_at": 1,
+     "snapshot_id": 1,
+     "evidence_observed_at": 1
+    }
+   },
+   "registry_placements": {
+    "rows": [
+     198398,
+     198398
+    ],
+    "added": 0,
+    "removed": 0,
+    "changed": 42,
+    "changed_columns": {
+     "points": 1,
+     "snapshot_id": 42,
+     "evidence_observed_at": 42
+    }
+   },
+   "snapshots": {
+    "rows": [
+     30946,
+     30946
+    ],
+    "added": 1,
+    "removed": 1,
+    "changed": 0,
+    "changed_columns": null
+   }
+  }
+ }
+}

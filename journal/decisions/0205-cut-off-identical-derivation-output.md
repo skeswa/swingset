@@ -4,7 +4,7 @@ Recorded: 2026-09-25
 Decided by: agent, 2026-09-25, under D-0175; source: phase 1 of the [architecture plan](../../docs/plans/architecture.md)  
 Topic: Derivation identity  
 Supersedes: in part, [D-0022](0022-preserve-supported-event-bases.md) (do not relabel old generations to avoid a replay)  
-Superseded by: in part, [D-0212](0212-cut-off-across-the-moved-column-and-held-parses.md) (the moved coverage column and held parses)
+Superseded by: in part, [D-0212](0212-cut-off-across-the-moved-column-and-held-parses.md) (the moved coverage column and held parses); in part, [D-0224](0224-releases-from-partition-artifacts.md) (F1, the closure-stable rule)
 
 ## Decision
 

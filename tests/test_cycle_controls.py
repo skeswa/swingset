@@ -431,7 +431,9 @@ def test_repository_identity_ignores_uncommitted_store_markers(monkeypatch):
     assert repository_identity() == "e136d95efdc7"
 
 
-def test_history_interval_defers_only_a_recently_materialized_history(tmp_path):
+def test_history_interval_paces_nothing(tmp_path):
+    """history/all is retired for unpaced years (plan F17); the key stays
+    accepted and holds no unit back."""
     from datetime import timedelta
     from types import SimpleNamespace
 
@@ -441,59 +443,50 @@ def test_history_interval_defers_only_a_recently_materialized_history(tmp_path):
 
     clock = FakeClock()
     daily = SimpleNamespace(scheduler=SchedulerConfig(history_interval_seconds=86400))
-    history = WorkUnit("project", "history", "all")
     with open_database(tmp_path / "state") as db:
         conn = db.connection
         run = db.start_run(clock.now())
-        assert not deferred_for_interval(conn, daily, history, now=clock.now())
         _materialize(conn, "history", "dg_h", clock.now(), run)
-        later = clock.now() + timedelta(hours=23)
-        assert deferred_for_interval(conn, daily, history, now=later)
-        assert not deferred_for_interval(conn, daily, WorkUnit("project", "event", "x"), now=later)
-        assert not deferred_for_interval(
-            conn, SimpleNamespace(scheduler=SchedulerConfig()), history, now=later
-        )
-        assert not deferred_for_interval(conn, daily, history, now=later + timedelta(hours=1))
-        # A later run that cut off to the same generation restarts the interval.
-        _equivalence(conn, "history", "dg_h", clock.now() + timedelta(hours=20), run)
-        assert deferred_for_interval(conn, daily, history, now=later + timedelta(hours=1))
+        _materialize(conn, "year", "dg_y", clock.now(), run, "2026")
+        later = clock.now() + timedelta(hours=1)
+        for unit in (
+            WorkUnit("project", "history", "all"),
+            WorkUnit("project", "year", "2026"),
+            WorkUnit("project", "event", "x"),
+            WorkUnit("project", "inventory", "all"),
+        ):
+            assert not deferred_for_interval(conn, daily, unit, now=later), unit
 
 
-def _materialize(conn, kind, generation, at, run):
+def _materialize(conn, kind, generation, at, run, unit_id="all"):
     conn.execute(
-        "INSERT INTO derivation_scopes(stage,unit_kind,unit_id,registered_at) "
-        "VALUES ('project',?,'all',?)",
-        (kind, at.isoformat()),
+        "INSERT OR IGNORE INTO derivation_scopes(stage,unit_kind,unit_id,registered_at) "
+        "VALUES ('project',?,?,?)",
+        (kind, unit_id, at.isoformat()),
     )
     conn.execute("INSERT OR IGNORE INTO derivation_dependency_sets VALUES ('empty','[]')")
     conn.execute(
-        "INSERT INTO derivation_generations VALUES (?,'project',?,'all','f','{}','empty',NULL,'d',0,?,?)",
-        (generation, kind, at.isoformat(), run),
+        "INSERT INTO derivation_generations VALUES (?,'project',?,?,'f','{}','empty',NULL,'d',0,?,?)",
+        (generation, kind, unit_id, at.isoformat(), run),
     )
     conn.execute(
-        "UPDATE derivation_scopes SET materialized_generation_id=? WHERE unit_kind=?",
-        (generation, kind),
+        "UPDATE derivation_scopes SET materialized_generation_id=? WHERE unit_kind=? AND unit_id=?",
+        (generation, kind, unit_id),
     )
 
 
-def _equivalence(conn, kind, generation, at, run):
+def _equivalence(conn, kind, generation, at, run, unit_id="all"):
     conn.execute("INSERT OR IGNORE INTO derivation_recipes VALUES ('r','{}')")
     conn.execute(
-        "INSERT INTO derivation_equivalences VALUES ('project',?,'all',?,?,'r','empty',?,?)",
-        (kind, "f-" + at.isoformat(), generation, at.isoformat(), run),
+        "INSERT INTO derivation_equivalences VALUES ('project',?,?,?,?,'r','empty',?,?)",
+        (kind, unit_id, "f-" + at.isoformat(), generation, at.isoformat(), run),
     )
 
 
-def _attempt(conn, kind, at, run, outcome):
-    conn.execute(
-        "INSERT INTO work_attempts(stage,unit_kind,unit_id,queue_generation,retry_generation,"
-        "work_token,input_fingerprint,run_id,started_at,finished_at,outcome,reason_code) "
-        "VALUES ('project',?,'all',1,0,'t','f',?,?,?,?,'derivation_failed')",
-        (kind, run, at.isoformat(), at.isoformat(), outcome),
-    )
-
-
-def test_inventory_waits_its_interval_unless_a_due_history_consumed_it(tmp_path):
+def test_the_inventory_waits_its_interval_whatever_the_years_did(tmp_path):
+    """The inventory keeps its interval (D-0210). The history lift and the
+    starvation breaker left with history (plan F17): a year that consumed the
+    inventory, or one that never ran, changes nothing."""
     from datetime import timedelta
     from types import SimpleNamespace
 
@@ -503,95 +496,32 @@ def test_inventory_waits_its_interval_unless_a_due_history_consumed_it(tmp_path)
 
     clock = FakeClock()
     paced = SimpleNamespace(
-        scheduler=SchedulerConfig(history_interval_seconds=43200, inventory_interval_seconds=43200)
+        scheduler=SchedulerConfig(history_interval_seconds=21600, inventory_interval_seconds=43200)
     )
     inventory = WorkUnit("project", "inventory", "all")
     with open_database(tmp_path / "state") as db:
         conn = db.connection
         run = db.start_run(clock.now())
         start = clock.now()
-        _materialize(conn, "history", "dg_h", start, run)
         _materialize(conn, "inventory", "dg_i", start + timedelta(hours=1), run)
-        # Within both intervals the inventory waits.
         assert deferred_for_interval(conn, paced, inventory, now=start + timedelta(hours=6))
+        assert not deferred_for_interval(conn, paced, inventory, now=start + timedelta(hours=14))
         # With no inventory interval nothing waits.
         unpaced = SimpleNamespace(scheduler=SchedulerConfig(history_interval_seconds=43200))
         assert not deferred_for_interval(conn, unpaced, inventory, now=start + timedelta(hours=6))
-        # With no history interval the inventory keeps its own.
-        alone = SimpleNamespace(scheduler=SchedulerConfig(inventory_interval_seconds=43200))
-        assert deferred_for_interval(conn, alone, inventory, now=start + timedelta(hours=12))
-        assert not deferred_for_interval(conn, alone, inventory, now=start + timedelta(hours=14))
-        # History is due but has not consumed the inventory made after it: a
-        # dancer change during that cascade re-queued the inventory, and
-        # running it now would start the cascade over, so it keeps its
-        # interval (review of D-0210).
-        assert deferred_for_interval(conn, paced, inventory, now=start + timedelta(hours=12))
-        assert not deferred_for_interval(conn, paced, inventory, now=start + timedelta(hours=13))
-
-    # A due history that consumed the inventory lifts the wait: it needs a
-    # current one and never waits for a second cascade.
-    quick = SimpleNamespace(
-        scheduler=SchedulerConfig(history_interval_seconds=21600, inventory_interval_seconds=43200)
-    )
-    with open_database(tmp_path / "second") as db:
-        conn = db.connection
-        run = db.start_run(clock.now())
-        start = clock.now()
-        _materialize(conn, "inventory", "dg_i", start + timedelta(hours=1), run)
-        _materialize(conn, "history", "dg_h", start + timedelta(hours=2), run)
-        assert deferred_for_interval(conn, quick, inventory, now=start + timedelta(hours=7))
-        assert not deferred_for_interval(conn, quick, inventory, now=start + timedelta(hours=9))
-        # A history whose latest attempt failed is not due here, so a history
-        # that keeps failing cannot unpace the inventory (D-0210).
-        _attempt(conn, "history", start + timedelta(hours=9), run, "transient")
-        assert deferred_for_interval(conn, quick, inventory, now=start + timedelta(hours=9))
-        _attempt(conn, "history", start + timedelta(hours=9, minutes=30), run, "superseded")
-        assert not deferred_for_interval(conn, quick, inventory, now=start + timedelta(hours=10))
-        # A history that cut off before the inventory's latest cutoff has not
-        # consumed it either.
-        _equivalence(conn, "inventory", "dg_i", start + timedelta(hours=3), run)
-        assert deferred_for_interval(conn, quick, inventory, now=start + timedelta(hours=10))
-
-
-def test_an_interrupted_cascade_unpaces_the_inventory_until_history_lands(tmp_path):
-    """History needs a current inventory. If a dancer change interrupts every
-    cascade, a paced inventory would hold history back forever (phase 1
-    review): once an inventory has materialized since history came due, the
-    inventory runs whenever it is stale until history lands."""
-    from datetime import timedelta
-    from types import SimpleNamespace
-
-    from swingset.schedule.cycle import deferred_for_interval
-    from swingset.schedule.fair_policy import SchedulerConfig
-    from swingset.state.work import WorkUnit
-
-    clock = FakeClock()
-    paced = SimpleNamespace(
-        scheduler=SchedulerConfig(history_interval_seconds=43200, inventory_interval_seconds=43200)
-    )
-    inventory = WorkUnit("project", "inventory", "all")
-    with open_database(tmp_path / "state") as db:
-        conn = db.connection
-        run = db.start_run(clock.now())
-        start = clock.now()
-        _materialize(conn, "history", "dg_h", start, run)
-        # History came due at +12h; this inventory ran before that, so its
-        # cascade is the one history waits for: it keeps its interval.
-        _materialize(conn, "inventory", "dg_i", start + timedelta(hours=11), run)
+        # A year that ran before it, and one that consumed it: still waits.
+        _materialize(conn, "year", "dg_2025", start, run, "2025")
+        _materialize(conn, "year", "dg_2026", start + timedelta(hours=2), run, "2026")
+        assert deferred_for_interval(conn, paced, inventory, now=start + timedelta(hours=9))
+        _equivalence(conn, "year", "dg_2025", start + timedelta(hours=3), run, "2025")
+        assert deferred_for_interval(conn, paced, inventory, now=start + timedelta(hours=9))
+        # A later cutoff of the inventory restarts its interval.
+        _equivalence(conn, "inventory", "dg_i", start + timedelta(hours=4), run)
         assert deferred_for_interval(conn, paced, inventory, now=start + timedelta(hours=14))
-        # The next one ran at +23h, after history came due, and a dancer
-        # change interrupted its cascade too: history is starving, so the
-        # inventory no longer waits.
-        _equivalence(conn, "inventory", "dg_i", start + timedelta(hours=23), run)
-        assert not deferred_for_interval(conn, paced, inventory, now=start + timedelta(hours=24))
-        # A history that keeps failing still paces it.
-        _attempt(conn, "history", start + timedelta(hours=24), run, "transient")
-        assert deferred_for_interval(conn, paced, inventory, now=start + timedelta(hours=24))
-        # Once history lands, the inventory is paced again.
-        _attempt(conn, "history", start + timedelta(hours=25), run, "succeeded")
-        _equivalence(conn, "history", "dg_h", start + timedelta(hours=25), run)
-        _equivalence(conn, "inventory", "dg_i", start + timedelta(hours=26), run)
-        assert deferred_for_interval(conn, paced, inventory, now=start + timedelta(hours=27))
+        assert not deferred_for_interval(conn, paced, inventory, now=start + timedelta(hours=16))
+        # A year is never paced, whatever the history key says.
+        year = WorkUnit("project", "year", "2026")
+        assert not deferred_for_interval(conn, paced, year, now=start + timedelta(hours=3))
 
 
 def test_a_calendar_replay_the_inventory_has_not_read_lifts_its_wait(tmp_path):

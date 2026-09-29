@@ -104,7 +104,9 @@ def _validate_candidate(
                     validate(conn, selected_closure)
             except ClosureError as exc:
                 raise StaleCandidateError(f"selected release closure changed: {exc}") from exc
-        if policy["token"] != correction_token(conn, closure=selected_closure):
+        if policy.get("mode") == "partitioned":
+            _validate_partitioned(conn, state_dir, candidate, built, policy)
+        elif policy["token"] != correction_token(conn, closure=selected_closure):
             raise StaleCandidateError("identity journal or acceptance policy changed; rebuild")
         try:
             bundle = capture(
@@ -134,6 +136,41 @@ def _validate_candidate(
                 raise StaleCandidateError("selected derivations changed after build")
 
 
+def _validate_partitioned(
+    conn: sqlite3.Connection,
+    state_dir: Path,
+    candidate: Path,
+    built: dict[str, Any],
+    policy: dict[str, Any],
+) -> None:
+    """A partitioned candidate: its manifest, artifacts and correction token (D-0224).
+
+    The manifest file and every artifact it names must hash to their digests,
+    and the correction token must still hold: the identity journal, decisions
+    and policy versions, and no revocation since the build. The artifacts are
+    immutable and named by digest, so no dependency graph is walked.
+    """
+    from swingset.build.closure import _revocations
+    from swingset.build.generations import completed
+    from swingset.build.manifest import ManifestError, verify
+    from swingset.build.manifest import correction_token as partition_token
+
+    if not completed(conn, candidate.name, built["manifest_hash"]):
+        raise PublicationHeldError("candidate files await durable build completion; retry build")
+    try:
+        value = verify(state_dir, str(policy["manifest_digest"]))
+    except (ManifestError, KeyError) as exc:
+        raise StaleCandidateError(f"release manifest or artifact changed: {exc}") from exc
+    if value["correction_token"] != policy["token"] or value.get("baseline_commit") != built.get(
+        "baseline_commit"
+    ):
+        raise StaleCandidateError("candidate does not match its release manifest; rebuild")
+    if value["revocations"] != _revocations(conn):
+        raise StaleCandidateError("a source interpretation was revoked after build; rebuild")
+    if policy["token"] != partition_token(conn, value["support_digest"]):
+        raise StaleCandidateError("identity journal or acceptance policy changed; rebuild")
+
+
 def _connection(state_dir: Path) -> sqlite3.Connection | None:
     path = state_dir / "state.sqlite"
     if not path.is_file():
@@ -156,8 +193,21 @@ def _has_controls(conn: sqlite3.Connection | None) -> bool:
     )
 
 
+def _one_publication(conn: sqlite3.Connection) -> None:
+    """At most one publication of any kind is active (schema 12's index covers the full kinds)."""
+    from swingset.state.publication_fence import PUBLICATION_KINDS, kinds_sql
+
+    if conn.execute(
+        "SELECT 1 FROM execution_admissions WHERE state='active' "
+        f"AND action_kind IN {kinds_sql(PUBLICATION_KINDS)} LIMIT 1"
+    ).fetchone():
+        raise PublicationHeldError("another publication is in flight")
+
+
 @contextmanager
-def publication_boundary(state_dir: Path, candidate: Path) -> Iterator[None]:
+def publication_boundary(
+    state_dir: Path, candidate: Path, *, narrow: bool = False
+) -> Iterator[None]:
     """Reserve validated semantics while control writes remain available.
 
     The caller owns state.lock. On schema12 the short admission transaction
@@ -165,6 +215,10 @@ def publication_boundary(state_dir: Path, candidate: Path) -> Iterator[None]:
     SQLite or control mutex remains held during the network request. A lost
     response releases that fence but retains an uncertain draining action.
     Legacy databases retain their original write-transaction boundary.
+
+    ``narrow``: a partitioned candidate, admitted as `publication_narrow`,
+    whose fence covers only what its check reads, so the loops tick through
+    it (`state/publication_fence.NARROW`).
     """
     built = json.loads((candidate / "BUILT").read_bytes())
     if (state_dir / "RESTORE_PENDING").exists():
@@ -181,19 +235,23 @@ def publication_boundary(state_dir: Path, candidate: Path) -> Iterator[None]:
         assert conn is not None
         from swingset.state.controls import ActionScope, admission, settle
         from swingset.state.db import Database
+        from swingset.state.publication_fence import admission_kind
 
         database = Database(state_dir, conn, None)
         action_id = "publication_" + uuid.uuid4().hex
+
+        def validate(current: sqlite3.Connection) -> None:
+            _one_publication(current)
+            _validate_candidate(current, state_dir, candidate, built, manifest)
+
         with admission(
             database,
             action_id=action_id,
-            action_kind="publication",
+            action_kind=admission_kind(conn, narrow=narrow),
             scope=ActionScope(all_sources=True, all_kinds=True),
             now=datetime.now(UTC),
             candidate_id=candidate.name,
-            validate=lambda current: _validate_candidate(
-                current, state_dir, candidate, built, manifest
-            ),
+            validate=validate,
         ):
             pass
         try:
@@ -227,6 +285,8 @@ def publication_boundary(state_dir: Path, candidate: Path) -> Iterator[None]:
 
 def publication_in_flight(state_dir: Path, candidate: Path) -> bool:
     """An unrecovered active request cannot be called unlanded from head alone."""
+    from swingset.state.publication_fence import PUBLICATION_KINDS, kinds_sql
+
     conn = _connection(state_dir)
     try:
         return bool(
@@ -234,7 +294,7 @@ def publication_in_flight(state_dir: Path, candidate: Path) -> bool:
             and conn is not None
             and conn.execute(
                 "SELECT 1 FROM execution_admissions WHERE candidate_id=? "
-                "AND action_kind IN ('publish','publication') AND state='active' LIMIT 1",
+                f"AND action_kind IN {kinds_sql(PUBLICATION_KINDS)} AND state='active' LIMIT 1",
                 (candidate.name,),
             ).fetchone()
         )
@@ -252,11 +312,12 @@ def settle_publication(state_dir: Path, candidate: Path, *, outcome: str) -> Non
         assert conn is not None
         from swingset.state.controls import settle
         from swingset.state.db import Database
+        from swingset.state.publication_fence import PUBLICATION_KINDS, kinds_sql
 
         with Database(state_dir, conn, None).transaction():
             actions = conn.execute(
                 "SELECT action_id FROM execution_admissions WHERE candidate_id=? "
-                "AND action_kind IN ('publish','publication') AND state<>'settled'",
+                f"AND action_kind IN {kinds_sql(PUBLICATION_KINDS)} AND state<>'settled'",
                 (candidate.name,),
             ).fetchall()
             for row in actions:
@@ -291,7 +352,10 @@ def publication_receipt(candidate: Path, commit: str, *, recovered: bool = False
         "verified_at": now.isoformat(),
         "candidate_id": candidate.name,
         "closure_digest": (policy.get("closure") or {}).get("digest"),
-        "evidence_cutoff": (policy.get("closure") or {}).get("cutoff"),
+        "manifest_digest": policy.get("manifest_digest"),
+        "evidence_cutoff": policy.get("evidence_cutoff")
+        if policy.get("mode") == "partitioned"
+        else (policy.get("closure") or {}).get("cutoff"),
         "correction_detected_at": detected,
         "correction_age_basis": policy.get("correction_age_basis", "legacy_detection_clock"),
         "correction_latency_seconds": latency,

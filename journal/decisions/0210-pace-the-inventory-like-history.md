@@ -4,7 +4,7 @@ Recorded: 2026-09-26
 Decided by: agent, 2026-09-26, under D-0175; source: phase 1 review of the [architecture plan](../../docs/plans/architecture.md)  
 Topic: Scheduling  
 Supersedes: —  
-Superseded by: —
+Superseded by: in part, [D-0222](0222-derive-history-per-year-and-the-event-map-per-source-and-event.md) (history is retired: no history lift or starvation breaker; the inventory pacing stays)
 
 ## Decision
 

@@ -14,6 +14,7 @@ from swingset.config import (
     parse_derivation,
     parse_history_start,
     parse_hosts,
+    parse_release,
     parse_retention,
     parse_sources,
     parse_stages,
@@ -24,6 +25,9 @@ from swingset.state.db import Database
 from swingset.state.override_validation import validate_override
 from swingset.state.recipes import capture_runtime, captured_recipe_inputs
 from swingset.state.work import WorkUnit, accept_inputs
+
+#: Approved decreases for the publication gate (`publish/gate.py`).
+RELEASE_DECREASES = "release_decreases.csv"
 
 
 @dataclass(frozen=True)
@@ -55,7 +59,12 @@ def capture(
         raise ValueError(f"overrides directory does not exist: {overrides_dir}")
     for path in sorted(overrides_dir.glob("*.csv")):
         body = path.read_bytes()
-        validate_override(path, body)
+        if path.name != RELEASE_DECREASES:
+            validate_override(path, body)
+        # Only builds read `release_decreases.csv`, for the publication gate
+        # (D-0225); no derivation depends on it, so accepting a change queues
+        # nothing. Every loop captures the bundle, so a typo in it must not
+        # stop them: the gate parses it and refuses the release with the line.
         files[f"overrides/{path.name}"] = body
     weights = Path(__file__).parents[1] / "link" / "weights.toml"
     if weights.exists():
@@ -74,6 +83,7 @@ def capture(
         parse_retention(files["config/sources.toml"]),
         parse_stages(files["config/sources.toml"]),
         parse_derivation(files["config/sources.toml"]),
+        parse_release(files["config/sources.toml"]),
     )
     # The retention limits as values, not as the bytes they were read from. An
     # absent `[retention]` table means the defaults, so a bundle that carried
@@ -107,8 +117,15 @@ def accept(database: Database, bundle: InputBundle, clock: Clock) -> set[str]:
     def affected(name: str, old: str | None, new: str, conn: object) -> list[WorkUnit]:
         del old, new, conn
         units = list(affected_work(database.connection, name))
-        if name == "overrides/source_urls.csv" and bundle.csv("source_urls.csv"):
-            units.append(WorkUnit("project", "map", "all"))
+        if name in {"overrides/event_aliases.csv", "overrides/source_urls.csv"}:
+            # A source only an override names has no listing yet: its mapping
+            # unit starts from this hint (plan F19).
+            from swingset.project.map import override_sources
+
+            units.extend(
+                WorkUnit("project", "mapping", source)
+                for source in override_sources({name: bundle.files.get(name, b"")})
+            )
         return units
 
     # The runtime has one accepted identity. Its complete bytes remain in the

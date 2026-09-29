@@ -118,10 +118,10 @@ def test_occurrence_floor_dates_and_phase_two_gates(tmp_path):
         )
         assert phase_two_allowed(conn, 2012)
         conn.execute(
-            "UPDATE derivation_scopes SET materialized_generation_id=NULL WHERE stage='project' AND unit_kind='history'"
+            "UPDATE derivation_scopes SET materialized_generation_id=NULL WHERE stage='project' AND unit_kind='year'"
         )
-        # A pending history projection writes no inventory digest column, so
-        # it neither closes phase two nor blocks acceptance (D-0198).
+        # A pending year writes no inventory digest column, so it neither
+        # closes phase two nor blocks acceptance (D-0198).
         assert phase_two_allowed(conn, 2012)
         accept_year(conn, 2012, accepted_by="owner", accepted_at=NOW)
         conn.execute(
@@ -484,3 +484,348 @@ def test_two_editions_in_same_capture_require_review(tmp_path):
             "SELECT 1 FROM findings WHERE kind='event_alias' AND closed_at IS NULL"
         ).fetchone()
         assert conn.execute("SELECT date_precision FROM events").fetchone()[0] == "month"
+
+
+# Years (plan F17): project/history/all became one unit per year.
+
+
+def seed_years(conn):
+    """Events and placements across three years, as the pure-function tests need.
+
+    `dec` is a December 2024 event whose registry occurrence is reported in
+    January 2025: year 2025 associates its placements, year 2024 counts them.
+    One 2026 placement names a 2025 event (a stale association), one placement
+    predates the history start, and two 2025 events share a series and month.
+    """
+    conn.execute(
+        "INSERT INTO runs(run_id,started_at,finished_at,dry_run,summary_json) VALUES ('run',?,NULL,1,NULL)",
+        (NOW,),
+    )
+    conn.execute(
+        "INSERT INTO watches(watch_id,source,kind,method,url,parser,state) "
+        "VALUES ('w','wsdc_registry','index','GET','https://example.test/','events','live')"
+    )
+    for snapshot, via in (("snap", "origin"), ("snap-archive", "wayback")):
+        conn.execute(
+            "INSERT INTO snapshots(snapshot_id,watch_id,method,url,fetched_at,http_status,body_bytes,content_changed,run_id,classification,via) "
+            "VALUES (?,'w','GET','https://example.test/',?,200,1,1,'run','Ok',?)",
+            (snapshot, NOW, via),
+        )
+    for wsdc_id in (1, 2, 3):
+        conn.execute(
+            "INSERT INTO dancers(wsdc_id,first_name,last_name,name_norm,is_pro,primary_role,leader_required_level,leader_allowed_level,follower_required_level,follower_allowed_level,leader_highest_level,leader_highest_points,follower_highest_level,follower_highest_points,recent_year,registry_internal_id,registry_fetched_at,source,snapshot_id,parser_version,first_seen_at,last_seen_at,run_id) "
+            "VALUES (?,'A','B','a b',0,'leader','novice','advanced','novice','advanced','novice',1,'novice',1,2026,?,'t','wsdc_registry','snap','1',?,?,'run')",
+            (wsdc_id, wsdc_id, NOW, NOW),
+        )
+    events = (
+        # event_id, series, year, reporting month, history source, snapshot
+        ("dec", "wsdc-1", 2024, "2025-01", '["registry"]', "snap"),
+        ("mid24", "wsdc-4", 2024, "2024-06", '["calendar","registry"]', "snap-archive"),
+        ("e25", "wsdc-2", 2025, "2025-06", '["registry"]', "snap"),
+        ("e25b", "wsdc-2", 2025, "2025-06", '["calendar"]', "snap"),
+        ("e26", "wsdc-3", 2026, "2026-01", '["registry"]', "snap"),
+    )
+    for event_id, series, year, month, history, snapshot in events:
+        conn.execute(
+            "INSERT INTO events(event_id,series_id,name,year,start_date,end_date,wsdc_status,sources,source,snapshot_id,parser_version,first_seen_at,last_seen_at,run_id,event_month,date_precision,held,coverage_tier,history_source) "
+            "VALUES (?,?,?,?,NULL,NULL,'registry','[\"wsdc_registry\"]','wsdc_registry',?,'1',?,?,'run',?,'month','held','registry_only',?)",
+            (event_id, series, event_id, year, snapshot, NOW, NOW, month, history),
+        )
+    placements = (
+        # wsdc_id, series, month, division, event_id before association
+        (1, "wsdc-1", "2025-01", "NOV", None),
+        (2, "wsdc-1", "2025-01", "INT", None),
+        (1, "wsdc-2", "2025-06", "NOV", None),
+        (2, "wsdc-3", "2026-01", "NOV", None),
+        (1, "wsdc-3", "2026-01", "INT", "e25"),
+        (3, "wsdc-4", "2024-06", "NOV", None),
+        (3, "wsdc-9", "2025-03", "NOV", None),
+        (3, "wsdc-2", "2009-06", "NOV", "e25"),
+    )
+    for wsdc_id, series, month, division, event_id in placements:
+        conn.execute(
+            "INSERT INTO registry_placements VALUES (?,'leader','wcs',?,?,'Series',?,?,'1',1,'wsdc_registry',?,'1',?,?,'run')",
+            (
+                wsdc_id,
+                division,
+                series,
+                month,
+                event_id,
+                "snap-archive" if series == "wsdc-3" else "snap",
+                NOW,
+                NOW,
+            ),
+        )
+    conn.execute(
+        "INSERT INTO contests(contest_id,event_id,name_raw,division,age_division,contest_type,partner_mode,dance_style,wsdc_points_eligible,combined_from,parse_status,source_contest_ref,source,snapshot_id,parser_version,first_seen_at,last_seen_at,run_id) "
+        "VALUES ('c25','e25','Novice','novice','open','jnj','random','wcs',1,'[]','parsed','c','eepro','snap-archive','1',?,?,'run')",
+        (NOW, NOW),
+    )
+    conn.execute(
+        "INSERT INTO rounds(round_id,contest_id,round_type,round_index,name_raw,scoring_method,callback_legend,judge_count,entry_count,source_round_ref,source,snapshot_id,parser_version,first_seen_at,last_seen_at,run_id) "
+        "VALUES ('r25','c25','final',0,'Final','relative','{}',3,5,'r','eepro','snap-archive','1',?,?,'run')",
+        (NOW, NOW),
+    )
+
+
+def year_state(conn):
+    return {
+        "placements": conn.execute(
+            "SELECT * FROM registry_placements ORDER BY wsdc_id,role,series_id,event_month,division"
+        ).fetchall(),
+        "events": conn.execute("SELECT * FROM events ORDER BY event_id").fetchall(),
+        "coverage": conn.execute("SELECT * FROM coverage ORDER BY year,source,via").fetchall(),
+    }
+
+
+def test_each_year_associates_and_counts_what_the_global_pass_does(tmp_path):
+    """Per-year association, tiers and coverage equal finalize_history's, with a
+    December event whose placements are reported in January (plan F17)."""
+    from swingset.project.history import finalize_history, finalize_year
+    from swingset.state.derivation_dependencies import year_units
+
+    with open_database(tmp_path / "global") as db:
+        seed_years(db.connection)
+        db.connection.execute(
+            "INSERT INTO findings(finding_id,kind,subject_kind,subject_id,severity,summary,evidence_json,opened_at,owner_kind,owner_id,run_id) "
+            "VALUES ('f','series_alias','history_listing','x','warning','s','{}',?,'history_year','2026','run')",
+            (NOW,),
+        )
+        finalize_history(db.connection, now=NOW)
+        expected = year_state(db.connection)
+    with open_database(tmp_path / "years") as db:
+        conn = db.connection
+        seed_years(conn)
+        conn.execute(
+            "INSERT INTO findings(finding_id,kind,subject_kind,subject_id,severity,summary,evidence_json,opened_at,owner_kind,owner_id,run_id) "
+            "VALUES ('f','series_alias','history_listing','x','warning','s','{}',?,'history_year','2026','run')",
+            (NOW,),
+        )
+        years = [int(unit.unit_id) for unit in year_units(conn)]
+        # Event years and reporting years with events or associations; the
+        # stale 2009 association is its own year, and 2025-03 with no event
+        # is none.
+        assert years == [2009, 2024, 2025, 2026]
+        # Any order: each year writes only its own rows.
+        for year in reversed(years):
+            finalize_year(conn, year, now=NOW)
+        assert year_state(conn) == expected
+    assert [
+        tuple(row) for row in expected["placements"] if row["event_month"] == "2025-01"
+    ] and all(
+        row["event_id"] == "dec"
+        for row in expected["placements"]
+        if row["event_month"] == "2025-01"
+    )
+    # The December event counts in 2024 beside mid24, through its January
+    # placements too.
+    coverage = {(row["year"], row["source"], row["via"]): row for row in expected["coverage"]}
+    assert coverage[2024, "wsdc_registry", "origin"]["events"] == 2
+    assert coverage[2024, "wsdc_registry", "wayback"]["events"] == 1
+    # The pre-start association stays as the dancer left it.
+    assert [
+        row["event_id"] for row in expected["placements"] if row["event_month"] == "2009-06"
+    ] == ["e25"]
+
+
+def test_year_coverage_equals_the_global_rebuild(tmp_path):
+    from swingset.project.coverage import rebuild_coverage, rebuild_year_coverage
+
+    with open_database(tmp_path / "global") as db:
+        seed_years(db.connection)
+        rebuild_coverage(db.connection, now=NOW)
+        expected = year_state(db.connection)
+    with open_database(tmp_path / "years") as db:
+        conn = db.connection
+        seed_years(conn)
+        for year in (2024, 2025, 2026, 2009):
+            assert rebuild_year_coverage(conn, year, now=NOW) is (year != 2009)
+        assert year_state(conn) == expected
+        # Unchanged rows keep their clock; a second pass changes nothing.
+        for year in (2024, 2025, 2026):
+            assert not rebuild_year_coverage(conn, year, now="2026-10-01T00:00:00+00:00")
+        assert year_state(conn) == expected
+        # A year whose events left clears only its own rows.
+        conn.execute("UPDATE events SET year=2025 WHERE year=2024")
+        assert rebuild_year_coverage(conn, 2024, now=NOW)
+        assert not conn.execute("SELECT 1 FROM coverage WHERE year=2024").fetchone()
+        assert conn.execute("SELECT 1 FROM coverage WHERE year=2026").fetchone()
+
+
+def derived_years(db):
+    """`seed_years`, every project unit drained, and the years it made."""
+    from swingset.state import derivations
+
+    seed_years(db.connection)
+    drain_projection(db)
+    return {
+        unit.unit_id: derivations.selected_generation(db.connection, unit)
+        for unit in derivations.known_units(db.connection, "project")
+        if unit.unit_kind == "year"
+    }
+
+
+def global_pass_agrees(conn):
+    """finalize_history over the live state changes nothing the years wrote."""
+    from swingset.project.history import finalize_history
+
+    before = year_state(conn)
+    conn.execute("SAVEPOINT global_pass")
+    try:
+        finalize_history(conn, now=NOW)
+        return year_state(conn) == before
+    finally:
+        conn.execute("ROLLBACK TO global_pass")
+        conn.execute("RELEASE global_pass")
+
+
+def test_a_year_that_rewrote_its_own_association_is_current_at_once(tmp_path):
+    """F23: a year's content inputs leave out the column it writes, so its own
+    run never makes it stale; a second run with no input change writes nothing."""
+    from swingset.state import derivations
+    from swingset.state.work import WorkUnit
+
+    with open_database(tmp_path) as db:
+        conn = db.connection
+        years = derived_years(db)
+        assert set(years) == {"2009", "2024", "2025", "2026"}
+        assert all(years.values())
+        assert global_pass_agrees(conn)
+        clock = FakeClock(datetime.fromisoformat(NOW))
+        from swingset.project.process import process_unit
+
+        def canonical():
+            row = conn.execute("SELECT value FROM revisions WHERE name='canonical'").fetchone()
+            return None if row is None else int(row[0])
+
+        unchanged = canonical()
+        for year in sorted(years):
+            unit = WorkUnit("project", "year", year)
+            for _ in range(2):
+                process_unit(db, unit, SimpleNamespace(files={}), clock, "run")
+                assert derivations.current(conn, unit), unit
+                assert derivations.selected_generation(conn, unit) == years[year]
+        # A run that moves no association leaves the replay witness alone.
+        assert canonical() == unchanged
+        # A dancer's reconcile moves a 2026 association to a 2025 event under
+        # a cutoff, which moves the dancer epoch (F23).
+        with db.transaction():
+            conn.execute(
+                "UPDATE registry_placements SET event_id='e25' "
+                "WHERE event_month='2026-01' AND division='INT'"
+            )
+            derivations.bump_replay(conn, "project", "dancer", now=NOW)
+        stale = {unit.unit_id for unit in derivations.pending_units(conn, "project")}
+        assert {"2024", "2025", "2026"} <= stale
+        unit = WorkUnit("project", "year", "2026")
+        before = canonical()
+        process_unit(db, unit, SimpleNamespace(files={}), clock, "run")
+        # Moving the association back bumps the canonical revision (F2's
+        # replay witness for a year whose output cuts off).
+        assert canonical() is not None and canonical() != before
+        # Its own rewrite of the association did not make it stale.
+        assert derivations.current(conn, unit)
+        assert derivations.selected_generation(conn, unit) == years["2026"]
+        drain_projection(db)
+        assert global_pass_agrees(conn)
+
+
+def test_an_event_moving_across_years_re_derives_both_years_only(tmp_path):
+    """The plan's alias-across-a-year-boundary risk: an event that moves from
+    2024 to 2025 re-derives those two years; 2026 stays current untouched."""
+    from swingset.state import derivations
+    from swingset.state.work import WorkUnit
+
+    with open_database(tmp_path) as db:
+        conn = db.connection
+        years = derived_years(db)
+        conn.execute("DELETE FROM pending_work")
+        with db.transaction():
+            conn.execute("UPDATE events SET year=2025,event_month='2025-06' WHERE event_id='mid24'")
+        pending = {
+            unit.unit_id
+            for unit in derivations.pending_units(conn, "project")
+            if unit.unit_kind == "year"
+        }
+        assert pending == {"2024", "2025"}
+        drain_projection(db)
+        after = {
+            year: derivations.selected_generation(conn, WorkUnit("project", "year", year))
+            for year in years
+        }
+        assert {year for year in years if after[year] != years[year]} == {"2024", "2025"}
+        assert global_pass_agrees(conn)
+        # Its 2024 placement lost its event; 2025 counts it now.
+        assert (
+            conn.execute(
+                "SELECT event_id FROM registry_placements WHERE series_id='wsdc-4'"
+            ).fetchone()[0]
+            is None
+        )
+        assert not conn.execute(
+            "SELECT 1 FROM coverage WHERE year=2024 AND via='wayback'"
+        ).fetchone()
+
+
+def test_accept_year_stages_its_year_alone(tmp_path):
+    from swingset.state import derivations
+    from swingset.state.work import WorkUnit
+
+    with open_database(tmp_path) as db:
+        conn = db.connection
+        years = derived_years(db)
+        unit = WorkUnit("project", "year", "2025")
+        with derivations.chunking(conn, unit) as chunk:
+            with db.transaction():
+                accept_year(conn, 2025, accepted_by="owner", accepted_at=NOW)
+            assert chunk.deferred is not None and chunk.deferred.selection.unit == unit
+            derivations.finish_building(db, chunk.deferred)
+        assert derivations.selected_generation(conn, unit) != years["2025"]
+        assert (
+            conn.execute("SELECT events_accepted FROM coverage WHERE year=2025 LIMIT 1").fetchone()[
+                0
+            ]
+            == 1
+        )
+        for year, generation in years.items():
+            other = WorkUnit("project", "year", year)
+            assert derivations.current(conn, other), year
+            if year != "2025":
+                assert derivations.selected_generation(conn, other) == generation
+        assert not any(
+            item.unit_kind == "history" for item in derivations.known_units(conn, "project")
+        )
+
+
+def test_a_year_waits_for_the_events_reported_in_its_months(tmp_path):
+    """A December event reported in January: the January year associates its
+    placements, so the event is a prerequisite of both years (plan F17)."""
+    from swingset.state import derivation_dependencies as dependencies
+    from swingset.state.work import WorkUnit
+
+    with open_database(tmp_path / "state", lock=False) as db:
+        conn = db.connection
+        for event_id, year, month in (
+            ("december", 2025, "2026-01"),
+            ("own-year", 2026, "2026-05"),
+            ("elsewhere", 2025, "2025-06"),
+        ):
+            conn.execute(
+                "INSERT INTO events(event_id,series_id,name,year,start_date,end_date,wsdc_status,"
+                "sources,source,snapshot_id,parser_version,first_seen_at,last_seen_at,run_id,"
+                "event_month) VALUES (?,?,?,?,NULL,NULL,'registry','[]','test','snap','1',"
+                "'t','t','run',?)",
+                (event_id, "s-" + event_id, event_id, year, month),
+            )
+        events = {
+            unit.unit_id
+            for unit in dependencies.prerequisites(conn, WorkUnit("project", "year", "2026"))
+            if unit.unit_kind == "event"
+        }
+        assert events == {"december", "own-year"}
+        earlier = {
+            unit.unit_id
+            for unit in dependencies.prerequisites(conn, WorkUnit("project", "year", "2025"))
+            if unit.unit_kind == "event"
+        }
+        assert earlier == {"december", "elsewhere"}

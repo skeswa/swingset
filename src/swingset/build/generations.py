@@ -21,6 +21,7 @@ from .closure import ClosureError, ReleaseClosure, hydrate, retain
 from .closure_validation import validation_scope
 from .event_artifacts import artifact_source
 from .identity_policy import correction_token
+from .manifest import ManifestError, ReleaseManifest
 
 
 def baseline_commit(database: Database) -> str | None:
@@ -34,8 +35,31 @@ def select(
     bundle_digest: str,
     correction_only: bool,
     closure: ReleaseClosure | Mapping[str, Any] | None = None,
+    manifest: ReleaseManifest | None = None,
+    build_trigger: str | None = None,
 ) -> derivations.Selection:
-    """Call in the same read snapshot that supplies the build's actual rows."""
+    """Call in the same read snapshot that supplies the build's actual rows.
+
+    A partitioned build names its release manifest instead of a closure: the
+    manifest is its whole dependency (D-0224). Its context also names the
+    build trigger, which adds the assembly path and public health: either
+    one changed builds a new candidate from the same manifest.
+    """
+    if manifest is not None:
+        if correction_only or closure is not None:
+            raise BuildError("a partitioned build has neither a closure nor a correction")
+        return derivations.desired(
+            database.connection,
+            WorkUnit("build", "release", "all"),
+            context={
+                "baseline_commit": baseline_commit(database),
+                "input_bundle_hash": bundle_digest,
+                "mode": "partitioned",
+                "release_manifest": manifest.digest,
+                "build_trigger": build_trigger,
+                "correction_token": manifest.value["correction_token"],
+            },
+        )
     pinned = (
         closure.manifest()
         if isinstance(closure, ReleaseClosure)
@@ -129,6 +153,7 @@ def complete(
         SupersededWorkError,
         derivations.NondeterministicOutputError,
         ClosureError,
+        ManifestError,
         WriteDeadlineExceeded,
     ) as error:
         # An overrun is contained like any other failed completion; it used to
@@ -154,6 +179,16 @@ def _complete_in_transaction(
     accepted = conn.execute("SELECT value FROM meta WHERE key='input_bundle_hash'").fetchone()
     if accepted is None or accepted[0] != selection.context["input_bundle_hash"]:
         raise SupersededWorkError("build input bundle changed before completion")
+    release_manifest = selection.context.get("release_manifest")
+    if release_manifest is not None:
+        from . import manifest as manifests
+
+        value = manifests.read(database.state_dir, str(release_manifest))
+        if manifests.correction_token(conn, value["support_digest"]) != selection.context.get(
+            "correction_token"
+        ):
+            raise SupersededWorkError("correction policy changed before build completion")
+        manifests.name_candidate(conn, str(release_manifest), result.candidate_id)
     pinned = selection.context.get("release_closure")
     if pinned is not None:
         # complete() below rechecks the closure proof before writing output,

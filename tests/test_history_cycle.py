@@ -50,7 +50,7 @@ def prepare_cycle(fixture, tmp_path, monkeypatch):
         cycle,
         "build",
         lambda *args, **kwargs: SimpleNamespace(
-            reused=True, candidate_id="offline-unpublished-build"
+            reused=True, candidate_id="offline-unpublished-build", path=tmp_path / "no-candidate"
         ),
     )
     return config_dir, overrides_dir, target

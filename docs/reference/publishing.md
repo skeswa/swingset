@@ -10,6 +10,7 @@ Publication makes an accepted candidate visible on Hugging Face. The baseline is
 - [Layout of `skeswa/swingset`](#layout-of-skeswaswingset)
 - [Commit strategy](#commit-strategy)
 - [Candidate and baseline](#candidate-and-baseline)
+- [Publication gate](#publication-gate)
 - [Publication acceptance cases](#publication-acceptance-cases)
 - [Dataset card](#dataset-card)
 - [Consumer examples (go in the card)](#consumer-examples-go-in-the-card)
@@ -32,6 +33,7 @@ from it is a documented runbook step ([operations](operations.md#backup-and-rest
 README.md                      dataset card with configs YAML
 LICENSE
 _meta/manifest.json
+_meta/verdict.json             publication gate verdict (D-0225)
 data/events/events.parquet
 data/contests/contests.parquet
 data/rounds/rounds.parquet
@@ -149,11 +151,28 @@ reconciles first, then builds and publishes as the cycle does.
 `--dry-run`, the default, has no hub: it neither reconciles nor publishes,
 and only builds. A release tick settles a publication admission that a dead
 process left active as uncertain, so reconcile decides it. While a
-publication is active its fence refuses every write outside the control
-tables, so the other loops pause: each checks before a unit or request
+closure-mode publication is active its fence refuses every write outside the
+control tables, so the other loops pause: each checks before a unit or request
 starts, and a unit write that still meets the fence retries in 60 s
 ([D-0215](../../journal/decisions/0215-loops-share-the-state-under-a-reader-writer-lock.md)).
-Narrowing the fence is architecture phase 3.
+A partitioned candidate is admitted as `publication_narrow`: its fence covers
+only what its check reads, and acquire, plan and derive keep running
+([state: publication fences](state.md#publication-fences)).
+
+**What publication checks.** Inside the publication admission, every
+candidate's file closure, manifest hash and baseline commit must still hold,
+with its durable build receipt and the input bundle unchanged. Then by mode:
+
+| `release_policy.mode` | Also checked                                                                                                                                                                                                                                                                                   |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `partitioned`         | The [release manifest](build.md#partitioned-releases) file and every artifact it names hash to their digests; the manifest names this candidate's token and baseline; no revocation since the build; the correction token (journal, decisions, admission policies) is unchanged. No graph walk |
+| `closure`             | The pinned closure validates against the database, and the correction token is unchanged (the baseline built before phase 3 is closure mode)                                                                                                                                                   |
+| `settled`             | No pending work, and the revisions are unchanged                                                                                                                                                                                                                                               |
+
+A partitioned candidate's `PUBLISHED` receipt records `manifest_digest` and
+the manifest's `evidence_cutoff`. A changed artifact file refuses publication
+and rejects the candidate; the next build writes a new one
+([D-0224](../../journal/decisions/0224-releases-from-partition-artifacts.md)).
 
 Reading the head is allowed in a dry run. A dry run creates no Hub
 commit; it may complete an already acknowledged local promotion. A
@@ -173,6 +192,52 @@ missing baseline or pending artifacts are errors, never an excuse to
 forget publication intent. [Restore](operations.md#backup-and-restore)
 verifies remote state separately because its checkpoint may be older
 than subsequent public commits.
+
+## Publication gate
+
+Every candidate must be at least as good as the baseline, measured
+([D-0225](../../journal/decisions/0225-publish-only-strictly-better-releases.md)).
+The builder compares the candidate with the baseline on these measures:
+
+| Measure                           | Counts                                                                                                                                                                                     |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| The table's name                  | Rows of `events`, `contests`, `rounds`, `entries`, `judges`, `callback_marks`, `callbacks`, `final_marks`, `placements`, `dancers`, `registry_placements`, `heats` (manifest `row_counts`) |
+| `confirmed_links`                 | `identity_links` rows with status `confirmed` and a WSDC id                                                                                                                                |
+| `linked_entries`, `linked_judges` | `entries` and `judges` rows with a WSDC id                                                                                                                                                 |
+| `events_with_placements`          | Distinct `placements.event_id`                                                                                                                                                             |
+
+Not measured: `review_queue`, `changelog`, `coverage`, `snapshots`,
+`link_candidates`. A measure that goes down needs a row in
+`overrides/release_decreases.csv` with the same measure and baseline value
+whose `candidate_value` is at most the candidate's: the row is a floor, so a
+later build with a few more rows still passes and a larger decrease does not
+([how to write one](../guides/data-corrections.md#approving-a-decrease)).
+Without one the verdict is `refused`, with one reason per decrease:
+`decrease:<measure> <from>-><to>`. A table the candidate lacks counts as 0.
+With no baseline the verdict passes. The loops capture the file without
+parsing it; a malformed one approves nothing and refuses the release with
+`overrides_invalid:release_decreases.csv:<line>: <error>` first among the
+reasons.
+
+The verdict lists every measure as baseline and candidate values, each
+decrease, the overrides it used and the reasons. The builder writes it to
+`_meta/verdict.json`, named and hashed in the candidate manifest like every
+file, and publishes it with the data. It is left out of the content hash, so
+an identical rebuild is still unchanged. The cycle and the release loop put
+it in the run summary as `verdict` (as `correction_verdict` for a
+correction) and on the candidate's `release_manifests` row. A dry run
+records it too.
+
+`publish` reads the verdict after the baseline check and before any intent.
+A refused verdict returns state `refused` with the reasons: nothing is
+written or submitted, the candidate is not rejected, and the tick is not a
+failure. The release loop counts it in `refused`. A verdict file that no
+longer matches its manifest hash refuses (`verdict_changed_after_build`). A
+candidate built before the gate has no verdict; publication evaluates it
+against the baseline with no overrides. A correction-only candidate records
+its decreases but is exempt (`exempt: "correction"`): the suppression or
+identity rows that asked for it are the approval. A pending publication
+(`PUBLISHING`) already passed and is not gated again.
 
 ## Publication acceptance cases
 

@@ -4,7 +4,7 @@ Recorded: 2026-09-24
 Decided by: agent, 2026-09-24, under D-0183  
 Topic: Build  
 Supersedes: the "reported, not fatal" health reading of [D-0187](0187-review-dismissals-year-scoped-aliases-and-non-fatal-builds.md)  
-Superseded by: —
+Superseded by: in part, [D-0222](0222-derive-history-per-year-and-the-event-map-per-source-and-event.md) (history is split per year and not paced)
 
 ## Decision
 

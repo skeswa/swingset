@@ -121,6 +121,7 @@ CREATE TABLE work_queue (stage TEXT, unit_kind TEXT, unit_id TEXT, state TEXT NO
     attempts INTEGER NOT NULL DEFAULT 0, error_class TEXT, last_error TEXT, lease_owner TEXT,
     lease_until TEXT, next_attempt_at TEXT, quarantined_at TEXT,
     PRIMARY KEY(stage, unit_kind, unit_id));
+CREATE TABLE events (event_id TEXT PRIMARY KEY, year INTEGER, event_month TEXT);
 """
 
 
@@ -161,35 +162,34 @@ class State:
             "INSERT INTO derivation_generations VALUES (?,?,?,'u',?)", self._id(), stage, kind, at
         )
 
-    def history(self, materialized: str | None, *, earlier: tuple[str, ...] = ()) -> "State":
-        """A pending project/history unit whose current output was made then.
-
-        `earlier` are older history outputs still stored.
-        """
-        for at in earlier:
-            self.generation(at, stage="project", kind="history")
-        generation = None
-        if materialized is not None:
-            generation = self._id()
-            self.sql(
-                "INSERT INTO derivation_generations VALUES (?,'project','history','all',?)",
-                generation,
-                materialized,
-            )
-        self.sql("INSERT INTO derivation_scopes VALUES ('project','history','all',?)", generation)
-        return self.pending("all", stage="project", kind="history")
-
-    def history_output(self, at: str) -> "State":
-        """project/history's current output, made then, with nothing queued."""
+    def output(self, kind: str, scope: str, at: str) -> "State":
+        """A project scope whose current output was made then, with nothing queued."""
         generation = self._id()
         self.sql(
-            "INSERT INTO derivation_generations VALUES (?,'project','history','all',?)",
+            "INSERT INTO derivation_generations VALUES (?,'project',?,?,?)",
             generation,
+            kind,
+            scope,
             at,
         )
         return self.sql(
-            "INSERT INTO derivation_scopes VALUES ('project','history','all',?)", generation
+            "INSERT INTO derivation_scopes VALUES ('project',?,?,?) "
+            "ON CONFLICT DO UPDATE SET materialized_generation_id = excluded."
+            "materialized_generation_id",
+            kind,
+            scope,
+            generation,
         )
+
+    def year(self, year: str, *, made: str | None = None, enqueued: str = QUEUED) -> "State":
+        """A queued project/year unit, with its current output made at `made`."""
+        if made is not None:
+            self.output("year", year, made)
+        return self.pending(year, stage="project", kind="year", enqueued=enqueued)
+
+    def event(self, event_id: str, year: int | None, month: str | None = None) -> "State":
+        """An `events` row: the years a link on it waits for."""
+        return self.sql("INSERT INTO events VALUES (?,?,?)", event_id, year, month)
 
     def pause(
         self,
@@ -319,6 +319,9 @@ def test_the_replay_and_pacing_sets_follow_the_package() -> None:
         f"{stage}/{kind}": {f"project/{cause}" for cause in causes}
         for (stage, kind), causes in _REPLAYED.items()
     }
+    # A link reads no per-kind epoch since read sets (plan F20): its causes
+    # are the kinds its read keys name, which the watchdog keeps by hand.
+    read["link/event"] = {"project/dancer", "project/event", "project/year"}
     assert set(watchdog.REPLAY_CAUSES) == set(read)
     # An event and its source events are one consistency group: each one's
     # generation is a real input change for the other (prerequisites).
@@ -326,19 +329,18 @@ def test_the_replay_and_pacing_sets_follow_the_package() -> None:
     for key, causes in watchdog.REPLAY_CAUSES.items():
         assert read[key] <= causes, key
         assert causes - read[key] <= group.get(key, set()), key
-    # The paced inventory and every project kind that reads it, directly or
-    # not, except history, which has its own pacing.
-    paced = {"inventory"}
-    while True:
-        more = {
-            kind
-            for (stage, kind), causes in _REPLAYED.items()
-            if stage == "project" and kind != "history" and causes & paced
-        }
-        if more <= paced:
-            break
-        paced |= more
-    assert watchdog.PACED_BY_INVENTORY == paced
+    # Only the inventory waits for its interval: every unit that reads it
+    # takes it as settled at its pointer (derivations.settled_reason), so
+    # nothing downstream waits with it.
+    from swingset.schedule import pacing
+    from swingset.schedule.fair_policy import SchedulerConfig
+
+    assert watchdog.PACED_BY_INVENTORY == {"inventory"}
+    gate = SchedulerConfig(inventory_interval_seconds=3600)
+    for kind in sorted({kind for _, kind in _REPLAYED} - {"inventory"}):
+        assert not pacing.deferred(
+            None, gate, WorkUnit("project", kind, "x"), now=datetime.now(UTC)
+        ), kind
 
 
 def test_every_query_runs_against_the_real_schema(tmp_path: Path) -> None:
@@ -360,6 +362,7 @@ def test_every_query_runs_against_the_real_schema(tmp_path: Path) -> None:
                         "streak": 4,
                         "now": "2026-09-25T16:10:00.000000Z",
                         "since": "2026-09-25T14:10:00.000000Z",
+                        "week": "2026-09-18T16:10:00+00:00",
                     },
                 ).fetchall(),
                 list,
@@ -372,8 +375,11 @@ def test_every_query_runs_against_the_real_schema(tmp_path: Path) -> None:
 def test_the_script_reads_the_shipped_config_as_the_package_does() -> None:
     config = load_config(Path("config"))
     limits = watchdog._config("config")
-    assert limits.history_interval == config.scheduler.history_interval_seconds == 43200
-    assert limits.inventory_interval == config.scheduler.inventory_interval_seconds == 43200
+    # `history_interval_seconds` paces nothing since the years (plan F17).
+    assert not hasattr(limits, "history_interval")
+    # D-0227 sets the production value; the script must read the same one.
+    assert limits.inventory_interval == config.scheduler.inventory_interval_seconds
+    assert config.scheduler.inventory_interval_seconds in {43200, 172800}
     assert limits.requests == {
         host: config.host(host).daily_request_budget for host in config.hosts
     }
@@ -524,9 +530,7 @@ def test_a_scheduler_request_counts_as_fetching(tmp_path: Path) -> None:
     assert _run(tmp_path) == []
 
 
-def _config(
-    tmp_path: Path, *, history: int | None = 43200, inventory: int | None = None
-) -> list[str]:
+def _config(tmp_path: Path, *, inventory: int | None = None) -> list[str]:
     directory = tmp_path / "config"
     directory.mkdir()
     (directory / "hosts.toml").write_text(
@@ -535,11 +539,10 @@ def _config(
         '[hosts."danceconvention.net"]\ndaily_request_budget = 200\n'
         'daily_byte_budget = "300MB"\n'
     )
-    scheduling = f"[scheduling]\nhistory_interval_seconds = {history}\n" if history else ""
+    # The retired history interval is still accepted and read by nothing.
+    scheduling = "[scheduling]\nhistory_interval_seconds = 43200\n"
     if inventory:
-        scheduling = (scheduling or "[scheduling]\n") + (
-            f"inventory_interval_seconds = {inventory}\n"
-        )
+        scheduling += f"inventory_interval_seconds = {inventory}\n"
     (directory / "sources.toml").write_text(scheduling)
     return ["--config", str(directory)]
 
@@ -731,69 +734,65 @@ def test_the_ready_rule_follows_the_latest_attempt(
     assert _keys(_run(tmp_path)) == (["stale-progress"] if ready else [])
 
 
-def test_project_history_within_its_interval_is_quiet(tmp_path: Path) -> None:
-    # Output six hours old: history is not due until 22:10.
-    State(tmp_path).fetched(NOW).history("2026-09-25T10:10:00+00:00").close()
-    assert _run(tmp_path, extra=_config(tmp_path)) == []
+@pytest.mark.parametrize(
+    "enqueued, alerts",
+    [("2026-09-25T14:10:00+00:00", []), ("2026-09-25T14:09:59+00:00", ["stale-progress"])],
+)
+def test_a_year_is_clocked_from_its_queue_time_and_not_paced(
+    tmp_path: Path, enqueued: str, alerts: list[str]
+) -> None:
+    # Years are not paced (plan F17): the retired history interval in the
+    # config holds nothing, and an old output does not make a year due later.
+    state = State(tmp_path).fetched(NOW)
+    state.year("2025", made="2026-09-25T10:00:00+00:00", enqueued=enqueued).close()
+    assert _keys(_run(tmp_path, extra=_config(tmp_path))) == alerts
 
 
-def test_history_that_came_due_and_never_ran_alarms_without_links(tmp_path: Path) -> None:
-    # Publication input stops when history never runs, whether or not link
-    # units wait for it (the 2026-09-25 history, due 13:11, never ran).
-    State(tmp_path).fetched(NOW).history("2026-09-24T10:10:00+00:00").close()
+def test_a_year_that_never_runs_alarms_on_its_own_clock(tmp_path: Path) -> None:
+    state = State(tmp_path).fetched(NOW)
+    state.year("2025", enqueued="2026-09-25T13:00:00+00:00").close()
     assert _run(tmp_path, extra=_config(tmp_path)) == [
-        "[stale-progress] no progress while unheld:"
-        " project/history 18 h 0 m with 1 ready (due at 2026-09-24 22:10 UTC)"
+        "[stale-progress] no progress while unheld: project/year 3 h 10 m with 1 ready"
     ]
 
 
 @pytest.mark.parametrize(
     "finished, alerts",
     [
-        # A success after it came due, even one that wrote no new output.
+        # A year success since it was queued, even one that wrote no new output.
         ("2026-09-25T15:00:00+00:00", []),
-        # A success before it came due does not count.
-        ("2026-09-24T20:00:00+00:00", ["stale-progress"]),
+        # An older success does not count.
+        ("2026-09-25T12:00:00+00:00", ["stale-progress"]),
     ],
 )
-def test_a_history_success_after_it_came_due_counts_as_progress(
+def test_a_recent_year_success_counts_as_progress(
     tmp_path: Path, finished: str, alerts: list[str]
 ) -> None:
-    state = State(tmp_path).fetched(NOW).history("2026-09-24T10:10:00+00:00")
-    state.attempt("all", "succeeded", stage="project", kind="history", finished=finished)
+    state = State(tmp_path).fetched(NOW).year("2025", enqueued="2026-09-25T13:00:00+00:00")
+    state.attempt("2024", "succeeded", stage="project", kind="year", finished=finished)
     state.close()
     assert _keys(_run(tmp_path, extra=_config(tmp_path))) == alerts
 
 
-def test_progress_elsewhere_in_project_does_not_count_for_history(tmp_path: Path) -> None:
-    state = State(tmp_path).fetched(NOW).history("2026-09-24T10:10:00+00:00")
+def test_progress_elsewhere_in_project_does_not_count_for_years(tmp_path: Path) -> None:
+    state = State(tmp_path).fetched(NOW).year("2025", enqueued="2026-09-25T13:00:00+00:00")
     state.attempt("e1", "succeeded", stage="project", finished="2026-09-25T16:00:00+00:00")
-    state.generation("2026-09-25T16:00:00+00:00", stage="project", kind="map").close()
-    assert _keys(_run(tmp_path, extra=_config(tmp_path))) == ["stale-progress"]
-
-
-@pytest.mark.parametrize(
-    "enqueued, alerts",
-    [("2026-09-25T14:10:00+00:00", []), ("2026-09-25T14:09:59+00:00", ["stale-progress"])],
-)
-def test_a_history_that_never_materialized_is_clocked_from_its_queue_time(
-    tmp_path: Path, enqueued: str, alerts: list[str]
-) -> None:
-    state = State(tmp_path).fetched(NOW)
-    state.sql("INSERT INTO derivation_scopes VALUES ('project','history','all',NULL)")
-    state.pending("all", stage="project", kind="history", enqueued=enqueued).close()
-    assert _keys(_run(tmp_path, extra=_config(tmp_path))) == alerts
+    state.generation("2026-09-25T16:00:00+00:00", stage="project", kind="resolution").close()
+    lines = _run(tmp_path, extra=_config(tmp_path))
+    assert _keys(lines) == ["stale-progress"]
+    assert "project/year 3 h 10 m" in lines[0]
 
 
 @pytest.mark.parametrize(
     "cutoff, alerts", [(None, ["stale-progress"]), ("2026-09-25T15:00:00+00:00", [])]
 )
-def test_a_history_cutoff_counts_as_materializing(
+def test_a_year_cutoff_counts_as_progress(
     tmp_path: Path, cutoff: str | None, alerts: list[str]
 ) -> None:
-    # After schema 33 a history re-run with identical output keeps its old
-    # generation and records an equivalence; its interval starts then.
-    state = State(tmp_path).fetched(NOW).history("2026-09-24T10:10:00+00:00")
+    # A year re-run with identical output keeps its generation and records an
+    # equivalence (D-0205): that is progress.
+    state = State(tmp_path).fetched(NOW)
+    state.year("2025", made="2026-09-24T10:10:00+00:00", enqueued="2026-09-25T13:00:00+00:00")
     state.sql(
         "CREATE TABLE derivation_equivalences (stage TEXT, unit_kind TEXT, unit_id TEXT,"
         " generation_id TEXT, created_at TEXT)"
@@ -804,7 +803,7 @@ def test_a_history_cutoff_counts_as_materializing(
             "SELECT materialized_generation_id FROM derivation_scopes"
         ).fetchone()[0]
         state.sql(
-            "INSERT INTO derivation_equivalences VALUES ('project','history','all',?,?)",
+            "INSERT INTO derivation_equivalences VALUES ('project','year','2025',?,?)",
             generation,
             cutoff,
         )
@@ -817,7 +816,7 @@ def test_a_history_cutoff_counts_as_materializing(
     [
         ({}, ["replay-loop"]),
         ({"project/event": 1}, []),
-        ({"project/map": 1}, []),
+        ({"project/resolution": 1}, []),
         ({"link/event": 3}, ["replay-loop"]),
         # A dancer change is unrelated work: it explains neither kind.
         ({"project/dancer": 1}, ["replay-loop"]),
@@ -846,150 +845,65 @@ def test_replay_epochs_moving_every_cycle_without_generations_alert(
     assert _run(tmp_path) == []
 
 
-@pytest.mark.parametrize(
-    "history, interval, failed, alerts",
-    [
-        # History materialized an hour ago: not due, so the map waits by design.
-        ("2026-09-25T15:10:00+00:00", 43200, None, []),
-        # History came due at 15:00 but has not consumed the inventory made at
-        # 14:00, so the gate keeps holding it and the map waits by design.
-        ("2026-09-25T03:00:00+00:00", 43200, None, []),
-        # History came due at 12:00 and the inventory made at 14:00 since was
-        # interrupted: the gate lets it run, so the map is stalled.
-        ("2026-09-25T00:00:00+00:00", 43200, None, ["stale-progress"]),
-        # History is due and consumed that inventory: the gate is open, so the
-        # map is stalled.
-        ("2026-09-25T14:30:00+00:00", 3600, None, ["stale-progress"]),
-        ("2026-09-25T14:30:00+00:00", 3600, "succeeded", ["stale-progress"]),
-        # A history whose latest attempt failed does not open the gate (D-0210).
-        ("2026-09-25T14:30:00+00:00", 3600, "transient", []),
-    ],
-)
-def test_units_waiting_for_the_paced_inventory_are_not_a_stall(
-    tmp_path: Path, history: str, interval: int, failed: str | None, alerts: list[str]
-) -> None:
+def _paced_inventory(state: State, *, made: str, enqueued: str) -> State:
+    """The inventory made at `made` and queued again at `enqueued`."""
+    state.output("inventory", "all", made)
+    return state.pending("all", stage="project", kind="inventory", enqueued=enqueued)
+
+
+def test_units_after_the_paced_inventory_do_not_wait_for_it(tmp_path: Path) -> None:
+    """The units that read the paced inventory take it at its pointer and run
+    (derivations.settled_reason), so queued ones that do not run are a stall
+    whether or not the inventory is paced."""
     state = State(tmp_path).fetched(NOW)
-    state.history_output(history)
-    if failed is not None:
-        state.attempt("all", failed, stage="project", kind="history", finished=QUEUED)
-    state.sql(
-        "INSERT INTO derivation_generations VALUES ('inv','project','inventory','all',?)",
-        "2026-09-25T14:00:00+00:00",
-    )
-    state.sql("INSERT INTO derivation_scopes VALUES ('project','inventory','all','inv')")
     # A dancer change queued the inventory, which the gate holds back.
-    state.pending("all", stage="project", kind="inventory", enqueued="2026-09-25T10:00:00+00:00")
-    state.attempt("m0", "succeeded", stage="project", kind="map", finished=QUEUED)
-    state.pending("all", stage="project", kind="map", enqueued="2026-09-25T10:00:00+00:00")
+    _paced_inventory(state, made="2026-09-25T14:00:00+00:00", enqueued="2026-09-25T10:00:00+00:00")
+    state.attempt("m0", "succeeded", stage="project", kind="mapping", finished=QUEUED)
+    state.pending("eepro", stage="project", kind="mapping", enqueued="2026-09-25T10:00:00+00:00")
+    state.pending("e1", stage="project", kind="resolution", enqueued="2026-09-25T10:00:00+00:00")
     state.close()
-    lines = _run(tmp_path, extra=_config(tmp_path, history=interval, inventory=43200))
-    assert _keys(lines) == alerts
-    # Without the inventory interval the same map is a stall either way.
+    paced = _run(tmp_path, extra=_config(tmp_path, inventory=43200))
+    assert _keys(paced) == ["stale-progress"]
+    assert "project 2 h 10 m with 2 ready" in paced[0]
+    assert "the inventory waits for its pacing interval" in paced[0]
     (tmp_path / "config" / "sources.toml").write_text("")
     assert _keys(_run(tmp_path, extra=["--config", str(tmp_path / "config")])) == ["stale-progress"]
 
 
-def test_a_due_history_waiting_for_the_paced_inventory_is_not_a_stall(tmp_path: Path) -> None:
-    """History due at 12:00 needs the inventory made at 11:00, which the gate
-    holds until 23:00."""
+def test_a_year_does_not_wait_for_the_paced_inventory(tmp_path: Path) -> None:
+    """A year queued at 12:00 reads the inventory made at 11:00 at its pointer
+    while the gate holds the inventory until 23:00: the year is late on its
+    own clock, paced or not."""
     state = State(tmp_path).fetched(NOW)
-    state.history("2026-09-25T00:00:00+00:00")
-    state.sql(
-        "INSERT INTO derivation_generations VALUES ('inv','project','inventory','all',?)",
-        "2026-09-25T11:00:00+00:00",
-    )
-    state.sql("INSERT INTO derivation_scopes VALUES ('project','inventory','all','inv')")
-    state.pending("all", stage="project", kind="inventory", enqueued="2026-09-25T11:30:00+00:00")
-    state.close()
-    assert _run(tmp_path, extra=_config(tmp_path, inventory=43200)) == []
-    # Unpaced, history due four hours ago with no run is a stall.
-    (tmp_path / "config" / "sources.toml").write_text(
-        "[scheduling]\nhistory_interval_seconds = 43200\n"
-    )
-    assert _keys(_run(tmp_path, extra=["--config", str(tmp_path / "config")])) == ["stale-progress"]
-
-
-@pytest.mark.parametrize("links", [False, True])
-def test_a_history_starved_by_interrupted_cascades_alarms(tmp_path: Path, links: bool) -> None:
-    """History came due on 09-23 and every cascade since was interrupted by a
-    dancer change (phase 1 review). Its clock starts at the first inventory
-    made since it came due and later ones do not move it, so the starvation
-    alarms with or without a link unit queued."""
-    state = State(tmp_path).fetched(NOW)
-    state.history("2026-09-22T12:00:00+00:00")
-    state.attempt(
-        "all", "succeeded", stage="project", kind="history", finished="2026-09-22T12:00:00+00:00"
-    )
-    for day in ("23", "24"):
-        state.generation(f"2026-09-{day}T02:00:00+00:00", stage="project", kind="inventory")
-    state.sql(
-        "INSERT INTO derivation_generations VALUES ('inv','project','inventory','all',?)",
-        "2026-09-25T14:00:00+00:00",
-    )
-    state.sql("INSERT INTO derivation_scopes VALUES ('project','inventory','all','inv')")
-    # A dancer change interrupted this cascade too.
-    state.pending("all", stage="project", kind="inventory", enqueued="2026-09-25T15:00:00+00:00")
-    if links:
-        state.attempt(
-            "l0", "succeeded", stage="link", kind="event", finished="2026-09-22T13:00:00+00:00"
-        )
-        state.pending("l1", stage="link", kind="event", enqueued="2026-09-25T15:00:00+00:00")
-    state.close()
-    lines = _run(tmp_path, extra=_config(tmp_path, inventory=43200))
-    assert "stale-progress" in _keys(lines)
-    assert "project/history" in lines[0]
-    assert "cascade from the inventory at 2026-09-23 02:00 UTC" in lines[0]
-    assert "interrupted since 2026-09-25 14:00 UTC" in lines[0]
-
-
-def test_a_cascade_after_a_late_history_is_clocked_from_its_start(tmp_path: Path) -> None:
-    """History came due at 03:00 while the inventory waited out its interval;
-    the inventory ran at 15:00 and its cascade is running. History gets the
-    full stall allowance from 15:00, not from 03:00."""
-    state = State(tmp_path).fetched(NOW)
-    state.history("2026-09-24T15:00:00+00:00")
-    state.sql(
-        "INSERT INTO derivation_generations VALUES ('inv','project','inventory','all',?)",
-        "2026-09-25T15:00:00+00:00",
-    )
-    state.sql("INSERT INTO derivation_scopes VALUES ('project','inventory','all','inv')")
+    state.year("2025", enqueued="2026-09-25T12:00:00+00:00")
+    _paced_inventory(state, made="2026-09-25T11:00:00+00:00", enqueued="2026-09-25T11:30:00+00:00")
     state.close()
     config = _config(tmp_path, inventory=43200)
-    assert _run(tmp_path, extra=config) == []
-    later = _run(tmp_path, extra=config, now="2026-09-25T17:30:00+00:00")
-    assert _keys(later) == ["stale-progress"]
-    assert "cascade from the inventory at 2026-09-25 15:00 UTC" in later[0]
+    for unpaced in (False, True):
+        if unpaced:
+            (tmp_path / "config" / "sources.toml").write_text("")
+        lines = _run(tmp_path, extra=config)
+        assert _keys(lines) == ["stale-progress"]
+        assert "project/year 4 h 10 m with 1 ready" in lines[0]
+        assert "(waits for the paced inventory" not in lines[0]
 
 
 def test_the_deferred_inventory_itself_is_not_a_stall(tmp_path: Path) -> None:
     state = State(tmp_path).fetched(NOW)
-    # History made an hour ago: not due.
-    state.history_output("2026-09-25T15:10:00+00:00")
-    # The inventory materialized at 13:00, within its 12-hour interval.
-    state.sql(
-        "INSERT INTO derivation_generations VALUES ('inv','project','inventory','all',?)",
-        "2026-09-25T13:00:00+00:00",
-    )
-    state.sql("INSERT INTO derivation_scopes VALUES ('project','inventory','all','inv')")
-    # A dancer succeeded at 13:30 and queued the inventory then.
+    # The inventory materialized at 13:00, within its 12-hour interval; a
+    # dancer succeeded at 13:30 and queued it then.
+    _paced_inventory(state, made="2026-09-25T13:00:00+00:00", enqueued="2026-09-25T13:30:00+00:00")
     state.attempt(
         "d1", "succeeded", stage="project", kind="dancer", finished="2026-09-25T13:30:00+00:00"
     )
-    state.pending("all", stage="project", kind="inventory", enqueued="2026-09-25T13:30:00+00:00")
     state.close()
-    lines = _run(tmp_path, extra=_config(tmp_path, inventory=43200))
-    assert lines == []
+    assert _run(tmp_path, extra=_config(tmp_path, inventory=43200)) == []
 
 
 def test_a_runnable_event_stalls_while_the_inventory_is_current(tmp_path: Path) -> None:
     state = State(tmp_path).fetched(NOW)
-    # History and the inventory both materialized within their intervals.
-    state.generation("2026-09-25T04:30:00+00:00", stage="project", kind="history")
-    state.sql(
-        "INSERT INTO derivation_generations VALUES ('inv','project','inventory','all',?)",
-        "2026-09-25T13:00:00+00:00",
-    )
-    state.sql("INSERT INTO derivation_scopes VALUES ('project','inventory','all','inv')")
+    state.output("year", "2025", "2026-09-25T04:30:00+00:00")
+    state.output("inventory", "all", "2026-09-25T13:00:00+00:00")
     # The inventory is current and not pending, so nothing holds this event.
     state.attempt(
         "e0", "succeeded", stage="project", kind="event", finished="2026-09-25T04:00:00+00:00"
@@ -1179,10 +1093,10 @@ def test_state_over_its_size_alert_alerts_without_counting_checkpoints(tmp_path:
     assert "architecture phase 4" in lines[0]
 
 
-def test_a_blocked_history_is_not_ready(tmp_path: Path) -> None:
-    # Like any unit whose latest attempt is blocked: silent until phase 2.
-    state = State(tmp_path).fetched(NOW).history("2026-09-24T10:10:00+00:00")
-    state.attempt("all", "blocked", stage="project", kind="history").close()
+def test_a_blocked_year_is_not_ready(tmp_path: Path) -> None:
+    # Like any unit whose latest attempt is blocked.
+    state = State(tmp_path).fetched(NOW).year("2025")
+    state.attempt("2025", "blocked", stage="project", kind="year").close()
     assert _run(tmp_path, extra=_config(tmp_path)) == []
 
 
@@ -1225,101 +1139,100 @@ def test_a_code_scope_change_that_derive_never_runs_alarms(tmp_path: Path) -> No
     ]
 
 
-#: The 2026-09-25 history output (production, 16:10 UTC copy) and when it
-#: came due under the 12-hour interval.
-MADE = "2026-09-25T01:11:01+00:00"
-DUE = "2026-09-25T13:11:01+00:00"
+def _link(tmp_path: Path, *, enqueued: str = QUEUED) -> State:
+    """A ready link on event e1 of 2025, reported in January 2026; links last
+    progressed on 09-24."""
+    state = State(tmp_path).fetched(NOW).event("e1", 2025, "2026-01")
+    state.attempt("done", "succeeded", finished="2026-09-24T12:00:00+00:00")
+    return state.pending("e1", enqueued=enqueued)
 
 
-def _links(tmp_path: Path, *, link: str | None, count: int = 1) -> State:
-    """`count` ready link units, queued when history last materialized."""
+@pytest.mark.parametrize(
+    "kind, scope, year, waits, held",
+    [
+        ("event", "e1", 2025, True, None),
+        ("resolution", "e1", 2025, True, None),
+        # A link reads its registry association as content: no year holds it.
+        ("year", "2025", 2025, False, None),
+        ("year", "2026", 2025, False, None),
+        ("event", "e2", 2025, False, None),
+        ("year", "2024", None, False, None),
+        # A failing event is settled at its pointer (derivations.settled_reason).
+        ("event", "e1", 2025, False, "quarantined"),
+        ("event", "e1", 2025, False, "backing_off"),
+    ],
+)
+def test_a_link_waits_for_its_queued_event_or_resolution(
+    tmp_path: Path, kind: str, scope: str, year: int | None, waits: bool, held: str | None
+) -> None:
     state = State(tmp_path).fetched(NOW)
-    if link is not None:
-        state.attempt("done", "succeeded", finished=link)
-    for index in range(count):
-        state.pending(f"e{index}", enqueued=MADE)
-    return state
-
-
-@pytest.mark.parametrize(
-    "now, alerts",
-    [
-        # Links progressed after history's output: they wait by design until
-        # history is due again, then for staleProgressSeconds after that.
-        ("2026-09-25T13:00:00+00:00", []),
-        ("2026-09-25T13:12:01+00:00", []),
-        ("2026-09-25T13:30:00+00:00", []),
-        ("2026-09-25T15:11:01+00:00", []),
-        ("2026-09-25T15:11:02+00:00", ["stale-progress"]),
-    ],
-)
-def test_links_waiting_for_paced_history_alarm_only_past_its_due_time(
-    tmp_path: Path, now: str, alerts: list[str]
-) -> None:
-    _links(tmp_path, link="2026-09-25T01:32:17+00:00").history(MADE).close()
-    assert _keys(_run(tmp_path, extra=_config(tmp_path), now=now)) == alerts
-
-
-def test_links_that_miss_every_history_window_alarm(tmp_path: Path) -> None:
-    # History re-materializes every 12 hours, so its newest output is always
-    # young; links that never progress must still alarm (09-23 to 09-25).
-    state = _links(tmp_path, link="2026-09-24T20:10:00+00:00", count=100)
-    state.history("2026-09-25T15:10:00+00:00").close()
-    assert _run(tmp_path, extra=_config(tmp_path)) == [
-        "[stale-progress] no progress while unheld: link 8 h 0 m with 100 ready"
-        " (runnable since 2026-09-25 08:10 UTC,"
-        " project/history output at 2026-09-25 15:10 UTC)"
-    ]
-
-
-@pytest.mark.parametrize(
-    "earlier, runnable",
-    [
-        # History came due at 01:00 and ran late at 02:00: the chain has not
-        # progressed since 01:00.
-        (("2026-09-24T13:00:00+00:00", "2026-09-25T02:00:00+00:00"), "2026-09-25 01:00 UTC"),
-        # History ran early enough; the links had its 00:30 output to use.
-        (("2026-09-24T13:00:00+00:00", "2026-09-25T00:30:00+00:00"), "2026-09-25 00:30 UTC"),
-    ],
-)
-def test_links_that_missed_the_previous_history_output_alarm(
-    tmp_path: Path, earlier: tuple[str, ...], runnable: str
-) -> None:
-    state = _links(tmp_path, link="2026-09-24T14:00:00+00:00")
-    state.history("2026-09-25T15:30:00+00:00", earlier=earlier).close()
-    lines = _run(tmp_path, extra=_config(tmp_path))
-    assert _keys(lines) == ["stale-progress"]
-    assert f"(runnable since {runnable}," in lines[0]
-
-
-def test_links_get_their_window_after_a_new_history_output(tmp_path: Path) -> None:
-    # Steady state: links ran after the previous output, history came due at
-    # 15:30 and ran at 15:45. The links run next; nothing is late.
-    state = _links(tmp_path, link="2026-09-25T03:40:00+00:00")
-    state.history("2026-09-25T15:45:00+00:00", earlier=("2026-09-25T03:30:00+00:00",)).close()
-    config = _config(tmp_path)
-    assert _run(tmp_path, extra=config) == []
-    assert _run(tmp_path, extra=config, now="2026-09-25T17:30:00+00:00") == []
-    assert _keys(_run(tmp_path, extra=config, now="2026-09-25T17:30:01+00:00")) == [
-        "stale-progress"
-    ]
-
-
-@pytest.mark.parametrize(
-    "materialized, interval, alerts",
-    [
-        # A history unit that never materialized holds nothing.
-        (None, 43200, ["stale-progress"]),
-        # With no interval, history is not paced: links count once it is pending.
-        ("2026-09-25T09:00:00+00:00", None, ["stale-progress"]),
-    ],
-)
-def test_links_count_when_history_is_not_paced(
-    tmp_path: Path, materialized: str | None, interval: int | None, alerts: list[str]
-) -> None:
-    state = _links(tmp_path, link="2026-09-25T10:00:00+00:00").history(materialized)
+    state.sql("INSERT INTO events VALUES ('e1',?,?)", year, "2026-01" if year else None)
+    state.output("year", "2024", "2026-09-20T00:00:00+00:00")
+    state.attempt("done", "succeeded", finished="2026-09-24T12:00:00+00:00")
+    state.pending("e1")
+    # Queued just now, so the unit the link waits for is not late itself.
+    state.pending(scope, stage="project", kind=kind, enqueued="2026-09-25T16:00:00+00:00")
+    if held is not None:
+        state.sql(
+            "INSERT INTO work_queue(stage,unit_kind,unit_id,state,next_attempt_at) "
+            "VALUES ('project',?,?,?,?)",
+            kind,
+            scope,
+            "quarantined" if held == "quarantined" else "ready",
+            FUTURE,
+        )
     state.close()
-    assert _keys(_run(tmp_path, extra=_config(tmp_path, history=interval))) == alerts
+    lines = _run(tmp_path)
+    assert _keys(lines) == ([] if waits else ["stale-progress"])
+    if not waits:
+        assert lines[0].startswith("[stale-progress] no progress while unheld: link ")
+
+
+@pytest.mark.parametrize("kind, scope", [("event", "e1"), ("resolution", "e1")])
+def test_a_link_is_clocked_from_when_its_event_or_resolution_was_made(
+    tmp_path: Path, kind: str, scope: str
+) -> None:
+    state = _link(tmp_path, enqueued="2026-09-25T09:00:00+00:00")
+    state.output("event", "e1", "2026-09-25T08:00:00+00:00")
+    state.output(kind, scope, "2026-09-25T15:00:00+00:00").close()
+    assert _run(tmp_path) == []
+    assert _run(tmp_path, now="2026-09-25T17:00:00+00:00") == []
+    assert _run(tmp_path, now="2026-09-25T17:00:01+00:00") == [
+        "[stale-progress] no progress while unheld: link 2 h 0 m with 1 ready"
+        " (runnable since 2026-09-25 15:00 UTC, when its event or resolution was made)"
+    ]
+
+
+def test_a_link_whose_inputs_are_older_is_clocked_from_its_queue_time(tmp_path: Path) -> None:
+    state = _link(tmp_path, enqueued="2026-09-25T13:00:00+00:00")
+    state.output("event", "e1", "2026-09-25T12:00:00+00:00")
+    state.output("year", "2025", "2026-09-25T12:00:00+00:00").close()
+    assert _run(tmp_path) == [
+        "[stale-progress] no progress while unheld: link 3 h 10 m with 1 ready"
+    ]
+
+
+def test_a_link_cutoff_input_counts_when_it_was_kept(tmp_path: Path) -> None:
+    """On schema 33 and later an event re-run with identical output keeps its
+    generation (D-0205); the link became runnable at that cutoff."""
+    state = _link(tmp_path, enqueued="2026-09-25T09:00:00+00:00")
+    state.output("event", "e1", "2026-09-25T08:00:00+00:00")
+    state.sql(
+        "CREATE TABLE derivation_equivalences (stage TEXT, unit_kind TEXT, unit_id TEXT,"
+        " generation_id TEXT, created_at TEXT)"
+    )
+    state.sql("CREATE TABLE source_equivalences (unit_key TEXT, input_fingerprint TEXT)")
+    generation = state.db.execute(
+        "SELECT materialized_generation_id FROM derivation_scopes WHERE unit_kind = 'event'"
+    ).fetchone()[0]
+    state.sql(
+        "INSERT INTO derivation_equivalences VALUES ('project','event','e1',?,?)",
+        generation,
+        "2026-09-25T15:00:00+00:00",
+    )
+    state.close()
+    assert _run(tmp_path) == []
+    assert _keys(_run(tmp_path, now="2026-09-25T17:00:01+00:00")) == ["stale-progress"]
 
 
 def test_waiting_links_are_named_when_another_stage_stalls(tmp_path: Path) -> None:
@@ -1327,10 +1240,13 @@ def test_waiting_links_are_named_when_another_stage_stalls(tmp_path: Path) -> No
     state.attempt("l0", "succeeded", finished="2026-09-25T15:30:00+00:00")
     state.attempt("s0", "succeeded", stage="parse", kind="snapshot", finished="2026-09-25T10:00")
     state.pending("s1", stage="parse", kind="snapshot")
-    state.history("2026-09-25T15:00:00+00:00").close()
-    assert _run(tmp_path, extra=_config(tmp_path)) == [
+    state.event("e1", 2025).event("e2", 2025)
+    for event in ("e1", "e2"):
+        state.pending(event, stage="project", kind="resolution", enqueued="2026-09-25T15:00:00")
+    state.close()
+    assert _run(tmp_path) == [
         "[stale-progress] no progress while unheld: parse 6 h 10 m with 1 ready;"
-        " 2 link units wait for the paced history"
+        " 2 link units wait for their queued event or resolution"
     ]
 
 
@@ -1544,10 +1460,11 @@ def test_de_duplication_reads_only_the_end_of_the_log(tmp_path: Path) -> None:
     assert _keys(_run(tmp_path)) == ["stale-fetch", "stale-progress"]
 
 
-def test_the_2026_09_25_stall_fires_both_progress_alarms(tmp_path: Path) -> None:
-    # Production at 16:10 UTC: newest request 12:46:06, link last succeeded
-    # 01:32:17, parse 12:46:27, project 13:22:33; history materialized 01:11,
-    # came due 13:11 and did not run; 2,932 link units ready, cycles finishing.
+def test_a_stalled_year_does_not_hold_its_links(tmp_path: Path) -> None:
+    """The 2026-09-25 stall in the per-year shape: fetching stopped at 12:46,
+    the 2025 year was queued at 13:11 and never ran, and 2,932 links of 2025
+    events are queued. A link reads its association as content, so the year
+    holds none of them: links that do not run are a stall of their own."""
     _write_runs(tmp_path, {"run_id": "r1", "finished_at": "2026-09-25T16:05:00+00:00"})
     state = State(tmp_path).fetched("2026-09-25T12:45:54.478880+00:00")
     state.issued("2026-09-25T12:46:06.042704+00:00")
@@ -1559,25 +1476,19 @@ def test_the_2026_09_25_stall_fires_both_progress_alarms(tmp_path: Path) -> None
             "INSERT INTO pending_work VALUES ('link','event',?,?)",
             (f"e{index}", "2026-09-25T01:11:01.703824+00:00"),
         )
+        state.db.execute("INSERT INTO events VALUES (?,2025,'2025-06')", (f"e{index}",))
     state.pending("s1", stage="parse", kind="snapshot")
     state.attempt("s1", "blocked", stage="parse", kind="snapshot")
-    state.history("2026-09-25T01:11:01.703824+00:00").close()
-    config = _config(tmp_path)
-    assert _run(tmp_path, extra=config) == [
+    state.year("2025", enqueued="2026-09-25T13:11:01.703824+00:00").close()
+    lines = _run(tmp_path)
+    assert lines[0] == (
         "[stale-fetch] no request has been made for 3 hours while unheld;"
-        " newest stored page 3 hours old",
-        "[stale-progress] no progress while unheld: link 2 h 58 m with 2932 ready"
-        " (project/history due at 2026-09-25 13:11 UTC has not run);"
-        " project/history 2 h 58 m with 1 ready (due at 2026-09-25 13:11 UTC)",
-    ]
-    # Before history was due, and within two hours after, the links waited
-    # for it by design.
-    for now in (
-        "2026-09-25T13:00:00+00:00",
-        "2026-09-25T13:15:00+00:00",
-        "2026-09-25T13:30:00+00:00",
-    ):
-        assert _run(tmp_path, extra=config, now=now) == []
+        " newest stored page 3 hours old"
+    )
+    assert lines[1].startswith("[stale-progress] no progress while unheld: link 14 h 37 m")
+    assert "with 2932 ready" in lines[1]
+    assert "project/year 2 h 58 m with 1 ready" in lines[1]
+    assert "wait for their queued" not in lines[1]
 
 
 def test_an_unreadable_database_makes_the_watchdog_say_it_is_blind(tmp_path: Path) -> None:
@@ -2032,10 +1943,10 @@ def test_a_failing_cycle_report_alerts(
 
 def test_the_inventory_wait_lifts_on_a_calendar_replay_or_generation(tmp_path: Path) -> None:
     """The mirror of the gate's calendar rules (schedule/pacing), on the real
-    schema. The inventory was made at 13:00 within its interval and history,
-    made at 03:00, has not consumed it, so the map after it waits by design.
+    schema. The inventory was made at 13:00 within its interval and is queued
+    again, so it waits by design.
     A calendar replay epoch the inventory has not read, or a calendar
-    generation newer than it, lifts the wait: the map is then a stall. A
+    generation newer than it, lifts the wait: the inventory is then a stall. A
     run that reads the new epoch, or the new calendar, paces it again."""
     from swingset.state import derivations
 
@@ -2076,23 +1987,22 @@ def test_the_inventory_wait_lifts_on_a_calendar_replay_or_generation(tmp_path: P
             )
 
         generation("calendar", "wsdc", "cal0", "2026-09-25T01:00:00+00:00")
-        generation("history", "all", "hist", "2026-09-25T03:00:00+00:00")
         generation("inventory", "all", "inv", "2026-09-25T13:00:00+00:00")
         conn.execute(
             "INSERT INTO work_attempts(stage,unit_kind,unit_id,queue_generation,"
             "retry_generation,work_token,input_fingerprint,run_id,started_at,finished_at,"
-            "outcome,reason_code) VALUES ('project','map','all',1,0,'t','f',?,?,?,"
+            "outcome,reason_code) VALUES ('project','mapping','eepro',1,0,'t','f',?,?,?,"
             "'succeeded','output_committed')",
             (run, "2026-09-25T10:00:00+00:00", "2026-09-25T10:00:00+00:00"),
         )
 
         def queue() -> None:
-            # Only the inventory and the map it holds, whatever a replay queued.
+            # Only the inventory, whatever a replay queued: the units after it
+            # do not wait for it (derivations.settled_reason).
             conn.execute("DELETE FROM pending_work")
             conn.execute(
                 "INSERT INTO pending_work VALUES "
-                "('project','inventory','all','2026-09-25T13:30:00+00:00'),"
-                "('project','map','all','2026-09-25T10:00:00+00:00')"
+                "('project','inventory','all','2026-09-25T13:30:00+00:00')"
             )
 
         def stalled() -> bool:
@@ -2109,7 +2019,7 @@ def test_the_inventory_wait_lifts_on_a_calendar_replay_or_generation(tmp_path: P
         queue()
         assert stalled()
         # The inventory's next run read epoch 1; it was made at 13:30, so it
-        # is paced again and the map waits.
+        # is paced again and the mapping waits.
         equivalence(1, "2026-09-25T13:30:00+00:00")
         assert not stalled()
         # The wsdc calendar mints a generation after it: the gate lets the
@@ -2118,6 +2028,70 @@ def test_the_inventory_wait_lifts_on_a_calendar_replay_or_generation(tmp_path: P
         assert stalled()
         equivalence(1, "2026-09-25T13:50:00+00:00")
         assert not stalled()
+
+
+def test_links_and_years_on_the_real_schema(tmp_path: Path) -> None:
+    """The year stage and the link waits read schema 35: a link waits for its
+    queued resolution, is then clocked from when its event was made, and a
+    queued year has its own clock and holds no link."""
+    with open_database(tmp_path, lock=False) as database:
+        conn = database.connection
+        run = database.start_run(datetime.fromisoformat("2026-09-25T00:00:00+00:00"))
+        conn.execute("INSERT OR IGNORE INTO derivation_dependency_sets VALUES ('empty','[]')")
+        conn.execute(
+            "INSERT INTO events(event_id,series_id,name,year,start_date,end_date,wsdc_status,"
+            "sources,source,snapshot_id,parser_version,first_seen_at,last_seen_at,run_id) "
+            "VALUES ('e1','s','E',2025,'2025-06-01','2025-06-03','registry','[]','test','snap',"
+            "'1','t','t','run')"
+        )
+        for kind, scope, at in (
+            ("event", "e1", "2026-09-25T15:00:00+00:00"),
+            ("year", "2025", "2026-09-25T08:00:00+00:00"),
+        ):
+            conn.execute(
+                "INSERT OR IGNORE INTO derivation_scopes(stage,unit_kind,unit_id,registered_at) "
+                "VALUES ('project',?,?,?)",
+                (kind, scope, at),
+            )
+            conn.execute(
+                "INSERT INTO derivation_generations VALUES "
+                "(?,'project',?,?,'f','{}','empty',NULL,'d',0,?,?)",
+                (f"g-{scope}", kind, scope, at, run),
+            )
+            conn.execute(
+                "UPDATE derivation_scopes SET materialized_generation_id=? "
+                "WHERE stage='project' AND unit_kind=? AND unit_id=?",
+                (f"g-{scope}", kind, scope),
+            )
+        conn.execute("DELETE FROM pending_work")
+        conn.execute(
+            "INSERT INTO pending_work VALUES ('link','event','e1','2026-09-25T09:00:00+00:00'),"
+            "('project','resolution','e1','2026-09-25T16:00:00+00:00')"
+        )
+
+        def lines(now: str = NOW) -> list[str]:
+            # The watchdog reads the main file only (immutable=1).
+            conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+            found = _run(tmp_path, repeat=0, now=now)
+            assert "watchdog-blind" not in _keys(found), found
+            return [line for line in found if line.startswith("[stale-progress]")]
+
+        assert lines("2026-09-25T18:00:00+00:00") == []
+        conn.execute("DELETE FROM pending_work WHERE stage = 'project'")
+        assert lines("2026-09-25T17:00:00+00:00") == []
+        assert lines("2026-09-25T17:00:01+00:00") == [
+            "[stale-progress] no progress while unheld: link 2 h 0 m with 1 ready"
+            " (runnable since 2026-09-25 15:00 UTC, when its event or resolution was made)"
+        ]
+        conn.execute(
+            "INSERT INTO pending_work VALUES ('project','year','2024','2026-09-25T13:00:00+00:00')"
+        )
+        # Any year's output is the year stage's progress.
+        assert lines("2026-09-25T17:00:01+00:00") == [
+            "[stale-progress] no progress while unheld: link 2 h 0 m with 1 ready"
+            " (runnable since 2026-09-25 15:00 UTC, when its event or resolution was made);"
+            " project/year 4 h 0 m with 1 ready"
+        ]
 
 
 def _guard(tmp_path: Path, subject: str, reason: str, *, seen: str, expires: str) -> None:
@@ -2494,7 +2468,7 @@ def test_a_staged_generation_idle_for_a_day_alerts_in_both_modes(
         conn.execute(
             "INSERT INTO derivation_building(generation_id,stage,unit_kind,unit_id,"
             "input_fingerprint,label_rows,rows_stored,run_id,started_at,updated_at) "
-            "VALUES ('g1','project','history','all','f',12000,5000,'run_1',?,?)",
+            "VALUES ('g1','project','year','2025','f',12000,5000,'run_1',?,?)",
             (updated, updated),
         )
     _ticks(tmp_path, *_fresh())
@@ -2505,7 +2479,7 @@ def test_a_staged_generation_idle_for_a_day_alerts_in_both_modes(
     if alerts:
         assert lines[0] == (
             "[building-orphans] 1 staged generations not advanced for 24 h:"
-            " project/history/all (5000 of 12000 rows, last 2026-09-24 16:09 UTC)"
+            " project/year/2025 (5000 of 12000 rows, last 2026-09-24 16:09 UTC)"
         )
     (tmp_path / "operator-hold").touch()
     assert _run(tmp_path) == []
@@ -2668,3 +2642,294 @@ def test_loop_quiet_waits_for_a_running_backup(tmp_path: Path) -> None:
     _ticks(tmp_path, *_fresh(derive="2026-09-25T15:00:00+00:00"))
     assert _keys(_loops(tmp_path)) == ["loop-quiet"]
     assert "loop-quiet" not in _keys(_loops(tmp_path, extra=["--backup-active", "1"]))
+
+
+# Release lines (phase 3, WP11), each on a database built by the real
+# migrations (schema 35).
+
+
+def _release_state(state: Path) -> None:
+    """Healthy loops on the real schema: every line below starts quiet."""
+    _plan(state, "2026-09-25T15:40:00+00:00")
+    _ticks(state, *_fresh())
+    assert _loops(state) == []
+
+
+def _run_row(state: Path, run_id: str, loop: str | None, finished: str, summary: object) -> None:
+    with open_database(state, lock=False) as database, database.transaction() as conn:
+        conn.execute(
+            "INSERT INTO runs(run_id,started_at,finished_at,dry_run,summary_json,loop) "
+            "VALUES (?,?,?,1,?,?)",
+            (run_id, finished, finished, json.dumps(summary), loop),
+        )
+
+
+def test_a_refused_verdict_alerts_daily_until_a_new_verdict(tmp_path: Path) -> None:
+    _release_state(tmp_path)
+    refused = {
+        "candidate_id": "cand_1",
+        "verdict": {"state": "refused", "reasons": ["decrease:dancers 10->9"]},
+    }
+    _run_row(tmp_path, "run_r1", "release", "2026-09-25T12:20:00+00:00", refused)
+    lines = _loops(tmp_path)
+    assert _keys(lines) == ["release-refused"]
+    assert lines[0].startswith(
+        "[release-refused] candidate cand_1 refused at 2026-09-25 12:20 UTC: decrease:dancers 10->9;"
+    )
+    # Logged three hours ago: held back for a day, past the two-hour repeat.
+    _log(tmp_path, f"2026-09-25T13:10:00Z {lines[0]}")
+    assert _loops(tmp_path) == []
+    assert "release-refused" in _keys(_loops(tmp_path, now="2026-09-26T13:11:00+00:00"))
+    # Another refused candidate repeats at once; a cycle's verdict counts too.
+    _run_row(
+        tmp_path, "run_c", None, "2026-09-25T14:20:00+00:00", {**refused, "candidate_id": "c2"}
+    )
+    assert _keys(_loops(tmp_path)) == ["release-refused"]
+    # A passing verdict is newer: quiet.
+    passed = {"candidate_id": "cand_3", "verdict": {"state": "pass", "reasons": []}}
+    _run_row(tmp_path, "run_r2", "release", "2026-09-25T15:20:00+00:00", passed)
+    assert _loops(tmp_path) == []
+
+
+def _withheld(state: Path, count: int, reason: str = "source_revoked") -> None:
+    from swingset.state import release_store
+
+    with open_database(state, lock=False) as database, database.transaction() as conn:
+        start = int(conn.execute("SELECT count(*) FROM release_partitions").fetchone()[0])
+        for index in range(start, start + count):
+            release_store.upsert(
+                conn,
+                release_store.PartitionRow(
+                    partition=f"event/e{index:03d}",
+                    inputs_digest="d",
+                    state="withheld",
+                    built_at=NOW,
+                    run_id="run_x",
+                    reason=reason,
+                ),
+            )
+
+
+def test_withheld_partitions_are_counted_daily_and_a_rise_repeats_at_once(tmp_path: Path) -> None:
+    _release_state(tmp_path)
+    _withheld(tmp_path, 10)
+    _withheld(tmp_path, 2, "dangling_reference")
+    lines = _loops(tmp_path)
+    assert lines == [
+        "[partitions-withheld] 12 partitions withheld: source_revoked x 10,"
+        " dangling_reference x 2; swingset partitions --withheld lists them"
+    ]
+    _log(tmp_path, f"2026-09-25T13:10:00Z {lines[0]}")
+    assert _loops(tmp_path) == []
+    # Ten more is within the daily line; eleven more repeats at once.
+    _withheld(tmp_path, 10)
+    assert _loops(tmp_path) == []
+    _withheld(tmp_path, 1)
+    lines = _loops(tmp_path)
+    assert lines[0].startswith("[partitions-withheld] 23 partitions withheld, up from 12:")
+    # The daily line comes back after a day.
+    assert "partitions-withheld" in _keys(_loops(tmp_path, now="2026-09-26T13:11:00+00:00"))
+
+
+def test_assembly_withholdings_count_with_the_withheld_partitions(tmp_path: Path) -> None:
+    _release_state(tmp_path)
+    _withheld(tmp_path, 2)
+    summary = {
+        "partitions": {
+            "manifest_digest": "m" * 64,
+            "assembly_withheld": {"event/e9": "assembly_check:invalid_placements"},
+        }
+    }
+    _run_row(tmp_path, "run_r1", "release", "2026-09-25T12:20:00+00:00", summary)
+    lines = _loops(tmp_path)
+    assert lines == [
+        "[partitions-withheld] 3 partitions withheld: source_revoked x 2,"
+        " assembly_check:invalid_placements x 1; swingset partitions --withheld lists them,"
+        " the newest release record's partitions.assembly_withheld the assembly_check ones"
+    ]
+
+
+def test_a_partition_kept_stale_for_two_days_is_named(tmp_path: Path) -> None:
+    from swingset.state import release_store
+
+    _release_state(tmp_path)
+
+    def kept(name: str, since: str) -> None:
+        with open_database(tmp_path, lock=False) as database, database.transaction() as conn:
+            release_store.upsert(
+                conn,
+                release_store.PartitionRow(
+                    name,
+                    "d",
+                    "built",
+                    NOW,
+                    "run_x",
+                    artifact_digest="a" + name[-1],
+                    detail_json=json.dumps({"kept_not_current_since": since}),
+                ),
+            )
+
+    kept("event/e1", "2026-09-24T12:00:00+00:00")
+    assert _loops(tmp_path) == []
+    kept("event/e2", "2026-09-23T10:00:00+00:00")
+    lines = _loops(tmp_path)
+    assert lines == [
+        "[partitions-stale] 1 partitions have published a kept artifact since before"
+        " 2026-09-23 10:00 UTC while their event, resolution or link is not current"
+        " (event/e2); derive has not caught up on them: look for a quarantined or"
+        " unqueued unit (swingset partitions show <name>)"
+    ]
+
+
+def test_a_collector_that_cannot_read_a_manifest_alerts(tmp_path: Path) -> None:
+    _release_state(tmp_path)
+    summary = {"loop": "maintain", "artifacts": {"removed": 0, "unreadable": 0}}
+    _run_row(tmp_path, "run_m1", "maintain", "2026-09-24T03:31:00+00:00", summary)
+    assert _loops(tmp_path) == []
+    summary = {"loop": "maintain", "artifacts": {"removed": 0, "unreadable": 1}}
+    _run_row(tmp_path, "run_m2", "maintain", "2026-09-25T03:31:00+00:00", summary)
+    assert _keys(_loops(tmp_path)) == ["artifact-collector-blind"]
+
+
+def _verified(state: Path, finished: str, *units: str) -> None:
+    summary = {
+        "loop": "maintain",
+        "verify": {
+            "week": "2026-W39",
+            "kinds": {"link": {"verified": 30}, "year": {"verified": 1}},
+            "mismatches": [{"unit": unit, "state": "mismatch"} for unit in units],
+        },
+    }
+    _run_row(state, f"run_{finished}", "maintain", finished, summary)
+
+
+def test_a_verify_mismatch_alerts_until_a_clean_sample(tmp_path: Path) -> None:
+    _release_state(tmp_path)
+    _verified(tmp_path, "2026-09-20T03:31:00+00:00")
+    assert _loops(tmp_path) == []
+    _verified(tmp_path, "2026-09-24T03:31:00+00:00", "link/event/e1", "link/event/e2")
+    lines = _loops(tmp_path)
+    assert _keys(lines) == ["read-set-miss"]
+    assert "2 of 31 current units" in lines[0]
+    assert "2026-W39 verify at 2026-09-24 03:31 UTC: link/event/e1, link/event/e2;" in lines[0]
+    # The maintain loop's own line has other text, so the watchdog still sends one.
+    _log(tmp_path, "2026-09-24T03:31:00Z [read-set-miss] link/event/e1: pointer a (1 rows)")
+    assert _keys(_loops(tmp_path)) == ["read-set-miss"]
+    _log(tmp_path, f"2026-09-25T13:10:00Z {lines[0]}")
+    assert _loops(tmp_path) == []
+    _verified(tmp_path, "2026-09-25T03:31:00+00:00")
+    assert "read-set-miss" not in _keys(_loops(tmp_path, now="2026-09-26T13:11:00+00:00"))
+
+
+def test_verify_failures_alert_and_no_complete_sample_is_overdue(tmp_path: Path) -> None:
+    _release_state(tmp_path)
+    # A maintain loop that has run for more than the window and never
+    # finished a complete sample: its samples keep falling short.
+    _run_row(tmp_path, "run_old", "maintain", "2026-09-10T03:31:00+00:00", {"loop": "maintain"})
+    failed = {
+        "loop": "maintain",
+        "verify": {
+            "week": "2026-W39",
+            "kinds": {"link": {"verified": 2, "target": 30}},
+            "mismatches": [],
+            "failures": [{"unit": "link/event/e9", "state": "failed", "error": "ValueError"}],
+            "complete": False,
+        },
+    }
+    _run_row(tmp_path, "run_f", "maintain", "2026-09-24T03:31:00+00:00", failed)
+    lines = _loops(tmp_path)
+    assert _keys(lines) == ["verify-failures", "verify-overdue"]
+    assert "1 units of the 2026-W39 verify at 2026-09-24 03:31 UTC failed" in lines[0]
+    assert "link/event/e9" in lines[0]
+    assert lines[1].startswith("[verify-overdue] no complete verify sample in 9 days;")
+    complete = {
+        "loop": "maintain",
+        "verify": {**failed["verify"], "failures": [], "complete": True},
+    }
+    _run_row(tmp_path, "run_c", "maintain", "2026-09-25T03:31:00+00:00", complete)
+    assert _loops(tmp_path) == []
+
+
+def test_read_set_safety_signals_alert_within_a_day(tmp_path: Path) -> None:
+    _release_state(tmp_path)
+    _run_row(
+        tmp_path,
+        "run_d1",
+        "derive",
+        "2026-09-25T12:00:00+00:00",
+        {"loop": "derive", "read_set_signals": {"read_set_widened": 2}},
+    )
+    _run_row(
+        tmp_path,
+        "run_d2",
+        "derive",
+        "2026-09-25T13:00:00+00:00",
+        {"loop": "derive", "undeclared_reads": {"link/event:dancers": 1}},
+    )
+    lines = _loops(tmp_path)
+    assert lines == [
+        "[read-set-widened] read-set safety signals in the last day:"
+        " read_set_widened 2, undeclared:link/event:dancers 1; each should be 0, a widened"
+        " read set re-runs its links on any change of the table"
+        " (docs/reference/state.md#read-recorder)"
+    ]
+    # A day later the rows are out of the window.
+    assert "read-set-widened" not in _keys(_loops(tmp_path, now="2026-09-26T13:00:01+00:00"))
+
+
+def test_artifact_bytes_no_partition_names_alert_over_a_gigabyte(tmp_path: Path) -> None:
+    from swingset.state import release_store
+
+    _release_state(tmp_path)
+    with open_database(tmp_path, lock=False) as database, database.transaction() as conn:
+        for digest in ("a1", "a2", "a3"):
+            release_store.upsert(
+                conn, release_store.ArtifactRow(digest, "event/e1", 450_000_000, NOW, NOW)
+            )
+        release_store.upsert(
+            conn,
+            release_store.PartitionRow(
+                "event/e1", "d", "built", NOW, "run_x", artifact_digest="a1"
+            ),
+        )
+    assert _loops(tmp_path) == []
+    with open_database(tmp_path, lock=False) as database, database.transaction() as conn:
+        release_store.upsert(
+            conn, release_store.ArtifactRow("a4", "event/e2", 200_000_000, NOW, NOW)
+        )
+    lines = _loops(tmp_path)
+    assert lines == [
+        "[artifact-orphans] 3 partition artifacts and release manifests (1.1 GB) are named by"
+        " no current partition or are over a week old, over 1 GB; maintain's collector removes"
+        " them a day after last named unless a retained release manifest names them"
+    ]
+
+
+def test_the_release_lag_guard_alerts_while_derive_holds_project_units(tmp_path: Path) -> None:
+    from swingset.state import guards
+
+    _release_state(tmp_path)
+
+    def guard(seen: str) -> None:
+        with open_database(tmp_path, lock=False) as database, database.transaction() as conn:
+            guards.upsert(
+                conn,
+                guards.GuardRow(
+                    subject="loop:derive",
+                    reason="release_lag",
+                    loop="derive",
+                    since="2026-09-25T15:00:00.000000Z",
+                    last_seen_at=seen,
+                    expires_at="2026-09-25T16:00:00.000000Z",
+                ),
+            )
+
+    guard("2026-09-25T13:00:00.000000Z")
+    assert "release-lag" not in _keys(_loops(tmp_path))
+    guard("2026-09-25T15:30:00.000000Z")
+    lines = _loops(tmp_path)
+    assert "[release-lag] derive has run only parse and link units since 2026-09-25 15:00 UTC:" in (
+        "\n".join(lines)
+    )
+    (tmp_path / "operator-hold").touch()
+    assert "release-lag" not in _keys(_loops(tmp_path))

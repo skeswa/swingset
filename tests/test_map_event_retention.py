@@ -1,4 +1,8 @@
-"""A mapped source occurrence keeps ownership after registry enrichment."""
+"""A mapped source occurrence keeps ownership after registry enrichment.
+
+The rows start in the retired map scopes (`unmatched_source_events/all`,
+`override_events/all`); each event's resolution takes them over (plan F19).
+"""
 
 from dataclasses import replace
 from types import SimpleNamespace
@@ -13,6 +17,21 @@ from swingset.state.db import open_database
 from swingset.state.work import WorkUnit
 
 NOW = "2026-09-13T00:00:00Z"
+
+
+def owners(conn, scope_kind):
+    return conn.execute(
+        "SELECT count(*) FROM canonical_scope_rows WHERE scope_kind=?", (scope_kind,)
+    ).fetchone()[0]
+
+
+def outputs(conn):
+    """The mapping and resolution outputs, which replaced the map's."""
+    units = conn.execute(
+        "SELECT stage,unit_kind,unit_id FROM derivation_scopes "
+        "WHERE stage='project' AND unit_kind IN ('mapping','resolution') ORDER BY 1,2,3"
+    ).fetchall()
+    return {tuple(unit): list(output_rows(conn, WorkUnit(*unit))) for unit in units}
 
 
 @pytest.fixture
@@ -84,18 +103,13 @@ def test_registry_enriched_self_match_retains_event_and_replays_identically(enri
     assert conn.execute("SELECT event_id,match_confidence FROM source_event_map").fetchall()[0][
         :
     ] == (event.event_id, 1.0)
-    assert (
-        conn.execute(
-            "SELECT count(*) FROM canonical_scope_rows WHERE scope_kind='unmatched_source_events'"
-        ).fetchone()[0]
-        == 1
-    )
-    unit = WorkUnit("project", "map", "all")
-    output = list(output_rows(conn, unit))
+    assert owners(conn, "unmatched_source_events") == 0
+    assert owners(conn, "resolution") == 1
+    output = outputs(conn)
     generations = conn.execute("SELECT count(*) FROM derivation_generations").fetchone()[0]
     with db.transaction():
         assert not project_map(conn, bundle, "2026-09-14T00:00:00Z", "test", 19)
-    assert list(output_rows(conn, unit)) == output
+    assert outputs(conn) == output
     assert conn.execute("SELECT count(*) FROM derivation_generations").fetchone()[0] == generations
     assert not conn.execute("PRAGMA foreign_key_check").fetchall()
 
@@ -129,12 +143,15 @@ def test_mapping_to_another_target_retires_unreferenced_source_event(enriched_so
         conn.execute("SELECT event_id FROM events WHERE event_id=?", (event.event_id,)).fetchone()
         is None
     )
-    assert (
-        conn.execute(
-            "SELECT count(*) FROM canonical_scope_rows WHERE scope_kind='unmatched_source_events'"
-        ).fetchone()[0]
-        == 0
-    )
+    assert owners(conn, "unmatched_source_events") == owners(conn, "override_events") == 0
+    # The override's resolution owns the calendar row it names, as the map's
+    # override scope did.
+    assert [
+        tuple(row)
+        for row in conn.execute(
+            "SELECT scope_id FROM canonical_scope_rows WHERE scope_kind='resolution'"
+        )
+    ] == [(target.event_id,)]
     assert not conn.execute("PRAGMA foreign_key_check").fetchall()
 
 
@@ -152,22 +169,12 @@ def test_removed_override_can_keep_its_enriched_target_by_source_match(enriched_
         conn.execute("SELECT * FROM events WHERE event_id=?", (event.event_id,)).fetchone()
         is not None
     )
-    before = list(output_rows(conn, WorkUnit("project", "map", "all")))
+    before = outputs(conn)
     with db.transaction():
         assert not project_map(conn, bundle, NOW, "test", 19)
-    assert list(output_rows(conn, WorkUnit("project", "map", "all"))) == before
-    assert (
-        conn.execute(
-            "SELECT count(*) FROM canonical_scope_rows WHERE scope_kind='override_events'"
-        ).fetchone()[0]
-        == 0
-    )
-    assert (
-        conn.execute(
-            "SELECT count(*) FROM canonical_scope_rows WHERE scope_kind='unmatched_source_events'"
-        ).fetchone()[0]
-        == 1
-    )
+    assert outputs(conn) == before
+    assert owners(conn, "override_events") == owners(conn, "unmatched_source_events") == 0
+    assert owners(conn, "resolution") == 1
 
 
 @pytest.mark.parametrize("status", ["unknown", "registry"])
@@ -218,17 +225,16 @@ def test_generated_id_collision_preserves_inventory_and_registry_month(
         == event.event_id
     )
     assert conn.execute(
-        "SELECT 1 FROM canonical_scope_rows WHERE scope_kind='unmatched_source_events' "
-        "AND record_key=json_array(?)",
-        (event.event_id,),
+        "SELECT 1 FROM canonical_scope_rows WHERE scope_kind='resolution' "
+        "AND scope_id=? AND record_key=json_array(?)",
+        (event.event_id, event.event_id),
     ).fetchone()
-    unit = WorkUnit("project", "map", "all")
-    output = list(output_rows(conn, unit))
+    output = outputs(conn)
     count = conn.execute("SELECT count(*) FROM derivation_generations").fetchone()[0]
     with db.transaction():
         assert not project_map(conn, bundle, "2026-09-14T00:00:00Z", "test", 19)
         finalize_history(conn, now="2026-09-14T00:00:00Z")
-    assert list(output_rows(conn, unit)) == output
+    assert outputs(conn) == output
     assert conn.execute("SELECT count(*) FROM derivation_generations").fetchone()[0] == count
     assert conn.execute("SELECT event_id FROM registry_placements").fetchone()[0] == event.event_id
     assert not conn.execute("PRAGMA foreign_key_check").fetchall()

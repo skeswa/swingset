@@ -63,37 +63,45 @@ def test_inventory_does_not_claim_unenriched_map_placeholders(tmp_path):
         assert "coverage_tier" not in inventory[0].payload
         coverage = [
             row
-            for row in output_rows(conn, WorkUnit("project", "history", "all"))
+            for row in output_rows(conn, WorkUnit("project", "year", "2026"))
             if row.table == "events"
         ]
         assert len(coverage) == 1
         assert set(coverage[0].payload) == {"event_id", "coverage_tier"}
 
 
-def test_history_alone_owns_the_events_coverage_tier(tmp_path):
-    # History rewrites coverage_tier after the calendar and the map ran, so
-    # recording it in their output would make every re-run of theirs differ
-    # from its own generation and never cut off (D-0205).
+def test_the_year_alone_owns_the_events_coverage_tier(tmp_path):
+    # The year rewrites coverage_tier after the calendar and the resolution
+    # ran, so recording it in their output would make every re-run of theirs
+    # differ from its own generation and never cut off (D-0205).
     with open_database(tmp_path) as db:
         conn = db.connection
         seed(conn)
         conn.execute("UPDATE events SET coverage_tier='complete' WHERE event_id='event'")
-        for kind, identifier in (("calendar", "2026"), ("override_events", "all")):
+        for kind, identifier in (("calendar", "2026"), ("resolution", "event")):
             conn.execute(
                 "INSERT INTO canonical_scope_rows VALUES (?,?,'events',json_array('event'))",
                 (kind, identifier),
             )
-        for unit in (WorkUnit("project", "calendar", "2026"), WorkUnit("project", "map", "all")):
+        for unit in (
+            WorkUnit("project", "calendar", "2026"),
+            WorkUnit("project", "resolution", "event"),
+        ):
             events = [row for row in output_rows(conn, unit) if row.table == "events"]
             assert len(events) == 1, unit
             assert "coverage_tier" not in events[0].payload, unit
             assert events[0].payload["event_id"] == "event"
-        history = [
+        year = [
             row
-            for row in output_rows(conn, WorkUnit("project", "history", "all"))
+            for row in output_rows(conn, WorkUnit("project", "year", "2026"))
             if row.table == "events"
         ]
-        assert [row.payload["coverage_tier"] for row in history] == ["complete"]
+        assert [row.payload["coverage_tier"] for row in year] == ["complete"]
+        assert not [
+            row
+            for row in output_rows(conn, WorkUnit("project", "year", "2025"))
+            if row.table == "events"
+        ]
 
 
 def acceptance_fixture(db):
@@ -117,7 +125,7 @@ def test_year_acceptance_materializes_coverage_with_actual_operation_provenance(
 
     with open_database(tmp_path) as db:
         now = acceptance_fixture(db)
-        unit = WorkUnit("project", "history", "all")
+        unit = WorkUnit("project", "year", "2026")
         before = derivations.selected_generation(db.connection, unit)
         accept_year(db.connection, 2026, accepted_by="Offline owner", accepted_at=now)
         after = derivations.selected_generation(db.connection, unit)
@@ -178,14 +186,14 @@ def test_year_acceptance_rolls_back_output_run_and_generation_on_failure(tmp_pat
                 )
         assert state() == baseline
 
-        rebuild = history.rebuild_coverage
+        finalize = history.finalize_year
 
-        def changed_acceptance(conn, *, now):
-            rebuild(conn, now=now)
+        def changed_acceptance(conn, year, **kwargs):
+            finalize(conn, year, **kwargs)
             conn.execute("UPDATE history_acceptance SET accepted_by='changed during output'")
 
         with monkeypatch.context() as patch:
-            patch.setattr(history, "rebuild_coverage", changed_acceptance)
+            patch.setattr(history, "finalize_year", changed_acceptance)
             with pytest.raises(SupersededWorkError):
                 history.accept_year(
                     db.connection, 2026, accepted_by="Offline owner", accepted_at=now

@@ -17,7 +17,11 @@ from swingset.state import derivations
 from swingset.state.work import WorkUnit
 
 
-@pytest.mark.parametrize("alternative_kind", ["calendar", "map"])
+# The map was the alternative that sorted after the calendar base: every
+# year reached every map scope. A resolution is reached only through its
+# event, whose resolution the fixture already derived, so no second scope of
+# a later rank can be arranged this way (plan F19).
+@pytest.mark.parametrize("alternative_kind", ["calendar"])
 def test_reconstruction_keeps_supported_event_and_judges_in_either_overlay_order(
     release_state, tmp_path, alternative_kind
 ):
@@ -26,8 +30,8 @@ def test_reconstruction_keeps_supported_event_and_judges_in_either_overlay_order
     event = dict(f.conn.execute("SELECT * FROM events WHERE event_id=?", (EVENT,)).fetchone())
     original_judges = [dict(row) for row in f.conn.execute("SELECT * FROM judges")]
     assert original_judges and all(row["wsdc_id"] is None for row in original_judges)
-    # An earlier calendar sorts before the retained calendar base; map sorts after it.
-    # Complete through the real ledger, then make history select the extra scope.
+    # An earlier calendar sorts before the retained calendar base. Complete
+    # through the real ledger, then make the year select the extra scope.
     captured_at = (
         f.clock.now() - timedelta(seconds=1) if alternative_kind == "calendar" else f.clock.now()
     )

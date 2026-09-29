@@ -224,10 +224,11 @@ def settled(fixture):
         "calendar",
         "dancer",
         "inventory",
-        "map",
+        "mapping",
+        "resolution",
         "event",
         "source_event",
-        "history",
+        "year",
     }
     assert WorkUnit("link", "event", "event-a") in units
     assert all(derivations.current(f.conn, unit) for unit in units)
@@ -248,18 +249,35 @@ def proofs(conn, units):
 @pytest.mark.parametrize(
     ("kind", "stale"),
     [
-        ("calendar", {("project", "inventory"), ("project", "history")}),
-        ("dancer", {("project", "inventory"), ("project", "history"), ("link", "event")}),
+        (
+            "calendar",
+            {
+                ("project", "inventory"),
+                ("project", "mapping"),
+                ("project", "resolution"),
+                ("project", "year"),
+            },
+        ),
+        # The year has no dancer prerequisite: a dancer's reconcile reaches it
+        # through the epoch alone (F23). A link reads no per-kind epoch (F20).
+        ("dancer", {("project", "inventory"), ("project", "year")}),
         # The fixture has no source_index scope: an empty cohort's epoch still
         # moves certificate and fingerprint together.
-        ("source_index", {("project", "inventory"), ("project", "history")}),
-        ("inventory", {("project", "map"), ("project", "history")}),
+        ("source_index", {("project", "inventory"), ("project", "mapping")}),
         (
-            "map",
-            {("project", "event"), ("project", "source_event"), ("project", "history")},
+            "inventory",
+            {("project", "mapping"), ("project", "resolution"), ("project", "year")},
         ),
-        ("event", {("project", "source_event"), ("project", "history"), ("link", "event")}),
-        ("source_event", {("project", "history")}),
+        # A resolution reads its proposals as content, not the mapping.
+        ("mapping", set()),
+        (
+            "resolution",
+            {("project", "event"), ("project", "source_event"), ("project", "year")},
+        ),
+        ("event", {("project", "source_event"), ("project", "year")}),
+        # A source event's own output is its events'; nothing reads its epoch.
+        ("source_event", set()),
+        ("year", set()),
     ],
 )
 def test_a_replay_epoch_reaches_exactly_the_kinds_that_depend_on_it(source_fixture, kind, stale):
@@ -278,27 +296,39 @@ def test_a_replay_epoch_reaches_exactly_the_kinds_that_depend_on_it(source_fixtu
         assert derivations.current(f.conn, unit) is not moved, unit
     replays = [
         item
-        for item in derivations.desired(f.conn, WorkUnit("project", "history", "all")).dependencies
+        for item in derivations.desired(f.conn, WorkUnit("project", "year", "2026")).dependencies
         if item["kind"] == "replay"
     ]
     assert {tuple(item["key"]): item["version"] for item in replays} == {
         ("project", name): 2 if name == kind else 0
-        for name in (
-            "calendar",
-            "source_index",
-            "dancer",
-            "inventory",
-            "map",
-            "event",
-            "source_event",
-        )
+        for name in ("calendar", "dancer", "inventory", "resolution", "event")
+    }
+
+
+def test_an_event_units_own_replay_reaches_its_link_only(source_fixture):
+    """An event cutoff that rewrote live rows moves its kind's epoch and its
+    own version; only its link reads the own version (plan F20)."""
+    f = source_fixture
+    units = settled(f)
+    before = proofs(f.conn, units)
+    f.conn.execute("DELETE FROM pending_work")
+    with f.db.transaction():
+        derivations.bump_replay(f.conn, "project", "event", unit_id="event-a")
+    after = proofs(f.conn, units)
+    stale = {("project", "source_event"), ("project", "year"), ("link", "event")}
+    for unit in units:
+        moved = (unit.stage, unit.unit_kind) in stale
+        assert (after[unit][0] != before[unit][0]) is moved, unit
+        assert (after[unit][1] != before[unit][1]) is moved, unit
+    assert ("link", "event", "event-a") in {
+        tuple(row) for row in f.conn.execute("SELECT stage,unit_kind,unit_id FROM pending_work")
     }
 
 
 def test_a_replay_epoch_is_never_a_selected_group_member(source_fixture):
     f = source_fixture
     settled(f)
-    unit = WorkUnit("project", "history", "all")
+    unit = WorkUnit("project", "year", "2026")
     before = derivations.desired(f.conn, unit)
     with f.db.transaction():
         derivations.bump_replay(f.conn, "project", "calendar")
@@ -329,14 +359,14 @@ def test_bump_replay_requires_the_output_transaction(source_fixture):
 @pytest.mark.parametrize("change", ["none", "replay", "raw", "new"])
 def test_bulk_dancer_readiness_equals_current(source_fixture, change):
     """A raw token alone misses the certificate and takes the full comparison."""
-    from swingset.state.derivation_dependencies import dancer_prerequisites
+    from swingset.state.derivation_dependencies import scopes
     from swingset.state.derivation_readiness import dancers_current
 
     f = source_fixture
     settled(f)
     with f.db.transaction():
         if change == "replay":
-            for kind in ("calendar", "dancer", "history"):
+            for kind in ("calendar", "dancer", "year"):
                 derivations.bump_replay(f.conn, "project", kind)
         elif change == "raw":
             f.conn.execute(
@@ -350,7 +380,7 @@ def test_bulk_dancer_readiness_equals_current(source_fixture, change):
                 (f.corpus.clock.now().isoformat(),),
             )
     with f.db.transaction():
-        cohort = dancer_prerequisites(f.conn)
+        cohort = tuple(unit for unit in scopes(f.conn, "project") if unit.unit_kind == "dancer")
         assert WorkUnit("project", "dancer", "1") in cohort
         expected = all(derivations.current(f.conn, unit) for unit in cohort)
         assert expected is (change != "new")

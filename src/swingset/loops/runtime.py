@@ -6,9 +6,13 @@ exclusive (D-0215). `tick` opens the state, recovers the loop's own dead
 runs, captures the input bundle, sets the tick's contexts, and on the way out
 writes `runs/<run_id>.json`, the `runs` row and the `loop_state` row.
 
-A publication in flight fences every semantic write (F6), `runs` and
-`loop_state` included, so a tick that finds one writes nothing to the
-database: it skips, and its record lives only in `runs/<run_id>.json`.
+A closure-mode publication in flight fences every semantic write (F6),
+`runs` and `loop_state` included, so a tick that finds one writes nothing to
+the database: it skips, and its record lives only in `runs/<run_id>.json`.
+A partitioned publication's fence is narrow (`publication_narrow`, plan
+phase 3): acquire, plan and derive tick through it, and a unit write that
+meets it is `publication_fenced`; maintain and release, which write the
+tables it fences, still skip.
 """
 
 from __future__ import annotations
@@ -32,6 +36,7 @@ from swingset.model.ids import run_id as make_run_id
 from swingset.state import loop_state, queue, write_deadline
 from swingset.state.db import Database, open_for_loop, reset_write_counters
 from swingset.state.inputs import InputBundle
+from swingset.state.publication_fence import FULL, PUBLICATION_KINDS, kinds_sql
 
 if TYPE_CHECKING:
     from swingset.publish.service import Hub
@@ -46,16 +51,24 @@ PACED = frozenset({"plan", "derive"})
 #: (D-0218): acquire and plan fetch and plan by it, and derive's parse
 #: writers insert archive watches by it, so all three agree.
 FACTS_ONLY = frozenset({"acquire", "plan", "derive"})
+#: Loops a narrow publication pauses too: maintain collects artifacts and
+#: generations, release builds and publishes, and both write what it fences.
+PAUSED_BY_NARROW = frozenset({"maintain", "release"})
 PUBLICATION_IN_FLIGHT = "publication_in_flight"
 INPUTS_NOT_ACCEPTED = "inputs_not_accepted"
 
 
-def publication_active(conn: sqlite3.Connection) -> bool:
-    """Whether a publication admission is active, so its fence stops writes (F6)."""
+def publication_active(conn: sqlite3.Connection, *, narrow: bool = False) -> bool:
+    """Whether a publication whose fence stops the loops is active (F6).
+
+    A narrow (partitioned) publication fences only its own tables and is
+    ignored, unless ``narrow`` asks for it too.
+    """
+    kinds = PUBLICATION_KINDS if narrow else FULL
     return (
         conn.execute(
             "SELECT 1 FROM execution_admissions WHERE state='active' "
-            "AND action_kind IN ('publish','publication') LIMIT 1"
+            f"AND action_kind IN {kinds_sql(kinds)} LIMIT 1"
         ).fetchone()
         is not None
     )
@@ -155,13 +168,13 @@ def _settle_dead_admissions(database: Database, loop: str, *, now: datetime) -> 
     if loop == "release":
         rows += conn.execute(
             "SELECT action_id,action_kind,NULL AS work_outcome FROM execution_admissions "
-            "WHERE state='active' AND action_kind IN ('publish','publication')"
+            f"WHERE state='active' AND action_kind IN {kinds_sql(PUBLICATION_KINDS)}"
         ).fetchall()
     if not rows:
         return 0
     with database.transaction() as write:
         for row in rows:
-            publication = row["action_kind"] in {"publish", "publication"}
+            publication = row["action_kind"] in PUBLICATION_KINDS
             outcome = (
                 row["work_outcome"]
                 if row["work_outcome"] not in {None, "running"}
@@ -379,7 +392,7 @@ def tick(
                 **extra,
             )
 
-        fenced = publication_active(database.connection)
+        fenced = publication_active(database.connection, narrow=name in PAUSED_BY_NARROW)
         if not fenced:
             try:
                 with database.transaction() as conn:
@@ -420,7 +433,16 @@ def tick(
             if name in PACED:
                 scoped.enter_context(pacing.configured(bundle.config.scheduler, clock.now))
             if name in ACCEPTS_INPUTS:
-                current.summary["accepted_inputs"] = sorted(accept(database, bundle, clock))
+                try:
+                    current.summary["accepted_inputs"] = sorted(accept(database, bundle, clock))
+                except sqlite3.DatabaseError as exc:
+                    # A narrow publication fences a changed bundle or journal:
+                    # the acceptance rolled back whole, and the units run on
+                    # the accepted inputs; the next tick accepts.
+                    if "active publication fences" not in str(exc):
+                        raise
+                    current.summary["accepted_inputs"] = []
+                    current.summary["inputs_deferred"] = PUBLICATION_IN_FLIGHT
             elif name in NEEDS_ACCEPTED:
                 row = database.connection.execute(
                     "SELECT value FROM meta WHERE key='input_bundle_hash'"

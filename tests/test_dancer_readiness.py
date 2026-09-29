@@ -10,7 +10,7 @@ from swingset.project.process import process_unit
 from swingset.schedule.watches import upsert_watch
 from swingset.sources.wsdc_registry.adapter import SOURCE
 from swingset.state import derivations
-from swingset.state.derivation_dependencies import prerequisites
+from swingset.state.derivation_dependencies import prerequisites, scopes
 from swingset.state.derivation_query import query
 from swingset.state.derivation_readiness import dancers_current
 from swingset.state.derivation_signatures import certificate, materialized_proof
@@ -37,11 +37,7 @@ def registry_fixture(source_fixture):
 
 
 def compare(f):
-    units = tuple(
-        unit
-        for unit in prerequisites(f.conn, WorkUnit("link", "event", "event-a"))
-        if unit.unit_kind == "dancer"
-    )
+    units = tuple(unit for unit in scopes(f.conn, "project") if unit.unit_kind == "dancer")
     with f.db.transaction():
         ordinary = all(derivations.current(f.conn, unit) for unit in units)
         bulk = dancers_current(f.conn, units, current=derivations.current)

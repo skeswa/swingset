@@ -11,6 +11,7 @@ import signal
 import sqlite3
 import sys
 import time
+import uuid
 from dataclasses import asdict, dataclass
 from datetime import datetime
 from pathlib import Path
@@ -205,6 +206,36 @@ def parser() -> argparse.ArgumentParser:
     work_queue.add_argument("--stage", choices=("parse", "project", "link"))
     work_queue.add_argument("--kind")
     work_queue.add_argument("--by", help="requeue: who asks, the operator and session")
+    partitions = commands.add_parser(
+        "partitions",
+        parents=[shared],
+        help="Build, list or show partition artifacts, stage 1 of a partitioned release",
+    )
+    partitions.add_argument("action", nargs="?", choices=("build", "list", "show"))
+    partitions.add_argument("partition", nargs="?", help="show: the partition name")
+    partitions.add_argument(
+        "--only", metavar="PARTITION", help="build: one partition, or event/<id> by member"
+    )
+    partitions.add_argument("--partition-state", choices=("built", "withheld"))
+    partitions.add_argument(
+        "--withheld",
+        action="store_true",
+        help="with no action: the withheld partitions, counted by reason, with their detail",
+    )
+    commands.add_parser(
+        "migrate",
+        parents=[shared],
+        help="Open the database once, applying pending migrations; print both schemas and seconds",
+    )
+    verify = commands.add_parser(
+        "verify-derivations",
+        parents=[shared],
+        help="Re-derive this week's sample of current units, roll it back and compare output",
+    )
+    verify.add_argument(
+        "--sample", type=float, default=0.01, help="share of each kind's units (at least one)"
+    )
+    verify.add_argument("--kinds", default="link,year", help="comma-separated: link, year")
     enums = commands.add_parser("enums")
     enums.add_argument("--write", action="store_true")
     backup = commands.add_parser("backup", parents=[shared])
@@ -937,7 +968,7 @@ def _mutate(
                     database,
                     action_id="crosscheck_" + uuid4().hex,
                     action_kind="registry_crosscheck",
-                    scope=for_unit(database.connection, WorkUnit("project", "history", "all")),
+                    scope=for_unit(database.connection, WorkUnit("project", "inventory", "all")),
                     clock=clock,
                     run_id=run_id,
                 ):
@@ -1032,7 +1063,9 @@ def _mutate(
                         database,
                         action_id="crosscheck_" + uuid4().hex,
                         action_kind="registry_crosscheck",
-                        scope=for_unit(database.connection, WorkUnit("project", "history", "all")),
+                        scope=for_unit(
+                            database.connection, WorkUnit("project", "inventory", "all")
+                        ),
                         clock=clock,
                         run_id=run_id,
                     ):
@@ -1334,7 +1367,7 @@ def _control(args: argparse.Namespace) -> int:
 
 
 def _accept_year(args: argparse.Namespace) -> int:
-    """Record a reviewed year's event list as accepted, then store history in chunks.
+    """Record a reviewed year's event list as accepted, then store its year in chunks.
 
     The projector refuses while the year has open history findings or the
     inventory projection is pending, so acceptance cannot outrun the evidence
@@ -1342,11 +1375,12 @@ def _accept_year(args: argparse.Namespace) -> int:
     pending: acceptance then records the committed event list, as the
     phase-two gate reads it (D-0210). The cutoff switch applies (D-0205).
 
-    The acceptance and history's live rows commit in one bounded write (step
-    A); the history generation (about 201,000 references) then stores in
-    chunks and its pointer flips in one short write, as `derive_one` stores
-    it (WP4, D-0217). If that stops, the acceptance stands and the derive
-    loop resumes the building generation.
+    The acceptance and the year's live rows commit in one bounded write (step
+    A); the generation of `project/year/<year>` (that year's association,
+    tiers and coverage, plan F17) then stores in chunks and its pointer flips
+    in one short write, as `derive_one` stores it (WP4, D-0217). If that
+    stops, the acceptance stands and the derive loop resumes the building
+    generation. No other year is touched.
     """
     from swingset import cutoff
     from swingset.project.history import accept_year
@@ -1359,15 +1393,21 @@ def _accept_year(args: argparse.Namespace) -> int:
     config = load_config(args.config)
     clock = SystemClock()
     now = clock.now()
-    history = WorkUnit("project", "history", "all")
+    unit = WorkUnit("project", "year", str(args.year))
     with open_database(args.state, lock_timeout=args.lock_timeout) as database:
         with (
             pacing.configured(config.scheduler, clock.now),
             cutoff.configured(config.derivation.cutoff),
-            derivations.chunking(database.connection, history) as chunk,
+            derivations.chunking(database.connection, unit) as chunk,
         ):
             with database.transaction() as conn:
-                accept_year(conn, args.year, accepted_by=args.by, accepted_at=now.isoformat())
+                accept_year(
+                    conn,
+                    args.year,
+                    accepted_by=args.by,
+                    accepted_at=now.isoformat(),
+                    history_start=config.history_start,
+                )
                 row = conn.execute(
                     "SELECT year,accepted_at,accepted_by,inventory_digest FROM history_acceptance WHERE year=?",
                     (args.year,),
@@ -1377,17 +1417,135 @@ def _accept_year(args: argparse.Namespace) -> int:
                 def finished(write: sqlite3.Connection) -> None:
                     write.execute(
                         "DELETE FROM pending_work WHERE stage=? AND unit_kind=? AND unit_id=?",
-                        (history.stage, history.unit_kind, history.unit_id),
+                        (unit.stage, unit.unit_kind, unit.unit_id),
                     )
 
                 derivations.finish_building(database, chunk.deferred, commit=finished)
-                derivations.collect_orphans(database, history, keep=None)
+                derivations.collect_orphans(database, unit, keep=None)
     print(
         json.dumps(
             dict(zip(("year", "accepted_at", "accepted_by", "inventory_digest"), row, strict=True))
         )
     )
     return 0
+
+
+def _migrate_only(args: argparse.Namespace) -> int:
+    """Open the database once, as a switch's hold does, and time the migration.
+
+    Run as the service user, so the WAL and shared-memory files it creates
+    belong to that user. Prints the schema before and after and the seconds
+    the open took (the preflight receipt's migration time).
+    """
+    path = args.state / "state.sqlite" if args.state.is_dir() else args.state
+    before = None
+    if path.exists():
+        with contextlib.closing(sqlite3.connect(f"file:{path}?mode=ro", uri=True)) as conn:
+            before = int(conn.execute("PRAGMA user_version").fetchone()[0])
+    started = time.monotonic()
+    with open_database(args.state, lock_timeout=args.lock_timeout) as database:
+        after = database.schema_version
+    seconds = round(time.monotonic() - started, 3)
+    print(json.dumps({"schema_before": before, "schema_after": after, "seconds": seconds}))
+    return 0
+
+
+def _partitions(args: argparse.Namespace) -> int:
+    """Build stage 1 of a partitioned release, or read its partition rows (phase 3, WP6).
+
+    `build` needs the writer lock and prints counts, bytes, seconds and peak
+    memory; each release build also runs it first (D-0224). `list` and
+    `show` read only.
+    """
+    from swingset.build import partitions
+
+    if args.withheld or args.action is None:
+        if args.action is not None or not args.withheld:
+            raise ValueError("partitions takes an action (build, list, show) or --withheld")
+        with open_database(args.state, lock=False, read_only=True) as database:
+            report = withheld_report(database.connection)
+        print(json.dumps(report, indent=2, default=str))
+        return 0
+    if args.action in {"list", "show"}:
+        with open_database(args.state, lock=False, read_only=True) as database:
+            if args.action == "list":
+                result: object = partitions.listing(database, state=args.partition_state)
+            else:
+                if not args.partition:
+                    raise ValueError("partitions show needs a partition name")
+                result = partitions.show(database, args.partition)
+        print(json.dumps(result, indent=2, default=str))
+        return 0
+    config = load_config(args.config)
+    clock = SystemClock()
+    with open_database(args.state, lock_timeout=args.lock_timeout) as database:
+        link = database.state_dir / "baseline"
+        report = partitions.build(
+            database,
+            history_start=config.history_start,
+            baseline=link.resolve() if link.is_symlink() else None,
+            run_id=f"partitions_{uuid.uuid4().hex[:16]}",
+            now=clock.now(),
+            only=args.only,
+        )
+    print(json.dumps(report, indent=2, default=str))
+    return 0
+
+
+def withheld_report(conn: sqlite3.Connection) -> dict[str, object]:
+    """`partitions --withheld`: the count, the count by reason, and each partition.
+
+    The watchdog's daily `[partitions-withheld]` line counts the same rows.
+    """
+    from swingset.state import release_store
+
+    rows = release_store.withheld(conn)
+    reasons: dict[str, int] = {}
+    for row in rows:
+        reasons[str(row.reason)] = reasons.get(str(row.reason), 0) + 1
+    return {
+        "withheld": len(rows),
+        "by_reason": dict(sorted(reasons.items(), key=lambda item: (-item[1], item[0]))),
+        "partitions": [
+            {
+                "partition": row.partition,
+                "reason": row.reason,
+                "detail": json.loads(row.detail_json) if row.detail_json else None,
+                "built_at": row.built_at,
+            }
+            for row in rows
+        ],
+    }
+
+
+def _verify_derivations(args: argparse.Namespace) -> int:
+    """Verify this week's sample of current link and year units (plan section 10).
+
+    Each unit's write runs and rolls back under the writer lock; nothing is
+    committed. Prints the summary the maintain loop records under `verify`,
+    and appends a `[read-set-miss]` line to ALERTS.log for each mismatch.
+    Exits 1 when a unit mismatched.
+    """
+    from swingset.state import verify
+    from swingset.state.inputs import capture
+    from swingset.versions import versions
+
+    kinds = verify.parse_kinds(args.kinds)
+    if not 0 < args.sample <= 1:
+        raise ValueError("--sample must be greater than 0 and at most 1")
+    clock = SystemClock()
+    bundle = capture(args.config, args.overrides, args.state, versions())
+    with open_database(args.state, lock_timeout=args.lock_timeout) as database:
+        summary = verify.run(
+            database,
+            bundle,
+            clock,
+            f"verify_{uuid.uuid4().hex[:16]}",
+            fraction=args.sample,
+            kinds=kinds,
+        )
+    print(json.dumps(summary, indent=2, default=str))
+    return 1 if summary["mismatches"] else 0
 
 
 def _hold(args: argparse.Namespace) -> int:
@@ -1516,6 +1674,24 @@ def main(argv: list[str] | None = None) -> int:
             return _hold(args)
         except (OSError, ValueError, RuntimeError) as exc:
             log("error", message=str(exc))
+            return 1
+    if args.command == "partitions":
+        try:
+            return _partitions(args)
+        except (OSError, ValueError, RuntimeError) as exc:
+            log("error", message=str(exc))
+            return 1
+    if args.command == "migrate":
+        try:
+            return _migrate_only(args)
+        except (OSError, ValueError, RuntimeError, sqlite3.Error, DatabaseLockedError) as exc:
+            log("error", message=f"{type(exc).__name__}: {exc}")
+            return 1
+    if args.command == "verify-derivations":
+        try:
+            return _verify_derivations(args)
+        except (OSError, ValueError, RuntimeError) as exc:
+            log("error", message=f"{type(exc).__name__}: {exc}")
             return 1
     if args.command == "accept-year":
         try:

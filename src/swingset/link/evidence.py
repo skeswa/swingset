@@ -4,17 +4,21 @@ from __future__ import annotations
 
 import sqlite3
 import tomllib
-from dataclasses import dataclass, replace
+from collections.abc import Mapping
+from dataclasses import dataclass, field, replace
 from types import MappingProxyType
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
+from swingset.log import log
 from swingset.normalize.names import normalize_name
+from swingset.state import read_sets
 from swingset.state.identity_journal import JournalToken
 from swingset.state.identity_references import ReferenceReader
+from swingset.state.work import WorkUnit
 
 from .candidates import DancerRecord, Subject
 from .decisions import DecisionResolver
-from .model import EventEvidence, LinkingRules, SubjectEvidence
+from .model import EventEvidence, EventResolution, LinkingRules, SubjectEvidence
 from .score import Weights
 
 if TYPE_CHECKING:
@@ -36,17 +40,47 @@ class ResolutionBasis:
 
 
 @dataclass(frozen=True)
+class LoadedReads:
+    """What the load read that the resolution may use, with values at load (plan F20).
+
+    ``observed`` holds each read key known at load: the event, its row, its
+    registry placements, its missing-identity findings, the journal, the
+    source references its subjects bind or its decisions name, and its pool.
+    Which dancers the resolution uses is known only after it runs, so
+    ``dancers`` holds every dancer scope's generation at load, and
+    ``unscoped`` the row digest of every dancer the resolution could use that
+    no dancer unit materialized (keyed `project/dancer/<id>`). ``widened``
+    holds `content:table/<name>` for each canonical table the load read that
+    no rule maps. ``dancer_ids`` are the dancers read whatever the resolution
+    chooses: registry confirmation rows at the event, and printed ids.
+
+    Every value is read in the load's one read transaction, so a write that
+    lands during the load is either wholly seen or not at all: a value
+    observed after the evidence reads could certify output computed from
+    older rows (the commit compares against these).
+    """
+
+    observed: Mapping[str, Any] = field(default_factory=dict)
+    dancers: Mapping[str, str | None] = field(default_factory=dict)
+    dancer_ids: frozenset[int] = frozenset()
+    unscoped: Mapping[str, Any] = field(default_factory=dict)
+    widened: Mapping[str, Any] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
 class LinkingSnapshot:
     """Loaded event evidence, matching rules, and their commit-time version guards.
 
     This snapshot is an input bundle for linking, distinct from an archived
     HTTP response snapshot. The resolver consumes evidence and rules; the
     writer checks the basis before committing the resulting conclusions.
+    ``reads`` is None on a database without derivations.
     """
 
     evidence: EventEvidence
     rules: LinkingRules
     basis: ResolutionBasis
+    reads: LoadedReads | None = None
 
 
 def load_linking_snapshot(
@@ -59,7 +93,18 @@ def load_linking_snapshot(
     default identity. Also load the registry pool, reviewed-decision policy,
     scoring weights, nicknames, and input versions. This gathers existing
     evidence without fetching source pages or choosing a final identity.
+    The evidence and the read-set values observed at load come from one
+    read transaction (the caller's, if it holds one).
     """
+    from swingset.state.derivation_query import read_snapshot
+
+    with read_snapshot(conn):
+        return _load(conn, event_id, bundle, selection)
+
+
+def _load(
+    conn: sqlite3.Connection, event_id: str, bundle: InputBundle, selection: Selection | None
+) -> LinkingSnapshot:
     resolver = DecisionResolver(conn)
     event = conn.execute("SELECT year FROM events WHERE event_id=?", (event_id,)).fetchone()
     event_year = int(event[0]) if event else None
@@ -121,6 +166,7 @@ def load_linking_snapshot(
         for row in judge_rows
     ]
     registry_confirmations: dict[str, set[int]] = {}
+    registry_rows: set[int] = set()
     dancer_names = {d.wsdc_id: normalize_name(d.name_raw).value for d in dancers}
     for subject in subjects:
         if subject.subject_kind != "entry" or subject.division is None:
@@ -140,10 +186,12 @@ def load_linking_snapshot(
               AND ? IN (p.leader_entry_id,p.follower_entry_id,p.couple_entry_id)""",
             (subject.role, event_id, subject.subject_id),
         )
+        returned = {int(row[0]) for row in rows}
+        registry_rows |= returned
         registry_confirmations[subject.subject_id] = {
-            int(row[0])
-            for row in rows
-            if dancer_names.get(int(row[0])) == normalize_name(subject.name_raw).value
+            number
+            for number in returned
+            if dancer_names.get(number) == normalize_name(subject.name_raw).value
         }
     previous_default_ids = {str(row["entry_id"]): row["wsdc_id"] for row in entry_rows}
     previous_default_ids.update({str(row["judge_id"]): row["wsdc_id"] for row in judge_rows})
@@ -199,10 +247,141 @@ def load_linking_snapshot(
             }
         ),
     )
+    # Every dancer the resolution could use, read in this snapshot: the pool
+    # and each subject's previous default (a merged dancer's id included);
+    # `_loaded_reads` adds the dancers its decisions name.
+    usable = {dancer.wsdc_id for dancer in dancers}
+    usable |= {int(number) for number in previous_default_ids.values() if number is not None}
+    loaded = _loaded_reads(
+        conn,
+        event_id,
+        resolver,
+        bindings,
+        registry_rows | {number for ids in printed_ids.values() for number in ids},
+        usable,
+    )
     return LinkingSnapshot(
         EventEvidence(
             event_id, tuple(evidence), tuple(dancers), frozenset(eligible_judges), resolver.policy
         ),
         rules,
         ResolutionBasis(selection, resolver.token),
+        loaded,
     )
+
+
+def _loaded_reads(
+    conn: sqlite3.Connection,
+    event_id: str,
+    resolver: DecisionResolver,
+    bindings: Mapping[str, tuple[Any, ...]],
+    dancer_ids: set[int],
+    pool: set[int],
+) -> LoadedReads | None:
+    from swingset.state import derivations
+    from swingset.state.derivation_dependencies import (
+        BINDING,
+        CONTENT,
+        DANCER,
+        default_reads,
+        link_inputs,
+    )
+
+    if not derivations.available(conn):
+        return None
+    # Every reference its subjects bind, and every reference a decision on
+    # the same source event names (`DecisionResolver.binding_problem`).
+    bound = [binding.reference for items in bindings.values() for binding in items]
+    sources = {(reference.source, reference.source_event) for reference in bound}
+    refs = {reference.ref_id for reference in bound} | {
+        decision.reference.ref_id
+        for decision in resolver.policy.decisions
+        if (decision.source, decision.source_event) in sources
+    }
+    keys = {*default_reads(event_id), *(BINDING + ref for ref in refs)}
+    pool = pool | {
+        int(decision.wsdc_id)
+        for decision in resolver.policy.decisions
+        if (decision.source, decision.source_event) in sources
+        and str(decision.wsdc_id).strip().isdigit()
+    }
+    dancers: dict[str, str | None] = {
+        str(row[0]): row[1]
+        for row in conn.execute(
+            "SELECT unit_id,materialized_generation_id FROM derivation_scopes "
+            "WHERE stage='project' AND unit_kind='dancer'"
+        )
+    }
+    # A dancer no unit materialized is read as its row (or its absence): only
+    # rows written by other means (tests) and printed ids the registry lacks.
+    unscoped = {
+        DANCER + str(number) for number in dancer_ids | pool if dancers.get(str(number)) is None
+    }
+    widened: dict[str, Any] = {}
+    recorder = read_sets.active(conn)
+    if recorder is not None:
+        unit = WorkUnit("link", "event", event_id)
+        tables = read_sets.undeclared(unit, recorder.tables)
+        if tables:
+            widened = link_inputs(conn, event_id, {f"{CONTENT}table/{table}" for table in tables})
+    return LoadedReads(
+        link_inputs(conn, event_id, keys),
+        dancers,
+        frozenset(dancer_ids),
+        link_inputs(conn, event_id, unscoped) if unscoped else {},
+        widened,
+    )
+
+
+def read_set(
+    conn: sqlite3.Connection, snapshot: LinkingSnapshot, resolution: EventResolution
+) -> dict[str, Any] | None:
+    """The run's read set, each key with its value at load (plan F20).
+
+    The dancers it used: every candidate, the registry confirmation rows at
+    the event, printed ids, and the ids it links. Each key is recorded on
+    the open recording. A canonical table read that no rule maps widens the
+    set to a digest of the whole table (`read_set_widened`).
+    """
+    from swingset.state.derivation_dependencies import DANCER, link_inputs
+
+    loaded = snapshot.reads
+    if loaded is None:
+        return None
+    used = set(loaded.dancer_ids)
+    for item in resolution.subjects:
+        used.update(candidate.candidate.dancer.wsdc_id for candidate in item.candidates)
+        used.update(
+            number
+            for number in (item.default_wsdc_id, item.conclusion.wsdc_id)
+            if number is not None
+        )
+    reads = dict(loaded.observed)
+    # A dancer's generation at load. One no dancer unit materialized was read
+    # as its row at load: only rows written by other means (tests) and
+    # printed ids the registry lacks have no unit.
+    for number in used:
+        key = DANCER + str(number)
+        generation = loaded.dancers.get(str(number))
+        if generation is not None:
+            reads[key] = generation
+        elif key in loaded.unscoped:
+            reads[key] = loaded.unscoped[key]
+        else:
+            # The load reads every dancer the resolution could use, so this
+            # is a gap: read the row now, after the load's snapshot, and
+            # count it, so the watchdog's [read-set-widened] names it.
+            log("dancer_read_after_load", unit=f"link/event/{resolution.event_id}", key=key)
+            read_sets.signal("dancer_read_after_load")
+            reads.update(link_inputs(conn, resolution.event_id, {key}))
+    if loaded.widened:
+        log(
+            "read_set_widened",
+            unit=f"link/event/{resolution.event_id}",
+            keys=sorted(loaded.widened),
+        )
+        read_sets.signal("read_set_widened")
+        reads.update(loaded.widened)
+    for key in sorted(reads):
+        read_sets.record(conn, key)
+    return reads

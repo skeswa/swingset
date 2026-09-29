@@ -121,7 +121,7 @@ def for_unit(conn: sqlite3.Connection, unit: WorkUnit) -> ActionScope:
         sources.update(_event_sources(conn, unit.unit_id))
         sources.add("wsdc_registry")
         kinds.update({"first_point_reconsideration", "source_id_checked"})
-    elif unit.unit_kind in {"map", "inventory", "history"}:
+    elif unit.unit_kind in {"map", "mapping", "resolution", "inventory", "history", "year"}:
         sources.update(
             str(row[0])
             for row in conn.execute(
@@ -129,7 +129,7 @@ def for_unit(conn: sqlite3.Connection, unit: WorkUnit) -> ActionScope:
                 "UNION SELECT source FROM source_events UNION SELECT source FROM source_event_map"
             )
         )
-        if unit.unit_kind in {"inventory", "history"}:
+        if unit.unit_kind in {"inventory", "history", "year"}:
             sources.add("wsdc_registry")
             sources.update(_all_event_sources(conn))
         else:

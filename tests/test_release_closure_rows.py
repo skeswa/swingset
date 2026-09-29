@@ -175,7 +175,7 @@ def test_dependency_edge_must_name_the_actual_generation_scope(source_fixture):
     f = source_fixture
     drain_project(f)
     rows = list(f.conn.execute("SELECT * FROM derivation_generations WHERE stage='project'"))
-    history = next(row for row in rows if row["unit_kind"] == "history")
+    year = next(row for row in rows if row["unit_kind"] == "year")
     base = next(row for row in rows if row["unit_kind"] == "inventory")
     malformed = [
         {
@@ -188,7 +188,7 @@ def test_dependency_edge_must_name_the_actual_generation_scope(source_fixture):
     f.conn.execute(
         "INSERT INTO derivation_dependency_sets VALUES (?,?)", (dependency, canonical(malformed))
     )
-    copied = dict(history)
+    copied = dict(year)
     copied.update(generation_id="malformed-scope-edge", dependency_set_id=dependency)
     columns = list(copied)
     f.conn.execute(

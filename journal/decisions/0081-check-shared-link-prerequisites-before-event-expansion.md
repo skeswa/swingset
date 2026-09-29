@@ -4,7 +4,7 @@ Recorded: 2026-09-17
 Decided by: agent  
 Topic: Offline selection cost  
 Supersedes: —  
-Superseded by: —
+Superseded by: [D-0223](0223-link-units-depend-on-what-they-read.md) (links depend on their read keys; no dancer cohort)
 
 ## Decision
 

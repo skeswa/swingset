@@ -63,6 +63,7 @@ SIZE_CAP_REMEDY = (
 ROOT_KINDS = (
     "baseline",
     "pending_candidate",
+    "release_manifest",
     "pointer",
     "finding",
     "hold",
@@ -394,6 +395,7 @@ def _candidate_roots(state_dir: Path) -> Iterator[Root]:
         target = baseline.resolve()
         seen.add(target)
         yield Root("baseline", target.name, _candidate_selection(target))
+        yield from _manifest_roots(state_dir, target)
     from swingset.publish.service import pending_candidates
 
     if (state_dir / "candidates").exists():
@@ -403,6 +405,7 @@ def _candidate_roots(state_dir: Path) -> Iterator[Root]:
                 continue
             seen.add(resolved)
             yield Root("pending_candidate", resolved.name, _candidate_selection(resolved))
+            yield from _manifest_roots(state_dir, resolved)
 
 
 def _candidate_generations(state_dir: Path) -> set[str]:
@@ -430,6 +433,8 @@ def _candidate_selection(candidate: Path) -> tuple[str, ...]:
         raise RetentionError(f"unreadable candidate manifest: {candidate.name}") from exc
     policy = manifest.get("release_policy") or {}
     if policy.get("mode") != "closure":
+        # A partitioned release names its generations through its release
+        # manifest's artifacts (`_manifest_roots`), not here.
         return ()
     closure = policy.get("closure")
     if not isinstance(closure, dict) or "selected_generations" not in closure:
@@ -440,6 +445,84 @@ def _candidate_selection(candidate: Path) -> tuple[str, ...]:
     if not isinstance(selected, list) or any(not isinstance(item, str) for item in selected):
         raise RetentionError(f"invalid release closure in candidate manifest: {candidate.name}")
     return tuple(sorted(selected))
+
+
+def _manifest_roots(state_dir: Path, candidate: Path) -> Iterator[Root]:
+    """The generations a partitioned release's artifacts were built from (phase 3, WP6).
+
+    A candidate in `partitioned` mode names its release manifest by digest;
+    the manifest names each built partition's artifact, and each artifact's
+    sidecar names every generation it read. Those generations are roots, so
+    `gc` never archives what a retained release names. A missing manifest or
+    sidecar is an error for the same reason a missing closure is.
+    """
+    policy = _candidate_policy(candidate)
+    if policy.get("mode") != "partitioned":
+        return
+    digest = policy.get("manifest_digest")
+    if not _is_digest(digest):
+        raise RetentionError(f"release manifest is missing from candidate: {candidate.name}")
+    try:
+        generations = {
+            generation
+            for _, artifact in manifest_artifacts(state_dir, str(digest))
+            for generation in artifact_generations(state_dir, artifact)
+        }
+    except (OSError, ValueError, KeyError, TypeError) as exc:
+        raise RetentionError(
+            f"unreadable release manifest or artifact for candidate {candidate.name}: {exc}"
+        ) from exc
+    yield Root("release_manifest", f"{candidate.name}/{digest}", tuple(sorted(generations)))
+
+
+def _candidate_policy(candidate: Path) -> dict[str, Any]:
+    try:
+        manifest = json.loads((candidate / "_meta" / "manifest.json").read_text())
+    except (OSError, ValueError) as exc:
+        raise RetentionError(f"unreadable candidate manifest: {candidate.name}") from exc
+    policy = manifest.get("release_policy") if isinstance(manifest, dict) else None
+    return policy if isinstance(policy, dict) else {}
+
+
+# ---------------------------------------------------------------------------
+# Partition artifacts: layout (phase 3, WP6)
+# ---------------------------------------------------------------------------
+#
+# The state layer owns the directory layout; `build/artifact_store` writes and
+# collects the files. An artifact is `partitions/<aa>/<digest>/` (Parquet per
+# table and `sidecar.json`, digest = sha256 of the sidecar bytes). A release
+# manifest is `partitions/manifests/<digest>.json` and names the built
+# partitions as `built: [[partition, artifact_digest], ...]`.
+
+PARTITIONS = "partitions"
+
+
+def partition_root(state_dir: Path) -> Path:
+    return state_dir / PARTITIONS
+
+
+def artifact_directory(state_dir: Path, digest: str) -> Path:
+    if not _is_digest(digest):
+        raise ValueError(f"not an artifact digest: {digest!r}")
+    return partition_root(state_dir) / digest[:2] / digest
+
+
+def manifest_file(state_dir: Path, digest: str) -> Path:
+    if not _is_digest(digest):
+        raise ValueError(f"not a manifest digest: {digest!r}")
+    return partition_root(state_dir) / "manifests" / f"{digest}.json"
+
+
+def manifest_artifacts(state_dir: Path, digest: str) -> tuple[tuple[str, str], ...]:
+    """The `[partition, artifact_digest]` pairs one release manifest names as built."""
+    value = json.loads(manifest_file(state_dir, digest).read_bytes())
+    return tuple((str(name), str(artifact)) for name, artifact in value["built"])
+
+
+def artifact_generations(state_dir: Path, digest: str) -> tuple[str, ...]:
+    """Every generation one artifact's sidecar says it read."""
+    sidecar = json.loads((artifact_directory(state_dir, digest) / "sidecar.json").read_bytes())
+    return tuple(str(item) for item in sidecar["generations"])
 
 
 def _finding_roots(conn: sqlite3.Connection) -> Iterator[Root]:

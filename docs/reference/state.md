@@ -10,6 +10,7 @@ Local state is what the worker keeps between runs: saved evidence, database rows
 - [Registry verification (H1)](#registry-verification-h1)
 - [State directory](#state-directory)
 - [Invalidation](#invalidation)
+- [Read recorder](#read-recorder)
 - [Identity decision state](#identity-decision-state)
 - [Acceptance cases](#acceptance-cases)
 - [Requirement inventory in shadow (H11)](#requirement-inventory-in-shadow-h11)
@@ -17,8 +18,12 @@ Local state is what the worker keeps between runs: saved evidence, database rows
 - [Work queue](#work-queue)
 - [Event completion persistence (H14 extension)](#event-completion-persistence-h14-extension)
 - [Derivation generations (H15)](#derivation-generations-h15)
+- [Mapping per source, resolution per event (plan F19)](#mapping-per-source-resolution-per-event-plan-f19)
+- [Link read sets (plan F20)](#link-read-sets-plan-f20)
+- [Partition artifacts](#partition-artifacts)
 - [Accepted source generations (H7)](#accepted-source-generations-h7)
 - [Durable controls (H13)](#durable-controls-h13)
+- [Publication fences](#publication-fences)
 - [Retention](#retention)
 
 ## SQLite schema
@@ -30,30 +35,35 @@ what each numbered migration changes and links to its exact SQL.
 
 Internal tables:
 
-| Table                 | Key columns                     | Purpose                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
-| --------------------- | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `meta`                | `key`                           | `schema_version`, `installed_at`, current input bundle hash                                                                                                                                                                                                                                                                                                                                                                                             |
-| `runs`                | `run_id`                        | `started_at`, `finished_at`, `dry_run`, `summary_json`, `loop` (the owning loop; NULL for the cycle and the CLI); maintain compacts a loop row's summary to a stub after 30 days                                                                                                                                                                                                                                                                        |
-| `hosts`               | `host`                          | `next_allowed_at`, `paused_until`, `pause_reason`, `pause_streak`, `robots_sha256`, `robots_fetched_at`, `robots_status`                                                                                                                                                                                                                                                                                                                                |
-| `operator_pauses`     | `scope_kind`, `scope_id`        | operator-requested all, host, source, or requirement-kind pause; stable pause ID, actor, reason, revision, creation time and nullable expiry; separate from automatic host pauses                                                                                                                                                                                                                                                                       |
-| `host_budget`         | `host`, `day`                   | `requests`, `bytes`                                                                                                                                                                                                                                                                                                                                                                                                                                     |
-| `cursors`             | `name`                          | `value`; durable bootstrap and new-id probe positions and miss counts; `registry_probe_started_at`, `registry_probe_last_completed_at`, `registry_probe_next_at` preserve freshness and cadence across restarts                                                                                                                                                                                                                                         |
-| `watches`             | `watch_id`                      | every column in [scheduling](scheduling.md#watches) plus `fingerprint`, `extract_version`, `priority`, `created_by_snapshot_id`, `parent_watch_id`, `ever_ok`, current observation snapshot id                                                                                                                                                                                                                                                          |
-| `snapshots`           | `snapshot_id`                   | every column in [fetching](fetching.md#archive) plus `via`, `archive_url`, `captured_at`, `observed_at`, `headers_json`, `classification`, `extract_status`, `extract_sha256`, `parse_status`, `parsed_at`, `extract_version`, `parser_version` (versions last attempted)                                                                                                                                                                               |
-| `archive_captures`    | `source`, `url`, `timestamp`    | `digest`, `status`, `mimetype`, `length`, `queried_at`, `cdx_query_id`; the Wayback CDX index we hold per source, so capture selection can be redone offline ([backfill](backfill.md#the-wayback-transport))                                                                                                                                                                                                                                            |
-| `observations`        | `observation_id`                | `watch_id`, `snapshot_id`, `kind`, `scope_kind` (`source_event`, `dancer`, `source_index`, `calendar`), `scope_id` (a source reference such as `eepro:asc2025`, never a canonical id), `seq`, `extract_version`, `parser_version`, `payload_json`; indexed by `watch_id` and by (`scope_kind`, `scope_id`)                                                                                                                                              |
-| `source_event_map`    | `source`, `source_ref`          | `event_id`, `match_method` (`name_date`, `alias`, `override`), `match_confidence`; the projection that resolves observation scopes to events; rewritten whenever index or calendar observations, `event_aliases.csv`, or `source_urls.csv` change                                                                                                                                                                                                       |
-| `revisions`           | `name`                          | monotonically increasing counter per set (`observations`, `source_event_map`, `source_events`, `canonical`, `dancers`, `links`, `findings`, `snapshots`), bumped in the writing transaction                                                                                                                                                                                                                                                             |
-| `pending_work`        | `stage`, `unit_kind`, `unit_id` | `enqueued_at`; coalesced work for parse, project, and link; presence means unfinished                                                                                                                                                                                                                                                                                                                                                                   |
-| `work_queue`          | `stage`, `unit_kind`, `unit_id` | overlay on `pending_work` and derivation currency: `state` (`ready`, `leased`, `waiting_input`, `quarantined`), `attempts`, `error_class`, `input_fingerprint`, lease owner and expiry, `next_attempt_at`, last reason and error; a row exists only while a unit is leased or failing. A leased row has an owner and expiry; a waiting or quarantined row has a clock. Migration 34 seeds rows for failing pending units; see [Work queue](#work-queue) |
-| `acquisition_plan`    | `plan_key`                      | `year:<yyyy>` or `page:<watch_id>` rows the plan loop writes and acquire reads ([D-0218](../../journal/decisions/0218-the-loops-judge-the-year-gate-on-facts-and-acquire-from-a-plan-table.md)): `reason` (`eligible` or the gate's stop reason), `rank`, source, URLs, `detail_json`, `planned_at`, `run_id`. A pass cut by its deadline keeps older page rows; a whole pass deletes them                                                              |
-| `guard_reasons`       | `subject`, `reason`             | why a fetch is held: subject `host:`, `watch:` or `loop:`, the loop that saw it, `since`, `last_seen_at`, `expires_at`, `seen` ([guards](fetching.md#guards))                                                                                                                                                                                                                                                                                           |
-| `loop_state`          | `loop`                          | each loop's latest tick: run, start and finish, `failed`, `error`, `counters_json`, `last_progress_at`                                                                                                                                                                                                                                                                                                                                                  |
-| `derivation_building` | `generation_id`                 | a generation whose rows are being stored in chunks after its live write: unit, fingerprint, witness, label digest and rows, `rows_stored`                                                                                                                                                                                                                                                                                                               |
-| `accepted_inputs`     | `consumer`, `input_name`        | `digest`; the input value whose invalidation work has been committed, not a stage completion record                                                                                                                                                                                                                                                                                                                                                     |
-| `findings`            | `finding_id`                    | `kind`, `subject_kind`, `subject_id`, `watch_id`, `snapshot_id`, `severity`, `summary`, `evidence_json`, `suggested_override`, `opened_at`, `run_id`, `closed_at`, `closed_by`                                                                                                                                                                                                                                                                          |
-| `source_events`       | `source`, `source_ref`          | projection of index observations: `name_raw`, `start_date`, `end_date`, `location_raw`, `url`, plus provenance; joins to `source_event_map` for the `event_id`                                                                                                                                                                                                                                                                                          |
-| `backup_uploads`      | `path`                          | `sha256`, `uploaded_at`; upload optimization only, verified against the selected archive commit on restore                                                                                                                                                                                                                                                                                                                                              |
+| Table                    | Key columns                                 | Purpose                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| ------------------------ | ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `meta`                   | `key`                                       | `schema_version`, `installed_at`, current input bundle hash                                                                                                                                                                                                                                                                                                                                                                                             |
+| `runs`                   | `run_id`                                    | `started_at`, `finished_at`, `dry_run`, `summary_json`, `loop` (the owning loop; NULL for the cycle and the CLI); maintain compacts a loop row's summary to a stub after 30 days                                                                                                                                                                                                                                                                        |
+| `hosts`                  | `host`                                      | `next_allowed_at`, `paused_until`, `pause_reason`, `pause_streak`, `robots_sha256`, `robots_fetched_at`, `robots_status`                                                                                                                                                                                                                                                                                                                                |
+| `operator_pauses`        | `scope_kind`, `scope_id`                    | operator-requested all, host, source, or requirement-kind pause; stable pause ID, actor, reason, revision, creation time and nullable expiry; separate from automatic host pauses                                                                                                                                                                                                                                                                       |
+| `host_budget`            | `host`, `day`                               | `requests`, `bytes`                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| `cursors`                | `name`                                      | `value`; durable bootstrap and new-id probe positions and miss counts; `registry_probe_started_at`, `registry_probe_last_completed_at`, `registry_probe_next_at` preserve freshness and cadence across restarts                                                                                                                                                                                                                                         |
+| `watches`                | `watch_id`                                  | every column in [scheduling](scheduling.md#watches) plus `fingerprint`, `extract_version`, `priority`, `created_by_snapshot_id`, `parent_watch_id`, `ever_ok`, current observation snapshot id                                                                                                                                                                                                                                                          |
+| `snapshots`              | `snapshot_id`                               | every column in [fetching](fetching.md#archive) plus `via`, `archive_url`, `captured_at`, `observed_at`, `headers_json`, `classification`, `extract_status`, `extract_sha256`, `parse_status`, `parsed_at`, `extract_version`, `parser_version` (versions last attempted)                                                                                                                                                                               |
+| `archive_captures`       | `source`, `url`, `timestamp`                | `digest`, `status`, `mimetype`, `length`, `queried_at`, `cdx_query_id`; the Wayback CDX index we hold per source, so capture selection can be redone offline ([backfill](backfill.md#the-wayback-transport))                                                                                                                                                                                                                                            |
+| `observations`           | `observation_id`                            | `watch_id`, `snapshot_id`, `kind`, `scope_kind` (`source_event`, `dancer`, `source_index`, `calendar`), `scope_id` (a source reference such as `eepro:asc2025`, never a canonical id), `seq`, `extract_version`, `parser_version`, `payload_json`; indexed by `watch_id` and by (`scope_kind`, `scope_id`)                                                                                                                                              |
+| `source_event_map`       | `source`, `source_ref`                      | `event_id`, `match_method` (`name_date`, `alias`, `override`), `match_confidence`; the projection that resolves observation scopes to events; each event's rows are written by its `project/resolution/<event_id>` unit from the proposals that name it                                                                                                                                                                                                 |
+| `revisions`              | `name`                                      | monotonically increasing counter per set (`observations`, `source_event_map`, `source_events`, `canonical`, `dancers`, `links`, `findings`, `snapshots`), bumped in the writing transaction                                                                                                                                                                                                                                                             |
+| `pending_work`           | `stage`, `unit_kind`, `unit_id`             | `enqueued_at`; coalesced work for parse, project, and link; presence means unfinished                                                                                                                                                                                                                                                                                                                                                                   |
+| `work_queue`             | `stage`, `unit_kind`, `unit_id`             | overlay on `pending_work` and derivation currency: `state` (`ready`, `leased`, `waiting_input`, `quarantined`), `attempts`, `error_class`, `input_fingerprint`, lease owner and expiry, `next_attempt_at`, last reason and error; a row exists only while a unit is leased or failing. A leased row has an owner and expiry; a waiting or quarantined row has a clock. Migration 34 seeds rows for failing pending units; see [Work queue](#work-queue) |
+| `acquisition_plan`       | `plan_key`                                  | `year:<yyyy>` or `page:<watch_id>` rows the plan loop writes and acquire reads ([D-0218](../../journal/decisions/0218-the-loops-judge-the-year-gate-on-facts-and-acquire-from-a-plan-table.md)): `reason` (`eligible` or the gate's stop reason), `rank`, source, URLs, `detail_json`, `planned_at`, `run_id`. A pass cut by its deadline keeps older page rows; a whole pass deletes them                                                              |
+| `guard_reasons`          | `subject`, `reason`                         | why a fetch is held: subject `host:`, `watch:` or `loop:`, the loop that saw it, `since`, `last_seen_at`, `expires_at`, `seen` ([guards](fetching.md#guards))                                                                                                                                                                                                                                                                                           |
+| `loop_state`             | `loop`                                      | each loop's latest tick: run, start and finish, `failed`, `error`, `counters_json`, `last_progress_at`                                                                                                                                                                                                                                                                                                                                                  |
+| `derivation_building`    | `generation_id`                             | a generation whose rows are being stored in chunks after its live write: unit, fingerprint, witness, label digest and rows, `rows_stored`                                                                                                                                                                                                                                                                                                               |
+| `derivation_reads`       | `stage`, `unit_kind`, `unit_id`, `read_key` | the read keys of a link unit's current generation (`project/<kind>/<id>`, `content:<name>/<id>`, `pool:<event>`), replaced at completion or cutoff; indexed by `read_key`, so it is the reverse index from a key to the units that read it (migration 35, `state/read_index.py`). Not a dispatch proof input                                                                                                                                            |
+| `source_event_proposals` | `source`, `source_ref`                      | the event a `project/mapping/<source>` unit proposes for a listing of its source: `event_id`, `match_method`, `match_confidence`, and `placeholder_json`, the event the listing would create when nothing matches; replaced per source, read per event (`state/proposals.py`)                                                                                                                                                                           |
+| `release_partitions`     | `partition`                                 | each release partition's latest state (`event/<id>[+<id>...]`, `dancers/<k>`, `year/<yyyy>`): `inputs_digest`, `state` `built` with `artifact_digest`, or `withheld` with a `reason` (CHECKed), `detail_json`, `built_at`, `run_id` (`state/release_store.py`)                                                                                                                                                                                          |
+| `release_artifacts`      | `artifact_digest`                           | a partition artifact directory under `partitions/`: its partition, `bytes`, `created_at`, `last_named_at`                                                                                                                                                                                                                                                                                                                                               |
+| `release_manifests`      | `manifest_digest`                           | a release manifest file under `partitions/manifests/`: `bytes`, `created_at`, the `candidate_id` built from it, the publication gate's `verdict_json`                                                                                                                                                                                                                                                                                                   |
+| `accepted_inputs`        | `consumer`, `input_name`                    | `digest`; the input value whose invalidation work has been committed, not a stage completion record                                                                                                                                                                                                                                                                                                                                                     |
+| `findings`               | `finding_id`                                | `kind`, `subject_kind`, `subject_id`, `watch_id`, `snapshot_id`, `severity`, `summary`, `evidence_json`, `suggested_override`, `opened_at`, `run_id`, `closed_at`, `closed_by`                                                                                                                                                                                                                                                                          |
+| `source_events`          | `source`, `source_ref`                      | projection of index observations: `name_raw`, `start_date`, `end_date`, `location_raw`, `url`, plus provenance; joins to `source_event_map` for the `event_id`                                                                                                                                                                                                                                                                                          |
+| `backup_uploads`         | `path`                                      | `sha256`, `uploaded_at`; upload optimization only, verified against the selected archive commit on restore                                                                                                                                                                                                                                                                                                                                              |
 
 Canonical tables use the published columns in [data model](data-model.md#tables).
 Their `snapshot_id` provenance names the winning observation's snapshot.
@@ -98,13 +108,16 @@ blobs/                         content-addressed source and manual bodies
 extracts/                      content-addressed serialized extracts
 inputs/<hash>/                 captured config, overrides, vocabularies, versions
 candidates/<candidate_id>/      data/, README.md, _meta/, BUILT, PUBLISHING, PUBLISHED
+partitions/<aa>/<digest>/      release partition artifacts and sidecars; manifests/<digest>.json
+partitions/.tmp-<id>/          an artifact being written; a crash leaves one, the collector removes it
+tmp/assembly-<id>/             a streamed assembly's staging and DuckDB spill; the next build removes one a day old
 baseline -> candidates/<candidate_id>
 holds/<hold_id>.json           one retention hold: who, why, when, what it keeps
 gc/plans/<digest>.json         written retention plans; disposable, not backed up
 gc/receipts/<name>.json        one receipt per apply and per reclaim; not backed up
 RESTORE_PENDING                present until restore verification succeeds
 state.intent, state.lock       reader-writer lock pair (below); never state
-heavy.intent, heavy.lock       keeps release builds and derive's units apart
+heavy.intent, heavy.lock       keeps every build and derive's units apart while `[release] streamed_lock` is true (the default)
 loop-<name>.lock               one per loop; a second instance of a loop fails
 control.lock                   short admission and control mutex
 runs/
@@ -122,7 +135,9 @@ never removed: it is "unknown", and the plan reports it for someone to explain.
 GC is manual in v1, removes nothing except through `gc --apply`, from a written
 plan, under both locks, and the only files it removes are candidate directories
 no release or recent build claims, once they are older than
-`retention.collect_older_than`. See [retention](#retention).
+`retention.collect_older_than`. See [retention](#retention). The one exception
+is partition artifacts: derived files the build can write again, which the
+maintain loop collects ([partition artifacts](#partition-artifacts)).
 
 ### Locks
 
@@ -146,8 +161,9 @@ by a restore.
   `migration pending`. `open_for_loop` then tries one non-blocking exclusive
   open, which migrates, and reopens shared; a loop that loses that race skips.
 - **Heavy pair**: release takes `heavy.intent` and `heavy.lock` exclusive
-  (waiting up to 900 s); derive takes them shared, non-blocking, and starts
-  no unit in a tick that cannot (F10).
+  (waiting up to 900 s) for a whole or closure build and for a correction;
+  a streamed (partitioned) build takes neither. Derive takes them shared,
+  non-blocking, and starts no unit in a tick that cannot (F10).
 
 Order: `loop-<name>.lock`, `state.intent`, `state.lock`, `control.lock`, SQLite.
 Every writable connection waits up to 70 s for SQLite's writer (busy timeout),
@@ -190,18 +206,20 @@ already processed under the previous bundle.
 | A project, link or build code scope                                                                             | Queue that kind's project units, or every link unit, as hints; build none. Identical output keeps its generation                    |
 | `EXTRACT_VERSION` for a page kind                                                                               | Parse every archived snapshot of that kind, re-extracting before parsing; invalidate the watch's cached extract fingerprint version |
 | `PARSER_VERSION` for a page kind                                                                                | Parse every archived snapshot of that kind from its stored extract                                                                  |
-| Successful parse changing current observations                                                                  | Project their old and new scopes; calendar or index changes enqueue the map unit                                                    |
-| Event aliases, source URL overrides, event-matching vocabulary                                                  | Map unit: recompute map, source events, watch seeds, and affected old and new event projections                                     |
-| Other projection vocabulary or `PROJECTOR_VERSION`                                                              | Map unit and every current or previously materialized canonical scope                                                               |
+| Successful parse changing current observations                                                                  | Project their old and new scopes; calendar or index changes enqueue every source's mapping unit                                     |
+| Event aliases, source URL overrides, event-matching vocabulary                                                  | Every known source's mapping unit, and the mapping of each source the file names                                                    |
+| Other projection vocabulary or `PROJECTOR_VERSION`                                                              | Every mapping unit and every current or previously materialized canonical scope                                                     |
 | Event projection changes                                                                                        | Link that event, including removed subjects                                                                                         |
-| Registry dancer or placement projection changes                                                                 | Link every event in v1; a new dancer can match an entry that had no candidate before                                                |
+| Registry dancer or placement projection changes                                                                 | The links that read the dancer or its placements' events; the pool probe's events ([read sets](#link-read-sets-plan-f20))           |
 | Weights, nicknames, identity overrides, `LINKER_VERSION`                                                        | Link every event with canonical subjects or existing link rows                                                                      |
 | Findings, published snapshot fields, source events, source map, canonical rows, dancers, or link outputs change | Advance their output revisions; build reads these directly                                                                          |
 
-The affected set can be empty: map work is needed only when calendar
-or index observations, existing source events or mappings, or source
-URL overrides exist. Accepting empty files in a fresh state records
-their digests without inventing scope work.
+The affected set can be empty: mapping work is needed only when source
+events, proposals or map rows exist, or an override file names a source.
+Accepting empty files in a fresh state records their digests without
+inventing scope work. A caller that still queues the retired
+`project/map/all` (parse-scope code that may not change, F12) gets every
+source's mapping unit in its place (`work.enqueue`).
 
 `state/work.py` owns this dependency table. Source adapters do not decide
 which later stages run. A write, its revision bumps, and its downstream
@@ -211,12 +229,10 @@ registry scope, including registry placements); link-owned columns and
 link tables advance `links`. Link never advances a revision to relay an
 unrelated projection change to build.
 
-Fair offline service rotates stages and unit kinds; initial ties put map
-work before other project scopes. A map unit commits the new
-map and all event projections affected by membership changes atomically,
-then enqueues their link work. It may subsume pending projection work
-for those scopes in that same transaction. Ordinary scopes are one
-transaction each. Enqueueing includes old scopes so deleting or moving
+Fair offline service rotates stages and unit kinds; initial ties put
+mapping work, then resolutions, before other project scopes. Each unit is
+one transaction; an event re-derives through its dependency on its
+resolution, not inside it. Enqueueing includes old scopes so deleting or moving
 an observation also removes its former canonical rows.
 
 Link drains one event at a time, applying assignment, link rows,
@@ -251,6 +267,57 @@ and backlog high-water marks govern collection. A cycle excludes attempted
 input fingerprints, rather than whole units, so later parses can supply
 new inputs to a shared projection without reopening unchanged retries.
 See [scheduling](scheduling.md) for the initial allocations and objectives.
+
+## Read recorder
+
+A unit's dependencies say which inputs it reads. The read recorder checks that
+claim while the unit runs (`state/read_sets.py`, [D-0223](../../journal/decisions/0223-link-units-depend-on-what-they-read.md)).
+A link's dependencies are its recorded read keys
+([link read sets](#link-read-sets-plan-f20)).
+
+- `process_unit` and `link_event` run the unit body inside `recording`. It
+  installs a SQLite authorizer that notes each canonical table the body reads
+  (the `TABLES` keys, source events and the map, coverage, series, the
+  identity and journal tables, findings, observations, snapshots, year
+  acceptance). It never denies a read and restores any authorizer set through
+  `read_sets.set_authorizer`. A nested recording shares the outer one.
+- Reads by derivation infrastructure (capture, currentness, completion in
+  `state/derivation*` and `project/materialization`) and reads inside
+  triggers are left out: they are not the body's input.
+- `RULES` maps each unit kind and table to what covers it: a dependency entry
+  (`source_observations`, `selected_project_calendar`, ...), a link read key
+  family (`project/dancer`, `content:binding_ref`, ...), `effect_only` (a
+  side effect such as a confirmation watch, a pool probe, or the registry
+  association the years own), `own_output` (rows the unit replaces),
+  `nested_unit` (a unit the body materializes) or `pending:<package>` (a
+  known gap; none today). A link table read with no rule widens its read
+  set to `content:table/<name>`, a digest of the whole table (computed once
+  per read snapshot), and logs `read_set_widened`.
+- A read table with no rule is an undeclared read. The unit still commits
+  (I1); the worker logs `read_undeclared` and the run summary counts it under
+  `undeclared_reads` as `stage/kind:table`. A widened read set and a pool
+  probe that failed and widened count under `read_set_signals`
+  (`read_set_widened`, `pool_probe_widened`); so does a dancer a link used
+  that its load did not read (`dancer_read_after_load`: the load reads the
+  pool, each subject's previous default and the dancers its decisions name,
+  so this is a gap, read after the load's snapshot). Each should stay 0, and
+  the watchdog's `[read-set-widened]` fires on any in the last day.
+- Armed mode, `SWINGSET_READS_ARMED=1`, is for tests only. It raises
+  `UnrecordedRead` for an undeclared table, for a canonical read by `project/`
+  or `link/` body code outside a recording, and for `record` outside one. It
+  also adds tables SQLite's authorizer does not report: a table joined by
+  `USING` or `NATURAL` whose other columns go unread. Outside armed mode that
+  table can be missed (plan F25). `SWINGSET_READS_REPORT=<file>` writes one
+  JSON line per unit.
+- SQLite authorizes a statement when it is prepared. If derivation code
+  prepared the same SQL text first in the same recording, the body's later
+  read of it comes from the statement cache and is not seen.
+- `tests/test_read_sets.py` runs the pipeline fixtures armed with zero
+  undeclared reads, and checks statically that `project/` and `link/` open no
+  connection or authorizer and are reached only through `process_unit`,
+  `link_event`, `accept_year` or `derive_one`, apart from a reviewed list of
+  gate queries and tools. The history review pack runs the inventory and each
+  year through `process_unit`.
 
 ## Identity decision state
 
@@ -423,9 +490,10 @@ rows `ready` and calls `request_retry` for a blocked or unavailable unit; the
 cycle calls it once per cycle, derive once per tick. A retry of a waiting unit that ends the same
 way is a `waiting_repeats`, not a failure. A real supersession
 (`inputs_changed`), a `ControlTimeout` in the admission and a fence or busy
-error (in the admission or while processing) change nothing: derive writes no
-fenced table, and the next tick's recovery closes an attempt left open
-uncounted.
+error (in the admission or while processing) change nothing: under a full
+fence derive writes nothing, and the next tick's recovery closes an attempt
+left open uncounted. Under a narrow fence the queue is writable, so the tick
+closes it the same way at once ([publication fences](#publication-fences)).
 `swingset queue` reports rows; `swingset queue requeue` sets matching
 quarantined or waiting rows `ready` with no count and requests a retry.
 
@@ -591,7 +659,10 @@ queues a hint for every registered unit of each kind that reads the epoch
 (`INSERT OR IGNORE`, so a queued unit keeps its time; a new one gets the
 run's clock), since the watchdog sees only `pending_work`. Calendar,
 dancer and source_index have no prerequisites and no replay entry. Adding the
-entry changed every dependent fingerprint once.
+entry changed every dependent fingerprint once. A link reads no per-kind
+epoch: an event unit's replay also moves its own version (namespace
+`replayed_unit`, key `[stage, kind, id]`), which only its link's event entry
+includes, and queues that link.
 Shared dependency manifests are memoized only within a query, with changes on
 the same or another connection invalidating that memoization.
 
@@ -631,8 +702,8 @@ enforces this. A bundle captured before scopes still yields the package-wide
 absent digest.
 
 Known cost: the storage, projection, link and build modules still import
-each other, so each project and link scope holds 168 files and the build
-scope 174. The scheduler, the loops and acquisition (`schedule/cycle.py`,
+each other, so each project and link scope holds 172 files and the build
+scope 178. The scheduler, the loops and acquisition (`schedule/cycle.py`,
 `loops/`, `fetch/client.py`, `history/backfill.py`, `schedule/fairness.py`
 and the like) are in no scope: an edit there re-runs nothing. `versions()` and
 `repository_identity()` live in `versions.py` for that reason (the cycle
@@ -645,13 +716,15 @@ fall outside its scope. A parse _retry_ still keys on `version/repository`,
 so any deploy re-opens blocked parse attempts without re-parsing others.
 
 The projection order is calendar, source index, and dancer scopes; history
-inventory; source mapping; event scopes; then history association and coverage.
+inventory; one mapping per source; one resolution per event; event scopes;
+then one unit per year for the association and coverage.
 Inventory includes occurrence and listing enrichment. Previous inventory output
 supports stable IDs but does not trigger its own next generation. An alias move
-commits the map and every affected old and new event generation together.
-Linking selects event output and the whole registry candidate universe, including
-dancers that have never been candidates for the event. Link-owned columns are
-excluded from its project dependencies.
+re-derives the source's mapping, the old and new events' resolutions, then
+those events.
+A link depends on what it read: its event, the dancers it used, content
+digests and its pool version ([link read sets](#link-read-sets-plan-f20)).
+Link-owned columns are excluded from its project dependencies.
 
 Migration 32 stores each distinct output row once. The bytes live in
 `derivation_payloads`, keyed by the sha256 of the canonical row text, and
@@ -730,10 +803,11 @@ that id: an early cutoff
 twice; `materializing()` passes a callable, and a bare iterator never cuts
 off. It considers a cutoff only when the pointer is the one the selection saw,
 no sibling in its consistency group captured its provisional id (such a member
-is pinned), and its closure groups equal the kept generation's: direct
-`derivation` entries and the `selected_*`, `source_observations` and
-`calendar_observations` sets. Release closure and retention follow only those,
-so every walk over the kept id matches one over the re-run. It then reads the
+is pinned). Output alone decides: a kept generation may name a superseded
+upstream one, since releases take current pointers and the closure path
+withholds such an anchor
+([D-0224](../../journal/decisions/0224-releases-from-partition-artifacts.md),
+which dropped D-0205's closure-stable rule). It then reads the
 rows once without writing, fences the inputs again, and compares the digest and
 row count with the kept label. On a match it stores the dependency sets, a
 `derivation_recipes` row and a `derivation_equivalences` row, and updates only
@@ -743,13 +817,13 @@ row count with the kept label. On a match it stores the dependency sets, a
 moved between capture and completion, the replay rewrote live rows, and the
 kind's replay epoch moves once the group has certified. Otherwise it stores the
 rows from a second read, which must match the first. Build never cuts off.
-`events.coverage_tier` belongs to history, so no other scope's output records
-it. A calendar, map, event or dancer generation from before phase 1 did, so the
+`events.coverage_tier` belongs to the year (history's before plan F17), so no
+other scope's output records it. A calendar, map, event or dancer generation from before phase 1 did, so the
 comparison takes that one column out of the kept rows first
 (`materialization.moved_columns`,
 [D-0212](../../journal/decisions/0212-cut-off-across-the-moved-column-and-held-parses.md));
-the build applies history's value last either way. A re-run of a generation it reuses, by fingerprint or equivalence, moves
-the replay epoch the same way, and a calendar, inventory or map reuse replays
+the build applies the year's value last either way. A re-run of a generation it reuses, by fingerprint or equivalence, moves
+the replay epoch the same way, and a calendar or inventory reuse replays
 the continuity support recorded with that equivalence. Output that differs
 for identical inputs raises `NondeterministicOutputError`, a failed attempt
 with a retry clock. `[derivation] cutoff = false` in `config/sources.toml`
@@ -761,9 +835,9 @@ on); recorded equivalences stay readable.
 Large units complete in stages, so no write holds the whole output (phase 2,
 WP4). A completion stages when `derive_one` runs it (`derivations.chunking`),
 no other unit's group is open, its own group completes nothing else, and it is
-`project/history` or its kept generation has more than `CHUNK_ROWS` (5,000)
-rows. The `accept-year` command stages history the same way: its
-acceptance commits with history's live rows (A), then B and C run as below;
+a project year or its kept generation has more than `CHUNK_ROWS` (5,000)
+rows. The `accept-year` command stages its year the same way: its
+acceptance commits with the year's live rows (A), then B and C run as below;
 if they stop, the derive loop resumes the building generation. Grouped
 completions such as a `source_event` with its event, and callers already in
 a transaction, keep the single path.
@@ -842,6 +916,225 @@ parse work, registered and unmaterialized scope counts, and retained generations
 The last durable build materialization is separate from publication progress.
 H16 owns release closure and publication coverage; H15 keeps the existing normal
 build barrier until that revision lands.
+
+### Year units
+
+`project/history/all` is retired for `project/year/<yyyy>` (plan F17,
+[D-0222](../../journal/decisions/0222-derive-history-per-year-and-the-event-map-per-source-and-event.md)).
+`derivation_dependencies.RETIRED` names it: its scope row and generations
+stay, but no catalog yields it, `refresh()` never registers it,
+`process_unit` drops its hint without running, and migration 35 deleted its
+queue rows.
+
+- **Which years.** Every `events.year`, every reporting year of an event
+  (`substr(event_month,1,4)`), the reporting year of every placement already
+  associated with an event, every year with `coverage` rows, and every year
+  already registered or queued. A placement year with no event reported in
+  it has nothing to associate and gets no unit.
+- **What a year writes** (`project/history.finalize_year`). The association
+  of registry placements reported in the year, at or after
+  `history_start`, by series and month as before; the `sheets_partial` tier
+  of its events; and its `coverage` rows (`project/coverage.rebuild_year_coverage`),
+  each keeping `last_changed_at` while unchanged. Coverage counts a year's
+  events by `events.year`, with every placement associated with them
+  whatever month it reports: a December event reported in January counts in
+  December's year, while January's year associates its placements. A
+  changed association moves the `canonical` revision. Output: the year's
+  coverage rows, its events' `coverage_tier` and the `event_id` of every
+  placement reported in it.
+- **What it reads.** Prerequisites: every calendar, the inventory, and the
+  events of the year or reported in its months with their resolutions. Content groups: `year_placements` (placements reported in the year
+  without `event_id`, which it writes, plus placements reported in another
+  year that name one of its events, with `event_id`), `year_acceptance`,
+  `year_findings` (open `history_year` and `phase1_year` findings for the
+  year) and `snapshot_transport` (the transport of those rows' snapshots).
+  Replay epochs: calendar, dancer, inventory, resolution and event. A unit's content
+  never includes a column it writes, so its own run never makes it stale
+  (F23): a dancer's reconcile that moves `event_id` reaches the year through
+  the dancer epoch. Its certificate names the other-year associations
+  directly, since no token moves with `event_id`.
+- **Readiness.** A year waits while any calendar, source index or inventory
+  scope is unmaterialized, then for its prerequisites. A prerequisite that is
+  quarantined, waits for input or backs off, or that the pacing gate holds
+  (the inventory inside its interval), is settled at its pointer
+  (`derivations.settled_reason`), so a year does not wait out the
+  inventory's 12 hours after a dancer change, and one failing event does not
+  freeze its year; each settled prerequisite is named in the tick's
+  `settled_prerequisites`. No link waits for a year: it reads the
+  association as content, and a year that moves it queues the link
+  ([read sets](#link-read-sets-plan-f20)).
+- **Hints.** `process_unit` queues hints for the years a unit touches, before
+  and after it writes: an event's years, a source event's events' years, a
+  dancer's reporting years that have an event and the years of the events its
+  placements name, a resolution's event's years, and every year for a
+  calendar or the inventory.
+  An edit to `overrides/series_aliases.csv` or `overrides/finding_reviews.csv`
+  queues the inventory and every year. Currency decides what runs.
+- **Staging.** A year always takes the staged path under `derive_one`, like
+  history did. `accept_year` derives its year alone inside that year's
+  capture and recording; the `accept-year` command stages it.
+
+## Mapping per source, resolution per event (plan F19)
+
+`project/map/all` is retired like `project/history/all` ([D-0222](../../journal/decisions/0222-derive-history-per-year-and-the-event-map-per-source-and-event.md)): its generations stay,
+nothing schedules it, and a stale hint is dropped. Index scopes are pages, so
+one listing can sit on several; the split is per source.
+
+- **`project/mapping/<source>`** (`project/map.propose`). One per source in
+  `source_events`, `source_event_proposals` or `source_event_map`, or queued
+  when an override file names it. For each listing of the source it proposes
+  the target the map chose: an override (`event_aliases.csv`, then
+  `source_urls.csv`), else the one catalog event (`wsdc_status` not
+  `unknown`) with the same normalized name and overlapping dates, else, with
+  a name and an end date, a generated id and the placeholder event the listing
+  would create. Ambiguous and undated listings get no proposal. It replaces
+  its source's `source_event_proposals` rows; they are its output.
+  Prerequisites: every calendar, its source's index pages, the inventory;
+  content group `source_listings` (its source's listings without clocks).
+- **`project/resolution/<event_id>`** (`project/map.resolve`). One per event
+  that is proposed, mapped, owns a resolution row, or owned a row of the
+  retired `unmatched_source_events/all` or `override_events/all` scopes. It
+  writes the event's `source_event_map` rows from its proposals (a listing
+  another event held moves here; rows whose listing left are deleted) and the
+  event row in scope `resolution/<event_id>`: for a generated id, the
+  inventory's row when the inventory owns it (the registry-enriched
+  collision), otherwise the listing's placeholder (the last in source and
+  ref order); for an override, the row already there or the override's
+  placeholder; for a catalog match, the row it already owned. A placeholder
+  keeps the live `coverage_tier`, which its year owns. With none of these it
+  deletes its row, and a row no scope owns any more goes, detaching the
+  placements that named it (D-0191). Its first run releases its event from
+  the retired scopes. Output: its map rows and its scope's event row.
+  Prerequisites: every calendar and the inventory; content group
+  `resolution_proposals` (the proposals naming the event). It also waits
+  (`derivation_dependencies.waits_for`, not an input) for the mappings of the
+  sources that propose the event or whose map rows name it, so a switch from
+  the map never deletes a row before its source has proposed.
+- **Events and source events.** `project/event/E` depends on
+  `resolution/E` when that unit exists; its `source_mapping` group stays. A
+  source event depends on the resolutions and events its listing maps to.
+  Unmapped, it succeeds with no output and waits.
+- **No global reconcile.** Neither unit re-projects events or calls
+  `reconcile_registry_events`; calendars and dancers still do, and the years
+  own the association (F17, F23).
+- **Gate.** A pending mapping or resolution closes the projection-pending
+  gate, as the map did, unless the paced inventory holds it.
+
+## Link read sets (plan F20)
+
+A link used to depend on every dancer, so one registry page re-queued all
+2,934 links. Now `link/event/E` depends on what its run read ([D-0223](../../journal/decisions/0223-link-units-depend-on-what-they-read.md)). The run records
+its read keys; completion and cutoff replace its `derivation_reads` rows with
+them, and its fingerprint and certificate are formed from them
+(`derivation_dependencies.link_inputs`). A link that never ran reads the
+default set: every key below but the dancers and source references.
+
+| Key                          | Value                                                                                    | Covers                                                                |
+| ---------------------------- | ---------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| `project/event/E`            | the event unit's selected generation and its own replay version                          | contests, rounds, entries, judges, placements of E                    |
+| `project/dancer/<id>`        | the dancer unit's selected generation (a row digest if no unit)                          | the dancer row and registry placements of each dancer it used         |
+| `content:event_row/E`        | digest of E's events row, without clocks or `coverage_tier`                              | the row a calendar, the inventory or a resolution owns                |
+| `content:registry_event/E`   | digest of the placements with `event_id=E`, without clocks                               | confirmations and points; the association the years and dancers write |
+| `content:missing_identity/E` | E's open prelim `missing_identity` findings                                              | points field sizes                                                    |
+| `content:journal`            | journal digest, `identity_decisions` revision, reference migrations                      | decisions and migrations                                              |
+| `content:binding_ref/<ref>`  | the ref's bindings to other events' subjects, with their existence and resolution reason | continuity checks (`DecisionResolver.binding_problem`)                |
+| `pool:E`                     | `derivation_input_versions(namespace='link_pool', key=E)`                                | every other dancer: candidate pools, name rarity, judge eligibility   |
+
+The event's source observations stay a group (`source_observations`); the
+release closure follows them. The `content:binding_ref` entries, about one per
+subject, form one `binding_refs` group, stored once while they are unchanged.
+
+- **Dancers it used.** Every candidate, every dancer whose registry row at E
+  a confirmation query returned, every printed id, and the ids it links. A
+  printed id with no dancer yet is read too, so a dancer who appears later
+  re-queues it.
+- **Capture and commit.** The load records each key's value; which dancers
+  it used is known after resolving, so the load keeps every dancer unit's
+  generation and the row digest of every pool dancer no unit materialized.
+  The evidence and these values come from one read transaction
+  (`derivation_query.read_snapshot`), so a write that lands during the load
+  is seen by both or neither: a value taken after the evidence could certify
+  output computed from older rows. `commit_resolution` passes the read set with those values to
+  `materializing`, which selects the generation from it inside the write and
+  raises `SupersededWorkError` when any value moved (`derivations.check_reads`).
+  The admission's selection came from the previous read set, so only its
+  recipe must match.
+- **Readiness.** A link waits for its event, its resolution and the dancers
+  its read set names that have a unit: a scope, a queued unit or an
+  observation (`prerequisites`). A printed id the registry lacks has none and
+  is no prerequisite, or the link would never be ready again (F27: 13 links
+  on the production copy); its key reads the row's absence, and the dancer's
+  first pointer queues the link. No year: the association is content
+  (`content:registry_event`). A failing or paced prerequisite is settled at
+  its pointer ([year units](#year-units)). One that never ran also waits
+  while any dancer scope is unmaterialized and not settled. Nothing lists or
+  checks the whole registry, so listing ready links no longer takes 26 to 29
+  minutes (phase 1 known limit; the worker time is unmeasured).
+- **Hints.** A project scope whose pointer moves to a new generation queues
+  every unit whose read set names it (`read_hints`, the reverse index); an
+  event replay queues its link. `process_unit` also queues the links whose
+  registry placements or event row a dancer, year, calendar, inventory or
+  resolution changed (`hint_state`). A dancer no longer queues every link.
+  Hints only help the watchdog; currency decides.
+- **Pool probe** (`link/pool.py`). A dancer unit compares each of its
+  dancers' signature before and after its write: normalized name, surname
+  word, surname initial, merge and judge eligibility. On a change, or when a
+  dancer appears or disappears, it bumps `pool:E` and queues the link of
+  each event where `generate_candidates` pairs the old or new name with an
+  entry or judge of the same surname initial (judges only when eligible;
+  only judges for an eligibility change alone), and of each event whose live
+  candidates share the old or new surname word (name rarity). It runs only
+  once some link has run. A probe that raises bumps every event with a
+  subject of either initial and logs `pool_probe_widened`.
+- **Journal.** Any journal change re-queues every link (over-approximate).
+- **Known limit.** A link's resolution state reads its own previous default
+  id: a revocation records `revoked` once and `unresolved` on the next run.
+  A re-run with unchanged inputs after a revocation therefore differs and
+  raises `NondeterministicOutputError`. Scheduling never re-runs a current
+  link, so this needs a forced run; the soundness test compares answers,
+  not that state.
+
+## Partition artifacts
+
+Stage 1 of a partitioned release writes one artifact per partition
+([build: partition artifacts](build.md#partition-artifacts)). The rows are
+the lifecycle; the files are content-addressed and never rewritten:
+
+- `release_partitions`: one row per current partition, `built` with its
+  artifact or `withheld` with a reason. `detail_json` holds the partition's
+  generation digest (`content`), the snapshot and parser pairs its rows name,
+  the event lists of its event generations (immutable, so the next build
+  groups events without reading rows), counts, whether any support was
+  legacy, the pairs read from live observations, the listings it holds, and
+  the withheld detail. A
+  build writes a row only when the inputs digest changed, and deletes the
+  rows of partitions that no longer exist.
+- `release_artifacts`: one row per artifact directory, with `last_named_at`
+  set by every build that names it.
+
+A build writes rows 200 partitions to a transaction. It checks each artifact
+directory inside that write, so an artifact the collector removed after the
+build found it gets no row and is written again next time.
+
+**Collector.** The maintain loop removes, 500 at a time, inside one write:
+artifact directories and `release_artifacts` rows that no `release_partitions`
+row and no manifest of a retained candidate (the baseline, pending candidates
+and the newest three built) names, once `last_named_at` is a day old;
+directories with no row after a day; `.tmp-` directories after a day; release
+manifest files and `release_manifests` rows that no retained candidate and no
+current build generation's candidate names, written over a day ago
+(`manifests`); and the scratch a killed build left under `state/tmp`
+(`assembly-*`, `partitions-*`, `closure-*`) after a day (`scratch`). A
+retained manifest that cannot be read stops the artifact sweep: it removes
+nothing and says `unreadable`. It is outside `gc --apply` because an artifact
+holds no input, only a copy of generation rows the build can write again. A
+build that finds an artifact collected while it ran builds stage 1 once more
+at once instead of failing.
+
+**Retention.** The sidecars of a retained partitioned candidate's manifest
+name every generation their partitions read; those are roots
+(`release_manifest`, [roots](#roots)), so `gc` never archives what a retained
+release names.
 
 ## Accepted source generations (H7)
 
@@ -960,6 +1253,44 @@ unknown overlapping durations unavailable and retain evidence wall ages. These
 diagnostic clocks use current dependencies; they do not claim reconstructed
 historical ownership or host-budget eligibility.
 
+## Publication fences
+
+An active publication admission fences writes with `BEFORE` triggers that
+raise `active publication fences semantic writes`
+(`state/publication_fence.py`). Every migration from schema 12 refreshes
+them, so a new table is covered. The control tables above are never fenced.
+
+| Admission kind                      | Candidate               | Fences                                               | Loops                                              |
+| ----------------------------------- | ----------------------- | ---------------------------------------------------- | -------------------------------------------------- |
+| `publication` (legacy: `publish`)   | closure-mode or settled | every other table                                    | all skip (`publication_in_flight`)                 |
+| `publication_narrow` (plan phase 3) | partitioned (D-0224)    | what the publication's check reads (`NARROW`, below) | acquire, plan, derive tick; maintain, release skip |
+
+The narrow list comes from `publish/safety._validate_partitioned`, its
+correction token and the input check. `tests/test_publication_fence.py` pins
+it and runs the check under an authorizer to show it reads nothing else.
+
+| Table                                                          | Rows fenced                                      |
+| -------------------------------------------------------------- | ------------------------------------------------ |
+| `meta`                                                         | `input_bundle_hash`, `identity_journal_digest`   |
+| `revisions`                                                    | `identity_decisions`                             |
+| `identity_decisions`, `identity_journal_acceptances`           | all                                              |
+| `admission_policies`                                           | all                                              |
+| `source_generations`                                           | `state='revoked'` (a revocation, or its removal) |
+| `derivation_scopes`, `derivation_generations`                  | `stage='build'`                                  |
+| `derivation_row_refs`                                          | rows of a build generation                       |
+| `derivation_payloads`                                          | deletes only (payloads are shared by content)    |
+| `release_partitions`, `release_artifacts`, `release_manifests` | all                                              |
+
+An insert is fenced only when it adds a key, so `ON CONFLICT DO NOTHING` and
+`INSERT OR IGNORE` on a present row pass (parse upserts its policy row;
+derive re-accepts an unchanged bundle). An update of `meta` or `revisions` is
+fenced only when the value changes. A database without every narrow trigger
+admits a partitioned publication as `publication`. At most one publication
+of either kind is active. A unit write that meets a narrow fence is closed
+in its tick: attempt `interrupted`, `publication_fenced`, uncounted, retried
+in 60 s ([work queue](#work-queue)). Recovery keeps either kind uncertain
+until its receipt is reconciled.
+
 ## Retention
 
 A saved computation is three things with three lifetimes. The **label** (the
@@ -987,16 +1318,17 @@ anything
 
 Roots are read from state that already exists, so no second list can drift:
 
-| Root                | What it pins                                                                |
-| ------------------- | --------------------------------------------------------------------------- |
-| `baseline`          | The generations the baseline candidate's release closure names              |
-| `pending_candidate` | The same, for every pending candidate                                       |
-| `pointer`           | Every `derivation_scopes.materialized_generation_id`                        |
-| `finding`           | Generations open findings declare in `finding_support_references`           |
-| `hold`              | Generations named by a file under `state/holds/`                            |
-| `restore_marker`    | The current pointers and pending candidates, while `RESTORE_PENDING` exists |
-| `operator_hold`     | The same, while the `operator-hold` file exists                             |
-| `window`            | The newest `retention.recent_window` generations of each scope              |
+| Root                | What it pins                                                                                                      |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `baseline`          | The generations the baseline candidate's release closure names                                                    |
+| `pending_candidate` | The same, for every pending candidate                                                                             |
+| `release_manifest`  | For a `partitioned` baseline or pending candidate, every generation the sidecars of its manifest's artifacts name |
+| `pointer`           | Every `derivation_scopes.materialized_generation_id`                                                              |
+| `finding`           | Generations open findings declare in `finding_support_references`                                                 |
+| `hold`              | Generations named by a file under `state/holds/`                                                                  |
+| `restore_marker`    | The current pointers and pending candidates, while `RESTORE_PENDING` exists                                       |
+| `operator_hold`     | The same, while the `operator-hold` file exists                                                                   |
+| `window`            | The newest `retention.recent_window` generations of each scope                                                    |
 
 The two markers pin the current pointers and nothing more; neither records which
 computation it was about, and an operator who needs more writes a hold

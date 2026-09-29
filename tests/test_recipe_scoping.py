@@ -160,7 +160,7 @@ def test_every_derivation_kind_names_a_scope_of_the_real_package(package):
     from swingset.state.recipes import recipe_names
 
     scopes = set(recipe_scope.manifest(package)["scopes"])
-    project = BASE | {"inventory", "map", "event", "source_event", "history"}
+    project = BASE | {"inventory", "mapping", "resolution", "event", "source_event", "year"}
     units = [("project", kind) for kind in sorted(project)]
     units += [("link", "event"), ("build", "release"), ("build", "correction")]
     for stage, kind in units:
@@ -312,7 +312,8 @@ def test_a_versions_edit_changes_only_project_link_and_build(package):
         for name in code(package)
         if name.startswith(("recipe/code/project/", "recipe/code/link", "recipe/code/build"))
     }
-    assert len(expected) == 10
+    # Nine project kinds (the map split into mapping and resolution), link, build.
+    assert len(expected) == 11
     assert difference == expected
 
 

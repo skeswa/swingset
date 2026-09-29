@@ -120,6 +120,7 @@ pass are dropped.
 | `event expansion pressure`, `event pressure metadata pending`                                               | host    | `since` + 24 h                                            |
 | `publication_in_flight`, `release_disk_low`, `inputs_not_accepted` (plan, release)                          | loop    | `since` + 1 h                                             |
 | `heavy_busy` (release)                                                                                      | loop    | `since` + 3 h                                             |
+| `release_lag` (derive runs only parse and link units)                                                       | loop    | `since` + 1 h                                             |
 | history gate reasons, `robots disallow`, `source disabled`                                                  | watch   | `since` + 30 d; written once a UTC day                    |
 | `request_error` (the acquisition pass's choice raised; not contention)                                      | watch   | last failure + 1 h, doubling; 7 d from the third in a row |
 

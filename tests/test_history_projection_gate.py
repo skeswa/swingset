@@ -102,7 +102,7 @@ def state(tmp_path):
         yield state
 
 
-def test_real_result_dispatch_and_its_followup_history_are_inventory_neutral(state):
+def test_real_result_dispatch_and_its_followup_year_are_inventory_neutral(state):
     retain_listing(state)
     unit = WorkUnit("project", "event", "held")
     enqueue(state.conn, (unit,), enqueued_at=state.clock.now().isoformat())
@@ -114,14 +114,17 @@ def test_real_result_dispatch_and_its_followup_history_are_inventory_neutral(sta
     before = tuple(state.conn.execute("SELECT * FROM events").fetchone())
     process_unit(state.db, unit, SimpleNamespace(files={}), state.clock, state.run)
     assert tuple(state.conn.execute("SELECT * FROM events").fetchone()) == before
-    # The event re-queued history. With derivations it only finalizes
-    # associations and coverage, which no year digest reads, so a fetched sheet
-    # no longer closes the gate for the next one (D-0198).
+    # The event's output is unchanged, so it keeps its generation and its
+    # year stays current: output alone decides a cutoff (D-0224; before, the
+    # new listing's support re-minted the event and re-queued the year). A
+    # year only finalizes associations and coverage, which no year digest
+    # reads, so a fetched sheet does not close the gate for the next one
+    # either way (D-0198).
     from swingset.state import derivations
 
-    assert WorkUnit("project", "history", "all") in set(
-        derivations.pending_units(state.conn, "project")
-    )
+    pending = set(derivations.pending_units(state.conn, "project"))
+    assert WorkUnit("project", "year", "2019") not in pending
+    assert not any(item.unit_kind == "history" for item in pending)
     assert not pending_inventory_projection(state.conn)
     assert phase_two_allowed(state.conn, 2019)
 
@@ -129,7 +132,8 @@ def test_real_result_dispatch_and_its_followup_history_are_inventory_neutral(sta
 @pytest.mark.parametrize(
     "kind,identifier",
     [
-        ("map", "all"),
+        ("mapping", "eepro"),
+        ("resolution", "held"),
         ("calendar", "2026"),
         ("source_index", "2026"),
         ("dancer", "123"),
@@ -190,22 +194,33 @@ def test_source_event_requires_retained_unambiguous_mapping_before_neutral_dispa
     unit = WorkUnit("project", "source_event", "eepro:held")
     enqueue(state.conn, (unit,), enqueued_at=state.clock.now().isoformat())
     assert pending_inventory_projection(state.conn)
-    state.conn.execute(
-        "INSERT INTO source_event_map VALUES ('eepro','eepro:held','held','explicit',1)"
+    # A reviewed override maps the listing: its source's mapping proposes it
+    # and the event's resolution writes the map row (plan F19). Both block
+    # until they run.
+    from swingset.project import map as mapping
+
+    monkeypatch.setattr(mapping, "overrides", lambda files: {("eepro", "eepro:held"): "held"})
+    enqueue(
+        state.conn,
+        (WorkUnit("project", "mapping", "eepro"),),
+        enqueued_at=state.clock.now().isoformat(),
     )
-    # The new source scope changes only history's dependency closure, and a
-    # pending history no longer blocks (D-0198). Complete it anyway; a
-    # subsequent source-only revision is inventory neutral.
-    assert not pending_inventory_projection(state.conn)
+    assert pending_inventory_projection(state.conn)
     drain(state)
+    assert tuple(
+        state.conn.execute(
+            "SELECT event_id,match_method FROM source_event_map WHERE source_ref='eepro:held'"
+        ).fetchone()
+    ) == ("held", "override")
+    # A subsequent source-only revision is inventory neutral.
+    assert not pending_inventory_projection(state.conn)
     state.conn.execute(
         "UPDATE observations SET payload_json=replace(payload_json,'null','\"revised evidence\"') WHERE observation_id='listing'"
     )
     assert not pending_inventory_projection(state.conn)
     assert phase_two_allowed(state.conn, 2019)
-    monkeypatch.setattr(
-        process,
-        "project_map",
-        lambda *args: pytest.fail("neutral dispatch must not remap inventory"),
-    )
+    for name in ("propose", "resolve"):
+        monkeypatch.setattr(
+            process, name, lambda *args: pytest.fail("neutral dispatch must not remap inventory")
+        )
     process_unit(state.db, unit, SimpleNamespace(files={}), state.clock, state.run)

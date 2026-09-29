@@ -1,18 +1,19 @@
-"""Pacing of the two global projections (D-0199, D-0210).
+"""Pacing of the global inventory (D-0210).
 
-`project/history` waits `history_interval_seconds` after it last
-materialized. `project/inventory` waits `inventory_interval_seconds` too,
-because each inventory generation re-mints the map, every event and source
-event, history and every link. A due history lifts the inventory's wait only
-once history has consumed the inventory it has: history needs a current
-inventory, and re-running one whose cascade history has not reached yet
-starts that cascade over. An inventory made at or after history came due
-started a cascade that a dancer change has since interrupted; from then on
-the inventory runs whenever it is stale until history lands, so a dancer
-change in every cascade cannot starve history. A cutoff counts as a
-materialization (D-0205). A calendar replay the inventory has not read, or a
+`project/inventory` waits `inventory_interval_seconds` after it last
+materialized, because until output cutoff ignores the dependency closure (plan
+F21) each inventory generation re-mints the map, every event and source event,
+every year and every link. A calendar replay the inventory has not read, or a
 calendar generation newer than the inventory's output, lifts the wait: either
-rewrote live rows the inventory enriched (F2).
+rewrote live rows the inventory enriched (F2). A cutoff counts as a
+materialization (D-0205).
+
+Years are not paced: each is cheap and re-runs only when its own inputs change
+(plan F17). `history_interval_seconds` paced `project/history/all`, which is
+retired; the key is still accepted and paces nothing. The history lift (a due
+history that consumed the inventory let it run early) and the starvation
+breaker went with it: with F21 an inventory re-run whose output is unchanged
+restarts no cascade.
 
 The cycle names its scheduler for the run (`configured`). Readers outside
 scheduling then ask `holds` whether the gate holds a unit on purpose: the
@@ -27,12 +28,11 @@ import sqlite3
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from contextvars import ContextVar
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from swingset.schedule.fair_policy import SchedulerConfig
 from swingset.state.work import WorkUnit
 
-HISTORY = WorkUnit("project", "history", "all")
 INVENTORY = WorkUnit("project", "inventory", "all")
 
 _ACTIVE: ContextVar[tuple[SchedulerConfig, Callable[[], datetime]] | None] = ContextVar(
@@ -50,45 +50,20 @@ def _at(conn: sqlite3.Connection, unit: WorkUnit) -> datetime | None:
 def deferred(
     conn: sqlite3.Connection, scheduler: SchedulerConfig, unit: WorkUnit, *, now: datetime
 ) -> bool:
-    """Whether a paced global projection waits: it materialized within its interval.
+    """Whether the paced inventory waits: it materialized within its interval.
 
-    The inventory waits unless history is due and has consumed it (history
-    materialized at or after it). While history has not, a dancer change
-    during the cascade does not start the cascade over: the inventory keeps
-    its interval, and history runs after the next one. A history whose latest
-    attempt failed is not due here, so one that keeps failing cannot unpace
-    the inventory; `[unit-quarantined]` names it (D-0216).
+    A calendar replay or a newer calendar generation lifts the wait. Only the
+    inventory is paced.
     """
-    if unit.stage != "project" or unit.unit_kind not in {"history", "inventory"}:
+    if unit.stage != "project" or unit.unit_kind != "inventory":
         return False
-
-    def recent(target: WorkUnit, interval: float | None) -> bool:
-        if interval is None:
-            return False
-        at = _at(conn, target)
-        return at is not None and (now - at).total_seconds() < interval
-
-    if unit.unit_kind == "history":
-        return recent(unit, scheduler.history_interval_seconds)
-    if not recent(unit, scheduler.inventory_interval_seconds):
+    interval = scheduler.inventory_interval_seconds
+    if interval is None:
         return False
-    if calendar_replayed(conn, unit) or calendar_regenerated(conn, unit):
+    made = _at(conn, unit)
+    if made is None or (now - made).total_seconds() >= interval:
         return False
-    if scheduler.history_interval_seconds is None or recent(
-        HISTORY, scheduler.history_interval_seconds
-    ):
-        return True
-    from swingset.state.attempts import latest_attempt
-
-    tried = latest_attempt(conn, HISTORY)
-    if tried is not None and tried["outcome"] == "transient":
-        return True
-    consumed, made = _at(conn, HISTORY), _at(conn, unit)
-    if consumed is None or made is None:
-        return True
-    if consumed >= made:
-        return False
-    return made < consumed + timedelta(seconds=scheduler.history_interval_seconds)
+    return not (calendar_replayed(conn, unit) or calendar_regenerated(conn, unit))
 
 
 def calendar_replayed(conn: sqlite3.Connection, unit: WorkUnit) -> bool:
@@ -164,10 +139,19 @@ def calendar_regenerated(conn: sqlite3.Connection, unit: WorkUnit) -> bool:
 
 @contextmanager
 def configured(scheduler: SchedulerConfig, now: Callable[[], datetime]) -> Iterator[None]:
-    """Name the scheduler and clock whose gates `holds` answers for, for the block."""
+    """Name the scheduler and clock whose gates `holds` answers for, for the block.
+
+    Readiness then takes a unit the gate holds as settled at its pointer
+    (`derivations.settled_reason`), so the units that read the paced
+    inventory run against its current output instead of waiting out the
+    interval; they re-run when it moves.
+    """
+    from swingset.state.derivations import pacing_gate
+
     token = _ACTIVE.set((scheduler, now))
     try:
-        yield
+        with pacing_gate(holds, now):
+            yield
     finally:
         _ACTIVE.reset(token)
 

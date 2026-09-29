@@ -10,6 +10,7 @@ from swingset.fetch.archive import Archive
 from swingset.fetch.client import FetchClient
 from swingset.model.observations import encode_payload
 from swingset.project.map import project_map
+from swingset.project.process import process_unit
 from swingset.schedule.parse import parse_snapshot
 from swingset.schedule.watches import upsert_watch
 from swingset.sources.base import ExtractError, ParseContext, WatchSpec
@@ -24,7 +25,7 @@ from swingset.sources.records import (
 )
 from swingset.sources.scoringdance import EventPage as ScoringDanceEventPage
 from swingset.state.db import open_database
-from swingset.state.work import next_work
+from swingset.state.work import WorkUnit, next_work
 
 
 def context(kind: str, source_ref: str) -> ParseContext:
@@ -111,6 +112,18 @@ def test_eepro_coming_soon_snapshot_completes_as_legitimate_empty(tmp_path: Path
         client.close()
 
 
+def _remap(database, bundle) -> None:
+    """Map and resolve, then derive every event (events depend on their resolution)."""
+    with database.transaction():
+        project_map(database.connection, bundle, "2026-09-10T00:00:00Z", "run", 11)
+    events = database.connection.execute(
+        "SELECT unit_id FROM derivation_scopes WHERE stage='project' AND unit_kind='event' "
+        "UNION SELECT event_id FROM source_event_map ORDER BY 1"
+    ).fetchall()
+    for (event,) in events:
+        process_unit(database, WorkUnit("project", "event", event), bundle, FakeClock(), "run")
+
+
 def test_city_of_angels_alias_uses_approximate_override_dates(tmp_path: Path) -> None:
     aliases = Path("overrides/event_aliases.csv").read_bytes()
     bundle_type = type(
@@ -168,8 +181,7 @@ def test_city_of_angels_alias_uses_approximate_override_dates(tmp_path: Path) ->
             "'scoringdance:315',0,'1','1',?)",
             (encode_payload(result),),
         )
-        with database.transaction():
-            project_map(database.connection, automatic, "2026-09-10T00:00:00Z", "run", 11)
+        _remap(database, automatic)
         old_event = database.connection.execute(
             "SELECT event_id FROM source_event_map WHERE source='scoringdance' "
             "AND source_ref='scoringdance:315'"
@@ -195,8 +207,7 @@ def test_city_of_angels_alias_uses_approximate_override_dates(tmp_path: Path) ->
             "'2027-04-01',?,'1',1,'test','snapshot','1','2026-09-10','2026-09-10','run')",
             (old_event,),
         )
-        with database.transaction():
-            project_map(database.connection, reviewed, "2026-09-10T00:00:00Z", "run", 11)
+        _remap(database, reviewed)
         mapping = database.connection.execute(
             "SELECT event_id,match_method FROM source_event_map WHERE source='scoringdance' "
             "AND source_ref='scoringdance:315'"

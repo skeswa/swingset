@@ -3,9 +3,14 @@
 Both callers own a run summary; this loop adds to the keys it is given
 (`readiness_errors`, `unit_failures`, `stages`, `waiting_repeats`,
 `control_timeouts`, `queue.lease_busy`, `queue.quarantined`) and to the
-optional `current_hints_dropped`, `current_hints_error` and `not_completed`
-(unfailed outcomes that committed no output, by reason), so the cycle's
-summary is what it was before the loop moved here.
+optional `current_hints_dropped`, `current_hints_error`, `not_completed`
+(unfailed outcomes that committed no output, by reason) and
+`undeclared_reads` (canonical tables a unit read that no rule covers, as
+`stage/kind:table` counts; `state/read_sets`), `read_set_signals`
+(`read_set_widened` and `pool_probe_widened` counts) and `settled_prerequisites`
+(prerequisites readiness took at their pointer because they are quarantined,
+wait for input, back off or are paced, by reason, at most 50 names each), so
+the cycle's summary is what it was before the loop moved here.
 """
 
 from __future__ import annotations
@@ -24,7 +29,7 @@ from swingset.schedule import pacing
 from swingset.schedule.derive import DerivationOutcome, derive_one
 from swingset.schedule.fairness import next_offline_batch, record_offline_service
 from swingset.schedule.registry import advance_sweep, run_saved_crosscheck_if_due
-from swingset.state import derivations, queue
+from swingset.state import derivations, queue, read_sets
 from swingset.state.attempts import latest_attempt
 from swingset.state.control_scopes import for_unit
 from swingset.state.controls import ControlPaused, operation
@@ -86,14 +91,22 @@ class Offline:
         # deploy) is deleted once the selection's read snapshot closes;
         # otherwise the watchdog counts it as ready work forever (I4).
         found: dict[WorkUnit, str] = {}
-        batch = next_offline_batch(
-            self.database.connection,
-            now=self.clock.now(),
-            allowed=self.offline_allowed,
-            limit=OFFLINE_BATCH,
-            errors=self.summary["readiness_errors"],
-            current_hints=found,
-        )
+        with derivations.counting_settled() as settled:
+            batch = next_offline_batch(
+                self.database.connection,
+                now=self.clock.now(),
+                allowed=self.offline_allowed,
+                limit=OFFLINE_BATCH,
+                errors=self.summary["readiness_errors"],
+                current_hints=found,
+            )
+        if settled:
+            # Prerequisites held on purpose or failing that readiness took at
+            # their pointer: distinct units by reason (derivations.settled_reason).
+            seen = self.summary.setdefault("settled_prerequisites", {})
+            for reason, units in settled.items():
+                seen[reason] = sorted(set(seen.get(reason, ())) | units)[:50]
+
         # Housekeeping: a failed delete is noted and retried next batch,
         # never fatal to the run.
         try:
@@ -115,6 +128,19 @@ class Offline:
                     break
                 self.derive(unit)
 
+    def _count_undeclared_reads(self) -> None:
+        # Counted, never fatal (I1): the unit's output stands.
+        counts = read_sets.drain()
+        if counts:
+            found = self.summary.setdefault("undeclared_reads", {})
+            for key, count in counts.items():
+                found[key] = found.get(key, 0) + count
+        signals = read_sets.drain_signals()
+        if signals:
+            seen = self.summary.setdefault("read_set_signals", {})
+            for key, count in signals.items():
+                seen[key] = seen.get(key, 0) + count
+
     def _skip(self, unit: WorkUnit) -> None:
         """Leave ``unit`` alone for the rest of this run, whatever its inputs read."""
         try:
@@ -132,9 +158,18 @@ class Offline:
             record_offline_service(conn, unit, now=self.clock.now())
 
         try:
-            attempt = derive_one(
-                database, self.archive, unit, self.bundle, self.clock, self.run_id, on_admit=served
-            )
+            try:
+                attempt = derive_one(
+                    database,
+                    self.archive,
+                    unit,
+                    self.bundle,
+                    self.clock,
+                    self.run_id,
+                    on_admit=served,
+                )
+            finally:
+                self._count_undeclared_reads()
         except Exception as exc:
             # Whatever escaped the unit stops only the unit (I1), and counts
             # as its failure, so it backs off and quarantines (I3). A fenced
@@ -255,7 +290,7 @@ def registry_crosscheck(
             database,
             action_id="crosscheck_" + uuid4().hex,
             action_kind="registry_crosscheck",
-            scope=for_unit(database.connection, WorkUnit("project", "history", "all")),
+            scope=for_unit(database.connection, WorkUnit("project", "inventory", "all")),
             clock=clock,
             run_id=run_id,
         ):

@@ -92,12 +92,17 @@ def test_pause_persists_in_flight_while_semantic_writes_are_fenced(release):
             statements = [
                 "UPDATE meta SET value='unsafe' WHERE key='input_bundle_hash'",
                 "INSERT INTO admission_policies(page_kind,contract_version,mode,policy_revision) VALUES ('unsafe','1','enforce','unsafe')",
-                "INSERT INTO pending_work VALUES ('parse','snapshot','unsafe','2026-09-13')",
                 "INSERT INTO identity_decisions VALUES ('unsafe','eepro','event','contest','round','participant','42','same_person','evidence','reason','author','2026-09-13',NULL,'{}','sha','digest','now')",
             ]
             for statement in statements:
                 with pytest.raises(sqlite3.IntegrityError, match="publication"):
                     other.execute(statement)
+            # A partitioned candidate's fence is narrow: derivation work the
+            # loops write is not what its check reads (WP10).
+            other.execute(
+                "INSERT INTO pending_work VALUES ('parse','snapshot','safe','2026-09-13')"
+            )
+            other.rollback()
         observed.append(True)
         return real_create(**kwargs)
 
@@ -291,7 +296,7 @@ def test_the_release_loop_publishes_through_a_hub(tmp_path, monkeypatch):
     assert dry["candidate_id"] and "publication" not in dry and hub.calls == 1
     with open_database(state, lock=False) as database:
         assert database.connection.execute(
-            "SELECT state,outcome FROM execution_admissions WHERE action_kind='publication'"
+            "SELECT state,outcome FROM execution_admissions WHERE action_kind='publication_narrow'"
         ).fetchone()[:] == ("settled", "published")
         assert (
             database.connection.execute(

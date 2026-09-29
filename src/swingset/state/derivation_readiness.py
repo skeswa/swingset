@@ -1,4 +1,8 @@
-"""Check a complete dancer cohort using the same immutable currentness proof."""
+"""Check a dancer cohort using the same immutable currentness proof.
+
+Links no longer wait for the whole registry: a link waits for the dancers its
+read set names (plan F20), each through `derivations.current`.
+"""
 
 from __future__ import annotations
 
@@ -11,23 +15,6 @@ from . import derivation_query
 from .derivation_signatures import base_certificate, materialized_proof
 from .recipes import recipe_inputs
 from .work import WorkUnit
-
-
-def all_dancers_current(conn: sqlite3.Connection) -> bool:
-    """Check the database-defined shared link cohort once per owned snapshot.
-
-    The key describes a database query, not a caller-supplied cohort. Guarded
-    snapshot lifetime binds both membership and proofs, avoiding repeated
-    construction and hashing of every dancer for each blocked link event.
-    """
-    from .derivation_dependencies import dancer_prerequisites
-    from .derivations import current
-
-    return derivation_query.currentness(
-        conn,
-        ("all_link_dancer_prerequisites", current),
-        lambda: dancers_current(conn, dancer_prerequisites(conn), current=current),
-    )
 
 
 def dancers_current(

@@ -181,7 +181,7 @@ The public operation is `link_event` in
 
 | Phase                  | Owner                                                      | Result                                                                                   |
 | ---------------------- | ---------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| Load retained evidence | [`evidence.py`](../../src/swingset/link/evidence.py)       | `LinkingSnapshot`: event evidence, rules, selected derivation, and journal token         |
+| Load retained evidence | [`evidence.py`](../../src/swingset/link/evidence.py)       | `LinkingSnapshot`: event evidence, rules, selected derivation, journal token, read keys  |
 | Resolve identities     | [`resolution.py`](../../src/swingset/link/resolution.py)   | `EventResolution`: conclusions, candidate assessments, review restrictions, and findings |
 | Commit current results | [`persistence.py`](../../src/swingset/link/persistence.py) | Stored links and candidates, history, dependent updates, and completed work              |
 
@@ -204,8 +204,10 @@ precedence remains unchanged, including a hold on an already paired subject.
 The shared deterministic journal policy lives in
 [`policy.py`](../../src/swingset/link/policy.py). `DecisionResolver` in
 [`decisions.py`](../../src/swingset/link/decisions.py) loads that policy and reads
-durable source continuity for linking and publication. The commit rechecks both
-the selected derivation and journal token. A stale standalone call returns
+durable source continuity for linking and publication. The load reads the
+evidence and every read key's value in one read transaction; the commit
+rechecks the journal token and each of those values (`read_set`; see
+[read sets](state.md#link-read-sets-plan-f20)). A stale standalone call returns
 `False` with work still queued; a delegated call raises `SupersededWorkError`.
 An unchanged successful standalone call also returns `False`, preserving the
 existing public interface.
@@ -221,11 +223,21 @@ for the design choice and validation links.
 
 Linking consumes event-scoped work from [local state](state.md#invalidation).
 A change to weights, nicknames, identity overrides, or `LINKER_VERSION`
-enqueues all event scopes transactionally. Registry changes also enqueue
-all events in v1 because new dancers can match formerly unmatched entries.
+enqueues all event scopes transactionally. A registry change re-queues only
+the links that read the dancer, and the events whose subjects the dancer's
+old or new name can match or whose candidates share its surname word: the
+dancer unit's pool probe ([`pool.py`](../../src/swingset/link/pool.py),
+[read sets](state.md#link-read-sets-plan-f20),
+[D-0223](../../journal/decisions/0223-link-units-depend-on-what-they-read.md)).
+A link runs once its event, its resolution and the dancers it read that have
+a unit are current or settled; a printed WSDC id the registry lacks, and a
+year, never hold it.
 The whole event assignment and its output are one transaction. Link owns
 identity columns, `identity_links`, and `link_candidates`; it never
 advances a revision just to make an unrelated canonical change publish.
+A release with fewer confirmed links, or fewer entries or judges with a WSDC
+id, than the baseline is refused without an approval row
+([publication gate](publishing.md#publication-gate)).
 `LINKER_VERSION` is recorded on identity assertions. Weight fitting is
 an offline v1.1 step that proposes a new weights file, never a runtime
 mode inside this linker.

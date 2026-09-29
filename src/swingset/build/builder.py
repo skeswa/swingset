@@ -72,6 +72,11 @@ class BuildMetadata:
     built_at: datetime | None = None
     candidate_id: str | None = None
     input_paths: Mapping[str, str] | None = None
+    #: `overrides/release_decreases.csv` for the publication gate (D-0225): its
+    #: bytes, parsed by the gate, which refuses on a malformed file.
+    decrease_overrides: bytes | Sequence[Mapping[str, str]] = ()
+    #: A correction-only candidate: its verdict records decreases but never refuses.
+    correction_only: bool = False
 
 
 @dataclass(frozen=True)
@@ -146,13 +151,21 @@ def _fingerprint(data: BuildInput, meta: BuildMetadata) -> str:
     )
 
 
-def _validate(rows: Mapping[str, list[dict[str, Any]]], history_start: date) -> None:
+Rows = Mapping[str, Sequence[Mapping[str, Any]]]
+
+
+def check_enums(rows: Rows) -> None:
+    """Every enumerated column holds a known value."""
     for (table, field), enum_type in ENUM_FIELDS.items():
         allowed_values = {member.value for member in enum_type}
         for row in rows.get(table, []):
             value = row.get(field)
             if value is not None and value not in allowed_values:
                 raise BuildError(f"unknown {table}.{field} enum value: {value!r}")
+
+
+def check_events(rows: Rows, history_start: date) -> None:
+    """Event dates, months, precision and closed vocabularies are consistent."""
     for row in rows.get("events", []):
         start, end = row.get("start_date"), row.get("end_date")
         if start is not None and end is not None and start > end:
@@ -185,6 +198,10 @@ def _validate(rows: Mapping[str, list[dict[str, Any]]], history_start: date) -> 
         }.items():
             if row.get(field) is not None and row[field] not in allowed_values:
                 raise BuildError(f"unknown events.{field}: {row[field]!r}")
+
+
+def check_references(rows: Rows) -> None:
+    """Marks, callbacks and heats name an entry, a round and a judge that exist."""
     entry_ids = {row["entry_id"] for row in rows.get("entries", [])}
     round_ids = {row["round_id"] for row in rows.get("rounds", [])}
     judge_ids = {row["judge_id"] for row in rows.get("judges", [])}
@@ -196,10 +213,15 @@ def _validate(rows: Mapping[str, list[dict[str, Any]]], history_start: date) -> 
         for row in rows.get(table, []):
             if row.get("round_id") not in round_ids:
                 raise BuildError(f"{table} references missing round {row.get('round_id')}")
-    callback_marks: dict[tuple[Any, Any], list[dict[str, Any]]] = {}
     for row in rows.get("callback_marks", []):
         if row.get("judge_id") not in judge_ids:
             raise BuildError(f"callback_marks references missing judge {row.get('judge_id')}")
+
+
+def check_callbacks(rows: Rows) -> None:
+    """Each callback's counts and score sum agree with its retained marks."""
+    callback_marks: dict[tuple[Any, Any], list[Mapping[str, Any]]] = {}
+    for row in rows.get("callback_marks", []):
         callback_marks.setdefault((row.get("round_id"), row.get("entry_id")), []).append(row)
     for callback in rows.get("callbacks", []):
         callback_key = callback.get("round_id"), callback.get("entry_id")
@@ -217,6 +239,11 @@ def _validate(rows: Mapping[str, list[dict[str, Any]]], history_start: date) -> 
             float(callback.get("score_sum") or 0), score_sum, rel_tol=1e-6, abs_tol=1e-4
         ):
             raise BuildError(f"callback {callback_key!r} score_sum disagrees with retained marks")
+
+
+def check_placements(rows: Rows) -> None:
+    """Placements name entries that exist, and places are contiguous and unique."""
+    entry_ids = {row["entry_id"] for row in rows.get("entries", [])}
     for table, field in (
         ("placements", "leader_entry_id"),
         ("placements", "follower_entry_id"),
@@ -234,6 +261,15 @@ def _validate(rows: Mapping[str, list[dict[str, Any]]], history_start: date) -> 
             places
         ):
             raise BuildError(f"placements are not contiguous and unique for {round_id}")
+
+
+def check_identities(rows: Rows) -> None:
+    """Linked judges, placements and entries carry the identity support they claim.
+
+    A linked judge needs a confirmed assertion, a placement's dancer is its
+    entry's confirmed dancer in the same role, a linked entry is confirmed, and
+    one bib in a contest and role maps to one WSDC id.
+    """
     allowed = {"confirmed"}
     confirmed_judges = {
         (row.get("subject_id"), row.get("wsdc_id"))
@@ -274,6 +310,25 @@ def _validate(rows: Mapping[str, list[dict[str, Any]]], history_start: date) -> 
                 raise BuildError(f"bib {key!r} maps to multiple WSDC ids")
 
 
+#: The builder's release checks, in the order `_validate` runs them. Each
+#: reads only the rows it is given, so a partition's rows can be checked
+#: alone (plan phase 3, WP6): every table they join lives in one event
+#: partition. The name is the reason a failing partition is withheld with.
+CHECKS: tuple[tuple[str, Callable[[Rows, date], None]], ...] = (
+    ("invalid_enum", lambda rows, _start: check_enums(rows)),
+    ("invalid_event_dates", check_events),
+    ("missing_reference", lambda rows, _start: check_references(rows)),
+    ("callback_counts_disagree", lambda rows, _start: check_callbacks(rows)),
+    ("invalid_placements", lambda rows, _start: check_placements(rows)),
+    ("unsupported_identity", lambda rows, _start: check_identities(rows)),
+)
+
+
+def _validate(rows: Rows, history_start: date) -> None:
+    for _reason, check in CHECKS:
+        check(rows, history_start)
+
+
 def _changelog(
     current: Mapping[str, list[dict[str, Any]]],
     baseline: Path | None,
@@ -298,16 +353,33 @@ def _changelog(
 
 
 class ParquetRows(Sequence[Mapping[str, Any]]):
-    """Lazy public rows for consumers that usually need only their count."""
+    """Lazy public rows for consumers that usually need only their count.
 
-    def __init__(self, path: Path) -> None:
-        self.file = pq.ParquetFile(path)
+    Iteration reads one batch at a time; ``meter`` (the streamed assembly's
+    row meter) counts the rows each batch materializes.
+    """
+
+    def __init__(self, path: Path | Sequence[Path], meter: Any = None) -> None:
+        paths = [path] if isinstance(path, Path) else list(path)
+        self.files = [pq.ParquetFile(item) for item in paths]
+        self.meter = meter
+
+    @property
+    def file(self) -> pq.ParquetFile:
+        return self.files[0]
 
     def __len__(self) -> int:
-        return int(self.file.metadata.num_rows)
+        return sum(int(file.metadata.num_rows) for file in self.files)
+
+    def _batches(self) -> Iterator[pa.RecordBatch]:
+        for file in self.files:
+            for batch in file.iter_batches(batch_size=CHANGELOG_BATCH_ROWS):
+                if self.meter is not None:
+                    self.meter.take(batch.num_rows)
+                yield batch
 
     def __iter__(self) -> Iterator[Mapping[str, Any]]:
-        for batch in self.file.iter_batches(batch_size=8192):
+        for batch in self._batches():
             yield from batch.to_pylist()
 
     @overload
@@ -328,7 +400,7 @@ class ParquetRows(Sequence[Mapping[str, Any]]):
         if not 0 <= index < len(self):
             raise IndexError(index)
         offset = 0
-        for batch in self.file.iter_batches(batch_size=8192):
+        for batch in self._batches():
             if index < offset + batch.num_rows:
                 return dict(batch.slice(index - offset, 1).to_pylist()[0])
             offset += batch.num_rows
@@ -360,13 +432,17 @@ def _sorted_parquet_rows(paths: Sequence[Path]) -> Iterator[dict[str, Any]]:
             yield from batch.to_pylist()
 
 
+#: Rows per batch when typing and writing the changelog; bounded working memory.
+CHANGELOG_BATCH_ROWS = 2048
+
+
 def _typed_rows(rows: Iterable[dict[str, Any]], schema: pa.Schema) -> Iterator[dict[str, Any]]:
     # The old eager Arrow table normalized timestamps and null fields before
     # merging with retained history. Preserve that boundary in bounded batches.
     pending: list[dict[str, Any]] = []
     for row in rows:
         pending.append(row)
-        if len(pending) == 8192:
+        if len(pending) == CHANGELOG_BATCH_ROWS:
             yield from pa.Table.from_pylist(pending, schema=schema).to_pylist()
             pending.clear()
     if pending:
@@ -412,7 +488,7 @@ def _write_changelog(
             _key, source_number, row, source = heapq.heappop(heap)
             pending.append(row)
             count += 1
-            if len(pending) == 8192:
+            if len(pending) == CHANGELOG_BATCH_ROWS:
                 writer.write_table(pa.Table.from_pylist(pending, schema=schema))
                 pending.clear()
             if next_row := next(source, None):
@@ -424,20 +500,20 @@ def _write_changelog(
     return count
 
 
-def build_candidate(
-    state_dir: Path,
-    data: BuildInput,
-    meta: BuildMetadata,
-    *,
-    suppressions: Sequence[Mapping[str, Any]] = (),
-    card_renderer: Callable[[BuildInput], bytes] | None = None,
-    rows_finalizer: Callable[[dict[str, list[dict[str, Any]]]], None] | None = None,
-) -> BuildResult:
-    state_dir.mkdir(parents=True, exist_ok=True)
-    baseline, baseline_commit, baseline_content = _baseline(state_dir)
-    fingerprint = _fingerprint(data, meta)
-    candidates = state_dir / "candidates"
-    candidates.mkdir(exist_ok=True)
+@dataclass(frozen=True)
+class CandidateFacts:
+    """What a candidate manifest states about its final tables."""
+
+    row_counts: Mapping[str, int]
+    source_snapshot_counts: Mapping[str, int]
+    calendar_horizon: str | None
+    latest_event_covered: str | None
+
+
+def _cached(
+    candidates: Path, fingerprint: str, baseline_commit: str | None, meta: BuildMetadata
+) -> BuildResult | None:
+    """A retained, verified candidate built from the same inputs, if any."""
     for existing in candidates.iterdir():
         record = existing / "BUILT"
         if record.is_file() and not (existing / "REJECTED").exists():
@@ -467,8 +543,184 @@ def build_candidate(
                     bool(value["changed"]),
                     True,
                 )
+    return None
+
+
+def _finish(
+    temporary: Path,
+    candidate_id: str,
+    data: BuildInput,
+    meta: BuildMetadata,
+    *,
+    hashes: dict[str, str],
+    facts: CandidateFacts,
+    card_rows: Mapping[str, Sequence[Mapping[str, Any]]],
+    card_renderer: Callable[[BuildInput], bytes] | None,
+    fingerprint: str,
+    baseline: Path | None,
+    baseline_commit: str | None,
+    baseline_content: str | None,
+    build_time: datetime,
+) -> BuildResult:
+    """Write the card, license, verdict, manifest and receipt, then rename into place."""
+    card = card_renderer(replace(data, tables=card_rows)) if card_renderer else meta.card
+    (temporary / "README.md").write_bytes(card)
+    hashes["README.md"] = sha256_file(temporary / "README.md")
+    (temporary / "LICENSE").write_bytes(DATASET_LICENSE)
+    hashes["LICENSE"] = sha256_file(temporary / "LICENSE")
+    # The publication gate's verdict is named and hashed like every file, but
+    # it describes the comparison, not the content (D-0225).
+    from swingset.publish import gate
+
+    hashes[gate.VERDICT] = gate.write(
+        temporary,
+        row_counts=facts.row_counts,
+        baseline=baseline,
+        baseline_commit=baseline_commit,
+        overrides=meta.decrease_overrides,
+        exempt="correction" if meta.correction_only else None,
+    )
+    semantic_files = {
+        name: digest
+        for name, digest in hashes.items()
+        if not name.startswith("data/changelog/") and name != gate.VERDICT
+    }
+    semantic = {
+        "files": semantic_files,
+        "schema_version": meta.schema_version,
+        "versions": meta.versions,
+        "correction_token": data.release_policy.get("token") if data.release_policy else None,
+    }
+    content_hash = _hash_json(semantic)
+    manifest = {
+        "candidate_id": candidate_id,
+        "built_at": build_time.isoformat(),
+        "run_id": meta.run_id,
+        "repository_commit": meta.repository_commit,
+        "schema_version": meta.schema_version,
+        "versions": meta.versions,
+        "row_counts": dict(facts.row_counts),
+        "source_snapshot_counts": dict(facts.source_snapshot_counts),
+        "history_start": data.history_start.isoformat(),
+        "calendar_horizon": facts.calendar_horizon,
+        "latest_event_covered": facts.latest_event_covered,
+        "content_hash": content_hash,
+        "build_fingerprint": fingerprint,
+        "expected_parent": meta.expected_parent,
+        "baseline_commit": baseline_commit,
+        "input_bundle_hash": data.input_bundle_hash,
+        "release_policy": data.release_policy,
+        "files": hashes,
+    }
+    manifest_path = temporary / "_meta" / "manifest.json"
+    manifest_path.parent.mkdir(exist_ok=True)
+    manifest_path.write_bytes(canonical_json(manifest))
+    manifest_hash = sha256_file(manifest_path)
+    built_record = {
+        "candidate_id": candidate_id,
+        "build_fingerprint": fingerprint,
+        "baseline_commit": baseline_commit,
+        "expected_parent": meta.expected_parent,
+        "content_hash": content_hash,
+        "manifest_hash": manifest_hash,
+        "changed": content_hash != baseline_content,
+        "input_paths": meta.input_paths,
+    }
+    durable_write(temporary / "BUILT", canonical_json(built_record))
+    fsync_dir(temporary)
+    final = temporary.parent / candidate_id
+    os.replace(temporary, final)
+    fsync_dir(temporary.parent)
+    return BuildResult(
+        candidate_id,
+        final,
+        content_hash,
+        manifest_hash,
+        content_hash != baseline_content,
+        False,
+    )
+
+
+@dataclass(frozen=True)
+class StreamedTables:
+    """The final tables a streamed assembly wrote into a candidate directory."""
+
+    #: Relative path to sha256 of every data file, changelog included.
+    hashes: dict[str, str]
+    #: Each table's files, for the card's lazy views.
+    files: Mapping[str, Sequence[Path]]
+    facts: CandidateFacts
+
+
+def build_streamed_candidate(
+    state_dir: Path,
+    data: BuildInput,
+    meta: BuildMetadata,
+    *,
+    write: Callable[[Path], StreamedTables],
+    card_renderer: Callable[[BuildInput], bytes] | None = None,
+    meter: Any = None,
+) -> BuildResult:
+    """A candidate whose tables ``write`` streams into its directory (plan phase 3, WP8).
+
+    ``data`` carries the release policy and schemas; its tables are not read.
+    The card reads each final table lazily, one batch at a time. Reuse,
+    manifest, receipt and rename are `build_candidate`'s.
+    """
+    state_dir.mkdir(parents=True, exist_ok=True)
+    baseline, baseline_commit, baseline_content = _baseline(state_dir)
+    fingerprint = _fingerprint(data, meta)
+    candidates = state_dir / "candidates"
+    candidates.mkdir(exist_ok=True)
+    cached = _cached(candidates, fingerprint, baseline_commit, meta)
+    if cached is not None:
+        return cached
     candidate_id = meta.candidate_id or f"cand_{uuid.uuid4().hex[:16]}"
-    final = candidates / candidate_id
+    temporary = candidates / f".{candidate_id}.tmp-{uuid.uuid4().hex}"
+    temporary.mkdir()
+    try:
+        written = write(temporary)
+        card_rows: dict[str, Sequence[Mapping[str, Any]]] = {
+            name: ParquetRows(written.files[name], meter) for name in PUBLISHED_TABLES
+        }
+        return _finish(
+            temporary,
+            candidate_id,
+            data,
+            meta,
+            hashes=dict(written.hashes),
+            facts=written.facts,
+            card_rows=card_rows,
+            card_renderer=card_renderer,
+            fingerprint=fingerprint,
+            baseline=baseline,
+            baseline_commit=baseline_commit,
+            baseline_content=baseline_content,
+            build_time=meta.built_at or datetime.now(UTC),
+        )
+    except BaseException:
+        shutil.rmtree(temporary, ignore_errors=True)
+        raise
+
+
+def build_candidate(
+    state_dir: Path,
+    data: BuildInput,
+    meta: BuildMetadata,
+    *,
+    suppressions: Sequence[Mapping[str, Any]] = (),
+    card_renderer: Callable[[BuildInput], bytes] | None = None,
+    rows_finalizer: Callable[[dict[str, list[dict[str, Any]]]], None] | None = None,
+) -> BuildResult:
+    state_dir.mkdir(parents=True, exist_ok=True)
+    baseline, baseline_commit, baseline_content = _baseline(state_dir)
+    fingerprint = _fingerprint(data, meta)
+    candidates = state_dir / "candidates"
+    candidates.mkdir(exist_ok=True)
+    cached = _cached(candidates, fingerprint, baseline_commit, meta)
+    if cached is not None:
+        return cached
+    candidate_id = meta.candidate_id or f"cand_{uuid.uuid4().hex[:16]}"
     temporary = candidates / f".{candidate_id}.tmp-{uuid.uuid4().hex}"
     temporary.mkdir()
     try:
@@ -559,86 +811,41 @@ def build_candidate(
         # Expose real history through a lazy sequence rather than Python copies.
         history_path = temporary / "data" / "changelog" / "changelog.parquet"
         card_rows["changelog"] = ParquetRows(history_path)
-        card = card_renderer(replace(data, tables=card_rows)) if card_renderer else meta.card
-        (temporary / "README.md").write_bytes(card)
-        hashes["README.md"] = sha256_file(temporary / "README.md")
-        (temporary / "LICENSE").write_bytes(DATASET_LICENSE)
-        hashes["LICENSE"] = sha256_file(temporary / "LICENSE")
-        semantic_files = {
-            name: digest
-            for name, digest in hashes.items()
-            if not name.startswith("data/changelog/")
-        }
-        semantic = {
-            "files": semantic_files,
-            "schema_version": meta.schema_version,
-            "versions": meta.versions,
-            "correction_token": data.release_policy.get("token") if data.release_policy else None,
-        }
-        content_hash = _hash_json(semantic)
-        built_at = build_time.isoformat()
-        manifest = {
-            "candidate_id": candidate_id,
-            "built_at": built_at,
-            "run_id": meta.run_id,
-            "repository_commit": meta.repository_commit,
-            "schema_version": meta.schema_version,
-            "versions": meta.versions,
-            "row_counts": row_counts,
-            "source_snapshot_counts": {
-                source: sum(1 for row in rows["snapshots"] if row.get("source") == source)
-                for source in sorted(
-                    {str(row["source"]) for row in rows["snapshots"] if row.get("source")}
-                )
-            },
-            "history_start": data.history_start.isoformat(),
-            "calendar_horizon": max(
-                (str(row["end_date"]) for row in rows["events"] if row.get("end_date")),
-                default=None,
-            ),
-            "latest_event_covered": max(
-                (
-                    str(row["end_date"])
-                    for row in rows["events"]
-                    if row.get("end_date")
-                    and row["event_id"]
-                    in {placement["event_id"] for placement in rows["placements"]}
-                ),
-                default=None,
-            ),
-            "content_hash": content_hash,
-            "build_fingerprint": fingerprint,
-            "expected_parent": meta.expected_parent,
-            "baseline_commit": baseline_commit,
-            "input_bundle_hash": data.input_bundle_hash,
-            "release_policy": data.release_policy,
-            "files": hashes,
-        }
-        manifest_path = temporary / "_meta" / "manifest.json"
-        manifest_path.parent.mkdir()
-        manifest_path.write_bytes(canonical_json(manifest))
-        manifest_hash = sha256_file(manifest_path)
-        built_record = {
-            "candidate_id": candidate_id,
-            "build_fingerprint": fingerprint,
-            "baseline_commit": baseline_commit,
-            "expected_parent": meta.expected_parent,
-            "content_hash": content_hash,
-            "manifest_hash": manifest_hash,
-            "changed": content_hash != baseline_content,
-            "input_paths": meta.input_paths,
-        }
-        durable_write(temporary / "BUILT", canonical_json(built_record))
-        fsync_dir(temporary)
-        os.replace(temporary, final)
-        fsync_dir(candidates)
-        return BuildResult(
+        placed_events = {placement["event_id"] for placement in rows["placements"]}
+        return _finish(
+            temporary,
             candidate_id,
-            final,
-            content_hash,
-            manifest_hash,
-            content_hash != baseline_content,
-            False,
+            data,
+            meta,
+            hashes=hashes,
+            facts=CandidateFacts(
+                row_counts=row_counts,
+                source_snapshot_counts={
+                    source: sum(1 for row in rows["snapshots"] if row.get("source") == source)
+                    for source in sorted(
+                        {str(row["source"]) for row in rows["snapshots"] if row.get("source")}
+                    )
+                },
+                calendar_horizon=max(
+                    (str(row["end_date"]) for row in rows["events"] if row.get("end_date")),
+                    default=None,
+                ),
+                latest_event_covered=max(
+                    (
+                        str(row["end_date"])
+                        for row in rows["events"]
+                        if row.get("end_date") and row["event_id"] in placed_events
+                    ),
+                    default=None,
+                ),
+            ),
+            card_rows=card_rows,
+            card_renderer=card_renderer,
+            fingerprint=fingerprint,
+            baseline=baseline,
+            baseline_commit=baseline_commit,
+            baseline_content=baseline_content,
+            build_time=build_time,
         )
     except BaseException:
         shutil.rmtree(temporary, ignore_errors=True)

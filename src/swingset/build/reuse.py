@@ -1,8 +1,13 @@
-"""Reuse verified releases until selected evidence or public health changes."""
+"""Reuse verified releases until selected evidence or public health changes.
+
+A closure release is triggered by its selected generations and support; a
+partitioned one by its release manifest (D-0224).
+"""
 
 from __future__ import annotations
 
 import json
+from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
@@ -19,6 +24,30 @@ def trigger(closure: Any, *, health: str, bundle_digest: str, token: dict[str, A
             "health": health,
             "bundle": bundle_digest,
             "correction": token,
+        }
+    )
+
+
+def manifest_trigger(
+    manifest: Mapping[str, Any], *, path: str, health: str, bundle_digest: str
+) -> str:
+    """A partitioned release's trigger: its manifest, assembly path, health and bundle.
+
+    The manifest names every artifact, the correction token and the build
+    inputs, so an unchanged manifest reuses the candidate (D-0224). Its
+    baseline commit is left out: `reusable` already refuses an unpublished
+    candidate built on another baseline, and an acknowledged baseline stays
+    quiet after its own publication moves the baseline to it. A changed
+    `[release] path` builds afresh: it is how an operator sets one assembly
+    aside.
+    """
+    return digest(
+        {
+            "format": "release-manifest-trigger-v1",
+            "manifest": {key: value for key, value in manifest.items() if key != "baseline_commit"},
+            "path": path,
+            "health": health,
+            "bundle": bundle_digest,
         }
     )
 

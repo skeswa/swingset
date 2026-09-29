@@ -17,10 +17,21 @@ class WorkUnit:
     unit_id: str
 
 
+#: The retired whole map (plan F19). Callers that may not change (parse
+#: scopes, F12) still queue it when a calendar or index page changes;
+#: `enqueue` queues every source's mapping unit in its place.
+MAP_ALL = WorkUnit("project", "map", "all")
+
+
 def enqueue(conn: sqlite3.Connection, units: Iterable[WorkUnit], *, enqueued_at: str) -> None:
+    queued = list(units)
+    if MAP_ALL in queued:
+        from .derivation_dependencies import mapping_units
+
+        queued = [unit for unit in queued if unit != MAP_ALL] + list(mapping_units(conn))
     conn.executemany(
         "INSERT INTO pending_work(stage,unit_kind,unit_id,enqueued_at) VALUES (?,?,?,?) ON CONFLICT(stage,unit_kind,unit_id) DO UPDATE SET enqueued_at=excluded.enqueued_at",
-        ((unit.stage, unit.unit_kind, unit.unit_id, enqueued_at) for unit in units),
+        ((unit.stage, unit.unit_kind, unit.unit_id, enqueued_at) for unit in queued),
     )
 
 
@@ -123,7 +134,8 @@ def iter_work(
     (`derivations.candidate_units`).
     """
     order = (
-        "CASE unit_kind WHEN 'map' THEN 0 WHEN 'history' THEN 2 ELSE 1 END,enqueued_at,unit_kind,unit_id"
+        "CASE unit_kind WHEN 'mapping' THEN 0 WHEN 'resolution' THEN 1 WHEN 'year' THEN 3 WHEN 'history' THEN 3 "
+        "ELSE 2 END,enqueued_at,unit_kind,unit_id"
         if stage == "project"
         else "enqueued_at,unit_kind,unit_id"
     )
@@ -311,20 +323,23 @@ def affected_work(conn: sqlite3.Connection, input_name: str) -> Iterable[WorkUni
             WorkUnit("project", "source_index", str(row[0]))
             for row in conn.execute("SELECT DISTINCT scope_id FROM source_event_scope_rows")
         )
-        if (
-            units
-            or conn.execute(
-                "SELECT 1 FROM source_events UNION SELECT 1 FROM source_event_map LIMIT 1"
-            ).fetchone()
-            is not None
-        ):
-            units.add(WorkUnit("project", "map", "all"))
+        from .derivation_dependencies import mapping_units
+
+        units.update(mapping_units(conn))
         return tuple(sorted(units))
     if input_name in {"overrides/series_aliases.csv", "overrides/finding_reviews.csv"}:
+        # The inventory reads both files; the years read what it writes, and
+        # a year the edit does not change cuts off (plan F17).
         if conn.execute(
             "SELECT 1 FROM events UNION SELECT 1 FROM registry_placements UNION SELECT 1 FROM observations WHERE scope_kind='calendar' LIMIT 1"
         ).fetchone():
-            return (WorkUnit("project", "history", "all"),)
+            from . import derivations
+
+            if not derivations.available(conn):
+                return (WorkUnit("project", "history", "all"),)
+            from .derivation_dependencies import year_units
+
+            return (WorkUnit("project", "inventory", "all"), *year_units(conn))
         return ()
     if input_name in {
         "event_aliases",
@@ -332,12 +347,11 @@ def affected_work(conn: sqlite3.Connection, input_name: str) -> Iterable[WorkUni
         "overrides/event_aliases.csv",
         "overrides/source_urls.csv",
     }:
-        has_map_inputs = conn.execute(
-            "SELECT EXISTS(SELECT 1 FROM observations WHERE scope_kind IN ('calendar','source_index')) OR EXISTS(SELECT 1 FROM source_events) OR EXISTS(SELECT 1 FROM source_event_map)"
-        ).fetchone()
-        if not bool(has_map_inputs[0]):
-            return ()
-        return (WorkUnit("project", "map", "all"),)
+        # Every known source's mapping; `state/inputs.accept` adds the
+        # sources only the new file names (plan F19).
+        from .derivation_dependencies import mapping_units
+
+        return mapping_units(conn)
     if input_name in {
         "weights",
         "nicknames",

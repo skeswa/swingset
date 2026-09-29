@@ -158,7 +158,22 @@ def test_derivation_cutoff_defaults_on_and_can_be_turned_off(tmp_path: Path) -> 
     # Production runs with cutoff on and paces the inventory (D-0205, D-0210).
     loaded = load_config(config)
     assert loaded.derivation.cutoff
+    # 12 hours (D-0210); D-0227's 48 ended with the phase 3 switch.
     assert loaded.scheduler.inventory_interval_seconds == 43200
+    assert loaded.scheduler.history_interval_seconds is None
+
+
+def test_the_streamed_build_keeps_the_heavy_lock_until_turned_off() -> None:
+    from swingset.config import ReleaseConfig, parse_release
+
+    assert parse_release(b"") == ReleaseConfig() == Config({}, {}).release
+    assert ReleaseConfig().streamed_lock and ReleaseConfig().path == "partitioned"
+    assert not parse_release(b"[release]\nstreamed_lock = false\n").streamed_lock
+    with pytest.raises(ValueError, match="true or false"):
+        parse_release(b"[release]\nstreamed_lock = 1\n")
+    # Production keeps it on until the worker measures the build (D-0224).
+    loaded = load_config(Path(__file__).resolve().parents[1] / "config")
+    assert loaded.release.streamed_lock and loaded.release.path == "partitioned"
 
 
 def test_derive_one_applies_the_bundles_cutoff_switch(tmp_path: Path, monkeypatch) -> None:

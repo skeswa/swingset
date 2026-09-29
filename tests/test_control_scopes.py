@@ -103,20 +103,22 @@ def test_unmapped_source_event_inherits_global_map_fallback(tmp_path, other_mapp
         assert not unit_allowed(db.connection, unit, now=NOW)
 
 
-def test_map_contains_inline_event_and_registry_repair_kinds_but_history_does_not_reparse_rounds(
+def test_map_contains_inline_event_and_registry_repair_kinds_but_a_year_does_not_reparse_rounds(
     tmp_path,
 ):
     with open_database(tmp_path) as db:
         event(db.connection, "retained-only", ["wdr"])
         mapping = WorkUnit("project", "map", "all")
-        history = WorkUnit("project", "history", "all")
+        # A year reads what history/all read, for one year (plan F17).
+        year = WorkUnit("project", "year", "2026")
         assert "wdr" in for_unit(db.connection, mapping).sources
-        assert "wdr" in for_unit(db.connection, history).sources
+        assert "wdr" in for_unit(db.connection, year).sources
+        assert "wsdc_registry" in for_unit(db.connection, year).sources
         assert "round_observations" in for_unit(db.connection, mapping).kinds
-        assert "round_observations" not in for_unit(db.connection, history).kinds
+        assert "round_observations" not in for_unit(db.connection, year).kinds
         pause(tmp_path, "kind", "round_observations")
         assert not unit_allowed(db.connection, mapping, now=NOW)
-        assert unit_allowed(db.connection, history, now=NOW)
+        assert unit_allowed(db.connection, year, now=NOW)
 
 
 @pytest.mark.parametrize("kind,identifier", [("calendar", "live-calendar"), ("dancer", "42")])

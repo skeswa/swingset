@@ -539,14 +539,12 @@ def next_offline_batch(
 
     # All stage/kind candidates share one owned read snapshot and bounded
     # currentness answers. Caller-owned mutable transactions remain uncached.
-    owns_snapshot = not conn.in_transaction
     with read_snapshot(conn):
         return _next_offline_batch(
             conn,
             now=now,
             allowed=allowed,
             exclude=exclude,
-            shared_link_precheck=owns_snapshot,
             limit=max(1, limit),
             errors=errors,
             current_hints=current_hints,
@@ -559,11 +557,8 @@ def _next_offline(
     now: datetime,
     allowed: Callable[[WorkUnit], bool] | None = None,
     exclude: Collection[WorkUnit] = (),
-    shared_link_precheck: bool = False,
 ) -> WorkUnit | None:
-    units = _next_offline_batch(
-        conn, now=now, allowed=allowed, exclude=exclude, shared_link_precheck=shared_link_precheck
-    )
+    units = _next_offline_batch(conn, now=now, allowed=allowed, exclude=exclude)
     return units[0] if units else None
 
 
@@ -573,7 +568,6 @@ def _next_offline_batch(
     now: datetime,
     allowed: Callable[[WorkUnit], bool] | None = None,
     exclude: Collection[WorkUnit] = (),
-    shared_link_precheck: bool = False,
     limit: int = 1,
     errors: dict[str, str] | None = None,
     current_hints: dict[WorkUnit, str] | None = None,
@@ -608,10 +602,11 @@ def _next_offline_batch(
             "source_index": 0,
             "dancer": 0,
             "inventory": 1,
-            "map": 2,
-            "event": 3,
-            "source_event": 4,
-            "history": 5,
+            "mapping": 2,
+            "resolution": 3,
+            "event": 4,
+            "source_event": 5,
+            "year": 6,
         }
         groups = [
             (stage, kind, service.get((stage, kind), 0))
@@ -631,7 +626,8 @@ def _next_offline_batch(
             "LEFT JOIN scheduler_offline_service s ON p.stage=s.stage AND p.unit_kind=s.unit_kind "
             "WHERE p.stage IN ('parse','project','link') ORDER BY seq,"
             "CASE p.stage WHEN 'parse' THEN 0 WHEN 'project' THEN 1 ELSE 2 END,"
-            "CASE p.unit_kind WHEN 'map' THEN 0 WHEN 'history' THEN 2 ELSE 1 END,p.unit_kind"
+            "CASE p.unit_kind WHEN 'mapping' THEN 0 WHEN 'resolution' THEN 1 "
+            "WHEN 'year' THEN 3 WHEN 'history' THEN 3 ELSE 2 END,p.unit_kind"
         ).fetchall()
     for stage, kind, _ in groups:
 
@@ -639,15 +635,8 @@ def _next_offline_batch(
             return bool(unit.unit_kind == kind and (allowed is None or allowed(unit)))
 
         try:
-            if derived and shared_link_precheck and stage == "link":
-                from swingset.state.derivation_readiness import all_dancers_current
-
-                # Every ordinary link needs this same database-defined cohort. Check
-                # it before candidate currentness expands per-event dependencies.
-                # Caller transactions (including consistency groups) keep the full
-                # existing path; a true answer never bypasses per-event checks.
-                if not all_dancers_current(conn):
-                    continue
+            # A link waits for the dancers its read set names, checked per
+            # link by `ready`, not for the whole registry (plan F20).
             for unit in iter_work(
                 conn,
                 stage,

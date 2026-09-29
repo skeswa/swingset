@@ -1,4 +1,8 @@
-"""Unmapped metadata must not turn a current map into a superseded attempt."""
+"""Unmapped metadata must not turn a current mapping into a superseded attempt.
+
+An unmapped listing's source event succeeds with no output and waits for its
+mapping (plan F19).
+"""
 
 from datetime import datetime
 
@@ -17,7 +21,8 @@ def test_scheduled_undated_proxy_preserves_enriched_map(enriched_source_event): 
     conn = db.connection
     clock = FakeClock(datetime.fromisoformat(NOW))
     proxy = WorkUnit("project", "source_event", "scoringdance:109")
-    mapping = WorkUnit("project", "map", "all")
+    mapping = WorkUnit("project", "mapping", "scoringdance")
+    resolution = WorkUnit("project", "resolution", event.event_id)
     with db.transaction():
         conn.execute(
             "INSERT INTO accepted_inputs VALUES ('pipeline','recipe/env','fixture-runtime') "
@@ -50,9 +55,11 @@ def test_scheduled_undated_proxy_preserves_enriched_map(enriched_source_event): 
         )
     process_unit(db, WorkUnit("project", "inventory", "all"), bundle, clock, "test")
     process_unit(db, mapping, bundle, clock, "test")
+    process_unit(db, resolution, bundle, clock, "test")
     generation = selected_generation(conn, mapping)
+    resolved = selected_generation(conn, resolution)
     before = list(output_rows(conn, mapping))
-    assert generation is not None
+    assert generation is not None and resolved is not None
     assert conn.execute(
         "SELECT event_id FROM events WHERE event_id=?", (event.event_id,)
     ).fetchone()
@@ -61,6 +68,8 @@ def test_scheduled_undated_proxy_preserves_enriched_map(enriched_source_event): 
     assert not process_unit(db, proxy, bundle, clock, "test", selection=selection)
     assert current(conn, proxy)
     assert selected_generation(conn, mapping) == generation
+    assert selected_generation(conn, resolution) == resolved
+    assert current(conn, mapping) and current(conn, resolution)
     assert list(output_rows(conn, mapping)) == before
     assert (
         conn.execute(

@@ -55,10 +55,11 @@ COHORTS = tuple(
         "dancer",
         "source_index",
         "inventory",
-        "map",
+        "mapping",
+        "resolution",
         "event",
         "source_event",
-        "history",
+        "year",
     )
 ) + (("link", "event"),)
 

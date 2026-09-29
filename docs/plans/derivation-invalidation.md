@@ -116,7 +116,9 @@ hold:
   `source_observations` and `calendar_observations` groups equal the kept
   generation's. These are all that release closure and retention follow, so
   a kept id never names a stale dancer, and the retention hazard above cannot
-  arise. A real upstream change still mints downstream.
+  arise. A real upstream change still mints downstream. _Dropped in phase 3
+  ([D-0224](../../journal/decisions/0224-releases-from-partition-artifacts.md)):
+  releases take current pointers, so output alone decides._
 - **Replay witnessed.** If the replay moved one of six live revisions, the
   kind's `replayed` epoch moves, and dependents, whose fingerprints and
   certificates include it, re-run.

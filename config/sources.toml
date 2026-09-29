@@ -33,13 +33,21 @@ index_urls = []
 # finished years are queried once (D-0184). Unset disables the step.
 [scheduling]
 archive_index_seconds = 120
-# Each release build walks the whole closure (minutes, ~6 GB of memory), and
-# each history generation writes ~200k row references and re-queues every
-# link unit. Pace both; neither gates acquisition (D-0198, D-0199). Each
-# inventory generation re-mints the map, every event, history and every link
-# (about 0.4 GB), so it waits too, unless history is due (D-0210).
-build_interval_seconds = 86400     # 24 h while the phase 1 switch drains (D-0220)
-history_interval_seconds = 43200
+# Backpressure counts every pending parse row until schema 34, including about
+# 1,250 parked units that never run; these stay above that residue (D-0221).
+pending_parse_items = 4000
+pending_parse_bytes = 536870912
+# A release build takes minutes and holds the heavy lock, so builds are paced;
+# pacing never gates acquisition (D-0198, D-0199).
+build_interval_seconds = 86400 # 24 h while the phase 1 switch drains (D-0220)
+# While builds are due and release has not progressed for this many build
+# intervals, derive runs only parse and link units (0 turns it off).
+release_lag_intervals = 2
+# The inventory is one global unit of about 4 GB (F18). With phase 3 its
+# re-run ends at the first unchanged unit (its years and the links that read
+# it, as equivalences), so 12 hours again (D-0210; D-0227's 48 hours and
+# D-0228's 7 days ended with the phase 3 switch). `history_interval_seconds` is no longer read:
+# history is per year (D-0222).
 inventory_interval_seconds = 43200
 
 # The live database may grow to this size before the pipeline pauses itself
@@ -65,3 +73,15 @@ event_site_review = false
 event_pressure = false
 event_progress_refresh = false
 event_blocker_observations = false
+
+# How a release is assembled (D-0224). `partitioned` builds it from partition
+# artifacts selected by current pointers; `whole` assembles the same
+# artifacts in memory; `closure` is the phase 2 closure path, which builds an
+# empty release after the phase 3 switch (F30), so it is no fallback. Read at
+# build time; a change re-queues nothing. `streamed_lock` keeps the heavy
+# lock on a partitioned build, so derive runs no unit beside it, until the
+# worker's post-check measures the build under 2 GB with derive active.
+# See docs/guides/operation.md, "Release path".
+[release]
+path = "partitioned"
+streamed_lock = true

@@ -141,6 +141,7 @@ def test_migration_from_33_seeds_failing_units(
                     is None
                 )
 
+    monkeypatch.setattr(db_module, "SCHEMA_VERSION", 34)
     with open_database(state, lock=False, clock=FakeClock(NOW)) as database:
         conn = database.connection
         assert database.schema_version == 34
@@ -342,13 +343,16 @@ def test_error_class_names_the_exception_type() -> None:
     assert queue.Policy().quarantine_threshold("unit_exception:KeyError") == 3
 
 
-def test_a_checkpoint_at_schema_34_verifies_and_restores(tmp_path: Path) -> None:
+def test_a_checkpoint_at_schema_34_verifies_and_restores(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     from swingset.backup.checkpoint import (
         create_checkpoint,
         restore_checkpoint,
         verify_checkpoint,
     )
 
+    monkeypatch.setattr(db_module, "SCHEMA_VERSION", 34)
     state = tmp_path / "state"
     with open_database(state, lock=False) as database:
         conn = database.connection
@@ -386,6 +390,7 @@ def test_schema_33_code_refuses_a_schema_34_file(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     state = tmp_path / "state"
+    monkeypatch.setattr(db_module, "SCHEMA_VERSION", 34)
     with open_database(state, lock=False) as database:
         assert database.schema_version == 34
     monkeypatch.setattr(db_module, "SCHEMA_VERSION", 33)

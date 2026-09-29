@@ -140,4 +140,11 @@ def test_every_project_unit_kind_has_a_projector_scope():
     from swingset.state.derivation_dependencies import BASE
     from swingset.state.recipe_scope import PROJECTORS
 
-    assert set(PROJECTORS) == BASE | {"inventory", "map", "event", "source_event", "history"}
+    assert set(PROJECTORS) == BASE | {
+        "inventory",
+        "mapping",
+        "resolution",
+        "event",
+        "source_event",
+        "year",
+    }

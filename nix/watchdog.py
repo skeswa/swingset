@@ -70,6 +70,11 @@ SAME_TEXT_KEYS = frozenset(
         "loop-quiet",
         "loop-failing",
         "loop-idle",
+        "release-refused",
+        "read-set-miss",
+        "read-set-widened",
+        "verify-overdue",
+        "verify-failures",
     }
 )
 #: A host whose last this many responses were all 429 or 5xx is failing.
@@ -131,6 +136,29 @@ BUILDING_LINES = 5
 #: Partial generations with no building row (maintain's count) above this
 #: are named: nothing collects them before phase 4 (D-0217).
 INCOMPLETE_GENERATIONS = 3
+#: Partition artifacts no current partition names, past this many bytes, are
+#: named (`[artifact-orphans]`): the daily collector is not keeping up, or
+#: retained release manifests hold more than expected (phase 3, WP6).
+ARTIFACT_ORPHAN_BYTES = 1_000_000_000
+#: `[partitions-withheld]` repeats daily, and at once when the count of
+#: withheld partitions rises by more than this over the last line's count.
+WITHHELD_RISE = 10
+#: A partition that has published its kept artifact for this long while its
+#: units are not current is named (`[partitions-stale]`): derive has not
+#: caught up on it, a quarantined or lost unit (phase 3).
+KEPT_STALE_SECONDS = 2 * 86400
+#: Up to this many stale partitions are named.
+KEPT_STALE_LINES = 5
+#: The newest gate verdict is read from run rows finished this recently; a
+#: build runs every six hours (D-0225).
+VERDICT_WINDOW = 7 * 86400
+#: The newest verify sample is read from maintain rows finished this recently;
+#: maintain verifies weekly (swingset.state.verify.INTERVAL).
+VERIFY_WINDOW = 9 * 86400
+#: Up to this many units are named in a `[read-set-miss]` line.
+MISS_LINES = 5
+#: `[read-set-widened]` reads derive and cycle run rows finished this recently.
+SIGNAL_WINDOW = 86400
 #: WAL header magic numbers (either checksum byte order).
 WAL_MAGIC = (0x377F0682, 0x377F0683)
 #: The headroom swingset-backup-room in nix/module.nix keeps free beside a
@@ -167,12 +195,15 @@ _LOGGED = re.compile(r"^(\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ) \[([a-z0-9-]+)\] ?(.*)
 # so those show here; a unit made stale only by a new upstream generation is
 # still missed, so the check errs toward silence. A re-queue moves
 # `enqueued_at` (state/work.enqueue), so churn that re-queues every ready unit
-# of a stage restarts that stage's clock. project/history is paced by
-# history_interval_seconds (D-0199), so it has a stage of its own, HISTORY,
-# clocked from when it came due; the link units that wait for it are handled
-# in _link_clock.
+# of a stage restarts that stage's clock. project/year units have a stage of
+# their own, YEAR, so progress elsewhere in project does not hide a stalled
+# year; years are not paced (plan F17). A link unit waits for its event and
+# its resolution, so it is clocked from when they were last made
+# (_link_runnable). A prerequisite that is quarantined, waits or backs off does
+# not hold its dependents (derivations.settled_reason), and neither does the
+# paced inventory: only the inventory itself waits for its interval.
 _READY_33 = """
-SELECT p.stage, p.unit_kind, p.enqueued_at, a.outcome, a.retry_at,
+SELECT p.stage, p.unit_kind, p.unit_id, p.enqueued_at, a.outcome, a.retry_at,
     coalesce(g.retry_generation, 0) > a.retry_generation
 FROM pending_work p
 LEFT JOIN work_generations g USING (stage, unit_kind, unit_id)
@@ -189,33 +220,33 @@ WHERE q.state IS NULL OR q.state = 'leased'
     OR (q.state = 'ready' AND (q.next_attempt_at IS NULL OR q.next_attempt_at <= :now))
 """
 )
-#: The stage name project/history units are counted and reported under.
-HISTORY = "project/history"
+#: The stage name project/year units are counted and reported under.
+YEAR = "project/year"
 #: The kinds whose new generation makes a unit of each kind re-run with a
 #: real input change (state/derivation_dependencies.prerequisites). A replay
 #: bump explained by one of them, or by the kind's own generation, is not a
 #: loop; any other generation is unrelated work.
 REPLAY_CAUSES = {
     "project/inventory": frozenset({"project/calendar", "project/dancer", "project/source_index"}),
-    "project/map": frozenset({"project/inventory"}),
-    "project/event": frozenset({"project/map", "project/source_event"}),
-    "project/source_event": frozenset({"project/map", "project/event"}),
-    "project/history": frozenset(
+    "project/mapping": frozenset({"project/calendar", "project/inventory", "project/source_index"}),
+    "project/resolution": frozenset({"project/calendar", "project/inventory"}),
+    "project/event": frozenset({"project/resolution", "project/source_event"}),
+    "project/source_event": frozenset({"project/resolution", "project/event"}),
+    "project/year": frozenset(
         {
             "project/calendar",
             "project/dancer",
-            "project/source_index",
             "project/inventory",
-            "project/map",
+            "project/resolution",
             "project/event",
-            "project/source_event",
         }
     ),
-    "link/event": frozenset({"project/dancer", "project/event", "project/history"}),
+    "link/event": frozenset({"project/dancer", "project/event", "project/year"}),
 }
-#: Project kinds that wait for a paced inventory (D-0210), the deferred
-#: inventory itself included.
-PACED_BY_INVENTORY = frozenset({"inventory", "map", "event", "source_event"})
+#: Project kinds that wait for a paced inventory (D-0210): the deferred
+#: inventory only. The units that read it take it as settled at its pointer
+#: (derivations.settled_reason) and run.
+PACED_BY_INVENTORY = frozenset({"inventory"})
 
 #: Every query the watchdog runs. tests/test_watchdog.py runs each against a
 #: database built by the real migrations, so a renamed table or column fails
@@ -263,31 +294,39 @@ QUERIES: dict[str, str] = {
     "WHERE stage = :stage AND outcome = 'succeeded' ORDER BY attempt_id DESC LIMIT 1",
     "stage_generation": "SELECT created_at FROM derivation_generations "
     "WHERE stage = :stage ORDER BY rowid DESC LIMIT 1",
-    # A pending project/history unit, when it was queued and when its
-    # current output was made: written, or kept by a later run's cutoff
-    # (D-0205), whichever is newer.
-    "history": "SELECT p.unit_id, p.enqueued_at, max(g.created_at, coalesce(("
+    # When a project/year unit last made output, cutoffs included (D-0205):
+    # the year stage's last progress, with its last success.
+    "year_made": "SELECT max(created_at) FROM (SELECT created_at FROM derivation_generations "
+    "WHERE stage = 'project' AND unit_kind = 'year' "
+    "UNION ALL SELECT created_at FROM derivation_equivalences "
+    "WHERE stage = 'project' AND unit_kind = 'year')",
+    # The same before schema 33, which has no equivalences.
+    "year_made_32": "SELECT max(created_at) FROM derivation_generations "
+    "WHERE stage = 'project' AND unit_kind = 'year'",
+    # When a project/year unit last succeeded, output or not.
+    "year_attempt": "SELECT finished_at FROM work_attempts WHERE stage = 'project' "
+    "AND unit_kind = 'year' AND outcome = 'succeeded' ORDER BY attempt_id DESC LIMIT 1",
+    # When each event and resolution scope's current output was made,
+    # cutoffs included: what a link waits for (derivations._ready).
+    "link_inputs": "SELECT s.unit_kind, s.unit_id, max(g.created_at, coalesce(("
     "SELECT max(e.created_at) FROM derivation_equivalences e WHERE e.stage = s.stage "
     "AND e.unit_kind = s.unit_kind AND e.unit_id = s.unit_id "
-    "AND e.generation_id = s.materialized_generation_id), g.created_at)) FROM pending_work p "
-    "LEFT JOIN derivation_scopes s ON s.stage = p.stage AND s.unit_kind = p.unit_kind "
-    "AND s.unit_id = p.unit_id "
-    "LEFT JOIN derivation_generations g ON g.generation_id = s.materialized_generation_id "
-    "WHERE p.stage = 'project' AND p.unit_kind = 'history'",
-    # Every project/history output still stored, or kept by a cutoff: when
-    # links became runnable.
-    "history_made": "SELECT created_at FROM derivation_generations "
-    "WHERE stage = 'project' AND unit_kind = 'history' "
-    "UNION ALL SELECT created_at FROM derivation_equivalences "
-    "WHERE stage = 'project' AND unit_kind = 'history'",
-    # The same two before schema 33, which has no equivalences.
-    "history_32": "SELECT p.unit_id, p.enqueued_at, g.created_at FROM pending_work p "
-    "LEFT JOIN derivation_scopes s ON s.stage = p.stage AND s.unit_kind = p.unit_kind "
-    "AND s.unit_id = p.unit_id "
-    "LEFT JOIN derivation_generations g ON g.generation_id = s.materialized_generation_id "
-    "WHERE p.stage = 'project' AND p.unit_kind = 'history'",
-    "history_made_32": "SELECT created_at FROM derivation_generations "
-    "WHERE stage = 'project' AND unit_kind = 'history'",
+    "AND e.generation_id = s.materialized_generation_id), g.created_at)) "
+    "FROM derivation_scopes s JOIN derivation_generations g "
+    "ON g.generation_id = s.materialized_generation_id "
+    "WHERE s.stage = 'project' AND s.unit_kind IN ('event', 'resolution')",
+    "link_inputs_32": "SELECT s.unit_kind, s.unit_id, g.created_at FROM derivation_scopes s "
+    "JOIN derivation_generations g ON g.generation_id = s.materialized_generation_id "
+    "WHERE s.stage = 'project' AND s.unit_kind IN ('event', 'resolution')",
+    # Queued event and resolution units: a link that needs one waits, unless
+    # its queue row holds it (settled at its pointer).
+    "link_waits": "SELECT p.unit_kind, p.unit_id FROM pending_work p "
+    "WHERE p.stage = 'project' AND p.unit_kind IN ('event', 'resolution')",
+    # Project units a queue row holds (quarantined, waiting, backing off):
+    # settled at their pointer, so they hold no link (derivations.settled_reason).
+    "held_units": "SELECT unit_kind, unit_id FROM work_queue WHERE stage = 'project' "
+    "AND (state IN ('quarantined', 'waiting_input') "
+    "OR (state = 'ready' AND next_attempt_at > :now))",
     "equivalences": "SELECT 1 FROM sqlite_master WHERE type = 'table' "
     "AND name = 'derivation_equivalences'",
     # When project/inventory last materialized, cutoffs included (D-0205).
@@ -308,17 +347,6 @@ QUERIES: dict[str, str] = {
     "WHERE stage = 'project' AND unit_kind = 'inventory'",
     "inventory_runs_32": "SELECT created_at FROM derivation_generations "
     "WHERE stage = 'project' AND unit_kind = 'inventory'",
-    # When project/history's current output was made, cutoffs included: what
-    # the inventory gate (schedule/pacing) reads as history's made-time.
-    "history_current": "SELECT max(g.created_at, coalesce((SELECT max(e.created_at) "
-    "FROM derivation_equivalences e WHERE e.stage = s.stage AND e.unit_kind = s.unit_kind "
-    "AND e.unit_id = s.unit_id AND e.generation_id = s.materialized_generation_id), "
-    "g.created_at)) FROM derivation_scopes s JOIN derivation_generations g "
-    "ON g.generation_id = s.materialized_generation_id "
-    "WHERE s.stage = 'project' AND s.unit_kind = 'history' AND s.unit_id = 'all'",
-    "history_current_32": "SELECT g.created_at FROM derivation_scopes s "
-    "JOIN derivation_generations g ON g.generation_id = s.materialized_generation_id "
-    "WHERE s.stage = 'project' AND s.unit_kind = 'history' AND s.unit_id = 'all'",
     # Equivalences so far (D-0208's collector trigger).
     "equivalence_rows": "SELECT count(*) FROM derivation_equivalences",
     "source_equivalence_rows": "SELECT count(*) FROM source_equivalences",
@@ -349,12 +377,69 @@ QUERIES: dict[str, str] = {
     # Whether a changed input queued the inventory again.
     "inventory_pending": "SELECT 1 FROM pending_work "
     "WHERE stage = 'project' AND unit_kind = 'inventory'",
-    # The outcome of the newest project/history attempt, finished or not.
-    "history_latest": "SELECT outcome FROM work_attempts WHERE stage = 'project' "
-    "AND unit_kind = 'history' AND unit_id = 'all' ORDER BY attempt_id DESC LIMIT 1",
-    # When project/history last succeeded, output or not.
-    "history_attempt": "SELECT finished_at FROM work_attempts WHERE stage = 'project' "
-    "AND unit_kind = 'history' AND outcome = 'succeeded' ORDER BY attempt_id DESC LIMIT 1",
+    "partitions_table": "SELECT 1 FROM sqlite_master WHERE type = 'table' "
+    "AND name = 'release_partitions'",
+    # Withheld partitions by reason (phase 3; swingset partitions --withheld).
+    "withheld": "SELECT reason, count(*) FROM release_partitions WHERE state = 'withheld' "
+    "GROUP BY reason ORDER BY count(*) DESC, reason",
+    # Built partitions kept while their units are not current, since before
+    # :since (build/partitions.py, `kept_not_current_since`).
+    "kept_stale": "SELECT partition, json_extract(detail_json, '$.kept_not_current_since') "
+    "FROM release_partitions WHERE state = 'built' AND json_valid(detail_json) "
+    "AND json_extract(detail_json, '$.kept_not_current_since') < :since "
+    "ORDER BY 2, partition",
+    # Partitions the newest partitioned build withheld at assembly
+    # (`assembly_check:<check>`); release_partitions still says built.
+    "assembly_withheld": "SELECT json_extract(summary_json, '$.partitions.assembly_withheld') "
+    "FROM runs WHERE (loop = 'release' OR loop IS NULL) AND finished_at > :since "
+    "AND json_valid(summary_json) "
+    "AND json_extract(summary_json, '$.partitions.manifest_digest') IS NOT NULL "
+    "ORDER BY finished_at DESC LIMIT 1",
+    # The newest maintain tick's collector: unreadable means a retained
+    # manifest could not be read, so it collected nothing.
+    "collector_blind": "SELECT finished_at, json_extract(summary_json, '$.artifacts.unreadable') "
+    "FROM runs WHERE loop = 'maintain' AND finished_at > :since AND json_valid(summary_json) "
+    "AND json_extract(summary_json, '$.artifacts') IS NOT NULL "
+    "ORDER BY finished_at DESC LIMIT 1",
+    # Artifacts no current partition names: the collector removes them a day
+    # after they were last named unless a retained release manifest names them.
+    "artifact_orphans": "SELECT a.n + m.n, a.b + m.b FROM (SELECT count(*) AS n, "
+    "coalesce(sum(bytes), 0) AS b FROM release_artifacts WHERE artifact_digest NOT IN "
+    "(SELECT artifact_digest FROM release_partitions WHERE artifact_digest IS NOT NULL)) a, "
+    # Release manifests written over a week ago: the collector keeps only
+    # those of retained candidates (a few), so the rest are uncollected.
+    "(SELECT count(*) AS n, coalesce(sum(bytes), 0) AS b FROM release_manifests "
+    "WHERE created_at < :week) m",
+    # The newest gate verdict of a release tick or cycle finished since :since
+    # (runs.loop comes with schema 34).
+    "verdict": "SELECT finished_at, json_extract(summary_json, '$.verdict.state'), "
+    "json_extract(summary_json, '$.verdict.reasons'), json_extract(summary_json, '$.candidate_id') "
+    "FROM runs WHERE (loop = 'release' OR loop IS NULL) AND finished_at > :since "
+    "AND json_valid(summary_json) AND json_extract(summary_json, '$.verdict.state') IS NOT NULL "
+    "ORDER BY finished_at DESC LIMIT 1",
+    # The newest weekly verify sample of the maintain loop (swingset.state.verify).
+    "verify": "SELECT finished_at, json_extract(summary_json, '$.verify') FROM runs "
+    "WHERE loop = 'maintain' AND finished_at > :since AND json_valid(summary_json) "
+    "AND json_extract(summary_json, '$.verify.week') IS NOT NULL "
+    "ORDER BY finished_at DESC LIMIT 1",
+    # The newest complete weekly verify sample, and the oldest maintain row
+    # (a loop younger than the window has not yet owed one).
+    "verify_complete": "SELECT max(finished_at) FROM runs WHERE loop = 'maintain' "
+    "AND finished_at > :since AND json_valid(summary_json) "
+    "AND json_extract(summary_json, '$.verify.complete') = 1",
+    "maintain_first": "SELECT min(finished_at) FROM runs WHERE loop = 'maintain'",
+    "runs_table": "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'runs'",
+    # Read-set safety signals of derive ticks and cycles since :since: tables
+    # no rule maps (schedule/offline undeclared_reads) and widened read sets
+    # or pool probes (state/read_sets.drain_signals). Each should stay 0.
+    "read_set_signals": "SELECT json_extract(summary_json, '$.undeclared_reads'), "
+    "json_extract(summary_json, '$.read_set_signals') FROM runs "
+    "WHERE finished_at > :since AND json_valid(summary_json) "
+    "AND (json_extract(summary_json, '$.undeclared_reads') IS NOT NULL "
+    "OR json_extract(summary_json, '$.read_set_signals') IS NOT NULL)",
+    # Derive's release-lag guard (loops/derive.release_lag), seen since :since.
+    "release_lag": "SELECT since, last_seen_at FROM guard_reasons "
+    "WHERE subject = 'loop:derive' AND reason = 'release_lag' AND last_seen_at > :since",
     "budgets": "SELECT host, requests, bytes FROM host_budget WHERE day = :day ORDER BY host",
     # fetch/politeness.py pauses a host whose spacing is unknown: a NULL gap,
     # or no spacing row although the host has spent budget before.
@@ -377,7 +462,7 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--config",
         help="config directory; hosts.toml gives the daily request and byte budgets and"
-        " sources.toml the history interval. Overrides are not read.",
+        " sources.toml the inventory interval and size cap. Overrides are not read.",
     )
     parser.add_argument(
         "--quiet",
@@ -501,6 +586,11 @@ def _at(stamp: float) -> str:
     return datetime.fromtimestamp(stamp, UTC).strftime("%Y-%m-%d %H:%M UTC")
 
 
+def _at_iso(stamp: float) -> str:
+    """A run-row timestamp (`runs.finished_at`, isoformat with +00:00)."""
+    return datetime.fromtimestamp(stamp, UTC).isoformat()
+
+
 def _queue_at(stamp: float) -> str:
     """A work-queue timestamp (swingset.state.queue.at): text order is time order."""
     return (
@@ -553,11 +643,10 @@ def _newest(*stamps: str | None) -> float | None:
 
 
 class Limits(NamedTuple):
-    """What the watchdog reads from config/: daily budgets and the history pace."""
+    """What the watchdog reads from config/: daily budgets and the inventory pace."""
 
     requests: dict[str, int]
     bytes: dict[str, int]
-    history_interval: float | None
     #: `inventory_interval_seconds` (D-0210); None when unset.
     inventory_interval: float | None = None
     #: `[retention] max_database_bytes`, where the pipeline pauses; None
@@ -579,13 +668,13 @@ def _byte_budget(value: object) -> int:
 
 
 def _config(directory: str | None) -> Limits:
-    """Daily request and byte budgets by host and the history interval.
+    """Daily request and byte budgets by host, the inventory interval and the size cap.
 
     A sweep's larger budget for points.worldsdc.com is not read: the script
     cannot tell a sweep day, so on one that host counts as spent early.
     """
     if not directory:
-        return Limits({}, {}, None)
+        return Limits({}, {})
     with open(os.path.join(directory, "hosts.toml"), "rb") as handle:
         hosts = tomllib.load(handle).get("hosts", {})
     with open(os.path.join(directory, "sources.toml"), "rb") as handle:
@@ -600,14 +689,12 @@ def _config(directory: str | None) -> Limits:
         for host, table in hosts.items()
         if "daily_byte_budget" in table
     }
-    interval = scheduling.get("history_interval_seconds")
     inventory = scheduling.get("inventory_interval_seconds")
     with open(os.path.join(directory, "sources.toml"), "rb") as handle:
         cap = tomllib.load(handle).get("retention", {}).get("max_database_bytes", "64GB")
     return Limits(
         requests,
         byte_budgets,
-        float(interval) if interval is not None else None,
         float(inventory) if inventory is not None else None,
         _byte_size(cap),
     )
@@ -651,88 +738,36 @@ def _read_db(state: str, now: float, checks: Checks, limits: Limits) -> dict[str
     return facts
 
 
-def _link_clock(
-    link: float | None,
-    oldest: float | None,
-    made: list[float],
-    pending: float | None,
-    interval: float | None,
-    now: float,
-) -> tuple[float | None, str]:
-    """When link units last progressed or became runnable, and why.
+def _link_runnable(
+    links: Sequence[tuple[str, float | None]],
+    made: dict[tuple[str, str], float],
+    queued: set[tuple[str, str]],
+) -> tuple[int, list[tuple[float | None, float | None]]]:
+    """How many ready link units wait, and when each other one became runnable.
 
-    Every link unit needs a current project/history output (D-0199), so
-    links become runnable when history materializes. `made` holds every
-    stored history output time and `pending` the output time of a pending
-    history unit. Returns (None, "waiting") while links wait for paced history
-    by design: they progressed after its newest output and it is not yet due.
-    Otherwise the clock is the latest of the last link progress and the moment
-    the links became runnable without progressing since:
-
-    - they progressed after the newest output: when the pending history came
-      due;
-    - they did not: when history next materialized after their last
-      progress, or, if earlier, when that history was due again, since a
-      history that runs late holds the links as surely as one that fails.
+    `links` holds each ready link's event id and queue time; `made` when each
+    event and resolution scope's current output was made; `queued` the queued
+    ones. A link runs once its event and its resolution are current
+    (derivations._ready; it reads its registry association as content, so no
+    year holds it). One of them queued holds the link by design, and that unit
+    has its own clock. Otherwise the link became runnable when it was queued
+    or when the newer of them was made, whichever is later. The dancers a link
+    read are not followed: a queued dancer is clocked in `project`. Returns
+    the number waiting and, per runnable link, its queue time and when it
+    became runnable.
     """
-    if not made:
-        clocks = [clock for clock in (link, oldest) if clock is not None]
-        return (max(clocks) if clocks else None), ""
-    newest = max(made)
-    if link is not None and link >= newest:
-        if pending is None:
-            clocks = [clock for clock in (link, oldest) if clock is not None]
-            return max(clocks), ""
-        if interval is None:
-            return link, f"project/history pending since its output at {_at(pending)}"
-        due = pending + interval
-        if now < due:
-            return None, "waiting"
-        return max(link, due), f"project/history due at {_at(due)} has not run"
-    after = min(stamp for stamp in made if link is None or stamp > link)
-    runnable = after
-    if interval is not None and link is not None:
-        before = [stamp for stamp in made if stamp <= link]
-        runnable = min(after, (max(before) if before else link) + interval)
-    clock = runnable if link is None else max(link, runnable)
-    return clock, f"runnable since {_at(runnable)}, project/history output at {_at(newest)}"
-
-
-def _history_clock(
-    progress: float | None,
-    units: list[tuple[float | None, float | None]],
-    interval: float | None,
-    runs: Sequence[float] = (),
-) -> tuple[float | None, str]:
-    """When project/history last progressed or came due, and when it was due.
-
-    `units` holds each pending history unit's queue time and the time its
-    current output was made. A unit with an output comes due `interval`
-    after it (D-0199); one without, or with no interval, when it was queued.
-    History needs a current inventory, so it cannot run before the cascade
-    of the first inventory made at or after it came due; `runs` holds every
-    inventory materialization. The clock is the latest of its due time, that
-    inventory and its last success or output, so a history that comes due
-    and never runs alarms whether or not link units wait for it. Later
-    inventories do not move the clock: a dancer change that interrupts every
-    cascade starves history, and that must alarm (D-0210).
-    """
-    dues = [
-        made + interval if made is not None and interval is not None else enqueued
-        for enqueued, made in units
-    ]
-    known = [due for due in dues if due is not None]
-    if not known:
-        return progress, ""
-    due = min(known)
-    note = f"due at {_at(due)}"
-    since = [run for run in runs if run >= due]
-    started = min(since, default=due)
-    if since:
-        note += f", cascade from the inventory at {_at(started)}"
-        if len(since) > 1:
-            note += f", interrupted since {_at(max(since))}"
-    return (started if progress is None else max(progress, started)), note
+    waiting = 0
+    runnable: list[tuple[float | None, float | None]] = []
+    for event, enqueued in links:
+        inputs = [("event", event), ("resolution", event)]
+        if any(unit in queued for unit in inputs):
+            waiting += 1
+            continue
+        stamps = [made[unit] for unit in inputs if unit in made]
+        if enqueued is not None:
+            stamps.append(enqueued)
+        runnable.append((enqueued, max(stamps) if stamps else None))
+    return waiting, runnable
 
 
 def _read_facts(
@@ -770,40 +805,26 @@ def _read_facts(
         """Whether the inventory gate (D-0210) holds the kinds downstream of it.
 
         The gate (schedule/pacing.deferred) holds only a queued inventory.
-        While one is queued and materialized within its interval, it and the
-        map, event and source-event units after it wait by design, unless
-        history is due and has consumed that inventory, or the inventory was
-        made at or after history came due: that cascade was interrupted, and
-        the gate lets the inventory run until history lands. A history whose
-        latest attempt failed is not due to the gate, so the gate keeps
-        holding. A current inventory that is not queued holds nothing, so
-        those units count as ready. A calendar replay the inventory has not
-        read, or a calendar generation newer than it, lifts the wait too. While it holds, history waits for the
-        inventory's next run, so history's clock starts then. History's
-        made-time is its current output's, read as the gate reads it.
+        While one is queued and materialized within its interval, it waits by
+        design; the units after it take it as settled at its pointer and run
+        (derivations.settled_reason). A calendar replay the inventory has not
+        read, or a calendar generation newer than it, lifts the wait.
+        `inventory_next` is when the gate lets it run.
         """
         if limits.inventory_interval is None or not _one(db, "inventory_pending"):
             return False
         suffix = "" if _one(db, "equivalences") else "_32"
         made = _newest(_one(db, "inventory_made" + suffix))
-        if made is None or now - made >= limits.inventory_interval:
+        if made is None:
             return False
         if suffix == "" and _calendar_replayed(db):
             return False
         calendar = _newest(_one(db, "calendar_made"))
         if calendar is not None and calendar > made:
             return False
-        facts["inventory_next"] = made + limits.inventory_interval
-        if limits.history_interval is None:
-            return True
-        history = _newest(_one(db, "history_current" + suffix))
-        if history is not None and now < history + limits.history_interval:
-            return True
-        if _one(db, "history_latest") == "transient":
-            return True
-        if history is None:
-            return True
-        return made < history + limits.history_interval and history < made
+        opens = made + limits.inventory_interval
+        facts["inventory_next"] = opens
+        return now < opens
 
     paced = checks.run("inventory", inventory_paced, False)
 
@@ -821,17 +842,18 @@ def _read_facts(
 
     queued = bool(checks.run("queue", lambda: _one(db, "queue_table"), None))
 
-    def ready() -> tuple[Counter[str], dict[str, float]]:
+    def ready() -> tuple[Counter[str], dict[str, float], list[tuple[str, float | None]]]:
         counted: Counter[str] = Counter()
         oldest: dict[str, float] = {}
+        links: list[tuple[str, float | None]] = []
         rows = (
             db.execute(QUERIES["ready"], {"now": _queue_at(now)})
             if queued
             else db.execute(QUERIES["ready_33"])
         )
-        for stage, kind, enqueued, outcome, retry_at, retried in rows:
-            if stage == "project" and kind == "history":
-                stage = HISTORY
+        for stage, kind, unit, enqueued, outcome, retry_at, retried in rows:
+            if stage == "project" and kind == "year":
+                stage = YEAR
             if paced and stage == "project" and kind in PACED_BY_INVENTORY:
                 facts["waiting_inventory"] = facts.get("waiting_inventory", 0) + 1
                 continue
@@ -845,94 +867,73 @@ def _read_facts(
                     and _ts(retry_at) <= now
                 )
             ):
+                if (stage, kind) == ("link", "event"):
+                    links.append((str(unit), _ts(enqueued) if enqueued else None))
+                    continue
                 counted[stage] += 1
                 if enqueued:
                     stamp = _ts(enqueued)
                     oldest[stage] = min(stamp, oldest.get(stage, stamp))
-        return counted, oldest
+        return counted, oldest, links
 
     found = checks.run("ready", ready, None)
     if found is not None:
-        counted, oldest = found
-        facts["ready"] = counted
+        counted, oldest, links = found
         clocks: dict[str, float] = {}
         notes: dict[str, str] = {}
+
+        def link_runnable() -> tuple[int, list[tuple[float | None, float | None]]]:
+            suffix = "" if _one(db, "equivalences") else "_32"
+            made = {
+                (str(kind), str(scope)): _ts(created)
+                for kind, scope, created in db.execute(QUERIES["link_inputs" + suffix])
+                if created
+            }
+            waits = {(str(kind), str(scope)) for kind, scope in db.execute(QUERIES["link_waits"])}
+            if queued:
+                waits -= {
+                    (str(kind), str(scope))
+                    for kind, scope in db.execute(QUERIES["held_units"], {"now": _queue_at(now)})
+                }
+            return _link_runnable(links, made, waits)
+
+        if links:
+            waiting, runnable = checks.run(
+                "link-waits", link_runnable, (0, [(stamp, stamp) for _, stamp in links])
+            )
+            if waiting:
+                facts["waiting_links"] = waiting
+            if runnable:
+                counted["link"] += len(runnable)
+                known = [(at, enqueued) for enqueued, at in runnable if at is not None]
+                if known:
+                    first, enqueued = min(known, key=lambda pair: pair[0])
+                    oldest["link"] = first
+                    if enqueued is None or first > enqueued:
+                        notes["link"] = (
+                            f"runnable since {_at(first)}, when its event or resolution was made"
+                        )
+        facts["ready"] = counted
 
         def stage_clock(stage: str) -> float | None:
             return _newest(
                 _one(db, "stage_attempt", stage=stage), _one(db, "stage_generation", stage=stage)
             )
 
-        def history() -> tuple[list[float], list[tuple[float | None, float | None]]]:
-            # Schema 33 comes with the first cycle after the phase 1 switch.
+        def year_progress() -> float | None:
             suffix = "" if _one(db, "equivalences") else "_32"
-            made = [
-                _ts(created)
-                for (created,) in db.execute(QUERIES["history_made" + suffix])
-                if created
-            ]
-            units = [
-                (_ts(enqueued) if enqueued else None, _ts(created) if created else None)
-                for _unit, enqueued, created in db.execute(QUERIES["history" + suffix])
-            ]
-            return made, units
+            return _newest(_one(db, "year_attempt"), _one(db, "year_made" + suffix))
 
-        def inventory_runs() -> list[float]:
-            suffix = "" if _one(db, "equivalences") else "_32"
-            return [
-                _ts(created)
-                for (created,) in db.execute(QUERIES["inventory_runs" + suffix])
-                if created
-            ]
-
-        def history_progress(made: list[float]) -> float | None:
-            succeeded = _newest(_one(db, "history_attempt"))
-            known = [stamp for stamp in (succeeded, max(made, default=None)) if stamp is not None]
-            return max(known) if known else None
-
-        no_history: tuple[list[float], list[tuple[float | None, float | None]]] = ([], [])
-        made, units = (
-            checks.run("history", history, no_history)
-            if "link" in counted or HISTORY in counted
-            else no_history
-        )
         for stage in sorted(counted):
-            if stage == HISTORY:
-                progress = checks.run(f"progress:{stage}", partial(history_progress, made), None)
-                runs = checks.run("inventory-runs", inventory_runs, [])
-                clock, note = _history_clock(progress, units, limits.history_interval, runs)
-                # The gate holds only an inventory made before history came
-                # due (inventory_paced), so no inventory has run since.
-                waits = facts.get("inventory_next") if paced else None
-                if clock is not None and waits is not None and waits > clock:
-                    clock = waits
-                    note = f"waits for the paced inventory at {_at(waits)}"
-                if note:
-                    notes[stage] = note
-                if clock is not None:
-                    clocks[stage] = clock
-                continue
-            clock = checks.run(f"progress:{stage}", partial(stage_clock, stage), None)
-            if stage == "link":
-                pending = [created for _, created in units if created is not None]
-                clock, note = _link_clock(
-                    clock,
-                    oldest.get(stage),
-                    made,
-                    max(pending) if pending else None,
-                    limits.history_interval,
-                    now,
-                )
-                if note == "waiting":
-                    facts["waiting_links"] = counted.pop("link")
-                    continue
-                if note:
-                    notes[stage] = note
-            else:
-                # A stage that sat idle is clocked from when its oldest ready
-                # unit was queued, not from its last progress.
-                clocks_known = [c for c in (clock, oldest.get(stage)) if c is not None]
-                clock = max(clocks_known) if clocks_known else None
+            progress = checks.run(
+                f"progress:{stage}",
+                year_progress if stage == YEAR else partial(stage_clock, stage),
+                None,
+            )
+            # A stage that sat idle is clocked from when its oldest ready unit
+            # was queued (a link: became runnable), not from its last progress.
+            clocks_known = [c for c in (progress, oldest.get(stage)) if c is not None]
+            clock = max(clocks_known) if clocks_known else None
             if clock is not None:
                 clocks[stage] = clock
         facts["progress"] = clocks
@@ -992,6 +993,46 @@ def _read_facts(
         )
         if recent_guards is not None:
             facts["guards_recent"] = int(recent_guards)
+        lag = checks.run(
+            "release-lag",
+            lambda: db.execute(
+                QUERIES["release_lag"], {"since": _queue_at(now - GUARD_SEEN_WINDOW)}
+            ).fetchone(),
+            None,
+        )
+        if lag is not None:
+            facts["release_lag"] = (str(lag[0]), str(lag[1]))
+    if checks.run("partitions", lambda: _one(db, "partitions_table"), None):
+        withheld = checks.run(
+            "partitions-withheld",
+            lambda: [
+                (str(reason), int(count)) for reason, count in db.execute(QUERIES["withheld"])
+            ],
+            [],
+        )
+        if withheld:
+            facts["withheld"] = withheld
+        stale = checks.run(
+            "partitions-stale",
+            lambda: [
+                (str(name), str(since))
+                for name, since in db.execute(
+                    QUERIES["kept_stale"], {"since": _at_iso(now - KEPT_STALE_SECONDS)}
+                )
+            ],
+            [],
+        )
+        if stale:
+            facts["kept_stale"] = stale
+        orphaned = checks.run(
+            "artifact-orphans",
+            lambda: db.execute(
+                QUERIES["artifact_orphans"], {"week": _at_iso(now - 7 * 86400)}
+            ).fetchone(),
+            None,
+        )
+        if orphaned is not None:
+            facts["artifact_orphans"] = (int(orphaned[0]), int(orphaned[1]))
     if checks.run("loop-state", lambda: _one(db, "loop_state_table"), None):
         progress = checks.run(
             "loop-progress",
@@ -1003,6 +1044,81 @@ def _read_facts(
         )
         if progress is not None:
             facts["loop_progress"] = progress
+        # Run rows carry a loop from schema 34, which loop_state also marks.
+        verdict = checks.run(
+            "release-refused",
+            lambda: db.execute(
+                QUERIES["verdict"], {"since": _at_iso(now - VERDICT_WINDOW)}
+            ).fetchone(),
+            None,
+        )
+        assembled = checks.run(
+            "assembly-withheld",
+            lambda: db.execute(
+                QUERIES["assembly_withheld"], {"since": _at_iso(now - VERDICT_WINDOW)}
+            ).fetchone(),
+            None,
+        )
+        if assembled is not None and assembled[0]:
+            named = json.loads(assembled[0])
+            if isinstance(named, dict) and named:
+                facts["assembly_withheld"] = {str(k): str(v) for k, v in named.items()}
+        blind = checks.run(
+            "artifact-collector-blind",
+            lambda: db.execute(
+                QUERIES["collector_blind"], {"since": _at_iso(now - VERIFY_WINDOW)}
+            ).fetchone(),
+            None,
+        )
+        if blind is not None and blind[1]:
+            facts["collector_blind"] = str(blind[0])
+        if verdict is not None:
+            finished, state, reasons, candidate = verdict
+            facts["verdict"] = {
+                "finished_at": str(finished),
+                "state": str(state),
+                "reasons": json.loads(reasons) if reasons else [],
+                "candidate_id": candidate,
+            }
+        verified = checks.run(
+            "read-set-miss",
+            lambda: db.execute(
+                QUERIES["verify"], {"since": _at_iso(now - VERIFY_WINDOW)}
+            ).fetchone(),
+            None,
+        )
+        if verified is not None and verified[1]:
+            facts["verify"] = (str(verified[0]), json.loads(verified[1]))
+        complete = checks.run(
+            "verify-overdue",
+            lambda: (
+                _one(db, "verify_complete", since=_at_iso(now - VERIFY_WINDOW)),
+                _one(db, "maintain_first"),
+            ),
+            None,
+        )
+        if complete is not None:
+            facts["verify_complete"] = complete
+    signals = (
+        checks.run(
+            "read-set-widened",
+            lambda: db.execute(
+                QUERIES["read_set_signals"], {"since": _at_iso(now - SIGNAL_WINDOW)}
+            ).fetchall(),
+            None,
+        )
+        if checks.run("runs", lambda: _one(db, "runs_table"), None)
+        else None
+    )
+    if signals:
+        totals: Counter[str] = Counter()
+        for undeclared, widened in signals:
+            for key, count in (json.loads(undeclared) if undeclared else {}).items():
+                totals[f"undeclared:{key}"] += int(count)
+            for key, count in (json.loads(widened) if widened else {}).items():
+                totals[str(key)] += int(count)
+        if totals:
+            facts["read_set_signals"] = dict(sorted(totals.items()))
     if checks.run("plan", lambda: _one(db, "plan_table"), None):
         planned = checks.run("plan-stale", lambda: _newest(_one(db, "plan_newest")), None)
         if planned is not None:
@@ -1068,6 +1184,19 @@ def _last_logged(state: str) -> tuple[dict[str, float], dict[str, float]]:
             whole = f"[{key}] {text}"
             by_line[whole] = max(at, by_line.get(whole, at))
     return by_key, by_line
+
+
+def _last_count(by_line: dict[str, float], key: str) -> int | None:
+    """The number that opens the newest logged line of `key`, if any."""
+    prefix = f"[{key}] "
+    newest: tuple[float, str] | None = None
+    for line, at in by_line.items():
+        if line.startswith(prefix) and (newest is None or at > newest[0]):
+            newest = (at, line)
+    if newest is None:
+        return None
+    match = re.match(r"(\d+) ", newest[1][len(prefix) :])
+    return int(match.group(1)) if match else None
 
 
 def _checkpoints(state: str) -> tuple[tuple[str, float] | None, list[str]]:
@@ -1303,7 +1432,7 @@ def main(argv: list[str]) -> list[str]:
     records: list[dict[str, Any]] = [] if loops else checks.run("runs", lambda: _records(state), [])
     reported = ticks.recent["derive"][::-1] if loops else records
     noun = "derive ticks" if loops else "cycles"
-    limits = checks.run("config", lambda: _config(args.config), Limits({}, {}, None))
+    limits = checks.run("config", lambda: _config(args.config), Limits({}, {}))
     facts = _read_db(state, now, checks, limits)
     alerts: list[tuple[str, str]] = []
     windows = {
@@ -1316,6 +1445,15 @@ def main(argv: list[str]) -> list[str]:
         "unit-quarantined": QUARANTINE_WINDOW,
         "write-deadline": WRITE_DEADLINE_WINDOW,
         "guards": max(args.repeat, DAY),
+        "release-refused": max(args.repeat, DAY),
+        "partitions-withheld": max(args.repeat, DAY),
+        "read-set-miss": max(args.repeat, DAY),
+        "read-set-widened": max(args.repeat, DAY),
+        "verify-overdue": max(args.repeat, DAY),
+        "verify-failures": max(args.repeat, DAY),
+        "artifact-orphans": max(args.repeat, DAY),
+        "partitions-stale": max(args.repeat, DAY),
+        "artifact-collector-blind": max(args.repeat, DAY),
     }
 
     def failing() -> None:
@@ -1624,9 +1762,12 @@ def main(argv: list[str]) -> list[str]:
         if stalled:
             text = "no progress while unheld: " + "; ".join(stalled)
             if facts.get("waiting_links"):
-                text += f"; {facts['waiting_links']} link units wait for the paced history"
+                text += (
+                    f"; {facts['waiting_links']} link units wait for their queued event"
+                    " or resolution"
+                )
             if facts.get("waiting_inventory"):
-                text += f"; {facts['waiting_inventory']} project units wait for the paced inventory"
+                text += "; the inventory waits for its pacing interval"
             alerts.append(("stale-progress", text))
     if facts.get("legacy"):
         alerts.append(
@@ -1773,6 +1914,117 @@ def main(argv: list[str]) -> list[str]:
             )
         )
 
+    # Release lines (phase 3). A refused verdict publishes nothing until a
+    # later build passes or an approval row matches (D-0225).
+    verdict = facts.get("verdict")
+    if verdict and verdict["state"] == "refused":
+        reasons = "; ".join(str(reason) for reason in verdict["reasons"]) or "refused"
+        alerts.append(
+            (
+                "release-refused",
+                f"candidate {verdict['candidate_id']} refused at {_utc(verdict['finished_at'])}:"
+                f" {reasons[:240]}; nothing is published until a build passes or"
+                " overrides/release_decreases.csv approves the decrease"
+                " (docs/guides/data-corrections.md)",
+            )
+        )
+    verified = facts.get("verify")
+    if verified is not None:
+        finished, sample = verified
+        missed = [str(item.get("unit")) for item in sample.get("mismatches") or []]
+        if missed:
+            named = ", ".join(missed[:MISS_LINES])
+            more = f" and {len(missed) - MISS_LINES} more" if len(missed) > MISS_LINES else ""
+            checked = sum(
+                int(kind.get("verified") or 0) for kind in (sample.get("kinds") or {}).values()
+            )
+            alerts.append(
+                (
+                    "read-set-miss",
+                    f"{len(missed)} of {checked} current units re-derived to other output than"
+                    f" their generation in the {sample.get('week')} verify at {_utc(finished)}:"
+                    f" {named}{more}; a read set misses an input, so stale output survives"
+                    " (docs/reference/operations.md#verify-sample)",
+                )
+            )
+    if verified is not None:
+        finished, sample = verified
+        failures = [str(item.get("unit")) for item in sample.get("failures") or []]
+        if failures:
+            alerts.append(
+                (
+                    "verify-failures",
+                    f"{len(failures)} units of the {sample.get('week')} verify at"
+                    f" {_utc(finished)} failed to re-derive: {', '.join(failures[:MISS_LINES])};"
+                    " a failing unit is not verified (docs/reference/operations.md#verify-sample)",
+                )
+            )
+    complete = facts.get("verify_complete")
+    if loops and complete is not None:
+        newest, first = complete
+        if newest is None and first is not None and _ts(str(first)) < now - VERIFY_WINDOW:
+            alerts.append(
+                (
+                    "verify-overdue",
+                    f"no complete verify sample in {VERIFY_WINDOW // 86400} days; maintain"
+                    " samples at each tick until one completes, so a sample keeps being cut"
+                    " short or most units stay stale (docs/reference/operations.md#verify-sample)",
+                )
+            )
+    signalled = facts.get("read_set_signals")
+    if signalled:
+        named = ", ".join(f"{key} {count}" for key, count in list(signalled.items())[:MISS_LINES])
+        alerts.append(
+            (
+                "read-set-widened",
+                f"read-set safety signals in the last day: {named}; each should be 0, a"
+                " widened read set re-runs its links on any change of the table"
+                " (docs/reference/state.md#read-recorder)",
+            )
+        )
+    stale = facts.get("kept_stale")
+    if stale:
+        named = ", ".join(name for name, _ in stale[:KEPT_STALE_LINES])
+        alerts.append(
+            (
+                "partitions-stale",
+                f"{len(stale)} partitions have published a kept artifact since before"
+                f" {_utc(stale[0][1])} while their event, resolution or link is not current"
+                f" ({named}); derive has not caught up on them: look for a quarantined or"
+                " unqueued unit (swingset partitions show <name>)",
+            )
+        )
+    if facts.get("collector_blind"):
+        alerts.append(
+            (
+                "artifact-collector-blind",
+                f"maintain's collector at {_utc(facts['collector_blind'])} could not read a"
+                " retained release manifest, so it removed no partition artifact; find the"
+                " candidate whose _meta/manifest.json names a missing manifest",
+            )
+        )
+    orphaned = facts.get("artifact_orphans")
+    if orphaned is not None and orphaned[1] > ARTIFACT_ORPHAN_BYTES:
+        count, size = orphaned
+        alerts.append(
+            (
+                "artifact-orphans",
+                f"{count} partition artifacts and release manifests ({size / 1e9:.1f} GB) are"
+                f" named by no current partition or are over a week old, over"
+                f" {ARTIFACT_ORPHAN_BYTES / 1e9:.0f} GB; maintain's collector removes them a day"
+                " after last named unless a retained release manifest names them",
+            )
+        )
+    if facts.get("release_lag") and not held:
+        since, _seen = facts["release_lag"]
+        alerts.append(
+            (
+                "release-lag",
+                f"derive has run only parse and link units since {_utc(since)}: the release"
+                " loop is release_lag_intervals build intervals behind; read its run records",
+            )
+        )
+
     def disk() -> None:
         fields = args.disk.split()
         if len(fields) >= 2:
@@ -1882,6 +2134,31 @@ def main(argv: list[str]) -> list[str]:
         names = ", ".join(name for name, _ in checks.failed)
         alerts.insert(0, ("watchdog-blind", f"checks failed: {names}: {checks.failed[0][1][:200]}"))
     by_key, by_line = _last_logged(state)
+    withheld = list(facts.get("withheld", []))
+    assembled = Counter(facts.get("assembly_withheld", {}).values())
+    withheld.extend(sorted(assembled.items(), key=lambda item: (-item[1], item[0])))
+    if withheld:
+        total = sum(count for _, count in withheld)
+        previous = _last_count(by_line, "partitions-withheld")
+        rose = previous is not None and total > previous + WITHHELD_RISE
+        if rose:
+            windows["partitions-withheld"] = 0
+        alerts.append(
+            (
+                "partitions-withheld",
+                f"{total} partitions withheld"
+                + (f", up from {previous}" if rose else "")
+                + ": "
+                + ", ".join(f"{reason} x {count}" for reason, count in withheld)
+                + "; swingset partitions --withheld lists them"
+                + (
+                    ", the newest release record's partitions.assembly_withheld the"
+                    " assembly_check ones"
+                    if assembled
+                    else ""
+                ),
+            )
+        )
     lines = []
     for key, text in alerts:
         line = f"[{key}] {text}"

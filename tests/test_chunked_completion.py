@@ -22,12 +22,12 @@ from swingset.state.db import Database, open_database
 from swingset.state.inputs import capture
 from swingset.state.work import WorkUnit, next_work
 
-HISTORY = WorkUnit("project", "history", "all")
+YEAR = WorkUnit("project", "year", "2026")
 
 
 @pytest.fixture
 def arranged(tmp_path):
-    """The source fixture with every project unit but history materialized.
+    """The source fixture with every project unit but its year materialized.
 
     Returns a closed state directory, so each test copies it and opens its own.
     """
@@ -37,11 +37,11 @@ def arranged(tmp_path):
     f = next(generator)
     for _ in range(40):
         unit = next_work(f.conn, "project", now=f.corpus.clock.now())
-        if unit is None or unit == HISTORY:
+        if unit is None or unit == YEAR:
             break
         process_unit(f.db, unit, f.bundle, f.corpus.clock, f.corpus.run)
-    assert HISTORY in set(derivations.pending_units(f.conn, "project"))
-    assert derivations.selected_generation(f.conn, HISTORY) is None
+    assert YEAR in set(derivations.pending_units(f.conn, "project"))
+    assert derivations.selected_generation(f.conn, YEAR) is None
     f.conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
     arranged = SimpleNamespace(
         state=f.db.state_dir,
@@ -61,11 +61,11 @@ def twin(arranged, target: Path) -> Path:
     return target
 
 
-def run_history(database: Database, arranged, tmp_path: Path, clock=None):
+def run_year(database: Database, arranged, tmp_path: Path, clock=None):
     return derive_one(
         database,
         Archive(tmp_path / "archive"),
-        HISTORY,
+        YEAR,
         arranged.bundle,
         clock or FakeClock(arranged.now),
         arranged.run,
@@ -105,21 +105,21 @@ def building(conn: sqlite3.Connection) -> list[tuple[object, ...]]:
     ]
 
 
-def expected_history(arranged, tmp_path, monkeypatch) -> dict[str, object]:
-    """History on the single path, on a twin of the same state."""
+def expected_year(arranged, tmp_path, monkeypatch) -> dict[str, object]:
+    """The year on the single path, on a twin of the same state."""
     with monkeypatch.context() as patch:
         single(patch)
         with open_database(twin(arranged, tmp_path / "single")) as db:
-            assert not run_history(db, arranged, tmp_path).failed
-            generation = derivations.selected_generation(db.connection, HISTORY)
+            assert not run_year(db, arranged, tmp_path).failed
+            generation = derivations.selected_generation(db.connection, YEAR)
             assert generation is not None
             return stored(db.connection, generation)
 
 
-def test_staged_history_stores_what_the_single_path_stores_one_chunk_per_write(
+def test_a_staged_year_stores_what_the_single_path_stores_one_chunk_per_write(
     arranged, tmp_path, monkeypatch
 ):
-    expected = expected_history(arranged, tmp_path, monkeypatch)
+    expected = expected_year(arranged, tmp_path, monkeypatch)
     rows = expected["label"][1]
     assert rows > 3, "the fixture must span two chunks"
     monkeypatch.setattr(derivations, "CHUNK_ROWS", 3)
@@ -145,29 +145,27 @@ def test_staged_history_stores_what_the_single_path_stores_one_chunk_per_write(
 
     monkeypatch.setattr(Database, "transaction", measured)
     with open_database(twin(arranged, tmp_path / "staged")) as db:
-        outcome = run_history(db, arranged, tmp_path)
+        outcome = run_year(db, arranged, tmp_path)
         assert not outcome.failed, outcome
         conn = db.connection
-        generation = derivations.selected_generation(conn, HISTORY)
+        generation = derivations.selected_generation(conn, YEAR)
         assert finished == [1]
         assert stored(conn, str(generation)) == expected
         assert building(conn) == []
-        assert derivations.current(conn, HISTORY)
+        assert derivations.current(conn, YEAR)
         assert (
-            conn.execute("SELECT count(*) FROM pending_work WHERE unit_kind='history'").fetchone()[
-                0
-            ]
+            conn.execute("SELECT count(*) FROM pending_work WHERE unit_kind='year'").fetchone()[0]
             == 0
         )
         assert (
             conn.execute(
-                "SELECT outcome FROM work_attempts WHERE stage='project' AND unit_kind='history' "
+                "SELECT outcome FROM work_attempts WHERE stage='project' AND unit_kind='year' "
                 "ORDER BY attempt_id DESC LIMIT 1"
             ).fetchone()[0]
             == "succeeded"
         )
         progress = derivations.cycle_progress(conn, arranged.run, None)
-        assert progress["generations"].get("project/history") == 1
+        assert progress["generations"].get("project/year") == 1
     # No write stored more than one chunk; A stored none of the output.
     assert max(writes) == 3
     assert sum(1 for count in writes if count) == -(-rows // 3)
@@ -178,12 +176,12 @@ def test_the_single_path_keeps_small_units_and_callers_in_a_transaction(arranged
         conn = db.connection
         event = WorkUnit("project", "event", "event-a")
         # No context: `accept-year` and other callers never stage.
-        assert not derivations.stageable(conn, HISTORY)
-        with derivations.chunking(conn, HISTORY):
-            assert derivations.stageable(conn, HISTORY)
+        assert not derivations.stageable(conn, YEAR)
+        with derivations.chunking(conn, YEAR):
+            assert derivations.stageable(conn, YEAR)
             assert not derivations.stageable(conn, event)
-        with db.transaction(), derivations.chunking(conn, HISTORY):
-            assert not derivations.stageable(conn, HISTORY)
+        with db.transaction(), derivations.chunking(conn, YEAR):
+            assert not derivations.stageable(conn, YEAR)
         with derivations.chunking(conn, event):
             # event-a's kept generation is small.
             assert not derivations.stageable(conn, event)
@@ -224,7 +222,7 @@ KILL = textwrap.dedent(
         derive_one(
             db,
             Archive(Path(state) / "archive"),
-            WorkUnit("project", "history", "all"),
+            WorkUnit("project", "year", "2026"),
             bundle,
             FakeClock(datetime.fromisoformat(now)),
             run,
@@ -235,7 +233,7 @@ KILL = textwrap.dedent(
 
 
 def test_a_run_killed_between_chunks_resumes_by_ordinal(arranged, tmp_path, monkeypatch):
-    expected = expected_history(arranged, tmp_path, monkeypatch)
+    expected = expected_year(arranged, tmp_path, monkeypatch)
     state = twin(arranged, tmp_path / "killed")
     killed = subprocess.run(
         [
@@ -257,26 +255,22 @@ def test_a_run_killed_between_chunks_resumes_by_ordinal(arranged, tmp_path, monk
     with open_database(state) as db:
         conn = db.connection
         assert building(conn) == [(expected["generation_id"], expected["label"][1], 3)]
-        assert derivations.selected_generation(conn, HISTORY) is None
+        assert derivations.selected_generation(conn, YEAR) is None
         # The labelled but partial generation is not progress and not current.
         assert (
-            "project/history"
+            "project/year"
             not in derivations.cycle_progress(conn, arranged.run, None)["generations"]
         )
-        assert not derivations.current(conn, HISTORY)
+        assert not derivations.current(conn, YEAR)
         assert (
-            conn.execute("SELECT count(*) FROM pending_work WHERE unit_kind='history'").fetchone()[
-                0
-            ]
+            conn.execute("SELECT count(*) FROM pending_work WHERE unit_kind='year'").fetchone()[0]
             == 1
         )
         bundle = capture(arranged.config, arranged.overrides, db.state_dir, versions())
         clock = FakeClock(arranged.now)
 
         def resume():
-            return derive_one(
-                db, Archive(tmp_path / "archive"), HISTORY, bundle, clock, arranged.run
-            )
+            return derive_one(db, Archive(tmp_path / "archive"), YEAR, bundle, clock, arranged.run)
 
         # The dead lease is taken over and the attempt closed; the unit waits
         # on that failure's clock, then resumes.
@@ -286,10 +280,10 @@ def test_a_run_killed_between_chunks_resumes_by_ordinal(arranged, tmp_path, monk
         clock.sleep(16 * 60)
         resumed = resume()
         assert not resumed.failed and resumed.reason is None, resumed
-        assert stored(conn, str(derivations.selected_generation(conn, HISTORY))) == expected
+        assert stored(conn, str(derivations.selected_generation(conn, YEAR))) == expected
         assert building(conn) == []
         assert conn.execute("PRAGMA foreign_key_check").fetchall() == []
-        assert derivations.current(conn, HISTORY)
+        assert derivations.current(conn, YEAR)
 
 
 def kill_in_chunk_two(arranged, state: Path) -> None:
@@ -318,7 +312,7 @@ def test_a_partial_generation_whose_building_row_was_collected_is_finished_not_r
     """`collect_orphans` can drop the building row of a partial generation. When
     the unit's inputs return to it, the run finishes storing it by ordinal; the
     pointer never selects it with rows missing."""
-    expected = expected_history(arranged, tmp_path, monkeypatch)
+    expected = expected_year(arranged, tmp_path, monkeypatch)
     state = twin(arranged, tmp_path / "killed")
     kill_in_chunk_two(arranged, state)
     monkeypatch.setattr(derivations, "CHUNK_ROWS", 3)
@@ -334,20 +328,20 @@ def test_a_partial_generation_whose_building_row_was_collected_is_finished_not_r
         bundle = capture(arranged.config, arranged.overrides, db.state_dir, versions())
         clock = FakeClock(arranged.now)
         archive = Archive(tmp_path / "archive")
-        held = derive_one(db, archive, HISTORY, bundle, clock, arranged.run)
+        held = derive_one(db, archive, YEAR, bundle, clock, arranged.run)
         assert held.reason == "process_interrupted" and not held.failed, held
         clock.sleep(16 * 60)
-        resumed = derive_one(db, archive, HISTORY, bundle, clock, arranged.run)
+        resumed = derive_one(db, archive, YEAR, bundle, clock, arranged.run)
         assert not resumed.failed and resumed.reason is None, resumed
-        assert derivations.selected_generation(conn, HISTORY) == generation_id
+        assert derivations.selected_generation(conn, YEAR) == generation_id
         assert stored(conn, generation_id) == expected
         assert building(conn) == []
-        assert derivations.current(conn, HISTORY)
+        assert derivations.current(conn, YEAR)
 
 
 def test_step_c_refuses_to_select_a_partial_generation_as_reused(arranged, tmp_path, monkeypatch):
     """The last guard: step C counts a reused generation's references too."""
-    expected = expected_history(arranged, tmp_path, monkeypatch)
+    expected = expected_year(arranged, tmp_path, monkeypatch)
     state = twin(arranged, tmp_path / "killed")
     kill_in_chunk_two(arranged, state)
     monkeypatch.setattr(derivations, "CHUNK_ROWS", 3)
@@ -361,12 +355,12 @@ def test_step_c_refuses_to_select_a_partial_generation_as_reused(arranged, tmp_p
         bundle = capture(arranged.config, arranged.overrides, db.state_dir, versions())
         clock = FakeClock(arranged.now)
         archive = Archive(tmp_path / "archive")
-        derive_one(db, archive, HISTORY, bundle, clock, arranged.run)
+        derive_one(db, archive, YEAR, bundle, clock, arranged.run)
         clock.sleep(16 * 60)
-        refused = derive_one(db, archive, HISTORY, bundle, clock, arranged.run)
+        refused = derive_one(db, archive, YEAR, bundle, clock, arranged.run)
         assert refused.reason is not None, refused
-        assert derivations.selected_generation(conn, HISTORY) != generation_id
-        assert not derivations.current(conn, HISTORY)
+        assert derivations.selected_generation(conn, YEAR) != generation_id
+        assert not derivations.current(conn, YEAR)
 
 
 def test_identical_output_records_an_equivalence_and_stores_no_rows(
@@ -375,30 +369,30 @@ def test_identical_output_records_an_equivalence_and_stores_no_rows(
     monkeypatch.setattr(derivations, "CHUNK_ROWS", 3)
     with open_database(twin(arranged, tmp_path / "state")) as db:
         conn = db.connection
-        assert not run_history(db, arranged, tmp_path).failed
-        kept = derivations.selected_generation(conn, HISTORY)
+        assert not run_year(db, arranged, tmp_path).failed
+        kept = derivations.selected_generation(conn, YEAR)
         references = conn.execute("SELECT count(*) FROM derivation_row_refs").fetchone()[0]
         generations = conn.execute("SELECT count(*) FROM derivation_generations").fetchone()[0]
         with db.transaction():
-            # A new input to history that changes none of its output.
+            # A new input to the year that changes none of its output.
             derivations.bump_replay(conn, "project", "event", now=arranged.now)
-        assert not derivations.current(conn, HISTORY)
+        assert not derivations.current(conn, YEAR)
         clock = FakeClock(arranged.now)
         clock.sleep(60)
-        assert not run_history(db, arranged, tmp_path, clock).failed
-        assert derivations.selected_generation(conn, HISTORY) == kept
+        assert not run_year(db, arranged, tmp_path, clock).failed
+        assert derivations.selected_generation(conn, YEAR) == kept
         assert conn.execute("SELECT count(*) FROM derivation_row_refs").fetchone()[0] == references
         assert (
             conn.execute("SELECT count(*) FROM derivation_generations").fetchone()[0] == generations
         )
         assert (
             conn.execute(
-                "SELECT count(*) FROM derivation_equivalences WHERE unit_kind='history'"
+                "SELECT count(*) FROM derivation_equivalences WHERE unit_kind='year'"
             ).fetchone()[0]
             == 1
         )
         assert building(conn) == []
-        assert derivations.current(conn, HISTORY)
+        assert derivations.current(conn, YEAR)
 
 
 def test_nondeterministic_output_fails_transient_and_keeps_the_building_row(
@@ -421,19 +415,17 @@ def test_nondeterministic_output_fails_transient_and_keeps_the_building_row(
     monkeypatch.setattr(materialization, "output_rows", unstable)
     with open_database(twin(arranged, tmp_path / "state")) as db:
         conn = db.connection
-        outcome = run_history(db, arranged, tmp_path)
+        outcome = run_year(db, arranged, tmp_path)
         assert outcome.failed and outcome.reason == "nondeterministic_output"
         attempt = conn.execute(
-            "SELECT outcome,reason_code FROM work_attempts WHERE unit_kind='history' "
+            "SELECT outcome,reason_code FROM work_attempts WHERE unit_kind='year' "
             "ORDER BY attempt_id DESC LIMIT 1"
         ).fetchone()
         assert tuple(attempt) == ("transient", "nondeterministic_output")
         assert len(building(conn)) == 1
-        assert derivations.selected_generation(conn, HISTORY) is None
+        assert derivations.selected_generation(conn, YEAR) is None
         assert (
-            conn.execute("SELECT count(*) FROM pending_work WHERE unit_kind='history'").fetchone()[
-                0
-            ]
+            conn.execute("SELECT count(*) FROM pending_work WHERE unit_kind='year'").fetchone()[0]
             == 1
         )
 
@@ -465,22 +457,22 @@ def test_an_input_change_between_a_and_c_supersedes_and_the_retry_rewrites(
     monkeypatch.setattr(process, "_dispatch", dispatch)
     with open_database(twin(arranged, tmp_path / "state")) as db:
         conn = db.connection
-        first = run_history(db, arranged, tmp_path)
+        first = run_year(db, arranged, tmp_path)
         assert first.reason == "inputs_changed" and not first.failed
-        assert derivations.selected_generation(conn, HISTORY) is None
+        assert derivations.selected_generation(conn, YEAR) is None
         # The superseded generation's building row is an orphan for the collector.
         assert [row[0] for row in building(conn)] == moved
         clock = FakeClock(arranged.now)
         clock.sleep(1)
-        second = run_history(db, arranged, tmp_path, clock)
+        second = run_year(db, arranged, tmp_path, clock)
         assert not second.failed, second
-        assert written == [HISTORY, HISTORY]
-        generation = derivations.selected_generation(conn, HISTORY)
+        assert written == [YEAR, YEAR]
+        generation = derivations.selected_generation(conn, YEAR)
         assert generation is not None and generation != moved[0]
         # The superseded A's building row was collected once the retry
         # finished (I6).
         assert building(conn) == []
-        assert derivations.current(conn, HISTORY)
+        assert derivations.current(conn, YEAR)
 
 
 def test_a_grouped_source_event_completes_on_the_single_path(arranged, tmp_path, monkeypatch):
@@ -518,7 +510,7 @@ def test_a_grouped_source_event_completes_on_the_single_path(arranged, tmp_path,
         assert derivations.current(conn, units[0])
 
 
-def test_accept_year_completes_history_on_the_single_path(arranged, tmp_path, monkeypatch):
+def test_accept_year_completes_its_year_on_the_single_path(arranged, tmp_path, monkeypatch):
     from swingset.project.history import accept_year
 
     monkeypatch.setattr(derivations, "CHUNK_ROWS", 3)
@@ -535,12 +527,12 @@ def test_accept_year_completes_history_on_the_single_path(arranged, tmp_path, mo
         )
         assert finished == []
         assert building(conn) == []
-        assert derivations.selected_generation(conn, HISTORY) is not None
+        assert derivations.selected_generation(conn, YEAR) is not None
 
 
-def test_the_accept_year_command_stores_history_in_chunks(arranged, tmp_path, monkeypatch):
+def test_the_accept_year_command_stores_its_year_in_chunks(arranged, tmp_path, monkeypatch):
     """Rehearsal finding 2: one 61 s single-path write on the Mac. The command
-    commits the acceptance with history's live rows, then stores in chunks."""
+    commits the acceptance with its year's live rows, then stores in chunks."""
     from swingset.cli import main
 
     monkeypatch.setattr(derivations, "CHUNK_ROWS", 3)
@@ -561,7 +553,7 @@ def test_the_accept_year_command_stores_history_in_chunks(arranged, tmp_path, mo
         conn = db.connection
         assert conn.execute("SELECT count(*) FROM history_acceptance").fetchone()[0] >= 1
         assert building(conn) == []
-        generation = derivations.selected_generation(conn, HISTORY)
+        generation = derivations.selected_generation(conn, YEAR)
         assert generation is not None
         label = conn.execute(
             "SELECT row_count FROM derivation_generations WHERE generation_id=?", (generation,)
@@ -571,9 +563,7 @@ def test_the_accept_year_command_stores_history_in_chunks(arranged, tmp_path, mo
         ).fetchone()[0]
         assert references == label > 3
         assert (
-            conn.execute("SELECT count(*) FROM pending_work WHERE unit_kind='history'").fetchone()[
-                0
-            ]
+            conn.execute("SELECT count(*) FROM pending_work WHERE unit_kind='year'").fetchone()[0]
             == 0
         )
 
@@ -581,7 +571,7 @@ def test_the_accept_year_command_stores_history_in_chunks(arranged, tmp_path, mo
 def test_a_resume_after_its_generation_was_removed_starts_over(arranged, tmp_path, monkeypatch):
     """A building row whose generation is gone (a restore from an older copy)
     restarts: same id and label, every ordinal stored once."""
-    expected = expected_history(arranged, tmp_path, monkeypatch)
+    expected = expected_year(arranged, tmp_path, monkeypatch)
     state = twin(arranged, tmp_path / "killed")
     killed = subprocess.run(
         [
@@ -613,18 +603,18 @@ def test_a_resume_after_its_generation_was_removed_starts_over(arranged, tmp_pat
         bundle = capture(arranged.config, arranged.overrides, db.state_dir, versions())
         clock = FakeClock(arranged.now)
         archive = Archive(tmp_path / "archive")
-        held = derive_one(db, archive, HISTORY, bundle, clock, arranged.run)
+        held = derive_one(db, archive, YEAR, bundle, clock, arranged.run)
         assert held.reason == "process_interrupted"
         clock.sleep(16 * 60)
-        resumed = derive_one(db, archive, HISTORY, bundle, clock, arranged.run)
+        resumed = derive_one(db, archive, YEAR, bundle, clock, arranged.run)
         assert not resumed.failed and resumed.reason is None, resumed
-        assert derivations.selected_generation(conn, HISTORY) == generation_id
+        assert derivations.selected_generation(conn, YEAR) == generation_id
         assert stored(conn, generation_id) == expected
         assert building(conn) == []
 
 
 def test_unfinished_staged_output_is_never_read_as_output(arranged, tmp_path, monkeypatch):
-    """A history generation a staged run stopped storing, with or without its
+    """A year generation a staged run stopped storing, with or without its
     building row, is no release anchor, takes no retention window slot, and
     the plan lists it `incomplete` (F8, I6)."""
     from datetime import timedelta
@@ -635,8 +625,8 @@ def test_unfinished_staged_output_is_never_read_as_output(arranged, tmp_path, mo
     single(monkeypatch)
     with open_database(twin(arranged, tmp_path / "state")) as db:
         conn = db.connection
-        assert not run_history(db, arranged, tmp_path).failed
-        whole = derivations.selected_generation(conn, HISTORY)
+        assert not run_year(db, arranged, tmp_path).failed
+        whole = derivations.selected_generation(conn, YEAR)
         assert whole is not None
         later = (arranged.now + timedelta(minutes=5)).isoformat()
         with db.transaction():
@@ -674,7 +664,7 @@ def test_unfinished_staged_output_is_never_read_as_output(arranged, tmp_path, mo
             return windows, lists, content["totals"]
 
         windows, lists, totals = listed()
-        # The newest window slot of history is still the whole generation.
+        # The newest window slot of the year is still the whole generation.
         assert whole in windows and "dg_partial" not in windows
         assert lists["dg_partial"] == "incomplete" and lists[whole] == "local"
         assert totals["incomplete_generations"] == 1
@@ -685,7 +675,7 @@ def test_unfinished_staged_output_is_never_read_as_output(arranged, tmp_path, mo
             conn.execute(
                 "INSERT INTO derivation_building(generation_id,stage,unit_kind,unit_id,"
                 "input_fingerprint,run_id,started_at,updated_at) "
-                "VALUES ('dg_partial','project','history','all','fp-partial',?,?,?)",
+                "VALUES ('dg_partial','project','year','2026','fp-partial',?,?,?)",
                 (arranged.run, later, later),
             )
         windows, lists, _ = listed()

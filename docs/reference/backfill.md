@@ -368,9 +368,10 @@ spent on a page the archive has.
   is true for that year. Until then the year's sheets are not fetched,
   however cheap they are. A pending projection that can move the event list
   (inventory, map, calendar, source index, dancer, an unmapped source event)
-  also holds phase 2. A pending `project/history/all` does not: it writes only
-  event associations and coverage, which the year's acceptance digest does not
-  read ([D-0198](../../journal/decisions/0198-history-no-longer-gates-acquisition-and-deadline-overruns-retry.md)).
+  also holds phase 2. A pending year unit (`project/year/<yyyy>`, which
+  replaced `project/history/all`) does not: it writes only event associations,
+  tiers and coverage, which the year's acceptance digest does not read
+  ([D-0198](../../journal/decisions/0198-history-no-longer-gates-acquisition-and-deadline-overruns-retry.md)).
   The acquire, plan and derive loops do not ask about pending projections at
   all: acceptance, the accepted digest against the committed event list, open
   findings and the H7/H10 switches decide, and the digest closes the year once

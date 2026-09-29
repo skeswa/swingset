@@ -6,7 +6,7 @@ import csv
 import io
 import json
 import sqlite3
-from collections.abc import Iterator
+from collections.abc import Iterable, Iterator
 from contextlib import contextmanager, nullcontext
 from contextvars import ContextVar
 from datetime import date, datetime
@@ -311,8 +311,8 @@ def prepare_inventory(
         start = payload.start_date_raw if precision == "day" else None
         end = payload.end_date_raw if precision == "day" else None
         conn.execute(
-            """INSERT INTO events(event_id,series_id,name,year,start_date,end_date,website,wsdc_status,sources,source,snapshot_id,parser_version,first_seen_at,last_seen_at,run_id,event_month,date_precision,held,coverage_tier,history_source)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(event_id) DO UPDATE SET wsdc_status=CASE WHEN events.held='held' THEN events.wsdc_status ELSE excluded.wsdc_status END,source=excluded.source,snapshot_id=excluded.snapshot_id,parser_version=excluded.parser_version,sources=excluded.sources,last_seen_at=excluded.last_seen_at,run_id=excluded.run_id,start_date=excluded.start_date,end_date=excluded.end_date,year=excluded.year,website=COALESCE(excluded.website,events.website),date_precision=excluded.date_precision,coverage_tier=CASE WHEN events.coverage_tier='registry_only' THEN 'index_only' ELSE events.coverage_tier END,history_source=excluded.history_source,held=CASE WHEN events.held='held' THEN 'held' ELSE excluded.held END WHERE events.start_date IS NOT excluded.start_date OR events.end_date IS NOT excluded.end_date OR events.source IS NOT excluded.source OR events.snapshot_id IS NOT excluded.snapshot_id OR events.history_source IS NOT excluded.history_source OR events.sources IS NOT excluded.sources OR events.date_precision IS NOT excluded.date_precision OR (events.held!='held' AND events.wsdc_status IS NOT excluded.wsdc_status)""",
+            f"""INSERT INTO events(event_id,series_id,name,year,start_date,end_date,website,wsdc_status,sources,source,snapshot_id,parser_version,first_seen_at,last_seen_at,run_id,event_month,date_precision,held,coverage_tier,history_source)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(event_id) DO UPDATE SET wsdc_status=CASE WHEN events.held='held' THEN events.wsdc_status ELSE excluded.wsdc_status END,source=excluded.source,snapshot_id=excluded.snapshot_id,parser_version=excluded.parser_version,sources=excluded.sources,last_seen_at=excluded.last_seen_at,run_id=excluded.run_id,start_date=excluded.start_date,end_date=excluded.end_date,year=excluded.year,website=COALESCE(excluded.website,events.website),date_precision=excluded.date_precision,coverage_tier=CASE WHEN events.coverage_tier='registry_only' THEN 'index_only' ELSE events.coverage_tier END,history_source=excluded.history_source,held=CASE WHEN events.held='held' THEN 'held' ELSE excluded.held END WHERE events.start_date IS NOT excluded.start_date OR events.end_date IS NOT excluded.end_date OR events.source IS NOT excluded.source OR events.snapshot_id IS NOT excluded.snapshot_id OR {_list_differs("history_source")} OR {_list_differs("sources")} OR events.date_precision IS NOT excluded.date_precision OR (events.held!='held' AND events.wsdc_status IS NOT excluded.wsdc_status)""",
             (
                 event_id,
                 series,
@@ -322,7 +322,7 @@ def prepare_inventory(
                 end,
                 payload.website,
                 status,
-                json.dumps(sorted(sources)),
+                _json_list(sources),
                 source,
                 row[2],
                 row[3],
@@ -333,7 +333,7 @@ def prepare_inventory(
                 precision,
                 "cancelled" if cancelled else "listed",
                 "index_only",
-                json.dumps(sorted(histories)),
+                _json_list(histories),
             ),
         )
     for year in range(history_start.year, int(now[:4]) + 1):
@@ -380,6 +380,36 @@ def finalize_history(
     rebuild_coverage(conn, now=now)
 
 
+def finalize_year(
+    conn: sqlite3.Connection, year: int, *, now: str, history_start: date = HISTORY_START
+) -> bool:
+    """Associate one year's occurrences and count that year's coverage (F17).
+
+    The association is `finalize_history`'s, restricted to placements whose
+    reporting month falls in ``year``; an occurrence and its event share a
+    month, so the years split it exactly. A changed association moves the
+    canonical revision, so a cutoff that rewrote it moves the year replay
+    epoch: the year of a December event counts that event's January
+    placements. Coverage is `rebuild_year_coverage`. Returns whether any live
+    row changed.
+    """
+    from .coverage import rebuild_year_coverage
+
+    association = (
+        "(SELECT e.event_id FROM events e WHERE e.series_id=registry_placements.series_id "
+        "AND e.event_month=substr(registry_placements.event_month,1,7) "
+        "ORDER BY e.event_id LIMIT 1)"
+    )
+    moved = conn.execute(
+        f"UPDATE registry_placements SET event_id={association} "
+        f"WHERE event_month>=? AND substr(event_month,1,4)=? AND event_id IS NOT {association}",
+        (history_start.strftime("%Y-%m"), f"{year:04d}"),
+    ).rowcount
+    if moved:
+        bump_revision(conn, "canonical")
+    return rebuild_year_coverage(conn, year, now=now) or bool(moved)
+
+
 def reconcile_history(
     conn: sqlite3.Connection,
     *,
@@ -412,6 +442,32 @@ def _current_listings(
         if (observation_times.get(str(row[2]), ""), str(row[2]))
         == newest[str(row[4]), series_slug(payload.name_raw), payload.end_date_raw[:7]]
     ]
+
+
+def _list_differs(column: str) -> str:
+    """SQL: the stored and the new JSON list of ``column`` differ as values.
+
+    A row stored as `["a", "b"]` by the inventory before F28's fix equals
+    `["a","b"]`: only a changed value rewrites the row, so a text-only
+    difference neither moves the canonical revision nor refreshes the row's
+    other columns (its parser version, say) from a newer listing.
+    """
+    stored, new = f"events.{column}", f"excluded.{column}"
+    return (
+        f"(CASE WHEN json_valid({stored}) THEN json({stored}) ELSE {stored} END) IS NOT "
+        f"(CASE WHEN json_valid({new}) THEN json({new}) ELSE {new} END)"
+    )
+
+
+def _json_list(values: Iterable[str]) -> str:
+    """A sorted JSON list in the one text form every writer of `events` uses.
+
+    `project/writer` stores lists compact; this upsert once stored them with
+    spaces, so the inventory and a resolution or calendar rewrote each
+    other's text. Each inventory re-run with unchanged output then moved the
+    canonical revision and replayed every unit behind it (F28).
+    """
+    return json.dumps(sorted(values), separators=(",", ":"), ensure_ascii=False)
 
 
 def _inventory_state(conn: sqlite3.Connection) -> tuple[tuple[object, ...], ...]:
@@ -592,20 +648,24 @@ def _pending_inventory_projection(conn: sqlite3.Connection) -> bool:
     Event rows, so those legacy scopes fail closed. A source_event is neutral
     only when dispatch already has its unambiguous mapping; otherwise it may
     invoke the global map projector. Registry, discovery and unknown units can
-    add or move occurrences and remain blocking regardless of year.
+    add or move occurrences and remain blocking regardless of year. An
+    unmapped source_event still blocks, though it now writes nothing and
+    waits for its mapping; a pending mapping or resolution blocks, as the map
+    did.
 
-    With derivations, the history unit only runs finalize_history: it writes
+    With derivations, a year unit only runs finalize_year: it writes
     registry_placements.event_id, events.coverage_tier and coverage, none of
-    which _inventory_digest reads. Every fetched sheet re-queues it, so letting
-    it block would close the gate that fetches the next sheet (D-0198). The
-    legacy path rebuilds the inventory and still blocks.
+    which _inventory_digest reads. Every fetched sheet re-queues its year, so
+    letting it block would close the gate that fetches the next sheet (D-0198).
+    The legacy history path rebuilds the inventory and still blocks.
 
     An inventory the pacing gate holds (D-0210), one not current and made
-    within its interval, writes nothing until that interval ends, and the map
-    behind it needs a current inventory, so neither blocks: the gate reads
-    the committed event list, a fact (I5), and the accepted digest still
-    closes a year whose list the paced inventory later changes. A current inventory holds nothing, so a pending map can run
-    and blocks. Only a run that names its scheduler (schedule/pacing) holds
+    within its interval, writes nothing until that interval ends, and the
+    mappings and resolutions behind it need a current inventory, so none of
+    them blocks: the gate reads the committed event list, a fact (I5), and
+    the accepted digest still closes a year whose list the paced inventory
+    later changes. A current inventory holds nothing, so a pending mapping or
+    resolution can run and blocks. Only a run that names its scheduler (schedule/pacing) holds
     one. A unit whose code scope is not accepted counts as pending
     (`derivations.pending_units`) and is judged like any other.
     """
@@ -620,9 +680,9 @@ def _pending_inventory_projection(conn: sqlite3.Connection) -> bool:
         else conn.execute("SELECT unit_kind,unit_id FROM pending_work WHERE stage='project'")
     )
     for kind, identifier in units:
-        if kind == "history" and derived:
+        if kind in {"history", "year"} and derived:
             continue
-        if held and kind in {"inventory", "map"}:
+        if held and kind in {"inventory", "map", "mapping", "resolution"}:
             continue
         event_id = identifier
         if kind == "source_event":
@@ -659,9 +719,17 @@ def accept_year(
     accepted_by: str,
     accepted_at: str,
     run_id: str | None = None,
+    history_start: date = HISTORY_START,
 ) -> None:
-    """Accept the exact inventory and its coverage output in one bounded write."""
+    """Accept the exact inventory and derive its year in one bounded write.
+
+    With derivations the year's unit, `project/year/<year>`, runs inside its
+    own capture and recording, so its acceptance and coverage become one
+    generation of that year alone; a caller that set up `chunking` for that
+    unit stages its output.
+    """
     from swingset.state.derivations import available
+    from swingset.state.read_sets import recording
     from swingset.state.write_deadline import bounded_write
 
     from .materialization import materializing
@@ -709,10 +777,12 @@ def accept_year(
                             ),
                         ),
                     )
-                with materializing(
-                    conn, WorkUnit("project", "history", "all"), now=accepted_at, run_id=run_id
+                unit = WorkUnit("project", "year", str(year))
+                with (
+                    materializing(conn, unit, now=accepted_at, run_id=run_id),
+                    recording(conn, unit),
                 ):
-                    rebuild_coverage(conn, now=accepted_at)
+                    finalize_year(conn, year, now=accepted_at, history_start=history_start)
             else:
                 rebuild_coverage(conn, now=accepted_at)
     except BaseException:

@@ -111,6 +111,35 @@ def _fenced(exc: BaseException) -> bool:
     return isinstance(exc, sqlite3.DatabaseError) and "active publication fences" in str(exc)
 
 
+def _close_fenced(
+    database: Database, attempt: Attempt, action_id: str, clock: Clock, reason: str
+) -> None:
+    """Close a unit whose write met a publication fence, uncounted, if it can.
+
+    A narrow publication (plan phase 3) leaves the queue, attempt and
+    admission tables writable: the attempt ends `interrupted`, the unit
+    retries in a minute and the admission settles, as the next tick's
+    recovery would. Under a full fence this write is fenced too and nothing
+    is written: this loop's next tick closes them (F6).
+    """
+    try:
+        with database.transaction() as conn:
+            failure = queue.fail(
+                conn, attempt.unit, reason=reason, fingerprint=attempt.fingerprint, now=clock.now()
+            )
+            finish_attempt(
+                database,
+                attempt,
+                outcome="interrupted",
+                reason_code=reason,
+                now=clock.now(),
+                retry_at=max(failure.next_attempt_at, clock.now() + queue.DEFAULT.takeover_retry),
+            )
+            settle(conn, action_id, now=clock.now(), outcome=reason)
+    except (sqlite3.Error, WriteDeadlineExceeded, ValueError):
+        pass
+
+
 def _locked(exc: BaseException) -> bool:
     """`BEGIN IMMEDIATE` or a write outwaited the busy timeout behind another process."""
     message = str(exc).lower()
@@ -402,13 +431,14 @@ def derive_one(
             return DerivationOutcome(source, False, "inputs_changed")
         except Exception as exc:
             if _fenced(exc) or _locked(exc):
-                # A fenced or busy write: the unit did nothing wrong, and the
-                # queue and attempt tables are fenced too. Write nothing: the
-                # admission and attempt stay open for this loop's next tick,
-                # whose recovery closes them uncounted (F6, F7).
-                return DerivationOutcome(
-                    source, reason=queue.FENCED_REASON if _fenced(exc) else queue.LOCK_REASON
-                )
+                # A fenced or busy write: the unit did nothing wrong. Close it
+                # uncounted where the queue is writable (a narrow fence);
+                # otherwise the admission and attempt stay open for this
+                # loop's next tick, whose recovery closes them uncounted.
+                reason = queue.FENCED_REASON if _fenced(exc) else queue.LOCK_REASON
+                if _fenced(exc):
+                    _close_fenced(database, attempt, action_id, clock, reason)
+                return DerivationOutcome(source, reason=reason)
             # A unit's transaction has rolled back. Keep its token and diagnostic,
             # then allow independent units to use already committed evidence.
             # A retained page whose parser this runtime does not know (a manual
@@ -454,7 +484,8 @@ def derive_one(
         # timeout: nothing more is written (the queue and attempt tables are
         # fenced too); this loop's next tick closes the attempt uncounted.
         if _fenced(exc) or _locked(exc):
-            return DerivationOutcome(
-                source, reason=queue.FENCED_REASON if _fenced(exc) else queue.LOCK_REASON
-            )
+            reason = queue.FENCED_REASON if _fenced(exc) else queue.LOCK_REASON
+            if _fenced(exc):
+                _close_fenced(database, attempt, action_id, clock, reason)
+            return DerivationOutcome(source, reason=reason)
         raise

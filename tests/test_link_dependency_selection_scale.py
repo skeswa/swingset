@@ -1,4 +1,9 @@
-"""Exact link subsets preserve the complete catalog without enumerating it."""
+"""A link's prerequisites are what it read, found without enumerating the catalog.
+
+Its resolution and event come from the catalog; its dancers only from its
+read set (plan F20), never the registry, and only those with a unit (F27).
+No year: a link reads its registry association as content.
+"""
 
 from datetime import UTC, datetime
 
@@ -17,8 +22,7 @@ def expected(conn, identifier="event"):
     return tuple(
         unit
         for unit in dependencies.scopes(conn, "project")
-        if unit.unit_kind in {"dancer", "history"}
-        or (unit.unit_kind == "event" and unit.unit_id == identifier)
+        if unit.unit_kind in {"event", "resolution"} and unit.unit_id == identifier
     )
 
 
@@ -66,45 +70,54 @@ def test_link_subsets_do_not_promote_source_index_ownership_to_global_scope(tmp_
             conn
         )
         assert dependencies.prerequisites(conn, WorkUnit("link", "event", "event")) == (
+            WorkUnit("project", "resolution", "event"),
             WorkUnit("project", "event", "event"),
         )
 
 
-def test_link_subsets_keep_all_dancers_sorted_and_never_scan_full_catalog(tmp_path, monkeypatch):
+def test_link_names_only_the_dancers_it_read_and_never_scans_the_catalog(tmp_path, monkeypatch):
     with open_database(tmp_path) as db:
         conn = db.connection
-        units = [("dancer", str(number)) for number in range(1000)] + [
-            ("history", "custom"),
-            ("event", "event"),
-        ]
+        units = [("dancer", str(number)) for number in range(1000)] + [("event", "event")]
         conn.executemany(
             "INSERT INTO derivation_scopes(stage,unit_kind,unit_id,registered_at) VALUES ('project',?,?,?)",
             [(kind, identifier, NOW) for kind, identifier in units],
         )
-        wanted = expected(conn)
-        assert sum(unit.unit_kind == "dancer" for unit in wanted) == 1000
+        link = WorkUnit("link", "event", "event")
+        assert dependencies.prerequisites(conn, link) == expected(conn)
+        conn.executemany(
+            "INSERT INTO derivation_reads VALUES ('link','event','event',?)",
+            [
+                ("project/dancer/12",),
+                ("project/dancer/5",),
+                # A printed id the registry lacks: no unit, no prerequisite (F27).
+                ("project/dancer/82468",),
+                ("pool:event",),
+            ],
+        )
+        wanted = (
+            WorkUnit("project", "dancer", "12"),
+            WorkUnit("project", "dancer", "5"),
+            *expected(conn),
+        )
 
         def forbidden(*args):
             raise AssertionError("link prerequisites enumerated the full catalog")
 
         monkeypatch.setattr(dependencies, "_scopes", forbidden)
-        assert dependencies.prerequisites(conn, WorkUnit("link", "event", "event")) == wanted
+        assert dependencies.prerequisites(conn, link) == wanted
         with query(conn):
-            assert dependencies.prerequisites(conn, WorkUnit("link", "event", "event")) == wanted
+            assert dependencies.prerequisites(conn, link) == wanted
             with db.transaction():
-                conn.execute("SAVEPOINT additional_dancer")
+                conn.execute("SAVEPOINT another_read")
                 conn.execute(
-                    "INSERT INTO canonical_scope_rows VALUES ('dancer','new','dancers','[]')"
+                    "INSERT INTO derivation_reads VALUES ('link','event','event','project/dancer/7')"
                 )
-                assert WorkUnit("project", "dancer", "new") in dependencies.prerequisites(
-                    conn, WorkUnit("link", "event", "event")
-                )
-                conn.execute("ROLLBACK TO additional_dancer")
-                conn.execute("RELEASE additional_dancer")
-                assert (
-                    dependencies.prerequisites(conn, WorkUnit("link", "event", "event")) == wanted
-                )
-            assert dependencies.prerequisites(conn, WorkUnit("link", "event", "event")) == wanted
+                assert WorkUnit("project", "dancer", "7") in dependencies.prerequisites(conn, link)
+                conn.execute("ROLLBACK TO another_read")
+                conn.execute("RELEASE another_read")
+                assert dependencies.prerequisites(conn, link) == wanted
+            assert dependencies.prerequisites(conn, link) == wanted
 
 
 @pytest.mark.parametrize("stage", ["parse", "link", "build"])
@@ -171,6 +184,8 @@ def test_shared_inference_from_standalone_fact_tables(tmp_path, origin):
             )
         actual = dependencies.prerequisites(conn, WorkUnit("link", "event", "event"))
         assert actual == expected(conn)
-        assert WorkUnit("project", "history", "all") in actual
+        # A link waits for no year: it reads its association as content.
+        assert not any(unit.unit_kind == "year" for unit in actual)
+        assert not any(unit.unit_kind == "history" for unit in actual)
         assert (WorkUnit("project", "event", "event") in actual) == (origin == "events")
         assert not any(unit.unit_kind == "dancer" for unit in actual)

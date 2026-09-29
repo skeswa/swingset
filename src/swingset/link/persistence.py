@@ -9,7 +9,8 @@ from __future__ import annotations
 import hashlib
 import json
 import sqlite3
-from typing import TYPE_CHECKING
+from collections.abc import Mapping
+from typing import TYPE_CHECKING, Any
 
 from swingset.clock import Clock
 from swingset.project.materialization import helper_recipe, materializing
@@ -40,12 +41,15 @@ def commit_resolution(
     clock: Clock,
     run_id: str,
     linker_version: str,
+    reads: Mapping[str, Any] | None = None,
 ) -> bool:
     """Store an EventResolution only while its selected inputs remain current.
 
     A resolution contains answers already computed for the event. The basis
     identifies the input versions used to compute them: a newly accepted
     rejection of WSDC 100 must prevent an older confirmation from being stored.
+    ``reads`` is the run's read set with each key's value at load: the
+    generation is selected from it, and completion records it (plan F20).
 
     Persist conclusions, candidate evidence, findings, and history together
     with placement updates, confirmation watches, revisions, and work
@@ -65,6 +69,7 @@ def commit_resolution(
             run_id=run_id,
             selection=basis.selection,
             recipe=helper_recipe(db, bundle.files, "link"),
+            reads=reads,
         ):
             if journal_token(db) != basis.journal:
                 raise StaleIdentityResolution("identity decisions changed during linking")

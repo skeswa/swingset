@@ -53,6 +53,10 @@ def _change_key(row: Mapping[str, Any]) -> tuple[str, str]:
     )
 
 
+#: Tables whose rows name suppressed people; `learn` sweeps them to a fixed point.
+SUBJECT_TABLES = ("dancers", "entries", "judges")
+
+
 class SuppressionPolicy:
     """Retain only suppression selectors and affected keys, never private notes.
 
@@ -209,13 +213,29 @@ class SuppressionPolicy:
                 raise ValueError("suppression history discovery did not converge")
         # Identity names discovered by an ID suppression also cover unlinked appearances.
         while True:
-            before = (len(self.ids), len(self.names), len(self.subjects))
-            for table in ("dancers", "entries", "judges"):
-                for row in rows.get(table, []):
-                    if self._record_match(table, row):
-                        self._remember_subject(table, row)
-            if before == (len(self.ids), len(self.names), len(self.subjects)):
+            before = self.size()
+            for table in SUBJECT_TABLES:
+                self.learn(table, rows.get(table, []))
+            if before == self.size():
                 break
+        self.prepare()
+        self.transform(rows)
+        if "changelog" in rows:
+            self.discover_history(rows["changelog"])
+            rows["changelog"][:] = self.filter_changelog(rows["changelog"])
+
+    def size(self) -> tuple[int, int, int]:
+        """What `learn` can grow; a sweep that leaves it unchanged is the fixed point."""
+        return len(self.ids), len(self.names), len(self.subjects)
+
+    def learn(self, table: str, rows: Iterable[Mapping[str, Any]]) -> None:
+        """Remember every subject of ``rows`` a selector matches (one sweep)."""
+        for row in rows:
+            if self._record_match(table, row):
+                self._remember_subject(table, row)
+
+    def prepare(self) -> None:
+        """Name the replacement ids of learned subjects, once learning is done."""
         for identifier in self.subjects:
             if (
                 self._name_match(identifier)
@@ -230,6 +250,15 @@ class SuppressionPolicy:
                         ("swingset-suppressed-subject-v1|" + identifier).encode()
                     ).hexdigest()[:24]
                 )
+
+    def transform(self, rows: Mapping[str, list[dict[str, Any]]]) -> None:
+        """Apply what was learned to ``rows`` in place; each row alone.
+
+        The streamed assembly calls this per partition once `learn` has
+        reached its fixed point over the whole release.
+        """
+        if not self.active:
+            return
         for table in ("dancers", "registry_placements"):
             rows.get(table, [])[:] = [
                 row for row in rows.get(table, []) if row.get("wsdc_id") not in self.ids
@@ -273,9 +302,6 @@ class SuppressionPolicy:
             for row in table_rows:
                 for field, value in tuple(row.items()):
                     row[field] = self._scrub_value(value, field)
-        if "changelog" in rows:
-            self.discover_history(rows["changelog"])
-            rows["changelog"][:] = self.filter_changelog(rows["changelog"])
 
     def filter_changelog(self, history: Iterable[Mapping[str, Any]]) -> Iterator[dict[str, Any]]:
         """Drop private deltas, preserving unaffected rows and their sort order."""

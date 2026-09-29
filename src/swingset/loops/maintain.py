@@ -5,7 +5,10 @@ nobody has seen for a week, the run records of idle loop ticks (and stop
 markers) after 14 days and of every loop tick after 30, counts building
 generations nothing is finishing and partial generations nothing names,
 compacts loop `runs` rows older than 30 days, drops queue rows whose unit
-has nothing left to do, and reports the size cap and the controls. Each task done is one unit of progress.
+has nothing left to do, removes partition artifacts nothing has named for a
+day, and reports the size cap and the controls. Once a week it re-derives a
+sample of current link and year units and compares their output
+(`state/verify`, summary key `verify`). Each task done is one unit of progress.
 """
 
 from __future__ import annotations
@@ -79,6 +82,14 @@ def run(tick: Tick) -> None:
         return
     summary["queue_orphans"] = queue.collect_orphans(database, now=now)
     tick.progress()
+    if tick.stop():
+        return
+    from swingset.build import artifact_store
+
+    # Partition artifacts no current partition and no retained release
+    # manifest has named for a day, and crashed writes (phase 3, WP6).
+    summary["artifacts"] = artifact_store.collect(database, now=now)
+    tick.progress()
     from swingset.state.controls import status
     from swingset.state.retention import enforce_size_cap
 
@@ -90,6 +101,15 @@ def run(tick: Tick) -> None:
     summary["controls"] = status(conn, now=clock.now())
     summary["guard_reasons"] = guards.counts_by_reason(conn)
     tick.progress()
+    if tick.stop():
+        return
+    from swingset.state import verify
+
+    # Last: the longest step, and the only one that may run for minutes. Each
+    # unit is its own write, rolled back; a mismatch is `[read-set-miss]`.
+    if verify.due(conn, now=clock.now()):
+        summary["verify"] = verify.run(database, tick.bundle, clock, tick.run_id, stop=tick.stop)
+        tick.progress()
 
 
 #: Loop `runs` rows compacted per maintain tick, so one write stays short.

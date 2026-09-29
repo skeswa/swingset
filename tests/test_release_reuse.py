@@ -27,12 +27,11 @@ def test_same_health_bucket_reuses_exact_candidate_then_daily_cutoff_advances(em
     clock.sleep(timedelta(days=1).total_seconds())
     third = service.build_release(db, bundle, clock, run)
     assert not third.reused and third.path != first.path
-    assert (
-        json.loads((third.path / "_meta/manifest.json").read_bytes())["release_policy"]["closure"][
-            "cutoff"
-        ]
-        != json.loads(original)["release_policy"]["closure"]["cutoff"]
-    )
+    before = json.loads(original)["release_policy"]
+    after = json.loads((third.path / "_meta/manifest.json").read_bytes())["release_policy"]
+    # The same release manifest; the daily health bucket moved the trigger.
+    assert after["manifest_digest"] == before["manifest_digest"]
+    assert after["build_trigger"] != before["build_trigger"]
 
 
 def test_acknowledged_release_is_quiet_without_a_second_remote_commit(empty_release):

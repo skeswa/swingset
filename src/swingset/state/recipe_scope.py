@@ -57,11 +57,12 @@ PROJECTORS: dict[str, str] = {
     "calendar": "project.events",
     "dancer": "project.registry",
     "event": "project.contests",
-    "history": "project.history",
     "inventory": "project.history",
-    "map": "project.map",
+    "mapping": "project.map",
+    "resolution": "project.map",
     "source_event": "project.process",
     "source_index": "project.events",
+    "year": "project.history",
 }
 
 # Modules that run inside a parse unit and write what it leaves behind:
@@ -83,7 +84,6 @@ PARSE_WRITERS: tuple[str, ...] = (
 _ACQUIRE = "acquisition; it fetches, gates and stores pages that parse reads"
 _EVENTS = "event acquisition bookkeeping; the cycle and plan loop run it"
 _SCHEDULE = "scheduling; it runs stages through the modules the scopes name"
-
 # Package paths no recipe names. A path ending in "/" covers its directory.
 # Since `versions.py` left `schedule/cycle.py`, no project, link or build
 # closure reaches the scheduler or acquisition (architecture plan, F4).
@@ -164,9 +164,13 @@ EXCLUDED: dict[str, str] = {
     "state/guards.py": "fetch guard reasons; acquisition writes them, no derivation reads them",
     "state/lag_report.py": "status report",
     "state/loop_state.py": "loop tick status; reports read it, no derivation does",
+    "state/derivation_readiness.py": (
+        "bulk dancer currentness; no derivation calls it since link read sets (plan F20)"
+    ),
     "state/publication_report.py": "status report",
     "state/requirement_report.py": "status report",
     "state/retention_apply.py": "operator retention commands",
+    "state/verify.py": "weekly verify sample; it re-runs units and rolls every write back",
 }
 
 

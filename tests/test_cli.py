@@ -328,3 +328,14 @@ def test_fetch_one_failure_classification_exits_nonzero_and_finishes_run(
         summary = json.loads(row[1])
         assert summary["failed"]
         assert outcome.value in summary["error"]
+
+
+def test_migrate_opens_once_and_reports_both_schemas(tmp_path, capsys):
+    """The phase 3 switch migrates by hand under the hold (docs/guides/deployment.md)."""
+    assert main(["migrate", "--state", str(tmp_path)]) == 0
+    first = json.loads(capsys.readouterr().out)
+    assert first["schema_before"] is None and first["schema_after"] == SCHEMA_VERSION
+    assert main(["migrate", "--state", str(tmp_path)]) == 0
+    again = json.loads(capsys.readouterr().out)
+    assert again["schema_before"] == again["schema_after"] == SCHEMA_VERSION
+    assert again["seconds"] >= 0

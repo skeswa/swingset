@@ -11,6 +11,8 @@ from typing import Any
 from swingset.admission.support import interpretation_support
 
 Rows = dict[str, list[Mapping[str, Any]]]
+#: Rows of any mapping type; the methods below only read and replace them.
+AnyRows = dict[str, list[Any]]
 _EVENT_TABLES = frozenset(
     {
         "events",
@@ -73,6 +75,94 @@ class _EventScopes:
         return {str(value) for value in values if value is not None}
 
 
+class Revocations:
+    """Explicit revocations, checked once per snapshot and parser.
+
+    `close_revoked_support` applies them to a whole release; the streamed
+    assembly (`assembly.py`) applies the same steps to one partition at a
+    time, with the release-wide sets (revoked dancers, registry ids, the
+    events left) computed first. Counters accumulate across calls.
+    """
+
+    def __init__(self, conn: sqlite3.Connection) -> None:
+        self.conn = conn
+        self.cache: dict[tuple[str, str], bool] = {}
+        self.reasons: Counter[str] = Counter()
+        self.claims: Counter[str] = Counter()
+
+    def key(self, row: Mapping[str, Any]) -> tuple[str, str] | None:
+        snapshot = row.get("snapshot_id")
+        if not snapshot:
+            return None
+        return str(snapshot), str(row.get("parser_version") or "")
+
+    def check(self, key: tuple[str, str]) -> bool:
+        if key not in self.cache:
+            self.cache[key] = (
+                interpretation_support(self.conn, key[0], parser_version=key[1])["state"]
+                == "revoked"
+            )
+        return self.cache[key]
+
+    def revoked(self, row: Mapping[str, Any]) -> bool:
+        key = self.key(row)
+        return key is not None and self.check(key)
+
+    def omitted_events(self, tables: AnyRows) -> set[str]:
+        """Events a revoked row names, closed over rows that name several events."""
+        scopes = _EventScopes(tables)
+        omitted: set[str] = set()
+        for name in _EVENT_TABLES:
+            for row in tables.get(name, []):
+                if self.revoked(row):
+                    omitted.update(scopes.events(row))
+                    self.reasons["explicit_source_revocation"] += 1
+        # Shared structural references cannot leave one event with partial scores.
+        changed = True
+        while changed:
+            changed = False
+            for name in _EVENT_TABLES:
+                for row in tables.get(name, []):
+                    linked = scopes.events(row)
+                    if linked & omitted and not linked <= omitted:
+                        omitted.update(linked)
+                        changed = True
+        return omitted
+
+    def close_events(self, tables: AnyRows, omitted: set[str]) -> None:
+        """Remove revoked event rows and every row of an omitted event."""
+        scopes = _EventScopes(tables)
+        for name in _EVENT_TABLES:
+            if name in tables:
+                tables[name] = [
+                    row
+                    for row in tables[name]
+                    if not self.revoked(row) and not scopes.events(row) & omitted
+                ]
+
+    def close_registry(
+        self, tables: AnyRows, revoked_dancers: set[Any], event_ids: set[Any]
+    ) -> None:
+        """Remove revoked dancers and registry facts; null associations left outside."""
+        if "dancers" in tables:
+            tables["dancers"] = [
+                row for row in tables["dancers"] if row["wsdc_id"] not in revoked_dancers
+            ]
+        if "registry_placements" in tables:
+            tables["registry_placements"] = [
+                row
+                for row in tables["registry_placements"]
+                if not self.revoked(row) and row["wsdc_id"] not in revoked_dancers
+            ]
+        for index, row in enumerate(tables.get("registry_placements", [])):
+            if row.get("event_id") is not None and row["event_id"] not in event_ids:
+                tables["registry_placements"][index] = {**row, "event_id": None}
+                self.claims["registry_event_association"] += 1
+
+    def withdraw(self, tables: AnyRows, revoked_dancers: set[Any], registry_ids: set[Any]) -> None:
+        _withdraw_identities(tables, revoked_dancers, registry_ids, self.claims)
+
+
 def close_revoked_support(
     conn: sqlite3.Connection,
     baseline_tables: Mapping[str, Sequence[Mapping[str, Any]]],
@@ -88,77 +178,31 @@ def close_revoked_support(
     # Lists belong to this result; unchanged rows remain shared read-only values.
     tables: Rows = {name: list(rows) for name, rows in baseline_tables.items()}
     initial = {name: len(rows) for name, rows in tables.items()}
-    reasons: Counter[str] = Counter()
-    claims: Counter[str] = Counter()
-    cache: dict[tuple[str, str], bool] = {}
-
-    def revoked(row: Mapping[str, Any]) -> bool:
-        snapshot = row.get("snapshot_id")
-        if not snapshot:
-            return False
-        key = str(snapshot), str(row.get("parser_version") or "")
-        if key not in cache:
-            cache[key] = (
-                interpretation_support(conn, key[0], parser_version=key[1])["state"] == "revoked"
-            )
-        return cache[key]
-
-    scopes = _EventScopes(tables)
-    omitted_events: set[str] = set()
-    revoked_dancers = {row["wsdc_id"] for row in tables.get("dancers", []) if revoked(row)}
-    revoked_registry_rows = [row for row in tables.get("registry_placements", []) if revoked(row)]
+    closure = Revocations(conn)
+    revoked_dancers = {row["wsdc_id"] for row in tables.get("dancers", []) if closure.revoked(row)}
+    revoked_registry_rows = [
+        row for row in tables.get("registry_placements", []) if closure.revoked(row)
+    ]
     revoked_registry_ids = {row["wsdc_id"] for row in revoked_registry_rows}
-    reasons["registry_fact_revoked"] = len(revoked_registry_rows)
-    for name in _EVENT_TABLES:
-        for row in tables.get(name, []):
-            if revoked(row):
-                omitted_events.update(scopes.events(row))
-                reasons["explicit_source_revocation"] += 1
-    # Shared structural references cannot leave one event with partial scores.
-    changed = True
-    while changed:
-        changed = False
-        for name in _EVENT_TABLES:
-            for row in tables.get(name, []):
-                linked = scopes.events(row)
-                if linked & omitted_events and not linked <= omitted_events:
-                    omitted_events.update(linked)
-                    changed = True
-    reasons["event_scope_omitted"] = len(omitted_events)
-    reasons["dancer_support_revoked"] = len(revoked_dancers)
+    closure.reasons["registry_fact_revoked"] = len(revoked_registry_rows)
+    omitted_events = closure.omitted_events(tables)
+    closure.reasons["event_scope_omitted"] = len(omitted_events)
+    closure.reasons["dancer_support_revoked"] = len(revoked_dancers)
     omitted_years = {
         row.get("year") for row in tables.get("events", []) if row.get("event_id") in omitted_events
     }
-    for name in _EVENT_TABLES:
-        if name in tables:
-            tables[name] = [
-                row
-                for row in tables[name]
-                if not revoked(row) and not scopes.events(row) & omitted_events
-            ]
-    if "dancers" in tables:
-        tables["dancers"] = [
-            row for row in tables["dancers"] if row["wsdc_id"] not in revoked_dancers
-        ]
-    if "registry_placements" in tables:
-        tables["registry_placements"] = [
-            row
-            for row in tables["registry_placements"]
-            if not revoked(row) and row["wsdc_id"] not in revoked_dancers
-        ]
-    event_ids = {row["event_id"] for row in tables.get("events", [])}
-    for index, row in enumerate(tables.get("registry_placements", [])):
-        if row.get("event_id") is not None and row["event_id"] not in event_ids:
-            tables["registry_placements"][index] = {**row, "event_id": None}
-            claims["registry_event_association"] += 1
-    _withdraw_identities(tables, revoked_dancers, revoked_registry_ids, claims)
+    closure.close_events(tables, omitted_events)
+    closure.close_registry(
+        tables, revoked_dancers, {row["event_id"] for row in tables.get("events", [])}
+    )
+    closure.withdraw(tables, revoked_dancers, revoked_registry_ids)
     _close_subjects(tables, baseline_tables)
     # Counts/acceptance derived from an omitted event graph cannot be retained.
     if "coverage" in tables:
         tables["coverage"] = [
             row for row in tables["coverage"] if row.get("year") not in omitted_years
         ]
-    reasons["support_checks"] = len(cache)
+    closure.reasons["support_checks"] = len(closure.cache)
     return SupportClosure(
         tables,
         {
@@ -166,13 +210,13 @@ def close_revoked_support(
             for name, count in initial.items()
             if count != len(tables[name])
         },
-        dict(sorted(claims.items())),
-        {name: count for name, count in sorted(reasons.items()) if count},
+        dict(sorted(closure.claims.items())),
+        {name: count for name, count in sorted(closure.reasons.items()) if count},
     )
 
 
 def _withdraw_identities(
-    tables: Rows, dancers: set[Any], registry_ids: set[Any], counts: Counter[str]
+    tables: AnyRows, dancers: set[Any], registry_ids: set[Any], counts: Counter[str]
 ) -> None:
     revoked_subjects = {
         (row.get("subject_kind"), row.get("subject_id"))
@@ -252,7 +296,8 @@ def _withdraw_identities(
         ]
 
 
-def _close_subjects(tables: Rows, baseline: Mapping[str, Sequence[Mapping[str, Any]]]) -> None:
+def close_subjects(tables: AnyRows) -> None:
+    """Identity claims about a subject the release no longer holds go."""
     subjects = {
         (kind, str(row[key]))
         for kind, name, key in (("entry", "entries", "entry_id"), ("judge", "judges", "judge_id"))
@@ -265,18 +310,35 @@ def _close_subjects(tables: Rows, baseline: Mapping[str, Sequence[Mapping[str, A
                 for row in tables[name]
                 if (row.get("subject_kind"), str(row.get("subject_id"))) in subjects
             ]
+
+
+#: The structural tables whose removed ids close review items.
+REVIEW_SUBJECTS = (
+    ("events", "event_id"),
+    ("contests", "contest_id"),
+    ("rounds", "round_id"),
+    ("entries", "entry_id"),
+    ("judges", "judge_id"),
+)
+
+
+def removed_ids(
+    before: Mapping[str, Sequence[Mapping[str, Any]]],
+    after: Mapping[str, Sequence[Mapping[str, Any]]],
+) -> set[str]:
+    """Structural ids the closure removed, which close their review items."""
+    result: set[str] = set()
+    for name, key in REVIEW_SUBJECTS:
+        previous = {str(row[key]) for row in before.get(name, [])}
+        current = {str(row[key]) for row in after.get(name, [])}
+        result.update(previous - current)
+    return result
+
+
+def _close_subjects(tables: Rows, baseline: Mapping[str, Sequence[Mapping[str, Any]]]) -> None:
+    close_subjects(tables)
     if "review_queue" in tables:
-        removed_ids = set()
-        for name, key in (
-            ("events", "event_id"),
-            ("contests", "contest_id"),
-            ("rounds", "round_id"),
-            ("entries", "entry_id"),
-            ("judges", "judge_id"),
-        ):
-            previous = {str(row[key]) for row in baseline.get(name, [])}
-            current = {str(row[key]) for row in tables.get(name, [])}
-            removed_ids.update(previous - current)
+        removed = removed_ids(baseline, tables)
         tables["review_queue"] = [
-            row for row in tables["review_queue"] if str(row.get("subject_id")) not in removed_ids
+            row for row in tables["review_queue"] if str(row.get("subject_id")) not in removed
         ]

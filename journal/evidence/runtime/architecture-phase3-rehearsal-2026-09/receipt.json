@@ -1,0 +1,1310 @@
+{
+ "operation": "architecture phase 3 rehearsal (WP14, R0 to R12) on APFS clones of the production copy, no network",
+ "actor": "claude (session claude-rearch)",
+ "at_utc": "2026-09-30T10:00:00Z",
+ "host": "Mac (15 cores, 48 GB), not the worker; project venv Python 3.12",
+ "source_copy": "~/swingset-offload/rehearsal/diag (production 2026-09-29 04:07 UTC, schema 32, 64.7 GB), never opened; clones diag-p3-A (parent, drained) and diag-p3-B (A after its closure build, then this tree); both deleted",
+ "diag_unchanged": {
+  "state_sqlite_bytes": [
+   64718315520,
+   64718315520
+  ],
+  "state_sqlite_mtime_ns": [
+   1790654850554998303,
+   1790654850554998303
+  ],
+  "files": [
+   78194,
+   78194
+  ],
+  "listing_sha256": [
+   "222150cb62504032",
+   "222150cb62504032"
+  ]
+ },
+ "code": {
+  "parent": "9dacbb68 (phase 2) via git archive, plus D-0221's two [scheduling] lines; py sums 986006e742488e1c",
+  "tree": "working copy quvnpzkl (phase 3, WP0 to WP13), src snapshot 2026-09-29 22:18 UTC; py sums c4331d9e397e7c55, equal to the working copy after",
+  "harness_sha256": {
+   "h3.py": "e526024a4f0f7830",
+   "r67.py": "5763ed9cfbb04e09",
+   "rmisc.py": "ba0acf40712302cd",
+   "prof.py": "185373fa72d8db46",
+   "prof3.py": "805cf3685343839f",
+   "dump.py": "e7976ee6807b3975",
+   "cmpdump.py": "3dcd3ae0065d9fba"
+  },
+  "command": "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=<tree>/src .venv/bin/python workflow/p3/wp14/<script> <cmd> <clone> <out.json> [args]"
+ },
+ "network": "none: httpx.MockTransport answering 304 to conditional requests and 404 otherwise; R6 and R7 serve one modified body",
+ "caveats": [
+  "The copy carried production's all-scope cap pause from 2026-09-29 02:00; A resumed it before its drain (B inherits).",
+  "The Mac interpreter re-queued every parse on A's first accept (I9): 36,264 parse units stay pending and are not run. Drains run project and link units only, with inventory pacing off (harness). R6, R7 and R10 run only their own parse unit, with acquisition backpressure off for the harness fetch (the backlog would hold it).",
+  "Mac timings and memory are lower bounds for the worker.",
+  "R6 to R11 ran on B in that order after R2 to R4; R5 corrupts one event generation directly (a derive with unchanged inputs refuses new output), as the WP6 test does."
+ ],
+ "a_parent": {
+  "migrate_32_to_34_seconds": 298.4,
+  "accept": {
+   "seconds": 15.5,
+   "inputs_changed": 49,
+   "enqueued": {
+    "link/event": 2934,
+    "parse/snapshot": 36261,
+    "project/calendar": 2,
+    "project/dancer": 29117,
+    "project/event": 2934,
+    "project/history": 1,
+    "project/inventory": 1,
+    "project/map": 1,
+    "project/source_event": 470,
+    "project/source_index": 384
+   }
+  },
+  "drain": {
+   "seconds": 14712.9,
+   "delta": {
+    "generations": {
+     "link/event": 2934,
+     "project/history": 1
+    },
+    "equivalences": {
+     "project/calendar": 2,
+     "project/dancer": 29117,
+     "project/event": 2934,
+     "project/inventory": 1,
+     "project/map": 1,
+     "project/source_event": 470,
+     "project/source_index": 384
+    },
+    "scopes": {}
+   },
+   "growth_bytes": 666308608,
+   "peak_rss_bytes": 4559273984,
+   "ticks_completed_seconds": [
+    [
+     6658,
+     1205.4
+    ],
+    [
+     5888,
+     1201.1
+    ],
+    [
+     6016,
+     1210.9
+    ],
+    [
+     4928,
+     1203.5
+    ],
+    [
+     5124,
+     1200.0
+    ],
+    [
+     2036,
+     1202.2
+    ],
+    [
+     1611,
+     1214.7
+    ],
+    [
+     1035,
+     1200.6
+    ],
+    [
+     764,
+     1200.4
+    ],
+    [
+     701,
+     1200.1
+    ],
+    [
+     552,
+     1202.6
+    ],
+    [
+     427,
+     1200.5
+    ],
+    [
+     104,
+     188.7
+    ],
+    [
+     0,
+     8.6
+    ],
+    [
+     0,
+     8.5
+    ]
+   ]
+  },
+  "closure_build": {
+   "candidate": "cand_d052ecd7050a46b9",
+   "seconds": 593.6,
+   "peak_rss_bytes": 7670202368,
+   "growth_bytes": 266059776
+  }
+ },
+ "r0_migration_35": {
+  "open_migrate_seconds": 144.0,
+  "reopen_current_schema_seconds": 0.0,
+  "foreign_key_check_seconds": 132.9,
+  "foreign_key_violations": 0,
+  "schema_before_after": [
+   34,
+   35
+  ],
+  "growth_bytes": 69632,
+  "dbstat_delta": {
+   "release_partitions": 4096,
+   "release_artifacts": 4096,
+   "release_manifests": 4096,
+   "derivation_reads": 4096,
+   "source_event_proposals": 4096,
+   "source_event_proposals_event": 4096,
+   "derivation_reads_key": 4096
+  },
+  "retired_rows_before": "none (A drained them)",
+  "parent_refuses": "RuntimeError: database schema 35 is newer than supported 34"
+ },
+ "r1_accept": {
+  "seconds": 9.9,
+  "changed": [
+   "config/sources.toml",
+   "overrides/release_decreases.csv",
+   "recipe/code/build",
+   "recipe/code/link",
+   "recipe/code/project/calendar",
+   "recipe/code/project/dancer",
+   "recipe/code/project/event",
+   "recipe/code/project/history",
+   "recipe/code/project/inventory",
+   "recipe/code/project/map",
+   "recipe/code/project/mapping",
+   "recipe/code/project/resolution",
+   "recipe/code/project/source_event",
+   "recipe/code/project/source_index",
+   "recipe/code/project/year",
+   "version/repository"
+  ],
+  "enqueued": {
+   "link/event": 2934,
+   "project/calendar": 2,
+   "project/dancer": 29117,
+   "project/event": 2934,
+   "project/inventory": 1,
+   "project/mapping": 3,
+   "project/resolution": 413,
+   "project/source_event": 470,
+   "project/source_index": 384,
+   "project/year": 21
+  },
+  "parse_queued": 0
+ },
+ "r2_switch_drain": {
+  "seconds": 9170.3,
+  "delta": {
+   "generations": {
+    "project/mapping": 3,
+    "project/resolution": 413,
+    "project/year": 21
+   },
+   "equivalences": {
+    "link/event": 2934,
+    "project/calendar": 2,
+    "project/dancer": 29117,
+    "project/event": 2934,
+    "project/inventory": 1,
+    "project/source_event": 470,
+    "project/source_index": 384
+   },
+   "scopes": {}
+  },
+  "equivalences_total": 35842,
+  "growth_bytes": 384225280,
+  "dbstat_delta_top": {
+   "derivation_dependency_sets": 156733440,
+   "derivation_reads_key": 40103936,
+   "derivation_reads": 40046592,
+   "derivation_row_refs": 37789696,
+   "derivation_row_refs_payload": 15204352,
+   "derivation_equivalences": 13488128,
+   "work_attempts": 10104832,
+   "derivation_equivalences_generation": 3084288,
+   "derivation_equivalences_dependencies": 2981888,
+   "derivation_equivalences_recipe": 2846720,
+   "pending_work_order_idx": -2711552,
+   "pending_work": -2387968,
+   "work_attempts_unit": 1855488,
+   "work_attempts_run": 1212416,
+   "derivation_equivalences_run": 1196032
+  },
+  "peak_rss_bytes": 4915593216,
+  "undeclared_reads": 0,
+  "ticks_completed_seconds": [
+   [
+    6996,
+    1208.9
+   ],
+   [
+    6848,
+    1200.6
+   ],
+   [
+    6528,
+    1206.0
+   ],
+   [
+    6080,
+    1206.3
+   ],
+   [
+    5631,
+    1202.4
+   ],
+   [
+    1084,
+    1201.5
+   ],
+   [
+    2391,
+    1200.9
+   ],
+   [
+    721,
+    656.3
+   ],
+   [
+    0,
+    12.5
+   ],
+   [
+    0,
+    9.8
+   ]
+  ],
+  "links_ready": {
+   "links": 2934,
+   "ready": 2921,
+   "ready_seconds": 11.44,
+   "current": 2934,
+   "current_seconds": 5.42
+  },
+  "parity_with_a": {
+   "source_event_map": {
+    "a": 413,
+    "b": 413,
+    "only_a": 0,
+    "only_b": 0,
+    "differ": 0
+   },
+   "events": {
+    "a": 2933,
+    "b": 2933,
+    "only_a": 0,
+    "only_b": 0,
+    "differ": 0
+   },
+   "registry_placements": {
+    "a": 198398,
+    "b": 198398,
+    "only_a": 0,
+    "only_b": 0,
+    "differ": 0
+   },
+   "coverage": {
+    "a": 63,
+    "b": 63,
+    "only_a": 0,
+    "only_b": 0,
+    "differ": 0
+   },
+   "placements": {
+    "a": 35979,
+    "b": 35979,
+    "only_a": 0,
+    "only_b": 0,
+    "differ": 0
+   },
+   "identity_links": {
+    "a": 191142,
+    "b": 191142,
+    "only_a": 0,
+    "only_b": 0,
+    "differ": 0
+   },
+   "findings": {
+    "a": 76,
+    "b": 76,
+    "only_a": 0,
+    "only_b": 0,
+    "differ": 0
+   }
+  }
+ },
+ "r3_partitioned_build": {
+  "cold": {
+   "candidate": "cand_c2f81cb9e7174d56",
+   "reused": false,
+   "error": null,
+   "seconds": 463.3,
+   "peak_rss_bytes": 6753878016,
+   "growth_bytes": 4030464,
+   "partitions": {
+    "manifest_digest": "bac757a210df2d8fe30ba3e5fe4d20f6992bd19a4f3376891a52037d2f43019f",
+    "manifest_bytes": 282606,
+    "partitions": 3012,
+    "built": 1880,
+    "withheld": 1132,
+    "withheld_by_reason": {
+     "source_support_unavailable": 1132
+    },
+    "multi_event": 0,
+    "rebuilt": 3012,
+    "reused": 0,
+    "artifacts_bytes": 69337415,
+    "seconds": 167.922,
+    "peak_rss_bytes": 493158400,
+    "assembly": "streamed",
+    "assembly_seconds": 265.319,
+    "assembly_peak_rows": 40645
+   },
+   "verdict": {
+    "state": "refused",
+    "reasons": [
+     "decrease:events 2105->1801"
+    ]
+   }
+  },
+  "second": {
+   "candidate": "cand_c2f81cb9e7174d56",
+   "reused": true,
+   "error": null,
+   "seconds": 32.1,
+   "peak_rss_bytes": 353648640,
+   "growth_bytes": 4096,
+   "partitions": {
+    "manifest_digest": "bac757a210df2d8fe30ba3e5fe4d20f6992bd19a4f3376891a52037d2f43019f",
+    "manifest_bytes": 282606,
+    "partitions": 3012,
+    "built": 1880,
+    "withheld": 1132,
+    "withheld_by_reason": {
+     "source_support_unavailable": 1132
+    },
+    "multi_event": 0,
+    "rebuilt": 0,
+    "reused": 3012,
+    "artifacts_bytes": 69337415,
+    "seconds": 29.369,
+    "peak_rss_bytes": 317456384
+   },
+   "verdict": {
+    "state": "refused",
+    "reasons": [
+     "decrease:events 2105->1801"
+    ]
+   }
+  },
+  "peak_rss_attribution": {
+   "peak_mb": 5953,
+   "source_support_mb": [
+    507,
+    4383
+   ],
+   "note": "build/partitioned.py source_support parses recipe_json of every accepted source generation it names (294,806, about 3.85 KB each); event coverage reads only recipe.context.source",
+   "harness_trim_peak_mb": 1932,
+   "harness_trim_candidate": "cand_c2f81cb9e7174d56"
+  }
+ },
+ "r4_parity": {
+  "closure_a_vs_partitioned_b": {
+   "base": "cand_d052ecd7050a46b9",
+   "new": "cand_c2f81cb9e7174d56",
+   "differing": {
+    "changelog": {
+     "rows": [
+      22119392,
+      22092014
+     ],
+     "added": 2959082,
+     "removed": 2986460,
+     "changed": 0,
+     "changed_columns": null
+    },
+    "contests": {
+     "rows": [
+      2990,
+      2990
+     ],
+     "added": 0,
+     "removed": 0,
+     "changed": 379,
+     "changed_columns": {
+      "scope_status": 379
+     }
+    },
+    "coverage": {
+     "rows": [
+      4770,
+      4770
+     ],
+     "added": 0,
+     "removed": 0,
+     "changed": 4770,
+     "changed_columns": {
+      "acquired_units": 151,
+      "acquisition_denominator": 3,
+      "acquisition_unknown_pages": 3,
+      "enumeration_complete": 3,
+      "enumeration_id": 3,
+      "enumeration_snapshot_ids": 3,
+      "evidence_cutoff": 4770,
+      "interpretation_denominator": 154,
+      "interpretation_unknown_pages": 3,
+      "interpreted_units": 145,
+      "last_changed_at": 4230,
+      "listed_pages": 3,
+      "mapped_units": 142,
+      "mapping_denominator": 145,
+      "represented_pages": 19,
+      "scope_reasons": 288,
+      "scope_status": 22,
+      "selected_interpreted_pages": 21,
+      "unassessed_units": 128,
+      "usable_verified_at": 477
+     }
+    },
+    "entries": {
+     "rows": [
+      107012,
+      107012
+     ],
+     "added": 0,
+     "removed": 0,
+     "changed": 7796,
+     "changed_columns": {
+      "scope_status": 7796
+     }
+    },
+    "events": {
+     "rows": [
+      1801,
+      1801
+     ],
+     "added": 0,
+     "removed": 0,
+     "changed": 4,
+     "changed_columns": {
+      "scope_status": 4
+     }
+    },
+    "identity_links": {
+     "rows": [
+      113300,
+      113248
+     ],
+     "added": 0,
+     "removed": 52,
+     "changed": 0,
+     "changed_columns": null
+    },
+    "judges": {
+     "rows": [
+      6288,
+      6288
+     ],
+     "added": 0,
+     "removed": 0,
+     "changed": 223,
+     "changed_columns": {
+      "scope_status": 223
+     }
+    },
+    "placements": {
+     "rows": [
+      22427,
+      22427
+     ],
+     "added": 0,
+     "removed": 0,
+     "changed": 2636,
+     "changed_columns": {
+      "scope_status": 2636
+     }
+    },
+    "rounds": {
+     "rows": [
+      4755,
+      4755
+     ],
+     "added": 0,
+     "removed": 0,
+     "changed": 559,
+     "changed_columns": {
+      "scope_status": 559
+     }
+    },
+    "snapshots": {
+     "rows": [
+      35723,
+      30948
+     ],
+     "added": 0,
+     "removed": 4775,
+     "changed": 0,
+     "changed_columns": null
+    }
+   }
+  },
+  "whole_vs_partitioned_b": {
+   "base": "cand_7de239f304064f6d",
+   "new": "cand_c2f81cb9e7174d56",
+   "differing": {
+    "changelog": {
+     "rows": [
+      22092014,
+      22092014
+     ],
+     "added": 2959082,
+     "removed": 2959082,
+     "changed": 0,
+     "changed_columns": null
+    },
+    "coverage": {
+     "rows": [
+      4770,
+      4770
+     ],
+     "added": 0,
+     "removed": 0,
+     "changed": 4770,
+     "changed_columns": {
+      "evidence_cutoff": 4770,
+      "last_changed_at": 4230,
+      "usable_verified_at": 477
+     }
+    }
+   }
+  },
+  "whole_build": {
+   "candidate": "cand_7de239f304064f6d",
+   "reused": false,
+   "error": null,
+   "seconds": 287.5,
+   "peak_rss_bytes": 7764197376,
+   "growth_bytes": 0,
+   "partitions": {
+    "manifest_digest": "bac757a210df2d8fe30ba3e5fe4d20f6992bd19a4f3376891a52037d2f43019f",
+    "manifest_bytes": 282606,
+    "partitions": 3012,
+    "built": 1880,
+    "withheld": 1132,
+    "withheld_by_reason": {
+     "source_support_unavailable": 1132
+    },
+    "multi_event": 0,
+    "rebuilt": 0,
+    "reused": 3012,
+    "artifacts_bytes": 69337415,
+    "seconds": 16.439,
+    "peak_rss_bytes": 316276736
+   },
+   "verdict": {
+    "state": "refused",
+    "reasons": [
+     "decrease:events 2105->1801"
+    ]
+   }
+  }
+ },
+ "r5_corrupt_event": {
+  "event": "2019-06-neverlandswing",
+  "changed_row": {
+   "key": "[\"2019-06-neverlandswing/advanced-jj/final/place-2\"]",
+   "place": [
+    2,
+    1
+   ]
+  },
+  "partitioned": {
+   "candidate": "cand_b92be3da4fc843c0",
+   "reused": false,
+   "error": null,
+   "seconds": 372.2,
+   "peak_rss_bytes": 6102319104,
+   "growth_bytes": 20480,
+   "partitions": {
+    "manifest_digest": "60ede353edb3fa3ae3c79f68f29c4515b708870a6b794162c8a29695a779a247",
+    "manifest_bytes": 282560,
+    "partitions": 3012,
+    "built": 1879,
+    "withheld": 1133,
+    "withheld_by_reason": {
+     "invalid_placements": 1,
+     "source_support_unavailable": 1132
+    },
+    "multi_event": 0,
+    "rebuilt": 15,
+    "reused": 2997,
+    "artifacts_bytes": 70860283,
+    "seconds": 75.159,
+    "peak_rss_bytes": 460357632,
+    "assembly": "streamed",
+    "assembly_seconds": 267.589,
+    "assembly_peak_rows": 40631
+   },
+   "verdict": {
+    "state": "refused",
+    "reasons": [
+     "decrease:events 2105->1800"
+    ]
+   }
+  },
+  "partitions_changed": {
+   "dancers/19": [
+    "built",
+    null,
+    ""
+   ],
+   "event/2019-06-neverlandswing": [
+    "withheld",
+    "invalid_placements",
+    "placements are not contiguous and unique for 2019-06-neverlandswing/advanced-jj/final"
+   ],
+   "event/2024-03-west-in-lyon": [
+    "built",
+    null,
+    ""
+   ],
+   "event/2025-05-french-open": [
+    "built",
+    null,
+    ""
+   ],
+   "event/2025-06-french-connection": [
+    "built",
+    null,
+    ""
+   ],
+   "event/2026-07-french-connection": [
+    "built",
+    null,
+    ""
+   ]
+  },
+  "closure_same_state": {
+   "candidate": "cand_c32344a291284d2a",
+   "reused": false,
+   "error": null,
+   "seconds": 708.4,
+   "peak_rss_bytes": 6102319104,
+   "growth_bytes": 194945024,
+   "partitions": null,
+   "verdict": {
+    "state": "refused",
+    "reasons": [
+     "decrease:events 2105->0",
+     "decrease:contests 2005->0",
+     "decrease:rounds 2934->0",
+     "decrease:entries 58558->0",
+     "decrease:judges 2818->0",
+     "decrease:callback_marks 288502->0",
+     "decrease:callbacks 59064->0",
+     "decrease:final_marks 83355->0",
+     "decrease:placements 14115->0",
+     "decrease:events_with_placements 107->0"
+    ]
+   }
+  },
+  "closure_with_pointer_restored": {
+   "candidate": "cand_040d9c7fe8a1455a",
+   "reused": false,
+   "error": null,
+   "seconds": 734.7,
+   "peak_rss_bytes": 4001349632,
+   "growth_bytes": 194957312,
+   "partitions": null,
+   "verdict": {
+    "state": "refused",
+    "reasons": [
+     "decrease:events 2105->0",
+     "decrease:contests 2005->0",
+     "decrease:rounds 2934->0",
+     "decrease:entries 58558->0",
+     "decrease:judges 2818->0",
+     "decrease:callback_marks 288502->0",
+     "decrease:callbacks 59064->0",
+     "decrease:final_marks 83355->0",
+     "decrease:placements 14115->0",
+     "decrease:events_with_placements 107->0"
+    ]
+   }
+  },
+  "note": "Besides event/E, the changed partitions (4 events and dancers/19) and the other rebuilt ones carry R7's name change (13 new link generations, dancer 10039's batch), not the corrupt event. Both closure builds hold 0 events, 0 entries and 0 placements (F30)."
+ },
+ "r6_one_sheet": {
+  "change": {
+   "event": "2026-08-bristol-swing-fiesta",
+   "url": "https://scoring.dance/enUS/events/418/results/6014.html",
+   "what": "judge Aggie Town: 1st couple 2->3, 2nd couple 3->2"
+  },
+  "fetch": {
+   "snapshot_id": "snap_20260930T060912Z_d9360a6d4bc1_4cd7b4ba7d34",
+   "changed": true,
+   "skipped": null,
+   "outcome": "Ok",
+   "seconds": 10.6
+  },
+  "attempts": {
+   "link/event": 1,
+   "parse/snapshot": 1,
+   "project/event": 1,
+   "project/source_event": 1,
+   "project/year": 1
+  },
+  "new_generations": {
+   "link/event": 1,
+   "project/event": 1
+  },
+  "new_equivalences": {
+   "project/source_event": 1,
+   "project/year": 1
+  },
+  "unit_seconds_total": 8.9,
+  "unit_seconds_max": [
+   [
+    "link/event/2026-08-bristol-swing-fiesta",
+    3.7
+   ],
+   [
+    "project/year/2026",
+    3.4
+   ],
+   [
+    "project/event/2026-08-bristol-swing-fiesta",
+    1.6
+   ],
+   [
+    "project/source_event/scoringdance:418",
+    0.1
+   ],
+   [
+    "parse/snapshot/snap_20260930T060912Z_d9360a6d4bc1_4cd7b4ba7d34",
+    0.0
+   ]
+  ],
+  "ticks_completed_seconds": [
+   [
+    5,
+    115.2
+   ],
+   [
+    0,
+    24.4
+   ],
+   [
+    0,
+    21.4
+   ]
+  ],
+  "growth_bytes": 3768320,
+  "next_build": {
+   "candidate": "cand_6df5aa130f564e5d",
+   "reused": false,
+   "error": null,
+   "seconds": 328.2,
+   "peak_rss_bytes": 6612762624,
+   "growth_bytes": 8192,
+   "partitions": {
+    "manifest_digest": "bac757a210df2d8fe30ba3e5fe4d20f6992bd19a4f3376891a52037d2f43019f",
+    "manifest_bytes": 282606,
+    "partitions": 3012,
+    "built": 1880,
+    "withheld": 1132,
+    "withheld_by_reason": {
+     "source_support_unavailable": 1132
+    },
+    "multi_event": 0,
+    "rebuilt": 1,
+    "reused": 3011,
+    "artifacts_bytes": 69337415,
+    "seconds": 44.341,
+    "peak_rss_bytes": 2295136256,
+    "assembly": "streamed",
+    "assembly_seconds": 262.648,
+    "assembly_peak_rows": 40645
+   },
+   "verdict": {
+    "state": "refused",
+    "reasons": [
+     "decrease:events 2105->1801"
+    ]
+   }
+  },
+  "rebuilt_partitions": [
+   "event/2026-08-bristol-swing-fiesta:withheld:source_support_unavailable"
+  ]
+ },
+ "r7_dancer": {
+  "points_change": {
+   "change": {
+    "wsdc_id": 10258,
+    "points": [
+     8,
+     9
+    ],
+    "division": "INT"
+   },
+   "links_reading_dancer": 40,
+   "attempts_in_1h": {
+    "link/event": 58,
+    "parse/snapshot": 1,
+    "project/dancer": 1,
+    "project/event": 2889,
+    "project/inventory": 1,
+    "project/mapping": 3,
+    "project/resolution": 413,
+    "project/source_event": 416,
+    "project/year": 18
+   },
+   "new_generations": {
+    "project/dancer": 1
+   },
+   "new_equivalences": {
+    "link/event": 58,
+    "project/event": 3264,
+    "project/inventory": 1,
+    "project/mapping": 3,
+    "project/resolution": 413,
+    "project/source_event": 815,
+    "project/year": 18
+   },
+   "unit_seconds_total": 1172.2,
+   "left_pending": 196,
+   "growth_bytes": 183824384,
+   "rest_drain": {
+    "seconds": 290.9,
+    "delta": {
+     "generations": {},
+     "equivalences": {
+      "link/event": 19,
+      "project/event": 118,
+      "project/source_event": 54,
+      "project/year": 3
+     },
+     "scopes": {}
+    },
+    "left": {
+     "link/event": 2,
+     "parse/snapshot": 36264
+    }
+   },
+   "replay_bumps_tick1": {
+    "project/inventory": 1,
+    "project/resolution": 109
+   },
+   "next_build": {
+    "candidate": "cand_32c98ac3aad447d5",
+    "reused": false,
+    "error": null,
+    "seconds": 372.4,
+    "peak_rss_bytes": 6699122688,
+    "growth_bytes": 24576,
+    "partitions": {
+     "manifest_digest": "09cf2fa4ac31b5ec16c22c58524ed540ca811efc930c6ed3ae98fcf83bd355ae",
+     "manifest_bytes": 282606,
+     "partitions": 3012,
+     "built": 1880,
+     "withheld": 1132,
+     "withheld_by_reason": {
+      "source_support_unavailable": 1132
+     },
+     "multi_event": 0,
+     "rebuilt": 1,
+     "reused": 3011,
+     "artifacts_bytes": 69816175,
+     "seconds": 60.35,
+     "peak_rss_bytes": 4038262784,
+     "assembly": "streamed",
+     "assembly_seconds": 278.024,
+     "assembly_peak_rows": 40645
+    },
+    "verdict": {
+     "state": "refused",
+     "reasons": [
+      "decrease:events 2105->1801"
+     ]
+    }
+   },
+   "rebuilt_partitions": [
+    "dancers/20:built:"
+   ]
+  },
+  "name_change": {
+   "change": {
+    "wsdc_id": 10039,
+    "first_name": [
+     "Jennifer",
+     "Zebulon"
+    ]
+   },
+   "links_reading_dancer": 14,
+   "dancer_run_only": {
+    "attempts": {
+     "parse/snapshot": 1,
+     "project/dancer": 1
+    },
+    "pool_bumped_events": 14,
+    "links_queued": 33,
+    "links_queued_readers": 14,
+    "links_queued_other": 19,
+    "links_total": 2934,
+    "pending_after": {
+     "link/event": 35,
+     "project/year": 11
+    }
+   },
+   "rest_drain": {
+    "seconds": 3961.9,
+    "delta": {
+     "generations": {
+      "link/event": 13
+     },
+     "equivalences": {
+      "link/event": 19,
+      "project/event": 3318,
+      "project/inventory": 1,
+      "project/mapping": 3,
+      "project/resolution": 413,
+      "project/source_event": 812,
+      "project/year": 21
+     },
+     "scopes": {}
+    },
+    "growth_bytes": 191123456,
+    "left": {
+     "link/event": 3,
+     "parse/snapshot": 36264
+    }
+   }
+  }
+ },
+ "r8_gate": {
+  "candidate": "cand_c2f81cb9e7174d56",
+  "verdict_against_baseline": {
+   "state": "refused",
+   "reasons": [
+    "decrease:events 2105->1801"
+   ],
+   "measures": {
+    "callback_marks": [
+     288502,
+     545374
+    ],
+    "callbacks": [
+     59064,
+     112727
+    ],
+    "confirmed_links": [
+     0,
+     0
+    ],
+    "contests": [
+     2005,
+     2990
+    ],
+    "dancers": [
+     27784,
+     27871
+    ],
+    "entries": [
+     58558,
+     107012
+    ],
+    "events": [
+     2105,
+     1801
+    ],
+    "events_with_placements": [
+     107,
+     223
+    ],
+    "final_marks": [
+     83355,
+     133013
+    ],
+    "heats": [
+     0,
+     0
+    ],
+    "judges": [
+     2818,
+     6288
+    ],
+    "linked_entries": [
+     0,
+     0
+    ],
+    "linked_judges": [
+     0,
+     0
+    ],
+    "placements": [
+     14115,
+     22427
+    ],
+    "registry_placements": [
+     197990,
+     198398
+    ],
+    "rounds": [
+     2934,
+     4755
+    ]
+   }
+  },
+  "with_exact_approval": {
+   "state": "pass",
+   "overrides_used": 1
+  },
+  "harness_event_removed": {
+   "event": "2024-10-milan-modern-swing",
+   "rows_removed": {
+    "contests": 10,
+    "coverage": 1,
+    "entries": 561,
+    "events": 1,
+    "judges": 28,
+    "placements": 22,
+    "registry_placements": 142
+   },
+   "verdict": {
+    "state": "refused",
+    "reasons": [
+     "decrease:events 1801->1800",
+     "decrease:contests 2990->2980",
+     "decrease:entries 107012->106451",
+     "decrease:judges 6288->6260",
+     "decrease:placements 22427->22405",
+     "decrease:registry_placements 198398->198256",
+     "decrease:events_with_placements 223->222"
+    ]
+   },
+   "with_exact_overrides": {
+    "state": "pass",
+    "overrides_used": 7
+   },
+   "one_inexact_row": {
+    "state": "refused",
+    "reasons": [
+     "decrease:events 1801->1800"
+    ]
+   }
+  }
+ },
+ "r9_narrow_fence": {
+  "derive_tick": {
+   "seconds": 120.0,
+   "completed": 338,
+   "failed": false,
+   "skipped": null
+  },
+  "writes": {
+   "meta input_bundle_hash": "active publication fences semantic writes",
+   "release_manifests insert": "active publication fences semantic writes",
+   "loop_state update (not fenced)": "passed"
+  },
+  "plan_and_acquire_backpressure_off": {
+   "plan": {
+    "seconds": 52.6,
+    "skipped": null,
+    "failed": false,
+    "progress": 6426,
+    "counters": {
+     "progress": 6426
+    }
+   },
+   "acquire": {
+    "seconds": 58.2,
+    "skipped": null,
+    "failed": false,
+    "progress": 16,
+    "counters": {
+     "index_pages": 0,
+     "progress": 16,
+     "requests": 16
+    }
+   },
+   "requests": {
+    "n": 18,
+    "conditional": 10,
+    "by_host": {
+     "eepro.com": 6,
+     "scoring.dance": 5,
+     "points.worldsdc.com": 4,
+     "scores.worlddanceregistry.com": 3
+    }
+   },
+   "admission_state_after": "active"
+  },
+  "acquire_with_backpressure": {
+   "seconds": 1.7,
+   "failed": false,
+   "skipped": null,
+   "progress": 0,
+   "requests": 0
+  }
+ },
+ "r10_release_lag": {
+  "release_lag": {
+   "since": "2026-09-27T09:16:14.556087+00:00",
+   "release_lag_intervals": 2,
+   "build_interval_seconds": 86400
+  },
+  "attempts": {
+   "parse/snapshot": 1
+  },
+  "pending_project_after": {
+   "project/dancer": 1
+  },
+  "guard": [
+   {
+    "subject": "loop:derive",
+    "reason": "release_lag",
+    "loop": "derive",
+    "since": "2026-09-30T09:16:16.315034Z",
+    "last_seen_at": "2026-09-30T09:16:57.095521Z",
+    "expires_at": "2026-09-30T10:16:16.315034Z",
+    "seen": 2
+   }
+  ],
+  "ticks_completed_seconds": [
+   [
+    1,
+    41.4
+   ],
+   [
+    0,
+    21.0
+   ]
+  ]
+ },
+ "r11_verify": {
+  "links": {
+   "units": 2934,
+   "target": 30,
+   "verified": 30,
+   "matched": 30,
+   "not_current": 0,
+   "superseded": 0,
+   "failed": 0
+  },
+  "links_seconds": 21.546,
+  "years": {
+   "units": 21,
+   "target": 21,
+   "verified": 21,
+   "matched": 21,
+   "not_current": 0,
+   "superseded": 0,
+   "failed": 0
+  },
+  "years_seconds": 62.339,
+  "mismatches": 0,
+  "seeded": {
+   "link": "link/event/2025-07-saunaswing",
+   "dancer_renamed_in_place": 15980,
+   "still_current": true,
+   "verify_unit": {
+    "unit": "link/event/2025-07-saunaswing",
+    "state": "failed",
+    "error": "NondeterministicOutputError: identical derivation inputs produced different output"
+   },
+   "sample": {
+    "units": 2934,
+    "target": 30,
+    "verified": 30,
+    "matched": 30,
+    "not_current": 0,
+    "superseded": 0,
+    "failed": 1
+   },
+   "alerted": null,
+   "after_restore": "match"
+  }
+ },
+ "r12_suites": {
+  "core": "1,664 passed, 1,525 deselected, 370 s",
+  "full": "3,189 passed, 1,014 s",
+  "ruff": "all checks passed",
+  "mypy": "no issues in 266 source files",
+  "scope_guard": {
+   "exit": 0,
+   "changed_parse_or_extract_scopes": [],
+   "sizes": {
+    "project/calendar": 175,
+    "project/dancer": 175,
+    "project/event": 175,
+    "project/inventory": 175,
+    "project/mapping": 175,
+    "project/resolution": 175,
+    "project/source_event": 175,
+    "project/source_index": 175,
+    "project/year": 175,
+    "link": 175,
+    "build": 186
+   }
+  },
+  "tree_sha_same_before_after": true
+ },
+ "end_state": {
+  "b_quick_check": [
+   "ok"
+  ],
+  "b_quick_check_seconds": 547.4,
+  "open_after": {
+   "running_attempts": 0,
+   "active_admissions": {},
+   "building": 0
+  },
+  "b_pending_after": {
+   "link/event": 3,
+   "parse/snapshot": 35930,
+   "project/dancer": 1
+  },
+  "clones_deleted": true
+ },
+ "acceptance": {
+  "R0": "met except time: 144 s on a cold clone (re-open at 35: 0.0 s), FK check 133 s with 0 violations, +69.6 kB, no retired rows left on the drained copy, phase 2 refuses",
+  "R1": "met: 16 inputs (this change's config and override file, 13 code scopes, version/repository), 0 parses, hints for all 35,842 units plus 437 new-kind units",
+  "R2": "met except growth: 3 mappings, 413 resolutions, 21 years minted; 0 other generations, 35,842 equivalences; parity 0 differences in 7 tables; growth 384 MB, over 250 MB (dependency sets 157 MB, derivation_reads 80 MB); 2,921 links ready in 11.4 s, 13 never ready (F27)",
+  "R3": "time and manifest met, memory not: cold 463 s, manifest 282,606 bytes, second attempt same digest and 0 rebuilt; peak 6.75 GB, 4.4 GB of it support recipes (F26); a harness trim peaks at 1.93 GB with the same candidate",
+  "R4": "met: fact rows equal to A's closure candidate; differences explained (scope_status on 4 events' rows, 52 key-check links, 4,775 unreferenced snapshots, coverage counts from them, per-build columns); whole equals streamed except per-build columns",
+  "R5": "met for the partitioned path: only event/2019-06-neverlandswing withheld (invalid_placements), no other partition changed by it; the closure path builds an empty release on this state with or without the corrupt event (F30)",
+  "R6": "met: 1 parse, source_event, event, year/2026 and link only; 8.9 s of unit time; the next build rebuilt only event/E",
+  "R7": "not met: a dancer change cuts off at the inventory but its re-run moves the witness, so every mapping, resolution, event, source event and year re-runs as an equivalence and 77 links ran (40 read the dancer) (F28); a name change queues 33 links from its dancer run (14 readers), then the same cascade (32 links ran)",
+  "R8": "partly: the gate refuses B's candidate with decrease:events 2105->1801, which the phase 2 closure candidate shares (pre-existing); an exact approval row passes it; the harness removal of one event is refused with 7 reasons, passes with exact rows, refused with one inexact row; confirmed links are 0 on both sides, so a link drop cannot be shown on this data",
+  "R9": "met: under a narrow publication a derive tick completed 338 parse units and plan and acquire ticked (16 requests with backpressure off); meta and release_manifests writes fail, loop_state passes",
+  "R10": "met: release 3 intervals behind, derive ran the parse only, the dancer unit stayed pending, guard loop:derive release_lag with a 1 h expiry",
+  "R11": "clean sample met (30 links, 21 years, 0 mismatches); the seeded miss is reported only as a failure (NondeterministicOutputError), not as read_set_miss, so no alert (F29)",
+  "R12": "met: core 1,664, full 3,189, ruff, mypy, scope guard 0"
+ },
+ "findings": [
+  "F26 (blocks deploy): partitioned build peak 6.75 GB against the 2 GB target. build/partitioned.py source_support parses the recipe_json of each of 294,806 accepted source generations (about 3.85 KB each) into the support items; event coverage reads only recipe.context.source. A harness trim to that field peaked at 1.93 GB and built the same candidate.",
+  "F27 (blocks deploy): a link whose read set names project/dancer/<id> with no dancer scope (a printed WSDC id the registry lacks, e.g. 82468, 2147483647) is never ready again: derivation_dependencies.prerequisites makes the absent unit a prerequisite and current() is false. 13 links on the copy; 3 were left pending after R7 and never run.",
+  "F28 (blocks the phase's accept-when): an inventory re-run with unchanged output rewrites its rows (10,071 events and 11,382 series upserts) and moves the canonical and dancers revisions, so its cutoff counts as a replay (F2) and bumps the inventory replay epoch; resolutions bump theirs too (109 and 118 in R7). A dancer change then re-runs 3 mappings, 413 resolutions, about 3,300 events, 800 source events, 21 years and 32 to 77 links: about 1 h of Mac CPU and 170 to 190 MB of growth per inventory run (once per inventory interval).",
+  "F29: the verify sample reports a real read-set miss as a failure: re-running the unit raises NondeterministicOutputError (same inputs, different output), which verify_unit counts as failed, so no read_set_miss, no ALERTS.log line and no [read-set-miss] watchdog line.",
+  "F30: after the switch the closure path builds an empty release on real data (0 of 1,801 events; dancers and registry placements only), with or without the corrupt event, so path = closure is not a usable fallback; whole is.",
+  "Growth: the switch drain grew the file 384 MB, over the 250 MB estimate: derivation_dependency_sets 157 MB (links' new read-set groups), derivation_reads with its index 80 MB, row refs 53 MB, equivalences 23 MB, attempts 13 MB. A's phase 2 drain grew 666 MB.",
+  "R0: migration 35 took 144 s on a cold clone, not seconds; re-opening at 35 takes 0.0 s. Attribution unverified.",
+  "R8: the gate refuses the first partitioned candidate with decrease:events 2105->1801, as it would the phase 2 closure candidate; the owner approves the row or restores support before publication.",
+  "R6 tick overhead: the tick that ran the 5 units took 115 s for 8.9 s of unit time, with 36,264 Mac re-queued parses in the selection."
+ ]
+}

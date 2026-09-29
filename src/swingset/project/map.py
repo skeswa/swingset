@@ -1,23 +1,48 @@
-"""Source-event matching map and atomic membership moves."""
+"""Source-event mapping: one proposal set per source, one resolution per event.
+
+`project/mapping/<source>` proposes a target for each listing of its source
+(`propose`): an override, the one catalog event whose name and dates match,
+or a generated id with the placeholder event the listing would create. It
+writes the source's rows of `source_event_proposals`.
+
+`project/resolution/<event_id>` turns the proposals naming one event into
+that event's `source_event_map` rows and, when the event is not a catalog
+event, its placeholder `events` row in scope `resolution/<event_id>`
+(`resolve`). A resolution with no proposal deletes its rows. The first run
+of a resolution also takes its event's row over from the retired
+`unmatched_source_events/all` and `override_events/all` scopes.
+
+Neither re-projects events nor reconciles registry placements: events depend
+on their resolution, and the years own the association (plan F17, F19).
+"""
 
 import calendar
 import csv
+import dataclasses
 import io
 import json
 import sqlite3
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 from datetime import date
-from typing import Protocol
+from typing import Any, Protocol
 
 from swingset.model.canonical import Event
 from swingset.model.ids import event_id, series_id
 from swingset.normalize.events import event_dates_overlap, normalize_event_name
-from swingset.state.work import WorkUnit
+from swingset.state import proposals
+from swingset.state.proposals import Proposal
+from swingset.state.work import WorkUnit, bump_revision, enqueue
 
-from .contests import project_event
 from .materialization import helper_recipe, materializing
-from .registry_events import reconcile_registry_events
-from .writer import Projection, replace_scope, replace_source_event_map
+from .writer import Projection, replace_scope
+
+#: Scopes that owned placeholder events before the map split. Each
+#: resolution releases its event's row from them on its first run.
+LEGACY_SCOPES = ("unmatched_source_events", "override_events")
+_OVERRIDE_FILES = ("overrides/event_aliases.csv", "overrides/source_urls.csv")
+#: Processing clocks are filled in when a resolution writes the event, so a
+#: proposal does not change with the clock.
+_CLOCKS = ("first_seen_at", "last_seen_at", "run_id")
 
 
 class InputBundleLike(Protocol):
@@ -25,225 +50,355 @@ class InputBundleLike(Protocol):
     def files(self) -> Mapping[str, bytes]: ...
 
 
-def project_map(
-    conn: sqlite3.Connection, bundle: InputBundleLike, now: str, run_id: str, projector_version: int
+def overrides(files: Mapping[str, bytes]) -> dict[tuple[str, str], str]:
+    """Every override target by (source, source_ref); a later row wins."""
+    result: dict[tuple[str, str], str] = {}
+    for name in _OVERRIDE_FILES:
+        for row in _csv(files, name):
+            source, ref, target = row.get("source"), row.get("source_ref"), row.get("event_id")
+            if source == "worlddanceregistry":
+                source = "wdr"
+            if not ref and source == "wdr" and row.get("url"):
+                from swingset.sources.wdr import source_ref_from_url
+
+                ref = source_ref_from_url(row["url"])
+            if source and ref and target:
+                result[(source, ref)] = target
+    return result
+
+
+def override_sources(files: Mapping[str, bytes]) -> tuple[str, ...]:
+    """The sources the override files name; each has a mapping unit."""
+    return tuple(sorted({source for source, _ in overrides(files)}))
+
+
+def propose(
+    conn: sqlite3.Connection,
+    source: str,
+    bundle: InputBundleLike,
+    now: str,
+    projector_version: int,
 ) -> bool:
-    with materializing(
-        conn,
-        WorkUnit("project", "map", "all"),
-        now=now,
-        run_id=run_id,
-        recipe=helper_recipe(conn, bundle.files, "project"),
-    ):
-        return _project_map(conn, bundle, now, run_id, projector_version)
+    """Write the proposals of one source; returns whether they changed.
 
-
-def _project_map(
-    conn: sqlite3.Connection, bundle: InputBundleLike, now: str, run_id: str, projector_version: int
-) -> bool:
-    overrides: dict[tuple[str, str], str] = {}
-    for row in _csv(bundle, "overrides/event_aliases.csv") + _csv(
-        bundle, "overrides/source_urls.csv"
-    ):
-        source, ref, target = row.get("source"), row.get("source_ref"), row.get("event_id")
-        if source == "worlddanceregistry":
-            source = "wdr"
-        if not ref and source == "wdr" and row.get("url"):
-            from swingset.sources.wdr import source_ref_from_url
-
-            ref = source_ref_from_url(row["url"])
-        if source and ref and target:
-            overrides[(source, ref)] = target
-    events = list(
+    Queues a hint for the resolution of every event a changed proposal names,
+    before and after; currency decides whether each runs.
+    """
+    targets = {
+        ref: target for (name, ref), target in overrides(bundle.files).items() if name == source
+    }
+    catalog = list(
         conn.execute(
-            "SELECT event_id,name,start_date,end_date FROM events WHERE wsdc_status!='unknown'"
+            "SELECT event_id,name,start_date,end_date FROM events WHERE wsdc_status!='unknown' "
+            "ORDER BY event_id"
         )
     )
-    mapped: list[tuple[str, str, str, str, float]] = []
-    unknown: list[Event] = []
-    mapped.extend(
-        (source, ref, target, "override", 1.0) for (source, ref), target in overrides.items()
-    )
-    placeholder_events: list[Event] = []
-    for (source, ref), target in overrides.items():
-        existing = conn.execute("SELECT * FROM events WHERE event_id=?", (target,)).fetchone()
-        if existing is not None:
-            placeholder_events.append(_stored_event(existing))
-            continue
-        try:
-            year, month = (int(value) for value in target.split("-", 2)[:2])
-        except ValueError:
-            continue
-        source_name = conn.execute(
-            "SELECT name_raw,snapshot_id,parser_version FROM source_events WHERE source=? AND source_ref=?",
-            (source, ref),
-        ).fetchone()
-        display_name = (
-            str(source_name[0])
-            if source_name and source_name[0]
-            else target.split("-", 2)[-1].replace("-", " ").title()
+    listings = {
+        str(row[0]): row
+        for row in conn.execute(
+            "SELECT source_ref,name_raw,start_date,end_date,snapshot_id,parser_version "
+            "FROM source_events WHERE source=? ORDER BY source_ref",
+            (source,),
         )
-        first = date(year, month, 1)
-        last = date(year, month, calendar.monthrange(year, month)[1])
-        placeholder_events.append(
-            Event(
-                event_id=target,
-                series_id=series_id(display_name),
-                name=display_name,
-                year=year,
+    }
+    rows: list[Proposal] = []
+    for ref, target in sorted(targets.items()):
+        listing = listings.get(ref)
+        placeholder = _override_placeholder(source, target, listing, projector_version)
+        rows.append(Proposal(source, ref, target, "override", 1.0, placeholder))
+    for ref, listing in listings.items():
+        if ref in targets:
+            continue
+        name, start, end = listing[1], listing[2], listing[3]
+        candidates = [
+            event
+            for event in catalog
+            if _name(str(event[1])) == _name(str(name or ""))
+            and _overlaps(start, end, event[2], event[3])
+        ]
+        if len(candidates) == 1:
+            rows.append(Proposal(source, ref, str(candidates[0][0]), "name_date", 1.0))
+        elif not candidates and name and end:
+            last = date.fromisoformat(str(end))
+            first = date.fromisoformat(str(start or end))
+            generated = Event(
+                event_id=event_id(last, str(name)),
+                series_id=series_id(str(name)),
+                name=str(name),
+                year=last.year,
                 start_date=first.isoformat(),
                 end_date=last.isoformat(),
                 wsdc_status="unknown",
                 sources=(source,),
                 source=source,
-                snapshot_id="override",
-                parser_version=str(projector_version),
-                first_seen_at=now,
-                last_seen_at=now,
-                run_id=run_id,
+                snapshot_id=str(listing[4]),
+                parser_version=str(listing[5] or projector_version),
+                first_seen_at="",
+                last_seen_at="",
+                run_id="",
             )
-        )
-    for source_row in conn.execute(
-        "SELECT source,source_ref,name_raw,start_date,end_date,snapshot_id,parser_version FROM source_events"
-    ):
-        key = str(source_row[0]), str(source_row[1])
-        if key in overrides:
-            continue
-        candidates = [
-            event
-            for event in events
-            if _name(str(event[1])) == _name(str(source_row[2] or ""))
-            and _overlaps(source_row[3], source_row[4], event[2], event[3])
-        ]
-        if len(candidates) == 1:
-            mapped.append((*key, str(candidates[0][0]), "name_date", 1.0))
-            continue
-        if not candidates and source_row[2] and source_row[4]:
-            end, start = (
-                date.fromisoformat(str(source_row[4])),
-                date.fromisoformat(str(source_row[3] or source_row[4])),
+            rows.append(
+                Proposal(source, ref, generated.event_id, "name_date", 0.5, _encode(generated))
             )
-            generated = event_id(end, str(source_row[2]))
-            mapped.append((*key, generated, "name_date", 0.5))
-            existing = _inventory_event(conn, generated)
-            if existing is not None:
-                # A source listing can collide with a registry-enriched edition
-                # even when status or dates prevent a name/date match. Keep the
-                # occurrence's reporting month, metadata and evidence intact.
-                unknown.append(_stored_event(existing))
-                continue
-            unknown.append(
-                Event(
-                    event_id=generated,
-                    series_id=series_id(str(source_row[2])),
-                    name=str(source_row[2]),
-                    year=end.year,
-                    start_date=start.isoformat(),
-                    end_date=end.isoformat(),
-                    wsdc_status="unknown",
-                    sources=(key[0],),
-                    source=key[0],
-                    snapshot_id=str(source_row[5]),
-                    parser_version=str(source_row[6] or projector_version),
-                    first_seen_at=now,
-                    last_seen_at=now,
-                    run_id=run_id,
-                )
-            )
-    override_event_ids = {event.event_id for event in placeholder_events}
-    desired_unknown_ids = {event.event_id for event in unknown}
-    mapped_event_ids = {row[2] for row in mapped}
-    retained_unknown = list(unknown)
-    retiring_unknown_ids: set[str] = set()
-    for row in conn.execute(
-        """SELECT DISTINCT e.* FROM canonical_scope_rows c JOIN events e
-        ON c.table_name='events' AND c.record_key=json_array(e.event_id)
-        WHERE c.scope_kind IN ('unmatched_source_events','override_events') AND c.scope_id='all'"""
-    ):
-        stored = _stored_event(row)
-        if stored.event_id not in desired_unknown_ids:
-            retained_unknown.append(stored)
-            if stored.event_id in override_event_ids:
-                continue
-            if stored.event_id in mapped_event_ids:
-                # Registry enrichment can make a source-created occurrence match
-                # itself. Its mapping still needs this scope's event ownership.
-                unknown.append(stored)
-                desired_unknown_ids.add(stored.event_id)
-                continue
-            owner_count = conn.execute(
-                "SELECT count(*) FROM canonical_scope_rows WHERE table_name='events' "
-                "AND record_key=json_array(?)",
-                (stored.event_id,),
-            ).fetchone()[0]
-            if owner_count == 1:
-                retiring_unknown_ids.add(stored.event_id)
-    premap_unknown_changed = replace_scope(
+    before = {(row.source, row.source_ref): row for row in proposals.for_source(conn, source)}
+    after = {(row.source, row.source_ref): row for row in rows}
+    if before == after:
+        return False
+    proposals.replace_source(conn, source, rows)
+    affected = {
+        row.event_id
+        for key in before.keys() | after.keys()
+        if before.get(key) != after.get(key)
+        for row in (before.get(key), after.get(key))
+        if row is not None
+    }
+    enqueue(
         conn,
-        scope_kind="unmatched_source_events",
-        scope_id="all",
-        projection=Projection(tuple(retained_unknown)),
-        run_id=run_id,
-        projected_at=now,
-        enqueue_links=False,
+        (WorkUnit("project", "resolution", item) for item in sorted(affected)),
+        enqueued_at=now,
     )
-    replace_scope(
-        conn,
-        scope_kind="override_events",
-        scope_id="all",
-        projection=Projection(tuple(placeholder_events)),
-        run_id=run_id,
-        projected_at=now,
-        enqueue_links=False,
-    )
-    before = [
-        tuple(row)
-        for row in conn.execute(
-            "SELECT source,source_ref,event_id,match_method,match_confidence FROM source_event_map ORDER BY source,source_ref"
-        )
+    return True
+
+
+def resolve(conn: sqlite3.Connection, identifier: str, now: str, run_id: str) -> bool:
+    """Write one event's map rows and its placeholder row; returns whether any changed.
+
+    The event row follows the map's rules: a generated id takes the
+    inventory's row when the inventory owns it (a registry-enriched
+    collision), otherwise the listing's placeholder, the last in (source,
+    source_ref) order; else an override keeps the row already there or makes
+    its placeholder; else a catalog match keeps a row this scope already
+    owned. A placeholder keeps the live row's `coverage_tier`, which its year
+    owns (F23).
+    """
+    proposed = proposals.for_event(conn, identifier)
+    live = conn.execute("SELECT * FROM events WHERE event_id=?", (identifier,)).fetchone()
+    generated = [row for row in proposed if row.match_method != "override" and row.placeholder_json]
+    overridden = [row for row in proposed if row.match_method == "override"]
+    matched = [
+        row for row in proposed if row.match_method != "override" and not row.placeholder_json
     ]
-    affected = replace_source_event_map(conn, tuple(mapped))
-    for event in affected:
-        with materializing(
-            conn,
-            WorkUnit("project", "event", event),
-            now=now,
-            run_id=run_id,
-            recipe=helper_recipe(conn, bundle.files, "project"),
-        ):
-            replace_scope(
-                conn,
-                scope_kind="event",
-                scope_id=event,
-                projection=project_event(conn, event, now, run_id),
-                run_id=run_id,
-                projected_at=now,
-            )
-            conn.execute(
-                "DELETE FROM pending_work WHERE stage='project' AND unit_kind='event' AND unit_id=?",
-                (event,),
-            )
-    registry_changed = reconcile_registry_events(
+    event: Event | None = None
+    if generated:
+        inventory = _inventory_event(conn, identifier)
+        event = (
+            _stored_event(inventory)
+            if inventory is not None
+            else _decode(str(generated[-1].placeholder_json), now, run_id)
+        )
+    elif overridden:
+        if live is not None:
+            event = _stored_event(live)
+        else:
+            placeholders = [row for row in overridden if row.placeholder_json]
+            if placeholders:
+                event = _decode(str(placeholders[-1].placeholder_json), now, run_id)
+    elif matched and live is not None and _owned(conn, identifier):
+        # Registry enrichment can make a listing's own placeholder a catalog
+        # event that the listing then matches; this scope keeps owning it.
+        event = _stored_event(live)
+    if event is not None and live is not None:
+        event = dataclasses.replace(event, coverage_tier=str(live["coverage_tier"]))
+    changed = replace_scope(
         conn,
-        reconciled_at=now,
-        run_id=run_id,
-        excluded_event_ids=frozenset(retiring_unknown_ids),
-    )
-    unknown_changed = replace_scope(
-        conn,
-        scope_kind="unmatched_source_events",
-        scope_id="all",
-        projection=Projection(tuple(unknown)),
+        scope_kind="resolution",
+        scope_id=identifier,
+        projection=Projection((event,) if event is not None else ()),
         run_id=run_id,
         projected_at=now,
         enqueue_links=False,
     )
-    return premap_unknown_changed or registry_changed or unknown_changed or before != sorted(mapped)
+    changed |= _release_legacy(conn, identifier)
+    moved = _replace_map_rows(
+        conn,
+        identifier,
+        [
+            (row.source, row.source_ref, identifier, row.match_method, row.match_confidence)
+            for row in proposed
+        ],
+    )
+    if changed or moved:
+        enqueue(
+            conn,
+            (WorkUnit("project", "event", item) for item in sorted({identifier, *moved})),
+            enqueued_at=now,
+        )
+    return changed or bool(moved)
+
+
+def project_map(
+    conn: sqlite3.Connection, bundle: InputBundleLike, now: str, run_id: str, projector_version: int
+) -> bool:
+    """Run every mapping unit, then every resolution, each as its own unit.
+
+    A drain for tests and helper bundles; the scheduler runs the units one at
+    a time. Events are not re-projected here.
+    """
+    from swingset.state.derivation_dependencies import mapping_units, resolution_units
+    from swingset.state.read_sets import recording
+
+    recipe = helper_recipe(conn, bundle.files, "project")
+    changed = False
+    sources = {unit.unit_id for unit in mapping_units(conn)} | set(override_sources(bundle.files))
+    for source in sorted(sources):
+        mapping = WorkUnit("project", "mapping", source)
+        with (
+            materializing(conn, mapping, now=now, run_id=run_id, recipe=recipe),
+            recording(conn, mapping),
+        ):
+            changed |= propose(conn, source, bundle, now, projector_version)
+    for unit in resolution_units(conn):
+        with (
+            materializing(conn, unit, now=now, run_id=run_id, recipe=recipe),
+            recording(conn, unit),
+        ):
+            changed |= resolve(conn, unit.unit_id, now, run_id)
+    return changed
+
+
+def _owned(conn: sqlite3.Connection, identifier: str) -> bool:
+    """Whether this resolution or a retired map scope owns the event's row."""
+    return (
+        conn.execute(
+            "SELECT 1 FROM canonical_scope_rows WHERE table_name='events' AND record_key=json_array(?) "
+            "AND ((scope_kind='resolution' AND scope_id=?) "
+            "OR (scope_kind IN ('unmatched_source_events','override_events') AND scope_id='all')) "
+            "LIMIT 1",
+            (identifier, identifier),
+        ).fetchone()
+        is not None
+    )
+
+
+def _release_legacy(conn: sqlite3.Connection, identifier: str) -> bool:
+    """Drop a retired map scope's ownership of the event, as `replace_scope` drops a row.
+
+    A row no scope owns any more is deleted, and registry placements that
+    named it are detached (D-0191).
+    """
+    key = json.dumps([identifier], separators=(",", ":"))
+    released = 0
+    for scope_kind in LEGACY_SCOPES:
+        released += conn.execute(
+            "DELETE FROM canonical_scope_rows WHERE scope_kind=? AND scope_id='all' "
+            "AND table_name='events' AND record_key=?",
+            (scope_kind, key),
+        ).rowcount
+    if (
+        not released
+        or conn.execute(
+            "SELECT 1 FROM canonical_scope_rows WHERE table_name='events' AND record_key=? LIMIT 1",
+            (key,),
+        ).fetchone()
+    ):
+        return False
+    conn.execute("UPDATE registry_placements SET event_id=NULL WHERE event_id=?", (identifier,))
+    if conn.execute("DELETE FROM events WHERE event_id=?", (identifier,)).rowcount:
+        bump_revision(conn, "canonical")
+        return True
+    return False
+
+
+def _replace_map_rows(
+    conn: sqlite3.Connection,
+    identifier: str,
+    rows: Iterable[tuple[str, str, str, str, float]],
+) -> set[str]:
+    """Make ``rows`` the event's map rows; returns the events whose rows moved.
+
+    A listing another event held moves here; that event's own resolution
+    finds no proposal for it. Only this event's rows are deleted.
+    """
+    desired = {(row[0], row[1]): row for row in rows}
+    current = {
+        (str(row[0]), str(row[1])): (
+            str(row[0]),
+            str(row[1]),
+            str(row[2]),
+            str(row[3]),
+            float(row[4]),
+        )
+        for row in conn.execute(
+            "SELECT m.source,m.source_ref,m.event_id,m.match_method,m.match_confidence "
+            "FROM source_event_map m WHERE m.event_id=? OR EXISTS (SELECT 1 FROM "
+            "source_event_proposals p WHERE p.event_id=? AND p.source=m.source "
+            "AND p.source_ref=m.source_ref)",
+            (identifier, identifier),
+        )
+    }
+    moved: set[str] = set()
+    for key, row in current.items():
+        if key not in desired and row[2] == identifier:
+            conn.execute("DELETE FROM source_event_map WHERE source=? AND source_ref=?", key)
+            moved.add(identifier)
+    for key, row in desired.items():
+        if current.get(key) == row:
+            continue
+        if key in current:
+            moved.add(current[key][2])
+        conn.execute(
+            "INSERT INTO source_event_map(source,source_ref,event_id,match_method,match_confidence) "
+            "VALUES (?,?,?,?,?) ON CONFLICT(source,source_ref) DO UPDATE SET "
+            "event_id=excluded.event_id,match_method=excluded.match_method,"
+            "match_confidence=excluded.match_confidence",
+            row,
+        )
+        moved.add(identifier)
+    if moved:
+        bump_revision(conn, "source_event_map")
+    return moved
+
+
+def _override_placeholder(
+    source: str, target: str, listing: sqlite3.Row | None, projector_version: int
+) -> str | None:
+    """The event an override target gets when no row exists; None for an unparseable id."""
+    try:
+        year, month = (int(value) for value in target.split("-", 2)[:2])
+    except ValueError:
+        return None
+    display_name = (
+        str(listing[1])
+        if listing is not None and listing[1]
+        else target.split("-", 2)[-1].replace("-", " ").title()
+    )
+    first = date(year, month, 1)
+    last = date(year, month, calendar.monthrange(year, month)[1])
+    return _encode(
+        Event(
+            event_id=target,
+            series_id=series_id(display_name),
+            name=display_name,
+            year=year,
+            start_date=first.isoformat(),
+            end_date=last.isoformat(),
+            wsdc_status="unknown",
+            sources=(source,),
+            source=source,
+            snapshot_id="override",
+            parser_version=str(projector_version),
+            first_seen_at="",
+            last_seen_at="",
+            run_id="",
+        )
+    )
+
+
+def _encode(event: Event) -> str:
+    values = {key: value for key, value in event.values().items() if key not in _CLOCKS}
+    return json.dumps(values, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+
+
+def _decode(payload: str, now: str, run_id: str) -> Event:
+    values: dict[str, Any] = json.loads(payload)
+    for key in ("sources", "history_source"):
+        values[key] = tuple(values.get(key, ()))
+    return Event(**values, first_seen_at=now, last_seen_at=now, run_id=run_id)
 
 
 def _inventory_event(conn: sqlite3.Connection, identifier: str) -> sqlite3.Row | None:
     # Match materialization.output_rows(inventory): history enrichment or its
-    # durable ownership makes this an inventory record, not a provisional map row.
+    # durable ownership makes this an inventory record, not a placeholder.
     row: sqlite3.Row | None = conn.execute(
         "SELECT * FROM events WHERE event_id=? AND (history_source!='[]' OR EXISTS "
         "(SELECT 1 FROM canonical_scope_rows c WHERE c.scope_kind='history' "
@@ -287,8 +442,8 @@ def _stored_event(row: sqlite3.Row) -> Event:
     )
 
 
-def _csv(bundle: InputBundleLike, name: str) -> list[dict[str, str]]:
-    body = bundle.files.get(name, b"")
+def _csv(files: Mapping[str, bytes], name: str) -> list[dict[str, str]]:
+    body = files.get(name, b"")
     return list(csv.DictReader(io.StringIO(body.decode("utf-8-sig")))) if body.strip() else []
 
 

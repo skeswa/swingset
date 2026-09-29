@@ -2,8 +2,10 @@
 
 Adopted 2026-09-25 by the owner ("move the proposal to plans … pause current
 work and implement this plan"). Other plans are paused until this one's phases
-land, except operating the worker safely. Phases 0, 1 and 2 are implemented
-offline and not deployed (section 9); nothing else is implemented yet.
+land, except operating the worker safely. Phases 0 to 3 are implemented
+offline and not deployed; phase 3's rehearsal found four defects (F26 to
+F29), fixed with the review's findings and rehearsed again 2026-09-30 to
+10-02 (section 9); the build's 2 GB peak is not met on the Mac. Phases 4 to 6 are not started.
 Figures come from `docs/status.md`, the
 [stall investigation](../../journal/investigations/2026/build-failure-and-history-deadline-2026-09-24.md),
 the [derivation investigation](../../journal/investigations/2026/derivation-invalidation-2026-09-23.md)
@@ -118,8 +120,8 @@ their CLI commands; the cycle and derive share `schedule/offline.py`
 ([scheduling: loops](../reference/scheduling.md#loops)). A publication's fence
 also refuses `runs`, `loop_state` and `guard_reasons` writes, so a tick that
 finds one writes only its record file and the `loop:<l> publication_in_flight`
-guard cannot be stored while the fence stands; narrowing the fence (phase 3)
-fixes both.
+guard cannot be stored while the fence stands. Phase 3 (WP10) built the
+narrow fence, which fixes both for partitioned publications.
 
 Built in WP8: `plan` and `acquire` and their CLI commands
 ([D-0218](../../journal/decisions/0218-the-loops-judge-the-year-gate-on-facts-and-acquire-from-a-plan-table.md)).
@@ -137,9 +139,18 @@ the `event_*` stages that `[stages]` enables (open decision 2).
 Built in WP9: `release` and its CLI command, `release --dry-run|--publish`
 ([scheduling: loops](../reference/scheduling.md#loops)). It ticks hourly, not
 every 6 h: `build_interval_seconds` paces builds (F16). It reads live tables
-through the build as the cycle did; reading committed generations only is
-phase 3. Each build holds `heavy.lock` exclusive, so derive starts no unit
-meanwhile (F10). It skips while the disk quota has less than
+through the build as the cycle did. Each build holds `heavy.lock` exclusive,
+so derive starts no unit meanwhile (F10).
+
+Built in phase 3: `release` reads committed generations by pointer. The
+default `partitioned` path selects current pointers, builds partition
+artifacts from their generations and streams the assembly. Only the review
+queue (open findings), the snapshot rows the artifacts' support names and the
+correction token's policies and revocations are read live. Every build
+holds the heavy lock while `[release] streamed_lock` is true (the default)
+until the worker measures a partitioned build under 2 GB beside derive.
+`whole` and `closure` (the phase 2 path) stay for one release
+([D-0224](../../journal/decisions/0224-releases-from-partition-artifacts.md)). It skips while the disk quota has less than
 `release_min_free_bytes` (30 GB) free, with a `loop:release` guard.
 
 Built in WP11: `services.swingset.loops.enable` (default false) swaps the
@@ -159,24 +170,29 @@ switch is the operator's.
 Every derived fact belongs to exactly one partition, and the partition key is
 the unit key:
 
-| Partition          | Contents                                                                                   | Today                                                                                      |
-| ------------------ | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------ |
-| `event/<event_id>` | contests, rounds, entries, heats, callback marks, placements, judges, links for that event | `project/event/*`, `link/event/*` already exist                                            |
-| `dancer/<wsdc_id>` | one registry dancer row and their registry placements                                      | `project/dancer/*` exists (29k units)                                                      |
-| `year/<yyyy>`      | registry occurrence inventory for the year, series aliases in force, coverage rows         | `project/history/all` and `project/inventory` are global; `history_acceptance` is per year |
-| `source_index/<s>` | one source's event listing and its mapping proposals                                       | `project/source_index/*` exists; `project/map/all` is global                               |
+| Partition          | Contents                                                                                   | Built in phase 3                                                                                          |
+| ------------------ | ------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------- |
+| `event/<event_id>` | contests, rounds, entries, heats, callback marks, placements, judges, links for that event | release partition `event/<E>` (joined `E1+E2` when a row names both); units `project/event`, `link/event` |
+| `dancer/<wsdc_id>` | one registry dancer row and their registry placements                                      | release partition `dancers/<id // 512>`; unit `project/dancer`                                            |
+| `year/<yyyy>`      | registry association, event tiers and coverage rows of the year                            | unit `project/year/<yyyy>`; release partition `year/<Y>`. The occurrence inventory stays global (F18)     |
+| `source/<s>`       | one source's listings and its mapping proposals; one resolution per event                  | units `project/mapping/<source>` and `project/resolution/<event_id>` (F19)                                |
 
 The two global units are what make local defects global. `project/history/all`
 does two things (`project/history.py` `finalize_history`): set
 `registry_placements.event_id` by a series-and-month join, and rebuild the
 `coverage` table. The first is a per-year fact: a year partition reads the
 registry placements and events of its own year and writes their association.
-The second is a release-time reduce over partition outputs and needs no
-generation at all. `project/map/all` becomes per-source-index mapping plus a
-tiny per-event resolution, because an event's mapping depends only on the
-listings that name it. The alias file (`series_aliases.csv`) is an input to
-every year partition it dates; an alias edit re-derives the years it touches,
+The second splits by event year too. `project/map/all` becomes per-source
+mapping plus a tiny per-event resolution, because an event's mapping depends
+only on the listings that name it. An alias edit (`series_aliases.csv`)
+queues the inventory and every year; only those whose output changes mint,
 not the graph.
+
+Built in phase 3 ([D-0222](../../journal/decisions/0222-derive-history-per-year-and-the-event-map-per-source-and-event.md)):
+the year keeps the live `coverage` table, which the history review reads, so
+the year owns its coverage rows and the release takes them from `year/<Y>`
+rather than reducing at build time (F17). Index scopes are pages, so the map
+splits per source (F19). The inventory stays one paced global unit (F18).
 
 ### 4.2 Dependencies at the granularity actually read
 
@@ -190,6 +206,16 @@ to dancer 12345 re-queues the events whose linker read dancer 12345, typically
 tens, not 2,932. This is how Bazel, Salsa and Shake work; here it needs one
 wrapper around the row readers in `link/evidence.py` and `project/*`, and
 over-approximation (record a table when in doubt) is the safe direction.
+
+Built in phase 3 for link units
+([D-0223](../../journal/decisions/0223-link-units-depend-on-what-they-read.md)):
+the read keys are the event, the dancers used, content digests and a
+per-event pool version that the dancer unit's probe bumps (F20), stored in
+`derivation_reads` with its reverse index. The wrapper is a SQLite
+authorizer over every project and link unit body; it counts undeclared
+reads, fails in tests only, and misses `USING` joins in production (F25).
+Project units keep their declared dependencies. A weekly verify sample
+re-derives 1% of links and years.
 
 ### 4.3 Early cutoff and scoped recipes
 
@@ -232,13 +258,23 @@ SQLite file and the builder validates the whole. The target:
    check that let `138352e` ship with zero links). This is where "strictly
    better" becomes a machine check.
 
-**Provenance stays intact and gets cheaper.** D-0022's guarantee, that a
-published release is reproducible from its inputs, holds because the HF
-commit names the manifest digest, the manifest names each fragment, each
-fragment names its generations, and generations name snapshots by hash in the
-blob store. Immutability moves from row-level triggers on 130 tables to
+**Provenance stays intact and gets cheaper.** A published release stays
+reproducible from its inputs because the HF commit names the manifest
+digest, the manifest names each fragment, each fragment names its
+generations, and generations name snapshots by hash in the blob store.
+D-0022's rule (a rejected legacy event row never vetoes a supported event;
+revoked or unsupported rows withhold their event) holds per partition.
+Immutability moves from row-level triggers on 130 tables to
 "content-addressed files are never rewritten." `closure.hydrate` becomes
 "read the manifest by digest."
+
+Built in phase 3
+([D-0224](../../journal/decisions/0224-releases-from-partition-artifacts.md),
+[D-0225](../../journal/decisions/0225-publish-only-strictly-better-releases.md)):
+all four steps. Artifacts live under `state/partitions/`, not yet in a blob
+store (phase 4); the maintain loop collects unnamed ones. The manifest names
+no generation ids itself; the sidecars do. The gate has 16 measures, and a
+correction-only candidate is exempt.
 
 ## 5. Fault tolerance mechanisms
 
@@ -321,9 +357,13 @@ leasing `project` units when the release loop is more than two intervals
 behind; `release` refuses to start when free disk is under the scratch it
 needs. All three are counters the watchdog can read. Phase 2 built the
 first (counting only parse work derive can run now, D-0216) and the third
-(`release_min_free_bytes`). Derive's release-lag knob waits for phase 3,
-when release reads partition artifacts; until then a build holds `heavy.lock`
-and derive starts no unit.
+(`release_min_free_bytes`). Phase 3 built derive's knob
+(`release_lag_intervals`, guard `loop:derive release_lag`), which engages
+only when release's ticks were skipped because derive held the heavy lock,
+and narrowed the publication fence to what a partitioned publication
+checks, so acquire, plan and derive tick through it; a build still holds
+`heavy.lock` (a partitioned one while `streamed_lock` is true) and derive
+starts no unit meanwhile.
 
 ## 6. State and storage
 
@@ -619,7 +659,10 @@ Four findings changed steps 1, 2 and 5 as written:
   its `selected_*`, `source_observations` and `calendar_observations` groups
   equal the kept generation's. `build/` needs no change. Code-only and no-op
   re-runs cut off; a real upstream change still mints new ids downstream, as
-  today, until phase 3's read sets.
+  today, until phase 3's read sets. _Dropped in phase 3, WP7 (F21,
+  [D-0224](../../journal/decisions/0224-releases-from-partition-artifacts.md)):
+  releases read current pointers, and the closure path withholds a year that
+  reaches a superseded generation._
 - **F2, replay epochs.** A replay can overwrite live rows another stage
   enriched: on the 16:10 copy, inventory had changed `wsdc_status` on 4 of
   160 `wsdc` calendar rows. With the pointer kept, inventory would stay
@@ -1455,11 +1498,11 @@ Deferred, each with its phase:
 
 - Loop-scoped operator pauses: phase 5. Today's `all`, host, source and
   kind pauses still apply; a loop stops with its timer.
-- Narrowing the publication fence: phase 3, when release reads partition
-  artifacts. Until then a publish pauses the other loops (F6), and a tick
-  that finds one writes only its record file.
-- Derive's release-lag knob (section 5): phase 3. The heavy lock covers the
-  memory case now.
+- Narrowing the publication fence: built in phase 3 (WP10) for partitioned
+  candidates. A closure-mode publication still pauses the other loops (F6),
+  and a tick that finds one writes only its record file.
+- Derive's release-lag knob (section 5): built in phase 3 (WP10). The heavy
+  lock still covers whole and closure builds.
 - Removing the cycle: phase 5. Until then both orchestrations share
   `schedule/offline.py` and `schedule/acquisition.py`, and both are tested.
 
@@ -1852,6 +1895,699 @@ year, under one minute of derive time; the manifest is under 5 MB and identical 
 attempts with unchanged inputs; a release that would drop identity links is
 refused with a reason.
 
+_Phase 3 status: implemented offline (closed 2026-10-02), not deployed.
+Work packages WP0 to WP13 landed 2026-09-29 and were rehearsed on
+real-data clones (WP14, first table below). The four defects (F26 to F29)
+and both reviews' findings are fixed; the final tree was rehearsed again
+from a fresh clone on 2026-10-02 (closing rehearsal), R5, R9 and R10
+included. Every accept-when holds offline except the build's peak: 2.43 GB
+on the Mac (2.2 to 2.5 GB across runs), so the heavy lock and release's 7G
+cap stay until the worker measures it (step 5). The cold build took 474 s.
+Phase 2's switches come first; the deploy preconditions and the carried
+review findings are listed under the deploy steps._ Records:
+[D-0222](../../journal/decisions/0222-derive-history-per-year-and-the-event-map-per-source-and-event.md)
+(years, mappings and resolutions; history pacing and the history lift
+retired),
+[D-0223](../../journal/decisions/0223-link-units-depend-on-what-they-read.md)
+(link read sets; replaces the dancer cohort),
+[D-0224](../../journal/decisions/0224-releases-from-partition-artifacts.md)
+(releases from partition artifacts selected by pointer; F1 dropped;
+`[release] path`; the narrow fence; D-0022 per partition) and
+[D-0225](../../journal/decisions/0225-publish-only-strictly-better-releases.md)
+(the strictly-better gate). Migration 35 adds `derivation_reads`,
+`source_event_proposals`, `release_partitions`, `release_artifacts` and
+`release_manifests`, and deletes the retired units' queue rows
+([schema history](../reference/schema-history.md)).
+
+Nine findings changed the phase as written:
+
+- **F17, history is three per-year jobs.** `finalize_history` set
+  `registry_placements.event_id` by series and month (same month, so same
+  year) and rebuilt tiers and `coverage` grouped by event year: all three
+  split exactly. The live `coverage` table stays, since the history review
+  reads `events_accepted` from it. `project/year/<yyyy>` owns the
+  association of placements reported in the year (at or after
+  `history_start`), its events' `coverage_tier` and its `coverage` rows; the
+  release takes them from `year/<Y>` partitions.
+- **F18, the inventory stays global.** It matches legacy calendar editions
+  across a December to January boundary and reads every non-registry event.
+  It stays one paced unit (D-0210, without the history lift); F21 ends its
+  cascade instead. Splitting it is a later plan item.
+- **F19, "per source index" means per source.** Index scopes are pages: 846
+  scope rows for 464 listings, so one listing sits on several.
+  `project/mapping/<source>` (two today) proposes a target per listing into
+  `source_event_proposals`; `project/resolution/<event_id>` (about 765)
+  writes the event's `source_event_map` rows and its placeholder row. A
+  resolution reads its proposals as content and only waits for the mappings
+  (`waits_for`): depending on a mapping's generation would re-mint every
+  resolution of a source, and a dependency on its own map rows moved during
+  its own run.
+- **F20, the linker reads the whole registry.** Candidate pools go by
+  surname initial, name rarity counts every dancer with the same surname
+  word, judge pools filter eligibility. A read set of "rows returned" would
+  miss a dancer who becomes a candidate. A link's read set names its event,
+  the dancers it used and content keys; pool effects are a per-event
+  `link_pool` version the dancer unit's probe bumps, widening when unsure.
+- **F21, F1 goes with the graph walk.** F1 existed because the release
+  closure and retention followed a kept generation's dependencies. Releases
+  now take current pointers, so a re-run whose output equals the kept
+  generation cuts off on output alone (F2's replay epochs stay). A dancer
+  change ends at the first unchanged unit.
+- **F22, the closure path cannot anchor on history.** It anchors on every
+  year, then every source event and dancer, and skips an anchor whose walk
+  reaches a project generation other than that scope's anchor: those events
+  are withheld (`year_anchor_conflict`), never published stale. It may
+  withhold more than before; it stays for one release behind `[release]
+path`.
+- **F23, owned columns never enter their owner's inputs.** A year and a
+  dancer's reconcile both write `registry_placements.event_id`; a year that
+  read it would never be current. A dancer's reconcile that moves it bumps
+  the dancer replay epoch, which years read.
+- **F24, a release cutoff from inputs.** The manifest's `evidence_cutoff`
+  is the newest `created_at` among the generations and accepted source
+  generations it names, never the clock, so two attempts write the same
+  bytes. Support checks read accepted source generations, not a clock.
+- **F25, the authorizer's blind spot.** SQLite's authorizer never reports a
+  table joined by `USING` or `NATURAL` whose other columns go unread. Armed
+  mode (tests) adds those tables from the statement's plan; production would
+  need a trace callback that would clobber a test's own, so it can miss
+  them. No fixture has such a read; the weekly verify sample is the net.
+
+What each package built:
+
+- **WP0 to WP2.** A scope guard (0 parse or extract scopes changed at every
+  package), migration 35 with three table modules, and the read recorder
+  ([state: read recorder](../reference/state.md#read-recorder)): an
+  authorizer over each project and link unit body, checked against `RULES`,
+  counted as `undeclared_reads`, fatal only in tests. The fixtures run armed
+  with zero undeclared reads for every kind.
+- **WP3, years** ([state](../reference/state.md#year-units)). Years are not
+  paced; the inventory keeps its interval without the history lift. The
+  history review pack runs the inventory and every year through
+  `process_unit`. A year run twice with no input change stays current.
+- **WP4, mapping and resolution**
+  ([state](../reference/state.md#mapping-per-source-resolution-per-event-plan-f19)).
+  Neither re-projects events or reconciles placements globally; an event
+  depends on its resolution. On a real-data clone the new units reproduce
+  the old map with zero differences. A stale `project/map/all` hint from
+  parse-scope code becomes every source's mapping unit.
+- **WP5, link read sets**
+  ([state](../reference/state.md#link-read-sets-plan-f20)). Two keys beyond
+  the spec: `content:event_row` (a calendar, the inventory or a resolution
+  owns the events row) and a row digest for a dancer no unit materialized.
+  Readiness checks the event, resolution, years (dropped in review, D-0226)
+  and read dancers, never the
+  registry. On a clone of the 09-29 copy: readiness of all 2,934 links in
+  2.7 s (it took 26 to 29 minutes); link runs no slower; about 1.7 keys per
+  subject, so about 325,000 `derivation_reads` rows and 75 MB with the index
+  (projected from 20 events). A soundness property test fails when the
+  probe, the rarity step or the name step is disabled.
+- **WP6, partition artifacts**
+  ([build](../reference/build.md#partition-artifacts)). Selection reads
+  pointers. An event partition takes the calendar, inventory and year rows
+  it merges by payload hash, so a year re-mint rebuilds only partitions whose
+  rows changed. The baseline enters the digest only of partitions with
+  legacy rows. On an undrained clone: 2,991 partitions cold in 176 s at
+  334 MB, 67 MB of artifacts; a second build rebuilt 0 in 32 s.
+- **WP7, partitioned releases**
+  ([build](../reference/build.md#partitioned-releases)). Every release runs
+  stage 1 and writes the manifest; `path` is `partitioned`, `whole` or
+  `closure`. The correction token's admission part is the artifacts' support
+  digest with the live policies and revocations, so publication walks no
+  graph. The reuse trigger leaves the baseline commit out, so an
+  acknowledged baseline stays quiet. Only `build/manifest.py` and
+  `state/release_store.py` join the project and link scopes.
+- **WP8, streamed assembly**
+  ([build](../reference/build.md#streamed-assembly)). DuckDB pass 1 over key
+  columns, then one partition at a time through the whole path's revocation,
+  identity, suppression and annotation functions; coverage from SQL
+  aggregates, the changelog from a per-table join. Rows equal `whole`'s on
+  every fixture. Beyond the spec, `whole` runs the same key check, so both
+  close joins to a dancer the release lacks; the closure path does not. A
+  synthetic release of 200,000 placements and 400,000 marks peaked at about
+  530 MB on the Mac.
+- **WP9, the gate** ([publishing](../reference/publishing.md#publication-gate)).
+  The verdict is in every candidate as `_meta/verdict.json`; `publish`
+  refuses before any intent. A correction-only candidate is exempt; a
+  candidate built before the gate is judged at publication with no
+  overrides. The `release_state` fixture's partitioned candidate is refused
+  against its baseline (the absent dancer the key check closes) and its tests
+  approve the rows.
+- **WP10, the narrow fence and knobs**
+  ([state: publication fences](../reference/state.md#publication-fences)). A
+  partitioned candidate is admitted as `publication_narrow`, fencing only
+  what its check reads, pinned by a test that runs the check under an
+  authorizer. Acquire, plan and derive tick through it; maintain and release
+  skip. `release_lag_intervals` (2) holds derive to parse and link units
+  while release is behind. A streamed build took no heavy lock (restored by
+  the review until measured, `streamed_lock`).
+- **WP11, checks** ([operations: verify sample](../reference/operations.md#verify-sample)).
+  The weekly verify sample, `swingset partitions --withheld`, and
+  `[release-refused]`, `[partitions-withheld]`, `[read-set-miss]`,
+  `[artifact-orphans]` and `[release-lag]`.
+- **WP12, the watchdog mirror.** `project/year` is a stage clocked like any
+  other; a link waits while its event, resolution or a year is queued.
+- **WP13.** Records, reference docs and this status. Core: 1,664 passed in
+  344 s. Full: 3,189 passed in 978 s. Ruff, mypy and the scope guard: clean. Project and link
+  scopes are 175 files (168 at phase 2), build 186 (174).
+
+Found, not fixed:
+
+- A link's resolution state reads its own previous default id, so a forced
+  re-run after a revocation differs (`NondeterministicOutputError`).
+  Pre-existing; scheduling never re-runs a current link.
+- The event-publication report on a partitioned baseline reads closure
+  fields (`schedule/event_publication.py`) and reports
+  `publication_receipt_or_files_unverified`. Phase 5's dependency report
+  should cover it.
+- The recorder misses a body read whose SQL text derivation code prepared
+  first in the same recording (SQLite's statement cache).
+- 1,132 event partitions are withheld as `source_support_unavailable`:
+  legacy rows the baseline did not publish (R3). Verified on the drained
+  clone: the phase 2 closure candidate on the same state also has 1,801
+  events, and production's candidates since 2026-09-24 had 1,796 and 1,797,
+  against the baseline's 2,105. So the gate refuses the first partitioned
+  candidate with `decrease:events 2105->1801` (R8) until an approval row or
+  restored support; the owner decides which.
+- Maintain appends `[read-set-miss]` to `ALERTS.log` best effort; the
+  watchdog unit runs as root and may own the file (**unverified** on the
+  worker), so the watchdog sends its own line.
+
+Rehearsal (WP14), 2026-09-29 and 30, on APFS clones of the 09-29 copy with
+no network ([receipt](../../journal/evidence/runtime/architecture-phase3-rehearsal-2026-09/receipt.json)).
+Clone A accepted the phase 2 tree, drained every project and link unit (4.1
+hours; links re-minted 2,934 generations, 666 MB) and built a closure
+candidate, the parity reference. Clone B is A plus this tree. The copy
+carried production's cap pause, resumed on A. The Mac interpreter re-queued
+every parse (I9): 36,264 parse units stay pending, so drains run project
+and link units only, with inventory pacing off, and R6, R7 and R10 run only
+their own parse with acquisition backpressure off. Timings are lower bounds
+for the worker.
+
+| Check                 | Expected                                                                                                                                                          | Result                                                                                                                                                                                                                                                            |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| R0, migration 35      | Seconds; 0 `foreign_key_check` violations; growth under 1 MB; retired rows gone; phase 2 code refuses schema 35                                                   | Met except time: 144 s on a cold clone (a re-open at 35 takes 0 s); `foreign_key_check` 133 s, 0 violations; +70 kB; no retired rows were left on the drained copy; refused                                                                                       |
+| R1, accept            | Only project, link and build scopes and `version/repository` change; 0 parses; hints for every project and link unit                                              | Met: 13 code scopes, `version/repository` and this change's `config/sources.toml` and `release_decreases.csv`, in 10 s; 0 parses; 35,842 hints plus 437 new-kind units                                                                                            |
+| R2, switch drain      | 21 years, 2 mappings, about 765 resolutions mint; no other generation except real changes (listed); about 35,800 equivalences; growth under 250 MB; parity with A | Met except growth: 21 years, 3 mappings, 413 resolutions (one per mapped event; the 352 `unknown` events are calendar rows); 0 other generations, 35,842 equivalences; 2.5 h; parity 0 differences in 7 tables; 384 MB; 2,921 links ready in 11 s, 13 never (F27) |
+| R3, partitioned build | Cold under 10 min, `peak_rss` under 2 GB, manifest under 5 MB; a second attempt writes the same manifest digest and rebuilds 0 partitions                         | Time and manifest met, memory not: 463 s, manifest 283 kB, 3,012 partitions (1,132 withheld, 0 multi-event), 69 MB of artifacts; second attempt same digest, 0 rebuilt, 32 s; peak 6.75 GB (F26)                                                                  |
+| R4, parity            | B's partitioned candidate equals A's closure candidate except documented differences; `whole` equals streamed on B                                                | Met: fact rows equal (1,801 events each); differences listed below; `whole` equals streamed except per-build columns                                                                                                                                              |
+| R5, corrupt event     | Only `event/E` withheld, with its reason; every other partition reused; the closure path fails the whole release (contrast)                                       | Met: only `event/2019-06-neverlandswing` withheld (`invalid_placements`); the closure path builds a release with 0 events, and does so without the corrupt event too (F30)                                                                                        |
+| R6, one fetched sheet | 1 parse, then only E's source event and event, `year/<Y>` and `link/event/E`; under 60 s of derive time; the next build rebuilds `event/E` and `year/Y`           | Met: exactly those five units, 8.9 s of unit time (event and link new, source event and year cut off); the next build rebuilt only `event/E`, since the year's rows did not change                                                                                |
+| R7, one dancer change | The dancer, the inventory (cuts off, 0 mapping or event generations) and only the links that read it (tens); a name change re-queues only the probed events       | Not met (F28): 0 other generations, but every mapping, resolution, event, source event and year re-ran as an equivalence, and 77 links (40 read the dancer); a name change's dancer run queued 33 links (14 readers), then the same cascade                       |
+| R8, gate              | B's candidate passes against the zero-link baseline; one with an event's links removed is refused with its reason; an exact override row passes it                | Partly: refused with `decrease:events 2105->1801`, which the phase 2 candidate shares; an exact row passes it. Confirmed links are 0 on both sides, so one event's rows were removed instead: refused with 7 reasons, passed with exact rows                      |
+| R9, narrow fence      | Derive and acquire progress under a narrow publication; a fenced write fails `publication_fenced`                                                                 | Met: derive completed 338 parses, plan and acquire ticked (16 requests); `meta` and `release_manifests` writes failed, `loop_state` passed                                                                                                                        |
+| R10, release-lag knob | Release three intervals behind: derive leases no project unit and keeps the guard with its expiry                                                                 | Met: the parse ran, its dancer unit stayed pending, guard `loop:derive release_lag` with a 1 h expiry                                                                                                                                                             |
+| R11, verify sample    | 1% of links and every year: 0 mismatches; a seeded mismatch is reported                                                                                           | Clean part met: 30 links and 21 years, 0 mismatches, 84 s. The seeded miss is reported only as a failure, not as `read_set_miss` (F29)                                                                                                                            |
+| R12, suites           | Core, full, ruff, mypy and the scope guard: zero failures                                                                                                         | Met: core 1,664 (370 s), full 3,189 (1,014 s), ruff, mypy, scope guard 0                                                                                                                                                                                          |
+
+Differences in R4, B's partitioned candidate against A's closure candidate
+(`compare_candidates`): `scope_status` is `accepted` in B and
+`legacy_unassessed` in A on the rows of 4 events (events 4, contests 379,
+rounds 559, entries 7,796, judges 223, placements 2,636; which label is
+right was **unverified** at the time; the review settled it: `accepted`, see
+review fixes below); 52 `unmatched` identity links whose entry prints
+a WSDC id the registry lacks are closed by the key check (WP8's rule); 4,775
+snapshots no row names are left out, and the acquisition counts of 295
+coverage rows follow them; per-build columns (`changed_at` in the
+changelog, `evidence_cutoff`, `last_changed_at`, `usable_verified_at`).
+
+Rehearsal findings (F26 to F29 blocked the deploy; each is fixed under
+review fixes below):
+
+- **F26, build memory.** The partitioned build peaks at 6.75 GB, not under
+  2 GB: `build/partitioned.py` `source_support` parses the `recipe_json` of
+  every accepted source generation the sidecars name (294,806, about 3.85
+  KB each), 3.9 GB of the peak. Event coverage reads only
+  `recipe.context.source`. A harness that kept only that field peaked at
+  1.93 GB and built the same candidate. _Fixed: support streams with the
+  source only; a partitioned build keeps the heavy lock until measured._
+- **F27, links that read an absent dancer.** A read key
+  `project/dancer/<id>` for a WSDC id with no dancer scope (a printed id the
+  registry lacks) becomes a prerequisite that is never current, so the link
+  is never ready again once hinted. 13 links on the copy; 3 stayed pending
+  after R7. Prerequisites should skip ids without a scope; the pointer hint
+  still re-queues the link if the dancer appears. _Fixed as proposed._
+- **F28, the inventory still cascades.** An inventory re-run with unchanged
+  output upserts its rows (10,071 events and 11,382 series rows) and moves
+  the `canonical` and `dancers` revisions, so its cutoff counts as a replay
+  (F2) and bumps the inventory's replay epoch; resolutions bump theirs too.
+  A dancer change then re-runs 3 mappings, 413 resolutions, about 3,300
+  events, 800 source events and 21 years as equivalences, and 32 to 77
+  links: about an hour of Mac CPU and 170 to 190 MB of growth per inventory
+  run. Units should skip unchanged rows, or the replay rule should ask
+  whether values changed, not whether rows were written. _Cause found and
+  fixed:_ the inventory wrote `events.sources` and `history_source` as
+  `["a", "b"]`, every other writer as `["a","b"]`. On a clone of the diag
+  copy one inventory run rewrote 227 rows (222 `sources`, 227
+  `history_source`, text only) and a second run none; a resolution or
+  calendar that owns such a row rewrote it back, and each rewrite moved the
+  `canonical` revision. The inventory now writes the compact form and
+  compares these lists by value, so a row that differs only in spacing is
+  neither rewritten nor restamped with its parser version. (A first fix that
+  only wrote the compact form rewrote 1,557 rows once on the re-rehearsal
+  clone and restamped 98 newsletter events, which then lost source support;
+  see the re-rehearsal.) An unchanged re-run of every project kind is tested
+  to move no epoch. The rest of the 170 to 190 MB was the inventory's and
+  the years' content groups, which stored every registry placement row
+  (93 MB for the inventory); they now store a row count and digest.
+- **F29, the verify sample misses its own signal.** Re-running a link whose
+  read set missed an input raises `NondeterministicOutputError`;
+  `verify_unit` counts it as `failed`, so no `read_set_miss`, no
+  `ALERTS.log` line and no `[read-set-miss]`. It should count as a
+  mismatch. _Fixed as proposed._
+- **F30, the closure fallback is empty after the switch.** On B the closure
+  path built a release with 0 events (dancers and registry placements only),
+  with or without the corrupt event. The gate refuses it, but `path =
+"closure"` is no longer a rollback; `whole` is.
+- **Growth.** The switch drain grew the file 384 MB, over the 250 MB
+  estimate: dependency sets 157 MB (the links' new read-set groups),
+  `derivation_reads` with its index 80 MB, row refs 53 MB, equivalences 23
+  MB. The phase 2 drain on A grew 666 MB.
+- **The events decrease.** The gate refuses the first partitioned candidate
+  with `decrease:events 2105->1801`, as it would the phase 2 candidate. The
+  owner either approves the row or restores support for the 304 events.
+- **Tick overhead.** R6's tick took 115 s for 8.9 s of unit work with the
+  36,264 re-queued parses in its selection. Production has no such backlog;
+  step 4 measures it.
+
+Review fixes (2026-09-30), each with a test that fails without it:
+
+- **Consistent partitions (blocker).** Stage 1 chose partitions by current
+  pointers with no check that they agree, so a link that had not re-run
+  over a re-minted event published its old identity rows on the renamed
+  entries, and a map move built mid-drain could publish one listing's
+  results under both the placeholder and the catalog event. An event
+  partition is now built only when its event, resolution and link are
+  current; otherwise it keeps its last artifact (`kept_not_current`), or is
+  withheld (`units_not_current`). A kept artifact whose support was revoked
+  since is withheld. A listing two partitions claim stays with the current
+  one, else the live map's event (`listing_claimed_elsewhere`). The content
+  digest names each link's recorded event generation.
+- **Support per observation.** A pair was `accepted` when any accepted
+  generation existed for it. It now needs each observation its rows came
+  from held, with scope, kind, seq, payload and extract version, by an
+  accepted generation, as `closure_support` did. R4's four events
+  (`accepted` here, `legacy_unassessed` in the closure) are explained: each
+  event row cites an older registry lookup of a re-fetched dancer (dancer
+  11162's 09-11 snapshot for `2014-03-west-in-lyon`), whose own accepted
+  generations hold the identical observation; the closure credited only the
+  generation the unit had selected, the 09-27 snapshot's.
+- **F26, build memory.** Support items stream with only
+  `recipe.context.source`; the pair lookup reads the recipe's snapshot and
+  parser in SQL. An extended test builds stage 1, the support and the
+  assembly over 40,000 accepted 4 kB recipes: 0.69 GB on the Mac, 1.41 GB
+  with the old loader (bound 0.9 GB).
+- **The heavy lock (blocker).** A partitioned build holds it again while
+  `[release] streamed_lock` is true (the default), so derive (5G cap, the
+  inventory about 4 GB) never runs beside a build that peaked at 6.7 GB.
+  It comes off by config after the worker measures the build under 2 GB
+  beside derive.
+- **F27.** A link's prerequisites keep only the dancers of its read set that
+  have a unit (a scope, a queued unit or an observation); the dancer's first
+  pointer queues the link.
+- **Readiness no longer transitive** ([D-0226](../../journal/decisions/0226-a-failing-or-paced-prerequisite-holds-no-dependent.md)).
+  A link waits for no year. A prerequisite that is quarantined, waits for
+  input, backs off, or that the pacing gate holds, is settled at its
+  pointer, so a dancer change no longer holds every year and link for the
+  inventory's 12 hours, and one failing dancer or event freezes nothing.
+  The derive tick names them (`settled_prerequisites`); the watchdog mirror
+  drops the paced wait of the kinds after the inventory and the link's years.
+- **F29 and the verify sample.** A re-run that raises
+  `NondeterministicOutputError` is a mismatch (`nondeterministic_output`),
+  logged and alerted. Only a complete sample (every kind at its target)
+  makes the next one wait a week; the summary has `peak_rss_bytes` and
+  `longest_unit_seconds`. The watchdog adds `[verify-failures]`,
+  `[verify-overdue]` and `[read-set-widened]` (any `undeclared_reads`,
+  `read_set_widened` or `pool_probe_widened` in a day); a widened table's
+  digest is computed once per read snapshot.
+- **Link load in one snapshot.** The evidence and the read values observed
+  at load come from one read transaction; a write between them was
+  certified as what the link read.
+- **Containment.** Any exception in one partition's stage 1 withholds it
+  (`partition_error`); a partition that fails a builder check after
+  assembly (identity policy, suppression) is withheld (`assembly_check:<check>`)
+  on both paths, its events' associations detached and joins to its
+  dancers closed.
+- **I6.** The collector removes unretained release manifests and their rows
+  and killed builds' `partitions-*`, `closure-*` and `assembly-*` scratch a
+  day after; `[artifact-orphans]` counts manifests over a week old. A build
+  that finds an artifact collected mid-build runs stage 1 again at once.
+- **The gate.** A malformed `release_decreases.csv` no longer stops every
+  loop at capture: the build is refused with `overrides_invalid:<line>:
+<error>`. An approval row is a floor, so the first approval does not chase
+  a count that moves a day later
+  ([D-0225](../../journal/decisions/0225-publish-only-strictly-better-releases.md)).
+- **Second review (2026-10-02, code and tests only).** A listing claim's
+  loser is stored under a digest no reuse matches, so it is contested again
+  each build and built once the other claim goes. A generation whose rows
+  selection cannot read (`events_of` raising) withholds only its partition
+  (`partition_error`). Stage 1 reuses or keeps an artifact only when every
+  file matches its sidecar's sha256, a write replaces a damaged copy, and
+  `prepare` re-checks after stage 1, so one damaged file costs one rebuild.
+  A kept partition's row records `kept_not_current_since`;
+  `[partitions-stale]` names those over 48 hours. Assembly withholdings are
+  named in the release record (`partitions.assembly_withheld`) and counted
+  by `[partitions-withheld]`; `[artifact-collector-blind]` reports a
+  collector that could read no retained manifest. A link's load reads each
+  subject's previous default and the dancers its decisions name in its own
+  snapshot (`dancer_read_after_load` counts a gap). `swingset migrate`
+  migrates by hand under the hold. Tests cover a support change alone, the
+  streamed path's post-assembly check without suppressions, the gate's
+  linked counts, a short verify sample, the derive summary's
+  `settled_prerequisites` and a year's revision bump; the fast regression
+  tests moved to core. The tree ships `inventory_interval_seconds = 43200`
+  and no `history_interval_seconds`.
+- **Smaller.** Dancer batches follow the WSDC id the rows carry; migration
+  35 deletes the retired units' building rows; the release-lag knob
+  engages only when release's ticks were skipped `heavy_busy`, and reports
+  other causes; tests for the resolution's proposals group, a year's
+  cross-year events, the gate measures, a completed build as release
+  progress, a deleted artifact and the source-generation cutoff, and a
+  crash at the mapping and resolution checkpoints.
+
+Re-rehearsal (2026-09-30 to 10-02, on the Mac, no network;
+[receipt](../../journal/evidence/runtime/architecture-phase3-rerehearsal-2026-09-30/receipt.json)).
+Clone A2 is the diag copy with the phase 2 tree, drained (4.0 hours, 666
+MB) and built on the closure path (623 s, 7.02 GB), the parity reference.
+B2 is A2 plus the fixed tree before its last two fixes (F28's value compare
+and the digest groups); C is B2 plus the final tree. The harness limits of
+the first rehearsal hold (re-queued parses, inventory pacing off).
+
+| Check                      | Result                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| R0, migration 35           | 171 s to open and migrate; `foreign_key_check` 183 s, 0 violations; +70 kB; phase 2 code refuses schema 35; a re-open takes 0 s                                                                                                                                                                                                                                                                                                                                                                                       |
+| R1, accept                 | 11 s; only project, link and build scopes, `version/repository` and the two changed inputs; 0 parses (the scope guard); hints for every project and link unit                                                                                                                                                                                                                                                                                                                                                         |
+| R2, drain and readiness    | 2.8 h; generations only for the inventory 1, mappings 3, resolutions 413, years 21; 37,401 equivalences; 391 MB (dependency sets 160, `derivation_reads` 79, row refs 54). Readiness 2,934 of 2,934 links in 13 s (F27 fixed). Parity with A2: equal except the interim F28 fix's rows (below)                                                                                                                                                                                                                        |
+| R3, partitioned build      | Not reliably met: B2 peaked 1.73 GB (was 6.75, F26 fixed) in 611 s cold (stage 1 238, assembly 369); C's three full rebuilds peaked 2.19 to 2.39 GB in 435 to 463 s (below). Manifest 279 kB; 3,012 partitions, 1,782 built, 1,230 withheld (`source_support_unavailable`); 73 MB of artifacts. Second attempt: same digest, 0 rebuilt, 33 to 71 s                                                                                                                                                                    |
+| R4, whole path and parity  | `whole` peaks 3.44 GB in 453 s, inside release's 7G with margin, and equals the partitioned candidate except per-build columns. Against A2's closure candidate: R4's four `scope_status` events (explained above), 52 identity links, 4,777 unnamed snapshots, and the interim fix's 98 events                                                                                                                                                                                                                        |
+| R6b, settled prerequisites | A dancer change with the inventory paced and one event quarantined: `year/2026` and the sheet's link stay ready; the sheet re-derives its two source events, event, year and link in 8.8 s; neither held unit runs; the tick names both (`settled_prerequisites`)                                                                                                                                                                                                                                                     |
+| R7, one dancer change      | F28 fixed: the dancer's one generation, then equivalences only: the inventory, 13 years and the 79 links that read it; no mapping, resolution, event or source event ran; 192 s of unit time; the next build rebuilt only `dancers/20`. A name change queued 33 links (14 readers, 19 by the probe), no cascade                                                                                                                                                                                                       |
+| Growth per inventory run   | B2 (before the digest groups): 175 MB for a dancer change, 93 MB of it the inventory's content group. C: 14.5 and 12.1 MB for two dancer changes (dependency sets 14.3 and 11.9 MB); each ran the dancer, then the inventory, 13 years and 79 links as equivalences in 132 to 143 s of unit time, with no replay epoch moved                                                                                                                                                                                          |
+| R8b, confirmed links       | A baseline with 500 confirmed links against B2's candidate (0): refused `decrease:confirmed_links 500->0`; an approval row at the candidate's value passes; one above it is refused                                                                                                                                                                                                                                                                                                                                   |
+| R11, verify sample         | 30 links and 21 years, 0 mismatches, complete, 129 s; peaks 180 MB (links) and 317 MB (years), longest unit 9.7 s. A seeded read-set miss is a mismatch, alerted as `[read-set-miss]` (F29 fixed)                                                                                                                                                                                                                                                                                                                     |
+| R12, build beside derive   | `streamed_lock = false`: a partitioned build (1.75 GB, 456 s, 16 rebuilt) inside a derive that ran the dancer change, the inventory, 13 years and 79 links (4.23 GB process peak). The sum of peaks, 5.98 GB, is under release's 7G plus derive's 5G, not under one cap: the lock stays until step 7                                                                                                                                                                                                                  |
+| Suites                     | Core, full (3,246 passed), ruff, mypy: zero failures. B2 ends with `quick_check` ok, 0 running attempts, 0 building rows                                                                                                                                                                                                                                                                                                                                                                                              |
+| C, final tree              | The accept re-ran every project and link unit (code-only). The drain (two parts, 5.1 h; the Mac slept in the first) wrote 1 generation (a dancer) and equivalences only; its first inventory moved the inventory and resolution epochs once (below). Readiness 2,934 of 2,934 links in 12 s. A cold build in 445 s, a second with the same digest and 0 rebuilt in 33 s; the candidate equals B2's last except the changed dancer's rows and per-build columns. `quick_check` ok, 0 running attempts, 0 building rows |
+
+C's drain ran the inventory once under the final tree. It rewrote 7 events of
+the rolling calendar window that a resolution also writes, which moved the
+inventory's replay epoch and then the resolutions', so 3,170 events, 706
+source events and 457 links re-ran as equivalences in that drain. The next
+two inventory runs (the growth rows) wrote nothing and moved no epoch. The
+switch re-runs every unit anyway, so a one-time move costs nothing extra
+there; the post-check (step 6) confirms no epoch moves after the drain.
+
+Build memory on C, by phase (process high-water, `rmem.py`): stage 1 to 0.49
+GB, the assembly's pass to 1.62 GB (fact counts, coverage), the write to
+2.07 GB (the changelog merge). A DuckDB limit of 512 MB instead of 1 GB left
+the peak at 2.19 GB, so the growth is Arrow and Python memory, not DuckDB's
+pool. B2's 1.73 GB was the low draw. The 2 GB target is therefore not met on
+the Mac; the heavy lock stays (`streamed_lock = true`) and release keeps its
+7G cap until step 5 measures `peak_rss_bytes` on the worker. Bringing the
+assembly under 2 GB is open work, not a deploy precondition.
+
+The interim F28 fix (compact writes only) rewrote 1,557 event rows once
+(text only) and restamped 98 newsletter events with the inventory's parser
+version; their support then lapsed, so B2's candidates withhold them
+(events 1,703, not 1,801) and change the `event_id` of the 7,212 registry
+placements that name them. The final fix compares by value and rewrites none; production
+never ran the interim fix, so its first candidate should match the first
+rehearsal's 1,801 events.
+
+Closing rehearsal (2026-10-02, on the Mac, no network;
+[receipt](../../journal/evidence/runtime/architecture-phase3-closing-rehearsal-2026-10-02/receipt.json)).
+The final tree, after the second review, from a fresh clone. A3 is the diag
+copy with the phase 2 tree: migrated 32 to 34 (339 s), drained in 4.0 hours
+(666 MB) and built on the closure path (580 s, 7.66 GB), the parity
+reference. B3 is A3 plus the final tree. The harness limits of the first
+rehearsal hold (re-queued parses, inventory pacing off). The copy's 2,167
+snapshots since 09-25 whose bodies it lacks withhold nothing: no build step
+reads a body, and both trees publish the same 1,801 events.
+
+| Check                 | Result                                                                                                                                                                                                                                                                                                                                                                                                    |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| R0, migration 35      | 152 s to open and migrate, `foreign_key_check` 159 s with 0 violations, +70 kB; phase 2 code refuses schema 35; a re-open takes 0 s                                                                                                                                                                                                                                                                       |
+| R1, accept            | 9 s; only the 13 project, link and build code scopes, `version/repository` and the two changed inputs; 0 parses (scope guard 0); 36,279 hints: every project and link unit, the 437 new-kind units included                                                                                                                                                                                               |
+| R2, switch drain      | 2.3 h; generations only for the inventory 1, mappings 3, resolutions 413, years 21; 35,846 equivalences; 0 unit failures, 0 `undeclared_reads`; 309 MB (dependency sets 81, `derivation_reads` 79, row refs 54); 2.47 GB peak. Readiness 2,934 of 2,934 links in 10 s. Parity with A3 in 7 tables: equal except one event's `sources` and `history_source` spacing (F28's compact form)                   |
+| R3, partitioned build | Cold 474 s (stage 1 197, assembly 273), peak 2.43 GB (over 2 GB); manifest 283 kB; 3,012 partitions, 1,880 built, 1,132 withheld (`source_support_unavailable`), 0 multi-event; 73.5 MB of artifacts; gate refuses `decrease:events 2105->1801`. Second attempt: same digest, 0 rebuilt, 35 s, 0.32 GB                                                                                                    |
+| R3d, damaged artifact | One byte flipped in `event/2011-05-swingdiego`'s Parquet file: the next build rebuilt that partition only (3,011 reused) under the same artifact and manifest digests, 47 s                                                                                                                                                                                                                               |
+| R4, whole and parity  | `whole` 279 s, peak 4.53 GB (3.44 at the re-rehearsal), inside release's 7G; equal to streamed except per-build columns. Against A3's closure candidate: the four `scope_status` events, 52 identity links, 4,775 unnamed snapshots and per-build columns, as before                                                                                                                                      |
+| R5, corrupt event     | A duplicate first place in `2019-06-neverlandswing`. While its units were not current the build kept the last artifact and stamped `kept_not_current_since`; once the event was current and its link re-ran over it, the next build withheld only `event/E` (`invalid_placements`; 1 rebuilt, 3,011 reused) and cleared the stamp. The closure path builds no event at all (F30), so it gives no contrast |
+| R6, one fetched sheet | Exactly five units: the parse, `scoringdance:418`, the event, `year/2026` and the link; 8.1 s of unit time (event and link new, source event and year cut off); the next build rebuilt only `event/E` (withheld for source support, as on A3). Tick wall time is the parse backlog's overhead, as in the first rehearsal                                                                                  |
+| R7, one dancer change | Dancer 10258 (40 readers): its one generation, then equivalences only for the inventory, 13 years and 79 links; no mapping, resolution, event or source event ran; 121 s of unit time, 14.6 MB; the next build rebuilt only `dancers/20`. A name change queued 33 links (14 readers, 19 by the probe) and no cascade; their drain wrote 14 link generations and 30.7 MB                                   |
+| R8, gate              | Refused `decrease:events 2105->1801`; an exact approval passes. One event's rows removed: refused with 7 reasons, passed with exact rows (an approval is a floor, so a lower one passes too). 500 confirmed links against 0: refused; a floor at the candidate passes, one above it does not                                                                                                              |
+| R9, narrow fence      | Under a narrow publication: derive completed 286 parses in 124 s, plan 6,426, acquire sent 39 requests; `meta` and `release_manifests` writes refused (`publication fences semantic writes`), `loop_state` passed                                                                                                                                                                                         |
+| R10, release-lag knob | Release three intervals behind with no capacity skip: not engaged (`release_not_ticking`), derive runs as usual. With a `heavy_busy` skip: engaged; the parse ran, its dancer unit stayed pending; guard `loop:derive release_lag` with a one-hour expiry                                                                                                                                                 |
+| R11, verify sample    | 30 links and 20 of 21 years matched, 0 mismatches (one year not current behind R10's held dancer), 85 s; peak 0.28 GB; longest unit 3.3 s. A seeded read-set miss is a mismatch, alerted as `[read-set-miss]`                                                                                                                                                                                             |
+| R12, suites           | Full 3,260 passed (1,123 s); core 1,736 passed (340 s); ruff, mypy and the scope guard clean. B3 ends with `quick_check` ok, 0 running attempts, 0 building rows, 0 active admissions; `diag` unchanged                                                                                                                                                                                                   |
+
+`compare_candidates` needs DuckDB at 4 GB for these candidates: at its 1 GB
+default it runs out of memory on the 22 million-row changelog.
+
+Carried forward to the phase lead (review findings, none a deploy blocker):
+
+- **`migrate` on a wrong path.** `swingset migrate --state <typo>` creates a
+  fresh database at schema 35 and prints `{"schema_before": null,
+"schema_after": 35}`, which looks like a valid preflight receipt. Step 3
+  checks that `schema_before` is 34. The command should refuse a missing
+  `state.sqlite`, and refuse to run as root.
+- **Damage that persists.** If an artifact is still damaged after the one
+  inline rebuild (`again = damaged()`), a `BuildError` fails the release,
+  against I1. It needs damage that survives a rewrite, such as a disk read
+  error. The re-check after stage 1 is also untested: replacing it with
+  `broken = []` passes every assembly, partition and release-path test.
+- **Environmental errors in stage 1.** Stage 1 catches every exception per
+  partition, so an `ENOSPC` or `MemoryError` while one artifact is rewritten
+  replaces a good prior artifact with `partition_error`, and the release goes
+  ahead without that event. The gate refuses the events decrease unless an
+  approval floor covers it, the disk guard runs first, and the next build
+  heals it.
+- **Reads outside containment.** `_settle_claims` -> `_stale_units` ->
+  `derivations.current` for reused claimants (only `RecipeScopeMissing` is
+  caught), and `select()`'s JSON reads of one link's dependency manifest or
+  one `record_key`, fail the whole release on one malformed system-written
+  value.
+- **Reporting.** The whole path's `assembly_withheld` keys use `event/` +
+  the unit id, so a multi-event partition `event/A+B` is named wrongly and
+  counted once per event. `kept_not_current_since` is stamped only when
+  content changed: an artifact reused while its units are not current is
+  never stamped, so `[partitions-stale]` misses it; and the stamp survives
+  units that come back current at the same content digest (a false
+  positive). Data is unaffected in both.
+- **Writer lock in the verify sample.** `verify_unit` runs a year as one
+  write transaction: up to about 10 s on the Mac (longer on the worker)
+  other loops back off as `write_lock_timeout`, retried and uncounted. Step
+  6 records the sample's `longest_unit_seconds` on the worker.
+- **`release_lag()` without an index.** When a build is due it scans
+  `execution_admissions` (945,968 rows on the diag copy) on every derive
+  tick: 4.8 s cold, 0.4 s warm. An index on `(action_kind, outcome)` fixes
+  it.
+- **Revocations rebuild everything.** `common["revocations"]` is a global
+  digest that the per-partition support inputs already cover: any revocation
+  rebuilds about 3,100 partitions. Not wrong, only costly. Phase 3b.
+- **Test gaps.** Nothing covers a damaged artifact whose partition is not
+  current (withheld `units_not_current`, published again after derive
+  catches up; a reviewer probe confirms it). The `_loaded_reads` pool of
+  dancers named by identity decisions is unpinned (the
+  `dancer_read_after_load` path covers a miss).
+- **F28's residue.** On C, 7 rolling-window events written by both the
+  inventory and a resolution moved both replay epochs once and cascaded
+  3,170 events, 706 source events and 457 links as equivalences. It did not
+  recur, but the window rolls. Step 6 detects it; the fix is one owner per
+  row.
+- **Alert noise.** `[partitions-withheld]` (about 1,230 partitions
+  withheld as `source_support_unavailable`) and `[release-refused]`
+  (`decrease:events 2105->1801` until the owner decides) fire daily from the
+  first build and can hide a real rise.
+- **Worker unknowns.** Phase 3 is the first production code that imports
+  `duckdb` (step 3 checks it). The worker may miss the 10-minute cold build
+  (Mac 435 to 611 s; the worker has less page cache) and will likely miss 2
+  GB (Mac 2.2 to 2.5 GB); step 6 says what follows.
+- **Evidence and core time.** `mise run evidence-size` fails over the range
+  since `trunk()` (about 400 KiB against 200) because phases 0 to 2 are
+  unpushed in the same range; phase 3's own three receipts are about 90 KB. Core
+  takes over twice the three-minute bar (maintenance item 9).
+- **The live overrides.** The new header-only
+  `overrides/release_decreases.csv` sits in the Mac checkout, which
+  production reads live; phase 1's code ignores it (no re-queue), and
+  data-corrections.md warns about such edits.
+
+Deploy steps (operator; one switch):
+
+Preconditions: phase 2 deployed (2a and 2b) and 2b's 24-hour watch passed,
+with its stop-marker item settled; the review fixes rehearsed on the final
+tree (met 2026-10-02, the closing rehearsal); the owner's decision on
+`decrease:events 2105->1801` recorded (an approval row in
+`overrides/release_decreases.csv` or restored support); the publish tier's
+independent check of the diff and the rehearsal, with a written verdict
+(release and publication change); a Mac byte copy at schema 34 verified by
+sha256 and `quick_check`; free quota for the drain (about 0.3 to 0.4 GB of
+rows) and the artifacts (about 0.1 GB) plus `release_min_free_bytes`; the
+file at least 2 GB under the 72 GB cap (D-0220). Production was 70.99 GB on
+2026-10-02 04:25 (D-0228), about 1 GB under the cap, so this fails today.
+Then, in order: run `gc --reclaim` by the
+[disk space](../guides/operation.md#disk-space) procedure and measure again;
+else ask the owner to raise the cap by D-0220's procedure (quota headroom
+permitting; D-0228 names about 76 GB as its fallback); else order phase 4's
+storage work before this switch. Never switch with less: the drain alone
+adds about 0.3 to 0.4 GB.
+
+1. Build the deploy tree; its `src/` and `config/` equal the reviewed
+   change, whose `config/sources.toml` sets `inventory_interval_seconds` to
+   43,200 and drops `history_interval_seconds` (D-0227 and D-0228 end with
+   this switch; history is per year, D-0222). A phase 2 tree or hotfix built
+   before this switch must keep D-0227's 172,800 for history and D-0228's
+   604,800 for the inventory in its own tree. The deploy tree also keeps
+   the offers-cache hotfix (in the working copy, not in `9dacbb6`) and
+   ships `[release] streamed_lock = true`. Run the scope guard against it
+   with the deployed phase 2 tree as baseline: 0 parse or extract scopes
+   changed.
+2. Hold (owner, reason, review date 24 h out): `operator-hold`, wait until
+   no `swingset-*` unit is active; checkpoint the WAL to `(0, N, N)` with an
+   empty WAL; byte-copy `state.sqlite` to the Mac (phase 2 code refuses
+   schema 35, so the copy is the only way back). Preflight receipt: sha256
+   and `quick_check` of both, schema 34, size, pending by stage, queue by
+   state, derivation scopes by kind, the published candidate and baseline
+   commit (closure mode), the latest candidate id, `[state-size]`, quota
+   free.
+3. Still under the hold, `nixos-rebuild switch` (timers skip while the hold
+   exists, so no unit starts). Then migrate by hand as the service user:
+   `sudo -u swingset swingset migrate --lock-timeout 3600`, which prints
+   the schema before (34) and after (35) and the seconds; record them in
+   the preflight receipt; a `schema_before` other than 34 means a wrong
+   `--state` path (the command then creates an empty database). Every
+   migration runs `PRAGMA foreign_key_check` under the writer lock: 144 to
+   171 s on a cold Mac clone, longer on the worker. Never run it as root: root-owned `state.sqlite-wal` and `-shm`
+   files would stop every loop from opening the database. Check `ls -l
+/var/lib/swingset/state.sqlite*` shows `swingset` as owner. Phase 3 is the
+   first production code that imports DuckDB: check it loads in the units'
+   environment ([deployment](../guides/deployment.md#the-phase-3-switch));
+   if it does not, every partitioned build fails, so stay on the hold and
+   roll back by the byte copy. Then end the hold. Left to the loops, the first tick of any loop migrates (acquire
+   included, with its 1G cap and 10 minute timeout) and the others skip
+   that tick. The first derive tick accepts the project, link and build
+   scopes: 0 parses; hints for every project and link unit.
+4. Watch the drain per `AGENTS.md`: every project and link unit re-runs and
+   cuts off; years, mappings and resolutions mint once; the inventory may
+   wait up to 12 hours (D-0210). Record per kind: units, generations,
+   equivalences, seconds; years' staged A and C seconds; `derivation_reads`
+   rows; pool probe bumps; `undeclared_reads` and `read_set_widened` (0
+   expected).
+5. The build of record is the first partitioned build after the drain
+   ends (the release loop at the build interval, holding the heavy lock
+   while `streamed_lock` is true); if the interval does not fall soon after
+   the drain, start it by hand
+   ([a second build by hand](../guides/operation.md#a-second-build-by-hand)).
+   A build may also land mid-drain: the baseline is from 09-21, so the
+   backlog rule does not defer it. Expect it to withhold or keep every
+   event whose units are not yet current (`units_not_current`,
+   `kept_not_current`) and to hold the heavy lock about 10 minutes, which
+   slows the drain; note it, it is not the build of record. Record the
+   release record's `peak_rss_bytes` as the memory of record (with the
+   loops on each tick is its own process, so it measures only the build;
+   `MemoryPeak` counts page cache from the database file and is
+   information only, as in phase 2), seconds, partitions built and withheld
+   by reason (`assembly_withheld` included), manifest and artifact bytes,
+   the gate verdict against the baseline. Then build a second time by hand
+   (same section: under the hold, `sudo -u swingset swingset build
+--overrides /Users/skeswa/repos/skeswa/swingset/overrides`, the
+   services' `overridesDir`, not the store copy, which may hold other
+   inputs): the same manifest digest, 0 partitions rebuilt. Compare with the last
+   closure-path candidate (`compare_candidates`, as phase 1 step 6) and
+   explain every difference.
+6. Post-check receipt: the above; file growth attributed, and growth in MB
+   per day over 24 hours after the drain, against the projection under
+   Cost; `derivation` counts; replay-epoch moves of the inventory and
+   resolutions after the drain ended: `SELECT input_key, version FROM
+derivation_input_versions WHERE namespace = 'replayed' AND input_key IN
+('["project","inventory"]', '["project","resolution"]')` at the drain's
+   end and 24 hours later, expected equal; any move is F28 recurring: find
+   which writer owns the rows both write; one verify
+   sample run by hand, with its `longest_unit_seconds` (a year holds the
+   writer lock that long); watchdog lines seen; R5, R9 and R10 by observation
+   (a withheld partition withholds only itself, fetching continues during
+   a build, `release_lag` engages only on `heavy_busy`). Acceptance of
+   record: a fetched sheet in production re-derives one event, its links
+   and its year (from the derive ticks' unit lists), and a partitioned
+   build under 2 GB (`peak_rss_bytes`) and 10 minutes on the worker. If
+   the worker misses either, record it and keep the heavy lock and the 7G
+   cap; the memory item and changelog compaction (known limits) become
+   plan items. Neither is a reason to roll back.
+7. After the post-check, if the measured `peak_rss_bytes` allows: lower
+   release's `MemoryMax` from 7G to 3G in a `nix/`-only switch (no recipe
+   change), then set `[release] streamed_lock = false` (a config switch,
+   no re-queue) and check the next build's `peak_rss_bytes` beside an
+   active derive, the inventory included.
+8. Phase 3b, after one partitioned candidate is post-checked and the owner
+   agrees: remove `path = "whole"` and `"closure"`, `closure.select`,
+   `closure_rows` (after moving what the partition modules import from it),
+   the closure support modules once no retained candidate is closure-mode,
+   and their tests. A code change with its own small deploy.
+
+Rollback: to phase 2 is step 2's byte copy by
+[rolling back a migration](../guides/operation.md#rolling-back-a-migration);
+work since the switch is lost and re-fetched. Short of that, `[release]
+path = "whole"` for an assembly bug, a `nixos-rebuild switch` that
+re-queues nothing, but only when its measured peak fits release's
+`MemoryMax` with margin (see the re-rehearsal's R4); otherwise it also needs
+the cap raised and derive stopped for that build. The `"closure"` path
+built an empty release on the rehearsal clone after the switch (F30), so it
+is no fallback for an artifact bug; the byte copy is.
+
+Cost the operator faces: a hold of about an hour (the WAL checkpoint, the
+byte copy of the 65 to 72 GB file to the Mac with its sha256 and
+`quick_check`, the switch, and `migrate`, 2.5 to 3 minutes on a cold Mac
+clone and longer on the worker); one re-run of every project and link unit
+(about 35,850: 2.3 to 2.8 hours on the Mac, plus up to 12 hours of
+inventory wait), all cut off except the 438 new units' first generations;
+growth about 0.3 to 0.4 GB (R2: 309, 384 and 391 MB, mostly dependency sets
+and `derivation_reads`); about 0.1 GB of artifacts on the quota (R3: 69 to
+74 MB); a first build that holds the heavy lock about 8 to 10 minutes; a
+gate refusal (`decrease:events 2105->1801`) on every build until the
+owner's decision is in `release_decreases.csv`; daily `[partitions-withheld]`
+and `[release-refused]` lines; and the independent check. After it: a
+fetched sheet re-derives one event, its links and its year (R6, 8 s of unit
+time); a dancer change re-runs the inventory, its years and the tens of
+links that read it, all cut off, not today's cascade of 2,933 links and
+3,400 project generations (about 0.7 GB each since D-0228's receipt). Growth
+per day after the switch, estimated, not measured (step 6 measures it): each
+inventory run that carries dancer changes cost 12.1 to 14.6 MB on C and B3,
+almost all dependency sets (the inventory's, its 13 years' and its 79 links'
+equivalences). The inventory runs at most twice a day at 43,200 s, but a
+calendar generation lifts its wait (D-0210), which is why the diag copy
+shows 12 to 14 runs a day carrying 80 to 194 dancer generations (2026-09-26
+to 28). A run with many changed dancers reaches more links, so the estimate
+is 0.15 to 0.4 GB a day (links the larger and less certain part), against
+about 2.9 GB a day before D-0227; builds peak 1.7 to 2.5 GB on the Mac (R3,
+C, B3), under release's 7G with the heavy lock held; a partitioned
+publication no longer pauses fetching (R9).
+
+Known limits after phase 3:
+
+- The inventory is still one paced unit of about 4 GB (F18), against
+  derive's 5G cap.
+- A journal or identity decision change re-runs every link (an
+  over-approximate key).
+- The changelog is rewritten whole each build: 22.1 million rows at R3,
+  growing about 250,000 a build. A cold build took 435 to 611 s on the Mac
+  (assembly 264 to 370 s), so compaction stays a later item.
+- A partitioned build holds the heavy lock while `streamed_lock` is true:
+  derive waits for it (about 10 minutes a build) until step 7 measures the
+  build beside derive on the worker.
+- A cold partitioned build peaks 1.7 to 2.5 GB on the Mac, over the 2 GB
+  target: the assembly's fact counts and coverage, then the changelog merge,
+  hold Arrow and Python memory beside DuckDB's pool. The heavy lock and the
+  7G cap stay until that is cut and measured.
+- Retention keeps the older generations a kept generation names now that F1
+  is gone, until phase 4.
+- The three release paths coexist until phase 3b; the closure path
+  withholds years that reach superseded generations (F22), every event on
+  the rehearsal clone (F30).
+- The recorder's blind spots (F25, the statement cache) reach production;
+  the weekly 1% sample is the only net.
+- Artifacts live in `state/partitions/`, outside `gc` and the blob store,
+  until phase 4.
+
 **Phase 4: storage lifecycle and backups (about 2 weeks).** _Trigger:_ start
 it, or raise the quota, when the state without `checkpoints/`, `venv/` and
 `uv-cache/` passes about 55 GB; one local checkpoint then leaves little room
@@ -1894,11 +2630,12 @@ plan's identity recovery ships, which phase 3's gate makes safe to automate.
   move across years re-derives two. Tests must cover an alias spanning a year
   boundary.
 - _Read-set tracking misses a read._ A raw SQL path that bypasses the wrapper
-  under-declares a dependency and a stale link survives. Mitigation: the
-  wrapper is the only reader in `project/` and `link/` (a test asserts no
-  direct `conn.execute` against canonical tables in those packages), and a
-  weekly `verify` in `maintain` re-derives a 1% sample and alarms on a digest
-  mismatch.
+  under-declares a dependency and a stale link survives. Mitigation, built
+  in phase 3: a SQLite authorizer sees every read of a unit body whatever
+  module issues it; the fixtures run armed with zero undeclared reads and a
+  static test keeps `project/` and `link/` behind the unit entry points; a
+  weekly `verify` in `maintain` re-derives a 1% sample and alarms on a
+  mismatch. The authorizer's blind spots remain in production (F25).
 - _Multi-process SQLite contention._ Five writers with short transactions is
   well within SQLite's design, but the first weeks need the `busy` counter
   and a 5 s `busy_timeout`. If the counter climbs, the fallback is separate

@@ -15,11 +15,12 @@ from swingset.state.db import open_database
 from swingset.state.work import WorkUnit, enqueue
 
 
-def test_blocked_event_fleet_checks_shared_map_once_and_selects_same_healthy_work(
+def test_blocked_resolution_fleet_checks_shared_inventory_once_and_selects_same_healthy_work(
     source_fixture, monkeypatch
 ):
     f = source_fixture
-    shared = WorkUnit("project", "map", "all")
+    # Every resolution waits for the inventory and every mapping (plan F19).
+    shared = WorkUnit("project", "inventory", "all")
     with f.db.transaction():
         selection = derivations.capture(f.conn, shared, now=f.corpus.clock.now())
         derivations.complete(
@@ -29,7 +30,7 @@ def test_blocked_event_fleet_checks_shared_map_once_and_selects_same_healthy_wor
     f.conn.execute(
         "UPDATE accepted_inputs SET digest='new reviewed recipe' WHERE input_name='recipe/env'"
     )
-    fleet = [WorkUnit("project", "event", f"blocked-{i}") for i in range(40)]
+    fleet = [WorkUnit("project", "resolution", f"blocked-{i}") for i in range(40)]
     healthy = WorkUnit("parse", "snapshot", "healthy")
     enqueue(f.conn, (*fleet, healthy), enqueued_at=f.corpus.clock.now().isoformat())
     f.conn.execute(
@@ -203,7 +204,7 @@ def test_context_is_part_of_the_currentness_key(tmp_path, monkeypatch):
             return not bool(context)
 
         monkeypatch.setattr(derivations, "_current", check)
-        unit = WorkUnit("project", "map", "all")
+        unit = WorkUnit("project", "inventory", "all")
         with derivation_query.read_snapshot(db.connection):
             assert derivations.current(db.connection, unit)
             assert not derivations.current(db.connection, unit, context={"cutoff": "other"})

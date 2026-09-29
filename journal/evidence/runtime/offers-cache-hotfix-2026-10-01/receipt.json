@@ -1,0 +1,60 @@
+{
+  "operation": "hotfix: answer the projection question once per offers pass, origin fallback included",
+  "actor": "claude (session claude-rearch)",
+  "symptom": {
+    "last_request_any_host": "2026-09-29T20:28:25Z (web.archive.org); eepro 16:48, points.worldsdc.com 14:42, scoring.dance 13:01",
+    "cycles": "acquisition phase 1,771 s and 3,359 s with 0 requests; cycle 2026-10-01T19:47 overran its 40 min budget by 17 min",
+    "due_work": {
+      "wsdc_registry": 615,
+      "scoringdance_archived": 4746,
+      "scoringdance_cooling": 121,
+      "others": "about 150"
+    },
+    "process": "cycle pid 121193 at 100% CPU (utime +1,881 ticks in 20 s)"
+  },
+  "diagnosis": {
+    "tool": "py-spy 0.4.2 dump (installed with uv into /var/tmp/pyspy; the nixpkgs build was abandoned)",
+    "stack": "offers (history/backfill.py:246) -> origin_dispatch.candidate -> retained_proposal -> phase_two_gate -> phase_two_allowed -> pending_inventory_projection -> derivations.pending_units -> current -> certificate",
+    "cause": "the origin-fallback loop in offers() ran outside projection_answer_cached(), so each fallback page re-walked every pending derivation; phase 1 made each walk costlier (certificates, equivalences), so the pass never reached a fetch"
+  },
+  "unrelated_gap": "the Mac slept on battery from about 2026-09-30T21:00Z to 2026-10-01T18:00Z; the worker VM was suspended with it (maintenance item 12)",
+  "change": {
+    "deploy_tree": "/private/tmp/swingset-c024 = c023 with history/backfill.py offers() running both loops inside one projection_answer_cached()",
+    "tests": "deployed-era tests (test_platform_backfill, test_history_origin_dispatch, test_history_projection_gate, test_history_origin) 106 passed with the new regression test, which fails on the old code (2 walks, not 1); the same fix and test are in the working copy",
+    "recipe_scopes_touched": "history/backfill.py is in every project, link and build scope and in no parse scope"
+  },
+  "switch": {
+    "window_utc": [
+      "2026-10-01T21:37:30Z",
+      "2026-10-01T21:37:40Z"
+    ],
+    "system_before": "/nix/store/l45d7j9782v08hgdgkb5cprhabpc024l-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+    "system_after": "/nix/store/lz85w8kjml4m7zhi1xhylnm36cdbvlh2-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+    "rollback": "switch to system_before; schema unchanged at 33"
+  },
+  "postcheck": {
+    "first_cycle_started_utc": "2026-10-01T21:45:50Z",
+    "requests_since_switch": {
+      "eepro.com": 3,
+      "points.worldsdc.com": 3,
+      "scoring.dance": 4,
+      "web.archive.org": 2
+    },
+    "first_request_utc": "2026-10-01T21:47:41Z",
+    "phase1_canary": {
+      "parse_units_requeued": 0,
+      "pending_after": {
+        "link": 2934,
+        "parse": 1364,
+        "project": 28511
+      },
+      "new_derivation_generations_after_20_min": {
+        "project/calendar": 1
+      },
+      "derivation_equivalences": 37330,
+      "note": "history/backfill.py is in every project/link/build scope: the re-runs cut off as equivalences"
+    },
+    "database_bytes_at_22:05Z": 68909686784,
+    "expected": "backpressure (pending_work_items 10,000) holds requests again until the project and link drain ends, a few hours"
+  }
+}

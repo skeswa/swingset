@@ -421,6 +421,63 @@ is the long-running job.
   pauses separately, budget use, watches by state, pending work by
   stage, pending candidate, restore status, last backup commit and
   time, review size, and last acknowledged publish SHA.
+- `swingset partitions list`, `partitions show <name>` and
+  `partitions --withheld` read the release partitions: each built artifact,
+  and each withheld partition with its reason
+  ([build](build.md#partition-artifacts)). Every build's run record carries
+  `partitions` and the gate's `verdict`
+  ([publishing](publishing.md#publication-gate)); the watchdog reports
+  `[release-refused]`, `[partitions-withheld]` (with the newest record's
+  `partitions.assembly_withheld`), `[partitions-stale]` and
+  `[artifact-collector-blind]`
+  ([operation guide](../guides/operation.md#alerts)).
+- `swingset migrate` opens the database once, applying pending migrations,
+  and prints the schema before and after and the seconds it took. A switch
+  runs it under the hold as the `swingset` user.
+
+### Verify sample
+
+A link or year unit is current when nothing it recorded reading has moved
+([read recorder](state.md#read-recorder)). A read its read set misses leaves
+stale output current. Once a week the maintain loop checks for that
+(`state/verify.py`, summary key `verify`):
+
+- It ranks every `link/event` and `project/year` scope with a pointer by the
+  sha256 of the ISO week and the scope, so a week's sample is fixed and the
+  next week's differs.
+- Per kind it verifies the first 1% that are current, at least one. It
+  checks at most 20 units for currency per unit verified; a stale unit is
+  skipped (`not_current`), since it runs anyway.
+- For each unit it runs the real write (`process_unit`, or `link_event` with
+  a captured selection) in one write transaction, labels the live output as
+  completion labels a generation, and rolls the whole write back. Nothing
+  commits.
+- A label other than the pointer generation's `output_digest` and
+  `row_count` is a mismatch. So is a write that raises
+  `NondeterministicOutputError` (`reason: nondeterministic_output`, no label
+  after it): the unit is current, so it ran on its recorded inputs, and
+  other output means a read it did not record (F29, the rehearsal's seeded
+  miss). It is listed under `mismatches` with the pointer's label, the live
+  label before the write, and the label after it. It is logged as
+  `read_set_miss` and appended to `ALERTS.log` as `[read-set-miss] <unit>`,
+  best effort: the watchdog unit runs as root and may own the file. The
+  watchdog sends its own `[read-set-miss]` line, with other text, and repeats
+  it daily until a later sample is clean.
+- A superseded unit counts under `superseded`. A unit whose write raised
+  otherwise is listed under `failures`; the watchdog's `[verify-failures]`
+  names them.
+- The summary says whether the sample is `complete` (every kind verified its
+  target and no stop cut it short), the process's `peak_rss_bytes`, and
+  `longest_unit_seconds`: each unit holds the writer lock for its whole write.
+
+It runs when no maintain tick recorded a complete `verify` in the last six
+and a half days, as the last maintain step, and stops with the tick. A
+sample cut short, or one whose units were mostly stale, runs again at the
+next tick; the watchdog's `[verify-overdue]` fires when none completed in
+nine days. `swingset verify-derivations --sample 0.01 --kinds link,year`
+runs the same sample by hand under the writer lock, prints the summary, and
+exits 1 on a mismatch.
+A large link takes 4 to 8 seconds on the Mac; 1% of 2,934 links is 30.
 
 ## Event completion reporting (H14 extension)
 

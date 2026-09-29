@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Protocol
 
 from swingset.build.files import canonical_json, durable_write, fsync_dir
+from swingset.publish import gate
 from swingset.publish.safety import (
     PublicationHeldError,
     StaleCandidateError,
@@ -193,8 +194,11 @@ def _submit(state_dir: Path, candidate: Path, hub: Hub) -> PublishResult:
     old_files = set(_files(baseline.resolve())) if baseline.is_symlink() else set()
     from swingset.state.controls import ControlPaused
 
+    # A partitioned candidate's check reads only its own tables, so its fence
+    # is narrow and the loops tick through it (plan phase 3, WP10).
+    narrow = (manifest.get("release_policy") or {}).get("mode") == "partitioned"
     try:
-        with publication_boundary(state_dir, candidate):
+        with publication_boundary(state_dir, candidate, narrow=narrow):
             commit = hub.create_commit(
                 parent=built.get("expected_parent"),
                 message=f"Publish {candidate.name} ({built['manifest_hash']})",
@@ -238,6 +242,11 @@ def publish(state_dir: Path, candidate: Path, hub: Hub, *, dry_run: bool = False
         baseline_commit = json.loads(receipt.read_text())["commit"]
     if built.get("baseline_commit") != baseline_commit:
         raise PublishError("candidate was built against a different baseline")
+    # The strictly-better gate (D-0225): a refused verdict submits nothing and
+    # leaves the candidate as it is. It is not an error.
+    refused = gate.refusal(gate.read(state_dir, candidate))
+    if refused is not None:
+        return PublishResult("refused", candidate.name, reason=refused)
     if dry_run:
         return PublishResult("dry-run", candidate.name)
     durable_write(

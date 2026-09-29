@@ -4,9 +4,16 @@ An hourly tick (D-0215). It waits for derive to accept the input bundle
 (runtime), refuses to build on a nearly full disk, reconciles a pending
 publication when a hub is configured, builds a correction when the baseline
 needs one, and builds a candidate unless the build interval or the backlog
-defers it. Each build holds the heavy lock exclusive, so derive starts no
-unit meanwhile (F10). The build and publish steps are the cycle's
-(`schedule/cycle.correct`, `build_and_publish`).
+defers it. A whole or closure build, and a correction, hold the heavy lock
+exclusive, so derive starts no unit meanwhile (F10). A streamed
+(partitioned) build holds it too while `[release] streamed_lock` is true,
+the default: the rehearsal measured 6.7 GB before F26's fix, and the lock
+comes off only once the worker measures it under 2 GB beside derive.
+The build and publish steps are the cycle's
+(`schedule/cycle.correct`, `build_and_publish`); a partitioned build puts its
+release manifest and stage 1's counts in the summary's `partitions` (D-0224).
+Every build records its gate verdict in `verdict`; a refused one counts in
+`refused`, publishes nothing and is not a failure (D-0225).
 """
 
 from __future__ import annotations
@@ -45,6 +52,8 @@ HEAVY_BUSY = "heavy_busy"
 #: tick with room (D-0219).
 DISK_GUARD = "release_disk_low"
 SUBJECT = "loop:release"
+#: Release paths whose build holds the heavy lock (build/service.release_path).
+HEAVY_PATHS = frozenset({"whole", "closure"})
 #: Reconcile outcomes that moved publication forward.
 LANDED = frozenset({"promoted", "recovered", "published"})
 
@@ -153,21 +162,39 @@ def run(tick: Tick, *, disk_file: Path | None = None) -> None:
         summary["build_deferred"] = deferred
     if tick.stop() or (deferred is not None and not correcting):
         return
-    waited_from = clock.now()
-    try:
-        heavy = rwlock.heavy_exclusive(
-            database.state_dir,
-            timeout=min(rwlock.HEAVY_TIMEOUT_SECONDS, tick.remaining()),
-            clock=clock,
-        )
-    except rwlock.LockBusy:
-        heavy = None
-    summary["heavy_wait_seconds"] = (clock.now() - waited_from).total_seconds()
-    note_skip(tick, HEAVY_BUSY, skipped=heavy is None)
-    if heavy is None:
-        tick.skipped = HEAVY_BUSY
-        tick.counters[HEAVY_BUSY] += 1
+    if correcting:
+        correcting = _correction_needed(tick)
+    if deferred is not None and not correcting:
+        tick.failed = "correction_error" in summary
         return
+    from swingset.build.service import release_path
+
+    path = release_path(database, bundle)
+    # A correction reads the baseline whole, and whole and closure builds
+    # hold every table in memory; a streamed build takes the heavy lock
+    # while `streamed_lock` says so (its measured peak beside derive decides).
+    heavy_path = path in HEAVY_PATHS or (
+        path == "partitioned" and bundle.config.release.streamed_lock
+    )
+    summary["heavy_lock"] = correcting or (deferred is None and heavy_path)
+    heavy: rwlock.Held | None = None
+    if summary["heavy_lock"]:
+        waited_from = clock.now()
+        try:
+            heavy = rwlock.heavy_exclusive(
+                database.state_dir,
+                timeout=min(rwlock.HEAVY_TIMEOUT_SECONDS, tick.remaining()),
+                clock=clock,
+            )
+        except rwlock.LockBusy:
+            heavy = None
+        summary["heavy_wait_seconds"] = (clock.now() - waited_from).total_seconds()
+        if heavy is None:
+            note_skip(tick, HEAVY_BUSY, skipped=True)
+            tick.skipped = HEAVY_BUSY
+            tick.counters[HEAVY_BUSY] += 1
+            return
+    note_skip(tick, HEAVY_BUSY, skipped=False)
     try:
         if correcting and not tick.stop():
             summary["build_attempted"] = True
@@ -176,17 +203,28 @@ def run(tick: Tick, *, disk_file: Path | None = None) -> None:
             summary["build_attempted"] = True
             _build(tick, held)
     finally:
-        heavy.release()
+        if heavy is not None:
+            heavy.release()
     tick.failed = "build_error" in summary or "correction_error" in summary
 
 
-def _correct(tick: Tick, held: Held) -> None:
+def _correction_needed(tick: Tick) -> bool:
+    """Whether the baseline needs a correction; an error is reported, not raised."""
     from swingset.build.service import correction_needed
 
     assert tick.bundle is not None
     try:
-        if not correction_needed(tick.database, tick.bundle):
-            return
+        return correction_needed(tick.database, tick.bundle)
+    except (BuildError, ClosureError) as exc:
+        tick.summary["correction_error"] = f"{type(exc).__name__}: {exc}"
+        log("correction_build_failed", error=str(exc)[:300])
+        return False
+
+
+def _correct(tick: Tick, held: Held) -> None:
+    """Build and publish the correction `_correction_needed` found."""
+    assert tick.bundle is not None
+    try:
         correct(
             tick.database,
             tick.bundle,
@@ -233,6 +271,9 @@ def _build(tick: Tick, held: Held) -> None:
         tick.summary["build_error"] = f"{type(exc).__name__}: {exc}"
         log("build_failed", error=str(exc)[:300])
         return
+    if (tick.summary.get("verdict") or {}).get("state") == "refused":
+        # Not a failure: the candidate stays and nothing is submitted (D-0225).
+        tick.counters["refused"] += 1
     if candidate.reused:
         tick.counters["reused"] += 1
     else:

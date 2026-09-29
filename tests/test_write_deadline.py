@@ -213,7 +213,7 @@ def test_no_write_gets_a_longer_bound(tmp_path, monkeypatch):
         time.sleep(0.1)
 
 
-def test_a_history_unit_over_the_bound_fails_like_any_other(tmp_path, monkeypatch):
+def test_a_year_unit_over_the_bound_fails_like_any_other(tmp_path, monkeypatch):
     import swingset.project
     from swingset.clock import FakeClock
     from swingset.config import Config
@@ -224,7 +224,7 @@ def test_a_history_unit_over_the_bound_fails_like_any_other(tmp_path, monkeypatc
 
     clock = FakeClock()
     bundle = InputBundle("test", Path(tmp_path), {}, Config({}, {}))
-    history = WorkUnit("project", "history", "all")
+    history = WorkUnit("project", "year", "2026")
 
     def project(db, unit, *_args, selection=None):
         while True:

@@ -63,6 +63,10 @@ def release_state(tmp_path):
 
         config, overrides = tmp_path / "config", tmp_path / "overrides"
         shutil.copytree("config", config)
+        # These tests pin the closure path's proofs and witnesses; the
+        # partitioned path has its own (tests/build/test_release_paths.py).
+        sources = config / "sources.toml"
+        sources.write_text(sources.read_text().replace('path = "partitioned"', 'path = "closure"'))
         shutil.copytree("overrides", overrides)
         (overrides / "source_urls.csv").write_text("event_id,source,kind,url,parser,notes\n")
         (overrides / "event_aliases.csv").write_text(
@@ -70,6 +74,12 @@ def release_state(tmp_path):
         )
         (overrides / "identity_overrides.csv").write_bytes(encode_journal((positive,)))
         (overrides / "suppressions.csv").write_text("wsdc_id,name_norm,reason,date\n")
+        # A rebuilt candidate lacks the baseline's one dancer; approve that
+        # decrease so the publication gate lets it through (D-0225).
+        (overrides / "release_decreases.csv").write_text(
+            "measure,baseline_value,candidate_value,reason,approved_by,approved_at\n"
+            "dancers,1,0,fixture baseline dancer,test,2026-09-13\n"
+        )
         bundle = capture(config, overrides, db.state_dir, versions())
         accept(db, bundle, clock)
         # This publication fixture seeds its event directly; give its retained
@@ -376,6 +386,12 @@ def test_incompatible_link_generation_cannot_join_new_structural_closure(
     drain_project(f)
     selected = closure.select(f.conn, cutoff=f.corpus.clock.now())
     closure.validate(f.conn, selected)
+    if changed_scope == "dancer":
+        # A new dancer no kept generation names: the inventory and years cut
+        # off (D-0224), so every input the old link recorded is still
+        # selected and it stays compatible until its pool bump re-runs it.
+        assert old_link["generation_id"] in {row["generation_id"] for row in selected.selected}
+        return
     assert old_link["generation_id"] not in {row["generation_id"] for row in selected.selected}
     assert any(
         row["unit_id"] == "event-a" and row["stage"] == "link" and row["status"] == "withheld"
@@ -384,7 +400,11 @@ def test_incompatible_link_generation_cannot_join_new_structural_closure(
     mixed = selected.manifest()
     mixed["selected"] = [*mixed["selected"], old_link]
     mixed["digest"] = digest({key: value for key, value in mixed.items() if key != "digest"})
-    with pytest.raises(closure.ClosureError, match="mixed_dependency_generations"):
+    # Its event is withheld (the year reached a superseded generation) or
+    # selected at a newer generation; either way the old link cannot join.
+    with pytest.raises(
+        closure.ClosureError, match="mixed_dependency_generations|selected_dependency_omitted"
+    ):
         closure.validate(f.conn, mixed)
 
 

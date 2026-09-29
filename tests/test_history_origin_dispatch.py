@@ -900,3 +900,22 @@ def test_round_debit_rechecks_parent_after_robots(origin, change, parent_via):
     assert not origin.conn.execute(
         "SELECT 1 FROM snapshots WHERE watch_id=?", (child.watch_id,)
     ).fetchone()
+
+
+def test_offers_ask_the_projection_question_once_including_the_origin_fallback(origin, monkeypatch):
+    # The fallback for pages without archive captures asked it once per page
+    # outside the pass's cache, and from 2026-09-29 the offers pass never
+    # reached a fetch (D-0195).
+    from swingset.history import backfill
+    from swingset.project import history as history_module
+
+    original = history_module._pending_inventory_projection
+    walks = []
+
+    def counted(conn):
+        walks.append(True)
+        return original(conn)
+
+    monkeypatch.setattr(history_module, "_pending_inventory_projection", counted)
+    backfill.offers(origin.db, origin.config, origin.clock, plan=origin.plan)
+    assert len(walks) == 1

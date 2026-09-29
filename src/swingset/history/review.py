@@ -5,25 +5,32 @@ from __future__ import annotations
 import csv
 import io
 import json
+from dataclasses import dataclass
 from datetime import date, datetime
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
+from swingset.clock import FakeClock
 from swingset.fetch.archive import canonical, durable_write
 from swingset.history.catalog import load_catalog
 from swingset.history.closure import synchronize_year_findings, year_gaps
 from swingset.model.history import HISTORY_START
-from swingset.project.history import (
-    dismissed_findings,
-    finalize_history,
-    prepare_inventory,
-    reconcile_history,
-)
-from swingset.project.materialization import helper_recipe, materializing
+from swingset.project.history import dismissed_findings, reconcile_history
+from swingset.project.process import process_unit
 from swingset.state.db import Database
+from swingset.state.derivation_dependencies import year_units
 from swingset.state.derivations import available, pending_units
 from swingset.state.inputs import accepted_override
 from swingset.state.work import WorkUnit
+
+
+@dataclass(frozen=True)
+class _Bundle:
+    """The two override files and the start date the inventory and years read."""
+
+    files: dict[str, bytes]
+    config: Any
 
 
 def review_pack(
@@ -38,34 +45,24 @@ def review_pack(
 ) -> dict[str, Any]:
     run_id = "read-only-review"
     if reconcile:
-        run_id = database.start_run(datetime.fromisoformat(now), dry_run=True)
-        with database.transaction() as conn:
-            if available(conn):
-                recipe = helper_recipe(conn, {"overrides/series_aliases.csv": aliases}, "project")
-                with materializing(
-                    conn,
-                    WorkUnit("project", "inventory", "all"),
-                    now=now,
-                    run_id=run_id,
-                    recipe=recipe,
-                ):
-                    prepare_inventory(
-                        conn,
-                        now=now,
-                        run_id=run_id,
-                        aliases=aliases,
-                        history_start=history_start,
-                        reviews=reviews,
-                    )
-                with materializing(
-                    conn,
-                    WorkUnit("project", "history", "all"),
-                    now=now,
-                    run_id=run_id,
-                    recipe=recipe,
-                ):
-                    finalize_history(conn, now=now, history_start=history_start)
-            else:
+        at = datetime.fromisoformat(now)
+        run_id = database.start_run(at, dry_run=True)
+        if available(database.connection):
+            # The inventory, then every year, each as the derive loop runs it:
+            # inside its own capture and read recording (process_unit).
+            bundle = _Bundle(
+                {
+                    "overrides/series_aliases.csv": aliases,
+                    "overrides/finding_reviews.csv": reviews,
+                },
+                SimpleNamespace(history_start=history_start),
+            )
+            clock = FakeClock(at)
+            process_unit(database, WorkUnit("project", "inventory", "all"), bundle, clock, run_id)
+            for unit in year_units(database.connection):
+                process_unit(database, unit, bundle, clock, run_id)
+        else:
+            with database.transaction() as conn:
                 reconcile_history(
                     conn,
                     now=now,

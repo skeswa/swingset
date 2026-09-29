@@ -168,3 +168,39 @@ def test_pending_retry_rechecks_local_baseline(release):
     with pytest.raises(PublishError, match="baseline changed"):
         reconcile(database.state_dir, hub, dry_run=False)
     assert hub.calls == 0
+
+
+@pytest.mark.parametrize("change", ["revocation", "manifest"])
+def test_a_partitioned_candidate_rechecks_its_manifest_and_revocations(release, change):
+    """A partitioned candidate is checked without a graph walk (D-0224): its
+    release manifest must still hash to its digest, and no source generation
+    may have been revoked since the build."""
+    database, _config, _overrides, clock, hub, candidate = release
+    policy = json.loads((candidate.path / "_meta/manifest.json").read_bytes())["release_policy"]
+    assert policy["mode"] == "partitioned"
+    if change == "revocation":
+        conn = database.connection
+        run_id = database.start_run(clock.now())
+        conn.execute(
+            "INSERT INTO watches(watch_id,source,kind,method,url,parser,state) "
+            "VALUES ('w1','wsdc','dancer','GET','https://example.test/','wsdc_dancer','active')"
+        )
+        conn.execute(
+            "INSERT INTO source_units(unit_key,watch_id,page_kind) VALUES ('unit-w1','w1','dancer')"
+        )
+        conn.execute(
+            "INSERT INTO source_generations(generation_id,unit_key,page_kind,contract_version,"
+            "input_fingerprint,manifest_json,recipe_json,result_json,report_json,created_at,"
+            "run_id,state,removal_authority) VALUES ('sg-1','unit-w1','dancer','v1','fp','[]',"
+            "'{}','{}','{}','2026-01-01T00:00:00+00:00',?,'revoked','none')",
+            (run_id,),
+        )
+        reason = "revoked after build"
+    else:
+        (
+            database.state_dir / "partitions" / "manifests" / f"{policy['manifest_digest']}.json"
+        ).write_bytes(b"{}")
+        reason = "release manifest or artifact changed"
+    with pytest.raises(PublishError, match=reason):
+        publish(database.state_dir, candidate.path, hub)
+    assert hub.calls == 0 and (candidate.path / "REJECTED").is_file()

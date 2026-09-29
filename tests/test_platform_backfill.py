@@ -302,11 +302,11 @@ def _dancer_change(fixture):
 
 
 @pytest.mark.parametrize("dancer_changed", [True, False])
-def test_a_pending_map_blocks_phase_two_unless_the_inventory_is_held(fixture, dancer_changed):
-    """The gate skips the map only behind an inventory the pacing gate holds:
-    the map needs a current inventory, so it cannot write until that one
-    runs. A current inventory made within its interval holds nothing, and a
-    pending map behind it can change the event list now."""
+def test_a_pending_mapping_blocks_phase_two_unless_the_inventory_is_held(fixture, dancer_changed):
+    """The gate skips mappings and resolutions only behind an inventory the
+    pacing gate holds: they need a current inventory, so they cannot write
+    until that one runs. A current inventory made within its interval holds
+    nothing, and a pending mapping behind it can change the event list now."""
     from swingset.schedule import pacing
     from swingset.schedule.fair_policy import SchedulerConfig
     from swingset.state import derivations
@@ -317,11 +317,11 @@ def test_a_pending_map_blocks_phase_two_unless_the_inventory_is_held(fixture, da
     if dancer_changed:
         _dancer_change(fixture)
     # An inventory cutoff that changed live rows moves its replay epoch: the
-    # map is pending while the inventory keeps its generation.
+    # mapping is pending while the inventory keeps its generation.
     with fixture.db.transaction():
         derivations.bump_replay(fixture.conn, "project", "inventory")
     pending = set(derivations.pending_units(fixture.conn, "project"))
-    assert WorkUnit("project", "map", "all") in pending
+    assert WorkUnit("project", "mapping", "eepro") in pending
     assert (WorkUnit("project", "inventory", "all") in pending) is dancer_changed
     paced = SchedulerConfig(history_interval_seconds=43200, inventory_interval_seconds=43200)
     with pacing.configured(paced, fixture.clock.now):

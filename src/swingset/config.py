@@ -110,6 +110,28 @@ class DerivationConfig:
     cutoff: bool = True
 
 
+#: `[release] path` values (plan phase 3, D-0224). `partitioned` assembles the
+#: release from partition artifacts one partition at a time (`build/assembly.py`);
+#: `whole` loads every artifact into memory and runs the builder unchanged;
+#: `closure` is the phase 2 closure selection, kept for one release while phase 3
+#: settles.
+RELEASE_PATHS = ("partitioned", "whole", "closure")
+
+
+@dataclass(frozen=True)
+class ReleaseConfig:
+    """`[release]` in sources.toml. Read from the accepted bundle at build
+    time; not a derivation input, so a change re-queues nothing.
+
+    ``streamed_lock`` keeps the heavy lock on a partitioned build too, so
+    derive starts no unit beside it. It stays true until the worker's
+    post-check shows `swingset-release` MemoryPeak under 2 GB with derive
+    active (phase 3 rehearsal: 6.7 GB before F26, D-0224)."""
+
+    path: str = "partitioned"
+    streamed_lock: bool = True
+
+
 @dataclass(frozen=True)
 class Config:
     hosts: Mapping[str, HostConfig]
@@ -119,6 +141,7 @@ class Config:
     retention: RetentionConfig = RetentionConfig()
     stages: StageConfig = StageConfig()
     derivation: DerivationConfig = DerivationConfig()
+    release: ReleaseConfig = ReleaseConfig()
 
     def host(self, name: str) -> HostConfig:
         return self.hosts.get(name, HostConfig())
@@ -229,6 +252,22 @@ def parse_derivation(body: bytes) -> DerivationConfig:
     return DerivationConfig(**values)
 
 
+def parse_release(body: bytes) -> ReleaseConfig:
+    """Read the top-level `[release]` table of sources.toml; absent means `partitioned`."""
+    values = tomllib.loads(body.decode()).get("release", {})
+    if not isinstance(values, dict):
+        raise ValueError("release must be a table")
+    if unknown := values.keys() - {field.name for field in fields(ReleaseConfig)}:
+        raise ValueError(f"unknown release settings: {sorted(unknown)}")
+    path = values.get("path", ReleaseConfig.path)
+    if path not in RELEASE_PATHS:
+        raise ValueError(f"release path must be one of {', '.join(RELEASE_PATHS)}")
+    streamed_lock = values.get("streamed_lock", ReleaseConfig.streamed_lock)
+    if not isinstance(streamed_lock, bool):
+        raise ValueError("release streamed_lock must be true or false")
+    return ReleaseConfig(path=path, streamed_lock=streamed_lock)
+
+
 def parse_history_start(body: bytes) -> date:
     """Read the top-level `history_start` of sources.toml; absent means the enshrined default."""
     raw = tomllib.loads(body.decode())
@@ -247,4 +286,5 @@ def load_config(directory: Path = Path("config")) -> Config:
         parse_retention(sources),
         parse_stages(sources),
         parse_derivation(sources),
+        parse_release(sources),
     )

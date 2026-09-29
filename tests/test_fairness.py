@@ -1,5 +1,6 @@
 """Durable local fairness and configuration do not alter interpretation claims."""
 
+import re
 import shutil
 from dataclasses import replace
 from datetime import timedelta
@@ -64,6 +65,8 @@ def test_scheduler_bundle_change_is_accepted_without_reinterpreting_sources(tmp_
         path = config / "sources.toml"
         # The shipped configuration already carries a [scheduling] table.
         body = path.read_text()
+        # It may already set the key (D-0221); drop that line before overriding it.
+        body = re.sub(r"(?m)^pending_parse_items\s*=.*\n", "", body)
         body = body.replace("[scheduling]\n", "[scheduling]\npending_parse_items=501\n", 1)
         assert "pending_parse_items=501" in body
         path.write_text(body)

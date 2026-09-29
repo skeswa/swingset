@@ -769,7 +769,12 @@ def test_alias_move_replays_old_and_new_scopes_and_preserves_exact_mapping_gener
     accept(f.db, f.bundle, f.corpus.clock)
     f.conn.execute("DELETE FROM pending_work WHERE stage IN ('project','link')")
     completed = drain_project(f)
-    assert WorkUnit("project", "map", "all") in completed
+    # The source's mapping and both events' resolutions replace the map (F19).
+    assert {
+        WorkUnit("project", "mapping", "eepro"),
+        WorkUnit("project", "resolution", "event-a"),
+        WorkUnit("project", "resolution", "event-b"),
+    } <= set(completed)
     assert (
         f.conn.execute(
             "SELECT event_id FROM source_event_map WHERE source_ref='eepro:test'"
@@ -784,9 +789,12 @@ def test_alias_move_replays_old_and_new_scopes_and_preserves_exact_mapping_gener
         ("event-b", "Alice Example", "round-one"),
         ("event-b", "Diane Abele", "round-one"),
     ]
-    map_generation = derivations.selected_generation(f.conn, WorkUnit("project", "map", "all"))
     for identifier in ("event-a", "event-b"):
         unit = WorkUnit("project", "event", identifier)
+        map_generation = derivations.selected_generation(
+            f.conn, WorkUnit("project", "resolution", identifier)
+        )
+        assert map_generation is not None
         assert derivations.current(f.conn, unit)
         manifest = f.conn.execute(
             "SELECT d.manifest_json FROM derivation_generations g JOIN derivation_dependency_sets d USING(dependency_set_id) WHERE g.generation_id=?",
@@ -804,6 +812,74 @@ def test_alias_move_replays_old_and_new_scopes_and_preserves_exact_mapping_gener
     )
     assert drain_project(f) == []
     assert f.conn.execute("PRAGMA foreign_key_check").fetchall() == []
+
+
+def test_a_fetched_sheet_queues_its_event_and_its_year_only(source_fixture):
+    """Plan F17: a changed score sheet re-derives its event and that event's
+    year; another year's unit is neither hinted nor stale."""
+    from swingset.state import derivations
+    from swingset.state.work import WorkUnit
+
+    f = source_fixture
+    now = f.corpus.clock.now().isoformat()
+    replace_scope(
+        f.conn,
+        scope_kind="fixture_inventory",
+        scope_id="other-year",
+        projection=Projection(
+            (
+                Event(
+                    event_id="event-c",
+                    series_id="event-c",
+                    name="event-c",
+                    year=2025,
+                    start_date="2025-03-01",
+                    end_date="2025-03-02",
+                    wsdc_status="registry",
+                    source="wsdc_calendar",
+                    snapshot_id="retained-calendar-baseline",
+                    parser_version="1",
+                    first_seen_at=now,
+                    last_seen_at=now,
+                    run_id=f.corpus.run,
+                ),
+            )
+        ),
+        run_id=f.corpus.run,
+        projected_at=now,
+    )
+    drain_project(f)
+    years = {
+        unit.unit_id: derivations.selected_generation(f.conn, unit)
+        for unit in derivations.known_units(f.conn, "project")
+        if unit.unit_kind == "year"
+    }
+    assert set(years) == {"2025", "2026"} and all(years.values())
+    assert not any(
+        unit.unit_kind == "history" for unit in derivations.known_units(f.conn, "project")
+    )
+    f.conn.execute("DELETE FROM pending_work")
+    # A re-parsed sheet of event-a with one changed name.
+    with f.db.transaction():
+        f.conn.execute(
+            "UPDATE observations SET payload_json=replace(payload_json,'Alice Example','Alice Changed')"
+        )
+    completed = drain_project(f)
+    assert WorkUnit("project", "event", "event-a") in completed
+    assert WorkUnit("project", "year", "2026") in completed
+    assert WorkUnit("project", "year", "2025") not in completed
+    assert not {unit.unit_kind for unit in completed} & {"inventory", "map", "calendar"}
+    hinted = {
+        tuple(row)
+        for row in f.conn.execute(
+            "SELECT unit_kind,unit_id FROM pending_work WHERE stage='project' AND unit_kind='year'"
+        )
+    }
+    assert ("year", "2025") not in hinted
+    assert (
+        derivations.selected_generation(f.conn, WorkUnit("project", "year", "2025"))
+        == (years["2025"])
+    )
 
 
 def test_new_registry_dancer_reconsiders_unmatched_entry_without_prior_candidate_edge(
@@ -1030,7 +1106,15 @@ def test_registry_enrichment_keeps_captured_calendar_identity_and_replay_quiet(s
     assert recipe["continuity"]["dependency_set_id"] == continuity_id
 
 
-def add_dancer(fixture, first_name="Offline", *, name_raw="Registry Joined Weekend"):
+def add_dancer(
+    fixture,
+    first_name="Offline",
+    *,
+    name_raw="Registry Joined Weekend",
+    last_name="Dancer",
+    snapshot=None,
+    points=1,
+):
     """Retain one typed registry dancer observation, replacing any earlier one."""
     from swingset.model.observations import encode_payload
     from swingset.schedule.watches import upsert_watch
@@ -1039,7 +1123,7 @@ def add_dancer(fixture, first_name="Offline", *, name_raw="Registry Joined Weeke
 
     spec = SOURCE.watch(999)
     upsert_watch(fixture.conn, spec, fixture.corpus.clock.now())
-    snapshot = "registry-" + first_name.casefold()
+    snapshot = snapshot or "registry-" + first_name.casefold()
     context = fixture.corpus.snapshot(
         snapshot, f"offline registry {first_name}".encode(), spec=spec
     )
@@ -1049,10 +1133,10 @@ def add_dancer(fixture, first_name="Offline", *, name_raw="Registry Joined Weeke
         999,
         999,
         first_name=first_name,
-        last_name="Dancer",
+        last_name=last_name,
         primary_role_raw="L",
         placements=(
-            RegistryPlacement("leader", "NOV", "999", name_raw, "January 2026", "1", 1, "wcs"),
+            RegistryPlacement("leader", "NOV", "999", name_raw, "January 2026", "1", points, "wcs"),
         ),
     )
     with fixture.db.transaction():
@@ -1133,7 +1217,7 @@ def test_release_closure_keeps_every_link_across_a_code_only_rerun(source_fixtur
     generations = count(f.conn, "derivation_generations")
     change_code(f, monkeypatch)
     rerun = drain_project(f)
-    assert {unit.unit_kind for unit in rerun} >= {"dancer", "event", "history"}
+    assert {unit.unit_kind for unit in rerun} >= {"dancer", "event", "year"}
     assert link_all(f)
     assert count(f.conn, "derivation_generations") == generations
     after = select_closure(f)
@@ -1143,10 +1227,10 @@ def test_release_closure_keeps_every_link_across_a_code_only_rerun(source_fixtur
     assert before.semantic_fingerprint == after.semantic_fingerprint
 
 
-def test_a_real_dancer_change_still_mints_history_and_links_that_name_it(
+def test_a_real_dancer_change_keeps_the_year_and_reaches_only_its_links(
     source_fixture, monkeypatch
 ):
-    from swingset.state import derivations
+    from swingset.state import derivations, read_index
     from swingset.state.work import WorkUnit
 
     f = source_fixture
@@ -1154,39 +1238,47 @@ def test_a_real_dancer_change_still_mints_history_and_links_that_name_it(
     drain_project(f)
     link_all(f)
     dancer = WorkUnit("project", "dancer", "999")
-    history = WorkUnit("project", "history", "all")
+    year = WorkUnit("project", "year", "2026")
     old_dancer = derivations.selected_generation(f.conn, dancer)
-    old_history = derivations.selected_generation(f.conn, history)
+    old_year = derivations.selected_generation(f.conn, year)
     old_links = selected(select_closure(f), "link")
-    add_dancer(f, "Renamed")
+    # No link read "Offline Dancer". Renamed to a subject's name, the dancer
+    # becomes a candidate: the pool probe reaches that subject's events only.
+    assert not read_index.dependents(f.conn, "project/dancer/999")
+    add_dancer(f, "Diane", last_name="Abele")
     drain_project(f)
-    link_all(f)
-    new_dancer = derivations.selected_generation(f.conn, dancer)
-    new_history = derivations.selected_generation(f.conn, history)
-    assert new_dancer != old_dancer
-    # History re-ran with the same output, but its selected dancer set changed,
-    # so it is not closure-stable and names the new dancer (finding F1).
-    assert new_history != old_history
-    labels = {
-        row[0]: tuple(row[1:])
+    reached = {
+        str(row[0])
         for row in f.conn.execute(
-            "SELECT generation_id,output_digest,row_count FROM derivation_generations "
-            "WHERE generation_id IN (?,?)",
-            (old_history, new_history),
+            "SELECT event_id FROM judges WHERE name_raw='Diane Abele' UNION SELECT event_id FROM entries WHERE name_raw='Diane Abele'"
         )
     }
-    assert labels[old_history] == labels[new_history]
-    assert new_dancer in f.conn.execute(
-        "SELECT d.manifest_json FROM derivation_generations g JOIN derivation_dependency_sets d "
-        "ON d.dependency_set_id=g.dependency_set_id WHERE g.generation_id=?",
-        (new_history,),
-    ).fetchone()[0] + json.dumps(derivations.desired(f.conn, history).dependency_sets)
+    assert reached and reached <= set(old_links)
+    # The dancer's own placement row changed too (a new snapshot), so the
+    # link of the event it names re-runs; its output is unchanged.
+    placed = {
+        str(row[0])
+        for row in f.conn.execute("SELECT event_id FROM registry_placements WHERE wsdc_id=999")
+    }
+    assert {unit.unit_id for unit in link_all(f)} == reached | placed
+    new_dancer = derivations.selected_generation(f.conn, dancer)
+    assert new_dancer != old_dancer
+    # The year's output is unchanged, so it keeps its generation, which
+    # reaches the old dancer through the inventory's kept generation: output
+    # alone decides a cutoff (D-0224; F1 minted a new year here).
+    assert derivations.selected_generation(f.conn, year) == old_year
     after = select_closure(f)
     assert selected(after, "project", "dancer")["999"] == new_dancer
-    assert selected(after, "project", "history")["all"] == new_history
-    new_links = selected(after, "link")
-    assert set(new_links) == set(old_links) and not withheld_links(after)
-    assert all(new_links[event] != old_links[event] for event in old_links)
+    # The closure path skips a year whose walk reaches a superseded
+    # generation, so it is withheld rather than published stale; the
+    # partitioned path reads current pointers (tests/build/test_release_paths.py).
+    assert "2026" not in selected(after, "project", "year")
+    assert {
+        item["unit_id"]
+        for item in after.inventory
+        if item["unit_kind"] == "year" and item.get("reason") == "year_anchor_conflict"
+    } == {"2026"}
+    assert {unit.unit_id for unit in read_index.dependents(f.conn, "project/dancer/999")} == reached
 
 
 def test_retention_walk_from_a_kept_pointer_reaches_what_the_rerun_consumed(
@@ -1221,7 +1313,12 @@ def test_retention_walk_from_a_kept_pointer_reaches_what_the_rerun_consumed(
                 (root_set,),
             ).fetchone()[0]
         )
+        # A link names what it read directly (plan F20); groups name the rest.
         consumed = {
+            entry["generation_id"]
+            for entry in manifest
+            if entry["kind"] == "derivation" and entry.get("generation_id")
+        } | {
             member["generation_id"]
             for entry in manifest
             if entry["kind"] == "dependency_set"
@@ -1248,6 +1345,7 @@ def test_a_member_whose_provisional_id_a_sibling_captured_never_cuts_off(
     event = WorkUnit("project", "event", "event-a")
     source_event = WorkUnit("project", "source_event", "eepro:test")
     kept = derivations.selected_generation(f.conn, event)
+    kept_source_event = derivations.selected_generation(f.conn, source_event)
     generations = count(f.conn, "derivation_generations")
     change_code(f, monkeypatch)
     now = f.corpus.clock.now()
@@ -1266,7 +1364,11 @@ def test_a_member_whose_provisional_id_a_sibling_captured_never_cuts_off(
         derivations.complete(f.conn, second, rows=[], now=now, run_id=f.corpus.run)
     assert derivations.selected_generation(f.conn, event) == first.generation_id
     assert derivations.current(f.conn, event) and derivations.current(f.conn, source_event)
-    assert count(f.conn, "derivation_generations") == generations + 2
+    # The source event's output is unchanged too, and output alone decides
+    # its cutoff: it keeps a generation that names the event's old id
+    # (D-0224; before, the closure-stable rule minted it as well).
+    assert derivations.selected_generation(f.conn, source_event) == kept_source_event
+    assert count(f.conn, "derivation_generations") == generations + 1
     assert f.conn.execute("PRAGMA foreign_key_check").fetchall() == []
 
 
@@ -1495,32 +1597,175 @@ def test_crash_between_the_comparison_and_the_equivalence_rolls_back(source_fixt
     assert count(f.conn, "derivation_generations") == generations
 
 
-def test_only_closure_groups_carry_the_leaves_closure_and_retention_follow(
-    source_fixture, monkeypatch
-):
-    """Guard for the closure-stable rule: every followed leaf is under a CLOSURE key."""
-    from swingset.state import derivations
-    from swingset.state.derivation_dependencies import dependencies, scopes
+def listed_fixture(fixture):
+    """The source fixture with listings (mapping and resolution units), a
+    registry series (the inventory's registry event), projected and linked."""
+    from test_project_map import _listing
+
+    with fixture.db.transaction():
+        _listing(fixture.conn, "eepro", "eepro:new", "New Weekend", "2026-03-05", "2026-03-08")
+        _listing(fixture.conn, "scoringdance", "sd:a", "event-a", "2026-01-01", "2026-01-04")
+    add_dancer(fixture)
+    drain_project(fixture)
+    link_all(fixture)
+    return fixture
+
+
+def replay_state(conn):
+    return sorted(
+        tuple(row)
+        for row in conn.execute(
+            "SELECT namespace,input_key,version FROM derivation_input_versions "
+            "WHERE namespace IN ('replayed','replayed_unit')"
+        )
+    )
+
+
+@pytest.mark.parametrize(
+    "kind", ["dancer", "inventory", "mapping", "resolution", "event", "source_event", "year"]
+)
+def test_a_rerun_with_unchanged_inputs_moves_no_epoch_and_stales_nothing(source_fixture, kind):
+    """Risk 5 and F28: a unit that runs again on the same inputs writes no
+    generation, moves no replay epoch and leaves every other unit current.
+    On the production copy an unchanged inventory re-run moved the canonical
+    revision, so every mapping, resolution, event and year re-ran."""
+    from swingset.project.process import process_unit
+    from swingset.state import derivation_dependencies, derivations
+
+    f = listed_fixture(source_fixture)
+    units = [u for u in derivation_dependencies.scopes(f.conn, "project") if u.unit_kind == kind]
+    assert units, kind
+    generations = count(f.conn, "derivation_generations")
+    replayed = replay_state(f.conn)
+    for unit in units:
+        process_unit(f.db, unit, f.bundle, f.corpus.clock, f.corpus.run)
+    assert count(f.conn, "derivation_generations") == generations
+    assert replay_state(f.conn) == replayed
+    assert list(derivations.pending_units(f.conn, "project")) == []
+    assert list(derivations.pending_units(f.conn, "link")) == []
+
+
+def test_a_dancer_change_runs_the_dancer_the_inventory_the_years_and_its_readers(source_fixture):
+    """F28: the inventory cuts off without a replay, so no mapping, resolution,
+    event or source event runs; only the dancer, the inventory, the years and
+    the links that read the dancer (or its placements' events) do."""
+    from swingset.state import read_index
+
+    f = listed_fixture(source_fixture)
+    replayed = replay_state(f.conn)
+    readers = {unit.unit_id for unit in read_index.dependents(f.conn, "project/dancer/999")}
+    placed = {
+        str(row[0])
+        for row in f.conn.execute("SELECT event_id FROM registry_placements WHERE wsdc_id=999")
+    }
+    # The same dancer with other points: a new registry page, same name.
+    add_dancer(f, snapshot="registry-points", points=3)
+    ran = drain_project(f)
+    assert {unit.unit_kind for unit in ran} <= {"dancer", "inventory", "year"}, ran
+    assert {unit.unit_kind for unit in ran} >= {"dancer", "inventory"}
+    linked = {unit.unit_id for unit in link_all(f)}
+    assert linked <= readers | placed
+    assert replay_state(f.conn) == replayed
+
+
+def test_the_inventory_writes_json_as_every_other_writer_does(source_fixture):
+    """F28's cause on the production copy: the inventory wrote `sources` and
+    `history_source` as `["a", "b"]` while a resolution or calendar writes
+    `["a","b"]`. Each rewrote the other's format, so an inventory re-run with
+    unchanged output moved the canonical revision and replayed every mapping,
+    resolution, event, source event and year."""
+    from test_project_map import _listing
+
+    from swingset.project.process import process_unit
+    from swingset.state.work import WorkUnit
 
     f = source_fixture
-    add_calendar(f)
-    add_dancer(f)
-    drain_project(f)
-    link_all(f)
-    followed = {"derivation", "observation", "source_selection"}
-    kinds = set()
-    for stage in ("project", "link"):
-        for unit in scopes(f.conn, stage):
-            kinds.add((unit.stage, unit.unit_kind))
-            manifest, sets = dependencies(f.conn, unit, derivations.selected_dependency)
-            for entry in manifest:
-                if entry["kind"] != "dependency_set":
-                    assert entry["kind"] not in followed - {"derivation"}, (unit, entry)
-                    continue
-                leaves = {member.get("kind") for member in sets[entry["fingerprint"]]}
-                if leaves & followed:
-                    assert derivations._in_closure(entry), (unit, entry["key"])
-    assert kinds >= {
-        ("project", kind)
-        for kind in ("calendar", "dancer", "inventory", "map", "event", "source_event", "history")
-    } | {("link", "event")}
+    with f.db.transaction():
+        # A dated listing of the registry series (a snapshot the inventory reads).
+        _listing(
+            f.conn,
+            "eepro",
+            "eepro:rjw",
+            "Registry Joined Weekend",
+            "2026-01-01",
+            "2026-01-04",
+            snapshot="round-one",
+        )
+    listed_fixture(f)
+    rows = f.conn.execute(
+        "SELECT event_id,sources,history_source FROM events WHERE history_source IS NOT NULL"
+    ).fetchall()
+    assert any("eepro" in str(row[1]) for row in rows), rows
+    for event_id, *values in rows:
+        for value in values:
+            assert value == json.dumps(json.loads(value), separators=(",", ":")), (event_id, value)
+    # The inventory runs again on the same inputs: nothing moves.
+    replayed = replay_state(f.conn)
+    revisions = dict(f.conn.execute("SELECT name,value FROM revisions").fetchall())
+    process_unit(
+        f.db, WorkUnit("project", "inventory", "all"), f.bundle, f.corpus.clock, f.corpus.run
+    )
+    assert replay_state(f.conn) == replayed
+    assert dict(f.conn.execute("SELECT name,value FROM revisions").fetchall()) == revisions
+    # A row stored with spaces by the old code differs in text only: the
+    # inventory neither rewrites it nor refreshes its other columns.
+    from swingset.project.history import prepare_inventory
+
+    event_id = next(row[0] for row in rows if "eepro" in str(row[1]))
+    with f.db.transaction() as conn:
+        stored = conn.execute("SELECT sources FROM events WHERE event_id=?", (event_id,)).fetchone()
+        spaced = json.dumps(json.loads(stored[0]))
+        conn.execute(
+            "UPDATE events SET sources=?,parser_version='old' WHERE event_id=?", (spaced, event_id)
+        )
+        assert not prepare_inventory(
+            conn,
+            now=f.corpus.clock.now().isoformat(),
+            run_id=f.corpus.run,
+            history_start=f.bundle.config.history_start,
+        )
+        assert tuple(
+            conn.execute(
+                "SELECT sources,parser_version FROM events WHERE event_id=?", (event_id,)
+            ).fetchone()
+        ) == (spaced, "old")
+        conn.execute(
+            "UPDATE events SET sources=?,parser_version='1' WHERE event_id=?", (stored[0], event_id)
+        )
+
+
+def test_large_content_groups_store_a_digest_not_their_rows(source_fixture):
+    """Each inventory run after a dancer change stored the whole registry as a
+    dependency set (93 MB on the production copy). The group is now one
+    member, a count and a digest, which moves with any row."""
+    from swingset.state import derivations
+    from swingset.state.work import WorkUnit
+
+    f = listed_fixture(source_fixture)
+
+    def group(unit, name):
+        with f.db.transaction() as conn:
+            selection = derivations.desired(conn, unit)
+        for fingerprint, members in selection.dependency_sets.items():
+            if any(
+                item.get("key") == name and item.get("fingerprint") == fingerprint
+                for item in selection.dependencies
+            ):
+                return fingerprint, members
+        raise AssertionError(name)
+
+    inventory = WorkUnit("project", "inventory", "all")
+    year = WorkUnit("project", "year", "2026")
+    before = {
+        "inventory": group(inventory, "registry_inventory"),
+        "year": group(year, "year_placements"),
+    }
+    for _, members in before.values():
+        assert [item["kind"] for item in members] == ["rows_digest"]
+    assert before["inventory"][1][0]["rows"] >= 1
+    add_dancer(f, snapshot="registry-points", points=3)
+    from swingset.project.process import process_unit
+
+    process_unit(f.db, WorkUnit("project", "dancer", "999"), f.bundle, f.corpus.clock, f.corpus.run)
+    assert group(inventory, "registry_inventory")[0] != before["inventory"][0]
+    assert group(year, "year_placements")[0] != before["year"][0]

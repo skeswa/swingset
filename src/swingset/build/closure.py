@@ -73,16 +73,73 @@ class ReleaseClosure:
         return {**value, "digest": digest(value)}
 
 
+class _Traversed(set[str]):
+    """The dependency sets a selection has walked; `attempt` can undo additions."""
+
+    log: list[tuple[str, Any]] | None = None
+
+    def add(self, item: str) -> None:
+        if self.log is not None and item not in self:
+            self.log.append(("traversed", item))
+        super().add(item)
+
+
 class _Selection:
-    def __init__(self, conn: sqlite3.Connection, cutoff: str):
+    def __init__(
+        self,
+        conn: sqlite3.Connection,
+        cutoff: str,
+        current: Mapping[tuple[str, str, str], str] | None = None,
+    ):
         self.conn, self.cutoff = conn, _time(cutoff)
+        # Each project scope's anchor generation at the cutoff. A walk that
+        # reaches another generation of such a scope reaches a superseded one:
+        # since output cutoff no longer checks the walk, a kept generation can
+        # name one (D-0224). That anchor is withheld, never published stale.
+        self.current = dict(current or {})
         self.selected: dict[tuple[str, str, str], dict[str, Any]] = {}
         self.continuity_sets: set[str] = set()
         self.observations: dict[str, dict[str, Any]] = {}
         self.sources: set[str] = set()
         self.identifiers: set[str] = set()
-        self.traversed: set[str] = set()
+        self.traversed: _Traversed = _Traversed()
         self.active: set[str] = set()
+        self._log: list[tuple[str, Any]] | None = None
+
+    def _note(self, change: str, value: Any) -> None:
+        if self._log is not None:
+            self._log.append((change, value))
+
+    def attempt(self, identifier: str) -> bool:
+        """Add one generation and its closure, or leave the selection as it was.
+
+        A conflict (`ClosureError`) undoes every addition the attempt made,
+        which is what copying the selection before each try did, without
+        copying a registry-sized selection per anchor or link.
+        """
+        log: list[tuple[str, Any]] = []
+        self._log = self.traversed.log = log
+        try:
+            self.add(identifier)
+        except ClosureError:
+            for change, value in reversed(log):
+                if change == "selected":
+                    del self.selected[value]
+                elif change == "identifier":
+                    self.identifiers.discard(value)
+                elif change == "observation":
+                    del self.observations[value]
+                elif change == "source":
+                    self.sources.discard(value)
+                elif change == "continuity":
+                    self.continuity_sets.discard(value)
+                else:
+                    self.traversed.discard(value)
+            self.active.clear()
+            return False
+        finally:
+            self._log = self.traversed.log = None
+        return True
 
     def add(self, identifier: str) -> None:
         if identifier in self.active:
@@ -96,10 +153,14 @@ class _Selection:
             if previous["generation_id"] != identifier:
                 raise ClosureError("mixed_dependency_generations")
             return
+        if self.current.get(key, identifier) != identifier:
+            raise ClosureError("superseded_dependency_generation")
         if _time(item["created_at"]) > self.cutoff:
             raise ClosureError("selected_generation_after_cutoff")
         self.selected[key] = item
+        self._note("selected", key)
         self.identifiers.add(identifier)
+        self._note("identifier", identifier)
         self.active.add(identifier)
         # One immutable set always names the same dependencies. Already applied
         # members need not be decoded again for every link sharing the registry
@@ -120,14 +181,21 @@ class _Selection:
                 previous_observation = self.observations.get(str(dependency["key"]))
                 if previous_observation is not None and previous_observation != dependency:
                     raise ClosureError("mixed_source_interpretations")
+                if previous_observation is None:
+                    self._note("observation", str(dependency["key"]))
                 self.observations[str(dependency["key"])] = dependency
             elif kind == "source_selection" and dependency.get("generation_id"):
-                self.sources.add(str(dependency["generation_id"]))
+                source = str(dependency["generation_id"])
+                if source not in self.sources:
+                    self._note("source", source)
+                self.sources.add(source)
         continuity = item["recipe"].get("continuity", {}).get("dependency_set_id")
         if continuity:
             # Historical support is retained, but is not another selected scope.
             for _ in members(self.conn, continuity):
                 pass
+            if continuity not in self.continuity_sets:
+                self._note("continuity", continuity)
             self.continuity_sets.add(continuity)
         self.active.remove(identifier)
 
@@ -155,59 +223,107 @@ def _baseline(path: Path | None) -> dict[str, Any] | None:
     }
 
 
+def _anchors(conn: sqlite3.Connection, kind: str, at: str, building: str) -> list[tuple[str, str]]:
+    """Each registered scope of a project kind, with the generation it anchors.
+
+    Its pointer when that was made by the cutoff, otherwise its newest
+    generation made by then; never an unfinished one. A scope with neither is
+    left out.
+    """
+    rows = conn.execute(
+        "SELECT unit_id,generation_id FROM (SELECT g.unit_id,g.generation_id,row_number() OVER ("
+        "PARTITION BY g.unit_id ORDER BY coalesce(g.generation_id=s.materialized_generation_id,0) "
+        "DESC,julianday(g.created_at) DESC,g.rowid DESC) AS n "
+        "FROM derivation_scopes s JOIN derivation_generations g ON g.stage=s.stage "
+        "AND g.unit_kind=s.unit_kind AND g.unit_id=s.unit_id "
+        "WHERE s.stage='project' AND s.unit_kind=? AND julianday(g.created_at)<=julianday(?)"
+        + building
+        + ") WHERE n=1",
+        (kind, at),
+    ).fetchall()
+    return [(str(unit), str(generation)) for unit, generation in rows if generation is not None]
+
+
 def select(
     conn: sqlite3.Connection, *, cutoff: datetime, baseline: Path | None = None
 ) -> ReleaseClosure:
-    """Select one coherent structural anchor, then only compatible identity joins."""
+    """Anchor on every year, source event and dancer, then add compatible identity joins.
+
+    Years anchor in year order; each brings its events, calendars, inventory
+    and map. A year whose walk conflicts with what earlier anchors selected
+    (`mixed_dependency_generations`) or reaches a project scope's generation
+    other than that scope's own anchor (`superseded_dependency_generation`:
+    since output cutoff no longer checks the walk, a kept generation may name
+    a superseded upstream one, D-0224) is skipped, and its events are
+    withheld with `year_anchor_conflict`, never published stale. Then each
+    source event's and each dancer's pointer, where it agrees with what the
+    years selected. Without a year anchor nothing is selected (plan F22).
+    """
     if cutoff.tzinfo is None:
         raise ClosureError("closure_cutoff_requires_timezone")
     at = cutoff.astimezone(UTC).isoformat()
-    chosen = _Selection(conn, at)
     inventory: list[dict[str, Any]] = []
     # A generation still being stored in chunks, or one a staged run stopped
     # storing, is not output (WP4).
     from swingset.state.derivations import unfinished_excluded
 
-    building = unfinished_excluded(conn)
-    anchors = conn.execute(
-        "SELECT generation_id FROM derivation_generations WHERE stage='project' AND unit_kind='history' AND unit_id='all' AND julianday(created_at)<=julianday(?)"
-        + building
-        + " ORDER BY julianday(created_at) DESC,rowid DESC",
-        (at,),
-    )
-    for (identifier,) in anchors:
-        proposed = _Selection(conn, at)
-        try:
-            proposed.add(identifier)
-        except ClosureError:
-            continue
-        chosen = proposed
-        break
-    # The history anchor names both sides of any atomic alias move. A link may
-    # not replace its pinned event, registry or historical association inputs.
+    building = unfinished_excluded(conn, "g")
+    current = {
+        ("project", str(kind), unit): generation
+        for (kind,) in conn.execute(
+            "SELECT DISTINCT unit_kind FROM derivation_scopes WHERE stage='project'"
+        ).fetchall()
+        for unit, generation in _anchors(conn, str(kind), at, building)
+    }
+    chosen = _Selection(conn, at, current)
+    conflicts: list[str] = []
+    years = sorted(_anchors(conn, "year", at, building), key=lambda item: (int(item[0]), item[0]))
+    for year, identifier in years:
+        if not chosen.attempt(identifier):
+            conflicts.append(year)
+    if years:
+        # Source events carry their listings' support, which history named
+        # as prerequisites; a year does not.
+        for kind in ("source_event", "dancer"):
+            for _, identifier in sorted(_anchors(conn, kind, at, building)):
+                chosen.attempt(identifier)
+    for year in conflicts:
+        inventory.append(
+            {
+                "stage": "project",
+                "unit_kind": "year",
+                "unit_id": year,
+                "status": "withheld",
+                "reason": "year_anchor_conflict",
+            }
+        )
+        for (event,) in conn.execute(
+            "SELECT event_id FROM events WHERE year=? ORDER BY event_id", (int(year),)
+        ):
+            if ("project", "event", str(event)) not in chosen.selected:
+                inventory.append(
+                    {
+                        "stage": "project",
+                        "unit_kind": "event",
+                        "unit_id": str(event),
+                        "status": "withheld",
+                        "reason": "year_anchor_conflict",
+                    }
+                )
+    # The year anchors name both sides of any atomic alias move. A link may
+    # not replace its pinned event, registry or association inputs.
     events = [key[2] for key in chosen.selected if key[:2] == ("project", "event")]
     for event in sorted(events):
         linked = False
         for (identifier,) in conn.execute(
             "SELECT generation_id FROM derivation_generations WHERE stage='link' AND unit_kind='event' AND unit_id=? AND julianday(created_at)<=julianday(?)"
-            + building
+            + unfinished_excluded(conn)
             + " ORDER BY julianday(created_at) DESC,rowid DESC",
             (event, at),
         ):
-            candidate = _Selection(conn, at)
-            candidate.selected = dict(chosen.selected)
-            candidate.identifiers = set(chosen.identifiers)
-            candidate.traversed = set(chosen.traversed)
-            candidate.continuity_sets = set(chosen.continuity_sets)
-            candidate.observations = dict(chosen.observations)
-            candidate.sources = set(chosen.sources)
-            try:
-                candidate.add(identifier)
-            except ClosureError:
-                continue
-            chosen = candidate
-            linked = True
-            break
+            if chosen.attempt(identifier):
+                linked = True
+                break
         if not linked:
             inventory.append(
                 {
@@ -220,10 +336,15 @@ def select(
             )
     selected_ids = {row["generation_id"] for row in chosen.selected.values()}
     inventory_keys = {_scope(item) for item in inventory}
+    from swingset.state.derivation_dependencies import RETIRED_KINDS
+
     for row in conn.execute(
         "SELECT stage,unit_kind,unit_id,materialized_generation_id FROM derivation_scopes WHERE stage IN ('project','link') ORDER BY stage,unit_kind,unit_id"
     ):
         key = str(row[0]), str(row[1]), str(row[2])
+        if key[:2] in RETIRED_KINDS:
+            # A retired scope (history/all) is neither selected nor withheld.
+            continue
         selected = chosen.selected.get(key)
         if selected:
             inventory.append(

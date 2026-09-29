@@ -1,0 +1,1377 @@
+{
+ "operation": "architecture phase 3 closing rehearsal (R0 to R12) of the final tree, after the second review's fixes, on APFS clones of the production copy, no network",
+ "actor": "claude (session claude-rearch)",
+ "at_utc": "2026-10-02T11:50:00Z",
+ "host": "Mac (15 cores, 48 GB), not the worker; project venv Python 3.12",
+ "source_copy": "~/swingset-offload/rehearsal/diag (production 2026-09-29 04:07 UTC, schema 32, 64.7 GB; blobs, extracts and candidates from 2026-09-25), never opened; clones diag-p3-A3 (phase 2 parent, drained, closure build) and diag-p3-B3 (A3 plus the final tree); both deleted",
+ "diag_unchanged": {
+  "state_sqlite_bytes": [
+   64718315520,
+   64718315520
+  ],
+  "state_sqlite_mtime_ns": [
+   1790654850554998303,
+   1790654850554998303
+  ],
+  "files": [
+   78194,
+   78194
+  ],
+  "listing_sha256": [
+   "222150cb62504032",
+   "222150cb62504032"
+  ]
+ },
+ "code": {
+  "parent": "9dacbb68 (phase 2) via git archive, the parent of both earlier rehearsals",
+  "tree": "working copy (phase 3 final, after the second review), src snapshot 2026-10-02 03:11 UTC; py sums 747c4226acf0562d, equal to the working copy at the end: src equal; config/sources.toml differs only in a comment another session added (D-0228)",
+  "harness_sha256": {
+   "h3.py": "13295ad2f3d1fa4c",
+   "rmisc.py": "91d1c07e122e0e42",
+   "r67.py": "49e1cfa4f15aae27",
+   "dump.py": "e7976ee6807b3975",
+   "cmpdump.py": "3dcd3ae0065d9fba",
+   "seqA3.sh": "09b77258aaf6faf0",
+   "seqB3.sh": "3c2527419138982c"
+  },
+  "command": "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=<tree>/src .venv/bin/python <script> <cmd> <clone> <out.json> [args] under /usr/bin/time -l"
+ },
+ "network": "none: socket connect refused for AF_INET; httpx.MockTransport answering 304 to conditional requests and 404 otherwise; R6 and R7 serve one modified body",
+ "caveats": [
+  "The Mac interpreter re-queues every parse on A3's accept (I9): 36,264 parse units stay pending and are not run. Drains run project and link units with inventory pacing off. R6, R7 and R10 run only their own parse with acquisition backpressure off.",
+  "Timings and memory are lower bounds for the worker.",
+  "R5 corrupts one event generation directly (a derive with unchanged inputs refuses new output) and re-runs that event's link, as derive would, since partitions build only from current units."
+ ],
+ "a_parent": {
+  "migrate_32_to_34_seconds": 339.2,
+  "accept_seconds": 15.7,
+  "accept_enqueued": {
+   "link/event": 2934,
+   "parse/snapshot": 36261,
+   "project/calendar": 2,
+   "project/dancer": 29117,
+   "project/event": 2934,
+   "project/history": 1,
+   "project/inventory": 1,
+   "project/map": 1,
+   "project/source_event": 470,
+   "project/source_index": 384
+  },
+  "drain_seconds": 14304.9,
+  "drain_delta": {
+   "generations": {
+    "link/event": 2934,
+    "project/history": 1
+   },
+   "equivalences": {
+    "project/calendar": 2,
+    "project/dancer": 29117,
+    "project/event": 2934,
+    "project/inventory": 1,
+    "project/map": 1,
+    "project/source_event": 470,
+    "project/source_index": 384
+   },
+   "scopes": {}
+  },
+  "drain_growth_bytes": 666382336,
+  "closure_build": {
+   "candidate": "cand_dc06865f7c054997",
+   "error": null,
+   "seconds": 579.9,
+   "peak_rss_bytes": 7656308736,
+   "growth_bytes": 266059776,
+   "partitions": null,
+   "verdict": null,
+   "time_peak_rss_bytes": 7656308736
+  }
+ },
+ "r0_migration_35": {
+  "open_migrate_seconds": 152.0,
+  "foreign_key_check_seconds": 158.6,
+  "violations": 0,
+  "growth_bytes": 69632,
+  "schema": [
+   34,
+   35
+  ],
+  "parent_refuses": "RuntimeError: database schema 35 is newer than supported 34",
+  "reopen_seconds": 0.0
+ },
+ "r1_accept": {
+  "seconds": 9.4,
+  "changed": [
+   "config/sources.toml",
+   "overrides/release_decreases.csv",
+   "recipe/code/build",
+   "recipe/code/link",
+   "recipe/code/project/calendar",
+   "recipe/code/project/dancer",
+   "recipe/code/project/event",
+   "recipe/code/project/history",
+   "recipe/code/project/inventory",
+   "recipe/code/project/map",
+   "recipe/code/project/mapping",
+   "recipe/code/project/resolution",
+   "recipe/code/project/source_event",
+   "recipe/code/project/source_index",
+   "recipe/code/project/year",
+   "version/repository"
+  ],
+  "enqueued": {
+   "link/event": 2934,
+   "project/calendar": 2,
+   "project/dancer": 29117,
+   "project/event": 2934,
+   "project/inventory": 1,
+   "project/mapping": 3,
+   "project/resolution": 413,
+   "project/source_event": 470,
+   "project/source_index": 384,
+   "project/year": 21
+  }
+ },
+ "r2_switch_drain": {
+  "seconds": 8223.4,
+  "ticks": 9,
+  "delta": {
+   "generations": {
+    "project/inventory": 1,
+    "project/mapping": 3,
+    "project/resolution": 413,
+    "project/year": 21
+   },
+   "equivalences": {
+    "link/event": 2939,
+    "project/calendar": 2,
+    "project/dancer": 29117,
+    "project/event": 2934,
+    "project/source_event": 470,
+    "project/source_index": 384
+   },
+   "scopes": {}
+  },
+  "growth_bytes": 308953088,
+  "dbstat_top": {
+   "derivation_dependency_sets": 81051648,
+   "derivation_reads_key": 40173568,
+   "derivation_reads": 38760448,
+   "derivation_row_refs": 38408192,
+   "derivation_row_refs_payload": 15507456,
+   "derivation_equivalences": 13496320,
+   "work_attempts": 10113024,
+   "derivation_equivalences_generation": 3072000
+  },
+  "pending_after": {
+   "parse/snapshot": 36264
+  },
+  "unit_failures": 0,
+  "peak_rss_bytes": 2470739968,
+  "ready": {
+   "links": 2934,
+   "ready": 2934,
+   "ready_seconds": 10.24,
+   "current": 2934,
+   "current_seconds": 5.17
+  },
+  "parity_with_a": {
+   "source_event_map": {
+    "a": 413,
+    "b": 413,
+    "only_a": 0,
+    "only_b": 0,
+    "differ": 0,
+    "columns_differing": {}
+   },
+   "events": {
+    "a": 2933,
+    "b": 2933,
+    "only_a": 0,
+    "only_b": 0,
+    "differ": 1,
+    "columns_differing": {
+     "history_source": 1,
+     "sources": 1
+    }
+   },
+   "registry_placements": {
+    "a": 198398,
+    "b": 198398,
+    "only_a": 0,
+    "only_b": 0,
+    "differ": 0,
+    "columns_differing": {}
+   },
+   "coverage": {
+    "a": 63,
+    "b": 63,
+    "only_a": 0,
+    "only_b": 0,
+    "differ": 0,
+    "columns_differing": {}
+   },
+   "placements": {
+    "a": 35979,
+    "b": 35979,
+    "only_a": 0,
+    "only_b": 0,
+    "differ": 0,
+    "columns_differing": {}
+   },
+   "identity_links": {
+    "a": 191142,
+    "b": 191142,
+    "only_a": 0,
+    "only_b": 0,
+    "differ": 0,
+    "columns_differing": {}
+   },
+   "findings": {
+    "a": 76,
+    "b": 76,
+    "only_a": 0,
+    "only_b": 0,
+    "differ": 0,
+    "columns_differing": {}
+   }
+  }
+ },
+ "r3_partitioned_build": {
+  "cold": {
+   "candidate": "cand_50409e163da44975",
+   "error": null,
+   "seconds": 473.8,
+   "peak_rss_bytes": 2426847232,
+   "growth_bytes": 4247552,
+   "partitions": {
+    "path": "partitioned",
+    "manifest_digest": "785231eddb16d568",
+    "manifest_bytes": 282606,
+    "partitions": 3012,
+    "built": 1880,
+    "withheld": 1132,
+    "withheld_by_reason": {
+     "source_support_unavailable": 1132
+    },
+    "multi_event": 0,
+    "rebuilt": 3012,
+    "reused": 0,
+    "artifacts_bytes": 73515056,
+    "seconds": 196.517,
+    "assembly": "streamed",
+    "assembly_seconds": 272.839
+   },
+   "verdict": {
+    "state": "refused",
+    "reasons": [
+     "decrease:events 2105->1801"
+    ]
+   },
+   "time_peak_rss_bytes": 2426847232
+  },
+  "second": {
+   "candidate": "cand_50409e163da44975",
+   "error": null,
+   "seconds": 35.1,
+   "peak_rss_bytes": 320651264,
+   "growth_bytes": 0,
+   "partitions": {
+    "path": "partitioned",
+    "manifest_digest": "785231eddb16d568",
+    "manifest_bytes": 282606,
+    "partitions": 3012,
+    "built": 1880,
+    "withheld": 1132,
+    "withheld_by_reason": {
+     "source_support_unavailable": 1132
+    },
+    "multi_event": 0,
+    "rebuilt": 0,
+    "reused": 3012,
+    "artifacts_bytes": 73515056,
+    "seconds": 33.781
+   },
+   "verdict": {
+    "state": "refused",
+    "reasons": [
+     "decrease:events 2105->1801"
+    ]
+   },
+   "time_peak_rss_bytes": 320651264
+  }
+ },
+ "r3d_damaged_artifact": {
+  "damaged": {
+   "partition": "event/2011-05-swingdiego",
+   "artifact": "35ad249d514a3978c9c8f05b3c6f0c833889056098bb5f166ce49a3989a7ff73",
+   "file": "events.parquet",
+   "intact_after_damage": false
+  },
+  "after": {
+   "state": "built",
+   "same_digest": true,
+   "intact": true
+  },
+  "build": {
+   "candidate": "cand_50409e163da44975",
+   "error": null,
+   "seconds": 46.6,
+   "peak_rss_bytes": 384679936,
+   "growth_bytes": 4096,
+   "partitions": {
+    "path": "partitioned",
+    "manifest_digest": "785231eddb16d568",
+    "manifest_bytes": 282606,
+    "partitions": 3012,
+    "built": 1880,
+    "withheld": 1132,
+    "withheld_by_reason": {
+     "source_support_unavailable": 1132
+    },
+    "multi_event": 0,
+    "rebuilt": 1,
+    "reused": 3011,
+    "artifacts_bytes": 73515056,
+    "seconds": 45.482
+   },
+   "verdict": {
+    "state": "refused",
+    "reasons": [
+     "decrease:events 2105->1801"
+    ]
+   }
+  }
+ },
+ "r4": {
+  "whole": {
+   "candidate": "cand_8b24028e1e594c30",
+   "error": null,
+   "seconds": 278.5,
+   "peak_rss_bytes": 4529569792,
+   "growth_bytes": 4096,
+   "partitions": {
+    "path": "whole",
+    "manifest_digest": "785231eddb16d568",
+    "manifest_bytes": 282606,
+    "partitions": 3012,
+    "built": 1880,
+    "withheld": 1132,
+    "withheld_by_reason": {
+     "source_support_unavailable": 1132
+    },
+    "multi_event": 0,
+    "rebuilt": 0,
+    "reused": 3012,
+    "artifacts_bytes": 73515056,
+    "seconds": 29.297
+   },
+   "verdict": {
+    "state": "refused",
+    "reasons": [
+     "decrease:events 2105->1801"
+    ]
+   },
+   "time_peak_rss_bytes": 4529569792
+  },
+  "closure_a_vs_partitioned_b": {
+   "changelog": {
+    "rows": [
+     22119392,
+     22092014
+    ],
+    "added": 2959082,
+    "removed": 2986460,
+    "changed": 0,
+    "changed_columns": null
+   },
+   "contests": {
+    "rows": [
+     2990,
+     2990
+    ],
+    "added": 0,
+    "removed": 0,
+    "changed": 379,
+    "changed_columns": {
+     "scope_status": 379
+    }
+   },
+   "coverage": {
+    "rows": [
+     4770,
+     4770
+    ],
+    "added": 0,
+    "removed": 0,
+    "changed": 4770,
+    "changed_columns": {
+     "last_changed_at": 4230,
+     "scope_status": 22,
+     "scope_reasons": 288,
+     "acquired_units": 151,
+     "interpreted_units": 145,
+     "mapped_units": 142,
+     "unassessed_units": 128,
+     "acquisition_denominator": 3,
+     "interpretation_denominator": 154,
+     "mapping_denominator": 145,
+     "evidence_cutoff": 4770,
+     "usable_verified_at": 477,
+     "enumeration_id": 3,
+     "enumeration_snapshot_ids": 3,
+     "enumeration_complete": 3,
+     "listed_pages": 3,
+     "acquisition_unknown_pages": 3,
+     "interpretation_unknown_pages": 3,
+     "selected_interpreted_pages": 21,
+     "represented_pages": 19
+    }
+   },
+   "entries": {
+    "rows": [
+     107012,
+     107012
+    ],
+    "added": 0,
+    "removed": 0,
+    "changed": 7796,
+    "changed_columns": {
+     "scope_status": 7796
+    }
+   },
+   "events": {
+    "rows": [
+     1801,
+     1801
+    ],
+    "added": 0,
+    "removed": 0,
+    "changed": 4,
+    "changed_columns": {
+     "scope_status": 4
+    }
+   },
+   "identity_links": {
+    "rows": [
+     113300,
+     113248
+    ],
+    "added": 0,
+    "removed": 52,
+    "changed": 0,
+    "changed_columns": null
+   },
+   "judges": {
+    "rows": [
+     6288,
+     6288
+    ],
+    "added": 0,
+    "removed": 0,
+    "changed": 223,
+    "changed_columns": {
+     "scope_status": 223
+    }
+   },
+   "placements": {
+    "rows": [
+     22427,
+     22427
+    ],
+    "added": 0,
+    "removed": 0,
+    "changed": 2636,
+    "changed_columns": {
+     "scope_status": 2636
+    }
+   },
+   "rounds": {
+    "rows": [
+     4755,
+     4755
+    ],
+    "added": 0,
+    "removed": 0,
+    "changed": 559,
+    "changed_columns": {
+     "scope_status": 559
+    }
+   },
+   "snapshots": {
+    "rows": [
+     35723,
+     30948
+    ],
+    "added": 0,
+    "removed": 4775,
+    "changed": 0,
+    "changed_columns": null
+   }
+  },
+  "whole_vs_partitioned": {
+   "changelog": {
+    "rows": [
+     22092014,
+     22092014
+    ],
+    "added": 2959082,
+    "removed": 2959082,
+    "changed": 0,
+    "changed_columns": null
+   },
+   "coverage": {
+    "rows": [
+     4770,
+     4770
+    ],
+    "added": 0,
+    "removed": 0,
+    "changed": 4770,
+    "changed_columns": {
+     "last_changed_at": 4230,
+     "evidence_cutoff": 4770,
+     "usable_verified_at": 477
+    }
+   }
+  }
+ },
+ "r5_corrupt_event": {
+  "event": "2019-06-neverlandswing",
+  "changed_row": {
+   "key": "[\"2019-06-neverlandswing/advanced-jj/final/place-2\"]",
+   "place": [
+    2,
+    1
+   ]
+  },
+  "current_after_inject": {
+   "event": false,
+   "link": false
+  },
+  "link_ticks": [
+   {
+    "completed": 0,
+    "seconds": 23.0,
+    "unit_failures": 0
+   }
+  ],
+  "current_before_build": {
+   "event": false,
+   "link": false
+  },
+  "kept_build": {
+   "candidate": "cand_74ba28401c06478a",
+   "error": null,
+   "seconds": 344.5,
+   "peak_rss_bytes": 2405875712,
+   "growth_bytes": 20480,
+   "partitions": {
+    "path": "partitioned",
+    "manifest_digest": "2997ce65fc28f497",
+    "manifest_bytes": 282606,
+    "partitions": 3012,
+    "built": 1880,
+    "withheld": 1132,
+    "withheld_by_reason": {
+     "source_support_unavailable": 1132
+    },
+    "multi_event": 0,
+    "rebuilt": 15,
+    "reused": 2997,
+    "artifacts_bytes": 75304394,
+    "seconds": 78.78,
+    "assembly": "streamed",
+    "assembly_seconds": 260.784
+   },
+   "verdict": {
+    "state": "refused",
+    "reasons": [
+     "decrease:events 2105->1801"
+    ]
+   }
+  },
+  "kept_partition": {
+   "state": "built",
+   "reason": null,
+   "kept_not_current_since": "2026-10-02T11:03:42.163025+00:00"
+  },
+  "final_partition_after_link": {
+   "state": "built",
+   "reason": null,
+   "kept_not_current_since": "2026-10-02T11:03:42.163025+00:00"
+  },
+  "partitions_total": 3012,
+  "partitioned_after_link_run": {
+   "candidate": "cand_74ba28401c06478a",
+   "error": null,
+   "seconds": 36.1,
+   "peak_rss_bytes": 2405875712,
+   "growth_bytes": 0,
+   "partitions": {
+    "path": "partitioned",
+    "manifest_digest": "2997ce65fc28f497",
+    "manifest_bytes": 282606,
+    "partitions": 3012,
+    "built": 1880,
+    "withheld": 1132,
+    "withheld_by_reason": {
+     "source_support_unavailable": 1132
+    },
+    "multi_event": 0,
+    "rebuilt": 0,
+    "reused": 3012,
+    "artifacts_bytes": 75304394,
+    "seconds": 32.907
+   },
+   "verdict": {
+    "state": "refused",
+    "reasons": [
+     "decrease:events 2105->1801"
+    ]
+   }
+  },
+  "closure": {
+   "candidate": "cand_e2ad87a111964af4",
+   "error": null,
+   "seconds": 287.8,
+   "peak_rss_bytes": 4938809344,
+   "growth_bytes": 194949120,
+   "partitions": null,
+   "verdict": {
+    "state": "refused",
+    "reasons": [
+     "decrease:events 2105->0",
+     "decrease:contests 2005->0",
+     "decrease:rounds 2934->0",
+     "decrease:entries 58558->0",
+     "decrease:judges 2818->0",
+     "decrease:callback_marks 288502->0",
+     "decrease:callbacks 59064->0",
+     "decrease:final_marks 83355->0",
+     "decrease:placements 14115->0",
+     "decrease:events_with_placements 107->0"
+    ]
+   }
+  }
+ },
+ "r5_current_corrupt_event": {
+  "how": "the corrupt generation copied under the unit's desired fingerprint (generations are immutable), the pointer moved to it, the link re-run over it",
+  "current_after_fix": {
+   "event": true,
+   "link": false
+  },
+  "current_before_build": {
+   "event": true,
+   "link": true
+  },
+  "partitions_changed": {
+   "event/2019-06-neverlandswing": [
+    "withheld",
+    "invalid_placements",
+    "{\"message\": \"placements are not contiguous and unique for 2019-06-neverlandswing/advanced-jj/final\"}",
+    null
+   ]
+  },
+  "partitions_total": 3012,
+  "partitioned": {
+   "candidate": "cand_e859a840090f4981",
+   "error": null,
+   "seconds": 307.4,
+   "peak_rss_bytes": 2454994944,
+   "growth_bytes": 12288,
+   "partitions": {
+    "path": "partitioned",
+    "manifest_digest": "76fe169d439c9a35",
+    "manifest_bytes": 282560,
+    "partitions": 3012,
+    "built": 1879,
+    "withheld": 1133,
+    "withheld_by_reason": {
+     "invalid_placements": 1,
+     "source_support_unavailable": 1132
+    },
+    "multi_event": 0,
+    "rebuilt": 1,
+    "reused": 3011,
+    "artifacts_bytes": 75304394,
+    "seconds": 57.505,
+    "assembly": "streamed",
+    "assembly_seconds": 245.852
+   },
+   "verdict": {
+    "state": "refused",
+    "reasons": [
+     "decrease:events 2105->1800"
+    ]
+   }
+  },
+  "closure": {
+   "candidate": "cand_86aa54e670944405",
+   "error": null,
+   "seconds": 290.8,
+   "peak_rss_bytes": 5279055872,
+   "growth_bytes": 194957312,
+   "partitions": null,
+   "verdict": {
+    "state": "refused",
+    "reasons": [
+     "decrease:events 2105->0",
+     "decrease:contests 2005->0",
+     "decrease:rounds 2934->0",
+     "decrease:entries 58558->0",
+     "decrease:judges 2818->0",
+     "decrease:callback_marks 288502->0",
+     "decrease:callbacks 59064->0",
+     "decrease:final_marks 83355->0",
+     "decrease:placements 14115->0",
+     "decrease:events_with_placements 107->0"
+    ]
+   }
+  }
+ },
+ "r6_one_sheet": {
+  "change": {
+   "event": "2026-08-bristol-swing-fiesta",
+   "what": "judge Aggie Town: 1st couple 2->3, 2nd couple 3->2"
+  },
+  "readers_of_dancer": null,
+  "fetch": {
+   "changed": true,
+   "outcome": "Ok",
+   "seconds": 10.6
+  },
+  "units": {
+   "link/event": 1,
+   "parse/snapshot": 1,
+   "project/event": 1,
+   "project/source_event": 1,
+   "project/year": 1
+  },
+  "new_generations": {
+   "link/event": 1,
+   "project/event": 1
+  },
+  "new_equivalences": {
+   "project/source_event": 1,
+   "project/year": 1
+  },
+  "derive_wall_seconds": 779.9,
+  "unit_seconds_total": 8.1,
+  "unit_seconds_max": [
+   [
+    "link/event/2026-08-bristol-swing-fiesta",
+    3.6
+   ],
+   [
+    "project/year/2026",
+    3.0
+   ],
+   [
+    "project/event/2026-08-bristol-swing-fiesta",
+    1.2
+   ]
+  ],
+  "growth_bytes": 3747840,
+  "pending_project_link_after": 0,
+  "rebuilt_partitions": [
+   "event/2026-08-bristol-swing-fiesta:withheld:source_support_unavailable"
+  ],
+  "build": {
+   "candidate": "cand_ae94304872cc4280",
+   "error": null,
+   "seconds": 68.9,
+   "peak_rss_bytes": 2198011904,
+   "growth_bytes": 0,
+   "partitions": {
+    "path": "partitioned",
+    "manifest_digest": "785231eddb16d568",
+    "manifest_bytes": 282606,
+    "partitions": 3012,
+    "built": 1880,
+    "withheld": 1132,
+    "withheld_by_reason": {
+     "source_support_unavailable": 1132
+    },
+    "multi_event": 0,
+    "rebuilt": 1,
+    "reused": 3011,
+    "artifacts_bytes": 73515056,
+    "seconds": 67.392
+   },
+   "verdict": {
+    "state": "refused",
+    "reasons": [
+     "decrease:events 2105->1801"
+    ]
+   }
+  },
+  "early_partition": {
+   "state": "withheld",
+   "reason": "source_support_unavailable",
+   "kept_not_current_since": null
+  },
+  "early_build": {
+   "candidate": "cand_ae94304872cc4280",
+   "error": null,
+   "seconds": 414.4,
+   "peak_rss_bytes": 2198011904,
+   "growth_bytes": 4096,
+   "partitions": {
+    "path": "partitioned",
+    "manifest_digest": "785231eddb16d568",
+    "manifest_bytes": 282606,
+    "partitions": 3012,
+    "built": 1880,
+    "withheld": 1132,
+    "withheld_by_reason": {
+     "source_support_unavailable": 1132
+    },
+    "multi_event": 0,
+    "rebuilt": 0,
+    "reused": 3012,
+    "artifacts_bytes": 73515056,
+    "seconds": 61.233,
+    "assembly": "streamed",
+    "assembly_seconds": 348.389
+   },
+   "verdict": {
+    "state": "refused",
+    "reasons": [
+     "decrease:events 2105->1801"
+    ]
+   }
+  },
+  "final_partition": {
+   "state": "withheld",
+   "reason": "source_support_unavailable",
+   "kept_not_current_since": null
+  }
+ },
+ "r7_dancer": {
+  "change": {
+   "wsdc_id": 10258,
+   "role": "leader",
+   "division": "INT",
+   "event": {
+    "id": 42,
+    "name": "Floorplay New Years Swing Vacation",
+    "location": "Orlando, Florida, United States",
+    "url": "http://www.floorplayswingvacation.com",
+    "date": "January 2017"
+   },
+   "points": [
+    8,
+    9
+   ]
+  },
+  "readers_of_dancer": 40,
+  "fetch": {
+   "changed": true,
+   "outcome": "Ok",
+   "seconds": 10.6
+  },
+  "units": {
+   "link/event": 79,
+   "parse/snapshot": 1,
+   "project/dancer": 1,
+   "project/inventory": 1,
+   "project/year": 13
+  },
+  "new_generations": {
+   "project/dancer": 1
+  },
+  "new_equivalences": {
+   "link/event": 79,
+   "project/inventory": 1,
+   "project/year": 13
+  },
+  "derive_wall_seconds": 347.5,
+  "unit_seconds_total": 120.8,
+  "unit_seconds_max": [
+   [
+    "project/inventory/all",
+    12.9
+   ],
+   [
+    "link/event/2024-08-swingtime-denver",
+    3.7
+   ],
+   [
+    "project/year/2025",
+    3.1
+   ]
+  ],
+  "growth_bytes": 14643200,
+  "pending_project_link_after": 0,
+  "rebuilt_partitions": [
+   "dancers/20:built:"
+  ],
+  "build": {
+   "candidate": "cand_c9aad014c6af4921",
+   "error": null,
+   "seconds": 298.5,
+   "peak_rss_bytes": 2472148992,
+   "growth_bytes": 20480,
+   "partitions": {
+    "path": "partitioned",
+    "manifest_digest": "f728dde6878837c5",
+    "manifest_bytes": 282606,
+    "partitions": 3012,
+    "built": 1880,
+    "withheld": 1132,
+    "withheld_by_reason": {
+     "source_support_unavailable": 1132
+    },
+    "multi_event": 0,
+    "rebuilt": 1,
+    "reused": 3011,
+    "artifacts_bytes": 74057068,
+    "seconds": 48.238,
+    "assembly": "streamed",
+    "assembly_seconds": 247.398
+   },
+   "verdict": {
+    "state": "refused",
+    "reasons": [
+     "decrease:events 2105->1801"
+    ]
+   }
+  }
+ },
+ "r7_name": {
+  "change": {
+   "wsdc_id": 10039,
+   "first_name": [
+    "Jennifer",
+    "Zebulon"
+   ]
+  },
+  "readers_of_dancer": 14,
+  "attempts": {
+   "parse/snapshot": 1,
+   "project/dancer": 1
+  },
+  "pool_bumped_events": 14,
+  "links_queued": 33,
+  "links_queued_readers": 14,
+  "links_queued_by_probe_only": 19,
+  "pending_project_after": {
+   "link/event": 33,
+   "project/year": 11
+  }
+ },
+ "r7_name_rest_drain": {
+  "seconds": 288.2,
+  "delta": {
+   "generations": {
+    "link/event": 14
+   },
+   "equivalences": {
+    "link/event": 19,
+    "project/inventory": 1,
+    "project/year": 11
+   },
+   "scopes": {}
+  },
+  "growth_bytes": 30740480
+ },
+ "r8_gate": {
+  "verdict": {
+   "state": "refused",
+   "reasons": [
+    "decrease:events 2105->1801"
+   ],
+   "exempt": null,
+   "baseline_commit": "138352ef5e9ec25e12b60dc6acb85db808c5e77f",
+   "decreases": [
+    {
+     "baseline": 2105,
+     "candidate": 1801,
+     "measure": "events",
+     "override": false
+    }
+   ],
+   "overrides_used": 0,
+   "measures": {
+    "callback_marks": [
+     288502,
+     545374
+    ],
+    "callbacks": [
+     59064,
+     112727
+    ],
+    "confirmed_links": [
+     0,
+     0
+    ],
+    "contests": [
+     2005,
+     2990
+    ],
+    "dancers": [
+     27784,
+     27871
+    ],
+    "entries": [
+     58558,
+     107012
+    ],
+    "events": [
+     2105,
+     1801
+    ],
+    "events_with_placements": [
+     107,
+     223
+    ],
+    "final_marks": [
+     83355,
+     133013
+    ],
+    "heats": [
+     0,
+     0
+    ],
+    "judges": [
+     2818,
+     6288
+    ],
+    "linked_entries": [
+     0,
+     0
+    ],
+    "linked_judges": [
+     0,
+     0
+    ],
+    "placements": [
+     14115,
+     22427
+    ],
+    "registry_placements": [
+     197990,
+     198398
+    ],
+    "rounds": [
+     2934,
+     4755
+    ]
+   }
+  },
+  "baseline_with_approval": {
+   "state": "pass",
+   "overrides_used": 1
+  },
+  "event": "2024-10-milan-modern-swing",
+  "rows_removed": {
+   "contests": 10,
+   "coverage": 1,
+   "entries": 561,
+   "events": 1,
+   "judges": 28,
+   "placements": 22,
+   "registry_placements": 142
+  },
+  "measures_changed": {
+   "events": [
+    1801,
+    1800
+   ],
+   "contests": [
+    2990,
+    2980
+   ],
+   "entries": [
+    107012,
+    106451
+   ],
+   "judges": [
+    6288,
+    6260
+   ],
+   "placements": [
+    22427,
+    22405
+   ],
+   "registry_placements": [
+    198398,
+    198256
+   ],
+   "events_with_placements": [
+    223,
+    222
+   ]
+  },
+  "removed_event_verdict": {
+   "state": "refused",
+   "reasons": [
+    "decrease:events 1801->1800",
+    "decrease:contests 2990->2980",
+    "decrease:entries 107012->106451",
+    "decrease:judges 6288->6260",
+    "decrease:placements 22427->22405",
+    "decrease:registry_placements 198398->198256",
+    "decrease:events_with_placements 223->222"
+   ]
+  },
+  "with_overrides_verdict": {
+   "state": "pass",
+   "overrides_used": 7
+  },
+  "inexact_override_verdict": {
+   "state": "pass",
+   "reasons": []
+  }
+ },
+ "r8b_confirmed_links": {
+  "confirmed": [
+   500,
+   0
+  ],
+  "refused": {
+   "state": "refused",
+   "reasons": [
+    "decrease:confirmed_links 500->0"
+   ]
+  },
+  "floor_at_candidate": {
+   "state": "pass",
+   "reasons": []
+  },
+  "floor_above_candidate": {
+   "state": "refused",
+   "reasons": [
+    "decrease:confirmed_links 500->0"
+   ]
+  }
+ },
+ "r9_narrow_fence": {
+  "derive_tick": {
+   "completed": 286,
+   "seconds": 124.0,
+   "skipped": null,
+   "failed": false
+  },
+  "acquire_tick": {
+   "seconds": 2.0,
+   "skipped": null,
+   "failed": false,
+   "progress": 0,
+   "counters": {
+    "index_pages": 0,
+    "progress": 0,
+    "requests": 0
+   },
+   "requests": 0
+  },
+  "admission_state": "active",
+  "writes_under_fence": {
+   "meta input_bundle_hash": "active publication fences semantic writes",
+   "release_manifests insert": "active publication fences semantic writes",
+   "loop_state update (not fenced)": "passed"
+  },
+  "plan_acquire_backpressure_off": {
+   "plan": {
+    "seconds": 59.4,
+    "skipped": null,
+    "failed": false,
+    "progress": 6426,
+    "counters": {
+     "progress": 6426
+    }
+   },
+   "acquire": {
+    "seconds": 105.5,
+    "skipped": null,
+    "failed": false,
+    "progress": 39,
+    "counters": {
+     "index_pages": 0,
+     "progress": 39,
+     "requests": 39
+    }
+   },
+   "requests": {
+    "n": 41,
+    "conditional": 25,
+    "by_host": {
+     "eepro.com": 14,
+     "scoring.dance": 12,
+     "points.worldsdc.com": 12,
+     "scores.worlddanceregistry.com": 3
+    }
+   },
+   "admission_state": "active"
+  }
+ },
+ "r10_release_lag": {
+  "release_lag_without_skip": {
+   "since": "2026-09-29T11:25:11.950878+00:00",
+   "release_lag_intervals": 2,
+   "build_interval_seconds": 86400,
+   "engaged": false,
+   "cause": "release_not_ticking"
+  },
+  "release_lag": {
+   "since": "2026-09-29T11:25:11.950878+00:00",
+   "release_lag_intervals": 2,
+   "build_interval_seconds": 86400,
+   "engaged": true,
+   "cause": "heavy_busy"
+  },
+  "attempts": {
+   "parse/snapshot": 1
+  },
+  "pending_project_after": {
+   "project/dancer": 1
+  },
+  "guards": [
+   {
+    "subject": "loop:derive",
+    "reason": "release_lag",
+    "loop": "derive",
+    "since": "2026-10-02T11:25:16.105414Z",
+    "last_seen_at": "2026-10-02T11:25:56.678514Z",
+    "expires_at": "2026-10-02T12:25:16.105414Z",
+    "seen": 2
+   }
+  ],
+  "records": [
+   {
+    "build_interval_seconds": 86400,
+    "cause": "heavy_busy",
+    "engaged": true,
+    "release_lag_intervals": 2,
+    "since": "2026-09-29T11:25:11.950878+00:00"
+   },
+   {
+    "build_interval_seconds": 86400,
+    "cause": "heavy_busy",
+    "engaged": true,
+    "release_lag_intervals": 2,
+    "since": "2026-09-29T11:25:11.950878+00:00"
+   }
+  ]
+ },
+ "r11_verify": {
+  "links": {
+   "kinds": {
+    "link": {
+     "units": 2934,
+     "target": 30,
+     "verified": 30,
+     "matched": 30,
+     "not_current": 0,
+     "superseded": 0,
+     "failed": 0
+    }
+   },
+   "mismatches": [],
+   "failures": [],
+   "seconds": 19.945,
+   "complete": true,
+   "peak_rss_bytes": 188727296,
+   "longest_unit_seconds": 2.668
+  },
+  "years": {
+   "kinds": {
+    "year": {
+     "units": 21,
+     "target": 21,
+     "verified": 20,
+     "matched": 20,
+     "not_current": 1,
+     "superseded": 0,
+     "failed": 0
+    }
+   },
+   "mismatches": [],
+   "failures": [],
+   "seconds": 64.552,
+   "complete": false,
+   "peak_rss_bytes": 275595264,
+   "longest_unit_seconds": 3.323
+  },
+  "clean_seconds": 84.5,
+  "seeded": {
+   "link": "2025-07-saunaswing",
+   "wsdc_id": 26749,
+   "old_name": [
+    "Benoit",
+    "Esmein"
+   ],
+   "still_current": true
+  },
+  "seeded_run": {
+   "kinds": {
+    "link": {
+     "units": 2934,
+     "target": 30,
+     "verified": 30,
+     "matched": 29,
+     "not_current": 0,
+     "superseded": 0,
+     "failed": 0
+    }
+   },
+   "mismatches": [
+    [
+     "link/event/2025-07-saunaswing",
+     null
+    ]
+   ],
+   "failures": [],
+   "alerted": true,
+   "seconds": 20.1
+  },
+  "alerts_tail": [
+   "2026-10-02T11:27:41Z [read-set-miss] link/event/2025-07-saunaswing: pointer d890d922fa7c (1235 rows), re-derived 6b18b26be8d5 (1234 rows) (verify sample)"
+  ]
+ },
+ "r12_suites": {
+  "full": {
+   "passed": 3260,
+   "failed": 0,
+   "seconds": 1123
+  },
+  "core": {
+   "passed": 1736,
+   "failed": 0,
+   "seconds": 340
+  },
+  "ruff": "clean",
+  "mypy": "clean (266 files)",
+  "scope_guard": {
+   "changed_parse_or_extract_scopes": [],
+   "sizes": {
+    "project/calendar": 175,
+    "project/dancer": 175,
+    "project/event": 175,
+    "project/inventory": 175,
+    "project/mapping": 175,
+    "project/resolution": 175,
+    "project/source_event": 175,
+    "project/source_index": 175,
+    "project/year": 175,
+    "link": 175,
+    "build": 186
+   }
+  }
+ },
+ "end_state": {
+  "quick_check": [
+   "ok"
+  ],
+  "quick_check_seconds": 610.7,
+  "running_attempts": 0,
+  "active_admissions": {},
+  "building": 0
+ },
+ "withheld_missing_files": {
+  "snapshots_since_2026_09_25": 2466,
+  "naming_absent_body": 2167,
+  "events_withheld_for_it": 0,
+  "why": "no build step reads a body or extract; withholding comes from source support. 239 event partitions name such a snapshot: 56 withheld (legacy support, as in A3) and 183 built"
+ }
+}

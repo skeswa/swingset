@@ -17,6 +17,21 @@ from swingset.state.inputs import accept, capture
 from swingset.state.work import WorkUnit
 
 
+def build_context(db, result):
+    """The context of the build generation that completed ``result``.
+
+    A partitioned build names its release manifest and build trigger there
+    (D-0224); the closure path named its closure.
+    """
+    row = db.connection.execute(
+        "SELECT g.recipe_json FROM derivation_generations g JOIN derivation_rows r "
+        "ON r.generation_id=g.generation_id WHERE g.stage='build' AND r.table_name='artifact' "
+        "AND r.record_key=? ORDER BY g.created_at DESC LIMIT 1",
+        (result.candidate_id,),
+    ).fetchone()
+    return json.loads(row[0])["context"]
+
+
 @pytest.fixture
 def empty_release(tmp_path):
     overrides = tmp_path / "overrides"
@@ -62,37 +77,40 @@ def test_interrupted_completion_retains_files_without_false_materialization(
     result = service.build_release(db, bundle, clock, run)
     assert result.reused and result.path == candidates[0].parent
     assert generations.completed(db.connection, result.candidate_id, result.manifest_hash)
-    selection = generations.select(
-        db,
-        bundle_digest=bundle.digest,
-        correction_only=False,
-        closure=json.loads((result.path / "_meta/manifest.json").read_bytes())["release_policy"][
-            "closure"
-        ],
-    )
     assert derivations.current(
-        db.connection, WorkUnit("build", "release", "all"), context=selection.context
+        db.connection, WorkUnit("build", "release", "all"), context=build_context(db, result)
     )
 
 
 def test_new_inputs_reject_completed_old_build_files(empty_release, monkeypatch):
+    from swingset.build import assembly
+
     db, bundle, clock, run = empty_release
-    build = service.build_candidate
     retained = []
 
-    def changed_inputs(*args, **kwargs):
-        result = build(*args, **kwargs)
-        retained.append(result.path)
-        assert bundle.overrides_dir is not None
-        suppression = bundle.overrides_dir / "suppressions.csv"
-        suppression.write_text(
-            suppression.read_text() + "1,Material correction during build,2026-01-01\n"
-        )
-        replacement = capture(Path("config"), bundle.overrides_dir, db.state_dir, versions())
-        accept(db, replacement, clock)
-        return result
+    def changed_inputs(build):
+        def wrapped(*args, **kwargs):
+            result = build(*args, **kwargs)
+            retained.append(result.path)
+            assert bundle.overrides_dir is not None
+            suppression = bundle.overrides_dir / "suppressions.csv"
+            suppression.write_text(
+                suppression.read_text() + "1,Material correction during build,2026-01-01\n"
+            )
+            replacement = capture(Path("config"), bundle.overrides_dir, db.state_dir, versions())
+            accept(db, replacement, clock)
+            return result
 
-    monkeypatch.setattr(service, "build_candidate", changed_inputs)
+        return wrapped
+
+    # The whole assembly writes through `build_candidate`; the streamed one
+    # through `build_streamed_candidate`.
+    monkeypatch.setattr(service, "build_candidate", changed_inputs(service.build_candidate))
+    monkeypatch.setattr(
+        assembly,
+        "build_streamed_candidate",
+        changed_inputs(assembly.build_streamed_candidate),
+    )
     with pytest.raises(BuildError, match="input bundle changed"):
         service.build_release(db, bundle, clock, run)
     assert (retained[0] / "BUILT").is_file()
@@ -108,21 +126,14 @@ def test_new_inputs_reject_completed_old_build_files(empty_release, monkeypatch)
 def test_missing_candidate_body_is_not_current_even_with_intact_manifest(empty_release):
     db, bundle, clock, run = empty_release
     result = service.build_release(db, bundle, clock, run)
-    selection = generations.select(
-        db,
-        bundle_digest=bundle.digest,
-        correction_only=False,
-        closure=json.loads((result.path / "_meta/manifest.json").read_bytes())["release_policy"][
-            "closure"
-        ],
-    )
+    context = build_context(db, result)
     unit = WorkUnit("build", "release", "all")
-    assert derivations.current(db.connection, unit, context=selection.context)
+    assert derivations.current(db.connection, unit, context=context)
     next((result.path / "data").rglob("*.parquet")).unlink()
     assert (result.path / "BUILT").is_file() and (result.path / "_meta/manifest.json").is_file()
-    assert not derivations.current(db.connection, unit, context=selection.context)
+    assert not derivations.current(db.connection, unit, context=context)
     recovered = service.build_release(db, bundle, clock, run)
     assert recovered.path != result.path and not recovered.reused
     assert recovered.content_hash == result.content_hash
     assert (result.path / "REJECTED").is_file()
-    assert derivations.current(db.connection, unit, context=selection.context)
+    assert derivations.current(db.connection, unit, context=context)

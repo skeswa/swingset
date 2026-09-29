@@ -1,0 +1,73 @@
+{
+  "operation": "pace the inventory weekly until phase 3 partitions (D-0228)",
+  "actor": "claude (session claude-rearch)",
+  "decision": "D-0228",
+  "change": "inventory_interval_seconds 172800 -> 604800 (config only); history_interval_seconds stays 172800",
+  "preflight": {
+    "at_utc": "2026-10-02T04:25:37Z",
+    "system": "/nix/store/lz85w8kjml4m7zhi1xhylnm36cdbvlh2-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+    "database_bytes": 70990614528,
+    "cap": "72 GB (D-0220)",
+    "inventory_generations_utc": [
+      "2026-10-02T00:05:50Z",
+      "2026-10-01T23:42:29Z",
+      "2026-09-29T19:47:46Z",
+      "2026-09-29T01:03:19Z"
+    ],
+    "derivation_generations_since_hotfix_switch": {
+      "link/event": 2934,
+      "project/event": 2999,
+      "project/source_event": 523,
+      "project/source_index": 386,
+      "project/dancer": 114,
+      "project/inventory": 2,
+      "project/map": 2,
+      "project/history": 1,
+      "project/calendar": 1
+    },
+    "snapshots_since_hotfix_switch": 179,
+    "last_snapshot_utc": "2026-10-02T04:23:39Z",
+    "operator_pauses": 0
+  },
+  "switch": {
+    "deploy_tree": "/private/tmp/swingset-c025 = c024 with the one inventory_interval_seconds line",
+    "hold": "operator-hold written, cycle timer and service stopped, hold removed after the switch",
+    "window_utc": [
+      "2026-10-02T04:26:27Z",
+      "2026-10-02T04:26:39Z"
+    ],
+    "system_before": "/nix/store/lz85w8kjml4m7zhi1xhylnm36cdbvlh2-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+    "system_after": "/nix/store/y30igi04k31rjyvs8zwz0qi4ng5ixc40-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+    "deployed_config_line": "inventory_interval_seconds = 604800",
+    "rollback": "switch to system_before; schema unchanged at 33"
+  },
+  "postcheck": {
+    "at_utc": "2026-10-02T04:39:19Z",
+    "first_cycle": "run_20261002T043119Z, started 04:31:19Z, running, no error",
+    "scheduler_requests_since_switch": {
+      "eepro.com": 1,
+      "points.worldsdc.com": 29,
+      "scoring.dance": 29,
+      "web.archive.org": 1
+    },
+    "first_request_utc": "2026-10-02T04:32:50Z",
+    "request_categories_first_37_min": {
+      "points.worldsdc.com": "identity 14, new 2",
+      "scoring.dance": "old 16",
+      "eepro.com": "current 1"
+    },
+    "snapshots_since_switch": {
+      "count": 2,
+      "first_utc": "2026-10-02T04:37:54Z",
+      "last_utc": "2026-10-02T04:38:01Z"
+    },
+    "registry_verifications_since_switch": {
+      "found": 16,
+      "last_utc": "2026-10-02T04:37:48Z"
+    },
+    "inventory_generations_since_switch": 0,
+    "operator_pauses": 0,
+    "database_bytes": 70992551936,
+    "next_inventory_due_utc": "about 2026-10-09T00:05Z"
+  }
+}

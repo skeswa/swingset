@@ -1350,3 +1350,37 @@ def test_a_requirement_finding_relies_on_the_snapshot_pin_and_not_a_declaration(
         # The snapshot is what keeps the file, and the plan says so.
         assert blob.resolve() in retention.artifact_closure(state, conn, set())
         assert planned(database, recent_window=1)["unknown"]["undeclared_files"] == []
+
+
+def test_a_partitioned_release_keeps_what_its_artifacts_were_built_from(
+    tmp_path: Path,
+) -> None:
+    """Generations named by the sidecars of a retained manifest are roots (phase 3, WP6)."""
+    state = tmp_path / "state"
+    with open_database(state, lock=False) as database:
+        history(database)
+        with database.transaction():
+            database.connection.execute(
+                "UPDATE derivation_scopes SET materialized_generation_id=NULL"
+            )
+        artifact, manifest = "a" * 64, "b" * 64
+        directory = retention.artifact_directory(state, artifact)
+        directory.mkdir(parents=True)
+        (directory / "sidecar.json").write_text(json.dumps({"generations": ["dg_link_a"]}))
+        retention.manifest_file(state, manifest).parent.mkdir(parents=True)
+        retention.manifest_file(state, manifest).write_text(
+            json.dumps({"built": [["event/event-a", artifact]]})
+        )
+        baseline = candidate_tree(state, "cand_partitioned", selected=None)
+        (baseline / "_meta" / "manifest.json").write_text(
+            json.dumps({"release_policy": {"mode": "partitioned", "manifest_digest": manifest}})
+        )
+        (state / "baseline").symlink_to(baseline)
+        content = planned(database, recent_window=0)
+        # The walk follows the named link generation to what it was built from.
+        assert listed(content, "local") == {"dg_link_a", "dg_a1"}
+        assert reasons(content, "dg_link_a") == ["release_manifest"]
+        # A manifest that names an artifact which is not there stops the planner.
+        shutil.rmtree(directory)
+        with pytest.raises(RetentionError, match="unreadable release manifest or artifact"):
+            planned(database, recent_window=0)

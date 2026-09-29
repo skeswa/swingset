@@ -122,8 +122,8 @@ KILLS = {
     "derive-single": ("derive", "process:1", None),
     # A staged history generation stored chunk 1; chunk 2 is being written.
     "derive-chunks": ("derive", "_store_building:2", 1),
-    # The candidate is being built under the heavy lock.
-    "release": ("release", "build_release:1", None),
+    # The release manifest is being recorded under the heavy lock (D-0224).
+    "release": ("release", "store:1", None),
     # Guard rows are being pruned.
     "maintain": ("maintain", "run:1", None),
 }
@@ -138,6 +138,12 @@ def test_a_loop_killed_mid_write_stops_no_other_and_recovers_itself(
     loop, fault, chunk = KILLS[case]
     if loop == "acquire":
         _due(state, started.origin, clock)
+    if chunk:
+        # The capture changes no output, and since D-0224 a unit with
+        # identical output ends the cascade, so nothing is staged. Without
+        # cutoff (D-0205) every unit re-mints and the year stores in chunks.
+        sources = dirs[1] / "sources.toml"
+        sources.write_text(sources.read_text() + "\n[derivation]\ncutoff = false\n")
     _kill(dirs, clock, loop, fault, chunk)
     dead = _scalar(state, "SELECT run_id FROM runs WHERE loop=? AND finished_at IS NULL", loop)
     assert dead is not None
@@ -783,4 +789,71 @@ def test_a_publication_that_fences_a_unit_mid_write_is_never_counted(dirs, monke
         assert row.next_attempt_at == queue.at(clock.now() + timedelta(seconds=60))
     clock.sleep(61)
     assert not _run("derive", dirs, clock)["failed"]
+    assert _scalar(state, "SELECT count(*) FROM pending_work") == 0
+
+
+def test_a_unit_write_that_meets_the_narrow_fence_is_closed_uncounted_in_its_tick(
+    dirs, monkeypatch
+):
+    """Under a partitioned publication (WP10) a unit that writes what the
+    publication's check reads is `publication_fenced`; the queue is
+    writable, so its tick closes it uncounted and the other units run."""
+    import swingset.project
+
+    state = dirs[0]
+    clock = FakeClock()
+    ran: list[str] = []
+
+    def project(database, unit, _bundle, clock, run_id, selection=None):
+        ran.append(unit.unit_id)
+        if unit.unit_id == "fenced":
+            database.connection.execute(
+                "INSERT INTO admission_policies(page_kind,contract_version,policy_revision) "
+                "VALUES ('fixture','1','shadow:1')"
+            )
+        derivations.complete(
+            database.connection, selection, rows=(), now=clock.now(), run_id=run_id
+        )
+        database.connection.execute("DELETE FROM pending_work WHERE unit_id=?", (unit.unit_id,))
+
+    monkeypatch.setattr(swingset.project, "process_unit", project)
+    _enqueue(state, clock, ["fenced", "free"])
+    with open_database(state) as db:
+        db.connection.execute(
+            "INSERT INTO execution_admissions(action_id,action_kind,admitted_at,"
+            "control_revision,all_sources,all_kinds,state) "
+            "VALUES ('publication_n','publication_narrow',?,0,1,1,'active')",
+            (clock.now().isoformat(),),
+        )
+    record = _run("derive", dirs, clock)
+    assert record["error"] is None and not record["failed"], record
+    assert record["queue"]["held"] == {"publication_fenced": 1}
+    assert sorted(ran) == ["fenced", "free"] and record["progress"] == 1
+    unit = WorkUnit("project", "dancer", "fenced")
+    with open_database(state, lock=False) as db:
+        conn = db.connection
+        # Nothing is left for the next tick's recovery.
+        assert (
+            conn.execute(
+                "SELECT count(*) FROM execution_admissions WHERE state='active'"
+            ).fetchone()[0]
+            == 1
+        )
+        assert (
+            conn.execute("SELECT count(*) FROM work_attempts WHERE outcome='running'").fetchone()[0]
+            == 0
+        )
+        row = queue.get(conn, unit)
+        assert row is not None and row.attempts == 0 and row.error_class is None
+        assert row.state != "leased"
+        assert row.next_attempt_at == queue.at(clock.now() + timedelta(seconds=60))
+        conn.execute(
+            "UPDATE execution_admissions SET state='settled',settled_at=?,outcome='published' "
+            "WHERE action_id='publication_n'",
+            (clock.now().isoformat(),),
+        )
+        conn.commit()
+    clock.sleep(61)
+    after = _run("derive", dirs, clock)
+    assert not after["failed"] and after["recovered"]["attempts"] == 0
     assert _scalar(state, "SELECT count(*) FROM pending_work") == 0

@@ -1,0 +1,203 @@
+{
+  "operation": "architecture phase 0b + phase 1 switch (output cutoff, scoped recipes, migration 33, stage switches) with the size cap at 72 GB",
+  "actor": "claude (session claude-rearch)",
+  "decisions": [
+    "D-0204",
+    "D-0205",
+    "D-0206",
+    "D-0207",
+    "D-0209",
+    "D-0210",
+    "D-0213",
+    "D-0220"
+  ],
+  "owner_approval": "2026-09-29: 'I like all the suggestions- proceed' (temporary cap, independent review, switch)",
+  "independent_check": {
+    "reviewer": "second agent (Claude Opus), read-only, 2026-09-29 03:15-04:00 UTC",
+    "verdict": "APPROVE WITH CONDITIONS (switch) and APPROVE WITH CONDITIONS (C1 space plan a-d); no blocker or major code defect",
+    "conditions_met": {
+      "C1_space": "Mac free 98 GiB before, 38 GiB after the copy, 153 GiB after deleting the 09-24 copy and re-basing the rehearsal clone; 09-26 copy kept (>=100 GB rule)",
+      "C2_cap_record": "D-0220: 72 GB standing cap, 24 h build interval during the drain, no further raise, ~80 GB rollback ceiling",
+      "C3_migration_rehearsal": "on an APFS clone of the exact byte copy: migration 33 in 155 s, 0 foreign-key violations; integrity_check ok (2590 s) on a second clone; both clones deleted",
+      "C4_gate_waiver": "recorded in D-0220 (owner)",
+      "C5_go_no_go": "72 GB gives about 1 to 3 days at production rates after the switch; recorded in D-0220; open decision 3 answered at 84 MB per code-only deploy",
+      "C6_hold_scope": "cycle, backup and summary timers and services stopped; resume --all run after the switch under the hold",
+      "C7_provenance": "deploy tree = git archive 0a53bd4d; src/, nix/, flake.lock, uv.lock identical; config differs only in max_database_bytes and build_interval_seconds",
+      "C8_backup_verify": "deferred: the room check refuses local backups (needs about 98 GB of quota, about 90 GB free); ends when quota is freed or phase 4 lands",
+      "C9_rollback_text": "open: operation guide rollback step 4 to use swingset-disk and Mac free space"
+    }
+  },
+  "preflight": {
+    "at_utc": "2026-09-29T04:03:46Z",
+    "system_before": "/nix/store/2kljvg2s2hgq7l2xy0nig24icv412r0m-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+    "state": "paused by the 64 GB size cap since 2026-09-29T02:00:35Z",
+    "wal_checkpoint_truncate": [
+      0,
+      0,
+      0
+    ],
+    "database_bytes": 64718315520,
+    "schema": 32,
+    "freelist": 0,
+    "quota_free_gb": 90.5,
+    "pending": {
+      "link": 2933,
+      "parse": 852,
+      "project": 1
+    }
+  },
+  "byte_copy": {
+    "path": "Mac ~/swingset-offload/state-20260929.sqlite (mode 0444)",
+    "method": "cp --sparse=never under the hold, WAL truncated",
+    "window_utc": [
+      "2026-09-29T04:04:02Z",
+      "2026-09-29T04:07:30Z"
+    ],
+    "bytes": 64718315520,
+    "sha256_worker": "4784c7420bb6b1755685d4e779113b7b906678482546d6b15feac39429bef65d",
+    "sha256_mac": "4784c7420bb6b1755685d4e779113b7b906678482546d6b15feac39429bef65d"
+  },
+  "mac_space_deletions": {
+    "state-20260924.sqlite": {
+      "bytes": 64084664320,
+      "sha256": "f3ca54f3ac74e304476034edd52db41b971a66a5bd656171e4ec39916520330f"
+    },
+    "rehearsal/diag/state.sqlite (2026-09-25 copy) and its -wal/-shm": {
+      "bytes": 35195252736,
+      "replaced_by": "APFS clone of state-20260929.sqlite"
+    },
+    "mac_free_after": "153 GiB"
+  },
+  "switch": {
+    "command": "nixos-rebuild switch --flake path:/mnt/mac/private/tmp/swingset-c021#orb --impure",
+    "window_utc": [
+      "2026-09-29T04:58:52Z",
+      "2026-09-29T04:59:04Z"
+    ],
+    "exit_code": 0,
+    "system_after": "/nix/store/cm5qj4ysvdf6f5jr3ggri41ghljc9yn0-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+    "package": "/nix/store/qrxzpb3bldwxapfsbip5mw01r6xp66xd-swingset",
+    "source": "/nix/store/8jdxqjafgrv5y6saaqissmdjay5ni0s7-source",
+    "resume": {
+      "command": "swingset resume --all",
+      "pause_resumed": "pause_450bba4803ae4c14bd107623beb32d24",
+      "control_revision": 12
+    },
+    "hold_removed_utc": "2026-09-29T04:59:14Z",
+    "rollback": "restore the Mac byte copy (the 0a code refuses schema 33); land on a 0a generation with the 72 GB cap or accept a paused landing; data written after 04:07 UTC is lost (dry run, nothing published)"
+  },
+  "first_cycle": {
+    "started_utc": "2026-09-29T05:00:21Z",
+    "schema_after": 33,
+    "memory_peak_bytes": 8544313344,
+    "memory_note": "peak includes page cache from the migration's whole-file foreign-key check; current 1.5 GB at 05:04",
+    "at_05:04:29Z": {
+      "pending": {
+        "link": 2934,
+        "parse": 36143,
+        "project": 32524
+      },
+      "derivation_equivalences": 386,
+      "source_equivalences": 122,
+      "derivation_generations_since_switch": 0,
+      "source_generations_since_switch": 3,
+      "database_bytes": 64739782656
+    }
+  },
+  "postcheck": "drain complete for projects and links by 10:06 UTC; open: daily growth over 24 h, compare_candidates on the first build after the drain (24 h build interval), canary switch within 48 h, backup verify deferred (room check)",
+  "drain": {
+    "at_2026-09-29T08:06Z": {
+      "pending": {
+        "link": 2934,
+        "parse": 6338,
+        "project": 1990
+      },
+      "derivation_equivalences": 30920,
+      "source_equivalences": 29949,
+      "new_derivation_generations": 0,
+      "file_gb": 64.85
+    },
+    "at_2026-09-29T10:06Z": {
+      "pending": {
+        "link": 20,
+        "parse": 2427
+      },
+      "derivation_equivalences": 32909,
+      "source_equivalences": 34096,
+      "new_derivation_generations": 2915,
+      "note": "link generations: links were mid-cascade against a new history before the switch (F1)",
+      "file_gb": 65.02,
+      "cycles": 7,
+      "failed_cycles": 0
+    },
+    "parked_parse_residue": {
+      "superseded": 835,
+      "needs_review": 387,
+      "parse_failed": 11,
+      "waiting_for_inputs": 8,
+      "unsupported_page_kind": 3
+    },
+    "summary_unit_08:00Z": "ran at its 5 GiB MemoryMax (MemoryPeak 5368709120)"
+  },
+  "backpressure_fix": {
+    "decision": "D-0221",
+    "problem": "backpressure counted ~1,250 parked parse rows against the 1,000-item/128 MiB thresholds, so fetching would stay held after the drain",
+    "change": "config-only: [scheduling] pending_parse_items 4000, pending_parse_bytes 536870912 (deploy tree /private/tmp/swingset-c022 = c021 + these lines)",
+    "switch_window_utc": [
+      "2026-09-29T10:07:53Z",
+      "2026-09-29T10:08:03Z"
+    ],
+    "system_after": "/nix/store/89fqc53fzxiw383pfyrxxbpcy7v38rjm-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+    "postcheck_2026-09-29T10:24Z": {
+      "pending": {
+        "parse": 2050
+      },
+      "requests_since_switch": {
+        "eepro.com": 6,
+        "points.worldsdc.com": 6,
+        "scores.worlddanceregistry.com": 3,
+        "scoring.dance": 5,
+        "web.archive.org": 4
+      },
+      "snapshots_since_switch": 3,
+      "re_queued": "none"
+    }
+  },
+  "post_check_24h": {
+    "window_utc": [
+      "2026-09-29T10:16Z",
+      "2026-09-30T13:01Z"
+    ],
+    "cycles": 53,
+    "failed_cycles": 5,
+    "failure_reason": "project/source_event nondeterministic_output (cutoff saw identical inputs produce different output); none after 2026-09-29T15:32Z",
+    "file_gb": [
+      65.51,
+      68.61
+    ],
+    "growth_gb_per_day": 2.9,
+    "growth_source": "one real cascade after a new inventory generation: event 3080, link 2934, source_event 618, source_index 386, dancer 170, inventory 1, map 1, history 1 generations",
+    "snapshots": 710,
+    "wayback_platform_total": 104,
+    "pages_checked": 2603,
+    "builds": [
+      "cand_7e0839450eae458f"
+    ],
+    "backups": "refused by the room check (expected; C8 deferral)",
+    "open": [
+      "compare_candidates on cand_7e0839450eae458f vs the published baseline",
+      "canary switch",
+      "source_event nondeterminism fix"
+    ]
+  },
+  "pacing_switch": {
+    "decision": "D-0227",
+    "change": "history_interval_seconds and inventory_interval_seconds 43200 -> 172800 (config only)",
+    "window_utc": [
+      "2026-09-30T14:39:41Z",
+      "2026-09-30T14:39:54Z"
+    ],
+    "system_after": "/nix/store/l45d7j9782v08hgdgkb5cprhabpc024l-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+    "deploy_tree": "/private/tmp/swingset-c023 = c022 + the two interval lines"
+  }
+}

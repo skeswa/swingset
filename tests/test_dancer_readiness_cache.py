@@ -31,13 +31,20 @@ def bulk_reads(conn):
         conn.set_trace_callback(None)
 
 
-def test_repeated_link_fleet_preserves_selected_work_and_reads_cohort_once(
+def test_a_link_fleet_selects_the_same_work_without_reading_the_dancer_cohort(
     registry_fixture, monkeypatch
 ):
+    """A link waits for the dancers its read set names, never the registry (plan F20)."""
     f = registry_fixture
     fleet = [WorkUnit("link", "event", f"blocked-{i}") for i in range(40)]
     healthy = WorkUnit("parse", "snapshot", "healthy")
     enqueue(f.conn, (*fleet, healthy), enqueued_at=f.corpus.clock.now().isoformat())
+    # Each link's event unit exists but never materialized: the link waits.
+    f.conn.executemany(
+        "INSERT OR IGNORE INTO derivation_scopes(stage,unit_kind,unit_id,registered_at) "
+        "VALUES ('project','event',?,?)",
+        [(unit.unit_id, f.corpus.clock.now().isoformat()) for unit in fleet],
+    )
     f.conn.execute(
         "INSERT INTO scheduler_offline_service VALUES ('parse','snapshot',1,?,999)",
         (f.corpus.clock.now().isoformat(),),
@@ -48,11 +55,11 @@ def test_repeated_link_fleet_preserves_selected_work_and_reads_cohort_once(
 
     with bulk_reads(f.conn) as optimized_reads:
         optimized = next_offline(f.conn, now=f.corpus.clock.now(), allowed=allowed)
-    assert optimized == healthy and len(optimized_reads) == 1
+    assert optimized == healthy and optimized_reads == []
     monkeypatch.setattr(derivation_query, "currentness", lambda conn, key, compute: compute())
     with bulk_reads(f.conn) as reference_reads:
         reference = next_offline(f.conn, now=f.corpus.clock.now(), allowed=allowed)
-    assert reference == optimized and len(reference_reads) >= len(fleet)
+    assert reference == optimized and reference_reads == []
     assert not f.conn.in_transaction and f.conn.execute("PRAGMA query_only").fetchone()[0] == 0
 
 

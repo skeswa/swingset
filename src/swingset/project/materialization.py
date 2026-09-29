@@ -21,19 +21,23 @@ _PROCESSING = frozenset({"first_seen_at", "last_seen_at", "run_id", "asserted_at
 _EXTRA_KEYS = {
     "source_events": ("source", "source_ref"),
     "source_event_map": ("source", "source_ref"),
+    "source_event_proposals": ("source", "source_ref"),
     "series": ("series_id",),
     "coverage": ("year", "source", "via"),
     "identity_links": ("link_id",),
     "link_candidates": ("subject_kind", "subject_id", "wsdc_id"),
     "identity_link_resolutions": ("subject_kind", "subject_id"),
 }
-# Columns the history generation owns on rows another scope owns. History
-# rewrites them after that scope ran, so recording them there would make every
-# re-run of the owner differ from its own generation and never cut off (D-0205).
+# Columns a year generation owns on rows another scope owns (history's before
+# plan F17). The year rewrites them after that scope ran, so recording them
+# there would make every re-run of the owner differ from its own generation
+# and never cut off (D-0205).
 _HISTORY_COLUMNS = {"events": ("coverage_tier",)}
 # Kinds whose output never passes through `_owned`: none of their generations
 # recorded a history column (inventory left it out before phase 1 too).
-_UNOWNED_KINDS = frozenset({"inventory", "history", "source_index", "source_event"})
+_UNOWNED_KINDS = frozenset(
+    {"inventory", "history", "year", "mapping", "source_index", "source_event"}
+)
 
 
 def moved_columns(unit: WorkUnit) -> Mapping[str, tuple[str, ...]]:
@@ -102,7 +106,7 @@ def _owned(conn: sqlite3.Connection, kind: str, identifier: str) -> Iterator[Out
 def output_rows(conn: sqlite3.Connection, unit: WorkUnit) -> Iterator[OutputRow]:
     """Retain scoped semantic output, including nulls and explicit empty scopes.
 
-    A partial payload owns only its listed columns. For example a history
+    A partial payload owns only its listed columns. For example a year
     generation owns a registry placement's event association while the dancer
     generation retains its source facts. Removed rows are represented by their
     absence from this complete generation's declared scope.
@@ -133,19 +137,34 @@ def output_rows(conn: sqlite3.Connection, unit: WorkUnit) -> Iterator[OutputRow]
             where="history_source!='[]' OR EXISTS (SELECT 1 FROM canonical_scope_rows c WHERE c.scope_kind='history' AND c.scope_id='all' AND c.table_name='events' AND c.record_key=json_array(events.event_id))",
         )
         yield from _rows(conn, "series")
-    elif unit.unit_kind == "map":
-        yield from _rows(conn, "source_event_map")
-        seen = set()
-        for kind in ("override_events", "unmatched_source_events"):
-            for row in _owned(conn, kind, "all"):
-                key = row.table, row.key
-                if key not in seen:
-                    seen.add(key)
-                    yield row
+    elif unit.unit_kind == "mapping":
+        # The source's proposals, placeholder events included (plan F19).
+        yield from _rows(
+            conn, "source_event_proposals", where="source=?", parameters=(unit.unit_id,)
+        )
+    elif unit.unit_kind == "resolution":
+        # The event's map rows and its placeholder row.
+        yield from _rows(conn, "source_event_map", where="event_id=?", parameters=(unit.unit_id,))
+        yield from _owned(conn, "resolution", unit.unit_id)
     elif unit.unit_kind == "history":
         yield from _rows(conn, "coverage")
         yield from _rows(conn, "events", columns=("coverage_tier",))
         yield from _rows(conn, "registry_placements", columns=("event_id",))
+    elif unit.unit_kind == "year":
+        # The year's coverage rows, its events' tiers and the association of
+        # placements reported in it (plan F17).
+        year = int(unit.unit_id)
+        yield from _rows(conn, "coverage", where="year=?", parameters=(year,))
+        yield from _rows(
+            conn, "events", columns=("coverage_tier",), where="year=?", parameters=(year,)
+        )
+        yield from _rows(
+            conn,
+            "registry_placements",
+            columns=("event_id",),
+            where="substr(event_month,1,4)=?",
+            parameters=(f"{year:04d}",),
+        )
     elif unit.unit_kind == "source_index":
         yield from _rows(
             conn,
@@ -223,12 +242,18 @@ def materializing(
     run_id: str,
     selection: Selection | None = None,
     recipe: Mapping[str, str] | None = None,
+    reads: Mapping[str, Any] | None = None,
 ) -> Iterator[Selection | None]:
     """Capture, write and finish a scope inside its caller's bounded transaction.
 
     Inside `derive_one`, a large unit alone in its group only writes its live
     rows and a building row here (step A); `derive_one` then stores its output
     in chunks and completes it, deleting its `pending_work` row (WP4).
+
+    A link passes ``reads``, its run's read set with each key's value at
+    load: the selection is formed from those keys, and a value that moved
+    since the load supersedes the run (plan F20). The admission's selection
+    was formed from the previous read set, so only its recipe must match.
     """
     from swingset.state import derivations
     from swingset.state.attempts import SupersededWorkError
@@ -246,8 +271,13 @@ def materializing(
             if selection
             else recipe,
             context=selection.context if selection else None,
+            reads=None if reads is None else tuple(reads),
         )
-        if selection is not None and captured.fingerprint != selection.fingerprint:
+        if reads is not None:
+            derivations.check_reads(conn, captured, reads)
+            if selection is not None and dict(captured.recipe) != dict(selection.recipe):
+                raise SupersededWorkError("selected recipe changed before linking")
+        elif selection is not None and captured.fingerprint != selection.fingerprint:
             raise SupersededWorkError("selected inputs changed before projection or linking")
         yield captured
         if staged and derivations.stage(

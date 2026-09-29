@@ -102,7 +102,7 @@ def test_write_chunks_prunes_only_a_whole_pass_and_reads_eligible_rows_in_rank_o
 
 
 def test_the_facts_only_gate_skips_the_pending_question_and_names_the_closed_fact(state):
-    """D-0218: in the loops a pending map no longer closes phase two; accept-year still asks."""
+    """D-0218: in the loops a pending mapping no longer closes phase two; accept-year still asks."""
     from swingset.project.history import (
         accept_year,
         facts_only_year_gate,
@@ -114,9 +114,13 @@ def test_the_facts_only_gate_skips_the_pending_question_and_names_the_closed_fac
     from swingset.state.work import WorkUnit, enqueue
 
     conn = state.conn
-    enqueue(conn, (WorkUnit("project", "map", "all"),), enqueued_at=state.clock.now().isoformat())
+    enqueue(
+        conn,
+        (WorkUnit("project", "mapping", "eepro"),),
+        enqueued_at=state.clock.now().isoformat(),
+    )
     conn.execute(
-        "UPDATE derivation_scopes SET materialized_generation_id=NULL WHERE stage='project' AND unit_kind='map'"
+        "UPDATE derivation_scopes SET materialized_generation_id=NULL WHERE stage='project' AND unit_kind='mapping'"
     )
     assert pending_inventory_projection(conn) and not phase_two_allowed(conn, 2019)
     with facts_only_year_gate():

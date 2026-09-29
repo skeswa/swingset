@@ -113,6 +113,12 @@ weekly session.
    After phase 2's second review fixes (2026-09-28): 1,537 tests in 284 s
    on the Mac; the busy-writer publication test no longer waits out 5 s.
    At phase 2's close (2026-09-29): 1,537 tests in 252 s.
+   At phase 3's offline close (2026-09-29): 1,664 tests in 344 s. Two
+   tests take 41 s of it: the armed read-set run of the pipeline fixtures
+   (`test_read_sets.py`, 22 s), which the core keeps as the recorder's
+   acceptance, and the 33-page cohort (20 s).
+   At phase 3's close (2026-10-02): 1,736 tests in 340 s, after the fix
+   rounds moved fast regression tests into core; still about twice the bar.
 10. Bound the memory of the publication report's closure check. It holds a
     whole closure (I10): `swingset summary` peaked at 4.5 GB on the 35 GB
     copy, 4.4 GB of it this check, under the unit's 5 GB cap, and the file
@@ -120,3 +126,14 @@ weekly session.
     record the worker's `MemoryPeak` for `swingset-summary.service` first
     (the phase 1 post-check has it). `[summary-failed]` fires if the cap is
     hit before then.
+11. Fix the nondeterministic `project/source_event` output that phase 1's
+    cutoff flagged (`nondeterministic_output`, five cycles on 2026-09-29): the
+    same inputs produced different rows, so find the unordered iteration or
+    clock read and pin it with a test ([receipt](../../journal/evidence/runtime/architecture-phase1-2026-09-29/receipt.json)).
+12. Move the worker to an always-on host. Production is a VM on a laptop: on
+    2026-09-30 the Mac slept on battery from about 21:00 to 18:00 UTC, so
+    cycles, timers and a workflow agent stalled for 21 hours. Until the move,
+    keep the Mac on power with sleep off on AC (`sudo pmset -c sleep 0`). Make
+    host independence a trigger for the [PostgreSQL and Dokploy](postgres-migration/README.md)
+    move (phase 6) rather than waiting for data size; it also gives off-machine
+    backups.

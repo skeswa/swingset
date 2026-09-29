@@ -62,7 +62,8 @@ watchdog when they fail. Derive gets `TimeoutStopSec=120`, the others 45 s.
 Each memory cap bounds its own unit, not the sum: together they allow
 17 GB on the 8 GB machine. On the Mac a build peaked at 6.3 GB and a
 parse-only derive tick beside it at 2 to 3.9 GB, so derive starts no unit
-while release builds (it holds `heavy.lock`). When memory runs out the
+while release builds: every build holds `heavy.lock` while `[release]
+streamed_lock` is true (the default). When memory runs out the
 kernel kills `swingset-summary` first (`OOMScoreAdjust=800`), then release
 (500). Switch 2b is gated on resident memory, the `peak_rss_bytes` of the
 cycle's summary and of the loop records: release's 7G cap must be at least
@@ -78,7 +79,7 @@ Any switch while the loops are on, the rollback to the cycle included,
 writes `operator-hold` first, waits until `systemctl list-units
 'swingset-*'` shows no active unit, switches and removes the hold. systemd
 stops a removed or changed unit with SIGTERM and kills derive after 120 s;
-a staged history unit can take longer. The tick notes the stop request
+a staged year unit can take longer. The tick notes the stop request
 (`runs/<run>.stop`), so that kill is not counted against the unit, but the
 hold avoids cutting the unit off at all. With the loops on, the watchdog runs with
 `--loops 1`: it checks all five timers and the loop records instead of the
@@ -88,6 +89,47 @@ Every unit's `ExecStartPre` runs `uv sync` under `flock -w 600
 <stateDir>/venv.lock`, loops on or off, so two units starting together after
 a deploy do not install into the one venv at once. A sync that waits ten
 minutes fails its unit.
+
+## The phase 3 switch
+
+Phase 3 splits history and the map into year, mapping and resolution units,
+gives links read sets and builds releases from partition artifacts
+([phase 3 deploy steps](../plans/architecture.md#9-migration-plan)). It
+changes the project, link and build code scopes and no parse or extract
+scope. Migrating to schema 35 takes about 2.5 to 3 minutes on a cold copy
+(R0: 144 to 171 s, most of it the `PRAGMA foreign_key_check` every migration
+runs) under the writer lock. Do it during the hold, after `nixos-rebuild
+switch` (the new package is on the worker only then, and timers skip while
+the hold exists): `sudo -u swingset swingset migrate --lock-timeout 3600`
+prints the schema before and after and the seconds, for the preflight
+receipt. Run it as `swingset`, never root: root-owned `state.sqlite-wal` and
+`-shm` files stop every loop from opening the database; check the owner with
+`ls -l /var/lib/swingset/state.sqlite*` before ending the hold. Phase 3 is
+the first production code that imports DuckDB, so also check, still under
+the hold and after `migrate` (whose `uv run` syncs the venv), that it loads
+in the units' environment: `sudo -u swingset env $(systemctl show -p
+Environment --value swingset-release.service)
+/var/lib/swingset/venv/bin/python -c 'import duckdb;
+print(duckdb.connect().execute("select 42").fetchone())'` prints `(42,)`. If
+it fails, every partitioned build fails: stay on the hold and roll back by
+the byte copy. Check that `migrate` printed `schema_before` 34: on a wrong
+`--state` path it creates an empty database and prints `null`. Left to the
+loops, the first tick of any loop migrates and the others skip that tick.
+The tree ships `inventory_interval_seconds = 43200` (D-0227's 48 hours and
+D-0228's 7 days end with this switch); a phase 2 tree or hotfix built before
+it keeps 172,800 for history and 604,800 for the inventory in its own tree. Derive then re-runs every project and link unit
+once; output cutoff keeps their ids, and the new units mint once. Every build
+holds the heavy lock while `[release] streamed_lock` is true (the default).
+Once the post-check shows the release record's `peak_rss_bytes` under 2 GB
+with derive active (with the loops on, each tick is its own process, so that
+is the build's resident peak; `MemoryPeak` counts page cache and stays
+information only, as in phase 2), a `nix/`-only switch can drop release's
+`MemoryMax` from 7G to 3G, and a config switch can set `streamed_lock =
+false`. For an assembly bug,
+[`[release] path = "whole"`](operation.md#release-path) is a fallback only if
+its measured peak fits release's cap; `closure` is none after the switch
+(F30). Anything else, and returning to phase 2, takes the preflight's byte
+copy ([rolling back a migration](operation.md#rolling-back-a-migration)).
 
 Use `jj status` before evaluating newly created files with a Git-backed flake.
 `path:.#orb` also works during initial bootstrapping. The host configuration

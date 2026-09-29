@@ -19,6 +19,9 @@ state = Path(sys.argv[1])
 overrides = Path(sys.argv[2])
 config = Path(sys.argv[3])
 fault = sys.argv[4]
+#: `listing`: the state also holds one source listing, so the cycle runs a
+#: mapping and a resolution unit (plan F19) and their checkpoints exist.
+variant = sys.argv[5] if len(sys.argv) > 5 else ""
 original = Database.transaction
 count = 0
 stopped = False
@@ -88,6 +91,16 @@ def handler(request):
 
 clock = FakeClock()
 with open_database(state) as db:
+    if variant == "listing":
+        # A listing a source index would have written; its first cycle maps it
+        # to a placeholder event (no catalog event shares its name and dates).
+        db.connection.execute(
+            "INSERT OR IGNORE INTO source_events(source,source_ref,name_raw,start_date,end_date,"
+            "url,snapshot_id,parser_version,first_seen_at,last_seen_at,run_id) VALUES "
+            "('eepro','eepro:crash','Crash Test Weekend','2026-03-05','2026-03-08',"
+            "'https://example.test/crash','listing-snapshot','1',?,?,'seed')",
+            (clock.now().isoformat(), clock.now().isoformat()),
+        )
     result = run_cycle(
         db,
         config_dir=config,

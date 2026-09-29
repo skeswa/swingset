@@ -91,50 +91,138 @@ def changes(
             for key_blob, old_blob, new_blob in conn.execute(
                 "SELECT row_key,before,after FROM facts ORDER BY key"
             ):
-                row_key = pickle.loads(key_blob)
-                old = pickle.loads(old_blob) if old_blob is not None else None
-                new = pickle.loads(new_blob) if new_blob is not None else None
-                fields: Sequence[str | None] = (
-                    [None]
-                    if old is None or new is None
-                    else sorted(
-                        field
-                        for field in old.keys() | new.keys()
-                        if old.get(field) != new.get(field)
-                    )
+                yield from change_rows(
+                    table,
+                    pickle.loads(key_blob),
+                    pickle.loads(old_blob) if old_blob is not None else None,
+                    pickle.loads(new_blob) if new_blob is not None else None,
+                    changed_at=changed_at,
+                    run_id=run_id,
                 )
-                for field in fields:
-                    old_value = old if field is None else old.get(field) if old else None
-                    new_value = new if field is None else new.get(field) if new else None
-                    reason = (
-                        "suppression"
-                        if new and new.get("link_status") == "suppressed"
-                        else "link_downgraded"
-                        if table in {"entries", "judges", "identity_links", "placements"}
-                        and field is not None
-                        and ("wsdc_id" in field or field.startswith("registry_points_"))
-                        and old_value is not None
-                        and new_value is None
-                        else "new_source_data"
-                    )
-                    yield {
-                        "changed_at": changed_at,
-                        "run_id": run_id,
-                        "table": table,
-                        "record_key": json.dumps(row_key, default=str),
-                        "field": field,
-                        "old_value": json.dumps(old_value, sort_keys=True, default=str),
-                        "new_value": json.dumps(new_value, sort_keys=True, default=str),
-                        "change_type": "added"
-                        if old is None
-                        else "removed"
-                        if new is None
-                        else "updated",
-                        "reason": reason,
-                    }
     finally:
         conn.close()
         scratch.unlink(missing_ok=True)
+
+
+def change_rows(
+    table: str,
+    row_key: tuple[Any, ...],
+    old: Row | None,
+    new: Row | None,
+    *,
+    changed_at: datetime,
+    run_id: str,
+) -> Iterator[dict[str, Any]]:
+    """The change rows of one key: added, removed, or one per differing field."""
+    fields: Sequence[str | None] = (
+        [None]
+        if old is None or new is None
+        else sorted(field for field in old.keys() | new.keys() if old.get(field) != new.get(field))
+    )
+    for field in fields:
+        old_value = old if field is None else old.get(field) if old else None
+        new_value = new if field is None else new.get(field) if new else None
+        reason = (
+            "suppression"
+            if new and new.get("link_status") == "suppressed"
+            else "link_downgraded"
+            if table in {"entries", "judges", "identity_links", "placements"}
+            and field is not None
+            and ("wsdc_id" in field or field.startswith("registry_points_"))
+            and old_value is not None
+            and new_value is None
+            else "new_source_data"
+        )
+        yield {
+            "changed_at": changed_at,
+            "run_id": run_id,
+            "table": table,
+            "record_key": json.dumps(row_key, default=str),
+            "field": field,
+            "old_value": json.dumps(old_value, sort_keys=True, default=str),
+            "new_value": json.dumps(new_value, sort_keys=True, default=str),
+            "change_type": "added" if old is None else "removed" if new is None else "updated",
+            "reason": reason,
+        }
+
+
+_SIDE = "__side"
+
+
+def _quoted(name: str) -> str:
+    return '"' + name.replace('"', '""') + '"'
+
+
+def _files(paths: Sequence[Path]) -> str:
+    return "[" + ", ".join("'" + str(path).replace("'", "''") + "'" for path in paths) + "]"
+
+
+def joined_changes(
+    db: Any,
+    table: str,
+    current: Sequence[Path],
+    baseline: Path | None,
+    fields: tuple[str, ...],
+    *,
+    changed_at: datetime,
+    run_id: str,
+    batch_rows: int = 2048,
+    meter: Any = None,
+) -> Iterator[dict[str, Any]]:
+    """`changes` for one table, streamed: a DuckDB full outer join on the key.
+
+    ``current`` are the table's final Parquet files and ``db`` a DuckDB
+    connection whose time zone is UTC. Each key's pair of rows is compared
+    in Python by `change_rows`, one batch at a time, so the rows emitted
+    equal `changes`' rows for the same values; only their order differs,
+    and the changelog is sorted afterwards.
+    """
+    previous = sorted((baseline / "data" / table).glob("*.parquet")) if baseline else []
+    sides = []
+    for alias, paths, is_baseline in (("n", current, False), ("b", previous, True)):
+        if paths:
+            columns = set(pq.read_schema(paths[0]).names)
+            keys = [
+                ("'year'" if field == "scope_kind" else 'CAST("year" AS VARCHAR)')
+                if is_baseline
+                and table == "coverage"
+                and field in {"scope_kind", "scope_id"}
+                and not {"scope_kind", "scope_id"} & columns
+                else _quoted(field)
+                for field in fields
+            ]
+            body = (
+                f"SELECT *, 1 AS {_SIDE}, "
+                + ", ".join(f"{key} AS __k{index}" for index, key in enumerate(keys))
+                + f" FROM read_parquet({_files(paths)}, union_by_name=true)"
+            )
+        else:
+            body = (
+                f"SELECT 1 AS {_SIDE}, "
+                + ", ".join(f"NULL AS __k{index}" for index in range(len(fields)))
+                + " WHERE false"
+            )
+        sides.append(f"{alias} AS ({body})")
+    on = " AND ".join(
+        f"n.__k{index} IS NOT DISTINCT FROM b.__k{index}" for index in range(len(fields))
+    )
+    reader = db.execute(
+        "WITH " + ", ".join(sides) + f" SELECT n, b FROM n FULL OUTER JOIN b ON {on}"
+    ).to_arrow_reader(batch_rows)
+    hidden = {_SIDE, *(f"__k{index}" for index in range(len(fields)))}
+    for batch in reader:
+        if meter is not None:
+            meter.take(batch.num_rows)
+        for pair in batch.to_pylist():
+            new, old = pair["n"], pair["b"]
+            new = {k: v for k, v in new.items() if k not in hidden} if new and new[_SIDE] else None
+            old = {k: v for k, v in old.items() if k not in hidden} if old and old[_SIDE] else None
+            row_key = (
+                _key(table, new, fields, baseline=False)
+                if new is not None
+                else _key(table, old or {}, fields, baseline=True)
+            )
+            yield from change_rows(table, row_key, old, new, changed_at=changed_at, run_id=run_id)
 
 
 class DeltaRows:

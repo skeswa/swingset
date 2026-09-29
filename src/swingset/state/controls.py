@@ -424,7 +424,9 @@ def operation(
     This wrapper does not make multiple body commits atomic. Publication uses
     explicit receipt settlement so a lost response remains uncertain.
     """
-    if action_kind in {"publish", "publication"}:
+    from .publication_fence import PUBLICATION_KINDS
+
+    if action_kind in PUBLICATION_KINDS:
         raise ValueError("publication requires explicit receipt settlement")
     with admission(
         database,
@@ -463,8 +465,10 @@ def recover_admissions(conn: sqlite3.Connection, *, now: datetime) -> int:
     rows = conn.execute(
         "SELECT a.*,w.outcome AS work_outcome FROM execution_admissions a LEFT JOIN work_attempts w ON w.attempt_id=a.work_attempt_id WHERE a.state='active'"
     ).fetchall()
+    from .publication_fence import PUBLICATION_KINDS
+
     for row in rows:
-        publication = row["action_kind"] in {"publish", "publication"}
+        publication = row["action_kind"] in PUBLICATION_KINDS
         outcome = (
             row["work_outcome"]
             if row["work_outcome"] not in {None, "running"}

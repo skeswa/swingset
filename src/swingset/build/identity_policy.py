@@ -35,15 +35,7 @@ def baseline_tables(
     baseline: Path, *, selected: tuple[str, ...] = PUBLISHED_TABLES
 ) -> dict[str, list[dict[str, Any]]]:
     """Read the acknowledged immutable dataset, checking every recorded file hash."""
-    if not (baseline / "PUBLISHED").is_file():
-        raise BuildError("correction requires an acknowledged published baseline")
-    built = json.loads((baseline / "BUILT").read_bytes())
-    if sha256_file(baseline / "_meta/manifest.json") != built["manifest_hash"]:
-        raise BuildError("published baseline manifest failed verification")
-    manifest = json.loads((baseline / "_meta/manifest.json").read_bytes())
-    for name, expected in manifest["files"].items():
-        if sha256_file(baseline / name) != expected:
-            raise BuildError(f"published baseline file failed verification: {name}")
+    verify_baseline(baseline)
     return {
         table: [
             row
@@ -55,6 +47,19 @@ def baseline_tables(
         else []
         for table in selected
     }
+
+
+def verify_baseline(baseline: Path) -> None:
+    """Check the acknowledged baseline's receipt, manifest and every recorded file hash."""
+    if not (baseline / "PUBLISHED").is_file():
+        raise BuildError("correction requires an acknowledged published baseline")
+    built = json.loads((baseline / "BUILT").read_bytes())
+    if sha256_file(baseline / "_meta/manifest.json") != built["manifest_hash"]:
+        raise BuildError("published baseline manifest failed verification")
+    manifest = json.loads((baseline / "_meta/manifest.json").read_bytes())
+    for name, expected in manifest["files"].items():
+        if sha256_file(baseline / name) != expected:
+            raise BuildError(f"published baseline file failed verification: {name}")
 
 
 def correction_token(
@@ -80,7 +85,7 @@ def correction_token(
     }
 
 
-def repair_placement_identities(tables: dict[str, list[dict[str, Any]]]) -> None:
+def repair_placement_identities(tables: Mapping[str, list[dict[str, Any]]]) -> None:
     """Remove dependent identity and point claims whose entry support disappeared."""
     entries = {row["entry_id"]: row for row in tables["entries"]}
     for row in tables["placements"]:
@@ -154,6 +159,237 @@ def _registry_support(
     return {key: frozenset(value) for key, value in support.items()}
 
 
+class IdentityPolicy:
+    """The identity policy's decisions, one table set at a time.
+
+    `apply_identity_policy` applies it to a whole release. The streamed
+    assembly applies it to one event partition at a time, with that
+    partition's baseline entries and judges and the registry facts naming its
+    events; each subject's outcome reads only rows of its own event, so the
+    result per partition equals the whole-table result. Counts accumulate.
+    """
+
+    def __init__(
+        self,
+        conn: sqlite3.Connection,
+        *,
+        baseline: Path | None,
+        closure: Mapping[str, Any] | None = None,
+    ) -> None:
+        from .closure_support import interpretation_lookup, observation_payload_loader
+
+        self.conn, self.baseline, self.closure = conn, baseline, closure
+        self.reader = ReferenceReader(
+            conn,
+            observation_payloads=observation_payload_loader(conn, closure)
+            if closure is not None
+            else None,
+        )
+        self.resolver = DecisionResolver(conn)
+        self.support_cache: dict[tuple[str, str], dict[str, Any]] = (
+            interpretation_lookup(closure) if closure is not None else {}
+        )
+        self.counts: Counter[str] = Counter()
+
+    def apply(
+        self,
+        tables: Mapping[str, Sequence[Mapping[str, Any]]],
+        mutable: Mapping[str, list[dict[str, Any]]],
+        previous: Mapping[str, Sequence[Mapping[str, Any]]],
+    ) -> None:
+        """Decide every entry and judge of ``mutable`` in place.
+
+        ``mutable`` holds copies of entries, judges, placements, identity
+        links and candidates; ``tables`` holds the rest the decisions read
+        (contests, dancers, registry placements); ``previous`` the baseline's
+        entries and judges.
+        """
+        conn, baseline, closure = self.conn, self.baseline, self.closure
+        reader, resolver, support_cache, counts = (
+            self.reader,
+            self.resolver,
+            self.support_cache,
+            self.counts,
+        )
+        previous_subjects = {
+            (kind, str(row[key])): row
+            for kind, name, key in (
+                ("entry", "entries", "entry_id"),
+                ("judge", "judges", "judge_id"),
+            )
+            for row in previous.get(name, ())
+        }
+        assertions = {
+            (row["subject_kind"], row["subject_id"]): row for row in mutable["identity_links"]
+        }
+        candidates: dict[tuple[str, str], list[dict[str, Any]]] = {}
+        for candidate in mutable["link_candidates"]:
+            candidates.setdefault((candidate["subject_kind"], candidate["subject_id"]), []).append(
+                candidate
+            )
+        contests = {row["contest_id"]: row for row in tables.get("contests", ())}
+        registry_support = _registry_support({**tables, **mutable})
+        for kind, name, key in (("entry", "entries", "entry_id"), ("judge", "judges", "judge_id")):
+            for row in mutable[name]:
+                subject = (kind, str(row[key]))
+                assertion = assertions.get(subject)
+                proposed = row.get("wsdc_id")
+                contest = contests.get(row.get("contest_id"), {})
+                bindings = reader.for_record(kind, row, contest_name=contest.get("name_raw"))
+                printed_ids = {
+                    int(binding.locator["source_wsdc_id"])
+                    for binding in bindings
+                    if binding.locator.get("source_wsdc_id") is not None
+                }
+                registry_ids = (
+                    registry_support.get(str(row[key]), frozenset())
+                    if kind == "entry"
+                    else frozenset()
+                )
+                problem = resolver.binding_problem(
+                    bindings, subject_kind=kind, subject_id=str(row[key])
+                )
+                if len(printed_ids) > 1:
+                    problem = "contradictory_printed_source_identities"
+                resolution = resolver.resolve(
+                    tuple(binding.reference for binding in bindings),
+                    source_wsdc_id=next(iter(printed_ids)) if len(printed_ids) == 1 else None,
+                    registry_wsdc_ids=registry_ids,
+                    legacy_subject_id=str(row[key]),
+                    reference_problem=problem,
+                )
+                reason = "unresolved"
+                if proposed is not None:
+                    prior = previous_subjects.get(subject, {})
+                    evidence_key = (
+                        str(row.get("snapshot_id") or ""),
+                        str(row.get("parser_version") or ""),
+                    )
+                    if evidence_key not in support_cache:
+                        support_cache[evidence_key] = (
+                            {"state": "unavailable", "usable": False}
+                            if closure is not None
+                            else interpretation_support(
+                                conn, evidence_key[0], parser_version=evidence_key[1]
+                            )
+                        )
+                    support = support_cache[evidence_key]
+                    legacy = (
+                        prior.get("snapshot_id") == row.get("snapshot_id")
+                        and prior.get("parser_version") == row.get("parser_version")
+                        and support["state"] in {"legacy_unassessed", "unassessed", "superseded"}
+                        and support.get("selected_observation", False)
+                    )
+                    if (
+                        not assertion
+                        or assertion.get("status") != "confirmed"
+                        or assertion.get("wsdc_id") != proposed
+                        or (kind == "entry" and row.get("link_status") != "confirmed")
+                    ):
+                        reason = "assertion_not_confirmed"
+                    elif row.get("role") == "couple" or paired_names(
+                        str(row.get("name_raw") or "")
+                    ):
+                        reason = "individual_ownership_unavailable"
+                    elif not bindings:
+                        reason = "source_reference_unavailable"
+                    elif not resolution.allows(int(proposed)):
+                        reason = "current_decision_withholds"
+                    elif assertion.get("method") not in {
+                        "source_id",
+                        "registry_placement",
+                        "manual",
+                    }:
+                        reason = "confirmation_method_unsupported"
+                    elif (
+                        assertion.get("method") == "manual"
+                        and resolution.positive_wsdc_id != proposed
+                    ):
+                        reason = "current_positive_decision_unavailable"
+                    elif assertion.get("method") == "source_id" and printed_ids != {int(proposed)}:
+                        reason = "printed_source_identity_unavailable"
+                    elif assertion.get(
+                        "method"
+                    ) == "registry_placement" and registry_ids != frozenset({int(proposed)}):
+                        reason = "registry_identity_support_unavailable"
+                    elif not support["usable"] and not legacy:
+                        reason = "source_interpretation_unavailable"
+                    elif baseline is None or prior.get("wsdc_id") != proposed:
+                        reason = "accuracy_gate_pending"
+                    else:
+                        reason = "accepted_legacy" if legacy else "accepted"
+                    if reason not in {"accepted", "accepted_legacy"}:
+                        row["wsdc_id"] = None
+                        if kind == "entry":
+                            row["link_status"] = "unmatched"
+                            row["link_confidence"] = 0.0
+                    counts[reason] += 1
+                if assertion is not None:
+                    assertion.update(
+                        source_ref_ids=list(resolution.ref_ids),
+                        decision_ids=list(resolution.decision_ids),
+                        acceptance_policy=POLICY_VERSION,
+                        acceptance_state="accepted"
+                        if row.get("wsdc_id") is not None
+                        else "revoked"
+                        if proposed is not None
+                        else "unresolved",
+                        journal_digest=resolution.token.digest,
+                        journal_generation=resolution.token.generation,
+                    )
+                    withdrawn = proposed is not None and row.get("wsdc_id") is None
+                    rejected_assertion = assertion.get(
+                        "wsdc_id"
+                    ) is not None and not resolution.allows(int(assertion["wsdc_id"]))
+                    if withdrawn or rejected_assertion:
+                        assertion.update(
+                            wsdc_id=None, status="unmatched", method="none", confidence=0.0
+                        )
+                for candidate in candidates.get(subject, []):
+                    if (
+                        proposed is not None and row.get("wsdc_id") is None
+                    ) or not resolution.allows(int(candidate["wsdc_id"])):
+                        candidate["chosen"] = False
+        repair_placement_identities(mutable)
+
+    def release_policy(self, data: BuildInput, *, correction_only: bool) -> dict[str, Any]:
+        """The release policy these decisions ran under, with their counts."""
+        conn, baseline, closure = self.conn, self.baseline, self.closure
+        from swingset.state.correction_age import correction_age
+
+        acknowledged = json.loads((baseline / "PUBLISHED").read_bytes()) if baseline else None
+        acknowledged_policy = (
+            (
+                json.loads((baseline / "_meta/manifest.json").read_bytes()).get("release_policy")
+                or {}
+            )
+            if baseline
+            else None
+        )
+        age = correction_age(
+            conn, baseline_receipt=acknowledged, baseline_policy=acknowledged_policy
+        )
+        return {
+            "token": correction_token(conn, closure=closure),
+            "mode": "closure"
+            if closure is not None
+            else "correction_only"
+            if correction_only
+            else "settled",
+            "input_bundle_hash": data.input_bundle_hash,
+            "input_file_hashes": dict(data.captured_file_hashes),
+            "revisions": dict(data.revisions),
+            "baseline_commit": json.loads((baseline / "PUBLISHED").read_bytes())["commit"]
+            if baseline
+            else None,
+            "detected_at": age["detected_at"],
+            "correction_age_basis": age["basis"],
+            "default_join_counts": dict(sorted(self.counts.items())),
+            "legacy_policy": "Published baseline support may remain unassessed; no revocation, new join, or removal authority is permitted.",
+            "accuracy_expansions": "withheld_pending_H17",
+        }
+
+
 def apply_identity_policy(
     conn: sqlite3.Connection,
     data: BuildInput,
@@ -179,175 +415,10 @@ def apply_identity_policy(
         if baseline
         else {name: [] for name in ("entries", "judges")}
     )
-    previous_subjects = {
-        (kind, str(row[key])): row
-        for kind, name, key in (("entry", "entries", "entry_id"), ("judge", "judges", "judge_id"))
-        for row in previous[name]
-    }
-    assertions = {
-        (row["subject_kind"], row["subject_id"]): row for row in mutable["identity_links"]
-    }
-    candidates: dict[tuple[str, str], list[dict[str, Any]]] = {}
-    for candidate in mutable["link_candidates"]:
-        candidates.setdefault((candidate["subject_kind"], candidate["subject_id"]), []).append(
-            candidate
-        )
-    contests = {row["contest_id"]: row for row in tables["contests"]}
-    from .closure_support import observation_payload_loader
-
-    reader = ReferenceReader(
-        conn,
-        observation_payloads=observation_payload_loader(conn, closure)
-        if closure is not None
-        else None,
+    policy = IdentityPolicy(conn, baseline=baseline, closure=closure)
+    policy.apply(tables, mutable, previous)
+    return replace(
+        data,
+        tables=tables,
+        release_policy=policy.release_policy(data, correction_only=correction_only),
     )
-    resolver = DecisionResolver(conn)
-    registry_support = _registry_support(tables)
-    from .closure_support import interpretation_lookup
-
-    support_cache: dict[tuple[str, str], dict[str, Any]] = (
-        interpretation_lookup(closure) if closure is not None else {}
-    )
-    counts: Counter[str] = Counter()
-    for kind, name, key in (("entry", "entries", "entry_id"), ("judge", "judges", "judge_id")):
-        for row in mutable[name]:
-            subject = (kind, str(row[key]))
-            assertion = assertions.get(subject)
-            proposed = row.get("wsdc_id")
-            contest = contests.get(row.get("contest_id"), {})
-            bindings = reader.for_record(kind, row, contest_name=contest.get("name_raw"))
-            printed_ids = {
-                int(binding.locator["source_wsdc_id"])
-                for binding in bindings
-                if binding.locator.get("source_wsdc_id") is not None
-            }
-            registry_ids = (
-                registry_support.get(str(row[key]), frozenset()) if kind == "entry" else frozenset()
-            )
-            problem = resolver.binding_problem(
-                bindings, subject_kind=kind, subject_id=str(row[key])
-            )
-            if len(printed_ids) > 1:
-                problem = "contradictory_printed_source_identities"
-            resolution = resolver.resolve(
-                tuple(binding.reference for binding in bindings),
-                source_wsdc_id=next(iter(printed_ids)) if len(printed_ids) == 1 else None,
-                registry_wsdc_ids=registry_ids,
-                legacy_subject_id=str(row[key]),
-                reference_problem=problem,
-            )
-            reason = "unresolved"
-            if proposed is not None:
-                prior = previous_subjects.get(subject, {})
-                evidence_key = (
-                    str(row.get("snapshot_id") or ""),
-                    str(row.get("parser_version") or ""),
-                )
-                if evidence_key not in support_cache:
-                    support_cache[evidence_key] = (
-                        {"state": "unavailable", "usable": False}
-                        if closure is not None
-                        else interpretation_support(
-                            conn, evidence_key[0], parser_version=evidence_key[1]
-                        )
-                    )
-                support = support_cache[evidence_key]
-                legacy = (
-                    prior.get("snapshot_id") == row.get("snapshot_id")
-                    and prior.get("parser_version") == row.get("parser_version")
-                    and support["state"] in {"legacy_unassessed", "unassessed", "superseded"}
-                    and support.get("selected_observation", False)
-                )
-                if (
-                    not assertion
-                    or assertion.get("status") != "confirmed"
-                    or assertion.get("wsdc_id") != proposed
-                    or (kind == "entry" and row.get("link_status") != "confirmed")
-                ):
-                    reason = "assertion_not_confirmed"
-                elif row.get("role") == "couple" or paired_names(str(row.get("name_raw") or "")):
-                    reason = "individual_ownership_unavailable"
-                elif not bindings:
-                    reason = "source_reference_unavailable"
-                elif not resolution.allows(int(proposed)):
-                    reason = "current_decision_withholds"
-                elif assertion.get("method") not in {"source_id", "registry_placement", "manual"}:
-                    reason = "confirmation_method_unsupported"
-                elif (
-                    assertion.get("method") == "manual" and resolution.positive_wsdc_id != proposed
-                ):
-                    reason = "current_positive_decision_unavailable"
-                elif assertion.get("method") == "source_id" and printed_ids != {int(proposed)}:
-                    reason = "printed_source_identity_unavailable"
-                elif assertion.get("method") == "registry_placement" and registry_ids != frozenset(
-                    {int(proposed)}
-                ):
-                    reason = "registry_identity_support_unavailable"
-                elif not support["usable"] and not legacy:
-                    reason = "source_interpretation_unavailable"
-                elif baseline is None or prior.get("wsdc_id") != proposed:
-                    reason = "accuracy_gate_pending"
-                else:
-                    reason = "accepted_legacy" if legacy else "accepted"
-                if reason not in {"accepted", "accepted_legacy"}:
-                    row["wsdc_id"] = None
-                    if kind == "entry":
-                        row["link_status"] = "unmatched"
-                        row["link_confidence"] = 0.0
-                counts[reason] += 1
-            if assertion is not None:
-                assertion.update(
-                    source_ref_ids=list(resolution.ref_ids),
-                    decision_ids=list(resolution.decision_ids),
-                    acceptance_policy=POLICY_VERSION,
-                    acceptance_state="accepted"
-                    if row.get("wsdc_id") is not None
-                    else "revoked"
-                    if proposed is not None
-                    else "unresolved",
-                    journal_digest=resolution.token.digest,
-                    journal_generation=resolution.token.generation,
-                )
-                withdrawn = proposed is not None and row.get("wsdc_id") is None
-                rejected_assertion = assertion.get("wsdc_id") is not None and not resolution.allows(
-                    int(assertion["wsdc_id"])
-                )
-                if withdrawn or rejected_assertion:
-                    assertion.update(
-                        wsdc_id=None, status="unmatched", method="none", confidence=0.0
-                    )
-            for candidate in candidates.get(subject, []):
-                if (proposed is not None and row.get("wsdc_id") is None) or not resolution.allows(
-                    int(candidate["wsdc_id"])
-                ):
-                    candidate["chosen"] = False
-    repair_placement_identities(mutable)
-    from swingset.state.correction_age import correction_age
-
-    acknowledged = json.loads((baseline / "PUBLISHED").read_bytes()) if baseline else None
-    acknowledged_policy = (
-        (json.loads((baseline / "_meta/manifest.json").read_bytes()).get("release_policy") or {})
-        if baseline
-        else None
-    )
-    age = correction_age(conn, baseline_receipt=acknowledged, baseline_policy=acknowledged_policy)
-    policy = {
-        "token": correction_token(conn, closure=closure),
-        "mode": "closure"
-        if closure is not None
-        else "correction_only"
-        if correction_only
-        else "settled",
-        "input_bundle_hash": data.input_bundle_hash,
-        "input_file_hashes": dict(data.captured_file_hashes),
-        "revisions": dict(data.revisions),
-        "baseline_commit": json.loads((baseline / "PUBLISHED").read_bytes())["commit"]
-        if baseline
-        else None,
-        "detected_at": age["detected_at"],
-        "correction_age_basis": age["basis"],
-        "default_join_counts": dict(sorted(counts.items())),
-        "legacy_policy": "Published baseline support may remain unassessed; no revocation, new join, or removal authority is permitted.",
-        "accuracy_expansions": "withheld_pending_H17",
-    }
-    return replace(data, tables=tables, release_policy=policy)

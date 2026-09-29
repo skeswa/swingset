@@ -273,11 +273,18 @@ def offers(
     if timing is not None:
         timing.begin(connection=database.connection, config=config, clock=clock, run_id=run_id)
     plan = plan or retained_plan(database.connection, history_start=config.history_start)
-    options, _ = _options(database, config, clock, plan, deadline=deadline)
+    from swingset.project.history import projection_answer_cached
+
     result: dict[str, WatchSpec] = {}
-    for _, spec, _, _ in _with_origin(database, config, clock, plan, options, run_id=run_id):
-        if spec is not None:
-            result.setdefault(spec.watch_id, spec)
+    # One answer to the projection question for the whole pass, the origin
+    # fallback included. Outside the cache the fallback asked it once per
+    # page, and from 2026-09-29 the pass never reached a fetch: no request went
+    # out for two days (D-0195).
+    with projection_answer_cached():
+        options, _ = _options(database, config, clock, plan, deadline=deadline)
+        for _, spec, _, _ in _with_origin(database, config, clock, plan, options, run_id=run_id):
+            if spec is not None:
+                result.setdefault(spec.watch_id, spec)
     if timing is not None:
         timing.finish(result)
     return tuple(result.values())

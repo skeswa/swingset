@@ -12,7 +12,7 @@ import json
 import sqlite3
 from collections import defaultdict
 from collections.abc import Collection, Iterable, Mapping
-from dataclasses import replace
+from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime
 from typing import Any
 
@@ -33,7 +33,51 @@ _COUNTS = (
     "unassessed_units",
 )
 _FACT_COUNTS = ("events", "contests", "rounds", "entries")
+#: Counts of emitted facts per scope: distinct keys, never rows.
+FACT_METRICS = (*_FACT_COUNTS, "resolved_identities", "identity_subjects", "withheld_identities")
+#: Event summaries of a scope's events that are in the release.
+TIER_FIELDS = (
+    "events_registry_only",
+    "events_index_only",
+    "events_sheets_partial",
+    "events_sheets_complete",
+    "events_day_precision",
+    "events_listed_only",
+)
 Scope = tuple[str, str, str, str]
+
+
+@dataclass
+class Facts:
+    """What coverage needs from the emitted fact rows, as aggregates.
+
+    `_Coverage.facts` reduces Python rows to this; the streamed assembly
+    computes the same in SQL (`assembly.fact_counts`). ``counts`` holds, per
+    scope, `FACT_METRICS` and `TIER_FIELDS`; ``observed`` the newest evidence
+    time at or before the cutoff; ``unknown_time`` the scopes with a fact
+    whose evidence time is unknown or later.
+    """
+
+    counts: dict[Scope, dict[str, int]] = field(default_factory=dict)
+    observed: dict[Scope, datetime] = field(default_factory=dict)
+    unknown_time: set[Scope] = field(default_factory=set)
+    snapshot_events: dict[str, set[str]] = field(default_factory=dict)
+    selected_snapshots: set[str] = field(default_factory=set)
+    snapshot_parsers: dict[str, set[str]] = field(default_factory=dict)
+
+
+def event_summary(
+    event_ids: Iterable[str], events: Mapping[str, Mapping[str, Any]]
+) -> dict[str, int]:
+    """Tier, precision and listing counts of the released events among ``event_ids``."""
+    scoped = [events[key] for key in event_ids if key in events]
+    summary = {
+        "events_" + tier: sum(event.get("coverage_tier") == tier for event in scoped)
+        for tier in ("registry_only", "index_only", "sheets_partial", "sheets_complete")
+    }
+    summary["events_day_precision"] = sum(event.get("date_precision") == "day" for event in scoped)
+    summary["events_listed_only"] = sum(event.get("held") != "held" for event in scoped)
+    return summary
 
 
 def _at(value: Any) -> datetime | None:
@@ -113,6 +157,7 @@ class _Coverage:
         self.missing: dict[Scope, set[str]] = defaultdict(set)
         self.selected_snapshots: set[str] = set()
         self.selected_source_generations: set[str] = set()
+        self.fact_counts: dict[Scope, dict[str, int]] = {}
         self.existing = {
             (int(row["year"]), str(row["source"]), str(row["via"])): row
             for row in data.tables.get("coverage", ())
@@ -158,31 +203,56 @@ class _Coverage:
                 result.add(("year", str(event["year"]), source, via))
         return sorted(result)
 
-    def _record(self, row: Mapping[str, Any], metric: str, key: str, event_id: str | None) -> None:
-        source, snapshot_id = str(row.get("source") or "unknown"), str(row.get("snapshot_id") or "")
-        snapshot = self.snapshots.get(snapshot_id, {})
-        via = str(snapshot.get("via") or ("manual" if snapshot_id == "override" else "origin"))
-        if snapshot_id:
-            self.selected_snapshots.add(snapshot_id)
-            if row.get("parser_version") is not None:
-                self.snapshot_parsers[snapshot_id].add(str(row["parser_version"]))
-            if event_id:
-                self.snapshot_events[snapshot_id].add(event_id)
-        for scope in self.scopes(source, via, [event_id] if event_id else []):
-            self.sets[scope][metric].add(key)
-            if event_id:
-                self.sets[scope]["events"].add(event_id)
-            observed = _at(
-                snapshot.get("observed_at")
-                or snapshot.get("captured_at")
-                or snapshot.get("fetched_at")
-            )
-            if observed is not None and observed <= self.cutoff:
-                self.times[scope].append(observed)
-            else:
-                self.reasons[scope].add("evidence_time_unknown")
+    def release(
+        self, events: Iterable[Mapping[str, Any]], coverage: Iterable[Mapping[str, Any]]
+    ) -> None:
+        """The release's events and year fragments, known after the streamed passes.
+
+        The streamed assembly builds this object before its passes, for the
+        statuses annotation needs, and gives it the final events here.
+        """
+        self.events = {str(row["event_id"]): row for row in events}
+        self.existing = {
+            (int(row["year"]), str(row["source"]), str(row["via"])): row
+            for row in coverage
+            if row.get("scope_kind") in (None, "year") and row.get("year") is not None
+        }
+        for year, source, via in self.existing:
+            self.sets[("year", str(year), source, via)]
 
     def facts(self) -> None:
+        """Reduce the release's fact rows to `Facts` and absorb them."""
+        facts = Facts()
+        sets: dict[Scope, dict[str, set[str]]] = defaultdict(lambda: defaultdict(set))
+        times: dict[Scope, list[datetime]] = defaultdict(list)
+
+        def record(row: Mapping[str, Any], metric: str, key: str, event_id: str | None) -> None:
+            source = str(row.get("source") or "unknown")
+            snapshot_id = str(row.get("snapshot_id") or "")
+            snapshot = self.snapshots.get(snapshot_id, {})
+            via = str(snapshot.get("via") or ("manual" if snapshot_id == "override" else "origin"))
+            if snapshot_id:
+                facts.selected_snapshots.add(snapshot_id)
+                if row.get("parser_version") is not None:
+                    facts.snapshot_parsers.setdefault(snapshot_id, set()).add(
+                        str(row["parser_version"])
+                    )
+                if event_id:
+                    facts.snapshot_events.setdefault(snapshot_id, set()).add(event_id)
+            for scope in self.scopes(source, via, [event_id] if event_id else []):
+                sets[scope][metric].add(key)
+                if event_id:
+                    sets[scope]["events"].add(event_id)
+                observed = _at(
+                    snapshot.get("observed_at")
+                    or snapshot.get("captured_at")
+                    or snapshot.get("fetched_at")
+                )
+                if observed is not None and observed <= self.cutoff:
+                    times[scope].append(observed)
+                else:
+                    facts.unknown_time.add(scope)
+
         for table, key in (
             ("events", "event_id"),
             ("contests", "contest_id"),
@@ -191,13 +261,13 @@ class _Coverage:
         ):
             for row in self.data.tables.get(table, ()):
                 event_id = row.get("event_id") or self.contests.get(str(row.get("contest_id")))
-                self._record(row, table, str(row[key]), str(event_id) if event_id else None)
+                record(row, table, str(row[key]), str(event_id) if event_id else None)
         for row in self.data.tables.get("registry_placements", ()):
             if row.get("event_id"):
-                self._record(row, "events", str(row["event_id"]), str(row["event_id"]))
+                record(row, "events", str(row["event_id"]), str(row["event_id"]))
         for table, key in (("entries", "entry_id"), ("judges", "judge_id")):
             for row in self.data.tables.get(table, ()):
-                self._record(row, "identity_subjects", str(row[key]), str(row["event_id"]))
+                record(row, "identity_subjects", str(row[key]), str(row["event_id"]))
                 assertion = self.assertions.get(
                     ("entry" if table == "entries" else "judge", str(row[key])), {}
                 )
@@ -206,11 +276,33 @@ class _Coverage:
                     and assertion.get("wsdc_id") is not None
                     and assertion.get("acceptance_state") != "accepted"
                 ):
-                    self._record(row, "withheld_identities", str(row[key]), str(row["event_id"]))
+                    record(row, "withheld_identities", str(row[key]), str(row["event_id"]))
                 if row.get("wsdc_id") is not None:
-                    self._record(row, "resolved_identities", str(row[key]), str(row["event_id"]))
+                    record(row, "resolved_identities", str(row[key]), str(row["event_id"]))
         for row in self.data.tables.get("dancers", ()):
-            self._record(row, "dancer_records", str(row["wsdc_id"]), None)
+            record(row, "dancer_records", str(row["wsdc_id"]), None)
+        for scope, values in sets.items():
+            facts.counts[scope] = {
+                **{name: len(values[name]) for name in FACT_METRICS},
+                **event_summary(values["events"], self.events),
+            }
+        facts.observed = {scope: max(values) for scope, values in times.items() if values}
+        self.absorb(facts)
+
+    def absorb(self, facts: Facts) -> None:
+        """Take the release's fact aggregates: counts, evidence times and snapshots."""
+        for scope, counts in facts.counts.items():
+            self.sets[scope]
+            self.fact_counts[scope] = counts
+        for scope, observed in facts.observed.items():
+            self.times[scope].append(observed)
+        for scope in facts.unknown_time:
+            self.reasons[scope].add("evidence_time_unknown")
+        for snapshot, events in facts.snapshot_events.items():
+            self.snapshot_events[snapshot].update(events)
+        self.selected_snapshots.update(facts.selected_snapshots)
+        for snapshot, parsers in facts.snapshot_parsers.items():
+            self.snapshot_parsers[snapshot].update(parsers)
 
     def inventory(self) -> None:
         tables = {
@@ -331,53 +423,56 @@ class _Coverage:
 
     def omissions(self) -> None:
         for item in self.closure.get("inventory", ()):
-            if not isinstance(item, Mapping):
-                continue
-            status = str(item.get("status") or "unknown")
-            if status == "selected":
-                continue
-            kind, identifier = str(item.get("unit_kind") or ""), str(item.get("unit_id") or "")
-            source = str(item.get("source") or ("wsdc_registry" if kind == "dancer" else "unknown"))
-            if kind == "snapshot":
-                retained = self.conn.execute(
-                    "SELECT w.source FROM snapshots s JOIN watches w USING(watch_id) WHERE s.snapshot_id=?",
-                    (identifier,),
-                ).fetchone()
-                if retained is not None:
-                    source = str(retained[0])
-            event_ids = [identifier] if kind == "event" else []
-            if kind == "event":
-                if item.get("stage") == "link":
-                    self.link_status[identifier] = status
-                else:
-                    self.event_status[identifier] = status
-                source = str(self.events.get(identifier, {}).get("source") or source)
-            scopes = self.scopes(source, "unknown", event_ids)
-            # An omitted event must remain named even when no event row survived.
-            if kind == "event" and identifier not in self.events:
-                scopes.append(("event", identifier, source, "unknown"))
-            for scope in scopes:
-                self.sets[scope]
-                self.missing[scope].add(
-                    f"{item.get('stage')}:{kind}"
-                    if kind == "dancer"
-                    else f"{item.get('stage')}:{kind}:{identifier}"
-                )
-                self.reasons[scope].add(str(item.get("reason") or "scope_not_selected"))
-                if status in {"withheld", "unavailable"}:
-                    self.sets[scope][status + "_scopes"].add(
-                        f"{item.get('stage')}:{kind}:{identifier}"
-                    )
-                elif status == "retained":
-                    self.reasons[scope].add("retained_previous_generation")
+            if isinstance(item, Mapping):
+                self.omit(item)
+
+    def omit(self, item: Mapping[str, Any]) -> None:
+        """Record one omission item: what the release leaves out, and why."""
+        status = str(item.get("status") or "unknown")
+        if status == "selected":
+            return
+        kind, identifier = str(item.get("unit_kind") or ""), str(item.get("unit_id") or "")
+        source = str(item.get("source") or ("wsdc_registry" if kind == "dancer" else "unknown"))
+        if kind == "snapshot":
+            retained = self.conn.execute(
+                "SELECT w.source FROM snapshots s JOIN watches w USING(watch_id) WHERE s.snapshot_id=?",
+                (identifier,),
+            ).fetchone()
+            if retained is not None:
+                source = str(retained[0])
+        event_ids = [identifier] if kind == "event" else []
+        if kind == "event":
+            if item.get("stage") == "link":
+                self.link_status[identifier] = status
+            else:
+                self.event_status[identifier] = status
+            source = str(self.events.get(identifier, {}).get("source") or source)
+        scopes = self.scopes(source, "unknown", event_ids)
+        # An omitted event must remain named even when no event row survived.
+        if kind == "event" and identifier not in self.events:
+            scopes.append(("event", identifier, source, "unknown"))
+        for scope in scopes:
+            self.sets[scope]
+            self.missing[scope].add(
+                f"{item.get('stage')}:{kind}"
+                if kind == "dancer"
+                else f"{item.get('stage')}:{kind}:{identifier}"
+            )
+            self.reasons[scope].add(str(item.get("reason") or "scope_not_selected"))
+            if status in {"withheld", "unavailable"}:
+                self.sets[scope][status + "_scopes"].add(f"{item.get('stage')}:{kind}:{identifier}")
+            elif status == "retained":
+                self.reasons[scope].add("retained_previous_generation")
 
     def rows(self) -> list[dict[str, Any]]:
         result = []
         for scope, values in sorted(self.sets.items()):
+            facts = self.fact_counts.get(scope, {})
             if (
                 scope[0] == "source"
                 and scope[3] == "unknown"
                 and not any(values.values())
+                and not any(facts.get(name) for name in FACT_METRICS)
                 and not self.reasons[scope]
                 and any(
                     other[0] == "source" and other[2] == scope[2] and other[3] != "unknown"
@@ -397,7 +492,7 @@ class _Coverage:
             row: dict[str, Any] = {name: old.get(name) for name in SCHEMAS["coverage"].names}
             row.update(
                 {
-                    name: len(values[name])
+                    name: int(facts.get(name, 0)) if name in FACT_METRICS else len(values[name])
                     for name in (
                         *_FACT_COUNTS,
                         *_COUNTS,
@@ -421,18 +516,9 @@ class _Coverage:
             ):
                 row[name] = int(old.get(name) or 0)
             if kind != "year":
-                scoped_events = [self.events[key] for key in values["events"] if key in self.events]
-                for tier in ("registry_only", "index_only", "sheets_partial", "sheets_complete"):
-                    row["events_" + tier] = sum(
-                        event.get("coverage_tier") == tier for event in scoped_events
-                    )
-                row["events_day_precision"] = sum(
-                    event.get("date_precision") == "day" for event in scoped_events
-                )
-                row["events_listed_only"] = sum(
-                    event.get("held") != "held" for event in scoped_events
-                )
-                row["parsed_rounds"] = len(values["rounds"])
+                for name in TIER_FIELDS:
+                    row[name] = int(facts.get(name, 0))
+                row["parsed_rounds"] = int(facts.get("rounds", 0))
             reasons = sorted(self.reasons[scope])
             status = next(
                 (
@@ -508,13 +594,38 @@ def enrich_coverage(
     coverage.inventory()
     coverage.omissions()
     tables = dict(data.tables)
+    tables.update(
+        annotate(
+            tables,
+            contests=coverage.contests,
+            assertions=coverage.assertions,
+            coverage=coverage,
+        )
+    )
+    tables["coverage"] = coverage.rows()
+    return replace(data, tables=tables, schemas=SCHEMAS, primary_keys=PRIMARY_KEYS)
+
+
+def annotate(
+    tables: Mapping[str, Iterable[Mapping[str, Any]]],
+    *,
+    contests: Mapping[str, Any],
+    assertions: Mapping[tuple[str, str], Mapping[str, Any]],
+    coverage: _Coverage,
+) -> dict[str, list[dict[str, Any]]]:
+    """Each public scope row's evidence time and scope status; one row at a time.
+
+    ``contests`` maps contest ids to events and ``assertions`` holds the
+    identity links of the subjects in ``tables``. The streamed assembly calls
+    this per partition with that partition's contests and links.
+    """
+    cutoff = coverage.cutoff
+    result: dict[str, list[dict[str, Any]]] = {}
     for table in PUBLIC_SCOPE_TABLES:
         annotated = []
         for original in tables.get(table, ()):
             row = dict(original)
-            event_id = str(
-                row.get("event_id") or coverage.contests.get(str(row.get("contest_id"))) or ""
-            )
+            event_id = str(row.get("event_id") or contests.get(str(row.get("contest_id"))) or "")
             snapshot = coverage.snapshots.get(str(row.get("snapshot_id")), {})
             observed = _at(
                 snapshot.get("observed_at")
@@ -534,9 +645,7 @@ def enrich_coverage(
                 row["scope_status"] = "identity_withheld"
             subject_kind = "entry" if table == "entries" else "judge" if table == "judges" else None
             if subject_kind:
-                assertion = coverage.assertions.get(
-                    (subject_kind, str(row.get(subject_kind + "_id"))), {}
-                )
+                assertion = assertions.get((subject_kind, str(row.get(subject_kind + "_id"))), {})
                 if (
                     row.get("wsdc_id") is None
                     and assertion.get("wsdc_id") is not None
@@ -544,9 +653,8 @@ def enrich_coverage(
                 ):
                     row["scope_status"] = "identity_withheld"
             annotated.append(row)
-        tables[table] = annotated
-    tables["coverage"] = coverage.rows()
-    return replace(data, tables=tables, schemas=SCHEMAS, primary_keys=PRIMARY_KEYS)
+        result[table] = annotated
+    return result
 
 
 def refresh_identity_counts(rows: Mapping[str, list[dict[str, Any]]]) -> None:
@@ -554,6 +662,14 @@ def refresh_identity_counts(rows: Mapping[str, list[dict[str, Any]]]) -> None:
 
     Retained acquisition evidence, omission reasons and timestamps stay pinned.
     Only counts supported by emitted rows, and their resulting status, change.
+    """
+    apply_identity_counts(rows.get("coverage", ()), identity_counts(rows))
+
+
+def identity_counts(rows: Mapping[str, Iterable[Mapping[str, Any]]]) -> dict[Scope, dict[str, int]]:
+    """Per scope, `FACT_METRICS` and `TIER_FIELDS` of the final rows.
+
+    The streamed assembly computes the same in SQL (`assembly.fact_counts`).
     """
     events = {str(row["event_id"]): row for row in rows.get("events", ())}
     contests = {str(row["contest_id"]): row.get("event_id") for row in rows.get("contests", ())}
@@ -604,31 +720,38 @@ def refresh_identity_counts(rows: Mapping[str, list[dict[str, Any]]]) -> None:
                 and assertion.get("acceptance_state") != "accepted"
             ):
                 record(row, "withheld_identities", identifier)
-    for row in rows.get("coverage", ()):
+    return {
+        scope: {
+            **{name: len(values[name]) for name in FACT_METRICS},
+            **event_summary(values["events"], events),
+        }
+        for scope, values in counts.items()
+    }
+
+
+def apply_identity_counts(
+    coverage: Iterable[dict[str, Any]], counts: Mapping[Scope, Mapping[str, int]]
+) -> None:
+    """Rewrite the counts and status of each coverage row from ``counts``."""
+    for row in coverage:
         if row.get("scope_kind") not in {"source", "year", "event"}:
             continue
-        values = counts[
-            (str(row["scope_kind"]), str(row["scope_id"]), str(row["source"]), str(row["via"]))
-        ]
-        changed_events = row.get("events") != len(values["events"])
+        values = counts.get(
+            (str(row["scope_kind"]), str(row["scope_id"]), str(row["source"]), str(row["via"])),
+            {},
+        )
+        changed_events = row.get("events") != values.get("events", 0)
         for metric in (
             *_FACT_COUNTS,
             "identity_subjects",
             "resolved_identities",
             "withheld_identities",
         ):
-            row[metric] = len(values[metric])
+            row[metric] = int(values.get(metric, 0))
         if row["scope_kind"] != "year" or changed_events:
-            scoped_events = [events[key] for key in values["events"] if key in events]
-            for tier in ("registry_only", "index_only", "sheets_partial", "sheets_complete"):
-                row["events_" + tier] = sum(
-                    event.get("coverage_tier") == tier for event in scoped_events
-                )
-            row["events_day_precision"] = sum(
-                event.get("date_precision") == "day" for event in scoped_events
-            )
-            row["events_listed_only"] = sum(event.get("held") != "held" for event in scoped_events)
-            row["parsed_rounds"] = len(values["rounds"])
+            for name in TIER_FIELDS:
+                row[name] = int(values.get(name, 0))
+            row["parsed_rounds"] = int(values.get("rounds", 0))
         row["scope_status"] = next(
             (
                 status
