@@ -15,8 +15,8 @@ from dataclasses import asdict
 from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING, Any
 
+from swingset.backup.recovery import local_recovery
 from swingset.fetch.archive import Archive
-from swingset.fetch.recovery import LocalCheckpointRecovery
 from swingset.log import log
 from swingset.loops.runtime import PUBLICATION_IN_FLIGHT, Tick, note_skip, publication_active
 from swingset.schedule.offline import Offline, registry_crosscheck
@@ -233,9 +233,7 @@ def held_units(conn: sqlite3.Connection, now: datetime) -> dict[str, object]:
 def _offline(tick: Tick, *, stages: frozenset[str] | None = None) -> None:
     database, clock, summary = tick.database, tick.clock, tick.summary
     assert tick.bundle is not None
-    recovery = LocalCheckpointRecovery(
-        database.state_dir / "checkpoints", maximum_schema_version=SCHEMA_VERSION
-    )
+    recovery = local_recovery(database.state_dir, maximum_schema_version=SCHEMA_VERSION)
     archive = Archive(database.state_dir, recovery=recovery)
 
     def allowed(unit: WorkUnit) -> bool:

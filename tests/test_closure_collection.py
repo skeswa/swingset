@@ -41,10 +41,15 @@ def state(tmp_path):
         run = db.start_run(clock.now())
         conn = db.connection
         for name in ("failed-1", "failed-2", "by-set", "by-member", "by-recipe", "by-candidate"):
-            conn.execute("INSERT INTO derivation_dependency_sets VALUES (?,?)", (name, proof(name)))
-        conn.execute("INSERT INTO derivation_dependency_sets VALUES ('ordinary','[]')")
+            conn.execute(
+                "INSERT INTO derivation_dependency_sets(dependency_set_id,manifest_json) VALUES (?,?)",
+                (name, proof(name)),
+            )
         conn.execute(
-            "INSERT INTO derivation_dependency_sets VALUES ('build-set',?)",
+            "INSERT INTO derivation_dependency_sets(dependency_set_id,manifest_json) VALUES ('ordinary','[]')"
+        )
+        conn.execute(
+            "INSERT INTO derivation_dependency_sets(dependency_set_id,manifest_json) VALUES ('build-set',?)",
             (canonical([{"kind": "release_closure", "fingerprint": "by-member"}]),),
         )
         generation(conn, run, "dg_project", "project", "history", "by-set", {})
@@ -108,7 +113,8 @@ def test_collect_refuses_a_plan_that_moved(state):
     db, clock = state
     value = closure_collection.plan(db.connection, db.state_dir)
     db.connection.execute(
-        "INSERT INTO derivation_dependency_sets VALUES ('failed-3',?)", (proof("failed-3"),)
+        "INSERT INTO derivation_dependency_sets(dependency_set_id,manifest_json) VALUES ('failed-3',?)",
+        (proof("failed-3"),),
     )
     with pytest.raises(closure_collection.ClosureCollectionError, match="plan moved"):
         closure_collection.collect(db, plan_digest=value["digest"], now=clock.now())

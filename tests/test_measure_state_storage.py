@@ -61,7 +61,8 @@ def _seed(connection, generation, stage, unit_kind, unit_id, payloads):
         (stage, unit_kind, unit_id, NOW),
     )
     connection.execute(
-        "INSERT OR IGNORE INTO derivation_dependency_sets VALUES (?,?)", ("ds_empty", "[]")
+        "INSERT OR IGNORE INTO derivation_dependency_sets(dependency_set_id,manifest_json) VALUES (?,?)",
+        ("ds_empty", "[]"),
     )
     digest = hashlib.sha256(("|".join(payloads)).encode()).hexdigest()
     connection.execute(
@@ -765,7 +766,9 @@ def _seed_missing_payload(connection, generation: str, resident: str, absent: st
         "VALUES ('project','calendar','gap',?)",
         (NOW,),
     )
-    connection.execute("INSERT OR IGNORE INTO derivation_dependency_sets VALUES ('ds_empty','[]')")
+    connection.execute(
+        "INSERT OR IGNORE INTO derivation_dependency_sets(dependency_set_id,manifest_json) VALUES ('ds_empty','[]')"
+    )
     connection.execute(
         "INSERT INTO derivation_generations(generation_id,stage,unit_kind,unit_id,"
         "input_fingerprint,recipe_json,dependency_set_id,previous_generation_id,"

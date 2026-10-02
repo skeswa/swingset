@@ -170,6 +170,20 @@ def shared(
     return held
 
 
+def try_loop(state_dir: Path, loop: str) -> Held | None:
+    """Take another loop's own lock without waiting; None while it runs.
+
+    The drill holds `loop-backup.lock` this way, so a backup set is never
+    written, or pruned, beside it (phase 4).
+    """
+    path = state_dir / loop_lock_name(loop)
+    handle = path.open("a+b")
+    if not _try(handle, fcntl.LOCK_EX):
+        handle.close()
+        return None
+    return Held("exclusive", [handle])
+
+
 def heavy_exclusive(
     state_dir: Path, *, timeout: float = HEAVY_TIMEOUT_SECONDS, clock: Clock | None = None
 ) -> Held:

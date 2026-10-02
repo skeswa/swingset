@@ -2,10 +2,15 @@
 
 Adopted 2026-09-25 by the owner ("move the proposal to plans … pause current
 work and implement this plan"). Other plans are paused until this one's phases
-land, except operating the worker safely. Phases 0 to 3 are implemented
-offline and not deployed; phase 3's rehearsal found four defects (F26 to
-F29), fixed with the review's findings and rehearsed again 2026-09-30 to
-10-02 (section 9); the build's 2 GB peak is not met on the Mac. Phases 4 to 6 are not started.
+land, except operating the worker safely. Phases 0 and 1 are deployed and
+phase 2's switch 2a runs since 2026-10-02 ([status](../status.md)). Phase 3
+is implemented offline and not deployed; its rehearsal found four defects
+(F26 to F29), fixed with the review's findings and rehearsed again
+2026-09-30 to 10-02 (section 9); the build's 2 GB peak is not met on the
+Mac. Phase 4 is implemented offline, reviewed in three rounds and
+rehearsed on its final tree (closed 2026-10-03), not deployed; it goes out
+with phase 3, and its file stays about 32 GB, not 15 GB, until open
+decision 4. Phases 5 and 6 are not started.
 Figures come from `docs/status.md`, the
 [stall investigation](../../journal/investigations/2026/build-failure-and-history-deadline-2026-09-24.md),
 the [derivation investigation](../../journal/investigations/2026/derivation-invalidation-2026-09-23.md)
@@ -37,7 +42,16 @@ These change earlier records and are not settled by adopting this plan:
    named checkpoints (`h16-published-20260917`,
    `pre-regression-schema32-20260921T0423Z`, `pre-schema32-20260921`,
    31.8 GB) after an independent check. Phase 1's step 3 needs this call
-   recorded before its go.
+   recorded before its go. Since then the cap went to 72 GB (D-0220) and
+   76 GB (D-0233), and the owner put phase 4 before phase 3 (2026-10-02).
+4. **Dependency records of labels nothing reaches** (phase 4, W1). After
+   phase 4 the file is about 32 GB, not 15 GB: 16.1 GB is dependency sets
+   that other sets name (build labels' `release_closure` members name the
+   proofs; old inventory labels name the `input_row` sets). Freeing them
+   means dropping the dependency record of labels no retention root
+   reaches, which changes D-0119's permanent labels and D-0231's roots.
+   Until the owner decides, every label keeps its record, and phase 4's
+   post-check sets the cap from the file it measures.
 
 Phase 1's growth target, an earlier open decision, was settled on 2026-09-26
 under D-0183: trim the per-unit bookkeeping at its cause
@@ -388,6 +402,12 @@ already models roots and reachability; it shrinks to a streaming mark over
 the blob directory with the caches keyed by dependency digest, as the
 invalidation plan's step 4 describes.
 
+Phase 4 built this table as object classes under `objects/` with one
+streaming collector ([state: objects and packs](../reference/state.md#objects-and-packs)).
+Two rows differ: a superseded generation's output becomes a pack kept for
+every label, not a mark-sweep victim, and dependency sets stay in SQLite,
+where the named ones keep the file near 32 GB (section 9, phase 4, W1).
+
 ### 6.2 Backups that fit the transport
 
 The 20 GiB single-file limit in `backup/huggingface.py` is only a problem
@@ -405,6 +425,10 @@ because a checkpoint is one archive of everything. With immutable blobs:
   verified one. A failed verification is an alert (I3, I4).
 
 The room check from D-0192 stays; it becomes rarely relevant at these sizes.
+Phase 4 sizes a set's check by the database's bytes in use, not its file,
+and collects the archive: segments no kept set names go and the history is
+squashed so their bytes leave it (D-0234). The archive's budget is 40 GB
+(three sets are about 15 GB), watched by `[archive-size]`.
 
 ### 6.3 Capacity model for the 8 GB / 256 GiB worker
 
@@ -1771,8 +1795,10 @@ Switch 2a, the package in cycle mode (`loops.enable = false`):
    scopes and `version/repository`: 0 parses. About 300 blocked parse units
    become `waiting_input` on a 24 h clock.
 4. Watch the drain per `AGENTS.md`: all 35,800 project and link units re-run
-   and cut off. The inventory and history wait up to 12 h each (D-0210), so
-   up to about 24 h. History takes the staged path: record its A and C
+   and cut off. Under D-0227 and D-0228 history waits up to 48 h and the
+   inventory up to 7 days; the 2b gates need only one cycle that built
+   (builds every 24 h, D-0220). The tree keeps D-0221's parse thresholds
+   (D-0230). History takes the staged path: record its A and C
    seconds and chunk count (2.1 s, 12 to 14 s and 41 on the Mac). Record
    the inventory tick's `peak_rss_bytes` against derive's 5G cap.
 5. Post-check 2a receipt: 0 parse units queued by scopes; derivation
@@ -2425,11 +2451,14 @@ sha256 and `quick_check`; free quota for the drain (about 0.3 to 0.4 GB of
 rows) and the artifacts (about 0.1 GB) plus `release_min_free_bytes`; the
 file at least 2 GB under the 72 GB cap (D-0220). Production was 70.99 GB on
 2026-10-02 04:25 (D-0228), about 1 GB under the cap, so this fails today.
-Then, in order: run `gc --reclaim` by the
-[disk space](../guides/operation.md#disk-space) procedure and measure again;
-else ask the owner to raise the cap by D-0220's procedure (quota headroom
-permitting; D-0228 names about 76 GB as its fallback); else order phase 4's
-storage work before this switch. Never switch with less: the drain alone
+The owner chose on 2026-10-02 to have phase 4's storage work make the room
+("Phase 4 before Phase 3"). Phase 4's code builds on phase 3's (migration 36
+follows 35), so this switch waits for phase 4 to close, and phase 4's deploy
+steps must free room under the cap before phase 3's drain runs (one tree,
+or two switches back to back). A cap raise to about 76 GB (D-0228's
+fallback) stays the answer if the file nears the cap first. The owner also
+approved `decrease:events 2105->1801` the same day; the row in
+`overrides/release_decreases.csv` is the owner's to add. Never switch with less: the drain alone
 adds about 0.3 to 0.4 GB.
 
 1. Build the deploy tree; its `src/` and `config/` equal the reviewed
@@ -2602,6 +2631,475 @@ weekly automated restore verification; migration of retained
 the independent check. _Accept when_ the file is under 15 GB, the daily backup
 uploads and verifies, the restore drill passes on the worker in scratch, and a
 month of receipts shows the blob store within budget.
+
+_Phase 4 status: implemented offline (closed 2026-10-03), not deployed._
+Work packages WP1 to WP7 landed 2026-10-02 and 03, were rehearsed on a
+real-data clone (WP8), reviewed in three rounds with fixes, and rehearsed
+again on the final tree (the closing rehearsal, table below). Offline, the
+file-size accept-when is not met: 31.8 GB after reclaim, not under 15 GB
+(F39, W1, open decision 4). A local set and its offline drill pass on the
+Mac; the upload, the drill on the worker and the month of receipts wait for
+the deploy. Records:
+[D-0229](../../journal/decisions/0229-derivation-output-and-bodies-live-in-packs.md)
+(output and old bodies live in packs; replaces D-0149's gate and the
+bounded-state plan's step 4; amends D-0119),
+[D-0231](../../journal/decisions/0231-collect-every-unnamed-dependency-set-and-unrooted-object.md)
+(the collector; extends D-0200) and
+[D-0232](../../journal/decisions/0232-segmented-backups-with-a-weekly-restore-drill.md)
+(backup sets and the weekly drill; replace D-0203 at the switch) and
+[D-0234](../../journal/decisions/0234-the-backup-archive-collects-unnamed-segments-and-squashes-its-history.md)
+(the archive collects unnamed segments and squashes its history). Migration
+36 adds the object index, the eviction and pack markers, the storage
+authority and the backup tables ([schema history](../reference/schema-history.md)).
+Reference: [state: objects and packs](../reference/state.md#objects-and-packs)
+and [backup sets](../reference/state.md#backup-sets); procedure:
+[operation: packing cold output](../guides/operation.md#packing-cold-output-phase-4).
+
+Eleven findings changed the phase as written, measured by read-only queries
+on the 2026-09-29 copy (schema 32, 64.7 GB):
+
+- **F31, payload bytes are not the problem.** `derivation_payloads` is
+  1.45 GB. The bytes are row references and their indexes (29.2 GB),
+  dependency sets (16.2 GB) and parse JSON (7.1 GB). Moving payloads out
+  means moving whole generations' output out: references and payloads
+  together.
+- **F32, one pack per distinct output, kept forever.** A pack is the label
+  stream itself, so its sha256 is the label's `output_digest`. It needs no
+  mapping table, verifies against the label, and dedupes about 20× (30,065
+  packs for 598,077 evicted labels). Packs replace the
+  [bounded-state plan](bounded-state-and-archive.md)'s two remote stores
+  (its step 4); the segmented backup is the second copy.
+- **F33, resident is not complete.** Four checks called a generation
+  partial when it had fewer references than `row_count`; an evicted one has
+  none. A `derivation_evicted` marker says so, and every check reads
+  "resident or evicted".
+- **F34, the partitioned build joins current pointers in SQL.** Pointers
+  and building generations stay resident. Every other reader goes through
+  one accessor that falls back to the pack, and a pointer flip to an
+  evicted generation pages it in first.
+- **F35, parse-scope code reads old parse generations** (cutoff, the
+  revocation chain, recipes), and those files may not change. Only
+  `manifest_json`, `result_json` and `report_json` of unprotected rows are
+  packed. The protected set covers what parse code reads, and a stub read in
+  parse code fails closed (a test per reader). The review added two rules:
+  every `generation_id` anywhere in a retained closure proof, not only in
+  `source_support` (a closure-mode baseline's `event_coverage` named 475
+  generations, 449 of them otherwise unprotected), and `event`, the
+  generations the kept `event_*` subsystem reads (enumerations, their
+  parents, their members' claims: 4,560 on the diag copy). Packed, they
+  failed `closure.validate` with `event_coverage_support_changed`.
+- **F36, reclaim refused at 72 GB.** It asked for twice the file, about
+  145 GB. A rewrite needs about twice the bytes in use, and its temporary
+  files must not go to the worker's small `/tmp`. It now asks for
+  `2.5 × bytes in use + 12 GB` (W3) on the smaller of statfs and the btrfs
+  quota (statfs cannot see the quota), and writes under `<state>/tmp`.
+- **F37, build recipes.** 24 `build/release` labels carry 1.78 GB of pinned
+  closure in `recipe_json`. Those over 1 MB are packed like parse bodies.
+- **F38, the 15 to 17 GB projection was wrong.** It counted the large
+  dependency sets as freed (F39). The rehearsal measured 31.6 GB.
+- **F39, most dependency-set bytes are named.** The 15.8 GB that no
+  generation names directly is named through other sets: proofs by build
+  labels' `release_closure` members, `input_row` sets by old inventory
+  labels. The collector frees 598,088 sets, 0.10 GB. Freeing the rest is
+  open decision 4. The collector still runs on schemas 33 to 35 (under
+  `operator-hold`), but as a hotfix it would free too little to matter.
+- **F40, local blob recovery read only full checkpoints.**
+  `SegmentRecovery` reads local set segments, after
+  `LocalCheckpointRecovery`, wherever the loops, the cycle and the CLI
+  build recovery.
+- **F41, restore checks the public hub.** The drill and the rehearsal
+  install offline (`restore_set.install`) and never activate.
+
+What each package built:
+
+- **WP1, object store and migration 36.** Content-addressed files under
+  `objects/<class>/`, gzip except raw release manifests, written through
+  `.writing-*` and fsynced; one `objects` row each and one `blob_classes`
+  policy row per class. A storage authority (the D-0136 pattern) gates every
+  delete and stub. The scope guard showed 0 parse or extract scopes changed
+  after every package.
+- **WP2, output packs.** `state/output_packs.py`: `pack`, the accessor
+  (`rows`, `row`, `table_rows`; label checked) and `page_in`. A static test
+  lists the modules that may name the row tables in SQL.
+- **WP3, eviction and reclaim.** `storage plan|apply`: a plan digest,
+  packs, verification, then one exclusive move that rebuilds
+  `derivation_row_refs` with the kept rows. `storage.evict` is maintain's
+  bounded version. Reclaim per F36.
+- **WP4, body packs.** Parse bodies and build recipes over 1 MB, the
+  protected set, the reader audit and `storage restore-body`. Two rules
+  beyond the spec: an admission review's cohort is protected, and the
+  7-day rule covers build recipes too.
+- **WP5, the collector.** One streaming mark-sweep over the object classes,
+  release manifests, partition artifacts, dependency sets and orphans, with
+  `gc --collect --plan|--apply`. It found three set roots the spec missed:
+  a scope's `materialized_signature` proof, a recipe's continuity set, and
+  sets named inside another set. Release manifests are objects now;
+  `storage apply` moves phase 3's files. A synthetic 200,000 labels,
+  100,000 objects and 300,000 sets peak at 107 MB.
+- **WP6, segmented backups.** `backup --segmented`, `restore --backup-set`
+  and `SegmentRecovery`. `VACUUM INTO` runs before the control lock, not
+  under it, since every database open waits on that lock. 50,000 files and
+  a 218 MB database peak at 173 MB.
+- **WP7, maintain, watchdog and nix.** Each maintain tick evicts and packs
+  a bounded batch; the collector sweeps weekly; the drill installs the
+  newest set weekly
+  ([maintain storage tasks](../reference/operations.md#maintain-storage-tasks)).
+  New lines `[restore-drill-failed]`, `[restore-drill-stale]`,
+  `[collector-failed]` and `[objects-size]`; `[backup-stale]` reads sets;
+  `[incomplete-generations]` counts partial generations that still hold
+  references. Nix: `backupSegmented`, `SQLITE_TMPDIR`, and a 60-minute
+  maintain budget with a 90-minute timeout.
+- **Review fixes** (2026-10-03): each maintain storage task is isolated (one
+  that raises is `{failed, error}`, `[storage-failed]`), a generation or body
+  that fails is counted with a guard and the pass goes on, the size cap and
+  controls come first, and `backlog` with no progress for three ticks is
+  `[storage-stalled]`; `[collector-stale]` past `collect_every_days` plus 2.
+  A damaged pack is written again from a resident generation, and a lost
+  pack of an evicted generation is rebuilt by a unit that reuses it. The
+  drill holds the backup's lock, needs 20 GB of headroom, records its start,
+  and streams a closure proof's sha256 instead of decoding it; maintain runs
+  at 05:30. A set checks its own room by bytes in use, cleans a killed run's
+  scratch, records missing files (`[backup-incomplete]`) instead of failing,
+  and the archive collects and squashes (D-0234; `[archive-size]`,
+  `[backup-stale]` in upload mode). Moves and deletes run with
+  `secure_delete` off (W2), apply checks its room, and the collector moves a
+  victim aside inside its transaction so a writer never names a removed
+  file.
+- **Second review fixes** (2026-10-03), each with a test that fails without
+  it: a lost `objects` file comes back from the newest local set that holds
+  it, in the backup and in each evict pass (`storage recover-objects` by
+  hand); failing that an earlier held segment stands for it, so one lost
+  pack no longer leaves every later set unrestorable. A corrupt new file is
+  left out under `missing` and the set still written. A generation that
+  always fails waits out a retry window (1, 2, 4, 7 days) and its rows
+  count against the budget, so it never starves later ones; a full disk
+  stops the pass. A refused body pass is the task's `error` with a guard.
+  Sets upload to their own repository, `skeswa/swingset-backup-sets`, whose
+  collector refuses to squash while it holds anything a set did not write
+  (D-0234); the checkpoint archive's history stays. The collector isolates
+  each class and leaves manifests and artifacts alone while a set is
+  written; verify is isolated and an overdue drill runs before it; a failed
+  drill drops its restored database; the partitioned build's selection reads
+  one snapshot; a unit that may return to a large evicted generation is
+  staged; tests no longer read the worker's quota file. The third round
+  re-ran the earlier probes: a shed after a concurrent page-in returns
+  without touching the generation, so none is left partial and unmarked.
+- **WP8**, the rehearsal below; **WP9**, these docs.
+
+Closing rehearsal, 2026-10-03, of the final tree (after the third review
+round) on one APFS clone of the 2026-09-29 copy (schema 32), no network
+([receipt](../../journal/evidence/runtime/architecture-phase4-closing-rehearsal-2026-10-03/receipt.json)).
+WP8 ran the same steps on the WP7 tree
+([receipt](../../journal/evidence/runtime/architecture-phase4-rehearsal-2026-10/receipt.json));
+its findings W1 to W6 are below. Timings are on a loaded Mac, lower bounds
+for the worker. The copy's 4,228 never-copied files stay out of the backup
+closure. The Mac interpreter re-queued every parse, so no drain ran, and
+2,934 event partitions stay withheld (`units_not_current`) in both builds;
+the gate refuses them (`decrease:events 2105->0`), as in WP8.
+
+| Step                  | Expected                                                                                                                       | Result                                                                                                                                                                                                                                                                                                                                           |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| R0, migrate           | 32 → 36 with seconds per migration; 0 `foreign_key_check` violations; phase 3 code refuses 36                                  | Met: 960 s in all, 0 violations, +48 MB. On a second clone: 33 to 35 (phase 3 code) 510 s, 36 182 s; each migration's own foreign key check takes about 170 s, so migration 36 itself is about 10 s. Phase 3 code refuses 36                                                                                                                     |
+| R1, build before      | A partitioned build; manifest D1                                                                                               | 576 s (partitions 210, assembly 355), 695 MB; 57 partitions built, 2,934 withheld; D1 `800b1a29`                                                                                                                                                                                                                                                 |
+| R2, storage plan      | Twice, one digest, under 1.5 GB; about 30,510 packs, 41 M references evicted, 2.8 M kept, about 260,000 parse rows, 24 recipes | Met: 1,280 and 1,142 s, 884 and 1,112 MB, one digest; 30,065 packs, 598,077 generations and 41,255,315 references evicted, 2,796,109 kept; 193,865 parse rows (the `event` rule keeps 4,560) and 11 recipes, since protection keeps more than estimated                                                                                          |
+| R3, storage apply     | Seconds per stage and object bytes; resumes after a SIGKILL; a rerun returns the receipt                                       | Met: killed at 3,282 packs, no `.writing-*` left; the resume took 1,508 s (plan 424, pack 202, verify 18, bodies 233, move 512) at 1.13 GB; WAL peak 2.2 GB, room asked 13.7 GB. The rerun took 0.5 s, same receipt. Objects 464 MB: 30,065 output packs 191 MB, 40,973 parse bodies 104 MB, 11 recipes 169 MB                                   |
+| R4, collect           | About 920,000 sets, 15.8 GB, under 1.5 GB                                                                                      | Bytes not met (F39): 598,088 sets, 0.10 GB; plan 66 s, apply 221 s, 172 MB; a second plan names nothing                                                                                                                                                                                                                                          |
+| R5, reclaim           | File 15 to 17 GB; `integrity_check` and the foreign key check clean                                                            | Size not met: 64.8 to 31.8 GB in 1,036 s, of which 16.1 GB is named dependency sets (W1). It asked for 93.6 GB (`2.5 × 32.6 GB + 12 GB`) and used about 64 GB at peak (WAL 32 GB). `integrity_check` ok in 223 s, 0 violations                                                                                                                   |
+| R6, correctness       | D1 again with 0 rebuilt; accessor 100%; bodies byte-exact; a 2,000-unit derive sample with 0 failures, page-ins counted        | Met: D1, 0 of 2,991 rebuilt, 60 s, 236 MB; 1,000 of 1,000 evicted generations equal their labels (60,707 rows); 200 of 200 packed bodies restore byte-exact; one derive tick of 3,070 units, 0 failures, 0 page-ins, 0 pointers to evicted generations, 992 MB; verify 30 of 30 links; doctor (2.23 GB) and `gc --plan --candidates-only` exit 0 |
+| R7, backup            | Parts under 4 GiB; a derive tick beside `VACUUM INTO` waits on nothing; a second set holds only new files                      | Met: 241 s (`VACUUM INTO` 147 s), 280 MB, room asked 51.9 GB; one 3.34 GB part; 137,366 files (1.29 GB) in one 1.40 GB segment, 0 missing. The tick opened in 1.5 s and ran 2,880 units, 0 failures, longest write 1.8 s. A second set took 132 s: 1 new file (1,278 bytes) and a new 3.36 GB part (W6); the first set pruned                    |
+| R8, restore and drill | Offline install, a manifest hydrated, opens at 36; the drill passes; a corrupt part fails it with the alert                    | Met: install 190 s (`quick_check`), the partitioned manifest hydrates to D1 (57 artifacts), schema 36, 0 violations, 33.2 GB target. The drill passed in 189 s at 204 MB (need 53.2 GB). A maintain tick then took 84 s at 566 MB, nothing failed. With one byte of a part flipped the drill failed in 1.5 s and wrote `[restore-drill-failed]`  |
+| R9, memory            | Each step under 1.5 GB                                                                                                         | Met by phase 4's steps (highest: apply 1.13 GB, plan 1.11 GB). Derive ticks peaked 0.89 to 0.99 GB. Doctor (2.23 GB) exceeds it, as before phase 4 (publication report)                                                                                                                                                                          |
+| R10, suites           | Core, full, ruff, mypy and the scope guard: zero failures                                                                      | Met: core 1,938 passed in 440 s, full 3,467 passed in 1,217 s, ruff and mypy clean (277 files); 0 parse or extract scopes changed; project and link scopes 175 to 179 files, build 186 to 190                                                                                                                                                    |
+
+The maintain tick after R8 (60-minute budget, a passed set, nothing old and
+cold): `evict` 7 s with no work (its lost-object scan of 71,050 rows
+included), `pack_bodies` 11 s, the collector 39 s (5,950 sets, 1.0 MB, from
+the derive ticks), verify 20 s; the drill was not due. The staging rule for
+units over `CHUNK_ROWS` ran in both derive ticks (5,950 units) but no unit
+reused an evicted generation, so no page-in measured it.
+
+Rehearsal findings (WP8; W2, W3 and W5 fixed by the review, the closing
+rehearsal confirms them):
+
+- **W1, the file stays about 32 GB.** By `dbstat` after reclaim: dependency
+  sets 16.06 GB, `source_generations` 3.67, row references 1.71,
+  `identity_link_history` 1.68, `execution_dependencies` 1.41, payloads
+  1.36, labels 1.33, the rest about 4.6. Without the named sets the file
+  would be about 15.8 GB, and phase 5's `execution_*` (1.7 GB) would take it
+  under 15 GB. Open decision 4.
+- **W2, fixed: the move wrote a WAL as large as what it drops** (29.7 GB in
+  WP8). SQLite here, and nixpkgs' on the worker (compile option
+  `SECURE_DELETE`, confirmed by the review), zeroes every freed page through
+  the log. The move, eviction, body packing and the collector now run with
+  `secure_delete` off (`disk.fast_delete`); a test drops a table both ways.
+  Apply checks its room first and truncates the WAL after the move. Closing
+  rehearsal: WAL peak 2.2 GB, move 512 s against WP8's 926 s.
+- **W3, fixed: reclaim asked for less than it used.** WP8 used 76.3 GB for
+  32.4 GB in use (2.35 times). It asks for `2.5 × in use + 12 GB` now, on
+  the quota as well as statfs. Closing rehearsal: asked 93.6 GB, used about
+  64 GB (1.95 times).
+- **W5, fixed.** A storage receipt's `started_at` and `finished_at` come
+  from the wall clock.
+- **W6, a daily set is mostly the database:** a new 3.4 GB part each day
+  while new files are kilobytes. Evicted output reaches objects only
+  through maintain's eviction.
+
+Review-fix rehearsal, 2026-10-03, on two more clones of the same copy, Mac,
+no network ([receipt](../../journal/evidence/runtime/architecture-phase4-review-2026-10-03/receipt.json)):
+
+- Migrate 837 s, 0 foreign key violations. The storage plan took 839 s at
+  518 MB: the same 598,076 generations, 41,255,314 references and 30,064
+  packs, but 193,865 parse rows, not 198,425: the `event` rule keeps 4,560.
+- Apply took 1,418 s (plan 371, pack 233, verify 22, bodies 221, move 481 s,
+  half R3's) at 596 MB. With `secure_delete` off the WAL peaked at 2.2 GB,
+  not 29.7 GB. Its room check asked for 13.7 GB (1.85 GB of kept references
+  twice, plus 10 GB). Bytes in use after the collector: 32.6 GB, so reclaim
+  would ask for 93.6 GB.
+- The re-review repeated R7 and R8 on its own clone of the fixed tree (now
+  deleted). A set: 253 s (`VACUUM INTO` 162 s), 277 MB, room asked 52.7 GB
+  for 32.7 GB in use, one 3.43 GB part, one 1.15 GB segment, 137,167 files,
+  0 missing. A drill of the closure-mode baseline `cand_80719e178655435d`:
+  passed in 189 s at 191 MB (cap 2 GB), a 223 MB proof streamed, need
+  53.1 GB. Apply again gave digest `a83d85cd` in 1,459 s, WAL peak 2.23 GB,
+  971 MB by `/usr/bin/time` (the plan 903 MB against the receipt's 518 MB;
+  both under 1.5 GB). Production's first set and drill, before reclaim,
+  have 36 to 40 GB in use, so each needs about 57 to 61 GB free.
+- A derive sample (5,690 units, 0 failures, 0 page-ins, no growth: new rows
+  reused free pages) and then one maintain tick with a 60-minute budget:
+  324 s, 510 MB, nothing failed. Nothing was old and cold, so `evict` found
+  no work in 11 s; `pack_bodies` 96 s; the collector's first sweep 185 s
+  (603,777 sets, 0.10 GB); verify 30 of 30 links.
+- Eviction throughput, on a second clone migrated and not applied (the day
+  after a large supersession): one `evict` of the 2,000,000-reference budget
+  moved 1,991,822 references of 28,154 generations in 464 s (about 4,300 a
+  second) at 83 MB, longest write 1.6 s, WAL under 32 MB; 569,922
+  generations were left, so a backlog that size drains in about three weeks
+  of daily ticks. `pack_bodies` packed 20,000 parse rows and 11 recipes in
+  88 s at 572 MB. The worker is slower (**unverified**).
+
+Review verdict (three rounds, 2026-10-03): no blocker or major open. The
+reviewers re-ran their earlier probes against the final tree, and each fixed
+finding's probe now fails as intended (copies under the workflow scratch). They
+read storage apply's move, eviction, the collector's sweeps, body stubs,
+segmented sets, restore and prune and found nothing that loses data, publishes
+a wrong dataset, stalls production or blocks recovery. Their conditions for the
+deploy:
+
+- The publish tier's independent check reads this diff, the closing rehearsal
+  receipt and the review receipt, with a written verdict.
+- Deploy feasibility, checked against status (72.66 GB file, 76 GB cap,
+  76.9 GB quota free): apply needs about 14 GB; a set needs 56 to 60 GB and a
+  drill about 61 GB on the quota before reclaim, about 10 GB of margin;
+  reclaim waits for the checkpoint removal (step 6); rollback after step 4 is
+  only the byte copy.
+- Sets upload only to `skeswa/swingset-backup-sets`, which the owner creates
+  private; nothing checks that it is private (D-0234).
+- The core suite took 795 to 1,055 s on a loaded Mac, and 440 s at the
+  close (load about 6), against `AGENTS.md`'s three minutes; trim it
+  (maintenance queue item 9).
+
+Carried forward (minor; none loses data, publishes a wrong dataset, stalls
+production or blocks recovery). Maintenance queue items, in order of use:
+
+- Reads. `output_packs.row()` and `table_rows()` check `evicted()` and then
+  read in a second statement; a shed committing between them returns `None`
+  or a short list. `build/generations.completed()` can then make a publish
+  refuse wrongly (fails closed). `_dancer_rows` skips an evicted dancer
+  pointer instead of failing closed (only if F34 breaks).
+- Page-in. A staged reuse's step B pages in without a `derivation_building`
+  row, so eviction may shed or re-evict it before step C; C raises
+  `SupersededWorkError` and the run retries. Wasted work, rarely reached.
+- Body packing. The retained-candidate protection is read once per pass, so
+  a closure-mode candidate written during it is not seen (fails closed at
+  closure validation). Only `BodyUnavailable` is caught around the stub, so a
+  collector unlink of a reused rowless file aborts the task
+  (`[storage-failed]`, rolled back). With 100 or more bodies always failing
+  at the head of the order, every pass makes no progress (`[storage-stalled]`
+  reports it; no retry window as evict has).
+- Retry windows. `_Retries.save` writes `.evict-retry.json.tmp-<pid>` with
+  mode `xb`; a leftover from a crash and a reused pid make every save fail
+  silently, and the starvation fix stops working.
+- Drill timing. The drill runs only with 1,800 s of the 3,600 s budget left,
+  after evict, body packing and the collector; a long backlog can skip it as
+  `short_budget` until `[restore-drill-stale]` at 8 days.
+- Missing files. A set that lists `missing` cannot be installed and has no
+  override; an object lost before any set held it makes every later set fail
+  its drill daily, and in upload mode three such sets leave no remote set that
+  restores. `restore_lost` checks only that a file exists, so a present but
+  corrupt pack of an evicted generation is never repaired (readers fail
+  closed; a pinned closure-mode baseline's validation can stop a build).
+  `_sweep_objects` does not take the backup lock, so an object removed
+  between a set's `VACUUM INTO` and its listing goes under `missing`.
+- Cost that grows. Each evict pass runs `restore_lost` over every `objects`
+  row and rescans partial labels at 0 refs (about 70k stats now); the
+  watchdog walks `objects/`, `blobs/`, `extracts/` and `partitions/` twice.
+  `_snapshot` runs lost-object recovery under the control lock, so many lost
+  objects make every open wait. `SegmentRecovery` builds its lookup database
+  under the default `TMPDIR`, which is the small `/tmp` for derive, acquire
+  and the cycle on the worker.
+- Alerts. `[storage-stalled]` counts retry-window and lost items, so one
+  waiting generation fires it daily with a wrong hint; body packing's backlog
+  counts protected rows. `_beside_backup` takes `loop-backup.lock`, so a
+  backup timer firing during maintain's sweep or drill skips the day's set
+  (D-0192).
+- Not measured with a page-in: the staging rule for units over
+  `CHUNK_ROWS` (about 113 units on diag would stage). The closing
+  rehearsal's two derive ticks and builds ran it and the single-snapshot
+  `_select` with 0 failures, but no unit reused an evicted generation.
+- Test gaps (surviving mutants): P04 (`Store.install`'s digest check), P09
+  (refusing a set that lists `missing`), P12 (zero padding of a file that
+  shrinks during the tar read), P21 and P26 (`SegmentRecovery._read`'s length
+  check, `recover_object`'s index filter), N45 (`tick.stop()` after the cap
+  and controls); M37 is equivalent.
+- Tooling. Parallel pytest runs share the default basetemp and prune each
+  other's temp dirs (false failures in the drill tests). `mise run
+evidence-size` fails at 490 KiB against `trunk()` because phases 0 to 4 are
+  unpushed in one stack; phase 4's own evidence is within the 200 KiB budget.
+
+Deploy steps (operator; one switch with phase 3):
+
+Preconditions: phase 2's switch 2b (the loops) for step 8 and after:
+maintain runs eviction, body packing, the collector and the drill only as a
+loop. Steps 3 to 6 are CLI commands and may run under 2a's cycle mode, which
+reads output through the same accessor; until 2b nothing evicts the output
+that goes cold after the switch. Phase 3 goes in the same switch: phase 4's
+tree contains it (migration 36 follows 35), and the owner chose phase 4
+before phase 3 on 2026-10-02 so that these steps free room before phase 3's
+drain. Phase 3's preconditions and deploy steps apply, except its cap
+precondition, which steps 4 to 6 meet. The publish tier's independent check
+of the diff, the closing rehearsal's receipt and the review-fix receipt, with a written
+verdict (this deletes data and changes backup and restore). A Mac byte copy
+at schema 34 verified by sha256 and `quick_check`. Preflight receipt items:
+
+- Quota room, read with `sudo swingset-disk` (statfs cannot see it): the
+  move needs twice the kept references' bytes plus 10 GB (about 14 GB on
+  diag; apply checks it); reclaim needs `2.5 × bytes in use + 12 GB` after
+  collection, about 100 to 112 GB for 36 to 40 GB in use, against 76.9 GB
+  free on 2026-10-03 (D-0233). So reclaim waits unless room is made: remove
+  old local checkpoints by name first, with an independent check as
+  D-0203's switch did. Waiting is safe (step 6).
+- Mac room, measured with `df` on the Mac: the byte copy (about 73 GB), the
+  move (small with `secure_delete` off), the first set under
+  `checkpoints/` (a 3.4 GB part and a 1.2 GB segment) and the drill's
+  scratch under `/var/tmp` (the bytes in use, 36 to 40 GB before reclaim),
+  and later reclaim's peak. Each may grow the OrbStack disk image on APFS,
+  up to its 100 GB, if those blocks were never allocated (**unverified**);
+  plus 20 GB. The Mac had 155 GiB free on
+  2026-10-03; the 2026-09-18 outage was a full Mac disk. Delete first, by
+  name: `~/swingset-offload/state-20260929.sqlite` (61 GiB) once the diag
+  copy no longer needs it, and the schema 33 byte copy once the schema 34
+  copy is verified.
+- Cap runway: the file was 72.66 GB at 2026-10-03 04:24 and grows about
+  1.3 GB per daily dry-run build against the 76 GB cap, about 2 to 3 days.
+  The no-requeue stopgap is a longer `build_interval_seconds` (config only,
+  as D-0220 set it), not another cap raise.
+
+1. Build the deploy tree (phases 3 and 4, `backupSegmented = false`; its
+   `max_database_bytes` is production's 76 GB, D-0233). Run the scope guard
+   with the deployed phase 2 tree as baseline: 0 parse or extract scopes
+   changed.
+2. Hold (owner, reason, review date 24 h out): `operator-hold`, wait until
+   no `swingset-*` unit is active, checkpoint the WAL, byte-copy
+   `state.sqlite` to the Mac (phase 2 code refuses 35 and 36: the copy is
+   the way back). Preflight receipt: sha256 and `quick_check` of both,
+   schema 34, size, quota free, the published and baseline candidates; the
+   `dbstat` top 10 from the Mac copy.
+3. Still under the hold: `nixos-rebuild switch`, then
+   `sudo -u swingset swingset migrate --lock-timeout 3600` (34 → 36; R0 took
+   16 minutes for 32 → 36 on the Mac, almost all of it one foreign key
+   check of about 170 s per migration, so 34 → 36 is about 6 minutes). Check that `swingset` owns
+   `state.sqlite*`, and phase 3's DuckDB check.
+4. `sudo -u swingset swingset storage plan`; the reviewer reads the counts
+   and the digest; then `sudo -u swingset swingset storage apply <digest>`.
+   Apply reuses the written plan's day boundary, so it may cross midnight.
+   Receipt, with its `room`.
+5. `sudo -u swingset swingset gc --collect --plan`, review,
+   `sudo -u swingset swingset gc --collect --apply <digest>`. Receipt.
+6. `sudo swingset-disk`, then `sudo -u swingset swingset gc --reclaim`; it
+   refuses without `2.5 × bytes in use + 12 GB` on the quota. Record the
+   size before and after and the peak quota used. If it refuses, end the
+   hold anyway: the cap reads the file, new rows reuse the 35 GB of free
+   pages, and a segmented set sizes its room by bytes in use, so backups
+   continue. Reclaim is then a separate step after step 9's checkpoint
+   removal, which is where its room comes from, so it needs switch 2b and
+   a drill that passed: its own hold (`operator-hold`, then the writer and
+   control locks it takes), sized again at `2.5 × bytes in use + 12 GB`.
+   Until it runs the file stays about 73 GB and D-0233's 76 GB cap stays.
+7. End the hold. Watch phase 3's drain and first build per `AGENTS.md` and
+   phase 3's steps 4 to 6.
+8. Set `backupSegmented = true` (a `nix/`-only switch, no re-queue). Start
+   `swingset-backup.service` by hand (a local set), then
+   `swingset-maintain.service`: its drill runs, since no set has passed one.
+   Record the set and the drill.
+9. Post-check receipt after 24 hours: the file size and its `dbstat` top
+   10, `objects/` bytes by class, growth per day, the set sizes, the drill
+   result, page-ins and evictions per day, `[incomplete-generations]`
+   quiet, and phase 3's post-check items. Then: a record lowering
+   `max_database_bytes` from D-0233's 76 GB (proposal: the size after
+   reclaim plus 8 GB, only after reclaim has run); removal of the old
+   `run_*` and named checkpoints once a set has passed its drill
+   (independent check), then reclaim under its own hold if step 6 waited;
+   and, if the owner agrees, `backupUpload = true` (D-0232). Upload goes to
+   a new private dataset, `skeswa/swingset-backup-sets`, which the owner
+   creates first and the token can write; never to `skeswa/swingset-archive`,
+   whose checkpoint history `restore --archive-commit` reads and a squash
+   would delete (D-0234). Watch the first upload.
+10. Acceptance of record over a month: the file under 15 GB, or the gap
+    attributed and moved to phase 5 or open decision 4; a daily set and a
+    weekly drill passing on the worker; `objects/` within 80 GB.
+
+Rollback: before step 3's migrate, the previous system generation. After
+it, only step 2's byte copy: phase 2 code refuses schemas 35 and 36, and
+after step 4 nothing older reads packs. Work since the hold is lost and
+re-fetched. Phase 3's `[release] path = "whole"` stays the answer to an
+assembly bug.
+
+Cost the operator faces (Mac timings from the closing rehearsal on a
+loaded Mac; the worker is slower, **unverified**): a hold of about 3 to 4
+hours: the byte copy of a 73 GB file to the Mac with its sha256 and
+`quick_check`, migrate (about 6 minutes for 34 → 36), storage plan (19 to 21 minutes) and
+apply (25 minutes, its own 7-minute plan included), collection (5 minutes),
+reclaim when it has room (17 minutes, about 2 times the bytes in use at
+peak), and the reviewer's reading between them. Peak disk: the move's copy of the kept references (a few GB
+with `secure_delete` off), then reclaim's `2.5 × bytes in use + 12 GB`. After
+the hold: phase 3's drain (every project and link unit, 2.3 to 2.8 hours on
+the Mac, all cut off but phase 3's new units) and a cold build of about 6
+to 8 minutes; about 0.5 GB of objects; the file from about 73 GB to about
+32 to 40 GB (W1); a first set of about 4 minutes (a 3.3 GB part and a
+1.4 GB segment) and a drill of about 3 minutes; the independent check.
+After it: a daily local set of a 3 to 4 GB part plus the day's new files
+(two sets kept, about 8 GB with the shared segment); a weekly drill that
+needs the database's size, the set's files and 20 GB free under `/var/tmp`;
+maintain's bounded eviction and packing at 05:30; the cap lowered by its own
+record.
+
+Known limits after phase 4:
+
+- The file stays about 32 GB until open decision 4 or phase 5 (W1).
+- Equivalences and `derivation_recipes` are not collected (the rest of
+  invalidation step 3); the `[equivalences]` line at 500,000 rows stands.
+- Nothing in the code revokes a generation today, and the chain a
+  revocation reads is protected (F35). One that met a packed body would
+  raise `KeyError` and roll back; `body_packs.check_revocation` names the
+  body for `storage restore-body`.
+- A reuse of a large evicted generation pages it in over several ticks;
+  until it is whole the staged run stops with `SupersededWorkError`.
+- A daily set carries the whole compressed database (W6), and each weekly
+  drill needs the database's size, the files and 20 GB free.
+- Upload stays off until the owner turns it on and creates the sets
+  repository; the Hub's per-commit and storage limits are **unverified**,
+  and its collector and history squash (D-0234) run only against a fake
+  Hub offline.
+- A lost object comes back only from a local set that holds it (or an
+  older set copied in by hand), or, for a pack, when a unit reuses that
+  generation (`output_packs.rebuild`); until then its readers fail closed
+  and the evict guard holds.
+- `VACUUM INTO` holds a read snapshot for minutes (129 s on the Mac at
+  31.6 GB), so the WAL grows during a backup and `[wal-large]` may fire.
+- `identity_link_history` (1.68 GB) and `execution_*` (1.70 GB, phase 5)
+  are untouched.
+- A derive tick (2.3 to 2.5 GB) and doctor (4.4 GB) exceed the 1.5 GB step
+  budget, as before phase 4.
 
 **Phase 5: removals (about 2 weeks, one subsystem per switch).** The table
 in section 8, each behind its replacement's receipts, with tests deleted in

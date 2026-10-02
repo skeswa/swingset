@@ -151,7 +151,8 @@ def test_dependency_manifests_and_materialized_generations_are_immutable(tmp_pat
                 (now.isoformat(),),
             )
             conn.execute(
-                "INSERT INTO derivation_dependency_sets VALUES ('dependencies',?)", (manifest,)
+                "INSERT INTO derivation_dependency_sets(dependency_set_id,manifest_json) VALUES ('dependencies',?)",
+                (manifest,),
             )
             conn.execute(
                 "INSERT INTO derivation_generations VALUES ('generation','project','event','fixture','input-fingerprint','{}','dependencies',NULL,'output-digest',1,?,?)",

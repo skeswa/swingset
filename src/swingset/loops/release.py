@@ -20,7 +20,6 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import asdict
-from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from swingset.build.builder import BuildError
@@ -35,18 +34,15 @@ from swingset.schedule.cycle import (
     correct,
 )
 from swingset.schedule.fairness import backpressure
-from swingset.state import guards, rwlock
+from swingset.state import disk, guards, rwlock
 from swingset.state.controls import ControlPaused
 from swingset.state.work import unfinished_units
 
 Held = Callable[[str, ControlPaused], None]
 
-#: The worker's disk quota as `swingset-disk` caches it: `USED CAP [READ_AT]`
-#: in bytes (nix/module.nix). Absent on a machine without a quota.
-DISK_FILE = Path("/run/swingset-disk")
+#: The worker's disk quota as `swingset-disk` caches it (`swingset.state.disk`).
+DISK_FILE = disk.QUOTA_FILE
 DISK = "disk"
-#: The watchdog and backup refresh the reading every 30 minutes.
-DISK_STALE = timedelta(hours=1)
 HEAVY_BUSY = "heavy_busy"
 #: The guard a disk refusal leaves on `loop:release`; it clears on the next
 #: tick with room (D-0219).
@@ -58,30 +54,10 @@ HEAVY_PATHS = frozenset({"whole", "closure"})
 LANDED = frozenset({"promoted", "recovered", "published"})
 
 
-def free_bytes(path: Path = DISK_FILE) -> tuple[int, str | None] | None:
-    """Free bytes and read time from the cached quota line, or None."""
-    try:
-        fields = path.read_text().split()
-        used, cap = int(fields[0]), int(fields[1])
-    except (OSError, ValueError, IndexError):
-        return None
-    return cap - used, fields[2] if len(fields) > 2 else None
-
-
-def _stale(read_at: str | None, now: datetime) -> bool:
-    """A reading older than `DISK_STALE` is unknown; one with no time is taken as is."""
-    if read_at is None:
-        return False
-    try:
-        moment = datetime.fromisoformat(read_at.replace("Z", "+00:00"))
-    except ValueError:
-        try:
-            moment = datetime.fromtimestamp(float(read_at), UTC)
-        except ValueError:
-            return True
-    if moment.tzinfo is None:
-        moment = moment.replace(tzinfo=UTC)
-    return now - moment > DISK_STALE
+def free_bytes(path: Path | None = None) -> tuple[int, str | None] | None:
+    """Free bytes and read time from the cached quota line (`DISK_FILE`, read
+    when called), or None."""
+    return disk.quota(path if path is not None else DISK_FILE)
 
 
 def _disk(tick: Tick, path: Path) -> bool:
@@ -90,7 +66,7 @@ def _disk(tick: Tick, path: Path) -> bool:
     database, now = tick.database, tick.clock.now()
     minimum = tick.bundle.config.scheduler.release_min_free_bytes
     reading = free_bytes(path)
-    stale = reading is not None and _stale(reading[1], now)
+    stale = reading is not None and disk.stale(reading[1], now)
     tick.summary["disk"] = (
         None
         if reading is None

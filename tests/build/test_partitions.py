@@ -24,7 +24,7 @@ from swingset.build.input import _convert
 from swingset.build.partitions import _TABLES, INTERNAL_SCHEMAS
 from swingset.build.schema import SCHEMAS
 from swingset.build.support_closure import _EventScopes
-from swingset.state import derivations, release_store
+from swingset.state import collector, derivations, release_store
 from swingset.state.release_store import ArtifactRow, PartitionRow
 from swingset.state.retention import artifact_directory, partition_root
 from swingset.state.work import WorkUnit
@@ -587,14 +587,16 @@ def _observation_changed(f, generation, **changes):
             body = canonical(members)
             fingerprint = hashlib.sha256(body.encode()).hexdigest()
             conn.execute(
-                "INSERT OR IGNORE INTO derivation_dependency_sets VALUES (?,?)", (fingerprint, body)
+                "INSERT OR IGNORE INTO derivation_dependency_sets(dependency_set_id,manifest_json) VALUES (?,?)",
+                (fingerprint, body),
             )
             item = {**item, "fingerprint": fingerprint}
         changed.append(item)
     body = canonical(changed)
     identifier = hashlib.sha256(body.encode()).hexdigest()
     conn.execute(
-        "INSERT OR IGNORE INTO derivation_dependency_sets VALUES (?,?)", (identifier, body)
+        "INSERT OR IGNORE INTO derivation_dependency_sets(dependency_set_id,manifest_json) VALUES (?,?)",
+        (identifier, body),
     )
     return identifier
 
@@ -735,7 +737,7 @@ def test_a_crash_before_the_rename_leaves_no_row(source_fixture, tmp_path):
     assert not [path for path in root.glob("??/*")]
     # The collector removes the unfinished write once it is a day old.
     later = datetime.now(UTC) + timedelta(days=2)
-    assert artifact_store.collect(f.db, now=later)["temporary"] == 1
+    assert collector.collect_artifacts(f.db, now=later)["temporary"] == 1
     assert not leftovers[0].exists()
     report = build(f, baseline)
     assert report["built"] == report["partitions"]
@@ -782,7 +784,7 @@ def test_the_collector_keeps_named_artifacts_and_removes_old_orphans(source_fixt
         json.dumps({"release_policy": {"mode": "partitioned", "manifest_digest": manifest}})
     )
     (candidate / "BUILT").write_text("{}")
-    result = artifact_store.collect(f.db, now=now)
+    result = collector.collect_artifacts(f.db, now=now)
     assert result["removed"] == 2 and result["rows"] == 1
     assert not artifact_directory(state_dir, rowless).exists()
     assert not artifact_directory(state_dir, stale).exists()
@@ -849,7 +851,9 @@ def test_the_collector_removes_old_unretained_manifests_and_build_scratch(source
             "INSERT INTO derivation_payloads VALUES ('p',?)",
             (json.dumps({"path": str(state_dir / "candidates" / "cand_pointer")}),),
         )
-        conn.execute("INSERT OR IGNORE INTO derivation_dependency_sets VALUES ('empty','[]')")
+        conn.execute(
+            "INSERT OR IGNORE INTO derivation_dependency_sets(dependency_set_id,manifest_json) VALUES ('empty','[]')"
+        )
         conn.execute(
             "INSERT INTO derivation_generations VALUES "
             "('g-build','build','release','all','f','{}','empty',NULL,'d',1,?,?)",
@@ -866,7 +870,7 @@ def test_the_collector_removes_old_unretained_manifests_and_build_scratch(source
         if name != "partitions-young":
             old(scratch / name / "x", now)
             old(scratch / name, now)
-    result = artifact_store.collect(f.db, now=now)
+    result = collector.collect_artifacts(f.db, now=now)
     assert result["manifests"] == 2
     assert result["scratch"] == 3
     left = {row.manifest_digest for row in release_store.all_rows(f.conn, ManifestRow)}
@@ -964,3 +968,47 @@ def test_an_artifact_collected_mid_build_is_written_again_at_once(
     )
     assert len(calls) == 2 and release.report["collected_retried"] == 1
     assert release.built
+
+
+def test_the_selection_reads_one_snapshot_while_a_generation_is_evicted(source_fixture, tmp_path):
+    """A pointer read by `pointers` whose references another connection then
+    moves out (a flip and an eviction by maintain beside the build) still
+    gives its whole reference list: the selection reads one snapshot."""
+    import sqlite3
+
+    f = source_fixture
+    settled(f, tmp_path)
+    conn = f.db.connection
+    before, _ = partitions.select(conn)
+    shared = [
+        generation
+        for generation in partitions.pointers(conn)
+        if generation.unit_kind in {"calendar", "inventory", "year"} and generation.row_count
+    ]
+    assert shared
+    target = shared[0].generation_id
+    real = partitions.pointers
+
+    def then_evicted(conn_):
+        found = real(conn_)
+        other = sqlite3.connect(f.db.state_dir / "state.sqlite", isolation_level=None)
+        try:
+            other.execute("BEGIN IMMEDIATE")
+            other.execute(
+                "INSERT INTO storage_eviction_authority(singleton,reason,granted_at) "
+                "VALUES (1,'test','2026-10-01T00:00:00Z')"
+            )
+            other.execute("DELETE FROM derivation_row_refs WHERE generation_id=?", (target,))
+            other.execute(
+                "INSERT INTO derivation_evicted VALUES (?,'2026-10-01T00:00:00Z')", (target,)
+            )
+            other.execute("DELETE FROM storage_eviction_authority")
+            other.execute("COMMIT")
+        finally:
+            other.close()
+        return found
+
+    with pytest.MonkeyPatch.context() as patch:
+        patch.setattr(partitions, "pointers", then_evicted)
+        after, _ = partitions.select(conn)
+    assert [(p.name, len(p.shared)) for p in after] == [(p.name, len(p.shared)) for p in before]

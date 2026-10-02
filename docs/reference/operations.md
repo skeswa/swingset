@@ -41,18 +41,18 @@ alone never enables publication. State layout is defined in
 
 ## Timers
 
-| Unit                           | Schedule                                                                   | What it runs                                                                                  |
-| ------------------------------ | -------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| `swingset-cycle.timer`         | every 15 min, `RandomizedDelaySec=120`; loops off only                     | `swingset cycle --budget <cycleBudget>` (default `12m`; orb `40m`)                            |
-| `swingset-acquire.timer`       | loops on: every 5 min at :00, `RandomizedDelaySec=20`                      | `swingset acquire --budget <acquireBudget>` (`4m`)                                            |
-| `swingset-derive.timer`        | loops on: every 5 min at :02, `RandomizedDelaySec=20`                      | `swingset derive --budget <deriveBudget>` (`4m`)                                              |
-| `swingset-plan.timer`          | loops on: every 30 min at :10 and :40                                      | `swingset plan --budget <planBudget>` (`10m`)                                                 |
-| `swingset-release.timer`       | loops on: hourly at :20                                                    | `swingset release --budget <releaseBudget>` (`30m`), `--dry-run` or `--publish` from `dryRun` |
-| `swingset-maintain.timer`      | loops on: daily 03:30                                                      | `swingset maintain --budget <maintainBudget>` (`20m`)                                         |
-| `swingset-watchdog.timer`      | every 30 min at :05 and :35, and after a failed cycle, loop tick or backup | `nix/watchdog.py` ([alerts](../guides/operation.md#alerts))                                   |
-| `swingset-backup.timer`        | Mon-Thu 04:00; Fri-Sun 04:00, 12:00, 20:00 (box local time)                | `swingset backup`; `--local` when `backupUpload = false` (orb)                                |
-| `swingset-summary.timer`       | daily 08:00                                                                | `swingset summary`                                                                            |
-| `swingset-scratch-clean.timer` | daily 05:00                                                                | removes idle `/var/tmp/swingset-*` rehearsal scratch                                          |
+| Unit                           | Schedule                                                                   | What it runs                                                                                                       |
+| ------------------------------ | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `swingset-cycle.timer`         | every 15 min, `RandomizedDelaySec=120`; loops off only                     | `swingset cycle --budget <cycleBudget>` (default `12m`; orb `40m`)                                                 |
+| `swingset-acquire.timer`       | loops on: every 5 min at :00, `RandomizedDelaySec=20`                      | `swingset acquire --budget <acquireBudget>` (`4m`)                                                                 |
+| `swingset-derive.timer`        | loops on: every 5 min at :02, `RandomizedDelaySec=20`                      | `swingset derive --budget <deriveBudget>` (`4m`)                                                                   |
+| `swingset-plan.timer`          | loops on: every 30 min at :10 and :40                                      | `swingset plan --budget <planBudget>` (`10m`)                                                                      |
+| `swingset-release.timer`       | loops on: hourly at :20                                                    | `swingset release --budget <releaseBudget>` (`30m`), `--dry-run` or `--publish` from `dryRun`                      |
+| `swingset-maintain.timer`      | loops on: daily 05:30, after the 04:00 backup                              | `swingset maintain --budget <maintainBudget>` (`60m`; unit timeout 90 min)                                         |
+| `swingset-watchdog.timer`      | every 30 min at :05 and :35, and after a failed cycle, loop tick or backup | `nix/watchdog.py` ([alerts](../guides/operation.md#alerts))                                                        |
+| `swingset-backup.timer`        | Mon-Thu 04:00; Fri-Sun 04:00, 12:00, 20:00 (box local time)                | `swingset backup`; `--segmented --lock-timeout 3600` when `backupSegmented`; `--local` when `backupUpload = false` |
+| `swingset-summary.timer`       | daily 08:00                                                                | `swingset summary`                                                                                                 |
+| `swingset-scratch-clean.timer` | daily 05:00                                                                | removes idle `/var/tmp/swingset-*` rehearsal scratch                                                               |
 
 `services.swingset.loops.enable` picks the cycle or the five loops
 ([deployment: loops](../guides/deployment.md#switching-to-the-loops)). Every
@@ -63,7 +63,10 @@ not count as completed backups. A failed backup does not restart; it runs
 the watchdog and waits for the next timer run
 ([D-0192](../../journal/decisions/0192-a-failed-backup-waits-for-the-next-timer-run.md)).
 Before starting, the backup refuses when the disk quota cannot hold two
-copies of the state plus 20 GB, or one copy when upload is off. Doctor
+copies of the state plus 20 GB, or one copy when upload is off; with
+`backupSegmented`, the size of `state.sqlite` plus 20 GB. The backup and
+maintain units set `SQLITE_TMPDIR=<stateDir>/tmp`, off the small `/tmp`
+tmpfs; `swingset gc` and `storage` set the same directory themselves. Doctor
 reports the last successful checkpoint, and with upload off the watchdog
 alerts on a stale local one, so a stale backup stays visible
 ([D-0203](../../journal/decisions/0203-back-up-locally-and-keep-one-checkpoint-until-segmented-backups.md)).
@@ -167,13 +170,42 @@ writes a receipt under `gc/receipts/`
 ([D-0200](../../journal/decisions/0200-collect-release-closure-proofs-nothing-names.md)).
 It deletes data, so a production run needs a verified backup and an
 independent check first.
+`gc --collect --plan` runs the mark-sweep collector's mark over every stored
+class (objects, release manifests, partition artifacts, dependency sets and
+orphans) and writes `gc/plans/collect-<digest>.json` with counts and bytes per
+class; it removes nothing. `gc --collect --apply <digest>` recomputes it under
+both locks, stops if the digest moved, removes what it names a batch at a time,
+and writes a `storage_applies` note and `gc/receipts/collect-<digest>.json`
+([D-0231](../../journal/decisions/0231-collect-every-unnamed-dependency-set-and-unrooted-object.md);
+[state: collector](state.md#collector)). Rerunning a finished digest prints its
+receipt; one that stopped part way no longer matches: plan again. Before schema
+36 it collects dependency sets only, under `operator-hold`. It deletes data:
+the first production run takes the independent check.
 `gc --reclaim` rewrites `state.sqlite` in place so the pages a removal freed
-leave the file. Run apply, then reclaim, then resume. A schema migration that
+leave the file. It needs `2.5 × bytes in use + 12 GB` free (the rehearsal
+used 2.35 times, W3) on the smaller of statfs and the disk quota
+(`state/disk.py`; it refuses a quota reading over an hour old: run `sudo
+swingset-disk`), and keeps SQLite's temporary files under `<state>/tmp`.
+`storage plan` and `storage apply <digest>` (schema 36, under `operator-hold`)
+move cold derivation output, old parse bodies and large old build recipes into
+packs; reclaim follows them too. Apply refuses before it writes anything
+unless the disk, quota included, has twice the kept references' bytes plus
+10 GB; it moves with `secure_delete` off and truncates the WAL after. It
+recomputes with the written plan's `young` boundary, so a plan written before
+midnight applies after it. Run apply, then reclaim, then resume. `storage
+restore-body <generation_id>` writes one packed body back, checked against its
+pack. A revocation reads the chain back to the previous accepted generation,
+which is protected, so it never reads a pack; nothing in the code revokes today
+(`admission/select.revoke_generation` has no caller). One that met a stub would
+raise `KeyError` and roll back; `body_packs.check_revocation` names the body to
+restore. A schema migration that
 drops a table frees pages the same way, so reclaim follows one of those too.
 Raising `retention.max_database_bytes` in `config/sources.toml` is still the way
 out when there is nothing to remove; that change recomputes no work, and the new
 input bundle records the limits in force as values. The pause result and `gc --plan` print both.
-`gc --restore` does not exist yet, so no payload bytes are ever removed. Before
+`gc --apply` removes no payload bytes (D-0149's gate stays shut); `storage
+apply` and maintain's eviction remove them only after their pack is verified,
+and a pointer flip pages them back in (there is no `gc --restore`). Before
 schema 32 there are no interned payloads to remove either; the plan and doctor
 say which shape they measured under `payloads_interned`. See
 [retention](state.md#retention) for the order, the note and the receipt.
@@ -320,6 +352,34 @@ checkpoint file closure and the retention walk, so pruning one can never remove
 a retention root or a file a plan must keep
 ([D-0152](../../journal/decisions/0152-the-backup-command-prunes-its-own-checkpoints.md),
 [D-0154](../../journal/decisions/0154-policy-removes-only-what-the-code-wrote-and-sizes-it-once.md)).
+
+`backup --segmented [--local | --destination DIR]` writes a segmented set
+instead (phase 4): the database in zstd parts and only the files no earlier
+set sent, in tar segments, no file over 4 GiB. It runs under the shared state
+lock as the loop `backup`, so the loops keep running. Before `VACUUM INTO`
+it refuses unless the disk, quota included, has the database's bytes in use
+(not its file size) plus 20 GB free; it first removes a killed run's scratch
+over a day old. A lost `objects` file comes back from the newest local set
+that holds it, or an earlier segment the transport holds stands for it. An
+object, manifest or artifact still missing, or a new file that does not
+match its digest, does not stop the set: `backup.json` lists it under
+`missing`, `[backup-incomplete]` names it, and a restore or drill of that set
+refuses. A missing body, extract or input bundle fails the set. Without
+`--local` or `--destination` it uploads to `skeswa/swingset-backup-sets` (not
+the checkpoint archive) in one commit and keeps the newest 3 remote sets;
+then the collector removes the segments no kept set names, squashes the
+history so their bytes go (refusing while the repository holds files no set
+wrote), and writes `checkpoints/remote.json` for the watchdog
+([D-0234](../../journal/decisions/0234-the-backup-archive-collects-unnamed-segments-and-squashes-its-history.md),
+[lost files](../guides/backup-and-restore.md#lost-files)).
+A failed upload removes the unrecorded local set. It keeps the newest local
+set and the newest drilled one. `restore
+--backup-set <id|latest> [--from DIR]` installs a set, every digest checked
+before anything is placed, then follows the protocol below. The full
+checkpoint stays the default until `services.swingset.backupSegmented` is
+set. The [restore drill](#restore-drill) checks the newest set weekly. Layout
+and checks: [backup sets](state.md#backup-sets),
+[D-0232](../../journal/decisions/0232-segmented-backups-with-a-weekly-restore-drill.md).
 
 Restore is an activation protocol:
 
@@ -478,6 +538,100 @@ nine days. `swingset verify-derivations --sample 0.01 --kinds link,year`
 runs the same sample by hand under the writer lock, prints the summary, and
 exits 1 on a mismatch.
 A large link takes 4 to 8 seconds on the Mac; 1% of 2,934 links is 30.
+
+### Maintain storage tasks
+
+Each maintain tick reports the size cap and the controls first, then runs,
+in order, each only while the budget lasts (phase 4,
+[D-0229](../../journal/decisions/0229-derivation-output-and-bodies-live-in-packs.md),
+[D-0231](../../journal/decisions/0231-collect-every-unnamed-dependency-set-and-unrooted-object.md)).
+Each task is isolated: one that raises is recorded as `{failed: true,
+error}` and the next runs; the watchdog's `[storage-failed]` names it.
+
+1. `artifacts`: partition artifacts and release manifests nothing names.
+   They wait (`backup_running`) while a backup set is being written, which
+   holds `loop-backup.lock`.
+2. `backup_scratch`: a killed backup's scratch set and half-written
+   segments, over a day old.
+3. `evict`: first every `objects` file whose row stands and whose file is
+   gone comes back from the newest local backup set that holds it
+   (`restored`); one no set holds counts in `lost` (up to 20 named in
+   `lost_objects`). Then up to `[storage] evict_refs_per_tick` references of
+   cold generations over a day old move into packs (`storage.evict`). One
+   generation that cannot be packed, read or verified counts in `failed`,
+   its id in `failures`, and its rows count against the budget; it then
+   waits out a retry window (1, 2, 4, then 7 days; `gc/evict-retry.json`),
+   counted in `deferred`, so it never holds back the rest. A full disk or
+   quota, or a store it cannot write, stops the pass. The guard
+   `loop:maintain evict_failed` (24-hour clock) stays while any generation
+   fails or waits or any object is lost. A damaged pack of a resident
+   generation is written again (`repaired`).
+4. `pack_bodies`: up to `pack_rows_per_tick` parse and label bodies no
+   reader protects go into packs, with the same per-row isolation and the
+   guard `loop:maintain pack_failed`. A refusal before any row (a retained
+   candidate's proof is not in the database) is the task's `error`
+   (`[storage-failed]`), sets the same guard, and reports every unpacked row
+   as `backlog`.
+5. `collector`: the full mark-sweep when no tick recorded a complete one in
+   `collect_every_days` less 12 hours. One class that raises, in its mark
+   or its sweep, stops only itself (`stopped: "error: ..."`); the sweep is
+   then `failed` (`[collector-failed]`) and not complete. One cut short runs
+   again next tick, and `[collector-stale]` fires when none completed in
+   `collect_every_days` plus 2 days, naming what stopped each class.
+6. `drill` first when it is a day overdue (no pass in `drill_every_days`
+   plus one); then the verify sample when due, isolated like the rest; then
+   the [restore drill](#restore-drill) when due, with at least 30 minutes of
+   budget left.
+
+`evict` and `pack_bodies` record `backlog`, what they left: unfinished,
+failed and deferred generations, lost objects and, when stopped early, those
+not reached; unpacked target rows. `[storage-stalled]` fires when the last three maintain ticks
+each left a backlog and made no progress. Each runs with `secure_delete`
+off (`state/disk.fast_delete`), so a delete does not zero its pages through
+the WAL (W2).
+
+`incomplete_generations.holding` counts partial generations that still hold
+references; the collector strips those over a day old and leaves their
+labels, which hold nothing.
+
+### Restore drill
+
+`backup/drill.py` installs the newest backup set into
+`<[storage] drill_dir>/swingset-drill-<set>` (`/var/tmp`) from the transport
+it was written to (the local sets, or the archive in upload mode, with
+`HF_TOKEN`), never activating it and never asking the public hub
+([D-0232](../../journal/decisions/0232-segmented-backups-with-a-weekly-restore-drill.md)).
+It is due when no set passed a drill in `drill_every_days` less 12 hours,
+and goes before the verify sample once a day overdue.
+
+- Exclusion: it holds the backup's own lock (`loop-backup.lock`) from start
+  to end, so no set is written or pruned beside it and the two never share
+  the disk. While a backup runs it does not start and keeps the guard
+  `loop:maintain drill_backup_running` (24-hour clock). A segmented backup
+  waits up to an hour for a running drill (`--lock-timeout 3600`).
+- Room: the database's raw size, the set's files and 20 GB (the backup's
+  own headroom; plus the parts and segments for a remote set), under the
+  smaller of the free space and the quota in `/run/swingset-disk`. Without
+  it the drill does not start and keeps the guard `loop:maintain
+drill_no_room`, which expires after 24 hours; `[guard-expired]` names a
+  lack of room that lasts.
+- Before the install it writes `drill_json` with `passed: null`; a drill
+  killed part way (maintain's timeout or memory cap) reads as failed to the
+  watchdog once that record is 2 hours old.
+- Checks: every part, the index, every segment and every file against its
+  digest; the schema, `quick_check` and `foreign_key_check`; every `objects`
+  row's file and every pack row's `objects` row; then one release: a
+  partitioned pending or baseline candidate's manifest from the restored
+  objects with every artifact intact, else a closure-mode baseline's proof
+  streamed through sha256 against its public commitment (not decoded: a
+  proof is hundreds of MB).
+- A pass writes `backup_sets.drilled_at` and `drill_json`, removes the
+  scratch and prunes the local sets (the newest and the newest drilled stay).
+- A failure writes `drill_json` with `passed` false, appends
+  `[restore-drill-failed]` to `ALERTS.log`, and keeps the scratch, less the
+  restored database (unless it holds `KEEP`), for 20 hours: a later drill
+  removes it. The watchdog repeats the line daily until
+  a drill passes, and says `[restore-drill-stale]` when none passed in 8 days.
 
 ## Event completion reporting (H14 extension)
 
@@ -678,8 +832,10 @@ do not request retries. A later verified local artifact restoration can also
 be followed by an explicit retry; simply observing the file does not erase
 the failed outcome or claim completed derivation.
 
-Cycles share one `LocalCheckpointRecovery` through an optional `Archive`
-recovery argument. Healthy artifact reads do not enumerate backups. On a
+Cycles and loops share one recovery chain through an optional `Archive`
+recovery argument: `LocalCheckpointRecovery`, then `SegmentRecovery`, which
+reads a local backup set's index and segment and checks the digest the same
+way (`backup/recovery.py`). Healthy artifact reads do not enumerate backups. On a
 missing or corrupt body or extract, recovery considers only local private
 checkpoints containing that exact digest path. Before first use it verifies
 the complete physical file closure, actual SQLite schema and integrity,

@@ -22,11 +22,15 @@ The headline numbers it has to move:
 
 This replaces maintenance queue items 4 and 8.
 
-Status: steps 1, 2 and 5 are implemented offline as phase 1 of the
-[target architecture](architecture.md), not deployed; that phase lists what
-changed from the text below (F1 to F4), the deploy steps and the rehearsal.
+Status: steps 1, 2 and 5 shipped as phase 1 of the
+[target architecture](architecture.md), deployed 2026-09-29
+([receipt](../../journal/evidence/runtime/architecture-phase1-2026-09-29/receipt.json));
+that phase lists what changed from the text below (F1 to F4), the deploy
+steps and the rehearsal.
 Step 3's collection of unnamed closure proofs shipped in candidate 018
-(D-0200); step 4's cache per dependency set came with step 1.
+(D-0200); phase 4 of the architecture plan collects every unnamed dependency
+set (D-0231, offline, not deployed); equivalence collection is still open.
+Step 4's cache per dependency set came with step 1.
 
 ## When this may start
 
@@ -229,6 +233,20 @@ which should be zero.
 
 ### 3. Store the release closure once, and collect the copies
 
+Status (2026-10-03): set collection is done by phase 4 of the
+[architecture plan](architecture.md), implemented offline and not deployed.
+Its collector
+([D-0231](../../journal/decisions/0231-collect-every-unnamed-dependency-set-and-unrooted-object.md),
+[state: collector](../reference/state.md#collector)) removes every
+dependency set no generation, equivalence, scope proof, recipe, candidate
+or kept set names, and packs build recipes over 1 MB, so the 217 MB recipes
+leave the file. It does not free the bulk the investigation counted: on the
+2026-09-29 copy those sets are named through other sets (build labels'
+`release_closure` members, old inventory labels), so it frees 0.10 GB, and
+the rest waits on the architecture plan's open decision 4. Still open here:
+collecting `derivation_equivalences`, `source_equivalences` and
+`derivation_recipes` (the authority and liveness rules below).
+
 The investigation found 547,121 unreferenced dependency-set manifests holding
 18,984,563,859 bytes, 46.7% of the database. Eighty-nine of them are 16 MiB or
 larger and hold 18.6 GB between them; none is referenced. They are release
@@ -399,13 +417,13 @@ repo, calibrated on the week's fixes: a single-file production fix took two to
 four hours from diagnosis to deployed change, with the five-hour re-derivation
 dominating the wall clock. Update this section when a step lands.
 
-| Step                                       | Effort       | Deploy cost                                             | Status (2026-09-25)                                                |
-| ------------------------------------------ | ------------ | ------------------------------------------------------- | ------------------------------------------------------------------ |
-| 1. Early cutoff for derivations            | 2 to 3 days  | Python change: one full re-derivation, about five hours | Implemented offline, not deployed (architecture phase 1)           |
-| 2. Early cutoff for parse                  | 1 day        | Python change: same                                     | Implemented offline, not deployed (architecture phase 1)           |
-| 3. Store the release closure once, collect | 1 to 2 days  | Deletes data: rehearsal on a scratch copy, second agent | Unnamed proofs collectable since candidate 018 (D-0200); rest open |
-| 4. Planner that fits in memory             | 0.5 to 1 day | Python change; may shrink after step 3                  | Cache per dependency set done with step 1; streaming open          |
-| 5. Scoped recipes from the import graph    | 1 to 2 days  | Python change: the last re-derivation any deploy causes | Implemented offline, not deployed (architecture phase 1)           |
+| Step                                       | Effort       | Deploy cost                                             | Status (2026-10-03)                                                                                 |
+| ------------------------------------------ | ------------ | ------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| 1. Early cutoff for derivations            | 2 to 3 days  | Python change: one full re-derivation, about five hours | Deployed with architecture phase 1 (2026-09-29)                                                     |
+| 2. Early cutoff for parse                  | 1 day        | Python change: same                                     | Deployed with architecture phase 1 (2026-09-29)                                                     |
+| 3. Store the release closure once, collect | 1 to 2 days  | Deletes data: rehearsal on a scratch copy, second agent | Unnamed proofs since 018 (D-0200); all unnamed sets in phase 4 (D-0231, offline); equivalences open |
+| 4. Planner that fits in memory             | 0.5 to 1 day | Python change; may shrink after step 3                  | Cache per dependency set done with step 1; streaming open                                           |
+| 5. Scoped recipes from the import graph    | 1 to 2 days  | Python change: the last re-derivation any deploy causes | Deployed with architecture phase 1 (2026-09-29)                                                     |
 
 Six to nine working days of effort, about two calendar weeks with the gate
 above, the full-suite runs (about ten minutes each), the second agent's

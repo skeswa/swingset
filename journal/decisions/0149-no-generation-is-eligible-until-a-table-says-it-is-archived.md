@@ -4,7 +4,7 @@ Recorded: 2026-09-18
 Decided by: agent  
 Topic: State retention  
 Supersedes: —  
-Superseded by: —
+Superseded by: [D-0229](0229-derivation-output-and-bodies-live-in-packs.md)
 
 ## Decision
 

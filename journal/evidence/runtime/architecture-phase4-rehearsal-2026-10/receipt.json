@@ -1,0 +1,1158 @@
+{
+ "operation": "architecture phase 4 rehearsal (R0 to R10, spec section 3) of the final tree on one APFS clone of the production copy, no network",
+ "actor": "claude (session claude-rearch), workflow package phase4-WP8",
+ "at_utc": "2026-10-03T06:45:00Z",
+ "host": "Mac (15 cores, 48 GB), not the worker; project venv Python 3.12, SQLite 3.50.4 built with SQLITE_SECURE_DELETE",
+ "source_copy": "~/swingset-offload/rehearsal/diag (production 2026-09-29, schema 32, 64.7 GB; blobs, extracts and candidates from 2026-09-25), never opened for writing; clone diag-p4-claude (cp -cR), restore target p4-restore-claude and drill dir p4-restore-claude-drill, all deleted",
+ "diag_unchanged": {
+  "state_sqlite_bytes": [
+   64718315520,
+   64718315520
+  ],
+  "state_sqlite_mtime_ns": [
+   1790654850554998303,
+   1790654850554998303
+  ],
+  "files": [
+   78194,
+   78194
+  ],
+  "listing_sha256": [
+   "222150cb62504032",
+   "222150cb62504032"
+  ]
+ },
+ "code": {
+  "tree": "working copy (phase 4 WP1 to WP7), jj commit cb3ba94dbfb1 at the end; src snapshot equal to the working copy at the end (diff -r empty); src py sha256 53a724286feb1229 (276 files)",
+  "parent": "7071b2a6 (phase 3) via git archive, for the refusal of schema 36",
+  "harness_sha256": {
+   "h4.py": "c2a03062679a2331",
+   "run.sh": "4d53374deb11ee5d",
+   "seqall.sh": "df41f11c00553e80",
+   "seq2.sh": "13c3683ef65083b0",
+   "seq3.sh": "81bdc218b23df389",
+   "seq4.sh": "c8eb2b0f0b61fa55",
+   "seq5b.sh": "8e779aa6a73c5079",
+   "sitecustomize.py": "4c8e84fdc22e110d"
+  },
+  "command": "PYTHONDONTWRITEBYTECODE=1 SQLITE_TMPDIR=<clone>/tmp PYTHONPATH=<tree>/src:<guard> /usr/bin/time -l .venv/bin/python h4.py <cmd> <clone> <out.json> [args]"
+ },
+ "network": "none: HF_TOKEN unset; a sitecustomize socket guard refuses every non-loopback connect; httpx.HTTPTransport refuses; derive ticks use httpx.MockTransport (304 to conditional requests, 404 otherwise); backups use LocalDirectoryTransport; swingset restore never called",
+ "caveats": [
+  "The first attempt (2026-10-02 18:47 UTC) ran R0 and the R1 accept, then the Mac slept. Its R1 build failed on the all-scope cap pause the copy carried (2026-09-29 02:00), and its storage plan ran on 10-02 (another cutoff day). On 10-03 the same clone had the pause lifted, then R1's build and R2 to R8 ran again. Seconds are monotonic and exclude sleep.",
+  "The copy's files predate its database: 4,228 declared files (2,156 blobs, 2,072 extracts) were never copied. The first backup refused ('referenced artifact is missing') and left no set or staging, as it should. R7 and R8 then left exactly those paths (listing sha256 0de08789edfd333a) out of the closure in backup, restore and drill; any other missing file still raised.",
+  "The Mac interpreter re-queues every parse on accept (36,264 parse units not run). There is no drain, so 2,934 event partitions stay withheld (units_not_current) in both builds.",
+  "Core, full, ruff and mypy ran beside R6 to R8, so those steps' seconds are high. All timings are on the Mac: lower bounds for the worker."
+ ],
+ "r0_migrate": {
+  "seconds": 857.3,
+  "peak_rss_mb": 43.4,
+  "writes_max_s": 0.005,
+  "min_disk_free_gb": 149.748,
+  "max_wal_gb": 0.048,
+  "max_tmp_gb": 0.0,
+  "schema": [
+   32,
+   36
+  ],
+  "open_migrate_seconds": 670.4,
+  "foreign_key_check_seconds": 186.9,
+  "foreign_key_violations": 0,
+  "file_gb": [
+   64.718,
+   64.766
+  ],
+  "growth_mb": 47.9,
+  "parent_refuses_36": true,
+  "parent_error": "RuntimeError: database schema 36 is newer than supported 35",
+  "note": "R0 ran in the first attempt; monotonic seconds. Per-migration seconds were not logged; with 33 to 35 known (about 67 s, small, 144 to 171 s with the fk check), migration 36 is roughly 430 s of the 670 s (derived, unverified)."
+ },
+ "r1_build_before": {
+  "accept": {
+   "seconds": 20.4,
+   "changed": 51,
+   "enqueued": {
+    "link/event": 2934,
+    "parse/snapshot": 36261,
+    "project/calendar": 2,
+    "project/dancer": 29117,
+    "project/event": 2934,
+    "project/inventory": 1,
+    "project/mapping": 3,
+    "project/resolution": 413,
+    "project/source_event": 470,
+    "project/source_index": 384,
+    "project/year": 21
+   }
+  },
+  "resume": "lifted the all-scope cap pause the copy carried (2026-09-29 02:00)",
+  "build": {
+   "seconds": 384.1,
+   "peak_rss_mb": 1144.2,
+   "writes_max_s": 2.752,
+   "min_disk_free_gb": 145.838,
+   "max_wal_gb": 0.003,
+   "max_tmp_gb": 0.636,
+   "candidate": "cand_45a04ea4c59a44b5",
+   "error": null,
+   "build_seconds": 379.8,
+   "manifest_digest": "b8628d0e8489cf70a718f9ef10223e919734247f4ddd37bd824ac9a50d3e25c1",
+   "partitions": 2991,
+   "built": 57,
+   "withheld": 2934,
+   "withheld_by_reason": {
+    "units_not_current": 2934
+   },
+   "rebuilt": 2991,
+   "reused": 0,
+   "partition_peak_rss_mb": 318.5,
+   "assembly_seconds": 245.456,
+   "verdict": "refused",
+   "file": {
+    "file_gb": 64.784,
+    "freelist_gb": 0.0,
+    "used_gb": 64.784
+   }
+  }
+ },
+ "r2_storage_plan": {
+  "runs": [
+   {
+    "seconds": 907.9,
+    "peak_rss_mb": 512.1,
+    "writes_max_s": 0.0,
+    "min_disk_free_gb": 146.156,
+    "max_wal_gb": 0.0,
+    "max_tmp_gb": 0.0,
+    "plan_seconds": 907.7
+   },
+   {
+    "seconds": 846.9,
+    "peak_rss_mb": 512.1,
+    "writes_max_s": 0.0,
+    "min_disk_free_gb": 146.17,
+    "max_wal_gb": 0.0,
+    "max_tmp_gb": 0.0,
+    "plan_seconds": 846.6
+   }
+  ],
+  "digests_equal": true,
+  "digest": "4b5a6e4d3eaf6c06b73e4798062d6a24116c38fb426cf228f36f83ca26e6e3f4",
+  "content": {
+   "schema_version": 36,
+   "stages": [
+    "derivation_output",
+    "parse_body",
+    "label_body"
+   ],
+   "pending_stages": [],
+   "hot_digest": "6496b31fb299a35503342b888cd105b4d85673e05b233de92e08b92f4d1c6148",
+   "evict": {
+    "generations": 598077,
+    "rows": 41255315,
+    "packs": 30065,
+    "digest": "635f74832fc6425d5337626e5eb3b5c4af735c4562f35ef29fdc0f4571354698"
+   },
+   "keep": {
+    "pointer": 35846,
+    "building": 0,
+    "partial": 0,
+    "unlabelled": 0,
+    "references": 2796109,
+    "digest": "6496b31fb299a35503342b888cd105b4d85673e05b233de92e08b92f4d1c6148"
+   },
+   "evicted": {
+    "generations": 0,
+    "with_references": 0,
+    "digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+   },
+   "parse_body": {
+    "before": "2026-09-26T00:00:00+00:00",
+    "protected": {
+     "accepted": 34737,
+     "candidate": 29650,
+     "chain": 33040,
+     "state": 4834,
+     "young": 118
+    },
+    "generations": 198425,
+    "digest": "d018da47197d95903f6198f8c72e6eef2852cf3a8c03223076c83ce765e2b212"
+   },
+   "label_body": {
+    "before": "2026-09-26T00:00:00+00:00",
+    "min_bytes": 1000000,
+    "protected": {
+     "candidate": 1,
+     "pointer": 2,
+     "young": 12
+    },
+    "generations": 11,
+    "digest": "6bf8ced16f9eb3d4d1f499da6e6c55a23722a02d6ddbec37591f15842c934c5c"
+   }
+  },
+  "estimate": {
+   "parse_bodies_to_pack": 198425,
+   "parse_body_bytes": 3680646356,
+   "label_bodies_to_pack": 11,
+   "label_body_bytes": 1526810520,
+   "references": 44051424,
+   "references_moved": 41255315,
+   "reference_bytes": 29190979584,
+   "reference_bytes_freed": 27338118692,
+   "payloads_removed": 124409,
+   "payload_text_bytes_removed": 42406761,
+   "packs_to_write": 30065,
+   "free_list_bytes": 0
+  }
+ },
+ "r3_storage_apply": {
+  "killed": {
+   "kill": {
+    "packs_at_kill": 3043,
+    "killed_at": "2026-10-03T04:41:03Z",
+    "writing_files": 0
+   },
+   "after": {
+    "writing_after_kill": 0
+   },
+   "error": null
+  },
+  "resume": {
+   "seconds": 2150.4,
+   "peak_rss_mb": 1044.4,
+   "writes_max_s": 1.369,
+   "min_disk_free_gb": 78.88,
+   "max_wal_gb": 29.667,
+   "max_tmp_gb": 0.0,
+   "file_before": {
+    "file_gb": 64.785,
+    "freelist_gb": 0.0,
+    "used_gb": 64.785
+   },
+   "file_after": {
+    "file_gb": 64.794,
+    "freelist_gb": 32.284,
+    "used_gb": 32.51
+   },
+   "rows_before": {
+    "derivation_row_refs": 44051424,
+    "derivation_payloads": 2920136,
+    "derivation_generations": 633923,
+    "derivation_dependency_sets": 1213849,
+    "derivation_evicted": 0,
+    "source_generation_packs": 0,
+    "label_body_packs": 0,
+    "objects": 3068,
+    "backup_sets": 0,
+    "backup_objects": 0
+   },
+   "rows_after": {
+    "derivation_row_refs": 2796109,
+    "derivation_payloads": 2795727,
+    "derivation_generations": 633923,
+    "derivation_dependency_sets": 1213849,
+    "derivation_evicted": 598077,
+    "source_generation_packs": 198425,
+    "label_body_packs": 11,
+    "objects": 72445,
+    "backup_sets": 0,
+    "backup_objects": 0
+   },
+   "writing_leftovers": 0
+  },
+  "receipt": {
+   "format": "storage-apply-receipt-v1",
+   "plan_digest": "4b5a6e4d3eaf6c06b73e4798062d6a24116c38fb426cf228f36f83ca26e6e3f4",
+   "started_at": "2026-10-03T04:34:34.842372Z",
+   "plan": {
+    "evict": {
+     "generations": 598077,
+     "rows": 41255315,
+     "packs": 30065,
+     "digest": "635f74832fc6425d5337626e5eb3b5c4af735c4562f35ef29fdc0f4571354698"
+    },
+    "keep": {
+     "pointer": 35846,
+     "building": 0,
+     "partial": 0,
+     "unlabelled": 0,
+     "references": 2796109,
+     "digest": "6496b31fb299a35503342b888cd105b4d85673e05b233de92e08b92f4d1c6148"
+    },
+    "evicted": {
+     "generations": 0,
+     "with_references": 0,
+     "digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "parse_body": {
+     "before": "2026-09-26T00:00:00+00:00",
+     "protected": {
+      "accepted": 34737,
+      "candidate": 29650,
+      "chain": 33040,
+      "state": 4834,
+      "young": 118
+     },
+     "generations": 198425,
+     "digest": "d018da47197d95903f6198f8c72e6eef2852cf3a8c03223076c83ce765e2b212"
+    },
+    "label_body": {
+     "before": "2026-09-26T00:00:00+00:00",
+     "min_bytes": 1000000,
+     "protected": {
+      "candidate": 1,
+      "pointer": 2,
+      "young": 12
+     },
+     "generations": 11,
+     "digest": "6bf8ced16f9eb3d4d1f499da6e6c55a23722a02d6ddbec37591f15842c934c5c"
+    }
+   },
+   "packs": {
+    "written": 26998,
+    "kept": 3067,
+    "raw_bytes": 3626723348,
+    "stored_bytes": 191085435,
+    "verified": 30065
+   },
+   "bodies": {
+    "parse_body": {
+     "written": 42368,
+     "kept": 156057,
+     "objects": 42368,
+     "raw_bytes": 933532837,
+     "stored_bytes": 108496595,
+     "stubbed": 198425
+    },
+    "label_body": {
+     "written": 11,
+     "kept": 0,
+     "objects": 11,
+     "raw_bytes": 1526810520,
+     "stored_bytes": 168749601,
+     "stubbed": 11
+    }
+   },
+   "manifests": {
+    "moved": 0,
+    "bytes": 0,
+    "mismatched": 0
+   },
+   "resumed": true,
+   "references_before": 44051424,
+   "references_kept": 2796109,
+   "generations_evicted": 598077,
+   "payloads_removed": 124409,
+   "payload_text_bytes_removed": 42406761,
+   "history_fence_revision": [
+    81221528,
+    81345938
+   ],
+   "free_list_bytes": [
+    4954763264,
+    32284303360
+   ],
+   "seconds": {
+    "plan": 366.032,
+    "pack": 200.48,
+    "verify": 17.711,
+    "bodies": 190.291,
+    "move": 925.719
+   },
+   "finished_at": "2026-10-03T04:42:00.154613Z",
+   "next": "gc --reclaim rewrites the file so the freed pages leave it"
+  },
+  "again": {
+   "seconds": 1.9,
+   "peak_rss_mb": 80.4,
+   "writes_max_s": 0.0,
+   "min_disk_free_gb": 109.565,
+   "max_wal_gb": 0.0,
+   "max_tmp_gb": 0.0,
+   "same_receipt": true
+  },
+  "objects_after": {
+   "derivation_output": {
+    "files": 30065,
+    "mb": 191.1
+   },
+   "label_body": {
+    "files": 11,
+    "mb": 168.7
+   },
+   "parse_body": {
+    "files": 42368,
+    "mb": 108.5
+   },
+   "release_manifest": {
+    "files": 1,
+    "mb": 0.2
+   },
+   "total_gb": 0.469
+  }
+ },
+ "r4_collect": {
+  "plan": {
+   "seconds": 53.8,
+   "peak_rss_mb": 193.9,
+   "writes_max_s": 0.0,
+   "min_disk_free_gb": 109.404,
+   "max_wal_gb": 0.0,
+   "max_tmp_gb": 0.0,
+   "plan": {
+    "format": "collect-plan-v1",
+    "schema_version": 36,
+    "cutoff": "2026-10-02T00:00:00+00:00",
+    "classes": {
+     "dependency_set": {
+      "victims": 598088,
+      "bytes": 103524208,
+      "digest": "4d7c4cbf4fa401a9db8c16a55e8952323ae5ec9fd29c3d3cb3d10c3a066bc7d5"
+     }
+    },
+    "dependency_set_roots": {
+     "roots": 615761,
+     "named_directly": 329679,
+     "young": 0,
+     "sets_read": 615761,
+     "created_at": true
+    }
+   }
+  },
+  "apply": {
+   "seconds": 170.3,
+   "peak_rss_mb": 201.2,
+   "writes_max_s": 0.191,
+   "min_disk_free_gb": 108.647,
+   "max_wal_gb": 0.005,
+   "max_tmp_gb": 0.0,
+   "receipt": {
+    "format": "collect-receipt-v1",
+    "plan_digest": "784147ace9226383e87714104e62bb258e820c575883c1bd932e53f91e5ad1d0",
+    "started_at": "2026-10-03T05:18:00.064893Z",
+    "cutoff": "2026-10-02T00:00:00+00:00",
+    "planned": {
+     "dependency_set": {
+      "victims": 598088,
+      "bytes": 103524208,
+      "digest": "4d7c4cbf4fa401a9db8c16a55e8952323ae5ec9fd29c3d3cb3d10c3a066bc7d5"
+     }
+    },
+    "removed": {
+     "dependency_set": {
+      "removed": 598088,
+      "bytes": 103524208
+     }
+    },
+    "seconds": {
+     "plan": 53.521,
+     "dependency_set": 103.96
+    },
+    "before": {
+     "page_size": 4096,
+     "page_count": 15818832,
+     "freelist_count": 7881910
+    },
+    "after": {
+     "page_size": 4096,
+     "page_count": 15818832,
+     "freelist_count": 7904749
+    },
+    "next": "gc --reclaim rewrites the file so the freed pages leave it",
+    "receipt": "<clone>/gc/receipts/collect-784147ace9226383e87714104e62bb258e820c575883c1bd932e53f91e5ad1d0.json"
+   },
+   "file_after": {
+    "file_gb": 64.794,
+    "freelist_gb": 32.378,
+    "used_gb": 32.416
+   },
+   "rows_after": {
+    "derivation_row_refs": 2796109,
+    "derivation_payloads": 2795727,
+    "derivation_generations": 633923,
+    "derivation_dependency_sets": 615761,
+    "derivation_evicted": 598077,
+    "source_generation_packs": 198425,
+    "label_body_packs": 11,
+    "objects": 72445,
+    "backup_sets": 0,
+    "backup_objects": 0
+   }
+  },
+  "plan_again": {
+   "seconds": 46.8,
+   "peak_rss_mb": 200.8,
+   "writes_max_s": 0.0,
+   "min_disk_free_gb": 108.77,
+   "max_wal_gb": 0.0,
+   "max_tmp_gb": 0.0,
+   "plan": {
+    "format": "collect-plan-v1",
+    "schema_version": 36,
+    "cutoff": "2026-10-02T00:00:00+00:00",
+    "classes": {},
+    "dependency_set_roots": {
+     "roots": 615761,
+     "named_directly": 329679,
+     "young": 0,
+     "sets_read": 615761,
+     "created_at": true
+    }
+   }
+  }
+ },
+ "r5_reclaim": {
+  "seconds": 874.4,
+  "peak_rss_mb": 138.1,
+  "writes_max_s": 0.0,
+  "min_disk_free_gb": 32.508,
+  "max_wal_gb": 31.795,
+  "max_tmp_gb": 0.0,
+  "receipt": {
+   "format": "retention-reclaim-receipt-v1",
+   "at": "2026-10-03T05:21:31.507909+00:00",
+   "before": {
+    "bytes_in_use": 32416088064,
+    "file_bytes": 64793935872,
+    "wal_bytes": 0,
+    "free_list_bytes": 32377843712
+   },
+   "after": {
+    "bytes_in_use": 31609753600,
+    "file_bytes": 31609757696,
+    "wal_bytes": 0,
+    "free_list_bytes": 0
+   },
+   "file_bytes_freed": 33184178176,
+   "free_space": {
+    "bytes_in_use": 32416092160,
+    "needed_bytes": 66832184320,
+    "file_size_estimate_bytes": 129587871744,
+    "free_bytes": 108823220224
+   },
+   "temp_directory": "<clone>/tmp"
+  },
+  "file_before": {
+   "file_gb": 64.794,
+   "freelist_gb": 32.378,
+   "used_gb": 32.416
+  },
+  "file_after": {
+   "file_gb": 31.61,
+   "freelist_gb": 0.0,
+   "used_gb": 31.61
+  },
+  "check": {
+   "integrity_check": [
+    "ok"
+   ],
+   "integrity_seconds": 137.4,
+   "foreign_key_violations": 0,
+   "fk_seconds": 14.5,
+   "rows": {
+    "derivation_row_refs": 2796109,
+    "derivation_payloads": 2795727,
+    "derivation_generations": 633923,
+    "derivation_dependency_sets": 615761,
+    "derivation_evicted": 598077,
+    "source_generation_packs": 198425,
+    "label_body_packs": 11,
+    "objects": 72445,
+    "backup_sets": 0,
+    "backup_objects": 0
+   }
+  },
+  "dbstat_top_tables_gb": {
+   "derivation_dependency_sets": 16.061,
+   "source_generations": 3.45,
+   "derivation_row_refs": 1.712,
+   "identity_link_history": 1.675,
+   "execution_dependencies": 1.405,
+   "derivation_payloads": 1.357,
+   "derivation_generations": 1.334,
+   "canonical_scope_rows": 0.881,
+   "callback_marks": 0.512,
+   "work_attempts": 0.352,
+   "observations": 0.3,
+   "execution_admissions": 0.298,
+   "runs": 0.29,
+   "source_event_enumeration_members": 0.261
+  },
+  "dbstat_total_gb": 31.61
+ },
+ "r6_correctness": {
+  "build_after": {
+   "seconds": 60.1,
+   "peak_rss_mb": 268.9,
+   "writes_max_s": 0.694,
+   "min_disk_free_gb": 102.839,
+   "max_wal_gb": 0.0,
+   "max_tmp_gb": 0.0,
+   "candidate": "cand_45a04ea4c59a44b5",
+   "error": null,
+   "build_seconds": 58.1,
+   "manifest_digest": "b8628d0e8489cf70a718f9ef10223e919734247f4ddd37bd824ac9a50d3e25c1",
+   "partitions": 2991,
+   "built": 57,
+   "withheld": 2934,
+   "withheld_by_reason": {
+    "units_not_current": 2934
+   },
+   "rebuilt": 0,
+   "reused": 2991,
+   "partition_peak_rss_mb": 268.9,
+   "assembly_seconds": null,
+   "verdict": "refused",
+   "file": {
+    "file_gb": 31.61,
+    "freelist_gb": 0.0,
+    "used_gb": 31.61
+   }
+  },
+  "manifest_equal_d1": true,
+  "accessor": {
+   "seconds": 0.7,
+   "peak_rss_mb": 116.8,
+   "writes_max_s": 0.0,
+   "min_disk_free_gb": 102.839,
+   "max_wal_gb": 0.0,
+   "max_tmp_gb": 0.0,
+   "evicted": 598077,
+   "sampled": 1000,
+   "equal": 1000,
+   "failed": 0,
+   "rows": 46446,
+   "failures": [],
+   "by_kind": {
+    "project/dancer": 661,
+    "project/event": 242,
+    "project/source_index": 41,
+    "link/event": 33,
+    "project/source_event": 23
+   }
+  },
+  "bodies": {
+   "seconds": 0.3,
+   "peak_rss_mb": 74.0,
+   "writes_max_s": 0.22,
+   "min_disk_free_gb": 102.839,
+   "max_wal_gb": 0.0,
+   "max_tmp_gb": 0.0,
+   "packed": 198425,
+   "sampled": 200,
+   "byte_exact": 200,
+   "differ": 0,
+   "failures": [],
+   "restore_seconds": 0.2,
+   "still_packed_after_rollback": 198425
+  },
+  "derive": {
+   "seconds": 600.5,
+   "peak_rss_mb": 2311.4,
+   "writes_max_s": 3.456,
+   "min_disk_free_gb": 90.981,
+   "max_wal_gb": 0.006,
+   "max_tmp_gb": 0.0,
+   "completed": 3453,
+   "ticks": 1,
+   "unit_failures": 0,
+   "failed_ticks": 0,
+   "evicted_before": 598077,
+   "evicted_after": 598077,
+   "paged_in": 0,
+   "pointers_to_evicted": 0,
+   "growth_bytes": 96997376
+  },
+  "verify": {
+   "seconds": 18.4,
+   "peak_rss_mb": 138.0,
+   "writes_max_s": 0.637,
+   "min_disk_free_gb": 100.107,
+   "max_wal_gb": 0.0,
+   "max_tmp_gb": 0.0,
+   "summary": {
+    "week": "2026-W40",
+    "fraction": 0.01,
+    "kinds": {
+     "link": {
+      "units": 2934,
+      "target": 30,
+      "verified": 30,
+      "matched": 30,
+      "not_current": 73,
+      "superseded": 0,
+      "failed": 0
+     },
+     "year": {
+      "units": 0,
+      "target": 0,
+      "verified": 0,
+      "matched": 0,
+      "not_current": 0,
+      "superseded": 0,
+      "failed": 0
+     }
+    },
+    "mismatches": [],
+    "failures": [],
+    "stopped": false,
+    "complete": true,
+    "longest_unit_seconds": 0.637,
+    "seconds": 17.509,
+    "peak_rss_bytes": 137986048
+   }
+  },
+  "doctor": {
+   "seconds": 99.6,
+   "exit": 0
+  },
+  "gc_candidates_plan": {
+   "seconds": 1.9,
+   "exit": 0
+  }
+ },
+ "r7_backup": {
+  "first": {
+   "seconds": 225.1,
+   "peak_rss_mb": 309.8,
+   "writes_max_s": 0.74,
+   "min_disk_free_gb": 74.274,
+   "max_wal_gb": 0.228,
+   "max_tmp_gb": 0.0,
+   "vacuum": {
+    "vacuum_start": "2026-10-03T06:06:33.085939+00:00",
+    "vacuum_seconds": 128.8,
+    "vacuum_end": "2026-10-03T06:08:41.852145+00:00"
+   },
+   "summary": {
+    "set_id": "set_20261003T060632Z",
+    "path": "<clone>/checkpoints/sets/set_20261003T060632Z",
+    "manifest_sha256": "9d823c840c71ae567185a02a9a4d3a028eb1bd690ecc14b831c23f74ec567912",
+    "transport": "local",
+    "commit": null,
+    "db_raw_bytes": 31630311424,
+    "parts": 1,
+    "part_bytes": 3335280483,
+    "items": 138761,
+    "item_bytes": 1299197931,
+    "new_items": 138761,
+    "new_bytes": 1299197931,
+    "segments": 1,
+    "new_segments": [
+     "111025eb9eb59ce0649d983dc96e7b6cda1f3ad6b3f7a495d5ce6697f72cfd18"
+    ],
+    "classes": {
+     "body": {
+      "items": 32508,
+      "bytes": 88092117
+     },
+     "candidate": {
+      "items": 55,
+      "bytes": 400593901
+     },
+     "derivation_output": {
+      "items": 30065,
+      "bytes": 191085435
+     },
+     "extract": {
+      "items": 32535,
+      "bytes": 275906231
+     },
+     "input_bundle": {
+      "items": 876,
+      "bytes": 36521900
+     },
+     "label_body": {
+      "items": 11,
+      "bytes": 168749601
+     },
+     "other": {
+      "items": 171,
+      "bytes": 368956
+     },
+     "parse_body": {
+      "items": 42368,
+      "bytes": 108496595
+     },
+     "partition_artifact": {
+      "items": 171,
+      "bytes": 29197172
+     },
+     "release_manifest": {
+      "items": 1,
+      "bytes": 186023
+     }
+    },
+    "pruned": {
+     "kept": [
+      "set_20261003T060632Z"
+     ],
+     "removed_sets": [],
+     "removed_segments": 0,
+     "removed_bytes": 0
+    }
+   },
+   "largest_file_mb": 3335.3,
+   "segments_dir": {
+    "files": 1,
+    "bytes": 1409443840
+   }
+  },
+  "tick_during_vacuum": {
+   "waited_for_marker_seconds": 0.5,
+   "started_at": "2026-10-03T06:06:33.124103+00:00",
+   "ended_at": "2026-10-03T06:16:35.073252+00:00",
+   "tick": {
+    "open_seconds": 1.427,
+    "skipped": null,
+    "seconds": 601.8,
+    "completed": 3696,
+    "failed": false,
+    "unit_failures": 0,
+    "unit_failure_sample": [],
+    "stage_errors": [],
+    "readiness_errors": {}
+   }
+  },
+  "second": {
+   "seconds": 109.0,
+   "peak_rss_mb": 302.8,
+   "writes_max_s": 0.002,
+   "min_disk_free_gb": 69.037,
+   "max_wal_gb": 0.0,
+   "max_tmp_gb": 0.0,
+   "vacuum": {
+    "vacuum_start": "2026-10-03T06:16:35.927019+00:00",
+    "vacuum_seconds": 47.5,
+    "vacuum_end": "2026-10-03T06:17:23.380766+00:00"
+   },
+   "summary": {
+    "set_id": "set_20261003T061635Z",
+    "path": "<clone>/checkpoints/sets/set_20261003T061635Z",
+    "manifest_sha256": "86ff9cdb45c1ee5bfdc9e10141553634f91b947b7cde6c74977fbea3625906b1",
+    "transport": "local",
+    "commit": null,
+    "db_raw_bytes": 31706615808,
+    "parts": 1,
+    "part_bytes": 3348005626,
+    "items": 138762,
+    "item_bytes": 1299199211,
+    "new_items": 1,
+    "new_bytes": 1280,
+    "segments": 2,
+    "new_segments": [
+     "2eaa480458d8bcec379cbe339ccc5b7921cc440b0b5bbc572d31f26378d483f2"
+    ],
+    "classes": {
+     "body": {
+      "items": 32508,
+      "bytes": 88092117
+     },
+     "candidate": {
+      "items": 55,
+      "bytes": 400593901
+     },
+     "derivation_output": {
+      "items": 30065,
+      "bytes": 191085435
+     },
+     "extract": {
+      "items": 32535,
+      "bytes": 275906231
+     },
+     "input_bundle": {
+      "items": 876,
+      "bytes": 36521900
+     },
+     "label_body": {
+      "items": 11,
+      "bytes": 168749601
+     },
+     "other": {
+      "items": 172,
+      "bytes": 370236
+     },
+     "parse_body": {
+      "items": 42368,
+      "bytes": 108496595
+     },
+     "partition_artifact": {
+      "items": 171,
+      "bytes": 29197172
+     },
+     "release_manifest": {
+      "items": 1,
+      "bytes": 186023
+     }
+    },
+    "pruned": {
+     "kept": [
+      "set_20261003T061635Z"
+     ],
+     "removed_sets": [
+      "set_20261003T060632Z"
+     ],
+     "removed_segments": 0,
+     "removed_bytes": 0
+    }
+   },
+   "segments_dir": {
+    "files": 2,
+    "bytes": 1409454080
+   }
+  }
+ },
+ "r8_restore_drill": {
+  "restore": {
+   "seconds": 139.8,
+   "peak_rss_mb": 245.9,
+   "writes_max_s": 0.0,
+   "min_disk_free_gb": 71.881,
+   "max_wal_gb": 0.0,
+   "max_tmp_gb": 0.0,
+   "install_seconds": 128.6,
+   "installed": {
+    "set_id": "set_20261003T061635Z",
+    "manifest_sha256": "86ff9cdb45c1ee5bfdc9e10141553634f91b947b7cde6c74977fbea3625906b1",
+    "schema_version": 36,
+    "db_raw_bytes": 31706615808,
+    "parts": 1,
+    "segments": 2,
+    "items": 138762,
+    "item_bytes": 1299199211,
+    "classes": {
+     "body": 32508,
+     "candidate": 55,
+     "derivation_output": 30065,
+     "extract": 32535,
+     "input_bundle": 876,
+     "label_body": 11,
+     "other": 172,
+     "parse_body": 42368,
+     "partition_artifact": 171,
+     "release_manifest": 1
+    },
+    "baseline_candidate": "cand_80719e178655435d",
+    "pending_candidate": "cand_45a04ea4c59a44b5",
+    "integrity": "quick"
+   },
+   "release": {
+    "candidate": "cand_45a04ea4c59a44b5",
+    "mode": "partitioned",
+    "manifest_digest": "b8628d0e8489cf70a718f9ef10223e919734247f4ddd37bd824ac9a50d3e25c1",
+    "artifacts": 57
+   },
+   "release_seconds": 0.1,
+   "opened_schema": 36,
+   "fk_violations": 0,
+   "rows": {
+    "derivation_row_refs": 2796109,
+    "derivation_payloads": 2795727,
+    "derivation_generations": 633923,
+    "derivation_dependency_sets": 628947,
+    "derivation_evicted": 598077,
+    "source_generation_packs": 198425,
+    "label_body_packs": 11,
+    "objects": 72445,
+    "backup_sets": 1,
+    "backup_objects": 138761
+   },
+   "target_gb": 33.006
+  },
+  "drill": {
+   "seconds": 144.3,
+   "peak_rss_mb": 249.2,
+   "writes_max_s": 0.001,
+   "min_disk_free_gb": 72.57,
+   "max_wal_gb": 0.0,
+   "max_tmp_gb": 0.0,
+   "record": {
+    "set_id": "set_20261003T061635Z",
+    "transport": "local",
+    "started_at": "2026-10-03T06:20:56.187506+00:00",
+    "scratch": "~/swingset-offload/rehearsal/p4-restore-claude-drill/swingset-drill-set_20261003T061635Z",
+    "need_bytes": 38005815019,
+    "free_bytes": 105335980032,
+    "install": {
+     "set_id": "set_20261003T061635Z",
+     "manifest_sha256": "86ff9cdb45c1ee5bfdc9e10141553634f91b947b7cde6c74977fbea3625906b1",
+     "schema_version": 36,
+     "db_raw_bytes": 31706615808,
+     "parts": 1,
+     "segments": 2,
+     "items": 138762,
+     "item_bytes": 1299199211,
+     "classes": {
+      "body": 32508,
+      "candidate": 55,
+      "derivation_output": 30065,
+      "extract": 32535,
+      "input_bundle": 876,
+      "label_body": 11,
+      "other": 172,
+      "parse_body": 42368,
+      "partition_artifact": 171,
+      "release_manifest": 1
+     },
+     "baseline_candidate": "cand_80719e178655435d",
+     "pending_candidate": "cand_45a04ea4c59a44b5",
+     "integrity": "quick"
+    },
+    "release": {
+     "candidate": "cand_45a04ea4c59a44b5",
+     "mode": "partitioned",
+     "manifest_digest": "b8628d0e8489cf70a718f9ef10223e919734247f4ddd37bd824ac9a50d3e25c1",
+     "artifacts": 57
+    },
+    "passed": true,
+    "seconds": 132.296,
+    "pruned": {
+     "kept": [
+      "set_20261003T061635Z"
+     ],
+     "removed_sets": [],
+     "removed_segments": 0,
+     "removed_bytes": 0
+    }
+   }
+  },
+  "drill_corrupt": {
+   "seconds": 1.4,
+   "peak_rss_mb": 90.5,
+   "writes_max_s": 0.001,
+   "min_disk_free_gb": 106.355,
+   "max_wal_gb": 0.0,
+   "max_tmp_gb": 0.0,
+   "record": {
+    "set_id": "set_20261003T061635Z",
+    "transport": "local",
+    "started_at": "2026-10-03T06:23:20.795171+00:00",
+    "scratch": "~/swingset-offload/rehearsal/p4-restore-claude-drill/swingset-drill-set_20261003T061635Z",
+    "need_bytes": 38005815019,
+    "free_bytes": 106355314688,
+    "passed": false,
+    "error": "SetError: db/part-0000.zst does not match its digest",
+    "seconds": 1.22,
+    "alerted": true
+   },
+   "alerts_tail": [
+    "2026-09-25T16:05:22Z three consecutive cycles failed; latest run_20260925T160123Z: WriteDeadlineExceeded: atomic write exceeded 45 seconds; output rolled back",
+    "disk quota has 81.8 GB free of 274.9 GB; df does not show this",
+    "2026-10-03T06:23:20Z [restore-drill-failed] set set_20261003T061635Z (local) failed its restore drill: SetError: db/part-0000.zst does not match its digest; scratch kept at ~/swingset-offload/rehearsal/p4-restore-claude-drill/swingset-drill-set_20261003T061635Z for a day (docs/guides/backup-and-restore.md)"
+   ]
+  }
+ },
+ "r9_memory": {
+  "budget_mb": 1500,
+  "peaks_mb": {
+   "r1-build": 1144.2,
+   "r2-plan1": 512.1,
+   "r2-plan2": 512.1,
+   "r3-apply-resume": 1044.4,
+   "r4-cplan": 193.9,
+   "r4-capply": 201.2,
+   "r5-reclaim": 138.1,
+   "r6-build": 268.9,
+   "r6-accessor": 116.8,
+   "r6-bodies": 74.0,
+   "r6-derive": 2311.4,
+   "r6-verify": 138.0,
+   "r7-backup1": 309.8,
+   "r7-backup2": 302.8,
+   "r8-restore": 245.9,
+   "r8-drill": 249.2,
+   "r8-drill-corrupt": 90.5,
+   "r7-tick": 2456.0,
+   "r6-doctor": 4391.4
+  },
+  "over_budget": [
+   "r6-derive",
+   "r7-tick",
+   "r6-doctor"
+  ],
+  "extended_memory_tests": {
+   "collector": "107 MB for 200k labels, 100k objects, 300k sets; 1.23x a run 10x smaller (WP5)",
+   "segmented_backup": "173 MB against the 300 MB bound for 50k files and a 218 MB database (WP6)"
+  },
+  "over_budget_explained": {
+   "r6-derive / r7-tick": "a project/link derive tick peaks at 2.31 to 2.46 GB; pre-existing: the phase 3 switch drain peaked at 2.47 GB (phase 3 receipt r2_switch_drain); 0 page-ins in these ticks",
+   "r6-doctor": "4,391 MB; pre-existing: publication_report's 4 closure.validate calls take 4.5 GB on both the parent on diag (4,521 MB) and the tree on the clone (4,534 MB)"
+  }
+ },
+ "r10_suites": {
+  "core": {
+   "passed": 1876,
+   "failed": 0,
+   "seconds": 436
+  },
+  "full": {
+   "passed": 3404,
+   "failed": 0,
+   "seconds": 1183
+  },
+  "ruff": "clean",
+  "mypy": "clean (276 files)",
+  "scope_guard": {
+   "changed_parse_or_extract_scopes": [],
+   "parse_extract_files": 58,
+   "changed_scopes": "all 11 project, link and build scopes: project/* and link 175 -> 179 files, build 186 -> 190 (migration 36, objects.py, output_packs.py, body_packs.py), plus edited state/ and build/ files"
+  }
+ },
+ "findings": [
+  {
+   "id": "W1",
+   "r": "R5",
+   "result": "file 31.61 GB after reclaim, against the 15 GB acceptance (projection 15 to 17 GB).",
+   "attribution_gb": {
+    "derivation_dependency_sets": 16.06,
+    "source_generations": 3.45,
+    "derivation_row_refs (+indexes)": 1.71,
+    "identity_link_history": 1.68,
+    "execution_dependencies": 1.41,
+    "derivation_payloads": 1.36,
+    "derivation_generations": 1.33,
+    "canonical_scope_rows": 0.88,
+    "rest": 3.73
+   },
+   "why": "The 16.06 GB of dependency sets are named (WP5, D-0231): proofs through build labels' release_closure members, input_row sets through old inventory labels. The collector frees 598,088 unnamed sets, 0.10 GB, not 15.8 GB (F39). Without the named sets the file would be 15.55 GB; phase 5's execution_* (1.70 GB) would bring it under 15 GB.",
+   "next": "Open owner decision (WP5): drop the dependency record of labels no retention root reaches. Until then the post-switch file is about 32 GB, and the lowered cap must be set from that."
+  },
+  {
+   "id": "W2",
+   "r": "R3",
+   "result": "storage apply's move wrote a 29.7 GB WAL; disk free fell from 108 to 79 GB.",
+   "why": "SQLite here (and nixpkgs' build) defaults to secure_delete=1, so dropping derivation_row_refs zeroes every freed page through the WAL.",
+   "next": "The worker needs about 30 GB free above the file for apply, besides reclaim's room. Or run the move with PRAGMA secure_delete=OFF: reclaim rewrites the file next anyway. Code change for WP9 or the operator preflight; not made here."
+  },
+  {
+   "id": "W3",
+   "r": "R5",
+   "result": "reclaim used 76.3 GB of disk at peak (free 108.8 -> 32.5 GB), while the new estimate asked for 66.8 GB (2 x 32.4 GB in use + 2 GB).",
+   "why": "The VACUUM temp copy (about 31.6 GB) and the WAL (31.8 GB) sit beside the 64.8 GB file until the checkpoint truncates it.",
+   "next": "Raise the margin to about 2 x in use + 12 GB (or 2.5 x) in reclaim_estimate, or have the preflight measure it. The 2 x file estimate (129.6 GB) was never reached."
+  },
+  {
+   "id": "W4",
+   "r": "R2",
+   "result": "plan counts against section 0: 30,065 packs (about 30,510), 41,255,315 refs evicted (41 M), 2,796,109 kept (2.8 M), 198,425 parse rows (about 260k: protection keeps accepted 34,737, candidate 29,650, chain 33,040, state 4,834, young 118), 11 build recipes (not 24: candidate 1, pointer 2, young 12 protected)."
+  },
+  {
+   "id": "W5",
+   "r": "R3",
+   "result": "a storage apply receipt's started_at and finished_at come from the `now` of the first and the finishing call, not the wall clock (here 04:34 and 04:42, while the move ended at 05:16).",
+   "next": "Cosmetic; the receipt's seconds block holds the real stage times."
+  },
+  {
+   "id": "W6",
+   "r": "R7",
+   "result": "the daily diff is the database, not objects: after a 3,696-unit tick the second set added 1 object (1,280 bytes) but sent a new 3.35 GB database part. Evicted output reaches objects only through maintain's evict."
+  }
+ ],
+ "end_state": {
+  "clone_deleted": true,
+  "restore_target_deleted": true,
+  "drill_dir_deleted": true,
+  "disk_free_gib_after": 134,
+  "min_disk_free_gb_during": 32.5
+ }
+}

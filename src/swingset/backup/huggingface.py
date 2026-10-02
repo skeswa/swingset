@@ -213,3 +213,11 @@ def _safe_relative(name: str) -> PurePosixPath:
     ):
         raise ValueError(f"unsafe checkpoint path: {name!r}")
     return relative
+
+
+def safe_relative(name: str) -> PurePosixPath:
+    """A relative POSIX path with no `..`, no empty part and no root; else ValueError.
+
+    Shared by the checkpoint archive and the segmented sets (`restore_set`).
+    """
+    return _safe_relative(name)

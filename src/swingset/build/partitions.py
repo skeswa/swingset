@@ -68,7 +68,8 @@ from typing import Any
 import pyarrow as pa
 
 from swingset.log import log
-from swingset.state import release_store
+from swingset.state import output_packs, release_store
+from swingset.state.output_packs import GenerationUnavailable
 from swingset.state.release_store import ArtifactRow, PartitionRow
 
 from . import artifact_store
@@ -271,8 +272,33 @@ def pointers(conn: sqlite3.Connection) -> list[Generation]:
 
 
 def _refs(
-    conn: sqlite3.Connection, generation: Generation, tables: Iterable[str]
+    conn: sqlite3.Connection,
+    generation: Generation,
+    tables: Iterable[str],
+    evicted: frozenset[str] = frozenset(),
 ) -> Iterator[SharedRow]:
+    """Rows of some tables of a current generation, by key, with payload digests.
+
+    Current pointers stay resident (F34), so this is one indexed query per
+    table. A current generation found evicted (an invariant broken) is read
+    through the accessor instead, never taken as empty.
+    """
+    if generation.generation_id in evicted:
+        wanted = set(tables)
+        found = sorted(
+            (table, key, hashlib.sha256(payload.encode()).hexdigest())
+            for table, key, payload in output_packs.rows(
+                conn,
+                generation.generation_id,
+                expected=(generation.output_digest, generation.row_count),
+            )
+            if table in wanted
+        )
+        for table in tables:
+            for name, key, sha in found:
+                if name == table:
+                    yield SharedRow(generation, table, key, sha)
+        return
     for table in tables:
         for key, sha in conn.execute(
             "SELECT record_key,payload_sha256 FROM derivation_row_refs "
@@ -294,8 +320,14 @@ def dancer_batch(wsdc_id: Any) -> str:
         return "unknown"
 
 
-def _dancer_rows(conn: sqlite3.Connection) -> dict[str, list[int]]:
-    """The WSDC ids each current dancer generation's `dancers` rows carry."""
+def _dancer_rows(
+    conn: sqlite3.Connection, evicted: frozenset[str] = frozenset()
+) -> dict[str, list[int]]:
+    """The WSDC ids each current dancer generation's `dancers` rows carry.
+
+    One join over resident current pointers (F34); an evicted one is read
+    through the accessor.
+    """
     result: dict[str, list[int]] = {}
     for generation_id, key in conn.execute(
         "SELECT r.generation_id,r.record_key FROM derivation_scopes s "
@@ -305,7 +337,38 @@ def _dancer_rows(conn: sqlite3.Connection) -> dict[str, list[int]]:
         value = _first(str(key))
         if isinstance(value, int):
             result.setdefault(str(generation_id), []).append(value)
+    for (generation_id,) in conn.execute(
+        "SELECT materialized_generation_id FROM derivation_scopes "
+        "WHERE stage='project' AND unit_kind='dancer' AND materialized_generation_id IS NOT NULL"
+    ).fetchall():
+        if str(generation_id) not in evicted:
+            continue
+        try:
+            keys = [
+                key
+                for table, key, _ in output_packs.rows(conn, str(generation_id))
+                if table == "dancers"
+            ]
+        except GenerationUnavailable:
+            continue
+        for key in keys:
+            value = _first(key)
+            if isinstance(value, int):
+                result.setdefault(str(generation_id), []).append(value)
     return result
+
+
+def _evicted_pointers(conn: sqlite3.Connection) -> frozenset[str]:
+    """Current pointers found evicted: none while F34 holds."""
+    if not output_packs.available(conn):
+        return frozenset()
+    return frozenset(
+        str(row[0])
+        for row in conn.execute(
+            "SELECT s.materialized_generation_id FROM derivation_scopes s "
+            "JOIN derivation_evicted e ON e.generation_id=s.materialized_generation_id"
+        )
+    )
 
 
 def _link_event_reads(conn: sqlite3.Connection, links: Iterable[Generation]) -> dict[str, str]:
@@ -349,11 +412,12 @@ def _link_event_reads(conn: sqlite3.Connection, links: Iterable[Generation]) -> 
 def events_of(conn: sqlite3.Connection, generation: Generation) -> list[str]:
     """Every event an event generation's rows name, its own included."""
     tables: dict[str, list[Mapping[str, Any]]] = {}
-    for table, payload in conn.execute(
-        "SELECT table_name,payload_json FROM derivation_rows WHERE generation_id=?",
-        (generation.generation_id,),
+    for table, _, payload in output_packs.rows(
+        conn,
+        generation.generation_id,
+        expected=(generation.output_digest, generation.row_count),
     ):
-        tables.setdefault(str(table), []).append(json.loads(payload))
+        tables.setdefault(table, []).append(json.loads(payload))
     scopes = _EventScopes(tables)
     found = {generation.unit_id}
     for rows in tables.values():
@@ -368,8 +432,22 @@ def select(
     """Every partition of the current pointers, and each event generation's events.
 
     ``known`` holds event lists of event generations from earlier builds; an
-    event generation is immutable, so its list never changes.
+    event generation is immutable, so its list never changes. Every read is
+    in one snapshot: a pointer that moves, and an old generation maintain
+    evicts, after the pointers were read cannot leave a short reference list.
     """
+    if conn.in_transaction:
+        return _select(conn, known=known)
+    conn.execute("BEGIN")
+    try:
+        return _select(conn, known=known)
+    finally:
+        conn.execute("ROLLBACK")
+
+
+def _select(
+    conn: sqlite3.Connection, *, known: Mapping[str, list[str]] | None = None
+) -> tuple[list[Partition], dict[str, list[str]]]:
     known = dict(known or {})
     shared_events: dict[str, list[SharedRow]] = {}
     placements: dict[str, list[SharedRow]] = {}
@@ -380,19 +458,20 @@ def select(
     edges: dict[str, list[str]] = {}
     failed: dict[str, list[tuple[str, str, str]]] = {}
     links: list[Generation] = []
-    carried = _dancer_rows(conn)
+    evicted = _evicted_pointers(conn)
+    carried = _dancer_rows(conn, evicted)
     for generation in pointers(conn):
         kind = generation.stage, generation.unit_kind
         if kind in {("project", "calendar"), ("project", "inventory")}:
-            for row in _refs(conn, generation, ("events",)):
+            for row in _refs(conn, generation, ("events",), evicted):
                 event = str(_first(row.key))
                 shared_events.setdefault(event, []).append(row)
                 universe.add(event)
         elif kind == ("project", "year"):
-            years[generation.unit_id] = list(_refs(conn, generation, ("coverage",)))
-            for row in _refs(conn, generation, ("events",)):
+            years[generation.unit_id] = list(_refs(conn, generation, ("coverage",), evicted))
+            for row in _refs(conn, generation, ("events",), evicted):
                 shared_events.setdefault(str(_first(row.key)), []).append(row)
-            for row in _refs(conn, generation, ("registry_placements",)):
+            for row in _refs(conn, generation, ("registry_placements",), evicted):
                 placements.setdefault(dancer_batch(_first(row.key)), []).append(row)
         elif kind == ("project", "resolution"):
             owned.setdefault(generation.unit_id, []).append(generation)
@@ -474,32 +553,29 @@ def select(
 # ---------------------------------------------------------------------------
 
 
-class GenerationUnavailable(RuntimeError):
-    """A generation's rows no longer match its label; its partitions are withheld."""
-
-
 class _Verifier:
-    """Checks each generation read against its output digest, once per build."""
+    """Checks each generation read against its output digest, once per build.
+
+    Reads go through `output_packs` (the view, or the pack of an evicted
+    generation); `GenerationUnavailable` withholds the generation's partitions.
+    """
 
     def __init__(self, conn: sqlite3.Connection) -> None:
         self.conn = conn
         self.checked: dict[str, bool] = {}
+        self.evicted: dict[str, bool] = {}
 
     def rows(self, generation: Generation) -> Iterator[tuple[str, str, str]]:
-        output = hashlib.sha256()
-        count = 0
-        for table, key, raw in self.conn.execute(
-            "SELECT table_name,record_key,payload_json FROM derivation_rows "
-            "WHERE generation_id=? ORDER BY ordinal",
-            (generation.generation_id,),
-        ):
-            count += 1
-            output.update(canonical((table, key, raw)).encode() + b"\n")
-            yield str(table), str(key), str(raw)
-        ok = count == generation.row_count and output.hexdigest() == generation.output_digest
-        self.checked[generation.generation_id] = ok
-        if not ok:
-            raise GenerationUnavailable(generation.scope)
+        try:
+            yield from output_packs.rows(
+                self.conn,
+                generation.generation_id,
+                expected=(generation.output_digest, generation.row_count),
+            )
+        except GenerationUnavailable as error:
+            self.checked[generation.generation_id] = False
+            raise GenerationUnavailable(generation.scope) from error
+        self.checked[generation.generation_id] = True
 
     def verify(self, generation: Generation) -> None:
         if generation.generation_id not in self.checked:
@@ -510,13 +586,22 @@ class _Verifier:
 
     def row(self, row: SharedRow) -> str:
         self.verify(row.generation)
-        found = self.conn.execute(
-            "SELECT payload_json FROM derivation_rows WHERE generation_id=? AND table_name=? AND record_key=?",
-            (row.generation.generation_id, row.table, row.key),
-        ).fetchone()
+        generation_id = row.generation.generation_id
+        if generation_id not in self.evicted:
+            self.evicted[generation_id] = output_packs.evicted(self.conn, generation_id)
+        try:
+            found = output_packs.row(
+                self.conn,
+                generation_id,
+                row.table,
+                row.key,
+                is_evicted=self.evicted[generation_id],
+            )
+        except GenerationUnavailable as error:
+            raise GenerationUnavailable(row.generation.scope) from error
         if found is None:
             raise GenerationUnavailable(row.generation.scope)
-        return str(found[0])
+        return found
 
 
 class _Legacy:

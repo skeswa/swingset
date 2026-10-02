@@ -2,7 +2,11 @@
 
 Status: **parked on 2026-09-20**
 ([D-0175](../../journal/decisions/0175-fewer-records-receipts-not-bundles-and-tiered-review.md)).
-The measured database is 5.0 GB on a disk with more than 400 GB free, so no
+**Step 4 is superseded** (2026-10-02) by phase 4 of the
+[architecture plan](architecture.md)
+([D-0229](../../journal/decisions/0229-derivation-output-and-bodies-live-in-packs.md)),
+which moves old output into packs instead of two remote stores. On
+2026-09-20 the measured database was 5.0 GB on a disk with more than 400 GB free, so no
 step here reopens until a measurement receipt shows the live database over
 20 GB or the worker disk under 100 GB free. The one open exception is closed:
 the A0/A1 source JSON compression benchmark ran on 2026-09-21 and
@@ -489,6 +493,17 @@ covers it and archiving anything after that review stops the apply
 
 ## 8. Step 4: archive, remove locally, and bring back
 
+**Superseded by phase 4 of the [architecture plan](architecture.md)
+([D-0229](../../journal/decisions/0229-derivation-output-and-bodies-live-in-packs.md)),
+implemented offline 2026-10-03, not deployed.** A generation's output now
+leaves the file as a pack under `objects/derivation_output/`, named by the
+label's `output_digest`, so no `archived_generations` or `archive_replicas`
+table is needed and D-0149's gate stays shut. Packs stay on the worker for
+every label, and the segmented backup set is the second copy, so neither
+remote store is built. A pointer flip pages a generation back in; there is no
+`gc --restore`. See [state: objects and packs](../reference/state.md#objects-and-packs).
+The text below is the original design, kept for the record.
+
 Not started as of 2026-09-18. It waits on step 1's numbers and on the two object
 stores, which do not exist yet. Step 3 built the gate it will open:
 `archived_generations` is the table the eligibility check looks for, and finding
@@ -686,6 +701,7 @@ nothing deployed. They are marked, so nothing here is mistaken for done.
   sustained replay. Offline, one test drives the file over a cap set to one byte
   and checks the pause;
 - if step 4 ran, both stores check out and archived data comes back without
-  moving a pointer; and
+  moving a pointer; **superseded** by the architecture plan's phase 4, whose
+  rehearsal reads 1,000 evicted generations back from their packs; and
 - scheduled restore drills pass; **deferred to deployment**, like the drills
   themselves.

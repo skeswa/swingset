@@ -12,6 +12,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from swingset.state.derivation_dependencies import store_set
+
 from .closure_manifest import ClosureError, canonical, digest, generation, leaves, members
 
 __all__ = ["ClosureError", "ReleaseClosure", "select", "validate"]
@@ -499,8 +501,17 @@ def public_manifest(value: ReleaseClosure | Mapping[str, Any]) -> dict[str, Any]
     return {**public, "digest": digest(public)}
 
 
-def retain(conn: sqlite3.Connection, value: ReleaseClosure | Mapping[str, Any]) -> None:
-    """Retain immutable input proof; this does not complete a build generation."""
+def retain(
+    conn: sqlite3.Connection,
+    value: ReleaseClosure | Mapping[str, Any],
+    *,
+    now: datetime | None = None,
+) -> None:
+    """Retain immutable input proof; this does not complete a build generation.
+
+    The proof is stamped with `now` (else the clock) so the collector leaves it
+    alone for a day while the build that retained it names it (D-0231).
+    """
     if not conn.in_transaction:
         raise ClosureError("closure_retention_requires_output_transaction")
     manifest = value.manifest() if isinstance(value, ReleaseClosure) else hydrate(conn, value)
@@ -513,9 +524,11 @@ def retain(conn: sqlite3.Connection, value: ReleaseClosure | Mapping[str, Any]) 
     private = {key: item for key, item in manifest.items() if key != "digest"}
     if digest(private) != manifest["digest"]:
         raise ClosureError("closure_manifest_digest_mismatch")
-    conn.execute(
-        "INSERT OR IGNORE INTO derivation_dependency_sets VALUES (?,?)",
-        (manifest["digest"], canonical(private)),
+    store_set(
+        conn,
+        str(manifest["digest"]),
+        canonical(private),
+        created_at=(now or datetime.now(UTC)).astimezone(UTC).isoformat(),
     )
 
 

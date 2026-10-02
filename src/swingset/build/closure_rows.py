@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import hashlib
 import json
 import sqlite3
 import tempfile
@@ -14,6 +13,7 @@ from pathlib import Path
 from typing import Any
 
 from swingset.model.schema import TABLES
+from swingset.state import output_packs
 
 from .closure import ReleaseClosure, validate
 from .closure_manifest import ClosureError, canonical
@@ -407,61 +407,59 @@ def reconstruct(
                 ),
             )
             for generation in selected:
-                output = hashlib.sha256()
-                count = 0
-                for _, table, key, raw in conn.execute(
-                    "SELECT ordinal,table_name,record_key,payload_json FROM derivation_rows WHERE generation_id=? ORDER BY ordinal",
-                    (generation["generation_id"],),
-                ):
-                    count += 1
-                    output.update(canonical((table, key, raw)).encode() + b"\n")
-                    payload = json.loads(raw)
-                    snapshot = payload.get("snapshot_id")
-                    if snapshot and snapshot != "override":
-                        state = supported.get(
-                            (str(snapshot), str(payload.get("parser_version", ""))),
-                            {"state": "legacy_unassessed"},
-                        )["state"]
-                        if (str(snapshot), str(payload.get("parser_version", ""))) in revoked:
-                            state = "revoked"
-                        if state != "accepted":
-                            if state == "revoked" or not _legacy_matches(
-                                spool, table, key, payload
-                            ):
-                                spool.execute(
-                                    "INSERT INTO rejected VALUES (?,?,?,?)",
-                                    (
-                                        table,
-                                        key,
-                                        raw,
-                                        "source_revoked"
-                                        if state == "revoked"
-                                        else "legacy_owned_values_not_published",
-                                    ),
-                                )
-                                continue
-                            result.counts["legacy_unassessed_retained"] += 1
-                    # Processing metadata comes from this immutable materialization receipt.
-                    payload.setdefault("run_id", generation["run_id"])
-                    for field in ("first_seen_at", "last_seen_at", "asserted_at"):
-                        payload.setdefault(field, generation["created_at"])
-                    patch = (
-                        generation["stage"] == "link"
-                        and table in {"entries", "judges", "placements"}
-                    ) or (
-                        # A year (history before plan F17) patches the tier
-                        # and the association onto rows other scopes own.
-                        generation["stage"] == "project"
-                        and generation["unit_kind"] in {"history", "year"}
-                        and table in {"events", "registry_placements"}
-                    )
-                    if not _put(spool, table, key, payload, patch=patch):
-                        result.counts["partial_overlay_without_structural_base"] += 1
-                if (
-                    count != generation["row_count"]
-                    or output.hexdigest() != generation["output_digest"]
-                ):
-                    raise ClosureError("selected_output_digest_mismatch")
+                # The one accessor reads the view or the pack and checks the
+                # label once the rows run out (phase 4, F34).
+                stream = output_packs.rows(
+                    conn,
+                    str(generation["generation_id"]),
+                    expected=(str(generation["output_digest"]), int(generation["row_count"])),
+                )
+                try:
+                    for table, key, raw in stream:
+                        payload = json.loads(raw)
+                        snapshot = payload.get("snapshot_id")
+                        if snapshot and snapshot != "override":
+                            state = supported.get(
+                                (str(snapshot), str(payload.get("parser_version", ""))),
+                                {"state": "legacy_unassessed"},
+                            )["state"]
+                            if (str(snapshot), str(payload.get("parser_version", ""))) in revoked:
+                                state = "revoked"
+                            if state != "accepted":
+                                if state == "revoked" or not _legacy_matches(
+                                    spool, table, key, payload
+                                ):
+                                    spool.execute(
+                                        "INSERT INTO rejected VALUES (?,?,?,?)",
+                                        (
+                                            table,
+                                            key,
+                                            raw,
+                                            "source_revoked"
+                                            if state == "revoked"
+                                            else "legacy_owned_values_not_published",
+                                        ),
+                                    )
+                                    continue
+                                result.counts["legacy_unassessed_retained"] += 1
+                        # Processing metadata comes from this immutable materialization receipt.
+                        payload.setdefault("run_id", generation["run_id"])
+                        for field in ("first_seen_at", "last_seen_at", "asserted_at"):
+                            payload.setdefault(field, generation["created_at"])
+                        patch = (
+                            generation["stage"] == "link"
+                            and table in {"entries", "judges", "placements"}
+                        ) or (
+                            # A year (history before plan F17) patches the tier
+                            # and the association onto rows other scopes own.
+                            generation["stage"] == "project"
+                            and generation["unit_kind"] in {"history", "year"}
+                            and table in {"events", "registry_placements"}
+                        )
+                        if not _put(spool, table, key, payload, patch=patch):
+                            result.counts["partial_overlay_without_structural_base"] += 1
+                except output_packs.GenerationUnavailable as error:
+                    raise ClosureError("selected_output_digest_mismatch") from error
             _close(spool, result)
             spool.commit()
             yield result

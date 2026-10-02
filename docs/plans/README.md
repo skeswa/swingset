@@ -119,6 +119,10 @@ weekly session.
    acceptance, and the 33-page cohort (20 s).
    At phase 3's close (2026-10-02): 1,736 tests in 340 s, after the fix
    rounds moved fast regression tests into core; still about twice the bar.
+   At phase 4's close (2026-10-03): 1,938 tests in 440 s (795 to 1,055 s
+   on a loaded Mac); phase 4 added `test_storage`, `test_body_packs`,
+   `test_output_packs`, `test_collector`, `test_storage_migration` and
+   `tests/backup/*` to core.
 10. Bound the memory of the publication report's closure check. It holds a
     whole closure (I10): `swingset summary` peaked at 4.5 GB on the 35 GB
     copy, 4.4 GB of it this check, under the unit's 5 GB cap, and the file
@@ -133,7 +137,18 @@ weekly session.
 12. Move the worker to an always-on host. Production is a VM on a laptop: on
     2026-09-30 the Mac slept on battery from about 21:00 to 18:00 UTC, so
     cycles, timers and a workflow agent stalled for 21 hours. Until the move,
-    keep the Mac on power with sleep off on AC (`sudo pmset -c sleep 0`). Make
+    keep the Mac on power with the lid open, or run `sudo pmset -a disablesleep 1`: `caffeinate` does not stop clamshell sleep on battery, and on 2026-10-02 the lid closed at 19:00 UTC and the worker froze for 8.7 hours. Make
     host independence a trigger for the [PostgreSQL and Dokploy](postgres-migration/README.md)
     move (phase 6) rather than waiting for data size; it also gives off-machine
     backups.
+13. Stop backpressure counting superseded parse rows. They keep their
+    `pending_work` row and get no `work_queue` row, and `schedule/fairness.py`
+    counts a missing queue row as runnable, so the thresholds stay raised
+    (D-0230). Exclude them, or clear them, then return `pending_parse_items`
+    and `pending_parse_bytes` to their defaults.
+14. Phase 4's carried-forward minors: read races in the accessor, the
+    retry file's `xb` open, body packing's stall and catch, the drill's place
+    in the budget, sets that list `missing`, lost-object scans that grow, two
+    noisy alerts, and the surviving mutants. The list and its order are in
+    the [architecture plan](architecture.md#9-migration-plan), phase 4
+    ("Carried forward"). Take them after phase 4's deploy, in that order.

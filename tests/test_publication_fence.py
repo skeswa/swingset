@@ -32,16 +32,20 @@ FENCED = "active publication fences"
 PINNED = {
     "admission_policies": ["delete", "insert", "update"],
     "derivation_generations": ["delete", "insert", "update"],
+    "derivation_evicted": ["delete", "insert", "update"],
     "derivation_payloads": ["delete"],
     "derivation_row_refs": ["delete", "insert", "update"],
     "derivation_scopes": ["delete", "insert", "update"],
     "identity_decisions": ["delete", "insert", "update"],
     "identity_journal_acceptances": ["delete", "insert", "update"],
+    "label_body_packs": ["delete", "insert", "update"],
     "meta": ["delete", "insert", "update"],
+    "objects": ["delete", "insert", "update"],
     "release_artifacts": ["delete", "insert", "update"],
     "release_manifests": ["delete", "insert", "update"],
     "release_partitions": ["delete", "insert", "update"],
     "revisions": ["delete", "insert", "update"],
+    "source_generation_packs": ["delete", "insert", "update"],
     "source_generations": ["delete", "insert", "update"],
 }
 

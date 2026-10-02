@@ -51,7 +51,7 @@ def add_generation(fixture, identifier, dependencies, *, continuity=None, year=F
     kind, unit = scope or (("year", "2026") if year else ("event", identifier))
     with db.transaction():
         conn.execute(
-            "INSERT OR IGNORE INTO derivation_dependency_sets VALUES (?,?)",
+            "INSERT OR IGNORE INTO derivation_dependency_sets(dependency_set_id,manifest_json) VALUES (?,?)",
             (dependency, canonical(dependencies)),
         )
         conn.execute(
@@ -133,7 +133,7 @@ def test_continuity_does_not_mark_untraversed_dependency_members_visited(graph_d
     shared = digest([edge("leaf")])
     with db.transaction():
         db.connection.execute(
-            "INSERT INTO derivation_dependency_sets VALUES (?,?)",
+            "INSERT INTO derivation_dependency_sets(dependency_set_id,manifest_json) VALUES (?,?)",
             (shared, canonical([edge("leaf")])),
         )
     add_generation(graph_db, "prior-support", [], continuity=shared)

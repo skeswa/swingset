@@ -193,7 +193,8 @@ def test_every_foreign_key_child_lookup_uses_an_index(tmp_path):
                 plans = [
                     row[3]
                     for row in conn.execute(
-                        f"EXPLAIN QUERY PLAN SELECT rowid FROM {table} WHERE {where}",
+                        # A WITHOUT ROWID table (schema 36 `objects`) has no rowid.
+                        f"EXPLAIN QUERY PLAN SELECT {columns[0]} FROM {table} WHERE {where}",
                         ["example"] * len(columns),
                     )
                 ]

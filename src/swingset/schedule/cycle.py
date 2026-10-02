@@ -12,12 +12,12 @@ from uuid import uuid4
 
 import httpx
 
+from swingset.backup.recovery import local_recovery
 from swingset.build.builder import BuildError, BuildResult
 from swingset.build.closure_manifest import ClosureError
 from swingset.clock import Clock
 from swingset.config import Config
 from swingset.fetch.archive import Archive, canonical, durable_write
-from swingset.fetch.recovery import LocalCheckpointRecovery
 from swingset.history.acquisition import phase_two_refusals
 from swingset.log import log
 from swingset.publish.service import Hub, publish, reconcile
@@ -292,9 +292,7 @@ def run_cycle(
         # Guard rows written and cleared by the acquisition passes (D-0219).
         "guards": {"passes": 0, "recorded": 0, "cleared": 0},
     }
-    recovery = LocalCheckpointRecovery(
-        database.state_dir / "checkpoints", maximum_schema_version=SCHEMA_VERSION
-    )
+    recovery = local_recovery(database.state_dir, maximum_schema_version=SCHEMA_VERSION)
     archive = Archive(database.state_dir, recovery=recovery)
     acquiring: Acquisition | None = None
 

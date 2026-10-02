@@ -681,3 +681,59 @@ def test_unfinished_staged_output_is_never_read_as_output(arranged, tmp_path, mo
         windows, lists, _ = listed()
         assert "dg_partial" not in windows and lists["dg_partial"] == "incomplete"
         assert derivations.incomplete_generations(conn) == {"rows": 0, "refs": 0}
+
+
+def test_a_reused_evicted_year_pages_in_chunk_by_chunk_before_its_pointer_flips(
+    arranged, tmp_path, monkeypatch
+):
+    """A year generation B stored whole but C never selected, evicted later, is
+    reused when its inputs return: B pages it in at most a chunk per write,
+    then C flips the pointer to a resident generation (phase 4, F34)."""
+    from test_output_packs import evict
+
+    from swingset.state import output_packs
+    from swingset.state.attempts import SupersededWorkError
+
+    expected = expected_year(arranged, tmp_path, monkeypatch)
+    generation_id = str(expected["generation_id"])
+    monkeypatch.setattr(derivations, "CHUNK_ROWS", 3)
+    with open_database(twin(arranged, tmp_path / "state")) as db:
+        conn = db.connection
+        clock = FakeClock(arranged.now)
+        with monkeypatch.context() as patch:
+
+            def refuse(*args, **kwargs):
+                raise SupersededWorkError("test: inputs moved before step C")
+
+            patch.setattr(derivations, "_finish", refuse)
+            run_year(db, arranged, tmp_path, clock)
+        assert derivations.selected_generation(conn, YEAR) is None
+        assert stored(conn, generation_id) == expected
+        with db.transaction():
+            # What collect_orphans leaves once another run of the unit finished.
+            conn.execute("DELETE FROM derivation_building")
+        evict(db, generation_id)
+        assert stored(conn, generation_id)["refs"] == []
+        counts: list[int] = []
+        original = Database.transaction
+
+        @contextlib.contextmanager
+        def measured(self, **kwargs):
+            top = not self.connection.in_transaction
+            before = conn.execute("SELECT count(*) FROM derivation_row_refs").fetchone()[0]
+            with original(self, **kwargs) as inner:
+                yield inner
+            if top:
+                after = conn.execute("SELECT count(*) FROM derivation_row_refs").fetchone()[0]
+                counts.append(after - before)
+
+        monkeypatch.setattr(Database, "transaction", measured)
+        clock.sleep(16 * 60)
+        resumed = run_year(db, arranged, tmp_path, clock)
+        assert not resumed.failed and resumed.reason is None, resumed
+        assert max(counts) <= 3 and sum(counts) == expected["label"][1]
+        assert derivations.selected_generation(conn, YEAR) == generation_id
+        assert stored(conn, generation_id) == expected
+        assert not output_packs.evicted(conn, generation_id)
+        assert building(conn) == []
+        assert derivations.current(conn, YEAR)

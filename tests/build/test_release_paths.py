@@ -257,13 +257,10 @@ def test_a_changed_artifact_file_refuses_publication(release_state):
     result = service.build_release(
         f.db, on(approved(f.bundle), "partitioned"), f.clock, f.run, f.hub
     )
+    from swingset.state.retention import manifest_file
+
     value = json.loads(
-        (
-            f.db.state_dir
-            / "partitions"
-            / "manifests"
-            / f"{policy(result)['manifest_digest']}.json"
-        ).read_bytes()
+        manifest_file(f.db.state_dir, policy(result)["manifest_digest"]).read_bytes()
     )
     _, artifact = value["built"][0]
     sidecar = artifact_store.sidecar(f.db.state_dir, artifact)

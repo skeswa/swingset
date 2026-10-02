@@ -40,6 +40,32 @@ def _canonical(value: object) -> str:
     return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
 
 
+def store_set(
+    conn: sqlite3.Connection, set_id: str, manifest_json: str, *, created_at: str
+) -> None:
+    """Insert one dependency set once, stamped with when it was first written.
+
+    `created_at` (schema 36) lets the collector leave a set alone for a day,
+    so a set a run captured but has not yet named survives (D-0231). A set
+    already there keeps its first stamp. An older schema has no column; the
+    set is written without it.
+    """
+    try:
+        conn.execute(
+            "INSERT OR IGNORE INTO derivation_dependency_sets(dependency_set_id,manifest_json,"
+            "created_at) VALUES (?,?,?)",
+            (set_id, manifest_json, created_at),
+        )
+    except sqlite3.OperationalError as error:
+        if "created_at" not in str(error):
+            raise
+        conn.execute(
+            "INSERT OR IGNORE INTO derivation_dependency_sets(dependency_set_id,manifest_json) "
+            "VALUES (?,?)",
+            (set_id, manifest_json),
+        )
+
+
 def _digest(value: object) -> str:
     return hashlib.sha256(_canonical(value).encode()).hexdigest()
 

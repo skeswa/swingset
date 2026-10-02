@@ -87,6 +87,20 @@ class _ReadSet:
             "WHERE generation_id IN (SELECT value FROM json_each(?)) ORDER BY generation_id",
             (self.sources,),
         )
+        if (
+            conn.execute(
+                "SELECT 1 FROM sqlite_master WHERE type='table' AND name='source_generation_packs'"
+            ).fetchone()
+            is not None
+        ):
+            # A packed source row reads as the stub above; the pack it names
+            # (immutable, restored only byte-exact) stands for its body.
+            result.rows(
+                conn,
+                "SELECT generation_id,pack_digest FROM source_generation_packs "
+                "WHERE generation_id IN (SELECT value FROM json_each(?)) ORDER BY generation_id",
+                (self.sources,),
+            )
         result.rows(
             conn,
             "SELECT DISTINCT generation_id FROM admission_decisions WHERE state='accepted' "

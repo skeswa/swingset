@@ -158,8 +158,10 @@ EXCLUDED: dict[str, str] = {
     "sources/dcn/": "unregistered source; no page kind resolves to it",
     "state/acquisition_plan.py": "loop plan rows; acquisition reads them, no derivation does",
     "state/closure_collection.py": "operator retention commands",
+    "state/collector.py": "the mark-sweep collector and maintain's artifact pass; no derivation reads it",
     "state/control_scopes.py": "control dependencies of admission and status; the stages check controls, not outputs",
     "state/control_time.py": "operator control commands",
+    "state/disk.py": "free space and delete settings for storage, backups and reclaim; no derivation reads it",
     "state/event_progress.py": _EVENTS,
     "state/guards.py": "fetch guard reasons; acquisition writes them, no derivation reads them",
     "state/lag_report.py": "status report",
@@ -170,6 +172,7 @@ EXCLUDED: dict[str, str] = {
     "state/publication_report.py": "status report",
     "state/requirement_report.py": "status report",
     "state/retention_apply.py": "operator retention commands",
+    "state/storage.py": "operator storage move and the maintain evictor; no derivation reads it",
     "state/verify.py": "weekly verify sample; it re-runs units and rolls every write back",
 }
 

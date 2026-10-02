@@ -40,9 +40,22 @@ let
     UMask = "0077";
   };
   # Local-only backups need room for the checkpoint only, uploads for the
-  # checkpoint and its transport archive (D-0203).
+  # checkpoint and its transport archive (D-0203). A segmented set (phase 4,
+  # D-0232) checks its own room in Python before `VACUUM INTO`: the bytes in
+  # use, not the file's size (a file with a large free list copies far less),
+  # plus 20 GB (`swingset.backup.segments.HEADROOM_BYTES`).
   copies = if cfg.backupUpload then "2" else "1";
   backupMode = if cfg.backupUpload then "upload" else "local only";
+  backupNeed = "${copies} * $(${pkgs.coreutils}/bin/du -sb \"$state\" --exclude=checkpoints | ${pkgs.coreutils}/bin/cut -f1) + 20000000000";
+  backupWhat = if cfg.backupUpload then "2 copies" else "1 copy";
+  # A segmented backup waits up to an hour for the weekly restore drill,
+  # which holds the backup's own lock while it installs a set (phase 4).
+  backupWait = lib.optionalString cfg.backupSegmented " --segmented --lock-timeout 3600";
+  # SQLite's temporary files (a VACUUM, a large sort) go to the state's own
+  # disk: the worker's /tmp is a small tmpfs (phase 4, F36).
+  sqliteTmp = {
+    SQLITE_TMPDIR = "${cfg.stateDir}/tmp";
+  };
   args = "--state ${lib.escapeShellArg cfg.stateDir} --config ${source}/config --overrides ${lib.escapeShellArg cfg.overridesDir}";
   # The five loops that replace the cycle when loops.enable is set (D-0215,
   # docs/plans/architecture.md). Timeouts leave room past each budget for
@@ -92,12 +105,31 @@ let
       oom = 500;
       extra = if cfg.dryRun then " --dry-run" else " --publish";
     };
+    # Maintain also runs the storage tasks and, weekly, the restore drill
+    # (phase 4, D-0232): it installs a backup set into
+    # /var/tmp/swingset-drill-<set>, so it sees the real /var/tmp (PrivateTmp
+    # off, /var/tmp writable) and a failed drill's scratch outlives the unit
+    # until the scratch timer removes it. The drill starts only with 30
+    # minutes of budget left and cannot stop part way: the timeout leaves it
+    # that margin past the budget. 05:30 starts after the 04:00 backup and
+    # ends (90 minutes at most) before the 12:00 one; the drill also holds
+    # the backup's lock, so the two never share the disk.
     maintain = {
       description = "Checkpoint and prune swingset state";
-      calendar = "*-*-* 03:30:00";
+      calendar = "*-*-* 05:30:00";
       budget = cfg.loops.maintainBudget;
-      timeout = "30min";
+      timeout = "90min";
       memory = "2G";
+      env = sqliteTmp // {
+        TMPDIR = "/var/tmp";
+      };
+      service = {
+        PrivateTmp = false;
+        ReadWritePaths = [
+          cfg.stateDir
+          "/var/tmp"
+        ];
+      };
     };
   };
   loopNames = builtins.attrNames loopUnits;
@@ -206,7 +238,7 @@ in
       };
       maintainBudget = lib.mkOption {
         type = lib.types.str;
-        default = "20m";
+        default = "60m";
         description = "`--budget` of the daily maintain tick.";
       };
     };
@@ -274,12 +306,27 @@ in
         local checkpoint (D-0203).
       '';
     };
+    backupSegmented = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = ''
+        Write segmented backup sets (`swingset backup --segmented`, phase 4,
+        D-0232) instead of full checkpoints: a zstd copy of the database and
+        only the files no earlier set sent, kept in checkpoints/ with
+        backupUpload false or sent with it true to the private dataset
+        skeswa/swingset-backup-sets (not the checkpoint archive; D-0234),
+        which the owner creates first. The room check asks for the
+        database's bytes in use plus 20 GB, quota included. Needs schema 36.
+      '';
+    };
     backupMaxAgeSeconds = lib.mkOption {
       type = lib.types.ints.positive;
       default = 129600;
       description = ''
         With backupUpload false, the watchdog alerts when the newest complete
-        local timer checkpoint is older than this, or there is none (D-0203).
+        local timer checkpoint or set is older than this, or there is none
+        (D-0203). With backupUpload and backupSegmented true, when the newest
+        set in the archive is (checkpoints/remote.json, D-0234).
       '';
     };
     scratchMaxAgeDays = lib.mkOption {
@@ -333,7 +380,7 @@ in
             };
             after = [ "network-online.target" ];
             wants = [ "network-online.target" ];
-            environment = env;
+            environment = env // (loop.env or { });
             serviceConfig =
               common
               // {
@@ -343,7 +390,8 @@ in
                 MemoryMax = loop.memory;
               }
               // lib.optionalAttrs (loop ? oom) { OOMScoreAdjust = loop.oom; }
-              // lib.optionalAttrs (loop ? stop) { TimeoutStopSec = loop.stop; };
+              // lib.optionalAttrs (loop ? stop) { TimeoutStopSec = loop.stop; }
+              // (loop.service or { });
           }
         ) loopUnits;
         systemd.timers = lib.mapAttrs' (
@@ -365,7 +413,11 @@ in
           group = "swingset";
           home = cfg.stateDir;
         };
-        systemd.tmpfiles.rules = [ "d ${cfg.stateDir} 0700 swingset swingset -" ];
+        systemd.tmpfiles.rules = [
+          "d ${cfg.stateDir} 0700 swingset swingset -"
+          # SQLITE_TMPDIR of the backup and maintain units (sqliteTmp).
+          "d ${cfg.stateDir}/tmp 0700 swingset swingset -"
+        ];
         environment.systemPackages = [
           cfg.package
           diskQuota
@@ -446,10 +498,9 @@ in
                 $timers \
                 --backup-failed "$backup_failed" \
                 --summary-failed "$summary_failed" \
-                --backup-active "$backup_active"${
-                  lib.optionalString (
-                    !cfg.backupUpload
-                  ) " --backup-upload 0 --backup-max-age ${toString cfg.backupMaxAgeSeconds}"
+                --backup-active "$backup_active" \
+                --backup-max-age ${toString cfg.backupMaxAgeSeconds}${lib.optionalString cfg.backupSegmented " --backup-segmented 1"}${
+                  lib.optionalString (!cfg.backupUpload) " --backup-upload 0"
                 }) || {
                 code=$?
                 alert="[watchdog-error] watchdog.py exited $code; read journalctl -u swingset-watchdog"
@@ -509,9 +560,12 @@ in
           };
           # Checkpoint transport archives can be larger than the worker's RAM.
           # PrivateTmp also isolates /var/tmp, while retaining its disk backing.
-          environment = env // {
-            TMPDIR = "/var/tmp";
-          };
+          environment =
+            env
+            // sqliteTmp
+            // {
+              TMPDIR = "/var/tmp";
+            };
           serviceConfig = common // {
             Type = "oneshot";
             # A checkpoint is a full copy of the state directory and the transport
@@ -519,25 +573,25 @@ in
             # Refuse to start when the disk quota cannot hold them with headroom,
             # so a backup can never take the space the pipeline runs on (D-0192,
             # D-0203).
-            ExecStartPre =
+            # A segmented set checks its own room (above).
+            ExecStartPre = lib.mkIf (!cfg.backupSegmented) (
               "+"
               + pkgs.writeShellScript "swingset-backup-room" ''
                 set -eu
                 state=${lib.escapeShellArg cfg.stateDir}
                 read -r used cap _ < <(${diskQuota}/bin/swingset-disk --raw) || exit 0
-                need=$(( ${copies} * $(${pkgs.coreutils}/bin/du -sb "$state" --exclude=checkpoints | ${pkgs.coreutils}/bin/cut -f1) + 20000000000 ))
+                need=$(( ${backupNeed} ))
                 free=$(( cap - used ))
                 if [ "$free" -lt "$need" ]; then
-                  echo "backup refused (${backupMode}): $((free / 1000000000)) GB free of quota, $((need / 1000000000)) GB needed for ${copies} ${
-                    if cfg.backupUpload then "copies" else "copy"
-                  } plus 20 GB headroom" >&2
+                  echo "backup refused (${backupMode}): $((free / 1000000000)) GB free of quota, $((need / 1000000000)) GB needed for ${backupWhat} plus 20 GB headroom" >&2
                   exit 1
                 fi
-              '';
+              ''
+            );
             # Upload mode prunes only after the upload succeeds. Local mode
             # prunes by the [retention] knobs after the checkpoint is written,
             # and from the phase 1 package on only after its read-back passes.
-            ExecStart = "${cfg.package}/bin/swingset backup ${args}${
+            ExecStart = "${cfg.package}/bin/swingset backup ${args}${backupWait}${
               lib.optionalString (!cfg.backupUpload) " --local"
             }";
             # A local backup (copy, read-back and two writer-lock waits) took

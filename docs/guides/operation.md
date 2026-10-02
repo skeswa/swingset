@@ -172,7 +172,9 @@ derivations remain unfinished. Current corrections, revocations, and the
 acknowledged baseline still fence publication.
 
 The owner creates `skeswa/swingset` (public dataset) and
-`skeswa/swingset-archive` (private dataset). Provision a write token for both in
+`skeswa/swingset-archive` (private dataset), and, before segmented backups
+upload, `skeswa/swingset-backup-sets` (private dataset; its history is
+squashed, so it holds nothing else). Provision a write token for all of them in
 a root-owned mode-0600 file outside the checkout, for example
 `/etc/swingset.env`, containing `HF_TOKEN=...`. Never commit that file or copy it
 into a state checkpoint.
@@ -250,6 +252,16 @@ Production therefore sets `services.swingset.backupUpload = false`
   or a `failed-run_*` copy exists.
 - The Mac byte copy is the only copy off the machine. Refresh it weekly.
 
+Phase 4's backup sets replace these checkpoints once
+`services.swingset.backupSegmented` is set: the timer runs `swingset backup
+--segmented --local`, the room check wants the size of `state.sqlite` plus
+20 GB, and each backup keeps the newest set and the newest drilled one under
+`checkpoints/sets/`. The `checkpoint_` knobs above no longer apply, and the
+old `run_*` checkpoint stays until removed by name. `[backup-stale]` reads
+sets too, and the weekly drill restores one
+([backup sets](backup-and-restore.md#backup-sets-and-the-restore-drill)).
+Uploads stay off until the owner turns `backupUpload` on (D-0232).
+
 Switching production to local-only backups deletes about 94 GB of old
 checkpoints, so follow this order. The one-copy room check needs about
 69.5 GB. The candidate 019 preflight receipt showed 46.5 GB free at 16:10 UTC
@@ -299,7 +311,7 @@ input. Read the log with `journalctl -t swingset-watchdog`
 Each line starts with a key. A key already logged within
 `watchdogRepeatSeconds` (two hours) is not sent again. For the gate keys,
 `[host-failing]`, `[backup-failed]`, `[watchdog-blind]`, `[unit-quarantined]`, `[write-deadline]`,
-`[guard-expired]`, `[loop-quiet]`, `[loop-failing]`, `[loop-idle]`, `[release-refused]` and `[read-set-miss]` only the same text is held back, so a newly blocked host repeats at once. With `alertCommand`
+`[guard-expired]`, `[loop-quiet]`, `[loop-failing]`, `[loop-idle]`, `[release-refused]`, `[read-set-miss]`, `[restore-drill-failed]`, `[collector-failed]`, `[collector-stale]`, `[storage-failed]`, `[storage-stalled]` and `[backup-incomplete]` only the same text is held back, so a newly blocked host repeats at once. With `alertCommand`
 set, the unit also sends one `[watchdog-alive]` line a day to it, not to
 `ALERTS.log`; a missing one means the watchdog timer or the notifier stopped.
 
@@ -330,16 +342,16 @@ set, the unit also sends one `[watchdog-alive]` line a day to it, not to
 | `[disk-low]`                 | the disk quota runs low ([disk space](#disk-space)); while a backup runs, only below its 20 GB headroom                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | yes  |
 | `[backup-failed]`            | `swingset-backup.service` is failed, or a `failed-run_*` checkpoint exists ([local-only backups](#local-only-backups))                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | yes  |
 | `[summary-failed]`           | `swingset-summary.service` is failed, possibly killed at its 5 GB memory cap (`MemoryMax`); the daily digest stops until a run succeeds                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | yes  |
-| `[backup-stale]`             | upload is off and the newest complete `run_*` checkpoint is older than `backupMaxAgeSeconds` (36 hours), or there is none                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | yes  |
+| `[backup-stale]`             | upload is off and the newest complete `run_*` checkpoint or backup set (`checkpoints/sets/*/backup.json`) is older than `backupMaxAgeSeconds` (36 hours), or there is none; with upload and segmented sets on, the newest set in the archive (`checkpoints/remote.json`) is older, or none has been uploaded                                                                                                                                                                                                                                                                                                                                                                                                                                                | yes  |
 | `[backup-upload-paused]`     | upload is off; names the newest local checkpoint and its age; repeats at most once a day                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | yes  |
 | `[state-size]`               | the state directory without `checkpoints/`, `venv/` and `uv-cache/` holds more than 50 GB (`--state-size-alert`), 5 GB before architecture phase 4's trigger, which uses the same measure; repeats at most once a day                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | yes  |
-| `[size-cap-near]`            | `state.sqlite` is over 90% of `[retention] max_database_bytes` (57.6 GB of 64 GB), where the size-cap pause stops the pipeline; repeats at most once a day                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | yes  |
+| `[size-cap-near]`            | `state.sqlite` is over 90% of `[retention] max_database_bytes` (68.4 GB of 76 GB since D-0233), where the size-cap pause stops the pipeline; repeats at most once a day                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | yes  |
 | `[replay-loop]`              | one kind's replay epoch moved in each of the last three cycles, or with the loops on the last three derive ticks that were not skipped, and none wrote a generation of that kind or of a kind it reads: two kinds replaying each other. Unrelated generations, such as dancer changes, do not hide it ([D-0205](../../journal/decisions/0205-cut-off-identical-derivation-output.md))                                                                                                                                                                                                                                                                                                                                                                       | yes  |
 | `[report-failing]`           | a cycle report, or with the loops on a derive tick's, failed in one of the last three (`derivation_error`, `controls_error`) or a record lacks `derivation`, so `[replay-loop]` cannot see it; names the latest error                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | yes  |
 | `[equivalences]`             | `derivation_equivalences` or `source_equivalences` holds more than 500,000 rows (counted, so the line clears once collection deletes them); nothing collects them before invalidation step 3, which then starts ahead of phase 2 ([D-0208](../../journal/decisions/0208-keep-the-64-gb-cap-until-closure-collection.md)); repeats at most once a day                                                                                                                                                                                                                                                                                                                                                                                                        | yes  |
 | `[wal-large]`                | `state.sqlite-wal` holds over 4 GB of frames not yet reset: checkpoints are not keeping up, usually behind a long read. The file never shrinks, so frames from before the last restart do not count                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | yes  |
 | `[building-orphans]`         | a staged generation in `derivation_building` has not advanced for 24 hours; names up to five ([staged completion](../reference/state.md#derivation-generations-h15))                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | no   |
-| `[incomplete-generations]`   | more than three partial generations with no building row (maintain's daily count, loops only); nothing collects them before phase 4, so an operator decides ([staged completion](../reference/state.md#derivation-generations-h15))                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | no   |
+| `[incomplete-generations]`   | more than three partial generations with no building row still hold references (maintain's daily `holding` count, loops only); evicted generations are whole and not counted, and the weekly collector strips the references of those over a day old ([maintain storage tasks](../reference/operations.md#maintain-storage-tasks))                                                                                                                                                                                                                                                                                                                                                                                                                          | no   |
 | `[release-refused]`          | the newest gate verdict of a release tick or cycle in the last seven days refused its candidate: nothing is published until a build passes or `overrides/release_decreases.csv` approves the decrease ([approving a decrease](data-corrections.md#approving-a-decrease), [D-0225](../../journal/decisions/0225-publish-only-strictly-better-releases.md)). Names the candidate and reasons; repeats daily, and at once for another candidate or reason                                                                                                                                                                                                                                                                                                      | yes  |
 | `[partitions-withheld]`      | stage 1 withholds partitions; one count by reason, daily, and at once when the count rises by more than 10 over the last line's. `swingset partitions --withheld` lists them with their detail; the count adds the newest release record's `partitions.assembly_withheld` (`assembly_check:<check>`), whose rows still say built                                                                                                                                                                                                                                                                                                                                                                                                                            | yes  |
 | `[partitions-stale]`         | partitions that have published a kept artifact for over 48 hours while their event, resolution or link is not current (`kept_not_current_since`): a quarantined or unqueued unit; names up to five, daily                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | yes  |
@@ -349,6 +361,15 @@ set, the unit also sends one `[watchdog-alive]` line a day to it, not to
 | `[verify-overdue]`           | loops only: the maintain loop has run for over nine days and no verify sample completed in them (each kind reaching its target); maintain samples again each tick until one does                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | yes  |
 | `[read-set-widened]`         | in the last day a derive tick or cycle counted `undeclared_reads`, `read_set_widened`, `pool_probe_widened` or `dancer_read_after_load`; each should be 0. A widened link reads a whole table and re-runs on any change of it ([read recorder](../reference/state.md#read-recorder)); repeats daily                                                                                                                                                                                                                                                                                                                                                                                                                                                         | yes  |
 | `[artifact-orphans]`         | partition artifacts no current partition names, and release manifests over a week old, hold over 1 GB: the daily collector is behind, or retained release manifests hold many; repeats daily                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                | yes  |
+| `[collector-failed]`         | maintain's newest full collector sweep (last nine days) raised; names the error; daily until a sweep passes. Nothing past the error was removed ([maintain storage tasks](../reference/operations.md#maintain-storage-tasks))                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               | yes  |
+| `[objects-size]`             | `objects/`, `blobs/`, `extracts/` and `partitions/` hold over 60 GB together; daily                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | yes  |
+| `[restore-drill-failed]`     | the newest restore drill of a backup set failed; names the set and the error; daily until a drill passes. The drill appends its own line with other text and keeps its scratch under `/var/tmp/swingset-drill-<set>` ([restore drill](../reference/operations.md#restore-drill))                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | yes  |
+| `[restore-drill-stale]`      | backup sets exist and none passed a restore drill in 8 days (counted from the first set when none ever passed); see the `loop:maintain drill_no_room` guard; daily                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | yes  |
+| `[collector-stale]`          | phase 4's storage tasks have run for over `collect_every_days` plus 2 days (9) and no collector sweep completed in them; names what stopped each class in the newest sweep (the budget, a publication, a refusal); daily                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | yes  |
+| `[storage-failed]`           | maintain's newest tick recorded a storage task (`artifacts`, `backup_scratch`, `evict`, `pack_bodies`, `collector`, `drill`) that raised; names it and the error. The other tasks ran ([maintain storage tasks](../reference/operations.md#maintain-storage-tasks))                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | yes  |
+| `[storage-stalled]`          | maintain's `evict` or `pack_bodies` left a backlog and made no progress in each of the last three ticks; names failing generations if any (their guards `loop:maintain evict_failed`, `pack_failed`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | yes  |
+| `[backup-incomplete]`        | the newest backup set was written without files the state names (`missing` in its `backup.json`); restoring or drilling it refuses; what puts each class back is under [lost files](backup-and-restore.md#lost-files); daily                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                | yes  |
+| `[archive-size]`             | upload mode with segmented sets: the archive holds over 40 GB, or its collector failed after the last upload (`checkpoints/remote.json`); daily                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | yes  |
 | `[release-lag]`              | derive's `loop:derive release_lag` guard was seen in the last two hours: release is behind because derive held the heavy lock, so derive runs only parse and link units until release catches up ([release path](#release-path))                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | no   |
 
 "Held" says whether the line still fires while held. Held means the
@@ -526,7 +547,14 @@ a full copy of the state, several gigabytes, so copies must not accumulate.
   post-check receipt and its expected dates for 55 and 64 GB, and ask the
   owner whether invalidation step 3 moves ahead of phase 2
   ([D-0208](../../journal/decisions/0208-keep-the-64-gb-cap-until-closure-collection.md)).
-  Nothing else frees space before phase 4.
+  Nothing else frees space before phase 4, whose storage steps (below) are
+  the next step.
+- Objects (phase 4): packs and release manifests under `objects/`, about
+  0.5 GB on the 2026-09-29 copy. `[objects-size]` fires when `objects/`,
+  `blobs/`, `extracts/` and `partitions/` pass 60 GB together. The weekly
+  drill needs the database's size, the set's files and 20 GB free under
+  `/var/tmp` for a few minutes, and a failed drill keeps its scratch, less
+  the restored database, for 20 hours.
 
 To see what is using space: `sudo du -xh -d1 /var/tmp /var/lib/swingset | sort -h`.
 
@@ -535,6 +563,61 @@ and leaves the file the size it was. Schema 30 does exactly that. Run
 `swingset gc --reclaim` after the switch that migrates, or the database keeps
 its old size on disk and in every backup. See
 [schema history](../reference/schema-history.md).
+
+### Packing cold output (phase 4)
+
+Phase 4 moves old derivation output, old parse bodies and large old build
+recipes out of `state.sqlite` into packs under `objects/`, collects what
+nothing names, then shrinks the file
+([state: objects and packs](../reference/state.md#objects-and-packs)). The
+first run is an operator step under a hold, in the order of the
+[architecture plan's phase 4 deploy steps](../plans/architecture.md#9-migration-plan);
+after it, maintain does the same in bounded batches each day. Each step
+deletes data, so the production run takes an independent check first.
+
+```sh
+sudo touch /var/lib/swingset/operator-hold   # and wait until no swingset-* unit is active
+sudo -u swingset swingset storage plan
+sudo -u swingset swingset storage apply <digest>
+sudo -u swingset swingset gc --collect --plan
+sudo -u swingset swingset gc --collect --apply <digest>
+sudo -u swingset swingset gc --reclaim
+```
+
+- `storage plan` writes `gc/plans/storage-<digest>.json`: generations to
+  evict, references kept, packs to write, parse and recipe bodies to pack,
+  and an estimate of bytes. It removes nothing. On the 2026-09-29 copy it
+  took 15 minutes on the Mac at 512 MB.
+- `storage apply` refuses without `operator-hold`, during a publication,
+  when the digest moved (plan again), or when the disk, quota included, has
+  less than twice the kept references' bytes plus 10 GB (its receipt's
+  `room`). It writes and verifies every pack first (a damaged one is written
+  again from the file), then moves the references in one long transaction
+  with `secure_delete` off, and truncates the WAL after. Killed at any point,
+  it rolls back to the last commit, and the same digest resumes. A finished
+  digest prints its receipt. On the Mac it took 36 minutes at 1.04 GB. With
+  `secure_delete` on, the first rehearsal's move wrote a 30 GB WAL (W2).
+- `gc --collect` names and removes unnamed objects, partition artifacts and
+  dependency sets: 4 minutes on the Mac, 0.10 GB.
+- `gc --reclaim` needs `2.5 × bytes in use + 12 GB` free on the quota and
+  refuses before it starts without it: about 100 to 112 GB for the 36 to
+  40 GB production should hold after collection. The rehearsal used 76 GB
+  for 32 GB in use (W3). A quota reading over an hour old is refused: run
+  `sudo swingset-disk` first.
+- Run `storage plan`, `storage apply`, `gc --collect` and `gc --reclaim` as
+  `swingset` (`sudo -u swingset`); run as root they leave root-owned files
+  that have broken backups before.
+- Receipts land in `gc/receipts/storage-<digest>.json`,
+  `collect-<digest>.json` and the reclaim's own; keep one compact copy each
+  under `journal/evidence/`.
+
+A revocation reads the chain back to the previous accepted generation,
+which is never packed, and nothing in the code revokes today. Should one meet
+a packed body, it raises `KeyError` and rolls back;
+`body_packs.check_revocation` names the generation, and `swingset storage
+restore-body <generation_id>` writes it back. Phase 3 code cannot read a
+state after `storage apply`: the way back is the byte copy taken under the
+hold.
 
 ### Retention plans and holds
 
@@ -610,13 +693,16 @@ the new plan still calls removable and leaves anything the new plan now keeps,
 which its receipt lists under `skipped_files`. Nothing is removed on the word of
 the killed run alone.
 
-Apply removes only files today, and only unreferenced candidate directories past
-`retention.collect_older_than`. It never removes saved output, and it never
+Apply removes only files, and only unreferenced candidate directories past
+`retention.collect_older_than`; saved output leaves the file through
+[packing](#packing-cold-output-phase-4) instead. It never removes saved output, and it never
 removes a file nothing declares: doctor reports those as unknown and a person
 decides what they are.
 
-Reclaim needs about twice the current file size free on the state volume and
-refuses before touching anything if it is not there. It holds both locks for the
+Reclaim needs `2.5 × bytes in use + 12 GB` free (bytes in use excludes the
+free list) on the smaller of the state volume and the disk quota, and refuses
+before touching anything if it is not there; the phase 4 rehearsals used
+2.35 times (WAL included) and, after the fixes, about 1.95 times. SQLite's temporary files go under `/var/lib/swingset/tmp`, not `/tmp`. It holds both locks for the
 whole rewrite, which on a large database is minutes. A kill during it rolls back
 to the file as it was.
 
@@ -647,8 +733,8 @@ uv run swingset hold remove --state /var/lib/swingset --hold-id hold_0f3c...
 ```
 
 `hold add` walks everything the named computations were built from and refuses
-if any of it is not in the live database, listing the ids to bring back first
-with `gc --restore`. A held artifact digest has to be a file under `blobs/` or
+if any of it is not local, listing the ids. An evicted generation whose pack is
+on disk counts as local; nothing can bring back one that is neither. A held artifact digest has to be a file under `blobs/` or
 `extracts/` already. It writes nothing when it refuses. Holds live one file per
 hold under `/var/lib/swingset/holds/`; a hold and the files it names are
 included in backups, and holds are taken under the control lock, so one can be

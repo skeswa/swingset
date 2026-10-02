@@ -38,6 +38,12 @@ KEPT = (
 )
 
 
+@pytest.fixture(autouse=True)
+def schema_35(monkeypatch: pytest.MonkeyPatch) -> None:
+    """These tests are about schema 35; later migrations have their own files."""
+    monkeypatch.setattr(db_module, "SCHEMA_VERSION", 35)
+
+
 def insert(conn: sqlite3.Connection, table: str) -> None:
     """One valid row in `table`."""
     values = {

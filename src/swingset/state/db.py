@@ -17,7 +17,7 @@ from swingset.model.ids import run_id as make_run_id
 
 from .rwlock import Held, LockBusy, exclusive, shared
 
-SCHEMA_VERSION = 35
+SCHEMA_VERSION = 36
 #: Seconds SQLite waits for another process's write before `database is locked`.
 #: Writes elsewhere may take up to the write bound, so this is longer (D-0215).
 BUSY_TIMEOUT_SECONDS = 70.0
@@ -417,33 +417,36 @@ def _migrate(database: Database, *, clock: Clock | None = None) -> None:
             conn.execute("PRAGMA foreign_keys=ON")
 
 
+#: Delete gates whose permission row must never outlive its transaction
+#: (D-0136), with the log event a stale row writes when it is cleared.
+_GATES = (
+    ("derivation_payload_removal_authority", "derivation-payload-removal-grant-revoked"),
+    ("storage_eviction_authority", "storage-eviction-grant-revoked"),
+)
+
+
 def _revoke_stale_payload_removal(database: Database) -> None:
-    """Close the derivation payload delete gate if a grant outlived its writer.
+    """Close a delete gate if a grant outlived its writer.
 
     The grant row cannot commit while foreign keys are on, so a row here means
-    some writer committed it with them off. The gate is the last guard on
-    derivation output, so it is closed here rather than left open for whichever
-    process opens the database next.
+    some writer committed it with them off. Each gate is the last guard on what
+    it protects (derivation payloads; row references, dependency sets, eviction
+    markers and packed bodies from schema 36), so it is closed here rather than
+    left open for whichever process opens the database next.
     """
     conn = database.connection
-    if (
-        conn.execute(
-            "SELECT 1 FROM sqlite_master WHERE name='derivation_payload_removal_authority'"
-        ).fetchone()
-        is None
-    ):
-        return
-    stale = conn.execute(
-        "SELECT reason,granted_at FROM derivation_payload_removal_authority"
-    ).fetchall()
-    if not stale:
-        return
-    with database.transaction() as txn:
-        txn.execute("DELETE FROM derivation_payload_removal_authority")
-    from swingset.log import log
+    for table, event in _GATES:
+        if conn.execute("SELECT 1 FROM sqlite_master WHERE name=?", (table,)).fetchone() is None:
+            continue
+        stale = conn.execute(f"SELECT reason,granted_at FROM {table}").fetchall()
+        if not stale:
+            continue
+        with database.transaction() as txn:
+            txn.execute(f"DELETE FROM {table}")
+        from swingset.log import log
 
-    for reason, granted_at in stale:
-        log("derivation-payload-removal-grant-revoked", reason=reason, granted_at=granted_at)
+        for reason, granted_at in stale:
+            log(event, reason=reason, granted_at=granted_at)
 
 
 def _iso(moment: datetime) -> str:

@@ -41,7 +41,8 @@ def dependency_set(conn: sqlite3.Connection, members: list[dict[str, Any]]) -> s
     text = canonical(members)
     identifier = hashlib.sha256(text.encode()).hexdigest()
     conn.execute(
-        "INSERT OR IGNORE INTO derivation_dependency_sets VALUES (?,?)", (identifier, text)
+        "INSERT OR IGNORE INTO derivation_dependency_sets(dependency_set_id,manifest_json) VALUES (?,?)",
+        (identifier, text),
     )
     return identifier
 
@@ -237,6 +238,36 @@ def test_the_plan_digest_is_unchanged_without_equivalences(tmp_path: Path) -> No
         assert plan(database.connection, database.state_dir, **KNOBS).digest == (
             HISTORY_PLAN_DIGEST
         )
+
+
+def test_an_evicted_generation_the_walk_reaches_is_local_and_never_incomplete(
+    tmp_path: Path,
+) -> None:
+    """Phase 4 (F33): an evicted generation with its pack on disk is local,
+    the plan marks it and counts residence, and a hold reaching it is accepted."""
+    from test_output_packs import evict
+
+    from swingset.state import objects, output_packs
+
+    with open_database(tmp_path / "state", lock=False) as database:
+        history(database)
+        conn = database.connection
+        # The link's older project generation, reached only through the walk.
+        evict(database, "dg_a1")
+        content = planned(database)
+        assert "dg_a1" in listed(content, "local")
+        assert "incomplete_generations" not in content["totals"]
+        [row] = [item for item in content["generations"] if item["generation_id"] == "dg_a1"]
+        assert row["evicted"] is True and row["reference_count"] == 0
+        assert not any(item.get("evicted") for item in content["generations"] if item is not row)
+        assert content["residence"]["evicted_generations"] == 1
+        assert content["residence"]["partial_generations"] == 0
+        retention.require_local(conn, ["dg_link_a"])
+        objects.store_for(conn).path(
+            output_packs.CLASS, output_packs.label(conn, "dg_a1")[0]
+        ).unlink()
+        with pytest.raises(RetentionError, match="dg_a1"):
+            retention.require_local(conn, ["dg_link_a"])
 
 
 def test_the_walk_follows_the_dependency_sets_of_equivalences(

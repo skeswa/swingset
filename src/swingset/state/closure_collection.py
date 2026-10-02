@@ -19,6 +19,10 @@ collectable. Only proofs are ever considered; no other dependency set, row or
 file is touched. `plan` writes nothing. `collect` takes a plan digest, recomputes
 the plan under both locks, stops if it moved, and removes one proof per
 transaction, lifting the table's no-delete trigger inside that transaction only.
+
+Phase 4's collector (`state/collector.py`, D-0231) applies these rules, and
+more, to every dependency set; this module stays for `gc --closures` and
+`gc --collect-closures`.
 """
 
 from __future__ import annotations
@@ -32,6 +36,7 @@ from typing import Any
 from swingset.build.closure_manifest import digest
 from swingset.build.files import canonical_json, durable_write
 
+from . import body_packs
 from .control_lock import control_lock
 from .db import Database
 
@@ -96,12 +101,20 @@ def plan(conn: sqlite3.Connection, state_dir: Path) -> dict[str, Any]:
         "SELECT DISTINCT dependency_set_id FROM derivation_generations"
     ):
         keep(str(identifier), "generation_dependency_set")
-    for generation_id, set_id, named, private in conn.execute(
+    for generation_id, set_id, named, private, packed in conn.execute(
         "SELECT generation_id, dependency_set_id, "
         "json_extract(recipe_json,'$.context.release_closure.digest'), "
-        "json_extract(recipe_json,'$.context.release_closure.private_digest') "
-        "FROM derivation_generations WHERE stage='build'"
-    ):
+        "json_extract(recipe_json,'$.context.release_closure.private_digest'), "
+        "recipe_json=? FROM derivation_generations WHERE stage='build'",
+        (body_packs.STUB,),
+    ).fetchall():
+        if packed:
+            # A packed build recipe (phase 4): the same extraction over its pack.
+            named, private = conn.execute(
+                "SELECT json_extract(?1,'$.context.release_closure.digest'),"
+                "json_extract(?1,'$.context.release_closure.private_digest')",
+                (body_packs.recipe(conn, str(generation_id)),),
+            ).fetchone()
         for value in (named, private):
             if value:
                 keep(str(value), f"build_recipe:{generation_id}")

@@ -6,6 +6,21 @@ from pathlib import Path
 import pytest
 
 
+@pytest.fixture(autouse=True)
+def no_worker_quota(monkeypatch, tmp_path_factory):
+    """Seal tests off from the worker's real quota reading (`/run/swingset-disk`):
+    a stale or low reading there would fail room checks for reasons that have
+    nothing to do with the code. A test that needs a quota sets one itself."""
+    from swingset.backup import drill
+    from swingset.loops import release
+    from swingset.state import disk
+
+    absent = tmp_path_factory.getbasetemp() / "no-swingset-disk"
+    monkeypatch.setattr(disk, "QUOTA_FILE", absent)
+    monkeypatch.setattr(release, "DISK_FILE", absent)
+    monkeypatch.setattr(drill, "QUOTA_CACHE", absent)
+
+
 def pytest_addoption(parser):
     parser.addoption(
         "--full-suite",

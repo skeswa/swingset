@@ -55,7 +55,7 @@ exclusive open, which migrates, or skips.
 | `swingset-derive`   | `*:2/5`, `RandomizedDelaySec=20` | `deriveBudget` (`4m`)    | 30 min            | 5G                            |
 | `swingset-plan`     | `*:10/30`                        | `planBudget` (`10m`)     | 20 min            | 2G                            |
 | `swingset-release`  | `*:20` hourly                    | `releaseBudget` (`30m`)  | 60 min            | 7G, 500                       |
-| `swingset-maintain` | daily 03:30                      | `maintainBudget` (`20m`) | 30 min            | 2G                            |
+| `swingset-maintain` | daily 05:30                      | `maintainBudget` (`60m`) | 90 min            | 2G                            |
 
 All are `Persistent=true`, skip while `operator-hold` exists and run the
 watchdog when they fail. Derive gets `TimeoutStopSec=120`, the others 45 s.

@@ -4,7 +4,7 @@ Recorded: 2026-09-25
 Decided by: agent, 2026-09-25, under D-0175; source: phase 0 of the [architecture plan](../../docs/plans/architecture.md)  
 Topic: Worker disk space  
 Supersedes: the two kept timer checkpoints of [D-0152](0152-the-backup-command-prunes-its-own-checkpoints.md), while upload is paused  
-Superseded by: —
+Superseded by: [D-0232](0232-segmented-backups-with-a-weekly-restore-drill.md), once the segmented-backup flag flips
 
 ## Decision
 

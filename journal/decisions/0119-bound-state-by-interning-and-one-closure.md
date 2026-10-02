@@ -4,7 +4,7 @@ Recorded: 2026-09-17
 Decided by: owner, 2026-09-17, Sandile Keswa; source: Owner instruction in the plan review session to replace the D-0117 design with this one  
 Topic: State retention and recovery cost  
 Supersedes: [D-0117](0117-bound-operational-state-with-durable-archives.md)  
-Superseded by: —
+Superseded by: in part, [D-0229](0229-derivation-output-and-bodies-live-in-packs.md) (row references live in the file or as a pack)
 
 ## Decision
 

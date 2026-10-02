@@ -575,7 +575,7 @@ def test_maintain_prunes_and_checkpoints(dirs):
     assert not (runs / "run_stopped_old.stop").exists()
     assert (runs / "run_stopped_new.stop").exists()
     assert record["run_rows_compacted"] == 1
-    assert record["incomplete_generations"] == {"rows": 0, "refs": 0}
+    assert record["incomplete_generations"] == {"rows": 0, "refs": 0, "holding": 0}
     with open_database(state, lock=False) as db:
         summaries = {
             name: json.loads(
@@ -604,7 +604,7 @@ def test_maintain_prunes_and_checkpoints(dirs):
     assert record["artifacts"]["removed"] == 0
     # The weekly verify sample ran: nothing is derived here to verify.
     assert record["verify"]["mismatches"] == []
-    assert record["progress"] == 8
+    assert record["progress"] == 11
     with open_database(state, lock=False) as db:
         subjects = [
             row[0]
@@ -613,6 +613,214 @@ def test_maintain_prunes_and_checkpoints(dirs):
         assert subjects == ["host:new", "watch:held"]
         left = [row[0] for row in db.connection.execute("SELECT unit_id FROM work_queue")]
         assert left == ["snap_pending"]
+
+
+def test_maintain_runs_the_storage_tasks_and_the_weekly_drill(dirs, monkeypatch):
+    """Phase 4, WP7: eviction, body packing, the weekly collector and, on a
+    tick that did not verify, the restore drill, each in the summary."""
+    from swingset.backup.segments import LOCAL_TRANSPORT, create_set
+    from swingset.backup.transport import LocalDirectoryTransport
+    from swingset.state import collector
+
+    state, config, _ = dirs
+    scratch = state.parent / "drill-scratch"
+    sources = config / "sources.toml"
+    sources.write_text(
+        sources.read_text().replace('drill_dir = "/var/tmp"', f'drill_dir = "{scratch}"')
+    )
+    clock = FakeClock()
+    with open_database(state) as db:
+        made = create_set(
+            db,
+            LocalDirectoryTransport(state / "checkpoints", name=LOCAL_TRANSPORT),
+            now=clock.now(),
+            versions={"swingset": "test"},
+        )
+        # This week's verify sample is done, so the tick may drill.
+        run = db.start_run(clock.now() - timedelta(days=1))
+        db.connection.execute(
+            "UPDATE runs SET loop='maintain',finished_at=?,summary_json=? WHERE run_id=?",
+            (
+                (clock.now() - timedelta(days=1)).isoformat(),
+                json.dumps({"verify": {"week": "2025-W53", "complete": True}}),
+                run,
+            ),
+        )
+    with _tick("maintain", dirs, clock, budget=3600) as current:
+        maintain.run(current)
+    record = current.record
+    assert record is not None and not record["failed"]
+    assert set(record["evict"]) >= {"generations", "references", "packed", "skipped"}
+    assert set(record["pack_bodies"]) >= {"parse_body", "label_body", "written", "skipped"}
+    assert record["collector"]["complete"] is True and record["collector"]["failed"] is False
+    assert "verify" not in record
+    assert record["drill"]["passed"] is True and record["drill"]["set_id"] == made["set_id"]
+    assert record["progress"] == 11
+    assert list(scratch.iterdir()) == []
+    with open_database(state, lock=False) as db:
+        assert db.connection.execute("SELECT drilled_at FROM backup_sets").fetchone()[0]
+    # A day later the collector and the drill are not due; verify is still done.
+    clock.sleep(86400)
+    with _tick("maintain", dirs, clock, budget=3600) as current:
+        maintain.run(current)
+    record = current.record
+    assert record is not None and not record["failed"]
+    assert "collector" not in record and "drill" not in record and "verify" not in record
+    assert "evict" in record and "pack_bodies" in record
+    # A week on the collector is due again; a sweep that raises is recorded
+    # as failed for the watchdog ([collector-failed]) and the tick goes on.
+    clock.sleep(7 * 86400)
+
+    whole = collector.sweep
+
+    def broken(database, **options):
+        # The daily artifact pass sweeps two classes; only the full sweep fails.
+        if "classes" not in options:
+            raise collector.CollectError("unreadable candidate manifest x")
+        return whole(database, **options)
+
+    monkeypatch.setattr(collector, "sweep", broken)
+    with _tick("maintain", dirs, clock, budget=60) as current:
+        maintain.run(current)
+    record = current.record
+    assert record is not None and not record["failed"]
+    assert record["collector"] == {
+        "failed": True,
+        "complete": False,
+        "error": "CollectError: unreadable candidate manifest x",
+    }
+    assert "retention_cap" in record
+    # The weekly verify ran on this tick and left too little budget, so the
+    # drill waits for the next.
+    assert "verify" in record and record["drill"] == {"skipped": "short_budget"}
+
+
+def _drill_due(state, clock):
+    """A local set and this week's verify done, so a maintain tick may drill."""
+    from swingset.backup.segments import LOCAL_TRANSPORT, create_set
+    from swingset.backup.transport import LocalDirectoryTransport
+
+    with open_database(state) as db:
+        create_set(
+            db,
+            LocalDirectoryTransport(state / "checkpoints", name=LOCAL_TRANSPORT),
+            now=clock.now(),
+            versions={"swingset": "test"},
+        )
+        run = db.start_run(clock.now() - timedelta(days=1))
+        db.connection.execute(
+            "UPDATE runs SET loop='maintain',finished_at=?,summary_json=? WHERE run_id=?",
+            (
+                (clock.now() - timedelta(days=1)).isoformat(),
+                json.dumps({"verify": {"week": "2025-W53", "complete": True}}),
+                run,
+            ),
+        )
+
+
+def test_a_storage_task_that_raises_does_not_stop_the_tick(dirs, monkeypatch):
+    """I1: evict and pack_bodies are isolated; the cap, the controls, the
+    collector and the drill still run after one raises."""
+    from swingset.state import output_packs, storage
+
+    state = dirs[0]
+    clock = FakeClock()
+    _drill_due(state, clock)
+
+    def broken(*args, **kwargs):
+        raise output_packs.GenerationUnavailable("generation dg_x does not match its label")
+
+    monkeypatch.setattr(storage, "evict", broken)
+    monkeypatch.setattr(storage, "pack_bodies", broken)
+    with _tick("maintain", dirs, clock, budget=3600) as current:
+        maintain.run(current)
+    record = current.record
+    assert record is not None and not record["failed"]
+    error = "GenerationUnavailable: generation dg_x does not match its label"
+    assert record["evict"] == record["pack_bodies"] == {"failed": True, "error": error}
+    assert "retention_cap" in record and "controls" in record
+    assert record["collector"]["complete"] is True
+    assert record["drill"]["passed"] is True
+
+
+def test_a_due_drill_waits_for_a_tick_with_half_an_hour_left(dirs):
+    state = dirs[0]
+    clock = FakeClock()
+    _drill_due(state, clock)
+    with _tick("maintain", dirs, clock, budget=1200) as current:
+        maintain.run(current)
+    record = current.record
+    assert record is not None and not record["failed"]
+    assert record["drill"] == {"skipped": "short_budget"}
+
+
+def test_a_verify_that_raises_or_never_completes_cannot_starve_the_drill(dirs, monkeypatch):
+    """Verify is isolated, and a drill a day overdue goes before it."""
+    from swingset.backup.segments import LOCAL_TRANSPORT, create_set
+    from swingset.backup.transport import LocalDirectoryTransport
+    from swingset.state import verify
+
+    state = dirs[0]
+    clock = FakeClock()
+    with open_database(state) as db:
+        create_set(
+            db,
+            LocalDirectoryTransport(state / "checkpoints", name=LOCAL_TRANSPORT),
+            now=clock.now(),
+            versions={"swingset": "test"},
+        )
+    from swingset.backup import drill
+
+    order: list[str] = []
+    real = drill.run
+
+    def broken(*args, **kwargs):
+        order.append("verify")
+        raise RuntimeError("verify defect")
+
+    def drilled(*args, **kwargs):
+        order.append("drill")
+        return real(*args, **kwargs)
+
+    monkeypatch.setattr(verify, "run", broken)
+    monkeypatch.setattr(drill, "run", drilled)
+    # Due, not overdue: verify first, isolated, then the drill.
+    with _tick("maintain", dirs, clock, budget=3600) as current:
+        maintain.run(current)
+    record = current.record
+    assert record is not None and not record["failed"]
+    assert record["verify"] == {"failed": True, "error": "RuntimeError: verify defect"}
+    assert record["drill"]["passed"] is True and order == ["verify", "drill"]
+    # Nine days on, the drill is a day overdue: it goes first.
+    clock.sleep(9 * 86400)
+    order.clear()
+    with _tick("maintain", dirs, clock, budget=3600) as current:
+        maintain.run(current)
+    record = current.record
+    assert record is not None and order == ["drill", "verify"]
+    assert record["drill"]["passed"] is True
+
+
+def test_partial_generations_holding_references_exclude_evicted_and_stripped(tmp_path):
+    """[incomplete-generations] reads `holding`: an evicted generation is whole
+    (F33) and a partial one the collector stripped holds nothing (D-0231)."""
+    from test_output_packs import SAMPLE, evict, write
+
+    from swingset.state.derivations import holding_generations, incomplete_generations
+
+    with open_database(tmp_path / "state", lock=False) as database:
+        conn = database.connection
+        write(database, "dg_whole", ("project", "event", "a"), SAMPLE, point=False)
+        write(database, "dg_evicted", ("project", "event", "b"), SAMPLE, point=False)
+        write(database, "dg_partial", ("project", "event", "c"), SAMPLE, stored=1, point=False)
+        write(database, "dg_stripped", ("project", "event", "d"), SAMPLE, stored=0, point=False)
+        evict(database, "dg_evicted")
+        # An evicted generation with the prefix a stopped `storage.evict` leaves.
+        write(database, "dg_prefix", ("project", "event", "e"), SAMPLE, stored=1, point=False)
+        with database.transaction():
+            conn.execute("INSERT INTO derivation_evicted VALUES ('dg_prefix','2026-01-01')")
+        assert incomplete_generations(conn) == {"rows": 2, "refs": 1}
+        assert holding_generations(conn) == 1
 
 
 def test_a_second_tick_of_a_running_loop_is_refused(dirs):

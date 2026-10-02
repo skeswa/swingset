@@ -4,7 +4,7 @@ Recorded: 2026-09-29
 Decided by: agent, 2026-09-29, under D-0183  
 Topic: Acquisition  
 Supersedes: the default `pending_parse_items` (1,000) and `pending_parse_bytes` (128 MiB) in production  
-Superseded by: —
+Superseded by: in part, [D-0230](0230-keep-parse-backpressure-thresholds-through-phase-2.md): the thresholds stay through phase 2
 
 ## Decision
 

@@ -81,7 +81,7 @@ def test_changed_retained_support_rejects_before_output_and_rolls_back_retention
         # Witness a real write in the same retention transaction; a rejected
         # closure must leave neither retained proof nor output committed.
         conn.execute(
-            "INSERT INTO derivation_dependency_sets VALUES ('completion-rollback-witness','[]')"
+            "INSERT INTO derivation_dependency_sets(dependency_set_id,manifest_json) VALUES ('completion-rollback-witness','[]')"
         )
 
     def finishing(database, selection, result, **kwargs):

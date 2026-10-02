@@ -92,7 +92,10 @@ def test_missing_or_forged_current_input_proof_never_hides_changed_facts(
         (key,),
     )
     if proof_state == "forged":
-        f.conn.execute("INSERT INTO derivation_dependency_sets VALUES (?,?)", (key, proof + " "))
+        f.conn.execute(
+            "INSERT INTO derivation_dependency_sets(dependency_set_id,manifest_json) VALUES (?,?)",
+            (key, proof + " "),
+        )
     assert not compare(f)
 
 

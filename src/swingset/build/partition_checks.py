@@ -31,6 +31,8 @@ from dataclasses import dataclass
 from datetime import date
 from typing import Any
 
+from swingset.state import body_packs
+
 from .builder import CHECKS, BuildError
 from .closure_manifest import canonical
 from .closure_rows import _REFERENCES
@@ -67,6 +69,8 @@ class SupportIndex:
         self.conn = conn
         self._cache: dict[tuple[str, str], Support] = {}
         self._observations: OrderedDict[str, frozenset[Observation]] = OrderedDict()
+        # Report failures of packed bodies by pack digest: one pack read each.
+        self._packed_failures: dict[str, bool] = {}
         self._policies = {
             str(kind): str(version)
             for kind, version in conn.execute(
@@ -110,11 +114,11 @@ class SupportIndex:
                 continue
             if (
                 self._policies.get(str(page_kind)) == str(contract)
-                and not json.loads(report_json).get("failures")
                 and self.conn.execute(
                     "SELECT 1 FROM admission_decisions WHERE generation_id=? AND state='accepted' LIMIT 1",
                     (generation_id,),
                 ).fetchone()
+                and not self._failures(str(generation_id), str(report_json))
             ):
                 accepted.append(str(generation_id))
         if revoked:
@@ -123,6 +127,19 @@ class SupportIndex:
             return Support("accepted", tuple(accepted))
         return Support("legacy_unassessed")
 
+    def _failures(self, generation_id: str, report_json: str) -> bool:
+        """Whether the generation's report has failures; a packed one is read from its pack."""
+        if not body_packs.is_stub(report_json):
+            return bool(json.loads(report_json).get("failures"))
+        digest = body_packs.source_pack(self.conn, generation_id)
+        if digest is None:
+            raise body_packs.BodyUnavailable(f"source generation {generation_id} has no pack row")
+        found = self._packed_failures.get(digest)
+        if found is None:
+            report = body_packs.packed_body(self.conn, generation_id).report_json
+            found = self._packed_failures[digest] = bool(json.loads(report).get("failures"))
+        return found
+
     def generation_observations(self, generation_id: str) -> frozenset[Observation]:
         """The observation keys an accepted source generation's result holds (cached)."""
         found = self._observations.get(generation_id)
@@ -130,11 +147,19 @@ class SupportIndex:
             self._observations.move_to_end(generation_id)
             return found
         row = self.conn.execute(
-            "SELECT json_extract(result_json,'$.observations'),"
-            "json_extract(recipe_json,'$.extract_version') FROM source_generations "
-            "WHERE generation_id=?",
-            (generation_id,),
+            "SELECT CASE WHEN result_json=:stub THEN NULL "
+            "ELSE json_extract(result_json,'$.observations') END,"
+            "json_extract(recipe_json,'$.extract_version'),result_json=:stub "
+            "FROM source_generations WHERE generation_id=:id",
+            {"stub": body_packs.STUB, "id": generation_id},
         ).fetchone()
+        if row is not None and row[2]:
+            # A packed body: the same extraction over the exact stored string.
+            result = body_packs.packed_body(self.conn, generation_id).result_json
+            extracted = self.conn.execute(
+                "SELECT json_extract(?,'$.observations')", (result,)
+            ).fetchone()[0]
+            row = (extracted, row[1], 0)
         keys: set[Observation] = set()
         if row is not None and row[0] is not None:
             extract = str(row[1])

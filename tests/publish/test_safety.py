@@ -197,9 +197,9 @@ def test_a_partitioned_candidate_rechecks_its_manifest_and_revocations(release, 
         )
         reason = "revoked after build"
     else:
-        (
-            database.state_dir / "partitions" / "manifests" / f"{policy['manifest_digest']}.json"
-        ).write_bytes(b"{}")
+        from swingset.state.retention import manifest_file
+
+        manifest_file(database.state_dir, policy["manifest_digest"]).write_bytes(b"{}")
         reason = "release manifest or artifact changed"
     with pytest.raises(PublishError, match=reason):
         publish(database.state_dir, candidate.path, hub)

@@ -18,6 +18,7 @@ from swingset.config import (
     parse_retention,
     parse_sources,
     parse_stages,
+    parse_storage,
 )
 from swingset.fetch.archive import canonical, digest, durable_write
 from swingset.schedule.fair_policy import parse_scheduler
@@ -84,6 +85,7 @@ def capture(
         parse_stages(files["config/sources.toml"]),
         parse_derivation(files["config/sources.toml"]),
         parse_release(files["config/sources.toml"]),
+        parse_storage(files["config/sources.toml"]),
     )
     # The retention limits as values, not as the bytes they were read from. An
     # absent `[retention]` table means the defaults, so a bundle that carried

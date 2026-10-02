@@ -6,18 +6,18 @@ lives in [`cli.py`](../../src/swingset/cli.py).
 
 ## Pipeline modules
 
-| Task                         | Module       | Start reading                                                                                                                                                |
-| ---------------------------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Choose due work              | `schedule/`  | [cycle.py](../../src/swingset/schedule/cycle.py), [fairness.py](../../src/swingset/schedule/fairness.py), [pacing.py](../../src/swingset/schedule/pacing.py) |
-| Request and save pages       | `fetch/`     | [client.py](../../src/swingset/fetch/client.py), [archive.py](../../src/swingset/fetch/archive.py)                                                           |
-| Understand a source's pages  | `sources/`   | [base.py](../../src/swingset/sources/base.py), [registry.py](../../src/swingset/sources/registry.py), then that source's `adapter.py`                        |
-| Check source interpretations | `admission/` | [contracts.py](../../src/swingset/admission/contracts.py), [select.py](../../src/swingset/admission/select.py)                                               |
-| Combine source facts         | `project/`   | [map.py](../../src/swingset/project/map.py), [writer.py](../../src/swingset/project/writer.py)                                                               |
-| Resolve person matches       | `link/`      | [service.py](../../src/swingset/link/service.py), [resolution.py](../../src/swingset/link/resolution.py)                                                     |
-| Collect historical results   | `history/`   | [catalog.py](../../src/swingset/history/catalog.py), [backfill.py](../../src/swingset/history/backfill.py)                                                   |
-| Build a candidate            | `build/`     | [builder.py](../../src/swingset/build/builder.py), [closure.py](../../src/swingset/build/closure.py)                                                         |
-| Publish and reconcile        | `publish/`   | [service.py](../../src/swingset/publish/service.py)                                                                                                          |
-| Back up and restore          | `backup/`    | [checkpoint.py](../../src/swingset/backup/checkpoint.py), [pruning.py](../../src/swingset/backup/pruning.py)                                                 |
+| Task                         | Module       | Start reading                                                                                                                                                                                                                                                                                                                                                    |
+| ---------------------------- | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Choose due work              | `schedule/`  | [cycle.py](../../src/swingset/schedule/cycle.py), [fairness.py](../../src/swingset/schedule/fairness.py), [pacing.py](../../src/swingset/schedule/pacing.py)                                                                                                                                                                                                     |
+| Request and save pages       | `fetch/`     | [client.py](../../src/swingset/fetch/client.py), [archive.py](../../src/swingset/fetch/archive.py)                                                                                                                                                                                                                                                               |
+| Understand a source's pages  | `sources/`   | [base.py](../../src/swingset/sources/base.py), [registry.py](../../src/swingset/sources/registry.py), then that source's `adapter.py`                                                                                                                                                                                                                            |
+| Check source interpretations | `admission/` | [contracts.py](../../src/swingset/admission/contracts.py), [select.py](../../src/swingset/admission/select.py)                                                                                                                                                                                                                                                   |
+| Combine source facts         | `project/`   | [map.py](../../src/swingset/project/map.py), [writer.py](../../src/swingset/project/writer.py)                                                                                                                                                                                                                                                                   |
+| Resolve person matches       | `link/`      | [service.py](../../src/swingset/link/service.py), [resolution.py](../../src/swingset/link/resolution.py)                                                                                                                                                                                                                                                         |
+| Collect historical results   | `history/`   | [catalog.py](../../src/swingset/history/catalog.py), [backfill.py](../../src/swingset/history/backfill.py)                                                                                                                                                                                                                                                       |
+| Build a candidate            | `build/`     | [builder.py](../../src/swingset/build/builder.py), [closure.py](../../src/swingset/build/closure.py)                                                                                                                                                                                                                                                             |
+| Publish and reconcile        | `publish/`   | [service.py](../../src/swingset/publish/service.py)                                                                                                                                                                                                                                                                                                              |
+| Back up and restore          | `backup/`    | [segments.py](../../src/swingset/backup/segments.py) (sets), [restore_set.py](../../src/swingset/backup/restore_set.py), [drill.py](../../src/swingset/backup/drill.py), [transport.py](../../src/swingset/backup/transport.py); before phase 4, [checkpoint.py](../../src/swingset/backup/checkpoint.py) and [pruning.py](../../src/swingset/backup/pruning.py) |
 
 These modules live under `src/swingset/`. For their exact responsibilities,
 see [architecture](../reference/architecture.md).
@@ -41,6 +41,15 @@ and doctor's retention report, and it removes nothing.
 [retention_apply.py](../../src/swingset/state/retention_apply.py) is the only
 module that removes anything, through `gc --apply` and `gc --reclaim`, from a
 written plan under both locks.
+
+Phase 4 moves cold output out of the file.
+[storage.py](../../src/swingset/state/storage.py) evicts old generations into
+packs ([output_packs.py](../../src/swingset/state/output_packs.py)) and packs
+old parse bodies ([body_packs.py](../../src/swingset/state/body_packs.py)), all
+stored as content-addressed files by [objects.py](../../src/swingset/state/objects.py).
+[collector.py](../../src/swingset/state/collector.py) removes what nothing names.
+[disk.py](../../src/swingset/state/disk.py) reads free space as the worker's
+disk quota sees it.
 
 The [data model](../reference/data-model.md) describes published tables.
 [Local state](../reference/state.md) describes what the worker keeps between runs.

@@ -266,7 +266,9 @@ def full_fixture(directory: Path) -> None:
             "INSERT INTO admission_policies(page_kind,contract_version,policy_revision) "
             "VALUES ('synthetic.round','1','r1')"
         )
-        conn.execute("INSERT OR IGNORE INTO derivation_dependency_sets VALUES ('empty','[]')")
+        conn.execute(
+            "INSERT OR IGNORE INTO derivation_dependency_sets(dependency_set_id,manifest_json) VALUES ('empty','[]')"
+        )
         for number in range(FULL_SNAPSHOTS):
             watch, snapshot = f"w{number}", f"s{number}"
             event = f"ev{number % FULL_EVENTS:04d}"

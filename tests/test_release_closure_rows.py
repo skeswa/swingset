@@ -186,7 +186,8 @@ def test_dependency_edge_must_name_the_actual_generation_scope(source_fixture):
     ]
     dependency = digest(malformed)
     f.conn.execute(
-        "INSERT INTO derivation_dependency_sets VALUES (?,?)", (dependency, canonical(malformed))
+        "INSERT INTO derivation_dependency_sets(dependency_set_id,manifest_json) VALUES (?,?)",
+        (dependency, canonical(malformed)),
     )
     copied = dict(year)
     copied.update(generation_id="malformed-scope-edge", dependency_set_id=dependency)

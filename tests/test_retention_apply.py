@@ -14,7 +14,7 @@ import sys
 import threading
 import time
 from collections.abc import Sequence
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any, NamedTuple
 
@@ -697,10 +697,111 @@ def test_reclaim_starts_with_too_little_free_disk(tmp_path: Path) -> None:
         before = usage(database.connection, state)
         with pytest.MonkeyPatch.context() as patch:
             patch.setattr(shutil, "disk_usage", lambda _path: DiskUsage(100, 99, 1024))
-            with pytest.raises(RetentionError, match="free bytes on the state volume"):
+            with pytest.raises(RetentionError, match="free bytes on the state.s disk"):
                 reclaim(database, now=NOW)
         assert not receipt_directory(state).exists()
         assert usage(database.connection, state) == before
+
+
+def test_reclaim_refuses_below_the_new_estimate(tmp_path: Path) -> None:
+    """Two and a half times the bytes in use plus a margin, not twice the file
+    (F36, W3), against the smaller of statfs and the disk quota."""
+    from swingset.state import disk
+
+    state = tmp_path / "state"
+    with open_database(state) as database:
+        history(database)
+        digests = fat_payloads(database)
+        with database.transaction() as conn:
+            retention_apply._remove_payloads(conn, digests, plan_digest="test", now=NOW)
+        database.connection.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+        before = usage(database.connection, state)
+        quota = tmp_path / "swingset-disk"
+        with pytest.MonkeyPatch.context() as patch:
+            patch.setattr(disk, "QUOTA_FILE", tmp_path / "absent")
+            # Without the margin the two estimates differ by the free pages.
+            patch.setattr(retention_apply, "RECLAIM_FREE_MARGIN", 0)
+            estimate = retention_apply.reclaim_estimate(
+                database.connection, int(before["file_bytes"])
+            )
+            needed = estimate["needed_bytes"]
+            in_use = int(before["file_bytes"]) - int(before["free_list_bytes"])
+            assert needed == 5 * in_use // 2
+            assert estimate["file_size_estimate_bytes"] == 2 * int(before["file_bytes"])
+            patch.setattr(shutil, "disk_usage", lambda _path: DiskUsage(1, 0, needed - 1))
+            with pytest.raises(RetentionError, match=f"about {needed} free bytes"):
+                reclaim(database, now=NOW)
+            assert not receipt_directory(state).exists()
+            # statfs shows the host volume; the quota has less: refused.
+            patch.setattr(shutil, "disk_usage", lambda _path: DiskUsage(1, 0, 10 * needed))
+            patch.setattr(disk, "QUOTA_FILE", quota)
+            stamp = datetime.now(UTC).isoformat()
+            quota.write_text(f"{1000 - needed + 1} 1000 {stamp}\n")
+            with pytest.raises(RetentionError, match=f"there are {needed - 1}"):
+                reclaim(database, now=NOW)
+            # A stale quota reading is not trusted.
+            quota.write_text(f"0 {10 * needed} 2026-01-01T00:00:00Z\n")
+            with pytest.raises(RetentionError, match="sudo swingset-disk"):
+                reclaim(database, now=NOW)
+            # Enough on both.
+            quota.write_text(f"{1000 - needed} 1000 {stamp}\n")
+            receipt = reclaim(database, now=NOW)
+        assert receipt["free_space"] == {
+            **estimate,
+            "free_bytes": needed,
+            "quota_free_bytes": needed,
+            "quota_read_at": stamp,
+        }
+        assert receipt["after"]["file_bytes"] < before["file_bytes"]
+        # The margin is twelve gigabytes.
+        assert (
+            retention_apply.reclaim_estimate(database.connection, 0)["needed_bytes"] >= 12 * 10**9
+        )
+
+
+def _open_paths() -> set[str]:
+    """Paths of this process's open files, unlinked ones included."""
+    import fcntl
+
+    found = set()
+    for name in os.listdir("/dev/fd"):
+        try:
+            if sys.platform == "darwin":
+                raw = fcntl.fcntl(int(name), fcntl.F_GETPATH, bytes(1024))  # type: ignore[attr-defined]
+                found.add(raw.split(b"\0")[0].decode())
+            else:
+                found.add(os.readlink(f"/proc/self/fd/{name}"))
+        except OSError:
+            continue
+    return found
+
+
+def test_reclaim_puts_its_temporary_files_under_the_state_directory(tmp_path: Path) -> None:
+    """SQLite unlinks a temporary file as it opens it, so look at open files mid-VACUUM."""
+    state = tmp_path / "state"
+    with open_database(state) as database:
+        history(database)
+        digests = fat_payloads(database)
+        with database.transaction() as conn:
+            retention_apply._remove_payloads(conn, digests, plan_digest="test", now=NOW)
+        seen: set[str] = set()
+
+        def look() -> int:
+            seen.update(_open_paths())
+            return 0
+
+        database.connection.set_progress_handler(look, 200)
+        try:
+            receipt = reclaim(database, now=NOW)
+        finally:
+            database.connection.set_progress_handler(None, 0)
+        temporary = (state / "tmp").resolve()
+        assert receipt["temp_directory"] == str(temporary)
+        assert any(path.startswith(str(temporary) + os.sep) for path in seen), sorted(seen)
+        assert not any("etilqs" in path and not path.startswith(str(temporary)) for path in seen)
+        # The process-wide setting is put back.
+        restored = database.connection.execute("PRAGMA temp_store_directory").fetchone()
+        assert restored is None or restored[0] in ("", None)
 
 
 def test_row_data_is_removed_and_reclaim_has_not_run(tmp_path: Path) -> None:

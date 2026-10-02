@@ -302,6 +302,38 @@ def upsert(conn: sqlite3.Connection, row: GuardRow) -> None:
     )
 
 
+def clocked(
+    conn: sqlite3.Connection,
+    subject: str,
+    reason: str,
+    *,
+    loop: str,
+    now: datetime,
+    clock: timedelta,
+) -> GuardRow:
+    """Note `reason` again on `subject`, keeping when it began; caller's transaction.
+
+    The row expires `clock` after it began, so a reason that keeps coming
+    back past that is `[guard-expired]` in the watchdog. Deleting the row
+    when the reason clears restarts the clock.
+    """
+    stamp = at(now)
+    existing = get(conn, subject, reason)
+    since = existing.since if existing is not None else stamp
+    begun = datetime.fromisoformat(since.replace("Z", "+00:00"))
+    row = GuardRow(
+        subject=subject,
+        reason=reason,
+        loop=loop,
+        since=since,
+        last_seen_at=stamp,
+        expires_at=at(begun + clock),
+        seen=(existing.seen + 1) if existing is not None else 1,
+    )
+    upsert(conn, row)
+    return row
+
+
 def delete(conn: sqlite3.Connection, subject: str, reason: str | None = None) -> int:
     """Delete one reason of a subject, or all of them; returns rows deleted."""
     if reason is None:

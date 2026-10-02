@@ -115,7 +115,9 @@ def populate(database: db_module.Database, generations: list[dict[str, object]])
     conn = database.connection
     run = database.start_run(NOW)
     with database.transaction():
-        conn.execute("INSERT INTO derivation_dependency_sets VALUES ('fixture-set','[]')")
+        conn.execute(
+            "INSERT INTO derivation_dependency_sets(dependency_set_id,manifest_json) VALUES ('fixture-set','[]')"
+        )
         for generation in generations:
             stage, kind, unit = generation["scope"]
             conn.execute(
@@ -719,6 +721,13 @@ def test_readers_of_an_evicted_generation_see_nothing_rather_than_short_rows(tmp
         assert list(conn.execute(READER, ("dg_build_1",))) == []
         assert not build_generations.completed(conn, "candidate-1", manifest_hash)
         assert not derivations._artifact_valid(conn, "dg_build_1")
+        # The one accessor (phase 4) refuses too: references without their
+        # bytes and no eviction marker is neither resident nor evicted.
+        from swingset.state import output_packs
+
+        assert not output_packs.complete(conn, "dg_build_1")
+        with pytest.raises(output_packs.GenerationUnavailable):
+            list(output_packs.rows(conn, "dg_build_1"))
         with pytest.raises(SupersededWorkError, match="does not match its label"):
             with database.transaction():
                 derivations.retain_output(conn, "dg_build_1", ())

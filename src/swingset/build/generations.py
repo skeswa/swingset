@@ -10,7 +10,7 @@ from typing import Any
 
 from swingset.fetch.archive import Archive
 from swingset.publish.safety import reject_candidate, verify_candidate_files
-from swingset.state import derivations
+from swingset.state import derivations, output_packs
 from swingset.state.attempts import SupersededWorkError
 from swingset.state.db import Database
 from swingset.state.work import WorkUnit
@@ -224,12 +224,26 @@ def completed(conn: sqlite3.Connection, candidate_id: str, manifest_hash: str) -
     Input proof retention alone is insufficient. Newer materialized pointers do
     not erase a completed older build's artifact receipt.
     """
-    return (
-        conn.execute(
-            "SELECT 1 FROM derivation_generations g JOIN derivation_rows r ON r.generation_id=g.generation_id "
-            "WHERE g.stage='build' AND r.table_name='artifact' AND r.record_key=? "
-            "AND json_extract(r.payload_json,'$.candidate_id')=? AND json_extract(r.payload_json,'$.manifest_hash')=? LIMIT 1",
-            (candidate_id, candidate_id, manifest_hash),
-        ).fetchone()
-        is not None
-    )
+    for (generation_id,) in conn.execute(
+        "SELECT generation_id FROM derivation_generations WHERE stage='build' "
+        "ORDER BY created_at DESC,generation_id"
+    ).fetchall():
+        # Through the one accessor: an evicted build generation is read from
+        # its pack (phase 4).
+        try:
+            raw = output_packs.row(conn, str(generation_id), "artifact", candidate_id)
+        except output_packs.GenerationUnavailable:
+            continue
+        if raw is None:
+            continue
+        try:
+            payload = json.loads(raw)
+        except ValueError:
+            continue
+        if (
+            isinstance(payload, dict)
+            and payload.get("candidate_id") == candidate_id
+            and payload.get("manifest_hash") == manifest_hash
+        ):
+            return True
+    return False

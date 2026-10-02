@@ -20,7 +20,9 @@ from typing import TYPE_CHECKING, Any
 
 from swingset import cutoff
 
+from . import output_packs
 from .attempts import SupersededWorkError
+from .derivation_dependencies import store_set
 from .recipes import recipe_inputs
 from .work import WorkUnit
 
@@ -46,6 +48,10 @@ def digest(value: object) -> str:
 
 def _key(unit: WorkUnit) -> tuple[str, str, str]:
     return unit.stage, unit.unit_kind, unit.unit_id
+
+
+def _now(now: datetime | str | None) -> datetime:
+    return datetime.fromisoformat(_at(now))
 
 
 def _at(now: datetime | str | None) -> str:
@@ -518,10 +524,7 @@ def capture(
         (*_key(unit), selection.fingerprint, _at(now)),
     )
     for set_id, members in selection.dependency_sets.items():
-        conn.execute(
-            "INSERT OR IGNORE INTO derivation_dependency_sets VALUES (?,?)",
-            (set_id, canonical(members)),
-        )
+        store_set(conn, set_id, canonical(members), created_at=_at(now))
     active = _group.get()
     if active is not None and active.connection is conn:
         _pin(active, unit, selection)
@@ -672,7 +675,8 @@ def retain_output(
     - the references are there but some payload bytes are not, which is what
       plan step 4 leaves behind: store the missing bytes and read the whole
       generation back to check it; or
-    - there are no references yet: write both and check the stream.
+    - there are no references yet: write both and check the stream; or
+    - the generation is evicted (schema 36): its pack holds it, nothing to do.
     """
     if not conn.in_transaction:
         # A failed retention must leave nothing behind. References are permanent
@@ -690,6 +694,11 @@ def retain_output(
         return
     if recorded is None:
         raise SupersededWorkError("output retention requires a recorded generation label")
+    if output_packs.evicted(conn, generation_id):
+        # The pack holds the output whole (F33). Writing references from the
+        # offered rows would mix two copies; `output_packs.page_in` is the way
+        # back.
+        return
     row_table = "derivation_row_refs" if interned(conn) else "derivation_rows"
     references = int(
         conn.execute(
@@ -733,7 +742,11 @@ def _partial_label(conn: sqlite3.Connection, generation_id: str) -> tuple[str, i
         "SELECT 1 FROM derivation_row_refs WHERE generation_id=? AND ordinal=?",
         (generation_id, recorded[1] - 1),
     ).fetchone()
-    return recorded if last is None else None
+    if last is not None or output_packs.evicted(conn, generation_id):
+        # An evicted generation is whole in its pack, even while a page-in
+        # has put back only some of its references (F33).
+        return None
+    return recorded
 
 
 def _payload_bytes_missing(conn: sqlite3.Connection, generation_id: str) -> bool:
@@ -823,17 +836,11 @@ def _restore(
                 )
     # Before interning a row's bytes never leave it, so there is nothing to put
     # back and the read-back below is the whole check.
-    _match_label(
-        expected,
-        (
-            (str(table_name), str(record_key), str(payload_json))
-            for table_name, record_key, payload_json in conn.execute(
-                "SELECT table_name,record_key,payload_json FROM derivation_rows "
-                "WHERE generation_id=? ORDER BY ordinal",
-                (generation_id,),
-            )
-        ),
-    )
+    try:
+        for _ in output_packs.rows(conn, generation_id, expected=expected):
+            pass
+    except output_packs.GenerationUnavailable as error:
+        raise SupersededWorkError("retained derivation output does not match its label") from error
 
 
 def _fingerprint(rows: Iterable[tuple[str, str, str]]) -> tuple[str, int]:
@@ -854,12 +861,12 @@ Moved = Mapping[str, Sequence[str]]
 def _without(
     conn: sqlite3.Connection, generation_id: str, moved: Moved
 ) -> Iterator[tuple[str, str, str]]:
-    """A stored generation's rows in order, with the moved columns taken out."""
-    for table, key, raw in conn.execute(
-        "SELECT table_name,record_key,payload_json FROM derivation_rows "
-        "WHERE generation_id=? ORDER BY ordinal",
-        (generation_id,),
-    ):
+    """A stored generation's rows in order, with the moved columns taken out.
+
+    Read through `output_packs.rows`, so an evicted generation is read from
+    its pack; a generation that does not match its label raises.
+    """
+    for table, key, raw in output_packs.rows(conn, generation_id):
         columns = moved.get(str(table), ())
         payload = str(raw)
         if columns:
@@ -884,7 +891,10 @@ def _same_output(
         return label == recorded
     if not moved or label[1] != recorded[1]:
         return False
-    return _fingerprint(_without(conn, generation_id, moved)) == label
+    try:
+        return _fingerprint(_without(conn, generation_id, moved)) == label
+    except output_packs.GenerationUnavailable:
+        return False
 
 
 def _match_label(expected: tuple[str, int], rows: Iterable[tuple[str, str, str]]) -> None:
@@ -956,17 +966,15 @@ def _generation_recipe(selection: Selection) -> str:
     )
 
 
-def _store_dependency_sets(conn: sqlite3.Connection, selection: Selection) -> str:
+def _store_dependency_sets(
+    conn: sqlite3.Connection, selection: Selection, *, now: datetime | str | None
+) -> str:
+    """Store the selection's sets (again: a set A captured may have been collected)."""
+    at = _at(now)
     for set_id, members in selection.dependency_sets.items():
-        conn.execute(
-            "INSERT OR IGNORE INTO derivation_dependency_sets VALUES (?,?)",
-            (set_id, canonical(members)),
-        )
+        store_set(conn, set_id, canonical(members), created_at=at)
     dependency_set = digest(selection.dependencies)
-    conn.execute(
-        "INSERT OR IGNORE INTO derivation_dependency_sets VALUES (?,?)",
-        (dependency_set, canonical(selection.dependencies)),
-    )
+    store_set(conn, dependency_set, canonical(selection.dependencies), created_at=at)
     return dependency_set
 
 
@@ -979,7 +987,7 @@ def _record_equivalence(
     run_id: str,
 ) -> None:
     """Say that this run's inputs produced exactly the kept generation's output."""
-    dependency_set = _store_dependency_sets(conn, selection)
+    dependency_set = _store_dependency_sets(conn, selection, now=now)
     recipe_json = _generation_recipe(selection)
     recipe_sha256 = hashlib.sha256(recipe_json.encode()).hexdigest()
     conn.execute(
@@ -1041,6 +1049,15 @@ def complete(
         # the rest here, verifying the rows already there.
         _store_all(conn, selection.generation_id, _once(rows), building, now=_at(now))
         existing = None
+    elif (
+        existing is not None
+        and output_packs.evicted(conn, selection.generation_id)
+        and not output_packs.pack_intact(conn, selection.generation_id)
+    ):
+        # A reuse of an evicted generation whose pack is missing or damaged:
+        # the output just computed puts it back, checked against its label,
+        # and writes the pack again for every label that shares it.
+        output_packs.rebuild(conn, selection.generation_id, _offered(_once(rows)), now=_now(now))
     elif existing is not None:
         # A repeat of identical inputs reads its rows once and must reproduce the
         # recorded output. It writes nothing: the references and payloads of that
@@ -1063,7 +1080,7 @@ def complete(
         if kept is not None:
             _record_equivalence(conn, selection, kept, now=now, run_id=run_id)
         else:
-            dependency_set = _store_dependency_sets(conn, selection)
+            dependency_set = _store_dependency_sets(conn, selection, now=now)
 
             def record(output_digest: str, row_count: int) -> None:
                 if label is not None and (output_digest, row_count) != label:
@@ -1089,6 +1106,9 @@ def complete(
             retain_output(conn, selection.generation_id, _once(rows), record_label=record)
     if kept is None:
         _fence(conn, selection, "derivation inputs changed while output rows were being retained")
+        # A current pointer stays resident (F34): an evicted target comes
+        # back whole in this transaction before the pointer names it.
+        output_packs.page_in(conn, selection.generation_id, now=_now(now))
         conn.execute(
             "UPDATE derivation_scopes SET desired_fingerprint=?,materialized_generation_id=? WHERE stage=? AND unit_kind=? AND unit_id=?",
             (selection.fingerprint, selection.generation_id, *_key(selection.unit)),
@@ -1122,7 +1142,7 @@ def complete(
             active.unit_replays[selection.unit] = _at(now)
     else:
         _validate_dependencies(conn, selection)
-        _certify(conn, selection, effective)
+        _certify(conn, selection, effective, now=now)
         if replayed:
             bump_replay(
                 conn,
@@ -1330,7 +1350,20 @@ def stageable(conn: sqlite3.Connection, unit: WorkUnit) -> bool:
         "WHERE s.stage=? AND s.unit_kind=? AND s.unit_id=?",
         _key(unit),
     ).fetchone()
-    return row is not None and int(row[0]) > CHUNK_ROWS
+    if row is not None and int(row[0]) > CHUNK_ROWS:
+        return True
+    # A run that returns to an evicted generation over `CHUNK_ROWS` pages it
+    # in before its pointer flip: staged, a chunk per write (step B), never
+    # whole inside one inline transaction.
+    return output_packs.available(conn) and (
+        conn.execute(
+            "SELECT 1 FROM derivation_generations g JOIN derivation_evicted e "
+            "ON e.generation_id=g.generation_id WHERE g.stage=? AND g.unit_kind=? "
+            "AND g.unit_id=? AND g.row_count>? LIMIT 1",
+            (*_key(unit), CHUNK_ROWS),
+        ).fetchone()
+        is not None
+    )
 
 
 def stage(
@@ -1475,6 +1508,8 @@ def finish_building(
             kept = deferred.candidate
     if kept is None and not existing:
         _store_building(database, deferred, label)
+    elif kept is None:
+        _page_in_building(database, generation_id, now=deferred.now, output=deferred.output)
     with database.transaction() as conn:
         effective = _finish(conn, deferred, kept=kept, existing=existing)
         if commit is not None:
@@ -1544,7 +1579,8 @@ def unfinished_excluded(conn: sqlite3.Connection, table: str = "derivation_gener
     """An SQL condition, starting with AND, that leaves out unfinished staged output.
 
     A generation still building, or one a staged run stopped storing (fewer
-    references than its label counts; chunks store whole, by ordinal), was
+    references than its label counts; chunks store whole, by ordinal; an
+    evicted generation is whole in its pack and does not count), was
     never selected and must not be read as output: not by a release closure
     at a cutoff, not as a retention window root (F8, I6). ``table`` names the
     `derivation_generations` row being tested.
@@ -1555,9 +1591,15 @@ def unfinished_excluded(conn: sqlite3.Connection, table: str = "derivation_gener
             f" AND {table}.generation_id NOT IN (SELECT generation_id FROM derivation_building)"
         )
     if interned(conn):
+        # An evicted generation is whole in its pack (F33).
+        evicted = (
+            f" OR {table}.generation_id IN (SELECT generation_id FROM derivation_evicted)"
+            if output_packs.available(conn)
+            else ""
+        )
         clauses.append(
-            " AND coalesce((SELECT max(r.ordinal)+1 FROM derivation_row_refs r "
-            f"WHERE r.generation_id={table}.generation_id),0)>={table}.row_count"
+            " AND (coalesce((SELECT max(r.ordinal)+1 FROM derivation_row_refs r "
+            f"WHERE r.generation_id={table}.generation_id),0)>={table}.row_count{evicted})"
         )
     return "".join(clauses)
 
@@ -1568,7 +1610,8 @@ def incomplete_generations(conn: sqlite3.Connection) -> dict[str, int]:
     `collect_orphans` leaves these when a unit's inputs changed between B
     and C. They are never read as output and nothing collects them yet
     (phase 4, D-0217), so maintain counts them and the watchdog names a
-    growing count. One indexed lookup per generation.
+    growing count. One indexed lookup per generation. An evicted
+    generation has no references and is not partial (F33).
     """
     if not interned(conn):
         return {"rows": 0, "refs": 0}
@@ -1577,6 +1620,9 @@ def incomplete_generations(conn: sqlite3.Connection) -> dict[str, int]:
         if building_available(conn)
         else ""
     )
+    if output_packs.available(conn):
+        # Evicted generations are whole in their packs (F33).
+        building += " AND g.generation_id NOT IN (SELECT generation_id FROM derivation_evicted)"
     rows, refs = conn.execute(
         "SELECT count(*),coalesce(sum(stored),0) FROM (SELECT g.row_count,"
         "coalesce((SELECT max(r.ordinal)+1 FROM derivation_row_refs r "
@@ -1584,6 +1630,28 @@ def incomplete_generations(conn: sqlite3.Connection) -> dict[str, int]:
         f"FROM derivation_generations g WHERE 1{building}) WHERE stored<row_count"
     ).fetchone()
     return {"rows": int(rows), "refs": int(refs)}
+
+
+def holding_generations(conn: sqlite3.Connection) -> int:
+    """Partial generations that still hold references: `incomplete_generations`
+    without the labels whose references the collector removed (D-0231).
+    Maintain records it for the watchdog's `[incomplete-generations]`."""
+    if not interned(conn):
+        return 0
+    building = (
+        " AND g.generation_id NOT IN (SELECT generation_id FROM derivation_building)"
+        if building_available(conn)
+        else ""
+    )
+    if output_packs.available(conn):
+        building += " AND g.generation_id NOT IN (SELECT generation_id FROM derivation_evicted)"
+    row = conn.execute(
+        "SELECT count(*) FROM (SELECT g.row_count,(SELECT max(r.ordinal)+1 "
+        "FROM derivation_row_refs r WHERE r.generation_id=g.generation_id) AS stored "
+        f"FROM derivation_generations g WHERE 1{building}) "
+        "WHERE stored IS NOT NULL AND stored<row_count"
+    ).fetchone()
+    return int(row[0])
 
 
 def collect_orphans(database: Database, unit: WorkUnit, *, keep: str | None) -> int:
@@ -1644,6 +1712,36 @@ def _store_building(database: Database, deferred: Deferred, label: tuple[str, in
         raise NondeterministicOutputError("derivation output is not deterministic")
 
 
+def _page_in_building(
+    database: Database, generation_id: str, *, now: str, output: Output | None = None
+) -> None:
+    """Step B for a reused evicted generation: page it in, ``CHUNK_ROWS`` per write.
+
+    A pack that is missing or damaged is rebuilt from the unit's own output
+    instead, which pass 1 checked against the same label: each write reads the
+    whole output again from a fresh snapshot, so nothing commits unless it
+    reproduces the label (`output_packs.rebuild`).
+    """
+    if not output_packs.evicted(database.connection, generation_id):
+        return
+    moment = _now(now)
+    if output is not None and not output_packs.pack_intact(database.connection, generation_id):
+        while True:
+            with database.reader() as reader, database.transaction() as conn:
+                if output_packs.rebuild(
+                    conn,
+                    generation_id,
+                    _offered(output(reader)),
+                    limit=CHUNK_ROWS,
+                    now=moment,
+                ):
+                    return
+    while True:
+        with database.transaction() as conn:
+            if output_packs.page_in(conn, generation_id, limit=CHUNK_ROWS, now=moment):
+                return
+
+
 def _begin_generation(conn: sqlite3.Connection, deferred: Deferred, label: tuple[str, int]) -> None:
     """Write the generation row under its pass-1 label, once, and the building label."""
     selection = deferred.selection
@@ -1656,7 +1754,7 @@ def _begin_generation(conn: sqlite3.Connection, deferred: Deferred, label: tuple
                 *_key(selection.unit),
                 selection.fingerprint,
                 _generation_recipe(selection),
-                _store_dependency_sets(conn, selection),
+                _store_dependency_sets(conn, selection, now=deferred.now),
                 selection.previous_generation_id,
                 *label,
                 deferred.now,
@@ -1742,11 +1840,16 @@ def _store_all(
 
 
 def _check_stored(conn: sqlite3.Connection, generation_id: str, label: tuple[str, int]) -> None:
-    """A generation is whole when its label is recorded and every row is referenced."""
+    """A generation is whole when its label is recorded and every row is
+    referenced, or it is evicted and its pack holds every row (F33)."""
+    if _recorded_label(conn, generation_id) != label:
+        raise SupersededWorkError("staged generation is incomplete")
+    if output_packs.evicted(conn, generation_id):
+        return
     references = conn.execute(
         "SELECT count(*) FROM derivation_row_refs WHERE generation_id=?", (generation_id,)
     ).fetchone()[0]
-    if _recorded_label(conn, generation_id) != label or int(references) != label[1]:
+    if int(references) != label[1]:
         raise SupersededWorkError("staged generation is incomplete")
 
 
@@ -1775,6 +1878,14 @@ def _finish(
         label = _recorded_label(conn, generation_id)
         if label is None:
             raise SupersededWorkError("staged generation was removed before it was selected")
+        if output_packs.evicted(conn, generation_id):
+            # B pages a reused evicted generation in chunk by chunk. One that
+            # is still evicted here pages in now when it fits one chunk; a
+            # larger one goes back to B, so no transaction pages in more than
+            # `CHUNK_ROWS` rows.
+            if label[1] > CHUNK_ROWS:
+                raise SupersededWorkError("evicted generation paging in")
+            output_packs.page_in(conn, generation_id, now=_now(deferred.now))
         # A reused generation is checked too: one indexed count guards the
         # pointer against a partial generation taken for whole.
         _check_stored(conn, generation_id, label)
@@ -1795,7 +1906,7 @@ def _finish(
         or building_moved(conn, unit, generation_id)
     )
     _validate_dependencies(conn, selection)
-    _certify(conn, selection, effective)
+    _certify(conn, selection, effective, now=deferred.now)
     if replayed:
         bump_replay(conn, unit.stage, unit.unit_kind, now=deferred.now, unit_id=unit.unit_id)
     conn.execute("DELETE FROM derivation_building WHERE generation_id=?", (generation_id,))
@@ -1858,7 +1969,13 @@ def _current(
     return True
 
 
-def _certify(conn: sqlite3.Connection, selection: Selection, generation_id: str) -> None:
+def _certify(
+    conn: sqlite3.Connection,
+    selection: Selection,
+    generation_id: str,
+    *,
+    now: datetime | str | None = None,
+) -> None:
     """Record the fast-path proof for the id the scope now stands for.
 
     After a cutoff that is the kept id, not the selection's provisional one.
@@ -1870,7 +1987,7 @@ def _certify(conn: sqlite3.Connection, selection: Selection, generation_id: str)
         conn, selection.unit, selection.recipe, selection.context, reads=selection.reads
     )
     proof, proof_id = materialized_proof(generation_id, signature)
-    conn.execute("INSERT OR IGNORE INTO derivation_dependency_sets VALUES (?,?)", (proof_id, proof))
+    store_set(conn, proof_id, proof, created_at=_at(now))
     conn.execute(
         "UPDATE derivation_scopes SET materialized_signature=? WHERE stage=? AND unit_kind=? AND unit_id=? AND materialized_generation_id=?",
         (proof_id, *_key(selection.unit), generation_id),
@@ -1880,15 +1997,19 @@ def _certify(conn: sqlite3.Connection, selection: Selection, generation_id: str)
 def _artifact_valid(conn: sqlite3.Connection, generation: str) -> bool:
     from swingset.publish.safety import StaleCandidateError, verify_candidate_files
 
-    artifacts = conn.execute(
-        "SELECT payload_json FROM derivation_rows WHERE generation_id=? AND table_name='artifact'",
-        (generation,),
-    ).fetchall()
+    try:
+        artifacts = [
+            payload
+            for table, _, payload in output_packs.rows(conn, generation)
+            if table == "artifact"
+        ]
+    except output_packs.GenerationUnavailable:
+        return False
     if not artifacts:
         return False
     try:
         for artifact in artifacts:
-            payload = json.loads(artifact[0])
+            payload = json.loads(artifact)
             path = Path(payload["path"])
             verify_candidate_files(path)
             built = json.loads((path / "BUILT").read_bytes())

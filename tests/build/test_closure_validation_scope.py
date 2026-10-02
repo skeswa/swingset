@@ -208,6 +208,8 @@ def test_selected_generation_blob_change_is_not_treated_as_immutable(release_sta
     ).fetchone()[0]
     with f.db.transaction(), validation_scope(f.conn):
         closure.validate(f.conn, manifest)
+        # A blob handle cannot write an indexed column (schema 36 indexes it).
+        f.conn.execute("DROP INDEX derivation_generations_output")
         with f.conn.blobopen(
             "derivation_generations", "output_digest", rowid, readonly=False
         ) as blob:
@@ -258,7 +260,10 @@ def test_actual_completion_rejects_late_mutation_and_rolls_back_proof_and_output
 
     def retain(conn, manifest):
         original_retain(conn, manifest)
-        conn.execute("INSERT INTO derivation_dependency_sets VALUES (?, '[]')", (witness,))
+        conn.execute(
+            "INSERT INTO derivation_dependency_sets(dependency_set_id,manifest_json) VALUES (?, '[]')",
+            (witness,),
+        )
 
     def finishing(database, selection, result, **kwargs):
         candidates.append(result)

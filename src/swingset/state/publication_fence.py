@@ -22,6 +22,9 @@ CONTROL_TABLES = frozenset(
         "execution_dependencies",
     }
 )
+#: Segmented backups record what a transport holds (schema 36). A
+#: publication reads neither, and a backup may run while one is active.
+OPERATIONAL_TABLES = frozenset({"backup_sets", "backup_objects"})
 
 #: Admission kinds whose fence covers every semantic table.
 FULL = ("publish", "publication")
@@ -39,6 +42,11 @@ def kinds_sql(kinds: tuple[str, ...] | frozenset[str]) -> str:
     ordered = kinds if isinstance(kinds, tuple) else tuple(sorted(kinds))
     return "(" + ",".join(f"'{kind}'" for kind in ordered) + ")"
 
+
+_BUILD_ROWS = (
+    "EXISTS(SELECT 1 FROM derivation_generations g "
+    "WHERE g.generation_id=R.generation_id AND g.stage='build')"
+)
 
 #: What a partitioned publication's safety check reads, table by table, with
 #: the rows it reads (a SQL condition over `R`, the old or new row; None is
@@ -60,9 +68,20 @@ NARROW: dict[str, str | None] = {
     # The durable build completion (`build/generations.completed`).
     "derivation_scopes": "R.stage='build'",
     "derivation_generations": "R.stage='build'",
-    "derivation_row_refs": (
-        "EXISTS(SELECT 1 FROM derivation_generations g "
-        "WHERE g.generation_id=R.generation_id AND g.stage='build')"
+    "derivation_row_refs": _BUILD_ROWS,
+    # A build label's eviction marker and recipe pack (schema 36), and the
+    # objects a build's rows, recipe or manifest may be read from.
+    "derivation_evicted": _BUILD_ROWS,
+    "label_body_packs": _BUILD_ROWS,
+    "objects": (
+        "(R.class IN ('release_manifest','label_body') OR (R.class='derivation_output' "
+        "AND EXISTS(SELECT 1 FROM derivation_generations g "
+        "WHERE g.output_digest=R.digest AND g.stage='build')))"
+    ),
+    # A revoked generation's body pack, like the revocations themselves.
+    "source_generation_packs": (
+        "EXISTS(SELECT 1 FROM source_generations s "
+        "WHERE s.generation_id=R.generation_id AND s.state='revoked')"
     ),
     # A payload is shared by content; only its removal can take a build's.
     "derivation_payloads": "DELETE",
@@ -83,6 +102,10 @@ _KEYS = {
     "derivation_scopes": ("stage", "unit_kind", "unit_id"),
     "derivation_generations": ("generation_id",),
     "derivation_row_refs": ("generation_id", "ordinal"),
+    "derivation_evicted": ("generation_id",),
+    "label_body_packs": ("generation_id",),
+    "objects": ("class", "digest"),
+    "source_generation_packs": ("generation_id",),
     "release_partitions": ("partition",),
     "release_artifacts": ("artifact_digest",),
     "release_manifests": ("manifest_digest",),
@@ -137,7 +160,7 @@ def install_publication_fences(conn: sqlite3.Connection) -> None:
         )
     ]
     for table in tables:
-        if table in CONTROL_TABLES:
+        if table in CONTROL_TABLES or table in OPERATIONAL_TABLES:
             continue
         quoted_table = _quote(table)
         for action in ("INSERT", "UPDATE", "DELETE"):

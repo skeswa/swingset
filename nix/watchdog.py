@@ -1,4 +1,4 @@
-"""Checks behind the swingset-watchdog unit (D-0188, D-0202, D-0203, D-0215, D-0219).
+"""Checks behind the swingset-watchdog unit (D-0188, D-0202, D-0203, D-0215, D-0219, D-0232).
 
 Prints one alert per line and nothing when all is well. Each line starts
 with a stable key in brackets, such as `[stale-fetch]`. A key already logged
@@ -46,6 +46,9 @@ SIZE_CAP_REASON = "state database file is over its retention size cap"
 # timer wrote, as opposed to one an operator named. tests/test_watchdog.py
 # checks the two stay equal.
 TIMER_NAME = re.compile(r"^run_\d{8}T\d{6}Z(?:-\d+)?$")
+# Copied from swingset.backup.transport.SET_ID: a segmented backup set under
+# checkpoints/sets/ (phase 4). tests/test_watchdog.py checks the two stay equal.
+SET_ID = re.compile(r"^set_\d{8}T\d{6}Z(?:-\d+)?$")
 #: A local checkpoint that failed its read-back is renamed with this prefix
 #: (swingset.cli.FAILED_CHECKPOINT_PREFIX; the test checks the two match).
 FAILED_PREFIX = "failed-"
@@ -75,6 +78,12 @@ SAME_TEXT_KEYS = frozenset(
         "read-set-widened",
         "verify-overdue",
         "verify-failures",
+        "restore-drill-failed",
+        "collector-failed",
+        "collector-stale",
+        "storage-failed",
+        "storage-stalled",
+        "backup-incomplete",
     }
 )
 #: A host whose last this many responses were all 429 or 5xx is failing.
@@ -133,8 +142,10 @@ WAL_LARGE_BYTES = 4_000_000_000
 BUILDING_ORPHAN_SECONDS = 86400
 #: Up to this many orphans are named.
 BUILDING_LINES = 5
-#: Partial generations with no building row (maintain's count) above this
-#: are named: nothing collects them before phase 4 (D-0217).
+#: Partial generations with no building row that still hold references
+#: (maintain's count; evicted generations are whole and not counted) above
+#: this are named. The weekly collector removes the references of those
+#: older than a day (D-0231); their labels stay, holding nothing.
 INCOMPLETE_GENERATIONS = 3
 #: Partition artifacts no current partition names, past this many bytes, are
 #: named (`[artifact-orphans]`): the daily collector is not keeping up, or
@@ -157,6 +168,32 @@ VERDICT_WINDOW = 7 * 86400
 VERIFY_WINDOW = 9 * 86400
 #: Up to this many units are named in a `[read-set-miss]` line.
 MISS_LINES = 5
+#: `[restore-drill-stale]`: no backup set passed a restore drill for this
+#: long; maintain drills weekly (swingset.backup.drill, D-0232).
+DRILL_STALE_SECONDS = 8 * 86400
+#: `[collector-stale]`: no complete collector sweep for `[storage]
+#: collect_every_days` plus this much (loops/maintain.collector_due).
+COLLECTOR_STALE_SLACK = 2 * 86400
+#: `[restore-drill-failed]`: a drill recorded as started (`passed` null) this
+#: long ago was killed; a running one finishes well within it.
+DRILL_KILLED_SECONDS = 2 * 3600
+#: Maintain's storage tasks whose summary carries `backlog`, and the counts
+#: that are progress (`[storage-stalled]` over LOOP_FAILING ticks).
+STORAGE_PROGRESS = {
+    "evict": ("generations", "references"),
+    "pack_bodies": ("parse_body", "label_body"),
+}
+#: Maintain's isolated storage tasks: one recorded with `error` raised
+#: (loops/maintain.isolated).
+STORAGE_TASKS = ("artifacts", "backup_scratch", "evict", "pack_bodies", "collector", "drill")
+#: `[archive-size]`: the private archive repository past this many bytes.
+#: Three kept sets of a 3 to 4 GB database part each and their shared
+#: segments are about 15 GB (docs/plans/architecture.md, 6.2).
+ARCHIVE_SIZE_BYTES = 40_000_000_000
+#: `[objects-size]`: the blob store (objects/, blobs/, extracts/,
+#: partitions/) past this many bytes (architecture plan 6.3).
+OBJECTS_SIZE_BYTES = 60_000_000_000
+OBJECT_DIRS = ("objects", "blobs", "extracts", "partitions")
 #: `[read-set-widened]` reads derive and cycle run rows finished this recently.
 SIGNAL_WINDOW = 86400
 #: WAL header magic numbers (either checksum byte order).
@@ -428,6 +465,39 @@ QUERIES: dict[str, str] = {
     "AND finished_at > :since AND json_valid(summary_json) "
     "AND json_extract(summary_json, '$.verify.complete') = 1",
     "maintain_first": "SELECT min(finished_at) FROM runs WHERE loop = 'maintain'",
+    # The newest maintain tick that ran the collector's full sweep
+    # (loops/maintain.sweep): failed, and why.
+    "collector": "SELECT finished_at, json_extract(summary_json, '$.collector.failed'), "
+    "json_extract(summary_json, '$.collector.error') FROM runs WHERE loop = 'maintain' "
+    "AND finished_at > :since AND json_valid(summary_json) "
+    "AND json_extract(summary_json, '$.collector') IS NOT NULL "
+    "ORDER BY finished_at DESC LIMIT 1",
+    # The newest complete collector sweep, the newest sweep's classes (what
+    # stopped each), and the first maintain tick that ran phase 4's storage
+    # tasks: no sweep is owed before it.
+    "collector_complete": "SELECT max(finished_at) FROM runs WHERE loop = 'maintain' "
+    "AND json_valid(summary_json) AND json_extract(summary_json, '$.collector.complete') = 1",
+    "collector_newest": "SELECT finished_at, json_extract(summary_json, '$.collector.classes'), "
+    "json_extract(summary_json, '$.collector.error') FROM runs WHERE loop = 'maintain' "
+    "AND json_valid(summary_json) AND json_extract(summary_json, '$.collector') IS NOT NULL "
+    "ORDER BY finished_at DESC LIMIT 1",
+    # The newest maintain ticks' storage summaries, for `[storage-stalled]`.
+    "maintain_storage": "SELECT finished_at, json_extract(summary_json, '$.evict'), "
+    "json_extract(summary_json, '$.pack_bodies') FROM runs WHERE loop = 'maintain' "
+    "AND finished_at IS NOT NULL AND json_valid(summary_json) "
+    "ORDER BY finished_at DESC LIMIT :limit",
+    "storage_first": "SELECT min(finished_at) FROM runs WHERE loop = 'maintain' "
+    "AND json_valid(summary_json) AND json_extract(summary_json, '$.evict') IS NOT NULL",
+    "backup_sets_table": "SELECT 1 FROM sqlite_master WHERE type = 'table' "
+    "AND name = 'backup_sets'",
+    # The newest restore drill, passed or not (swingset.backup.drill).
+    "drill_newest": "SELECT set_id, json_extract(drill_json, '$.at'), "
+    "json_extract(drill_json, '$.passed'), json_extract(drill_json, '$.error') "
+    "FROM backup_sets WHERE json_valid(drill_json) "
+    "ORDER BY json_extract(drill_json, '$.at') DESC LIMIT 1",
+    # The newest passed drill, and when the first set was made: a worker
+    # younger than the window has not yet owed one.
+    "drill_passed": "SELECT max(drilled_at), min(created_at), count(*) FROM backup_sets",
     "runs_table": "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'runs'",
     # Read-set safety signals of derive ticks and cycles since :since: tables
     # no rule maps (schedule/offline undeclared_reads) and widened read sets
@@ -557,7 +627,16 @@ def _parser() -> argparse.ArgumentParser:
         "--backup-max-age",
         type=int,
         default=129600,
-        help="with --backup-upload 0, alert when the newest local checkpoint is older",
+        help="alert when the newest local checkpoint (--backup-upload 0) or the newest"
+        " uploaded set (--backup-segmented 1) is older",
+    )
+    parser.add_argument(
+        "--backup-segmented",
+        type=int,
+        choices=(0, 1),
+        default=0,
+        help="1 when backups are segmented sets (phase 4); with --backup-upload 1 the"
+        " watchdog reads checkpoints/remote.json",
     )
     parser.add_argument(
         "--state-size-alert",
@@ -652,6 +731,8 @@ class Limits(NamedTuple):
     #: `[retention] max_database_bytes`, where the pipeline pauses; None
     #: without a config.
     size_cap: int | None = None
+    #: `[storage] collect_every_days`, the collector's sweep interval.
+    collect_every_days: int = 7
 
 
 _BYTE_UNITS = {"KB": 1000, "MB": 1000000, "GB": 1000000000}
@@ -691,12 +772,15 @@ def _config(directory: str | None) -> Limits:
     }
     inventory = scheduling.get("inventory_interval_seconds")
     with open(os.path.join(directory, "sources.toml"), "rb") as handle:
-        cap = tomllib.load(handle).get("retention", {}).get("max_database_bytes", "64GB")
+        sources = tomllib.load(handle)
+    cap = sources.get("retention", {}).get("max_database_bytes", "64GB")
+    every = sources.get("storage", {}).get("collect_every_days", 7)
     return Limits(
         requests,
         byte_budgets,
         float(inventory) if inventory is not None else None,
         _byte_size(cap),
+        int(every),
     )
 
 
@@ -1072,6 +1156,40 @@ def _read_facts(
         )
         if blind is not None and blind[1]:
             facts["collector_blind"] = str(blind[0])
+        swept = checks.run(
+            "collector-failed",
+            lambda: db.execute(
+                QUERIES["collector"], {"since": _at_iso(now - VERIFY_WINDOW)}
+            ).fetchone(),
+            None,
+        )
+        if swept is not None and swept[1]:
+            facts["collector_failed"] = (str(swept[0]), str(swept[2] or ""))
+        sweeps = checks.run(
+            "collector-stale",
+            lambda: (
+                _one(db, "collector_complete"),
+                _one(db, "storage_first"),
+                db.execute(QUERIES["collector_newest"]).fetchone(),
+            ),
+            None,
+        )
+        if sweeps is not None and sweeps[1] is not None:
+            facts["collector_sweeps"] = sweeps
+        storage = checks.run(
+            "storage-stalled",
+            lambda: db.execute(QUERIES["maintain_storage"], {"limit": LOOP_FAILING}).fetchall(),
+            None,
+        )
+        if storage:
+            facts["maintain_storage"] = [
+                {
+                    "finished_at": str(row[0]),
+                    "evict": json.loads(row[1]) if row[1] else None,
+                    "pack_bodies": json.loads(row[2]) if row[2] else None,
+                }
+                for row in storage
+            ]
         if verdict is not None:
             finished, state, reasons, candidate = verdict
             facts["verdict"] = {
@@ -1119,6 +1237,27 @@ def _read_facts(
                 totals[str(key)] += int(count)
         if totals:
             facts["read_set_signals"] = dict(sorted(totals.items()))
+    if checks.run("backup-sets", lambda: _one(db, "backup_sets_table"), None):
+        newest = checks.run(
+            "restore-drill-failed", lambda: db.execute(QUERIES["drill_newest"]).fetchone(), None
+        )
+        if newest is not None and newest[2] is None and newest[1] is not None:
+            # Started and never finished: killed, once it is older than any
+            # drill takes (backup/drill._started).
+            if now - _ts(str(newest[1])) > DRILL_KILLED_SECONDS:
+                facts["drill_failed"] = (
+                    str(newest[0]),
+                    str(newest[1]),
+                    "started and never finished: killed, likely at maintain's timeout or"
+                    " memory cap (journalctl -u swingset-maintain)",
+                )
+        elif newest is not None and not newest[2]:
+            facts["drill_failed"] = (str(newest[0]), str(newest[1]), str(newest[3] or ""))
+        passed = checks.run(
+            "restore-drill-stale", lambda: db.execute(QUERIES["drill_passed"]).fetchone(), None
+        )
+        if passed is not None and passed[2]:
+            facts["drill_passed"] = (passed[0], str(passed[1]))
     if checks.run("plan", lambda: _one(db, "plan_table"), None):
         planned = checks.run("plan-stale", lambda: _newest(_one(db, "plan_newest")), None)
         if planned is not None:
@@ -1199,14 +1338,48 @@ def _last_count(by_line: dict[str, float], key: str) -> int | None:
     return int(match.group(1)) if match else None
 
 
+def _remote(state: str) -> dict[str, Any] | None:
+    """What the newest upload left (`swingset.backup.segments.collect_remote`)."""
+    try:
+        with open(os.path.join(state, "checkpoints", "remote.json"), "rb") as handle:
+            value = json.load(handle)
+    except FileNotFoundError:
+        return None
+    return value if isinstance(value, dict) else None
+
+
+def _set_missing(state: str, set_id: str) -> list[list[Any]]:
+    """What a backup set's `backup.json` lists as named but not found."""
+    with open(os.path.join(state, "checkpoints", "sets", set_id, "backup.json"), "rb") as handle:
+        value = json.load(handle)
+    missing = value.get("missing") if isinstance(value, dict) else None
+    return [item for item in missing or [] if isinstance(item, list) and len(item) >= 2]
+
+
 def _checkpoints(state: str) -> tuple[tuple[str, float] | None, list[str]]:
-    """The newest complete timer checkpoint, and the copies that failed a read-back."""
+    """The newest complete timer checkpoint or backup set (its backup.json,
+    written last), and the copies that failed a read-back."""
     newest: tuple[str, float] | None = None
     failed: list[str] = []
     try:
         names = os.listdir(os.path.join(state, "checkpoints"))
     except OSError:
         return None, failed
+    try:
+        sets = os.listdir(os.path.join(state, "checkpoints", "sets"))
+    except OSError:
+        sets = []
+    for name in sorted(sets):
+        if not SET_ID.match(name):
+            continue
+        try:
+            written = os.stat(
+                os.path.join(state, "checkpoints", "sets", name, "backup.json")
+            ).st_mtime
+        except OSError:
+            continue
+        if newest is None or written > newest[1]:
+            newest = (name, written)
     for name in sorted(names):
         if name.startswith(FAILED_PREFIX):
             failed.append(name)
@@ -1454,6 +1627,15 @@ def main(argv: list[str]) -> list[str]:
         "artifact-orphans": max(args.repeat, DAY),
         "partitions-stale": max(args.repeat, DAY),
         "artifact-collector-blind": max(args.repeat, DAY),
+        "collector-failed": max(args.repeat, DAY),
+        "collector-stale": max(args.repeat, DAY),
+        "storage-failed": max(args.repeat, DAY),
+        "storage-stalled": max(args.repeat, DAY),
+        "restore-drill-failed": max(args.repeat, DAY),
+        "restore-drill-stale": max(args.repeat, DAY),
+        "objects-size": max(args.repeat, DAY),
+        "backup-incomplete": max(args.repeat, DAY),
+        "archive-size": max(args.repeat, DAY),
     }
 
     def failing() -> None:
@@ -1900,17 +2082,65 @@ def main(argv: list[str]) -> list[str]:
             )
         )
 
-    incomplete = (ticks.latest.get("maintain") or {}).get("incomplete_generations") or {}
-    if (
-        isinstance(incomplete, dict)
-        and int(incomplete.get("rows") or 0) > INCOMPLETE_GENERATIONS
-        and not held
-    ):
+    maintained = ticks.latest.get("maintain") or {}
+    raised = [
+        f"{task}: {str(maintained[task].get('error'))[:120]}"
+        for task in STORAGE_TASKS
+        if isinstance(maintained.get(task), dict) and maintained[task].get("error")
+    ]
+    if raised:
+        alerts.append(
+            (
+                "storage-failed",
+                f"maintain's tick at {_utc(str(maintained.get('finished_at')))} recorded a"
+                f" storage task that raised: {'; '.join(raised)}; the other tasks ran"
+                " (docs/reference/operations.md#maintain-storage-tasks)",
+            )
+        )
+    # From the database: three daily ticks span more than the run files the
+    # loop checks read.
+    recent_maintain = facts.get("maintain_storage") or []
+    for task, progress in STORAGE_PROGRESS.items():
+        entries = [record.get(task) for record in recent_maintain]
+        if len(entries) < LOOP_FAILING or not all(
+            isinstance(entry, dict)
+            and int(entry.get("backlog") or 0) > 0
+            and not any(int(entry.get(key) or 0) for key in progress)
+            for entry in entries
+        ):
+            continue
+        newest_entry = entries[0]
+        assert isinstance(newest_entry, dict)
+        failures = newest_entry.get("failures") or []
+        named = ", ".join(
+            str(item.get("generation_id")) for item in failures[:3] if isinstance(item, dict)
+        )
+        alerts.append(
+            (
+                "storage-stalled",
+                f"maintain's {task} left {newest_entry.get('backlog')} waiting with no progress"
+                f" in the last {LOOP_FAILING} ticks"
+                + (f"; failing: {named}" if named else "; it may not reach them in its budget")
+                + " (docs/reference/operations.md#maintain-storage-tasks)",
+            )
+        )
+
+    incomplete = maintained.get("incomplete_generations") or {}
+    # `holding` (phase 4) leaves out partial labels whose references the
+    # collector removed; older records carry only `rows`.
+    holding = (
+        int(incomplete.get("holding", incomplete.get("rows")) or 0)
+        if isinstance(incomplete, dict)
+        else 0
+    )
+    if holding > INCOMPLETE_GENERATIONS and not held:
         alerts.append(
             (
                 "incomplete-generations",
-                f"{incomplete['rows']} partial generations ({incomplete.get('refs', 0)}"
-                " references) that nothing finishes or collects; see docs/reference/state.md",
+                f"{holding} partial generations ({incomplete.get('refs', 0)}"
+                " references) that nothing finishes; evicted ones are not counted, and the"
+                " weekly collector removes references older than a day;"
+                " see docs/reference/state.md",
             )
         )
 
@@ -2015,6 +2245,73 @@ def main(argv: list[str]) -> list[str]:
                 " after last named unless a retained release manifest names them",
             )
         )
+    if facts.get("collector_failed"):
+        finished, error = facts["collector_failed"]
+        alerts.append(
+            (
+                "collector-failed",
+                f"maintain's collector sweep failed at {_utc(finished)}: {error[:200]};"
+                " the next maintain tick sweeps again (swingset gc --collect --plan shows"
+                " what it would remove)",
+            )
+        )
+    sweeps = facts.get("collector_sweeps")
+    if sweeps is not None:
+        complete, first, newest_sweep = sweeps
+        window = limits.collect_every_days * DAY + COLLECTOR_STALE_SLACK
+        owed = now - _ts(str(first)) > window
+        if owed and (complete is None or now - _ts(str(complete)) > window):
+            stopped: list[str] = []
+            if newest_sweep is not None:
+                if newest_sweep[2]:
+                    stopped.append(f"error {str(newest_sweep[2])[:120]}")
+                try:
+                    classes = json.loads(newest_sweep[1]) if newest_sweep[1] else {}
+                except ValueError:
+                    classes = {}
+                for cls, entry in sorted(classes.items()) if isinstance(classes, dict) else ():
+                    if isinstance(entry, dict) and entry.get("stopped"):
+                        stopped.append(f"{cls} {str(entry['stopped'])[:60]}")
+            alerts.append(
+                (
+                    "collector-stale",
+                    f"no complete collector sweep in {window // DAY} days"
+                    + (
+                        f" (last {_utc(str(complete))})"
+                        if complete is not None
+                        else " since maintain's storage tasks began"
+                    )
+                    + (
+                        f"; the newest sweep stopped at: {', '.join(stopped[:6])}"
+                        if stopped
+                        else "; maintain may not reach it within its budget"
+                    )
+                    + " (docs/reference/operations.md#maintain-storage-tasks)",
+                )
+            )
+    if facts.get("drill_failed"):
+        set_id, at, error = facts["drill_failed"]
+        alerts.append(
+            (
+                "restore-drill-failed",
+                f"backup set {set_id} failed its restore drill at {_utc(at)}: {error[:200]};"
+                " read the maintain record's drill and the scratch under"
+                " /var/tmp/swingset-drill-* (docs/guides/backup-and-restore.md)",
+            )
+        )
+    if facts.get("drill_passed"):
+        passed, first = facts["drill_passed"]
+        since = _ts(str(passed)) if passed else _ts(first)
+        if now - since > DRILL_STALE_SECONDS:
+            alerts.append(
+                (
+                    "restore-drill-stale",
+                    f"no backup set passed a restore drill in {DRILL_STALE_SECONDS // 86400}"
+                    " days"
+                    + (f"; the last pass was {_utc(str(passed))}" if passed else "; none has")
+                    + "; maintain drills weekly when room allows (guard drill_no_room)",
+                )
+            )
     if facts.get("release_lag") and not held:
         since, _seen = facts["release_lag"]
         alerts.append(
@@ -2063,6 +2360,20 @@ def main(argv: list[str]) -> list[str]:
 
     checks.run("state-size", state_size, None)
 
+    def objects_size() -> None:
+        size = sum(_tree_bytes(os.path.join(state, name)) for name in OBJECT_DIRS)
+        if size > OBJECTS_SIZE_BYTES:
+            alerts.append(
+                (
+                    "objects-size",
+                    f"objects/, blobs/, extracts/ and partitions/ hold {size / 1e9:.1f} GB,"
+                    f" over {OBJECTS_SIZE_BYTES / 1e9:.0f} GB; read the collector's last"
+                    " sweep in the maintain records (docs/plans/architecture.md, 6.3)",
+                )
+            )
+
+    checks.run("objects-size", objects_size, None)
+
     def size_cap_near() -> None:
         # The retention cap pauses the whole pipeline (D-0208). Say so before
         # it does, while there is time to act.
@@ -2094,6 +2405,19 @@ def main(argv: list[str]) -> list[str]:
         )
     if problems:
         alerts.append(("backup-failed", "; ".join(problems)))
+    if newest is not None and SET_ID.match(newest[0]):
+        missing = checks.run("backup-incomplete", lambda: _set_missing(state, newest[0]), [])
+        if missing:
+            named = ", ".join(f"{item[0]}/{str(item[1])[:16]}" for item in missing[:3])
+            alerts.append(
+                (
+                    "backup-incomplete",
+                    f"backup set {newest[0]} was written without {len(missing)} named files"
+                    f" ({named}); a restore or drill of it refuses. No local set held a good"
+                    " copy; what puts each class back is in docs/guides/backup-and-restore.md"
+                    " (lost files). gc --collect drops only rows nothing names",
+                )
+            )
     # The daily digest runs under a 5 GB cap it nears (the publication
     # report's closure check); a killed digest must not go dark (I4).
     if args.summary_failed:
@@ -2107,10 +2431,44 @@ def main(argv: list[str]) -> list[str]:
     # Upload is paused while the transport refuses the checkpoint (D-0203):
     # the timer keeps one local copy and the Mac byte copy is the only one
     # off the machine.
+    if args.backup_upload == 1 and args.backup_segmented == 1:
+        uploaded = checks.run("backup-stale", lambda: _remote(state), None)
+        if uploaded is None:
+            alerts.append(
+                ("backup-stale", "no backup set has reached the archive (checkpoints/remote.json)")
+            )
+        else:
+            age = now - _ts(str(uploaded.get("uploaded_at")))
+            if age > args.backup_max_age:
+                alerts.append(
+                    (
+                        "backup-stale",
+                        f"the newest set in the archive, {uploaded.get('set_id')}, is"
+                        f" {int(age // 3600)} h old, over the {args.backup_max_age // 3600} h"
+                        " limit; read journalctl -u swingset-backup",
+                    )
+                )
+            size = int(uploaded.get("bytes") or 0)
+            if uploaded.get("collect_error") or size > ARCHIVE_SIZE_BYTES:
+                alerts.append(
+                    (
+                        "archive-size",
+                        (
+                            f"the archive's collector failed after {uploaded.get('set_id')}:"
+                            f" {str(uploaded['collect_error'])[:200]}"
+                            if uploaded.get("collect_error")
+                            else f"the archive holds {size / 1e9:.1f} GB, over"
+                            f" {ARCHIVE_SIZE_BYTES / 1e9:.0f} GB"
+                        )
+                        + " (docs/guides/backup-and-restore.md)",
+                    )
+                )
     if args.backup_upload == 0:
         if newest is None:
             where = "there is no complete local checkpoint"
-            alerts.append(("backup-stale", "no complete run_* checkpoint in checkpoints/"))
+            alerts.append(
+                ("backup-stale", "no complete run_* checkpoint or backup set in checkpoints/")
+            )
         else:
             name, written = newest
             age = now - written

@@ -44,6 +44,7 @@ from typing import Any
 from swingset.build.closure_manifest import ClosureError, leaves
 from swingset.build.files import canonical_json, durable_write, fsync_dir
 
+from . import output_packs
 from .derivations import interned
 
 ARTIFACT_DIRECTORIES = ("blobs", "extracts", "inputs")
@@ -145,6 +146,7 @@ def _artifact_closure(
     require_present: bool,
 ) -> tuple[set[Path], list[Path]]:
     included: set[Path] = set()
+    missing_packs: list[Path] = []
     table_names = _tables(connection)
     if "snapshots" in table_names:
         for body, extract in connection.execute(
@@ -155,8 +157,8 @@ def _artifact_closure(
             if extract:
                 included.add(state_dir / "extracts" / str(extract))
     if "source_generations" in table_names:
-        for generation_id, manifest_json in connection.execute(
-            "SELECT generation_id,manifest_json FROM source_generations ORDER BY generation_id"
+        for generation_id, manifest_json in _generation_manifests(
+            state_dir, connection, table_names, missing_packs
         ):
             try:
                 manifest = json.loads(manifest_json)
@@ -216,9 +218,40 @@ def _artifact_closure(
             continue
         included.update(path for path in bundle.rglob("*") if path.is_file())
     missing.extend(path for path in sorted(included) if not path.is_file())
+    missing.extend(missing_packs)
     if missing and require_present:
         raise RetentionError(f"referenced artifact is missing: {missing[0].relative_to(state_dir)}")
     return {path.resolve() for path in included}, missing
+
+
+def _generation_manifests(
+    state_dir: Path, connection: sqlite3.Connection, table_names: set[str], missing: list[Path]
+) -> Iterator[tuple[str, str]]:
+    """Every source generation's `manifest_json`; a packed one's from its parse body.
+
+    Rows with the same body share one pack, so each pack is read once, and
+    only as far as its manifest (phase 4, WP4). A pack that cannot be read is
+    reported missing, so a backup never quietly drops the files it names.
+    """
+    from .body_packs import STUB, BodyUnavailable, pack_manifest
+    from .objects import Store
+
+    for generation_id, manifest_json in connection.execute(
+        "SELECT generation_id,manifest_json FROM source_generations WHERE manifest_json<>? "
+        "ORDER BY generation_id",
+        (STUB,),
+    ):
+        yield str(generation_id), manifest_json
+    if "source_generation_packs" not in table_names:
+        return
+    store = Store(state_dir)
+    for (digest,) in connection.execute(
+        "SELECT DISTINCT pack_digest FROM source_generation_packs ORDER BY pack_digest"
+    ):
+        try:
+            yield f"parse_body/{digest}", pack_manifest(store, str(digest))
+        except BodyUnavailable:
+            missing.append(store.path("parse_body", str(digest)))
 
 
 def _finding_artifacts(
@@ -491,8 +524,9 @@ def _candidate_policy(candidate: Path) -> dict[str, Any]:
 # The state layer owns the directory layout; `build/artifact_store` writes and
 # collects the files. An artifact is `partitions/<aa>/<digest>/` (Parquet per
 # table and `sidecar.json`, digest = sha256 of the sidecar bytes). A release
-# manifest is `partitions/manifests/<digest>.json` and names the built
-# partitions as `built: [[partition, artifact_digest], ...]`.
+# manifest is a `release_manifest` object (phase 4; before it,
+# `partitions/manifests/<digest>.json`) and names the built partitions as
+# `built: [[partition, artifact_digest], ...]`.
 
 PARTITIONS = "partitions"
 
@@ -508,6 +542,18 @@ def artifact_directory(state_dir: Path, digest: str) -> Path:
 
 
 def manifest_file(state_dir: Path, digest: str) -> Path:
+    """Where a release manifest's bytes are: its `release_manifest` object, else
+    the phase 3 file `partitions/manifests/<digest>.json` (phase 4, WP5)."""
+    from .objects import Store
+
+    if not _is_digest(digest):
+        raise ValueError(f"not a manifest digest: {digest!r}")
+    stored = Store(state_dir).path("release_manifest", digest)
+    return stored if stored.is_file() else legacy_manifest_file(state_dir, digest)
+
+
+def legacy_manifest_file(state_dir: Path, digest: str) -> Path:
+    """A manifest written before phase 4; `storage apply` moves them into objects."""
     if not _is_digest(digest):
         raise ValueError(f"not a manifest digest: {digest!r}")
     return partition_root(state_dir) / "manifests" / f"{digest}.json"
@@ -810,7 +856,11 @@ def reachable(
 
 @dataclass(frozen=True)
 class Residency:
-    """How much of one generation's output is in the live database."""
+    """How much of one generation's output is in the live database.
+
+    An evicted generation (schema 36) whose pack file is on disk is local
+    too: its rows are in the state directory and read offline (F33).
+    """
 
     generation_id: str
     row_count: int
@@ -818,9 +868,13 @@ class Residency:
     payload_count: int
     payload_bytes: int
     missing_payloads: int
+    evicted: bool = False
+    packed: bool = False
 
     @property
     def local(self) -> bool:
+        if self.evicted:
+            return self.packed
         return self.reference_count == self.row_count and not self.missing_payloads
 
 
@@ -859,6 +913,7 @@ def residency(conn: sqlite3.Connection, generation_ids: Iterable[str]) -> list[R
                 "WHERE generation_id=?",
                 (generation_id,),
             ).fetchone()
+        evicted = output_packs.evicted(conn, str(generation_id))
         result.append(
             Residency(
                 str(generation_id),
@@ -867,6 +922,8 @@ def residency(conn: sqlite3.Connection, generation_ids: Iterable[str]) -> list[R
                 int(row[1]),
                 int(bytes_and_missing[0]),
                 int(bytes_and_missing[1]),
+                evicted=evicted,
+                packed=evicted and output_packs.packed(conn, str(generation_id)),
             )
         )
     return result
@@ -970,6 +1027,9 @@ def plan(
         "unknown": unknown,
         "totals": _totals(generations, reached, unknown, files, measured),
     }
+    residence = _residence(conn, generations)
+    if residence is not None:
+        content["residence"] = residence
     # Only when there are any, so a plan without them keeps its digest.
     equivalences = equivalence_totals(conn)
     if equivalences and (
@@ -1069,6 +1129,7 @@ def _generation_rows(
         else set()
     )
     shared = interned(conn)
+    evicted = _evicted(conn)
     rows = []
     for generation_id, stage, unit_kind, unit_id, row_count in conn.execute(
         "SELECT generation_id,stage,unit_kind,unit_id,row_count FROM derivation_generations "
@@ -1078,11 +1139,16 @@ def _generation_rows(
         reference_count, payload_count = references.get(identifier, (0, 0))
         reasons = sorted(reached.get(identifier, ()))
         # Unfinished staged output nothing selects: never local, never archived.
+        # An evicted generation is whole in its pack (F33).
         incomplete = not reasons and (
-            identifier in building or (shared and reference_count < int(row_count))
+            identifier in building
+            or (shared and reference_count < int(row_count) and identifier not in evicted)
         )
+        # Only on evicted rows, so a plan without eviction keeps its digest.
+        extra = {"evicted": True} if identifier in evicted else {}
         rows.append(
             {
+                **extra,
                 "generation_id": identifier,
                 "scope": [str(stage), str(unit_kind), str(unit_id)],
                 "row_count": int(row_count),
@@ -1098,6 +1164,45 @@ def _generation_rows(
             }
         )
     return rows
+
+
+def _evicted(conn: sqlite3.Connection) -> frozenset[str]:
+    """Generations whose references left for their packs (schema 36)."""
+    if not output_packs.available(conn):
+        return frozenset()
+    return frozenset(
+        str(row[0]) for row in conn.execute("SELECT generation_id FROM derivation_evicted")
+    )
+
+
+def _residence(
+    conn: sqlite3.Connection, generations: Sequence[Mapping[str, Any]]
+) -> dict[str, int] | None:
+    """Resident, evicted and partial generations and the bytes of their packs.
+
+    None while nothing is evicted or packed, so such a plan keeps its digest.
+    """
+    if not output_packs.available(conn):
+        return None
+    evicted = sum(1 for row in generations if row.get("evicted"))
+    packs, pack_bytes = conn.execute(
+        "SELECT count(*),coalesce(sum(stored_bytes),0) FROM objects WHERE class=?",
+        (output_packs.CLASS,),
+    ).fetchone()
+    if not evicted and not packs:
+        return None
+    partial = sum(
+        1
+        for row in generations
+        if not row.get("evicted") and int(row["reference_count"]) < int(row["row_count"])
+    )
+    return {
+        "resident_generations": len(generations) - evicted - partial,
+        "evicted_generations": evicted,
+        "partial_generations": partial,
+        "packs": int(packs),
+        "pack_bytes": int(pack_bytes),
+    }
 
 
 def _file_rows(

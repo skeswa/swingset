@@ -133,6 +133,24 @@ class ReleaseConfig:
 
 
 @dataclass(frozen=True)
+class StorageConfig:
+    """`[storage]` in sources.toml: the maintain loop's storage tasks (phase 4,
+    WP7; D-0229, D-0231, D-0232). Read from the accepted bundle by maintain;
+    not a derivation input, so a change re-queues nothing.
+
+    Each tick evicts at most `evict_refs_per_tick` references and packs at
+    most `pack_rows_per_tick` bodies. The collector sweeps every
+    `collect_every_days`, and the restore drill installs the newest backup set
+    every `drill_every_days` into `<drill_dir>/swingset-drill-<set>`."""
+
+    evict_refs_per_tick: int = 2_000_000
+    pack_rows_per_tick: int = 20_000
+    collect_every_days: int = 7
+    drill_every_days: int = 7
+    drill_dir: str = "/var/tmp"
+
+
+@dataclass(frozen=True)
 class Config:
     hosts: Mapping[str, HostConfig]
     sources: Mapping[str, SourceConfig]
@@ -142,6 +160,7 @@ class Config:
     stages: StageConfig = StageConfig()
     derivation: DerivationConfig = DerivationConfig()
     release: ReleaseConfig = ReleaseConfig()
+    storage: StorageConfig = StorageConfig()
 
     def host(self, name: str) -> HostConfig:
         return self.hosts.get(name, HostConfig())
@@ -268,6 +287,27 @@ def parse_release(body: bytes) -> ReleaseConfig:
     return ReleaseConfig(path=path, streamed_lock=streamed_lock)
 
 
+def parse_storage(body: bytes) -> StorageConfig:
+    """Read the top-level `[storage]` table of sources.toml; absent means the defaults."""
+    values = tomllib.loads(body.decode()).get("storage", {})
+    if not isinstance(values, dict):
+        raise ValueError("storage must be a table")
+    if unknown := values.keys() - {field.name for field in fields(StorageConfig)}:
+        raise ValueError(f"unknown storage settings: {sorted(unknown)}")
+    result = StorageConfig(**values)
+    for name in ("evict_refs_per_tick", "pack_rows_per_tick"):
+        count = getattr(result, name)
+        if not isinstance(count, int) or isinstance(count, bool) or count < 0:
+            raise ValueError(f"storage {name} must be a whole number, 0 or more")
+    for name in ("collect_every_days", "drill_every_days"):
+        count = getattr(result, name)
+        if not isinstance(count, int) or isinstance(count, bool) or count < 1:
+            raise ValueError(f"storage {name} must be a whole number of days, 1 or more")
+    if not isinstance(result.drill_dir, str) or not result.drill_dir.startswith("/"):
+        raise ValueError("storage drill_dir must be an absolute path")
+    return result
+
+
 def parse_history_start(body: bytes) -> date:
     """Read the top-level `history_start` of sources.toml; absent means the enshrined default."""
     raw = tomllib.loads(body.decode())
@@ -287,4 +327,5 @@ def load_config(directory: Path = Path("config")) -> Config:
         parse_stages(sources),
         parse_derivation(sources),
         parse_release(sources),
+        parse_storage(sources),
     )

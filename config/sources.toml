@@ -33,8 +33,8 @@ index_urls = []
 # finished years are queried once (D-0184). Unset disables the step.
 [scheduling]
 archive_index_seconds = 120
-# Backpressure counts every pending parse row until schema 34, including about
-# 1,250 parked units that never run; these stay above that residue (D-0221).
+# Backpressure counts superseded parse rows, which never run, even under
+# schema 34; these stay above that residue (D-0221, D-0230).
 pending_parse_items = 4000
 pending_parse_bytes = 536870912
 # A release build takes minutes and holds the heavy lock, so builds are paced;
@@ -56,7 +56,7 @@ inventory_interval_seconds = 43200
 # frees pages but not file space; see the operation guide's disk-space
 # section for reclaim.
 [retention]
-max_database_bytes = "72GB" # standing from the phase 1 switch (D-0220)
+max_database_bytes = "76GB" # production since 2026-10-03 (D-0233); phase 4 sets its own
 # Backups are local only until segmented backups (architecture phase 4;
 # D-0203): each successful backup removes every older run_* checkpoint and
 # keeps the one it wrote. Operator-named checkpoints are never touched.
@@ -85,3 +85,17 @@ event_blocker_observations = false
 [release]
 path = "partitioned"
 streamed_lock = true
+
+# The maintain loop's storage tasks (architecture phase 4; D-0229, D-0231,
+# D-0232). Each daily tick evicts up to `evict_refs_per_tick` references of
+# old cold generations into packs and packs up to `pack_rows_per_tick` parse
+# and label bodies; the collector sweeps every `collect_every_days`; the
+# restore drill installs the newest backup set every `drill_every_days` into
+# `<drill_dir>/swingset-drill-<set>`. Read by maintain; a change re-queues
+# nothing. See docs/reference/operations.md, "Maintain storage tasks".
+[storage]
+evict_refs_per_tick = 2000000
+pack_rows_per_tick = 20000
+collect_every_days = 7
+drill_every_days = 7
+drill_dir = "/var/tmp"

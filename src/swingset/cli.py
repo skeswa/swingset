@@ -34,7 +34,7 @@ LOOP_BUDGETS = {
     "plan": 600.0,
     "derive": 240.0,
     "release": 1800.0,
-    "maintain": 1200.0,
+    "maintain": 3600.0,
 }
 
 
@@ -116,6 +116,12 @@ def parser() -> argparse.ArgumentParser:
         "--collect-closures",
         metavar="PLAN_DIGEST",
         help="Remove the unnamed release-closure proofs that plan listed (D-0200)",
+    )
+    collect.add_argument(
+        "--collect",
+        action="store_true",
+        help="With --plan or --apply: the mark-sweep collector over every stored class "
+        "(objects, release manifests, partition artifacts, dependency sets, orphans; D-0231)",
     )
     collect.add_argument(
         "--candidates-only",
@@ -222,6 +228,20 @@ def parser() -> argparse.ArgumentParser:
         action="store_true",
         help="with no action: the withheld partitions, counted by reason, with their detail",
     )
+    storage = commands.add_parser(
+        "storage",
+        parents=[shared],
+        help=(
+            "Plan or apply the one-time move of derivation output and old bodies into packs, "
+            "restore one packed body, or put back lost objects from local backup sets (phase 4)"
+        ),
+    )
+    storage.add_argument("action", choices=("plan", "apply", "restore-body", "recover-objects"))
+    storage.add_argument(
+        "target",
+        nargs="?",
+        help="apply: the plan digest `storage plan` printed; restore-body: a generation id",
+    )
     commands.add_parser(
         "migrate",
         parents=[shared],
@@ -251,10 +271,27 @@ def parser() -> argparse.ArgumentParser:
         metavar="NAME",
         help="Remove one operator-named checkpoint by name and make no backup",
     )
+    backup.add_argument(
+        "--segmented",
+        action="store_true",
+        help="Write a segmented set (phase 4): --local keeps it in checkpoints/, "
+        "--destination copies it to a directory, otherwise it goes to the archive",
+    )
     restore = commands.add_parser("restore", parents=[shared])
     restore_input = restore.add_mutually_exclusive_group(required=True)
     restore_input.add_argument("--checkpoint", type=Path)
     restore_input.add_argument("--archive-commit")
+    restore_input.add_argument(
+        "--backup-set",
+        metavar="SET_ID",
+        help="A segmented set id, or 'latest'; read from --from, else the archive",
+    )
+    restore.add_argument(
+        "--from",
+        dest="set_source",
+        type=Path,
+        help="A directory with the set layout (sets/, segments/) for --backup-set",
+    )
     restore.add_argument("--writer-stopped", action="store_true", required=True)
     return root
 
@@ -266,6 +303,68 @@ def hub() -> Hub:
     if not token:
         raise ValueError("HF_TOKEN is required for publication or remote verification")
     return HuggingFaceHub("skeswa/swingset", token=token)
+
+
+def _set_transport(directory: Path | None) -> Any:
+    """Where `restore --backup-set` reads: a directory, else the private archive."""
+    from swingset.backup.transport import HuggingFaceSegments, LocalDirectoryTransport
+
+    if directory is not None:
+        return LocalDirectoryTransport(directory)
+    token = os.environ.get("HF_TOKEN")
+    if not token:
+        raise ValueError("HF_TOKEN is required to read a set from the archive; or pass --from")
+    return HuggingFaceSegments(token=token)
+
+
+def _segmented_backup(args: argparse.Namespace) -> int:
+    """`backup --segmented`: a set under the shared state lock while loops run.
+
+    It opens as the loop `backup`, so it never runs beside another backup and
+    waits, up to --lock-timeout, only for an exclusive writer to finish.
+    """
+    from swingset.backup.segments import LOCAL_TRANSPORT, create_set
+    from swingset.backup.transport import (
+        REMOTE_KEPT,
+        HuggingFaceSegments,
+        LocalDirectoryTransport,
+    )
+    from swingset.state.db import open_for_loop
+    from swingset.versions import versions
+
+    if args.local and args.destination is not None:
+        raise ValueError("--local keeps the set in checkpoints/; --destination copies it elsewhere")
+    transport: Any
+    if args.destination is not None:
+        transport = LocalDirectoryTransport(args.destination, keep=REMOTE_KEPT)
+    elif args.local:
+        transport = LocalDirectoryTransport(args.state / "checkpoints", name=LOCAL_TRANSPORT)
+    else:
+        token = os.environ.get("HF_TOKEN")
+        if not token:
+            raise ValueError("HF_TOKEN required to upload a set; --local keeps it in checkpoints/")
+        transport = HuggingFaceSegments(token=token)
+    clock = SystemClock()
+    started = time.monotonic()
+    while True:
+        try:
+            database = open_for_loop(args.state, "backup", clock=clock)
+            break
+        except DatabaseLockedError:
+            if time.monotonic() - started >= args.lock_timeout:
+                raise
+            time.sleep(min(5.0, max(args.lock_timeout, 0.1)))
+    with database:
+        result = create_set(
+            database,
+            transport,
+            now=clock.now(),
+            versions=versions(),
+            prune=not args.no_prune,
+        )
+    log("backup-set", **{key: result[key] for key in ("set_id", "items", "new_items", "transport")})
+    print(json.dumps(result, indent=2, default=str))
+    return 0
 
 
 def _checkpoint_policy(retention: RetentionConfig) -> "PrunePolicy":
@@ -821,15 +920,12 @@ def _mutate(
     bundle = capture(args.config, args.overrides, args.state, versions())
     accept(database, bundle, clock)
     run_id = database.start_run(clock.now(), dry_run=command != "publish")
-    from swingset.fetch.recovery import LocalCheckpointRecovery
+    from swingset.backup.recovery import local_recovery
     from swingset.state.db import SCHEMA_VERSION
 
     archive = Archive(
         args.state,
-        recovery=LocalCheckpointRecovery(
-            args.state / "checkpoints",
-            maximum_schema_version=SCHEMA_VERSION,
-        ),
+        recovery=local_recovery(args.state, maximum_schema_version=SCHEMA_VERSION),
     )
     command_failed = False
     held_units: dict[WorkUnit, list[dict[str, Any]]] = {}
@@ -1162,7 +1258,28 @@ def _mutate(
         policy = bundle.config.retention
         if args.candidates_only and not (args.plan or args.apply):
             raise ValueError("--candidates-only goes with --plan or --apply")
-        if args.candidates_only and args.plan:
+        if args.collect and (args.candidates_only or not (args.plan or args.apply)):
+            raise ValueError("--collect goes with --plan or --apply, alone")
+        if args.collect:
+            from swingset.state import collector
+
+            collected: dict[str, Any]
+            if args.apply:
+                collected = collector.apply(
+                    database, plan_digest=args.apply, now=clock.now(), timeout=args.lock_timeout
+                )
+            else:
+                collected = collector.plan(database, now=clock.now())
+                collected = {
+                    **collected,
+                    "plan": str(collector.write_plan(args.state, collected)),
+                    "next": [
+                        f"gc --collect --apply {collected['digest']} removes what that plan "
+                        "names, under both locks"
+                    ],
+                }
+            print(json.dumps(collected, indent=2))
+        elif args.candidates_only and args.plan:
             from swingset.state.retention import candidate_plan, equivalence_totals
             from swingset.state.retention_apply import eligibility
 
@@ -1450,6 +1567,60 @@ def _migrate_only(args: argparse.Namespace) -> int:
     return 0
 
 
+def _storage(args: argparse.Namespace) -> int:
+    """`storage plan` writes a plan and moves nothing; `storage apply` moves what it named.
+
+    All take the writer lock. Apply also needs `operator-hold` and takes the
+    control lock (`state/storage.py`). `restore-body` writes one packed source
+    body or build recipe back, checked against its pack (`state/body_packs.py`).
+    `recover-objects` puts back every object file whose row stands and whose
+    file is gone, from the newest local backup set that holds it, as the
+    maintain loop's evict does each tick; it exits 1 while any stays lost.
+    """
+    from swingset.state import body_packs, storage
+
+    with open_database(args.state, lock_timeout=args.lock_timeout) as database:
+        if args.action == "recover-objects":
+            if args.target:
+                raise ValueError("storage recover-objects takes no target")
+            recovered = storage.restore_lost(database)
+            print(json.dumps(recovered, indent=2))
+            return 1 if recovered["lost"] else 0
+        if args.action == "restore-body":
+            if not args.target:
+                raise ValueError("storage restore-body needs a generation id")
+            with database.transaction() as conn:
+                kind = body_packs.restore(conn, args.target, now=SystemClock().now())
+            if kind is None:
+                raise ValueError(f"generation {args.target} has no packed body")
+            print(json.dumps({"generation_id": args.target, "restored": kind}))
+            return 0
+        if args.action == "plan":
+            if args.target:
+                raise ValueError("storage plan takes no digest")
+            value = storage.plan(database.connection, database.state_dir, now=SystemClock().now())
+            path = storage.write_plan(database.state_dir, value)
+            result: dict[str, Any] = {
+                **value.document(),
+                "plan": str(path),
+                "next": [
+                    f"storage apply {value.digest} packs and moves what that plan names, "
+                    "under operator-hold and both locks"
+                ],
+            }
+        else:
+            if not args.target:
+                raise ValueError("storage apply needs the digest `storage plan` printed")
+            result = storage.apply(
+                database,
+                plan_digest=args.target,
+                now=SystemClock().now(),
+                timeout=args.lock_timeout,
+            )
+    print(json.dumps(result, indent=2, default=str))
+    return 0
+
+
 def _partitions(args: argparse.Namespace) -> int:
     """Build stage 1 of a partitioned release, or read its partition rows (phase 3, WP6).
 
@@ -1681,6 +1852,12 @@ def main(argv: list[str] | None = None) -> int:
         except (OSError, ValueError, RuntimeError) as exc:
             log("error", message=str(exc))
             return 1
+    if args.command == "storage":
+        try:
+            return _storage(args)
+        except (OSError, ValueError, RuntimeError, sqlite3.Error, DatabaseLockedError) as exc:
+            log("error", message=f"{type(exc).__name__}: {exc}")
+            return 1
     if args.command == "migrate":
         try:
             return _migrate_only(args)
@@ -1698,6 +1875,12 @@ def main(argv: list[str] | None = None) -> int:
             return _accept_year(args)
         except (OSError, ValueError, RuntimeError) as exc:
             log("error", message=str(exc))
+            return 1
+    if args.command == "backup" and args.segmented and args.remove_checkpoint is None:
+        try:
+            return _segmented_backup(args)
+        except (OSError, ValueError, RuntimeError, sqlite3.Error) as exc:
+            log("error", message=f"{type(exc).__name__}: {exc}")
             return 1
     if args.command == "backup" and args.remove_checkpoint is not None:
         # Removing one named checkpoint makes no backup, so it takes no writer
@@ -1802,8 +1985,22 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "restore":
             from swingset.backup.checkpoint import restore_from_checkpoint
 
+            if args.set_source is not None and not args.backup_set:
+                raise ValueError("--from goes with --backup-set")
             remote = hub()
-            if args.archive_commit:
+            if args.backup_set:
+                from swingset.backup.restore_set import restore_from_set
+
+                summary = restore_from_set(
+                    _set_transport(args.set_source),
+                    None if args.backup_set == "latest" else args.backup_set,
+                    args.state,
+                    remote,
+                    SystemClock(),
+                    lock_timeout=args.lock_timeout,
+                )
+                print(json.dumps(summary, indent=2, default=str))
+            elif args.archive_commit:
                 from tempfile import TemporaryDirectory
 
                 from swingset.backup.huggingface import HuggingFaceArchive

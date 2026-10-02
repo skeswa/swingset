@@ -17,10 +17,11 @@ Publication makes an accepted candidate visible on Hugging Face. The baseline is
 
 ## Repos
 
-| Repo                      | Visibility | Contents                                                                        |
-| ------------------------- | ---------- | ------------------------------------------------------------------------------- |
-| `skeswa/swingset`         | public     | published Parquet, README dataset card, `_meta/`                                |
-| `skeswa/swingset-archive` | private    | complete checkpoint described in [operations](operations.md#backup-and-restore) |
+| Repo                          | Visibility | Contents                                                                        |
+| ----------------------------- | ---------- | ------------------------------------------------------------------------------- |
+| `skeswa/swingset`             | public     | published Parquet, README dataset card, `_meta/`                                |
+| `skeswa/swingset-archive`     | private    | complete checkpoint described in [operations](operations.md#backup-and-restore) |
+| `skeswa/swingset-backup-sets` | private    | segmented backup sets (phase 4, D-0234); history squashed, nothing else in it   |
 
 The archive repo is a backup and a reproducibility store, not part of the
 run loop. It is private because raw bodies contain names in bulk. It can

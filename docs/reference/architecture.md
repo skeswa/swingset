@@ -105,7 +105,7 @@ or revision counters.
 | `state/queue.py` | Leases, failure clocks, waiting and quarantine over that work; see [work queue](state.md#work-queue)                                                                                  |
 | `build/`         | Read a settled database and captured files; produce immutable publication contents                                                                                                    |
 | `publish/`       | Own candidate markers, remote commit acknowledgment, and baseline promotion                                                                                                           |
-| `backup/`        | Copy the complete recoverable state and verify it on restore                                                                                                                          |
+| `backup/`        | Copy the complete recoverable state as segmented sets, verify it on restore and in the weekly drill, and collect what no kept set names                                               |
 
 `project_map(index_obs, calendar_obs, aliases, source_urls)` returns a
 `SourceEventMap`. `project(scope, observations, context)` returns a

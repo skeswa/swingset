@@ -8,12 +8,14 @@ import sqlite3
 from collections.abc import Callable, Iterable, Iterator, Mapping
 from typing import Any
 
+from swingset.state import body_packs
+
 from .closure_manifest import ClosureError, canonical, digest
 
 
 def _accepted(
     conn: sqlite3.Connection, identifier: str, *, include_result: bool = True
-) -> sqlite3.Row | None:
+) -> Mapping[str, Any] | None:
     # Validation only needs the receipt. Fetching every potentially large parse
     # result here would copy it again before support() actually interprets it.
     result = ",g.result_json" if include_result else ""
@@ -28,12 +30,17 @@ def _accepted(
     ).fetchone()
     if row is None:
         return None
-    report = json.loads(row["report_json"])
-    return None if report.get("failures") else row
+    found: Mapping[str, Any] = row
+    if body_packs.is_stub(row["report_json"]):
+        # An older accepted generation's body may be packed (phase 4): read
+        # the exact strings back from its pack, checked against its digest.
+        found = body_packs.resolve(conn, identifier, row)
+    report = json.loads(found["report_json"])
+    return None if report.get("failures") else found
 
 
 def _observations(
-    row: sqlite3.Row, *, recipe: Mapping[str, Any] | None = None
+    row: Mapping[str, Any], *, recipe: Mapping[str, Any] | None = None
 ) -> Iterator[dict[str, Any]]:
     recipe = json.loads(row["recipe_json"]) if recipe is None else recipe
     snapshot = recipe["context"]["snapshot_id"]

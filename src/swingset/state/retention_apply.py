@@ -38,19 +38,27 @@ gate returns nothing, so an apply today removes files and no row data at all
 ([D-0149](../../../journal/decisions/0149-no-generation-is-eligible-until-a-table-says-it-is-archived.md)).
 The plan reads that table and writes the answer down, so the digest covers it
 ([D-0155](../../../journal/decisions/0155-the-plan-digest-covers-what-is-archived.md)).
+That table was never built: from schema 36 output leaves the file through
+`storage apply` into packs (`state/storage.py`,
+[D-0229](../../../journal/decisions/0229-derivation-output-and-bodies-live-in-packs.md)),
+and this gate stays shut.
 """
 
 from __future__ import annotations
 
+import contextlib
 import json
+import os
 import shutil
 import sqlite3
+from collections.abc import Iterator
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 from swingset.build.files import canonical_json, durable_write, fsync_dir
 
+from . import disk
 from .control_lock import control_lock
 from .db import Database
 from .derivations import interned
@@ -63,9 +71,20 @@ RECLAIM_RECEIPT_FORMAT = "retention-reclaim-receipt-v1"
 #: `_revoke_stale_payload_removal` logs it if one ever outlives its transaction.
 REMOVAL_REASON = "gc --apply of plan "
 
-#: Rewriting the file in place needs room for SQLite's temporary copy and its
-#: journal of the rewrite, so about twice the current file size.
-RECLAIM_FREE_MULTIPLE = 2
+#: Rewriting the file in place writes a temporary copy of the pages in use and,
+#: in WAL mode, the same pages again through the log: twice the bytes in use
+#: (F36), and the rehearsal measured 2.35 times (W3: 76.3 GB for 32.4 GB in
+#: use). Free pages are not copied, so the file size overstates it. Asked
+#: as `RECLAIM_FREE_HALVES` halves of the bytes in use.
+RECLAIM_FREE_HALVES = 5
+#: Room kept on top of that for the log's tail, the checks afterwards and the
+#: loops' own headroom on the shared quota.
+RECLAIM_FREE_MARGIN = 12 * 1000**3
+#: F36's earlier ask, kept in the receipt for comparison: twice the file.
+RECLAIM_FILE_MULTIPLE = 2
+#: Where SQLite puts its temporary files, under the state directory: the
+#: worker's `/tmp` is a small tmpfs, and the rewrite's copy is gigabytes.
+TEMP_DIRECTORY = "tmp"
 
 
 def receipt_directory(state_dir: Path) -> Path:
@@ -457,6 +476,55 @@ def _write_receipt(state_dir: Path, name: str, receipt: dict[str, Any]) -> dict[
 # ---------------------------------------------------------------------------
 
 
+@contextlib.contextmanager
+def sqlite_temp_directory(conn: sqlite3.Connection, state_dir: Path) -> Iterator[Path]:
+    """Send SQLite's temporary files to `<state>/tmp` for the duration.
+
+    `PRAGMA temp_store_directory` rather than `SQLITE_TMPDIR`: SQLite reads
+    the environment once, when the library initialises, so a process cannot
+    change it for a connection it already has. The pragma is process-wide and
+    is put back on the way out. `temp_store` is set to files, which drops any
+    temporary table, so this is entered before any is made.
+    """
+    directory = (state_dir / TEMP_DIRECTORY).resolve()
+    directory.mkdir(parents=True, exist_ok=True)
+    previous_directory = conn.execute("PRAGMA temp_store_directory").fetchone()
+    previous_store = int(conn.execute("PRAGMA temp_store").fetchone()[0])
+    quoted = str(directory).replace("'", "''")
+    conn.execute(f"PRAGMA temp_store_directory='{quoted}'")
+    found = conn.execute("PRAGMA temp_store_directory").fetchone()
+    if (found[0] if found else "") != str(directory) and os.environ.get("SQLITE_TMPDIR") != str(
+        directory
+    ):
+        raise RetentionError(
+            f"this SQLite cannot direct its temporary files to {directory}; "
+            f"set SQLITE_TMPDIR={directory} and run again. Nothing was changed"
+        )
+    if previous_store != 1:
+        conn.execute("PRAGMA temp_store=FILE")
+    try:
+        yield directory
+    finally:
+        if previous_store != 1:
+            conn.execute(f"PRAGMA temp_store={previous_store}")
+        before = str(previous_directory[0]) if previous_directory and previous_directory[0] else ""
+        quoted = before.replace("'", "''")
+        conn.execute(f"PRAGMA temp_store_directory='{quoted}'")
+
+
+def reclaim_estimate(conn: sqlite3.Connection, file_bytes: int) -> dict[str, int]:
+    """Free space the rewrite needs, now and as it was asked for before F36."""
+    page_size = int(conn.execute("PRAGMA page_size").fetchone()[0])
+    pages = int(conn.execute("PRAGMA page_count").fetchone()[0])
+    free_pages = int(conn.execute("PRAGMA freelist_count").fetchone()[0])
+    in_use = page_size * (pages - free_pages)
+    return {
+        "bytes_in_use": in_use,
+        "needed_bytes": RECLAIM_FREE_HALVES * in_use // 2 + RECLAIM_FREE_MARGIN,
+        "file_size_estimate_bytes": RECLAIM_FILE_MULTIPLE * file_bytes,
+    }
+
+
 def reclaim(database: Database, *, now: datetime, timeout: float = 60) -> dict[str, Any]:
     """Rewrite the database file in place so freed pages leave the file.
 
@@ -478,22 +546,38 @@ def reclaim(database: Database, *, now: datetime, timeout: float = 60) -> dict[s
         )
     state_dir = database.state_dir
     conn = database.connection
+    file = state_dir / "state.sqlite"
+    estimate: dict[str, Any] = dict(
+        reclaim_estimate(conn, file.stat().st_size if file.is_file() else 0)
+    )
     before = usage(conn, state_dir)
-    free = shutil.disk_usage(state_dir).free
-    needed = int(before["file_bytes"]) * RECLAIM_FREE_MULTIPLE
+    # statfs cannot see the worker's btrfs quota; `disk.room` reads both.
+    room = disk.room(state_dir)
+    if room.quota_stale:
+        raise RetentionError(
+            f"the disk quota reading is from {room.quota_read_at}, too old to trust; run "
+            f"`{disk.REFRESH}` and reclaim again. Nothing was touched"
+        )
+    free = room.free
+    estimate["free_bytes"] = free
+    estimate["quota_free_bytes"] = room.quota_free
+    estimate["quota_read_at"] = room.quota_read_at
+    needed = estimate["needed_bytes"]
     if free < needed:
         raise RetentionError(
-            f"reclaim needs about {needed} free bytes on the state volume and there are {free}; "
-            "nothing was touched. Free space or move the state directory first"
+            f"reclaim needs about {needed} free bytes on the state's disk (quota included) and "
+            f"there are {free}; nothing was touched. Free space or move the state directory first"
         )
     if conn.in_transaction:
         raise RetentionError("reclaim cannot run inside a transaction; nothing was touched")
+    temporary = (state_dir / TEMP_DIRECTORY).resolve()
     with control_lock(state_dir, timeout=timeout):
         try:
-            # Start the rewrite from a file with no pending changes, as backup
-            # creation already does, then rewrite it.
-            conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
-            conn.execute("VACUUM")
+            with sqlite_temp_directory(conn, state_dir):
+                # Start the rewrite from a file with no pending changes, as
+                # backup creation already does, then rewrite it.
+                conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+                conn.execute("VACUUM")
         except sqlite3.Error as exc:
             message = str(exc).lower()
             if "lock" in message or "busy" in message:
@@ -513,6 +597,8 @@ def reclaim(database: Database, *, now: datetime, timeout: float = 60) -> dict[s
         "before": before,
         "after": after,
         "file_bytes_freed": int(before["file_bytes"]) - int(after["file_bytes"]),
+        "free_space": estimate,
+        "temp_directory": str(temporary),
     }
     name = _receipt_name(receipt_directory(state_dir), now)
     durable_write(receipt_directory(state_dir) / name, canonical_json(receipt))

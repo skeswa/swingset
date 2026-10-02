@@ -4,7 +4,7 @@ Recorded: 2026-09-24
 Decided by: agent, 2026-09-24, under D-0183  
 Topic: Retention  
 Supersedes: the immutability of `derivation_dependency_sets` (migration 14), for release-closure proofs only  
-Superseded by: —
+Superseded by: in part, [D-0231](0231-collect-every-unnamed-dependency-set-and-unrooted-object.md) (every unnamed dependency set)
 
 ## Decision
 

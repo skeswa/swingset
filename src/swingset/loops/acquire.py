@@ -11,8 +11,8 @@ from __future__ import annotations
 
 from datetime import datetime
 
+from swingset.backup.recovery import local_recovery
 from swingset.fetch.archive import Archive
-from swingset.fetch.recovery import LocalCheckpointRecovery
 from swingset.loops.runtime import PUBLICATION_IN_FLIGHT, Tick, publication_active
 from swingset.schedule.acquisition import Acquisition, paused_hosts, request_failures
 from swingset.sources.base import WatchSpec
@@ -95,9 +95,7 @@ def run(tick: Tick) -> None:
         summary["offered"] = len(offered)
         return offered
 
-    recovery = LocalCheckpointRecovery(
-        database.state_dir / "checkpoints", maximum_schema_version=SCHEMA_VERSION
-    )
+    recovery = local_recovery(database.state_dir, maximum_schema_version=SCHEMA_VERSION)
     acquiring = Acquisition(
         database,
         bundle.config,

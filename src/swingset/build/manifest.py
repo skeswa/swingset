@@ -9,8 +9,10 @@ baseline commit, the correction token and the `evidence_cutoff`, the newest
 artifacts name (F24). It holds no clock, run id or path, so two builds from
 the same pointers and inputs write the same bytes and the same digest.
 
-The manifest is canonical JSON stored as `partitions/manifests/<digest>.json`
-(digest = sha256 of the bytes) with a `release_manifests` row. A candidate
+The manifest is canonical JSON stored raw as a `release_manifest` object
+(digest = sha256 of the bytes; phase 3 wrote `partitions/manifests/<digest>.json`,
+which `manifest_file` still finds) with an `objects` row and a
+`release_manifests` row. A candidate
 names it by digest in its `release_policy`; the build generation's context
 names it too (D-0224).
 
@@ -31,12 +33,13 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from swingset.state import release_store
+from swingset.state import objects, release_store
+from swingset.state.objects import Store
 from swingset.state.release_store import ManifestRow
 from swingset.state.retention import manifest_file
 
 from .closure_manifest import digest
-from .files import canonical_json, durable_write, sha256_file
+from .files import canonical_json, sha256_file
 
 FORMAT = "release-manifest-v1"
 SUPPORT_FORMAT = "partition-support-v1"
@@ -48,6 +51,8 @@ ASSEMBLY_INPUTS = ("overrides/identity_overrides.csv", "overrides/suppressions.c
 SIDECAR = "sidecar.json"
 #: Ids bound per `IN (...)` query.
 _CHUNK = 500
+#: The object class a manifest is stored as.
+MANIFEST_CLASS = "release_manifest"
 
 
 class ManifestError(ValueError):
@@ -178,11 +183,12 @@ def write(database: Any, value: Mapping[str, Any], *, now: datetime) -> tuple[st
 
 
 def store(database: Any, body: bytes, manifest_digest: str, *, now: datetime) -> None:
-    """Write the manifest file once, then record its row (the file first, as I8 wants)."""
-    path = manifest_file(database.state_dir, manifest_digest)
-    if not path.is_file() or hashlib.sha256(path.read_bytes()).hexdigest() != manifest_digest:
-        durable_write(path, body)
+    """Write the manifest object once, then record its rows (the file first, as I8 wants)."""
+    if hashlib.sha256(body).hexdigest() != manifest_digest:
+        raise ManifestError(f"release manifest bytes do not hash to {manifest_digest}")
+    _, stored = Store(database.state_dir).put_bytes(MANIFEST_CLASS, body)
     with database.transaction() as conn:
+        objects.record(conn, MANIFEST_CLASS, manifest_digest, len(body), stored, now)
         existing = release_store.get(conn, ManifestRow, manifest_digest)
         release_store.upsert(
             conn,

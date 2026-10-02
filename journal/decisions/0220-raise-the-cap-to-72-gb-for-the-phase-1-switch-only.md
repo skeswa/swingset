@@ -4,7 +4,7 @@ Recorded: 2026-09-29
 Decided by: owner, 2026-09-29; source: "I like all the suggestions- proceed" (cap for the phase 1 switch, the gate waiver and the deploy)  
 Topic: Retention  
 Supersedes: the 64 GB figure of [D-0196](0196-raise-the-database-size-cap-to-64-gb.md) and, in part, [D-0208](0208-keep-the-64-gb-cap-until-closure-collection.md) and the plan's phase 0 "no cap raises"  
-Superseded by: —
+Superseded by: in production, [D-0233](0233-raise-the-size-cap-to-76-gb-until-phase-4.md): 76 GB until phase 4
 
 ## Decision
 

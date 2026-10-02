@@ -464,7 +464,9 @@ def _materialize(conn, kind, generation, at, run, unit_id="all"):
         "VALUES ('project',?,?,?)",
         (kind, unit_id, at.isoformat()),
     )
-    conn.execute("INSERT OR IGNORE INTO derivation_dependency_sets VALUES ('empty','[]')")
+    conn.execute(
+        "INSERT OR IGNORE INTO derivation_dependency_sets(dependency_set_id,manifest_json) VALUES ('empty','[]')"
+    )
     conn.execute(
         "INSERT INTO derivation_generations VALUES (?,'project',?,?,'f','{}','empty',NULL,'d',0,?,?)",
         (generation, kind, unit_id, at.isoformat(), run),
@@ -576,7 +578,7 @@ def test_a_calendar_replay_the_inventory_has_not_read_lifts_its_wait(tmp_path):
             """The inventory's next run, a cutoff, read `epoch`."""
             read = f'[{{"key":["project","calendar"],"kind":"replay","version":{epoch}}}]'
             conn.execute(
-                "INSERT OR IGNORE INTO derivation_dependency_sets VALUES (?,?)",
+                "INSERT OR IGNORE INTO derivation_dependency_sets(dependency_set_id,manifest_json) VALUES (?,?)",
                 (f"read{epoch}", read),
             )
             conn.execute(

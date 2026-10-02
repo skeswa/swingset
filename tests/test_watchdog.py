@@ -1,6 +1,7 @@
 import importlib.util
 import json
 import os
+import shutil
 import sqlite3
 import subprocess
 import sys
@@ -389,7 +390,8 @@ def test_the_script_reads_the_shipped_config_as_the_package_does() -> None:
         if (budget := config.host(host).daily_byte_budget) is not None
     }
     assert limits.bytes == {"danceconvention.net": 300_000_000}
-    assert limits.size_cap == config.retention.max_database_bytes == 72_000_000_000
+    assert limits.size_cap == config.retention.max_database_bytes == 76_000_000_000
+    assert limits.collect_every_days == config.storage.collect_every_days
 
 
 @pytest.mark.parametrize("near", [False, True])
@@ -1778,7 +1780,7 @@ def test_local_mode_without_a_checkpoint_alerts_stale_and_paused(tmp_path: Path)
     _checkpoint(tmp_path, "run_20260925T040000Z", NOW, complete=False)
     _checkpoint(tmp_path, "hold-before-switch", NOW)
     assert _run(tmp_path, backup=LOCAL) == [
-        "[backup-stale] no complete run_* checkpoint in checkpoints/",
+        "[backup-stale] no complete run_* checkpoint or backup set in checkpoints/",
         "[backup-upload-paused] remote backup upload is paused"
         " (services.swingset.backupUpload = false); there is no complete local checkpoint;"
         " keep the Mac byte copy current weekly",
@@ -1808,6 +1810,35 @@ def test_the_newest_local_checkpoint_is_stale_after_36_hours(
         ]
     else:
         assert lines == [paused]
+
+
+def _backup_set(state: Path, name: str, written: str) -> None:
+    path = state / "checkpoints" / "sets" / name
+    path.mkdir(parents=True)
+    (path / "backup.json").write_text("{}")
+    stamp = datetime.fromisoformat(written).timestamp()
+    os.utime(path / "backup.json", (stamp, stamp))
+
+
+def test_a_backup_set_counts_as_the_newest_local_backup(tmp_path: Path) -> None:
+    """Segmented backups (phase 4) write sets, not run_* checkpoints."""
+    from swingset.backup.transport import SET_ID
+
+    assert watchdog.SET_ID.pattern == SET_ID.pattern
+    _checkpoint(tmp_path, "run_20260920T040000Z", "2026-09-20T04:30:00+00:00")
+    # A set without backup.json is not complete.
+    (tmp_path / "checkpoints" / "sets" / "set_20260925T040000Z").mkdir(parents=True)
+    _backup_set(tmp_path, "set_20260924T040000Z", "2026-09-24T04:30:00+00:00")
+    assert _run(tmp_path, backup=LOCAL) == [
+        "[backup-upload-paused] remote backup upload is paused"
+        " (services.swingset.backupUpload = false); newest local checkpoint"
+        " set_20260924T040000Z is 35 h old; keep the Mac byte copy current weekly"
+    ]
+    lines = _run(tmp_path, backup=LOCAL, now="2026-09-26T05:00:00+00:00")
+    assert lines[0] == (
+        "[backup-stale] newest local checkpoint set_20260924T040000Z is 48 h old,"
+        " over the 36 h limit"
+    )
 
 
 def test_backup_alerts_ignore_a_hold(tmp_path: Path) -> None:
@@ -1954,7 +1985,9 @@ def test_the_inventory_wait_lifts_on_a_calendar_replay_or_generation(tmp_path: P
     with open_database(tmp_path, lock=False) as database:
         conn = database.connection
         run = database.start_run(datetime.fromisoformat("2026-09-25T00:00:00+00:00"))
-        conn.execute("INSERT OR IGNORE INTO derivation_dependency_sets VALUES ('empty','[]')")
+        conn.execute(
+            "INSERT OR IGNORE INTO derivation_dependency_sets(dependency_set_id,manifest_json) VALUES ('empty','[]')"
+        )
         conn.execute("INSERT OR IGNORE INTO derivation_recipes VALUES ('r','{}')")
 
         def generation(kind: str, scope: str, generation_id: str, at: str) -> None:
@@ -1977,7 +2010,7 @@ def test_the_inventory_wait_lifts_on_a_calendar_replay_or_generation(tmp_path: P
         def equivalence(epoch: int, at: str) -> None:
             read = f'[{{"key":["project","calendar"],"kind":"replay","version":{epoch}}}]'
             conn.execute(
-                "INSERT OR IGNORE INTO derivation_dependency_sets VALUES (?,?)",
+                "INSERT OR IGNORE INTO derivation_dependency_sets(dependency_set_id,manifest_json) VALUES (?,?)",
                 (f"read{epoch}", read),
             )
             conn.execute(
@@ -2037,7 +2070,9 @@ def test_links_and_years_on_the_real_schema(tmp_path: Path) -> None:
     with open_database(tmp_path, lock=False) as database:
         conn = database.connection
         run = database.start_run(datetime.fromisoformat("2026-09-25T00:00:00+00:00"))
-        conn.execute("INSERT OR IGNORE INTO derivation_dependency_sets VALUES ('empty','[]')")
+        conn.execute(
+            "INSERT OR IGNORE INTO derivation_dependency_sets(dependency_set_id,manifest_json) VALUES ('empty','[]')"
+        )
         conn.execute(
             "INSERT INTO events(event_id,series_id,name,year,start_date,end_date,wsdc_status,"
             "sources,source,snapshot_id,parser_version,first_seen_at,last_seen_at,run_id) "
@@ -2485,15 +2520,24 @@ def test_a_staged_generation_idle_for_a_day_alerts_in_both_modes(
     assert _run(tmp_path) == []
 
 
-@pytest.mark.parametrize("rows, alerts", [(3, []), (4, ["incomplete-generations"])])
+@pytest.mark.parametrize(
+    "counts, alerts",
+    [
+        ({"rows": 3}, []),
+        ({"rows": 4}, ["incomplete-generations"]),
+        # Phase 4: labels the collector stripped hold nothing and are not named.
+        ({"rows": 40, "holding": 3}, []),
+        ({"rows": 40, "holding": 4}, ["incomplete-generations"]),
+    ],
+)
 def test_partial_generations_nothing_collects_alert_above_three(
-    tmp_path: Path, rows: int, alerts: list[str]
+    tmp_path: Path, counts: dict[str, int], alerts: list[str]
 ) -> None:
     _real(tmp_path)
     maintained = {
         "loop": "maintain",
         "finished_at": "2026-09-25T16:06:00+00:00",
-        "incomplete_generations": {"rows": rows, "refs": 12},
+        "incomplete_generations": {**counts, "refs": 12},
     }
     _ticks(tmp_path, *_fresh(), maintained)
     _plan(tmp_path, "2026-09-25T16:00:00+00:00")
@@ -2933,3 +2977,430 @@ def test_the_release_lag_guard_alerts_while_derive_holds_project_units(tmp_path:
     )
     (tmp_path / "operator-hold").touch()
     assert "release-lag" not in _keys(_loops(tmp_path))
+
+
+# Phase 4, WP7: the restore drill, the collector and the blob store.
+
+
+def _drill(state: Path, set_id: str, created: str, record: dict[str, object] | None) -> None:
+    with open_database(state, lock=False) as database, database.transaction() as conn:
+        conn.execute(
+            "INSERT INTO backup_sets(set_id,created_at,manifest_sha256,db_raw_bytes,"
+            "db_raw_sha256,parts,objects,new_objects,transport,drilled_at,drill_json) "
+            "VALUES (?,?,'m',1,'r',1,0,0,'local',?,?)",
+            (
+                set_id,
+                created,
+                record["at"] if record and record.get("passed") else None,
+                json.dumps(record) if record else None,
+            ),
+        )
+
+
+def test_a_failed_restore_drill_alerts_until_a_drill_passes(tmp_path: Path) -> None:
+    _release_state(tmp_path)
+    _drill(
+        tmp_path,
+        "set_20260924T040000Z",
+        "2026-09-24T04:00:00+00:00",
+        {
+            "at": "2026-09-25T03:40:00+00:00",
+            "passed": False,
+            "error": "SetError: db/part-0000.zst does not match its digest",
+        },
+    )
+    lines = _loops(tmp_path)
+    assert lines == [
+        "[restore-drill-failed] backup set set_20260924T040000Z failed its restore drill at"
+        " 2026-09-25 03:40 UTC: SetError: db/part-0000.zst does not match its digest; read"
+        " the maintain record's drill and the scratch under /var/tmp/swingset-drill-*"
+        " (docs/guides/backup-and-restore.md)"
+    ]
+    # The drill's own line has other text, so the watchdog still sends one;
+    # its own line holds it back for a day.
+    _log(tmp_path, "2026-09-25T03:40:00Z [restore-drill-failed] set set_x (local) failed")
+    assert _keys(_loops(tmp_path)) == ["restore-drill-failed"]
+    _log(tmp_path, f"2026-09-25T13:10:00Z {lines[0]}")
+    assert _loops(tmp_path) == []
+    _drill(
+        tmp_path,
+        "set_20260925T040000Z",
+        "2026-09-25T04:00:00+00:00",
+        {"at": "2026-09-25T15:00:00+00:00", "passed": True},
+    )
+    assert "restore-drill-failed" not in _keys(_loops(tmp_path, now="2026-09-26T13:11:00+00:00"))
+
+
+@pytest.mark.parametrize(
+    "passed, created, stale",
+    [
+        (None, "2026-09-18T04:00:00+00:00", False),
+        (None, "2026-09-17T16:09:59+00:00", True),
+        ("2026-09-17T16:10:00+00:00", "2026-09-01T04:00:00+00:00", False),
+        ("2026-09-17T16:09:59+00:00", "2026-09-01T04:00:00+00:00", True),
+    ],
+)
+def test_no_passed_drill_in_eight_days_is_stale(
+    tmp_path: Path, passed: str | None, created: str, stale: bool
+) -> None:
+    _release_state(tmp_path)
+    record = {"at": passed, "passed": True} if passed else None
+    _drill(tmp_path, "set_20260901T040000Z", created, record)
+    lines = _loops(tmp_path)
+    if not stale:
+        assert lines == []
+        return
+    assert lines == [
+        "[restore-drill-stale] no backup set passed a restore drill in 8 days"
+        + (f"; the last pass was {passed[:10]} {passed[11:16]} UTC" if passed else "; none has")
+        + "; maintain drills weekly when room allows (guard drill_no_room)"
+    ]
+
+
+def test_no_backup_set_is_no_drill_line(tmp_path: Path) -> None:
+    _release_state(tmp_path)
+    assert not {"restore-drill-stale", "restore-drill-failed"} & set(
+        _keys(_loops(tmp_path, now="2026-12-25T16:10:00+00:00"))
+    )
+
+
+def test_a_failed_collector_sweep_alerts_until_a_sweep_passes(tmp_path: Path) -> None:
+    _release_state(tmp_path)
+    failed = {
+        "loop": "maintain",
+        "collector": {"failed": True, "complete": False, "error": "CollectError: x"},
+    }
+    _run_row(tmp_path, "run_m1", "maintain", "2026-09-25T03:31:00+00:00", failed)
+    assert _loops(tmp_path) == [
+        "[collector-failed] maintain's collector sweep failed at 2026-09-25 03:31 UTC:"
+        " CollectError: x; the next maintain tick sweeps again (swingset gc --collect"
+        " --plan shows what it would remove)"
+    ]
+    swept = {"loop": "maintain", "collector": {"failed": False, "complete": True}}
+    _run_row(tmp_path, "run_m2", "maintain", "2026-09-25T15:31:00+00:00", swept)
+    assert _loops(tmp_path) == []
+
+
+def test_a_collector_that_never_completes_is_stale_after_nine_days(tmp_path: Path) -> None:
+    _release_state(tmp_path)
+    # Phase 4's storage tasks began ten days ago; every sweep since was cut
+    # short, so none is complete and none failed.
+    began = {"loop": "maintain", "evict": {"generations": 0, "references": 0, "backlog": 0}}
+    _run_row(tmp_path, "run_m0", "maintain", "2026-09-15T03:31:00+00:00", began)
+    stopped = {
+        "loop": "maintain",
+        "evict": {"generations": 0, "references": 0, "backlog": 0},
+        "collector": {
+            "failed": False,
+            "complete": False,
+            "classes": {"dependency_set": {"stopped": "stop"}, "derivation_output": {}},
+        },
+    }
+    _run_row(tmp_path, "run_m1", "maintain", "2026-09-25T03:31:00+00:00", stopped)
+
+    def stale(now: str = NOW) -> list[str]:
+        return [line for line in _loops(tmp_path, now=now) if line.startswith("[collector-")]
+
+    assert stale() == [
+        "[collector-stale] no complete collector sweep in 9 days since maintain's storage"
+        " tasks began; the newest sweep stopped at: dependency_set stop"
+        " (docs/reference/operations.md#maintain-storage-tasks)"
+    ]
+    # Nine days after the tasks began, none is owed yet.
+    assert stale("2026-09-24T03:30:00+00:00") == []
+    # A complete sweep within nine days is quiet.
+    swept = {**stopped, "collector": {"failed": False, "complete": True, "classes": {}}}
+    _run_row(tmp_path, "run_m2", "maintain", "2026-09-17T03:31:00+00:00", swept)
+    assert stale() == []
+
+
+def _storage(backlog: int, progress: int) -> dict[str, object]:
+    return {
+        "loop": "maintain",
+        "evict": {"generations": 0, "references": progress, "backlog": backlog, "failures": []},
+        "pack_bodies": {
+            "parse_body": 0,
+            "label_body": 0,
+            "backlog": 0,
+            "failures": [{"generation_id": "gen_x", "error": "BodyUnavailable: x"}],
+        },
+    }
+
+
+@pytest.mark.parametrize(
+    "ticks, stalled",
+    [
+        ([(5, 0), (5, 0), (5, 0)], True),
+        ([(5, 0), (5, 10), (5, 0)], False),
+        ([(5, 0), (0, 0), (5, 0)], False),
+        ([(5, 0), (5, 0)], False),
+    ],
+)
+def test_a_storage_backlog_with_no_progress_for_three_ticks_alerts(
+    tmp_path: Path, ticks: list[tuple[int, int]], stalled: bool
+) -> None:
+    _release_state(tmp_path)
+    for day, (backlog, progress) in enumerate(ticks):
+        _run_row(
+            tmp_path,
+            f"run_m{day}",
+            "maintain",
+            f"2026-09-2{3 + day}T03:31:00+00:00",
+            _storage(backlog, progress),
+        )
+    lines = [line for line in _loops(tmp_path) if line.startswith("[storage-stalled]")]
+    assert lines == (
+        [
+            "[storage-stalled] maintain's evict left 5 waiting with no progress in the last"
+            " 3 ticks; it may not reach them in its budget"
+            " (docs/reference/operations.md#maintain-storage-tasks)"
+        ]
+        if stalled
+        else []
+    )
+
+
+def test_a_storage_task_that_raised_alerts(tmp_path: Path) -> None:
+    _real(tmp_path)
+    maintained = {
+        "loop": "maintain",
+        "finished_at": "2026-09-25T16:06:00+00:00",
+        "evict": {"failed": True, "error": "StorageError: pack unreadable"},
+        "pack_bodies": {"parse_body": 3, "failed": 0},
+    }
+    _ticks(tmp_path, *_fresh(maintain="none"), maintained)
+    _plan(tmp_path, "2026-09-25T16:00:00+00:00")
+    assert _loops(tmp_path) == [
+        "[storage-failed] maintain's tick at 2026-09-25 16:06 UTC recorded a storage task that"
+        " raised: evict: StorageError: pack unreadable; the other tasks ran"
+        " (docs/reference/operations.md#maintain-storage-tasks)"
+    ]
+
+
+def test_a_refused_body_pass_alerts_as_a_failed_storage_task(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """`storage.pack_bodies` refused before any row: what it returns is
+    `[storage-failed]`, not a quiet pass with no backlog."""
+    from swingset.state import storage
+
+    _real(tmp_path)
+
+    def refuse(conn: object, state_dir: object) -> object:
+        raise storage.StorageError("closure proof p of candidate c is not in the database")
+
+    monkeypatch.setattr(storage, "retained", refuse)
+    with open_database(tmp_path) as database:
+        result = storage.pack_bodies(
+            database, now=datetime(2026, 9, 25, 16, 6, tzinfo=UTC), budget_rows=10
+        )
+    maintained = {"loop": "maintain", "finished_at": "2026-09-25T16:06:00+00:00"}
+    _ticks(tmp_path, *_fresh(maintain="none"), {**maintained, "pack_bodies": result})
+    _plan(tmp_path, "2026-09-25T16:00:00+00:00")
+    assert [line for line in _loops(tmp_path) if line.startswith("[storage-failed]")] == [
+        "[storage-failed] maintain's tick at 2026-09-25 16:06 UTC recorded a storage task that"
+        " raised: pack_bodies: StorageError: closure proof p of candidate c is not in the"
+        " database; the other tasks ran (docs/reference/operations.md#maintain-storage-tasks)"
+    ]
+
+
+def test_a_drill_that_started_and_never_finished_reads_as_failed(tmp_path: Path) -> None:
+    _release_state(tmp_path)
+    started = {"at": "2026-09-25T15:00:00+00:00", "passed": None, "set_id": "s"}
+    _drill(tmp_path, "set_20260925T040000Z", "2026-09-25T04:00:00+00:00", started)
+    # Running for 70 minutes: quiet.
+    assert _loops(tmp_path) == []
+    lines = [
+        line
+        for line in _loops(tmp_path, now="2026-09-25T17:01:00+00:00")
+        if line.startswith("[restore-drill-failed]")
+    ]
+    assert len(lines) == 1 and "started and never finished: killed" in lines[0]
+
+
+def test_a_backup_set_written_with_missing_files_alerts(tmp_path: Path) -> None:
+    _release_state(tmp_path)
+    directory = tmp_path / "checkpoints" / "sets" / "set_20260925T040000Z"
+    directory.mkdir(parents=True)
+    body = {"missing": [["derivation_output", "a" * 64, "objects row without a file"]]}
+    (directory / "backup.json").write_text(json.dumps(body))
+    lines = [line for line in _loops(tmp_path) if line.startswith("[backup-incomplete]")]
+    assert lines == [
+        "[backup-incomplete] backup set set_20260925T040000Z was written without 1 named"
+        " files (derivation_output/aaaaaaaaaaaaaaaa); a restore or drill of it refuses."
+        " No local set held a good copy; what puts each class back is in"
+        " docs/guides/backup-and-restore.md (lost files). gc --collect drops only rows"
+        " nothing names"
+    ]
+    (directory / "backup.json").write_text(json.dumps({"missing": []}))
+    assert [line for line in _loops(tmp_path) if line.startswith("[backup-incomplete]")] == []
+
+
+def test_upload_mode_reads_the_archive_record(tmp_path: Path) -> None:
+    _release_state(tmp_path)
+    upload = ["--backup-segmented", "1"]
+
+    def lines() -> list[str]:
+        return [
+            line
+            for line in _loops(tmp_path, extra=upload)
+            if line.startswith(("[backup-stale]", "[archive-size]"))
+        ]
+
+    assert lines() == [
+        "[backup-stale] no backup set has reached the archive (checkpoints/remote.json)"
+    ]
+    record = {
+        "set_id": "set_20260924T040000Z",
+        "uploaded_at": "2026-09-24T04:10:00+00:00",
+        "bytes": 15_000_000_000,
+    }
+    (tmp_path / "checkpoints").mkdir(exist_ok=True)
+    (tmp_path / "checkpoints" / "remote.json").write_text(json.dumps(record))
+    assert lines() == []
+    record["uploaded_at"] = "2026-09-24T04:09:00+00:00"
+    record["bytes"] = 41_000_000_000
+    (tmp_path / "checkpoints" / "remote.json").write_text(json.dumps(record))
+    assert lines() == [
+        "[backup-stale] the newest set in the archive, set_20260924T040000Z, is 36 h old,"
+        " over the 36 h limit; read journalctl -u swingset-backup",
+        "[archive-size] the archive holds 41.0 GB, over 40 GB (docs/guides/backup-and-restore.md)",
+    ]
+    record.update(uploaded_at="2026-09-25T04:10:00+00:00", collect_error="TransportError: x")
+    (tmp_path / "checkpoints" / "remote.json").write_text(json.dumps(record))
+    assert lines() == [
+        "[archive-size] the archive's collector failed after set_20260924T040000Z:"
+        " TransportError: x (docs/guides/backup-and-restore.md)"
+    ]
+
+
+def test_the_blob_store_over_its_budget_alerts(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _release_state(tmp_path)
+    for name in ("objects", "blobs", "extracts", "partitions", "checkpoints"):
+        (tmp_path / name).mkdir(exist_ok=True)
+        (tmp_path / name / "f").write_bytes(b"x" * 100)
+    monkeypatch.setattr(watchdog, "OBJECTS_SIZE_BYTES", 400)
+    assert _loops(tmp_path) == []
+    monkeypatch.setattr(watchdog, "OBJECTS_SIZE_BYTES", 399)
+    assert _loops(tmp_path) == [
+        "[objects-size] objects/, blobs/, extracts/ and partitions/ hold 0.0 GB, over 0 GB;"
+        " read the collector's last sweep in the maintain records"
+        " (docs/plans/architecture.md, 6.3)"
+    ]
+
+
+# The service module (phase 4, WP7): segmented backups and the maintain unit.
+
+EVAL = """
+{ repo, segmented }:
+let
+  lock = builtins.fromJSON (builtins.readFile (repo + "/flake.lock"));
+  locked = lock.nodes.nixpkgs.locked;
+  nixpkgs = builtins.getFlake "github:${locked.owner}/${locked.repo}/${locked.rev}";
+  system = nixpkgs.lib.nixosSystem {
+    system = "aarch64-linux";
+    modules = [
+      (import (repo + "/nix/module.nix"))
+      ({ pkgs, ... }: {
+        boot.isContainer = true;
+        system.stateVersion = "25.05";
+        services.swingset = {
+          enable = true;
+          loops.enable = true;
+          backupUpload = false;
+          backupSegmented = segmented;
+          overridesDir = "/overrides";
+          package = (pkgs.writeShellScriptBin "swingset" "") // { projectSource = "/src"; };
+        };
+      })
+    ];
+  };
+  s = system.config.systemd.services;
+in {
+  backup = s.swingset-backup.serviceConfig.ExecStart;
+  room =
+    if s.swingset-backup.serviceConfig ? ExecStartPre then
+      builtins.attrNames (builtins.getContext s.swingset-backup.serviceConfig.ExecStartPre)
+    else [ ];
+  calendar = system.config.systemd.timers.swingset-maintain.timerConfig.OnCalendar;
+  backupTmp = s.swingset-backup.environment.SQLITE_TMPDIR;
+  maintain = s.swingset-maintain.serviceConfig.ExecStart;
+  timeout = s.swingset-maintain.serviceConfig.TimeoutStartSec;
+  memory = s.swingset-maintain.serviceConfig.MemoryMax;
+  privateTmp = s.swingset-maintain.serviceConfig.PrivateTmp;
+  paths = s.swingset-maintain.serviceConfig.ReadWritePaths;
+  maintainTmp = s.swingset-maintain.environment.SQLITE_TMPDIR;
+  derivePrivateTmp = s.swingset-derive.serviceConfig.PrivateTmp;
+  tmpfiles = system.config.systemd.tmpfiles.rules;
+}
+"""
+
+
+def _env_text(drv: str) -> str:
+    shown = json.loads(
+        subprocess.run(
+            ["nix", "derivation", "show", drv], capture_output=True, text=True, check=True
+        ).stdout
+    )
+
+    def find(value: object) -> str | None:
+        if isinstance(value, dict):
+            env = value.get("env")
+            if isinstance(env, dict) and "text" in env:
+                return str(env["text"])
+            for item in value.values():
+                found = find(item)
+                if found is not None:
+                    return found
+        return None
+
+    return find(shown) or ""
+
+
+@pytest.mark.extended
+@pytest.mark.skipif(shutil.which("nix") is None, reason="needs nix")
+@pytest.mark.parametrize("segmented", [False, True])
+def test_the_module_evaluates_with_and_without_segmented_backups(
+    tmp_path: Path, segmented: bool
+) -> None:
+    expression = tmp_path / "eval.nix"
+    expression.write_text(EVAL)
+    repo = Path(__file__).resolve().parents[1]
+    flag = "true" if segmented else "false"
+    result = subprocess.run(
+        [
+            "nix",
+            "eval",
+            "--impure",
+            "--json",
+            "--expr",
+            f"import {expression} {{ repo = {repo}; segmented = {flag}; }}",
+        ],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    value = json.loads(result.stdout)
+    assert value["backup"].endswith(
+        "backup --state /var/lib/swingset --config /src/config --overrides /overrides"
+        + (" --segmented --lock-timeout 3600 --local" if segmented else " --local")
+    )
+    # After the 04:00 backup, done before the 12:00 one.
+    assert value["calendar"] == "*-*-* 05:30:00"
+    assert value["backupTmp"] == value["maintainTmp"] == "/var/lib/swingset/tmp"
+    assert "d /var/lib/swingset/tmp 0700 swingset swingset -" in value["tmpfiles"]
+    assert value["maintain"].endswith("--budget 60m --timer")
+    assert (value["timeout"], value["memory"]) == ("90min", "2G")
+    # The drill's scratch outlives the unit: maintain sees the real /var/tmp.
+    assert value["privateTmp"] is False and value["derivePrivateTmp"] is True
+    assert value["paths"] == ["/var/lib/swingset", "/var/tmp"]
+    if segmented:
+        # The set checks its own room, by bytes in use (backup/segments._room).
+        assert not [drv for drv in value["room"] if "backup-room" in drv]
+    else:
+        room = _env_text(next(drv for drv in value["room"] if "backup-room" in drv))
+        need = next(line.strip() for line in room.splitlines() if "need=" in line)
+        assert need.startswith("need=$(( 1 * $(") and "du -sb" in need
+        assert "needed for 1 copy plus 20 GB headroom" in room

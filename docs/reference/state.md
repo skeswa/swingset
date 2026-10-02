@@ -21,6 +21,8 @@ Local state is what the worker keeps between runs: saved evidence, database rows
 - [Mapping per source, resolution per event (plan F19)](#mapping-per-source-resolution-per-event-plan-f19)
 - [Link read sets (plan F20)](#link-read-sets-plan-f20)
 - [Partition artifacts](#partition-artifacts)
+- [Objects and packs](#objects-and-packs)
+- [Backup sets](#backup-sets)
 - [Accepted source generations (H7)](#accepted-source-generations-h7)
 - [Durable controls (H13)](#durable-controls-h13)
 - [Publication fences](#publication-fences)
@@ -35,35 +37,42 @@ what each numbered migration changes and links to its exact SQL.
 
 Internal tables:
 
-| Table                    | Key columns                                 | Purpose                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
-| ------------------------ | ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `meta`                   | `key`                                       | `schema_version`, `installed_at`, current input bundle hash                                                                                                                                                                                                                                                                                                                                                                                             |
-| `runs`                   | `run_id`                                    | `started_at`, `finished_at`, `dry_run`, `summary_json`, `loop` (the owning loop; NULL for the cycle and the CLI); maintain compacts a loop row's summary to a stub after 30 days                                                                                                                                                                                                                                                                        |
-| `hosts`                  | `host`                                      | `next_allowed_at`, `paused_until`, `pause_reason`, `pause_streak`, `robots_sha256`, `robots_fetched_at`, `robots_status`                                                                                                                                                                                                                                                                                                                                |
-| `operator_pauses`        | `scope_kind`, `scope_id`                    | operator-requested all, host, source, or requirement-kind pause; stable pause ID, actor, reason, revision, creation time and nullable expiry; separate from automatic host pauses                                                                                                                                                                                                                                                                       |
-| `host_budget`            | `host`, `day`                               | `requests`, `bytes`                                                                                                                                                                                                                                                                                                                                                                                                                                     |
-| `cursors`                | `name`                                      | `value`; durable bootstrap and new-id probe positions and miss counts; `registry_probe_started_at`, `registry_probe_last_completed_at`, `registry_probe_next_at` preserve freshness and cadence across restarts                                                                                                                                                                                                                                         |
-| `watches`                | `watch_id`                                  | every column in [scheduling](scheduling.md#watches) plus `fingerprint`, `extract_version`, `priority`, `created_by_snapshot_id`, `parent_watch_id`, `ever_ok`, current observation snapshot id                                                                                                                                                                                                                                                          |
-| `snapshots`              | `snapshot_id`                               | every column in [fetching](fetching.md#archive) plus `via`, `archive_url`, `captured_at`, `observed_at`, `headers_json`, `classification`, `extract_status`, `extract_sha256`, `parse_status`, `parsed_at`, `extract_version`, `parser_version` (versions last attempted)                                                                                                                                                                               |
-| `archive_captures`       | `source`, `url`, `timestamp`                | `digest`, `status`, `mimetype`, `length`, `queried_at`, `cdx_query_id`; the Wayback CDX index we hold per source, so capture selection can be redone offline ([backfill](backfill.md#the-wayback-transport))                                                                                                                                                                                                                                            |
-| `observations`           | `observation_id`                            | `watch_id`, `snapshot_id`, `kind`, `scope_kind` (`source_event`, `dancer`, `source_index`, `calendar`), `scope_id` (a source reference such as `eepro:asc2025`, never a canonical id), `seq`, `extract_version`, `parser_version`, `payload_json`; indexed by `watch_id` and by (`scope_kind`, `scope_id`)                                                                                                                                              |
-| `source_event_map`       | `source`, `source_ref`                      | `event_id`, `match_method` (`name_date`, `alias`, `override`), `match_confidence`; the projection that resolves observation scopes to events; each event's rows are written by its `project/resolution/<event_id>` unit from the proposals that name it                                                                                                                                                                                                 |
-| `revisions`              | `name`                                      | monotonically increasing counter per set (`observations`, `source_event_map`, `source_events`, `canonical`, `dancers`, `links`, `findings`, `snapshots`), bumped in the writing transaction                                                                                                                                                                                                                                                             |
-| `pending_work`           | `stage`, `unit_kind`, `unit_id`             | `enqueued_at`; coalesced work for parse, project, and link; presence means unfinished                                                                                                                                                                                                                                                                                                                                                                   |
-| `work_queue`             | `stage`, `unit_kind`, `unit_id`             | overlay on `pending_work` and derivation currency: `state` (`ready`, `leased`, `waiting_input`, `quarantined`), `attempts`, `error_class`, `input_fingerprint`, lease owner and expiry, `next_attempt_at`, last reason and error; a row exists only while a unit is leased or failing. A leased row has an owner and expiry; a waiting or quarantined row has a clock. Migration 34 seeds rows for failing pending units; see [Work queue](#work-queue) |
-| `acquisition_plan`       | `plan_key`                                  | `year:<yyyy>` or `page:<watch_id>` rows the plan loop writes and acquire reads ([D-0218](../../journal/decisions/0218-the-loops-judge-the-year-gate-on-facts-and-acquire-from-a-plan-table.md)): `reason` (`eligible` or the gate's stop reason), `rank`, source, URLs, `detail_json`, `planned_at`, `run_id`. A pass cut by its deadline keeps older page rows; a whole pass deletes them                                                              |
-| `guard_reasons`          | `subject`, `reason`                         | why a fetch is held: subject `host:`, `watch:` or `loop:`, the loop that saw it, `since`, `last_seen_at`, `expires_at`, `seen` ([guards](fetching.md#guards))                                                                                                                                                                                                                                                                                           |
-| `loop_state`             | `loop`                                      | each loop's latest tick: run, start and finish, `failed`, `error`, `counters_json`, `last_progress_at`                                                                                                                                                                                                                                                                                                                                                  |
-| `derivation_building`    | `generation_id`                             | a generation whose rows are being stored in chunks after its live write: unit, fingerprint, witness, label digest and rows, `rows_stored`                                                                                                                                                                                                                                                                                                               |
-| `derivation_reads`       | `stage`, `unit_kind`, `unit_id`, `read_key` | the read keys of a link unit's current generation (`project/<kind>/<id>`, `content:<name>/<id>`, `pool:<event>`), replaced at completion or cutoff; indexed by `read_key`, so it is the reverse index from a key to the units that read it (migration 35, `state/read_index.py`). Not a dispatch proof input                                                                                                                                            |
-| `source_event_proposals` | `source`, `source_ref`                      | the event a `project/mapping/<source>` unit proposes for a listing of its source: `event_id`, `match_method`, `match_confidence`, and `placeholder_json`, the event the listing would create when nothing matches; replaced per source, read per event (`state/proposals.py`)                                                                                                                                                                           |
-| `release_partitions`     | `partition`                                 | each release partition's latest state (`event/<id>[+<id>...]`, `dancers/<k>`, `year/<yyyy>`): `inputs_digest`, `state` `built` with `artifact_digest`, or `withheld` with a `reason` (CHECKed), `detail_json`, `built_at`, `run_id` (`state/release_store.py`)                                                                                                                                                                                          |
-| `release_artifacts`      | `artifact_digest`                           | a partition artifact directory under `partitions/`: its partition, `bytes`, `created_at`, `last_named_at`                                                                                                                                                                                                                                                                                                                                               |
-| `release_manifests`      | `manifest_digest`                           | a release manifest file under `partitions/manifests/`: `bytes`, `created_at`, the `candidate_id` built from it, the publication gate's `verdict_json`                                                                                                                                                                                                                                                                                                   |
-| `accepted_inputs`        | `consumer`, `input_name`                    | `digest`; the input value whose invalidation work has been committed, not a stage completion record                                                                                                                                                                                                                                                                                                                                                     |
-| `findings`               | `finding_id`                                | `kind`, `subject_kind`, `subject_id`, `watch_id`, `snapshot_id`, `severity`, `summary`, `evidence_json`, `suggested_override`, `opened_at`, `run_id`, `closed_at`, `closed_by`                                                                                                                                                                                                                                                                          |
-| `source_events`          | `source`, `source_ref`                      | projection of index observations: `name_raw`, `start_date`, `end_date`, `location_raw`, `url`, plus provenance; joins to `source_event_map` for the `event_id`                                                                                                                                                                                                                                                                                          |
-| `backup_uploads`         | `path`                                      | `sha256`, `uploaded_at`; upload optimization only, verified against the selected archive commit on restore                                                                                                                                                                                                                                                                                                                                              |
+| Table                                         | Key columns                                 | Purpose                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| --------------------------------------------- | ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `meta`                                        | `key`                                       | `schema_version`, `installed_at`, current input bundle hash                                                                                                                                                                                                                                                                                                                                                                                             |
+| `runs`                                        | `run_id`                                    | `started_at`, `finished_at`, `dry_run`, `summary_json`, `loop` (the owning loop; NULL for the cycle and the CLI); maintain compacts a loop row's summary to a stub after 30 days                                                                                                                                                                                                                                                                        |
+| `hosts`                                       | `host`                                      | `next_allowed_at`, `paused_until`, `pause_reason`, `pause_streak`, `robots_sha256`, `robots_fetched_at`, `robots_status`                                                                                                                                                                                                                                                                                                                                |
+| `operator_pauses`                             | `scope_kind`, `scope_id`                    | operator-requested all, host, source, or requirement-kind pause; stable pause ID, actor, reason, revision, creation time and nullable expiry; separate from automatic host pauses                                                                                                                                                                                                                                                                       |
+| `host_budget`                                 | `host`, `day`                               | `requests`, `bytes`                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| `cursors`                                     | `name`                                      | `value`; durable bootstrap and new-id probe positions and miss counts; `registry_probe_started_at`, `registry_probe_last_completed_at`, `registry_probe_next_at` preserve freshness and cadence across restarts                                                                                                                                                                                                                                         |
+| `watches`                                     | `watch_id`                                  | every column in [scheduling](scheduling.md#watches) plus `fingerprint`, `extract_version`, `priority`, `created_by_snapshot_id`, `parent_watch_id`, `ever_ok`, current observation snapshot id                                                                                                                                                                                                                                                          |
+| `snapshots`                                   | `snapshot_id`                               | every column in [fetching](fetching.md#archive) plus `via`, `archive_url`, `captured_at`, `observed_at`, `headers_json`, `classification`, `extract_status`, `extract_sha256`, `parse_status`, `parsed_at`, `extract_version`, `parser_version` (versions last attempted)                                                                                                                                                                               |
+| `archive_captures`                            | `source`, `url`, `timestamp`                | `digest`, `status`, `mimetype`, `length`, `queried_at`, `cdx_query_id`; the Wayback CDX index we hold per source, so capture selection can be redone offline ([backfill](backfill.md#the-wayback-transport))                                                                                                                                                                                                                                            |
+| `observations`                                | `observation_id`                            | `watch_id`, `snapshot_id`, `kind`, `scope_kind` (`source_event`, `dancer`, `source_index`, `calendar`), `scope_id` (a source reference such as `eepro:asc2025`, never a canonical id), `seq`, `extract_version`, `parser_version`, `payload_json`; indexed by `watch_id` and by (`scope_kind`, `scope_id`)                                                                                                                                              |
+| `source_event_map`                            | `source`, `source_ref`                      | `event_id`, `match_method` (`name_date`, `alias`, `override`), `match_confidence`; the projection that resolves observation scopes to events; each event's rows are written by its `project/resolution/<event_id>` unit from the proposals that name it                                                                                                                                                                                                 |
+| `revisions`                                   | `name`                                      | monotonically increasing counter per set (`observations`, `source_event_map`, `source_events`, `canonical`, `dancers`, `links`, `findings`, `snapshots`), bumped in the writing transaction                                                                                                                                                                                                                                                             |
+| `pending_work`                                | `stage`, `unit_kind`, `unit_id`             | `enqueued_at`; coalesced work for parse, project, and link; presence means unfinished                                                                                                                                                                                                                                                                                                                                                                   |
+| `work_queue`                                  | `stage`, `unit_kind`, `unit_id`             | overlay on `pending_work` and derivation currency: `state` (`ready`, `leased`, `waiting_input`, `quarantined`), `attempts`, `error_class`, `input_fingerprint`, lease owner and expiry, `next_attempt_at`, last reason and error; a row exists only while a unit is leased or failing. A leased row has an owner and expiry; a waiting or quarantined row has a clock. Migration 34 seeds rows for failing pending units; see [Work queue](#work-queue) |
+| `acquisition_plan`                            | `plan_key`                                  | `year:<yyyy>` or `page:<watch_id>` rows the plan loop writes and acquire reads ([D-0218](../../journal/decisions/0218-the-loops-judge-the-year-gate-on-facts-and-acquire-from-a-plan-table.md)): `reason` (`eligible` or the gate's stop reason), `rank`, source, URLs, `detail_json`, `planned_at`, `run_id`. A pass cut by its deadline keeps older page rows; a whole pass deletes them                                                              |
+| `guard_reasons`                               | `subject`, `reason`                         | why a fetch is held: subject `host:`, `watch:` or `loop:`, the loop that saw it, `since`, `last_seen_at`, `expires_at`, `seen` ([guards](fetching.md#guards))                                                                                                                                                                                                                                                                                           |
+| `loop_state`                                  | `loop`                                      | each loop's latest tick: run, start and finish, `failed`, `error`, `counters_json`, `last_progress_at`                                                                                                                                                                                                                                                                                                                                                  |
+| `derivation_building`                         | `generation_id`                             | a generation whose rows are being stored in chunks after its live write: unit, fingerprint, witness, label digest and rows, `rows_stored`                                                                                                                                                                                                                                                                                                               |
+| `derivation_reads`                            | `stage`, `unit_kind`, `unit_id`, `read_key` | the read keys of a link unit's current generation (`project/<kind>/<id>`, `content:<name>/<id>`, `pool:<event>`), replaced at completion or cutoff; indexed by `read_key`, so it is the reverse index from a key to the units that read it (migration 35, `state/read_index.py`). Not a dispatch proof input                                                                                                                                            |
+| `source_event_proposals`                      | `source`, `source_ref`                      | the event a `project/mapping/<source>` unit proposes for a listing of its source: `event_id`, `match_method`, `match_confidence`, and `placeholder_json`, the event the listing would create when nothing matches; replaced per source, read per event (`state/proposals.py`)                                                                                                                                                                           |
+| `release_partitions`                          | `partition`                                 | each release partition's latest state (`event/<id>[+<id>...]`, `dancers/<k>`, `year/<yyyy>`): `inputs_digest`, `state` `built` with `artifact_digest`, or `withheld` with a `reason` (CHECKed), `detail_json`, `built_at`, `run_id` (`state/release_store.py`)                                                                                                                                                                                          |
+| `release_artifacts`                           | `artifact_digest`                           | a partition artifact directory under `partitions/`: its partition, `bytes`, `created_at`, `last_named_at`                                                                                                                                                                                                                                                                                                                                               |
+| `release_manifests`                           | `manifest_digest`                           | a release manifest: a `release_manifest` object since schema 36 (before, a file under `partitions/manifests/`); `bytes`, `created_at`, the `candidate_id` built from it, the publication gate's `verdict_json`                                                                                                                                                                                                                                          |
+| `accepted_inputs`                             | `consumer`, `input_name`                    | `digest`; the input value whose invalidation work has been committed, not a stage completion record                                                                                                                                                                                                                                                                                                                                                     |
+| `findings`                                    | `finding_id`                                | `kind`, `subject_kind`, `subject_id`, `watch_id`, `snapshot_id`, `severity`, `summary`, `evidence_json`, `suggested_override`, `opened_at`, `run_id`, `closed_at`, `closed_by`                                                                                                                                                                                                                                                                          |
+| `source_events`                               | `source`, `source_ref`                      | projection of index observations: `name_raw`, `start_date`, `end_date`, `location_raw`, `url`, plus provenance; joins to `source_event_map` for the `event_id`                                                                                                                                                                                                                                                                                          |
+| `backup_uploads`                              | `path`                                      | `sha256`, `uploaded_at`; upload optimization only, verified against the selected archive commit on restore                                                                                                                                                                                                                                                                                                                                              |
+| `blob_classes`                                | `class`                                     | one lifecycle policy per stored class: location, roots, collector (`none`, `orphans`, `mark_sweep`), minimum age, whether a backup set carries it; seeded by migration 36 ([objects and packs](#objects-and-packs))                                                                                                                                                                                                                                     |
+| `objects`                                     | `class`, `digest`                           | one row per file under `objects/`: `raw_bytes`, `stored_bytes`, `stored_at`                                                                                                                                                                                                                                                                                                                                                                             |
+| `derivation_evicted`                          | `generation_id`                             | a generation whose references and unshared payloads left the file for its pack ([output packs](#output-packs-and-residency))                                                                                                                                                                                                                                                                                                                            |
+| `source_generation_packs`, `label_body_packs` | `generation_id`                             | the `parse_body` or `label_body` object holding a stubbed body (`pack_digest`, `packed_at`); never updated ([body packs](#body-packs))                                                                                                                                                                                                                                                                                                                  |
+| `storage_applies`                             | `plan_digest`                               | one note per `storage apply` or `gc --collect --apply` (`kind`), written once and finished once with its receipt                                                                                                                                                                                                                                                                                                                                        |
+| `backup_sets`                                 | `set_id`                                    | one row per backup set: its `backup.json` digest, database size and digest, parts, files, transport, `uploaded_at`, `drilled_at`, `drill_json` ([backup sets](#backup-sets)); never fenced                                                                                                                                                                                                                                                              |
+| `backup_objects`                              | `transport`, `key`                          | the segment that holds a file (`path@sha256`) for a transport; never fenced                                                                                                                                                                                                                                                                                                                                                                             |
 
 Canonical tables use the published columns in [data model](data-model.md#tables).
 Their `snapshot_id` provenance names the winning observation's snapshot.
@@ -108,13 +117,22 @@ blobs/                         content-addressed source and manual bodies
 extracts/                      content-addressed serialized extracts
 inputs/<hash>/                 captured config, overrides, vocabularies, versions
 candidates/<candidate_id>/      data/, README.md, _meta/, BUILT, PUBLISHING, PUBLISHED
-partitions/<aa>/<digest>/      release partition artifacts and sidecars; manifests/<digest>.json
+partitions/<aa>/<digest>/      release partition artifacts and sidecars
+partitions/manifests/<d>.json  a phase 3 release manifest; storage apply moves these into objects/
 partitions/.tmp-<id>/          an artifact being written; a crash leaves one, the collector removes it
+objects/<class>/<aa>/<digest>  derivation_output, parse_body and label_body packs (gzip) and
+                               release_manifest objects (raw JSON); <digest> = sha256 of the raw bytes
+objects/.writing-<uuid>        an object being written; the collector removes one a day old
+tmp/                           SQLite temporary files of gc, storage and the collector (never /tmp)
 tmp/assembly-<id>/             a streamed assembly's staging and DuckDB spill; the next build removes one a day old
 baseline -> candidates/<candidate_id>
 holds/<hold_id>.json           one retention hold: who, why, when, what it keeps
-gc/plans/<digest>.json         written retention plans; disposable, not backed up
-gc/receipts/<name>.json        one receipt per apply and per reclaim; not backed up
+gc/plans/<name>.json           written plans: retention by digest, storage-<digest>, collect-<digest>; not backed up
+gc/receipts/<name>.json        one receipt per apply, storage apply, collection and reclaim; not backed up
+checkpoints/run_*/             a full checkpoint (the default backup until backupSegmented)
+checkpoints/sets/<set_id>/     a segmented backup set: db/part-NNNN.zst, index.jsonl.zst, backup.json last
+checkpoints/segments/<sha>.tar shared tar segments the sets name; never rewritten
+operator-hold                  the operator's hold: timers skip; storage apply requires it
 RESTORE_PENDING                present until restore verification succeeds
 state.intent, state.lock       reader-writer lock pair (below); never state
 heavy.intent, heavy.lock       keeps every build and derive's units apart while `[release] streamed_lock` is true (the default)
@@ -132,12 +150,16 @@ bundles are written and made durable before the transaction referring
 to them. A crash can leave an unreferenced artifact; it cannot leave a
 committed reference to an incomplete file. An artifact nothing declares is
 never removed: it is "unknown", and the plan reports it for someone to explain.
-GC is manual in v1, removes nothing except through `gc --apply`, from a written
-plan, under both locks, and the only files it removes are candidate directories
-no release or recent build claims, once they are older than
-`retention.collect_older_than`. See [retention](#retention). The one exception
-is partition artifacts: derived files the build can write again, which the
-maintain loop collects ([partition artifacts](#partition-artifacts)).
+Three paths remove state. `gc --apply` removes candidate directories no
+release or recent build claims, once they are older than
+`retention.collect_older_than`, from a written plan under both locks
+([retention](#retention)). `storage apply` (under `operator-hold` and both
+locks) and maintain's bounded eviction and body packing remove references,
+payloads and body columns only after their pack is written and verified
+([objects and packs](#objects-and-packs)). The collector (`gc --collect
+--apply`, `gc --collect-closures`, or maintain's sweeps) removes objects,
+partition artifacts and dependency sets nothing names
+([collector](#collector)).
 
 ### Locks
 
@@ -747,8 +769,11 @@ rows are exactly the stream is what `PRIMARY KEY(generation_id,ordinal)` and
 pointer and never touches scheduling state, so restoring archived output later
 is checked exactly as a fresh computation is.
 
-References are permanent, like generations. Payload bytes are the one derivation
-record that can be removed, and only by a transaction that carries its own row in
+References live as long as their label: in the file, or, once the generation
+is evicted, as the lines of its pack
+([D-0229](../../journal/decisions/0229-derivation-output-and-bodies-live-in-packs.md)).
+Before schema 36, payload bytes were the one derivation record that could be
+removed, and only by a transaction that carries its own row in
 `derivation_payload_removal_authority`. That row cannot survive its transaction:
 its deferred foreign key points at an always-empty table, so a commit that still
 holds it fails. A grant therefore cannot be left switched on for later
@@ -756,6 +781,10 @@ processes. If one is ever written with foreign keys off, `PRAGMA
 foreign_key_check` reports it, which checkpoint verification and recovery
 already run, doctor lists it, and opening the database clears it. Nothing in the
 pipeline writes the row today.
+
+Schema 36 adds a second gate of the same kind, `storage_eviction_authority`,
+under which old output leaves the file for packs and old bodies are stubbed;
+see [objects and packs](#objects-and-packs).
 
 A reference names its payload by digest with no foreign key, so bytes can be
 archived while the reference stays; a generation whose bytes are not local
@@ -786,8 +815,9 @@ Completion rechecks the selected inputs and prior materialized pointer. It reads
 the output rows once unless it considers a cutoff (below). A new generation streams them through `retain_output`,
 which stores them and records the generation from what it stored; a repeat of an
 existing generation only fingerprints them and is rejected when the digest or row
-count differs; it reads and writes no stored row, and it does not bring archived
-bytes back, which is `gc --restore`'s job. Completion then rechecks the inputs before moving the pointer.
+count differs; it reads and writes no stored row, except that an evicted
+generation is paged in from its pack before the pointer moves
+([output packs](#output-packs-and-residency)). Completion then rechecks the inputs before moving the pointer.
 Output, owned output-row history, revision bumps, and the new pointer commit
 together.
 A late worker cannot overwrite a newer generation. A crash before commit leaves
@@ -1116,17 +1146,21 @@ A build writes rows 200 partitions to a transaction. It checks each artifact
 directory inside that write, so an artifact the collector removed after the
 build found it gets no row and is written again next time.
 
-**Collector.** The maintain loop removes, 500 at a time, inside one write:
-artifact directories and `release_artifacts` rows that no `release_partitions`
-row and no manifest of a retained candidate (the baseline, pending candidates
-and the newest three built) names, once `last_named_at` is a day old;
-directories with no row after a day; `.tmp-` directories after a day; release
-manifest files and `release_manifests` rows that no retained candidate and no
-current build generation's candidate names, written over a day ago
-(`manifests`); and the scratch a killed build left under `state/tmp`
-(`assembly-*`, `partitions-*`, `closure-*`) after a day (`scratch`). A
-retained manifest that cannot be read stops the artifact sweep: it removes
-nothing and says `unreadable`. It is outside `gc --apply` because an artifact
+**Collector.** The maintain loop runs the [collector](#collector)'s two
+classes daily (`collector.collect_artifacts`), 500 to a write: artifact
+directories and `release_artifacts` rows that no `release_partitions` row and
+no manifest of a retained candidate (the baseline, pending candidates, the
+newest three built and the last three published) names, once `last_named_at`
+is before the cutoff; directories with no row and `.tmp-` directories likewise;
+release manifests (the object, its `objects` and `release_manifests` rows and
+any phase 3 file) that no retained candidate and no current build generation's
+candidate names, written before the cutoff (`manifests`); and the scratch a
+killed build left under `state/tmp` (`assembly-*`, `partitions-*`,
+`closure-*`) after a day (`scratch`). A retained manifest that cannot be read
+stops the artifact sweep: it removes nothing and says `unreadable`. A release
+manifest is a raw `release_manifest` object since phase 4; `manifest_file`
+finds the object first, then a phase 3 file, and `storage apply` moves those
+files into objects. It is outside `gc --apply` because an artifact
 holds no input, only a copy of generation rows the build can write again. A
 build that finds an artifact collected while it ran builds stage 1 once more
 at once instead of failing.
@@ -1135,6 +1169,328 @@ at once instead of failing.
 name every generation their partitions read; those are roots
 (`release_manifest`, [roots](#roots)), so `gc` never archives what a retained
 release names.
+
+## Objects and packs
+
+Phase 4 of the [architecture plan](../plans/architecture.md) takes the bulk
+nobody reads often out of `state.sqlite` and into files, gives each kind of
+stored thing one policy, and collects what nothing names
+([D-0229](../../journal/decisions/0229-derivation-output-and-bodies-live-in-packs.md),
+[D-0231](../../journal/decisions/0231-collect-every-unnamed-dependency-set-and-unrooted-object.md)).
+Every label stays in the database; what moves is the output and the old
+bodies behind it. On the 2026-09-29 copy that took the file from 64.8 to
+31.6 GB; the rest is mostly dependency sets other sets name
+([phase 4, W1](../plans/architecture.md#9-migration-plan)).
+
+### Classes
+
+`blob_classes` has one row per class, seeded by migration 36: where it
+lives, what keeps it, its collector and whether a backup set carries it.
+
+| Class                             | Stored as                                                        | Collector                                                                 |
+| --------------------------------- | ---------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| `body`, `extract`, `input_bundle` | `blobs/sha256/`, `extracts/`, `inputs/`, written by their owners | none: permanent; an undeclared file stays unknown (D-0143)                |
+| `derivation_output`               | a pack: one generation output, gzip                              | [collector](#collector), weekly                                           |
+| `parse_body`, `label_body`        | a pack: one old parse body or build recipe, gzip                 | collector, weekly                                                         |
+| `release_manifest`                | a release manifest, raw JSON                                     | collector, daily ([partition artifacts](#partition-artifacts)) and weekly |
+| `partition_artifact`              | a directory under `partitions/`, indexed by `release_artifacts`  | collector, daily                                                          |
+| `dependency_set`                  | rows in `derivation_dependency_sets`; not in a set's files       | collector, weekly                                                         |
+
+`state/objects.py` stores the files of the four object classes under
+`objects/<class>/<aa>/<digest>`, where the digest is the sha256 of the raw
+bytes. A write streams into `objects/.writing-<uuid>`, fsyncs it, renames it
+into place and fsyncs the directories; an intact object already there is
+kept, and a damaged one is replaced. The caller then writes the `objects`
+row (raw and stored bytes, `stored_at`) in the transaction that refers to
+the object, so a crash leaves only an unindexed file, which the collector
+removes after a day. A present row keeps its values but its `stored_at`
+moves up: a writer that reused the file has just written it. `record`
+checks the file after it writes the row and raises `ObjectUnavailable` if a
+collector removed it meanwhile, so no row names a file that is gone. `open`, `lines` and `verify` raise `ObjectUnavailable`
+for a missing, damaged or wrong-digest object. `store_for(conn)` finds the
+state directory from the connection, so the same code works on a checkpoint
+or a restore scratch.
+
+Schema 36 adds `storage_eviction_authority`, a gate of the same kind as the
+payload removal authority ([derivation generations](#derivation-generations-h15)). Under it a
+transaction may delete row references, dependency sets, payloads and
+`derivation_evicted` markers; set a source generation's `manifest_json`,
+`result_json` and `report_json` together to the stub `{"packed":true}` (once a
+`source_generation_packs` row names its pack) or back; and do the same for a
+build label's `recipe_json` with `label_body_packs`. Every other column stays
+immutable, and a pack row cannot go while its row is a stub. Opening the
+database clears a stale row of either gate.
+
+### Output packs and residency
+
+A generation's output pack is a `derivation_output` object whose bytes are its
+label stream, one `canonical((table, key, payload))` line per row in ordinal
+order, so its digest is the label's `output_digest` and one pack serves every
+label with that output (`state/output_packs.py`). A generation is _resident_
+when every reference and payload is in the file and _evicted_ when a
+`derivation_evicted` row says its references left for the pack; complete means
+either, so an evicted generation is never partial or `incomplete`. Readers of
+output go through `output_packs.rows` (label checked, `GenerationUnavailable`
+on a mismatch or missing pack), `row` or `table_rows`; only the modules a
+static test allows name `derivation_rows` or `derivation_row_refs` in SQL.
+Current pointers and building generations stay resident, so the partitioned
+build's two current-pointer joins keep their SQL. A pointer flip to an evicted
+generation pages it in first: inline completion in its transaction, a staged
+run in step B at most `CHUNK_ROWS` references per write (step C refuses a
+larger one still evicted). An evicted generation with its pack on disk is
+local for holds and `require_local`; the retention plan marks it `evicted`
+and, once anything is evicted or packed, reports resident, evicted and partial
+counts and pack bytes under `residence`.
+
+### Eviction
+
+`swingset storage plan` and `storage apply <digest>` move cold output into
+packs once (`state/storage.py`,
+[D-0229](../../journal/decisions/0229-derivation-output-and-bodies-live-in-packs.md)).
+Hot means a current pointer or a building generation; a generation whose
+references are short or miss a payload stays for the collector; every other
+complete generation is evictable. The plan streams the sorted evictable
+`(generation_id, output_digest)` list, the kept list and the evicted list into
+sha256 digests through temporary tables under `<state>/tmp`, so the same state
+gives the same digest in bounded memory; it is written to
+`gc/plans/storage-<digest>.json` with an estimate outside the digest. Apply
+needs `operator-hold`, the writer lock and then the control lock. It
+recomputes the plan and stops if the digest moved, commits a `storage_applies`
+note, writes one pack per distinct output (kept if already there), verifies
+each pack's digest and line count, and then, in one exclusive transaction,
+copies the kept references aside, drops and recreates `derivation_row_refs`
+from its saved SQL, puts the kept rows back, recreates its indexes and
+triggers in their old order, bumps `history_dispatch_fence` once, marks the
+rest evicted and deletes the payloads nothing names under the storage
+authority. Before it commits it checks the index and trigger SQL against the
+saved copy, that every kept resident generation is still resident, and
+`foreign_key_check` on both tables, and it finishes the note with the receipt.
+A crash before that commit leaves only packs and the open note; rerunning the
+digest resumes. Rerunning a finished digest returns its receipt, also written
+to `gc/receipts/storage-<digest>.json`. `storage.evict` is the maintain
+loop's version: cold, complete generations at least a day old, packed and
+verified first, references deleted from the highest ordinal down, at most
+`CHUNK_ROWS` per transaction, so a stopped generation keeps a prefix that the
+next tick or a page-in continues. It waits while a publication is active.
+One generation that cannot be packed, read or verified is isolated: counted
+in `failed`, its id in `failures`, its rows charged to the budget, the guard
+`loop:maintain evict_failed` (24-hour clock), and the pass goes on. It then
+waits out a retry window, 1 day doubling to 7 (`gc/evict-retry.json`, a
+hint that is never backed up), counted in `deferred`; the guard stays while
+any generation waits. An `OSError` of a full disk or quota or an unwritable
+store stops the pass and starts no window. A damaged pack of a resident
+generation is written again from the file (`pack(repair=True)`, which
+apply's verification uses too). Each pass first puts back every `objects`
+file whose row stands and whose file is gone from the newest local backup
+set that holds it (`restore_lost`; `restored`, `lost`). A pack of an evicted
+generation that is missing or damaged also comes back when a unit reuses
+that generation: the unit's own output, checked against the label, is
+written back and the pack written again (`output_packs.rebuild`; inline
+completion in its transaction, a staged run in step B a chunk per write). A
+unit with an evicted generation over `CHUNK_ROWS` is staged, so such a
+page-in never runs whole inside one inline transaction. Apply, eviction, body packing and the
+collector run with `secure_delete` off (`disk.fast_delete`): the worker's
+SQLite zeroes freed pages through the WAL otherwise, which made the
+rehearsal's move write a 30 GB WAL (W2). Apply refuses before it writes
+anything unless the disk, quota included, has twice the kept references'
+bytes plus 10 GB, and truncates the WAL after its move.
+
+### Body packs
+
+Old parse bodies and large build recipes are packed too
+(`state/body_packs.py`). A source generation's `manifest_json`, `report_json`
+and `result_json` become one `parse_body` object, `canonical({"manifest",
+"report", "result"})` of the three strings, so equal bodies share one object; a
+`source_generation_packs` row names it and the three columns hold the stub.
+`recipe_json` stays, since parse code reads it for every row. A build label's
+`recipe_json` over 1 MB becomes a `label_body` object named by
+`label_body_packs`. `storage plan` lists both as stages: the targets are every
+unprotected row, packed or not, so a resumed apply keeps its digest. Apply
+writes every object, verifies every one, then stubs source rows 1,000 to a
+transaction and build labels one at a time, each stub rechecking that the row
+still hashes to its object, before the output move. `storage.pack_bodies` is
+the maintain pass: bounded rows, each rechecked against the rules in the
+transaction that stubs it. `storage restore-body <generation_id>` writes one
+body back after checking the object against the pack row, and deletes the pack
+row.
+
+A source generation is protected, never packed, when it is: in any state but
+`accepted` or `superseded`; a unit's accepted generation; a unit's newest by
+`(created_at, generation_id)`; without an admission decision; on the
+predecessor chain from an accepted generation back to the previous accepted
+one; named by `source_equivalences`, an open finding, or an admission
+review's cohort; read by the kept `event_*` subsystem (`event`: every event
+enumeration's own generation, the keys of its `parent_support_json` and the
+`generation_id`s in its members' `support_json`, which event coverage and
+event retirement decode again); named anywhere in a retained closure-mode
+candidate's closure proof (`storage.retained` reads every `generation_id`,
+`event_coverage` included); or created within 7 days of the start of the
+current UTC day. The maintain pass rechecks `event` against a snapshot of the
+two append-only enumeration tables plus the rows added since. A build label is protected
+while a pointer or building row names it, while a retained candidate's
+artifact row is in its output, or for 7 days. Every reader of the three
+columns:
+
+| Reader                                                                   | Rows it reads                                 | With a stub                                                                      |
+| ------------------------------------------------------------------------ | --------------------------------------------- | -------------------------------------------------------------------------------- |
+| `admission/generations.py` `_cutoff` (parse scope)                       | accepted, undecided, newest: protected        | the stub is not the new triple: no cutoff, a new generation (tested)             |
+| `admission/select.py` `revoke_generation` (parse scope; no caller today) | the chain to the previous accepted: protected | `KeyError`, rolled back; `body_packs.check_revocation` names it (tested)         |
+| `admission/select.py` `admit_generation` (parse scope)                   | the staged row: protected                     | not reached                                                                      |
+| `admission/support.py` `generation_failure_codes` (parse scope)          | the generation just admitted: protected       | `KeyError` (tested)                                                              |
+| `history/origin_dispatch.py` (parse scope), `platform.py`, `backfill.py` | the accepted generation: protected            | not reached (tested: no accepted row is a target)                                |
+| `history/captures.py`                                                    | the report only of a held state: protected    | not reached                                                                      |
+| `admission/policy.py` review and activation                              | a review cohort: protected                    | `KeyError`, or "Reviewed corpus changed" (tested)                                |
+| `admission/page_evidence.py`, `schedule/event_*`, `admission/event_*`    | enumerations, parents, claims: protected      | `decode_generation` raises: the fingerprint and id no longer match (tested)      |
+| `build/event_coverage.py` `_Reader.parent`                               | enumeration parents: protected                | not reached (tested: an old parent's witness validates after packing)            |
+| `state/parse_recovery.py`                                                | a unit's newest 8 for one snapshot            | the stub manifest is not a list: `Unassessed`                                    |
+| `build/closure_support.py`                                               | accepted generations a closure names          | `body_packs.resolve` (tested on a closure-mode baseline)                         |
+| `build/partition_checks.py`                                              | every generation of a snapshot and parser     | report and observations from the pack, one read per pack a build (tested)        |
+| `build/closure_validation.py` proof fingerprint                          | a closure's sources                           | hashes the stub and the pack row's digest (tested)                               |
+| `state/retention.py` backup closure                                      | every manifest                                | `body_packs.pack_manifest` once per pack; an unreadable pack is missing (tested) |
+| `state/closure_collection.py` (build recipes)                            | every build label                             | `body_packs.recipe` (tested)                                                     |
+
+### Collector
+
+`state/collector.py` is one mark-sweep over every stored class
+([D-0231](../../journal/decisions/0231-collect-every-unnamed-dependency-set-and-unrooted-object.md),
+extending D-0200). The cutoff is the start of the current UTC day minus one
+day; only what is older goes, so a plan and its apply on one day agree.
+
+| Class                | Kept when                                                                                                                                   |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `derivation_output`  | a label's `output_digest` names it                                                                                                          |
+| `parse_body`         | a `source_generation_packs` row names it                                                                                                    |
+| `label_body`         | a `label_body_packs` row names it                                                                                                           |
+| `release_manifest`   | a retained candidate, a current build pointer or one of the last 3 published releases names it                                              |
+| `partition_artifact` | a `release_partitions` row or a kept manifest names it ([partition artifacts](#partition-artifacts))                                        |
+| `dependency_set`     | a generation, an equivalence, a scope's proof, a recipe, any candidate directory or a kept set names it, or it was written after the cutoff |
+
+A recipe names a set by its continuity support or its release closure (public
+and private; a packed build recipe is read from its pack). A kept set names
+others by `"fingerprint"` in its JSON array, followed to a fixpoint; a false
+match keeps more. A set written after the cutoff is kept with everything it
+names: a staged run's step A captures sets that only step B names, and B
+writes all of them again in the transaction that names them, so even a set
+collected between A and B comes back (tested). Orphans: `objects/.writing-*`,
+`objects/.collecting-*` and files under `objects/` with no row, both after the cutoff by mtime, and
+the references of a partial generation, old, not evicted, that no pointer,
+equivalence or building row names (D-0217): deleted from the top,
+`CHUNK_ROWS` to a write, with payloads nothing else names; the label stays
+partial. Bodies, extracts and input bundles have no collector: an undeclared
+file stays unknown (D-0143).
+
+The mark runs in one read transaction and keeps roots and victims in
+temporary tables under `<state>/tmp`, never in Python; a set's created_at is
+read only for sets nothing names, since it lies past a value of up to hundreds
+of megabytes. Deletes go 500 to a write, each rechecking its rule there. An
+object's row goes and its file is renamed to `objects/.collecting-<class>-<digest>`
+in the same write, renamed back if it rolls back and removed after the commit,
+so a writer reusing the file never records a row for a file that is gone, and
+a crash leaves only a `.collecting-` file the orphan sweep removes. A set delete first adds the roots of generations,
+equivalences, sets and candidate manifests committed since the mark; the set
+with the highest rowid at the mark is never deleted, so every later insert has
+a higher rowid and is seen. Deletes run under the storage authority; before
+schema 36 they lift `derivation_dependency_no_delete` inside the write, as
+D-0200 did, and need `operator-hold`. A publication in progress stops the
+sweep. `gc --collect --plan|--apply` runs it once ([operations](operations.md));
+maintain runs `sweep` with a stop callback. On a synthetic state of 200,000
+labels, 100,000 objects and 300,000 sets the whole sweep peaks at 107 MB,
+1.23 times a run ten times smaller (`test_collector_memory.py`). On the
+phase 4 rehearsal clone, after `storage apply`, the plan took 54 s and the
+apply 170 s at about 200 MB, and removed 598,088 sets, 0.10 GB: the large
+sets are all named through another set.
+
+## Backup sets
+
+The backup contract: a set restores the whole state offline. Its database
+parts and the segments its index names hold everything a restore needs,
+evicted output and packed bodies included, since every `objects/` file is
+in the closure. Fetching them from the archive is the only network a remote
+set needs; a local set needs none. Activation still checks the public hub,
+as every restore does; the install and the drill do not.
+
+`backup --segmented` writes a set (`backup/segments.py`;
+[D-0232](../../journal/decisions/0232-segmented-backups-with-a-weekly-restore-drill.md)).
+It opens as the loop `backup`, under the shared state lock, so the loops keep
+running; the drill holds the same loop lock, so the two never overlap. It first
+removes scratch sets and segment writes over a day old (`clean_abandoned`,
+which maintain also runs daily), and refuses unless the disk, quota included,
+has the database's bytes in use (page count less the free list) plus 20 GB.
+It runs `VACUUM INTO` (one read transaction), then, under the
+control lock, reads the file closure from that copy: `artifact_closure` (bodies,
+extracts, input bundles), every `objects` row, legacy release manifests and
+the partition artifacts a current partition or retained manifest names, the
+baseline and pending candidates, `holds/` and the other loose files a
+checkpoint copied. Files that change in place are copied into the set's
+scratch under the same lock. The copy is taken outside the control lock, as a
+checkpoint's is, since every database open and control waits on that lock; a
+newer hold names only files already on disk.
+
+| File                 | Content                                                                                                   |
+| -------------------- | --------------------------------------------------------------------------------------------------------- |
+| `db/part-NNNN.zst`   | the copy as one zstd stream, cut every 4 GiB; sha256 of the raw file and of each part                     |
+| `index.jsonl.zst`    | `[class, path, sha256, bytes, segment]` per file, by path; sha256 of the gunzipped bytes for gzip classes |
+| `segments/<sha>.tar` | PAX tar, mtime 0, state-relative names, at most 4 GiB, named by its own sha256                            |
+| `backup.json`        | canonical; names the parts, the index, every segment the index needs, and `missing`; written last         |
+
+A file goes into a new segment when its `path@sha256` key has no
+`backup_objects` row for the transport, or its row names a segment the
+transport no longer holds. Each new file is checked against its digest as it
+is read. The transport (`backup/transport.py`) sends new segments, the parts,
+the index, then `backup.json`; only then are `backup_objects` and
+`backup_sets` written, so a failed upload records nothing, removes the
+unrecorded local set, and the next run resends. `--local` uses `checkpoints/`
+itself, `--destination` a directory, and the default the private dataset
+`skeswa/swingset-backup-sets` (never the checkpoint archive): one commit per
+set, the newest 3 remote sets kept. After each upload the transport's
+`collect` removes the segments no kept set names and, on the Hub, squashes
+the history so their bytes go, refusing while the repository holds a path
+no set wrote; `checkpoints/remote.json`
+records the set, the time and the archive's files and bytes, and
+`backup_objects` rows of removed segments go
+([D-0234](../../journal/decisions/0234-the-backup-archive-collects-unnamed-segments-and-squashes-its-history.md)).
+No file exceeds 4 GiB. Local pruning keeps the newest set and the newest
+drilled one, and the segments they name; scratch younger than a day stays.
+
+An `objects` row whose file is gone is put back first from the newest local
+set that holds it (`SegmentRecovery.recover_object`, checked against its
+name; `restored`); failing that, when the newest local index names it and
+the transport still holds that segment, the new index names the same segment
+(`absent`). A file the closure names that is still missing (such an object,
+a retained manifest or named artifact that is gone, or a pack row whose
+object has no `objects` row), or a new file that does not match its digest
+or decompress, no longer fails the set: `backup.json` lists it under
+`missing` as `[class, key, reason]` and `[backup-incomplete]` goes to
+`ALERTS.log`. The tar stays whole: a bad read is padded to its declared
+size and left out of the index. A missing body, extract or input bundle
+still fails the set. Install, and so the drill, refuses a set whose
+`missing` is not empty, and checks that every `objects` row has its file and
+every pack row an `objects` row. The collector leaves manifests and
+artifacts alone while the backup holds `loop-backup.lock`, since a set lists
+files after its `VACUUM INTO`.
+
+`restore_set.install` fetches every file and checks every digest before it
+decompresses, joins the parts (raw sha256), checks the schema,
+`integrity_check` and `foreign_key_check`, extracts each indexed member with
+its digest, and checks the restored closure, all in a scratch inside the
+target (the object check runs on a quick install too). Only then does it move
+files into place and make the baseline link.
+`restore --backup-set <id|latest> [--from <dir>]` wraps it in
+`RESTORE_PENDING`, the public hub check and activation, as `restore
+--checkpoint` does. `SegmentRecovery` restores a lost body or extract from a
+local set's segment after `LocalCheckpointRecovery` (`backup/recovery.py`),
+and a lost object for the backup, maintain's evict and `storage
+recover-objects`; it reads each set's index, and each segment's tar headers
+with every member's offset, once per instance into a lookup on disk;
+loops, the cycle and the CLI build that chain, parse scopes never do. The
+full checkpoint stays the default backup until
+`services.swingset.backupSegmented` is set. The weekly
+[restore drill](operations.md#restore-drill) calls `install` alone into
+scratch and writes `backup_sets.drilled_at` and `drill_json`. A
+set of 50,000 files and a 218 MB database peaks at 173 MB of RSS
+(`test_segments_memory.py`, bound 300 MB). A set taken while maintain's
+collector removes one of its objects records it as missing, and the next set
+is whole again.
 
 ## Accepted source generations (H7)
 
@@ -1258,7 +1614,8 @@ historical ownership or host-budget eligibility.
 An active publication admission fences writes with `BEFORE` triggers that
 raise `active publication fences semantic writes`
 (`state/publication_fence.py`). Every migration from schema 12 refreshes
-them, so a new table is covered. The control tables above are never fenced.
+them, so a new table is covered. The control tables above are never fenced,
+nor are the backup records `backup_sets` and `backup_objects` (schema 36).
 
 | Admission kind                      | Candidate               | Fences                                               | Loops                                              |
 | ----------------------------------- | ----------------------- | ---------------------------------------------------- | -------------------------------------------------- |
@@ -1278,6 +1635,9 @@ it and runs the check under an authorizer to show it reads nothing else.
 | `source_generations`                                           | `state='revoked'` (a revocation, or its removal) |
 | `derivation_scopes`, `derivation_generations`                  | `stage='build'`                                  |
 | `derivation_row_refs`                                          | rows of a build generation                       |
+| `derivation_evicted`, `label_body_packs` (schema 36)           | rows of a build generation                       |
+| `objects` (schema 36)                                          | release manifests, label bodies, build output    |
+| `source_generation_packs` (schema 36)                          | rows of a revoked generation                     |
 | `derivation_payloads`                                          | deletes only (payloads are shared by content)    |
 | `release_partitions`, `release_artifacts`, `release_manifests` | all                                              |
 
@@ -1294,10 +1654,12 @@ until its receipt is reconciled.
 ## Retention
 
 A saved computation is three things with three lifetimes. The **label** (the
-`derivation_generations` row, its dependency set, and its row references) is
-permanent; nothing here ever deletes one. The **output bytes** are the
-`derivation_payloads` rows the references name; retention decides only where
-they live. The **current pointer** is `derivation_scopes.materialized_generation_id`,
+`derivation_generations` row and its dependency set) is permanent; nothing here
+ever deletes one. The **output** is its row references and the
+`derivation_payloads` rows they name; it lives in the file or, once the
+generation is evicted, in a pack kept as long as the label
+([objects and packs](#objects-and-packs), D-0229). Only a dependency set
+nothing names is collected ([collector](#collector), D-0231). The **current pointer** is `derivation_scopes.materialized_generation_id`,
 owned by the pipeline; retention never moves one.
 
 `state/retention.py` does one walk and produces two lists:
@@ -1308,11 +1670,13 @@ owned by the pipeline; retention never moves one.
 - **local**: every generation the walk reaches from a root. These stay in the
   live database, so every backup carries them and a restore needs no network.
 
-Durable minus local is archivable. Nothing archives or removes output bytes yet:
-`gc --plan` writes down what the lists say, and `gc --apply` removes only files
-from it. `state/retention_apply.py` is the only thing in the tree that removes
-anything
+Durable minus local is archivable. `gc --plan` writes down what the lists say,
+and `gc --apply` removes only files from it
 ([D-0147](../../journal/decisions/0147-only-a-planned-locked-apply-removes-anything.md)).
+Output leaves the file another way: `storage apply` and maintain's eviction
+move it into packs, which keep it durable and local, so an evicted generation
+with its pack on disk counts as local for holds and `require_local`. The plan
+marks it `evicted`.
 
 ### Roots
 
@@ -1389,7 +1753,8 @@ is read against, so they are real bytes.
 asked, why, when, and the generation ids and artifact digests it keeps. It runs
 under the control lock, walks the closure first, and refuses, naming the ids to
 restore, if any generation it reaches is not completely local: references
-present, every payload present, and the count matching the label. A named
+present, every payload present, and the count matching the label, or evicted
+with its pack on disk. A named
 artifact digest has to be a file under `blobs/` or `extracts/` already. Nothing
 is written when it refuses. Naming a generation in a finding gets the same check in
 `replace_findings`, in the caller's write transaction under the writer lock
@@ -1405,8 +1770,9 @@ named by one unchanged finding refuse every other finding for that owner
 
 `config/sources.toml` may carry a `[retention]` table. An absent table or key
 means the default, which lives in `RetentionConfig` in `src/swingset/config.py`.
-Production sets `max_database_bytes = "64GB"` and the two checkpoint values
-below. Setting a key is how an operator changes any of them:
+Production sets `max_database_bytes` (76 GB since
+[D-0233](../../journal/decisions/0233-raise-the-size-cap-to-76-gb-until-phase-4.md))
+and the two checkpoint values below. Setting a key is how an operator changes any of them:
 `max_database_bytes` (default 32,000,000,000 since D-0186) is the most
 `state.sqlite` may be on disk; `recent_window` (default 3) is how many recent
 generations of each scope are roots; `collect_older_than` (default one day) is
@@ -1439,9 +1805,11 @@ backup keeps the one it wrote and removes every older `run_*`
 ([D-0203](../../journal/decisions/0203-back-up-locally-and-keep-one-checkpoint-until-segmented-backups.md)).
 The runway is short (rough estimate): steady free space is about 218 GB less
 twice the state size S, so `[disk-low]` stays on past S ≈ 59 GB and the
-backup room check refuses past S ≈ 66 GB. Phase 4 of the
-[architecture plan](../plans/architecture.md) starts, or the quota rises, at
-S ≈ 55 GB.
+backup room check refuses past S ≈ 66 GB. Backup sets replace these
+checkpoints once `services.swingset.backupSegmented` is set
+([D-0232](../../journal/decisions/0232-segmented-backups-with-a-weekly-restore-drill.md)):
+the knobs above do not apply to sets, which keep the newest and the newest
+drilled ([backup sets](#backup-sets)).
 
 `gc --apply` frees pages inside the file and `gc --reclaim` gives them back to
 the filesystem, which is what the cap measures. Raising `max_database_bytes` is
@@ -1509,11 +1877,12 @@ nothing; it writes the receipt file again if that file is missing, because the
 note is the record and the file is the operator's copy. Running an old digest
 that was never applied stops, because the state has moved.
 
-No payload is eligible today. Bytes may go only once they are somewhere else,
-and the only record that will say so is the `archived_generations` table of plan
-step 4, so the gate returns nothing until that table exists and names the
-generation
-([D-0149](../../journal/decisions/0149-no-generation-is-eligible-until-a-table-says-it-is-archived.md)).
+No payload is eligible for `gc --apply`. Its gate looks for the
+`archived_generations` table of the bounded-state plan's step 4, which phase 4
+replaced with packs, so it returns nothing
+([D-0149](../../journal/decisions/0149-no-generation-is-eligible-until-a-table-says-it-is-archived.md),
+superseded by [D-0229](../../journal/decisions/0229-derivation-output-and-bodies-live-in-packs.md));
+payloads leave through `storage apply` instead.
 A payload shared by a local generation stays whatever else names it.
 
 The plan carries that answer: every generation row says whether it is archived,
@@ -1527,10 +1896,18 @@ apply, instead of widening what it removes past what the plan named
 Deleting rows and dropping tables return pages to SQLite's free list and leave
 the file the size it was. `gc --reclaim` closes that gap:
 
-1. Check free disk. The in-place rewrite needs about twice the current file size,
-   and it refuses before touching anything if that is not there.
-2. Take the writer lock, then the control lock. Run
-   `PRAGMA wal_checkpoint(TRUNCATE)`.
+1. Check free disk. The in-place rewrite writes a temporary copy of the pages
+   in use and, in WAL mode, the same pages again through the log: the phase 4
+   rehearsal used 76.3 GB of disk for 32.4 GB in use (2.35 times; W3 of the
+   [architecture plan](../plans/architecture.md#9-migration-plan)). So it
+   asks `2.5 × bytes in use + 12 GB` (bytes in use is `page_count -
+freelist_count` pages) on the smaller of statfs and the quota in
+   `/run/swingset-disk`, and refuses before touching anything if that is not
+   there or the quota reading is over an hour old (run `sudo swingset-disk`).
+   The receipt records this estimate and the old one, twice the file size.
+2. Take the writer lock, then the control lock. Point SQLite's temporary files
+   at `<state>/tmp` (`PRAGMA temp_store_directory`, put back afterwards; the
+   worker's `/tmp` is a small tmpfs). Run `PRAGMA wal_checkpoint(TRUNCATE)`.
 3. Run `VACUUM` in place on the one writer connection: no second database file
    and no swap. SQLite's own journal makes it all-or-nothing, so a crash rolls
    back to the original file on the next open. Readers keep reading. A pending
@@ -1563,7 +1940,9 @@ pins
 
 Schema 31 adds `retention_applies`, one permanent note per apply keyed by the
 plan digest. Schema 32, interning, comes after both, so an apply on a schema-31
-database removes files and no row data at all.
+database removes files and no row data at all. Schema 36 adds `storage_applies`,
+the same kind of note for `storage apply` and `gc --collect --apply`.
 
-The [bounded state plan](../plans/bounded-state-and-archive.md) owns the rest:
-archiving and `gc --restore` do not exist yet, so no payload bytes ever leave.
+Archiving to remote stores and `gc --restore`, the
+[bounded state plan](../plans/bounded-state-and-archive.md)'s step 4, were
+never built; packs replaced them ([objects and packs](#objects-and-packs)).

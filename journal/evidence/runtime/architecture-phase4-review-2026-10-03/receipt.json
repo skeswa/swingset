@@ -1,0 +1,429 @@
+{
+ "code": "working copy after the phase 4 review fixes, 2026-10-03",
+ "derive": {
+  "completed": 5690,
+  "failed_ticks": 0,
+  "finished": "2026-10-03T09:34:43.353287+00:00",
+  "paged_in": 0,
+  "peak_rss_bytes": 1698168832,
+  "pointers_to_evicted": 0,
+  "sampler": {
+   "max_tmp_bytes": 0,
+   "max_tmp_files": 1,
+   "max_wal_bytes": 5409592,
+   "min_disk_free_bytes": 123825553408
+  },
+  "started": "2026-10-03T09:14:37.617303+00:00",
+  "ticks": 2,
+  "unit_failures": 0,
+  "wall_seconds": 1205.7
+ },
+ "evict_on_unapplied_clone": {
+  "evict": {
+   "backlog": 569922,
+   "failed": 0,
+   "failures": [],
+   "generations": 28154,
+   "packed": 14108,
+   "references": 1991822,
+   "repaired": 0,
+   "skipped": 0
+  },
+  "evict_seconds": 463.6,
+  "finished": "2026-10-03T10:04:55.288447+00:00",
+  "objects": {
+   "derivation_output": {
+    "bytes": 31521057,
+    "files": 14108
+   },
+   "label_body": {
+    "bytes": 168749601,
+    "files": 11
+   },
+   "parse_body": {
+    "bytes": 39066586,
+    "files": 15744
+   },
+   "total_bytes": 239337244
+  },
+  "pack_bodies": {
+   "backlog": 173865,
+   "failed": 0,
+   "failures": [],
+   "label_body": 11,
+   "parse_body": 20000,
+   "skipped": 0,
+   "written": 15755
+  },
+  "pack_bodies_seconds": 87.9,
+  "peak_rss_bytes": 572063744,
+  "sampler": {
+   "max_tmp_bytes": 0,
+   "max_tmp_files": 0,
+   "max_wal_bytes": 31250232,
+   "min_disk_free_bytes": 124124024832
+  },
+  "started": "2026-10-03T09:55:43.301478+00:00",
+  "wall_seconds": 551.9,
+  "what": "maintain's two bounded passes on a second clone, migrated to 36 and not applied: day 2 after a large supersession",
+  "writes": {
+   "count": 28572,
+   "failed": 0,
+   "longest": [
+    [
+     "_shed",
+     1.618
+    ],
+    [
+     "_shed",
+     1.611
+    ],
+    [
+     "_shed",
+     1.526
+    ]
+   ],
+   "max_seconds": 1.618
+  }
+ },
+ "format": "architecture-phase4-review-rehearsal-v1",
+ "maintain": {
+  "after": {
+   "evicted": 598076,
+   "file": {
+    "bytes": 64775827456,
+    "file_bytes": 64775827456,
+    "freelist_bytes": 32126050304,
+    "page_count": 15814411,
+    "used_bytes": 32649777152,
+    "wal_bytes": 0
+   },
+   "refs": 2796109
+  },
+  "before": {
+   "evicted": 598076,
+   "file": {
+    "bytes": 64775827456,
+    "file_bytes": 64775827456,
+    "freelist_bytes": 32031494144,
+    "page_count": 15814411,
+    "used_bytes": 32744333312,
+    "wal_bytes": 0
+   },
+   "refs": 2796109
+  },
+  "budget_seconds": 3600,
+  "failed": false,
+  "finished": "2026-10-03T09:40:14.939193+00:00",
+  "peak_rss_bytes": 510263296,
+  "progress": 11,
+  "sampler": {
+   "max_tmp_bytes": 0,
+   "max_tmp_files": 0,
+   "max_wal_bytes": 4944032,
+   "min_disk_free_bytes": 122784489472
+  },
+  "seconds": 324.3,
+  "started": "2026-10-03T09:34:43.881550+00:00",
+  "summary": {
+   "artifacts": {
+    "bytes": 0,
+    "kept": 0,
+    "manifests": 0,
+    "removed": 0,
+    "rows": 0,
+    "scratch": 0,
+    "temporary": 0,
+    "unreadable": 0
+   },
+   "backup_scratch": {
+    "removed": [],
+    "removed_bytes": 0
+   },
+   "collector": {
+    "classes": {
+     "dependency_set": {
+      "bytes": 104479960,
+      "removed": 603777
+     },
+     "derivation_output": {
+      "bytes": 0,
+      "removed": 0
+     },
+     "label_body": {
+      "bytes": 0,
+      "removed": 0
+     },
+     "parse_body": {
+      "bytes": 0,
+      "removed": 0
+     },
+     "partial_refs": {
+      "removed": 0
+     },
+     "partition_artifact": {
+      "bytes": 0,
+      "removed": 0
+     },
+     "release_manifest": {
+      "bytes": 0,
+      "removed": 0
+     },
+     "unindexed": {
+      "bytes": 0,
+      "removed": 0
+     },
+     "writing": {
+      "bytes": 0,
+      "removed": 0
+     }
+    },
+    "complete": true,
+    "failed": false,
+    "mark_seconds": 184.953,
+    "seconds": {
+     "dependency_set": 120.856
+    }
+   },
+   "drill": null,
+   "evict": {
+    "backlog": 0,
+    "failed": 0,
+    "generations": 0,
+    "packed": 0,
+    "references": 0,
+    "repaired": 0,
+    "skipped": 0
+   },
+   "pack_bodies": {
+    "backlog": 0,
+    "failed": 0,
+    "label_body": 0,
+    "parse_body": 0,
+    "skipped": 0,
+    "written": 0
+   },
+   "retention_cap": {
+    "file_bytes": 64775827456,
+    "max_database_bytes": 76000000000,
+    "over_cap": false,
+    "paused": false
+   },
+   "verify": {
+    "complete": true,
+    "peak_rss_bytes": 510263296,
+    "seconds": 21.61,
+    "week": "2026-W40"
+   }
+  },
+  "task_seconds": {
+   "collect_artifacts": {
+    "peak_rss_bytes_after": 170377216,
+    "peak_rss_bytes_before": 164020224,
+    "seconds": 0.0
+   },
+   "evict": {
+    "peak_rss_bytes_after": 170377216,
+    "peak_rss_bytes_before": 170377216,
+    "seconds": 11.4
+   },
+   "pack_bodies": {
+    "peak_rss_bytes_after": 510263296,
+    "peak_rss_bytes_before": 170377216,
+    "seconds": 95.6
+   },
+   "run": {
+    "peak_rss_bytes_after": 510263296,
+    "peak_rss_bytes_before": 510263296,
+    "seconds": 21.6
+   },
+   "sweep": {
+    "peak_rss_bytes_after": 510263296,
+    "peak_rss_bytes_before": 510263296,
+    "seconds": 185.0
+   }
+  },
+  "wall_seconds": 331.1
+ },
+ "migrate": {
+  "finished": "2026-10-03T08:36:45.188673+00:00",
+  "foreign_key_violations": 0,
+  "peak_rss_bytes": 80281600,
+  "sampler": {
+   "max_tmp_bytes": 0,
+   "max_tmp_files": 0,
+   "max_wal_bytes": 48397672,
+   "min_disk_free_bytes": 143191646208
+  },
+  "schema": [
+   32,
+   36
+  ],
+  "started": "2026-10-03T08:22:48.550397+00:00",
+  "wall_seconds": 836.6
+ },
+ "stats": {
+  "file": {
+   "bytes": 64775827456,
+   "file_bytes": 64775827456,
+   "freelist_bytes": 32126050304,
+   "page_count": 15814411,
+   "used_bytes": 32649777152,
+   "wal_bytes": 0
+  },
+  "objects": {
+   "derivation_output": {
+    "bytes": 191085216,
+    "files": 30064
+   },
+   "label_body": {
+    "bytes": 168749601,
+    "files": 11
+   },
+   "parse_body": {
+    "bytes": 103564864,
+    "files": 40973
+   },
+   "total_bytes": 463399681
+  }
+ },
+ "storage_apply": {
+  "bodies": {
+   "label_body": {
+    "kept": 0,
+    "objects": 11,
+    "raw_bytes": 1526810520,
+    "stored_bytes": 168749601,
+    "stubbed": 11,
+    "written": 11
+   },
+   "parse_body": {
+    "kept": 152892,
+    "objects": 40973,
+    "raw_bytes": 868164244,
+    "stored_bytes": 103564864,
+    "stubbed": 193865,
+    "written": 40973
+   }
+  },
+  "error": null,
+  "file_after": 64775827456,
+  "finished": "2026-10-03T09:14:22.379691+00:00",
+  "finished_at": "2026-10-03T09:13:46.022469Z",
+  "generations_evicted": 598076,
+  "objects": {
+   "derivation_output": {
+    "bytes": 191085216,
+    "files": 30064
+   },
+   "label_body": {
+    "bytes": 168749601,
+    "files": 11
+   },
+   "parse_body": {
+    "bytes": 103564864,
+    "files": 40973
+   },
+   "total_bytes": 463399681
+  },
+  "packs": {
+   "kept": 0,
+   "raw_bytes": 3626723027,
+   "repaired": 0,
+   "stored_bytes": 191085216,
+   "verified": 30064,
+   "written": 30064
+  },
+  "payloads_removed": 124408,
+  "peak_rss_bytes": 595836928,
+  "references_kept": 2796109,
+  "room": {
+   "free_bytes": 137746931712,
+   "kept_reference_bytes": 1852860933,
+   "needed_bytes": 13705721866,
+   "quota_free_bytes": null,
+   "quota_read_at": null,
+   "quota_stale": false,
+   "reference_bytes": 29190979584,
+   "secure_delete": 0,
+   "statfs_free_bytes": 137746931712
+  },
+  "sampler": {
+   "max_tmp_bytes": 0,
+   "max_tmp_files": 0,
+   "max_wal_bytes": 2225306792,
+   "min_disk_free_bytes": 120846991360
+  },
+  "seconds": {
+   "bodies": 220.654,
+   "move": 480.579,
+   "pack": 233.278,
+   "plan": 371.256,
+   "verify": 21.74
+  },
+  "started": "2026-10-03T08:50:44.487394+00:00",
+  "started_at": "2026-10-03T08:57:49.785346Z",
+  "wall_seconds": 1417.9
+ },
+ "storage_plan": {
+  "digest": "a83d85cdcb6aff0ebc03d711253e038eeb103aac09795c23a17a510f5434c4d4",
+  "estimate": {
+   "free_list_bytes": 0,
+   "label_bodies_to_pack": 11,
+   "label_body_bytes": 1526810520,
+   "packs_to_write": 30064,
+   "parse_bodies_to_pack": 193865,
+   "parse_body_bytes": 3460774542,
+   "payload_text_bytes_removed": 42406496,
+   "payloads_removed": 124408,
+   "reference_bytes": 29190979584,
+   "reference_bytes_freed": 27338118650,
+   "references": 44051423,
+   "references_moved": 41255314
+  },
+  "evict": {
+   "digest": "d3e833602f5667954b93f347aaf251066da62412e117bc61c2d3016151cd59f5",
+   "generations": 598076,
+   "packs": 30064,
+   "rows": 41255314
+  },
+  "finished": "2026-10-03T08:50:44.069557+00:00",
+  "keep": {
+   "building": 0,
+   "partial": 0,
+   "pointer": 35846,
+   "references": 2796109,
+   "unlabelled": 0
+  },
+  "label_body": {
+   "generations": 11,
+   "protected": {
+    "candidate": 1,
+    "pointer": 2,
+    "young": 11
+   }
+  },
+  "parse_body": {
+   "before": "2026-09-26T00:00:00+00:00",
+   "generations": 193865,
+   "protected": {
+    "accepted": 34737,
+    "candidate": 29650,
+    "chain": 33040,
+    "event": 4560,
+    "state": 4834,
+    "young": 118
+   }
+  },
+  "peak_rss_bytes": 517537792,
+  "sampler": {
+   "max_tmp_bytes": 0,
+   "max_tmp_files": 0,
+   "max_wal_bytes": 0,
+   "min_disk_free_bytes": 145521152000
+  },
+  "started": "2026-10-03T08:36:45.577245+00:00",
+  "wall_seconds": 838.5
+ },
+ "what": "phase 4 review fixes on an APFS clone of the 2026-09-29 copy (schema 32), Mac, no network"
+}
