@@ -93,7 +93,7 @@ The daily budget is a hard stop, not a target. Typical days use under
 
 ## 7. Fetch procedure
 
-Per cycle, for each due watch on this host, in priority order live,
+Each acquire tick, for each due watch on this host, in priority order live,
 cooling, index, upcoming, archived, backfill:
 
 1. `index` watch on `event.php`: plain GET. Parse, upsert
@@ -169,9 +169,9 @@ year: 2018: 8, 2019: 16, 2020: 1, 2021: 6, 2022: 17, 2023: 19,
    `backfill` watches.
 2. Fetch from the archive at the Wayback host's own settings, event
    pages before round pages.
-3. A slug goes to the origin, newest first, lowest priority, one event
-   per cycle, when the archive lacks a listed file or the archived copy
-   does not parse into results.
+3. When the archive lacks a listed file or the archived copy does not
+   parse into results, the loops do not go to the origin ([D-0236](../../../journal/decisions/0236-origin-candidates-and-event-site-review-are-offline-reports.md)); the
+   offline origin-candidates tool lists the slug for review.
 
 Year indexes do not exist (404, 2026-09-11). The origin still serves
 old slug directories (`/results/liberty2018/` is a 2.2 KB index page),

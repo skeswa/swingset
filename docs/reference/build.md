@@ -202,7 +202,7 @@ publication recovery; it is not the no-change test.
 
 `BUILT` records the content comparison outcome. A complete no-change
 candidate for the same input/baseline pair prevents repeated work on
-quiet cycles. If it is pruned, a rebuild may repeat the comparison but
+quiet release ticks. If it is pruned, a rebuild may repeat the comparison but
 still creates no remote commit. A fresh allocation can have different
 run metadata; data files and semantic content must be deterministic.
 Reusing a candidate preserves every byte, including its metadata.
@@ -274,7 +274,7 @@ the source admission digest, the journal digest and generation, current input
 hashes, and the identity policy version. Public assertions carry safe decision
 references and acceptance state; private reasons stay private.
 
-The cycle, or the release loop's hourly tick, starts a build
+The release loop's hourly tick starts a build
 ([scheduling: loops](scheduling.md#loops)). `build_interval_seconds` admits one
 at most every 6 hours. In the release loop every build and every correction
 holds `heavy.lock` exclusive, so derive starts no unit until it ends (F10): a

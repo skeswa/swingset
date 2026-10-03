@@ -30,10 +30,11 @@ calendar + index observations + overrides -> matching map
 ```
 
 Fetch is the only stage that reads source sites. Parse, project, link,
-and build run offline. Reconcile and publish read or write the Hub. The cycle reconciles
-existing publication intent before starting the data path shown above.
+and build run offline. Reconcile and publish read or write the Hub. Five
+loops run the stages on their own timers (acquire, plan, derive, release,
+maintain); release reconciles existing publication intent before it builds.
 Every stage is a CLI subcommand and uses the same work and recovery
-rules as a cycle. [Operations](operations.md#cycle) owns cycle ordering;
+rules as a loop tick. [Operations](operations.md#loops) owns loop ordering;
 [local state](state.md) owns persistence and invalidation.
 
 Event completion deepens the scheduler module. Callers still request one next

@@ -1,14 +1,15 @@
 # Finding the code
 
-Start with the task you want to understand. The pipeline entry point is
-[`run_cycle`](../../src/swingset/schedule/cycle.py); command-line routing
-lives in [`cli.py`](../../src/swingset/cli.py).
+Start with the task you want to understand. Five loops run the pipeline,
+each tick through [`loops/runtime.py`](../../src/swingset/loops/runtime.py)
+(`tick`) and its own module in [`loops/`](../../src/swingset/loops/);
+command-line routing lives in [`cli.py`](../../src/swingset/cli.py).
 
 ## Pipeline modules
 
 | Task                         | Module       | Start reading                                                                                                                                                                                                                                                                                                                                                    |
 | ---------------------------- | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Choose due work              | `schedule/`  | [cycle.py](../../src/swingset/schedule/cycle.py), [fairness.py](../../src/swingset/schedule/fairness.py), [pacing.py](../../src/swingset/schedule/pacing.py)                                                                                                                                                                                                     |
+| Choose due work              | `schedule/`  | [acquisition.py](../../src/swingset/schedule/acquisition.py), [offline.py](../../src/swingset/schedule/offline.py), [release_steps.py](../../src/swingset/schedule/release_steps.py), [fairness.py](../../src/swingset/schedule/fairness.py), [pacing.py](../../src/swingset/schedule/pacing.py)                                                                 |
 | Request and save pages       | `fetch/`     | [client.py](../../src/swingset/fetch/client.py), [archive.py](../../src/swingset/fetch/archive.py)                                                                                                                                                                                                                                                               |
 | Understand a source's pages  | `sources/`   | [base.py](../../src/swingset/sources/base.py), [registry.py](../../src/swingset/sources/registry.py), then that source's `adapter.py`                                                                                                                                                                                                                            |
 | Check source interpretations | `admission/` | [contracts.py](../../src/swingset/admission/contracts.py), [select.py](../../src/swingset/admission/select.py)                                                                                                                                                                                                                                                   |

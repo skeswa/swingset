@@ -1,8 +1,9 @@
 """Each loop's latest tick: run, times, failure and counters (migration 34).
 
 One `loop_state` row per loop (`acquire`, `plan`, `derive`, `release`,
-`maintain`, `cycle`). This module reads and writes rows; the loop runtime
-decides when.
+`maintain`). `cycle` stays a name only so the rows the removed cycle wrote
+still read (D-0239); nothing writes it. This module reads and writes rows;
+the loop runtime decides when.
 """
 
 from __future__ import annotations

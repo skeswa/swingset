@@ -1,19 +1,23 @@
-"""Cycle observation respects local-operation controls and cannot fetch artifacts."""
+"""Plan and derive observation respect local-operation controls and cannot fetch artifacts.
+
+Each round runs loop ticks (`helpers/loop_ticks.py`); the name predates phase 5b.
+"""
 
 import shutil
 
 import httpx
 import pytest
+from helpers.loop_ticks import ACCEPTED_FIRST, run_round
 from test_cycle import overrides as overrides
 from test_event_enumerations import event as event
 from test_parse_hint_recovery import forget, pending, ready
 
 from swingset.clock import FakeClock
 from swingset.schedule import event_pressure
-from swingset.schedule.cycle import run_cycle, versions
 from swingset.state.controls import Selector, change_control
 from swingset.state.db import open_database
 from swingset.state.inputs import accept, capture
+from swingset.versions import versions
 
 
 def test_cycle_recovers_lost_parse_hint_during_pause_without_executing_it(
@@ -39,7 +43,7 @@ def test_cycle_recovers_lost_parse_hint_during_pause_without_executing_it(
     def forbidden(request):
         raise AssertionError("paused queue reconstruction must not fetch")
 
-    result = run_cycle(
+    result = run_round(
         f.db,
         config_dir=config,
         overrides_dir=overrides,
@@ -47,8 +51,8 @@ def test_cycle_recovers_lost_parse_hint_during_pause_without_executing_it(
         budget=1,
         transport=httpx.MockTransport(forbidden),
     )
-    assert not result["failed"]
-    assert result["parse_hint_recovery"]["enqueued"] == 1
+    assert not result.failed
+    assert result["derive"]["parse_hint_recovery"]["enqueued"] == 1
     assert (
         f.conn.execute(
             "SELECT enqueued_at FROM pending_work WHERE stage='parse' AND unit_id=?",
@@ -97,24 +101,25 @@ def test_cycle_pressure_refresh_uses_control_boundary_and_read_only_archive(
                 reason="retained pause",
                 now=clock.now(),
             )
-        result = run_cycle(
+        result = run_round(
             database,
             config_dir=config,
             overrides_dir=overrides,
             clock=clock,
             budget=1,
+            loops=ACCEPTED_FIRST,
             transport=httpx.MockTransport(forbidden),
         )
-        assert not result["failed"]
+        assert not result.failed
         assert bool(seen) is not paused
         if paused:
             assert any(
                 row["action"] == "event_pressure_refresh" and row["reason"] == "operator_pause"
-                for row in result["held_operations"]
+                for row in result.held_operations
             )
-            assert "event_pressure_refresh" not in result
+            assert all("event_pressure_refresh" not in record for record in result.sequence)
         else:
-            assert result["event_pressure_refresh"] == {"test_observation": True}
+            assert result["plan"]["event_pressure_refresh"] == {"test_observation": True}
         assert (
             database.connection.execute(
                 "SELECT count(*) FROM execution_admissions WHERE state='active'"

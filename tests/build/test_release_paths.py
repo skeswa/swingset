@@ -226,7 +226,7 @@ def test_the_closure_path_withholds_a_year_naming_a_superseded_dancer(source_fix
 
 
 def test_the_release_summary_names_the_manifest_and_stage_one(release_state):
-    from swingset.schedule.cycle import build_and_publish
+    from swingset.schedule.release_steps import build_and_publish
 
     f = release_state
     summary = {"stages": []}

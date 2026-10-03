@@ -7,8 +7,8 @@ A failing task should not stop unrelated progress. These rules bound individual 
 ## 4. Work: isolation and fair progress
 
 Keep the single-writer SQLite transaction model. Separate collection admission
-from derivation backlog: each cycle budgets time for reconciliation,
-acquisition, and offline work. A broken parse must not indefinitely prevent
+from derivation backlog: the five loops run on their own timers, so
+acquisition and offline work each have their own tick budget (D-0239). A broken parse must not indefinitely prevent
 unrelated fetches. Use backpressure to bound archived-but-unprocessed bytes and
 work counts, while reserving a small acquisition allowance for repairs needed
 to unblock work.
@@ -18,7 +18,7 @@ newly discovered pages, current-event refresh, identity confirmation, and old
 evidence refresh. Allow unused shares to be borrowed. Add age promotion and a
 maximum service-gap objective for each eligible kind. Set shares from measured
 load in shadow operation; do not raise host limits to compensate for wasted
-work. Global cycle time also needs fair allocation across hosts and kinds.
+work. Each acquire tick's time is also shared fairly across hosts and kinds.
 
 Class fairness alone does not establish event completion. Within a host and
 class, give source events bounded, durable turns and protect acquisition of

@@ -8,7 +8,6 @@ import pytest
 
 from swingset.cli import main
 from swingset.clock import FakeClock
-from swingset.schedule.cycle import versions
 from swingset.schedule.parse import ParseAttempt
 from swingset.schedule.watches import upsert_watch
 from swingset.sources.base import WatchSpec
@@ -17,6 +16,7 @@ from swingset.state.db import open_database
 from swingset.state.findings import Finding, replace_findings
 from swingset.state.inputs import accept, capture
 from swingset.state.work import WorkUnit, enqueue
+from swingset.versions import versions
 
 
 @pytest.mark.parametrize("stage", ["parse", "project", "link"])

@@ -9,7 +9,7 @@ import pytest
 
 from swingset.clock import FakeClock
 from swingset.config import Config
-from swingset.schedule.fair_policy import SchedulerConfig, allocation, parse_scheduler
+from swingset.schedule.fair_policy import SchedulerConfig, parse_scheduler, shares
 from swingset.schedule.fairness import (
     backpressure,
     next_offline,
@@ -23,18 +23,12 @@ from swingset.state.inputs import accept, capture
 from swingset.state.work import WorkUnit, enqueue
 
 
-def test_soft_allocations_preserve_zero_budget_contract_and_reject_invalid_values():
-    config = Config({}, {})
-    result = allocation(config, 720)
-    assert (result.reconciliation_seconds, result.acquisition_seconds, result.offline_seconds) == (
-        30,
-        300,
-        390,
-    )
-    assert allocation(config, 0).acquisition_seconds == 0
-    for value in (-1, float("inf"), float("nan")):
-        with pytest.raises(ValueError):
-            allocation(config, value)
+def test_host_shares_cover_every_class_and_sum_to_one_hundred():
+    for host in ("scoring.dance", "points.worldsdc.com", "web.archive.org", "example.org"):
+        weights = shares(host)
+        assert tuple(weights) == ("new", "current", "identity", "old")
+        assert sum(weights.values()) == 100
+    assert shares("points.worldsdc.com")["current"] == 0
 
 
 @pytest.mark.parametrize(
@@ -42,7 +36,9 @@ def test_soft_allocations_preserve_zero_budget_contract_and_reject_invalid_value
     [
         b"[scheduling]\npending_parse_items=1.5",
         b"[scheduling]\npending_parse_items=true",
+        # The cycle's phase shares went with it (D-0239).
         b"[scheduling]\nacquisition_share=0.9",
+        b"[scheduling]\noffline_share=0.5",
         b"[scheduling]\nunrecognized=2",
     ],
 )
@@ -238,7 +234,7 @@ def test_build_is_deferred_only_while_backlog_and_fresh_baseline_coincide(tmp_pa
     from datetime import UTC, datetime, timedelta
 
     from swingset.config import Config
-    from swingset.schedule.cycle import build_deferred_for_backlog
+    from swingset.schedule.release_steps import build_deferred_for_backlog
 
     config = Config({}, {})
     now = datetime(2026, 9, 21, 2, 0, tzinfo=UTC)

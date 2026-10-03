@@ -4,7 +4,7 @@ Recorded: 2026-09-27
 Decided by: agent, 2026-09-27, under D-0175; source: phase 2 of the [architecture plan](../../docs/plans/architecture.md) (findings F5, F6, F7, F10)  
 Topic: Local state  
 Supersedes: —  
-Superseded by: —
+Superseded by: in part, [D-0239](0239-the-loops-are-the-only-orchestration.md) (the cycle is gone; the loops are the only service)
 
 ## Decision
 

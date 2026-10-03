@@ -120,6 +120,9 @@ def test_a_derive_tick_completes_units_and_writes_its_run_record(dirs, projected
             "SELECT run_id,failed,last_progress_at FROM loop_state WHERE loop='derive'"
         ).fetchone()
         assert tuple(progress) == (record["run_id"], 0, record["finished_at"])
+        # The units ran with no ledger row (D-0238).
+        for table in ("execution_admissions", "execution_dependencies"):
+            assert db.connection.execute(f"SELECT count(*) FROM {table}").fetchone()[0] == 0
     # A quiet tick keeps the time of the last progress.
     clock.sleep(60)
     quiet = _derive(dirs, clock)
@@ -211,6 +214,48 @@ def test_per_loop_recovery_closes_only_the_loops_own_dead_runs(dirs):
         assert queue.at(datetime.fromisoformat(attempt["retry_at"])) == backoff
         live = queue.get(conn, WorkUnit("project", "dancer", "b"))
         assert live is not None and live.lease_owner == "acquire:run_live"
+
+
+def test_every_loop_settles_admissions_whose_run_is_gone(dirs):
+    """An active admission whose run has finished (its settlement failed) or,
+    after six hours, has no loop run to own it (NULL, or a CLI run) is dead: any loop's tick
+    settles it, so a pause never drains it forever. An open loop run's
+    admission stays with its own loop."""
+    state = dirs[0]
+    clock = FakeClock()
+    with open_database(state) as db:
+        conn = db.connection
+        for run_id, loop, finished in (
+            ("run_done", "derive", clock.now().isoformat()),
+            ("run_acq", "acquire", None),
+            ("run_cli", None, None),
+        ):
+            conn.execute(
+                "INSERT INTO runs(run_id,started_at,finished_at,dry_run,loop) VALUES (?,?,?,1,?)",
+                (run_id, clock.now().isoformat(), finished, loop),
+            )
+        _admit(conn, "old_cli", "fetch", "run_cli", clock)
+        _admit(conn, "old_nameless", "acquisition", None, clock)
+        # A publication carries no run: only release settles it, as uncertain.
+        # A narrow one fences only maintain and release, so plan's tick runs.
+        _admit(conn, "old_publication", "publication_narrow", None, clock)
+        clock.sleep(6 * 3600 + 1)
+        _admit(conn, "finished_run", "acquisition", "run_done", clock)
+        _admit(conn, "young_cli", "request", "run_cli", clock)
+        _admit(conn, "open_loop_run", "fetch", "run_acq", clock)
+    with _tick("plan", dirs, clock) as current:
+        pass
+    assert current.summary["recovered"]["admissions"] == 3
+    with open_database(state, lock=False) as db:
+        states = dict(db.connection.execute("SELECT action_id,state FROM execution_admissions"))
+    assert states == {
+        "old_cli": "settled",
+        "old_nameless": "settled",
+        "finished_run": "settled",
+        "young_cli": "active",
+        "open_loop_run": "active",
+        "old_publication": "active",
+    }
 
 
 def test_a_dead_run_whose_record_finished_keeps_that_record(dirs):
@@ -538,7 +583,7 @@ def test_maintain_prunes_and_checkpoints(dirs):
         "run_idle": {"loop": "acquire", "failed": False, "progress": 0, "finished_at": old},
         "run_failed": {"loop": "acquire", "failed": True, "progress": 0, "finished_at": old},
         "run_worked": {"loop": "derive", "failed": False, "progress": 3, "finished_at": old},
-        "run_cycle": {"failed": False, "finished_at": older},
+        "run_command": {"command": "backup", "failed": False, "finished_at": older},
         "run_recent": {"loop": "acquire", "failed": False, "progress": 0, "finished_at": str(now)},
         # Past 30 days every loop record goes, whatever it did.
         "run_month": {"loop": "derive", "failed": True, "progress": 3, "finished_at": older},
@@ -567,10 +612,27 @@ def test_maintain_prunes_and_checkpoints(dirs):
                 (loop, finished, json.dumps(summary), run),
             )
             rows[name] = run
+        # Settled ledger rows past 30 days go, builds stay (D-0238).
+        for action_id, kind, days in (("old-request", "request", 31), ("old-build", "build", 400)):
+            settled = (now - timedelta(days=days)).isoformat()
+            db.connection.execute(
+                "INSERT INTO execution_admissions(action_id,action_kind,admitted_at,"
+                "control_revision,all_sources,all_kinds,state,settled_at,outcome) "
+                "VALUES (?,?,?,0,0,0,'settled',?,'completed')",
+                (action_id, kind, settled, settled),
+            )
+            db.connection.execute(
+                "INSERT INTO execution_dependencies VALUES (?,'source','eepro')", (action_id,)
+            )
     with _tick("maintain", dirs, clock) as current:
         maintain.run(current)
     record = current.record
     assert record is not None and not record["failed"]
+    assert record["admissions_pruned"] == 1 and record["admissions_rows"] == 1
+    with open_database(state, lock=False) as db:
+        for table in ("execution_admissions", "execution_dependencies"):
+            kept = [row[0] for row in db.connection.execute(f"SELECT action_id FROM {table}")]
+            assert kept == ["old-build"], table
     assert record["records_pruned"] == 3
     assert not (runs / "run_stopped_old.stop").exists()
     assert (runs / "run_stopped_new.stop").exists()
@@ -595,7 +657,7 @@ def test_maintain_prunes_and_checkpoints(dirs):
     assert "big" in summaries["loop_new"] and "big" in summaries["cycle_old"]
     for name in ("run_idle", "run_month"):
         assert not (runs / f"{name}.json").exists()
-    for name in ("run_failed", "run_worked", "run_cycle", "run_recent"):
+    for name in ("run_failed", "run_worked", "run_command", "run_recent"):
         assert (runs / f"{name}.json").exists()
     assert record["guards_pruned"] == 2
     assert record["building"] == {"rows": 1, "stale": 1}
@@ -852,44 +914,6 @@ def test_cli_derive_and_maintain_ticks(dirs):
         held.release()
 
 
-def test_the_cycle_summary_keeps_its_keys(dirs):
-    """The offline loop moved to schedule/offline.py; the cycle reports as before."""
-    from swingset.schedule.cycle import run_cycle
-
-    state, config, overrides = dirs
-    (config / "sources.toml").write_text(
-        '[sources.wsdc_calendar]\nenabled = true\nindex_urls = ["https://worldsdc.com/events/"]\n'
-    )
-    fixture = Path("tests/fixtures/sources/synthetic_calendar.html").read_bytes()
-
-    def handler(request):
-        if request.url.path == "/robots.txt":
-            return httpx.Response(404)
-        return httpx.Response(200, content=fixture)
-
-    with open_database(state) as db:
-        summary = run_cycle(
-            db,
-            config_dir=config,
-            overrides_dir=overrides,
-            clock=FakeClock(),
-            transport=httpx.MockTransport(handler),
-        )
-    assert not summary["failed"] and "parse" in summary["stages"]
-    assert sorted(summary) == sorted(
-        """accepted_inputs bytes_by_host candidate_id changed checked control_timeouts
-        controls derivation dry_run duration_seconds event_blocker_observations
-        event_enumerations event_pressure_bootstrap event_pressure_refresh
-        event_progress_refresh failed finished_at guard_reasons guards held_operations
-        held_units interrupted_attempts nonce_unchanged not_modified parse_errors
-        parse_hint_recovery partitions paused_hosts peak_rss_bytes phase_two_refusals queue queue_states
-        readiness_errors recovered_admissions registry_verification requirements_scanned
-        restored_artifacts retention_cap run_id scheduler stage_errors stages
-        stages_disabled stopped unit_failures verdict waiting_repeats write_deadline_fired
-        write_lock_timeouts write_seconds_max write_wait_seconds_max""".split()
-    )
-
-
 # The plan and acquire loops (D-0218).
 
 ARCHIVE_BODY = Path("tests/fixtures/sources/eepro-archive/freedomswing2019.html")
@@ -908,10 +932,10 @@ def history(dirs, monkeypatch):
     from swingset.config import Config, HostConfig, SourceConfig
     from swingset.model.canonical import Event
     from swingset.project.writer import Projection, replace_scope
-    from swingset.schedule.cycle import versions
     from swingset.schedule.discover import discover
     from swingset.state.inputs import accept as accept_inputs
     from swingset.state.inputs import capture
+    from swingset.versions import versions
 
     state, config, overrides = dirs
     (config / "sources.toml").write_text("[sources.eepro]\nenabled = true\n")
@@ -1381,7 +1405,7 @@ def test_a_release_tick_builds_then_defers_inside_the_build_interval(dirs):
 
 def test_derive_starts_no_unit_while_release_builds(dirs, projected, monkeypatch):
     """No project unit and no parse unit starts beside a whole build (F10)."""
-    from swingset.schedule import cycle
+    from swingset.schedule import release_steps
     from swingset.state.work import enqueue
 
     state = dirs[0]
@@ -1395,7 +1419,7 @@ def test_derive_starts_no_unit_while_release_builds(dirs, projected, monkeypatch
             [WorkUnit("parse", "snapshot", "during-build")],
             enqueued_at=clock.now().isoformat(),
         )
-    original = cycle.build
+    original = release_steps.build
     during = []
 
     def build(*args, **kwargs):
@@ -1403,7 +1427,7 @@ def test_derive_starts_no_unit_while_release_builds(dirs, projected, monkeypatch
         during.append(_derive(dirs, clock))
         return original(*args, **kwargs)
 
-    monkeypatch.setattr(cycle, "build", build)
+    monkeypatch.setattr(release_steps, "build", build)
     record = _release_tick(dirs, clock)
     assert record["candidate_id"] and not record["failed"]
     assert record["heavy_wait_seconds"] == 0
@@ -1432,7 +1456,7 @@ def test_a_streamed_build_takes_the_heavy_lock_until_streamed_lock_is_off(
     """A partitioned build holds the heavy lock by default: the rehearsal
     measured 6.7 GB before F26's fix. With `streamed_lock = false` (after the
     worker measures it under 2 GB beside derive), derive runs beside it."""
-    from swingset.schedule import cycle
+    from swingset.schedule import release_steps
 
     state = dirs[0]
     clock = FakeClock()
@@ -1443,7 +1467,7 @@ def test_a_streamed_build_takes_the_heavy_lock_until_streamed_lock_is_off(
         sources.write_text(body.replace("streamed_lock = true", "streamed_lock = false"))
     _accepted(dirs, clock)
     _enqueue(state, clock, ["a", "b"])
-    original = cycle.build
+    original = release_steps.build
     during = []
 
     def build(*args, **kwargs):
@@ -1452,7 +1476,7 @@ def test_a_streamed_build_takes_the_heavy_lock_until_streamed_lock_is_off(
             rwlock.heavy_exclusive(state, timeout=0).release()
         return original(*args, **kwargs)
 
-    monkeypatch.setattr(cycle, "build", build)
+    monkeypatch.setattr(release_steps, "build", build)
     record = _release_tick(dirs, clock)
     assert record["candidate_id"] and not record["failed"]
     assert record["heavy_lock"] is locked
@@ -1518,7 +1542,7 @@ def test_release_refuses_to_build_on_a_full_disk(dirs):
 
 def test_a_release_build_error_is_reported_and_fails_the_tick(dirs, monkeypatch):
     from swingset.build.builder import BuildError
-    from swingset.schedule import cycle
+    from swingset.schedule import release_steps
 
     clock = FakeClock()
     _accepted(dirs, clock)
@@ -1526,7 +1550,7 @@ def test_a_release_build_error_is_reported_and_fails_the_tick(dirs, monkeypatch)
     def broken(*_args, **_kwargs):
         raise BuildError("stale generation")
 
-    monkeypatch.setattr(cycle, "build", broken)
+    monkeypatch.setattr(release_steps, "build", broken)
     record = _release_tick(dirs, clock)
     assert record["failed"] and record["error"] is None
     assert record["build_error"] == "BuildError: stale generation"

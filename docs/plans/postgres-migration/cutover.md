@@ -2,7 +2,9 @@
 
 Part of the [PostgreSQL migration plan](README.md). These are target
 requirements, not evidence that migration has happened. Keep the numbered
-steps in order and preserve the recorded operating holds.
+steps in order and preserve the recorded operating holds. This page predates
+[D-0239](../../../journal/decisions/0239-the-loops-are-the-only-orchestration.md):
+where it says cycle, read the five loops.
 
 ## 11. M7 — Dokploy provisioning and full-size rehearsal
 
@@ -147,12 +149,14 @@ next step. Hold the orchestrator's own run lock to prevent duplicate invocations
    source semantic change returns code 4; do not reconcile by guessing which
    release is authoritative. Require the recorded production operator hold.
 2. **Fence the source persistently.** Preserve/create the source hold as
-   authorized; stop and mask `swingset-cycle.service`, `.timer`,
+   authorized; stop and mask the five loop units (`swingset-acquire`,
+   `swingset-plan`, `swingset-derive`, `swingset-release`,
+   `swingset-maintain`, each `.service` and `.timer`),
    `swingset-backup.service`, `.timer`, `swingset-summary.service`, `.timer`.
    Record their previous masks/states. If NixOS-generated persistent unit paths
    prevent masking, do not overwrite them: retain the durable `operator-hold`
-   enforced by all three service conditions and apply runtime masks to all six
-   units. Verify effective conditions and that a reboot cannot bypass the file
+   enforced by all seven service conditions and apply runtime masks to all
+   fourteen units. Verify effective conditions and that a reboot cannot bypass the file
    hold; record this exact fencing mechanism. Verify all inactive, no manual writer,
    and ownership lock acquisition. Keep the final-checkpoint helper's file lock
    while it snapshots; do not nest a CLI opener that reacquires the same lock.

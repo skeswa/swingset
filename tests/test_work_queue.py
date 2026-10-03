@@ -583,20 +583,10 @@ def test_a_poison_unit_quarantines_on_its_third_failure_and_waits_seven_days(
 def _running(db, unit: WorkUnit, owner: queue.Owner, now: datetime) -> int:
     """A unit mid-attempt under `owner`, as a process that died would leave it."""
     from swingset.state.attempts import begin_attempt
-    from swingset.state.control_scopes import for_unit
-    from swingset.state.controls import admission, bind_work_attempt
 
-    with admission(
-        db,
-        action_id="work_dead",
-        action_kind=unit.stage,
-        scope=for_unit(db.connection, unit),
-        now=now,
-        run_id=owner.run_id,
-    ) as conn:
+    with db.transaction():
         queue.lease(db, unit, owner=owner, now=now)
         attempt = begin_attempt(db, unit, now=now, run_id=owner.run_id)
-        bind_work_attempt(conn, "work_dead", attempt.attempt_id)
     return attempt.attempt_id
 
 
@@ -633,39 +623,28 @@ def test_a_dead_lease_is_taken_over_and_its_attempt_closed(
         closed = db.connection.execute(
             "SELECT outcome,reason_code FROM work_attempts WHERE attempt_id=?", (dead,)
         ).fetchone()
-        admission_state = db.connection.execute(
-            "SELECT state,outcome FROM execution_admissions WHERE action_id='work_dead'"
-        ).fetchone()
+        # A unit carries no admission (D-0238): the lease and attempt alone
+        # record it, and takeover recovers both.
+        assert not db.connection.execute("SELECT 1 FROM execution_admissions").fetchone()
         if taken:
             # The death counts: the unit waits on its backoff, then runs.
             assert outcome.reason == "process_interrupted" and not outcome.failed
             assert tuple(closed) == ("interrupted", "process_interrupted")
-            assert tuple(admission_state) == ("settled", "process_interrupted")
             row = queue.get(db.connection, unit)
             assert row is not None and row.state == "ready" and row.lease_owner is None
             assert (row.attempts, row.error_class) == (1, "process_interrupted")
             assert row.next_attempt_at == queue.at(clock.now() + timedelta(minutes=15))
-            # Only the dead attempt's admission row is left: the held one was forgotten.
-            assert (
-                db.connection.execute("SELECT count(*) FROM execution_admissions").fetchone()[0]
-                == 1
-            )
             clock.sleep(15 * 60)
             with queue.owning("derive", run):
                 again = derive_one(db, Archive(tmp_path), unit, _bundle(tmp_path), clock, run)
             assert again.reason is None and not again.failed
             assert queue.get(db.connection, unit) is None
+            assert not db.connection.execute("SELECT 1 FROM execution_admissions").fetchone()
         else:
             assert outcome.reason == "lease_busy"
             assert tuple(closed) == ("running", None)
-            assert tuple(admission_state) == ("active", None)
             row = queue.get(db.connection, unit)
             assert row is not None and row.lease_owner == f"cycle:{dead_run}"
-            # Only this attempt's admission row exists: the skip wrote nothing.
-            assert (
-                db.connection.execute("SELECT count(*) FROM execution_admissions").fetchone()[0]
-                == 1
-            )
 
 
 def test_release_all_returns_leases_and_forgets_fresh_ones(tmp_path: Path) -> None:

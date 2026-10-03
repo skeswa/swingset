@@ -83,7 +83,7 @@ remaining due watches wait for the next run. Nothing is lost because
 
 The fair scheduler allocates this existing capacity; it does not increase
 it. `scheduler_requests` attributes each issued HTTP request to its host,
-UTC debit day, work class, and cycle in the same transaction that increments
+UTC debit day, work class, and run in the same transaction that increments
 `host_budget`. Robots checks, redirect hops, retries, and requests that
 fail after issuance all count. A skipped, paused, or budget-denied visit
 records no service. One captured grant timestamp owns eligibility against the daily budget, its
@@ -93,7 +93,7 @@ to that original request day, even if dispatch or completion crosses midnight. T
 Pending-work backpressure is checked again at request admission. Its
 two-request repair reserve includes every HTTP operation, so a robots
 check and a redirect may use the whole reserve before the desired page
-is reached. The next cycle can continue under the same host limits.
+is reached. The next acquire tick can continue under the same host limits.
 Reservation cannot override a source, kind, host, or global pause, a host
 cooldown, a byte limit, or the Archive's 200-request daily budget. See
 [fair scheduling](scheduling.md#work-order) for initial allocations and
@@ -104,7 +104,7 @@ the measured load behind them.
 A guard is a reason the client did not send a request
 ([D-0219](../../journal/decisions/0219-every-guard-that-holds-a-fetch-has-a-reason-with-an-expiry.md)).
 `FetchClient.guards` counts each guard skip and `Paused` grant by subject and
-reason. Each acquisition pass, the cycle's or acquire's, writes them to
+reason. Each acquire tick's acquisition pass writes them to
 `guard_reasons` in one transaction (`state/guards.flush`). A row keeps `since` and moves
 `last_seen_at`, `seen` and `expires_at`. A subject that issued a request in the
 pass (its host, its watch and the loop) loses its rows, and its skips in that
@@ -146,7 +146,7 @@ A request admission carries the issuing run (the watch's run, or the
 client's), so the loop's recovery settles one a killed tick left active.
 An admission that waits past 90 s for `control.lock` (`ControlTimeout`) or
 past the busy timeout for SQLite admits nothing: the fetch returns
-`skipped: control_timeout` (counted in the run's `control_timeouts`) or the
+`skipped: control_timeout` (counted in acquire's `control_timeouts`) or the
 request waits for a later pass (F7).
 
 ## Response classification
@@ -224,7 +224,8 @@ full fetch of a few KB. The schedule (5.2) keeps those rare.
   `x-archive-orig-*` headers as validators. `web.archive.org` is a host
   in `hosts.toml` with its own gate (10 s, 200 requests a day to start,
   120 s CDX timeout). Capture selection, CDX indexing, the `sealed`
-  state, and origin fallback are owned by [backfill](backfill.md).
+  state, and gaps are owned by [backfill](backfill.md); the history
+  plan makes no origin request (D-0236).
   Conflict resolution and observation ownership compare `observed_at`
   (capture time for archive bodies, fetch time otherwise), never our
   fetch time alone.

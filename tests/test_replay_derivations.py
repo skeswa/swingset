@@ -218,7 +218,9 @@ def test_worker_crash_rolls_back_then_uses_standard_interruption_cooldown(
         )
     monkeypatch.setattr(project, "process_unit", original)
     recovered = execute(arranged, tmp_path / "recovery.json")
-    assert recovered["recovered_admissions"] == recovered["interrupted_attempts"] == 1
+    # A unit carries no admission (D-0238): its running attempt alone is recovered.
+    assert recovered["recovered_admissions"] == 0
+    assert recovered["interrupted_attempts"] == 1
     assert recovered["status"] != "current"
     f.corpus.clock.sleep(61)
     assert execute(arranged, tmp_path / "retry.json")["status"] == "current"

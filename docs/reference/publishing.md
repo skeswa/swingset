@@ -94,7 +94,7 @@ configs:
 A candidate is one immutable proposed dataset version. Its reuse key is
 `(build_input_fingerprint, baseline_commit)`, because changelog is a
 function of both. `candidate_id` identifies that allocation independently
-of the cycle that later publishes it. `baseline` points to the last
+of the release tick that later publishes it. `baseline` points to the last
 acknowledged public version stored locally.
 
 The candidate directory is the publication journal. There is no second
@@ -143,12 +143,13 @@ Reconcile runs before any new build, including when no inputs changed:
 `swingset publish`, including `--dry-run`, reconciles first and obtains
 its candidate through build. Standalone build and publish require earlier
 work queues to be drained; they report pending work instead of bypassing
-it. Use cycle to drain that work. All publication entry points reject
+it. The derive loop drains that work. All publication entry points reject
 `RESTORE_PENDING`.
 
-The release loop runs the cycle's build and publish steps once an hour
+The release loop runs the build and publish steps of
+`schedule/release_steps.py` once an hour
 ([scheduling: loops](scheduling.md#loops)). `swingset release --publish`
-reconciles first, then builds and publishes as the cycle does.
+reconciles first, then builds and publishes as the release loop does.
 `--dry-run`, the default, has no hub: it neither reconciles nor publishes,
 and only builds. A release tick settles a publication admission that a dead
 process left active as uncertain, so reconcile decides it. While a
@@ -224,7 +225,7 @@ The verdict lists every measure as baseline and candidate values, each
 decrease, the overrides it used and the reasons. The builder writes it to
 `_meta/verdict.json`, named and hashed in the candidate manifest like every
 file, and publishes it with the data. It is left out of the content hash, so
-an identical rebuild is still unchanged. The cycle and the release loop put
+an identical rebuild is still unchanged. The release loop puts
 it in the run summary as `verdict` (as `correction_verdict` for a
 correction) and on the candidate's `release_manifests` row. A dry run
 records it too.
@@ -251,7 +252,7 @@ commit lands. A third-party head must fail without mutation.
 
 A dry run with a pending intent may read the head but creates no commit.
 An acknowledged candidate promotes without any network request. A dry
-run with no pending candidate builds only. A quiet cycle with no due
+run with no pending candidate builds only. A quiet release tick with no due
 watch, pending work, changed input, or publication intent makes no
 network request.
 

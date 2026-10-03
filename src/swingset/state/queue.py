@@ -3,7 +3,9 @@
 What needs doing stays `pending_work` plus derivation currency. A
 `work_queue` row exists only while a unit is leased or failing, and is
 deleted when the unit succeeds (migration 34, D-0216). `derive_one` leases a
-unit in its admission transaction and records each outcome here; `wake` turns
+unit in its claim transaction and records each outcome here; the lease and
+the running attempt are the unit's in-flight record, with no admission row
+(D-0238); `wake` turns
 due waiting and quarantined rows ready; `release_all` is the exclusive
 process's global recovery.
 """
@@ -289,7 +291,7 @@ def waiting_delay(attempts: int, policy: Policy | None = None) -> timedelta:
 
 @dataclass(frozen=True)
 class Owner:
-    """Who holds a lease: a loop (`cycle`, `cli` or a loop name) and its run."""
+    """Who holds a lease: a loop name or `cli`, and its run (old leases may name `cycle`)."""
 
     loop: str
     run_id: str
@@ -505,12 +507,11 @@ def escaped(
     it (a handler's own defect) leaves this run's attempt running; were it
     left, the next lease would close it as a run that ended on its own,
     uncounted, and the unit would never quarantine. It is a `unit_exception`
-    of the escaping type instead, with its admission settled. Returns None
+    of the escaping type instead. Returns None
     when this run has no running attempt of the unit. Inside the caller's
     transaction.
     """
     from .attempts import Attempt, finish_attempt, latest_attempt
-    from .controls import settle
 
     policy = policy or DEFAULT
     latest = latest_attempt(database.connection, unit)
@@ -544,11 +545,6 @@ def escaped(
         retry_at=failure.next_attempt_at,
         evidence={"exception": exception, "message": str(exc)[:500]},
     )
-    for (action_id,) in database.connection.execute(
-        "SELECT action_id FROM execution_admissions WHERE work_attempt_id=? AND state='active'",
-        (latest["attempt_id"],),
-    ).fetchall():
-        settle(database.connection, action_id, now=now, outcome="unit_exception")
     return failure
 
 
@@ -560,20 +556,19 @@ def lease(
     now: datetime,
     policy: Policy | None = None,
 ) -> Lease:
-    """Lease `unit` inside the caller's admission transaction.
+    """Lease `unit` inside the caller's claim transaction.
 
     A live lease of another owner leaves the unit alone (`busy`). A dead one
-    is taken over: its running attempt is finished `interrupted` and its
-    active admission settled in the same transaction. A death counts
+    is taken over: its running attempt is finished `interrupted` in the same
+    transaction (a unit has no admission row, D-0238). A death counts
     (`interrupted`), so the unit then waits on its failure clock (`held`).
     """
     from .attempts import latest_attempt
-    from .controls import settle
 
     policy = policy or DEFAULT
     conn = database.connection
     if not conn.in_transaction:
-        raise ValueError("a lease is taken inside the admission transaction")
+        raise ValueError("a lease is taken inside the claim transaction")
     row = get(conn, unit)
     if row is not None and row.state == "leased":
         if row.lease_owner != owner.name and not lease_dead(row, now, owner):
@@ -587,12 +582,6 @@ def lease(
                 died=death_counts(database, latest["run_id"]),
                 policy=policy,
             )
-            for (action_id,) in conn.execute(
-                "SELECT action_id FROM execution_admissions WHERE work_attempt_id=? "
-                "AND state='active'",
-                (latest["attempt_id"],),
-            ).fetchall():
-                settle(conn, action_id, now=now, outcome="process_interrupted")
             return Lease(took_over=True, held=failure)
         if row.lease_owner != owner.name and death_counts(database, owner_run(row.lease_owner)):
             # The owner died after its claim and before its attempt.

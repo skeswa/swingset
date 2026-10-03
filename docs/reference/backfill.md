@@ -60,7 +60,7 @@ until a reviewer dismisses it in `finding_reviews.csv`
 [D-0193](../../journal/decisions/0193-a-dismissed-parse-failure-clears-its-capture-from-the-year-gate.md)).
 The per-year findings are recomputed only by the phase-one intake and review
 commands (`journal/tools/collection/intake_phase1.py run` and `review`), not
-by the cycle, so run the review after editing dismissals. Editions that awarded no points and appeared on no
+by the loops, so run the review after editing dismissals. Editions that awarded no points and appeared on no
 listing cannot be found by any source and are out of scope by
 construction; the card says so.
 
@@ -248,9 +248,8 @@ URL and an `observed_at`.
   `showNumPages=true` probe. Never a whole-history query over a large
   prefix: those took 8 to 24 s of the archive's time and three timed out
   at 30 s on 2026-09-11.
-- Each cycle that is not under backpressure runs the due queries for every
-  enabled platform within 120 seconds of its acquisition phase, before it
-  offers plan pages ([D-0184](../../journal/decisions/0184-index-platform-archives-in-the-cycle-and-treat-nested-spans-as-one-edition.md)).
+- Each acquire tick that is not under backpressure runs the due queries for
+  every enabled platform within 120 seconds, before it offers plan pages ([D-0184](../../journal/decisions/0184-index-platform-archives-in-the-cycle-and-treat-nested-spans-as-one-edition.md)).
 - CDX rows are stored in `archive_captures` with the query id. A year's
   query is repeated only when the source's playbook says the year is
   still being captured (the current and previous calendar year), on a
@@ -259,12 +258,12 @@ URL and an `observed_at`.
   362 series have one) are queried with `filter=mimetype:application/pdf`
   plus a second query for HTML whose path contains `result`, `score`,
   `callback`, `prelim`, or `final`, for the event year and the next.
-  Hits are not fetched automatically; they become suggested
-  `source_urls.csv` rows in the review queue, as the live link scan
-  already does ([long tail](sources/long-tail.md)).
+  Hits are not fetched automatically. The offline
+  [event-site review tool](../../journal/tools/collection/event_site_review.py)
+  prints them as draft `source_urls.csv` rows for a reviewer.
 - Filtered event-site query receipts use `source = event_sites` in
   `archive_queries` and `archive_captures`. They must not use a platform
-  source such as `eepro`: origin fallback treats completed platform queries
+  source such as `eepro`: the origin-candidates report treats completed platform queries
   as searches over all 200-status captures, and a PDF or path filter cannot
   prove that other archive copies are absent.
 
@@ -327,8 +326,11 @@ project is research and a non-commercial dataset, and the card says so.
 ### Origin fallback for gaps
 
 A gap is an in-scope event, contest, or round that the archive does not
-hold or holds only incompletely. Origin backfill follows the host's own
-playbook and these limits:
+hold or holds only incompletely. The loops make no origin request from the
+history plan ([D-0236](../../journal/decisions/0236-origin-candidates-and-event-site-review-are-offline-reports.md)). The offline
+[origin-candidates report](../../journal/tools/collection/README.md#origin-candidates)
+lists each exhausted page and its archive proof; a reviewer applies the host's
+playbook and these limits, then adds a reviewed `overrides/source_urls.csv` row:
 
 | Host                            | Rule                                                                                                                                                                                                                                                                                                                                 |
 | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -339,10 +341,10 @@ playbook and these limits:
 | `steprightsolutions.com`        | Never. The origin is dead; every gap stays a gap.                                                                                                                                                                                                                                                                                    |
 | Event sites                     | Only when the site is alive, robots allows it, and the URL came from an override row. Default host settings.                                                                                                                                                                                                                         |
 
-Origin backfill for one host never exceeds one event per cycle, and DCN
-one per day. It is priority 6 like archive backfill, but archive
-backfill of the same source runs first so an origin request is never
-spent on a page the archive has.
+Origin backfill for one host never exceeds one event per run, and DCN
+one per day; `origin_dispatch.request_gate` still enforces this for any
+legacy `history_origin_intents` row. No origin request is spent on a page
+the archive has.
 
 ## Scheduling
 
@@ -354,12 +356,11 @@ spent on a page the archive has.
   more known archived events. Read an event's index before its listed rounds.
   Once admitted, unfinished events receive the bounded turns and protected
   service in [scheduling](scheduling.md#event-completion). Newer arrivals
-  cannot repeatedly displace older waiting events. Origin's one-event-per-cycle
-  limit, DCN's daily event limit, and archive-first selection still apply;
-  rotate at the next eligible cycle when a host limit prevents an in-cycle turn.
+  cannot repeatedly displace older waiting events. Rotate at the next eligible
+  acquire tick when a host limit prevents a turn within the tick.
 - Backfill keeps priority 6 as a policy label, but receives the reserved
   old-work acquisition share while other classes have due work. The former
-  idle-only rule is superseded by H14's host and cycle allocations. Event-list
+  idle-only rule is superseded by H14's per-host class shares. Event-list
   captures (old WSDC site, calendar paths, newsletters) retain their index-work
   exception (priority 2), and phase 1 still precedes phase 2 for each year.
   The original estimate of about 130 archive reads and 28 PDFs is a planning
@@ -375,12 +376,12 @@ spent on a page the archive has.
   The acquire, plan and derive loops do not ask about pending projections at
   all: acceptance, the accepted digest against the committed event list, open
   findings and the H7/H10 switches decide, and the digest closes the year once
-  a changed list is committed. The cycle and `accept-year` keep the pending
+  a changed list is committed. `accept-year` keeps the pending
   check ([D-0218](../../journal/decisions/0218-the-loops-judge-the-year-gate-on-facts-and-acquire-from-a-plan-table.md)).
 - In the loops, the plan loop evaluates the retained plan every 30 minutes
   and writes each page's reason to `acquisition_plan`; acquire offers the
   eligible rows in plan order and dispatch repeats every gate from facts
-  before it schedules a capture or origin request
+  before it schedules a capture
   ([scheduling: loops](scheduling.md#loops)).
 - New state `sealed`: a watch whose event ended more than two years ago,
   or whose origin host is marked dead in its playbook, is never fetched

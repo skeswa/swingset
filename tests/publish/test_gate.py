@@ -366,7 +366,7 @@ def test_the_shipped_override_file_is_valid() -> None:
 def test_a_refused_build_is_recorded_in_the_summary_and_manifest_row(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    from swingset.schedule import cycle
+    from swingset.schedule import release_steps
     from swingset.state import release_store
     from swingset.state.db import open_database
 
@@ -384,12 +384,12 @@ def test_a_refused_build_is_recorded_in_the_summary_and_manifest_row(
             parent="c-base",
             policy={"manifest_digest": "m1"},
         )
-        monkeypatch.setattr(cycle, "build", lambda *_args, **_kwargs: fewer)
+        monkeypatch.setattr(release_steps, "build", lambda *_args, **_kwargs: fewer)
         hub = Hub("c-base")
         for dry_run in (True, False):
             summary: dict[str, Any] = {"stages": []}
             # `build` is patched, so the bundle and clock are never read.
-            cycle.build_and_publish(
+            release_steps.build_and_publish(
                 database, cast(Any, None), cast(Any, None), "run", summary, hub=hub, dry_run=dry_run
             )
             assert summary["verdict"]["state"] == "refused"

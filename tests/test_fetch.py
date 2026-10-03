@@ -722,7 +722,7 @@ def test_a_held_fetch_is_a_guard_until_a_request_clears_its_host(tmp_path):
             row = guards.get(db.connection, "host:example.test", "request budget")
             assert row is not None
             assert (row.loop, row.seen, row.expires_at) == (
-                "cycle",
+                "command",
                 2,
                 "2026-01-02T01:00:00.000000Z",
             )
@@ -731,7 +731,11 @@ def test_a_held_fetch_is_a_guard_until_a_request_clears_its_host(tmp_path):
             client.config = config()
             client.gate.config = client.config
             assert client.fetch(watch_id, EventsPage(), run).skipped is None
-            assert client.guards.issued == {"host:example.test", f"watch:{watch_id}", "loop:cycle"}
+            assert client.guards.issued == {
+                "host:example.test",
+                f"watch:{watch_id}",
+                "loop:command",
+            }
             assert client.guards.flush(db, clock.now()) == {"recorded": 0, "cleared": 1}
             assert guards.counts_by_reason(db.connection) == {}
         finally:
@@ -761,7 +765,11 @@ def test_robots_and_a_disabled_source_are_watch_guards(tmp_path):
                 (f"watch:{watch_id}", "robots disallow"): 1,
                 (f"watch:{watch_id}", "source disabled"): 1,
             }
-            assert client.guards.issued == {"host:example.test", f"watch:{watch_id}", "loop:cycle"}
+            assert client.guards.issued == {
+                "host:example.test",
+                f"watch:{watch_id}",
+                "loop:command",
+            }
         finally:
             client.close()
 

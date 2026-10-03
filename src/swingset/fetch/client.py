@@ -71,7 +71,7 @@ class GuardRecorder:
     (D-0219). `flush` writes them in one transaction and starts afresh.
     """
 
-    def __init__(self, loop: str = "cycle") -> None:
+    def __init__(self, loop: str = "command") -> None:
         self.loop = loop
         self.seen: Counter[tuple[str, str]] = Counter()
         self.until: dict[tuple[str, str], str | None] = {}
@@ -138,7 +138,7 @@ class FetchClient:
         transport: httpx.BaseTransport | None = None,
         random_value: Callable[[], float] = random.random,
         should_stop: Callable[[], bool] = lambda: False,
-        loop: str = "cycle",
+        loop: str = "command",
         run_id: str | None = None,
     ) -> None:
         self.connection = connection

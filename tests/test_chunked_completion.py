@@ -15,12 +15,12 @@ from test_h15_acceptance import source_fixture
 
 from swingset.clock import FakeClock
 from swingset.fetch.archive import Archive
-from swingset.schedule.cycle import versions
 from swingset.schedule.derive import derive_one
 from swingset.state import derivations
 from swingset.state.db import Database, open_database
 from swingset.state.inputs import capture
 from swingset.state.work import WorkUnit, next_work
+from swingset.versions import versions
 
 YEAR = WorkUnit("project", "year", "2026")
 
@@ -196,7 +196,7 @@ KILL = textwrap.dedent(
 
     from swingset.clock import FakeClock
     from swingset.fetch.archive import Archive
-    from swingset.schedule.cycle import versions
+    from swingset.versions import versions
     from swingset.schedule.derive import derive_one
     from swingset.state import derivations
     from swingset.state.db import open_database

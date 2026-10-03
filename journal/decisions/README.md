@@ -258,6 +258,10 @@ that links the old one.
 | [D-0233](0233-raise-the-size-cap-to-76-gb-until-phase-4.md)                                  | Raise the size cap to 76 GB until phase 4 frees room                                                                          | Retention                                         |
 | [D-0234](0234-the-backup-archive-collects-unnamed-segments-and-squashes-its-history.md)      | Backup sets get their own repository, which collects unnamed segments and squashes its history (amends D-0232 in upload mode) | Worker disk space                                 |
 | [D-0235](0235-build-weekly-until-phase-4-frees-room.md)                                      | Build weekly until phase 4 frees room                                                                                         | Scheduling                                        |
+| [D-0236](0236-origin-candidates-and-event-site-review-are-offline-reports.md)                | Origin candidates and the event-site review are offline reports; the history plan makes no origin request                     | Historical backfill                               |
+| [D-0237](0237-unit-failures-leave-the-review-queue-and-requirement-history-goes.md)          | Unit failures leave the review queue, and requirement history goes                                                            | Local state                                       |
+| [D-0238](0238-leased-units-carry-no-admission.md)                                            | Leased units carry no admission; the ledger keeps actions with no lease and prunes after 30 days                              | Local state                                       |
+| [D-0239](0239-the-loops-are-the-only-orchestration.md)                                       | The loops are the only orchestration; the cycle and its phase shares go (amends D-0215, D-0185, D-0188, D-0189, D-0238)       | Scheduling                                        |
 
 The [legacy decision log](legacy-design-review.md) preserves the original
 review notes. It is historical evidence, not a second list of current rules.

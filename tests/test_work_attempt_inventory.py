@@ -1,4 +1,4 @@
-"""H12 durable failures remain visible and reconstructible through H11 scans."""
+"""H12 durable failures live on their attempt rows; the H11 scan never makes them findings (D-0237)."""
 
 import json
 from datetime import timedelta
@@ -10,6 +10,7 @@ from swingset.state.attempts import (
     begin_attempt,
     eligible,
     finish_attempt,
+    latest_attempt,
     recover_interrupted,
     request_retry,
 )
@@ -47,19 +48,27 @@ def finding(conn):
     return conn.execute("SELECT * FROM findings WHERE kind='work_attempt'").fetchone()
 
 
-def test_unavailable_work_requirement_survives_inventory_scan_and_lost_row(tmp_path):
+def outcome(conn, unit):
+    row = latest_attempt(conn, unit)
+    assert row is not None
+    return row["outcome"]
+
+
+def test_unavailable_work_leaves_no_finding_through_inventory_scans(tmp_path):
     with open_database(tmp_path) as db:
-        c, unit, _ = failed_work(db)
-        before = dict(finding(db.connection))
-        assert inventory(db.connection, c.clock.now())["changes"]["failures"] == 1
+        c, unit, attempt = failed_work(db)
+        row = dict(latest_attempt(db.connection, unit))
+        assert (row["attempt_id"], row["outcome"], row["reason_code"]) == (
+            attempt.attempt_id,
+            "unavailable",
+            "artifact_unavailable",
+        )
+        assert json.loads(row["evidence_json"])["sha256"] == digest(BODY)
+        assert row["requirement_id"] is None
         full_scan(db, c)
-        assert dict(finding(db.connection)) == before
-        db.connection.execute("DELETE FROM findings WHERE finding_id=?", (before["finding_id"],))
-        full_scan(db, c)
-        restored = dict(finding(db.connection))
-        assert restored == before
-        assert restored["state"] == "unavailable"
-        assert json.loads(restored["evidence_json"])["sha256"] == digest(BODY)
+        assert finding(db.connection) is None
+        assert db.connection.execute("SELECT count(*) FROM finding_support").fetchone()[0] == 0
+        assert inventory(db.connection, c.clock.now(), kind="work_attempt")["unmet"] == 0
         assert not eligible(
             db.connection, unit, input_fingerprint(db.connection, unit), c.clock.now()
         )
@@ -70,7 +79,7 @@ def test_restored_artifact_does_not_satisfy_work_until_output_transaction_commit
         c, unit, _ = failed_work(db)
         c.archive.store_body(BODY)
         full_scan(db, c)
-        assert finding(db.connection)["state"] == "unavailable"
+        assert outcome(db.connection, unit) == "unavailable"
         assert not eligible(
             db.connection, unit, input_fingerprint(db.connection, unit), c.clock.now()
         )
@@ -87,13 +96,14 @@ def test_restored_artifact_does_not_satisfy_work_until_output_transaction_commit
                 raise RuntimeError("simulate rolled-back output")
         except RuntimeError:
             pass
-        assert finding(db.connection)["state"] == "unavailable"
+        assert outcome(db.connection, unit) == "running"
         assert inventory(db.connection, c.clock.now())["active_attempts"] == 1
         with db.transaction():
             finish_attempt(
                 db, attempt, outcome="succeeded", reason_code="parsed", now=c.clock.now()
             )
-        assert finding(db.connection)["state"] == "satisfied"
+        assert outcome(db.connection, unit) == "succeeded"
+        assert finding(db.connection) is None
         assert inventory(db.connection, c.clock.now())["active_attempts"] == 0
 
 
@@ -102,7 +112,7 @@ def test_running_work_without_finding_is_visible_filtered_and_after_restart(tmp_
         c = Corpus(db)
         ctx = c.snapshot("first-attempt")
         unit = WorkUnit("parse", "snapshot", ctx.snapshot_id)
-        attempt = begin_attempt(db, unit, now=c.clock.now(), run_id=c.run)
+        begin_attempt(db, unit, now=c.clock.now(), run_id=c.run)
         identifier = Requirement(
             "work_attempt",
             json.dumps((unit.stage, unit.unit_kind, unit.unit_id), separators=(",", ":")),
@@ -127,16 +137,12 @@ def test_running_work_without_finding_is_visible_filtered_and_after_restart(tmp_
         assert (
             inventory(db.connection, c.clock.now(), kind="archive_artifact")["active_attempts"] == 0
         )
-        # A legacy mirror must not make a running work attempt count twice.
-        db.connection.execute(
-            "INSERT INTO requirement_attempts VALUES (?,?,?,?)",
-            (f"work:{attempt.attempt_id}", identifier, c.clock.now().isoformat(), "running"),
-        )
     with open_database(tmp_path) as db:
         assert inventory(db.connection, c.clock.now())["active_attempts"] == 1
         assert recover_interrupted(db, now=c.clock.now()) == 1
         assert inventory(db.connection, c.clock.now())["active_attempts"] == 0
-        assert finding(db.connection)["state"] == "retry_wait"
+        assert outcome(db.connection, unit) == "interrupted"
+        assert finding(db.connection) is None
         assert not eligible(
             db.connection, unit, input_fingerprint(db.connection, unit), c.clock.now()
         )

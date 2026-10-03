@@ -1,4 +1,9 @@
-"""Subprocess-only crash/SIGTERM harness; no fault injection ships in runtime."""
+"""Subprocess-only crash/SIGTERM harness; no fault injection ships in runtime.
+
+One invocation runs one round of loop ticks (plan, acquire, derive, release;
+`helpers/loop_ticks.py`) in this process, then, with no fault, the rounds a
+unit's restart clock asks for.
+"""
 
 import contextlib
 import json
@@ -12,8 +17,10 @@ from pathlib import Path
 import httpx
 
 from swingset.clock import FakeClock
-from swingset.schedule.cycle import run_cycle
 from swingset.state.db import Database, open_database
+
+sys.path.insert(0, str(Path(__file__).parent))
+from loop_ticks import run_round  # noqa: E402
 
 state = Path(sys.argv[1])
 overrides = Path(sys.argv[2])
@@ -92,7 +99,7 @@ def handler(request):
 clock = FakeClock()
 with open_database(state) as db:
     if variant == "listing":
-        # A listing a source index would have written; its first cycle maps it
+        # A listing a source index would have written; its first round maps it
         # to a placeholder event (no catalog event shares its name and dates).
         db.connection.execute(
             "INSERT OR IGNORE INTO source_events(source,source_ref,name_raw,start_date,end_date,"
@@ -101,48 +108,47 @@ with open_database(state) as db:
             "'https://example.test/crash','listing-snapshot','1',?,?,'seed')",
             (clock.now().isoformat(), clock.now().isoformat()),
         )
-    result = run_cycle(
-        db,
+
+
+def ticks():
+    return run_round(
+        state,
         config_dir=config,
         overrides_dir=overrides,
         clock=clock,
-        transport=httpx.MockTransport(handler),
+        handler=handler,
         should_stop=lambda: stopped,
     )
-    recovery_cycles = 0
-    # H12 preserves a restart deadline instead of immediately retrying a crashed
-    # unit. Exercise that durable boundary with the injected clock, then require
-    # the same fully committed belief as an uninterrupted run.
-    if fault == "none":
-        for _ in range(3):
+
+
+result = ticks()
+recovery_cycles = 0
+# A unit whose process died backs off on its queue clock (D-0216). Exercise
+# that durable boundary with the injected clock, then require the same fully
+# committed belief as an uninterrupted run.
+if fault == "none":
+    for _ in range(3):
+        with open_database(state, lock=False, read_only=True) as db:
             retries = db.connection.execute(
-                "SELECT retry_at FROM work_attempts a WHERE outcome IN ('interrupted','transient') "
-                "AND retry_at IS NOT NULL AND EXISTS (SELECT 1 FROM pending_work p "
-                "WHERE p.stage=a.stage AND p.unit_kind=a.unit_kind AND p.unit_id=a.unit_id) "
-                "AND attempt_id=(SELECT max(b.attempt_id) FROM work_attempts b "
-                "WHERE b.stage=a.stage AND b.unit_kind=a.unit_kind AND b.unit_id=a.unit_id)"
+                "SELECT next_attempt_at FROM work_queue WHERE next_attempt_at IS NOT NULL "
+                "AND state IN ('ready','waiting_input')"
             ).fetchall()
-            if not retries:
-                break
+            unfinished = db.connection.execute("SELECT 1 FROM pending_work LIMIT 1").fetchone()
+        if not retries and not unfinished:
+            break
+        if retries:
             retry_at = max(datetime.fromisoformat(row[0]) for row in retries)
             clock.sleep(max(0, (retry_at - clock.now()).total_seconds()))
-            result = run_cycle(
-                db,
-                config_dir=config,
-                overrides_dir=overrides,
-                clock=clock,
-                transport=httpx.MockTransport(handler),
-                should_stop=lambda: stopped,
-            )
-            recovery_cycles += 1
-    print(
-        json.dumps(
-            {
-                "transactions": count,
-                "checkpoints": checkpoints,
-                "stopped": result["stopped"],
-                "recovery_cycles": recovery_cycles,
-            }
-        ),
-        flush=True,
-    )
+        result = ticks()
+        recovery_cycles += 1
+print(
+    json.dumps(
+        {
+            "transactions": count,
+            "checkpoints": checkpoints,
+            "stopped": result.stopped,
+            "recovery_cycles": recovery_cycles,
+        }
+    ),
+    flush=True,
+)

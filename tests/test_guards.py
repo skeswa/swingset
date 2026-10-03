@@ -9,9 +9,9 @@ from pathlib import Path
 
 import httpx
 import pytest
+from helpers.loop_ticks import ACCEPTED_FIRST, run_round
 
 from swingset.clock import FakeClock
-from swingset.schedule.cycle import run_cycle
 from swingset.state import guards
 from swingset.state.db import open_database
 
@@ -283,12 +283,12 @@ def test_the_report_names_rows_seen_past_their_expiry(tmp_path: Path) -> None:
         ]
 
 
-def test_the_cycle_records_and_clears_guards(tmp_path: Path) -> None:
+def test_the_acquire_tick_records_and_clears_guards(tmp_path: Path) -> None:
     """A host whose spacing is unknown is a guard after the pass; a request clears it.
 
     The scheduler already leaves out hosts that are paused, over budget or
     under an operator pause, so the gate's spacing reasons are what reach
-    the client in a cycle.
+    the client in an acquire tick.
     """
     config = tmp_path / "config"
     shutil.copytree("config", config)
@@ -311,21 +311,26 @@ def test_the_cycle_records_and_clears_guards(tmp_path: Path) -> None:
         with database.transaction() as conn:
             # Budget spent on an earlier day with no spacing row (D-0190).
             conn.execute("INSERT INTO host_budget VALUES ('worldsdc.com','2025-12-31',1,0)")
-        held = run_cycle(
-            database, config_dir=config, overrides_dir=overrides, clock=clock, transport=transport
-        )
+        held = run_round(
+            database,
+            config_dir=config,
+            overrides_dir=overrides,
+            clock=clock,
+            transport=transport,
+            loops=ACCEPTED_FIRST,
+        )["acquire"]
         assert held["checked"] == 0
         assert held["guards"]["recorded"] == 1
-        assert held["guard_reasons"] == {"legacy request spacing unknown": 1}
+        assert guards.counts_by_reason(database.connection) == {"legacy request spacing unknown": 1}
         row = guards.get(database.connection, "host:worldsdc.com", "legacy request spacing unknown")
-        assert row is not None and row.loop == "cycle"
+        assert row is not None and row.loop == "acquire"
         assert row.expires_at == guards.at(clock.now() + timedelta(hours=1))
         with database.transaction() as conn:
             conn.execute("DELETE FROM host_budget WHERE day='2025-12-31'")
         clock.sleep(60)
-        cleared = run_cycle(
+        cleared = run_round(
             database, config_dir=config, overrides_dir=overrides, clock=clock, transport=transport
-        )
+        )["acquire"]
         assert cleared["checked"] == 1
         assert cleared["guards"]["cleared"] == 1
         assert guards.counts_by_reason(database.connection) == {}

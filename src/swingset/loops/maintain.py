@@ -4,10 +4,13 @@ It checkpoints the WAL without waiting for readers, prunes guard rows
 nobody has seen for a week, the run records of idle loop ticks (and stop
 markers) after 14 days and of every loop tick after 30, counts building
 generations nothing is finishing and partial generations nothing names,
-compacts loop `runs` rows older than 30 days, drops queue rows whose unit
-has nothing left to do, and removes partition artifacts nothing has named
-for a day. It reports the size cap and the controls, then runs the storage
-tasks of phase 4 (`[storage]` in sources.toml): an eviction batch
+compacts loop `runs` rows older than 30 days, prunes settled admissions
+older than 30 days but publications and the newest builds
+(`admissions_pruned`, D-0238) and reports the ledger's rows
+(`admissions_rows`, the watchdog's `[admissions-growth]`), drops queue rows
+whose unit has nothing left to do, and removes partition artifacts nothing
+has named for a day. It reports the size cap and the controls, then runs
+the storage tasks of phase 4 (`[storage]` in sources.toml): an eviction batch
 (`storage.evict`), a body-packing batch (`storage.pack_bodies`), and the
 collector's full sweep when due (`collector.sweep`, weekly). Once a week it
 re-derives a sample of current link and year units and compares their output
@@ -82,6 +85,20 @@ def run(tick: Tick) -> None:
     summary["records_pruned"] = prune_idle_records(database.state_dir / "runs", now=now)
     with database.transaction() as write:
         summary["run_rows_compacted"] = compact_run_rows(write, now=now)
+    # Settled ledger rows past 30 days; publications and the newest builds kept (D-0238).
+    try:
+        summary["admissions_pruned"] = prune_admissions(database, now=now, stop=tick.stop)
+    except TASK_ERRORS as error:
+        if conn.in_transaction:
+            conn.rollback()
+        summary["admissions_pruned"] = 0
+        summary["admissions_prune_error"] = f"{type(error).__name__}: {error}"[:300]
+    # Request rows live as long as `scheduler_requests` names them, which has
+    # no collector yet (maintenance item 15): the count shows the ledger's
+    # growth, and the watchdog's `[admissions-growth]` reads it.
+    summary["admissions_rows"] = int(
+        conn.execute("SELECT count(*) FROM execution_admissions").fetchone()[0]
+    )
     tick.progress()
     stale = queue.at(now - BUILDING_STALE)
     rows, orphans = conn.execute(
@@ -106,6 +123,7 @@ def run(tick: Tick) -> None:
     tick.progress()
     if tick.stop():
         return
+    from swingset.state.control_scopes import for_unit
     from swingset.state.controls import status
     from swingset.state.retention import enforce_size_cap
 
@@ -116,7 +134,7 @@ def run(tick: Tick) -> None:
         max_database_bytes=tick.bundle.config.retention.max_database_bytes,
         now=clock.now(),
     )
-    summary["controls"] = status(conn, now=clock.now())
+    summary["controls"] = status(conn, now=clock.now(), unit_scope=for_unit)
     summary["guard_reasons"] = guards.counts_by_reason(conn)
     tick.progress()
     if tick.stop():
@@ -273,6 +291,27 @@ def sweep(database: Any, *, now: datetime, stop: Callable[[], bool]) -> dict[str
     if raised:
         result["error"] = "; ".join(raised)[:300]
     return result
+
+
+def prune_admissions(database: Any, *, now: datetime, stop: Callable[[], bool]) -> int:
+    """Prune settled ledger rows older than 30 days, one batch per transaction.
+
+    Publications and the newest builds stay (`controls.prune`). Batches of at most 5,000
+    rows keep each write short; `secure_delete` is off for them
+    (`disk.fast_delete`). Returns rows deleted.
+    """
+    from swingset.state import disk
+    from swingset.state.controls import PRUNE_BATCH, prune
+
+    total = 0
+    with disk.fast_delete(database.connection):
+        while not stop():
+            with database.transaction() as write:
+                deleted = prune(write, now=now, batch=PRUNE_BATCH)
+            total += deleted
+            if deleted < PRUNE_BATCH:
+                break
+    return total
 
 
 #: Loop `runs` rows compacted per maintain tick, so one write stays short.

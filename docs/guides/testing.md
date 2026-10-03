@@ -19,6 +19,10 @@ loop inside a write, acquire inside a request and one poison unit's process
 through `tests/helpers/loop_fault.py`. The review fixes brought core to
 1,537 cases in 284 s on the Mac (2026-09-28); the busy-writer publication
 test now asserts the 70 s busy timeout and holds its writers a second each.
+Pipeline tests drive the loops through `tests/helpers/loop_ticks.py`: a
+round is a plan, an acquire, a derive and a release tick with a mock
+transport and a fake clock. The crash file's subprocess
+(`tests/helpers/crash_cycle.py`) runs one round per process (phase 5 WP7).
 
 Specialist cases remain available in the extended suite. They include historical
 operation drivers, broader input matrices, detailed reporting, optimization

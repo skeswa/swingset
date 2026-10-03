@@ -4,7 +4,7 @@ Recorded: 2026-09-26
 Decided by: agent, 2026-09-26, under D-0175 and D-0183; source: the operator's resolution of phase 1's growth target in the [architecture plan](../../docs/plans/architecture.md)  
 Topic: Local state  
 Supersedes: —  
-Superseded by: —
+Superseded by: in part, [D-0237](0237-unit-failures-leave-the-review-queue-and-requirement-history-goes.md) (requirement attempts) and [D-0238](0238-leased-units-carry-no-admission.md) (unit admissions)
 
 ## Decision
 

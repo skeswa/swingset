@@ -1,14 +1,17 @@
-"""Paused cycles can retain diagnostic facts without starting paused work."""
+"""Paused loop rounds retain diagnostic facts without starting paused work.
+
+Each round runs loop ticks (`helpers/loop_ticks.py`); the name predates phase 5b.
+"""
 
 import shutil
 
 import httpx
 import pytest
+from helpers.loop_ticks import ACCEPTED_FIRST, run_round
 from test_cycle import overrides as overrides
 from test_event_enumerations import admit_parent
 from test_event_enumerations import event as event
 
-from swingset.schedule.cycle import run_cycle
 from swingset.schedule.event_report import report
 from swingset.state.controls import Selector, change_control
 
@@ -28,19 +31,20 @@ def test_paused_cycle_observes_blockers_and_doctor_only_reads(event, overrides, 
         now=f.corpus.clock.now(),
     )
     snapshots = f.conn.execute("SELECT count(*) FROM snapshots").fetchone()[0]
-    result = run_cycle(
+    result = run_round(
         f.db,
         config_dir=config,
         overrides_dir=overrides,
         clock=f.corpus.clock,
         budget=1,
+        loops=ACCEPTED_FIRST,
         transport=httpx.MockTransport(lambda _: pytest.fail("paused observation fetched")),
     )
-    assert not result["failed"]
-    observed = result["event_blocker_observations"]
+    assert not result.failed
+    observed = result["plan"]["event_blocker_observations"]
     assert observed["scanned_events"] >= 1
     assert observed["reason_counts"]["operator_pause"] >= 1
-    assert any(row["action"] == "event_pressure_refresh" for row in result["held_operations"])
+    assert any(row["action"] == "event_pressure_refresh" for row in result.held_operations)
     assert f.conn.execute("SELECT count(*) FROM snapshots").fetchone()[0] == snapshots
     assert not f.conn.execute("SELECT 1 FROM host_budget WHERE requests>0").fetchone()
     changes = f.conn.total_changes

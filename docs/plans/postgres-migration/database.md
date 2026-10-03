@@ -105,12 +105,11 @@ Review unique-NULL and nullable-primary-key behavior instead of letting a type
 conversion silently strengthen or weaken the domain rule.
 
 Add an `insertion_order bigint` identity to `derivation_generations`, imported
-from its source rowid, and an `attempt_cursor bigint` identity to
-`requirement_attempts`, also imported from rowid. Update every tie-break/report
-query accordingly. Preserve all existing numeric IDs and sequences, including
+from its source rowid. Update every tie-break/report query accordingly.
+Preserve all existing numeric IDs and sequences, including
 `registry_verifications.verification_id`, `work_attempts.attempt_id`,
-`control_events.event_id`, `requirement_transitions.transition_id`, and
-`admission_decisions.decision_id`.
+`control_events.event_id` and `admission_decisions.decision_id`. Migration
+37 dropped `requirement_attempts` and `requirement_transitions` (D-0237).
 
 Create infrastructure tables in a separate `swingset_internal` schema:
 `schema_migrations(version, sha256, applied_at)`, one-row

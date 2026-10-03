@@ -333,65 +333,6 @@ def test_a_pending_mapping_blocks_phase_two_unless_the_inventory_is_held(fixture
 
 
 @pytest.mark.parametrize("paced", [True, False])
-def test_the_cycle_names_its_scheduler_for_the_phase_two_gate(
-    fixture, tmp_path, monkeypatch, paced
-):
-    """The cycle configures the pacing gate (schedule/pacing.configured) for
-    the whole run. Without it a held inventory closes phase two for every
-    year until it runs (D-0210), and no other test would notice."""
-    import shutil
-
-    from swingset.history import backfill
-    from swingset.schedule.cycle import run_cycle, versions
-    from swingset.state.inputs import accept as accept_inputs
-    from swingset.state.inputs import capture as capture_inputs
-
-    config, overrides = tmp_path / "config", tmp_path / "overrides"
-    shutil.copytree("config", config)
-    shutil.copytree("overrides", overrides)
-    scheduling = "[scheduling]\nhistory_interval_seconds = 43200\n"
-    if paced:
-        scheduling += "inventory_interval_seconds = 43200\n"
-    (config / "sources.toml").write_text(scheduling)
-    # Accept the inputs the cycle will accept, so the seeded outputs are
-    # current under them and only the paced inventory is pending.
-    bundle = capture_inputs(config, overrides, fixture.db.state_dir, versions())
-    accept_inputs(fixture.db, bundle, fixture.clock)
-    accept(fixture)
-    review_contract(fixture)
-    _dancer_change(fixture)
-    gates = []
-
-    def offers(*_args, **_kwargs):
-        # Where the cycle plans phase-two pages: ask the real gate.
-        gates.append(
-            phase_two_gate(
-                fixture.conn,
-                source="eepro",
-                source_ref=EVENT.source_ref,
-                page_kind="eepro.autoindex",
-            )
-        )
-        return ()
-
-    monkeypatch.setattr(backfill, "offers", offers)
-    result = run_cycle(
-        fixture.db,
-        config_dir=config,
-        overrides_dir=overrides,
-        clock=fixture.clock,
-        transport=httpx.MockTransport(lambda _request: httpx.Response(503)),
-    )
-    assert gates
-    if paced:
-        assert set(gates) == {None}
-        assert "history_year_unaccepted" not in result["phase_two_refusals"]
-    else:
-        assert "history_year_unaccepted" in gates
-        assert result["phase_two_refusals"]["history_year_unaccepted"] >= 1
-
-
-@pytest.mark.parametrize("paced", [True, False])
 def test_the_accept_year_command_names_its_scheduler(fixture, tmp_path, monkeypatch, paced):
     """`swingset accept-year` configures the pacing gate from its config: a
     year can be accepted while the gate holds the inventory (D-0210)."""

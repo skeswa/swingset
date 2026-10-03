@@ -35,12 +35,16 @@ watchdog = _load()
 watchdog.RETRY_SECONDS = 0
 
 
+#: Every loop, so `inactive=ALL` is a worker with every timer stopped.
+LOOPS = ("acquire", "plan", "derive", "release", "maintain")
+ALL = ",".join(LOOPS)
+
+
 def _run(
     state: Path,
     *,
-    timer: int = 1,
+    inactive: str = "",
     disk: str = "",
-    quiet: int = 7200,
     stale_fetch: int = 7200,
     stale_progress: int = 7200,
     repeat: int = 7200,
@@ -55,8 +59,6 @@ def _run(
             *(extra or []),
             "--state",
             str(state),
-            "--quiet",
-            str(quiet),
             "--stale-fetch",
             str(stale_fetch),
             "--stale-progress",
@@ -67,8 +69,7 @@ def _run(
             disk,
             "--disk-min-free",
             str(min_free),
-            "--timer-active",
-            str(timer),
+            f"--timers-inactive={inactive}",
             "--now",
             now,
         ]
@@ -413,92 +414,6 @@ def test_a_healthy_state_prints_nothing(tmp_path: Path) -> None:
     assert _run(tmp_path, disk="100000000000 300000000000 2026-09-25T16:00:00Z") == []
 
 
-def test_three_failed_cycles_alert_with_the_latest_error(tmp_path: Path) -> None:
-    _write_runs(
-        tmp_path,
-        {"run_id": "r1", "failed": True, "finished_at": "2026-09-25T16:00:00+00:00"},
-        {"run_id": "r2", "error": "x", "finished_at": "2026-09-25T16:01:00+00:00"},
-        {
-            "run_id": "r3",
-            "failed": True,
-            "error": "boom " * 60,
-            "finished_at": "2026-09-25T16:02:00+00:00",
-        },
-    )
-    assert _run(tmp_path) == [
-        "[cycles-failing] three consecutive cycles failed; latest r3: " + ("boom " * 60)[:200]
-    ]
-
-
-def test_three_failed_cycles_without_an_error_name_unit_failures(
-    tmp_path: Path,
-) -> None:
-    _write_runs(
-        tmp_path,
-        *[{"run_id": f"r{i}", "failed": True, "finished_at": NOW} for i in range(1, 4)],
-    )
-    assert _run(tmp_path) == [
-        "[cycles-failing] three consecutive cycles failed; latest r3: unit failures"
-    ]
-
-
-def test_failure_alert_ignores_a_hold_and_an_inactive_timer(tmp_path: Path) -> None:
-    _write_runs(tmp_path, *[{"run_id": f"r{i}", "failed": True} for i in range(1, 4)])
-    (tmp_path / "operator-hold").touch()
-    assert _run(tmp_path, timer=0) == [
-        "[cycles-failing] three consecutive cycles failed; latest r3: unit failures"
-    ]
-
-
-def test_other_commands_do_not_reset_the_failure_count(tmp_path: Path) -> None:
-    # A backup or gc between cycles writes a run record with a command.
-    _write_runs(
-        tmp_path,
-        {"run_id": "r1", "failed": True, "finished_at": NOW},
-        {"run_id": "r2", "failed": True, "finished_at": NOW},
-        {"run_id": "b1", "command": "backup", "failed": False, "finished_at": NOW},
-        {"run_id": "r3", "failed": True, "finished_at": NOW},
-        {"run_id": "g1", "command": "gc", "failed": False, "finished_at": NOW},
-    )
-    assert _run(tmp_path) == [
-        "[cycles-failing] three consecutive cycles failed; latest r3: unit failures"
-    ]
-
-
-def test_other_commands_do_not_count_as_a_finished_cycle(tmp_path: Path) -> None:
-    _write_runs(
-        tmp_path,
-        {"run_id": "r1", "finished_at": "2026-09-25T13:00:00+00:00"},
-        {"run_id": "b1", "command": "backup", "finished_at": "2026-09-25T16:00:00+00:00"},
-    )
-    assert _run(tmp_path) == ["[cycles-quiet] no cycle has finished for 190 minutes while unheld"]
-
-
-def test_two_failures_after_a_success_do_not_alert(tmp_path: Path) -> None:
-    _write_runs(
-        tmp_path,
-        {"run_id": "r0", "failed": True, "finished_at": NOW},
-        {"run_id": "r1", "finished_at": NOW},
-        {"run_id": "r2", "failed": True, "finished_at": NOW},
-        {"run_id": "r3", "failed": True, "finished_at": NOW},
-    )
-    assert _run(tmp_path) == []
-
-
-def test_no_finished_cycle_for_the_quiet_window_alerts(tmp_path: Path) -> None:
-    _write_runs(
-        tmp_path,
-        {"run_id": "r1", "finished_at": "2026-09-25T13:00:00+00:00"},
-        {"run_id": "r2", "finished_at": "2026-09-25T13:39:30+00:00"},
-    )
-    assert _run(tmp_path) == ["[cycles-quiet] no cycle has finished for 150 minutes while unheld"]
-
-
-def test_the_quiet_window_boundary_is_exclusive(tmp_path: Path) -> None:
-    _write_runs(tmp_path, {"run_id": "r1", "finished_at": "2026-09-25T14:10:00+00:00"})
-    assert _run(tmp_path) == []
-
-
 def test_a_stale_fetch_alerts_in_whole_hours(tmp_path: Path) -> None:
     _write_db(tmp_path, "2026-09-20T00:00:00+00:00", "2026-09-23T13:40:00+00:00")
     assert _run(tmp_path) == [
@@ -824,11 +739,12 @@ def test_a_year_cutoff_counts_as_progress(
         ({"project/dancer": 1}, ["replay-loop"]),
     ],
 )
-def test_replay_epochs_moving_every_cycle_without_generations_alert(
+def test_replay_epochs_moving_every_tick_without_generations_alert(
     tmp_path: Path, generations: dict[str, int], alerts: list[str]
 ) -> None:
     State(tmp_path).fetched(NOW).close()
     record = {
+        "loop": "derive",
         "finished_at": NOW,
         "derivation": {
             "generations": {},
@@ -839,11 +755,11 @@ def test_replay_epochs_moving_every_cycle_without_generations_alert(
     last = {**record, "derivation": {**record["derivation"], "generations": generations}}
     _write_runs(tmp_path, record, record, last)
     assert _keys(_run(tmp_path)) == alerts
-    # The same generations in every cycle hide the loop no more than in one.
+    # The same generations in every tick hide the loop no more than in one.
     _write_runs(tmp_path, last, last, last)
     assert _keys(_run(tmp_path)) == alerts
-    # Two such cycles are not yet a loop.
-    _write_runs(tmp_path, {"finished_at": NOW}, record, last)
+    # Two such ticks are not yet a loop.
+    _write_runs(tmp_path, {"loop": "derive", "finished_at": NOW}, record, last)
     assert _run(tmp_path) == []
 
 
@@ -1002,6 +918,27 @@ def test_a_unit_that_succeeded_after_failing_does_not_alert(tmp_path: Path) -> N
     with open_database(tmp_path, lock=False) as database, database.transaction() as conn:
         queue.succeed(conn, EVENT_A)
     assert _run(tmp_path) == []
+
+
+@pytest.mark.parametrize("minutes, alerts", [(119, []), (121, ["admission-stuck"])])
+def test_an_admission_active_for_two_hours_alerts(
+    tmp_path: Path, minutes: int, alerts: list[str]
+) -> None:
+    """A dead admission drains every matching pause until a loop settles it."""
+    from datetime import timedelta
+
+    admitted = datetime.fromisoformat(NOW) - timedelta(minutes=minutes)
+    with open_database(tmp_path, lock=False) as database, database.transaction() as conn:
+        conn.execute(
+            "INSERT INTO execution_admissions(action_id,action_kind,admitted_at,"
+            "control_revision,run_id,all_sources,all_kinds,state) "
+            "VALUES ('request_1','request',?,0,NULL,1,1,'active')",
+            (admitted.isoformat(),),
+        )
+    lines = _run(tmp_path)
+    assert _keys(lines) == alerts
+    if alerts:
+        assert "request_1 (request, run none, since 2026-09-25 14:09 UTC)" in lines[0]
 
 
 @pytest.mark.parametrize("minutes, alerts", [(9, []), (11, ["lease-stuck"])])
@@ -1253,23 +1190,23 @@ def test_waiting_links_are_named_when_another_stage_stalls(tmp_path: Path) -> No
 
 
 def _stall_everything(state: Path) -> State:
-    _write_runs(state, {"run_id": "r1", "finished_at": "2026-09-24T00:00:00+00:00"})
     return _stalled(state)
 
 
 def test_a_hold_silences_the_stall_alerts(tmp_path: Path) -> None:
     _stall_everything(tmp_path).close()
-    assert _keys(_run(tmp_path)) == ["cycles-quiet", "stale-fetch", "stale-progress"]
+    assert _keys(_run(tmp_path)) == ["stale-fetch", "stale-progress"]
     (tmp_path / "operator-hold").touch()
     assert _run(tmp_path) == []
-    assert _run(tmp_path, timer=0) == []
+    assert _run(tmp_path, inactive=ALL) == []
 
 
 def test_an_inactive_timer_while_unheld_alerts(tmp_path: Path) -> None:
     _stall_everything(tmp_path).close()
-    assert _run(tmp_path, timer=0) == [
-        "[timer-inactive] swingset-cycle.timer is not active and nothing holds the worker;"
-        " start the timer or write operator-hold"
+    assert _run(tmp_path, inactive=ALL) == [
+        "[timer-inactive] "
+        + ", ".join(f"swingset-{name}.timer" for name in LOOPS)
+        + " not active and nothing holds the worker; start the timers or write operator-hold"
     ]
 
 
@@ -1286,7 +1223,7 @@ def test_an_expired_or_narrower_pause_does_not_hold(
     tmp_path: Path, until: str | None, kind: str, scope: str
 ) -> None:
     _stall_everything(tmp_path).pause("review", until=until, kind=kind, scope=scope).close()
-    assert _keys(_run(tmp_path)) == ["cycles-quiet", "stale-fetch", "stale-progress"]
+    assert _keys(_run(tmp_path)) == ["stale-fetch", "stale-progress"]
 
 
 def test_a_future_pause_expiry_still_holds(tmp_path: Path) -> None:
@@ -1299,9 +1236,9 @@ def test_a_hold_file_older_than_48_hours_is_overdue(tmp_path: Path) -> None:
     hold.touch()
     stamp = datetime.fromisoformat(NOW).timestamp() - 48 * 3600
     os.utime(hold, (stamp, stamp))
-    assert _run(tmp_path, timer=0) == []
+    assert _run(tmp_path, inactive=ALL) == []
     os.utime(hold, (stamp - 1, stamp - 1))
-    assert _run(tmp_path, timer=0) == [
+    assert _run(tmp_path, inactive=ALL) == [
         "[hold-overdue] operator-hold file is 48 h old, over the 48 h limit;"
         " review it or record why it stays (docs/guides/operation.md, holds)"
     ]
@@ -1333,7 +1270,7 @@ def test_the_size_cap_pause_alerts_and_does_not_count_as_held(tmp_path: Path) ->
     state = _stall_everything(tmp_path)
     state.pause(SIZE_CAP_REASON, created="2026-09-01T00:00:00+00:00").close()
     lines = _run(tmp_path)
-    assert _keys(lines) == ["size-cap-pause", "cycles-quiet", "stale-fetch", "stale-progress"]
+    assert _keys(lines) == ["size-cap-pause", "stale-fetch", "stale-progress"]
     assert lines[0] == (
         f"[size-cap-pause] all work is paused: {SIZE_CAP_REASON};"
         " see docs/guides/operation.md#retention-plans-and-holds"
@@ -1343,7 +1280,7 @@ def test_the_size_cap_pause_alerts_and_does_not_count_as_held(tmp_path: Path) ->
 def test_the_size_cap_pause_alerts_under_a_hold(tmp_path: Path) -> None:
     _stall_everything(tmp_path).pause(SIZE_CAP_REASON).close()
     (tmp_path / "operator-hold").touch()
-    assert _keys(_run(tmp_path, timer=0)) == ["size-cap-pause"]
+    assert _keys(_run(tmp_path, inactive=ALL)) == ["size-cap-pause"]
 
 
 def test_legacy_spacing_alerts_even_when_held(tmp_path: Path) -> None:
@@ -1354,7 +1291,7 @@ def test_legacy_spacing_alerts_even_when_held(tmp_path: Path) -> None:
     state.budget("web.archive.org", 3, day="2026-09-20", spaced=False)
     state.budget("scoring.dance", 9).close()
     (tmp_path / "operator-hold").touch()
-    assert _run(tmp_path, timer=0) == [
+    assert _run(tmp_path, inactive=ALL) == [
         "[gate-legacy-spacing] request spacing unknown, so the fetch gate skips every request"
         " with no expiry, for eepro.com, web.archive.org, worldsdc.com (D-0190)"
     ]
@@ -1414,7 +1351,7 @@ def test_a_host_answering_only_errors_alerts_even_when_held(
         streak,
     ).close()
     (tmp_path / "operator-hold").touch()
-    lines = _run(tmp_path, timer=0)
+    lines = _run(tmp_path, inactive=ALL)
     if reason == "Blocked":
         # A Blocked pause has its own line; it expired at 15:00.
         assert lines == []
@@ -1503,7 +1440,7 @@ def test_an_unreadable_database_makes_the_watchdog_say_it_is_blind(tmp_path: Pat
 def test_a_missing_table_names_its_check(tmp_path: Path) -> None:
     _stall_everything(tmp_path).sql("DROP TABLE hosts").close()
     lines = _run(tmp_path)
-    assert _keys(lines) == ["watchdog-blind", "cycles-quiet", "stale-fetch", "stale-progress"]
+    assert _keys(lines) == ["watchdog-blind", "stale-fetch", "stale-progress"]
     assert lines[0] == (
         "[watchdog-blind] checks failed: blocked, failing: OperationalError: no such table: hosts"
     )
@@ -1516,7 +1453,6 @@ def test_a_bad_stamp_loses_only_its_own_check(tmp_path: Path) -> None:
     lines = _run(tmp_path)
     assert _keys(lines) == [
         "watchdog-blind",
-        "cycles-quiet",
         "stale-fetch",
         "stale-progress",
         "gate-legacy-spacing",
@@ -1563,6 +1499,7 @@ def test_a_write_deadline_firing_in_a_run_record_alerts_by_loop(tmp_path: Path) 
         {"run_id": "old", "finished_at": "2026-09-25T13:00:00+00:00", "write_deadline_fired": 4},
         {
             "run_id": "c1",
+            "command": "reparse",
             "finished_at": "2026-09-25T15:00:00+00:00",
             "write_deadline_fired": 1,
             "write_seconds_max": 60.4,
@@ -1579,10 +1516,10 @@ def test_a_write_deadline_firing_in_a_run_record_alerts_by_loop(tmp_path: Path) 
     )
     lines = [line for line in _run(tmp_path) if line.startswith("[write-deadline]")]
     assert lines == [
-        "[write-deadline] cycle: 1 writes cut off at the deadline in 1 runs in the last 2 h,"
-        " latest c1; longest write 60 s",
         "[write-deadline] derive: 2 writes cut off at the deadline in 1 runs in the last 2 h,"
         " latest d1; longest write 61 s",
+        "[write-deadline] reparse: 1 writes cut off at the deadline in 1 runs in the last 2 h,"
+        " latest c1; longest write 60 s",
     ]
     # Each line logs once for the window; a new firing changes the text.
     _log(tmp_path, *(f"2026-09-25T16:10:00Z {line}" for line in lines))
@@ -1615,11 +1552,10 @@ def test_a_run_record_that_is_not_an_object_is_skipped(tmp_path: Path) -> None:
     assert _run(tmp_path) == []
 
 
-def test_a_bad_run_stamp_is_named_not_fatal(tmp_path: Path) -> None:
-    _write_runs(tmp_path, {"run_id": "r1", "finished_at": "yesterday"})
+def test_a_bad_run_stamp_is_skipped_not_fatal(tmp_path: Path) -> None:
+    _write_runs(tmp_path, {"run_id": "r1", "loop": "derive", "finished_at": "yesterday"})
     lines = _run(tmp_path, disk="210000000000 256000000000")
-    assert _keys(lines) == ["watchdog-blind", "disk-low"]
-    assert lines[0].startswith("[watchdog-blind] checks failed: cycles-quiet: ValueError")
+    assert _keys(lines) == ["disk-low"]
 
 
 def test_a_crash_outside_every_check_still_prints_a_line(
@@ -1635,8 +1571,6 @@ def test_a_crash_outside_every_check_still_prints_a_line(
 
 
 ARGS = [
-    "--quiet",
-    "7200",
     "--stale-fetch",
     "7200",
     "--stale-progress",
@@ -1645,15 +1579,13 @@ ARGS = [
     "7200",
     "--disk-min-free",
     "1",
-    "--timer-active",
-    "1",
 ]
 
 
 def test_the_database_read_creates_no_side_files(tmp_path: Path) -> None:
     _stall_everything(tmp_path).close()
     before = sorted(p.name for p in tmp_path.iterdir())
-    assert _keys(_run(tmp_path)) == ["cycles-quiet", "stale-fetch", "stale-progress"]
+    assert _keys(_run(tmp_path)) == ["stale-fetch", "stale-progress"]
     assert sorted(p.name for p in tmp_path.iterdir()) == before
 
 
@@ -1666,7 +1598,7 @@ def test_low_disk_quota_alerts(tmp_path: Path) -> None:
 
 def test_low_disk_alerts_even_when_held(tmp_path: Path) -> None:
     (tmp_path / "operator-hold").touch()
-    assert _run(tmp_path, disk="210000000000 256000000000", timer=0) == [
+    assert _run(tmp_path, disk="210000000000 256000000000", inactive=ALL) == [
         "[disk-low] disk quota has 46.0 GB free of 256.0 GB; df does not show this"
     ]
 
@@ -1698,7 +1630,12 @@ def test_alerts_come_out_in_check_order(tmp_path: Path) -> None:
     _write_runs(
         tmp_path,
         *[
-            {"run_id": f"r{i}", "failed": True, "finished_at": "2026-09-25T10:00:00+00:00"}
+            {
+                "run_id": f"r{i}",
+                "loop": "derive",
+                "failed": True,
+                "finished_at": f"2026-09-25T16:0{i}:00+00:00",
+            }
             for i in range(1, 4)
         ],
     )
@@ -1709,9 +1646,8 @@ def test_alerts_come_out_in_check_order(tmp_path: Path) -> None:
     _checkpoint(tmp_path, "failed-run_20260925T040000Z", NOW)
     assert _keys(_run(tmp_path, disk="210000000000 256000000000", backup=LOCAL)) == [
         "watchdog-blind",
-        "cycles-failing",
         "size-cap-pause",
-        "cycles-quiet",
+        "loop-failing",
         "stale-fetch",
         "stale-progress",
         "gate-legacy-spacing",
@@ -1731,8 +1667,6 @@ def test_the_script_prints_one_alert_per_line(tmp_path: Path) -> None:
             str(SCRIPT),
             "--state",
             str(tmp_path),
-            "--quiet",
-            "7200",
             "--stale-fetch",
             "7200",
             "--stale-progress",
@@ -1743,8 +1677,6 @@ def test_the_script_prints_one_alert_per_line(tmp_path: Path) -> None:
             "210000000000 256000000000 2026-09-25T16:05:00Z",
             "--disk-min-free",
             "100000000000",
-            "--timer-active",
-            "1",
             "--now",
             NOW,
         ],
@@ -1843,7 +1775,10 @@ def test_a_backup_set_counts_as_the_newest_local_backup(tmp_path: Path) -> None:
 
 def test_backup_alerts_ignore_a_hold(tmp_path: Path) -> None:
     (tmp_path / "operator-hold").touch()
-    assert _keys(_run(tmp_path, timer=0, backup=LOCAL)) == ["backup-stale", "backup-upload-paused"]
+    assert _keys(_run(tmp_path, inactive=ALL, backup=LOCAL)) == [
+        "backup-stale",
+        "backup-upload-paused",
+    ]
 
 
 @pytest.mark.parametrize(
@@ -1871,7 +1806,7 @@ def test_a_stale_backup_repeats_on_the_ordinary_window(tmp_path: Path) -> None:
 
 def test_a_failed_backup_unit_alerts_under_a_hold(tmp_path: Path) -> None:
     (tmp_path / "operator-hold").touch()
-    assert _run(tmp_path, timer=0, extra=["--backup-failed", "1"]) == [
+    assert _run(tmp_path, inactive=ALL, extra=["--backup-failed", "1"]) == [
         "[backup-failed] swingset-backup.service failed; read journalctl -u swingset-backup"
     ]
 
@@ -1886,7 +1821,7 @@ def test_a_failed_summary_unit_alerts(tmp_path: Path) -> None:
     assert _run(tmp_path, extra=["--summary-failed", "1"]) == [line]
     # A hold stops the digest from starting, not the failed state.
     (tmp_path / "operator-hold").touch()
-    assert _run(tmp_path, timer=0, extra=["--summary-failed", "1"]) == [line]
+    assert _run(tmp_path, inactive=ALL, extra=["--summary-failed", "1"]) == [line]
 
 
 def test_a_copy_that_failed_its_read_back_alerts_and_is_not_the_newest(tmp_path: Path) -> None:
@@ -1949,13 +1884,14 @@ def test_equivalences_past_the_collector_trigger_alert(
         ({"derivation": None}, ["report-failing"]),
     ],
 )
-def test_a_failing_cycle_report_alerts(
+def test_a_failing_derive_report_alerts(
     tmp_path: Path, broken: dict[str, object], alerts: list[str]
 ) -> None:
     # A record without `derivation` blinds [replay-loop]; that must not read
     # as healthy (I4).
     State(tmp_path).fetched(NOW).close()
     record: dict[str, object] = {
+        "loop": "derive",
         "finished_at": NOW,
         "readiness_errors": {},
         "controls": {},
@@ -1968,7 +1904,7 @@ def test_a_failing_cycle_report_alerts(
     if "derivation_error" in broken:
         assert "database is locked" in lines[0]
     # Records from before phase 1 carry none of these reports.
-    _write_runs(tmp_path, {"finished_at": NOW}, {"finished_at": NOW}, {"finished_at": NOW})
+    _write_runs(tmp_path, *[{"loop": "derive", "finished_at": NOW}] * 3)
     assert _run(tmp_path) == []
 
 
@@ -2200,9 +2136,7 @@ def test_many_expired_guards_are_one_line_and_the_count_is_daily(tmp_path: Path)
     assert _run(tmp_path, repeat=86400) == []
 
 
-# The loop checks (services.swingset.loops.enable, D-0215).
-
-LOOPS = ("acquire", "plan", "derive", "release", "maintain")
+# The loop checks (D-0215, D-0239).
 
 
 def _loops(
@@ -2212,23 +2146,8 @@ def _loops(
     now: str = NOW,
     extra: list[str] | None = None,
 ) -> list[str]:
-    """The watchdog as the loops-on wrapper runs it: no --timer-active."""
-    result: list[str] = watchdog.main(
-        [
-            *(extra or []),
-            "--state",
-            str(state),
-            "--loops",
-            "1",
-            f"--timers-inactive={inactive}",
-            *ARGS[:8],
-            "--disk-min-free",
-            "1",
-            "--now",
-            now,
-        ]
-    )
-    return result
+    """The watchdog as the unit's wrapper runs it, with room on the disk."""
+    return _run(state, inactive=inactive, now=now, extra=extra, min_free=1)
 
 
 def _ticks(state: Path, *records: dict[str, object]) -> None:
@@ -2273,8 +2192,6 @@ def test_healthy_loops_on_the_real_schema_print_nothing(tmp_path: Path) -> None:
     _plan(tmp_path, "2026-09-25T15:40:00+00:00")
     _ticks(tmp_path, *_fresh())
     assert _loops(tmp_path) == []
-    # With the loops off the same records are not cycles: none has finished.
-    assert _run(tmp_path, quiet=60) == []
 
 
 @pytest.mark.parametrize(
@@ -2314,9 +2231,6 @@ def test_the_quiet_line_names_the_last_tick_and_holds_its_text(tmp_path: Path) -
     ]
     _log(tmp_path, f"2026-09-25T16:10:00Z {lines[0]}")
     assert _loops(tmp_path, now="2026-09-25T16:30:00+00:00") == []
-    # Cycle mode never reads loop ticks for this.
-    (tmp_path / "ALERTS.log").unlink()
-    assert "loop-quiet" not in _keys(_run(tmp_path))
 
 
 def test_a_loop_that_never_ticked_is_quiet_once_the_others_ran_past_its_window(
@@ -2361,8 +2275,6 @@ def test_three_failed_ticks_of_one_loop_alert_even_when_held(tmp_path: Path) -> 
     assert _loops(tmp_path) == expected
     (tmp_path / "operator-hold").touch()
     assert _loops(tmp_path) == expected
-    # Cycle mode reads cycle records only.
-    assert "loop-failing" not in _keys(_run(tmp_path))
 
 
 def test_a_success_among_the_last_three_ticks_does_not_alert(tmp_path: Path) -> None:
@@ -2382,7 +2294,7 @@ def test_a_success_among_the_last_three_ticks_does_not_alert(tmp_path: Path) -> 
     "planned, alerts",
     [("2026-09-25T14:11:00+00:00", []), ("2026-09-25T14:09:00+00:00", ["plan-stale"])],
 )
-def test_a_plan_older_than_two_hours_alerts_with_the_loops_on(
+def test_a_plan_older_than_two_hours_alerts(
     tmp_path: Path, planned: str, alerts: list[str]
 ) -> None:
     _plan(tmp_path, planned)
@@ -2394,8 +2306,7 @@ def test_a_plan_older_than_two_hours_alerts_with_the_loops_on(
             "[plan-stale] the newest acquisition_plan row was planned at 2026-09-25 14:09 UTC,"
             " over 2 h ago; acquire offers only planned pages"
         )
-    # The cycle does not plan; a held or stopped plan is not stale.
-    assert _run(tmp_path) == []
+    # A held or stopped plan is not stale.
     assert _keys(_loops(tmp_path, inactive="plan")) == ["timer-inactive"]
     (tmp_path / "operator-hold").touch()
     assert _loops(tmp_path) == []
@@ -2419,11 +2330,14 @@ def test_inactive_loop_timers_are_named_and_stop_only_their_own_stall_check(
 def test_the_loop_arguments_are_checked(tmp_path: Path) -> None:
     with pytest.raises(SystemExit):
         watchdog.main(["--state", str(tmp_path), *ARGS[:-2]])
+    for removed in (["--loops", "1"], ["--timer-active", "1"], ["--quiet", "7200"]):
+        with pytest.raises(SystemExit):
+            watchdog.main(["--state", str(tmp_path), *ARGS, *removed])
     with pytest.raises(SystemExit):
         _loops(tmp_path, inactive="cycle")
 
 
-def test_replay_and_report_checks_read_derive_ticks_with_the_loops_on(tmp_path: Path) -> None:
+def test_replay_and_report_checks_read_derive_ticks(tmp_path: Path) -> None:
     _real(tmp_path)
     derivation = {
         "generations": {},
@@ -2545,6 +2459,28 @@ def test_partial_generations_nothing_collects_alert_above_three(
     assert _keys(lines) == alerts
     if alerts:
         assert lines[0].startswith("[incomplete-generations] 4 partial generations (12 references)")
+    (tmp_path / "operator-hold").touch()
+    assert _loops(tmp_path) == []
+
+
+@pytest.mark.parametrize("rows, alerts", [(200_000, []), (200_001, ["admissions-growth"])])
+def test_an_admission_ledger_past_its_trigger_is_named(
+    tmp_path: Path, rows: int, alerts: list[str]
+) -> None:
+    """Maintain's `admissions_rows` past 200,000 is maintenance item 15's
+    trigger: `scheduler_requests` needs its collector (D-0238)."""
+    _real(tmp_path)
+    maintained = {
+        "loop": "maintain",
+        "finished_at": "2026-09-25T16:06:00+00:00",
+        "admissions_rows": rows,
+    }
+    _ticks(tmp_path, *_fresh(), maintained)
+    _plan(tmp_path, "2026-09-25T16:00:00+00:00")
+    lines = _loops(tmp_path)
+    assert _keys(lines) == alerts
+    if alerts:
+        assert lines[0].startswith("[admissions-growth] the admission ledger holds 200001 rows")
     (tmp_path / "operator-hold").touch()
     assert _loops(tmp_path) == []
 
@@ -2724,7 +2660,7 @@ def test_a_refused_verdict_alerts_daily_until_a_new_verdict(tmp_path: Path) -> N
     _log(tmp_path, f"2026-09-25T13:10:00Z {lines[0]}")
     assert _loops(tmp_path) == []
     assert "release-refused" in _keys(_loops(tmp_path, now="2026-09-26T13:11:00+00:00"))
-    # Another refused candidate repeats at once; a cycle's verdict counts too.
+    # Another refused candidate repeats at once; a build command's verdict counts too.
     _run_row(
         tmp_path, "run_c", None, "2026-09-25T14:20:00+00:00", {**refused, "candidate_id": "c2"}
     )
@@ -3291,7 +3227,8 @@ def test_the_blob_store_over_its_budget_alerts(
     ]
 
 
-# The service module (phase 4, WP7): segmented backups and the maintain unit.
+# The service module (phase 4, WP7): segmented backups and the maintain unit;
+# the five loop units with no loop option set (D-0239).
 
 EVAL = """
 { repo, segmented }:
@@ -3308,7 +3245,6 @@ let
         system.stateVersion = "25.05";
         services.swingset = {
           enable = true;
-          loops.enable = true;
           backupUpload = false;
           backupSegmented = segmented;
           overridesDir = "/overrides";
@@ -3334,6 +3270,14 @@ in {
   maintainTmp = s.swingset-maintain.environment.SQLITE_TMPDIR;
   derivePrivateTmp = s.swingset-derive.serviceConfig.PrivateTmp;
   tmpfiles = system.config.systemd.tmpfiles.rules;
+  services = builtins.filter (name: builtins.substring 0 9 name == "swingset-") (
+    builtins.attrNames s
+  );
+  timers = builtins.filter (name: builtins.substring 0 9 name == "swingset-") (
+    builtins.attrNames system.config.systemd.timers
+  );
+  watchdog = s.swingset-watchdog.serviceConfig.ExecStart.drvPath;
+  failed = map (a: a.message) (builtins.filter (a: !a.assertion) system.config.assertions);
 }
 """
 
@@ -3396,6 +3340,14 @@ def test_the_module_evaluates_with_and_without_segmented_backups(
     # The drill's scratch outlives the unit: maintain sees the real /var/tmp.
     assert value["privateTmp"] is False and value["derivePrivateTmp"] is True
     assert value["paths"] == ["/var/lib/swingset", "/var/tmp"]
+    # No loop option: the five loops run, and nothing else orchestrates.
+    for kind in ("services", "timers"):
+        assert {f"swingset-{name}" for name in LOOPS} <= set(value[kind]), kind
+        assert not [name for name in value[kind] if "cycle" in name], kind
+    wrapper = _env_text(value["watchdog"])
+    assert '--timers-inactive="$inactive"' in wrapper
+    assert "--timer-active" not in wrapper and "--loops" not in wrapper
+    assert value["failed"] == []
     if segmented:
         # The set checks its own room, by bytes in use (backup/segments._room).
         assert not [drv for drv in value["room"] if "backup-room" in drv]
@@ -3404,3 +3356,58 @@ def test_the_module_evaluates_with_and_without_segmented_backups(
         need = next(line.strip() for line in room.splitlines() if "need=" in line)
         assert need.startswith("need=$(( 1 * $(") and "du -sb" in need
         assert "needed for 1 copy plus 20 GB headroom" in room
+
+
+REMOVED = """
+{ repo, option }:
+let
+  lock = builtins.fromJSON (builtins.readFile (repo + "/flake.lock"));
+  locked = lock.nodes.nixpkgs.locked;
+  nixpkgs = builtins.getFlake "github:${locked.owner}/${locked.repo}/${locked.rev}";
+  system = nixpkgs.lib.nixosSystem {
+    system = "aarch64-linux";
+    modules = [
+      (import (repo + "/nix/module.nix"))
+      ({ pkgs, ... }: {
+        boot.isContainer = true;
+        system.stateVersion = "25.05";
+        services.swingset = {
+          enable = true;
+          package = (pkgs.writeShellScriptBin "swingset" "") // { projectSource = "/src"; };
+        } // option;
+      })
+    ];
+  };
+in
+# nixos-rebuild refuses a failed assertion; reading them needs no build.
+map (a: a.message) (builtins.filter (a: !a.assertion) system.config.assertions)
+"""
+
+
+@pytest.mark.extended
+@pytest.mark.skipif(shutil.which("nix") is None, reason="needs nix")
+@pytest.mark.parametrize(
+    "option",
+    ["{ loops.enable = true; }", '{ cycleBudget = "40m"; }', "{ watchdogQuietSeconds = 60; }"],
+)
+def test_a_removed_cycle_option_fails_the_build_with_its_reason(
+    tmp_path: Path, option: str
+) -> None:
+    expression = tmp_path / "removed.nix"
+    expression.write_text(REMOVED)
+    repo = Path(__file__).resolve().parents[1]
+    result = subprocess.run(
+        [
+            "nix",
+            "eval",
+            "--impure",
+            "--json",
+            "--expr",
+            f"import {expression} {{ repo = {repo}; option = {option}; }}",
+        ],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    (message,) = json.loads(result.stdout)
+    assert "D-0239" in message

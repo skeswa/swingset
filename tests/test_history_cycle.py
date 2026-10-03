@@ -1,4 +1,7 @@
-"""Allocated archive dispatch, same-cycle interpretation, and durable stop/resume."""
+"""Archive dispatch, interpretation in the same round, and durable stop/resume.
+
+Each round runs loop ticks (`helpers/loop_ticks.py`); the name predates phase 5b.
+"""
 
 import shutil
 from datetime import timedelta
@@ -7,17 +10,19 @@ from types import SimpleNamespace
 
 import httpx
 import pytest
+from helpers.loop_ticks import run_round
 from test_history_shared_gates import reviewed_index, spec
 from test_platform_backfill import accept
 from test_platform_backfill import fixture as fixture
 
 from swingset.fetch.client import FetchClient
 from swingset.history import backfill
-from swingset.schedule import cycle, derive
+from swingset.schedule import derive, release_steps
 from swingset.schedule.discover import discover
 from swingset.schedule.watches import upsert_watch
 from swingset.state.inputs import accept as accept_inputs
 from swingset.state.inputs import capture
+from swingset.versions import versions
 
 
 def prepare_cycle(fixture, tmp_path, monkeypatch):
@@ -29,7 +34,7 @@ def prepare_cycle(fixture, tmp_path, monkeypatch):
     (overrides_dir / "event_aliases.csv").write_text("source,source_ref,event_id,note\n")
     monkeypatch.setenv("SWINGSET_REVISION", "offline-history-cycle-control")
     reviewed_index(fixture)  # Real retained body and exact page-kind review.
-    bundle = capture(config_dir, overrides_dir, fixture.db.state_dir, cycle.versions())
+    bundle = capture(config_dir, overrides_dir, fixture.db.state_dir, versions())
     accept_inputs(fixture.db, bundle, fixture.clock)
     discover(fixture.db, bundle, fixture.clock.now())
     # Arrange an otherwise settled pipeline and already scheduled ordinary sources.
@@ -47,7 +52,7 @@ def prepare_cycle(fixture, tmp_path, monkeypatch):
     # Candidate construction is outside this scheduling regression; actual fetch,
     # admission and parse are exercised below, with publication disabled.
     monkeypatch.setattr(
-        cycle,
+        release_steps,
         "build",
         lambda *args, **kwargs: SimpleNamespace(
             reused=True, candidate_id="offline-unpublished-build", path=tmp_path / "no-candidate"
@@ -102,25 +107,25 @@ def test_allocated_capture_parses_in_cycle_or_resumes_after_stop(
 
     transport = httpx.MockTransport(handler)
     started = fixture.clock.now()
-    fetched = cycle.run_cycle(
+    fetched = run_round(
         fixture.db,
         config_dir=config_dir,
         overrides_dir=overrides_dir,
         clock=fixture.clock,
         transport=transport,
-        budget=120,
+        budget=50,
         should_stop=lambda: stop_after_fetch and bool(completed_fetches),
     )
-    # The 50-second acquisition allocation has its own offline reservation;
-    # the old dispatcher's independent 120-second reserve does not apply.
-    assert fetched["history_dispatch"]["reason"] == "dispatched"
+    # The fetch runs to the acquire tick's own deadline; derive has its own
+    # tick, so the old dispatcher's independent 120-second reserve does not apply.
+    assert fetched["acquire"]["history_dispatch"]["reason"] == "dispatched"
     assert fetches == [(target.watch_id, started + timedelta(seconds=50))]
-    assert fetched["checked"] == 1 and len(requests) == 2
+    assert fetched.checked == 1 and len(requests) == 2
     snapshot_id = fixture.conn.execute(
         "SELECT snapshot_id FROM snapshots WHERE watch_id=?", (target.watch_id,)
     ).fetchone()[0]
     if stop_after_fetch:
-        assert fetched["stages"] == [] and parsed == []
+        assert fetched.stages == [] and parsed == []
         assert fixture.conn.execute(
             "SELECT 1 FROM pending_work WHERE stage='parse' AND unit_id=?", (snapshot_id,)
         ).fetchone()
@@ -132,7 +137,7 @@ def test_allocated_capture_parses_in_cycle_or_resumes_after_stop(
             is None
         )
     else:
-        assert "parse" in fetched["stages"] and parsed == [snapshot_id]
+        assert "parse" in fetched.stages and parsed == [snapshot_id]
         assert (
             fixture.conn.execute(
                 "SELECT current_observation_snapshot_id FROM watches WHERE watch_id=?",
@@ -155,7 +160,7 @@ def test_allocated_capture_parses_in_cycle_or_resumes_after_stop(
             == "accepted"
         )
         assert dispatches == ["dispatched"]
-        # The fixture has no child captures. Later cycles may legitimately try
+        # The fixture has no child captures. Later rounds may legitimately try
         # another retained parent capture; this turn must not refetch this one.
         assert (
             fixture.conn.execute(
@@ -166,7 +171,7 @@ def test_allocated_capture_parses_in_cycle_or_resumes_after_stop(
         )
         return
 
-    resumed = cycle.run_cycle(
+    resumed = run_round(
         fixture.db,
         config_dir=config_dir,
         overrides_dir=overrides_dir,
@@ -176,7 +181,7 @@ def test_allocated_capture_parses_in_cycle_or_resumes_after_stop(
         should_stop=lambda: stop_after_fetch and bool(parsed),
     )
     assert parsed == [snapshot_id]
-    assert resumed["checked"] == 0 and len(fetches) == 1 and len(requests) == 2
+    assert resumed.checked == 0 and len(fetches) == 1 and len(requests) == 2
     assert dispatches == ["dispatched"]
     assert (
         fixture.conn.execute(
@@ -212,7 +217,7 @@ def test_allocated_capture_parses_in_cycle_or_resumes_after_stop(
         == 0
     )
     if stop_after_fetch:
-        assert resumed["stages"] == ["parse"]
+        assert resumed.stages == ["parse"]
         assert (
             fixture.conn.execute(
                 "SELECT COUNT(*) FROM pending_work WHERE stage='project'"
@@ -251,7 +256,7 @@ def test_blocked_capture_token_does_not_starve_older_complete_capture(
         )
 
     transport = httpx.MockTransport(handler)
-    first = cycle.run_cycle(
+    first = run_round(
         fixture.db,
         config_dir=config_dir,
         overrides_dir=overrides_dir,
@@ -259,7 +264,7 @@ def test_blocked_capture_token_does_not_starve_older_complete_capture(
         transport=transport,
         budget=300,
     )
-    assert first["history_dispatch"]["reason"] == "dispatched"
+    assert first["acquire"]["history_dispatch"]["reason"] == "dispatched"
     first_snapshot = fixture.conn.execute(
         "SELECT snapshot_id FROM snapshots WHERE watch_id=?", (target.watch_id,)
     ).fetchone()[0]
@@ -286,7 +291,7 @@ def test_blocked_capture_token_does_not_starve_older_complete_capture(
     ]
     assert first_generations
 
-    second = cycle.run_cycle(
+    second = run_round(
         fixture.db,
         config_dir=config_dir,
         overrides_dir=overrides_dir,
@@ -294,8 +299,8 @@ def test_blocked_capture_token_does_not_starve_older_complete_capture(
         transport=transport,
         budget=300,
     )
-    assert second["history_dispatch"]["reason"] == "dispatched"
-    assert "parse" in second["stages"] and "project" in second["stages"]
+    assert second["acquire"]["history_dispatch"]["reason"] == "dispatched"
+    assert "parse" in second.stages and "project" in second.stages
     assert len(requests) == 3 and "20190401" in requests[-1]
     promoted = fixture.conn.execute(
         "SELECT current_observation_snapshot_id FROM watches WHERE watch_id=?", (target.watch_id,)
@@ -321,7 +326,7 @@ def test_blocked_capture_token_does_not_starve_older_complete_capture(
         )
     ]
     # The active capture changed, so the old attempt becomes superseded during
-    # this same cycle. Its rejected source evidence remains available for review.
+    # this same round. Its rejected source evidence remains available for review.
     assert outcomes == ["blocked", "superseded"]
     assert [
         tuple(row)
@@ -332,7 +337,7 @@ def test_blocked_capture_token_does_not_starve_older_complete_capture(
     ] == first_generations
     attempts = fixture.conn.execute("SELECT COUNT(*) FROM work_attempts").fetchone()[0]
     for _ in range(3):
-        resumed = cycle.run_cycle(
+        resumed = run_round(
             fixture.db,
             config_dir=config_dir,
             overrides_dir=overrides_dir,
@@ -340,8 +345,8 @@ def test_blocked_capture_token_does_not_starve_older_complete_capture(
             transport=transport,
             budget=300,
         )
-        assert resumed["checked"] == 0 and resumed["stages"] == []
-        assert resumed["candidate_id"] == "offline-unpublished-build"
+        assert resumed.checked == 0 and resumed.stages == []
+        assert resumed["release"]["candidate_id"] == "offline-unpublished-build"
     assert len(requests) == 3
     assert fixture.conn.execute("SELECT COUNT(*) FROM work_attempts").fetchone()[0] == attempts
     assert next_work(fixture.conn, "parse", now=fixture.clock.now()) is None
@@ -369,18 +374,22 @@ def test_historical_candidates_compete_together_before_offline_phase(
         (second_url, fixture.clock.now().isoformat()),
     )
     accept(fixture)
-    real_prepare, enrolled = cycle.prepare_event_turns, []
+    from swingset.schedule.acquisition import Acquisition
+    from swingset.schedule.fairness import prepare_event_turns
+
+    real_prepare, enrolled = prepare_event_turns, []
 
     def prepare(*args, **kwargs):
         enrolled.append({choice.key for choice in kwargs["extra_choices"]})
         return real_prepare(*args, **kwargs)
 
-    monkeypatch.setattr(cycle, "prepare_event_turns", prepare)
+    # The acquire tick's pass takes the fair policy's preparation by default.
+    monkeypatch.setitem(Acquisition.__init__.__kwdefaults__, "prepare", prepare)
     real_parse, parsed = derive.parse_snapshot, []
     requests = []
 
     def parse(*args, **kwargs):
-        # Both admitted offers use the first acquisition allocation. The old
+        # Both admitted offers are fetched in the acquire tick. The old
         # first-only offer reached interpretation before offering the second.
         assert len(requests) == 2
         parsed.append(args[2].unit_id)
@@ -396,7 +405,7 @@ def test_historical_candidates_compete_together_before_offline_phase(
         requests.append(str(request.url))
         return httpx.Response(200, content=body)
 
-    result = cycle.run_cycle(
+    result = run_round(
         fixture.db,
         config_dir=config_dir,
         overrides_dir=overrides_dir,
@@ -405,7 +414,7 @@ def test_historical_candidates_compete_together_before_offline_phase(
         budget=120,
         should_stop=lambda: bool(parsed),
     )
-    assert result["checked"] == 2 and len(parsed) == 1
+    assert result.checked == 2 and len(parsed) == 1
     assert len(enrolled[0]) == 2 and target.watch_id in enrolled[0]
     assert any(second_url in request for request in requests)
     assert fixture.conn.execute("SELECT count(*) FROM scheduler_event_requests").fetchone()[0] == 3

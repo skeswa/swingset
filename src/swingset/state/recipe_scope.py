@@ -82,11 +82,11 @@ PARSE_WRITERS: tuple[str, ...] = (
 )
 
 _ACQUIRE = "acquisition; it fetches, gates and stores pages that parse reads"
-_EVENTS = "event acquisition bookkeeping; the cycle and plan loop run it"
+_EVENTS = "event acquisition bookkeeping; the plan loop runs it"
 _SCHEDULE = "scheduling; it runs stages through the modules the scopes name"
 # Package paths no recipe names. A path ending in "/" covers its directory.
-# Since `versions.py` left `schedule/cycle.py`, no project, link or build
-# closure reaches the scheduler or acquisition (architecture plan, F4).
+# Since `versions.py` left the scheduler, no project, link or build closure
+# reaches the scheduler or acquisition (architecture plan, F4).
 EXCLUDED: dict[str, str] = {
     "admission/corpus.py": "offline admission corpus export",
     "admission/enumeration_evidence.py": _EVENTS,
@@ -127,7 +127,6 @@ EXCLUDED: dict[str, str] = {
     "link/overrides.py": "operator identity override commands",
     "loops/": "loop ticks; they run stages through the modules the scopes name",
     "schedule/acquisition.py": _ACQUIRE,
-    "schedule/cycle.py": _SCHEDULE,
     "schedule/derive.py": _SCHEDULE,
     "schedule/discover.py": _ACQUIRE,
     "schedule/event_accounting.py": _EVENTS,
@@ -155,6 +154,7 @@ EXCLUDED: dict[str, str] = {
     "schedule/fairness.py": _SCHEDULE,
     "schedule/offline.py": _SCHEDULE,
     "schedule/registry.py": _ACQUIRE,
+    "schedule/release_steps.py": "release build and publish steps; the release loop and the CLI run them",
     "sources/dcn/": "unregistered source; no page kind resolves to it",
     "state/acquisition_plan.py": "loop plan rows; acquisition reads them, no derivation does",
     "state/closure_collection.py": "operator retention commands",
@@ -171,6 +171,8 @@ EXCLUDED: dict[str, str] = {
     ),
     "state/publication_report.py": "status report",
     "state/requirement_report.py": "status report",
+    "state/requirement_scopes.py": "requirement scan pages; acquisition runs the scan, no derivation does",
+    "state/requirements.py": "requirement scan; acquisition runs it, no derivation does (D-0237)",
     "state/retention_apply.py": "operator retention commands",
     "state/storage.py": "operator storage move and the maintain evictor; no derivation reads it",
     "state/verify.py": "weekly verify sample; it re-runs units and rolls every write back",

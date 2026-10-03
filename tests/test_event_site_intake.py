@@ -8,9 +8,10 @@ from test_history_event_sites import PDF, SITE
 from test_history_event_sites import sites as sites
 from test_platform_backfill import fixture as fixture
 
+from journal.tools.collection.event_site_review import review
 from swingset.fetch.archive import Archive, canonical, digest, durable_write
 from swingset.history.event_site_intake import FORMAT, ingest
-from swingset.history.event_sites import query_url, reconcile, retained_hits
+from swingset.history.event_sites import query_url, retained_hits
 
 
 def package(
@@ -107,13 +108,8 @@ def test_local_import_preserves_raw_bytes_and_drives_existing_review(sites, tmp_
         ).read_bytes()
     assert authority(sites) == before
     assert retained_hits(sites.conn, Archive(sites.db.state_dir), SITE)[0].url == PDF
-    assert reconcile(sites.db, now=sites.clock.now(), run_id=sites.run) == 1
-    assert (
-        sites.conn.execute(
-            "SELECT COUNT(*) FROM findings WHERE kind='history_event_site_review' AND suggested_override IS NOT NULL"
-        ).fetchone()[0]
-        == 1
-    )
+    rows = review(sites.conn, sites.db.state_dir)
+    assert [row["reason"] for row in rows] == ["draft_override"] and rows[0]["source_urls_csv"]
     assert authority(sites) == before
 
 

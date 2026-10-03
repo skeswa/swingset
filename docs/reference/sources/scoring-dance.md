@@ -154,8 +154,9 @@ The Wayback Machine has 3,155 distinct 200-status URLs under
 `scoring.dance/enUS/events/` for 330 event ids, 2021 to 2026. Round
 pages that the archive holds are read from there, taking the latest
 capture that parses. Event ids missing from the archive, or whose
-captures hold fewer rounds than the event page lists, are fetched from
-the origin, newest first, lowest priority, at most one event per cycle.
+captures hold fewer rounds than the event page lists, are not fetched
+from the origin by the loops ([D-0236](../../../journal/decisions/0236-origin-candidates-and-event-site-review-are-offline-reports.md)); the offline origin-candidates tool
+lists them for a reviewed `source_urls.csv` row.
 
 ## 11. Load estimate
 

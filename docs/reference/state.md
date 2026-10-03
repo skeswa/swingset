@@ -40,7 +40,7 @@ Internal tables:
 | Table                                         | Key columns                                 | Purpose                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | --------------------------------------------- | ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `meta`                                        | `key`                                       | `schema_version`, `installed_at`, current input bundle hash                                                                                                                                                                                                                                                                                                                                                                                             |
-| `runs`                                        | `run_id`                                    | `started_at`, `finished_at`, `dry_run`, `summary_json`, `loop` (the owning loop; NULL for the cycle and the CLI); maintain compacts a loop row's summary to a stub after 30 days                                                                                                                                                                                                                                                                        |
+| `runs`                                        | `run_id`                                    | `started_at`, `finished_at`, `dry_run`, `summary_json`, `loop` (the owning loop; NULL for the CLI and for cycle runs from before phase 5b); maintain compacts a loop row's summary to a stub after 30 days                                                                                                                                                                                                                                              |
 | `hosts`                                       | `host`                                      | `next_allowed_at`, `paused_until`, `pause_reason`, `pause_streak`, `robots_sha256`, `robots_fetched_at`, `robots_status`                                                                                                                                                                                                                                                                                                                                |
 | `operator_pauses`                             | `scope_kind`, `scope_id`                    | operator-requested all, host, source, or requirement-kind pause; stable pause ID, actor, reason, revision, creation time and nullable expiry; separate from automatic host pauses                                                                                                                                                                                                                                                                       |
 | `host_budget`                                 | `host`, `day`                               | `requests`, `bytes`                                                                                                                                                                                                                                                                                                                                                                                                                                     |
@@ -168,7 +168,7 @@ partition artifacts and dependency sets nothing names
 Lock files are `flock` locks, never copied into a checkpoint and never removed
 by a restore.
 
-- **Exclusive** (the default `open_database` mode): the cycle, every CLI
+- **Exclusive** (the default `open_database` mode): every CLI
   mutation, backup, restore, `gc`, `accept-year`. Take `state.intent`, then
   `state.lock`, both exclusive, within the command's lock timeout (0 in timer
   mode: skip as `skipped-overlap`). Hold both for the handle's life. Only this
@@ -189,9 +189,10 @@ by a restore.
 
 Order: `loop-<name>.lock`, `state.intent`, `state.lock`, `control.lock`, SQLite.
 Every writable connection waits up to 70 s for SQLite's writer (busy timeout),
-the publication boundary's included (`publish/safety._connection`). An
-admission waits up to 90 s for `control.lock`, then raises `ControlTimeout`.
-Either timeout skips the unit or request and counts nothing.
+the publication boundary's included (`publish/safety._connection`). A
+request or operation admission waits up to 90 s for `control.lock`, then
+raises `ControlTimeout`. A parse, project or link unit takes no control lock
+(D-0238). Either timeout skips the unit or request and counts nothing.
 
 ## Invalidation
 
@@ -202,14 +203,14 @@ Deleting a hint cannot hide unfinished work. `accepted_inputs` identifies the
 captured inputs available to consumers. Output revisions describe changed
 data, never whether another stage ran.
 
-At cycle start, read config, overrides, vocabularies, implementation versions,
+At the start of a tick or command, read config, overrides, vocabularies, implementation versions,
 and the exact runtime artifact into a validated immutable input bundle. The
 bundle also carries `policy/retention.json`, the retention limits in force as
 values, because an optional table with defaults cannot be read back from the
 captured file alone; see [retention](#retention). Each consumer
-uses those captured bytes throughout the cycle, including build. The
+uses those captured bytes throughout the run, including build. The
 checkout stays the source of corrections; saved bundles provide exact
-replay and backup. A later checkout edit is accepted next cycle. Capture
+replay and backup. A later checkout edit is accepted on the next tick. Capture
 failure leaves the previous bundle and queues untouched and fails the
 run. Manual stage commands perform this same acceptance step.
 
@@ -270,22 +271,22 @@ watchdog: `candidate_units` also walks every known unit, so a lost hint
 loses no work. Keep no write between the two. Each delete bumps
 `history_dispatch_fence` (the 0029 trigger), so a large drop, about 35,800
 after an A->B->A deploy, voids any acquisition dispatch proof taken earlier
-in that cycle, as unit runs already do. Project and link commit their
+in that tick, as unit runs already do. Project and link commit their
 materialized generation in that transaction too. If a unit cannot complete,
 it remains unfinished and downstream stages do not consume partial work.
 Parse's handled failures are defined in [parsing](parsing.md#version-changes-and-failures).
 
-Normal build waits for parse, project, and link work to finish, then
-receives offline time before unused time is lent back to acquisition.
-A budget stop leaves unfinished queues for the next cycle. Pending
+Release builds on its own timer and interval
+([scheduling: loops](scheduling.md#loops)). A budget stop leaves unfinished
+queues for the next tick. Pending
 publication reconciliation and necessary correction-only builds have
 priority before ordinary acquisition and derivation. Build inputs
 and artifact completion are owned by [build](build.md#build-inputs). Its
 derivation generation records the selected inputs and exact artifact pointer.
 
-The scheduler reserves acquisition time even with downstream work pending,
-then rotates eligible offline work fairly. Actual host limits, controls,
-and backlog high-water marks govern collection. A cycle excludes attempted
+Acquisition runs on its own timer even with downstream work pending, and
+derive rotates eligible offline work fairly. Actual host limits, controls,
+and backlog high-water marks govern collection. A derive tick excludes attempted
 input fingerprints, rather than whole units, so later parses can supply
 new inputs to a shared projection without reopening unchanged retries.
 See [scheduling](scheduling.md) for the initial allocations and objectives.
@@ -393,23 +394,20 @@ attempt alone never satisfies a requirement. Owner replacement remains the
 postcondition check for review findings.
 
 `finding_support` retains the accepted owner evidence for review findings.
-`requirement_transitions` and `requirement_attempts` survive inventory-row
-loss. A work attempt that succeeds with no finding for its requirement writes
-no `requirement_attempts` row (D-0213), so a finding's `attempt_count` counts
-from its first unmet attempt. `requirement_scan` stores a bounded keyset cursor across all retained
-years. Each cycle checks at most 100 scopes before ordinary work. A later
-page or pass recreates a deleted requirement from its support. Removed scopes
-retire explicitly; they are not counted as successful repairs.
+`requirement_scan` stores a bounded keyset cursor across all retained
+years. Each plan tick checks at most 100 scopes before ordinary work. A later
+page or pass recreates a deleted review finding from its active support, and
+a re-created requirement keeps the `opened_at` its support recorded. Removed
+scopes retire explicitly; they are not counted as successful repairs. The
+scan is the data-quality inventory that `review_queue` publishes.
 
-`requirement_cohorts` pins scope, policy, baseline time, whether its universe is
-bounded, and the first-open transition cutoff captured atomically with its
-membership. Migration 10 adds that nullable cutoff; legacy captures retain
-NULL because their within-timestamp ordering is unknown. Membership in
-`requirement_cohort_members` never changes
-when work is retried, reopened, retired, or newly discovered. H11 executes no
-repairs. H15 derivation reporting uses fingerprint comparisons and separately
-counts registered scopes with no materialized generation. Older schemas retain
-an explicitly labeled queue-based report.
+Migration 37 dropped the requirement history: `requirement_transitions`,
+`requirement_attempts`, `requirement_cohorts`, `requirement_cohort_members`,
+and the two `findings` triggers that wrote transitions. `attempt_count`
+stays 0 for new rows. H11 executes no repairs. H15 derivation reporting uses
+fingerprint comparisons and separately counts registered scopes with no
+materialized generation. Older schemas retain an explicitly labeled
+queue-based report.
 
 ## Isolated work attempts (H12)
 
@@ -422,7 +420,8 @@ recorded reason and request time.
 retry generation, work token, input fingerprint, run, and start time before
 execution. Outcomes are `running`, `succeeded`, `blocked`, `transient`,
 `unavailable`, `interrupted`, and `superseded`. Completion retains its time,
-stable reason, evidence, retry deadline when applicable, and requirement ID.
+stable reason, evidence, and retry deadline when applicable. Its
+`requirement_id` column is NULL from schema 37.
 
 Success commits with the unit's output and queue completion. If the queue
 changed during execution, the caller rolls back stale output and records
@@ -433,21 +432,22 @@ attempt counts, and attempt findings do not change it. These fingerprints
 control retries; H15 owns desired/materialized derivation generations.
 
 Blocked and unavailable work does not retry the same inputs merely because
-another cycle or inventory scan runs. Changed relevant inputs or an explicit
+another tick or inventory scan runs. Changed relevant inputs or an explicit
 `request_retry` releases that latch; the work queue's waiting clock makes that
 request when it comes due. Transient and interrupted outcomes have a future
-deadline, which the work queue sets. After taking the exclusive lock, the cycle
-and the CLI convert abandoned running attempts to interrupted outcomes and
-release every lease; they do not infer success. A running attempt whose queue
+deadline, which the work queue sets. After taking the exclusive lock, the CLI
+converts abandoned running attempts to interrupted outcomes and
+releases every lease; it does not infer success. A running attempt whose queue
 lease is dead is eligible, and the next lease closes it (see below).
 
-A failed work unit has a `work_attempt` requirement with the exact unit and
-fingerprint, outcome evidence, reason, and next action. Its retained
-`finding_support` payload lets the bounded scan recreate a deleted inventory
-row without resetting eligibility. Restoring an artifact does not satisfy the
-work requirement; its output still has to commit. Doctor counts durable
-running rows even before a unit has its first finding. Legacy running mirrors
-are deduplicated. This records attempt state, not operating-system liveness.
+A failed work unit writes no finding and no `finding_support` row
+([D-0237](../../journal/decisions/0237-unit-failures-leave-the-review-queue-and-requirement-history-goes.md)).
+Its `work_attempts` row holds the outcome, reason, evidence and retry time;
+its `work_queue` row holds the reason, error, clock and quarantine. Migration
+37 closed the open `work_attempt` findings as `out_of_scope` and set their
+support inactive. Restoring an artifact does not finish the unit; its output
+still has to commit. Doctor counts durable running attempts. This records
+attempt state, not operating-system liveness.
 
 ## Work queue
 
@@ -457,15 +457,15 @@ A row exists only while a unit is leased or failing; success deletes it in
 the output transaction. `state/queue.py` owns the policy.
 
 - **Lease.** `derive_one` leases its unit in a short claim transaction that
-  commits before the admission's capture, as
-  `<loop>:<run_id>` for 30 minutes (`cycle` and `cli` for those processes). A
+  commits before its admission, as
+  `<loop>:<run_id>` for 30 minutes (`cli` for a command). A
   live lease of another owner skips the unit (`lease_busy`). A lease is dead
   when it expired, when its owner is this process's own loop, or when this
   process holds the exclusive lock. Taking over a dead lease finishes its
-  running attempt `interrupted` (`process_interrupted`) and settles its
-  admission in the same transaction; the unit then waits on the failure
+  running attempt `interrupted` (`process_interrupted`) in the same
+  transaction; the unit then waits on the failure
   clock below instead of running (`process_interrupted` outcome, nothing
-  run). The cycle and the `parse`, `project` and `link` commands call
+  run). The `parse`, `project` and `link` commands call
   `release_all` after their recovery; a loop tick closes its own dead runs'
   attempts the same way and releases their leases.
 - **Process death.** An attempt whose run died (a kill, an OOM at a
@@ -482,13 +482,20 @@ the output transaction. `state/queue.py` owns the policy.
   attempt running; the offline loop closes it as a counted
   `unit_exception:<type>` failure (`queue.escaped`), unless that write is
   fenced or busy.
+- **Admission.** One `BEGIN IMMEDIATE` checks the unit's pauses
+  (`matching_pauses(for_unit)`), captures its inputs and begins its attempt.
+  It writes no `execution_admissions` row (D-0238): the lease and the running
+  attempt are the unit's in-flight record. A pause commits with
+  `BEGIN IMMEDIATE` too, so it either lands first and holds the unit
+  (`operator_pause`, nothing written, the lease given back) or lands after
+  and sees the lease as draining.
 - **Admission failure.** An exception in the admission (capture, attempt)
   rolls it back and records a `unit_exception:*` failure on the
   row alone, with no attempt. Selection honours such a row
   (`queue.holds`): a waiting, quarantined or not-yet-due row holds a unit
   whose latest attempt is absent, succeeded or superseded while its inputs
-  are the failed ones. A fence or busy error in the admission, an operator
-  pause or a control timeout writes nothing and gives the claimed lease back.
+  are the failed ones. A fence or busy error in the admission or an operator
+  pause writes nothing and gives the claimed lease back.
 - **Orphans.** The maintain loop deletes rows whose unit has nothing left to
   do: no `pending_work` row, no running attempt, not leased, and for project
   and link units current.
@@ -508,11 +515,11 @@ the output transaction. `state/queue.py` owns the policy.
 A transient attempt's `retry_at` is the row's clock, so `attempts.eligible`
 and the queue agree; a new input fingerprint makes a quarantined unit
 eligible at once. `queue.wake` turns due `waiting_input` and `quarantined`
-rows `ready` and calls `request_retry` for a blocked or unavailable unit; the
-cycle calls it once per cycle, derive once per tick. A retry of a waiting unit that ends the same
+rows `ready` and calls `request_retry` for a blocked or unavailable unit; derive
+calls it once per tick. A retry of a waiting unit that ends the same
 way is a `waiting_repeats`, not a failure. A real supersession
-(`inputs_changed`), a `ControlTimeout` in the admission and a fence or busy
-error (in the admission or while processing) change nothing: under a full
+(`inputs_changed`) and a fence or busy error (in the admission or while
+processing) change nothing: under a full
 fence derive writes nothing, and the next tick's recovery closes an attempt
 left open uncounted. Under a narrow fence the queue is writable, so the tick
 closes it the same way at once ([publication fences](#publication-fences)).
@@ -546,7 +553,7 @@ Progress times advance with verified stage-output changes. Failure, an unchanged
 poll, queue recreation, or a policy reload cannot reset them. Record enough
 blocker transitions to compute eligible time; leave unsupported legacy history
 unknown. Selection receipts identify the event, enumeration, policy, turn, and
-reason. Aggregate unchanged blockers per cycle to avoid an unbounded record per
+reason. Aggregate unchanged blockers per tick to avoid an unbounded record per
 skipped page. Backups and restores preserve these records with the evidence.
 
 Bootstrap enumeration membership from retained admitted parents without source
@@ -725,11 +732,10 @@ absent digest.
 
 Known cost: the storage, projection, link and build modules still import
 each other, so each project and link scope holds 172 files and the build
-scope 178. The scheduler, the loops and acquisition (`schedule/cycle.py`,
+scope 178. The scheduler, the loops and acquisition (`schedule/release_steps.py`,
 `loops/`, `fetch/client.py`, `history/backfill.py`, `schedule/fairness.py`
 and the like) are in no scope: an edit there re-runs nothing. `versions()` and
-`repository_identity()` live in `versions.py` for that reason (the cycle
-re-exports them). An edit inside a shared module re-runs every project and
+`repository_identity()` live in `versions.py` for that reason. An edit inside a shared module re-runs every project and
 link unit; identical output keeps its generation (below), so this costs CPU,
 not generations. Parse scopes hold 39 to 47 files, and a non-parser change
 re-queues no parse. A shallow entry adds its own bytes and its packages'
@@ -895,7 +901,7 @@ a transaction, keep the single path.
   moved live rows (the building row's `moved`, or any other building row of
   the unit; `complete()` applies the same rule),
   dependency checks, the certificate, the building row's delete,
-  `finish_attempt(succeeded)`, the admission's settle, `queue.succeed` and the
+  `finish_attempt(succeeded)`, `queue.succeed` and the
   `pending_work` delete.
 
 Between A and C live rows lead the pointer. A unit with any building row is
@@ -921,10 +927,10 @@ watchdog's `[building-orphans]` names any not advanced for 24 hours.
 
 `recipe_inputs` fails closed: once `recipe/env` is accepted, a project, link
 or build unit whose code scope is not accepted raises `RecipeScopeMissing`.
-Offline selection then skips that kind only, names it in the cycle summary's
-`readiness_errors` and fails the cycle; the other kinds keep running.
+Offline selection then skips that kind only, names it in the derive record's
+`readiness_errors` and fails the tick; the other kinds keep running.
 `pending_units` counts such a unit as pending, so readers that ask whether
-work remains fail closed instead of raising out of the cycle.
+work remains fail closed instead of raising out of the tick.
 
 Equivalences, their recipes and their root dependency sets are immutable, not
 permanent (D-0206). Nothing collects them yet; invalidation step 3 will, by
@@ -1482,7 +1488,7 @@ local set's segment after `LocalCheckpointRecovery` (`backup/recovery.py`),
 and a lost object for the backup, maintain's evict and `storage
 recover-objects`; it reads each set's index, and each segment's tar headers
 with every member's offset, once per instance into a lookup on disk;
-loops, the cycle and the CLI build that chain, parse scopes never do. The
+loops and the CLI build that chain, parse scopes never do. The
 full checkpoint stays the default backup until
 `services.swingset.backupSegmented` is set. The weekly
 [restore drill](operations.md#restore-drill) calls `install` alone into
@@ -1556,17 +1562,38 @@ control connection writes only these tables and `operator_pauses`; it never
 migrates, accepts an input bundle, or changes repair evidence.
 
 `execution_admissions` records each action's checked revision, start time,
-run/work-attempt/candidate references and active, uncertain or settled state.
+run/candidate references and active, uncertain or settled state.
 `execution_dependencies` records its required sources and requirement kinds.
-A request additionally records its host. Local derivations have no host scope.
-The short control mutex serializes pause servicing with new admission; output
-settlement joins the existing unit transaction without reacquiring that mutex.
-A parse, project or link unit that commits its output deletes its admission and
-dependency rows in that transaction; only unsettled admissions are read, and
-its work attempt keeps the run, times and outcome. Every other outcome and
-action kind keeps its settled admission
-([D-0213](../../journal/decisions/0213-keep-no-bookkeeping-a-committed-run-does-not-need.md)).
-An acknowledged pause fences later admissions while prior work drains.
+A request additionally records its host. The ledger holds actions with no
+lease: `request`, `fetch`, `acquisition`, project-stage operations (kind
+`project`, `event_*` and CDX ids), `registry_crosscheck`, `build` and the
+publication kinds. A leased unit carries no admission (D-0238):
+`admission()` refuses `parse` and `link`, `work_` ids and a work attempt, and
+schema 37 deleted the 902,488 unit rows. The short control mutex serializes
+pause servicing with new admission; output settlement joins the existing
+transaction without reacquiring that mutex. The maintain loop deletes settled
+rows older than 30 days, and their scope rows, in batches of 5,000
+(`admissions_pruned`); publication rows, the newest `build` row and the
+newest completed one (all `build_deferred_for_interval` and `release_lag`
+read), and rows `scheduler_requests` or `history_origin_requests` names
+stay. `scheduler_requests` has no collector,
+so a request row lives as long as it does: on the 09-29 copy 14,546 of
+14,570 request rows were named, and only fetch, acquisition and operation
+rows (about 28,700) aged out. The ledger still grows by about 1,800 request
+rows a day; maintain reports its size (`admissions_rows`), the watchdog's
+`[admissions-growth]` fires past 200,000, and
+[maintenance item 15](../plans/README.md#maintenance-queue) tracks a
+collector. An acknowledged pause fences later
+admissions while prior work drains. `controls.status()` lists as draining the
+unsettled admissions and the leased `work_queue` units (`action_id`
+`lease:<stage>/<kind>/<id>`, scope from `control_scopes.for_unit`, with
+`lease_until`) while the lease is live; an expired lease is listed under
+`dead_leases` and drains nothing. A lease whose scope cannot be read
+counts against every pause and carries `scope_error`. A pause's receipt
+reads the drain after its commit, so that read never holds the write lock
+or undoes the pause. `pause --wait` waits for both. `recover_admissions` is the exclusive-open safety of migrate,
+restore and the locked CLI commands, which hold the state exclusive, so every
+active admission is dead (D-0238, D-0239).
 Restore activation recovers abandoned admissions for every schema that has
 `execution_admissions`, starting at schema 12. Local and request actions settle
 as interrupted; publications remain uncertain until receipt reconciliation.
@@ -1585,8 +1612,8 @@ process's write is not counted against it. Each process counts `writes`,
 to commit) and `write_lock_timeouts` (a busy timeout, raised as
 `sqlite3.OperationalError`). A run resets them at its start, and its record
 carries `write_deadline_fired`, `write_seconds_max`, `write_wait_seconds_max`
-and `write_lock_timeouts` for that run (`write_deadline.run_counters`). Cycle
-summaries and loop records also carry `peak_rss_bytes`, the process's peak
+and `write_lock_timeouts` for that run (`write_deadline.run_counters`). Loop
+records also carry `peak_rss_bytes`, the process's peak
 resident memory, which the phase 2 memory gates read.
 Interrupted output rolls back before the attempt records its transient outcome
 and retry time (D-0198). Read snapshots remain available to a concurrently serviced

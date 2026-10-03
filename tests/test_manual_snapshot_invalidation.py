@@ -147,19 +147,11 @@ def test_runtime_acceptance_skips_manual_crosscheck_but_keeps_parser_work(
             "message": "'unknown page kind: wsdc_registry.future_page'",
         }
         failure_attempt_record = tuple(blocked_attempt)
-        requirement_id = str(blocked_attempt[4])
-        failure_finding = database.connection.execute(
-            "SELECT * FROM findings WHERE finding_id=?", (requirement_id,)
+        # The attempt row is the failure record; a unit writes no finding (D-0237).
+        assert blocked_attempt[4] is None
+        assert not database.connection.execute(
+            "SELECT 1 FROM findings WHERE kind='work_attempt'"
         ).fetchone()
-        assert failure_finding is not None
-        failure_finding_record = tuple(failure_finding)
-        requirement_attempts = tuple(
-            tuple(row)
-            for row in database.connection.execute(
-                "SELECT * FROM requirement_attempts WHERE requirement_id=? ORDER BY rowid",
-                (requirement_id,),
-            )
-        )
 
         # Direct replay remains supported and does not manufacture parse work.
         assert replay_crosscheck(database, crosscheck_sha, archive, now, run_id) == 0
@@ -206,22 +198,7 @@ def test_runtime_acceptance_skips_manual_crosscheck_but_keeps_parser_work(
             )
             == failure_attempt_record
         )
-        assert (
-            tuple(
-                database.connection.execute(
-                    "SELECT * FROM findings WHERE finding_id=?", (requirement_id,)
-                ).fetchone()
-            )
-            == failure_finding_record
-        )
-        assert (
-            tuple(
-                tuple(row)
-                for row in database.connection.execute(
-                    "SELECT * FROM requirement_attempts WHERE requirement_id=? ORDER BY rowid",
-                    (requirement_id,),
-                )
-            )
-            == requirement_attempts
-        )
+        assert not database.connection.execute(
+            "SELECT 1 FROM findings WHERE kind='work_attempt'"
+        ).fetchone()
         assert not inputs.accept(database, third, clock)

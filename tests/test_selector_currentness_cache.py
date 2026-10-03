@@ -170,7 +170,7 @@ def test_control_change_during_snapshot_is_rechecked_by_admission(tmp_path):
             with admission(
                 db,
                 action_id="must-stop",
-                action_kind="parse",
+                action_kind="request",
                 scope=ActionScope(all_sources=True, all_kinds=True),
                 now=clock.now(),
             ):

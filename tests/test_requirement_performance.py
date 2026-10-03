@@ -65,7 +65,7 @@ def test_retirement_presence_uses_indexed_columns(tmp_path):
             assert not any(plan.startswith("SCAN") for plan in plans), plans
 
 
-def test_occurrence_event_lookup_and_requirement_history_are_indexed(tmp_path):
+def test_occurrence_event_lookup_is_indexed(tmp_path):
     with open_database(tmp_path) as db:
         for query, values, index in (
             (
@@ -77,16 +77,6 @@ def test_occurrence_event_lookup_and_requirement_history_are_indexed(tmp_path):
                 "SELECT event_id FROM events WHERE series_id=? AND event_month=?",
                 ("series", "2020-01"),
                 "events_series_month_idx",
-            ),
-            (
-                "SELECT min(at) FROM requirement_transitions WHERE requirement_id=?",
-                ("finding",),
-                "requirement_transitions_requirement_idx",
-            ),
-            (
-                "SELECT count(*) FROM requirement_attempts WHERE requirement_id=?",
-                ("finding",),
-                "requirement_attempts_requirement_idx",
             ),
         ):
             plans = [row[3] for row in db.connection.execute("EXPLAIN QUERY PLAN " + query, values)]
@@ -112,24 +102,14 @@ def test_scope_pagination_preserves_composite_keys_with_delimiters(tmp_path):
         assert scope_page(db.connection, cursor, 1) == []
 
 
-def test_v6_index_migration_preserves_cohort_history_and_restarts_old_cursor(tmp_path, monkeypatch):
+def test_v6_index_migration_preserves_findings_and_restarts_old_cursor(tmp_path, monkeypatch):
     from datetime import UTC, datetime
 
     from swingset.state import db as database_module
-    from swingset.state.requirements import (
-        Requirement,
-        reconcile_requirement,
-        record_attempt,
-    )
+    from swingset.state.requirements import Requirement, reconcile_requirement
 
     now = datetime(2026, 9, 13, tzinfo=UTC)
-    tables = (
-        "findings",
-        "requirement_transitions",
-        "requirement_attempts",
-        "requirement_cohorts",
-        "requirement_cohort_members",
-    )
+    tables = ("findings",)
     with monkeypatch.context() as patch:
         patch.setattr(database_module, "SCHEMA_VERSION", 5)
         with open_database(tmp_path) as db:
@@ -138,14 +118,7 @@ def test_v6_index_migration_preserves_cohort_history_and_restarts_old_cursor(tmp
                 "INSERT INTO runs(run_id,started_at,dry_run) VALUES ('run',?,1)", (now.isoformat(),)
             )
             requirement = Requirement("round_observations", "round", "eepro", "ready", "fetch", {})
-            key = reconcile_requirement(conn, requirement, now, "run")
-            record_attempt(conn, key, "attempt", now, "failed")
-            # Retain an actual schema-5 cohort, before capture watermarks existed.
-            conn.execute(
-                "INSERT INTO requirement_cohorts VALUES ('cohort',?,?,NULL,NULL,1)",
-                (now.isoformat(), requirement.policy_version),
-            )
-            conn.execute("INSERT INTO requirement_cohort_members VALUES ('cohort',?)", (key,))
+            reconcile_requirement(conn, requirement, now, "run")
             conn.execute(
                 "UPDATE requirement_scan SET cursor='d:29',started_at=?,scanned=123",
                 (now.isoformat(),),

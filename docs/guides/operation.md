@@ -6,6 +6,11 @@ does not enable publication; begin a new installation with `dryRun = true`.
 The [current extension handoff](../../journal/investigations/2026/event-extension-operating-handoff-2026-09-17.md)
 pins the held runtime, checkpoint and unfinished activation checks.
 
+This guide describes the tree it sits in, which has no cycle (phase 5b).
+Until the phase 5 switch, production runs an older tree, with the cycle under
+switch 2a: for a production incident read the guide at the deployed commit,
+`jj file show -r <deployed commit> docs/guides/operation.md`.
+
 For other tasks, see [installation](deployment.md),
 [backup and restore](backup-and-restore.md), or [data corrections](data-corrections.md).
 The [operations reference](../reference/operations.md) owns worker behavior.
@@ -17,25 +22,21 @@ and the `hold` commands in [disk space](#disk-space), use the separate bounded
 control path described below. A timer overlap exits 0 with
 `skipped-overlap`. Manual mutations wait up to `--lock-timeout` (60 seconds by
 default); a timeout exits nonzero and applies no change. Backup waits for the
-writer and the service retries failures after 60 seconds. With the loops on,
-each tick holds the state shared: such a command waits for running ticks,
+writer and the service retries failures after 60 seconds. Each loop tick holds the state shared: such a command waits for running ticks,
 and new ticks skip while it waits
 ([state: locks](../reference/state.md#locks)). Derive and acquire ticks run
 four minutes or more and release up to an hour, so 60 seconds usually times
-out. Run an exclusive command (`accept-year`, `gc --apply`, `cohort`,
-`sweep`, `publish`) with `--lock-timeout 3600`, or write `operator-hold`,
+out. Run an exclusive command (`accept-year`, `gc --apply`, `sweep`,
+`publish`) with `--lock-timeout 3600`, or write `operator-hold`,
 wait until `systemctl list-units 'swingset-*'` shows no active tick, and
 remove the hold after.
 
 ```sh
 sudo -u swingset swingset doctor
 sudo -u swingset swingset summary
-journalctl -u swingset-cycle --since today
-sudo systemctl status swingset-cycle
+journalctl -u 'swingset-*' --since today
+systemctl list-timers 'swingset-*'
 ```
-
-With the loops on, read `journalctl -u 'swingset-*' --since today` and
-`systemctl list-timers 'swingset-*'` instead.
 
 When running the CLI outside the installed service, pass absolute `--config`
 and `--overrides` paths if the current directory is not the checkout.
@@ -51,7 +52,7 @@ run that form on a Mac clone. Without it `summary` peaked at 4.5 GB there
 (4.4 GB of it the publication report's closure check); its unit is capped at
 5 GB (`MemoryMax`) and is the kernel's first choice when memory runs out;
 a failed run raises `[summary-failed]`.
-`runs/*.json` holds per-cycle
+`runs/*.json` holds each tick's
 counts, stages, host pauses, errors, and the graceful-stop flag. A hard kill can
 lose the final run log; SQLite transactions and already durable artifacts remain
 the recovery source.
@@ -87,11 +88,11 @@ it does not report exact age since discovery. Historical dispatch and
 interpretation timing remain unknown. See the
 [timing contract](../reference/event-timing.md) before setting an objective.
 
-Phase 2's loops run one tick each, sharing the state with each other
-([scheduling: loops](../reference/scheduling.md#loops)).
-`services.swingset.loops.enable = true` runs them on timers in place of the
-cycle ([deployment: loops](deployment.md#switching-to-the-loops)). While it is
-off the cycle stays the service, and a loop runs only by hand:
+Five loops run one tick each on their own timers, sharing the state with each
+other ([scheduling: loops](../reference/scheduling.md#loops)); they are the
+only orchestration, and no `swingset cycle` command or unit exists since phase 5
+([D-0239](../../journal/decisions/0239-the-loops-are-the-only-orchestration.md)).
+A tick also runs by hand:
 
 ```sh
 sudo -u swingset swingset plan --timer                  # bookkeeping, acquisition_plan
@@ -122,18 +123,17 @@ and also skips (`disk`, with a `loop:release release_disk_low` guard) while
 within 15 minutes. A partitioned build takes it too while `[release]
 streamed_lock` is true (the default); turn it off only after the worker's
 post-check shows the release record's `peak_rss_bytes` under 2 GB with
-derive active (with the loops on each tick is its own process, so that is
-the build's; systemd's `MemoryPeak` counts page cache and is information
+derive active (each tick is its own process, so that is the build's; systemd's `MemoryPeak` counts page cache and is information
 only). A reading
 older than an hour is unknown (`disk.stale`) and refuses nothing. Waiting for
 inputs and `heavy_busy` leave `loop:<name>` guards with 1 h and 3 h expiries,
 cleared by the next tick past them.
 
-Optional `[scheduling]` settings in `config/sources.toml` tune cycle shares and
-pressure thresholds under the [scheduling contract](../reference/scheduling.md).
-Defaults reserve 30 seconds for reconciliation, 300 for acquisition and 390 for
-offline work in a 720-second cycle. Builds use offline time before collection
-borrows it. Host budgets and request floors remain independently enforced.
+Optional `[scheduling]` settings in `config/sources.toml` tune pressure
+thresholds, high-water marks and intervals under the
+[scheduling contract](../reference/scheduling.md); the removed cycle share
+keys stop config loading. Host budgets and request floors remain independently
+enforced.
 
 ## Tokens and enabling publication
 
@@ -185,7 +185,7 @@ and rebuild again. An existing public dataset requires a matching private
 checkpoint; bootstrapping accepts only `.gitattributes` and the generated ODC-By
 license-only README. It refuses arbitrary existing content.
 
-For rotation, stop the cycle and backup services, replace the environment file,
+For rotation, stop the loop and backup services, replace the environment file,
 rebuild if its path changed, then start the timers and run `doctor`. Revoke the
 old token after the new token has completed a publish and backup. Token values
 must not appear in logs or shell history.
@@ -228,7 +228,7 @@ Production therefore sets `services.swingset.backupUpload = false`
 - Before it prunes, a local backup verifies the new copy as a restore reads
   it: closure, file hashes, schema, foreign keys and artifact closure, with
   `PRAGMA quick_check` in place of `integrity_check`. This runs after the
-  backup releases `state.lock`, so cycles do not wait; the prune takes the
+  backup releases `state.lock`, so loop ticks do not wait; the prune takes the
   lock again. It logs `checkpoint-verify` with its seconds. On a clone of
   the 35 GB state on the Mac (2026-09-25) the read-back took about 6 minutes
   (`quick_check` alone 199 s, result `ok`; `integrity_check` 9.8 minutes),
@@ -286,7 +286,7 @@ read-back.
    `swingset-backup.timer` before it and start it after step 3.
 5. Post-check receipt: the next backup writes one checkpoint and keeps free
    space above `diskMinFreeBytes` after its prune; pending counts by stage are
-   unchanged after the first cycle.
+   unchanged after the first derive tick.
 
 A local backup briefly holds two checkpoints, so free space dips by about
 36 GB during each one; while the backup unit runs, `[disk-low]` fires only
@@ -300,7 +300,7 @@ trigger in the
 
 ## Alerts
 
-`swingset-watchdog` runs every 30 minutes and after any cycle or backup
+`swingset-watchdog` runs every 30 minutes and after any loop tick or backup
 failure. It appends to `/var/lib/swingset/ALERTS.log`, logs at error level,
 and pipes to `services.swingset.alertCommand` when set, for example
 `curl -s -d @- https://ntfy.sh/<topic>`; the alert text arrives on standard
@@ -319,18 +319,17 @@ set, the unit also sends one `[watchdog-alive]` line a day to it, not to
 | ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- |
 | `[watchdog-blind]`           | a check could not run twice in a row, a second apart (a missing table, a bad stamp); names each one. The other checks still run                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | yes  |
 | `[watchdog-error]`           | `watchdog.py` crashed or exited nonzero; the wrapper writes it, at most once per `watchdogRepeatSeconds`, and the script's stderr goes to the journal                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | yes  |
-| `[cycles-failing]`           | loops off: the last three cycles failed; records of other commands (backup, gc) and of loop ticks do not count here or in `[cycles-quiet]`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | yes  |
-| `[loop-failing]`             | loops on: a loop's last three ticks, skips and release ticks that only waited for the build interval or backlog left out, all failed; one line per loop with the latest error                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               | yes  |
-| `[loop-idle]`                | loops on: a loop's `loop_state.last_progress_at` is older than its window while unheld and its timer active; skipped and idle ticks do not reset it. Acquire 1 h unless a host or acquire guard was seen in that hour, derive 2 h while ready work waits, plan 2 h, release its build interval plus 2 h unless its newest tick waited for the interval                                                                                                                                                                                                                                                                                                                                                                                                      | no   |
-| `[loop-quiet]`               | loops on: a loop with an active timer has no tick finished for about three intervals: acquire and derive 30 minutes, plan 2 h, release 4 h, maintain 26 h. A loop with no tick on record counts from the oldest loop tick read. A tick skipped by the lock writes no record, so a loop always skipped is quiet too. Held back while a backup runs (`--backup-active 1`), since every tick skips then                                                                                                                                                                                                                                                                                                                                                        | no   |
-| `[plan-stale]`               | loops on: the newest `acquisition_plan` row is over two hours old while the plan timer is active; acquire offers only planned pages                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | no   |
+| `[loop-failing]`             | a loop's last three ticks, skips and release ticks that only waited for the build interval or backlog left out, all failed; one line per loop with the latest error                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | yes  |
+| `[loop-idle]`                | a loop's `loop_state.last_progress_at` is older than its window while unheld and its timer active; skipped and idle ticks do not reset it. Acquire 1 h unless a host or acquire guard was seen in that hour, derive 2 h while ready work waits, plan 2 h, release its build interval plus 2 h unless its newest tick waited for the interval                                                                                                                                                                                                                                                                                                                                                                                                                | no   |
+| `[loop-quiet]`               | a loop with an active timer has no tick finished for about three intervals: acquire and derive 30 minutes, plan 2 h, release 4 h, maintain 26 h. A loop with no tick on record counts from the oldest loop tick read. A tick skipped by the lock writes no record, so a loop always skipped is quiet too. Held back while a backup runs (`--backup-active 1`), since every tick skips then                                                                                                                                                                                                                                                                                                                                                                  | no   |
+| `[plan-stale]`               | the newest `acquisition_plan` row is over two hours old while the plan timer is active; acquire offers only planned pages                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | no   |
 | `[unit-quarantined]`         | a unit failed three times in a row with one class on one input (twenty for `unit_io_error`) and is quarantined for seven days; one line per unit, `<stage>/<kind>/<id> after N x <class>: <error>`, or one line by class when over five units quarantined in the window. Each quarantine logs once: the window is two hours. See [the work queue](#work-queue-quarantine-and-requeue) ([D-0216](../../journal/decisions/0216-the-work-queue-leases-backs-off-and-quarantines.md))                                                                                                                                                                                                                                                                           | yes  |
+| `[admission-stuck]`          | an execution admission (a request, fetch or operation) has been active over two hours; names up to five, with kind, run and admission time. A matching pause drains until a loop tick settles it: at once when its run has finished, after six hours when it has no loop run                                                                                                                                                                                                                                                                                                                                                                                                                                                                                | yes  |
 | `[lease-stuck]`              | a work-queue lease ended over ten minutes ago and nothing took it over; names up to five units, owners and lease ends                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | yes  |
-| `[write-deadline]`           | a run record finished in the last two hours counts `write_deadline_fired` above 0: a write ran into the 60-second alarm and rolled back, which should never happen ([D-0217](../../journal/decisions/0217-large-generations-store-in-chunks-and-the-write-deadline-is-an-alarm.md)). One line per loop, or `cycle`, with the count, the latest run and the longest write. Each text logs once in the window                                                                                                                                                                                                                                                                                                                                                 | yes  |
+| `[write-deadline]`           | a run record finished in the last two hours counts `write_deadline_fired` above 0: a write ran into the 60-second alarm and rolled back, which should never happen ([D-0217](../../journal/decisions/0217-large-generations-store-in-chunks-and-the-write-deadline-is-an-alarm.md)). One line per loop, or per command for a command's record, with the count, the latest run and the longest write. Each text logs once in the window                                                                                                                                                                                                                                                                                                                      | yes  |
 | `[size-cap-pause]`           | the size-cap pause is active ([retention](#retention-plans-and-holds))                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | yes  |
 | `[hold-overdue]`             | the `operator-hold` file or an all-scope pause is older than 48 hours, or an all-scope pause has no `created_at` (age unknown); repeats daily                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               | yes  |
-| `[timer-inactive]`           | nothing holds the worker and `swingset-cycle.timer`, or with the loops on any loop timer, is not active; names each. A stopped acquire timer silences only `[stale-fetch]`, a stopped derive timer only `[stale-progress]`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | —    |
-| `[cycles-quiet]`             | loops off: no cycle finished for `watchdogQuietSeconds` (two hours)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | no   |
+| `[timer-inactive]`           | nothing holds the worker and a loop timer is not active; names each. A stopped acquire timer silences only `[stale-fetch]`, a stopped derive timer only `[stale-progress]`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | —    |
 | `[stale-fetch]`              | no request for `staleFetchSeconds` (two hours); names the stored-page age, hosts that spent today's budget and the ready parse backlog, since backpressure holds requests                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | no   |
 | `[budgets-spent]`            | in place of `[stale-fetch]` when every host that fetched today has spent its daily request or byte budget; repeats daily                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | no   |
 | `[stale-progress]`           | a stage with ready units made no progress for `staleProgressSeconds` (two hours) since its work became runnable; one clock per stage, and one for `project/year`. Years are not paced. A queued inventory held by its interval, with the mapping, resolution, event and source-event units behind it, is not a stall ([D-0210](../../journal/decisions/0210-pace-the-inventory-like-history.md)); a year that needs it is clocked from no earlier than when the gate opens. A link whose event, resolution or year is queued waits and is not a stall; the line counts it. Other links are clocked from their queue time or when their event, resolution and years were last made, whichever is later. A current inventory that is not queued holds nothing | no   |
@@ -346,20 +345,21 @@ set, the unit also sends one `[watchdog-alive]` line a day to it, not to
 | `[backup-upload-paused]`     | upload is off; names the newest local checkpoint and its age; repeats at most once a day                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | yes  |
 | `[state-size]`               | the state directory without `checkpoints/`, `venv/` and `uv-cache/` holds more than 50 GB (`--state-size-alert`), 5 GB before architecture phase 4's trigger, which uses the same measure; repeats at most once a day                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | yes  |
 | `[size-cap-near]`            | `state.sqlite` is over 90% of `[retention] max_database_bytes` (68.4 GB of 76 GB since D-0233), where the size-cap pause stops the pipeline; repeats at most once a day                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | yes  |
-| `[replay-loop]`              | one kind's replay epoch moved in each of the last three cycles, or with the loops on the last three derive ticks that were not skipped, and none wrote a generation of that kind or of a kind it reads: two kinds replaying each other. Unrelated generations, such as dancer changes, do not hide it ([D-0205](../../journal/decisions/0205-cut-off-identical-derivation-output.md))                                                                                                                                                                                                                                                                                                                                                                       | yes  |
-| `[report-failing]`           | a cycle report, or with the loops on a derive tick's, failed in one of the last three (`derivation_error`, `controls_error`) or a record lacks `derivation`, so `[replay-loop]` cannot see it; names the latest error                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | yes  |
+| `[replay-loop]`              | one kind's replay epoch moved in each of the last three derive ticks that were not skipped, and none wrote a generation of that kind or of a kind it reads: two kinds replaying each other. Unrelated generations, such as dancer changes, do not hide it ([D-0205](../../journal/decisions/0205-cut-off-identical-derivation-output.md))                                                                                                                                                                                                                                                                                                                                                                                                                   | yes  |
+| `[report-failing]`           | a derive tick's report failed in one of the last three (`derivation_error`, `controls_error`) or a record lacks `derivation`, so `[replay-loop]` cannot see it; names the latest error                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | yes  |
 | `[equivalences]`             | `derivation_equivalences` or `source_equivalences` holds more than 500,000 rows (counted, so the line clears once collection deletes them); nothing collects them before invalidation step 3, which then starts ahead of phase 2 ([D-0208](../../journal/decisions/0208-keep-the-64-gb-cap-until-closure-collection.md)); repeats at most once a day                                                                                                                                                                                                                                                                                                                                                                                                        | yes  |
 | `[wal-large]`                | `state.sqlite-wal` holds over 4 GB of frames not yet reset: checkpoints are not keeping up, usually behind a long read. The file never shrinks, so frames from before the last restart do not count                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | yes  |
 | `[building-orphans]`         | a staged generation in `derivation_building` has not advanced for 24 hours; names up to five ([staged completion](../reference/state.md#derivation-generations-h15))                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | no   |
-| `[incomplete-generations]`   | more than three partial generations with no building row still hold references (maintain's daily `holding` count, loops only); evicted generations are whole and not counted, and the weekly collector strips the references of those over a day old ([maintain storage tasks](../reference/operations.md#maintain-storage-tasks))                                                                                                                                                                                                                                                                                                                                                                                                                          | no   |
-| `[release-refused]`          | the newest gate verdict of a release tick or cycle in the last seven days refused its candidate: nothing is published until a build passes or `overrides/release_decreases.csv` approves the decrease ([approving a decrease](data-corrections.md#approving-a-decrease), [D-0225](../../journal/decisions/0225-publish-only-strictly-better-releases.md)). Names the candidate and reasons; repeats daily, and at once for another candidate or reason                                                                                                                                                                                                                                                                                                      | yes  |
+| `[incomplete-generations]`   | more than three partial generations with no building row still hold references (maintain's daily `holding` count); evicted generations are whole and not counted, and the weekly collector strips the references of those over a day old ([maintain storage tasks](../reference/operations.md#maintain-storage-tasks))                                                                                                                                                                                                                                                                                                                                                                                                                                      | no   |
+| `[admissions-growth]`        | maintain's `admissions_rows` is over 200,000: request rows stay while `scheduler_requests` names them, and that table has no collector yet ([maintenance item 15](../plans/README.md#maintenance-queue), D-0238)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | no   |
+| `[release-refused]`          | the newest gate verdict of a release tick or build command in the last seven days refused its candidate: nothing is published until a build passes or `overrides/release_decreases.csv` approves the decrease ([approving a decrease](data-corrections.md#approving-a-decrease), [D-0225](../../journal/decisions/0225-publish-only-strictly-better-releases.md)). Names the candidate and reasons; repeats daily, and at once for another candidate or reason                                                                                                                                                                                                                                                                                              | yes  |
 | `[partitions-withheld]`      | stage 1 withholds partitions; one count by reason, daily, and at once when the count rises by more than 10 over the last line's. `swingset partitions --withheld` lists them with their detail; the count adds the newest release record's `partitions.assembly_withheld` (`assembly_check:<check>`), whose rows still say built                                                                                                                                                                                                                                                                                                                                                                                                                            | yes  |
 | `[partitions-stale]`         | partitions that have published a kept artifact for over 48 hours while their event, resolution or link is not current (`kept_not_current_since`): a quarantined or unqueued unit; names up to five, daily                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | yes  |
 | `[artifact-collector-blind]` | maintain's newest collector could not read a retained release manifest, so it removed nothing; daily until a tick reads them all                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | yes  |
 | `[read-set-miss]`            | the newest weekly verify sample (maintain, last nine days) found a current unit whose re-derived output differs from its generation, or whose re-run raised `NondeterministicOutputError`: a read set misses an input ([verify sample](../reference/operations.md#verify-sample)). Names up to five units; repeats daily until a clean sample. Maintain also appends its own `[read-set-miss] <unit>` lines                                                                                                                                                                                                                                                                                                                                                 | yes  |
 | `[verify-failures]`          | units of the newest verify sample failed to re-derive for another reason, so they were not verified; names up to five; repeats daily                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | yes  |
-| `[verify-overdue]`           | loops only: the maintain loop has run for over nine days and no verify sample completed in them (each kind reaching its target); maintain samples again each tick until one does                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | yes  |
-| `[read-set-widened]`         | in the last day a derive tick or cycle counted `undeclared_reads`, `read_set_widened`, `pool_probe_widened` or `dancer_read_after_load`; each should be 0. A widened link reads a whole table and re-runs on any change of it ([read recorder](../reference/state.md#read-recorder)); repeats daily                                                                                                                                                                                                                                                                                                                                                                                                                                                         | yes  |
+| `[verify-overdue]`           | the maintain loop has run for over nine days and no verify sample completed in them (each kind reaching its target); maintain samples again each tick until one does                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | yes  |
+| `[read-set-widened]`         | in the last day a derive tick counted `undeclared_reads`, `read_set_widened`, `pool_probe_widened` or `dancer_read_after_load`; each should be 0. A widened link reads a whole table and re-runs on any change of it ([read recorder](../reference/state.md#read-recorder)); repeats daily                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | yes  |
 | `[artifact-orphans]`         | partition artifacts no current partition names, and release manifests over a week old, hold over 1 GB: the daily collector is behind, or retained release manifests hold many; repeats daily                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                | yes  |
 | `[collector-failed]`         | maintain's newest full collector sweep (last nine days) raised; names the error; daily until a sweep passes. Nothing past the error was removed ([maintain storage tasks](../reference/operations.md#maintain-storage-tasks))                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               | yes  |
 | `[objects-size]`             | `objects/`, `blobs/`, `extracts/` and `partitions/` hold over 60 GB together; daily                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | yes  |
@@ -374,8 +374,8 @@ set, the unit also sends one `[watchdog-alive]` line a day to it, not to
 
 "Held" says whether the line still fires while held. Held means the
 `operator-hold` file exists or an all-scope operator pause other than the size
-cap is active; an inactive cycle timer silences the same lines and raises
-`[timer-inactive]` instead. A scoped pause (source, kind or host) is not a
+cap is active. An inactive acquire timer silences `[stale-fetch]` and an
+inactive derive timer `[stale-progress]`; each raises `[timer-inactive]` instead. A scoped pause (source, kind or host) is not a
 hold: if it holds all ready work, `[stale-progress]` fires, so use an
 all-scope pause or `operator-hold`. A gate that skips every request is not a
 failure, so only the fetch and progress lines report it, and
@@ -415,10 +415,14 @@ sudo -u swingset swingset pause --kind round_observations --reason 'review parse
 sudo -u swingset swingset resume --all
 ```
 
-With H13, a pause persists at the next bounded admission boundary while the
-cycle retains its process lock. The receipt reports `pausing` while matching
-admitted work drains, then `paused`. `--wait` waits for that drain; a wait timeout
-retains the persisted pause. A control-servicing timeout means no change was
+With H13, a pause persists at the next bounded admission boundary while loop
+ticks keep their locks. The receipt reports `pausing` while matching
+admitted work and leased parse, project and link units drain, then `paused`.
+A unit has no admission row; a lease shows as `lease:<stage>/<kind>/<id>`
+with its `lease_until`. A lease drains until it expires; an expired one is
+listed under `dead_leases` and does not hold the wait (D-0238). `--wait`
+waits for that drain; a wait timeout retains the
+persisted pause. A control-servicing timeout means no change was
 persisted. Doctor reports the pause ID, reason, expiry and exact resume selector.
 A worker write that runs 60 seconds is cut off and rolls back; no unit gets
 longer. Writes are small by construction, so a firing is an alarm
@@ -427,24 +431,16 @@ The unit retries on the work queue's clock, 15 minutes doubling to six hours,
 and is quarantined at the third overrun
 ([work queue](#work-queue-quarantine-and-requeue)). A control that arrives during such a
 write can time out at its default 60 seconds; pass `--lock-timeout 90`.
-Earlier deployed runtimes still wait behind the cycle lock.
 
 To stop the scheduled worker immediately:
 
 ```sh
-sudo systemctl stop swingset-cycle.timer
-sudo systemctl stop swingset-cycle.service
+sudo systemctl stop swingset-{acquire,plan,derive,release,maintain}.timer
+sudo systemctl stop swingset-{acquire,plan,derive,release,maintain}.service
 sudo -u swingset swingset pause --all
 ```
 
-With the loops on, stop their timers and services instead:
-
-```sh
-sudo systemctl stop swingset-{acquire,plan,derive,release,maintain}.timer
-sudo systemctl stop swingset-{acquire,plan,derive,release,maintain}.service
-```
-
-Stopping the timer alone leaves an active cycle or tick running. SIGTERM stops
+Stopping the timer alone leaves an active tick running. SIGTERM stops
 issuing requests and exits at a unit boundary; systemd allows 45 seconds (120
 for derive, whose staged write and record take longer). Resume removes
 only the selected operator pause. It leaves automatic throttle and block pauses
@@ -456,7 +452,7 @@ The same file's top-level `history_start` (2010-01-01) is the date events are
 traced from; the build fails on any event that ended earlier, so change it only
 as `docs/reference/backfill.md` describes.
 Rebuild the service to install config changes. Override CSV changes need no
-rebuild: the next cycle validates, captures and accepts them transactionally.
+rebuild: the next tick validates, captures and accepts them transactionally.
 Malformed headers, identities, dates, URLs and duplicate policy keys are rejected
 before acceptance. Removing an override file invalidates its consumers too.
 Disabling fetching or pausing a host permits offline work. Under H13, an all,
@@ -646,16 +642,16 @@ bytes in use and file size are reported separately.
 
 If the file goes over the cap, the worker sets an operator pause on everything
 with the reason "state database file is over its retention size cap" at the
-start of the next cycle. Reading, doctor, controls, `gc`, backup and restore
+start of the next derive tick. Reading, doctor, controls, `gc`, backup and restore
 keep working; fetching and derivation wait.
 
-Resuming on its own pauses again on the next cycle, because the file is still
+Resuming on its own pauses again on the next derive tick, because the file is still
 over the cap. Either shrink it with apply and reclaim below, or raise
 `max_database_bytes` in the `[retention]` table of `config/sources.toml` (64 GB
 since [D-0196](../../journal/decisions/0196-raise-the-database-size-cap-to-64-gb.md)) and deploy. Then resume with
 `swingset resume --all --reason "..."`.
 
-Adding or changing that table recomputes nothing. The next cycle captures a new
+Adding or changing that table recomputes nothing. The next tick captures a new
 input bundle, which records the limits in force as values under
 `policy/retention.json`, and accepts it; no stage's recipe reads either the file
 or the values, so no work is queued and no generation is rebuilt
@@ -738,10 +734,10 @@ on disk counts as local; nothing can bring back one that is neither. A held arti
 `extracts/` already. It writes nothing when it refuses. Holds live one file per
 hold under `/var/lib/swingset/holds/`; a hold and the files it names are
 included in backups, and holds are taken under the control lock, so one can be
-placed while a cycle runs. Add `--artifact <sha256>` to hold a stored page or
+placed while loops run. Add `--artifact <sha256>` to hold a stored page or
 extract.
 
-Before stopping the VM, stop cycle and backup timers and services, then use
+Before stopping the VM, stop the loop and backup timers and services, then use
 `orb stop swingset` on the Mac. Start it with `orb start swingset`; inspect logs
 and `doctor` before resuming collection.
 
@@ -755,12 +751,10 @@ Create the marker before stopping the services:
 ```sh
 printf 'who: %s\nwhy: %s\nreview-by: %s\n' sandile 'checking the 2019 rounds' 2026-09-22 |
   sudo tee /var/lib/swingset/operator-hold >/dev/null
-sudo systemctl stop swingset-cycle.timer swingset-backup.timer swingset-summary.timer
-sudo systemctl stop swingset-cycle.service swingset-backup.service swingset-summary.service
+sudo systemctl stop swingset-{acquire,plan,derive,release,maintain}.timer swingset-backup.timer swingset-summary.timer
+sudo systemctl stop swingset-{acquire,plan,derive,release,maintain}.service swingset-backup.service swingset-summary.service
 ```
 
-With the loops on, stop `swingset-{acquire,plan,derive,release,maintain}`
-timers and services in place of `swingset-cycle` here and in the steps below.
 All of these service units require that `operator-hold` be absent before starting,
 including their environment setup. The marker is relative to the configured
 `services.swingset.stateDir`; substitute that path if it differs. NixOS activation
@@ -772,16 +766,16 @@ When first installing this guard, bridge activation with runtime drop-ins after
 creating the marker and stopping the units above:
 
 ```sh
-for unit in swingset-cycle swingset-backup swingset-summary; do
+for unit in swingset-{acquire,plan,derive,release,maintain} swingset-backup swingset-summary; do
   sudo install -d "/run/systemd/system/$unit.service.d"
   printf '%s\n' '[Unit]' 'ConditionPathExists=!/var/lib/swingset/operator-hold' |
     sudo tee "/run/systemd/system/$unit.service.d/v2-hold.conf" >/dev/null
 done
 sudo systemctl daemon-reload
-sudo systemctl cat swingset-cycle.service swingset-backup.service swingset-summary.service
+sudo systemctl cat swingset-{acquire,plan,derive,release,maintain}.service swingset-backup.service swingset-summary.service
 ```
 
-Verify all three effective units show the negative condition before activation.
+Verify every effective unit show the negative condition before activation.
 On this host, runtime masks in `/run/systemd/system` did not override the units
 in `/etc/systemd/system`; the services remained loaded. Runtime drop-ins supply
 the condition to those loaded units. These drop-ins disappear on reboot, so
@@ -797,15 +791,18 @@ marker, clear any runtime masks, and start the timers:
 
 ```sh
 sudo rm /var/lib/swingset/operator-hold
-sudo systemctl unmask --runtime swingset-cycle.service swingset-backup.service swingset-summary.service swingset-cycle.timer swingset-backup.timer swingset-summary.timer
-sudo systemctl start swingset-cycle.timer swingset-backup.timer swingset-summary.timer
+sudo systemctl unmask --runtime swingset-{acquire,plan,derive,release,maintain}.{service,timer} swingset-backup.{service,timer} swingset-summary.{service,timer}
+sudo systemctl start swingset-{acquire,plan,derive,release,maintain}.timer swingset-backup.timer swingset-summary.timer
 ```
 
 ### Rolling back a migration
 
 A switch that migrates the database (phase 1 moves it to schema 33, phase 2
-to 34, phase 3 to 35) is rolled back to the previous system generation plus the byte copy
-its preflight took; the older code refuses the newer schema. SQLite replays any
+to 34, phases 3 and 4 to 36, phase 5a to 37) is rolled back to the previous
+system generation plus the byte copy its preflight took; the older code
+refuses the newer schema. Migration 37 deletes the unit admissions and the
+requirement history, so after it the byte copy is the only way back; work
+since the hold is lost and re-fetched. SQLite replays any
 valid write-ahead log it finds beside the file, so a newer
 `state.sqlite-wal` left next to the restored copy corrupts it. After a crash
 or a killed unit that log can hold committed frames. So:
@@ -814,12 +811,12 @@ or a killed unit that log can hold committed frames. So:
    timers and units, the watchdog's too:
 
    ```sh
-   sudo systemctl stop swingset-cycle.timer swingset-backup.timer swingset-summary.timer swingset-watchdog.timer
-   sudo systemctl stop swingset-cycle.service swingset-backup.service swingset-summary.service swingset-watchdog.service
+   sudo systemctl stop swingset-{acquire,plan,derive,release,maintain}.timer swingset-backup.timer swingset-summary.timer swingset-watchdog.timer
+   sudo systemctl stop swingset-{acquire,plan,derive,release,maintain}.service swingset-backup.service swingset-summary.service swingset-watchdog.service
    ```
 
-   With the loops on, stop the five loop timers and services as in
-   [stopping](#pause-resume-source-switches-and-stopping) too.
+   A generation from before phase 5b may also run `swingset-cycle`; stop
+   its timer and service too.
 
 2. Switch to the previous generation
    (`sudo /nix/var/nix/profiles/system-<N>-link/bin/switch-to-configuration switch`).
@@ -840,7 +837,7 @@ or a killed unit that log can hold committed frames. So:
    copy as the newest.
 6. Check without `doctor`, which does not fit the worker at this size:
    the restored file's schema is the old code's (32 for phase 1, 33 for
-   phase 2, 34 for phase 3),
+   phase 2, 34 for phases 3 and 4, 36 for phase 5a),
 
    ```sh
    sudo -u swingset /var/lib/swingset/venv/bin/python -c "import sqlite3; print(sqlite3.connect('file:/var/lib/swingset/state.sqlite?mode=ro', uri=True).execute('PRAGMA user_version').fetchone())"
@@ -848,14 +845,16 @@ or a killed unit that log can hold committed frames. So:
 
    and `systemctl is-active` shows every timer and unit stopped. Then remove
    the hold, start the timers as above and `swingset-watchdog.timer`, and
-   check the first cycle's summary in `runs/` (`failed=false`, no
-   `schema` error). Run `doctor` only on a Mac clone. Record each step's
+   check the first derive tick's record in `runs/` (`failed=false`, no
+   `schema` error; a pre-5b generation may run the cycle instead). Run `doctor` only on a Mac clone. Record each step's
    result in one receipt.
 
-Turning the loops off needs none of this: set `services.swingset.loops.enable
-= false` and switch. The schema stays, the cycle takes the exclusive lock and
-releases every lease, and a building generation resumes on its unit's next
-run. Short of a rollback, `[release] path` switches the release assembly
+Since phase 5b no option turns the loops off. Going back to the cycle is the
+previous system generation only if 5b deployed after 5a on its own; this
+tree holds both, so after its migration to 37 the only way back is the byte
+copy ([rolling back a migration](#rolling-back-a-migration),
+[D-0239](../../journal/decisions/0239-the-loops-are-the-only-orchestration.md)).
+Short of a rollback, `[release] path` switches the release assembly
 ([release path](#release-path)); it re-queues nothing.
 
 ## Output cutoff
@@ -863,7 +862,7 @@ run. Short of a rollback, `[release] path` switches the release assembly
 A parse or derivation whose output is identical keeps its generation and
 records an equivalence
 ([D-0205](../../journal/decisions/0205-cut-off-identical-derivation-output.md)).
-`[derivation] cutoff = false` in `config/sources.toml` turns that off for cycle
+`[derivation] cutoff = false` in `config/sources.toml` turns that off for loop
 work, `run_intake` and `accept-year`: each re-run mints a new generation.
 Paths that read no config keep cutoff on: the offline evidence imports and
 `review_pack`, which only the research tool `intake_phase1.py` calls. It stops
@@ -873,8 +872,8 @@ alone.
 
 To re-mint after a bad cutoff, set `cutoff = false` and deploy with a byte
 change inside the affected code scope, for example a comment in
-`versions.py` for every project and link unit (`schedule/cycle.py` is in no
-scope and re-runs nothing). The new fingerprints have
+`versions.py` for every project and link unit (`loops/` is in no scope and
+re-runs nothing). The new fingerprints have
 no equivalences, so every unit in the scope re-runs and mints. Turn cutoff back
 on in a later deploy.
 
@@ -952,7 +951,7 @@ publishes nothing; read its manifest digest and stage 1 counts with
 Each partitioned build reports its manifest in the candidate's
 `_meta/manifest.json` (`release_policy.manifest_digest`, `withheld`,
 `partitions`, which counts joins closed because their dancer is not in the
-release). The cycle summary's `partitions` key adds `assembly_seconds` and
+release). The release record's `partitions` key adds `assembly_seconds` and
 `assembly_peak_rows`. `swingset partitions --withheld` counts what it left
 out by reason and lists each partition with its detail
 ([build: partition artifacts](../reference/build.md#partition-artifacts)).
@@ -1002,12 +1001,12 @@ uv run swingset registry-crosscheck --blob <sha256> --state ./tmp/state
 ```
 
 Manual stage commands capture the same input bundle and use the same durable
-queues as a cycle. A handled parse failure keeps the previous good observations,
+queues as the loops. A handled parse failure keeps the previous good observations,
 records evidence, and completes the failed attempt. A version bump or `reparse`
 can retry it. A dump cross-check produces findings; it never imports dump rows
 into canonical tables. Before seeding a sweep, archive the known comparison dump
 with `--archive-only`; this validates and saves it without comparing an incomplete
-mirror. Enable the registry source and seed the sweep. Normal cycles compare the
+mirror. Enable the registry source and seed the sweep. Derive ticks compare the
 saved dump after the final batch has been parsed and projected. A durable due
 marker survives interruption and is cleared only after comparison succeeds.
 

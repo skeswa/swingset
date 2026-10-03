@@ -4,7 +4,7 @@ Recorded: 2026-09-21
 Decided by: owner, 2026-09-21; source: "shall we institute a timeout to prevent this from happening in the future? 9 hours of inactivity is a lot to tolerate"  
 Topic: Operations  
 Supersedes: —  
-Superseded by: —
+Superseded by: in part, [D-0239](0239-the-loops-are-the-only-orchestration.md) (the cycle checks; the loop checks replace them)
 
 ## Decision
 

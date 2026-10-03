@@ -85,6 +85,12 @@ def seed(conn: sqlite3.Connection) -> None:
     conn.execute("INSERT INTO derivation_payloads VALUES (?, '{\"x\":1}')", ("q" * 64,))
 
 
+@pytest.fixture(autouse=True)
+def schema_36(monkeypatch: pytest.MonkeyPatch) -> None:
+    """These tests are about schema 36; later migrations have their own files."""
+    monkeypatch.setattr(db_module, "SCHEMA_VERSION", 36)
+
+
 @pytest.fixture
 def migrated(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     """A phase 3 (schema 35) state with rows, opened by phase 4 code."""

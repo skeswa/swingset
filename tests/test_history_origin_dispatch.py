@@ -1,4 +1,10 @@
-"""WP16 uses retained archive proof and the ordinary actual-host acquisition gates."""
+"""WP16's origin module: retained archive proof and the actual-host acquisition gates.
+
+The loops no longer schedule origin requests (D-0236): no offers pass or
+dispatch calls `candidate` or `schedule`. The module stays byte-identical
+until the next whole re-parse, and its request gate still fails closed for any
+intent row, so these tests drive `candidate` and `schedule` directly.
+"""
 
 import json
 from datetime import timedelta
@@ -14,10 +20,11 @@ from test_platform_backfill import fixture as fixture
 from swingset.config import Config, HostConfig, SourceConfig
 from swingset.fetch.archive import Archive
 from swingset.fetch.client import FetchClient
-from swingset.history.backfill import dispatch_one, offer
+from swingset.history.backfill import dispatch_one, offer, offers, plan_pages
 from swingset.history.origin_dispatch import cadence_reason, candidate, request_gate, schedule
 from swingset.history.platform import Page, PlannedPage, PlatformPlan
 from swingset.schedule.fairness import next_watch
+from swingset.schedule.watches import refresh_policy
 from swingset.sources import get_page_kind
 from swingset.state.controls import Selector, change_control
 
@@ -66,6 +73,23 @@ def queries(f):
 
 
 def run(f, handler, *, run_id=None):
+    """Plan, schedule and fetch one origin intent the way the retired dispatcher did.
+
+    Evaluates the plan's pages in order and schedules the first eligible one in
+    one write transaction, then fetches it through the ordinary client and
+    refreshes the watch's policy.
+    """
+    run_id = run_id or f.run
+    reason, chosen = "no_eligible_capture", None
+    with f.db.transaction():
+        for item in f.plan.pages:
+            spec, proposal, reason = candidate(f.db, f.config, f.clock, item, f.plan, run_id=run_id)
+            if spec is not None:
+                schedule(f.conn, spec, proposal, run_id=run_id, now=f.clock.now())
+                chosen = spec
+                break
+    if chosen is None:
+        return SimpleNamespace(reason=reason, watch_id=None, capture=None, result=None)
     client = FetchClient(
         f.conn,
         f.config,
@@ -75,18 +99,26 @@ def run(f, handler, *, run_id=None):
         random_value=lambda: 0,
     )
     try:
-        return dispatch_one(
-            f.db,
-            f.config,
-            f.clock,
-            run_id or f.run,
+        result = client.fetch(
+            chosen.watch_id,
+            get_page_kind(chosen.parser),
+            run_id,
             deadline=f.clock.now() + timedelta(minutes=10),
-            fetcher=client,
-            plan=f.plan,
-            allocated=True,
         )
     finally:
         client.close()
+    if not result.skipped:
+        with f.db.transaction():
+            refresh_policy(
+                f.conn,
+                f.config,
+                chosen.watch_id,
+                f.clock.now(),
+                outcome=result.classification.outcome,
+            )
+    return SimpleNamespace(
+        reason="dispatched", watch_id=chosen.watch_id, capture=None, result=result
+    )
 
 
 def test_origin_dispatch_uses_actual_host_budget_and_retains_proof(origin):
@@ -110,7 +142,6 @@ def test_origin_dispatch_uses_actual_host_budget_and_retains_proof(origin):
     assert origin.conn.execute("SELECT requests FROM host_budget").fetchone()[0] == 2
     assert origin.conn.execute("SELECT COUNT(*) FROM history_origin_requests").fetchone()[0] == 2
     intent = origin.conn.execute("SELECT * FROM history_origin_intents").fetchone()
-    assert intent["dispatch_run_id"] is None
     assert json.loads(intent["evidence_json"])["reason"] == "archive_absence_proven"
     snapshot = origin.conn.execute("SELECT via,url,archive_url FROM snapshots").fetchone()
     assert tuple(snapshot) == ("origin", URL, None)
@@ -259,15 +290,14 @@ def test_managed_request_gate_rejects_malformed_redirect_without_debit(origin, r
         assert origin.conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0] == 0
 
 
-def test_failed_planning_rolls_back_watch_and_intent(origin, monkeypatch):
-    import swingset.history.backfill as backfill
-
-    def crash(*args, **kwargs):
+def test_failed_planning_rolls_back_watch_and_intent(origin):
+    spec, proof, reason = candidate(
+        origin.db, origin.config, origin.clock, origin.plan.pages[0], origin.plan, run_id=origin.run
+    )
+    assert reason == "eligible_origin"
+    with pytest.raises(RuntimeError, match="before commit"), origin.db.transaction():
+        schedule(origin.conn, spec, proof, run_id=origin.run, now=origin.clock.now())
         raise RuntimeError("before commit")
-
-    monkeypatch.setattr(backfill, "replace_findings", crash)
-    with pytest.raises(RuntimeError, match="before commit"):
-        run(origin, lambda _: pytest.fail("planning crash must not issue HTTP"))
     assert origin.conn.execute("SELECT COUNT(*) FROM watches").fetchone()[0] == 0
     assert origin.conn.execute("SELECT COUNT(*) FROM history_origin_intents").fetchone()[0] == 0
 
@@ -524,13 +554,13 @@ def test_same_source_archive_offer_precedes_origin_gap(origin):
     assert origin.conn.execute("SELECT COUNT(*) FROM history_origin_intents").fetchone()[0] == 0
 
 
-def test_cycle_dispatches_origin_with_actual_host_and_same_cycle_interpretation(
+def test_exhausted_page_offers_no_origin_spec_writes_no_intent_and_sends_no_origin_request(
     fixture, tmp_path, monkeypatch
 ):
+    from helpers.loop_ticks import run_round
     from test_history_cycle import prepare_cycle
 
-    from swingset.history import backfill
-    from swingset.schedule import cycle
+    from swingset.history import backfill, origin_dispatch
 
     config_dir, overrides_dir, target = prepare_cycle(fixture, tmp_path, monkeypatch)
     fixture.conn.execute("DELETE FROM archive_captures")
@@ -543,22 +573,30 @@ def test_cycle_dispatches_origin_with_actual_host_and_same_cycle_interpretation(
         ),
         (),
     )
+    # The same page used to be an eligible origin candidate; the module still says so.
+    assert (
+        candidate(
+            fixture.db, fixture.config, fixture.clock, plan.pages[0], plan, run_id=fixture.run
+        )[2]
+        == "eligible_origin"
+    )
     monkeypatch.setattr(backfill, "retained_plan", lambda *args, **kwargs: plan)
+
+    def refuse(*args, **kwargs):
+        raise AssertionError("the offers pass must not ask the origin fallback")
+
+    monkeypatch.setattr(origin_dispatch, "candidate", refuse)
+    monkeypatch.setattr(origin_dispatch, "schedule", refuse)
+    assert offers(fixture.db, fixture.config, fixture.clock, plan=plan) == ()
+    planned = plan_pages(fixture.db, fixture.config, fixture.clock, deadline=None, plan=plan)
+    assert [(page.reason, page.spec) for page in planned.pages] == [("capture_gap_exhausted", None)]
     seen = []
 
     def response(request):
         seen.append(str(request.url))
-        assert request.url.host == "eepro.com"
-        return (
-            httpx.Response(404)
-            if request.url.path == "/robots.txt"
-            else httpx.Response(200, content=BODY)
-        )
+        return httpx.Response(404)
 
-    existing_rounds = {
-        row[0] for row in fixture.conn.execute("SELECT watch_id FROM watches WHERE kind='round'")
-    }
-    result = cycle.run_cycle(
+    result = run_round(
         fixture.db,
         config_dir=config_dir,
         overrides_dir=overrides_dir,
@@ -566,18 +604,16 @@ def test_cycle_dispatches_origin_with_actual_host_and_same_cycle_interpretation(
         budget=180,
         transport=httpx.MockTransport(response),
     )
-    assert result["checked"] == 1
-    assert len(seen) == 2
-    assert fixture.conn.execute("SELECT COUNT(*) FROM history_origin_requests").fetchone()[0] == 2
+    assert not result.failed
+    assert not [url for url in seen if "eepro.com" in url]
+    for table in ("history_origin_intents", "history_origin_requests"):
+        assert fixture.conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0] == 0
     assert (
-        fixture.conn.execute("SELECT COUNT(*) FROM observations WHERE kind='file_row'").fetchone()[
-            0
-        ]
-        == 7
+        fixture.conn.execute(
+            "SELECT COUNT(*) FROM snapshots WHERE via='origin' AND url=?", (URL,)
+        ).fetchone()[0]
+        == 0
     )
-    assert {
-        row[0] for row in fixture.conn.execute("SELECT watch_id FROM watches WHERE kind='round'")
-    } == existing_rounds
 
 
 def test_archive_host_pause_does_not_pause_proven_origin_gap(origin):
@@ -763,6 +799,26 @@ def test_three_failed_distinct_archive_captures_allow_proved_origin_fallback(ori
         )
         assert selected.capture == capture
         failed_snapshot(origin, selected.watch_id, capture, number)
+    # The dispatcher stops at the exhausted archive and records the gap; it
+    # writes no origin intent (D-0236).
+    exhausted = dispatch_one(
+        origin.db,
+        origin.config,
+        origin.clock,
+        origin.run,
+        deadline=origin.clock.now() + timedelta(minutes=10),
+        fetcher=recorder(),
+        plan=origin.plan,
+        allocated=True,
+    )
+    assert exhausted.reason == "capture_gap_exhausted" and exhausted.watch_id is None
+    assert origin.conn.execute("SELECT COUNT(*) FROM history_origin_intents").fetchone()[0] == 0
+    assert [
+        row[0]
+        for row in origin.conn.execute(
+            "SELECT summary FROM findings WHERE owner_kind='platform_backfill' AND closed_at IS NULL"
+        )
+    ] == ["Platform capture alternatives are exhausted or incomplete"]
     calls = []
 
     def response(request):
@@ -902,10 +958,9 @@ def test_round_debit_rechecks_parent_after_robots(origin, change, parent_via):
     ).fetchone()
 
 
-def test_offers_ask_the_projection_question_once_including_the_origin_fallback(origin, monkeypatch):
-    # The fallback for pages without archive captures asked it once per page
-    # outside the pass's cache, and from 2026-09-29 the offers pass never
-    # reached a fetch (D-0195).
+def test_offers_ask_the_projection_question_once(origin, monkeypatch):
+    # The retired origin fallback asked it once per page outside the pass's
+    # cache, and from 2026-09-29 the offers pass never reached a fetch (D-0195).
     from swingset.history import backfill
     from swingset.project import history as history_module
 
@@ -919,3 +974,37 @@ def test_offers_ask_the_projection_question_once_including_the_origin_fallback(o
     monkeypatch.setattr(history_module, "_pending_inventory_projection", counted)
     backfill.offers(origin.db, origin.config, origin.clock, plan=origin.plan)
     assert len(walks) == 1
+
+
+def test_exhausted_round_awaiting_its_parent_gets_no_parent_finding(origin):
+    # The origin branch used to turn this page's reason into
+    # parent_document_pending and open "waits for its admitted parent"; the
+    # dispatcher now keeps the archive answer (D-0236).
+    from test_platform_backfill import recorder
+
+    child = Page("eepro", EVENT.source_ref, URL + "final.htm", "eepro.autoindex", "round", URL)
+    origin.plan = PlatformPlan((PlannedPage(EVENT, child, ()),), ())
+    assert (
+        candidate(
+            origin.db, origin.config, origin.clock, origin.plan.pages[0], origin.plan, run_id=None
+        )[2]
+        == "parent_document_pending"
+    )
+    result = dispatch_one(
+        origin.db,
+        origin.config,
+        origin.clock,
+        origin.run,
+        deadline=origin.clock.now() + timedelta(minutes=10),
+        fetcher=recorder(),
+        plan=origin.plan,
+        allocated=True,
+    )
+    assert result.reason == "capture_gap_exhausted" and result.watch_id is None
+    assert (
+        origin.conn.execute(
+            "SELECT COUNT(*) FROM findings WHERE owner_kind='platform_backfill' AND closed_at IS NULL"
+        ).fetchone()[0]
+        == 0
+    )
+    assert origin.conn.execute("SELECT COUNT(*) FROM history_origin_intents").fetchone()[0] == 0

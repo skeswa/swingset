@@ -4,7 +4,6 @@ import sqlite3
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
-from uuid import uuid4
 
 from swingset import cutoff
 from swingset.clock import Clock
@@ -18,9 +17,8 @@ from swingset.state.attempts import (
     begin_attempt,
     finish_attempt,
 )
-from swingset.state.control_lock import ControlTimeout
 from swingset.state.control_scopes import for_unit
-from swingset.state.controls import ControlPaused, admission, bind_work_attempt, settle
+from swingset.state.controls import ControlPaused, matching_pauses
 from swingset.state.db import Database
 from swingset.state.inputs import InputBundle
 from swingset.state.work import WorkUnit
@@ -66,13 +64,12 @@ class DerivationOutcome:
 
 
 class _LeaseBusy(Exception):
-    """Another live owner leases the unit; the admission rolls back."""
+    """Another live owner leases the unit; the claim rolls back."""
 
 
 def _failed(
     database: Database,
     attempt: Attempt,
-    action_id: str,
     clock: Clock,
     *,
     outcome: Outcome,
@@ -102,7 +99,6 @@ def _failed(
             retry_at=failure.next_attempt_at if outcome == "transient" else None,
             evidence=evidence,
         )
-        settle(conn, action_id, now=clock.now(), outcome=reason)
     return failure
 
 
@@ -111,16 +107,14 @@ def _fenced(exc: BaseException) -> bool:
     return isinstance(exc, sqlite3.DatabaseError) and "active publication fences" in str(exc)
 
 
-def _close_fenced(
-    database: Database, attempt: Attempt, action_id: str, clock: Clock, reason: str
-) -> None:
+def _close_fenced(database: Database, attempt: Attempt, clock: Clock, reason: str) -> None:
     """Close a unit whose write met a publication fence, uncounted, if it can.
 
-    A narrow publication (plan phase 3) leaves the queue, attempt and
-    admission tables writable: the attempt ends `interrupted`, the unit
-    retries in a minute and the admission settles, as the next tick's
-    recovery would. Under a full fence this write is fenced too and nothing
-    is written: this loop's next tick closes them (F6).
+    A narrow publication (plan phase 3) leaves the queue and attempt tables
+    writable: the attempt ends `interrupted` and the unit retries in a
+    minute, as the next tick's recovery would. Under a full fence this write
+    is fenced too and nothing is written: this loop's next tick closes them
+    (F6).
     """
     try:
         with database.transaction() as conn:
@@ -135,7 +129,6 @@ def _close_fenced(
                 now=clock.now(),
                 retry_at=max(failure.next_attempt_at, clock.now() + queue.DEFAULT.takeover_retry),
             )
-            settle(conn, action_id, now=clock.now(), outcome=reason)
     except (sqlite3.Error, WriteDeadlineExceeded, ValueError):
         pass
 
@@ -151,8 +144,9 @@ def _admission_failed(
 ) -> DerivationOutcome:
     """A unit whose admission raised (its capture, lease or attempt) fails on the queue.
 
-    The admission rolled back, so no attempt exists; the queue row alone
-    carries the failure's clock, and selection honours it (`queue.holds`).
+    The admission transaction rolled back, so no attempt exists; the queue
+    row alone carries the failure's clock, and selection honours it
+    (`queue.holds`).
     Without it one defective unit would be chosen first on every tick (I1, I3).
     """
     from swingset.state.work_fingerprints import input_fingerprint
@@ -191,19 +185,23 @@ def derive_one(
     *,
     on_admit: Callable[[sqlite3.Connection], None] | None = None,
 ) -> DerivationOutcome:
-    """Derive one unit: admit and lease it, run it, and record its outcome.
+    """Derive one unit: lease and admit it, run it, and record its outcome.
 
     ``on_admit`` joins the claim transaction that commits the unit's lease
     before its admission (the offline loop rotates its kind group there, so
     a unit that kills its process does not keep its group first).
 
+    The admission writes no ledger row and takes no control lock (D-0238):
+    one `BEGIN IMMEDIATE` checks the unit's pauses, captures its inputs and
+    begins its attempt. A pause commits with `BEGIN IMMEDIATE` on the same
+    database, so it either lands first and holds the unit, or lands after
+    and sees the lease as draining.
+
     Outcomes that admitted nothing carry only a reason: `operator_pause`,
-    `control_timeout`, `lease_busy`, `publication_fenced` and
-    `write_lock_timeout` (the unit retries soon, nothing counted), and
-    `process_interrupted` (a takeover counted a dead attempt; the unit waits
-    on that failure's clock).
+    `lease_busy`, `publication_fenced` and `write_lock_timeout` (the unit
+    retries soon, nothing counted), and `process_interrupted` (a takeover
+    counted a dead attempt; the unit waits on that failure's clock).
     """
-    action_id = "work_" + uuid4().hex
     owner = queue.current_owner(run_id, exclusive=database.holds_writer_lock)
     # The claim commits the lease (and `on_admit`) before any heavy work, so
     # a process that dies inside the admission leaves a lease of a dead run
@@ -241,14 +239,27 @@ def derive_one(
         return DerivationOutcome(reason=reason)
 
     try:
-        with admission(
-            database,
-            action_id=action_id,
-            action_kind=unit.stage,
-            scope=for_unit(database.connection, unit),
-            now=clock.now(),
-            run_id=run_id,
-        ) as conn:
+        if database.connection.in_transaction:
+            raise ValueError("admission must precede the unit's write transaction")
+        # The unit's scope can take a second to read (a DISTINCT over its
+        # observations), so it is read before the write lock is taken. The
+        # pause rows are read inside, serialized with `change_control`; a
+        # pause that appeared in between gets its scope read there (I2).
+        scope = (
+            for_unit(database.connection, unit)
+            if database.connection.execute("SELECT 1 FROM operator_pauses LIMIT 1").fetchone()
+            else None
+        )
+        with database.transaction() as conn:
+            pauses = (
+                matching_pauses(
+                    conn, scope if scope is not None else for_unit(conn, unit), now=clock.now()
+                )
+                if conn.execute("SELECT 1 FROM operator_pauses LIMIT 1").fetchone()
+                else []
+            )
+            if pauses:
+                raise ControlPaused(pauses)
             from swingset.state import derivations
 
             selection = (
@@ -264,13 +275,8 @@ def derive_one(
                 fingerprint=selection.fingerprint if selection else None,
                 after_takeover=lease.took_over,
             )
-            bind_work_attempt(conn, action_id, attempt.attempt_id)
     except ControlPaused:
         return unclaimed("operator_pause")
-    except ControlTimeout:
-        # Another process held the control lock past the admission timeout:
-        # nothing was written; the unit is skipped this time.
-        return unclaimed("control_timeout")
     except Exception as exc:
         # The admission rolled back. A publication or a busy writer is not
         # the unit's fault: skip it, write nothing (F6, F7).
@@ -299,7 +305,6 @@ def derive_one(
             now=clock.now(),
         )
         queue.succeed(conn, unit)
-        settle(conn, action_id, now=clock.now(), outcome="output_committed", forget=True)
 
     def process() -> DerivationOutcome:
         nonlocal source
@@ -329,13 +334,11 @@ def derive_one(
                                     reason_code=reason,
                                     now=clock.now(),
                                 )
-                                settle(conn, action_id, now=clock.now(), outcome=reason)
                                 return DerivationOutcome(source, parsed.failed, reason)
                             # A blocked parse waits for input on a clock (D-0216).
                             waited = _failed(
                                 database,
                                 attempt,
-                                action_id,
                                 clock,
                                 outcome="blocked",
                                 reason=reason,
@@ -384,7 +387,6 @@ def derive_one(
             waited = _failed(
                 database,
                 attempt,
-                action_id,
                 clock,
                 outcome="unavailable",
                 reason="artifact_unavailable",
@@ -410,7 +412,6 @@ def derive_one(
                 spurious = _failed(
                     database,
                     attempt,
-                    action_id,
                     clock,
                     outcome="transient",
                     reason="inputs_changed_spurious",
@@ -427,17 +428,16 @@ def derive_one(
                     reason_code="inputs_changed",
                     now=clock.now(),
                 )
-                settle(conn, action_id, now=clock.now(), outcome="inputs_changed")
             return DerivationOutcome(source, False, "inputs_changed")
         except Exception as exc:
             if _fenced(exc) or _locked(exc):
                 # A fenced or busy write: the unit did nothing wrong. Close it
                 # uncounted where the queue is writable (a narrow fence);
-                # otherwise the admission and attempt stay open for this
-                # loop's next tick, whose recovery closes them uncounted.
+                # otherwise the lease and attempt stay open for this loop's
+                # next tick, whose recovery closes them uncounted.
                 reason = queue.FENCED_REASON if _fenced(exc) else queue.LOCK_REASON
                 if _fenced(exc):
-                    _close_fenced(database, attempt, action_id, clock, reason)
+                    _close_fenced(database, attempt, clock, reason)
                 return DerivationOutcome(source, reason=reason)
             # A unit's transaction has rolled back. Keep its token and diagnostic,
             # then allow independent units to use already committed evidence.
@@ -466,7 +466,6 @@ def derive_one(
             failure = _failed(
                 database,
                 attempt,
-                action_id,
                 clock,
                 outcome="transient",
                 reason=reason,
@@ -486,6 +485,6 @@ def derive_one(
         if _fenced(exc) or _locked(exc):
             reason = queue.FENCED_REASON if _fenced(exc) else queue.LOCK_REASON
             if _fenced(exc):
-                _close_fenced(database, attempt, action_id, clock, reason)
+                _close_fenced(database, attempt, clock, reason)
             return DerivationOutcome(source, reason=reason)
         raise

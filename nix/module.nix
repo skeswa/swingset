@@ -57,7 +57,7 @@ let
     SQLITE_TMPDIR = "${cfg.stateDir}/tmp";
   };
   args = "--state ${lib.escapeShellArg cfg.stateDir} --config ${source}/config --overrides ${lib.escapeShellArg cfg.overridesDir}";
-  # The five loops that replace the cycle when loops.enable is set (D-0215,
+  # The five loops, the only orchestration (D-0215, D-0239,
   # docs/plans/architecture.md). Timeouts leave room past each budget for
   # recovery and the final record. Memory (F10): each cap bounds one unit,
   # not their sum (17 GB together). On the Mac a build peaked at 6.3 GB and
@@ -189,6 +189,24 @@ let
   '';
 in
 {
+  # Phase 5b removed the cycle (D-0239): a host file that still sets one of
+  # these fails evaluation with this message instead of an unknown option.
+  imports = [
+    (lib.mkRemovedOptionModule [
+      "services"
+      "swingset"
+      "loops"
+      "enable"
+    ] "The five loops are the only orchestration since phase 5b (D-0239); remove the setting.")
+    (lib.mkRemovedOptionModule [ "services" "swingset" "cycleBudget" ]
+      "The cycle unit was removed in phase 5b (D-0239); the loop budgets are services.swingset.loops.*Budget."
+    )
+    (lib.mkRemovedOptionModule [
+      "services"
+      "swingset"
+      "watchdogQuietSeconds"
+    ] "[cycles-quiet] was removed in phase 5b (D-0239); [loop-quiet] has fixed windows.")
+  ];
   options.services.swingset = {
     enable = lib.mkEnableOption "swingset evidence pipeline";
     package = lib.mkOption {
@@ -208,14 +226,7 @@ in
       type = lib.types.str;
       default = "${source}/overrides";
     };
-    cycleBudget = lib.mkOption {
-      type = lib.types.str;
-      default = "12m";
-    };
     loops = {
-      enable = lib.mkEnableOption ''
-        the five loop timers (acquire, derive, plan, release, maintain) in
-        place of swingset-cycle (D-0215). Off keeps the cycle'';
       acquireBudget = lib.mkOption {
         type = lib.types.str;
         default = "4m";
@@ -287,11 +298,6 @@ in
         logged or sent again (D-0202).
       '';
     };
-    watchdogQuietSeconds = lib.mkOption {
-      type = lib.types.ints.positive;
-      default = 7200;
-      description = "Seconds without a finished cycle, while unheld, that count as a stall.";
-    };
     dryRun = lib.mkOption {
       type = lib.types.bool;
       default = true;
@@ -341,35 +347,8 @@ in
   };
   config = lib.mkIf cfg.enable (
     lib.mkMerge [
-      # The cycle, only while the loops are off: a switch that turns them on
-      # removes its service and timer, and systemd stops both.
-      (lib.mkIf (!cfg.loops.enable) {
-        systemd.services.swingset-cycle = {
-          description = "Collect and materialize swingset evidence";
-          unitConfig = {
-            ConditionPathExists = "!${cfg.stateDir}/operator-hold";
-            OnFailure = [ "swingset-watchdog.service" ];
-          };
-          after = [ "network-online.target" ];
-          wants = [ "network-online.target" ];
-          environment = env;
-          serviceConfig = common // {
-            Type = "oneshot";
-            ExecStart = "${cfg.package}/bin/swingset cycle ${args} --budget ${cfg.cycleBudget} --timer ${
-              if cfg.dryRun then "--dry-run" else "--publish"
-            }";
-          };
-        };
-        systemd.timers.swingset-cycle = {
-          wantedBy = [ "timers.target" ];
-          timerConfig = {
-            OnCalendar = "*:0/15";
-            RandomizedDelaySec = 120;
-            Persistent = true;
-          };
-        };
-      })
-      (lib.mkIf cfg.loops.enable {
+      # The five loop units are unconditional (D-0239).
+      {
         systemd.services = lib.mapAttrs' (
           name: loop:
           lib.nameValuePair "swingset-${name}" {
@@ -405,7 +384,7 @@ in
             // lib.optionalAttrs (loop ? delay) { RandomizedDelaySec = loop.delay; };
           }
         ) loopUnits;
-      })
+      }
       {
         users.groups.swingset = { };
         users.users.swingset = {
@@ -427,12 +406,12 @@ in
         # Nine hours of failing cycles went unnoticed on 2026-09-21 because
         # nothing escalated a run of failures. The watchdog reads the retained
         # run records and an immutable view of the database, so it costs little
-        # and needs no lock; it runs on the timer and immediately after a cycle
-        # or loop tick fails (D-0188). The checks live in watchdog.py so tests
-        # can run them; since D-0202 they also watch progress and the silent
-        # fetch gates, and with the loops on each loop's ticks (--loops 1).
+        # and needs no lock; it runs on the timer and immediately after a loop
+        # tick fails (D-0188). The checks live in watchdog.py so tests can run
+        # them; since D-0202 they also watch progress and the silent fetch
+        # gates, and each loop's ticks (D-0215, D-0239).
         systemd.services.swingset-watchdog = {
-          description = "Alert on failing cycles or loops, stalled fetching or derive, silent gates, or low disk";
+          description = "Alert on failing loops, stalled fetching or derive, silent gates, or low disk";
           serviceConfig = {
             Type = "oneshot";
             # Longer than any healthy run by far; a hang must end so the next
@@ -443,27 +422,13 @@ in
               state=${lib.escapeShellArg cfg.stateDir}
               systemctl=${config.systemd.package}/bin/systemctl
               disk=$(${diskQuota}/bin/swingset-disk --raw || true)
-              ${
-                if cfg.loops.enable then
-                  ''
-                    # Each loop timer that is not active, by loop name.
-                    inactive=""
-                    for loop in ${lib.concatStringsSep " " loopNames}; do
-                      if [ "$($systemctl is-active "swingset-$loop.timer" || true)" != active ]; then
-                        inactive="$inactive''${inactive:+,}$loop"
-                      fi
-                    done
-                    timers="--loops 1 --timers-inactive=$inactive"
-                  ''
-                else
-                  ''
-                    if [ "$($systemctl is-active swingset-cycle.timer || true)" = active ]; then
-                      timers="--timer-active 1"
-                    else
-                      timers="--timer-active 0"
-                    fi
-                  ''
-              }
+              # Each loop timer that is not active, by loop name.
+              inactive=""
+              for loop in ${lib.concatStringsSep " " loopNames}; do
+                if [ "$($systemctl is-active "swingset-$loop.timer" || true)" != active ]; then
+                  inactive="$inactive''${inactive:+,}$loop"
+                fi
+              done
               # A failed backup (room check refused, copy or verification error)
               # stays failed until the next run succeeds (D-0203).
               if $systemctl is-failed --quiet swingset-backup.service; then
@@ -489,13 +454,12 @@ in
               alert=$(${pkgs.python3}/bin/python3 ${./watchdog.py} \
                 --state "$state" \
                 --config ${source}/config \
-                --quiet ${toString cfg.watchdogQuietSeconds} \
                 --stale-fetch ${toString cfg.staleFetchSeconds} \
                 --stale-progress ${toString cfg.staleProgressSeconds} \
                 --repeat ${toString cfg.watchdogRepeatSeconds} \
                 --disk "$disk" \
                 --disk-min-free ${toString cfg.diskMinFreeBytes} \
-                $timers \
+                --timers-inactive="$inactive" \
                 --backup-failed "$backup_failed" \
                 --summary-failed "$summary_failed" \
                 --backup-active "$backup_active" \
@@ -625,11 +589,11 @@ in
           serviceConfig = common // {
             Type = "oneshot";
             ExecStart = "${cfg.package}/bin/swingset summary ${args}";
-            # The digest shares the 8 GB machine with the cycle (up to about
+            # The digest shares the 8 GB machine with the loops (up to about
             # 6.3 GB with a build). Without the retention walk it peaked at
             # 4.5 GB on the 35 GB copy, 4.4 GB of it the publication report's
             # closure check; the walk alone took 13 GB. Cap it, and let the
-            # kernel pick it over the cycle when memory runs out.
+            # kernel pick it over the loops when memory runs out.
             MemoryMax = "5G";
             OOMScoreAdjust = 800;
           };

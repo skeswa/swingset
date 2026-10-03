@@ -10,11 +10,13 @@ uv run pytest -q
 uv run ruff check .
 uv run mypy
 uv run swingset doctor --state ./tmp/state
-uv run swingset cycle --dry-run --state ./tmp/state
+uv run swingset derive --state ./tmp/state
+uv run swingset release --dry-run --state ./tmp/state
 ```
 
-The test suite is offline. A dry cycle disables publication; it should not be
-used as a substitute for offline tests when you need to avoid source requests.
+The test suite is offline. A loop tick by hand fetches (acquire) or builds
+(release `--dry-run` disables publication); it is no substitute for offline
+tests when you need to avoid source requests.
 See [fetching rules](../reference/fetching.md) before any live-source work.
 
 The default test command runs the reviewed core; use it and the files you

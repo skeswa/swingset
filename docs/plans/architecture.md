@@ -10,7 +10,11 @@ is implemented offline and not deployed; its rehearsal found four defects
 Mac. Phase 4 is implemented offline, reviewed in three rounds and
 rehearsed on its final tree (closed 2026-10-03), not deployed; it goes out
 with phase 3, and its file stays about 32 GB, not 15 GB, until open
-decision 4. Phases 5 and 6 are not started.
+decision 4. Phase 5's two switches, 5a and 5b, are implemented offline in
+one change, reviewed in two rounds and rehearsed on their final tree
+(closed 2026-10-04), not deployed; they deploy as one switch after 2b's
+week, and the table target waits for open decision 2. Phase 6 is not
+started.
 Figures come from `docs/status.md`, the
 [stall investigation](../../journal/investigations/2026/build-failure-and-history-deadline-2026-09-24.md),
 the [derivation investigation](../../journal/investigations/2026/derivation-invalidation-2026-09-23.md)
@@ -29,6 +33,9 @@ These change earlier records and are not settled by adopting this plan:
 2. **Removing the `event_*` subsystem** (section 8, phase 5). Before any
    removal, a check must show that no published table or column is computed
    from the tables being removed. Removal waits for that check and the owner.
+   The check ran on 2026-10-03 (phase 5, "Removing the `event_*` subsystem"):
+   the observation layers feed nothing published; the enumeration core feeds
+   the published `source_event` coverage rows.
 3. **What happens first as the 64 GB cap nears** (section 9, phase 1
    capacity). The 0a receipt (2026-09-26 21:35 UTC) measured a 46.6 GB file
    growing about 5 GB a day, 63.6 GB of state without `checkpoints/`, and
@@ -126,8 +133,9 @@ timer tick; systemd `OnFailure` runs the watchdog, as `nix/module.nix` already
 does for the cycle. Within `derive`, the domain is a queue unit; within
 `release`, a partition. Operator pause scopes shrink to per-loop, per-host and
 per-source flags, which is what `state/controls.py` is used for in practice.
-Phase 2 keeps today's scopes; the loops stop with their timers, and
-loop-scoped pauses wait for phase 5, when the controls are simplified.
+Phase 2 keeps today's scopes and the loops stop with their timers. Phase 5
+did not build loop-scoped pauses: a loop's timer is its pause, and the
+`all`, host, source and kind scopes stay (section 8).
 
 Built in WP7: the tick frame (`loops/runtime.py`), `derive` and `maintain`, and
 their CLI commands; the cycle and derive share `schedule/offline.py`
@@ -170,7 +178,7 @@ until the worker measures a partitioned build under 2 GB beside derive.
 Built in WP11: `services.swingset.loops.enable` (default false) swaps the
 cycle unit for the five loop services and timers, each with its own timeout
 and memory cap; every unit's `uv sync` runs under `flock` (F11)
-([deployment: loops](../guides/deployment.md#switching-to-the-loops)). With
+([deployment: loops](../guides/deployment.md#the-loops)). With
 it on, the watchdog runs `--loops 1`: `[loop-quiet]`, `[loop-failing]` and
 `[plan-stale]` replace the cycle checks, and `[replay-loop]` reads derive
 ticks. `[wal-large]` (frames not yet reset, since the file never shrinks) and
@@ -321,7 +329,8 @@ stays: each loop tick closes its own dead runs, and a lease taken over
 finishes the dead attempt. A unit whose process died in its attempt (a kill,
 an OOM, a stop timeout) fails as `process_interrupted`, and one whose
 admission raised fails on its queue row alone, so both back off and
-quarantine like any failure. Folding the other tables in is phase 5.
+quarantine like any failure. Folding the other tables in (F14) is not in
+phase 5; section 8 lists it as still open.
 
 **Bounded writes by construction.** A generation is written in chunks of
 about 5,000 rows, each its own short transaction into content-addressed
@@ -489,21 +498,28 @@ investigation's judgment stands: the planner died of Python heap, not of SQLite.
 
 ## 8. Simplification
 
-Line counts are from the working copy. Removal follows the phases in
-section 9; nothing is deleted before its replacement runs.
+Line counts are from the working copy when the plan was adopted. Removal
+follows the phases in section 9; nothing is deleted before its replacement
+runs. The judgments were corrected at phase 5's close (2026-10-03): the last
+column says what phase 5 did and what still waits.
 
-| Subsystem                                              | Lines | Judgment                                                                                                                                                                                                                                                                                                                                                                                                                             |
-| ------------------------------------------------------ | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `schedule/event_*.py` and ~40 `event_*` tables         | 5,622 | Over-engineered. Pressure, progress, timing, blockers, accounting, retirement, capacity and turns are eight ways of observing scheduling from inside the scheduler, most gating acquisition on derived observations (`event_pressure_bootstrap`, `event_progress_refresh`). They caused the D-0201 overrun path. Replace with the queue's counters, one per-event progress view and `acquisition_plan`. Keep `event_turns` fairness. |
-| `state/requirement*.py`, `requirement_*` tables        | 911   | Duplicates the queue: a requirement is a pending unit with a reason. Fold into `work_queue.last_reason` and the quarantine report.                                                                                                                                                                                                                                                                                                   |
-| `state/controls.py`, `control_*`, `execution_*` tables | 1,028 | Keep the operator pause with scopes (host, source, loop) and the writer lock. Drop the admission ledger and `recover_admissions`; leases make them redundant.                                                                                                                                                                                                                                                                        |
-| `history/*`                                            | 4,592 | Keep the catalog, CDX intake and Wayback dispatch (the acquisition path that actually finds old sheets). Move year acceptance from an acquisition gate to a publication filter (unaccepted years build but are withheld). `event_sites.py` review and `origin_dispatch.py` become offline tools under `journal/tools/`; neither belongs in a 4-minute loop.                                                                          |
-| `admission/*`                                          | 4,433 | Split. The per-source contracts (`round_contract`, `stepright_contract`, `registry_contract`) that detect layout changes are valuable and stay with parsing. The release-time evidence re-verification (`page_evidence`, `parent_evidence`, `evidence_budget`, `enumeration_evidence`) is replaced by per-partition support checks that run once per artifact change (4.4), removing the load-dependent 30 s budget.                 |
-| `derivation_dependency_sets` member manifests          | —     | Replaced by read-set digests and a reverse index (4.2). The 235 MB proof and the shared 29k-member cohort sets go with it.                                                                                                                                                                                                                                                                                                           |
-| `run_cycle`                                            | 837   | Becomes five loop entry points of under 100 lines each; the phase-share allocator in `schedule/fair_policy.py` is unnecessary when loops have their own timers.                                                                                                                                                                                                                                                                      |
+| Subsystem                                              | Lines | Judgment                                                                                                                                                                                                                                                                                                                                                                                                                             | After phase 5                                                                                                                                                                                                                                                                                                  |
+| ------------------------------------------------------ | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `schedule/event_*.py` and ~40 `event_*` tables         | 5,622 | Over-engineered. Pressure, progress, timing, blockers, accounting, retirement, capacity and turns are eight ways of observing scheduling from inside the scheduler, most gating acquisition on derived observations (`event_pressure_bootstrap`, `event_progress_refresh`). They caused the D-0201 overrun path. Replace with the queue's counters, one per-event progress view and `acquisition_plan`. Keep `event_turns` fairness. | Not removed; waits for open decision 2. WP1's report: 28 modules (6,377 lines), 44 tables. E1 (33 observation tables) feeds nothing published; E2 (5 enumeration tables) feeds the published `source_event` coverage rows. Plan in phase 5, "Removing the `event_*` subsystem".                                |
+| `state/requirement*.py`, `requirement_*` tables        | 911   | Two things, not one. `work_attempt` requirements duplicated the queue. The requirement scan (`round_observations`, `source_event_mapping`, `source_id_checked`, `registry_event_association`, `first_point_reconsideration`, `archive_artifact`, and the restore of deleted findings from `finding_support`) is a data-quality inventory published in `review_queue`; nothing replaces it, and it stays.                             | Unit failures live in `work_attempts` and `work_queue`; the four history tables went in migration 37 (D-0237). The scan, `requirement_scan` and the restore stay.                                                                                                                                              |
+| `state/controls.py`, `control_*`, `execution_*` tables | 1,028 | Keep the operator pause with its scopes and the writer lock. Leases replace admissions only for leased units (parse, project and link: 95 % of the rows). Requests, fetches, CDX and stage operations, crosschecks, builds and publications have no lease and keep their admissions; publication admissions are what the fence triggers test, and a lost publication stays `uncertain` until its receipt is reconciled.              | Units write no admission (D-0238); migration 37 deleted 902,488 rows on the 09-29 copy. The ledger and `recover_admissions` stay, the latter as the exclusive-open safety of `migrate` and `restore`. Loop-scoped pauses are not built: a loop's timer is its pause; `all`, host, source and kind scopes stay. |
+| `history/*`                                            | 4,592 | Keep the catalog, CDX intake and Wayback dispatch (the acquisition path that actually finds old sheets). Year acceptance stays an acquisition input until open decision 1. `event_sites.py` review and the origin fallback leave the loops.                                                                                                                                                                                          | The event-site review and the origin candidates are offline tools in `journal/tools/collection/` (D-0236). `history/origin_dispatch.py` stays byte-identical: every parse scope names it, so deleting it waits for the next whole re-parse (E2).                                                               |
+| `admission/*`                                          | 4,433 | Split. The per-source contracts (`round_contract`, `stepright_contract`, `registry_contract`) that detect layout changes are valuable and stay with parsing. The release-time evidence re-verification (`page_evidence`, `parent_evidence`, `evidence_budget`, `enumeration_evidence`) would go with the `source_event` coverage it checks.                                                                                          | Unchanged. The evidence readers serve only the `event_*` layers and the `source_event` coverage build; they go with E2 (open decision 2).                                                                                                                                                                      |
+| `derivation_dependency_sets` member manifests          | —     | Replaced by read-set digests and a reverse index (4.2). The 235 MB proof and the shared 29k-member cohort sets go with it.                                                                                                                                                                                                                                                                                                           | Untouched by phase 5. The records of labels nothing reaches wait for open decision 4.                                                                                                                                                                                                                          |
+| `run_cycle`                                            | 837   | Replaced by five loop entry points; the phase-share allocator in `schedule/fair_policy.py` is unnecessary when loops have their own timers.                                                                                                                                                                                                                                                                                          | Removed in 5b (D-0239). The loop modules are 127 to 368 lines (`acquire`, `plan`, `release`, `derive`, `maintain`) over a 457-line tick frame, not under 100 each; the build and publish steps are `schedule/release_steps.py` (195 lines).                                                                    |
+| `pending_work`, `work_generations` (F14)               | —     | Fold into `work_queue`.                                                                                                                                                                                                                                                                                                                                                                                                              | Not in phase 5: the queue is still an overlay on them, and nothing replaces their reads yet.                                                                                                                                                                                                                   |
 
-Expected net: roughly 12,000 to 15,000 of 52,000 lines removed, about 50 of
-130 tables, and the core suite faster. What stays is the part that produces
+Expected net at adoption: roughly 12,000 to 15,000 of 52,000 lines removed,
+about 50 of 130 tables, and the core suite faster. Measured after phase 5's
+offline implementation: `src` went from 78,570 to 77,569 lines (cycle, history
+and requirement code out, two offline tools added under `journal/tools/`), a
+fresh database from 145 to 141 tables and 823 to 809 triggers. E1, E2 and the
+F14 fold would bring it to 101 tables. What stays is the part that produces
 the dataset: sources and parsers, projection, linking, per-partition build,
 publication, blob store, backup.
 
@@ -1509,7 +1525,8 @@ Twelve findings changed the phase as written:
   still say what needs doing; `work_queue` holds leases, clocks, waiting and
   quarantine, one row per leased or failing unit, deleted on success.
   Folding `pending_work`, `work_generations` and the requirement tables into
-  it is phase 5. This keeps one definition of unfinished work, shared by
+  it was planned for phase 5; phase 5 dropped only the requirement history
+  tables (D-0237), and the fold stays open (section 8). This keeps one definition of unfinished work, shared by
   the cycle and the loops, and a small migration (seeding reads the latest
   attempts of pending units only).
 - **F15, quarantine storms.** A linker bug could quarantine up to 2,933
@@ -1520,15 +1537,16 @@ Twelve findings changed the phase as written:
 
 Deferred, each with its phase:
 
-- Loop-scoped operator pauses: phase 5. Today's `all`, host, source and
+- Loop-scoped operator pauses: not built (phase 5 kept the timers as the
+  loop pause). Today's `all`, host, source and
   kind pauses still apply; a loop stops with its timer.
 - Narrowing the publication fence: built in phase 3 (WP10) for partitioned
   candidates. A closure-mode publication still pauses the other loops (F6),
   and a tick that finds one writes only its record file.
 - Derive's release-lag knob (section 5): built in phase 3 (WP10). The heavy
   lock still covers whole and closure builds.
-- Removing the cycle: phase 5. Until then both orchestrations share
-  `schedule/offline.py` and `schedule/acquisition.py`, and both are tested.
+- Removing the cycle: done offline in phase 5b (D-0239); the tree has only
+  the loops. Production keeps the cycle until 5b deploys.
 
 Built in WP10: `tests/test_loop_isolation.py` (core) is the offline
 acceptance of the first three checks. A subprocess (`tests/helpers/loop_fault.py`)
@@ -1697,7 +1715,10 @@ switches:
 - Every switch while the loops are on, the 2b to 2a rollback included,
   writes `operator-hold` and waits until no `swingset-*` unit is active.
 - Before 2b: the stop-marker timeout case below is fixed or accepted by the
-  owner.
+  owner. Accepted 2026-10-04 ("Accept now, fix in Phase 3/4"): the fix
+  (write the marker only for a stop the operator asked for) must be in the
+  phase 3 and 4 deploy tree, and until then the operator watches derive's
+  tick seconds against its 30-minute start timeout.
 - A short R3 and R4 on the final tree before 2a: done, by the reviewer and
   by the closing rehearsal.
 
@@ -3103,14 +3124,551 @@ Known limits after phase 4:
 
 **Phase 5: removals (about 2 weeks, one subsystem per switch).** The table
 in section 8, each behind its replacement's receipts, with tests deleted in
-the same change. It also removes the cycle, folds `pending_work`,
-`work_generations` and the requirement tables into `work_queue` (F14), and
-shrinks operator pauses to loop, host and source scopes (deferred from
-phase 2). The `event_*` dependency report also covers the writers
-that outlive the phase 0 stage switches: the migration 0019 pressure
-triggers and the `event_stage_operations` rows appended per fetched or
-parsed snapshot. _Accept when_ core suite time drops, the table count is under
-80, and the code map fits the five loops.
+the same change. It also removes the cycle. The `event_*` dependency report
+also covers the writers that outlive the phase 0 stage switches: the
+migration 0019 pressure triggers and the `event_stage_operations` rows
+appended per fetched or parsed snapshot. Not in phase 5 (section 8): the
+requirement scan, the non-unit admissions, `history/origin_dispatch.py`
+(until the next whole re-parse), the F14 fold of `pending_work` and
+`work_generations`, and loop-scoped pauses. _Accept when_ core suite time
+drops, the table count is under 80, and the code map fits the five loops.
+
+_Accept-when, measured at the offline close (2026-10-03, WP9):_
+
+- Code map: met. [Finding the code](../how-it-works/code-map.md) starts from
+  the five loops and `loops/runtime.py`; no cycle module, command or unit is
+  left. Docstrings in `schedule/pacing.py` and `schedule/__init__.py`
+  (which is in every parse scope) still say "cycle"; they change with the
+  next re-run that edits them. `loop_state.LOOPS` keeps `cycle` so old
+  records still read; nothing writes it.
+- Core suite time: not met. 1,955 tests in 524 s on the Mac (R9), against
+  1,938 in 469 s before phase 5 (WP1). The
+  cycle took few core tests with it. E1 would delete six whole core files
+  and four tests of a seventh (`test_event_*`), so the drop also waits for
+  open decision 2; [maintenance item 9](README.md#maintenance-queue) holds
+  the three-minute goal.
+- Table count: not met; waits for open decision 2 and the F14 fold. A
+  fresh schema-37 database has 141 tables (145 before; migration 37 drops
+  the four requirement history tables) and 809 triggers. E1 would leave
+  108, E2 103, the F14 fold 101 (WP1's simulation). Under 80 needs other
+  removals or a lower bar from the owner.
+- Lines: `src` 78,570 to 77,569 (−1,001); tests 83,366 to 83,850, from
+  WP7's loop-tick harness and the new migration and tool tests.
+
+_Phase 5 status: implemented offline, not deployed. 5a and 5b were
+implemented 2026-10-03 in one change, reviewed in two rounds with fixes
+2026-10-04, and rehearsed again on the final tree 2026-10-04
+([receipt](../../journal/evidence/runtime/architecture-phase5-rehearsal-2026-10/receipt.json)).
+Plan closed offline 2026-10-04: section 8 corrected, accept-when measured
+above, review conditions and carried-forward findings below; the
+`event_*` removal waits for open decision 2._ 5a is WP1 to WP5 below: the `event_*` dependency report, the
+event-site review and the origin fallback as offline tools, requirement
+history and unit admissions removed, and migration 37
+([schema history](../reference/schema-history.md)). Records:
+[D-0236](../../journal/decisions/0236-origin-candidates-and-event-site-review-are-offline-reports.md),
+[D-0237](../../journal/decisions/0237-unit-failures-leave-the-review-queue-and-requirement-history-goes.md)
+and
+[D-0238](../../journal/decisions/0238-leased-units-carry-no-admission.md).
+No parse or extract scope changed (scope guard after each package). 5b
+(WP7, WP8: the cycle, its phase-share allocator and the cycle units,
+[D-0239](../../journal/decisions/0239-the-loops-are-the-only-orchestration.md))
+sits in the same change, which was never split, so the two deploy as **one
+switch** and only after switch 2b's week ([deploy steps](#phase-5-deploy)).
+A scripted `jj split` into a 5a and a 5b change would let 5a ship under the
+cycle; until someone does that, the steps below hold.
+
+_Event-site review (phase 5 WP2, 2026-10-03, offline):_ no loop runs it. The
+`event_site_review` stage switch is gone (a stale `[stages]` key fails
+config loading). `history/event_sites.py` keeps the query and retained-hit
+helpers that intake and the query executor use; proposals moved to
+`journal/tools/collection/event_site_review.py`, which reads a state copy
+read-only, judges years on facts and prints JSON lines with draft
+`source_urls.csv` rows. Migration 37 (part 3, D-0236) closes the 230 open
+`history_event_site_review` findings, which lost their only writer and
+closer. Cost: `config.py` is in the project, link and
+build scopes, so this rides 5a's one re-run.
+
+_Origin fallback (phase 5 WP3, 2026-10-03, offline; D-0236):_ the offers
+pass, `plan_pages` and `dispatch_one` offer archive captures only and never
+call `origin_dispatch.candidate` or `schedule`. An exhausted page keeps
+`capture_gap_exhausted` and its archive gap finding; the fallback's extra
+"waits for its admitted parent" finding is gone (none open on the 09-29
+copy). `journal/tools/collection/origin_candidates.py` reports the old
+answer on a state copy (6,405 plan pages in 28 s on that copy, all
+`operator_pause`; 0 intents). `history/origin_dispatch.py` is byte-identical,
+and its request gate, cadence receipt, eligibility refusal and fairness
+skip still fail closed for any intent row. Cost: none (`history/backfill.py`
+and `loops/plan.py` are in no scope).
+
+_Requirement history (phase 5 WP4, 2026-10-03; D-0237):_ `finish_attempt`
+writes no finding, support row or requirement attempt; a unit's failure
+lives in `work_attempts` and `work_queue`. Migration 37 (part 1) closes the
+open `work_attempt` findings (852 on the 09-29 copy, which leave
+`review_queue`), sets their support inactive, and drops the four
+`requirement_*` history tables (142.6 MB there) and the two `findings`
+triggers that fed them. The scan, its cursor and the review-finding restore
+stay. `swingset cohort`, `--since` and summary cursors go. Cost:
+`state/attempts.py` is in the project, link and build scopes, and
+`state/requirements.py` and `state/requirement_scopes.py` leave them
+(now listed as excluded), so this rides 5a's one re-run.
+
+_Leased units (phase 5 WP5, 2026-10-03; D-0238):_ a parse, project or link
+unit writes no `execution_admissions` or `execution_dependencies` row and
+takes no `control.lock`: one `BEGIN IMMEDIATE` checks its pauses, captures
+and begins its attempt. Its lease and running attempt are its in-flight
+record; `controls.status()` and `pause --wait` list leased units as
+draining. The ledger keeps requests, fetches, CDX and stage operations,
+crosschecks, builds and publications, which have no lease, so section 8's
+"drop the ledger and `recover_admissions`" narrows to units:
+`recover_admissions` stays as the exclusive-open safety of migrate and
+restore. Maintain prunes settled rows after 30 days (publications, the
+newest admitted and newest completed build, and rows `scheduler_requests`
+names kept). Migration 37 (part 2) deletes the
+`work_` rows (902,488 on the 09-29 copy) and copies the kept scope rows into
+a new `execution_dependencies`. On a schema-36 clone of that copy, 36 to 37
+took 184 s on the Mac with a 353 MB WAL peak, kept 43,480 admissions and
+94,827 of 6,939,976 scope rows, freed 1.95 GB of pages, and left
+`foreign_key_check` empty. Cost: `state/controls.py` and
+`state/queue.py` are in the project, link and build scopes, so this rides
+5a's one re-run.
+
+_Phase 5 rehearsal (2026-10-04, Mac, no network, on the final tree;
+[receipt](../../journal/evidence/runtime/architecture-phase5-rehearsal-2026-10/receipt.json)):_
+clone A of the 09-29 copy migrated 32 to 36 on the parent tree (29794fb9,
+738 s), accepted, and had the copy's size-cap pause lifted. B, an APFS
+clone of A, ran this tree for R0 to R8; Bp, a fresh clone of A, migrated
+to 37 and ran R11 and R12. It replaces the 2026-10-03 receipt, which
+rehearsed the tree before the review fixes. `diag` was never written.
+
+| Step              | Result                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| R0, migrate       | 36 to 37 in 184 s, WAL peak 353 MB. Deleted 902,488 `work_` admissions and 6,845,149 scope rows (94,827 kept), and the four requirement tables (902,488 attempts, 121,282 transitions, 36,689 members, 1 cohort). Open `work_attempt` findings 852 to 0, event-site findings 230 to 0, the other requirement findings unchanged. Tables 146 to 142, triggers 823 to 809. 1.95 GB of free pages; `foreign_key_check` 0 (136 s). Phase 4 code refuses 37                                                                                                                                                                                                                                                                                                                                                                |
+| R1, accept        | 9 s. Changed: `config/sources.toml`, the build, link and nine project code scopes, `version/repository`; no parse or extract scope. Queued 2,934 link and 33,345 project units; parse units 36,264 on A and B alike (0 extra)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| R2, derive sample | 3,395 project and link units in one 600 s tick: 0 new generations, 3,395 equivalences, 0 failures, 0 `execution_admissions` or scope rows written, 0 pages of growth; peak RSS 1.54 GB; longest write 3.5 s                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| R3, pause         | A `wsdc_calendar` pause with `--wait` mid-tick: committed 2.5 s after the CLI started; the drain report read after the commit; the wait completed. Of 78 attempts begun after the commit, 0 were that source's; after resume 1,534 of 1,534 were; 0 ledger rows                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| R4, kill          | SIGKILL inside `project/dancer/11382`: the next tick closed the run, the attempt `interrupted`/`process_interrupted`, the unit `ready` with 1 failure. SIGKILL inside a request: the next acquire tick settled it `process_interrupted` (2 admissions recovered), 0 left active. `quick_check` ok (540 s)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| R5, release       | Partitioned build in a 310 s tick, peak RSS 2.85 GB; its `build` admission written and settled; the next tick deferred for the interval. The verdict refused (partitions of units not yet re-derived are withheld). With clone-only approval rows for those 10 decreases and the clock 25 h ahead, a second build passed and published to a fake hub: the `publication_narrow` admission was active during the upload; another process's identity-revision and release-manifest writes were refused and its queue and findings-revision writes went through. A SIGKILL during the upload left the admission active; the next release tick settled it `uncertain`, reconciled (`not_landed`), resubmitted and published (1 s), 0 left active or uncertain; the tick after it reconciled nothing and deferred the build |
+| R6, plan          | One tick each: A 55.6 s with 2,923 `origin_dispatch.candidate` calls, B 47.5 s with 0. Plan rows identical (6,426); open `history_archive_gap` findings identical (311 ids), 0 opened or closed                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| R7, tools         | On B: event-site review over 1,000 events, 0 proposals (no retained hits); origin candidates in 45 s, 2,923 pages, all `independent_origin_control`, 0 intents. On `diag` (its size-cap pause still set): the same 0 proposals; 6,405 pages, all `operator_pause`, in 28 s. Both signatures unchanged. The 230 findings are all `no_retained_hits` with `search_complete=false` and no `event_sites` query, so 0 proposals is right                                                                                                                                                                                                                                                                                                                                                                                   |
+| R8, maintain      | Prune with the clock 31 days ahead: 28,921 rows in 1.3 s (20,149 fetch, 7,339 acquisition, 1,193 project, 215 build, 24 request, 1 probe); kept 1 build (the newest admitted is also the newest completed), 20 publications and the 14,547 requests `scheduler_requests` names; 0 orphan scope rows, 0 foreign-key violations                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| R9, suites        | Core 1,955 passed in 524 s and full 3,484 passed in 1,472 s (both beside R11); ruff and mypy clean; scope guard 0 parse or extract scopes (project and link 178 files, build 189)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| R10, module       | The module evaluation tests pass (5): five loop services and timers, no cycle unit with no option set, each removed option fails with D-0239                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| R11, five loops   | Harness timers for 2 h on Bp: 24 acquire, 24 derive, 4 plan, 2 release, 1 maintain ticks, no overlap. One derive tick failed on a known parse failure (blocked 10 times on the copy); two derive ticks deferred while a release build held the heavy lock; 0 write-lock or control timeouts; longest write 6.8 s. Derive moved 30,469 units at 1.2 to 2.3 GB per tick (production's derive ticks measure 2.3 to 2.5 GB; the first rehearsal's flat 0.86 GB ran beside other suites, and no derive path changed since). Acquire issued 0 requests: the Mac's re-queued parses (I9) hold them by backpressure                                                                                                                                                                                                           |
+| R12, watchdog     | Six lines, each explained in the receipt: acquire idle and stale fetch (backpressure, I9), the copy's archive throttle, R11's refused candidate and withheld partitions, the 64.7 GB copy. No `[admission-stuck]`, `[lease-stuck]`, `[admissions-growth]`, write-deadline or cycle line                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+
+Review conditions. Phase 5 deletes data, so it takes the independent
+check: the diff, the rehearsal receipt and D-0236 to D-0239, with a written
+verdict. The check also confirms that the scope guard against the deployed
+phase 3 and 4 tree shows 0 parse or extract scopes changed, that
+`config/sources.toml` has no `event_site_review` key, and that the 852
+closed `work_attempt` and 230 closed `history_event_site_review` findings
+leaving the published `review_queue` are stated in D-0237 and D-0236.
+
+Review fixes (2026-10-04), each with a test that fails without it:
+
+- **Event-site findings.** The 230 open `history_event_site_review`
+  findings lost their writer and closer; migration 37 (part 3) closes them
+  (`test_migration_from_36_closes_unit_findings_and_drops_history`).
+- **Orphan admissions.** Every loop tick settles an active non-publication
+  admission whose run finished, or after six hours has no loop run; a
+  publication waits for release, as uncertain
+  (`test_every_loop_settles_admissions_whose_run_is_gone`, now with a narrow
+  publication that must stay active).
+- **Quota rows kept.** The prune keeps rows `scheduler_requests` or
+  `history_origin_requests` names, and now only the newest admitted and the
+  newest completed build
+  (`test_prune_drops_old_settled_rows_but_newest_builds_publications_and_quota_rows`);
+  its batch loop and bound are tested
+  (`test_maintain_prunes_in_batches_until_done_or_stopped`).
+- **`secure_delete` restored** after migration 37
+  (`test_the_migrating_connection_keeps_its_secure_delete_setting`).
+- **Pause scope outside the write lock.** A unit reads its scope before
+  `BEGIN IMMEDIATE` when a pause exists
+  (`test_a_units_pause_scope_is_read_before_its_write_lock`) and inside it
+  when a pause commits in between
+  (`test_a_pause_between_the_scope_probe_and_the_write_lock_is_matched_inside`).
+- **Dead leases.** An expired lease does not hold `pause --wait`; status
+  lists it under `dead_leases`
+  (`test_an_expired_lease_of_a_dead_run_does_not_block_the_wait`).
+- **Drain report after the commit.** `change_control` commits the pause,
+  then reads the drain in its own read transaction; a `for_unit` that
+  raises counts that lease against every pause with `scope_error`
+  (`test_a_pause_commits_before_its_drain_report_and_survives_a_failing_unit_scope`).
+- **Ledger growth trigger.** `[admissions-growth]` fires when maintain's
+  `admissions_rows` passes 200,000, maintenance item 15's trigger
+  (`test_an_admission_ledger_past_its_trigger_is_named`).
+- **Flaky wait test.** `test_wait_returns_once_a_leased_unit_finishes`
+  opened the state with no lock wait and met the subprocess's
+  `control.lock`; it now waits up to 30 s.
+- Smaller: CLI fetches book guards under `loop:command`, not `cycle`;
+  `plan_pages` lost its unused `run_id`; the scoped docstrings in
+  `config.py`, `state/db.py` and `state/queue.py` no longer say cycle;
+  D-0239 states the one-time `event_*` policy digest change.
+
+Review verdict (2026-10-04, two rounds, correctness and operations lenses):
+no blocker or major left. Every fix above is in the code with its test.
+Only publication kinds read the ledger as a guard, so dropping unit
+admissions weakens no eviction or fence guard, and nothing calls
+`admission()` with a unit kind. Only `scheduler_requests`,
+`history_origin_requests` and `execution_dependencies` hold a foreign key
+to `execution_admissions`; the prune skips rows the first two name. A fresh
+schema-37 database and a 36 database migrated to 37 have identical
+schemas; no trigger or view names a dropped table. `secure_delete` is
+restored after migration 37 (checked on SQLite 3.50.4: a 62 KB WAL with it
+off, 51.6 MB on). Gates on the final tree: full suite 3,484 passed in
+1,935 s; ruff, ruff format, mypy, oxfmt and nixfmt clean; scope guard 0;
+`history/origin_dispatch.py` byte-identical to 29794fb9's.
+
+Conditions the operator carries into the [deploy steps](#phase-5-deploy):
+
+- One switch (5a and 5b), only after switch 2b has run its 7-day week with
+  phase 2's acceptance met. Never from 2a: the module runs all five loop
+  units unconditionally.
+- Preflight stops on an `uncertain` or `active` publication admission
+  (reconcile it first) and takes a Mac byte copy at schema 36, verified by
+  sha256 and `quick_check`. After migrate, that copy is the only rollback.
+- Diff `nix/hosts/orb.nix` against the deployed generation and carry 2b's
+  settings over, minus `loops.enable`, `cycleBudget` and
+  `watchdogQuietSeconds`, which now fail evaluation.
+- Within the first hour, a 60-minute background wait shows new
+  `scheduler_requests` rows and stored pages (step 4) before the hold owner
+  signs off: the Mac's re-queued parses (I9) held every rehearsal request.
+- `dryRun` stays true until step 7 has run on a schema-37 clone; R5 ran it
+  on the final tree (fake hub), and D-0189 still holds publication.
+- The 24 h post-check expects build rows settled more than 30 days ago
+  pruned down to the newest admitted and the newest completed build; the
+  first maintain tick removes old build rows that way (R8 removed 215 of
+  216 with the clock 31 days ahead).
+- The written verdict of the independent check is on file before the hold.
+
+Carried forward (minor; none loses data or publishes a wrong dataset).
+[Maintenance item 16](README.md#maintenance-queue), in this order:
+
+- Drain liveness. `_leased_units` reads liveness from `lease_until` alone
+  (1,800 s, never renewed). A SIGKILLed unit's lease holds `pause --wait`
+  until a derive tick takes it over (up to 30 min with the derive timer
+  stopped); a live unit past 1,800 s shows under `dead_leases` and
+  `--wait` returns early. Derive's `TimeoutStartSec` equals the lease, so
+  the second cannot happen today, with no margin. Renew the lease per unit
+  or give the lease a margin over the timeout.
+- Post-commit status. `change_control` catches only `sqlite3.Error` and
+  `ValueError` from the `status()` after its commit, and the `--wait` poll
+  loop catches nothing: any other error exits non-zero with the pause held.
+- Orphan sweep race. It reads candidates outside its write transaction;
+  `settle()` raises on a row deleted in between. Unreachable now (prune
+  deletes only settled rows); a future `forget=True` caller would fail a
+  tick's recovery.
+- CDX admissions carry no `run_id` (`fetch/client.py`, `cdx_*`), so one a
+  killed acquire left active settles only after `ORPHAN_ADMISSION_AGE`
+  (6 h). Until then a pause matching web.archive.org shows it draining and
+  `[admission-stuck]` fires at 2 h.
+- Cycle-run admissions. An active admission whose run has `loop='cycle'`
+  and no `finished_at` is never settled by a loop; deploy step 3's migrate
+  (`recover_admissions` under the exclusive lock) clears every one once.
+- `[admission-stuck]` counts publication kinds too: a narrow upload past
+  2 h would raise a false alert once `dryRun=false`.
+- `reconcile_requirement` opens a re-created requirement at the current
+  time, not `finding_support`'s `opened_at` (D-0237 says why); no test pins
+  it.
+- `event_site_review.py` opens with `immutable=1` whenever the WAL is empty
+  and has no production-path refusal, unlike `origin_candidates.py`; on a
+  live state right after a checkpoint it could report from torn pages.
+- Site-review gaps on the card. Migration 37 closed the 230
+  `history_event_site_review` findings; all were `no_retained_hits` with
+  `search_complete=false` (no `event_sites` row in `archive_queries`), so
+  the card's site-review gap count now understates searches still
+  incomplete. R7's 0 proposals is correct for the same reason.
+- Request rows `scheduler_requests` names are never pruned (about 1,800 a
+  day) until maintenance item 15; `[admissions-growth]` is its trigger.
+- `test_wait_returns_once_a_leased_unit_finishes` waits 30 s for
+  `control.lock`; its timing still depends on machine load.
+- Code: `_leased_units` and `status` import `WorkUnit` inside the row loop;
+  `prune` writes the kept kinds into SQL with an f-string (safe: a constant
+  frozenset); `_referencing_tables` runs about 141 PRAGMAs per prune batch.
+
+_Cycle tests on the loops (phase 5 WP7, 2026-10-03, tests only):_ the
+tests that ran `run_cycle` as a harness run loop ticks instead, through
+`tests/helpers/loop_ticks.py`: a round is a plan, an acquire, a derive and a
+release tick with a mock transport and a fake clock, and a test's open
+state is lent to it. They assert the same facts, read from the record of
+the loop that now does the work; the `event_*` tests assert the same rows
+of their tables, from the plan tick. The crash harness
+(`tests/helpers/crash_cycle.py`) runs a round per process and waits out a
+dead unit's queue clock. Changed form, same fact: an archive fetch's
+deadline was the cycle's 50 s acquisition share and is the acquire tick's
+own 50 s budget; `guard_reasons` and `controls` are read from the state
+after the round. Four tests stay on the cycle and go with it in WP8, as
+cycle-only: the summary's keys (`test_loops.py`), a build's offline time
+before acquisition borrows (`test_cycle.py`, phase shares), the
+`controls_error` report key (`test_cycle_controls.py`; a derive-tick form
+of it is new beside it) and the pacing gate under the derivation year gate
+(`test_platform_backfill.py`; the loops judge years on facts, D-0218). No
+`src` change.
+
+_The cycle removed (phase 5 WP8, 2026-10-03, offline;
+[D-0239](../../journal/decisions/0239-the-loops-are-the-only-orchestration.md)):_
+`schedule/cycle.py` is deleted. What the release loop, derive's build-interval
+check and the CLI still used (`build`, `correct`, `build_and_publish`,
+`record_verdict`, `build_deferred_for_interval` and `_for_backlog`,
+`baseline_commit`) moved unchanged to `schedule/release_steps.py`, excluded
+from every recipe scope. `fair_policy.py` keeps `SchedulerConfig` without the
+three shares and their sum check, and `shares(host)`; a removed share key
+now fails config like any unknown key. The `cycle` command is gone. The
+locked commands keep `recover_admissions`, since their exclusive lock
+proves every active admission dead (D-0239 narrows D-0238's "until 5b").
+`nix/module.nix` makes the five loop units unconditional and turns
+`loops.enable`, `cycleBudget` and `watchdogQuietSeconds` into removed
+options whose assertion names D-0239; `nix/hosts/orb.nix` drops
+`cycleBudget`. The watchdog runs its loop checks only: `--loops`,
+`--timer-active` and `--quiet` are refused, `[cycles-failing]` and
+`[cycles-quiet]` are gone, `[replay-loop]` and `[report-failing]` read derive
+ticks, and a command's deadline firing is named by its command. Tests: the
+four cycle-only tests went; the module test asserts the five services and
+timers, no cycle unit, the wrapper's `--timers-inactive` and no failed
+assertion with no option set, and each removed option fails with D-0239.
+Scope guard: 0 parse or extract scopes changed; project scopes 178, link
+178, build 189 files (as before WP8); `recipe_scope.py`, `fair_policy.py`
+and `versions.py` change them, so 5b costs one project and link re-run
+unless it ships with 5a. Core suite: 1,945 tests in 506 s, against
+WP1's baseline of 1,938 in 469 s (WP7's port, 1,955 in 516 s); the time
+has not dropped yet.
+
+<a id="phase-5-deploy"></a>_Phase 5 deploy (operator; 5a and 5b as one switch, deletes data):_
+the change holds both, so this is the spec's combined switch.
+Preconditions: phases 3 and 4 deployed and post-checked (migration 37
+follows 36); switch 2b has run the loops 7 days with phase 2's acceptance
+met (no `bounded_write` alarm in a week, the stop-marker item settled);
+the independent check above; a Mac byte copy at schema 36 verified by
+sha256 and `quick_check`, with Mac room for it plus 20 GB (check `df`
+against production's `state.sqlite` size before the hold, and free space
+first if short: on 2026-10-04 the Mac had 85 GiB free against a 65 GB copy
+plus 20 GB). Never deploy
+this tree from 2a or before 2b's week: the module runs all five loop units
+unconditionally, so it would skip 2b's memory gate and week.
+
+1. Build from a workspace at the reviewed commit, never from the shared
+   checkout ([deployment](../guides/deployment.md#development-and-vm-setup));
+   its `src/` equals the reviewed change. Diff `nix/hosts/orb.nix` against
+   the deployed generation's file and carry over every setting 2b's week
+   added, except `loops.enable`, `cycleBudget` and `watchdogQuietSeconds`,
+   which fail the build with D-0239's message. Scope guard against the
+   deployed phase 3 and 4 tree: 0 parse or extract scopes changed.
+2. Hold (owner, reason, review date 24 h out): `operator-hold`, wait until
+   no `swingset-*` unit is active, checkpoint the WAL, byte-copy
+   `state.sqlite` to the Mac. Preflight receipt: sha256 and `quick_check` of
+   both; schema 36; size; `execution_admissions` by kind and state (stop if
+   a publication is `uncertain` and reconcile it first); `execution_dependencies`
+   rows; the four requirement tables' rows; open findings by owner and
+   kind; `history_origin_intents` rows; quota free; `systemctl list-timers
+'swingset-*'`.
+3. `nixos-rebuild switch`, then `sudo -u swingset swingset migrate
+--lock-timeout 3600` (36 to 37, 184 s on the Mac) and the checks in
+   [deployment: the phase 5 switch](../guides/deployment.md#the-phase-5-switch-5a-and-5b-together):
+   no `swingset-cycle` unit, the five loop timers and the watchdog timer
+   active, the summary's old `reports/requirements-*.json` cursors removed.
+   End the hold.
+4. Watch per `AGENTS.md`: the first derive tick accepts the code scopes
+   and `config/sources.toml`; every project and link unit re-runs and cuts
+   off. Confirm that pages are fetched, the offers pass runs and no `work_`
+   admission is written. R11 issued no request on the Mac (I9 backpressure),
+   so this is a deploy condition: within the first hour, new
+   `scheduler_requests` rows and stored pages, read by a 60-minute
+   background wait per `AGENTS.md`, before the hold owner signs off.
+5. Post-check receipt after 24 h: every loop ticks; size and free pages;
+   admissions per kind per day and `admissions_rows`; open `work_attempt`
+   and `history_event_site_review` findings 0; the requirement scan's
+   cursor moving; `swingset summary` ran at 08:00; the next dry-run
+   candidate's `review_queue` change by kind; the watchdog prints only
+   explained lines.
+6. Later, under its own hold when the quota allows `2.5 × bytes in use +
+12 GB`: `gc --reclaim` frees the deleted pages.
+
+7. Before `dryRun=false` (D-0189), a publication against a fake hub on a
+   schema-37 clone: done on the final tree (R5, 2026-10-04). The
+   `publication_narrow` admission was active during the upload and settled
+   after it, the narrow fence refused identity and release-manifest writes
+   while unit and queue writes went through, and a SIGKILL during the upload
+   left the admission for the next release tick, which settled it
+   `uncertain`, reconciled and published. The real hub's upload is not
+   rehearsed; `dryRun` stays under D-0189.
+
+Rollback: before migrate, the previous system generation. After it, only
+step 2's byte copy: phase 4 code refuses 37, so the previous generation
+alone does not start, and the cycle comes back only with that copy; work
+since the hold is lost and re-fetched
+([rolling back a migration](../guides/operation.md#rolling-back-a-migration)).
+The 5b-alone rollback (previous generation, no schema change) holds only if
+the change is split and 5a deploys first.
+
+Cost: a hold of about 1 to 1.5 hours, mostly the byte copy, its sha256 and
+`quick_check` (540 to 627 s on the Mac clones); migrate 184 s. Then one project and
+link re-run: 36,279 units at 4.1 to 5.7 units a second (the two R2 runs),
+about 1.8 to 2.5 hours on the Mac, slower on the worker (**unverified**),
+with 0 bytes of growth. Derive ticks peak at about 2.3 GB, under the
+unit's 5 GB cap.
+About 1.95 GB of free pages until reclaim. One independent check. After
+it: units write no ledger rows (902,488 had built up on the 09-29 copy) and
+wait on no control lock, and no cycle runs.
+
+**Removing the `event_*` subsystem: plan for the owner.** Ready to apply,
+not applied. It waits for open decision 2; nothing here runs before the owner
+decides. Dependency report (WP1, 2026-10-03, on 29794fb9 and the 09-29 diag
+copy): 28 modules (6,377 lines) and 44 tables. Six of the tables are not
+the subsystem's to remove: `scheduler_event_turns` and
+`scheduler_event_policies` (turn fairness, which section 8 keeps),
+`scheduler_requests` (fairness ranking and the watchdog's `issued` check),
+`scheduler_offline_service` (the derive loop's kind rotation),
+`scheduler_watch_state` (metadata retries) and `scheduler_parent_links`
+(a new parent link revives a gone child watch, `schedule/watches.py:88-110`).
+The other 38 split by what they feed:
+
+| Group                                                                                                                                        | Tables                                                                                                                                                                            | Rows, MB on diag | Feeds a published value?                                                                                                                                                                                                                                                                                                  |
+| -------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| E1, observation layers: pressure, progress, accounting, retirement, gaps, timing, blockers, capacity, stage operations, the turn request log | 27 `event_*` (all but `event_enumeration_inputs`), `scheduler_capacity_{policies,requests,service}`, `scheduler_event_requests`, `source_event_retirement_{proofs,receipts}` (33) | 79,622, 63.1     | No. No build, card, gate or `review_queue` path reads them; the subsystem writes no findings.                                                                                                                                                                                                                             |
+| E2, enumeration core                                                                                                                         | `source_event_enumerations`, `source_event_enumeration_members`, `source_event_member_watches`, `source_event_inventory`, `event_enumeration_inputs` (5)                          | 230,247, 376.1   | **Yes.** The published `coverage` rows with `scope_kind='source_event'` (468 in the published baseline) and their 13 page-count columns come from it on every build path (`build/event_coverage.py:248-538`, `build/event_local_coverage.py:106-177`, `build/assembly.py:1212-1344`, `build/service.py:330-387,644-679`). |
+
+So the check that open decision 2 asks for passes for E1 and fails for E2:
+E2 is a published change, a blocker the owner approves or refuses. Every
+other published table and column, the card and the gate measures are
+independent. The subsystem also writes outside its stages: the 20
+migration 0019 pressure triggers and 11 gap and progress triggers (0021,
+0024, 0025) fire on every watch, snapshot, admission decision and generation
+write, and with `event_pressure = false` nothing deletes the
+`event_pressure_dirty` rows they add (bounded by the watch count);
+`event_stage_operations` gets a row per fetched or accepted result and index
+page (`fetch/client.py:705`, `admission/select.py:238`); the acquisition
+pass's timing observer runs on every pass and writes `event_timing*` and an
+`event_timing_*` admission (336 on diag), with no switch.
+
+_Replacements._ Pressure's `event_index` gate is already open in production
+(D-0204); the plan loop's `acquisition_plan` reasons and the queue's
+pending-work backpressure (`fairness.backpressure`) cover it. Progress,
+accounting, retirement, gaps, timing, blockers and the eight reports
+(`event_report`, `event_inventory`, `event_service`, `event_history`,
+`event_readiness`, `event_publication`, `event_accounting_report`,
+`event_progress_report`) become one per-event progress view: a read-only
+query at report time, per `(source, source_ref)`, of listed pages (the
+enumeration core; after E2, watches with that `source_ref`), pages fetched,
+pages parsed and accepted, and units queued by reason. It has no table and
+replaces `doctor`'s `event_inventory` key (`cli.py:620-631,781`). Why a page
+waits is its `acquisition_plan` row and `guard_reasons`; stalls are the
+watchdog's progress checks. Listed-page capacity goes: `next_watch` calls
+`event_turns.choose` directly (`fairness.py:476`); host and class ranking is
+unchanged. `scheduler_requests` keeps each request's host, category and work
+key, so the turn request log goes. `event_stage_operations` goes: its
+readers were progress and timing.
+
+_Switch E1: observation layers (no published change)._
+
+- Code (all files recipe-excluded unless named): delete 19
+  `schedule/event_*.py` (`accounting`, `accounting_report`,
+  `blocker_history`, `capacity`, `gaps`, `history`, `inventory`, `pressure`,
+  `pressure_probe`, `pressure_refresh`, `progress`, `progress_report`,
+  `publication`, `readiness`, `report`, `retirement`, `service`, `timing`,
+  `timing_observer`) and `admission/event_retirement.py`. Remove their
+  callers: `Bookkeeping`'s pressure, blocker and refresh stages
+  (`schedule/acquisition.py:425-449,462-517`) and the observer
+  (`acquisition.py:141-147,192`); `loops/plan.py:70,71,81,83`; the pressure
+  and capacity calls in `schedule/fairness.py:24,213-221,270,274-277,385-397,419,476`;
+  the request-log insert in `schedule/event_turns.py:186`; the timing
+  checkpoints in `fetch/controls.py:45,166` and `history/backfill.py:438`
+  (and `OfferTiming`, whose only consumer was the observer); the
+  `acquired` call in `fetch/client.py:705`; the epoch bump in
+  `backup/checkpoint.py:344,355-356`; the cycle's stage lines if the cycle still
+  exists. Add the progress view as one excluded module. `config.py` drops
+  `StageConfig` and rejects a `[stages]` table by name;
+  `config/sources.toml` drops `[stages]`. `state/recipe_scope.py` updates
+  `EXCLUDED`. `admission/select.py` and `state/event_progress.py` stay
+  byte-identical: once the table is gone, `interpreted` returns early
+  (`state/event_progress.py:8-12`), so no parse scope changes. Kept:
+  `event_enumerations.py`, `event_turns.py`, `event_evidence.py`,
+  `event_request_kind.py`, `state/event_progress.py` and the four
+  `admission/` evidence readers the core uses.
+- Migration 38: drop the 31 triggers that write E1 tables from other tables
+  first (0019's 20 `pressure_*`, the 10 `gap_*`,
+  `event_progress_current_member_insert`), then the 33 tables children first
+  (`event_blocker_latest` before `event_blocker_observations` before its
+  policies and refreshes; `event_progress_receipts` before
+  `event_stage_operations`; `event_pressure_hosts` and `_watches` before
+  `_subjects`; `scheduler_capacity_requests` before `_policies`). Their 125
+  own triggers (99 fences, guards, six 0029 `history_timing_*`) and 60
+  indexes go with them. `foreign_key_check` empty; `install_publication_fences`
+  runs as today. Rehearsed on a fresh schema-36 file: `quick_check` ok.
+- Tests: delete the 24 files that test only E1 modules (`test_event_*` for
+  accounting, accounting restore, blocker history and cycle, capacity,
+  completion restore, gaps, history, inventory gaps and parity, pressure, pressure cycle and probe, progress, publication,
+  readiness, reporting, retirement, service, timing, timing rendering,
+  unsupported; `test_source_event_retirement.py`,
+  `test_historical_event_timing.py`); edit the ones that assert a removed
+  key or stage (`test_event_extension_acceptance.py` keeps only its
+  coverage cases until E2, `test_config.py`, `test_loops.py`, `test_cycle_controls.py`,
+  `test_history_cycle.py`, `test_h14_acceptance.py`, `test_event_turns.py`,
+  `test_history_event_rotation.py`, `test_history_shared_gates.py`,
+  `test_fetch_eligibility.py`, `test_archive_verification.py`,
+  `backup/test_checkpoint.py`, `test_recipe_scoping.py`, `test_cli.py`,
+  `test_control_time.py`, `tests/suite.toml`); add a migration test and a
+  progress-view test.
+- Published change: none. Proof before the go: a candidate built on two
+  clones of one state, parent tree against E1 tree, has equal per-table
+  content hashes.
+- Cost: no parse re-run; one project, link and build re-run
+  (`config.py`, `recipe_scope.py`, `state/db.py`). Ship it with 5b, which
+  pays that re-run anyway, if the owner decides by then. Deletes 63 MB of
+  rows, so it takes the "deletes data" tier (an independent check), with a
+  preflight receipt (row counts of the 33 tables, `[stages]` all false) and
+  a post-check (requests per hour, no stage error, candidate unchanged).
+- Rollback: before the migration, the previous system generation. After it,
+  the preflight byte copy only (older code refuses 38).
+- After: 112 tables at the schema-36 basis (108 with 5a), 667 triggers
+  (823 before).
+
+_Switch E2: enumeration core (published change; only if the owner approves
+dropping the `source_event` coverage rows)._
+
+- Code: delete `schedule/event_enumerations.py`, `event_evidence.py`,
+  `event_request_kind.py`, `state/event_progress.py`,
+  `admission/{event_declarations,enumeration_evidence,parent_evidence,page_evidence,unavailable_evidence,unsupported_evidence,evidence_budget}.py`,
+  `build/{event_coverage,event_local_coverage,event_page_evidence}.py`, and
+  `history/origin_dispatch.py` (WP3 left it byte-identical for this
+  re-parse). Edit `admission/select.py:238-253`, the `managed()` callers in
+  `schedule/parse.py:228-232` and `state/observations.py:148-150`, the event-coverage calls
+  in `build/assembly.py`, `service.py`, `closure.py`,
+  `closure_validation.py`, `closure_support.py` and `schema.py` (13 coverage
+  columns), the `event` rule in `state/body_packs.py:394-450` and its caller
+  `state/storage.py:1558`, `Bookkeeping.enumerations` and
+  `loops/plan.py:69`. Turn owners come from `watches` (`["event", source,
+source_ref]`, else the watch) in `schedule/event_turns.py:46-71`.
+  Parse-hint recovery (`state/parse_recovery.py`) drops its declared-watch
+  filter and covers every watch; unedited, it would return
+  `supported=false` once `source_event_member_watches` is gone (:350).
+- Migration 39: no cross-table trigger is left after E1. Drop
+  `event_enumeration_inputs`, `source_event_inventory`,
+  `source_event_member_watches`, `source_event_enumeration_members`,
+  `source_event_enumerations` in that order; 35 triggers (15 fences, 12
+  `history_timing_*`, 8 append-only guards) and 13 indexes go with them.
+- Tests: delete `test_event_enumerations.py`,
+  `test_event_fixture_inventory.py`, `test_event_extension_acceptance.py`, `test_event_completion_cohort.py`,
+  `build/test_event_{coverage,local_coverage,page_evidence}.py`,
+  `build/test_{unavailable,unsupported}_coverage.py`; edit
+  `test_event_turns.py`, `test_body_packs.py`, `test_parse_hint_recovery.py`,
+  `test_admission.py`, `test_derivation_equivalences.py`.
+- Published change (the owner's approval, recorded): `coverage` loses the
+  `source_event` rows and the 13 columns; the next changelog lists their
+  removal once; closure-mode manifests lose `release_policy.closure.event_coverage`.
+  Card and gate measures are unchanged. `docs/reference/data-model.md`
+  drops the source-event coverage section.
+- Cost: one full re-parse (`admission/select.py`, `schedule/parse.py`,
+  `state/observations.py`, `history/origin_dispatch.py`; 33,900 snapshots,
+  4 to 9 h CPU, cut off) and the project, link and build re-run in the same
+  switch. Deletes 376 MB of rows: the "deletes data" tier.
+- Rollback: as E1 (older code refuses 39).
+- After: 107 tables at the schema-36 basis (103 with 5a), 632 triggers.
+
+If the owner refuses E2, the subsystem ends at E1: the five core tables,
+`event_enumerations.py`, `event_turns.py` and the evidence readers stay,
+and the published rows are unchanged. Either way the table count stays above
+80 (101 after E1, E2 and the F14 fold), so phase 5's table target needs
+other removals or a lower bar from the owner.
 
 **Phase 6, triggered, not scheduled.** PostgreSQL per the triggers in 6.4.
 

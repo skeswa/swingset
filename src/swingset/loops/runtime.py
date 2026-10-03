@@ -146,28 +146,49 @@ def peak_rss_bytes() -> int | None:
     return int(peak) if sys.platform == "darwin" else int(peak) * 1024
 
 
-def _settle_dead_admissions(database: Database, loop: str, *, now: datetime) -> int:
-    """Settle the active admissions of this loop's open runs, which are dead.
+#: An active admission with no live run to own it (`run_id` NULL, or a run
+#: that is missing or is no loop's) settles once it is this old. A loop run
+#: that is still open belongs to its own loop's recovery.
+ORPHAN_ADMISSION_AGE = timedelta(hours=6)
 
-    This process holds the loop's lock, so no run of the loop is alive. The
-    admission tables are control tables, never fenced, so this runs even
-    while a publication is in flight. A publication admission carries no
-    run; only release publishes among the loops, so release also settles an
-    active one as uncertain, as `recover_admissions` does.
+
+def _settle_dead_admissions(database: Database, loop: str, *, now: datetime) -> int:
+    """Settle the active admissions no live process owns.
+
+    This process holds the loop's lock, so no run of the loop is alive: its
+    open runs' active admissions are dead. Every loop also settles an active
+    non-publication admission whose run has finished (its own settlement
+    failed, for example under a write deadline) and, after
+    `ORPHAN_ADMISSION_AGE`, one whose run is NULL, missing or not a loop's
+    (a dead CLI command, or the last cycle). Only requests, fetches and
+    operations hold admissions; a unit's in-flight record is its lease
+    (D-0238). The admission tables are control tables, never fenced, so this
+    runs even while a publication is in flight. A publication admission
+    carries no run; only release publishes among the loops, so release also
+    settles an active one as uncertain, as `recover_admissions` does.
     """
     from swingset.state.controls import settle
 
     conn = database.connection
     rows = conn.execute(
-        "SELECT a.action_id,a.action_kind,w.outcome AS work_outcome "
-        "FROM execution_admissions a JOIN runs r ON r.run_id=a.run_id "
-        "LEFT JOIN work_attempts w ON w.attempt_id=a.work_attempt_id "
+        "SELECT a.action_id,a.action_kind FROM execution_admissions a "
+        "JOIN runs r ON r.run_id=a.run_id "
         "WHERE r.loop=? AND r.finished_at IS NULL AND a.state='active'",
         (loop,),
     ).fetchall()
+    orphan_before = now - ORPHAN_ADMISSION_AGE
+    for row in conn.execute(
+        "SELECT a.action_id,a.action_kind,a.admitted_at,a.run_id,r.run_id AS known,"
+        "r.loop,r.finished_at FROM execution_admissions a LEFT JOIN runs r ON r.run_id=a.run_id "
+        f"WHERE a.state='active' AND a.action_kind NOT IN {kinds_sql(PUBLICATION_KINDS)} "
+        "AND NOT (r.loop IS NOT NULL AND r.finished_at IS NULL)"
+    ):
+        finished = row["known"] is not None and row["finished_at"] is not None
+        if finished or datetime.fromisoformat(row["admitted_at"]) < orphan_before:
+            rows.append(row)
     if loop == "release":
         rows += conn.execute(
-            "SELECT action_id,action_kind,NULL AS work_outcome FROM execution_admissions "
+            "SELECT action_id,action_kind FROM execution_admissions "
             f"WHERE state='active' AND action_kind IN {kinds_sql(PUBLICATION_KINDS)}"
         ).fetchall()
     if not rows:
@@ -175,16 +196,11 @@ def _settle_dead_admissions(database: Database, loop: str, *, now: datetime) -> 
     with database.transaction() as write:
         for row in rows:
             publication = row["action_kind"] in PUBLICATION_KINDS
-            outcome = (
-                row["work_outcome"]
-                if row["work_outcome"] not in {None, "running"}
-                else "process_interrupted"
-            )
             settle(
                 write,
                 row["action_id"],
                 now=now,
-                outcome="receipt_reconciliation_required" if publication else outcome,
+                outcome="receipt_reconciliation_required" if publication else "process_interrupted",
                 uncertain=publication,
             )
     return len(rows)
@@ -295,7 +311,6 @@ def _finish(
         stopped=tick.stop(),
         skipped=tick.skipped,
         duration_seconds=(finished - tick.started).total_seconds(),
-        control_timeouts=tick.summary.get("control_timeouts", 0),
         peak_rss_bytes=peak_rss_bytes(),
         finished_at=finished.isoformat(),
     )

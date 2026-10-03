@@ -10,11 +10,11 @@ from swingset.build import generations, service
 from swingset.build.builder import BuildError
 from swingset.clock import FakeClock
 from swingset.publish.safety import PublicationHeldError, _validate_candidate
-from swingset.schedule.cycle import versions
 from swingset.state import derivations
 from swingset.state.db import open_database
 from swingset.state.inputs import accept, capture
 from swingset.state.work import WorkUnit
+from swingset.versions import versions
 
 
 def build_context(db, result):

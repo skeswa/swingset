@@ -1,0 +1,783 @@
+{
+ "receipt": "architecture phase 5 rehearsal (5a and 5b, one change)",
+ "plan": "docs/plans/architecture.md section 9, phase 5",
+ "host": "Mac, no network (socket guard, MockTransport 304/404, proxies to 127.0.0.1:9, HF_TOKEN unset)",
+ "copy": "2026-09-29 production copy (diag, schema 32, 64.7 GB), never written",
+ "clones": {
+  "A": "parent tree 29794fb9 (phase 4): migrate 32->36, accept, size-cap pause lifted",
+  "B": "APFS clone of A, this tree: R0 to R8",
+  "Bp": "fresh APFS clone of A after B was deleted, this tree: migrate 36->37, accept, R11, R12"
+ },
+ "tree_src_sha256": "7367013427dbb09d9a55eca534fc8c6d1b82e1793f4ecb4ac413409f60b31100",
+ "parent": "29794fb94ad7",
+ "A_setup": {
+  "migrate_32_36_seconds": 737.9,
+  "fk_violations": 0,
+  "accept_seconds": 14.9,
+  "pending_after_accept": {
+   "link/event": 2934,
+   "parse/snapshot": 36264,
+   "project/calendar": 2,
+   "project/dancer": 29117,
+   "project/event": 2934,
+   "project/inventory": 1,
+   "project/mapping": 3,
+   "project/resolution": 413,
+   "project/source_event": 470,
+   "project/source_index": 384,
+   "project/year": 21
+  }
+ },
+ "R0_migrate": {
+  "schema_after": 37,
+  "seconds": 184.1,
+  "wal_peak_bytes": 353203512,
+  "deleted": {
+   "admissions": 902488,
+   "work_admissions": 902488,
+   "dependencies": 6845149,
+   "requirement_tables_rows": {
+    "requirement_attempts": 902488,
+    "requirement_cohort_members": 36689,
+    "requirement_cohorts": 1,
+    "requirement_transitions": 121282
+   }
+  },
+  "admissions_before_by_kind": {
+   "acceptance_probe": 1,
+   "acquisition": 7339,
+   "build": 214,
+   "fetch": 20147,
+   "project": 1191,
+   "publication": 18,
+   "request": 14570,
+   "work_link": 21836,
+   "work_parse": 268606,
+   "work_project": 612046
+  },
+  "admissions_after_by_kind": {
+   "acceptance_probe": 1,
+   "acquisition": 7339,
+   "build": 214,
+   "fetch": 20147,
+   "project": 1191,
+   "publication": 18,
+   "request": 14570
+  },
+  "dependencies_before_after": [
+   6939976,
+   94827
+  ],
+  "changed_open_findings": {
+   "event_site_backfill/history_event_site_review": [
+    230,
+    0
+   ],
+   "requirement/work_attempt": [
+    852,
+    0
+   ]
+  },
+  "requirement_findings_open": {
+   "requirement/first_point_reconsideration": [
+    2673,
+    2673
+   ],
+   "requirement/round_observations": [
+    913,
+    913
+   ],
+   "requirement/source_event_mapping": [
+    64,
+    64
+   ],
+   "requirement/source_id_checked": [
+    6,
+    6
+   ],
+   "requirement/work_attempt": [
+    852,
+    0
+   ]
+  },
+  "findings_revision": [
+   20767,
+   20768
+  ],
+  "tables": [
+   146,
+   142
+  ],
+  "triggers": [
+   823,
+   809
+  ],
+  "freed_bytes": 1946140672,
+  "foreign_key_violations": 0,
+  "foreign_key_check_seconds": 136.3,
+  "file_bytes_after": 64781844480,
+  "phase4_code_on_37": {
+   "refused": true,
+   "error": "RuntimeError: database schema 37 is newer than supported 36"
+  }
+ },
+ "R1_accept": {
+  "seconds": 8.7,
+  "changed": [
+   "config/sources.toml",
+   "recipe/code/build",
+   "recipe/code/link",
+   "recipe/code/project/calendar",
+   "recipe/code/project/dancer",
+   "recipe/code/project/event",
+   "recipe/code/project/inventory",
+   "recipe/code/project/mapping",
+   "recipe/code/project/resolution",
+   "recipe/code/project/source_event",
+   "recipe/code/project/source_index",
+   "recipe/code/project/year",
+   "version/repository"
+  ],
+  "enqueued": {
+   "link/event": 2934,
+   "project/calendar": 2,
+   "project/dancer": 29117,
+   "project/event": 2934,
+   "project/inventory": 1,
+   "project/mapping": 3,
+   "project/resolution": 413,
+   "project/source_event": 470,
+   "project/source_index": 384,
+   "project/year": 21
+  },
+  "pending_A": {
+   "link/event": 2934,
+   "parse/snapshot": 36264,
+   "project/calendar": 2,
+   "project/dancer": 29117,
+   "project/event": 2934,
+   "project/inventory": 1,
+   "project/mapping": 3,
+   "project/resolution": 413,
+   "project/source_event": 470,
+   "project/source_index": 384,
+   "project/year": 21
+  },
+  "pending_B": {
+   "link/event": 2934,
+   "parse/snapshot": 36264,
+   "project/calendar": 2,
+   "project/dancer": 29117,
+   "project/event": 2934,
+   "project/inventory": 1,
+   "project/mapping": 3,
+   "project/resolution": 413,
+   "project/source_event": 470,
+   "project/source_index": 384,
+   "project/year": 21
+  },
+  "extra_parse_units_vs_A": 0
+ },
+ "R2_derive": {
+  "completed": 3395,
+  "ticks": 1,
+  "new_generations": {},
+  "new_equivalences": 3395,
+  "admissions_written": 0,
+  "dependencies_written": 0,
+  "growth_bytes": 0,
+  "peak_rss_bytes": 1535262720,
+  "wall_seconds": 601.9,
+  "unit_failures": 0,
+  "failed_ticks": 0,
+  "tick_seconds_completed": [
+   [
+    600.0,
+    3395
+   ]
+  ],
+  "longest_writes": [
+   [
+    "process",
+    3.466
+   ],
+   [
+    "process",
+    2.055
+   ],
+   [
+    "accept",
+    1.817
+   ]
+  ]
+ },
+ "R3_pause": {
+  "leased_unit": {
+   "stage": "link",
+   "unit_kind": "event",
+   "unit_id": "2017-07-sacramento-all-swing",
+   "lease_owner": "derive:run_20261004T040323Z",
+   "lease_until": "2026-10-04T04:33:32.254826Z",
+   "running": 1
+  },
+  "paused_source": "wsdc_calendar",
+  "commit_seen_seconds_after_start": 2.45,
+  "after_pause": {
+   "pause_created_at": "2026-10-04T04:03:34.901906+00:00",
+   "attempts_begun": 78,
+   "attempts_of_paused_source": 0,
+   "sample": []
+  },
+  "after_resume": {
+   "attempts_begun": 1534,
+   "attempts_of_source": 1534
+  },
+  "admissions_written": 0,
+  "pause": {
+   "exit": 0,
+   "seconds": 2.5,
+   "wait_completed": true,
+   "state": "paused",
+   "persisted": true,
+   "stderr": "",
+   "first_view": {
+    "seconds_after_seen": 0.01,
+    "state": "paused",
+    "draining": [],
+    "draining_count": 0,
+    "stuck": false,
+    "dead_leases": 0
+   },
+   "final_draining": 0,
+   "final_dead_leases": 0,
+   "receipt_keys": [
+    "action",
+    "active_attempts",
+    "changed",
+    "control_revision",
+    "dead_leases",
+    "draining_attempts",
+    "expired_pauses",
+    "pause_id",
+    "pauses",
+    "persisted",
+    "snapshot_at",
+    "state",
+    "status",
+    "stuck_drain",
+    "supported",
+    "wait_completed"
+   ]
+  },
+  "tick_completed": 86,
+  "tick_after_resume_completed": 1534
+ },
+ "R4_kill": {
+  "derive_killed": {
+   "attempt_id": 907506,
+   "stage": "project",
+   "unit_kind": "dancer",
+   "unit_id": "11382",
+   "run_id": "run_20261004T041010Z"
+  },
+  "derive_after": {
+   "attempt": {
+    "outcome": "interrupted",
+    "reason_code": "process_interrupted"
+   },
+   "queue": {
+    "state": "ready",
+    "attempts": 1,
+    "error_class": "process_interrupted",
+    "lease_owner": null
+   },
+   "dead_run_finished": 1
+  },
+  "derive_next_tick": {
+   "completed": 682,
+   "failed": false,
+   "unit_failures": 0,
+   "seconds": 120.1
+  },
+  "acquire_killed": {
+   "action_id": "request_f0d43a144ec941d3ad4549c8d186d01c",
+   "action_kind": "request",
+   "run_id": "run_20261004T041217Z",
+   "host": "scores.worlddanceregistry.com"
+  },
+  "acquire_next_tick": {
+   "failed": false,
+   "error": null,
+   "progress": 0,
+   "recovered": {
+    "admissions": 2,
+    "runs": 1,
+    "completed_from_record": 0,
+    "attempts": 0,
+    "leases": 0
+   },
+   "skipped": null,
+   "control_timeouts": 0
+  },
+  "acquire_after": {
+   "state": "settled",
+   "outcome": "process_interrupted"
+  },
+  "active_admissions_after": 0,
+  "quick_check": [
+   "ok"
+  ],
+  "quick_check_seconds": 539.8,
+  "harness_note": "the acquire child ignores backpressure (the Mac's parse backlog holds every request, I9) so that a request is in flight"
+ },
+ "R5_release": {
+  "seconds": 310.2,
+  "build_attempted": true,
+  "heavy_lock": true,
+  "peak_rss_bytes": 2848653312,
+  "verdict": "refused",
+  "verdict_reasons": [
+   "decrease:events 2105->1247",
+   "decrease:contests 2005->0",
+   "decrease:rounds 2934->0",
+   "decrease:entries 58558->0",
+   "decrease:judges 2818->0",
+   "decrease:callback_marks 288502->0",
+   "decrease:callbacks 59064->0",
+   "decrease:final_marks 83355->0",
+   "decrease:placements 14115->0",
+   "decrease:events_with_placements 107->0"
+  ],
+  "admissions_written": [
+   {
+    "action_id": "build_73c4e0ab19a1481b8afa69e073e37d13",
+    "action_kind": "build",
+    "state": "settled",
+    "outcome": "completed",
+    "candidate_id": null
+   }
+  ],
+  "hub_calls": 0,
+  "next_tick": {
+   "failed": false,
+   "build_deferred": "interval",
+   "build_attempted": null,
+   "skipped": null
+  }
+ },
+ "R5_publication": {
+  "approval_rows": {
+   "rows": 10,
+   "measures": [
+    "events",
+    "contests",
+    "rounds",
+    "entries",
+    "judges",
+    "callback_marks",
+    "callbacks",
+    "final_marks",
+    "placements",
+    "events_with_placements"
+   ]
+  },
+  "accept_changed": [
+   "overrides/release_decreases.csv"
+  ],
+  "kill": {
+   "seconds_to_commit": 241.3,
+   "active_during_commit": [
+    {
+     "action_id": "publication_e0af90599fe74936b2b755d894e0ba6a",
+     "action_kind": "publication_narrow",
+     "state": "active",
+     "candidate_id": "cand_ddb6d4414fe04666"
+    }
+   ],
+   "fence_from_other_process": {
+    "active": [
+     [
+      "publication_narrow",
+      "active"
+     ]
+    ],
+    "narrow_fenced_revision": "refused: active publication fences semantic writes",
+    "narrow_fenced_manifest": "refused: active publication fences semantic writes",
+    "unfenced_revision": "allowed (1 rows)",
+    "unfenced_queue": "allowed (1 rows)"
+   },
+   "child_exited_early": null,
+   "admissions_after_kill": [
+    {
+     "action_id": "publication_e0af90599fe74936b2b755d894e0ba6a",
+     "action_kind": "publication_narrow",
+     "state": "active",
+     "outcome": null,
+     "candidate_id": "cand_ddb6d4414fe04666",
+     "admitted_at": "2026-10-04T04:30:43.676768+00:00",
+     "settled_at": null
+    },
+    {
+     "action_id": "build_d0c5d074b6c94bfdbf81bd1440b8f3bf",
+     "action_kind": "build",
+     "state": "settled",
+     "outcome": "completed",
+     "candidate_id": null,
+     "admitted_at": "2026-10-05T05:26:59.359071+00:00",
+     "settled_at": "2026-10-05T05:30:43.605488+00:00"
+    }
+   ],
+   "publishing_markers": [
+    "cand_461d99b4f0dd4993",
+    "cand_b900a4c3f9ba4215",
+    "cand_ddb6d4414fe04666"
+   ]
+  },
+  "next_tick": {
+   "failed": false,
+   "error": null,
+   "skipped": null,
+   "build_attempted": null,
+   "build_deferred": "interval",
+   "heavy_lock": null,
+   "publish_commit": "commit-1",
+   "build_error": null,
+   "candidate_id": null,
+   "publication": null,
+   "reconciliation": {
+    "state": "published",
+    "candidate_id": "cand_ddb6d4414fe04666",
+    "commit": "commit-1",
+    "reason": null
+   },
+   "recovered": {
+    "admissions": 1,
+    "runs": 1,
+    "completed_from_record": 0,
+    "attempts": 0,
+    "leases": 0
+   },
+   "peak_rss_bytes": 401457152,
+   "duration_seconds": 1.056417,
+   "stages": [],
+   "verdict": {
+    "state": null,
+    "reasons": null,
+    "overrides_used": null
+   },
+   "seconds": 1.2
+  },
+  "hub": {
+   "calls": 1,
+   "head": "commit-1",
+   "observed": [
+    {
+     "parent": "138352ef5e9ec25e12b60dc6acb85db808c5e77f",
+     "deletions": 10,
+     "active": [
+      [
+       "publication_narrow",
+       "active"
+      ]
+     ],
+     "narrow_fenced_revision": "refused: active publication fences semantic writes",
+     "narrow_fenced_manifest": "refused: active publication fences semantic writes",
+     "unfenced_revision": "allowed (1 rows)",
+     "unfenced_queue": "allowed (1 rows)"
+    }
+   ]
+  },
+  "admissions": [
+   {
+    "action_id": "build_73c4e0ab19a1481b8afa69e073e37d13",
+    "action_kind": "build",
+    "state": "settled",
+    "outcome": "completed",
+    "candidate_id": null,
+    "admitted_at": "2026-10-04T04:21:50.368860+00:00",
+    "settled_at": "2026-10-04T04:26:38.943008+00:00"
+   },
+   {
+    "action_id": "publication_e0af90599fe74936b2b755d894e0ba6a",
+    "action_kind": "publication_narrow",
+    "state": "settled",
+    "outcome": "not_landed",
+    "candidate_id": "cand_ddb6d4414fe04666",
+    "admitted_at": "2026-10-04T04:30:43.676768+00:00",
+    "settled_at": "2026-10-04T04:30:45.639607+00:00"
+   },
+   {
+    "action_id": "publication_167a4dd56a24421ab423f5600e96e2bf",
+    "action_kind": "publication_narrow",
+    "state": "settled",
+    "outcome": "published",
+    "candidate_id": "cand_ddb6d4414fe04666",
+    "admitted_at": "2026-10-04T04:30:45.644972+00:00",
+    "settled_at": "2026-10-04T04:30:46.048905+00:00"
+   },
+   {
+    "action_id": "build_d0c5d074b6c94bfdbf81bd1440b8f3bf",
+    "action_kind": "build",
+    "state": "settled",
+    "outcome": "completed",
+    "candidate_id": null,
+    "admitted_at": "2026-10-05T05:26:59.359071+00:00",
+    "settled_at": "2026-10-05T05:30:43.605488+00:00"
+   }
+  ],
+  "uncertain_or_active_after": 0,
+  "baseline": [
+   "138352ef5e9ec25e12b60dc6acb85db808c5e77f",
+   "commit-1"
+  ],
+  "tick_after": {
+   "failed": false,
+   "build_deferred": "interval",
+   "build_attempted": null,
+   "reconciliation": {
+    "state": "none",
+    "candidate_id": null,
+    "commit": null,
+    "reason": null
+   },
+   "publication": null,
+   "seconds": 0.1
+  },
+  "note": "clone-only approval rows in overrides/release_decreases.csv let the gate pass; clock moved 25 h for the build interval"
+ },
+ "R6_plan": {
+  "A": {
+   "seconds": 55.6,
+   "candidate_calls": 2923,
+   "plan_rows": {
+    "page/capture_gap_exhausted": 2923,
+    "page/history_year_unaccepted": 1799,
+    "page/parent_document_pending": 1235,
+    "page/waiting": 79,
+    "page/watch_cooldown": 369,
+    "year/acceptance_digest_changed": 1,
+    "year/eligible": 16,
+    "year/year_unaccepted": 4
+   },
+   "gaps_open": 311
+  },
+  "B": {
+   "seconds": 47.5,
+   "candidate_calls": 0,
+   "plan_rows": {
+    "page/capture_gap_exhausted": 2923,
+    "page/history_year_unaccepted": 1799,
+    "page/parent_document_pending": 1235,
+    "page/waiting": 79,
+    "page/watch_cooldown": 369,
+    "year/acceptance_digest_changed": 1,
+    "year/eligible": 16,
+    "year/year_unaccepted": 4
+   },
+   "gaps_open": 311
+  },
+  "history_archive_gap_ids_only_A": 0,
+  "history_archive_gap_ids_only_B": 0,
+  "gaps_by_summary": {
+   "Advertised platform page has no retained archive capture": 311
+  }
+ },
+ "R7_tools": {
+  "B": {
+   "event_site_lines": 1000,
+   "event_site_by_reason": {
+    "no_retained_hits": 1000
+   },
+   "origin": {
+    "fallback_pages": 2923,
+    "intents": [],
+    "plan_pages": 6405,
+    "reasons": {
+     "independent_origin_control": 2923
+    },
+    "source": null
+   },
+   "signature_unchanged": true
+  },
+  "diag": {
+   "event_site_lines": 1000,
+   "event_site_by_reason": {
+    "no_retained_hits": 1000
+   },
+   "origin": {
+    "fallback_pages": 6405,
+    "intents": [],
+    "plan_pages": 6405,
+    "reasons": {
+     "operator_pause": 6405
+    },
+    "source": null
+   },
+   "signature_unchanged": true
+  },
+  "open_event_site_findings_before_37": 230
+ },
+ "R8_prune": {
+  "pruned": 28921,
+  "seconds": 1.3,
+  "removed": {
+   "acceptance_probe/settled": 1,
+   "acquisition/settled": 7339,
+   "build/settled": 215,
+   "fetch/settled": 20149,
+   "project/settled": 1193,
+   "request/settled": 24
+  },
+  "after": {
+   "build/settled": 1,
+   "publication/settled": 18,
+   "publication_narrow/settled": 2,
+   "request/settled": 14547
+  },
+  "requests": 14571,
+  "requests_named_by_scheduler_requests": 14547,
+  "dependencies_after": 32032,
+  "orphan_dependencies": 0,
+  "fk_violations": 0
+ },
+ "R11_five_loops": {
+  "duration_seconds": 7200,
+  "by_loop": {
+   "acquire": {
+    "ticks": 24,
+    "failed": 0,
+    "skipped": {},
+    "progress": 0,
+    "max_seconds": 16.4,
+    "peak_rss_bytes": 178028544
+   },
+   "derive": {
+    "ticks": 24,
+    "failed": 1,
+    "skipped": {},
+    "progress": 30469,
+    "max_seconds": 251.4,
+    "peak_rss_bytes": 2388213760
+   },
+   "maintain": {
+    "ticks": 1,
+    "failed": 0,
+    "skipped": {},
+    "progress": 11,
+    "max_seconds": 845.6,
+    "peak_rss_bytes": 762576896
+   },
+   "plan": {
+    "ticks": 4,
+    "failed": 0,
+    "skipped": {},
+    "progress": 25704,
+    "max_seconds": 82.4,
+    "peak_rss_bytes": 219840512
+   },
+   "release": {
+    "ticks": 2,
+    "failed": 0,
+    "skipped": {},
+    "progress": 1,
+    "max_seconds": 425.7,
+    "peak_rss_bytes": 1544847360
+   }
+  },
+  "failed_ticks": [
+   {
+    "tick": "r11-derive-13",
+    "error": null,
+    "unit_failures": {
+     "count": 1,
+     "sample": [
+      "{'stage': 'parse', 'unit_kind': 'snapshot', 'unit_id': 'snap_20260911T043231Z_0859efa5a48f', 'reason': 'parse_failed'}"
+     ]
+    },
+    "stage_errors": []
+   }
+  ],
+  "longest_write_seconds": 6.843,
+  "write_lock_timeouts": 0,
+  "control_timeouts": 0,
+  "schedule": {
+   "done": 7260.9,
+   "ticks": {
+    "acquire": 24,
+    "derive": 24,
+    "plan": 4,
+    "release": 2,
+    "maintain": 1
+   },
+   "overlap_skips": {
+    "acquire": 0,
+    "derive": 0,
+    "plan": 0,
+    "release": 0,
+    "maintain": 0
+   }
+  }
+ },
+ "R12_watchdog": {
+  "exit": 0,
+  "lines": [
+   "[loop-idle] acquire: no progress since 2026-10-04 03:51 UTC, over 60 minutes while unheld; its ticks finish but do nothing (read its run records)",
+   "[stale-fetch] no request has been made for 125 hours while unheld; newest stored page 125 hours old; 22945 parse units wait, backpressure may be holding requests",
+   "[host-failing] hosts answering only 429 or 5xx: web.archive.org Throttled x5 until 2026-09-29 05:22 UTC",
+   "[release-refused] candidate cand_1d5ca83e4f624db9 refused at 2026-10-04 05:03 UTC: decrease:events 2105->850; decrease:contests 2005->0; decrease:rounds 2934->0; decrease:entries 58558->0; decrease:judges 2818->0; decrease:callback_marks 288502->0; decrease:callbacks 59064->0; decrease:final_marks 83355->0; decrease:place; nothing is published until a build passes or overrides/release_decreases.csv approves the decrease (docs/guides/data-corrections.md)",
+   "[state-size] state without checkpoints/, venv/ and uv-cache/ is 72.0 GB, over 50 GB; architecture phase 4 starts at about 55 GB (docs/plans/architecture.md), and the pipeline pauses at the retention size cap",
+   "[partitions-withheld] 2084 partitions withheld: units_not_current x 1846, source_support_unavailable x 238; swingset partitions --withheld lists them"
+  ],
+  "stderr": ""
+ },
+ "R7_explained": "all 230 open history_event_site_review findings on diag are no_retained_hits with search_complete=false, and archive_queries holds no event_sites row (66 rows: eepro, scoringdance, wdr, wsdc_calendar), so 0 proposals is correct; migration 37 closes them, so the card's site-review gap count no longer shows these incomplete searches",
+ "R8_note": "the newest admitted build is also the newest completed one (R5's +25 h build), so 1 build row is kept; 215 older ones go",
+ "R9_R13_suites": {
+  "core": "1,955 passed in 524 s (after R11's harness ticks had started)",
+  "full": "3,484 passed in 1,472 s (beside R11)",
+  "ruff": "All checks passed",
+  "mypy": "no issues in 277 source files",
+  "scope_guard": {
+   "changed_parse_or_extract_scopes": [],
+   "project_link_scope_files": 178,
+   "build_scope_files": 189
+  },
+  "rehearsed_tree_equals_working_copy": true
+ },
+ "R10_module": "tests/test_watchdog.py module evaluation, 5 cases (five loop services and timers, no cycle unit, each removed option fails with D-0239): 5 passed",
+ "R11_notes": "fresh clone Bp of A migrated 36->37 (bp-migrate) and accepted; acquire issued 0 requests (the Mac re-queues every parse, I9 backpressure); derive-13 failed on one known parse failure (snap_20260911T043231Z_0859efa5a48f, blocked parse_failed 10 times on the copy); derive-05 and -06 made no progress with heavy_deferred=1 while release-01's partitioned build held the heavy lock (streamed_lock); maintain pruned 0 on the real clock (the oldest prunable row settled 2026-09-13, 21 days earlier; R8 moves the clock 31 days)",
+ "derive_rss_note": "derive ticks peaked 1.2 to 2.3 GB here against a flat 0.86 GB in the first rehearsal of an earlier tree; the src diff since then (9 files) touches no derive path, and production's derive ticks measured 2.3 to 2.5 GB (phase 4), so the first run's figure was the outlier (it ran beside other suites)",
+ "R12_explained": {
+  "loop-idle acquire, stale-fetch": "backpressure from the Mac's re-queued parses (I9) holds every request",
+  "host-failing web.archive.org": "the copy's throttle state from 2026-09-29",
+  "release-refused, partitions-withheld": "R11's release-01 candidate; partitions of units not yet re-derived are withheld",
+  "state-size": "the copy is 64.7 GB; phase 4's storage apply was not run on the clone",
+  "absent": "no admission-stuck, lease-stuck, write-deadline, loop-failing, admissions-growth or cycle line"
+ },
+ "earlier_receipt": "replaces the 2026-10-03 receipt of tree 0c304648 (before the review fixes); every step ran again on this tree",
+ "disk": {
+  "free_bytes_before": 131731144704,
+  "free_bytes_min": 109794463744,
+  "free_bytes_after_clones_deleted": 126930006016
+ },
+ "diag_signature": {
+  "before": {
+   "files": 78194,
+   "bytes": 71387539274,
+   "listing_sha256": "222150cb62504032441d8e349cb75e15031b1719d11e3a0863c61611d2afa7a2",
+   "state_size": 64718315520,
+   "state_mtime_ns": 1790654850554998303,
+   "dir_mtime_ns": 1790657922511934384
+  },
+  "after": {
+   "files": 78194,
+   "bytes": 71387539274,
+   "listing_sha256": "222150cb62504032441d8e349cb75e15031b1719d11e3a0863c61611d2afa7a2",
+   "state_size": 64718315520,
+   "state_mtime_ns": 1790654850554998303,
+   "dir_mtime_ns": 1790657922511934384
+  },
+  "unchanged": true
+ },
+ "clones_deleted": true
+}

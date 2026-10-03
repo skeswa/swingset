@@ -10,10 +10,10 @@ from test_admission import BODY, Corpus
 
 from swingset.model.canonical import Event
 from swingset.project.writer import Projection, replace_scope, replace_source_event_map
-from swingset.schedule.cycle import versions
 from swingset.state.db import open_database
 from swingset.state.inputs import accept, capture
 from swingset.state.recipes import capture_runtime, captured_recipe_inputs
+from swingset.versions import versions
 
 
 def test_actual_code_and_schema_change_recipe_with_unchanged_human_labels(tmp_path, monkeypatch):

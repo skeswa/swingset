@@ -117,89 +117,6 @@ def begin_attempt(
         return Attempt(cursor.lastrowid, unit, fingerprint, row[0], row[1], row[2], run_id)
 
 
-def _requirement(
-    conn: sqlite3.Connection,
-    attempt: Attempt,
-    outcome: Outcome,
-    reason: str,
-    now: datetime,
-    retry_at: str | None,
-    evidence: dict[str, Any],
-) -> str:
-    from .requirements import Requirement, reconcile_requirement, record_attempt
-
-    source_row = (
-        conn.execute(
-            "SELECT w.source FROM snapshots s JOIN watches w USING(watch_id) WHERE s.snapshot_id=?",
-            (attempt.unit.unit_id,),
-        ).fetchone()
-        if attempt.unit.stage == "parse"
-        else None
-    )
-    state = {
-        "succeeded": "satisfied",
-        "blocked": "needs_implementation",
-        "transient": "retry_wait",
-        "unavailable": "unavailable",
-        "interrupted": "retry_wait",
-        "superseded": "needs_implementation",
-    }[outcome]
-    action = {
-        "succeeded": "work output committed",
-        "blocked": "change the source inputs or implementation before retrying",
-        "transient": "retry after the recorded deadline",
-        "unavailable": "restore the exact required artifact by verified digest",
-        "interrupted": "retry interrupted work after the recorded deadline",
-        "superseded": "retry when relevant inputs change or an explicit retry is requested",
-    }[outcome]
-    requirement = Requirement(
-        "work_attempt",
-        json.dumps(_key(attempt.unit), separators=(",", ":")),
-        source_row[0] if source_row else None,
-        state,
-        action,
-        {
-            **evidence,
-            "stage": attempt.unit.stage,
-            "unit_kind": attempt.unit.unit_kind,
-            "unit_id": attempt.unit.unit_id,
-            "input_fingerprint": attempt.fingerprint,
-            "last_attempt_id": attempt.attempt_id,
-            "reason_code": reason,
-        },
-        reason if state != "satisfied" else None,
-        next_eligible_at=retry_at,
-    )
-    # Successful ordinary work need not create an otherwise nonexistent finding,
-    # nor an attempt row for one: the work attempt already records it, and a
-    # unit that never failed would add one row per run forever (D-0213).
-    if (
-        outcome == "succeeded"
-        and not conn.execute(
-            "SELECT 1 FROM findings WHERE finding_id=?", (requirement.identifier,)
-        ).fetchone()
-    ):
-        return requirement.identifier
-    reconcile_requirement(conn, requirement, now, attempt.run_id)
-    record_attempt(conn, requirement.identifier, f"work:{attempt.attempt_id}", now, outcome)
-    # H11's bounded support scan can reconstruct a deleted inventory row from
-    # this durable owner record without losing its attempt count or retry latch.
-    row = conn.execute(
-        "SELECT * FROM findings WHERE finding_id=?", (requirement.identifier,)
-    ).fetchone()
-    if row is not None:
-        payload = {key: row[key] for key in row.keys() if key != "finding_id"}
-        conn.execute(
-            "INSERT INTO finding_support VALUES (?,?,?) ON CONFLICT(finding_id) DO UPDATE SET payload_json=excluded.payload_json,active=excluded.active",
-            (
-                requirement.identifier,
-                json.dumps(payload, sort_keys=True),
-                int(row["closed_at"] is None),
-            ),
-        )
-    return requirement.identifier
-
-
 def finish_attempt(
     database: Database,
     attempt: Attempt,
@@ -243,7 +160,7 @@ def finish_attempt(
                 raise SupersededWorkError("a newer attempt owns this work")
             # A restart can encounter an older running attempt after newer
             # inputs already completed. Preserve its history without reviving
-            # completed work or replacing the newer requirement outcome.
+            # completed work or replacing the newer attempt's outcome.
             conn.execute(
                 "UPDATE work_attempts SET finished_at=?,outcome='superseded',reason_code='newer_attempt_exists',evidence_json=?,retry_at=NULL WHERE attempt_id=?",
                 (at, json.dumps(evidence or {}, sort_keys=True), attempt.attempt_id),
@@ -268,17 +185,16 @@ def finish_attempt(
                 "INSERT INTO pending_work(stage,unit_kind,unit_id,enqueued_at) VALUES (?,?,?,?) ON CONFLICT DO NOTHING",
                 (*_key(attempt.unit), attempt.work_token),
             )
-        details = evidence or {}
-        requirement_id = _requirement(conn, attempt, outcome, reason_code, now, retry, details)
+        # The attempt row and the unit's work_queue row hold the failure. A
+        # unit writes no finding or finding_support row (D-0237).
         conn.execute(
-            "UPDATE work_attempts SET finished_at=?,outcome=?,reason_code=?,evidence_json=?,retry_at=?,requirement_id=? WHERE attempt_id=?",
+            "UPDATE work_attempts SET finished_at=?,outcome=?,reason_code=?,evidence_json=?,retry_at=? WHERE attempt_id=?",
             (
                 at,
                 outcome,
                 reason_code,
-                json.dumps(details, sort_keys=True),
+                json.dumps(evidence or {}, sort_keys=True),
                 retry,
-                requirement_id,
                 attempt.attempt_id,
             ),
         )

@@ -292,14 +292,14 @@ def test_the_run_counters_report_firings_since_the_start(tmp_path, monkeypatch):
         assert counters["write_lock_timeouts"] == 0
 
 
-def test_the_cycle_summary_carries_the_write_counters(tmp_path, monkeypatch):
+def test_the_tick_record_carries_the_write_counters(tmp_path, monkeypatch):
     import json
     import shutil
 
     import httpx
+    from helpers.loop_ticks import run_round
 
     from swingset.clock import FakeClock
-    from swingset.schedule.cycle import run_cycle
     from swingset.state import requirements
 
     config, overrides = tmp_path / "config", tmp_path / "overrides"
@@ -319,13 +319,15 @@ def test_the_cycle_summary_carries_the_write_counters(tmp_path, monkeypatch):
 
     monkeypatch.setattr(requirements, "scan", overran)
     with open_database(tmp_path / "state") as db:
-        result = run_cycle(
+        # Derive accepts the inputs, then the plan tick runs the scan.
+        result = run_round(
             db,
             config_dir=config,
             overrides_dir=overrides,
             clock=FakeClock(),
+            loops=("derive", "plan"),
             transport=httpx.MockTransport(forbidden),
-        )
+        )["plan"]
         assert result["write_deadline_fired"] == 1
         assert result["write_seconds_max"] >= 0.05
         assert result["write_wait_seconds_max"] >= 0
@@ -337,15 +339,16 @@ def test_the_cycle_summary_carries_the_write_counters(tmp_path, monkeypatch):
             ).fetchone()[0]
         )
         assert saved["write_deadline_fired"] == 1
-        # The next cycle starts its counters afresh.
+        # The next tick starts its counters afresh.
         monkeypatch.setattr(requirements, "scan", lambda *_args, **_kwargs: 0)
-        again = run_cycle(
+        again = run_round(
             db,
             config_dir=config,
             overrides_dir=overrides,
             clock=FakeClock(),
+            loops=("plan",),
             transport=httpx.MockTransport(forbidden),
-        )
+        )["plan"]
         assert again["write_deadline_fired"] == 0
         assert again["write_seconds_max"] < 0.05
 

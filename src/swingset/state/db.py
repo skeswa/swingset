@@ -17,7 +17,7 @@ from swingset.model.ids import run_id as make_run_id
 
 from .rwlock import Held, LockBusy, exclusive, shared
 
-SCHEMA_VERSION = 36
+SCHEMA_VERSION = 37
 #: Seconds SQLite waits for another process's write before `database is locked`.
 #: Writes elsewhere may take up to the write bound, so this is longer (D-0215).
 BUSY_TIMEOUT_SECONDS = 70.0
@@ -63,7 +63,7 @@ class Database:
     """A state database and the locks its handle holds.
 
     The locks cover the object's lifetime. `exclusive` is the one data writer
-    (the cycle and every CLI mutation); `shared` is a loop, one of several.
+    (every CLI mutation, migrate and restore); `shared` is a loop, one of several.
     SQLite still provides transactional safety; the locks keep commands from
     competing semantically.
     """
@@ -99,7 +99,7 @@ class Database:
         """Whether this handle took `state.lock`, not just opened the file.
 
         Retention removal asks, because a removal that is not the one data
-        writer could race a cycle that is still writing what it is removing.
+        writer could race a loop tick that is still writing what it is removing.
         A loop's shared lock is not the writer lock.
         """
         return self.lock_mode == "exclusive"
@@ -370,6 +370,9 @@ def _migrate(database: Database, *, clock: Clock | None = None) -> None:
         # changes as a single explicit transaction. Disable FK actions while
         # rebuilding parent tables, then validate before committing the schema.
         conn = database.connection
+        # A script may turn `secure_delete` off for its deletes (37); the
+        # connection gets its own setting back after it.
+        secure_delete = int(conn.execute("PRAGMA secure_delete").fetchone()[0])
         conn.execute("PRAGMA foreign_keys=OFF")
         try:
             conn.executescript(f"BEGIN IMMEDIATE;\n{script}")
@@ -415,6 +418,7 @@ def _migrate(database: Database, *, clock: Clock | None = None) -> None:
             raise
         finally:
             conn.execute("PRAGMA foreign_keys=ON")
+            conn.execute(f"PRAGMA secure_delete={secure_delete}")
 
 
 #: Delete gates whose permission row must never outlive its transaction

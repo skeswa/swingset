@@ -1,13 +1,10 @@
 """The acquisition pass and the event bookkeeping around it.
 
-Shared by the cycle and the plan and acquire loops, so the two
-orchestrations stay equal until phase 5 removes the cycle. `Acquisition.run`
-is one pass: offered history pages compete with due watches under the fair
+Run by the plan and acquire loops. `Acquisition.run` is one pass: offered history pages compete with due watches under the fair
 policy, each dispatch or fetch is admitted by the client's gates, the
 archive index gets the pass's spare time, and the pass's guards are flushed
-(D-0219). Where the offered pages come from is the caller's: the cycle asks
-`history.backfill.offers`, acquire reads eligible `acquisition_plan` rows
-(D-0218).
+(D-0219). Where the offered pages come from is the caller's: acquire reads
+eligible `acquisition_plan` rows (D-0218).
 """
 
 from __future__ import annotations
@@ -85,8 +82,7 @@ class Acquisition:
     """One run's acquisition passes: its fetch client and the watches it visited.
 
     Visits are unique per run. ``prepare``, ``select`` and ``delay`` are the
-    fair policy's functions; the cycle passes the ones it imports, so what
-    replaces the cycle's names also reaches the pass.
+    fair policy's functions; tests replace them through these defaults.
     """
 
     def __init__(
@@ -101,7 +97,7 @@ class Acquisition:
         stop: Callable[[], bool],
         should_stop: Callable[[], bool],
         transport: httpx.BaseTransport | None = None,
-        loop: str = "cycle",
+        loop: str = "acquire",
         prepare: Callable[..., Any] = prepare_event_turns,
         select: Callable[..., WatchChoice | None] = next_watch,
         delay: Callable[..., float | None] = next_delay,
@@ -391,7 +387,7 @@ def _contended(exc: BaseException) -> bool:
 
 
 class Bookkeeping:
-    """The event bookkeeping stages as the cycle runs them, each switchable in `[stages]`.
+    """The event bookkeeping stages the plan loop runs, each switchable in `[stages]`.
 
     Each writes one summary key and is skipped whole when its switch is off.
     A write that overruns its deadline is a stage error, not fatal (D-0201);
@@ -458,39 +454,6 @@ class Bookkeeping:
                 self.run_id,
                 history_start=self.bundle.config.history_start,
             )
-
-    def site_review(self) -> None:
-        if (
-            not self.stages.event_site_review
-            or not self.database.connection.execute(
-                "SELECT 1 FROM history_acceptance LIMIT 1"
-            ).fetchone()
-        ):
-            return
-        from swingset.history.event_sites import reconcile
-
-        try:
-            with operation(
-                self.database,
-                action_id="event_sites_" + uuid4().hex,
-                action_kind="project",
-                scope=ActionScope(all_sources=True, kinds=frozenset({"source_event_mapping"})),
-                clock=self.clock,
-                run_id=self.run_id,
-            ):
-                self.summary["event_sites_reviewed"] = reconcile(
-                    self.database,
-                    now=self.clock.now(),
-                    run_id=self.run_id,
-                    history_start=self.bundle.config.history_start,
-                    overrides=tuple(self.bundle.csv("source_urls.csv")),
-                    wall_seconds=self._left(10),
-                )
-        except ControlPaused as exc:
-            self.held("event_site_review", exc)
-        except WriteDeadlineExceeded as exc:
-            self.summary["stage_errors"].append({"stage": "event_site_review", "error": str(exc)})
-            log("stage_failed", stage="event_site_review", error=str(exc)[:300])
 
     def _refresh(self, stage: str, key: str, call: Callable[[], Any]) -> None:
         try:

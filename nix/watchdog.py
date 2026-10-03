@@ -1,4 +1,4 @@
-"""Checks behind the swingset-watchdog unit (D-0188, D-0202, D-0203, D-0215, D-0219, D-0232).
+"""Checks behind the swingset-watchdog unit (D-0188, D-0202, D-0203, D-0215, D-0219, D-0232, D-0239).
 
 Prints one alert per line and nothing when all is well. Each line starts
 with a stable key in brackets, such as `[stale-fetch]`. A key already logged
@@ -9,10 +9,10 @@ and the disk quota, passes them in, and appends whatever this prints to ALERTS.l
 with a UTC stamp. Standard library only: the unit runs it with the system
 python3, not the project environment.
 
-With `--loops 1` the worker runs the five loop timers instead of the cycle
-(services.swingset.loops.enable): the cycle checks go quiet and the loop
-checks (`[loop-quiet]`, `[loop-failing]`, `[loop-idle]`, `[plan-stale]`) read
-the loops' run records, `loop_state` and plan rows instead.
+The worker runs the five loop timers, the only orchestration since the
+cycle went (D-0239). The loop checks (`[loop-quiet]`, `[loop-failing]`,
+`[loop-idle]`, `[plan-stale]`) read the loops' run records, `loop_state` and
+plan rows; `--timers-inactive` names the loop timers that are not active.
 
 Each check reads on its own. A check that raises is named in one
 `[watchdog-blind]` line instead of silencing the checks after it, so the
@@ -97,6 +97,10 @@ QUARANTINE_WINDOW = 7200
 QUARANTINE_LINES = 5
 #: A lease this far past its end belongs to no live loop (D-0216).
 LEASE_STUCK_SECONDS = 600
+#: An execution admission active this long is named (`[admission-stuck]`):
+#: no request, fetch or operation runs that long, and every loop tick settles
+#: a dead one after six hours (loops/runtime.py ORPHAN_ADMISSION_AGE).
+ADMISSION_STUCK_SECONDS = 2 * 3600
 #: [write-deadline] reads run records finished this recently, and repeats a
 #: line no sooner (D-0217).
 WRITE_DEADLINE_WINDOW = 7200
@@ -107,7 +111,7 @@ WRITE_DEADLINE_RECORDS = 500
 GUARD_SEEN_WINDOW = 7200
 #: Up to this many expired guards get a line each; more get one line by reason.
 GUARD_LINES = 5
-#: With --loops 1: how long each loop may go without a finished tick while
+#: How long each loop may go without a finished tick while
 #: unheld and its timer active, about three timer intervals with slack
 #: (nix/module.nix: acquire and derive every 5 minutes, plan every 30,
 #: release hourly, maintain daily).
@@ -120,7 +124,7 @@ LOOP_QUIET = {
 }
 #: A loop whose last this many ticks, skips left out, all failed alerts.
 LOOP_FAILING = 3
-#: With --loops 1: how long each loop may go without progress (loop_state's
+#: How long each loop may go without progress (loop_state's
 #: last_progress_at) while unheld and its timer active. Skipped and idle
 #: ticks do not reset it. Acquire counts only while no host or acquire guard
 #: explains the silence, derive only while ready work waits; release's window
@@ -147,6 +151,11 @@ BUILDING_LINES = 5
 #: this are named. The weekly collector removes the references of those
 #: older than a day (D-0231); their labels stay, holding nothing.
 INCOMPLETE_GENERATIONS = 3
+#: `[admissions-growth]`: maintain's `admissions_rows` past this many. The
+#: prune keeps every request row `scheduler_requests` names, which has no
+#: collector yet (D-0238, about 1,800 a day); this is the trigger of
+#: maintenance item 15 (docs/plans/README.md).
+ADMISSIONS_ROWS = 200_000
 #: Partition artifacts no current partition names, past this many bytes, are
 #: named (`[artifact-orphans]`): the daily collector is not keeping up, or
 #: retained release manifests hold more than expected (phase 3, WP6).
@@ -194,7 +203,7 @@ ARCHIVE_SIZE_BYTES = 40_000_000_000
 #: partitions/) past this many bytes (architecture plan 6.3).
 OBJECTS_SIZE_BYTES = 60_000_000_000
 OBJECT_DIRS = ("objects", "blobs", "extracts", "partitions")
-#: `[read-set-widened]` reads derive and cycle run rows finished this recently.
+#: `[read-set-widened]` reads derive run rows finished this recently.
 SIGNAL_WINDOW = 86400
 #: WAL header magic numbers (either checksum byte order).
 WAL_MAGIC = (0x377F0682, 0x377F0683)
@@ -214,9 +223,9 @@ STATE_SIZE_SKIP = frozenset({"checkpoints", "venv", "uv-cache"})
 #: Step 3 deletes rows, so they are counted, not read off the largest rowid.
 EQUIVALENCE_ROWS = 500_000
 SOURCE_EQUIVALENCE_ROWS = 500_000
-#: Reports a cycle record carries; each is stored as `<key>` or, when its
-#: query failed, `<key>_error` (schedule/cycle._report).
-CYCLE_REPORTS = ("controls", "derivation")
+#: Reports a derive tick record carries; each is stored as `<key>` or, when
+#: its query failed, `<key>_error` (loops/derive.py).
+TICK_REPORTS = ("controls", "derivation")
 #: A database read that fails is tried once more after this many seconds: an
 #: immutable read of a live database can meet a page mid-checkpoint.
 RETRY_SECONDS = 1.0
@@ -302,6 +311,13 @@ QUERIES: dict[str, str] = {
     "quarantined": "SELECT stage, unit_kind, unit_id, attempts, error_class, last_error "
     "FROM work_queue WHERE state = 'quarantined' AND quarantined_at > :since "
     "ORDER BY quarantined_at, stage, unit_kind, unit_id",
+    # Execution admissions still active that were admitted before :since
+    # (isoformat with +00:00, as controls._at writes it).
+    "admission_stuck": "SELECT action_id, action_kind, run_id, admitted_at "
+    "FROM execution_admissions WHERE state = 'active' AND admitted_at < :since "
+    "ORDER BY admitted_at",
+    "admission_table": "SELECT 1 FROM sqlite_master WHERE type = 'table' "
+    "AND name = 'execution_admissions'",
     # Leases that ended before :since and were never closed or taken over.
     "lease_stuck": "SELECT stage, unit_kind, unit_id, lease_owner, lease_until FROM work_queue "
     "WHERE state = 'leased' AND lease_until < :since ORDER BY lease_until",
@@ -447,8 +463,8 @@ QUERIES: dict[str, str] = {
     # those of retained candidates (a few), so the rest are uncollected.
     "(SELECT count(*) AS n, coalesce(sum(bytes), 0) AS b FROM release_manifests "
     "WHERE created_at < :week) m",
-    # The newest gate verdict of a release tick or cycle finished since :since
-    # (runs.loop comes with schema 34).
+    # The newest gate verdict of a release tick, or of a build command,
+    # finished since :since (runs.loop comes with schema 34).
     "verdict": "SELECT finished_at, json_extract(summary_json, '$.verdict.state'), "
     "json_extract(summary_json, '$.verdict.reasons'), json_extract(summary_json, '$.candidate_id') "
     "FROM runs WHERE (loop = 'release' OR loop IS NULL) AND finished_at > :since "
@@ -499,7 +515,7 @@ QUERIES: dict[str, str] = {
     # younger than the window has not yet owed one.
     "drill_passed": "SELECT max(drilled_at), min(created_at), count(*) FROM backup_sets",
     "runs_table": "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'runs'",
-    # Read-set safety signals of derive ticks and cycles since :since: tables
+    # Read-set safety signals of derive ticks since :since: tables
     # no rule maps (schedule/offline undeclared_reads) and widened read sets
     # or pool probes (state/read_sets.drain_signals). Each should stay 0.
     "read_set_signals": "SELECT json_extract(summary_json, '$.undeclared_reads'), "
@@ -535,12 +551,6 @@ def _parser() -> argparse.ArgumentParser:
         " sources.toml the inventory interval and size cap. Overrides are not read.",
     )
     parser.add_argument(
-        "--quiet",
-        type=int,
-        required=True,
-        help="seconds without a finished cycle, while unheld, that count as a stall",
-    )
-    parser.add_argument(
         "--stale-fetch",
         type=int,
         required=True,
@@ -571,22 +581,9 @@ def _parser() -> argparse.ArgumentParser:
         help="alert when the quota has fewer free bytes than this",
     )
     parser.add_argument(
-        "--timer-active",
-        type=int,
-        choices=(0, 1),
-        help="1 when swingset-cycle.timer is active; required without --loops 1",
-    )
-    parser.add_argument(
-        "--loops",
-        type=int,
-        choices=(0, 1),
-        default=0,
-        help="1 when the five loop timers run instead of the cycle (loops.enable)",
-    )
-    parser.add_argument(
         "--timers-inactive",
         default="",
-        help="with --loops 1, comma-separated loops whose swingset-<loop>.timer is not active",
+        help="comma-separated loops whose swingset-<loop>.timer is not active",
     )
     parser.add_argument(
         "--wal-large",
@@ -1048,6 +1045,19 @@ def _read_facts(
         )
         if stuck:
             facts["lease_stuck"] = stuck
+    if checks.run("admissions", lambda: _one(db, "admission_table"), None):
+        admitted = checks.run(
+            "admission-stuck",
+            lambda: [
+                tuple(row)
+                for row in db.execute(
+                    QUERIES["admission_stuck"], {"since": _at_iso(now - ADMISSION_STUCK_SECONDS)}
+                )
+            ],
+            [],
+        )
+        if admitted:
+            facts["admission_stuck"] = admitted
     if checks.run("guards", lambda: _one(db, "guard_table"), None):
         expired = checks.run(
             "guard-expired",
@@ -1415,32 +1425,6 @@ def _tree_bytes(path: str, skip: frozenset[str] = frozenset()) -> int:
     return total
 
 
-def _records(state: str) -> list[dict[str, Any]]:
-    """The last three cycle records, oldest first.
-
-    A backup, gc or other command writes a record with a `command` field, and
-    a loop tick one with `loop`; a cycle's summary has neither. Those records
-    must neither reset `[cycles-failing]` nor hold `[cycles-quiet]` back.
-    """
-    runs = sorted(glob.glob(os.path.join(state, "runs", "run_*.json")), key=os.path.getmtime)
-    records: list[dict[str, Any]] = []
-    for path in reversed(runs):
-        try:
-            with open(path) as handle:
-                record = json.load(handle)
-        except Exception:
-            continue
-        if (
-            isinstance(record, dict)
-            and record.get("command", "cycle") == "cycle"
-            and not record.get("loop")
-        ):
-            records.append(record)
-            if len(records) == 3:
-                break
-    return records[::-1]
-
-
 class LoopRecords(NamedTuple):
     """What the loop checks read from the newest run records."""
 
@@ -1559,7 +1543,7 @@ def _wal_bytes(state: str) -> tuple[int, int] | None:
 def _deadline_firings(state: str, now: float) -> dict[str, list[dict[str, Any]]]:
     """Run records finished in the window whose writes hit the deadline, by loop.
 
-    A cycle's record names no loop; a loop's names its own. The newest
+    A loop tick's record names its loop, a command's its command. The newest
     records come first; reading stops at the first one older than the window.
     """
     runs = sorted(
@@ -1572,39 +1556,31 @@ def _deadline_firings(state: str, now: float) -> dict[str, list[dict[str, Any]]]
                 record = json.load(handle)
             finished = _ts(record["finished_at"])
         except Exception:
-            # A bad record or stamp is [cycles-quiet]'s news, not this check's.
+            # A bad record or stamp is the loop checks' news, not this one's.
             continue
         if now - finished > WRITE_DEADLINE_WINDOW:
             break
         count = record.get("write_deadline_fired")
         if isinstance(count, int) and count > 0:
-            fired.setdefault(str(record.get("loop") or "cycle"), []).append(record)
+            fired.setdefault(str(record.get("loop") or record.get("command") or "run"), []).append(
+                record
+            )
     return fired
 
 
 def main(argv: list[str]) -> list[str]:
     parser = _parser()
     args = parser.parse_args(argv)
-    loops = args.loops == 1
     inactive = [name for name in args.timers_inactive.split(",") if name]
-    if not loops and args.timer_active is None:
-        parser.error("--timer-active is required without --loops 1")
     if not set(inactive) <= set(LOOP_QUIET):
         parser.error(f"--timers-inactive names unknown loops: {args.timers_inactive}")
     state = args.state
     now = _ts(args.now) if args.now else time.time()
     checks = Checks()
     no_loops = LoopRecords({}, {name: [] for name in LOOP_QUIET}, None)
-    ticks: LoopRecords = (
-        checks.run("loop-records", lambda: _loop_records(state, now), no_loops)
-        if loops
-        else no_loops
-    )
-    # With the loops on, the cycle records are history: the cycle checks go
-    # quiet, and [replay-loop] and [report-failing] read derive's ticks.
-    records: list[dict[str, Any]] = [] if loops else checks.run("runs", lambda: _records(state), [])
-    reported = ticks.recent["derive"][::-1] if loops else records
-    noun = "derive ticks" if loops else "cycles"
+    ticks: LoopRecords = checks.run("loop-records", lambda: _loop_records(state, now), no_loops)
+    # [replay-loop] and [report-failing] read derive's ticks, oldest first.
+    reported = ticks.recent["derive"][::-1]
     limits = checks.run("config", lambda: _config(args.config), Limits({}, {}))
     facts = _read_db(state, now, checks, limits)
     alerts: list[tuple[str, str]] = []
@@ -1638,26 +1614,13 @@ def main(argv: list[str]) -> list[str]:
         "archive-size": max(args.repeat, DAY),
     }
 
-    def failing() -> None:
-        if len(records) == 3 and all(r.get("failed") or r.get("error") for r in records):
-            last = records[-1]
-            alerts.append(
-                (
-                    "cycles-failing",
-                    f"three consecutive cycles failed; latest {last.get('run_id')}: "
-                    f"{str(last.get('error') or 'unit failures')[:200]}",
-                )
-            )
-
-    checks.run("cycles-failing", failing, None)
-
     def replay_loop() -> None:
         # A cutoff that rewrote live rows moves its kind's replay epoch, and
         # dependents re-run and cut off in turn (D-0205). An epoch that moves
-        # in three cycles running, while none of them wrote a generation of
+        # in three derive ticks running, while none of them wrote a generation of
         # that kind or of a kind it reads, is two kinds replaying each other,
         # which burns CPU while every unit succeeds. Unrelated generations,
-        # such as a dancer change every cycle, do not hide it.
+        # such as a dancer change every tick, do not hide it.
         if len(reported) < 3:
             return
         progress = [r.get("derivation") for r in reported]
@@ -1672,7 +1635,7 @@ def main(argv: list[str]) -> list[str]:
             alerts.append(
                 (
                     "replay-loop",
-                    f"replay epochs moved in each of the last three {noun} with no new"
+                    "replay epochs moved in each of the last three derive ticks with no new"
                     f" generation that explains them: {', '.join(looping)}",
                 )
             )
@@ -1690,7 +1653,7 @@ def main(argv: list[str]) -> list[str]:
                 for record in reported
                 if "readiness_errors" in record
                 for key in (
-                    *(f"{name}_error" for name in CYCLE_REPORTS if f"{name}_error" in record),
+                    *(f"{name}_error" for name in TICK_REPORTS if f"{name}_error" in record),
                     *(("derivation missing",) if "derivation" not in record else ()),
                 )
             }
@@ -1708,10 +1671,10 @@ def main(argv: list[str]) -> list[str]:
             alerts.append(
                 (
                     "report-failing",
-                    f"{noun[:-1] if loops else 'cycle'} reports failed in the last three"
-                    f" {noun} ({', '.join(broken)})"
+                    "derive tick reports failed in the last three"
+                    f" derive ticks ({', '.join(broken)})"
                     + (f"; latest: {latest[:200]}" if latest else "")
-                    + f"; [replay-loop] cannot see those {noun}",
+                    + "; [replay-loop] cannot see those derive ticks",
                 )
             )
 
@@ -1765,7 +1728,7 @@ def main(argv: list[str]) -> list[str]:
                 " review it or record why it stays (docs/guides/operation.md, holds)",
             )
         )
-    if not held and loops and inactive:
+    if not held and inactive:
         timers = ", ".join(f"swingset-{name}.timer" for name in inactive)
         alerts.append(
             (
@@ -1774,18 +1737,9 @@ def main(argv: list[str]) -> list[str]:
                 " start the timers or write operator-hold",
             )
         )
-    elif not held and not loops and args.timer_active == 0:
-        alerts.append(
-            (
-                "timer-inactive",
-                "swingset-cycle.timer is not active and nothing holds the worker;"
-                " start the timer or write operator-hold",
-            )
-        )
-    watching = not held and not loops and args.timer_active == 1
     # Fetching and derive each stop with their own timer.
-    fetching = watching or (not held and loops and "acquire" not in inactive)
-    deriving = watching or (not held and loops and "derive" not in inactive)
+    fetching = not held and "acquire" not in inactive
+    deriving = not held and "derive" not in inactive
 
     def loop_failing() -> None:
         for name in LOOP_QUIET:
@@ -1879,28 +1833,13 @@ def main(argv: list[str]) -> list[str]:
             )
 
     ready: Counter[str] = facts.get("ready", Counter())
-    if loops:
-        checks.run("loop-failing", loop_failing, None)
-        if not held:
-            checks.run("loop-quiet", loop_quiet, None)
-            checks.run("loop-idle", loop_idle, None)
-            if "plan" not in inactive:
-                checks.run("plan-stale", plan_stale, None)
+    checks.run("loop-failing", loop_failing, None)
+    if not held:
+        checks.run("loop-quiet", loop_quiet, None)
+        checks.run("loop-idle", loop_idle, None)
+        if "plan" not in inactive:
+            checks.run("plan-stale", plan_stale, None)
 
-    def quiet() -> None:
-        finished = records[-1].get("finished_at") if records else None
-        if finished:
-            age = now - _ts(finished)
-            if age > args.quiet:
-                alerts.append(
-                    (
-                        "cycles-quiet",
-                        f"no cycle has finished for {int(age // 60)} minutes while unheld",
-                    )
-                )
-
-    if watching:
-        checks.run("cycles-quiet", quiet, None)
     if fetching and "requested" in facts:
         age = now - facts["requested"]
         if age > args.stale_fetch:
@@ -1969,7 +1908,7 @@ def main(argv: list[str]) -> list[str]:
         )
         alerts.append(("host-failing", f"hosts answering only 429 or 5xx: {hosts}"))
     # One line per quarantined unit, or one line by class for a storm (F15).
-    # A quarantine stops the unit's retries, so no cycle fails for it again.
+    # A quarantine stops the unit's retries, so no tick fails for it again.
     quarantined = facts.get("quarantined", [])
     if 0 < len(quarantined) <= QUARANTINE_LINES:
         for stage, kind, unit, tries, failure, error in quarantined:
@@ -1986,6 +1925,21 @@ def main(argv: list[str]) -> list[str]:
                 "unit-quarantined",
                 f"{len(quarantined)} units quarantined: "
                 + ", ".join(f"{name} x {count}" for name, count in classes.most_common()),
+            )
+        )
+    if facts.get("admission_stuck"):
+        rows = facts["admission_stuck"]
+        named = ", ".join(
+            f"{action} ({kind}, run {run or 'none'}, since {_utc(at)})"
+            for action, kind, run, at in rows[:5]
+        )
+        more = f" and {len(rows) - 5} more" if len(rows) > 5 else ""
+        alerts.append(
+            (
+                "admission-stuck",
+                f"{len(rows)} execution admissions active over"
+                f" {ADMISSION_STUCK_SECONDS // 3600} hours: {named}{more}; a pause that"
+                " matches one drains until a loop settles it",
             )
         )
     if facts.get("lease_stuck"):
@@ -2144,6 +2098,17 @@ def main(argv: list[str]) -> list[str]:
             )
         )
 
+    admissions = maintained.get("admissions_rows")
+    if isinstance(admissions, int) and admissions > ADMISSIONS_ROWS and not held:
+        alerts.append(
+            (
+                "admissions-growth",
+                f"the admission ledger holds {admissions} rows (over {ADMISSIONS_ROWS}):"
+                " request rows stay while scheduler_requests names them; give that table"
+                " its collector (docs/plans/README.md, maintenance item 15)",
+            )
+        )
+
     # Release lines (phase 3). A refused verdict publishes nothing until a
     # later build passes or an approval row matches (D-0225).
     verdict = facts.get("verdict")
@@ -2190,7 +2155,7 @@ def main(argv: list[str]) -> list[str]:
                 )
             )
     complete = facts.get("verify_complete")
-    if loops and complete is not None:
+    if complete is not None:
         newest, first = complete
         if newest is None and first is not None and _ts(str(first)) < now - VERIFY_WINDOW:
             alerts.append(

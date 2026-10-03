@@ -72,11 +72,11 @@ def test_invalid_control_request_never_changes_control_revision(tmp_path, capsys
 def test_wait_timeout_reports_persisted_pause_and_remaining_admission(tmp_path, capsys):
     with open_database(tmp_path) as db:
         db.connection.execute(
-            "INSERT INTO execution_admissions(action_id,action_kind,admitted_at,control_revision,all_sources,all_kinds,state) VALUES ('active-unit','derive',?,0,0,0,'active')",
+            "INSERT INTO execution_admissions(action_id,action_kind,admitted_at,control_revision,all_sources,all_kinds,state) VALUES ('active-request','request',?,0,0,0,'active')",
             (datetime.now(UTC).isoformat(),),
         )
         db.connection.execute(
-            "INSERT INTO execution_dependencies VALUES ('active-unit','source','eepro')"
+            "INSERT INTO execution_dependencies VALUES ('active-request','source','eepro')"
         )
     assert (
         main(
@@ -100,9 +100,94 @@ def test_wait_timeout_reports_persisted_pause_and_remaining_admission(tmp_path, 
     assert receipt["persisted"]
     assert receipt["wait_timed_out"] and not receipt["wait_completed"]
     assert receipt["status"]["state"] == "pausing"
-    assert receipt["status"]["draining_attempts"][0]["action_id"] == "active-unit"
+    assert receipt["status"]["draining_attempts"][0]["action_id"] == "active-request"
     with open_database(tmp_path) as db:
         assert db.connection.execute("SELECT COUNT(*) FROM operator_pauses").fetchone()[0] == 1
+
+
+def test_wait_returns_once_a_leased_unit_finishes(tmp_path, capsys):
+    """A leased unit has no admission row (D-0238): its lease drains, and
+    `pause --wait` returns once the unit finishes."""
+    import time
+
+    from swingset.state import queue
+    from swingset.state.attempts import begin_attempt, finish_attempt
+    from swingset.state.work import WorkUnit, enqueue
+
+    unit = WorkUnit("project", "dancer", "d1")
+    now = datetime.now(UTC)
+    with open_database(tmp_path) as db:
+        run = db.start_run(now)
+        with db.transaction() as conn:
+            enqueue(conn, [unit], enqueued_at=now.isoformat())
+            queue.lease(db, unit, owner=queue.Owner("derive", run), now=now)
+            attempt = begin_attempt(db, unit, now=now, run_id=run, fingerprint="input")
+    arguments = ["pause", "--source", "wsdc_registry", "--state", str(tmp_path)]
+    assert main([*arguments, "--wait", "0", "--reason", "drain"]) == 1
+    receipt = json.loads(capsys.readouterr().out)
+    assert receipt["wait_timed_out"] and receipt["status"]["state"] == "pausing"
+    (draining,) = receipt["status"]["draining_attempts"]
+    assert draining["action_id"] == "lease:project/dancer/d1"
+    assert draining["work_attempt_id"] == attempt.attempt_id and draining["lease_until"]
+    assert "wsdc_registry" in draining["sources"]
+
+    waiting = subprocess.Popen(
+        [sys.executable, "-m", "swingset.cli", *arguments, "--wait", "30", "--reason", "drain"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    try:
+        time.sleep(0.5)
+        assert waiting.poll() is None  # still draining
+        # The subprocess may still hold control.lock in `change_control`:
+        # wait for it rather than fail at once (the default timeout is 0).
+        with open_database(tmp_path, lock_timeout=30) as db:
+            with db.transaction() as conn:
+                finish_attempt(
+                    db,
+                    attempt,
+                    outcome="succeeded",
+                    reason_code="output_committed",
+                    now=datetime.now(UTC),
+                )
+                queue.succeed(conn, unit)
+        out, err = waiting.communicate(timeout=30)
+    finally:
+        waiting.kill()
+    assert waiting.returncode == 0, err
+    receipt = json.loads(out)
+    assert receipt["wait_completed"] and receipt["status"]["state"] == "paused"
+    with open_database(tmp_path) as db:
+        assert db.connection.execute("SELECT COUNT(*) FROM execution_admissions").fetchone()[0] == 0
+
+
+def test_an_expired_lease_of_a_dead_run_does_not_block_the_wait(tmp_path, capsys):
+    """A lease whose `lease_until` has passed belongs to a dead process
+    (`queue.lease_dead`): `pause --wait` completes, and status lists it under
+    `dead_leases` for the derive loop's next tick to take over."""
+    from datetime import timedelta
+
+    from swingset.state import queue
+    from swingset.state.attempts import begin_attempt
+    from swingset.state.work import WorkUnit, enqueue
+
+    unit = WorkUnit("project", "dancer", "d1")
+    then = datetime.now(UTC) - timedelta(hours=2)
+    with open_database(tmp_path) as db:
+        run = db.start_run(then)
+        with db.transaction() as conn:
+            enqueue(conn, [unit], enqueued_at=then.isoformat())
+            queue.lease(db, unit, owner=queue.Owner("derive", run), now=then)
+            begin_attempt(db, unit, now=then, run_id=run, fingerprint="input")
+    arguments = ["pause", "--source", "wsdc_registry", "--state", str(tmp_path)]
+    assert main([*arguments, "--wait", "0", "--reason", "drain"]) == 0
+    receipt = json.loads(capsys.readouterr().out)
+    assert receipt["wait_completed"] and receipt["status"]["state"] == "paused"
+    assert receipt["status"]["draining_attempts"] == [] and not receipt["status"]["stuck_drain"]
+    (dead,) = receipt["status"]["dead_leases"]
+    assert dead["action_id"] == "lease:project/dancer/d1" and dead["run_id"] == run
+    assert dead["lease_owner"].startswith("derive") and dead["lease_until"]
 
 
 def test_kind_pause_waits_without_running_work_then_selective_resume_keeps_all(tmp_path, capsys):
@@ -228,7 +313,7 @@ def test_doctor_and_summary_share_effective_control_snapshot(tmp_path, capsys, m
     now = datetime(2026, 9, 13, tzinfo=UTC)
     with open_database(tmp_path) as db:
         db.connection.execute(
-            "INSERT INTO execution_admissions(action_id,action_kind,admitted_at,control_revision,all_sources,all_kinds,state) VALUES ('running','derive',?,0,1,1,'active')",
+            "INSERT INTO execution_admissions(action_id,action_kind,admitted_at,control_revision,all_sources,all_kinds,state) VALUES ('running','request',?,0,1,1,'active')",
             (now.isoformat(),),
         )
     change_control(

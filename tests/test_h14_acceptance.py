@@ -599,8 +599,8 @@ def test_real_cycle_services_old_host_amid_current_demand_and_pending_derivation
     import shutil
 
     import httpx
+    from helpers.loop_ticks import run_round
 
-    from swingset.schedule.cycle import run_cycle
     from swingset.sources.scoringdance import SOURCE
     from swingset.sources.wsdc_calendar import EventsPage
     from swingset.state.work import WorkUnit, enqueue
@@ -680,7 +680,7 @@ def test_real_cycle_services_old_host_amid_current_demand_and_pending_derivation
                 200, content=old_body if request.url.host == "scoring.dance" else calendar
             )
 
-        result = run_cycle(
+        result = run_round(
             db,
             config_dir=config_dir,
             overrides_dir=overrides,
@@ -694,7 +694,7 @@ def test_real_cycle_services_old_host_amid_current_demand_and_pending_derivation
         assert (
             db.connection.execute(
                 "SELECT COUNT(*) FROM scheduler_requests WHERE run_id=? AND host='scoring.dance' AND category='old'",
-                (result["run_id"],),
+                (result["acquire"]["run_id"],),
             ).fetchone()[0]
             == 1
         )

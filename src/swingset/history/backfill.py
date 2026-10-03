@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import sqlite3
-from collections.abc import Callable, Iterator
+from collections.abc import Callable
 from dataclasses import dataclass, replace
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Protocol
@@ -15,7 +15,6 @@ from swingset.fetch.client import FetchResult
 from swingset.fetch.wayback import Capture, schedule_capture
 from swingset.history.acquisition import phase_two_gate
 from swingset.history.captures import next_capture
-from swingset.history.origin import OriginProposal
 from swingset.history.platform import PlannedPage, PlatformPlan, retained_plan
 from swingset.schedule.watches import due_watches, refresh_policy
 from swingset.sources import get_page_kind
@@ -221,34 +220,6 @@ def _options(
     return options, False
 
 
-def _with_origin(
-    database: Database,
-    config: Config,
-    clock: Clock,
-    plan: PlatformPlan,
-    options: list[tuple[PlannedPage, tuple[WatchSpec | None, Capture | None, str]]],
-    *,
-    run_id: str | None,
-) -> Iterator[tuple[PlannedPage, WatchSpec | None, str, str | None]]:
-    """Each page's offer: its archive spec, else the origin fallback where it applies.
-
-    Yields the page, the spec to offer (or None), the `_candidate` reason and
-    the origin fallback's reason when it ran.
-    """
-    archive_sources = {item.page.source for item, (spec, _, _) in options if spec is not None}
-    for item, (spec, _, reason) in options:
-        origin: str | None = None
-        if (
-            spec is None
-            and reason in {"capture_gap_exhausted", "operator_pause"}
-            and item.page.source not in archive_sources
-        ):
-            from swingset.history.origin_dispatch import candidate
-
-            spec, _, origin = candidate(database, config, clock, item, plan, run_id=run_id)
-        yield item, spec, reason, origin
-
-
 def offers(
     database: Database,
     config: Config,
@@ -264,6 +235,8 @@ def offers(
     Plan order admits newer events first. All waiting candidates remain visible
     together, so that order cannot override an already enrolled event turn.
     Dispatch repeats the year, parent, capture, and source gates before mutation.
+    Only archive captures are offered: a page whose captures are exhausted
+    makes no origin request (D-0236). ``run_id`` only stamps ``timing``.
 
     The year gate is answered once per year for the whole pass: it walks every
     pending projection unit, and asking it per page made one pass over 6,247
@@ -276,13 +249,10 @@ def offers(
     from swingset.project.history import projection_answer_cached
 
     result: dict[str, WatchSpec] = {}
-    # One answer to the projection question for the whole pass, the origin
-    # fallback included. Outside the cache the fallback asked it once per
-    # page, and from 2026-09-29 the pass never reached a fetch: no request went
-    # out for two days (D-0195).
+    # One answer to the projection question for the whole pass (D-0195).
     with projection_answer_cached():
         options, _ = _options(database, config, clock, plan, deadline=deadline)
-        for _, spec, _, _ in _with_origin(database, config, clock, plan, options, run_id=run_id):
+        for _, (spec, _, _) in options:
             if spec is not None:
                 result.setdefault(spec.watch_id, spec)
     if timing is not None:
@@ -295,9 +265,7 @@ class PagePlan:
     """One planned page as the plan loop records it (D-0218).
 
     ``spec`` is what acquire offers when ``eligible``: the archive capture's
-    spec, or the origin fallback's (no ``archive_url``). ``reason`` is
-    ``eligible`` or the `_candidate` stop reason; ``origin_reason`` is the
-    origin fallback's answer when it ran.
+    spec. ``reason`` is ``eligible`` or the `_candidate` stop reason.
     """
 
     item: PlannedPage
@@ -305,7 +273,6 @@ class PagePlan:
     rank: int
     reason: str
     spec: WatchSpec | None = None
-    origin_reason: str | None = None
 
     @property
     def eligible(self) -> bool:
@@ -325,7 +292,6 @@ def plan_pages(
     config: Config,
     clock: Clock,
     *,
-    run_id: str,
     deadline: datetime | None,
     plan: PlatformPlan | None = None,
 ) -> PlannedPages:
@@ -341,18 +307,9 @@ def plan_pages(
     with projection_answer_cached():
         options, truncated = _options(database, config, clock, plan, deadline=deadline)
         chosen: dict[str, PagePlan] = {}
-        for rank, (item, spec, reason, origin) in enumerate(
-            _with_origin(database, config, clock, plan, options, run_id=run_id)
-        ):
+        for rank, (item, (spec, _, reason)) in enumerate(options):
             watch_id = page_watch_id(item)
-            page = PagePlan(
-                item,
-                watch_id,
-                rank,
-                "eligible" if spec is not None else reason,
-                spec,
-                origin,
-            )
+            page = PagePlan(item, watch_id, rank, "eligible" if spec is not None else reason, spec)
             previous = chosen.get(watch_id)
             if previous is None or (page.eligible and not previous.eligible):
                 chosen[watch_id] = page
@@ -433,7 +390,7 @@ def dispatch_one(
     plan = plan or retained_plan(database.connection, history_start=config.history_start)
     conn = database.connection
     gaps = list(plan.findings)
-    chosen: tuple[PlannedPage, Capture | None, WatchSpec] | None = None
+    chosen: tuple[PlannedPage, Capture, WatchSpec] | None = None
     blocked = "no_eligible_capture"
     from swingset.schedule.event_timing_observer import checkpoint, resume
 
@@ -458,26 +415,11 @@ def dispatch_one(
                 (item, _candidate(database, config, clock, item, plan, year_allowed=year_allowed))
                 for item in pages
             ]
-            archive_sources = {
-                item.page.source for item, (spec, _, _) in options if spec is not None
-            }
             for item, (spec, capture, reason) in options:
                 page = item.page
-                archive_reason = reason
-                proposal: OriginProposal | None = None
-                if (
-                    spec is None
-                    and reason in {"capture_gap_exhausted", "operator_pause"}
-                    and item.page.source not in archive_sources
-                ):
-                    from swingset.history.origin_dispatch import candidate
-
-                    spec, proposal, reason = candidate(
-                        database, config, clock, item, plan, run_id=run_id
-                    )
-                if spec is None:
+                if spec is None or capture is None:
                     blocked = reason
-                    if archive_reason == "capture_gap_exhausted" and item.captures:
+                    if reason == "capture_gap_exhausted" and item.captures:
                         gaps.append(
                             Finding(
                                 "history_archive_gap",
@@ -516,15 +458,7 @@ def dispatch_one(
                     continue
                 # The gate and this mutation share BEGIN IMMEDIATE; changed policies or
                 # year acceptance can never leave a newly admitted control behind.
-                scheduled = False
-                if proposal is not None:
-                    from swingset.history.origin_dispatch import schedule
-
-                    schedule(conn, spec, proposal, run_id=run_id, now=clock.now())
-                    scheduled = True
-                else:
-                    scheduled = schedule_capture(conn, spec, now=clock.now())
-                if scheduled:
+                if schedule_capture(conn, spec, now=clock.now()):
                     conn.execute("UPDATE watches SET priority=6 WHERE watch_id=?", (spec.watch_id,))
                     replace_findings(
                         conn,
@@ -550,20 +484,12 @@ def dispatch_one(
     _, capture, spec = chosen
     # Direct calls leave two minutes for downstream bookkeeping; fair allocation
     # already reserves offline time. The client retains every actual host gate.
-    try:
-        result = fetcher.fetch(
-            spec.watch_id,
-            get_page_kind(spec.parser),
-            run_id,
-            deadline=deadline if allocated else deadline - timedelta(seconds=120),
-        )
-    finally:
-        if capture is None:
-            with database.transaction():
-                conn.execute(
-                    "UPDATE history_origin_intents SET dispatch_run_id=NULL WHERE watch_id=? AND dispatch_run_id=?",
-                    (spec.watch_id, run_id),
-                )
+    result = fetcher.fetch(
+        spec.watch_id,
+        get_page_kind(spec.parser),
+        run_id,
+        deadline=deadline if allocated else deadline - timedelta(seconds=120),
+    )
     if not result.skipped:
         with database.transaction():
             refresh_policy(

@@ -37,58 +37,42 @@ unassessed or non-enforcing page kinds, unmapped events, and events before the
 fallback. New-source fixture exceptions remain separate from all production
 acquisition gates.
 
-## Integrated runtime (future schema 15)
+## Origin candidates are an offline report (D-0236)
 
-The normal history dispatcher now calls this planner. `backfill.offer(...,
-run_id=...)` offers a known origin page only after retained archive proof passes;
-`dispatch_one` repeats that decision in a write transaction. Eligible archive
-work of the same source takes precedence. The existing priority-6 fair allocation
-uses the offered URL's actual host, rather than charging origin work to Archive.
-No new source, page-kind policy, year acceptance, or scheduled intake is enabled
-by this implementation.
+The loops make no origin request from the history plan. `backfill.offers`,
+`plan_pages` and `dispatch_one` offer archive captures only. A page whose
+captures are exhausted keeps `capture_gap_exhausted` and its archive gap
+finding; it no longer gets the "waits for its admitted parent" finding the
+fallback used to add.
 
-Migration 15 adds three initially empty tables. `history_origin_intents` records
-the original URL, actual event mapping, parent URL, query/capture proof and the
-current dispatch run. `history_origin_requests` records actual HTTP admissions,
-including robots and redirects, in the same transaction as the host-budget
-charge. It limits each source to one event per cycle, and DCN to one event per UTC
-day. Waiting, paused, budget-depleted and rejected requests consume neither a
-request nor an event allowance. Existing host budgets, bytes, cooldowns,
-conditional validators and operator controls remain authoritative. An Archive
-host pause does not block a proved gap on an independently healthy origin host.
+`journal/tools/collection/origin_candidates.py` asks the old question on a
+state copy. It builds the plan as the offers pass does, and for each page
+stopped at `capture_gap_exhausted` or `operator_pause` it prints
+`origin_dispatch.candidate`'s reason and proposal (the CDX queries and tried
+captures that prove the gap). It also lists every `history_origin_intents`
+row. It refuses `/var/lib/swingset` and a held `state.lock`, reads inside a
+rolled-back transaction and has no transport. A reviewer turns an
+`eligible_origin` row into a reviewed `overrides/source_urls.csv` row; see
+[collection tools](../../journal/tools/collection/README.md#origin-candidates).
 
-The fetcher rechecks the exact year/page-kind gate, mapping and archive proof
-before any robots/dedup work, after every wait and before each real request.
-Only the original resource, its HTTP/HTTPS spelling, and that host's robots file
-are allowed; a redirect cannot discover a sibling page or another host. Managed
-origin controls are excluded from ordinary polling and require the dispatcher's
-run reservation. Existing independent origin controls retain their own cadence
-and are never converted into a second origin queue. Historical origin parents
-retain declared child URLs and FileRows as evidence; they do not create or
-refresh ungated live child controls.
+`history/origin_dispatch.py` stays byte-identical until the next whole
+re-parse, because the parse code calls its `managed()`. Its gates still apply
+to any intent row: the fetcher's `request_gate` (actual host, exact resource,
+robots only, mapping, parent and archive proof), `record_request`'s cadence
+receipt, the eligibility refusal of managed watches and the fairness skip.
+Production has no intent, request or operator-reference row. Migration 15's
+three tables stay until that re-parse removes the module.
 
 `origin_dispatch.record_operator_reference` records a retained operator-response
-reference for an already mapped EEPro source reference, within the coordinator's
-write transaction. It cannot invent a mapping, create a watch, admit a parser,
-or accept a year. No operator response has been recorded by these tests or this
-implementation.
-
-Offline validation includes a real retained EEPro index with seven child files,
-an actual cycle using fake HTTP and clock, paused-child preservation, atomic
-planning rollback, actual origin-host budget and spacing checks, policy/capture
-changes after robots, redirect refusal, persisted event cadence, and migration
-preservation of every preexisting table row. All acquisition tests use mock
-transport; no source request was made.
-
-Production remains on the separately pinned schema-14 runtime until a reviewed migration/deployment. All 17 years
-remain unaccepted. Actual origin intake, DCN history-year index/parser preparation
-and real fixture admission, EEPro's operator answer, and generic event-site
-interpretation remain separate WP16 completion items. Nothing here writes an
-override file or treats a model proposal as human review.
+reference for an already mapped EEPro source reference. It cannot invent a
+mapping, create a watch, admit a parser, or accept a year.
 
 ## Event-site candidates from retained CDX evidence
 
-`history.event_sites` supplies the event-site review path described in backfill.
+`history.event_sites` supplies the query specifications and verified retained
+hits. Proposals come from an offline tool,
+[`event_site_review.py`](../../journal/tools/collection/event_site_review.py)
+(architecture phase 5); no loop runs a review.
 The existing reusable runtime is the finding-to-`review_queue` path and its
 `suggested_override` field. The live long-tail link scan and the documented
 `generic.html_table` / `generic.pdf_table` adapters are not implemented; this
@@ -116,18 +100,21 @@ into guessed HTTPS targets. A unique HTTPS candidate receives a deterministic
 **draft** `source_urls.csv` suggestion. Generic parser availability is disclosed;
 unavailable adapters still cause normal override validation to reject an attempted
 installation. Human review, implemented and admitted parsers, year acceptance and
-actual acquisition remain separate steps. This helper never writes an override
-file, watch, source observation, acceptance record or request.
+actual acquisition remain separate steps.
 
-Cycle reconciliation processes at most ten accepted event sites per invocation,
-rotating a durable cursor. Each event permits at most 64 retained page receipts,
-each body is capped at 8 MiB, and review has a ten-second wall-clock allowance.
-Body inspection happens outside the write transaction so controls can pause a
-running review. The exact edition set and year acceptance are checked again
-before installing findings. All/kind controls hold new review operations. A
-reviewed override closes its suggestion; it does not itself start acquisition.
-The card reports only public finding counts and identified years, without
-echoing private notes or proposed URLs.
+The tool opens a state copy read-only (`mode=ro`, `immutable=1` when no WAL
+holds data) and writes nothing in it: no finding, cursor, `meta` row, override,
+watch or request. It takes the first `--events` event sites (default 10)
+after `--after`, in event-id order, in years open on facts
+(`year_gate_reason` under `facts_only_year_gate`). Each event permits at most
+64 retained page receipts, each body is capped at 8 MiB, and the run has a
+60-second wall clock. It prints one JSON line per proposal or gap. A row in
+`--overrides` for the same event drops its URL; one for another event makes
+it ambiguous. To adopt a draft, a reviewer checks the capture, the binding
+and the parser, then copies `source_urls_csv` into
+`overrides/source_urls.csv`. Migration 37 closes the 230
+`history_event_site_review` findings the retired stage opened (D-0236): no
+writer was left to close them.
 
 This completes the retained event-site **suggestion** path. Actual generic
 HTML/PDF interpretation and event-site acquisition remain unimplemented. The
@@ -158,8 +145,8 @@ result = ingest(
 )
 ```
 
-Explicit `dry_run=False` retains verified evidence for the existing cycle review
-path. Both modes require the exact canonical website/year, accepted-year proof,
+Explicit `dry_run=False` retains verified evidence for the offline review
+tool. Both modes require the exact canonical website/year, accepted-year proof,
 the 2010 history floor, and unpaused source/mapping controls. Import is not
 page-kind activation: there is no generic scoring parser, source observation,
 watch, HTTP request, budget debit or year-acceptance write. Host-only pauses do
@@ -219,8 +206,8 @@ files obey the same bounded checks. Receipt files become durable before one
 atomic metadata transaction. Interruption can leave unreferenced immutable
 artifacts; it cannot commit partial query metadata. Retry validates and reuses
 those artifacts. The exact event and acceptance/control gates are checked again
-before commit. The ordinary bounded `event_sites.reconcile` then produces draft
-review findings; it does not fetch the discovered pages.
+before commit. The offline review tool then prints draft proposals; nothing
+fetches the discovered pages.
 
 Offline tests cover raw-byte preservation, empty probes, partial resume,
 idempotence, repeated capture provenance, filter/refresh collisions, corrupted

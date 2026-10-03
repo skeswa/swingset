@@ -4,7 +4,7 @@ Recorded: 2026-09-21
 Decided by: agent, under D-0183  
 Topic: Release operations  
 Supersedes: —  
-Superseded by: —
+Superseded by: in part, [D-0239](0239-the-loops-are-the-only-orchestration.md) (the cycle and its budget are gone)
 
 ## Decision
 

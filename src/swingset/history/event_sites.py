@@ -1,27 +1,23 @@
-"""Retained event-site CDX evidence becomes review proposals, never acquisition."""
+"""Event-site CDX query specifications and verified retained hits.
+
+Turning hits into reviewable `source_urls.csv` proposals is the offline
+event-site review tool in `journal/tools/collection/`; no loop runs it.
+"""
 
 from __future__ import annotations
 
-import csv
 import gzip
-import hashlib
-import io
 import json
 import re
 import sqlite3
 import time
 from dataclasses import dataclass
-from datetime import date, datetime
+from datetime import date
 from pathlib import Path
 from urllib.parse import parse_qs, urlencode, urlsplit
 
 from swingset.fetch.archive import Archive, digest
 from swingset.fetch.wayback import parse_cdx
-from swingset.project.history import phase_two_allowed, projection_answer_cached
-from swingset.sources import get_page_kind
-from swingset.state.controls import ActionScope, matching_pauses
-from swingset.state.db import Database
-from swingset.state.findings import Finding, Reference, replace_findings
 
 WORDS = ("result", "score", "callback", "prelim", "final")
 HTML_FILTER = "original:.*(result|score|callback|prelim|final).*"
@@ -237,210 +233,3 @@ def retained_hits(
                     raise ValueError("CDX body hit is not retained in the capture inventory")
                 hits.add(hit)
     return tuple(sorted(hits, key=lambda hit: (hit.url, hit.timestamp, hit.query_id)))
-
-
-def _candidates(sites: tuple[Site, ...], hit: Hit) -> tuple[str, ...]:
-    try:
-        path = urlsplit(hit.url).path
-    except ValueError:
-        return ()
-    years = {int(year) for year in re.findall(r"(?<!\d)(20\d{2})(?!\d)", path)}
-    candidates = [
-        site
-        for site in sites
-        if _matches(site, hit.url) and int(hit.timestamp[:4]) in {site.year, site.year + 1}
-    ]
-    if years:
-        candidates = [site for site in candidates if years == {site.year}]
-    return tuple(sorted({site.event_id for site in candidates}))
-
-
-def proposals(
-    site: Site,
-    sites: tuple[Site, ...],
-    hits: tuple[Hit, ...],
-    *,
-    overrides: tuple[dict[str, str], ...] = (),
-) -> tuple[Finding, ...]:
-    result = []
-    for url in sorted({hit.url for hit in hits}):
-        group = tuple(hit for hit in hits if hit.url == url)
-        candidates = sorted({event for hit in group for event in _candidates(sites, hit)})
-        if site.event_id not in candidates:
-            continue
-        existing = [row for row in overrides if row.get("url") == url]
-        if existing and all(row.get("event_id") == site.event_id for row in existing):
-            continue
-        formats = {hit.mimetype for hit in group}
-        parser = "generic.pdf_table" if formats == {"application/pdf"} else "generic.html_table"
-        reason = "draft_override"
-        if candidates != [site.event_id] or existing or len(formats) != 1:
-            reason = "ambiguous_event_or_format"
-        elif urlsplit(url).scheme != "https":
-            reason = "http_locator_requires_review"
-        try:
-            get_page_kind(parser)
-            parser_available = True
-        except KeyError:
-            parser_available = False
-        output = io.StringIO(newline="")
-        if reason == "draft_override":
-            csv.writer(output, lineterminator="").writerow(
-                (
-                    site.event_id,
-                    "generic",
-                    "round",
-                    url,
-                    parser,
-                    "CDX candidate: review event binding, content and parser admission before use",
-                )
-            )
-        key = hashlib.sha256(url.encode()).hexdigest()[:16]
-        result.append(
-            Finding(
-                "history_event_site_review",
-                "event",
-                site.event_id,
-                "warning",
-                f"Event-site result candidate {key} requires human override review ({reason}; parser {'available' if parser_available else 'unavailable'}).",
-                {
-                    "url": url,
-                    "year": site.year,
-                    "website": site.website,
-                    "candidate_event_ids": candidates,
-                    "reason": reason,
-                    "parser": parser,
-                    "parser_available": parser_available,
-                    "captures": [hit.__dict__ for hit in group],
-                },
-                suggested_override=output.getvalue() or None,
-                # The evidence names the retained CDX page each capture was read
-                # from, and retention keeps a file only if a finding says it
-                # relies on it. Declare those bodies, or the next review cadence
-                # would unpin the very pages this proposal asks a human to check.
-                # `receipt_sha256` is not declared: the receipt is stored under
-                # `archive-cdx/`, not `blobs/`, and a declaration naming a file
-                # that is not there is a reported defect (D-0144).
-                references=tuple(
-                    Reference("body", digest)
-                    for digest in sorted({hit.body_sha256 for hit in group})
-                ),
-            )
-        )
-    return tuple(result)
-
-
-def reconcile(
-    database: Database,
-    *,
-    now: datetime,
-    run_id: str,
-    history_start: date = date(2010, 1, 1),
-    overrides: tuple[dict[str, str], ...] = (),
-    event_limit: int = 10,
-    wall_seconds: float = 10,
-) -> int:
-    """A bounded rotating review cohort; no source controls or overrides are written.
-
-    The coordinator owns the normal state lock and control operation. Artifact
-    reading happens outside the short transaction, permitting pause persistence.
-    """
-    if not 1 <= event_limit <= 100 or not 0 <= wall_seconds <= 60:
-        raise ValueError("event-site review requires at most 100 events and 60 seconds")
-    if wall_seconds == 0:
-        return 0
-    deadline = time.monotonic() + wall_seconds
-    conn = database.connection
-    with projection_answer_cached():
-        accepted = {
-            int(row[0])
-            for row in conn.execute("SELECT year FROM history_acceptance")
-            if phase_two_allowed(conn, int(row[0]))
-        }
-    if not accepted:
-        return 0
-    sites = tuple(
-        Site(str(row[0]), int(row[1]), str(row[2]))
-        for row in conn.execute(
-            "SELECT event_id,year,website FROM events WHERE year>=? AND website IS NOT NULL ORDER BY event_id",
-            (history_start.year,),
-        )
-        if row[2]
-    )
-    eligible = [site for site in sites if site.year in accepted and site.prefix]
-    if not eligible:
-        return 0
-    scope = ActionScope(all_sources=True, kinds=frozenset({"source_event_mapping"}))
-    if matching_pauses(conn, scope, now=now):
-        return 0
-    current = conn.execute("SELECT value FROM meta WHERE key='event_site_review_cursor'").fetchone()
-    cursor = str(current[0]) if current else ""
-    cohort = (
-        [site for site in eligible if site.event_id > cursor]
-        + [site for site in eligible if site.event_id <= cursor]
-    )[:event_limit]
-    archive = Archive(database.state_dir)
-    computed = []
-    for site in cohort:
-        if time.monotonic() >= deadline:
-            break
-        try:
-            hits = retained_hits(conn, archive, site, deadline=deadline)
-            findings = proposals(site, sites, hits, overrides=overrides)
-            if not hits:
-                findings = (
-                    Finding(
-                        "history_event_site_review",
-                        "event",
-                        site.event_id,
-                        "warning",
-                        "No retained event-site result hits are available for review.",
-                        {"year": site.year, "reason": "no_retained_hits", "search_complete": False},
-                    ),
-                )
-        except (OSError, ValueError, KeyError, TypeError) as exc:
-            findings = (
-                Finding(
-                    "history_event_site_review",
-                    "event",
-                    site.event_id,
-                    "warning",
-                    "Event-site CDX review evidence is incomplete or invalid.",
-                    {"year": site.year, "reason": str(exc)},
-                ),
-            )
-        computed.append((site, findings))
-    if not computed:
-        return 0
-    # Answer the projection question once for this write, not once per site:
-    # each answer costs about ten seconds on the production database, and ten
-    # of them overran the 45-second bound and aborted every cycle (D-0201).
-    with projection_answer_cached(), database.transaction():
-        current_sites = tuple(
-            Site(str(row[0]), int(row[1]), str(row[2]))
-            for row in conn.execute(
-                "SELECT event_id,year,website FROM events WHERE year>=? AND website IS NOT NULL ORDER BY event_id",
-                (history_start.year,),
-            )
-            if row[2]
-        )
-        if sites != current_sites:
-            return 0  # A changed edition set can invalidate an apparently unique binding.
-        completed = 0
-        for site, findings in computed:
-            if not phase_two_allowed(conn, site.year):
-                continue
-            replace_findings(
-                conn,
-                owner_kind="event_site_backfill",
-                owner_id=site.event_id,
-                findings=findings,
-                opened_at=now.isoformat(),
-                run_id=run_id,
-            )
-            completed += 1
-        conn.execute(
-            "INSERT INTO meta VALUES ('event_site_review_cursor',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",
-            (computed[-1][0].event_id,),
-        )
-    return completed

@@ -2,9 +2,9 @@ import shutil
 from pathlib import Path
 
 import httpx
+from helpers.loop_ticks import run_round
 
 from swingset.clock import FakeClock
-from swingset.schedule.cycle import run_cycle
 from swingset.state.db import open_database
 
 
@@ -37,13 +37,14 @@ def test_archived_scoringdance_event_runs_end_to_end(tmp_path: Path) -> None:
     clock = FakeClock()
     with open_database(tmp_path / "state") as database:
         for _ in range(30):
-            result = run_cycle(
+            ticks = run_round(
                 database,
                 config_dir=config,
                 overrides_dir=overrides,
                 clock=clock,
                 transport=httpx.MockTransport(handler),
             )
+            result = {**ticks["release"], "failed": ticks.failed}
             if (
                 result.get("candidate_id")
                 and database.connection.execute("SELECT count(*) FROM entries").fetchone()[0] == 317

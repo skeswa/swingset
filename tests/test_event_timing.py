@@ -492,7 +492,10 @@ def test_advancing_clock_cycle_emits_lower_bound_breach_despite_bookkeeping_gaps
 ):
     import shutil
 
-    from swingset.schedule import cycle
+    from helpers.loop_ticks import run_round
+
+    from swingset.schedule import fairness
+    from swingset.schedule.acquisition import Acquisition
 
     class AdvancingClock(FakeClock):
         def now(self):
@@ -515,7 +518,7 @@ def test_advancing_clock_cycle_emits_lower_bound_breach_despite_bookkeeping_gaps
     (overrides_dir / "source_urls.csv").write_text("event_id,source,kind,url,parser,notes\n")
     (overrides_dir / "event_aliases.csv").write_text("source,source_ref,event_id,note\n")
     transport = httpx.MockTransport(lambda _: httpx.Response(404))
-    cycle.run_cycle(
+    run_round(
         f.db,
         config_dir=config_dir,
         overrides_dir=overrides_dir,
@@ -525,15 +528,16 @@ def test_advancing_clock_cycle_emits_lower_bound_breach_despite_bookkeeping_gaps
     )
     prepared(f)
     observed = []
-    select = cycle.next_watch
+    select = fairness.next_watch
 
     def inspect_then_select(*args, **kwargs):
         for row in f.conn.execute("SELECT * FROM event_timing WHERE source_ref='eepro:test'"):
             observed.append((dict(row), alarms(dict(row), now=clock.now(), operator_hold=False)))
         return select(*args, **kwargs)
 
-    monkeypatch.setattr(cycle, "next_watch", inspect_then_select)
-    result = cycle.run_cycle(
+    # The acquire tick's pass takes the fair policy's selection by default.
+    monkeypatch.setitem(Acquisition.__init__.__kwdefaults__, "select", inspect_then_select)
+    result = run_round(
         f.db,
         config_dir=config_dir,
         overrides_dir=overrides_dir,
@@ -541,7 +545,7 @@ def test_advancing_clock_cycle_emits_lower_bound_breach_despite_bookkeeping_gaps
         budget=30,
         transport=transport,
     )
-    assert not result["failed"]
+    assert not result.failed
     breaches = [
         (row, alarm)
         for row, alarm in observed

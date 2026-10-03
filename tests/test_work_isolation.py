@@ -4,10 +4,10 @@ import shutil
 from pathlib import Path
 
 import httpx
+from helpers.loop_ticks import run_round
 
 from swingset.clock import FakeClock
 from swingset.fetch.archive import Archive
-from swingset.schedule.cycle import run_cycle
 from swingset.schedule.parse import parse_snapshot
 from swingset.schedule.watches import upsert_watch
 from swingset.sources.base import ExtractError, WatchSpec
@@ -93,7 +93,7 @@ def test_failed_parse_does_not_starve_healthy_fetch_or_derivation(tmp_path, monk
         results = []
         for _ in range(3):
             results.append(
-                run_cycle(
+                run_round(
                     database,
                     config_dir=config,
                     overrides_dir=overrides,
@@ -112,14 +112,24 @@ def test_failed_parse_does_not_starve_healthy_fetch_or_derivation(tmp_path, monk
         )
         assert len(failed_calls) == 1
         assert Archive(state).read_body(broken_sha) == b"permanently unsupported layout"
-        assert all("correction_candidate_id" not in result for result in results)
+        assert all(
+            "correction_candidate_id" not in record
+            for result in results
+            for record in result.sequence
+        )
         attempts = database.connection.execute(
             "SELECT * FROM work_attempts WHERE stage='parse' AND unit_id=?", (broken.unit_id,)
         ).fetchall()
         assert len(attempts) == 1
         assert attempts[0]["outcome"] == "blocked"
-        assert database.connection.execute(
-            "SELECT 1 FROM findings WHERE closed_at IS NULL AND blocking_reason IS NOT NULL"
+        # The failure lives on the queue and attempt rows, not in a finding (D-0237).
+        queued = database.connection.execute(
+            "SELECT last_reason FROM work_queue WHERE stage='parse' AND unit_id=?",
+            (broken.unit_id,),
+        ).fetchone()
+        assert queued[0] == attempts[0]["reason_code"]
+        assert not database.connection.execute(
+            "SELECT 1 FROM findings WHERE kind='work_attempt'"
         ).fetchone()
 
 
@@ -151,7 +161,7 @@ def test_cycle_restores_missing_historical_body_from_real_checkpoint_and_commits
         )
         before_manifest = (checkpoint.path / "checkpoint.json").read_bytes()
         Archive(state).blob_path(sha).unlink()
-        result = run_cycle(
+        result = run_round(
             database,
             config_dir=config,
             overrides_dir=overrides,
@@ -182,7 +192,7 @@ def test_cycle_restores_missing_historical_body_from_real_checkpoint_and_commits
             == sha
         )
         assert not any("/historical/" in url for url in requests)
-        assert "correction_candidate_id" not in result
+        assert all("correction_candidate_id" not in record for record in result.sequence)
         assert (checkpoint.path / "checkpoint.json").read_bytes() == before_manifest
         assert not (checkpoint.path / "state.sqlite-wal").exists()
         assert not (checkpoint.path / "state.sqlite-shm").exists()
@@ -212,14 +222,14 @@ def test_cycle_missing_artifact_without_backup_retains_unavailable_and_independe
         assert not parse_snapshot(database, Archive(state), healthy, clock, run).failed
         Archive(state).blob_path(sha).unlink()
         for _ in range(3):
-            result = run_cycle(
+            result = run_round(
                 database,
                 config_dir=config,
                 overrides_dir=overrides,
                 clock=clock,
                 transport=httpx.MockTransport(transport),
             )
-            assert "correction_candidate_id" not in result
+            assert all("correction_candidate_id" not in record for record in result.sequence)
             clock.sleep(1)
         assert "https://worldsdc.com/events/" in requests
         assert (
@@ -234,11 +244,15 @@ def test_cycle_missing_artifact_without_backup_retains_unavailable_and_independe
         assert len(attempts) == 1
         assert attempts[0]["outcome"] == "unavailable"
         assert json.loads(attempts[0]["evidence_json"])["sha256"] == sha
-        finding = database.connection.execute(
-            "SELECT * FROM findings WHERE finding_id=?", (attempts[0]["requirement_id"],)
+        assert attempts[0]["requirement_id"] is None
+        queued = database.connection.execute(
+            "SELECT last_reason FROM work_queue WHERE stage='parse' AND unit_id=?",
+            (broken.unit_id,),
         ).fetchone()
-        assert finding["state"] == "unavailable" and finding["closed_at"] is None
-        assert json.loads(finding["evidence_json"])["sha256"] == sha
+        assert queued[0] == attempts[0]["reason_code"]
+        assert not database.connection.execute(
+            "SELECT 1 FROM findings WHERE kind='work_attempt'"
+        ).fetchone()
         assert (
             database.connection.execute(
                 "SELECT body_sha256 FROM snapshots WHERE snapshot_id=?", (broken.unit_id,)

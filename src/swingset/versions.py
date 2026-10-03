@@ -1,7 +1,7 @@
 """The code identity a captured input bundle records (D-0188).
 
-This module sits outside the scheduling loop so that the build stage and the
-publication checks can read it without importing `schedule.cycle`, whose
+This module sits outside scheduling so that the build stage and the
+publication checks can read it without importing the scheduler, whose
 imports would otherwise enter every project, link and build recipe scope.
 """
 
@@ -23,8 +23,7 @@ def repository_identity(package_root: Path | None = None) -> str:
     projection unit is fingerprinted with this identity. Such a marker is
     ignored in favour of the digest of the Python sources, so only a change
     to the code itself re-queues work (D-0188). The digest covers the
-    `swingset` package directory, the same tree it covered from
-    `schedule/cycle.py`.
+    `swingset` package directory.
     """
     revision = os.environ.get("SWINGSET_REVISION", "").strip()
     if revision and not revision.startswith("uncommitted:"):

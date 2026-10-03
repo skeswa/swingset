@@ -1,0 +1,101 @@
+{
+  "operation": "architecture phase 2 switch 2b: the five loops (acquire, derive, plan, release, maintain) replace swingset-cycle; release MemoryMax 7G -> 7680M",
+  "actor": "claude (session claude-rearch)",
+  "decisions": [
+    "D-0215",
+    "D-0216",
+    "D-0233",
+    "D-0235"
+  ],
+  "owner_approval": "2026-10-04: 'Accept now, fix in Phase 3/4 (Recommended)' (stop-marker versus start timeout accepted for 2b; the fix goes into the phase 3/4 tree; derive tick seconds watched against its 30-minute start timeout)",
+  "gates": "see ../architecture-phase2a-2026-10-02/receipt.json gates_2b_at_2026-10-03T15:32Z: complete write 20.7 s met; release memory raised to 7680M (1.15 x 6.23 GB); requests per day met or explained",
+  "deploy_tree": {
+    "path": "/private/tmp/swingset-c029",
+    "contents": "c028 (deployed 2a tree) + nix/hosts/orb.nix loops.enable = true + nix/module.nix release memory 7680M; src/ identical to c028",
+    "build_check": "nixos-rebuild build before the hold: five loop services and timers, no cycle unit, release MemoryMax=7680M, derive MemoryMax=5G TimeoutStartSec=30min"
+  },
+  "preflight": {
+    "hold_utc": "2026-10-04T02:12:29Z",
+    "cycle_finished_on_its_own": "run_20261004T020328Z at 2026-10-04T02:44:38Z, failed=0 (2b step 7: never kill a cycle mid-run)",
+    "schema": 34,
+    "database_bytes": 72849682432,
+    "wal_bytes": 0,
+    "pending": {
+      "link": 2934,
+      "parse": 1518,
+      "project": 1
+    },
+    "queue": {
+      "ready": 87,
+      "waiting_input": 490
+    },
+    "operator_pauses": 0,
+    "unfinished_cycle_runs": [
+      "run_20261003T042410Z (stopped by the D-0233 switch)",
+      "run_20261001T213321Z",
+      "run_20260930T142844Z",
+      "run_20260926T204307Z",
+      "run_20260924T144516Z"
+    ],
+    "note_unfinished": "loop recovery settles only its own loop's runs; these cycle runs stay unfinished rows (plan: 'Cycle to loops'); no lease was held (queue had 0 leased)"
+  },
+  "switch": {
+    "command": "nixos-rebuild switch --flake path:/mnt/mac/private/tmp/swingset-c029#orb --impure",
+    "window_utc": [
+      "2026-10-04T02:44:43Z",
+      "2026-10-04T02:45:03Z"
+    ],
+    "system_before": "/nix/store/xbzr8zdaccjspp0yacfs84d9xfp0xmaf-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+    "system_after": "/nix/store/bfnnnxvdb199bvw44s9nla9b2wxbxbsf-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+    "hold_removed_utc": "2026-10-04T02:45:10Z",
+    "rollback": "2b to 2a: loops.enable = false (c028) under operator-hold, waiting until no swingset-* unit is active (plan, phase 2 rollback)"
+  },
+  "first_ticks_at_02:58Z": {
+    "derive": {
+      "ticks_done": 1,
+      "seconds": 157,
+      "peak_rss_bytes": 865767424,
+      "write_seconds_max": 4.757,
+      "progress": 8
+    },
+    "acquire": {
+      "ticks_done": 1,
+      "seconds": 244,
+      "peak_rss_bytes": 178335744,
+      "checked": 32,
+      "changed": 1
+    },
+    "requests_since_switch": {
+      "points.worldsdc.com": 48,
+      "eepro.com": 2
+    },
+    "first_snapshot_utc": "2026-10-04T02:51:03Z",
+    "failed": 0,
+    "errors": 0,
+    "pauses": 0,
+    "database_bytes": 72850300928
+  },
+  "history_wait": {
+    "watchdog": "2026-10-04T03:35:24Z [stale-progress] link 2934 ready, project/history due 01:05 UTC has not run",
+    "measured_04:00Z": {
+      "history": {
+        "materialized_at": "2026-10-02T01:05:32Z",
+        "current": false,
+        "deferred": false
+      },
+      "inventory": {
+        "materialized_at": "2026-10-02T18:30:53Z",
+        "current": false,
+        "deferred": true
+      }
+    },
+    "cause": "history needs a current inventory; schedule/pacing.py defers the inventory while history has not consumed it and the inventory is inside its own interval, now 7 days (D-0228); the 2a drain re-made the inventory at 10-02 18:30 after history's last run, so both wait until about 2026-10-09 18:30 UTC",
+    "effect": "history and the 2,934 link units stay stale; acquisition and parsing are unaffected (D-0198); publication is off",
+    "decision": "accepted until the phase 3/4 deploy (history per year, inventory 12 h); the alternative, inventory back to 48 h, would cascade about 1.4 GB at 18:30 UTC against the 76 GB cap"
+  },
+  "derive_idle": {
+    "watchdog": "2026-10-04T06:05:25Z [loop-idle] derive: no progress since 03:54 UTC",
+    "explained": "no runnable work: the 6 snapshots fetched since the switch all parsed ok; 937 pending parse rows have no work_queue row (superseded, maintenance item 13); 87 ready rows are admission_needs_review (parked); project/history waits on the paced inventory (history_wait); new snapshots resume when daily host budgets reset at 00:00 UTC",
+    "note": "[loop-idle] and [stale-progress] repeat while this holds; maintenance item 13 should also make the watchdog ignore parked rows"
+  }
+}

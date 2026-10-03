@@ -95,6 +95,13 @@ def _scalar(state, sql, *params):
         return db.connection.execute(sql, params).fetchone()[0]
 
 
+#: Ledger rows of a leased unit: none since schema 37 (D-0238).
+UNIT_ADMISSIONS = (
+    "SELECT count(*) FROM execution_admissions WHERE substr(action_id,1,5)='work_' "
+    "OR action_kind IN ('parse','link') OR work_attempt_id IS NOT NULL"
+)
+
+
 @pytest.fixture
 def started(dirs, history):
     """Plan and acquire once: an eligible Wayback row is fetched, and its
@@ -147,6 +154,8 @@ def test_a_loop_killed_mid_write_stops_no_other_and_recovers_itself(
     _kill(dirs, clock, loop, fault, chunk)
     dead = _scalar(state, "SELECT run_id FROM runs WHERE loop=? AND finished_at IS NULL", loop)
     assert dead is not None
+    # A unit killed mid-write left its lease and attempt, no ledger row (D-0238).
+    assert _scalar(state, UNIT_ADMISSIONS) == 0
     building = None
     if chunk:
         with open_database(state, lock=False) as db:
@@ -199,13 +208,15 @@ def test_a_loop_killed_mid_write_stops_no_other_and_recovers_itself(
         assert (
             conn.execute("SELECT count(*) FROM work_queue WHERE state='leased'").fetchone()[0] == 0
         )
-        # No admission is left active, with a run or without one.
+        # No admission is left active, with a run or without one, and no
+        # admission row exists for a unit.
         assert (
             conn.execute(
                 "SELECT count(*) FROM execution_admissions WHERE state='active'"
             ).fetchone()[0]
             == 0
         )
+        assert conn.execute(UNIT_ADMISSIONS).fetchone()[0] == 0
         if building is not None:
             # The rerun resumed the building generation and finished it.
             generation_id, label_rows, _ = building
@@ -541,12 +552,8 @@ def test_an_exception_that_escapes_derive_one_counts_and_quarantines(dirs, monke
                 ).fetchone()[0]
                 == 0
             )
-            assert (
-                conn.execute(
-                    "SELECT count(*) FROM execution_admissions WHERE state='active'"
-                ).fetchone()[0]
-                == 0
-            )
+            # No admission row exists for a unit (D-0238).
+            assert conn.execute(UNIT_ADMISSIONS).fetchone()[0] == 0
         assert row is not None and row.attempts == number
         assert row.error_class == "unit_exception:KeyError"
         assert row.state == ("quarantined" if number == 3 else "ready")

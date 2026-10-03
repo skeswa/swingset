@@ -7,6 +7,7 @@ from dataclasses import replace
 
 import httpx
 import pytest
+from helpers.loop_ticks import ACCEPTED_FIRST, run_round
 from test_admission import BODY
 from test_cycle import overrides as overrides
 from test_event_enumerations import admit_parent, child, finish_bootstrap
@@ -17,7 +18,6 @@ from swingset.admission.page_evidence import Limits
 from swingset.backup.checkpoint import create_checkpoint, restore_checkpoint
 from swingset.fetch.client import FetchClient
 from swingset.schedule import event_progress as progress
-from swingset.schedule.cycle import run_cycle
 from swingset.schedule.event_progress_report import report
 from swingset.schedule.parse import parse_snapshot
 from swingset.sources import get_page_kind
@@ -390,16 +390,17 @@ def test_paused_cycle_does_not_verify_artifacts_or_record_observed_progress(
         reason="maintenance",
         now=f.corpus.clock.now(),
     )
-    result = run_cycle(
+    result = run_round(
         f.db,
         config_dir=config_dir,
         overrides_dir=overrides,
         clock=f.corpus.clock,
         budget=1,
+        loops=ACCEPTED_FIRST,
         transport=httpx.MockTransport(lambda _: pytest.fail("paused progress fetched")),
     )
-    assert not result["failed"]
-    assert any(row["action"] == "event_progress_refresh" for row in result["held_operations"])
+    assert not result.failed
+    assert any(row["action"] == "event_progress_refresh" for row in result.held_operations)
     assert not f.conn.execute("SELECT 1 FROM event_progress_observations").fetchone()
 
 

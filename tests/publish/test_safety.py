@@ -8,9 +8,9 @@ from test_recovery import FakeHub
 from swingset.build.service import build_release
 from swingset.clock import FakeClock
 from swingset.publish.service import PublishError, publish, reconcile
-from swingset.schedule.cycle import versions
 from swingset.state.db import open_database
 from swingset.state.inputs import accept, capture
+from swingset.versions import versions
 
 
 @pytest.fixture

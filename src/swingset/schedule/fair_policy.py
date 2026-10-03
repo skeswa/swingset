@@ -1,21 +1,14 @@
-"""Measured starting allocations; limits remain owned by the existing host gate."""
+"""Scheduling settings and host class shares; limits stay with the host gate."""
 
 from __future__ import annotations
 
 import math
 import tomllib
 from dataclasses import dataclass, fields
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from swingset.config import Config
 
 
 @dataclass(frozen=True)
 class SchedulerConfig:
-    reconciliation_share: float = 1 / 24
-    acquisition_share: float = 5 / 12
-    offline_share: float = 13 / 24
     service_gap_seconds: float = 86400
     pending_parse_bytes: int = 128 * 1024 * 1024
     pending_parse_items: int = 1000
@@ -34,13 +27,13 @@ class SchedulerConfig:
     event_pressure_refresh_events: int = 8
     event_pressure_probe_pages: int = 32
     # While a parse or projection backlog keeps backpressure active, rebuild
-    # and publish at most this often so the offline phase gets the cycle.
+    # and publish at most this often so derivation gets the time.
     backlog_publish_interval_seconds: float = 21600
     # Seconds of each acquisition phase spent indexing platform archives (CDX)
     # after offered pages had their turn; unset means no indexing (D-0184).
     archive_index_seconds: float | None = None
     # Admit a release build at most this often, whatever changed; unset means
-    # every cycle may build. Each attempt walks the whole graph (D-0199).
+    # every release tick may build. Each attempt walks the whole graph (D-0199).
     build_interval_seconds: float | None = None
     # Paced project/history/all (D-0199). That unit is retired for one unit
     # per year, which is not paced (plan F17); the key is accepted and unused.
@@ -92,10 +85,6 @@ class SchedulerConfig:
             raise ValueError("event_pressure_low must be below event_pressure_high")
         if self.event_pressure_refresh_events > 100 or self.event_pressure_probe_pages > 32:
             raise ValueError("event pressure refresh must be at most 100 and page bound at most 32")
-        if not math.isclose(
-            self.reconciliation_share + self.acquisition_share + self.offline_share, 1
-        ):
-            raise ValueError("cycle scheduling shares must sum to one")
 
 
 def parse_scheduler(body: bytes) -> SchedulerConfig:
@@ -114,21 +103,3 @@ def shares(host: str) -> dict[str, int]:
         "web.archive.org": (50, 10, 20, 20),
     }.get(host, (40, 30, 20, 10))
     return dict(zip(("new", "current", "identity", "old"), weights, strict=True))
-
-
-@dataclass(frozen=True)
-class CycleAllocation:
-    reconciliation_seconds: float
-    acquisition_seconds: float
-    offline_seconds: float
-
-
-def allocation(config: Config, budget: float) -> CycleAllocation:
-    if not math.isfinite(budget) or budget < 0:
-        raise ValueError("cycle budget must be nonnegative and finite")
-    policy = config.scheduler
-    return CycleAllocation(
-        budget * policy.reconciliation_share,
-        budget * policy.acquisition_share,
-        budget * policy.offline_share,
-    )

@@ -63,7 +63,7 @@ def release_lag(
     that is stopped, paused, guarded on disk or failing is reported with its
     `cause` and derive runs as usual.
     """
-    from swingset.schedule.cycle import build_deferred_for_interval
+    from swingset.schedule.release_steps import build_deferred_for_interval
 
     scheduler = config.scheduler
     intervals, interval = scheduler.release_lag_intervals, scheduler.build_interval_seconds
@@ -136,7 +136,6 @@ def run(tick: Tick) -> None:
         stage_errors=[],
         held_operations=[],
         waiting_repeats=0,
-        control_timeouts=0,
         queue={"woken": 0, "lease_busy": 0, "quarantined": []},
     )
     try:

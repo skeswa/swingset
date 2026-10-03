@@ -16,7 +16,6 @@ from typing import Any
 
 from swingset.clock import Clock, SystemClock
 from swingset.fetch.archive import Archive, canonical, durable_write
-from swingset.schedule.cycle import versions
 from swingset.schedule.derive import derive_one
 from swingset.state import db as db_module
 from swingset.state import derivations
@@ -25,6 +24,7 @@ from swingset.state.controls import recover_admissions
 from swingset.state.inputs import accept, capture
 from swingset.state.work import WorkUnit
 from swingset.state.write_deadline import WRITE_SECONDS
+from swingset.versions import versions
 
 
 def digest(path: Path) -> str:

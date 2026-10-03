@@ -94,7 +94,6 @@ def test_production_retention_keeps_one_local_checkpoint() -> None:
 
 
 STAGES = (
-    "event_site_review",
     "event_pressure",
     "event_progress_refresh",
     "event_blocker_observations",
@@ -123,7 +122,9 @@ def test_each_stage_switch_parses(name: str) -> None:
     [
         (b"[stages]\nevent_timing = false\n", "unknown stages"),
         (b"[stages]\nevent_pressure = 0\n", "true or false"),
-        (b'[stages]\nevent_site_review = "false"\n', "true or false"),
+        (b'[stages]\nevent_progress_refresh = "false"\n', "true or false"),
+        # The event-site review left the loops for an offline tool (phase 5).
+        (b"[stages]\nevent_site_review = false\n", "unknown stages"),
         (b"stages = false\n", "table"),
     ],
 )
@@ -134,7 +135,7 @@ def test_stages_reject_unknown_keys_and_non_bools(body: bytes, message: str) -> 
 
 def test_load_config_reads_stages(tmp_path: Path) -> None:
     config = Path(__file__).resolve().parents[1] / "config"
-    # Production turns all four bookkeeping stages off (D-0204).
+    # Production turns all three bookkeeping stages off (D-0204).
     assert load_config(config).stages.disabled() == sorted(STAGES)
     copy = tmp_path / "config"
     copy.mkdir()

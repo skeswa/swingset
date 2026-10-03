@@ -1,6 +1,6 @@
 # Operations
 
-This page defines worker behavior: cycles, locks, controls, and recovery. Use the [task guide](../guides/operation.md) for commands and [current status](../status.md) for the recorded deployment. Later event-completion sections describe a pending extension.
+This page defines worker behavior: loops, locks, controls, and recovery. Use the [task guide](../guides/operation.md) for commands and [current status](../status.md) for the recorded deployment. Later event-completion sections describe a pending extension.
 
 [Reference index](README.md)
 
@@ -8,7 +8,7 @@ This page defines worker behavior: cycles, locks, controls, and recovery. Use th
 
 - [Host](#host)
 - [Timers](#timers)
-- [Cycle](#cycle)
+- [Loops](#loops)
 - [Locks and operator commands](#locks-and-operator-commands)
 - [Interruption and recovery](#interruption-and-recovery)
 - [Backup and restore](#backup-and-restore)
@@ -31,7 +31,7 @@ The service uses Python, uv, node, and native libraries from the flake.
 `ExecStartPre` runs `uv sync --frozen --no-dev` into the state's disposable
 venv. Upgrading code means advancing the checkout with jj and rebuilding
 NixOS. `services.swingset.overridesDir` points to the checkout's overrides;
-a correction needs only a checkout update. Cycles capture those files
+a correction needs only a checkout update. Loop ticks capture those files
 as described in [local state](state.md#invalidation).
 
 The unit starts dry (`dryRun = true`) until the owner provisions
@@ -41,23 +41,23 @@ alone never enables publication. State layout is defined in
 
 ## Timers
 
-| Unit                           | Schedule                                                                   | What it runs                                                                                                       |
-| ------------------------------ | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| `swingset-cycle.timer`         | every 15 min, `RandomizedDelaySec=120`; loops off only                     | `swingset cycle --budget <cycleBudget>` (default `12m`; orb `40m`)                                                 |
-| `swingset-acquire.timer`       | loops on: every 5 min at :00, `RandomizedDelaySec=20`                      | `swingset acquire --budget <acquireBudget>` (`4m`)                                                                 |
-| `swingset-derive.timer`        | loops on: every 5 min at :02, `RandomizedDelaySec=20`                      | `swingset derive --budget <deriveBudget>` (`4m`)                                                                   |
-| `swingset-plan.timer`          | loops on: every 30 min at :10 and :40                                      | `swingset plan --budget <planBudget>` (`10m`)                                                                      |
-| `swingset-release.timer`       | loops on: hourly at :20                                                    | `swingset release --budget <releaseBudget>` (`30m`), `--dry-run` or `--publish` from `dryRun`                      |
-| `swingset-maintain.timer`      | loops on: daily 05:30, after the 04:00 backup                              | `swingset maintain --budget <maintainBudget>` (`60m`; unit timeout 90 min)                                         |
-| `swingset-watchdog.timer`      | every 30 min at :05 and :35, and after a failed cycle, loop tick or backup | `nix/watchdog.py` ([alerts](../guides/operation.md#alerts))                                                        |
-| `swingset-backup.timer`        | Mon-Thu 04:00; Fri-Sun 04:00, 12:00, 20:00 (box local time)                | `swingset backup`; `--segmented --lock-timeout 3600` when `backupSegmented`; `--local` when `backupUpload = false` |
-| `swingset-summary.timer`       | daily 08:00                                                                | `swingset summary`                                                                                                 |
-| `swingset-scratch-clean.timer` | daily 05:00                                                                | removes idle `/var/tmp/swingset-*` rehearsal scratch                                                               |
+| Unit                           | Schedule                                                            | What it runs                                                                                                       |
+| ------------------------------ | ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `swingset-acquire.timer`       | every 5 min at :00, `RandomizedDelaySec=20`                         | `swingset acquire --budget <acquireBudget>` (`4m`)                                                                 |
+| `swingset-derive.timer`        | every 5 min at :02, `RandomizedDelaySec=20`                         | `swingset derive --budget <deriveBudget>` (`4m`)                                                                   |
+| `swingset-plan.timer`          | every 30 min at :10 and :40                                         | `swingset plan --budget <planBudget>` (`10m`)                                                                      |
+| `swingset-release.timer`       | hourly at :20                                                       | `swingset release --budget <releaseBudget>` (`30m`), `--dry-run` or `--publish` from `dryRun`                      |
+| `swingset-maintain.timer`      | daily 05:30, after the 04:00 backup                                 | `swingset maintain --budget <maintainBudget>` (`60m`; unit timeout 90 min)                                         |
+| `swingset-watchdog.timer`      | every 30 min at :05 and :35, and after a failed loop tick or backup | `nix/watchdog.py` ([alerts](../guides/operation.md#alerts))                                                        |
+| `swingset-backup.timer`        | Mon-Thu 04:00; Fri-Sun 04:00, 12:00, 20:00 (box local time)         | `swingset backup`; `--segmented --lock-timeout 3600` when `backupSegmented`; `--local` when `backupUpload = false` |
+| `swingset-summary.timer`       | daily 08:00                                                         | `swingset summary`                                                                                                 |
+| `swingset-scratch-clean.timer` | daily 05:00                                                         | removes idle `/var/tmp/swingset-*` rehearsal scratch                                                               |
 
-`services.swingset.loops.enable` picks the cycle or the five loops
-([deployment: loops](../guides/deployment.md#switching-to-the-loops)). Every
-unit's `uv sync` runs under `flock` on `<stateDir>/venv.lock`.
-Timers use `Persistent=true`. The 15-minute timer is the floor;
+The five loop timers are unconditional: no option turns them off, and no
+`swingset-cycle` unit exists since phase 5
+([D-0239](../../journal/decisions/0239-the-loops-are-the-only-orchestration.md)).
+Every unit's `uv sync` runs under `flock` on `<stateDir>/venv.lock`.
+Timers use `Persistent=true`. A timer is the floor;
 [scheduling](scheduling.md) decides what is due. Backup lock waits do
 not count as completed backups. A failed backup does not restart; it runs
 the watchdog and waits for the next timer run
@@ -73,45 +73,40 @@ alerts on a stale local one, so a stale backup stays visible
 With upload off, the unit stops a backup after 6 hours; with upload on it has
 no limit.
 
-## Cycle
+## Loops
 
-1. Acquire the state writer lock. Refuse normal work while
-   `RESTORE_PENDING` exists. Capture and accept changed input files.
-2. Reconcile any pending publication before creating another candidate.
-   This runs even when no fetch or build is due. Respect dry-run mode.
-3. Give pending identity corrections priority. Discover seed watches
-   and reserve acquisition time even when offline work is pending.
-   Select eligible requests fairly within existing host limits,
-   controls, and backlog high-water marks.
-4. Rotate eligible parse, project, and link units fairly. Check the
-   budget between units. Failed units retain their evidence and retry
-   eligibility; unrelated work continues. A shared projection may run
-   again when later parses change its inputs, but the same input
-   fingerprint is attempted at most once in a cycle.
-5. Run saved interpretation once its parse and project inputs settle.
-   Once all queues drain, build when the input/baseline pair needs work
-   and publish when semantic content differs. These actions receive
-   offline time before unused time is lent back to acquisition. Leave
-   unfinished work for the next cycle. A dry run can build but never commits.
-6. Write `runs/<run_id>.json` and release the lock.
+Five loops share the state: acquire, plan, derive, release and maintain
+([scheduling: loops](scheduling.md#loops)). Each tick holds `state.lock`
+shared and its own loop lock, accepts changed input files (derive first),
+settles its own dead runs, then works to its budget and writes
+`runs/<run_id>-<loop>.json`.
 
-There is no "nothing fetched, skip later stages" rule. File changes,
-manual findings, and queued work are independent reasons to run. The
-cycle runner consumes [durable work](state.md#invalidation); it does not
-carry another stage dependency graph. Reserved acquisition prevents
-offline backlog from starving collection; fair offline service and
-build-before-borrowing prevent a registry sweep from taking every turn.
+- Release reconciles a pending publication before it builds a candidate,
+  even when nothing else is due. A dry run can build but never commits.
+- Acquire discovers seed watches and selects eligible requests fairly within
+  host limits, controls and backlog high-water marks. Plan writes the
+  history rows it offers.
+- Derive rotates eligible parse, project and link units fairly and checks
+  the budget between units. Failed units keep their evidence and retry
+  clock; unrelated work continues. A shared projection may run again when
+  later parses change its inputs, but one input fingerprint is attempted at
+  most once in a tick.
+
+There is no "nothing fetched, skip later stages" rule. File changes, manual
+findings and queued work are independent reasons to run. The loops consume
+[durable work](state.md#invalidation); they carry no other stage dependency
+graph. Separate timers keep a derivation backlog from starving collection.
 
 ## Locks and operator commands
 
-One advisory lock in the state directory excludes cycle, backup, restore,
-and manual data mutations. The process holds it through each command;
+One advisory lock in the state directory excludes backup, restore and manual
+data mutations; loop ticks hold it shared ([state: locks](state.md#locks)). The process holds it through each command;
 the kernel releases it on death. Read-only doctor and summary use a
 consistent database read and do not acquire the writer lock.
 
 | Caller finding the lock held                       | Required behavior                                                                                        |
 | -------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| Timer-triggered duplicate cycle                    | Exit 0 with an explicit skipped-overlap log                                                              |
+| Timer-triggered loop tick                          | Exit 0 with an explicit skipped-overlap log                                                              |
 | Manual data mutation: sweep, reparse, or fetch-one | Wait up to `--lock-timeout` (default 60 s); timeout exits nonzero and says no change was applied         |
 | Backup                                             | Wait for the lock; interruption or upload failure is nonzero and retried by the service                  |
 | Restore                                            | Wait up to the explicit timeout; require timers disabled and the former writer stopped before activation |
@@ -119,7 +114,7 @@ consistent database read and do not acquire the writer lock.
 Every data-writing command except restore refuses a state directory
 marked `RESTORE_PENDING`; doctor remains available for diagnosis.
 Manual mutation success means its transaction committed. There is no
-successful skipped pause or sweep. Backup tests overlap a cycle and prove
+successful skipped pause or sweep. Backup tests overlap a writer and prove
 that the checkpoint eventually runs.
 
 `swingset pause --all | --host <h> | --source <s> | --kind <k>` records
@@ -133,14 +128,14 @@ Automatic host pauses remain separate and resume never clears them.
 `swingset hold add --generation <id> --who <who> --why <why>` records a
 retention hold, and `hold list` and `hold remove --hold-id <id>` read and remove
 one. Holds take the control lock and not the writer lock, so one can be placed
-while a cycle runs. `hold add` walks everything the named computations were
+while loops run. `hold add` walks everything the named computations were
 built from and refuses, listing the ids to restore first, if any of it is not in
 the live database; it writes nothing when it refuses. See
 [retention](state.md#retention).
 
 When `state.sqlite` on disk passes `retention.max_database_bytes`, the worker
 records one operator pause on `all`/`all` with the reason "state database file
-is over its retention size cap", at the start of a cycle and when `gc --plan`
+is over its retention size cap", at the start of a derive tick and when `gc --plan`
 runs. Reading, doctor, controls, `gc`, backup and restore do not go through
 admission, so they keep working; fetching and derivation wait. An existing
 `all`/`all` pause is never rewritten, whatever its reason, and nothing is
@@ -211,13 +206,17 @@ say which shape they measured under `payloads_interned`. See
 [retention](state.md#retention) for the order, the note and the receipt.
 
 Controls use a restricted connection that cannot migrate or accept inputs.
-They bypass the whole-cycle writer lock and serialize at the next bounded
+They bypass the writer lock and serialize at the next bounded
 admission boundary under `control.lock`. A successful receipt means the control
 transaction committed. A servicing timeout is nonzero and means no change was
 persisted. Once committed, a pause prevents matching new admissions; already
-admitted work may drain. `--wait` waits up to sixty seconds by default for that
-drain. A wait timeout or interruption preserves the pause and reports the
-remaining admissions; it never reports that no change occurred.
+admitted work may drain. A parse, project or link unit has no admission: its
+pause check shares the `BEGIN IMMEDIATE` that begins its attempt, and while
+it is leased it drains like an admission (D-0238), so only acquire's run
+record counts `control_timeouts`. `--wait` waits up to sixty
+seconds by default for both. A wait timeout or interruption preserves the
+pause and reports the remaining admissions and leases; it never reports that
+no change occurred.
 
 Worker write phases have a 60-second wall-clock alarm, the same for every unit
 ([D-0217](../../journal/decisions/0217-large-generations-store-in-chunks-and-the-write-deadline-is-an-alarm.md)).
@@ -241,17 +240,26 @@ pauses use registered requirement kinds and the actual dependencies of each
 action. A shared action waits if any required dependency is paused. Host pauses
 hold requests only. A coherent publication waits on any paused source or kind;
 its suppression and integrity checks remain mandatory. Manual parse, project and link use the same bounded worker and attempt ledger as
-cycles. They skip held units, report their dependencies, and stop cleanly when
+derive. They skip held units, report their dependencies, and stop cleanly when
 no eligible work remains. Explicit and saved registry-crosscheck interpretation
 also requires admission; archive-only retention preserves supplied evidence
-without interpreting it. Startup recovers abandoned admissions before accepting
-inputs or creating a run; uncertain publications still require receipt reconciliation.
+without interpreting it. Every loop tick settles, before its run starts, the
+active admissions of its own dead runs, any whose run has finished, and after
+six hours any with no loop run; release also marks an active publication
+uncertain. Migrate, restore and the locked CLI commands settle every active
+admission (`recover_admissions`). An uncertain publication still requires
+receipt reconciliation. The watchdog names an admission active over two hours
+(`[admission-stuck]`).
 Resume does not trigger
 a catch-up burst: overdue work remains subject to ordinary scheduling budgets.
 
 Doctor and summary report `running`, `pausing`, or `paused`, the control revision,
 pause IDs, actor, reason, expiry, duration and exact resume selectors. They show
-draining admissions separately, and flag a drain older than sixty seconds.
+draining admissions and leased units separately (a lease as
+`lease:<stage>/<kind>/<id>` with its `lease_until`), and flag a drain older
+than sixty seconds. A lease drains while its `lease_until` is ahead; an expired
+lease belongs to a dead process, is listed under `dead_leases` and neither
+drains nor is stuck. The derive loop's next tick takes it over.
 Inventory and queue overlays use the same dependency resolver as execution.
 `no_progress_clock` and queue `lag_clock` exclude the union of known matching
 operator pause intervals, including overlapping controls, selective resume and
@@ -280,7 +288,7 @@ run summary when possible and exit 0 after a graceful stop. An unhandled
 failure exits nonzero. `KillMode=mixed` and `TimeoutStopSec=45` bound the
 service stop; forced termination rolls back any unfinished transaction.
 A missing final run log after a hard kill is diagnostic loss, not proof
-that a data transaction failed. The cycle budget applies to every stage.
+that a data transaction failed. A tick's budget applies to every stage.
 
 A crash harness injects termination before and after each transaction,
 artifact completion, and publication marker transition, then restarts.
@@ -399,7 +407,7 @@ Restore is an activation protocol:
    head by expected parent, candidate id, manifest, and file hashes,
    finish its acknowledgment and promotion locally. If its commit did
    not land and head still equals its expected parent, retain the intent
-   for a later real cycle; restore itself creates no public commit.
+   for a later real release tick; restore itself creates no public commit.
 4. If head is ahead of those recoverable states, or differs in any other
    way, keep `RESTORE_PENDING`, report expected and actual SHAs, and
    fail without publishing. A matching newer checkpoint can complete
@@ -415,7 +423,7 @@ Restore is an activation protocol:
    Independently, increment the event-pressure observation epoch when
    `event_pressure_state` exists (schema 19 and later). Commit those changes
    before removing `RESTORE_PENDING` durably; schemas through 11 have neither
-   activation change. The next cycle accepts the installed checkout's inputs
+   activation change. The next tick accepts the installed checkout's inputs
    against the saved bundle and enqueues any differences before proceeding.
    Enable timers only after verification succeeds.
 
@@ -444,11 +452,11 @@ by design.
 ## Bootstrap and backfill
 
 The registry sweep (16 hours) and the historical backfill (weeks) both
-run inside normal cycles, driven by cursors in state, with reserved
+run inside normal loop ticks, driven by cursors in state, with reserved
 service for eligible old work. Historical year and admission gates
 still apply. `swingset sweep --start 1` seeds the registry cursor. No
-special long-running job exists; the box is always on, so the cycle loop
-is the long-running job.
+special long-running job exists; the box is always on, so the loop timers
+are the long-running job.
 
 ## Observability
 
@@ -456,7 +464,7 @@ is the long-running job.
   watches checked, 304s, changed bodies, bytes fetched per host, parse
   errors, link status histogram, publish commit SHA, duration. These are
   included in the backup.
-- Structured logs go to the systemd journal. `journalctl -u swingset-cycle`
+- Structured logs go to the systemd journal. `journalctl -u 'swingset-*'`
   is the primary debugging tool.
 - `swingset summary` writes a short daily digest: events in each watch
   state, new `review_queue` items, links upgraded and downgraded, sources
@@ -475,7 +483,7 @@ is the long-running job.
   condition that should interrupt a human.
 - Review workflow: the owner reads `review_queue` (published in the
   dataset and printed by `swingset doctor`), adds rows to
-  `overrides/*.csv`, and commits. The next cycle picks up the new
+  `overrides/*.csv`, and commits. The next tick picks up the new
   overrides. Contributors can send pull requests against `overrides/`.
 - `swingset doctor` prints last success per source, operator pauses and automatic host
   pauses separately, budget use, watches by state, pending work by
@@ -540,6 +548,13 @@ exits 1 on a mismatch.
 A large link takes 4 to 8 seconds on the Mac; 1% of 2,934 links is 30.
 
 ### Maintain storage tasks
+
+Before them, after compacting `runs` rows, maintain deletes settled
+`execution_admissions` rows older than 30 days and their scope rows, at most
+5,000 per transaction with `secure_delete` off, until none is left or the
+tick stops (`admissions_pruned`; an error is `admissions_prune_error`).
+`build` and publication rows stay, as do rows a `scheduler_requests` or
+`history_origin_requests` row names (D-0238).
 
 Each maintain tick reports the size cap and the controls first, then runs,
 in order, each only while the budget lasts (phase 4,
@@ -797,24 +812,16 @@ diagnostics; matching all/source/kind controls suppress queue-age diagnostics.
 A host pause alone does not suppress local derivation alerts. Ages remain visible.
 H15 counts unfinished derivations by fingerprint comparison. Their available
 queue hint times supply lag ages; replacement inputs can reset those times, and
-lost hints leave age unknown rather than reporting zero. Requirement alerts include the last
-recorded attempt and blocking reason without counting retries as progress.
+lost hints leave age unknown rather than reporting zero. Requirement alerts
+include the blocking reason and next action without counting retries as
+progress.
 
-Summary adds opened, reopened, satisfied, and retired counts, with attempts
-and failures separate. `--since` accepts an explicit timezone. With no
-`--since`, each filter resumes from its last report timestamp in
-`state/reports/`; the first report covers one day. Reports survive restart.
-Cohorts keep a fixed denominator; reopening lowers completion, and retirement
-is not a repair. New work outside a cohort counts only requirements in its
-source, kind, and policy scope whose first-open transition follows capture.
-Previously closed requirements, later retries, and reopened or recreated old
-rows do not count as discoveries. The cutoff preserves ordering when capture
-and discovery share a clock timestamp. Legacy cohorts without the cutoff show
-known later discoveries and the count with unknown same-time ordering; their
-exact new-work count is unavailable while that ambiguity exists.
-Unbounded, paused, blocked, or incompatible cohorts have no
-percentage or ETA. H11 supplies a local shadow inventory only; later rollout
-revisions supply repair execution and publication progress.
+Summary logs the same snapshot. Schema 37 removed the change counts,
+`--since`, the `state/reports/requirements-*.json` cursors, cohorts and
+`swingset cohort` with the requirement history
+([D-0237](../../journal/decisions/0237-unit-failures-leave-the-review-queue-and-requirement-history-goes.md)).
+A failed unit is not a requirement: read its `work_queue` and `work_attempts`
+rows, or the quarantine report. H11 supplies a local shadow inventory only.
 
 ## Work isolation and artifact recovery (H12)
 
@@ -822,7 +829,7 @@ Ordinary parse, project, and link units run through `schedule.derive`. Each
 attempt starts durably, isolates its transaction, and records a classified
 outcome. One failed scope does not block healthy acquisition or independent
 derivation. Unchanged blocked inputs remain visible and do not run again in
-every cycle. Transient I/O failures and interrupted work currently receive a
+every tick. Transient I/O failures and interrupted work currently receive a
 60-second retry deadline. No additional host budget is created.
 
 `swingset reparse --kind KIND --since TIME` is an explicit operator retry for
@@ -832,7 +839,7 @@ do not request retries. A later verified local artifact restoration can also
 be followed by an explicit retry; simply observing the file does not erase
 the failed outcome or claim completed derivation.
 
-Cycles and loops share one recovery chain through an optional `Archive`
+Loops and commands share one recovery chain through an optional `Archive`
 recovery argument: `LocalCheckpointRecovery`, then `SegmentRecovery`, which
 reads a local backup set's index and segment and checks the digest the same
 way (`backup/recovery.py`). Healthy artifact reads do not enumerate backups. On a
@@ -846,7 +853,7 @@ Successful qualification is reused within the helper only for identical
 manifest bytes. Every restore independently verifies the selected file's
 size and stored hash, then its decompressed body hash or serialized-extract
 hash against the required historical digest. It atomically restores those
-bytes and records checkpoint and manifest provenance in the cycle summary.
+bytes and records checkpoint and manifest provenance in the run record.
 Failed qualification is not cached, and modification times never establish
 artifact validity. Recovery does not fetch a current replacement page or
 rewrite a historical snapshot's digest.
@@ -858,8 +865,8 @@ units continue. Recovery cannot write into a checkpoint. After recovery,
 normal parsing and admission still govern whether output can commit.
 
 The offline H12 acceptance cases exercise a real failed parser beside a
-healthy fetch and projection within three fake-clock cycles, with one failed
-attempt for unchanged inputs. A separate cycle test restores historical bytes
+healthy fetch and projection within three fake-clock rounds, with one failed
+attempt for unchanged inputs. A separate test restores historical bytes
 from an actual SQLite checkpoint and commits their interpretation; the case
 without a backup retains unavailable evidence while healthy work progresses.
 These scenarios use ordinary work, without correction-only publication.

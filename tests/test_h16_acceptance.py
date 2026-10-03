@@ -57,9 +57,9 @@ def release_state(tmp_path):
         )
         from materialized_fixture import materialize_seeded_outputs
 
-        from swingset.schedule.cycle import versions
         from swingset.state.identity_journal import encode_journal
         from swingset.state.inputs import accept, capture
+        from swingset.versions import versions
 
         config, overrides = tmp_path / "config", tmp_path / "overrides"
         shutil.copytree("config", config)
@@ -296,7 +296,15 @@ def test_unrelated_stuck_parse_allows_coherent_release_and_remains_unfinished(re
     assert all(
         row["method"] and row["population"] and row["evidence_cutoff"] for row in public["coverage"]
     )
-    assert stuck.unit_id in json.dumps(public["review_queue"], default=str)
+    # A unit's failure lives on its attempt and queue rows, not in the
+    # published review queue (D-0237).
+    assert stuck.unit_id not in json.dumps(public["review_queue"], default=str)
+    assert (
+        f.conn.execute(
+            "SELECT reason_code FROM work_attempts WHERE attempt_id=?", (attempt.attempt_id,)
+        ).fetchone()[0]
+        == "snapshot_body_missing"
+    )
     assert stuck in set(unfinished_units(f.conn))
     assert (
         tuple(
@@ -347,10 +355,10 @@ def test_incompatible_link_generation_cannot_join_new_structural_closure(
     from swingset.build import closure
     from swingset.build.closure_manifest import digest
     from swingset.link.service import link_event
-    from swingset.schedule.cycle import versions
     from swingset.schedule.watches import upsert_watch
     from swingset.sources.wsdc_registry.adapter import SOURCE
     from swingset.state.inputs import accept, capture
+    from swingset.versions import versions
 
     f = source_fixture
     drain_project(f)
@@ -447,10 +455,10 @@ def test_local_correction_waits_for_verified_publication_receipt(release_state, 
     from test_identity_journal import decision
 
     from swingset import cli
-    from swingset.schedule.cycle import versions
     from swingset.state.identity_journal import encode_journal
     from swingset.state.inputs import accept, capture
     from swingset.state.publication_report import publication_report
+    from swingset.versions import versions
 
     f = release_state
     negative = decision(
@@ -560,10 +568,10 @@ def test_publication_report_pins_receipt_target_across_concurrent_promotion(
 def test_repeated_corrections_keep_oldest_clock_until_confirmed_receipt(release_state):
     from test_identity_journal import decision
 
-    from swingset.schedule.cycle import versions
     from swingset.state.identity_journal import encode_journal
     from swingset.state.inputs import accept, capture
     from swingset.state.publication_report import publication_report
+    from swingset.versions import versions
 
     f = release_state
     negative = decision(

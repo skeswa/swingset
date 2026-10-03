@@ -9,8 +9,8 @@ exclusive, so derive starts no unit meanwhile (F10). A streamed
 (partitioned) build holds it too while `[release] streamed_lock` is true,
 the default: the rehearsal measured 6.7 GB before F26's fix, and the lock
 comes off only once the worker measures it under 2 GB beside derive.
-The build and publish steps are the cycle's
-(`schedule/cycle.correct`, `build_and_publish`); a partitioned build puts its
+The build and publish steps are `schedule/release_steps` (`correct`,
+`build_and_publish`); a partitioned build puts its
 release manifest and stage 1's counts in the summary's `partitions` (D-0224).
 Every build records its gate verdict in `verdict`; a refused one counts in
 `refused`, publishes nothing and is not a failure (D-0225).
@@ -27,13 +27,13 @@ from swingset.build.closure_manifest import ClosureError
 from swingset.log import log
 from swingset.loops.runtime import Tick, note_skip
 from swingset.publish.service import reconcile
-from swingset.schedule.cycle import (
+from swingset.schedule.fairness import backpressure
+from swingset.schedule.release_steps import (
     build_and_publish,
     build_deferred_for_backlog,
     build_deferred_for_interval,
     correct,
 )
-from swingset.schedule.fairness import backpressure
 from swingset.state import disk, guards, rwlock
 from swingset.state.controls import ControlPaused
 from swingset.state.work import unfinished_units
@@ -120,7 +120,7 @@ def run(tick: Tick, *, disk_file: Path | None = None) -> None:
             tick.counters["reconciled"] += 1
             tick.progress()
     # A correction publishes to the hub, so it runs only with one, and only
-    # while work is queued, as in the cycle.
+    # while work is queued.
     correcting = hub is not None and next(iter(unfinished_units(conn)), None) is not None
     deferred: str | None = None
     if build_deferred_for_interval(conn, bundle.config, now=clock.now()):

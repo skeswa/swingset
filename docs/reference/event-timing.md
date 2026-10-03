@@ -1,6 +1,6 @@
 # Observed acquisition waiting time
 
-The local cycle records how long a bounded group of source events waits for an
+The acquire loop's acquisition pass records how long a bounded group of source events waits for an
 ordinary request or a proved Archive offer that can pass its gates. This is an acquisition diagnostic.
 It does not establish whole-event completion, interpretation waiting time,
 continuous fleet coverage, or time before recording began. Deployment and
@@ -21,7 +21,7 @@ A waiting event accrues once when at least one verified missing request is
 eligible. Multiple pages and shared pages do not multiply an event's elapsed
 time. Totals across events have units of event-seconds. Issued service remains
 attributed to the selected event in its existing receipt. Losing a fair turn or
-appearing in the cycle's visited-watch set cannot erase waiting time.
+appearing in the pass's visited-watch set cannot erase waiting time.
 
 The observer uses the host assessment also used by request acquisition, shared
 operator scopes, shared backpressure and expansion gates, source enablement,

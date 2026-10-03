@@ -238,7 +238,7 @@ def test_admitted_33_page_cohort_finishes_amid_discovery_and_current_refresh(
             with operation(
                 f.db,
                 action_id=f"cohort-parse-{number}",
-                action_kind="parse",
+                action_kind="project",  # a stage operation; units take none (D-0238)
                 scope=for_unit(f.conn, unit),
                 clock=clock,
                 run_id=run,

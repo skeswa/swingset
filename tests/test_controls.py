@@ -23,7 +23,6 @@ from swingset.state.controls import (
     ControlPaused,
     Selector,
     admission,
-    bind_work_attempt,
     change_control,
     matching_pauses,
     operation,
@@ -60,7 +59,7 @@ def test_controls_commit_while_data_writer_lock_is_held_and_restart_retains_paus
             == db.connection.execute("SELECT pause_id FROM operator_pauses").fetchone()[0]
         )
         with pytest.raises(ControlPaused):
-            with admission(db, action_id="denied", action_kind="parse", scope=SCOPE, now=NOW):
+            with admission(db, action_id="denied", action_kind="request", scope=SCOPE, now=NOW):
                 pytest.fail("paused action started")
         assert db.connection.execute("SELECT count(*) FROM execution_admissions").fetchone()[0] == 0
     with open_database(tmp_path) as db:
@@ -88,7 +87,7 @@ def test_overlapping_scopes_expiry_and_resume_preserve_automatic_host_block(tmp_
         assert (
             status(db.connection, now=later)["expired_pauses"][0]["pause_id"] == timed["pause_id"]
         )
-        with admission(db, action_id="after-expiry", action_kind="parse", scope=SCOPE, now=later):
+        with admission(db, action_id="after-expiry", action_kind="request", scope=SCOPE, now=later):
             pass
         assert (
             db.connection.execute(
@@ -183,7 +182,7 @@ def test_admission_rollback_and_lock_order_guard(tmp_path):
         assert not db.connection.execute("SELECT 1 FROM meta WHERE key='issued'").fetchone()
         with db.transaction():
             with pytest.raises(ValueError, match="precede"):
-                with admission(db, action_id="deadlock", action_kind="parse", scope=SCOPE, now=NOW):
+                with admission(db, action_id="deadlock", action_kind="fetch", scope=SCOPE, now=NOW):
                     pass
 
 
@@ -214,28 +213,107 @@ def test_shared_work_waits_whole_but_host_pause_allows_offline_work(tmp_path):
             pass
 
 
-def test_recovery_links_existing_work_attempt_and_keeps_publication_uncertain(tmp_path):
+def test_recovery_settles_requests_and_keeps_publication_uncertain(tmp_path):
     with open_database(tmp_path) as db:
-        run = db.start_run(NOW)
-        unit = WorkUnit("parse", "snapshot", "test")
-        enqueue(db.connection, [unit], enqueued_at=NOW.isoformat())
-        with admission(
-            db, action_id="work", action_kind="parse", scope=SCOPE, now=NOW, run_id=run
-        ) as conn:
-            attempt = begin_attempt(db, unit, now=NOW, run_id=run)
-            bind_work_attempt(conn, "work", attempt.attempt_id)
         with admission(db, action_id="request", action_kind="fetch", scope=SCOPE, now=NOW):
             pass
         with admission(db, action_id="publish", action_kind="publish", scope=SCOPE, now=NOW):
             pass
     with open_database(tmp_path) as db:
         with db.transaction() as conn:
-            assert recover_admissions(conn, now=NOW) == 3
+            assert recover_admissions(conn, now=NOW) == 2
             assert recover_admissions(conn, now=NOW) == 0
-        states = dict(db.connection.execute("SELECT action_id,state FROM execution_admissions"))
-        assert states == {"work": "settled", "request": "settled", "publish": "uncertain"}
-        assert db.connection.execute("SELECT outcome FROM work_attempts").fetchone()[0] == "running"
-        assert db.connection.execute("SELECT 1 FROM pending_work").fetchone()
+        rows = {
+            row[0]: (row[1], row[2])
+            for row in db.connection.execute(
+                "SELECT action_id,state,outcome FROM execution_admissions"
+            )
+        }
+        assert rows == {
+            "request": ("settled", "process_interrupted"),
+            "publish": ("uncertain", "receipt_reconciliation_required"),
+        }
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"action_kind": "parse"},
+        {"action_kind": "link"},
+        {"action_kind": "project", "action_id": "work_0123"},
+        {"action_kind": "request", "work_attempt_id": 1},
+    ],
+)
+def test_admission_refuses_leased_units(tmp_path, kwargs):
+    """A unit's lease is its in-flight record; the ledger never takes it back (D-0238)."""
+    arguments = {"action_id": "unit", "scope": SCOPE, "now": NOW} | kwargs
+    with open_database(tmp_path) as db:
+        with pytest.raises(ValueError, match="leased units carry no admission"):
+            with admission(db, **arguments):
+                pytest.fail("a unit was admitted")
+        assert not db.connection.execute("SELECT 1 FROM execution_admissions").fetchone()
+
+
+def _ledger_row(conn, action_id, kind, settled_at, *, state="settled", outcome="completed"):
+    conn.execute(
+        "INSERT INTO execution_admissions(action_id,action_kind,admitted_at,control_revision,"
+        "all_sources,all_kinds,state,settled_at,outcome) VALUES (?,?,?,0,0,0,?,?,?)",
+        (action_id, kind, settled_at, state, None if state != "settled" else settled_at, outcome),
+    )
+    conn.execute("INSERT INTO execution_dependencies VALUES (?,'source','eepro')", (action_id,))
+
+
+def test_prune_drops_old_settled_rows_but_newest_builds_publications_and_quota_rows(tmp_path):
+    """Of builds, only the newest admitted and the newest completed stay:
+    the build interval and release lag read nothing else."""
+    from swingset.schedule.release_steps import build_deferred_for_interval
+    from swingset.state.publication_fence import PUBLICATION_KINDS
+
+    assert controls.KEPT_KINDS == PUBLICATION_KINDS
+    old = (NOW - timedelta(days=31)).isoformat()
+    with open_database(tmp_path) as db:
+        with db.transaction() as conn:
+            _ledger_row(conn, "old-request", "request", old)
+            _ledger_row(conn, "new-request", "request", (NOW - timedelta(days=29)).isoformat())
+            _ledger_row(conn, "older-build", "build", (NOW - timedelta(days=500)).isoformat())
+            _ledger_row(conn, "old-build", "build", (NOW - timedelta(days=400)).isoformat())
+            _ledger_row(
+                conn,
+                "newest-build",
+                "build",
+                (NOW - timedelta(days=40)).isoformat(),
+                outcome="failed",
+            )
+            _ledger_row(conn, "old-publication", "publication", old)
+            _ledger_row(conn, "active-request", "request", old, state="active")
+            _ledger_row(conn, "quota-request", "request", old)
+            run = db.start_run(NOW - timedelta(days=31))
+            conn.execute(
+                "INSERT INTO scheduler_requests(action_id,host,day,category,work_key,run_id,"
+                "issued_at) VALUES ('quota-request','example.test','d','c','k',?,?)",
+                (run, old),
+            )
+        config = SimpleNamespace(scheduler=SimpleNamespace(build_interval_seconds=3600 * 24 * 90))
+        before = build_deferred_for_interval(db.connection, config, now=NOW)
+        with db.transaction() as conn:
+            assert controls.prune(conn, now=NOW, batch=5000) == 2
+            assert controls.prune(conn, now=NOW, batch=5000) == 0
+        assert build_deferred_for_interval(db.connection, config, now=NOW) == before
+        kept = {
+            row[0] for row in db.connection.execute("SELECT action_id FROM execution_admissions")
+        }
+        assert kept == {
+            "new-request",
+            "newest-build",
+            "old-build",
+            "old-publication",
+            "active-request",
+            "quota-request",
+        }
+        assert {
+            row[0] for row in db.connection.execute("SELECT action_id FROM execution_dependencies")
+        } == kept
+        assert not db.connection.execute("PRAGMA foreign_key_check").fetchall()
 
 
 def test_pause_checkpoint_restore_preserves_controls_and_retry_evidence(tmp_path):
@@ -255,12 +333,7 @@ def test_pause_checkpoint_restore_preserves_controls_and_retry_evidence(tmp_path
         )
         preserved = {
             table: [tuple(row) for row in db.connection.execute(f"SELECT * FROM {table}")]
-            for table in (
-                "pending_work",
-                "work_generations",
-                "work_attempts",
-                "requirement_attempts",
-            )
+            for table in ("pending_work", "work_generations", "work_attempts")
         }
         receipt = change(original)
         checkpoint = create_checkpoint(
@@ -289,7 +362,7 @@ def test_pause_checkpoint_restore_preserves_controls_and_retry_evidence(tmp_path
     with open_database(restored) as db:
         with pytest.raises(ControlPaused):
             with admission(
-                db, action_id="after-restore", action_kind="parse", scope=SCOPE, now=NOW
+                db, action_id="after-restore", action_kind="request", scope=SCOPE, now=NOW
             ):
                 pytest.fail("restored indefinite pause must precede every admission")
         assert not db.connection.execute("SELECT 1 FROM execution_admissions").fetchone()
@@ -518,7 +591,7 @@ def test_source_wait_does_not_include_unrelated_kind_paused_action(tmp_path):
         with admission(
             db,
             action_id="wdr",
-            action_kind="parse",
+            action_kind="request",
             scope=ActionScope(sources=frozenset({"wdr"}), kinds=SCOPE.kinds),
             now=NOW,
         ):
@@ -541,7 +614,8 @@ def test_resuming_all_still_reports_overlapping_operator_host_pause(tmp_path):
 
 def test_an_admission_outwaits_the_write_alarm():
     """A worker write ends by the 60 s alarm at the latest, and no unit gets a
-    longer one (D-0217), so an admission waiting behind it does not time out."""
+    longer one (D-0217), so a request or operation admission waiting behind it
+    does not time out. A unit takes no control lock (D-0238)."""
     from swingset.state import write_deadline
 
     assert write_deadline.WRITE_SECONDS == 60.0
@@ -598,3 +672,104 @@ def test_write_deadline_persists_waiting_pause_before_control_bound(
         with pytest.raises(ControlPaused):
             with admission(db, action_id="later-unit", action_kind="project", scope=SCOPE, now=NOW):
                 pytest.fail("a later unit bypassed the persisted control")
+
+
+def test_a_lease_drains_only_under_a_pause_of_its_dependencies(tmp_path):
+    """A leased unit drains like an admission, scoped by `for_unit` (D-0238);
+    a caller with no resolver counts it against every pause."""
+    from swingset.state import queue
+    from swingset.state.control_scopes import for_unit
+
+    unit = WorkUnit("project", "dancer", "d1")
+    with open_database(tmp_path) as db:
+        run = db.start_run(NOW)
+        with db.transaction() as conn:
+            enqueue(conn, [unit], enqueued_at=NOW.isoformat())
+            queue.lease(db, unit, owner=queue.Owner("derive", run), now=NOW)
+        change(tmp_path, "source", "eepro")
+        scoped = status(db.connection, now=NOW, unit_scope=for_unit)
+        assert scoped["state"] == "paused" and scoped["active_attempts"] == 1
+        assert status(db.connection, now=NOW)["state"] == "pausing"
+        change(tmp_path, "source", "wsdc_registry")
+        (lease,) = status(db.connection, now=NOW, unit_scope=for_unit)["draining_attempts"]
+        assert lease["action_id"] == "lease:project/dancer/d1" and lease["work_attempt_id"] is None
+        assert lease["lease_until"] == queue.at(NOW + timedelta(seconds=1800))
+        assert not db.connection.execute("SELECT 1 FROM execution_admissions").fetchone()
+
+
+def test_a_pause_commits_before_its_drain_report_and_survives_a_failing_unit_scope(tmp_path):
+    """`change_control` resolves leased units after its commit, so the write
+    lock is never held for those reads; a resolver that raises for one unit
+    counts that lease against every pause, and the pause still stands (I1)."""
+    from swingset.state import queue
+
+    unit = WorkUnit("project", "dancer", "d1")
+    with open_database(tmp_path) as db:
+        run = db.start_run(NOW)
+        with db.transaction() as conn:
+            enqueue(conn, [unit], enqueued_at=NOW.isoformat())
+            queue.lease(db, unit, owner=queue.Owner("derive", run), now=NOW)
+    seen = []
+
+    def failing(conn, leased):
+        other = sqlite3.connect(tmp_path / "state.sqlite")
+        try:
+            seen.append(
+                other.execute(
+                    "SELECT count(*) FROM operator_pauses WHERE scope_id='eepro'"
+                ).fetchone()[0]
+            )
+        finally:
+            other.close()
+        raise sqlite3.DatabaseError("malformed scope")
+
+    result = change(tmp_path, "source", "eepro", unit_scope=failing)
+    assert seen == [1]  # committed before the drain report read
+    assert result["persisted"] and result["changed"] and result["state"] == "pausing"
+    (lease,) = result["draining_attempts"]
+    assert lease["action_id"] == "lease:project/dancer/d1"
+    assert lease["scope_error"] == "DatabaseError: malformed scope"
+    with open_database(tmp_path, lock=False) as db:
+        (pause,) = matching_pauses(db.connection, SCOPE, now=NOW)
+        assert pause["scope_id"] == "eepro"
+        drained = status(db.connection, now=NOW, unit_scope=failing)
+        assert drained["state"] == "pausing" and drained["draining_attempts"][0]["scope_error"]
+
+
+def test_maintain_prunes_in_batches_until_done_or_stopped(tmp_path, monkeypatch):
+    """`prune_admissions` repeats while a batch is full and checks stop()
+    before each; `controls.prune` deletes at most one batch."""
+    from swingset.loops.maintain import prune_admissions
+
+    monkeypatch.setattr(controls, "PRUNE_BATCH", 2)
+    old = (NOW - timedelta(days=31)).isoformat()
+
+    def seed(db):
+        with db.transaction() as conn:
+            conn.execute("DELETE FROM execution_dependencies")
+            conn.execute("DELETE FROM execution_admissions")
+            for index in range(5):
+                _ledger_row(conn, f"request-{index}", "request", old)
+
+    def left(db):
+        return db.connection.execute("SELECT count(*) FROM execution_admissions").fetchone()[0]
+
+    with open_database(tmp_path) as db:
+        seed(db)
+        with db.transaction() as conn:
+            assert controls.prune(conn, now=NOW) == 5  # the default bound is fixed at import
+        seed(db)
+        with db.transaction() as conn:
+            assert controls.prune(conn, now=NOW, batch=2) == 2
+        seed(db)
+        assert prune_admissions(db, now=NOW, stop=lambda: False) == 5
+        assert left(db) == 0
+        seed(db)
+        calls = []
+
+        def stop():
+            calls.append(None)
+            return len(calls) > 1
+
+        assert prune_admissions(db, now=NOW, stop=stop) == 2
+        assert left(db) == 3

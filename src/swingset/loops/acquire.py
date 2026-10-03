@@ -1,7 +1,7 @@
 """The acquire loop: discovery, then one acquisition pass (D-0218).
 
 An acquire tick discovers configured and registry watches, then runs the
-acquisition pass shared with the cycle. Its history offers are the eligible
+acquisition pass (`schedule/acquisition.py`). Its history offers are the eligible
 `acquisition_plan` rows in plan order, which the plan loop wrote; each
 dispatch re-checks its target from facts before any mutation. The tick runs
 inside the facts-only year gate, so no derivation predicate runs in it (I5).
@@ -55,6 +55,7 @@ def run(tick: Tick) -> None:
         guards={"passes": 0, "recorded": 0, "cleared": 0},
         offered=0,
         stale_plan_rows=0,
+        control_timeouts=0,
     )
 
     def stop() -> bool:

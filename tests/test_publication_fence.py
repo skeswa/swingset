@@ -14,7 +14,6 @@ import pytest
 from swingset.build.service import build_release
 from swingset.clock import FakeClock
 from swingset.publish import safety
-from swingset.schedule.cycle import versions
 from swingset.state.db import open_database
 from swingset.state.inputs import accept, capture
 from swingset.state.publication_fence import (
@@ -24,6 +23,7 @@ from swingset.state.publication_fence import (
     expected_narrow,
     narrow_triggers,
 )
+from swingset.versions import versions
 
 FENCED = "active publication fences"
 

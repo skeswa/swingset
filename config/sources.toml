@@ -69,7 +69,6 @@ checkpoint_max_age = "0s"
 # 019 package ignores this table. See docs/reference/scheduling.md,
 # "Stage switches".
 [stages]
-event_site_review = false
 event_pressure = false
 event_progress_refresh = false
 event_blocker_observations = false

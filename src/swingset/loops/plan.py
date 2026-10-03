@@ -1,6 +1,6 @@
 """The plan loop: event bookkeeping, then the acquisition plan (D-0218).
 
-A plan tick runs the event bookkeeping stages as the cycle runs them, the
+A plan tick runs the event bookkeeping stages (`schedule/acquisition`), the
 requirements scan and the registry verification summary, then evaluates
 the phase-two year gate and the retained history plan on facts alone and
 writes one `acquisition_plan` row per year and per planned page, each with
@@ -71,8 +71,6 @@ def run(tick: Tick) -> None:
         contained("event_blocker_observations", stages.blocker_observations)
     if not stop():
         contained("requirements_scan", stages.requirements_scan)
-    if not stop():
-        contained("event_site_review", stages.site_review)
     from swingset.state.verification import verification_summary
 
     def verification() -> None:
@@ -140,16 +138,13 @@ def _plan(tick: Tick) -> None:
             database,
             config,
             clock,
-            run_id=tick.run_id,
             deadline=tick.deadline - timedelta(seconds=WRITE_RESERVE_SECONDS),
         )
     for planned in pages.pages:
         item, page, spec = planned.item, planned.item.page, planned.spec
         detail: dict[str, Any] = {}
         if spec is not None:
-            detail["via"] = "archive" if spec.archive_url else "origin"
-        if planned.origin_reason is not None:
-            detail["origin_reason"] = planned.origin_reason
+            detail["via"] = "archive"
         rows.append(
             PlanRow(
                 acquisition_plan.page_key(planned.watch_id),

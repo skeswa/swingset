@@ -282,7 +282,7 @@ def test_restored_probe_with_failed_attempt_and_annual_clock_gets_bounded_retry(
 def test_cycle_finishes_repeated_probe_without_any_parse_work(tmp_path):
     import shutil
 
-    from swingset.schedule.cycle import run_cycle
+    from helpers.loop_ticks import run_round
 
     config_dir, overrides_dir = tmp_path / "config", tmp_path / "overrides"
     shutil.copytree("config", config_dir)
@@ -299,7 +299,7 @@ def test_cycle_finishes_repeated_probe_without_any_parse_work(tmp_path):
     )
     with open_database(tmp_path / "state") as db:
         for _ in range(2):
-            run_cycle(
+            run_round(
                 db,
                 config_dir=config_dir,
                 overrides_dir=overrides_dir,
@@ -311,12 +311,12 @@ def test_cycle_finishes_repeated_probe_without_any_parse_work(tmp_path):
         ).fetchone()[0]
         observations = [tuple(row) for row in db.connection.execute("SELECT * FROM observations")]
         clock.sleep(7 * 86400)
-        summary = run_cycle(
+        summary = run_round(
             db, config_dir=config_dir, overrides_dir=overrides_dir, clock=clock, transport=transport
         )
-        assert summary["checked"] == 20
-        assert summary["changed"] == 0
-        assert "parse" not in summary["stages"]
+        assert summary.checked == 20
+        assert summary["acquire"]["changed"] == 0
+        assert "parse" not in summary.stages
         assert (
             db.connection.execute(
                 "SELECT value FROM cursors WHERE name='registry_probe_cursor'"

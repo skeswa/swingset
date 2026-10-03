@@ -123,6 +123,16 @@ weekly session.
    on a loaded Mac); phase 4 added `test_storage`, `test_body_packs`,
    `test_output_packs`, `test_collector`, `test_storage_migration` and
    `tests/backup/*` to core.
+   At phase 5a's offline implementation (2026-10-03, before its rehearsal):
+   1,954 tests in 466 s; 5a added `test_phase5_migration` and
+   `test_origin_candidates_tool` to core, and `test_event_site_review_tool`'s
+   write-nothing and unaccepted-year cases (the rest of the file is
+   extended). At phase 5's offline close (2026-10-03, after 5b): 1,945
+   tests in 489 s; removing the cycle did not lower it. The `event_*`
+   removal (open decision 2) deletes six whole core files. After phase 5's
+   review fixes (2026-10-04): 1,951 tests in 518 s, beside a rehearsal.
+   At phase 5's close on the final tree (2026-10-04): 1,955 tests in 524 s,
+   beside a rehearsal.
 10. Bound the memory of the publication report's closure check. It holds a
     whole closure (I10): `swingset summary` peaked at 4.5 GB on the 35 GB
     copy, 4.4 GB of it this check, under the unit's 5 GB cap, and the file
@@ -152,3 +162,20 @@ weekly session.
     noisy alerts, and the surviving mutants. The list and its order are in
     the [architecture plan](architecture.md#9-migration-plan), phase 4
     ("Carried forward"). Take them after phase 4's deploy, in that order.
+15. Give `scheduler_requests` a collector. Nothing deletes its rows, and the
+    admission prune keeps every request row it names (14,546 of 14,570 on
+    the 09-29 copy), so the ledger grows by about 1,800 rows a day and each
+    prune batch scans the kept rows (D-0238). Delete rows older than the
+    quota window the scheduler reads, then their admissions; the maintain
+    record's `admissions_rows` shows the growth until then. Trigger: the
+    watchdog's `[admissions-growth]`, maintain's `admissions_rows` over
+    200,000 (about 100 days of growth from the 09-29 copy). This is a
+    collector, not the removal open decision 2 is about.
+16. Phase 5's carried-forward minors: drain liveness from a lease that is
+    never renewed, errors after a pause commits, the orphan sweep's read
+    race, CDX admissions without a run, cycle-run admissions, publication
+    uploads in `[admission-stuck]`, a re-created requirement's opening
+    time, the site-review tool's immutable open, and the card's
+    site-review gap count. The list is in the
+    [architecture plan](architecture.md#9-migration-plan), phase 5
+    ("Carried forward"). Take them after phase 5's deploy, in that order.

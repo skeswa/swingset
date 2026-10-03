@@ -88,7 +88,7 @@ cooling_interval = "6h"
 1. `event` watch on `/<uuid>/rounds/routeInfo.json`: conditional GET.
    On 304 record `checked_at`. On 200 archive and parse.
 2. `awards` watch on `/<uuid>/awards/routeInfo.json`: same. Fetched in
-   the same cycle as the rounds file, since they change together.
+   the same acquire tick as the rounds file, since they change together.
 3. The HTML routes are never fetched; `routeInfo.json` has everything.
 4. A 403 on a `routeInfo.json` means the event is not published yet or
    the UUID is wrong; treat as `upcoming` and retry daily, up to 30

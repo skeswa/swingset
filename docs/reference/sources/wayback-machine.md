@@ -188,7 +188,7 @@ with open_database(Path("/tmp/swingset-history-phase1")) as database:
         client.close()
 ```
 
-Parsing queues projection work for the normal cycle. Index observations
+Parsing queues projection work for the derive loop. Index observations
 from different captures remain available together under the one original
 URL watch. A successfully parsed capture seals its watch;
 `schedule_capture` selects another unprocessed capture explicitly. An

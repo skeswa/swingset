@@ -1,16 +1,15 @@
-"""The offline loop: derive runnable units in batches, for the cycle and derive.
+"""The offline loop: derive runnable units in batches, for the derive loop.
 
-Both callers own a run summary; this loop adds to the keys it is given
+The caller owns a run summary; this loop adds to the keys it is given
 (`readiness_errors`, `unit_failures`, `stages`, `waiting_repeats`,
-`control_timeouts`, `queue.lease_busy`, `queue.quarantined`) and to the
+`queue.lease_busy`, `queue.quarantined`) and to the
 optional `current_hints_dropped`, `current_hints_error`, `not_completed`
 (unfailed outcomes that committed no output, by reason) and
 `undeclared_reads` (canonical tables a unit read that no rule covers, as
 `stage/kind:table` counts; `state/read_sets`), `read_set_signals`
 (`read_set_widened` and `pool_probe_widened` counts) and `settled_prerequisites`
 (prerequisites readiness took at their pointer because they are quarantined,
-wait for input, back off or are paced, by reason, at most 50 names each), so
-the cycle's summary is what it was before the loop moved here.
+wait for input, back off or are paced, by reason, at most 50 names each).
 """
 
 from __future__ import annotations
@@ -47,7 +46,6 @@ OFFLINE_BATCH = 64
 #: now waits on that failure's clock.
 _NOT_ADMITTED = frozenset(
     {
-        "control_timeout",
         "lease_busy",
         queue.FENCED_REASON,
         queue.LOCK_REASON,
@@ -202,9 +200,7 @@ class Offline:
             return attempt
         if attempt.reason in _NOT_ADMITTED:
             # Nothing ran: skip the unit for this run.
-            if attempt.reason == "control_timeout":
-                summary["control_timeouts"] += 1
-            elif attempt.reason == "lease_busy":
+            if attempt.reason == "lease_busy":
                 summary["queue"]["lease_busy"] += 1
             else:
                 held = summary["queue"].setdefault("held", {})
@@ -277,7 +273,7 @@ def registry_crosscheck(
 ) -> bool:
     """Run a due saved registry crosscheck once no parse or project unit waits.
 
-    Returns whether it was attempted. `run` lets the cycle pass its own name.
+    Returns whether it was attempted. `run` lets a test pass its own runner.
     """
     if next(iter(unfinished_units(database.connection, ("parse", "project"))), None) is not None:
         return False

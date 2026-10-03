@@ -206,8 +206,8 @@ def synthetic(tmp_path):
         "model/__init__.py": "",
         "model/observations.py": "",
         "schedule/__init__.py": "",
-        "schedule/parse.py": "from swingset.schedule.cycle import run\n",
-        "schedule/cycle.py": "run = None\n",
+        "schedule/parse.py": "from swingset.schedule.runner import run\n",
+        "schedule/runner.py": "run = None\n",
     }
     for name, text in tree.items():
         path = root / name
@@ -273,7 +273,7 @@ def test_a_history_closure_edit_changes_nothing(package):
 # The scheduler, the loops and acquisition run stages; no derivation's output
 # depends on their bytes, so no project, link or build scope names them (F4).
 SCHEDULER = (
-    "schedule/cycle.py",
+    "schedule/release_steps.py",
     "schedule/derive.py",
     "schedule/offline.py",
     "schedule/fairness.py",
@@ -321,14 +321,11 @@ def test_repository_identity_is_unchanged_by_the_move_to_versions(monkeypatch):
     import hashlib
 
     from swingset import versions
-    from swingset.schedule import cycle
 
     monkeypatch.delenv("SWINGSET_REVISION", raising=False)
-    assert cycle.repository_identity is versions.repository_identity
-    assert cycle.versions is versions.versions
-    # The digest root is still the package directory, as it was from
-    # schedule/cycle.py, so an unchanged tree keeps its identity (D-0188).
-    root = Path(cycle.__file__).resolve().parents[1]
+    # The digest root is still the package directory, as it was before the
+    # move, so an unchanged tree keeps its identity (D-0188).
+    root = Path(versions.__file__).resolve().parent
     assert root == Path(swingset.__file__).resolve().parent
     expected = hashlib.sha256()
     for path in sorted(root.rglob("*.py")):
@@ -407,9 +404,10 @@ def test_an_adapter_edit_requeues_only_its_kinds_and_a_versions_edit_no_parse(
         assert (
             conn.execute("SELECT COUNT(*) FROM pending_work WHERE stage='parse'").fetchone()[0] == 0
         )
-        # A cycle edit changes no recipe and queues nothing (F4).
+        # A scheduler edit changes no recipe and queues nothing (F4).
         queued = conn.execute("SELECT COUNT(*) FROM pending_work").fetchone()[0]
-        assert _accept(database, edit(versions, "schedule/cycle.py"), clock, monkeypatch) == set()
+        scheduler = edit(versions, "schedule/release_steps.py")
+        assert _accept(database, scheduler, clock, monkeypatch) == set()
         assert conn.execute("SELECT COUNT(*) FROM pending_work").fetchone()[0] == queued
 
 
@@ -432,7 +430,7 @@ def test_no_parse_closure_reaches_another_sources_adapter(package):
             assert reached == {owner} | SHARED.get(owner, set()), (stage, kind)
 
 
-def test_dynamic_imports_are_only_the_registry_and_the_cycle_clock(package):
+def test_the_only_dynamic_import_is_the_registry(package):
     found = set()
     for path in sorted(recipe_scope.package_paths(package)):
         if not path.endswith(".py"):
@@ -447,7 +445,7 @@ def test_dynamic_imports_are_only_the_registry_and_the_cycle_clock(package):
                 found.add((path.removeprefix(PREFIX), argument.value))
             elif isinstance(function, ast.Attribute) and function.attr == "import_module":
                 found.add((path.removeprefix(PREFIX), "import_module"))
-    assert found == {("sources/registry.py", "import_module"), ("schedule/cycle.py", "datetime")}
+    assert found == {("sources/registry.py", "import_module")}
 
 
 def test_the_shallow_parse_dispatch_imports_are_pinned(package):

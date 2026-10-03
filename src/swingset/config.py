@@ -85,7 +85,7 @@ class RetentionConfig:
 
 @dataclass(frozen=True)
 class StageConfig:
-    """Which optional event bookkeeping stages a cycle runs.
+    """Which optional event bookkeeping stages the plan loop runs.
 
     All default on, which is the behaviour before the switches existed. A stage
     that is off is skipped entirely. Turning `event_pressure` off also opens its
@@ -93,7 +93,6 @@ class StageConfig:
     expansion when nothing refreshes it.
     """
 
-    event_site_review: bool = True
     event_pressure: bool = True
     event_progress_refresh: bool = True
     event_blocker_observations: bool = True

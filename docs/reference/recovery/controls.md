@@ -50,10 +50,10 @@ transaction so work cannot start after a committed pause using a stale check.
 An uncertain publication response remains draining until receipt reconciliation
 establishes the outcome. `pause --wait` with a bounded timeout waits for
 `paused` and on timeout reports what was persisted and which attempts still
-drain. Split long cycles into bounded units with checkpoints so control
-mutations are serviced between them within a configured bound; exceeding it
-produces a stuck-drain status. This changes the whole-cycle writer lock
-contract while retaining one data writer and atomic transactions.
+drain. Work runs as bounded units in independent loops, so control mutations
+are serviced between them within a configured bound; exceeding it produces a
+stuck-drain status. A leased unit is the draining work (D-0238). One data
+writer and atomic transactions remain.
 
 Pause state is an execution constraint, not requirement state. Retain
 requirements, retry deadlines, attempt history, scan cursors, staged input
@@ -86,6 +86,8 @@ stale; a stopped worker does not stop doctor from reporting staleness.
 `swingset summary` gains a change-since-last-report section (newly opened,
 reopened, satisfied, and retired requirements, with attempts and failures
 listed separately, plus policy changes and scope transfers) and `--since`.
+Schema 37 removed that section, `--since`, the transition history and
+cohorts (D-0237); the rest of this section describes the original design.
 
 Persist requirement transitions and control events so reports survive
 restarts. For a fixed filter and interval, opening unmet count plus newly

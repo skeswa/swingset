@@ -3,7 +3,6 @@
 import argparse
 import contextlib
 import getpass
-import hashlib
 import json
 import math
 import os
@@ -81,7 +80,6 @@ def parser() -> argparse.ArgumentParser:
             )
             command.add_argument("--kind")
             command.add_argument("--requirement")
-            command.add_argument("--since", type=datetime.fromisoformat)
             command.add_argument(
                 "--retention",
                 action="store_true",
@@ -139,12 +137,6 @@ def parser() -> argparse.ArgumentParser:
     hold.add_argument("--who")
     hold.add_argument("--why")
     hold.add_argument("--hold-id")
-    cycle = commands.add_parser("cycle", parents=[shared])
-    mode = cycle.add_mutually_exclusive_group()
-    mode.add_argument("--dry-run", dest="dry_run", action="store_true", default=True)
-    mode.add_argument("--publish", dest="dry_run", action="store_false")
-    cycle.add_argument("--budget", type=duration, default=720)
-    cycle.add_argument("--timer", action="store_true")
     # One tick of a loop (D-0215); budgets are the timer units' defaults.
     for name, budget in LOOP_BUDGETS.items():
         loop = commands.add_parser(name, parents=[shared], help=f"Run one {name} loop tick")
@@ -154,11 +146,6 @@ def parser() -> argparse.ArgumentParser:
             publishing = loop.add_mutually_exclusive_group()
             publishing.add_argument("--dry-run", dest="dry_run", action="store_true", default=True)
             publishing.add_argument("--publish", dest="dry_run", action="store_false")
-    cohort = commands.add_parser("cohort", parents=[shared])
-    cohort.add_argument("name")
-    cohort.add_argument("--source")
-    cohort.add_argument("--kind")
-    cohort.add_argument("--unbounded", action="store_true")
     fetch = commands.add_parser("fetch-one", parents=[shared])
     fetch.add_argument("url")
     fetch.add_argument("--kind", required=True)
@@ -180,7 +167,7 @@ def parser() -> argparse.ArgumentParser:
             const=60.0,
             default=None,
             metavar="SECONDS",
-            help="wait for matching admitted actions to settle (default 60 seconds)",
+            help="wait for matching admitted actions and leased units to finish (default 60 seconds)",
         )
         if name == "pause":
             command.add_argument("--until")
@@ -486,8 +473,8 @@ def _verify_then_prune(state: Path, read_back: ReadBack) -> None:
     """Verify a local checkpoint, then prune older ones under the writer lock.
 
     The read-back runs after the backup released `state.lock`: the copy is an
-    independent file, so cycles need not wait the minutes it takes. The prune
-    takes the lock again, since a cycle may be reading an older checkpoint to
+    independent file, so loop ticks need not wait the minutes it takes. The prune
+    takes the lock again, since a tick may be reading an older checkpoint to
     recover a file. A copy that fails is renamed out of the timer namespace
     first, so nothing after it can leave it under a timer name. Then, only in
     `state/checkpoints`, any older failed copy is removed so a repeated
@@ -640,17 +627,16 @@ def doctor(args: argparse.Namespace) -> dict[str, Any]:
                 source=getattr(args, "source", None),
                 kind=getattr(args, "kind", None),
                 requirement_id=getattr(args, "requirement", None),
-                since=getattr(args, "since", None),
-                transition_after=getattr(args, "transition_after", None),
-                attempt_after=getattr(args, "attempt_after", None),
             )
             result["pending_work_basis"] = (
                 "queue hints; authoritative unfinished counts are requirements.derivation.pending"
                 if database.schema_version >= 14
                 else "legacy offline work queue"
             )
+            from swingset.state.control_scopes import for_unit as unit_scope
+
             result["controls"] = result["requirements"].get("controls") or control_status(
-                conn, now=now
+                conn, now=now, unit_scope=unit_scope
             )
             if conn.execute(
                 "SELECT 1 FROM sqlite_master WHERE name='registry_verifications'"
@@ -757,7 +743,7 @@ def doctor(args: argparse.Namespace) -> dict[str, Any]:
     result["pending_candidates"] = [path.name for path in pending_candidates(args.state)]
     if (args.state / "baseline").is_symlink():
         result["last_publication"] = json.loads((args.state / "baseline/PUBLISHED").read_bytes())
-    from swingset.schedule.cycle import baseline_commit
+    from swingset.schedule.release_steps import baseline_commit
 
     result["last_publish"] = baseline_commit(args.state)
     return result
@@ -890,32 +876,23 @@ def _mutate(
 ) -> int:
     """Run one locked command; a local backup appends its deferred read-back."""
     from swingset.fetch.archive import Archive
-    from swingset.schedule.cycle import build, run_cycle, versions
+    from swingset.schedule.release_steps import build
     from swingset.state.inputs import accept, capture
     from swingset.state.work import WorkUnit, enqueue, next_work
+    from swingset.versions import versions
 
     clock = SystemClock()
     command = args.command
-    if command == "cycle":
-        cycle_result = run_cycle(
-            database,
-            config_dir=args.config,
-            overrides_dir=args.overrides,
-            clock=clock,
-            dry_run=args.dry_run,
-            budget=args.budget,
-            hub=hub() if not args.dry_run else None,
-            should_stop=lambda: stopped[0],
-        )
-        return int(cycle_result["failed"])
     from swingset.state import queue
     from swingset.state.attempts import recover_interrupted
     from swingset.state.controls import recover_admissions
 
+    # This process holds the exclusive lock, so every lease (D-0216) and every
+    # active admission belongs to a dead process: a dead publication turns
+    # uncertain before any write meets its fence (D-0239).
     with database.transaction() as conn:
         recover_admissions(conn, now=clock.now())
         recover_interrupted(database, now=clock.now())
-        # This process holds the exclusive lock: every lease is dead (D-0216).
         queue.release_all(conn, clock.now())
     bundle = capture(args.config, args.overrides, args.state, versions())
     accept(database, bundle, clock)
@@ -930,19 +907,7 @@ def _mutate(
     command_failed = False
     held_units: dict[WorkUnit, list[dict[str, Any]]] = {}
     held_operations: list[dict[str, Any]] = []
-    if command == "cohort":
-        from swingset.state.requirements import capture_cohort
-
-        capture_cohort(
-            database.connection,
-            args.name,
-            clock.now(),
-            source=args.source,
-            kind=args.kind,
-            bounded=not args.unbounded,
-        )
-        print(args.name)
-    elif command == "sweep":
+    if command == "sweep":
         from swingset.schedule.registry import seed_sweep
 
         seed_sweep(database, args.start)
@@ -1116,7 +1081,7 @@ def _mutate(
             ):
                 attempted.add(unit)
                 derived = derive_one(database, archive, unit, bundle, clock, run_id)
-                if derived.reason in {"control_timeout", "lease_busy"}:
+                if derived.reason == "lease_busy":
                     log("unit-skipped", unit=asdict(unit), reason=derived.reason)
                     continue
                 if derived.source is not None and not derived.waiting_repeat:
@@ -1442,6 +1407,8 @@ def _control(args: argparse.Namespace) -> int:
     until = datetime.fromisoformat(args.until) if getattr(args, "until", None) else None
     if until is not None and (until.tzinfo is None or until <= clock.now()):
         raise ValueError("--until requires a future time with an explicit timezone")
+    from swingset.state.control_scopes import for_unit
+
     config = load_config(args.config)
     result = change_control(
         args.state,
@@ -1454,6 +1421,7 @@ def _control(args: argparse.Namespace) -> int:
         timeout=args.lock_timeout,
         sources=tuple(config.sources),
         hosts=tuple(config.hosts),
+        unit_scope=for_unit,
     )
     code = 0
     if args.wait is not None:
@@ -1462,7 +1430,9 @@ def _control(args: argparse.Namespace) -> int:
             while True:
                 with open_database(args.state, lock=False, read_only=True) as database:
                     with database.transaction(immediate=False) as conn:
-                        current = status(conn, now=clock.now(), selector=selector)
+                        current = status(
+                            conn, now=clock.now(), selector=selector, unit_scope=for_unit
+                        )
                 result.update(current)
                 result["status"] = current
                 if not current["draining_attempts"]:
@@ -1923,17 +1893,6 @@ def main(argv: list[str] | None = None) -> int:
         try:
             if args.interval <= 0 or args.interval > 60:
                 raise ValueError("--interval must be greater than zero and at most 60 seconds")
-            if args.since is not None and args.since.tzinfo is None:
-                raise ValueError("--since requires an explicit timezone")
-            report_key = hashlib.sha256(
-                json.dumps((args.source, args.kind, args.requirement)).encode()
-            ).hexdigest()[:16]
-            report_checkpoint = args.state / "reports" / f"requirements-{report_key}.json"
-            if args.command == "summary" and args.since is None and report_checkpoint.exists():
-                checkpoint = json.loads(report_checkpoint.read_text())
-                args.since = datetime.fromisoformat(checkpoint["at"])
-                args.transition_after = checkpoint.get("transition_cursor")
-                args.attempt_after = checkpoint.get("attempt_cursor")
             while True:
                 result = doctor(args)
                 if args.command == "summary" and not args.json:
@@ -1952,23 +1911,6 @@ def main(argv: list[str] | None = None) -> int:
                     )
                     if "requirements" in result:
                         print(human_report(result["requirements"]), flush=True)
-                if args.command == "summary" and "requirements" in result:
-                    from swingset.fetch.archive import canonical, durable_write
-
-                    at = result["requirements"]["snapshot_at"]
-                    args.transition_after = result["requirements"].get("transition_cursor")
-                    args.attempt_after = result["requirements"].get("attempt_cursor")
-                    durable_write(
-                        report_checkpoint,
-                        canonical(
-                            {
-                                "at": at,
-                                "transition_cursor": args.transition_after,
-                                "attempt_cursor": args.attempt_after,
-                            }
-                        ),
-                    )
-                    args.since = datetime.fromisoformat(at)
                 if not args.watch:
                     break
                 time.sleep(args.interval)

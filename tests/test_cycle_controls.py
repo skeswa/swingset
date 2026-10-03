@@ -1,15 +1,18 @@
-"""Cycle control fences preserve independent progress and pending evidence."""
+"""Control fences preserve independent progress and pending evidence.
+
+Each round runs loop ticks (`helpers/loop_ticks.py`); the name predates phase 5b.
+"""
 
 import shutil
 from pathlib import Path
 
 import httpx
 import pytest
+from helpers.loop_ticks import run_round
 
 from swingset.clock import FakeClock
 from swingset.fetch.archive import Archive
 from swingset.publish.service import PublishResult
-from swingset.schedule.cycle import run_cycle, versions
 from swingset.schedule.watches import upsert_watch
 from swingset.sources.base import WatchSpec
 from swingset.state import derivations
@@ -18,8 +21,16 @@ from swingset.state.db import open_database
 from swingset.state.findings import Finding, replace_findings
 from swingset.state.inputs import accept, capture
 from swingset.state.work import WorkUnit, enqueue
+from swingset.versions import versions
 
 FIXTURE = Path("tests/fixtures/sources/synthetic_calendar.html").read_bytes()
+
+
+def deferred_for_interval(conn, config, unit, *, now):
+    """Whether the paced inventory waits its interval (schedule/pacing.py)."""
+    from swingset.schedule import pacing
+
+    return pacing.deferred(conn, config.scheduler, unit, now=now)
 
 
 @pytest.fixture
@@ -77,7 +88,8 @@ def test_paused_backlog_does_not_starve_real_independent_fetch_and_projection(
             else httpx.Response(200, content=FIXTURE)
         )
 
-    with open_database(tmp_path / "state") as db:
+    state = tmp_path / "state"
+    with open_database(state) as db:
         seed_held(db, clock)
         change_control(
             db.state_dir,
@@ -87,15 +99,12 @@ def test_paused_backlog_does_not_starve_real_independent_fetch_and_projection(
             reason="source review",
             now=clock.now(),
         )
-        result = run_cycle(
-            db,
-            config_dir=config,
-            overrides_dir=overrides,
-            clock=clock,
-            transport=httpx.MockTransport(transport),
-        )
-        assert not result["failed"]
-        assert result["checked"] == 1
+    result = run_round(
+        state, config_dir=config, overrides_dir=overrides, clock=clock, handler=transport
+    )
+    assert not result.failed
+    assert result.checked == 1
+    with open_database(state) as db:
         assert db.connection.execute("SELECT count(*) FROM events").fetchone()[0] == 1
         assert (
             db.connection.execute(
@@ -109,15 +118,23 @@ def test_paused_backlog_does_not_starve_real_independent_fetch_and_projection(
             ).fetchone()[0]
             == 1
         )
-        assert result["held_units"][0]["unit_id"] == "held"
-        assert result["held_units"][0]["pauses"][0]["reason"] == "source review"
-        assert "https://worldsdc.com/events/" in requests
-        assert result["stages_disabled"] == []
+    held = result["derive"]["held_units"]["units"]
+    assert held[0]["unit_id"] == "held"
+    assert held[0]["pauses"][0]["reason"] == "source review"
+    assert "https://worldsdc.com/events/" in requests
+    # The plan tick reports the switched-off stages; it runs once derive accepted.
+    assert result["plan"]["skipped"] == "inputs_not_accepted"
+    replanned = run_round(
+        state, config_dir=config, overrides_dir=overrides, clock=clock, loops=("plan",)
+    )
+    assert replanned["plan"]["stages_disabled"] == []
 
 
 def test_all_pause_blocks_build_and_derivation_but_preserves_bookkeeping(
     tmp_path, configuration, monkeypatch
 ):
+    from swingset.state.controls import status
+
     config, overrides = configuration
     clock = FakeClock()
     built = []
@@ -128,7 +145,8 @@ def test_all_pause_blocks_build_and_derivation_but_preserves_bookkeeping(
     def forbidden(_request):
         raise AssertionError("paused request")
 
-    with open_database(tmp_path / "state") as db:
+    state = tmp_path / "state"
+    with open_database(state) as db:
         change_control(
             db.state_dir,
             selector=Selector("all", "all"),
@@ -137,48 +155,51 @@ def test_all_pause_blocks_build_and_derivation_but_preserves_bookkeeping(
             reason="maintenance",
             now=clock.now(),
         )
-        result = run_cycle(
-            db,
-            config_dir=config,
-            overrides_dir=overrides,
-            clock=clock,
-            transport=httpx.MockTransport(forbidden),
-        )
-        assert not result["failed"]
-        assert built == [] and result["stages"] == []
-        assert "build" in {item["action"] for item in result["held_operations"]}
-        assert result["controls"]["state"] == "paused"
-        assert result["accepted_inputs"]
+    result = run_round(
+        state, config_dir=config, overrides_dir=overrides, clock=clock, handler=forbidden
+    )
+    assert not result.failed
+    assert built == [] and result.stages == []
+    assert "build" in {item["action"] for item in result.held_operations}
+    assert result.accepted_inputs
+    with open_database(state) as db:
+        assert status(db.connection, now=clock.now())["state"] == "paused"
         assert db.connection.execute("SELECT count(*) FROM watches").fetchone()[0] > 0
         assert db.connection.execute("SELECT count(*) FROM execution_admissions").fetchone()[0] == 0
-        assert db.connection.execute(
-            "SELECT finished_at FROM runs WHERE run_id=?", (result["run_id"],)
-        ).fetchone()[0]
+        for record in result.values():
+            assert db.connection.execute(
+                "SELECT finished_at FROM runs WHERE run_id=?", (record["run_id"],)
+            ).fetchone()[0]
 
 
 def test_startup_recovers_abandoned_publication_before_start_run(
     tmp_path, configuration, monkeypatch
 ):
+    from swingset.state.db import Database
+
     config, overrides = configuration
     clock = FakeClock()
-    with open_database(tmp_path / "state") as db:
+    state = tmp_path / "state"
+    with open_database(state) as db:
         db.connection.execute(
             "INSERT INTO execution_admissions(action_id,action_kind,admitted_at,control_revision,all_sources,all_kinds,state) VALUES ('abandoned','publication',?,0,1,1,'active')",
             (clock.now().isoformat(),),
         )
-        original = db.start_run
+    original = Database.start_run
 
-        def checked_start(*args, **kwargs):
-            assert (
-                db.connection.execute("SELECT state FROM execution_admissions").fetchone()[0]
-                == "uncertain"
-            )
-            return original(*args, **kwargs)
+    def checked_start(self, *args, **kwargs):
+        assert (
+            self.connection.execute("SELECT state FROM execution_admissions").fetchone()[0]
+            == "uncertain"
+        )
+        return original(self, *args, **kwargs)
 
-        monkeypatch.setattr(db, "start_run", checked_start)
-        result = run_cycle(db, config_dir=config, overrides_dir=overrides, clock=clock, budget=0)
-        assert result["recovered_admissions"] == 1
-        assert not result["failed"]
+    monkeypatch.setattr(Database, "start_run", checked_start)
+    # The other loops skip under the active publication; release settles it
+    # before its run starts.
+    result = run_round(state, config_dir=config, overrides_dir=overrides, clock=clock, budget=0)
+    assert result["release"]["recovered"]["admissions"] == 1
+    assert not result.failed
 
 
 def test_held_early_correction_does_not_abort_independent_work(
@@ -188,10 +209,11 @@ def test_held_early_correction_does_not_abort_independent_work(
     clock = FakeClock()
     monkeypatch.setattr("swingset.build.service.correction_needed", lambda *_args: True)
     monkeypatch.setattr(
-        "swingset.schedule.cycle.reconcile",
+        "swingset.loops.release.reconcile",
         lambda *_args, **_kwargs: PublishResult("draining", reason="prior receipt pending"),
     )
-    with open_database(tmp_path / "state") as db:
+    state = tmp_path / "state"
+    with open_database(state) as db:
         seed_held(db, clock)
         change_control(
             db.state_dir,
@@ -201,37 +223,40 @@ def test_held_early_correction_does_not_abort_independent_work(
             reason="correction review",
             now=clock.now(),
         )
-        result = run_cycle(
-            db,
-            config_dir=config,
-            overrides_dir=overrides,
-            clock=clock,
-            hub=object(),
-            transport=httpx.MockTransport(
-                lambda request: (
-                    httpx.Response(404)
-                    if request.url.path == "/robots.txt"
-                    else httpx.Response(200, content=FIXTURE)
-                )
-            ),
-        )
-        assert not result["failed"]
-        assert result["held_operations"][0]["action"] == "correction_build"
-        assert result["held_operations"][0]["pauses"][0]["reason"] == "correction review"
-        assert result["reconciliation"]["state"] == "draining"
-        assert result["reconciliation"]["reason"] == "prior receipt pending"
+    result = run_round(
+        state,
+        config_dir=config,
+        overrides_dir=overrides,
+        clock=clock,
+        hub=object(),
+        handler=lambda request: (
+            httpx.Response(404)
+            if request.url.path == "/robots.txt"
+            else httpx.Response(200, content=FIXTURE)
+        ),
+    )
+    released = result["release"]
+    assert not result.failed
+    assert released["held_operations"][0]["action"] == "correction_build"
+    assert released["held_operations"][0]["pauses"][0]["reason"] == "correction review"
+    assert released["reconciliation"]["state"] == "draining"
+    assert released["reconciliation"]["reason"] == "prior receipt pending"
+    with open_database(state) as db:
         assert db.connection.execute("SELECT count(*) FROM events").fetchone()[0] == 1
 
 
 def test_saved_crosscheck_is_held_by_its_shared_kind(tmp_path, configuration, monkeypatch):
+    from swingset.schedule import offline
+
     config, overrides = configuration
     clock = FakeClock()
     (config / "sources.toml").write_text("")
     calls = []
     monkeypatch.setattr(
-        "swingset.schedule.cycle.run_saved_crosscheck_if_due", lambda *_args: calls.append(True)
+        offline.registry_crosscheck, "__kwdefaults__", {"run": lambda *_args: calls.append(True)}
     )
-    with open_database(tmp_path / "state") as db:
+    state = tmp_path / "state"
+    with open_database(state) as db:
         accept(db, capture(config, overrides, db.state_dir, versions()), clock)
         db.connection.execute("DELETE FROM pending_work")
         db.connection.execute("INSERT INTO meta VALUES ('registry_crosscheck_due','retained')")
@@ -243,9 +268,10 @@ def test_saved_crosscheck_is_held_by_its_shared_kind(tmp_path, configuration, mo
             reason="history review",
             now=clock.now(),
         )
-        result = run_cycle(db, config_dir=config, overrides_dir=overrides, clock=clock)
-        assert calls == []
-        assert any(item["action"] == "registry_crosscheck" for item in result["held_operations"])
+    result = run_round(state, config_dir=config, overrides_dir=overrides, clock=clock)
+    assert calls == []
+    assert any(item["action"] == "registry_crosscheck" for item in result.held_operations)
+    with open_database(state) as db:
         assert (
             db.connection.execute(
                 "SELECT value FROM meta WHERE key='registry_crosscheck_due'"
@@ -318,7 +344,7 @@ def test_cycle_reports_publication_held_reason_without_claiming_failure(
     (config / "sources.toml").write_text("")
     clock = FakeClock()
     monkeypatch.setattr(
-        "swingset.schedule.cycle.reconcile", lambda *_args, **_kwargs: PublishResult("idle")
+        "swingset.loops.release.reconcile", lambda *_args, **_kwargs: PublishResult("idle")
     )
     monkeypatch.setattr(
         "swingset.build.service.build_release",
@@ -327,23 +353,25 @@ def test_cycle_reports_publication_held_reason_without_claiming_failure(
         ),
     )
     monkeypatch.setattr(
-        "swingset.schedule.cycle.publish",
+        "swingset.schedule.release_steps.publish",
         lambda *_args, **_kwargs: PublishResult(
             "held", candidate_id="candidate", reason="operator control changed before publication"
         ),
     )
-    with open_database(tmp_path / "state") as db:
-        result = run_cycle(
-            db, config_dir=config, overrides_dir=overrides, clock=clock, dry_run=False, hub=object()
-        )
-        assert not result["failed"]
-        assert result["publication"] == {
-            "state": "held",
-            "candidate_id": "candidate",
-            "commit": None,
-            "reason": "operator control changed before publication",
-        }
-        assert "publish_commit" not in result
+    state = tmp_path / "state"
+    result = run_round(
+        state, config_dir=config, overrides_dir=overrides, clock=clock, dry_run=False, hub=object()
+    )
+    released = result["release"]
+    assert not result.failed
+    assert released["publication"] == {
+        "state": "held",
+        "candidate_id": "candidate",
+        "commit": None,
+        "reason": "operator control changed before publication",
+    }
+    assert "publish_commit" not in released
+    with open_database(state) as db:
         assert (
             db.connection.execute(
                 "SELECT state FROM execution_admissions WHERE action_kind='build'"
@@ -368,38 +396,37 @@ def test_build_failure_is_reported_and_does_not_abort_the_cycle(
             raise ClosureError("callback_marks local_page_support_unverifiable")
         raise BuildError("callback_marks references missing entry x")
 
-    monkeypatch.setattr("swingset.schedule.cycle.build", failing_build)
-    with open_database(tmp_path / "state") as db:
+    monkeypatch.setattr("swingset.schedule.release_steps.build", failing_build)
+    state = tmp_path / "state"
+    with open_database(state) as db:
         seed_held(db, clock)
-        result = run_cycle(
-            db,
-            config_dir=config,
-            overrides_dir=overrides,
-            clock=clock,
-            transport=httpx.MockTransport(
-                lambda request: (
-                    httpx.Response(404)
-                    if request.url.path == "/robots.txt"
-                    else httpx.Response(200, content=FIXTURE)
-                )
-            ),
-        )
-        # The build could not assemble a candidate, but the cycle went on to
-        # fetch and derive, which is what repairs a stale generation (D-0187).
-        assert result["build_error"].split(": ")[1].startswith("callback_marks")
-        assert result["checked"] >= 1
-        assert "parse" in result["stages"]
-        # Non-fatal is not healthy: the watchdog alerts on failed=true, and 63
-        # cycles once reported failed=false over one build error (D-0199).
-        assert result["failed"]
+    result = run_round(
+        state,
+        config_dir=config,
+        overrides_dir=overrides,
+        clock=clock,
+        handler=lambda request: (
+            httpx.Response(404)
+            if request.url.path == "/robots.txt"
+            else httpx.Response(200, content=FIXTURE)
+        ),
+    )
+    # The build could not assemble a candidate, but the round went on to
+    # fetch and derive, which is what repairs a stale generation (D-0187).
+    assert result["release"]["build_error"].split(": ")[1].startswith("callback_marks")
+    assert result.checked >= 1
+    assert "parse" in result.stages
+    # Non-fatal is not healthy: the watchdog alerts on failed=true, and 63
+    # cycles once reported failed=false over one build error (D-0199).
+    assert result.failed and result["release"]["failed"]
 
 
 def test_build_interval_defers_any_build_admitted_within_it(tmp_path):
     from datetime import timedelta
     from types import SimpleNamespace
 
-    from swingset.schedule.cycle import build_deferred_for_interval
     from swingset.schedule.fair_policy import SchedulerConfig
+    from swingset.schedule.release_steps import build_deferred_for_interval
 
     clock = FakeClock()
     unset = SimpleNamespace(scheduler=SchedulerConfig())
@@ -420,7 +447,7 @@ def test_build_interval_defers_any_build_admitted_within_it(tmp_path):
 
 
 def test_repository_identity_ignores_uncommitted_store_markers(monkeypatch):
-    from swingset.schedule.cycle import repository_identity
+    from swingset.versions import repository_identity
 
     monkeypatch.setenv("SWINGSET_REVISION", "uncommitted:abc123-source")
     digest = repository_identity()
@@ -437,7 +464,6 @@ def test_history_interval_paces_nothing(tmp_path):
     from datetime import timedelta
     from types import SimpleNamespace
 
-    from swingset.schedule.cycle import deferred_for_interval
     from swingset.schedule.fair_policy import SchedulerConfig
     from swingset.state.work import WorkUnit
 
@@ -492,7 +518,6 @@ def test_the_inventory_waits_its_interval_whatever_the_years_did(tmp_path):
     from datetime import timedelta
     from types import SimpleNamespace
 
-    from swingset.schedule.cycle import deferred_for_interval
     from swingset.schedule.fair_policy import SchedulerConfig
     from swingset.state.work import WorkUnit
 
@@ -537,7 +562,6 @@ def test_a_calendar_replay_the_inventory_has_not_read_lifts_its_wait(tmp_path):
     from pathlib import Path
     from types import SimpleNamespace
 
-    from swingset.schedule.cycle import deferred_for_interval
     from swingset.schedule.fair_policy import SchedulerConfig
     from swingset.schedule.pacing import calendar_replayed
     from swingset.state.work import WorkUnit
@@ -608,7 +632,6 @@ def test_a_calendar_generation_newer_than_the_inventory_lifts_its_wait(tmp_path)
     from datetime import timedelta
     from types import SimpleNamespace
 
-    from swingset.schedule.cycle import deferred_for_interval
     from swingset.schedule.fair_policy import SchedulerConfig
     from swingset.schedule.pacing import calendar_regenerated
     from swingset.state.work import WorkUnit
@@ -659,8 +682,8 @@ def test_a_kind_without_a_code_scope_is_named_and_fails_the_cycle(
     tmp_path, configuration, monkeypatch
 ):
     # Offline selection skips a kind whose recipe cannot be formed so the
-    # other kinds keep running (I1), but the cycle must say so: without the
-    # summary key and failed=true that kind would stop silently.
+    # other kinds keep running (I1), but the derive tick must say so: without
+    # the record key and failed=true that kind would stop silently.
     from swingset.state import recipe_scope
 
     config, overrides = configuration
@@ -678,7 +701,8 @@ def test_a_kind_without_a_code_scope_is_named_and_fails_the_cycle(
     def offline(_request):
         return httpx.Response(503)
 
-    with open_database(tmp_path / "state") as db:
+    state = tmp_path / "state"
+    with open_database(state) as db:
         run = db.start_run(clock.now())
         # A dancer with a generation: readiness compares its certificate,
         # which reads the recipe.
@@ -688,18 +712,14 @@ def test_a_kind_without_a_code_scope_is_named_and_fails_the_cycle(
             [WorkUnit("project", "dancer", "all")],
             enqueued_at=clock.now().isoformat(),
         )
-        result = run_cycle(
-            db,
-            config_dir=config,
-            overrides_dir=overrides,
-            clock=clock,
-            transport=httpx.MockTransport(offline),
-        )
-        assert result["readiness_errors"] == {
-            "project/dancer": "accepted runtime has no code scope recipe/code/project/dancer"
-        }
-        assert result["failed"]
-        assert result["phase_two_refusals"] == {}
+    result = run_round(
+        state, config_dir=config, overrides_dir=overrides, clock=clock, handler=offline
+    )["derive"]
+    assert result["readiness_errors"] == {
+        "project/dancer": "accepted runtime has no code scope recipe/code/project/dancer"
+    }
+    assert result["failed"]
+    assert result["phase_two_refusals"] == {}
 
 
 def test_a_bookkeeping_stage_overrun_is_recorded_and_the_cycle_still_fetches(
@@ -717,36 +737,41 @@ def test_a_bookkeeping_stage_overrun_is_recorded_and_the_cycle_still_fetches(
         raise WriteDeadlineExceeded("atomic write exceeded 45 seconds; output rolled back")
 
     monkeypatch.setattr(requirements, "scan", overran)
-    with open_database(tmp_path / "state") as db:
+    state = tmp_path / "state"
+    with open_database(state) as db:
         seed_held(db, clock)
-        result = run_cycle(
-            db,
-            config_dir=config,
-            overrides_dir=overrides,
-            clock=clock,
-            transport=httpx.MockTransport(
-                lambda request: (
-                    httpx.Response(404)
-                    if request.url.path == "/robots.txt"
-                    else httpx.Response(200, content=FIXTURE)
-                )
-            ),
-        )
-        assert result["stage_errors"] == [
-            {
-                "stage": "requirements_scan",
-                "error": "atomic write exceeded 45 seconds; output rolled back",
-            }
-        ]
-        assert result["failed"] and "error" not in result
-        assert result["checked"] >= 1
+    # Derive accepts the inputs first, so the plan tick runs its stages.
+    result = run_round(
+        state,
+        config_dir=config,
+        overrides_dir=overrides,
+        clock=clock,
+        loops=("derive", "plan", "acquire"),
+        handler=lambda request: (
+            httpx.Response(404)
+            if request.url.path == "/robots.txt"
+            else httpx.Response(200, content=FIXTURE)
+        ),
+    )
+    planned = result["plan"]
+    assert planned["stage_errors"] == [
+        {
+            "stage": "requirements_scan",
+            "error": "atomic write exceeded 45 seconds; output rolled back",
+        }
+    ]
+    assert planned["failed"] and planned["error"] is None
+    assert result.checked >= 1
 
 
-def test_a_failed_report_read_still_writes_the_run_record(tmp_path, configuration, monkeypatch):
-    # The watchdog reads each cycle's record (I4); a report query that fails
-    # after the work, or after an earlier error, must not lose it.
+def test_a_failed_report_read_still_writes_the_derive_run_record(
+    tmp_path, configuration, monkeypatch
+):
+    # The loop form of the test above: a derive tick whose report read fails
+    # ends with the error, and its record file and `runs` row still carry it.
     import json
 
+    from swingset.loops.runtime import tick
     from swingset.state import derivations
 
     config, overrides = configuration
@@ -756,24 +781,35 @@ def test_a_failed_report_read_still_writes_the_run_record(tmp_path, configuratio
         raise RuntimeError("database is locked")
 
     monkeypatch.setattr(derivations, "cycle_progress", locked)
-    monkeypatch.setattr("swingset.schedule.cycle.status", locked)
-    with open_database(tmp_path / "state") as db:
-        result = run_cycle(db, config_dir=config, overrides_dir=overrides, clock=clock, budget=0)
-        assert result["derivation_error"] == "RuntimeError: database is locked"
-        assert result["controls_error"] == "RuntimeError: database is locked"
-        assert "derivation" not in result and "controls" not in result
+    state = tmp_path / "state"
+    from swingset.loops import derive
+
+    with pytest.raises(RuntimeError, match="database is locked"):
+        with tick(
+            "derive",
+            state=state,
+            config_dir=config,
+            overrides_dir=overrides,
+            clock=clock,
+            budget=0,
+        ) as current:
+            derive.run(current)
+    record = current.record
+    assert record is not None and record["error"] == "RuntimeError: database is locked"
+    assert record["failed"]
+    with open_database(state) as db:
         stored = db.connection.execute(
-            "SELECT summary_json FROM runs WHERE run_id=?", (result["run_id"],)
+            "SELECT summary_json FROM runs WHERE run_id=?", (record["run_id"],)
         ).fetchone()[0]
-        assert json.loads(stored)["derivation_error"] == result["derivation_error"]
-        record = tmp_path / "state" / "runs" / f"{result['run_id']}.json"
-        assert json.loads(record.read_bytes())["run_id"] == result["run_id"]
+    assert json.loads(stored)["error"] == record["error"]
+    saved = state / "runs" / f"{record['run_id']}.json"
+    assert json.loads(saved.read_bytes())["run_id"] == record["run_id"]
 
 
 def test_a_failed_replay_epoch_read_is_noted_and_the_run_record_written(
     tmp_path, configuration, monkeypatch
 ):
-    # The epochs are read before the cycle's work; a failure there used to
+    # The epochs are read before derive's work; a failure there used to
     # escape before any run record existed.
     import json
 
@@ -785,28 +821,27 @@ def test_a_failed_replay_epoch_read_is_noted_and_the_run_record_written(
         raise RuntimeError("database is locked")
 
     monkeypatch.setattr(derivations, "replay_epochs", locked)
-    with open_database(tmp_path / "state") as db:
-        result = run_cycle(
-            db, config_dir=config, overrides_dir=overrides, clock=FakeClock(), budget=0
-        )
-        assert result["derivation_error"] == "RuntimeError: database is locked"
-        # The rest of the report is kept; replay bumps are left out, not guessed.
-        assert "replay_bumps" not in result["derivation"]
-        assert "generations" in result["derivation"]
-        record = tmp_path / "state" / "runs" / f"{result['run_id']}.json"
-        assert json.loads(record.read_bytes())["derivation_error"] == result["derivation_error"]
+    state = tmp_path / "state"
+    result = run_round(
+        state, config_dir=config, overrides_dir=overrides, clock=FakeClock(), budget=0
+    )["derive"]
+    assert result["derivation_error"] == "RuntimeError: database is locked"
+    # The rest of the report is kept; replay bumps are left out, not guessed.
+    assert "replay_bumps" not in result["derivation"]
+    assert "generations" in result["derivation"]
+    record = state / "runs" / f"{result['run_id']}.json"
+    assert json.loads(record.read_bytes())["derivation_error"] == result["derivation_error"]
 
 
 def test_stages_switched_off_are_skipped_and_the_cycle_still_fetches(
     tmp_path, configuration, monkeypatch
 ):
-    from swingset.history import event_sites
     from swingset.schedule import event_blocker_history, event_pressure, event_progress
 
     config, overrides = configuration
     with (config / "sources.toml").open("a") as file:
         file.write(
-            "[stages]\nevent_site_review = false\nevent_pressure = false\n"
+            "[stages]\nevent_pressure = false\n"
             "event_progress_refresh = false\nevent_blocker_observations = false\n"
         )
     clock = FakeClock()
@@ -815,7 +850,6 @@ def test_stages_switched_off_are_skipped_and_the_cycle_still_fetches(
         raise AssertionError("a stage switched off must not run")
 
     for module, name in (
-        (event_sites, "reconcile"),
         (event_pressure, "bootstrap"),
         (event_pressure, "refresh"),
         (event_progress, "refresh"),
@@ -832,44 +866,40 @@ def test_stages_switched_off_are_skipped_and_the_cycle_still_fetches(
             else httpx.Response(200, content=FIXTURE)
         )
 
-    with open_database(tmp_path / "state") as db:
-        # An accepted year would let the site review run if it were on.
-        db.connection.execute(
-            "INSERT INTO history_acceptance VALUES (2010,?,'test','digest')",
-            (clock.now().isoformat(),),
-        )
-        result = run_cycle(
-            db,
-            config_dir=config,
-            overrides_dir=overrides,
-            clock=clock,
-            transport=httpx.MockTransport(transport),
-        )
+    # Derive accepts the inputs first, so the plan tick runs its stages.
+    result = run_round(
+        tmp_path / "state",
+        config_dir=config,
+        overrides_dir=overrides,
+        clock=clock,
+        loops=("derive", "plan", "acquire", "derive", "release"),
+        handler=transport,
+    )
     stages = [
         "event_blocker_observations",
         "event_pressure",
         "event_progress_refresh",
-        "event_site_review",
     ]
-    assert result["stages_disabled"] == stages
+    planned = result["plan"]
+    assert planned["skipped"] is None
+    assert planned["stages_disabled"] == stages
     for key in (
-        "event_sites_reviewed",
         "event_pressure_bootstrap",
         "event_pressure_refresh",
         "event_progress_refresh",
         "event_blocker_observations",
     ):
-        assert key not in result
-    assert result["stage_errors"] == [] and result["held_operations"] == []
-    assert not result["failed"]
+        assert all(key not in record for record in result.sequence)
+    assert result.stage_errors == [] and result.held_operations == []
+    assert not result.failed
     assert "https://worldsdc.com/events/" in requests
-    assert result["checked"] >= 1
+    assert result.checked >= 1
 
 
 def test_a_cycle_deletes_hints_for_units_that_are_already_current(tmp_path, configuration):
     """A revert deploy re-queues hints for units that are current again. The
-    cycle's offline selection deletes them, so the watchdog does not count
-    them as ready work forever (I4)."""
+    derive tick's offline selection deletes them, so the watchdog does not
+    count them as ready work forever (I4)."""
     config, overrides = configuration
     clock = FakeClock()
 
@@ -880,15 +910,16 @@ def test_a_cycle_deletes_hints_for_units_that_are_already_current(tmp_path, conf
             else httpx.Response(200, content=FIXTURE)
         )
 
-    with open_database(tmp_path / "state") as db:
-        first = run_cycle(
-            db,
-            config_dir=config,
-            overrides_dir=overrides,
-            clock=clock,
-            transport=httpx.MockTransport(transport),
+    state = tmp_path / "state"
+
+    def ticks():
+        return run_round(
+            state, config_dir=config, overrides_dir=overrides, clock=clock, handler=transport
         )
-        assert not first["failed"]
+
+    first = ticks()
+    assert not first.failed
+    with open_database(state) as db:
         conn = db.connection
         current = [
             unit
@@ -899,17 +930,12 @@ def test_a_cycle_deletes_hints_for_units_that_are_already_current(tmp_path, conf
         assert current
         with db.transaction():
             enqueue(conn, current, enqueued_at=clock.now().isoformat())
-        second = run_cycle(
-            db,
-            config_dir=config,
-            overrides_dir=overrides,
-            clock=clock,
-            transport=httpx.MockTransport(transport),
-        )
-        assert not second["failed"]
-        assert second["current_hints_dropped"] == len(current)
+    second = ticks()
+    assert not second.failed
+    assert second["derive"]["current_hints_dropped"] == len(current)
+    with open_database(state) as db:
         assert (
-            conn.execute(
+            db.connection.execute(
                 "SELECT count(*) FROM pending_work WHERE stage IN ('project','link')"
             ).fetchone()[0]
             == 0

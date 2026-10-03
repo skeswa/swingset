@@ -340,12 +340,10 @@ def test_project_fingerprint_is_scoped_to_its_own_observations(tmp_path):
         assert input_fingerprint(db.connection, GOOD) != first
 
 
-def test_a_committed_derivation_keeps_its_attempt_but_not_its_admission(tmp_path, monkeypatch):
-    """Per-unit bookkeeping of a run that committed carries nothing its work
-    attempt does not (D-0213): the settled admission and its scope rows go in
-    the output transaction, and a success with no requirement finding adds no
-    requirement attempt. A failure keeps all three, and a later success is
-    recorded against the finding it satisfies."""
+def test_a_derivation_writes_no_admission_and_keeps_its_attempt(tmp_path, monkeypatch):
+    """A unit leases and finishes with no ledger row (D-0238): its lease and
+    work attempt are its in-flight record. A failure's reason lives on the
+    work_queue and work_attempts rows, never in a finding (D-0237)."""
     from pathlib import Path
 
     import swingset.project
@@ -373,20 +371,14 @@ def test_a_committed_derivation_keeps_its_attempt_but_not_its_admission(tmp_path
             "SELECT attempt_id FROM work_attempts WHERE unit_id=? ORDER BY attempt_id DESC",
             (unit_id,),
         ).fetchone()[0]
-        admissions = conn.execute(
-            "SELECT action_id,state,outcome FROM execution_admissions WHERE work_attempt_id=?",
-            (attempt,),
-        ).fetchall()
-        scopes = sum(
-            conn.execute(
-                "SELECT count(*) FROM execution_dependencies WHERE action_id=?", (row[0],)
-            ).fetchone()[0]
-            for row in admissions
+        ledger = sum(
+            conn.execute(f"SELECT count(*) FROM {table}").fetchone()[0]
+            for table in ("execution_admissions", "execution_dependencies")
         )
-        requirement = conn.execute(
-            "SELECT outcome FROM requirement_attempts WHERE attempt_id=?", (f"work:{attempt}",)
-        ).fetchall()
-        return [tuple(row[1:]) for row in admissions], scopes, [row[0] for row in requirement]
+        outcome = conn.execute(
+            "SELECT outcome,reason_code FROM work_attempts WHERE attempt_id=?", (attempt,)
+        ).fetchone()
+        return ledger, tuple(outcome)
 
     with open_database(tmp_path) as db:
         conn = db.connection
@@ -395,19 +387,220 @@ def test_a_committed_derivation_keeps_its_attempt_but_not_its_admission(tmp_path
         enqueue(conn, units, enqueued_at=clock.now().isoformat())
         assert not derive_one(db, Archive(tmp_path), units[0], bundle, clock, run).failed
         assert derive_one(db, Archive(tmp_path), units[1], bundle, clock, run).failed
-        assert bookkeeping(conn, "healthy") == ([], 0, [])
-        admissions, scopes, requirement = bookkeeping(conn, "broken")
-        assert admissions == [("settled", "unit_exception")] and scopes > 0
-        assert requirement == ["transient"]
+        assert bookkeeping(conn, "healthy") == (0, ("succeeded", "output_committed"))
+        assert bookkeeping(conn, "broken") == (0, ("transient", "unit_exception"))
+        queued = conn.execute(
+            "SELECT state,attempts,last_reason,last_error FROM work_queue WHERE unit_id='broken'"
+        ).fetchone()
+        assert queued["state"] == "ready" and queued["attempts"] == 1
+        assert queued["last_reason"] == "unit_exception"
+        assert "fixture failure" in queued["last_error"]
+        assert conn.execute("SELECT count(*) FROM findings").fetchone()[0] == 0
+        assert conn.execute("SELECT count(*) FROM finding_support").fetchone()[0] == 0
         failing.clear()
         clock.sleep(24 * 3600)
         assert not derive_one(db, Archive(tmp_path), units[1], bundle, clock, run).failed
-        assert bookkeeping(conn, "broken") == ([], 0, ["succeeded"])
-        assert conn.execute(
-            "SELECT state,attempt_count FROM findings WHERE owner_kind='requirement' "
-            'AND evidence_json LIKE \'%"unit_id":"broken"%\''
-        ).fetchone()[:] == ("satisfied", 2)
+        assert bookkeeping(conn, "broken") == (0, ("succeeded", "output_committed"))
+        assert conn.execute("SELECT count(*) FROM findings").fetchone()[0] == 0
         assert conn.execute("SELECT count(*) FROM work_attempts").fetchone()[0] == 3
+
+
+def _pause_world(tmp_path, monkeypatch, ran):
+    """A projector that records the controls status inside each unit."""
+    from pathlib import Path
+
+    import swingset.project
+    from swingset.clock import FakeClock
+    from swingset.config import Config
+    from swingset.state import derivations
+    from swingset.state.controls import status
+    from swingset.state.inputs import InputBundle
+
+    clock = FakeClock(NOW)
+
+    def project(db, unit, _bundle, _clock, run_id, selection=None):
+        ran.append(status(db.connection, now=clock.now()))
+        derivations.complete(db.connection, selection, rows=(), now=clock.now(), run_id=run_id)
+        db.connection.execute("DELETE FROM pending_work WHERE unit_id=?", (unit.unit_id,))
+
+    monkeypatch.setattr(swingset.project, "process_unit", project)
+    return clock, InputBundle("test", Path(tmp_path), {}, Config({}, {}))
+
+
+def _pause_all(state_dir, now):
+    from swingset.state.controls import Selector, change_control
+
+    return change_control(
+        state_dir,
+        selector=Selector("all", "all"),
+        paused=True,
+        actor="test:operator",
+        reason="drain",
+        now=now,
+    )
+
+
+def test_a_pause_before_the_lease_holds_the_unit_with_nothing_written(tmp_path, monkeypatch):
+    """The unit's pause check, capture and attempt share one BEGIN IMMEDIATE:
+    a pause committed first holds it with no attempt, queue or ledger row."""
+    from swingset.fetch.archive import Archive
+    from swingset.schedule.derive import derive_one
+
+    ran: list = []
+    clock, bundle = _pause_world(tmp_path, monkeypatch, ran)
+    with open_database(tmp_path) as db:
+        run = seed(db, GOOD)
+        _pause_all(tmp_path, clock.now())
+        outcome = derive_one(db, Archive(tmp_path), GOOD, bundle, clock, run)
+        assert outcome.reason == "operator_pause" and not outcome.failed
+        assert ran == []
+        conn = db.connection
+        for table in ("work_attempts", "work_queue", "execution_admissions"):
+            assert conn.execute(f"SELECT count(*) FROM {table}").fetchone()[0] == 0, table
+        assert conn.execute("SELECT count(*) FROM pending_work").fetchone()[0] == 1
+
+
+def test_a_units_pause_scope_is_read_before_its_write_lock(tmp_path, monkeypatch):
+    """With a pause on record, the unit's scope (`for_unit`, up to a second
+    on production) is read outside the `BEGIN IMMEDIATE`, so acquire and plan
+    writers do not wait on it (I2). A pause that does not match lets it run."""
+    from swingset.fetch.archive import Archive
+    from swingset.schedule import derive as derive_module
+    from swingset.schedule.derive import derive_one
+    from swingset.state.controls import Selector, change_control
+
+    ran: list = []
+    clock, bundle = _pause_world(tmp_path, monkeypatch, ran)
+    real_for_unit = derive_module.for_unit
+    inside: list[bool] = []
+
+    def for_unit(conn, unit):
+        inside.append(conn.in_transaction)
+        return real_for_unit(conn, unit)
+
+    monkeypatch.setattr(derive_module, "for_unit", for_unit)
+    with open_database(tmp_path) as db:
+        run = seed(db, GOOD)
+        change_control(
+            tmp_path,
+            selector=Selector("source", "eepro"),
+            paused=True,
+            actor="test:operator",
+            reason="elsewhere",
+            now=clock.now(),
+            sources=("eepro",),
+        )
+        outcome = derive_one(db, Archive(tmp_path), GOOD, bundle, clock, run)
+    assert outcome.reason is None and len(ran) == 1
+    assert inside == [False]
+
+
+@pytest.mark.parametrize("selector, held", [(("all", "all"), True), (("source", "eepro"), False)])
+def test_a_pause_between_the_scope_probe_and_the_write_lock_is_matched_inside(
+    tmp_path, monkeypatch, selector, held
+):
+    """No pause is on record when the unit probes outside its write lock, so
+    its scope is not read there. A pause that commits just before the
+    `BEGIN IMMEDIATE` is matched inside it against the unit's scope, read
+    there (I2): one that covers the unit holds it with nothing written, one
+    that does not lets it run."""
+    import sys
+
+    from swingset.fetch.archive import Archive
+    from swingset.schedule import derive as derive_module
+    from swingset.schedule.derive import derive_one
+    from swingset.state.controls import Selector, change_control
+
+    ran: list = []
+    clock, bundle = _pause_world(tmp_path, monkeypatch, ran)
+    real_for_unit = derive_module.for_unit
+    inside: list[bool] = []
+
+    def for_unit(conn, unit):
+        inside.append(conn.in_transaction)
+        return real_for_unit(conn, unit)
+
+    monkeypatch.setattr(derive_module, "for_unit", for_unit)
+    with open_database(tmp_path) as db:
+        run = seed(db, GOOD)
+        real = db.transaction
+        fired: list[bool] = []
+
+        def transaction(*args, **kwargs):
+            caller = sys._getframe(1)
+            # The unit's own write transaction: the one after the probe set `scope`.
+            if caller.f_code.co_name == "derive_one" and "scope" in caller.f_locals:
+                assert caller.f_locals["scope"] is None
+                if not fired:
+                    fired.append(True)
+                    change_control(
+                        tmp_path,
+                        selector=Selector(*selector),
+                        paused=True,
+                        actor="test:operator",
+                        reason="between",
+                        now=clock.now(),
+                        sources=("eepro",),
+                    )
+            return real(*args, **kwargs)
+
+        monkeypatch.setattr(db, "transaction", transaction)
+        outcome = derive_one(db, Archive(tmp_path), GOOD, bundle, clock, run)
+        monkeypatch.undo()
+        assert fired == [True] and inside == [True]
+        assert (outcome.reason == "operator_pause") is held and not outcome.failed
+        assert len(ran) == (0 if held else 1)
+        attempts = db.connection.execute("SELECT count(*) FROM work_attempts").fetchone()[0]
+        assert attempts == (0 if held else 1)
+        assert db.connection.execute("SELECT count(*) FROM execution_admissions").fetchone()[0] == 0
+
+
+def test_a_pause_during_a_lease_drains_the_unit_then_holds_the_next(tmp_path, monkeypatch):
+    """A pause committed after the unit's attempt began sees its lease as
+    draining; the unit finishes, the pause reads `paused`, and the next unit
+    is held. No ledger row is written for either (D-0238)."""
+    import contextlib
+
+    from swingset.fetch.archive import Archive
+    from swingset.schedule.derive import derive_one
+    from swingset.state import derivations
+    from swingset.state.controls import status
+
+    ran: list = []
+    clock, bundle = _pause_world(tmp_path, monkeypatch, ran)
+    real_chunking = derivations.chunking
+
+    @contextlib.contextmanager
+    def chunking(conn, unit):
+        # The attempt has begun and the unit is leased; its body has not
+        # opened its write yet, so the pause commits while it is leased.
+        _pause_all(tmp_path, clock.now())
+        with real_chunking(conn, unit) as chunk:
+            yield chunk
+
+    other = WorkUnit("project", "dancer", "other")
+    with open_database(tmp_path) as db:
+        run = seed(db, GOOD, other)
+        monkeypatch.setattr(derivations, "chunking", chunking)
+        outcome = derive_one(db, Archive(tmp_path), GOOD, bundle, clock, run)
+        monkeypatch.setattr(derivations, "chunking", real_chunking)
+        assert outcome.reason is None and not outcome.failed
+        (inside,) = ran
+        assert inside["state"] == "pausing" and inside["active_attempts"] == 1
+        (draining,) = inside["draining_attempts"]
+        assert (draining["stage"], draining["unit_kind"], draining["unit_id"]) == (
+            "project",
+            "dancer",
+            "healthy",
+        )
+        assert draining["state"] == "leased" and draining["lease_until"]
+        assert draining["work_attempt_id"] is not None and draining["pause_ids"]
+        after = status(db.connection, now=clock.now())
+        assert after["state"] == "paused" and after["draining_attempts"] == []
+        assert derive_one(db, Archive(tmp_path), other, bundle, clock, run).reason == (
+            "operator_pause"
+        )
+        assert db.connection.execute("SELECT count(*) FROM execution_admissions").fetchone()[0] == 0
 
 
 def test_a_supersession_with_unchanged_inputs_retries_on_a_clock(tmp_path, monkeypatch):
@@ -466,8 +659,8 @@ def test_a_supersession_with_unchanged_inputs_retries_on_a_clock(tmp_path, monke
 
 
 def test_a_committed_parse_keeps_its_attempt_but_not_its_admission(tmp_path):
-    """D-0213 for parse units: a parse run that committed leaves no execution
-    admission, no scope rows and no requirement attempt, only its work attempt."""
+    """A parse unit writes no execution admission, no scope rows and no
+    finding, only its work attempt (D-0238)."""
     from pathlib import Path
 
     from test_admission import Corpus
@@ -486,7 +679,7 @@ def test_a_committed_parse_keeps_its_attempt_but_not_its_admission(tmp_path):
         conn = db.connection
         attempt = latest_attempt(conn, unit)
         assert attempt["outcome"] == "succeeded"
-        for table in ("execution_admissions", "execution_dependencies", "requirement_attempts"):
+        for table in ("execution_admissions", "execution_dependencies", "findings"):
             assert conn.execute(f"SELECT count(*) FROM {table}").fetchone()[0] == 0, table
 
 

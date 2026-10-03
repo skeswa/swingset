@@ -53,7 +53,7 @@ class Requirement:
 def reconcile_requirement(
     conn: sqlite3.Connection, requirement: Requirement, now: datetime, run_id: str
 ) -> str:
-    """Commit only a checked postcondition, preserving durable attempts/history.
+    """Commit only a checked postcondition.
 
     This writes the `findings` row itself rather than going through
     `replace_findings`, because a requirement owns columns that function does
@@ -74,14 +74,8 @@ def reconcile_requirement(
         "SELECT state,desired_fingerprint,next_action,blocking_reason,next_eligible_at FROM findings WHERE finding_id=?",
         (requirement.identifier,),
     ).fetchone()
-    prior_transition = (
-        conn.execute(
-            "SELECT new_state FROM requirement_transitions WHERE requirement_id=? ORDER BY transition_id DESC LIMIT 1",
-            (requirement.identifier,),
-        ).fetchone()
-        if previous is None
-        else None
-    )
+    # A new row opens now: the transition history that kept a re-created
+    # requirement's first opening time is gone (D-0237).
     conn.execute(
         """INSERT INTO findings(finding_id,owner_kind,owner_id,kind,subject_kind,subject_id,severity,summary,evidence_json,opened_at,run_id,policy_version,desired_fingerprint,state,source,next_action,blocking_reason,next_eligible_at,status_at,closed_at,last_progress_at)
         VALUES (?,'requirement',?,?,'scope',?,'warning',?,?,?,?,?,?,?,?,?,?,?,?,?,?)
@@ -122,97 +116,7 @@ def reconcile_requirement(
     )
     if public_change and (previous is None or tuple(previous) != desired):
         bump_revision(conn, "findings")
-    if previous is None:
-        conn.execute(
-            "UPDATE findings SET opened_at=coalesce((SELECT min(at) FROM requirement_transitions WHERE requirement_id=?),opened_at),attempt_count=(SELECT count(*) FROM requirement_attempts WHERE requirement_id=?) WHERE finding_id=?",
-            (requirement.identifier, requirement.identifier, requirement.identifier),
-        )
-        if prior_transition is not None and prior_transition[0] != requirement.state:
-            event = (
-                "satisfied"
-                if requirement.state == "satisfied"
-                else "retired"
-                if requirement.state == "out_of_scope"
-                else "reopened"
-                if prior_transition[0] not in UNMET
-                else "state_changed"
-            )
-            conn.execute(
-                "INSERT INTO requirement_transitions(requirement_id,kind,source,old_state,new_state,event,at) VALUES (?,?,?,?,?,?,?)",
-                (
-                    requirement.identifier,
-                    requirement.kind,
-                    requirement.source,
-                    prior_transition[0],
-                    requirement.state,
-                    event,
-                    at,
-                ),
-            )
     return requirement.identifier
-
-
-def record_attempt(
-    conn: sqlite3.Connection, requirement_id: str, attempt_id: str, now: datetime, outcome: str
-) -> None:
-    """An attempt never counts as a verified repair, including successful I/O."""
-    inserted = conn.execute(
-        "INSERT OR IGNORE INTO requirement_attempts VALUES (?,?,?,?)",
-        (attempt_id, requirement_id, now.isoformat(), outcome),
-    ).rowcount
-    if inserted:
-        conn.execute(
-            "UPDATE findings SET attempt_count=attempt_count+1 WHERE finding_id=?",
-            (requirement_id,),
-        )
-
-
-def capture_cohort(
-    conn: sqlite3.Connection,
-    cohort_id: str,
-    now: datetime,
-    *,
-    source: str | None = None,
-    kind: str | None = None,
-    bounded: bool = True,
-) -> None:
-    """Membership is immutable; an existing name cannot silently change scope."""
-    conn.execute("SAVEPOINT requirement_cohort")
-    try:
-        _capture_cohort(conn, cohort_id, now, source=source, kind=kind, bounded=bounded)
-    except BaseException:
-        conn.execute("ROLLBACK TO requirement_cohort")
-        conn.execute("RELEASE requirement_cohort")
-        raise
-    conn.execute("RELEASE requirement_cohort")
-
-
-def _capture_cohort(
-    conn: sqlite3.Connection,
-    cohort_id: str,
-    now: datetime,
-    *,
-    source: str | None,
-    kind: str | None,
-    bounded: bool,
-) -> None:
-    expected = (POLICY_VERSION, source, kind, int(bounded))
-    existing = conn.execute(
-        "SELECT policy_version,source,kind,bounded FROM requirement_cohorts WHERE cohort_id=?",
-        (cohort_id,),
-    ).fetchone()
-    if existing:
-        if tuple(existing) != expected:
-            raise ValueError("cohort already exists with a different scope or policy")
-        return
-    conn.execute(
-        "INSERT INTO requirement_cohorts(cohort_id,created_at,policy_version,source,kind,bounded,first_open_transition_cutoff) VALUES (?,?,?,?,?,?,(SELECT coalesce(max(transition_id),0) FROM requirement_transitions))",
-        (cohort_id, now.isoformat(), *expected),
-    )
-    conn.execute(
-        "INSERT INTO requirement_cohort_members SELECT ?,finding_id FROM findings WHERE closed_at IS NULL AND (? IS NULL OR source=?) AND (? IS NULL OR kind=?)",
-        (cohort_id, source, source, kind, kind),
-    )
 
 
 def _check(

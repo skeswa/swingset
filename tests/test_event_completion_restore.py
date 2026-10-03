@@ -421,7 +421,7 @@ def test_activated_restore_resumes_paid_turn_and_converges_with_uninterrupted_st
             with operation(
                 branch.db,
                 action_id="paused-parse",
-                action_kind="parse",
+                action_kind="project",  # a stage operation; units take none (D-0238)
                 scope=for_unit(conn, pending),
                 clock=clock,
                 run_id=run,
@@ -445,7 +445,7 @@ def test_activated_restore_resumes_paid_turn_and_converges_with_uninterrupted_st
         with operation(
             branch.db,
             action_id="resume-parse-two",
-            action_kind="parse",
+            action_kind="project",  # a stage operation; units take none (D-0238)
             scope=for_unit(conn, pending),
             clock=clock,
             run_id=run,
@@ -480,7 +480,7 @@ def test_activated_restore_resumes_paid_turn_and_converges_with_uninterrupted_st
         with operation(
             branch.db,
             action_id="resume-parse-three",
-            action_kind="parse",
+            action_kind="project",  # a stage operation; units take none (D-0238)
             scope=for_unit(conn, unit),
             clock=clock,
             run_id=run,
