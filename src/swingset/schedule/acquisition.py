@@ -29,6 +29,7 @@ from swingset.schedule.fairness import (
     backpressure,
     next_delay,
     next_watch,
+    noting_robots,
     prepare_event_turns,
     servicing,
 )
@@ -41,6 +42,7 @@ from swingset.state.control_lock import ControlTimeout
 from swingset.state.control_scopes import for_watch
 from swingset.state.controls import ActionScope, ControlPaused, operation
 from swingset.state.db import Database
+from swingset.state.queue import at
 from swingset.state.write_deadline import WriteDeadlineExceeded
 
 if TYPE_CHECKING:
@@ -137,14 +139,27 @@ class Acquisition:
         from swingset.schedule.event_timing_observer import Observer, observing
 
         began = self.clock.now()
+        unread: dict[str, datetime] = {}
         try:
-            with observing(
-                Observer(
-                    self.database, self.client(), self.clock, run_id=self.run_id, deadline=until
-                )
+            with (
+                observing(
+                    Observer(
+                        self.database,
+                        self.client(),
+                        self.clock,
+                        run_id=self.run_id,
+                        deadline=until,
+                    )
+                ),
+                noting_robots(unread),
             ):
                 issued = self._pass(until, offers)
         finally:
+            # The fair policy left out each host whose robots read failed and
+            # that had due work (D-0242): one host guard per pass, not one per
+            # watch, and none for a blocked host with nothing due.
+            for host, retry in unread.items():
+                self.client().guards.skipped(guards.ROBOTS_UNREAD, host=host, until=at(retry))
             # Each pass writes why its fetches were held, in one transaction
             # (D-0219), even a pass that raised. An overrun loses this pass's
             # guards, not the run.

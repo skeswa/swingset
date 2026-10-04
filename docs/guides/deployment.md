@@ -130,8 +130,10 @@ Any switch, a rollback to a generation with the cycle included, writes
 'swingset-*'` shows no active unit, switches and removes the hold. systemd
 stops a removed or changed unit with SIGTERM and kills derive after 120 s;
 a staged year unit can take longer. The tick notes the stop request
-(`runs/<run>.stop`), so that kill is not counted against the unit, but the
-hold avoids cutting the unit off at all. The watchdog's wrapper passes the
+(`runs/<run>.stop`) when the hold exists or it is within its budget, so
+that kill is not counted against the unit, but the hold avoids cutting the
+unit off at all. A SIGTERM past the budget with no hold is the unit's start
+timeout, and that kill counts. The watchdog's wrapper passes the
 loop timers that are not active (`--timers-inactive`) and the checks read the
 loop records ([alerts](operation.md#alerts)).
 

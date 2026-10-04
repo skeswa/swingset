@@ -50,6 +50,10 @@ parsing an older snapshot cannot replace a newer current set. Compare
 time otherwise. Historical reparse
 updates its diagnostic and version records even when it does not own the
 current observations. Failures preserve the watch's last-good set.
+The writer leaves the set alone only when every row is equal, snapshot id and
+extract and parser versions included. An equal payload under a new snapshot
+or version label is rewritten and its scopes re-projected, because release
+support matches those labels against the accepted generation (D-0241).
 
 Order at fetch time: fetch, `extract`, compare fingerprint. Unchanged:
 discard the body, record `checked_at`. Changed: archive the body, store
@@ -87,7 +91,9 @@ edit there re-parses every kind. Other code re-queues no snapshot; see
 [state](state.md#derivation-generations-h15) for how scopes are built. A
 blocked parse attempt still re-opens on any package change
 (`version/repository` is in the parse retry fingerprint), so a fix deployed
-anywhere reaches the attempts it blocked without re-parsing the rest.
+anywhere reaches the attempts it blocked without re-parsing the rest. A
+retry that fails with the same message is a waiting repeat, not a failure
+of the tick ([scheduling](scheduling.md); D-0249).
 After re-extraction, only the watch's current snapshot can update its
 cached content fingerprint, and only at the current extractor version.
 An older archived body must never replace that cache.
@@ -237,8 +243,9 @@ role-specific judge panels are retained without filling a rectangular matrix.
 An empty output or `legitimate_empty` flag supplies no terminal witness.
 
 Contract 4 covers registry lookups, EEPro indexes and round sheets,
-scoring.dance indexes and round sheets, and WDR rounds. Other page kinds remain
-explicitly unassessed. Verified empty presentation columns and source aggregate
+scoring.dance indexes and event pages. Contract 5 covers scoring.dance round
+sheets and WDR rounds (see below). Other page kinds remain explicitly
+unassessed. Verified empty presentation columns and source aggregate
 columns have explicit exclusions. `RoundSheet.scoring_method_raw` retains the
 literal EEPro `Avg` header or WDR `roundSubHeader`; it does not add a canonical
 scoring method. EEPro numeric contests, including finals, WDR `Average Raw Scores`,
@@ -252,8 +259,33 @@ their retained documents receive no removal authority.
 EEPro autoindex uses contract 5. Its independent body witness enumerates raw
 DOM file hrefs, including PDFs, and compares their count and order with
 FileRows and HTML child watches. Truncated visible labels cannot hide a file.
-The extractor derives file names from href paths. Other page kinds remain on
-contract 4; a new autoindex review cannot silently approve another contract.
+The extractor derives file names from href paths. Each kind's contract version
+is its own; a new review of one kind cannot silently approve another.
+
+scoring.dance round contract 5 (extract 5, D-0240) accounts for the columns
+contract 4 left unknown. It only reaches a column contract 4 called unknown, so
+an accepted round's accounting does not change.
+
+| Column                                                                      | Contract 5                                                                                                                                              |
+| --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Blank column 2 with names, one result table                                 | The extractor labels it `Follower`, as in finals and Strictly pages. Two tables keep it blank and unknown: one stored page lists followers first there. |
+| Blank, attribute-free column right after `Σ`, values like `+1` or `-0.2`    | Excluded: a chief-judge adjustment to the displayed sum. Any other value is unknown.                                                                    |
+| Last column, blank header with class `text-center;`                         | A remark column. Each value is excluded by class (`CJA`, tie-break notes and scores, `VR pass`, and on placed rows `V1`/`VP` badges and review notes).  |
+| Remark with DQ, DISS, disq, scratch, injury, withdrawal, fail or `SW`       | Excluded on a row the source shows as eliminated. On a row with a callback state or a placement it fails `source_remark_outcome_conflict`.              |
+| Lowercase 1-3 letter header without a title, between Follower and Placement | Excluded: an anonymized per-page judge code with digit cells. No judge record is made; the placement is handled.                                        |
+
+Any other remark value is unknown, so new remarks block. The conflict guard
+keeps a round whose remark disqualifies a placed or called-back competitor
+out of the dataset; publishing the displayed outcome could award a
+disqualified dancer. The published `score_sum` stays the sum of individual
+marks without the adjustment.
+
+WDR rounds contract 5 (parser 4) accepts a Placement Order judge mark with
+the legend's `|SVW` (Swing Violation - Warning, no placement change). `SV1`
+to `SV3` move placements and stay unknown. The projector does not yet read
+the mark under `|SVW`. Parser 4 writes `ResultTable.attribute_group` from a
+key-sorted mapping, so the text no longer depends on whether the extract came
+fresh from the body or from the sorted archive.
 
 Blocked-admission finding summaries include stable reason codes from the
 stored generation report and latest selection decision. Staging-only guards

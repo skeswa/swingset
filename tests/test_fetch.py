@@ -1,5 +1,5 @@
 import gzip
-from datetime import timedelta
+from datetime import datetime, timedelta
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -92,8 +92,8 @@ def test_gate_gap_budget_and_pause_doubling(tmp_path):
         gate = Gate(db.connection, config(budget=3), clock)
         assert isinstance(gate.acquire("example.test"), Grant)
         gate.release("example.test", Classification(Outcome.OK))
-        assert gate.acquire("example.test") == Wait(5)
-        clock.sleep(5)
+        assert gate.acquire("example.test") == Wait(2)
+        clock.sleep(2)
         assert isinstance(gate.acquire("example.test"), Grant)
         gate.release("example.test", Classification(Outcome.THROTTLED))
         assert gate.acquire("example.test") == Paused("Throttled")
@@ -656,14 +656,25 @@ def test_deferred_robots_request_is_not_cached_as_failure(tmp_path):
         client.close()
 
 
-@pytest.mark.parametrize("encoding", ["gzip", "identity"])
+def _zstd(data: bytes) -> bytes:
+    import pyarrow as pa
+
+    sink = pa.BufferOutputStream()
+    with pa.output_stream(sink, compression="zstd") as stream:
+        stream.write(data)
+    return sink.getvalue().to_pybytes()
+
+
+@pytest.mark.parametrize("encoding", ["gzip", "identity", "zstd"])
 def test_gzip_and_identity_bodies_archive_decoded_source_bytes(tmp_path, encoding):
+    """httpx decodes gzip; zstd it leaves raw without `zstandard`, so the
+    client decodes it with pyarrow (maintenance item 7)."""
     clock = FakeClock()
 
     def handler(request):
         if request.url.path == "/robots.txt":
             return httpx.Response(404)
-        body = gzip.compress(BODY) if encoding == "gzip" else BODY
+        body = {"gzip": gzip.compress, "zstd": _zstd}.get(encoding, lambda data: data)(BODY)
         return httpx.Response(200, content=body, headers={"Content-Encoding": encoding})
 
     with open_database(tmp_path) as db:
@@ -690,6 +701,108 @@ def test_gzip_and_identity_bodies_archive_decoded_source_bytes(tmp_path, encodin
         ).fetchone()[0]
         assert Archive(tmp_path).read_body(body_hash) == BODY
         client.close()
+
+
+@pytest.mark.parametrize(
+    "encoding, body, reason",
+    [
+        ("br", b"\x0b\x02\x80hello\x03", "unsupported content encoding"),
+        ("zstd, gzip", gzip.compress(b"stacked"), "unsupported content encoding"),
+        ("zstd", b"<html>not zstd</html>", "undecodable compressed response"),
+        ("zstd", _zstd(BODY)[:-8], "undecodable compressed response"),
+    ],
+)
+def test_a_body_httpx_left_encoded_is_refused_and_never_stored(tmp_path, encoding, body, reason):
+    """The request counts and its grant is released; no snapshot or body is kept.
+
+    The refusal is an INVALID skip with its reason, as the bounded reader
+    reports one, not an exception the acquire loop would treat as a defect.
+    """
+    clock = FakeClock()
+
+    def handler(request):
+        if request.url.path == "/robots.txt":
+            return httpx.Response(404)
+        return httpx.Response(200, content=body, headers={"Content-Encoding": encoding})
+
+    with open_database(tmp_path) as db:
+        run = db.start_run(clock.now())
+        watch_id = _calendar_watch(db, clock)
+        client = FetchClient(
+            db.connection,
+            config(),
+            clock,
+            Archive(tmp_path),
+            transport=httpx.MockTransport(handler),
+        )
+        try:
+            result = client.fetch(watch_id, EventsPage(), run)
+            assert result.classification.outcome == Outcome.INVALID
+            assert result.skipped == reason
+            assert db.connection.execute("SELECT COUNT(*) FROM snapshots").fetchone()[0] == 0
+            assert not client.gate.inflight
+        finally:
+            client.close()
+
+
+@pytest.mark.parametrize(
+    "payload, streamed, reason",
+    [
+        ("whole", True, None),
+        ("whole", False, None),
+        ("bomb", True, "decoded response byte ceiling"),
+        # A prebuffered body is checked once, after decoding, as gzip is.
+        ("bomb", False, "response byte ceiling"),
+        ("truncated", True, "undecodable compressed response"),
+        ("truncated", False, "undecodable compressed response"),
+        ("wire", True, "compressed response byte ceiling"),
+    ],
+)
+def test_the_bounded_reader_decodes_zstd_inside_its_ceilings(payload, streamed, reason):
+    import random
+    import time
+
+    from swingset.fetch.limits import RequestContext
+
+    class Chunks(httpx.SyncByteStream):
+        def __init__(self, data: bytes) -> None:
+            self.data = data
+
+        def __iter__(self):
+            yield from (self.data[i : i + 1000] for i in range(0, len(self.data), 1000))
+
+    limit = len(BODY) + 100
+    data = {
+        "whole": _zstd(BODY),
+        "bomb": _zstd(b" " * (limit * 50)),
+        "truncated": _zstd(BODY)[:-8],
+        "wire": _zstd(random.Random(0).randbytes(limit * 2)),
+    }[payload]
+
+    def handler(request):
+        headers = {"Content-Encoding": "zstd"}
+        if streamed:
+            return httpx.Response(200, headers=headers, stream=Chunks(data))
+        return httpx.Response(200, headers=headers, content=data)
+
+    context = RequestContext(
+        lambda _conn, _url: None,
+        datetime.max.replace(tzinfo=FakeClock().now().tzinfo),
+        time.monotonic() + 60,
+        max_response_bytes=limit,
+    )
+    with httpx.Client(transport=httpx.MockTransport(handler)) as http:
+        if not streamed:
+            response = http.get("https://example.test/events")
+            assert response.content == data  # httpx leaves zstd undecoded
+        response, _ = context.read(
+            http, "GET", "https://example.test/events", headers={}, form=None, timeout=5
+        )
+    assert response.extensions["swingset_limit"] == reason
+    assert "content-encoding" not in response.headers
+    if reason is None:
+        assert response.content == BODY
+        assert context.decoded_bytes == len(BODY)
 
 
 def _calendar_watch(db, clock, url="https://example.test/events"):
@@ -738,6 +851,109 @@ def test_a_held_fetch_is_a_guard_until_a_request_clears_its_host(tmp_path):
             }
             assert client.guards.flush(db, clock.now()) == {"recorded": 0, "cleared": 1}
             assert guards.counts_by_reason(db.connection) == {}
+        finally:
+            client.close()
+
+
+@pytest.mark.parametrize("failure", ["500", "transport"])
+def test_a_failed_robots_read_disallows_until_the_hosts_backoff_not_a_day(tmp_path, failure):
+    """D-0242: a 5xx or no response disallows all, and is read again after the
+    host's ServerError backoff (15 min, doubling), not after 24 hours."""
+    from swingset.fetch.robots import blocked
+
+    clock = FakeClock()
+    calls = []
+    failing = [2]
+
+    def handler(request):
+        calls.append(request.url.path)
+        if request.url.path == "/robots.txt" and failing[0]:
+            if failure == "transport":
+                raise httpx.ConnectError("unreachable", request=request)
+            return httpx.Response(500)
+        if request.url.path == "/robots.txt":
+            return httpx.Response(200, text="User-agent: *\nAllow: /\n")
+        return httpx.Response(200, content=BODY)
+
+    with open_database(tmp_path) as db:
+        run = db.start_run(clock.now())
+        watch_id = _calendar_watch(db, clock)
+        client = FetchClient(
+            db.connection,
+            config(),
+            clock,
+            Archive(tmp_path),
+            transport=httpx.MockTransport(handler),
+            random_value=lambda: 0,
+        )
+        try:
+            assert client.fetch(watch_id, EventsPage(), run).skipped == "robots disallow"
+            failing[0] -= 1
+            # Four attempts, then the gate's ServerError pause and the cached
+            # failure; the robots retry is the pause's end.
+            assert calls == ["/robots.txt"] * 4
+            status = 500 if failure == "500" else 599
+            host = db.connection.execute(
+                "SELECT robots_status,robots_fetched_at,paused_until FROM hosts"
+            ).fetchone()
+            assert host[0] == status
+            retry = datetime.fromisoformat(host[1]) + timedelta(minutes=15)
+            assert datetime.fromisoformat(host[2]) == retry
+            assert blocked(db.connection, clock.now()) == {"example.test": retry}
+            # While failed it disallows, from the cache: no request.
+            clock.sleep((retry - clock.now()).total_seconds() - 1)
+            assert client.fetch(watch_id, EventsPage(), run).skipped == "robots disallow"
+            assert len(calls) == 4
+            # At the retry it is read again; a second failure doubles the wait.
+            clock.sleep((retry - clock.now()).total_seconds())
+            assert client.fetch(watch_id, EventsPage(), run).skipped == "robots disallow"
+            failing[0] -= 1
+            assert len(calls) == 8
+            fetched = db.connection.execute("SELECT robots_fetched_at FROM hosts").fetchone()[0]
+            retry = datetime.fromisoformat(fetched) + timedelta(minutes=30)
+            assert blocked(db.connection, clock.now()) == {"example.test": retry}
+            # Far short of a day, a good read lets the page through.
+            clock.sleep((retry - clock.now()).total_seconds())
+            assert client.fetch(watch_id, EventsPage(), run).skipped is None
+            assert calls[8:] == ["/robots.txt", "/events"]
+            assert blocked(db.connection, clock.now()) == {}
+        finally:
+            client.close()
+
+
+@pytest.mark.parametrize("status", [204, 304])
+def test_an_odd_robots_status_disallows_and_is_kept_a_day(tmp_path, status):
+    """Only a 5xx or no response is retried on the backoff (D-0242). Any other
+    status that is neither a 200 nor a 4xx disallows all for a day, since it
+    never raises the host's streak."""
+    from swingset.fetch.robots import blocked
+
+    clock = FakeClock()
+    calls = []
+
+    def handler(request):
+        calls.append(request.url.path)
+        return httpx.Response(status)
+
+    with open_database(tmp_path) as db:
+        run = db.start_run(clock.now())
+        watch_id = _calendar_watch(db, clock)
+        client = FetchClient(
+            db.connection,
+            config(),
+            clock,
+            Archive(tmp_path),
+            transport=httpx.MockTransport(handler),
+        )
+        try:
+            assert client.fetch(watch_id, EventsPage(), run).skipped == "robots disallow"
+            assert blocked(db.connection, clock.now()) == {}
+            clock.sleep(timedelta(days=1).total_seconds() - 1)
+            assert client.fetch(watch_id, EventsPage(), run).skipped == "robots disallow"
+            assert calls == ["/robots.txt"]
+            clock.sleep(1)
+            client.fetch(watch_id, EventsPage(), run)
+            assert calls == ["/robots.txt", "/robots.txt"]
         finally:
             client.close()
 

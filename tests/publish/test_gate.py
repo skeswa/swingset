@@ -359,8 +359,9 @@ def test_malformed_overrides_are_rejected(body: bytes, message: str) -> None:
 
 def test_the_shipped_override_file_is_valid() -> None:
     body = (Path(__file__).parents[2] / "overrides" / gate.FILE).read_bytes()
-    assert body.decode().strip() == HEADER
-    assert gate.parse_overrides(body) == ()
+    assert body.decode().splitlines()[0] == HEADER
+    # Owner-approved rows parse; a malformed one would refuse every build.
+    gate.parse_overrides(body)
 
 
 def test_a_refused_build_is_recorded_in_the_summary_and_manifest_row(

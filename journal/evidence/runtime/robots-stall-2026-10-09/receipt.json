@@ -1,0 +1,58 @@
+{
+  "operation": "diagnose and relieve a fetch stall: one failed robots.txt read blocked scoring.dance for a day and starved every other host",
+  "actor": "claude (session claude-rearch)",
+  "symptom": {
+    "requests_per_day": {
+      "2026-10-07": {
+        "points.worldsdc.com": 1500,
+        "scoring.dance": 800,
+        "eepro.com": 30
+      },
+      "2026-10-08": {
+        "points.worldsdc.com": 74,
+        "scoring.dance": 4,
+        "eepro.com": 8
+      },
+      "2026-10-09_to_19:00Z": {
+        "points.worldsdc.com": 172,
+        "scoring.dance": 4,
+        "eepro.com": 27
+      }
+    },
+    "requests_by_hour": "10-08 only in 02:xx; 10-09 only in 14:xx (after a Mac wake at 14:22)",
+    "acquire_ticks": "from 2026-10-09T14:54Z every tick ran its 240 s budget with checked=0",
+    "due_watches": {
+      "scoringdance": 642,
+      "wsdc_registry": 786
+    },
+    "watchdog": "[stale-fetch] 17:05Z, [loop-idle] acquire 18:35Z"
+  },
+  "diagnosis": {
+    "tool": "py-spy 0.4 record of one acquire tick (230 s, 4,334 samples)",
+    "profile": "68% in fairness._eligible/_choices, 45% prepare_event_turns, 40% next_watch; each pass loop iteration re-lists all ~1,443 due choices",
+    "guard_reasons": "654 'robots disallow' rows for scoringdance watches (502 since 2026-10-08T02, 81 since 2026-10-09T14)",
+    "hosts_row": {
+      "host": "scoring.dance",
+      "robots_status": 599,
+      "robots_fetched_at": "2026-10-09T14:23:15Z",
+      "robots_sha256": "e3b0c442 (empty body)",
+      "pause_reason": "ServerError until 14:53:15Z"
+    },
+    "cause": "fetch/robots.py caches the robots answer for one day whatever its status; a transport failure (599) or 5xx means disallow-all (correct), so scoring.dance stayed blocked for 24 h; acquire then picked each due scoring.dance watch first, skipped it as robots-disallowed, and re-ran the whole candidate selection per skip (about 0.4 s), so the 4-minute budget ended before any registry page; the same happened from about 2026-10-08T02Z"
+  },
+  "relief": {
+    "at_utc": "2026-10-09T19:11:17Z",
+    "change": "hosts.robots_fetched_at for scoring.dance 2026-10-09T14:23:15.930233Z -> 2026-10-08T00:00:00Z (one row, one field), so the worker re-reads robots.txt through its own gate",
+    "result": {
+      "robots_status": 200,
+      "robots_fetched_at": "2026-10-09T19:11:24Z",
+      "requests_19:11-19:12Z": {
+        "scoring.dance": 5,
+        "points.worldsdc.com": 3,
+        "eepro.com": 1
+      },
+      "first_snapshot_utc": "2026-10-09T19:11:50Z"
+    }
+  },
+  "fix": "queued: a failed robots read retries after a short backoff instead of a day, and acquire skips a robots-blocked host once per pass instead of per watch (code change with tests, deployed with contract 5 after a check)"
+}

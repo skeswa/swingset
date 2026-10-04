@@ -137,7 +137,7 @@ def test_origin_dispatch_uses_actual_host_budget_and_retains_proof(origin):
     result = run(origin, response)
     assert result.reason == "dispatched" and result.capture is None
     assert result.result.snapshot_id and result.result.skipped is None
-    assert len(calls) == 2 and (calls[1][1] - calls[0][1]).total_seconds() >= 5
+    assert len(calls) == 2 and (calls[1][1] - calls[0][1]).total_seconds() >= 2
     assert {row[0] for row in origin.conn.execute("SELECT host FROM host_budget")} == {"eepro.com"}
     assert origin.conn.execute("SELECT requests FROM host_budget").fetchone()[0] == 2
     assert origin.conn.execute("SELECT COUNT(*) FROM history_origin_requests").fetchone()[0] == 2

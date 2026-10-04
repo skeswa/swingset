@@ -107,16 +107,23 @@ def store_parse_result(
                     encode_payload(observation.payload),
                 )
             )
+        # The snapshot and version labels count too (D-0241): release support
+        # matches a row's observation, labels included, against the accepted
+        # generation, so an equal payload under new labels is still rewritten.
         old_rows = [
             tuple(row)
             for row in conn.execute(
-                "SELECT kind,scope_kind,scope_id,seq,payload_json FROM observations WHERE watch_id=?"
+                "SELECT kind,scope_kind,scope_id,seq,payload_json,snapshot_id,"
+                "CAST(extract_version AS TEXT),CAST(parser_version AS TEXT) "
+                "FROM observations WHERE watch_id=?"
                 + (" AND snapshot_id=?" if snapshot_scope else "")
                 + " ORDER BY seq",
                 (context.watch_id, context.snapshot_id) if snapshot_scope else (context.watch_id,),
             )
         ]
-        comparable = [(row[3], row[4], row[5], row[6], row[9]) for row in new_rows]
+        comparable = [
+            (row[3], row[4], row[5], row[6], row[9], row[2], row[7], row[8]) for row in new_rows
+        ]
         changed = old_rows != comparable
         if changed:
             conn.execute(

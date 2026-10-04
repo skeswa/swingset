@@ -183,7 +183,8 @@ are listed in `.prettierignore`, which oxfmt reads. Add to that list rather than
 ## Scraping etiquette
 
 Any code or research that touches third-party sites must follow
-`docs/reference/fetching.md`: one request in flight per host, a floor of five
-seconds between requests to the same host, conditional requests where
+`docs/reference/fetching.md`: one request in flight per host, a floor of two
+seconds between requests to the same host (D-0247), robots.txt and its
+`Crawl-delay`, conditional requests where
 the server supports them, and the project User-Agent
 `swingset/<version> (+https://github.com/skeswa/swingset)`.

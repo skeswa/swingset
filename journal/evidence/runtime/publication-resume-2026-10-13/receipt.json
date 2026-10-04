@@ -1,0 +1,198 @@
+{
+  "operation": "resume publication: deploy D-0250/D-0251 (tree c042), hand-build one candidate under hold, independent check, publish it, switch the release loop to --publish (tree c043)",
+  "actor": "claude (session claude-rearch)",
+  "decisions": [
+    "D-0250",
+    "D-0251",
+    "D-0252"
+  ],
+  "owner_approval": "2026-10-12 'turn publishing back on'; after the first check blocked: 'Fix blockers, then publish'; 2026-10-13 'Accept and publish now' (accepts the small regressions below)",
+  "first_check": {
+    "date": "2026-10-12",
+    "verdict": "block",
+    "blockers": [
+      "first --publish tick would publish an ungated correction of 138352e",
+      "19 result events (all 9 WDR) and most event cities withheld",
+      "no rollback procedure",
+      "override row uncommitted",
+      "check the actual first build"
+    ],
+    "investigation": "journal/investigations/2026/release-losses-2026-10-12.md"
+  },
+  "tests": {
+    "full_suite": "3557 passed (22:03) on the c042 code"
+  },
+  "scopes_changed": [
+    "recipe/code/build"
+  ],
+  "c042": {
+    "commit": "c34f648470de79981952a1e0d00a5598cffe5286",
+    "hold_set": "2026-10-13T17:14:50Z",
+    "idle": "2026-10-13T17:16:40Z",
+    "system_before": "/nix/store/7yxckk835wcm8ss9nw2bksdkhs1p1wa1-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+    "system_after": "/nix/store/4p73hmxkq4n8l9afnq0dz67khziigyp6-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+    "source": "/nix/store/79ybwrgjf18b9bayrig413crkb1c07vf-source",
+    "release_unit": "--dry-run"
+  },
+  "preflight": {
+    "schema": 37,
+    "file_bytes": 41150623744,
+    "queue": {
+      "ready/admission_needs_review": 329,
+      "waiting_input/admission_needs_review": 103,
+      "waiting_input/parse_failed": 10,
+      "ready/admission_waiting_for_inputs": 8,
+      "waiting_input/admission_waiting_for_inputs": 8,
+      "waiting_input/unsupported_page_kind": 3
+    },
+    "watch_179": [
+      [
+        "182ca2e94cc7bfb6",
+        "retired",
+        "2026-10-28T06:04:12.481793+00:00",
+        "https://scoring.dance/enUS/events/179/results/"
+      ]
+    ],
+    "watch_179_last_fetch": [
+      [
+        "2026-09-28T06:04:12.473552+00:00",
+        5
+      ]
+    ],
+    "latest_snapshot": "2026-10-13T15:45:53.751582+00:00",
+    "latest_request": "2026-10-13T17:15:30.647552+00:00",
+    "pauses": 0,
+    "parse_failed_or_unsupported_units": 13
+  },
+  "hand_build": {
+    "command": "systemd-run --wait --pipe -p User=swingset -p EnvironmentFile=/etc/swingset.env <wrapper>/bin/swingset build --state /var/lib/swingset --config <source>/config --overrides <checkout>/overrides --lock-timeout 3600",
+    "window": [
+      "2026-10-13T17:16:56Z",
+      "2026-10-13T17:24:41Z"
+    ],
+    "exit_code": 0,
+    "candidate": "cand_d7747db3e2a94e78",
+    "verdict": "pass",
+    "decreases": [],
+    "systemd_memory_peak": "7.5G (mostly page cache; release builds record 1.65-1.69 GB RSS)"
+  },
+  "measures_vs_138352e": {
+    "events": [
+      2105,
+      2114
+    ],
+    "events_with_placements": [
+      107,
+      276
+    ],
+    "entries": [
+      58558,
+      146772
+    ],
+    "placements": [
+      14115,
+      30190
+    ],
+    "contests": [
+      2005,
+      3751
+    ],
+    "judges": [
+      2818,
+      7908
+    ],
+    "confirmed_links": [
+      0,
+      67012
+    ],
+    "identity_links": [
+      0,
+      154603
+    ],
+    "link_candidates": [
+      0,
+      153417
+    ],
+    "placements_with_registry_points_leader_follower": [
+      [
+        0,
+        0
+      ],
+      [
+        3284,
+        3237
+      ]
+    ],
+    "registry_placements_linked_to_event": [
+      125018,
+      126061
+    ],
+    "events_losing_results": 0
+  },
+  "accepted_regressions": [
+    "4 September 2026 events lose city, country, region and live window (Bavarian Open, FinnFest, Retaliation, Swingtime Denver)",
+    "9 events show a results URL as website",
+    "4 new result events duplicate WSDC events (2026-09-bavarian-open, 2026-09-swingtime, 2026-10-river-swing-nights-wsdc-trial-event, 2026-09-global-grand-prix-wcs)",
+    "coverage rows 6429 -> 4901: removed rows were all-zero duplicate placeholders"
+  ],
+  "second_check": {
+    "date": "2026-10-13",
+    "verdict": "approve with conditions",
+    "conditions": [
+      "publish before 2026-10-14T00:00Z with state untouched",
+      "confirm reuse, then publish result names the candidate with parent 138352e",
+      "overrides byte-identical until after publication",
+      "receipt with accepted regressions, status update, per-event comparison of the first automatic build"
+    ],
+    "all_met": "see reuse, publish and post_switch"
+  },
+  "reuse": {
+    "at": "2026-10-13T18:50:22Z",
+    "printed": "/var/lib/swingset/candidates/cand_d7747db3e2a94e78",
+    "candidate_dirs_before_after": [
+      105,
+      105
+    ]
+  },
+  "publish": {
+    "window": [
+      "2026-10-13T18:51:07Z",
+      "2026-10-13T18:52:48Z"
+    ],
+    "state": "published",
+    "candidate": "cand_d7747db3e2a94e78",
+    "commit": "3fe7bae8f48639e33083dde674736778388ba899",
+    "parent": "138352ef5e9ec25e12b60dc6acb85db808c5e77f",
+    "hub_head_checked": "3fe7bae8f486, parent 138352ef5e9e",
+    "uploaded": "275 MB, 30 files",
+    "baseline_symlink": "candidates/cand_d7747db3e2a94e78",
+    "manifest_digest": "ebb7da615c26d4aeecd7afbd06f80f09a22d283abca083b85a820d9f52b413ae"
+  },
+  "c043": {
+    "change": "nix/hosts/orb.nix dryRun = false (code identical to c042)",
+    "system_after": "/nix/store/qqwvrppldpi8ac2lrxh5fjawqfa97gia-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+    "switched": "2026-10-13T18:53:14Z",
+    "release_unit": "--publish",
+    "hold_removed": "2026-10-13T18:53:14Z"
+  },
+  "override_cleanup": "overrides/release_decreases.csv events row removed after publication (no longer needed: 2114 >= 2105)",
+  "rollback": "docs/guides/data-corrections.md, Rolling back a publication: swingset publish --revert-to cand_80719e178655435d",
+  "post_switch": {
+    "first_publish_tick": "2026-10-13T19:20:00Z",
+    "dry_run": false,
+    "failed": false,
+    "reconciliation": "none",
+    "correction_needed": false,
+    "build_deferred": "interval",
+    "publish_commit": null,
+    "loops_18:53_to_19:21Z": {
+      "acquire": 6,
+      "derive": 5,
+      "plan": 1,
+      "release": 1,
+      "failed": 0
+    },
+    "requests_18:53_to_19:21Z": 227,
+    "latest_request": "2026-10-13T19:20:58Z"
+  }
+}

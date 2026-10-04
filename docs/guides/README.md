@@ -10,7 +10,7 @@ read [current status](../status.md) and its linked operating handoff.
 | Install the NixOS worker                   | [Deployment](deployment.md)                 |
 | Inspect, pause, or troubleshoot the worker | [Operation](operation.md)                   |
 | Restore a saved checkpoint                 | [Backup and restore](backup-and-restore.md) |
-| Review matches or remove personal data     | [Data corrections](data-corrections.md)     |
+| Review matches, remove data, or roll back  | [Data corrections](data-corrections.md)     |
 | Measure rebuilding on an isolated copy     | [Scratch replay](replay-derivations.md)     |
 
 For what a command is meant to preserve, see the [reference](../reference/README.md).

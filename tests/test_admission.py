@@ -493,6 +493,97 @@ def test_artifact_loss_and_immutable_staging_preserve_prior_selection(tmp_path):
         )
 
 
+def _labels(conn):
+    return sorted(
+        tuple(row)
+        for row in conn.execute(
+            "SELECT DISTINCT snapshot_id,parser_version,extract_version FROM observations"
+        )
+    )
+
+
+def _build_support(conn, snapshot_id, parser_version):
+    from swingset.build.partition_checks import SupportIndex, live_observations
+
+    return (
+        SupportIndex(conn)
+        .matched(
+            snapshot_id,
+            str(parser_version),
+            live_observations(conn, snapshot_id, str(parser_version)),
+        )
+        .state
+    )
+
+
+def test_readmission_with_equal_payload_rewrites_observation_labels(tmp_path, monkeypatch):
+    """A new contract and extract version with the same payload relabels observations (D-0241)."""
+    import swingset.admission.contracts as contracts
+    from swingset.state.observations import store_parse_result
+
+    with open_database(tmp_path) as db:
+        c = Corpus(db)
+        ctx = c.snapshot("one")
+        first, _ = c.stage(ctx)
+        c.review(first)
+        assert c.admit(first) == "accepted"
+        parser = str(c.page.PARSER_VERSION)
+        old_extract = str(c.page.EXTRACT_VERSION)
+        assert _labels(c.conn) == [("one", parser, old_extract)]
+        assert _build_support(c.conn, "one", parser) == "accepted"
+        payloads = [row[0] for row in c.conn.execute("SELECT payload_json FROM observations")]
+
+        # A reviewed contract and extract bump whose parse output is unchanged.
+        new_extract = str(int(old_extract) + 1)
+        monkeypatch.setattr(type(c.page), "EXTRACT_VERSION", int(new_extract))
+        real = contracts.contract_version
+        monkeypatch.setattr(
+            contracts,
+            "contract_version",
+            lambda kind: "next" if kind == c.page.kind else real(kind),
+        )
+        with c.db.transaction():
+            enqueue(c.conn, (WorkUnit("parse", "snapshot", "one"),), enqueued_at="relabel")
+        second, report = c.stage(ctx)
+        assert report.contract_version == "next" and not report.failures
+        c.review(second)
+        # Before relabelling, the old generation no longer counts under the new contract.
+        assert _build_support(c.conn, "one", parser) == "legacy_unassessed"
+        revision = c.conn.execute(
+            "SELECT value FROM revisions WHERE name='observations'"
+        ).fetchone()[0]
+        assert c.admit(second) == "accepted"
+        assert _labels(c.conn) == [("one", parser, new_extract)]
+        assert [row[0] for row in c.conn.execute("SELECT payload_json FROM observations")] == (
+            payloads
+        )
+        assert (
+            c.conn.execute("SELECT value FROM revisions WHERE name='observations'").fetchone()[0]
+            == revision + 1
+        )
+        assert _build_support(c.conn, "one", parser) == "accepted"
+
+        # The same payload under the same labels is still a no-op.
+        before = tuple(tuple(row) for row in c.conn.execute("SELECT * FROM observations"))
+        queued = c.conn.execute("SELECT COUNT(*) FROM pending_work").fetchone()[0]
+        with c.db.transaction():
+            store_parse_result(
+                c.conn,
+                ctx,
+                c.page.parse(c.page.extract(BODY), ctx),
+                extract_version=new_extract,
+                parser_version=parser,
+                parsed_at=c.clock.now().isoformat(),
+                run_id=c.run,
+            )
+        assert tuple(tuple(row) for row in c.conn.execute("SELECT * FROM observations")) == before
+        assert c.conn.execute("SELECT COUNT(*) FROM pending_work").fetchone()[0] == queued
+        assert (
+            c.conn.execute("SELECT value FROM revisions WHERE name='observations'").fetchone()[0]
+            == revision + 1
+        )
+
+
 def test_v1_bootstrap_is_unassessed_without_granted_authority(tmp_path, monkeypatch):
     import swingset.state.db as state_db
     from swingset.state.observations import store_parse_result
@@ -614,6 +705,15 @@ def test_explicit_revocation_restores_predecessor_and_cannot_reaccept_same_input
         ("eepro-callback", True),
         ("eepro-numeric", True),
         ("wdr-numeric", True),
+        ("scoringdance-partner-quarter", True),
+        ("scoringdance-partner-allamerican", True),
+        ("scoringdance-two-table-partner", False),
+        ("scoringdance-cja-semi", True),
+        ("scoringdance-v1-final", True),
+        ("scoringdance-dq-final", False),
+        ("scoringdance-diss-prelim", True),
+        ("scoringdance-anon-judges", True),
+        ("wdr-svw", True),
     ],
 )
 def test_retained_column_accounting_is_explicit_without_guessing_numeric_prelim_scores(
@@ -654,6 +754,150 @@ def test_retained_column_accounting_is_explicit_without_guessing_numeric_prelim_
             f.disposition == "excluded" and "wdr_s_callback_unverified" in f.path
             for f in report.fields
         )
+
+
+def _fixture_report(name, edit=lambda body: body):
+    from swingset.sources import get_page_kind
+
+    fixtures = Path("src/swingset/admission/fixtures")
+    body = edit((fixtures / (name + ".body")).read_bytes())
+    row = json.loads((fixtures / (name + ".json")).read_bytes())
+    page = get_page_kind(row["page_kind"])
+    ctx = ParseContext(
+        row["snapshot_id"],
+        row["watch_id"],
+        row["url"],
+        row["page_kind"].split(".", 1)[0],
+        row["page_kind"],
+        row["source_ref"],
+        row["observed_at"],
+    )
+    extract = page.extract(body)
+    result = page.parse(extract, ctx)
+    return extract, result, inspect(ctx, body, extract, result)
+
+
+def _dispositions(report):
+    return {field.path: field.disposition for field in report.fields}
+
+
+def test_scoringdance_round_contract_5_accounts_reviewed_columns():
+    from swingset.admission.contracts import contract_version
+
+    assert contract_version("scoringdance.round") == contract_version("wdr.rounds") == "5"
+    assert contract_version("scoringdance.event") == contract_version("eepro.round") == "4"
+    # A: a one-table couple round labels the partner column; both roles project.
+    extract, result, report = _fixture_report("scoringdance-partner-quarter")
+    assert report.contract_version == "5" and not report.failures
+    headers = result.observations[0].payload.tables[0].headers
+    assert [cell.text for cell in headers[:3]] == ["Bib Number", "Leader", "Follower"]
+    # Two tables keep column 2 unlabelled: one stored page lists followers first.
+    extract, result, report = _fixture_report("scoringdance-two-table-partner")
+    assert report.failures == ("critical_unknown",)
+    assert _dispositions(report)["table[1].header[2]="] == "unknown"
+    assert [table["rows"][0][2]["text"] for table in extract] == ["", ""]
+    # B and C: the chief-judge adjustment and its CJA badge are excluded.
+    _, _, report = _fixture_report("scoringdance-cja-semi")
+    assert not report.failures
+    fields = _dispositions(report)
+    assert fields["table[0].header[9]="] == fields["table[0].header[10]="] == "excluded"
+    assert fields["table[0].remark.chief_judge_adjustment"] == "excluded"
+    assert any(
+        f.reason.startswith("Chief-judge adjustment")
+        for f in report.fields
+        if f.path.endswith("[9]=")
+    )
+    # A violation badge on a placed final row is already in the placement.
+    _, _, report = _fixture_report("scoringdance-v1-final")
+    assert not report.failures
+    assert _dispositions(report)["table[0].remark.violation_badge"] == "excluded"
+    # DISS on a row the source already shows as eliminated is consistent.
+    _, _, report = _fixture_report("scoringdance-diss-prelim")
+    assert not report.failures
+    assert _dispositions(report)["table[0].remark.eliminated_outcome_note"] == "excluded"
+    # T: anonymized per-page judge codes in a Champions final.
+    _, _, report = _fixture_report("scoringdance-anon-judges")
+    assert not report.failures
+    fields = _dispositions(report)
+    assert all(
+        fields[f"table[0].header[{i}]={code}"] == "excluded"
+        for i, code in enumerate(("to", "xbg", "iph", "qqk", "gei", "oli"), 3)
+    )
+
+
+def test_scoringdance_remark_outcome_conflict_blocks_the_round():
+    _, _, report = _fixture_report("scoringdance-dq-final")
+    assert report.failures == ("source_remark_outcome_conflict",)
+    (guard,) = [g for g in report.guards if g.code == "source_remark_outcome_conflict"]
+    assert "table[0] row 1 (bib 72, 1st): DQ Lead" in guard.detail
+    assert "row 3 (bib 72, 3rd): DQ Lead" in guard.detail
+    # The same DISS blocks once the row says it was called back.
+    _, _, report = _fixture_report(
+        "scoringdance-diss-prelim",
+        lambda body: body.replace(
+            b'data-state="" data-rownum="2"', b'data-state="CB" data-rownum="2"', 1
+        ),
+    )
+    assert report.failures == ("source_remark_outcome_conflict",)
+
+
+@pytest.mark.parametrize(
+    "edit,path",
+    [
+        # An unseen remark stays unknown; new values block by default.
+        (
+            lambda body: body.replace(b">CJA</span>", b">New note</span>", 1),
+            "table[0].remark=New note",
+        ),
+        # A non-numeric value after the sum is not an adjustment.
+        (
+            lambda body: body.replace(b'nowrap;">+2</span>', b'nowrap;">note</span>', 1),
+            "table[0].header[9]=",
+        ),
+    ],
+)
+def test_scoringdance_unreviewed_remark_or_adjustment_stays_unknown(edit, path):
+    _, _, report = _fixture_report("scoringdance-cja-semi", edit)
+    assert report.failures == ("critical_unknown",)
+    assert _dispositions(report)[path] == "unknown"
+
+
+def test_wdr_swing_violation_warning_passes_and_placement_drops_block():
+    _, _, report = _fixture_report("wdr-svw")
+    assert report.contract_version == "5" and not report.failures
+    _, _, report = _fixture_report("wdr-svw", lambda body: body.replace(b'"4|SVW"', b'"4|SV1"'))
+    assert "round[27].cell.value=4|SV1" in _dispositions(report)
+
+
+def test_wdr_attribute_group_text_ignores_extract_key_order():
+    from swingset.admission.generations import serialize_result
+    from swingset.fetch.archive import canonical
+    from swingset.sources.wdr.adapter import RoundsPage
+
+    page = RoundsPage()
+    body = Path("src/swingset/admission/fixtures/wdr-svw.body").read_bytes()
+    ctx = ParseContext(
+        "snapshot",
+        "watch",
+        "https://example.test/rounds",
+        "wdr",
+        page.kind,
+        "wdr:test",
+        "2026-09-09",
+    )
+    fresh = page.extract(body)  # body key order: id, name, attributes
+    stored = json.loads(canonical(fresh))  # an archived extract: keys sorted
+    assert list(fresh["results"][27]["attributeGroup"]) == ["id", "name", "attributes"]
+    first, second = page.parse(fresh, ctx), page.parse(stored, ctx)
+    assert serialize_result(first) == serialize_result(second)
+    (group,) = {
+        table.attribute_group
+        for o in first.observations
+        for table in o.payload.tables
+        if table.attribute_group is not None
+    }
+    assert group.startswith("{'attributes': [{'id': 1, 'name': 'SVW indicates")
+    assert group.endswith("'id': 1, 'name': 'NASDE'}")
 
 
 @pytest.mark.parametrize("mutation", ["method", "cell_type", "callback", "judge_score"])

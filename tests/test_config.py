@@ -6,10 +6,12 @@ import pytest
 from swingset.config import (
     Config,
     DerivationConfig,
+    HostConfig,
     StageConfig,
     load_config,
     parse_derivation,
     parse_history_start,
+    parse_hosts,
     parse_retention,
     parse_stages,
 )
@@ -91,6 +93,23 @@ def test_production_retention_keeps_one_local_checkpoint() -> None:
     assert retention.checkpoint_keep_recent == 1
     assert retention.checkpoint_max_age == 0
     assert retention == parse_retention((config / "sources.toml").read_bytes())
+
+
+@pytest.mark.parametrize("host", ["scoring.dance", "points.worldsdc.com", "example.test"])
+def test_hosts_accept_two_seconds_and_reject_less(host: str) -> None:
+    """Every host shares the two-second floor (D-0247)."""
+    body = f'[hosts."{host}"]\nmin_gap_seconds = 2\n'.encode()
+    assert parse_hosts(body)[host].min_gap_seconds == 2
+    with pytest.raises(ValueError, match="unsafe host limits"):
+        parse_hosts(body.replace(b"= 2", b"= 1.9"))
+
+
+def test_production_hosts_space_wcs_sites_at_two_seconds_and_the_archive_at_ten() -> None:
+    hosts = parse_hosts((Path(__file__).resolve().parents[1] / "config/hosts.toml").read_bytes())
+    gaps = {name: host.min_gap_seconds for name, host in hosts.items()}
+    assert gaps.pop("web.archive.org") == 10
+    assert set(gaps.values()) == {2}
+    assert HostConfig().min_gap_seconds == 2
 
 
 STAGES = (

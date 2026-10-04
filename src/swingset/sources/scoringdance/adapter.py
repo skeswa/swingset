@@ -172,7 +172,7 @@ class EventPage(SitemapPage):
 
 class RoundPage(SitemapPage):
     kind = "scoringdance.round"
-    EXTRACT_VERSION = 4
+    EXTRACT_VERSION = 5
     PARSER_VERSION = 4
 
     def extract(self, body: bytes) -> JsonValue:
@@ -231,9 +231,32 @@ class RoundPage(SitemapPage):
                 and isinstance(header_attributes := headers[2].get("attributes", {}), dict)
                 and not header_attributes.get("title")
             )
+            # A one-table couple round (SILC, Pro-Am, All-American prelims)
+            # also puts the partner, unlabelled, in column 2 (D-0240). Two
+            # tables split roles by table and stay unlabelled: one stored page
+            # lists followers first there.
+            partner_pair = (
+                len(result) == 1
+                and len(headers) > 2
+                and isinstance(headers[2], dict)
+                and not headers[2].get("text")
+                and isinstance(partner_attributes := headers[2].get("attributes", {}), dict)
+                and not partner_attributes.get("title")
+                and any(
+                    isinstance(row, list)
+                    and len(row) > 2
+                    and isinstance(row[2], dict)
+                    and str(row[2].get("text") or "").strip()
+                    for row in table_rows[1:]
+                )
+            )
             if len(headers) > 1 and isinstance(headers[1], dict):
                 headers[1]["text"] = "Leader" if is_final or table_number == 0 else "Follower"
-            if (is_final or strictly_pair) and len(headers) > 2 and isinstance(headers[2], dict):
+            if (
+                (is_final or strictly_pair or partner_pair)
+                and len(headers) > 2
+                and isinstance(headers[2], dict)
+            ):
                 headers[2]["text"] = "Follower"
         return result
 

@@ -179,14 +179,14 @@ def test_real_dates_restore_current_policy_without_invented_metadata(tmp_path):
 @pytest.mark.parametrize(
     "host,limit,gap",
     [
-        ("worldsdc.com", 10, 5),
-        ("points.worldsdc.com", 1500, 5),
-        ("eepro.com", 600, 5),
-        ("scoring.dance", 800, 5),
-        ("scores.worlddanceregistry.com", 400, 5),
-        ("danceconvention.net", 200, 10),
+        ("worldsdc.com", 10, 2),
+        ("points.worldsdc.com", 1500, 2),
+        ("eepro.com", 600, 2),
+        ("scoring.dance", 800, 2),
+        ("scores.worlddanceregistry.com", 400, 2),
+        ("danceconvention.net", 200, 2),
         ("web.archive.org", 200, 10),
-        ("www.worldsdc.com", 200, 5),
+        ("www.worldsdc.com", 200, 2),
     ],
 )
 def test_every_host_keeps_its_actual_daily_cap_and_request_floor(tmp_path, host, limit, gap):
@@ -202,15 +202,17 @@ def test_every_host_keeps_its_actual_daily_cap_and_request_floor(tmp_path, host,
         gate = Gate(conn, config(), clock)
         # Seeded historical debits have no dispatch/completion evidence. Adopt
         # an explicit stopped-worker baseline before testing remaining capacity.
+        # Migration 0028 keeps a five-second floor on baselines.
+        baseline = max(5, gap)
         with db.transaction():
             gate.establish_spacing_baseline(
                 host,
-                gap_seconds=gap,
+                gap_seconds=baseline,
                 stopped_at=clock.now(),
                 evidence_ref="offline://h14-seeded-debits",
             )
-        assert gate.acquire(host) == Wait(gap)
-        clock.sleep(gap)
+        assert gate.acquire(host) == Wait(baseline)
+        clock.sleep(baseline)
         assert isinstance(gate.acquire(host), Grant)
         assert isinstance(gate.acquire(host), Wait)
         gate.release(host, Classification(Outcome.OK))
@@ -233,14 +235,14 @@ def test_retry_cooldown_and_depleted_quota_resume_without_burst(tmp_path):
         gate = Gate(conn, config(), clock)
         assert isinstance(gate.acquire(host), Grant)
         gate.release(host, Classification(Outcome.OK))
-        assert gate.acquire(host) == Wait(5)
+        assert gate.acquire(host) == Wait(2)
         conn.execute("UPDATE host_budget SET requests=800")
         clock.sleep(7200)
         assert gate.acquire(host) == Paused("request budget")
         clock.sleep(86400)
         assert isinstance(gate.acquire(host), Grant)
         gate.release(host, Classification(Outcome.OK))
-        assert gate.acquire(host) == Wait(5)
+        assert gate.acquire(host) == Wait(2)
         assert (
             conn.execute(
                 "SELECT requests FROM host_budget WHERE day=?", (clock.now().date().isoformat(),)

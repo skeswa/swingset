@@ -10,6 +10,7 @@ Publication makes an accepted candidate visible on Hugging Face. The baseline is
 - [Layout of `skeswa/swingset`](#layout-of-skeswaswingset)
 - [Commit strategy](#commit-strategy)
 - [Candidate and baseline](#candidate-and-baseline)
+- [Corrections and rollback](#corrections-and-rollback)
 - [Publication gate](#publication-gate)
 - [Publication acceptance cases](#publication-acceptance-cases)
 - [Dataset card](#dataset-card)
@@ -195,6 +196,31 @@ forget publication intent. [Restore](operations.md#backup-and-restore)
 verifies remote state separately because its checkpoint may be older
 than subsequent public commits.
 
+## Corrections and rollback
+
+A correction-only candidate re-renders the baseline's own tables under the
+current identity policy and suppressions
+([build](build.md)). The release loop builds one while
+work is queued and the baseline needs it
+([D-0250](../../journal/decisions/0250-correct-only-current-baselines-and-revert-as-a-correction.md)):
+
+- Under the `partitioned` or `whole` path, only a `partitioned` or
+  `correction_only` baseline is corrected. A `closure`, `settled` or unsealed
+  baseline waits for the next normal build, which the gate checks.
+- A `partitioned` baseline needs one when its correction token or the
+  suppressions file changed. A `correction_only` baseline needs one when the
+  identity part of its token, the suppressions file, the admission policies
+  or the revocations changed; a new source generation alone does not count.
+- It is admitted as `correction`, so the build interval ignores it. A dry
+  run builds none and reports `correction_needed`.
+
+Rollback is `swingset publish --revert-to <candidate>`: a correction-only
+candidate read from that former published candidate (it must still hold its
+`PUBLISHED` receipt), committed on top of the hub head through the normal
+publisher. Its policy names `reverted_from`. The hub head and the local
+baseline move together, so reconcile still agrees; a hand revert on the hub
+breaks that ([how to roll back](../guides/data-corrections.md#rolling-back-a-publication)).
+
 ## Publication gate
 
 Every candidate must be at least as good as the baseline, measured
@@ -238,7 +264,8 @@ longer matches its manifest hash refuses (`verdict_changed_after_build`). A
 candidate built before the gate has no verdict; publication evaluates it
 against the baseline with no overrides. A correction-only candidate records
 its decreases but is exempt (`exempt: "correction"`): the suppression or
-identity rows that asked for it are the approval. A pending publication
+identity rows that asked for it are the approval, and for a revert the
+operator who ran it. A pending publication
 (`PUBLISHING`) already passed and is not gated again.
 
 ## Publication acceptance cases

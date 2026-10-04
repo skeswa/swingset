@@ -49,13 +49,19 @@ KINDS = (
 )
 
 
+#: Kinds whose reviewed contract moved past `CONTRACT_VERSION` on their own.
+#: Contract 5 for scoring.dance rounds and WDR rounds is the 2026-10-06
+#: admission adjudication (D-0240).
+KIND_VERSIONS = {"eepro.autoindex": "5", "scoringdance.round": "5", "wdr.rounds": "5"}
+
+
 def contract_version(page_kind: str) -> str:
     """A changed page contract does not invalidate unrelated reviewed contracts."""
     return (
         "1"
         if page_kind in STEPRIGHT_KINDS
-        else "5"
-        if page_kind == "eepro.autoindex"
+        else KIND_VERSIONS[page_kind]
+        if page_kind in KIND_VERSIONS
         else CONTRACT_VERSION
         if page_kind in KINDS
         else "unassessed"

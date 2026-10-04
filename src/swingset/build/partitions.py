@@ -10,7 +10,11 @@ partition kinds:
   generation's rows, and `link/E`'s patch and identity rows, plus
   `resolution/E`'s `source_event_map` rows. A row of `event/E` that names
   another event F (the `support_closure._EventScopes` rule) joins them into
-  one partition `event/<E>+<F>`.
+  one partition `event/<E>+<F>`. When no admissible header row remains
+  because each legacy one differs from the baseline, the baseline's own
+  `events` row stands in (`closure_rows._baseline_header`, D-0251), so the
+  event's accepted results still publish; an event the baseline lacks is
+  withheld.
 - `dancers/<k>`, `k = wsdc_id // 512`: dancer and registry placement rows,
   each placement's `event_id` patched from the year generation of its month.
   A dancer generation joins the batch of the WSDC id its rows carry, which
@@ -33,7 +37,8 @@ no reuse matches, so the claim is contested again every build.
 A partition's inputs digest covers what it reads: `(scope, generation_id,
 output_digest)` of each generation it reads whole, `(scope, table, key,
 payload sha256)` of each row it takes from a generation many partitions share
-(calendar, inventory, year), the support of every snapshot its rows name
+(calendar, inventory, year), the observation sets each generation last
+recorded reading (`_read_set`), the support of every snapshot its rows name
 (state and accepted source generations), the revocation digest, the build
 code and environment, the history start, and the baseline when a row's
 support is legacy. An unchanged digest keeps the artifact. Processing columns
@@ -59,7 +64,7 @@ import sys
 import tempfile
 import time
 from collections import Counter
-from collections.abc import Iterable, Iterator, Mapping
+from collections.abc import Callable, Iterable, Iterator, Mapping, Sequence
 from dataclasses import dataclass, field, replace
 from datetime import date, datetime
 from pathlib import Path
@@ -75,7 +80,7 @@ from swingset.state.release_store import ArtifactRow, PartitionRow
 from . import artifact_store
 from .builder import PUBLISHED_TABLES
 from .closure_manifest import canonical, digest
-from .closure_rows import _NEUTRAL, _legacy_matches
+from .closure_rows import _NEUTRAL, _baseline_header, _header_pair, _legacy_matches
 from .input import _convert
 from .partition_checks import (
     Observation,
@@ -215,11 +220,21 @@ class Partition:
             for generation, rows in ordered
         ]
 
-    def content(self) -> dict[str, Any]:
-        """The generation part of the inputs: every generation or row read, in merge order."""
+    def content(self, reads: Callable[[Generation], Sequence[str]] | None = None) -> dict[str, Any]:
+        """The generation part of the inputs: every generation or row read, in merge order.
+
+        ``reads`` gives the observation sets each generation last recorded
+        reading (`_Provenance.groups`). A re-run with unchanged output keeps
+        the generation but can record other observations, and support is
+        matched against those, so they count too.
+        """
         generations: list[list[str]] = []
         rows: list[list[str]] = []
+        observations: list[list[str]] = []
         for generation, shared in self.sources():
+            groups = reads(generation) if reads is not None else ()
+            if groups:
+                observations.append([generation.scope, generation.generation_id, *groups])
             if shared is None:
                 entry = [generation.scope, generation.generation_id, generation.output_digest]
                 if generation.reads_event is not None:
@@ -229,7 +244,7 @@ class Partition:
                 rows.extend(
                     [generation.scope, row.table, row.key, row.payload_sha256] for row in shared
                 )
-        return {"generations": generations, "rows": rows}
+        return {"generations": generations, "rows": rows, "observations": observations}
 
     def generation_ids(self) -> list[str]:
         return sorted(
@@ -371,6 +386,38 @@ def _evicted_pointers(conn: sqlite3.Connection) -> frozenset[str]:
     )
 
 
+def _read_set(conn: sqlite3.Connection, generation: Generation) -> str | None:
+    """The dependency set a generation last recorded reading.
+
+    A re-run whose output is unchanged keeps the generation and records what
+    it read as an equivalence: the newest one names what the rows stand on
+    now. Without one, the set saved with the generation.
+    """
+    row = conn.execute(
+        "SELECT dependency_set_id FROM derivation_equivalences WHERE stage=? AND unit_kind=? "
+        "AND unit_id=? AND generation_id=? ORDER BY created_at DESC LIMIT 1",
+        (generation.stage, generation.unit_kind, generation.unit_id, generation.generation_id),
+    ).fetchone()
+    if row is None:
+        row = conn.execute(
+            "SELECT dependency_set_id FROM derivation_generations WHERE generation_id=?",
+            (generation.generation_id,),
+        ).fetchone()
+    return None if row is None else str(row[0])
+
+
+def _manifest(conn: sqlite3.Connection, set_id: str | None) -> list[Any]:
+    row = (
+        conn.execute(
+            "SELECT manifest_json FROM derivation_dependency_sets WHERE dependency_set_id=?",
+            (set_id,),
+        ).fetchone()
+        if set_id is not None
+        else None
+    )
+    return list(json.loads(row[0])) if row is not None else []
+
+
 def _link_event_reads(conn: sqlite3.Connection, links: Iterable[Generation]) -> dict[str, str]:
     """Each link generation's recorded event generation, from its newest record.
 
@@ -379,26 +426,7 @@ def _link_event_reads(conn: sqlite3.Connection, links: Iterable[Generation]) -> 
     """
     result: dict[str, str] = {}
     for generation in links:
-        row = conn.execute(
-            "SELECT dependency_set_id FROM derivation_equivalences WHERE stage='link' "
-            "AND unit_kind='event' AND unit_id=? AND generation_id=? "
-            "ORDER BY created_at DESC LIMIT 1",
-            (generation.unit_id, generation.generation_id),
-        ).fetchone()
-        if row is None:
-            row = conn.execute(
-                "SELECT dependency_set_id FROM derivation_generations WHERE generation_id=?",
-                (generation.generation_id,),
-            ).fetchone()
-        manifest = (
-            conn.execute(
-                "SELECT manifest_json FROM derivation_dependency_sets WHERE dependency_set_id=?",
-                (row[0],),
-            ).fetchone()
-            if row is not None
-            else None
-        )
-        for item in json.loads(manifest[0]) if manifest is not None else ():
+        for item in _manifest(conn, _read_set(conn, generation)):
             if (
                 isinstance(item, dict)
                 and item.get("kind") == "derivation"
@@ -614,9 +642,9 @@ class _Legacy:
         self.available = baseline is not None
         self._directory: tempfile.TemporaryDirectory[str] | None = None
 
-    def matches(self, table: str, key: str, payload: Mapping[str, Any]) -> bool:
+    def _load(self) -> sqlite3.Connection | None:
         if not self.available:
-            return False
+            return None
         if self.spool is None:
             from .closure_manifest import ClosureError
             from .closure_rows import _baseline
@@ -632,8 +660,17 @@ class _Legacy:
                 _baseline(self.spool, self.baseline)
             except (ClosureError, OSError, ValueError, KeyError):
                 self.available = False
-                return False
-        return _legacy_matches(self.spool, table, key, dict(payload))
+                return None
+        return self.spool
+
+    def matches(self, table: str, key: str, payload: Mapping[str, Any]) -> bool:
+        spool = self._load()
+        return spool is not None and _legacy_matches(spool, table, key, dict(payload))
+
+    def header(self, key: str) -> dict[str, Any] | None:
+        """The baseline's `events` row for a rejected legacy header (D-0251)."""
+        spool = self._load()
+        return None if spool is None else _baseline_header(spool, key)
 
     def close(self) -> None:
         if self.spool is not None:
@@ -648,9 +685,12 @@ _OBSERVATION_GROUPS = ("source_observations", "calendar_observations")
 class _Provenance:
     """The observations each generation recorded reading, by (snapshot, parser).
 
-    A generation's dependency set names its source observations (and the
-    inventory's, every calendar's); those are what its rows came from. A
-    shared generation (a calendar, the inventory) is read once per build.
+    A generation's newest read set (`_read_set`) names its source
+    observations (and the inventory's, every calendar's); those are what its
+    rows came from. A re-run with unchanged output keeps the generation but
+    may read relabelled observations (D-0241), so the set saved with the
+    generation can name observations no accepted generation holds any more.
+    A shared generation (a calendar, the inventory) is read once per build.
     A pair no generation of the partition names falls back to the snapshot's
     live observations, which then enter the partition's inputs digest.
     """
@@ -658,29 +698,28 @@ class _Provenance:
     def __init__(self, conn: sqlite3.Connection) -> None:
         self.conn = conn
         self._cache: dict[str, dict[tuple[str, str], frozenset[Observation]]] = {}
+        self._groups: dict[str, tuple[str, ...]] = {}
+
+    def groups(self, generation: Generation) -> tuple[str, ...]:
+        """The ids of the observation sets the generation last recorded reading."""
+        found = self._groups.get(generation.generation_id)
+        if found is None:
+            found = self._groups[generation.generation_id] = tuple(
+                str(item.get("fingerprint"))
+                for item in _manifest(self.conn, _read_set(self.conn, generation))
+                if isinstance(item, dict)
+                and item.get("kind") == "dependency_set"
+                and item.get("key") in _OBSERVATION_GROUPS
+            )
+        return found
 
     def of(self, generation: Generation) -> dict[tuple[str, str], frozenset[Observation]]:
         found = self._cache.get(generation.generation_id)
         if found is not None:
             return found
         result: dict[tuple[str, str], set[Observation]] = {}
-        row = self.conn.execute(
-            "SELECT d.manifest_json FROM derivation_generations g JOIN derivation_dependency_sets d "
-            "ON d.dependency_set_id=g.dependency_set_id WHERE g.generation_id=?",
-            (generation.generation_id,),
-        ).fetchone()
-        for item in json.loads(row[0]) if row is not None else ():
-            if not (
-                isinstance(item, dict)
-                and item.get("kind") == "dependency_set"
-                and item.get("key") in _OBSERVATION_GROUPS
-            ):
-                continue
-            members = self.conn.execute(
-                "SELECT manifest_json FROM derivation_dependency_sets WHERE dependency_set_id=?",
-                (item.get("fingerprint"),),
-            ).fetchone()
-            for leaf in json.loads(members[0]) if members is not None else ():
+        for group in self.groups(generation):
+            for leaf in _manifest(self.conn, group):
                 if leaf.get("kind") != "observation":
                     continue
                 scope = leaf.get("scope") or [None, None]
@@ -752,6 +791,28 @@ def extract(
             found = states[pair] = support.matched(*pair, observations)
         return str(found.state)
 
+    #: Events whose header is the baseline's stand-in (D-0251).
+    stand_ins: set[str] = set()
+
+    def stand_in(key: str) -> None:
+        """Put the baseline's header for a rejected legacy one, when no row holds the event yet.
+
+        The stand-in's own snapshot joins the partition's support like any
+        row's; a revoked one leaves the event withheld.
+        """
+        if ("events", key) in rows:
+            return
+        header = legacy.header(key)
+        if header is None:
+            return
+        pair = _header_pair(header)
+        if pair is not None:
+            snapshots.add(pair)
+            if state_of(pair) == "revoked":
+                return
+        rows[("events", key)] = header
+        stand_ins.add(key)
+
     try:
         for generation, shared in partition.sources():
             items: Iterable[tuple[str, str, str]] = (
@@ -778,6 +839,8 @@ def extract(
                                     else "legacy_owned_values_not_published",
                                 )
                             )
+                            if table == "events" and state != "revoked":
+                                stand_in(key)
                             continue
                         counts["legacy_unassessed_retained"] += 1
                 payload.setdefault("run_id", generation.run_id)
@@ -790,6 +853,10 @@ def extract(
                     and generation.unit_kind in {"history", "year"}
                     and table in {"events", "registry_placements"}
                 )
+                if not patch and table == "events" and key in stand_ins:
+                    # An admissible header replaces the baseline's stand-in whole.
+                    stand_ins.discard(key)
+                    del rows[(table, key)]
                 previous = rows.get((table, key))
                 if patch and previous is None:
                     counts["partial_overlay_without_structural_base"] += 1
@@ -801,6 +868,8 @@ def extract(
         return Extracted(
             {}, snapshots, counts, ("generation_output_digest_mismatch", {"scope": str(error)})
         )
+    if stand_ins:
+        counts["baseline_header_republished"] += len(stand_ins)
     result = Extracted(
         rows,
         snapshots,
@@ -830,7 +899,8 @@ def _close(
             and reason == "legacy_owned_values_not_published"
             and ("events", key) in rows
         ):
-            # Another admissible generation supplied this event (reconstruct).
+            # Another admissible generation, or the baseline's stand-in
+            # (D-0251), supplied this event (reconstruct).
             continue
         if table in {"dancers", "registry_placements"} and payload.get("wsdc_id") is not None:
             omitted_dancers.setdefault(payload["wsdc_id"], reason)
@@ -961,8 +1031,8 @@ def _inputs(
     """Everything a partition's artifact depends on; its digest is the inputs digest.
 
     ``supported`` is each pair's standing (`support_inputs`): with the
-    generations in ``content``, whose recorded observations never change,
-    it decides the observation-level support. ``live`` digests the live
+    generations in ``content`` and the observation sets each last recorded
+    reading, it decides the observation-level support. ``live`` digests the live
     observations of pairs no generation recorded. The baseline counts only
     when a row's support is legacy (``legacy``): only then can it keep or
     drop a row.
@@ -1166,7 +1236,7 @@ def _one(
         prior.state == "withheld"
         or bool(prior.artifact_digest and artifact_store.intact(state_dir, prior.artifact_digest))
     )
-    content = digest(partition.content())
+    content = digest(partition.content(provenance.groups))
     detail: dict[str, Any] = {
         "content": content,
         "events_of": {

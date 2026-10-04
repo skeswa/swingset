@@ -140,6 +140,23 @@ fact may remain only when its owned values match the verified published
 baseline under the public column types and no revocation applies. This grants
 no new identity join or source admission authority.
 
+An `events` header row is the one exception that keeps its event
+([D-0251](../../journal/decisions/0251-a-rejected-legacy-header-publishes-the-baseline-row.md)).
+When a legacy header differs from the baseline and no admissible header
+holds the event, the baseline's own `events` row stands in
+(`closure_rows._baseline_header`), so the event's accepted results still
+publish. Every column comes from the baseline row, including its provenance
+(`source`, `sources`, `snapshot_id`, `parser_version`, `run_id`,
+`first_seen_at`, `last_seen_at`), except `coverage_tier`, which starts at
+`index_only` for the year's patch, and the freshness columns
+(`scope_status`, `evidence_observed_at`), which assembly computes. The
+stand-in's snapshot and parser join the partition's support; a revoked one
+withholds the event. A later admissible header replaces the stand-in whole.
+An event the baseline lacks is withheld as before, and a rejected result row
+(a contest, entry or placement) still withholds its event: mixing a
+baseline result row into current ones could break the event's structure. The
+sidecar counts stand-ins as `baseline_header_republished`.
+
 Candidate reuse requires **both** this fingerprint and the baseline
 commit against which its changelog was calculated. The candidate's
 `BUILT` record and verified file closure establish artifact completion.
@@ -262,8 +279,12 @@ Default entry and judge WSDC IDs accept confirmed links only. Probable
 identity decisions remain in `identity_links` and `link_candidates` for
 review. H10 rechecks exact source-owned printed IDs, registry agreement in the
 selected release tables, current decisions, and source support. A former
-assertion cannot serve as its own evidence. New default joins remain withheld
-until H17 permits expansion; this applies to an empty initial dataset too.
+assertion cannot serve as its own evidence. A new default entry ID must also
+pass the reviewed H17 rules of
+[D-0248](../../journal/decisions/0248-publish-new-identity-links-that-pass-the-h17-review-rules.md)
+([identity linking](identity-linking.md#release-acceptance-of-new-links-h17));
+new manual and judge IDs stay withheld. This applies to an empty initial
+dataset too.
 
 `build/service.py` owns normal and correction-only releases. Normal releases
 use the selected dependency closure. Correction-only releases read and hash
@@ -271,8 +292,12 @@ the acknowledged baseline, withdraw revoked source scopes and identities, and
 rebuild dependent identity fields. They include no new source generation.
 The manifest records remaining parse work and findings, withdrawal counts,
 the source admission digest, the journal digest and generation, current input
-hashes, and the identity policy version. Public assertions carry safe decision
-references and acceptance state; private reasons stay private.
+hashes, the admission policies and revocations, and the identity policy
+version. Public assertions carry safe decision references and acceptance
+state; private reasons stay private. A revert (`--revert-to`) reads a former
+published candidate's tables instead of the baseline's and records
+`reverted_from`. [Publishing](publishing.md#corrections-and-rollback) owns
+when the release loop builds a correction.
 
 The release loop's hourly tick starts a build
 ([scheduling: loops](scheduling.md#loops)). `build_interval_seconds` admits one
@@ -345,7 +370,8 @@ is absent go, and a placement's dancer follows its entry's.
 **Inputs digest.** It covers `(scope, generation_id, output_digest)` of each
 generation read whole; `(scope, table, key, payload sha256)` of each row taken
 from a generation many partitions share (calendar, inventory, year), in merge
-order; each snapshot and parser its rows name, with its standing and
+order; the observation sets each generation last recorded reading; each
+snapshot and parser its rows name, with its standing and
 accepted source generations; a digest of the live observations of each pair
 no generation recorded; the revocation digest; `recipe/env`,
 `recipe/code/build`, `policy/history_start` and the partition modules' bytes;
@@ -357,22 +383,26 @@ so a kept artifact keeps those of the build that last changed its facts.
 **Checks.** Each failure withholds that partition, with its reason and
 detail in `release_partitions`, and nothing else:
 
-| Reason                                                                                                                               | When                                                                                                                                 |
-| ------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------ |
-| `source_revoked`, `source_support_unavailable`                                                                                       | A row's snapshot and parser has a revoked source generation, or none accepted and the row differs from the baseline                  |
-| `dangling_reference`                                                                                                                 | A mark, callback, heat or placement names an entry, round or judge the partition lacks                                               |
-| `generation_output_digest_mismatch`                                                                                                  | A generation read does not match its row count and output digest                                                                     |
-| `partition_error`                                                                                                                    | Selection (`events_of`), extraction, a check, the Arrow conversion or the write raised; the detail has the error's class and message |
-| `units_not_current`, `listing_claimed_elsewhere`                                                                                     | See consistency above                                                                                                                |
-| `invalid_enum`, `invalid_event_dates`, `missing_reference`, `callback_counts_disagree`, `invalid_placements`, `unsupported_identity` | The builder's checks above, on the partition's rows                                                                                  |
+| Reason                                                                                                                               | When                                                                                                                                                                             |
+| ------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `source_revoked`, `source_support_unavailable`                                                                                       | A row's snapshot and parser has a revoked source generation, or none accepted and the row differs from the baseline (a header row with a baseline row is replaced by it instead) |
+| `dangling_reference`                                                                                                                 | A mark, callback, heat or placement names an entry, round or judge the partition lacks                                                                                           |
+| `generation_output_digest_mismatch`                                                                                                  | A generation read does not match its row count and output digest                                                                                                                 |
+| `partition_error`                                                                                                                    | Selection (`events_of`), extraction, a check, the Arrow conversion or the write raised; the detail has the error's class and message                                             |
+| `units_not_current`, `listing_claimed_elsewhere`                                                                                     | See consistency above                                                                                                                                                            |
+| `invalid_enum`, `invalid_event_dates`, `missing_reference`, `callback_counts_disagree`, `invalid_placements`, `unsupported_identity` | The builder's checks above, on the partition's rows                                                                                                                              |
 
 Support comes from the accepted source generations, never a clock (plan
 F24): accepted means an accepted admission decision, the current contract and
 no report failures. It is matched per observation, as `closure_support` does
 (D-0022): a pair is `accepted` only when each observation its rows came from
-(those its generations recorded reading, else the snapshot's live ones) is
-held, with the same scope, kind, seq, payload and extract version, by an
-accepted generation of that snapshot and parser. The sidecar's `support`
+(those its generations last recorded reading, else the snapshot's live
+ones) is held, with the same scope, kind, seq, payload and extract version, by an
+accepted generation of that snapshot and parser. A generation's last read
+is its newest equivalence's dependency set, else its own: a re-run with
+unchanged output keeps the generation but can read relabelled observations
+(D-0241), and the set saved with the generation then names labels no accepted
+generation holds. The sidecar's `support`
 holds the result; the manifest's support is its union. The closure path
 credited only the generation a unit had selected, so a row from an older,
 still admitted snapshot of a re-fetched page counted as legacy there (R4's

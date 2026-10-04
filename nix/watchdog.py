@@ -154,8 +154,10 @@ INCOMPLETE_GENERATIONS = 3
 #: `[admissions-growth]`: maintain's `admissions_rows` past this many. The
 #: prune keeps every request row `scheduler_requests` names, which has no
 #: collector yet (D-0238, about 1,800 a day); this is the trigger of
-#: maintenance item 15 (docs/plans/README.md).
-ADMISSIONS_ROWS = 200_000
+#: maintenance item 15 (docs/plans/README.md). Migration 37 leaves about
+#: 265,000 rows, none old enough to prune, so the line sits at 600,000
+#: (phase 5 independent check, 2026-10-11).
+ADMISSIONS_ROWS = 600_000
 #: Partition artifacts no current partition names, past this many bytes, are
 #: named (`[artifact-orphans]`): the daily collector is not keeping up, or
 #: retained release manifests hold more than expected (phase 3, WP6).

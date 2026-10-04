@@ -393,10 +393,11 @@ def run_finished(database: Database, run_id: str | None) -> bool:
 
 
 def stop_marker(state_dir: Path, run_id: str) -> Path:
-    """The file a loop tick writes when systemd asks it to stop (SIGTERM).
+    """The file a loop tick writes when it is asked to stop (SIGTERM).
 
     A tick killed after that request (a unit that outlasts `TimeoutStopSec`)
-    did not die of its unit: its death is not counted.
+    did not die of its unit: its death is not counted. A SIGTERM from the
+    tick's own start timeout writes none (`loops.runtime.note_stop`).
     """
     return state_dir / "runs" / f"{run_id}.stop"
 

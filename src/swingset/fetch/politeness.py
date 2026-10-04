@@ -10,7 +10,7 @@ from typing import NamedTuple
 from uuid import uuid4
 
 from swingset.clock import Clock, SystemClock
-from swingset.config import Config
+from swingset.config import REQUEST_FLOOR_SECONDS, Config
 from swingset.fetch.classify import Classification, Outcome
 
 
@@ -103,6 +103,7 @@ class Gate:
                 raise ValueError("spacing baseline requires a writer transaction")
             if not evidence_ref.strip() or stopped_at.tzinfo is None or stopped_at > now:
                 raise ValueError("spacing baseline needs evidence and an observed past stop")
+            # Migration 0028 fixed this immutable table's floor at five seconds.
             if not math.isfinite(gap_seconds) or gap_seconds < max(
                 5, self.config.host(host).min_gap_seconds
             ):
@@ -255,11 +256,7 @@ class Gate:
                 "INSERT OR IGNORE INTO host_budget(host,day,requests,bytes) VALUES (?,?,0,0)",
                 (host, day),
             )
-            gap = max(
-                policy.min_gap_seconds,
-                crawl_delay,
-                2 if sweep and host == "points.worldsdc.com" else 5,
-            )
+            gap = max(policy.min_gap_seconds, crawl_delay, REQUEST_FLOOR_SECONDS)
             reservation = uuid4().hex
             outer_transaction = conn.in_transaction
             if not outer_transaction:

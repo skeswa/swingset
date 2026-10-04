@@ -1,0 +1,181 @@
+{
+  "operation": "publish new identity links that pass the H17 review rules (D-0248) and a 2 s per-host request floor (D-0247); the 24 h WCS budget raise (D-0246) carried",
+  "actor": "claude (session claude-rearch)",
+  "owner_approval": {
+    "identity": "2026-10-11 'Agent accuracy review, then accept'; 'Adopt them (Recommended)'",
+    "spacing": "2026-10-12 'let's drop this to 2 s per host permanently - no need for this kind of self rate limiting'",
+    "budgets": "2026-10-12 'We got approved to increase our hit rate on all wcs websites for the rest of the day'"
+  },
+  "h17_review": {
+    "links_live_confirmed": 105043,
+    "accept_cohort": 100118,
+    "sample": "0 wrong of 640 in the accepted cohort; repo sample 229 of 230 correct, the error in a withheld class",
+    "files": "session scratch h17/ (not retained)"
+  },
+  "independent_check": {
+    "verdict": "approve with conditions, 2026-10-12",
+    "C1": "fixed: new joins on legacy-only support withheld as source_interpretation_unavailable (992 of 54,382 in simulation), with a test that fails without the fix",
+    "C2": "full suite on the final commit: 3,534 passed in 1,400 s",
+    "C3": "this receipt; post-check records default_join_counts and confirmed_links"
+  },
+  "deploy_tree": {
+    "path": "/private/tmp/swingset-c039",
+    "commit": "b3658d93c85c02f6e166489978e673bb6420af22",
+    "src_changes": [
+      "build/identity_policy.py",
+      "build/assembly.py",
+      "publish/card.py",
+      "config.py",
+      "fetch/politeness.py"
+    ],
+    "config": "hosts.toml min_gap_seconds 2 on WCS hosts (web.archive.org 10) with the D-0246 budgets",
+    "scope_change": "11 of 45 code scopes (build, link, 9 project); 0 parse or extract"
+  },
+  "preflight": {
+    "schema": 37,
+    "file_bytes": 41150623744,
+    "pending": {
+      "parse": 3745
+    },
+    "queue": {
+      "ready": 330,
+      "waiting_input": 124
+    },
+    "pauses": 0,
+    "requests_today": [
+      [
+        "scoring.dance",
+        120
+      ],
+      [
+        "points.worldsdc.com",
+        121
+      ],
+      [
+        "eepro.com",
+        5
+      ]
+    ],
+    "latest_candidate": [
+      "cand_abc27e8d35b448bf"
+    ],
+    "quota_free_gb": 155.7,
+    "system_before": "/nix/store/20gndxh146d26rsz7l642arr0gydfdxp-nixos-system-swingset-lxc-25.11.20260630.b6018f8"
+  },
+  "switch": {
+    "hold_utc": [
+      "2026-10-12T02:37:04Z",
+      "2026-10-12T02:39:40Z"
+    ],
+    "system_after": "/nix/store/5a8463d54pivx8yhh0d2x04ngqklp3cf-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+    "source_after": "/nix/store/xrbw6dhmdqqzqyy0jf3l94b4jvyma7a9-source"
+  },
+  "rollback": "switch to system_before (no schema change); the policy and spacing revert with the code",
+  "first_12_minutes": {
+    "window_utc": [
+      "2026-10-12T02:39:40Z",
+      "2026-10-12T02:52Z"
+    ],
+    "requests": {
+      "scoring.dance": 56,
+      "points.worldsdc.com": 55,
+      "eepro.com": 0
+    },
+    "per_host_gap_seconds": {
+      "scoring.dance": {
+        "min": 3.44,
+        "median": 3.9
+      },
+      "points.worldsdc.com": {
+        "min": 3.41,
+        "median": 3.87
+      }
+    },
+    "note": "acquire issues one request at a time across hosts and alternates them, so the 2 s floor is not binding; about 550 requests an hour",
+    "snapshots": 1,
+    "drain_queued": {
+      "project": 32464,
+      "link": 2616,
+      "parse": 3746
+    },
+    "equivalences": 1291
+  },
+  "post_check": {
+    "checked_at": "2026-10-12T05:40:00Z",
+    "release_run": "run_20261012T052000Z",
+    "run_window_utc": [
+      "05:20:00",
+      "05:34:12"
+    ],
+    "candidate": "cand_1f2393abae394fdf",
+    "verdict": "pass",
+    "gate_reasons": [],
+    "manifest_digest": "55370c8dbb7878a444d0ba94478a57d0e6efb13fc1b3ec8be5f7829f7bbd9ca7",
+    "peak_rss_bytes": 1656770560,
+    "seconds": 851.4,
+    "counts": {
+      "events": 1806,
+      "contests": 3161,
+      "rounds": 5322,
+      "entries": 121049,
+      "placements": 24905
+    },
+    "entries_with_wsdc_id": 53386,
+    "entries_by_link_status": {
+      "confirmed": 53386,
+      "unmatched": 33070,
+      "probable": 28824,
+      "possible": 5769
+    },
+    "identity_links_by_status_method": {
+      "confirmed/source_id": 49833,
+      "confirmed/registry_placement": 3553,
+      "probable/name_unique": 28759,
+      "probable/assignment": 4798,
+      "possible/name_unique": 3898,
+      "possible/assignment": 2027,
+      "unmatched/none": 34644
+    },
+    "previous_passing_candidate": {
+      "candidate": "cand_abc27e8d35b448bf",
+      "entries_with_wsdc_id": 0
+    },
+    "expected_entries_with_wsdc_id": "about 53,400 (H17 review)",
+    "note": "First release-loop build under H17 (D-0248). Counts other than identity match cand_abc27e8d35b448bf."
+  },
+  "budget_revert": {
+    "decision": "D-0246 expiry",
+    "due": "2026-10-13T02:00Z",
+    "done": "2026-10-13T16:33:05Z",
+    "late_because": "the Mac slept from about 02:00 to 13:38 UTC, so no loop ran and no request was made in that gap",
+    "tree": "/private/tmp/swingset-c041 (c040 code, repo config/hosts.toml)",
+    "system_before": "/nix/store/nwayhvvywc0f5hg60w7fz6cp377adgsz-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+    "system_after": "/nix/store/7yxckk835wcm8ss9nw2bksdkhs1p1wa1-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+    "source": "/nix/store/mhz9fia1jhvm6p5xak8bjjpjniq39dv6-source",
+    "hold": [
+      "2026-10-13T16:32:25Z",
+      "2026-10-13T16:33:06Z"
+    ],
+    "budgets_after": {
+      "worldsdc.com": 10,
+      "points.worldsdc.com": 1500,
+      "eepro.com": 600,
+      "scoring.dance": 800,
+      "scores.worlddanceregistry.com": 400,
+      "danceconvention.net": 200,
+      "web.archive.org": 200
+    },
+    "requests_2026-10-13_before_revert": {
+      "points.worldsdc.com": 674,
+      "scoring.dance": 618,
+      "eepro.com": 2,
+      "web.archive.org": 27
+    },
+    "requests_2026-10-12": {
+      "points.worldsdc.com": 1675,
+      "scoring.dance": 1686,
+      "eepro.com": 57,
+      "web.archive.org": 4
+    }
+  }
+}

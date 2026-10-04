@@ -23,7 +23,7 @@ from swingset.config import Config
 from swingset.fetch.archive import Archive, canonical, digest
 from swingset.fetch.classify import Classification, Outcome, classify
 from swingset.fetch.controls import issue, release
-from swingset.fetch.limits import RequestContext
+from swingset.fetch.limits import MAX_DECODED_BYTES, EncodingRefused, RequestContext, undecoded
 from swingset.fetch.politeness import Gate, Grant, Paused, Wait
 from swingset.fetch.robots import Robots
 from swingset.fetch.wayback import captured_at
@@ -303,6 +303,14 @@ class FetchClient:
                                 method, url, headers=headers, data=form, timeout=timeout
                             )
                             body_bytes = len(response.content)
+                            # A body httpx left encoded (Wayback replays zstd
+                            # whatever we accept) is decoded or refused, never
+                            # stored compressed. A refusal is INVALID with a
+                            # reason, as the bounded reader reports it.
+                            try:
+                                response = undecoded(response, MAX_DECODED_BYTES)
+                            except EncodingRefused as refused:
+                                response.extensions["swingset_limit"] = str(refused)
                         else:
                             bounded_timeout = max(
                                 0.001,

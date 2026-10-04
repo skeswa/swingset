@@ -1,0 +1,17 @@
+{
+  "archive_url": null,
+  "body_sha256": "8c7fa6204738faca4f93df15efa214959c62ee71aa1cc7a6ab677ae4229ccdcd",
+  "captured_at": "2026-10-06T00:23:09.380892+00:00",
+  "extract_sha256": "2f42e86c8a40d4bc320084427a92718f6894c05bfdfa3de3d1cd118135d154aa",
+  "extract_version": "4",
+  "fetched_at": "2026-10-06T00:23:09.380892+00:00",
+  "observed_at": "2026-10-06T00:23:09.380892+00:00",
+  "page_kind": "scoringdance.round",
+  "parser_version": "4",
+  "snapshot_id": "snap_20261006T002309Z_8c7fa6204738_7280b6eaa0f7",
+  "source_ref": "scoringdance:317",
+  "state_root": "/var/lib/swingset",
+  "url": "https://scoring.dance/enUS/events/317/results/4566.html",
+  "via": "origin",
+  "watch_id": "b42f204d58146889"
+}

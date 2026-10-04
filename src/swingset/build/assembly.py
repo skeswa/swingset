@@ -862,17 +862,25 @@ class Assembly:
         return result
 
     def _registry(self, tables: Mapping[str, Sequence[Mapping[str, Any]]]) -> dict[str, Any]:
-        """The registry facts naming this partition's placements' events, and their dancers."""
+        """Registry facts for this partition's events, and every dancer they or its entries name."""
         events = sorted(
             {str(row["event_id"]) for row in tables.get("placements", ()) if row.get("event_id")}
         )
-        if not events:
-            return {"dancers": [], "registry_placements": []}
-        registry = self._query(
-            "SELECT * FROM r_registry WHERE event_id IN (SELECT id FROM ids)",
-            ids=pa.table({"id": pa.array(events, pa.string())}),
+        registry = (
+            self._query(
+                "SELECT * FROM r_registry WHERE event_id IN (SELECT id FROM ids)",
+                ids=pa.table({"id": pa.array(events, pa.string())}),
+            )
+            if events
+            else []
         )
-        dancers = sorted({row["wsdc_id"] for row in registry if row.get("wsdc_id") is not None})
+        dancers = sorted(
+            {
+                int(row["wsdc_id"])
+                for row in (*registry, *tables.get("entries", ()))
+                if row.get("wsdc_id") is not None
+            }
+        )
         names = (
             self._query(
                 "SELECT * FROM r_names WHERE wsdc_id IN (SELECT id FROM ids)",

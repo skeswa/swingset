@@ -46,6 +46,9 @@ HOST_PAUSES = frozenset({"Throttled", "ServerError", "Blocked"})
 #: A host's daily budget is spent; it renews at UTC midnight.
 BUDGETS = frozenset({"request budget", "byte budget"})
 OPERATOR = "operator"
+#: A host's robots read failed; nothing goes to it until the retry (D-0242).
+#: The acquisition pass notes it once per host, with the retry as `until`.
+ROBOTS_UNREAD = "robots unavailable"
 BACKPRESSURE = "pending work backpressure"
 #: Event expansion denials (schedule/event_pressure.admission).
 EXPANSION = frozenset({"event expansion pressure", "event pressure metadata pending"})
@@ -99,7 +102,7 @@ def rule(reason: str, *, history: bool = False) -> Rule | None:
         return Rule("watch", daily=True)
     if reason in (BACKPRESSURE, PUBLICATION) or reason in LOOP_SKIPS:
         return Rule("loop")
-    if reason in SPACING | HOST_PAUSES | BUDGETS | EXPANSION or reason == OPERATOR:
+    if reason in SPACING | HOST_PAUSES | BUDGETS | EXPANSION or reason in (OPERATOR, ROBOTS_UNREAD):
         return Rule("host")
     return None
 
@@ -142,7 +145,8 @@ def expires_at(
 ) -> datetime:
     """When the reason should have cleared, from when it began (D-0219).
 
-    `until` is an operator pause's end when the caller knows it.
+    `until` is an operator pause's end when the caller knows it, or the
+    robots retry of a host whose robots read failed.
     """
     kind, _, name = subject.partition(":")
     if kind == "watch":
@@ -163,6 +167,8 @@ def expires_at(
     if reason in HOST_PAUSES:
         row = conn.execute("SELECT paused_until FROM hosts WHERE host=?", (name,)).fetchone()
         return _time(str(row[0])) + HOUR if row and row[0] else since + HOUR
+    if reason == ROBOTS_UNREAD:
+        return _time(until) + HOUR if until is not None else since + HOUR
     if reason == OPERATOR:
         end = until if until is not None else _operator_until(conn, name, now)
         return _time(end) if end is not None else since + OPERATOR_OPEN

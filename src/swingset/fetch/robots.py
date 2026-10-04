@@ -1,4 +1,9 @@
-"""24-hour robots cache; fetching is supplied by the same host gate."""
+"""24-hour robots cache; fetching is supplied by the same host gate.
+
+A read that failed (5xx, or 599 for no response) disallows the whole host
+until it is read again after the host's own ServerError backoff, not after a
+day (D-0242).
+"""
 
 import gzip
 import sqlite3
@@ -14,6 +19,8 @@ from protego import Protego
 
 from swingset.clock import Clock
 from swingset.fetch.archive import Archive
+
+DAY = timedelta(days=1)
 
 
 @dataclass(frozen=True)
@@ -34,13 +41,15 @@ class Robots:
         """Bounded, verified cache read without fetch, recovery, or cache mutation."""
         host = urlsplit(url).hostname or ""
         row = self.connection.execute(
-            "SELECT robots_sha256,robots_fetched_at,robots_status FROM hosts WHERE host=?", (host,)
+            "SELECT robots_sha256,robots_fetched_at,robots_status,pause_streak FROM hosts "
+            "WHERE host=?",
+            (host,),
         ).fetchone()
         if row is None or not row[0] or not row[1] or row[2] is None:
             return None, None
         try:
             fetched = datetime.fromisoformat(row[1])
-            expires = fetched + timedelta(days=1)
+            expires = retry_at(fetched, int(row[2]), int(row[3] or 0))
             if fetched > self.clock.now() or expires <= self.clock.now():
                 return None, expires
             path = self.archive.blob_path(row[0])
@@ -59,12 +68,16 @@ class Robots:
         host = parsed.hostname or ""
         conn = self.connection
         row = conn.execute(
-            "SELECT robots_sha256,robots_fetched_at,robots_status FROM hosts WHERE host=?", (host,)
+            "SELECT robots_sha256,robots_fetched_at,robots_status,pause_streak FROM hosts "
+            "WHERE host=?",
+            (host,),
         ).fetchone()
         if (
             row is None
             or not row[1]
-            or datetime.fromisoformat(row[1]) + timedelta(days=1) <= self.clock.now()
+            or row[2] is None
+            or retry_at(datetime.fromisoformat(row[1]), int(row[2]), int(row[3] or 0))
+            <= self.clock.now()
         ):
             response = fetch(f"{parsed.scheme}://{parsed.netloc}/robots.txt")
             status = response.status_code if response is not None else 599
@@ -92,6 +105,50 @@ class Robots:
                     "UPDATE hosts SET next_allowed_at=? WHERE host=?", (due.isoformat(), host)
                 )
         return result
+
+
+def failed(status: int) -> bool:
+    """A server error or no response (599): the reads retried on the backoff.
+
+    Any other status that is neither a 200 nor a 4xx (1xx, 204, 304, ...) also
+    disallows all, but is kept a day like a good read: it never raises the
+    host's streak, so a short retry would re-read it every 15 minutes.
+    """
+    return status >= 500
+
+
+def retry_at(fetched: datetime, status: int, streak: int) -> datetime:
+    """When a robots read from ``fetched`` is read again.
+
+    A read is kept a day, except a failed one (`failed`), which disallows
+    all until the host's ServerError backoff ends: 15 minutes,
+    doubling with the host's `pause_streak` up to a day (RFC 9309 2.3.1.4).
+    The gate raised the streak when it released the failed request, so the
+    retry is computed from the hosts row and nothing more is stored.
+    """
+    if not failed(status):
+        return fetched + DAY
+    return fetched + min(DAY, timedelta(seconds=900 * 2 ** min(max(streak, 1) - 1, 7)))
+
+
+def blocked(connection: sqlite3.Connection, now: datetime) -> dict[str, datetime]:
+    """Hosts whose last robots read failed, each with when it is read again.
+
+    One query; the fair scheduler leaves these hosts out until then, so a
+    failed read costs no pass time per watch.
+    """
+    held: dict[str, datetime] = {}
+    for host, fetched, status, streak in connection.execute(
+        "SELECT host,robots_fetched_at,robots_status,pause_streak FROM hosts "
+        "WHERE robots_fetched_at IS NOT NULL AND robots_status>=500"
+    ):
+        try:
+            retry = retry_at(datetime.fromisoformat(fetched), int(status), int(streak or 0))
+        except (ValueError, TypeError):
+            continue
+        if retry > now:
+            held[str(host)] = retry
+    return held
 
 
 def _policy(url: str, status: int, body: bytes) -> RobotsPolicy:

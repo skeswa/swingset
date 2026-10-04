@@ -4,7 +4,7 @@ Recorded: 2026-10-02
 Decided by: agent, 2026-10-02, under D-0172, on the phase 2 switch 2a independent check  
 Topic: Acquisition  
 Supersedes: D-0221's "return them to the defaults in the phase 2 switch"  
-Superseded by: —
+Superseded by: in part, [D-0244](0244-parse-backpressure-sits-above-the-superseded-residue.md): 8000 items
 
 ## Decision
 

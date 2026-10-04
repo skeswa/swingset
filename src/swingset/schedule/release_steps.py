@@ -1,7 +1,7 @@
 """Build and publication steps the release loop and the CLI run.
 
 They were the cycle's until it went (D-0239): `build` admits one release
-build, `correct` and `build_and_publish` build a candidate and publish it
+build (a correction as `correction`, which the build interval ignores), `correct` and `build_and_publish` build a candidate and publish it
 unless a dry run, `record_verdict` stores its gate verdict, and the two
 `build_deferred_for_*` checks say when a build waits.
 """
@@ -42,13 +42,17 @@ def build(
     *,
     correction_only: bool = False,
     report: dict[str, Any] | None = None,
+    source: Path | None = None,
 ) -> BuildResult:
+    """Admit and run one build. A correction (or a revert, ``source``) is
+    admitted as `correction`, so it does not reset the build interval (D-0250)."""
     from swingset.build.service import build_release
 
+    kind = "correction" if correction_only else "build"
     with operation(
         database,
-        action_id="build_" + uuid4().hex,
-        action_kind="build",
+        action_id=f"{kind}_" + uuid4().hex,
+        action_kind=kind,
         scope=for_publication(database.connection),
         clock=clock,
         run_id=run_id,
@@ -61,6 +65,7 @@ def build(
             remote,
             correction_only=correction_only,
             report=report,
+            source=source,
         )
 
 
@@ -182,7 +187,8 @@ def build_deferred_for_interval(conn: sqlite3.Connection, config: Config, *, now
     """Whether a build was admitted within the configured build interval.
 
     Every admitted attempt counts, failed or reused: each one selects and
-    validates the whole release closure, which takes minutes (D-0199).
+    validates the whole release closure, which takes minutes (D-0199). A
+    correction is admitted as `correction` and does not count (D-0250).
     """
     interval = config.scheduler.build_interval_seconds
     if interval is None:

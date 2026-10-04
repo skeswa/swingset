@@ -1,0 +1,182 @@
+{
+  "operation": "gc --reclaim after phase 4's storage apply and the contract 5 drain; then the cap and build interval (D-0245)",
+  "actor": "claude (session claude-rearch)",
+  "owner_approval": "2026-10-11 'yeah lets proceed'",
+  "preflight": {
+    "at_utc": "2026-10-11T02:33:08Z",
+    "page_size": 4096,
+    "page_count": 17809671,
+    "freelist": 7566210,
+    "schema": 36,
+    "file_bytes": 72948412416,
+    "quota_free_gb": 124.8,
+    "mac_free_gib": 238,
+    "next_backup_utc": "2026-10-11T04:00Z"
+  },
+  "reclaim": {
+    "command": "sudo -u swingset swingset gc --reclaim --lock-timeout 3600 (unit environment, TMPDIR=/var/tmp)",
+    "hold_utc": [
+      "2026-10-11T02:33:08Z",
+      "2026-10-11T03:05:59Z"
+    ],
+    "exit": 0,
+    "before": {
+      "bytes_in_use": 41957212160,
+      "file_bytes": 72948412416,
+      "free_list_bytes": 30991196160
+    },
+    "after": {
+      "bytes_in_use": 40736133120,
+      "file_bytes": 40736137216,
+      "free_list_bytes": 0
+    },
+    "file_bytes_freed": 32212275200,
+    "room": {
+      "needed_bytes": 116893040640,
+      "quota_free_bytes": 124800770048
+    },
+    "temp_directory": "/var/lib/swingset/tmp",
+    "after_pragma": {
+      "page_count": 9945347,
+      "freelist": 0,
+      "schema": 36
+    },
+    "quota_free_gb_after": 157.0
+  },
+  "config_switch": {
+    "decision": "D-0245",
+    "deploy_tree": "/private/tmp/swingset-c035 = c034 with max_database_bytes 50GB and build_interval_seconds 86400",
+    "hold_utc": [
+      "2026-10-11T03:06:57Z",
+      "2026-10-11T03:07:09Z"
+    ],
+    "system_after": "/nix/store/kbvp8ccj1wpipcxmv5x0dg8sa6i1a7pa-nixos-system-swingset-lxc-25.11.20260630.b6018f8"
+  },
+  "first_daily_build": {
+    "run": "run_20261011T032023Z",
+    "window_utc": [
+      "2026-10-11T03:20:23Z",
+      "2026-10-11T03:29:15Z"
+    ],
+    "failed": false,
+    "candidate": "cand_aa37094ea6974c95",
+    "seconds": 531.9,
+    "peak_rss_bytes": 1692188672,
+    "partitions_built": 1881,
+    "withheld": {
+      "source_support_unavailable": 1133
+    },
+    "assembly_seconds": 332.2,
+    "manifest_digest": "72cde264e9f26e6a17c7d8300025dddc904497462fd85e68e7312162bef0500a",
+    "verdict": {
+      "state": "refused",
+      "reasons": [
+        "decrease:events 2105->1802"
+      ]
+    },
+    "events_vs_2026-10-05": {
+      "gone": [
+        "2025-01-swingcouver",
+        "2026-09-calgary-town-open",
+        "2026-09-mooseland-swing",
+        "2026-09-wcsparty"
+      ],
+      "new": [
+        "2026-10-river-swing-nights"
+      ],
+      "gone_reason": "source_support_unavailable, legacy, no live observations"
+    },
+    "next": "investigation of the 4 events before any change to the approval floor"
+  },
+  "provenance_fix": {
+    "investigation": "journal/investigations/2026/four-events-lost-release-support-2026-10-11.md",
+    "patch": "scratchpad provfix/provfix.patch (sha256 a1c3451bf92132c3...), build/partitions.py and its test only; scope change: recipe/code/build only",
+    "independent_check": "approve with conditions 2026-10-11 (full suite + fmt first; maintenance item 24); both met: full suite 3,513 passed in 1,436 s, fmt clean",
+    "deploy_tree": "/private/tmp/swingset-c036 = c035 + provfix.patch",
+    "hold_utc": [
+      "2026-10-11T04:29:16Z",
+      "2026-10-11T04:38:27Z"
+    ],
+    "switch_utc": [
+      "2026-10-11T04:29:16Z",
+      "2026-10-11T04:29:26Z"
+    ],
+    "system_after": "/nix/store/wnhscfmjcd0n3xjl82j0i9wc06z5380j-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+    "source_after": "/nix/store/789qk0ir9jv11h38zha38xkball08j5v-source",
+    "confirming_build": {
+      "command": "sudo -u swingset swingset build --overrides <Mac checkout> under the hold",
+      "window_utc": [
+        "2026-10-11T04:29:27Z",
+        "2026-10-11T04:38:27Z"
+      ],
+      "seconds": 540.4,
+      "max_rss_bytes": 1643069440,
+      "candidate": "cand_abc27e8d35b448bf",
+      "manifest_digest": "4cfddb5441dad8d84ebeb84593c30b56d60c46b328b5612eb00ad235eb9869b8",
+      "partitions": {
+        "built": 1885,
+        "withheld": 1129
+      },
+      "verdict": {
+        "state": "pass",
+        "overrides_used": [
+          "events 2105 floor 1805 (owner, 2026-10-05)"
+        ],
+        "measures": {
+          "events": [
+            2105,
+            1806
+          ],
+          "events_with_placements": [
+            107,
+            227
+          ],
+          "contests": [
+            2005,
+            3161
+          ],
+          "rounds": [
+            2934,
+            5322
+          ],
+          "entries": [
+            58558,
+            121049
+          ],
+          "judges": [
+            2818,
+            6536
+          ],
+          "placements": [
+            14115,
+            24905
+          ],
+          "final_marks": [
+            83355,
+            148545
+          ],
+          "callbacks": [
+            59064,
+            132878
+          ],
+          "callback_marks": [
+            288502,
+            642514
+          ],
+          "dancers": [
+            27784,
+            27935
+          ],
+          "registry_placements": [
+            197990,
+            198937
+          ],
+          "confirmed_links": [
+            0,
+            0
+          ]
+        }
+      }
+    }
+  }
+}

@@ -21,7 +21,7 @@ import json
 import sqlite3
 from collections import Counter
 from collections.abc import Callable, Iterator
-from contextlib import ExitStack, contextmanager
+from contextlib import ExitStack, contextmanager, suppress
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -131,6 +131,25 @@ def note_skip(tick: Tick, reason: str, *, skipped: bool) -> None:
                 guards.loop_ran(conn, tick.loop, reason)
     except (sqlite3.Error, write_deadline.WriteDeadlineExceeded) as exc:
         tick.summary["guard_error"] = f"{type(exc).__name__}: {exc}"[:200]
+
+
+def note_stop(tick: Tick) -> None:
+    """On SIGTERM, write `queue.stop_marker` when someone asked for the stop.
+
+    systemd sends the same SIGTERM for a stop (a deploy, an operator's
+    `systemctl stop`) and for a tick that outlived its `TimeoutStartSec`.
+    Every loop's start timeout is longer than its budget, so a SIGTERM past
+    the tick's deadline with no `operator-hold` is the timeout: the unit in
+    hand overran, and its death after the stop timeout counts. A stop within
+    the budget, or under a hold, writes the marker and counts nothing.
+    """
+    state_dir = tick.database.state_dir
+    if tick.clock.now() >= tick.deadline and not (state_dir / "operator-hold").exists():
+        return
+    marker = queue.stop_marker(state_dir, tick.run_id)
+    with suppress(OSError):
+        marker.parent.mkdir(parents=True, exist_ok=True)
+        marker.write_bytes(b"")
 
 
 def peak_rss_bytes() -> int | None:

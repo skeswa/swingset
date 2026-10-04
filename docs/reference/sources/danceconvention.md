@@ -74,7 +74,7 @@ show the old ones.
 
 ```toml
 [hosts."danceconvention.net"]
-min_gap_seconds = 10
+min_gap_seconds = 2
 daily_request_budget = 200
 daily_byte_budget = "300MB"
 index_interval_weekend = "6h"
@@ -84,8 +84,9 @@ cooling_interval = "12h"           # doubles per unchanged check, max 48h
 ```
 
 Every poll is a full server render of a 2.9 MB page. That is why the
-gap, the intervals, and the budgets are all stricter than for the other
-platforms, and why a byte budget exists at all.
+intervals and the budgets are stricter than for the other platforms, and
+why a byte budget exists at all. The gap is the 2 s floor every host shares
+([D-0247](../../../journal/decisions/0247-space-requests-two-seconds-apart-on-every-host.md)).
 
 ## 7. Fetch procedure
 

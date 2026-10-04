@@ -123,7 +123,7 @@ def _corrections(data: BuildInput) -> str:
         "",
         "Default entry and judge IDs have been rechecked against the accepted decision journal, source evidence and suppression policy. `identity_links.acceptance_state` describes publication acceptance; probable scores remain in `link_candidates`. Named judges without WSDC numbers retain null IDs.",
         "",
-        "New default joins remain withheld pending the reviewed accuracy gate. Published baseline interpretations may retain disclosed legacy support; this does not grant admission or removal authority. The manifest pins the journal and admission policy digests. Suppressed personal records are omitted from correction history.",
+        "A new default entry ID passes the reviewed accuracy rules (D-0248): a registry placement join, or a printed WSDC number whose registry name agrees with the sheet and whose role nothing contradicts. New manual and judge IDs remain withheld. Published baseline interpretations may retain disclosed legacy support; this does not grant admission or removal authority. The manifest pins the journal and admission policy digests. Suppressed personal records are omitted from correction history.",
     ]
     if policy.get("mode") == "correction_only":
         pending = policy.get("pending_work", {})
@@ -391,8 +391,7 @@ requests at https://github.com/skeswa/swingset/issues.
 ## Collection and personal data
 
 Public calendars, registries, and score sheets are fetched serially per host, respecting
-robots, Retry-After, and a five-second request floor. An explicitly seeded registry
-sweep uses its documented two-second exception. Results include public competitor
+robots, Retry-After, and a two-second request floor. Results include public competitor
 and judge names. Suppressed people keep structural rows with identity fields removed.
 Raw bodies stay private. Source terms continue to apply.
 

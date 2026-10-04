@@ -4,7 +4,7 @@ Recorded: 2026-10-03
 Decided by: owner, 2026-10-02 (D-0228's fallback, "I like the rec"); applied by agent, 2026-10-03  
 Topic: Retention  
 Supersedes: the 72 GB cap of [D-0220](0220-raise-the-cap-to-72-gb-for-the-phase-1-switch-only.md), in production  
-Superseded by: —
+Superseded by: [D-0245](0245-cap-the-database-at-50-gb-and-build-daily-after-the-reclaim.md)
 
 ## Decision
 

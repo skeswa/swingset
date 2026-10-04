@@ -15,6 +15,7 @@ for the latest retained operating evidence.
 | Stop re-deriving output that has not changed                  | [Derivation invalidation](derivation-invalidation.md)             | Measured waste, then the ordered steps          |
 | Fill historical gaps from event sites                         | [Historical source collection](historical-sources.md)             | Source restrictions and review requirements     |
 | Move to PostgreSQL and Dokploy                                | [Migration](postgres-migration/README.md)                         | Approach, then the relevant implementation step |
+| Admit score sheets with one contested row                     | [Row-level result holds](row-level-result-holds.md)               | Why, then the schedule                          |
 
 The [project milestones](milestones.md) define dataset outcomes across these
 plans. Earlier rollout documents live in the [archive](../../journal/archive/README.md).
@@ -89,10 +90,17 @@ weekly session.
 7. Decode zstd replays from the Wayback Machine. Two 2026 captures of
    `worldsdc.com/events/` were archived with `content-encoding: zstd`; the
    replay path stored the still-encoded bytes as the body and the parser saw
-   no rows. The client only decodes gzip
-   ([limits](../../src/swingset/fetch/limits.py)). Add a zstd decoder with the
-   same byte ceilings, re-parse the two captures, then drop their four
-   dismissal rows from `finding_reviews.csv` (2026-09-22).
+   no rows. Fixed and deployed 2026-10-12 05:52 UTC (tree c040): the client decodes
+   zstd with pyarrow inside the same byte limits and refuses any other
+   encoding httpx leaves undecoded
+   ([limits](../../src/swingset/fetch/limits.py)), and the calendar extractor
+   decodes the two stored bodies (169 and 174 rows). The deploy re-parses the
+   wsdc_calendar, swingdancecouncil and wsdc_newsletter kinds (about 210
+   snapshots), since the council and newsletter adapters import the calendar
+   adapter. Both captures parsed at 07:28 UTC with 174 and 169 observations
+   ([receipt](../../journal/evidence/runtime/parse-failures-2026-10-12/receipt.json)).
+   Left: drop the two captures' four dismissal rows from
+   `finding_reviews.csv` (2026-09-22) in a batched override change.
 8. Human identity review website (H17) and the JesAnn history page as a site:
    deferred, see [D-0055](../../journal/decisions/0055-defer-human-adjudication-to-a-review-website.md).
 9. Bring the core test run back under three minutes. On 2026-09-26 it took
@@ -179,3 +187,107 @@ weekly session.
     site-review gap count. The list is in the
     [architecture plan](architecture.md#9-migration-plan), phase 5
     ("Carried forward"). Take them after phase 5's deploy, in that order.
+17. Stop the 11 known parse failures from failing derive ticks (investigated
+    2026-10-12). They never quarantine: `parse_failed` and `unsupported_page_kind`
+    wait 24 h to 7 days, but a deploy that changes a unit's input fingerprint
+    makes the retry count as fresh, which fails small ticks after deploys (12 of
+    13 failed derive ticks since 10-04). Groups: scoring.dance event 179 (5,
+    source-side, empty competition list), 2016 Wayback events-map captures (4,
+    undated markers plus a commented example marker the extractor counts), the
+    2026 `/events/` captures stored zstd-encoded (2, item 7; 343 recoverable
+    rows), and three registry-dump snapshots still queued for parse. Deployed
+    2026-10-12 05:52 UTC: zstd decoding (item 7), and a waiting
+    failure with the same class and message is a repeat even under a new
+    fingerprint, with the error kept in the attempt evidence
+    ([D-0249](../../journal/decisions/0249-a-waiting-failure-with-the-same-message-is-a-repeat.md)).
+    Each old unit counts as fresh once more, since its attempts kept no message
+    (one failed tick at 05:57). Event 179's watch was retired by a one-row
+    write (owner: keep it blocked, stop re-fetching). A waiting row wakes only
+    on its clock, not when its inputs change, so the two zstd units needed an
+    operator requeue. Left: a `swingset watch retire` command if this recurs,
+    an optional extractor for the 2016 events-map captures, and stopping
+    registry-dump parse work.
+18. Deduplicate the mm2025 eepro index, which lists every file under two letter
+    cases (`Strictlies.html` and `strictlies.html`); six pairs are both accepted
+    with identical content, so contests may count twice. Then admit the two
+    parked eepro strictly rounds (one has an empty trailing cell). From the
+    2026-10-06 admission adjudication; the owner kept 23 rounds whose
+    disqualification note contradicts the shown result blocked.
+19. Admission adjudication follow-ups: the projector drops final marks such as
+    `4|SVW` and `8 SV2`; published callback sums leave out chief-judge
+    adjustments; Pro-Am Follower rounds label both partners followers; check
+    other adapters for the dict-to-text key-order bug found in WDR rounds.
+20. Narrow the code scopes of admission contracts. Any edit to
+    `admission/contracts.py` or `round_contract.py` changes 41 of 45 recipe scopes
+    and re-runs every parse, project and link unit: contract 5 queued 37,669
+    parse (5,908 with changed output), 33,394 project and 2,934 link units for
+    two page kinds. Adapters stop importing admission (apply the declaration in
+    the registry or `schedule.parse`), per-kind rules move to modules only that
+    kind's parse scope names, and the helpers project and link import move to
+    leaf modules. A `recipe_scope` test pins that one kind's rule edit changes
+    only that kind's parse scope. The re-queue also tripped backpressure and
+    held fetching for an hour (D-0243). Do this before row-level result holds.
+21. Re-admit the 309 scoring.dance event pages whose stored observations carry
+    older labels than their accepted generation, so releases can use them; the
+    contract 5 re-parse repeats their generation and does not rewrite them
+    (D-0241).
+22. Make round contract 5's `source_remark_outcome_conflict` guard decide
+    "placed or called back" the way the projector does: it reads only
+    `row-data-state` and a column headed `placement`, while the projector
+    places every final row and also reads `place`, `result`, `final` and
+    promote/alt columns (`project/contests.py`). A future page layout could
+    otherwise admit a disqualification remark as eliminated. No stored page
+    does today (independent check of 2026-10-07).
+23. A robots.txt that answers 200 but disallows the whole site still takes
+    the per-watch skip, so its due watches could starve other hosts as the
+    failed reads did on 2026-10-08 and 09 (D-0242 covers failed reads only).
+    Push a disallowed watch's next check forward, or skip a fully disallowed
+    host once per selection.
+24. Choose a kept generation's read set by input fingerprint, not by recency.
+    `build/partitions._read_set`, `derivation_dependencies._manifest_reads` and
+    retention's live rule take the newest equivalence; if a unit's inputs go
+    F0 -> F1 -> F0, the generation is reused without a new equivalence and the
+    newest names F1's set. Prefer the row whose fingerprint equals
+    `derivation_scopes.desired_fingerprint`, falling back to the newest, in all
+    three together. Production had no such case on 2026-10-11.
+25. Fix the scoring.dance parser's role flip on follower-first finals. In 34
+    contests across 27 events (for example 5280 Westival 2024 Sophisticated
+    J&J) it reads a final that lists the follower first as leaders, so finalists
+    get the wrong role and a second entry. D-0248 withholds their printed IDs
+    as `role_contradicted`; the fix returns them. Found by the H17 review of
+    2026-10-11.
+26. Record why a fetch failed. A request that fails is classified `ServerError` and
+    retried, but neither the run summary nor the journal keeps the exception
+    text, so on 2026-10-12 a home-network outage looked like a phase 5 defect
+    until hours of checks ruled it out. Log the exception class and message
+    per failed attempt, bounded, and count them by class in the acquire summary.
+27. Stop a dancer re-run from holding every event for hours. `inventory` waits
+    for every dancer to be current (`derivations._ready`), and mapping,
+    resolution, event, source_event, year and new links all wait on inventory.
+    After the H17 deploy on 2026-10-12, about 20,000 dancers re-ran at about 400
+    per tick, so no event or year moved from 04:07 UTC for over four hours and
+    `[stale-progress]` fired at 06:05. Narrow inventory's wait to the dancers it
+    reads, or let it use the dancers' previous generations while they re-run.
+28. Land the gate's per-event result check (D-0251). Refuse a candidate in
+    which an event with placements or entries in the baseline has none
+    (`lost_result_events`), approved by name with a `result_event:<event_id>`
+    row in `release_decreases.csv`. Not landed:
+    `publish/gate.py`, like `build/builder.py` and `publish/service.py`, is in
+    all nine project scopes and the link scope, so an edit re-runs every
+    project and link unit. Ship it with the next change that moves those
+    scopes (item 20 or a calendar contract), or move the gate out of them
+    first.
+29. Fix the regressions the owner accepted with release `3fe7bae` (D-0252):
+    four September 2026 events (Bavarian Open, FinnFest, Retaliation,
+    Swingtime Denver) lost city, country and region when a scoring.dance or
+    EEPro header replaced the calendar row; nine events show a results URL as
+    their website; four result events duplicate WSDC events
+    (`2026-09-bavarian-open`, `2026-09-swingtime`,
+    `2026-10-river-swing-nights-wsdc-trial-event`, `2026-09-global-grand-prix-wcs`)
+    while their registry points sit on the other ID. Keep the calendar's place
+    and website when another header wins, and merge the duplicates by alias.
+30. Fix the watchdog's `[state-size]` measure. On 2026-10-13 it reported 61.9 GB
+    against the 50 GB cap while the database was 41 GB: it counts `candidates/`
+    (9.9 GB, about 100 kept candidates) and `operations/` (3.1 GB). Measure
+    the database against the cap and give candidates a retention rule that
+    keeps every published candidate and the `--revert-to` targets.

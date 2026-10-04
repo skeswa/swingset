@@ -391,7 +391,7 @@ def test_the_script_reads_the_shipped_config_as_the_package_does() -> None:
         if (budget := config.host(host).daily_byte_budget) is not None
     }
     assert limits.bytes == {"danceconvention.net": 300_000_000}
-    assert limits.size_cap == config.retention.max_database_bytes == 76_000_000_000
+    assert limits.size_cap == config.retention.max_database_bytes == 50_000_000_000
     assert limits.collect_every_days == config.storage.collect_every_days
 
 
@@ -2463,7 +2463,7 @@ def test_partial_generations_nothing_collects_alert_above_three(
     assert _loops(tmp_path) == []
 
 
-@pytest.mark.parametrize("rows, alerts", [(200_000, []), (200_001, ["admissions-growth"])])
+@pytest.mark.parametrize("rows, alerts", [(600_000, []), (600_001, ["admissions-growth"])])
 def test_an_admission_ledger_past_its_trigger_is_named(
     tmp_path: Path, rows: int, alerts: list[str]
 ) -> None:
@@ -2480,7 +2480,7 @@ def test_an_admission_ledger_past_its_trigger_is_named(
     lines = _loops(tmp_path)
     assert _keys(lines) == alerts
     if alerts:
-        assert lines[0].startswith("[admissions-growth] the admission ledger holds 200001 rows")
+        assert lines[0].startswith("[admissions-growth] the admission ledger holds 600001 rows")
     (tmp_path / "operator-hold").touch()
     assert _loops(tmp_path) == []
 

@@ -4,7 +4,7 @@ Recorded: 2026-09-27
 Decided by: agent, 2026-09-27, under D-0175; source: phase 2 of the [architecture plan](../../docs/plans/architecture.md) (findings F9, F14, F15)  
 Topic: Scheduling  
 Supersedes: in part, [D-0211](0211-a-derivation-that-raises-retries-on-a-clock.md) (a unit no longer retries forever) and [D-0214](0214-a-derivation-backlog-does-not-pause-acquisition.md) (backpressure counts only runnable parse work)  
-Superseded by: —
+Superseded by: in part, [D-0249](0249-a-waiting-failure-with-the-same-message-is-a-repeat.md) (a waiting failure with the same message is a repeat)
 
 ## Decision
 

@@ -28,6 +28,11 @@ GET https://worldsdc.com/robots.txt
 `/print-event-list/` is 404 and `?year=` breaks the shortcode
 (2026-09-04). The map view exists but is not needed.
 
+Two Wayback captures (2026-05-21 and 2026-08-13) were stored still
+zstd-encoded, as Wayback replayed them, before the client decoded zstd.
+Stored bodies are never rewritten, so the extractor decodes a body that
+starts with the zstd magic bytes (fixture `calendar-20260813-zstd.body`).
+
 ## 4. Discovery
 
 The calendar is the root of discovery: each row becomes or updates an
@@ -50,7 +55,7 @@ changes.
 
 ```toml
 [hosts."worldsdc.com"]
-min_gap_seconds = 5
+min_gap_seconds = 2
 daily_request_budget = 10
 index_interval = "24h"
 ```

@@ -410,6 +410,60 @@ def test_real_wdr_numeric_and_solo_contests_remain_raw_and_unsupported(tmp_path:
         assert len(projected.findings) == 7
 
 
+def _project_scoringdance_fixture(tmp_path: Path, name: str) -> object:
+    from swingset.sources.scoringdance.adapter import RoundPage as ScoringRoundPage
+
+    page = ScoringRoundPage()
+    body = Path(f"src/swingset/admission/fixtures/{name}.body").read_bytes()
+    parsed = page.parse(
+        page.extract(body),
+        ParseContext(
+            "snap",
+            "watch",
+            "https://scoring.dance/enUS/events/1/results/1.html",
+            "scoringdance",
+            page.kind,
+            "scoringdance:example",
+            "2026-10-06T00:00:00Z",
+        ),
+    )
+    with open_database(tmp_path, lock=False) as db:
+        seed(db.connection)
+        db.connection.execute("DELETE FROM source_event_map")
+        db.connection.execute(
+            "INSERT INTO source_event_map(source,source_ref,event_id,match_method,match_confidence) VALUES ('scoringdance','scoringdance:example',?,'override',1)",
+            (EVENT,),
+        )
+        for i, observation in enumerate(parsed.observations):
+            add(
+                db.connection,
+                f"w{i}",
+                f"s{i}",
+                observation.payload,
+                "2026-10-06T00:00:00Z",
+                source="scoringdance",
+                source_ref="scoringdance:example",
+                parser="scoringdance.round",
+            )
+        return project_event(db.connection, EVENT, "2026-10-06T00:00:00Z", "run_a")
+
+
+def test_scoringdance_partner_column_projects_both_partners(tmp_path: Path) -> None:
+    projected = _project_scoringdance_fixture(tmp_path, "scoringdance-partner-quarter")
+    entries = {(row.role, row.name_raw) for row in records(projected, Entry)}
+    assert ("leader", "Adrian Dodman") in entries
+    assert ("follower", "Sarah Hare") in entries
+    leader = next(row for row in records(projected, Entry) if row.name_raw == "Adrian Dodman")
+    assert leader.partner_name_raw == "Sarah Hare"
+
+
+def test_scoringdance_anonymized_judge_codes_create_no_judges(tmp_path: Path) -> None:
+    projected = _project_scoringdance_fixture(tmp_path, "scoringdance-anon-judges")
+    assert not records(projected, Judge)
+    placements = records(projected, Placement)
+    assert sorted(row.place for row in placements) == list(range(1, 12))
+
+
 def test_unsupported_scoring_does_not_invent_anonymous_judge_records(tmp_path: Path) -> None:
     table = ResultTable(
         "Finals",

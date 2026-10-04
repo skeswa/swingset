@@ -35,9 +35,13 @@ def byte_size(value: str | int) -> int:
     return int(match[1]) * {None: 1, "KB": 1000, "MB": 1000000, "GB": 1000000000}[match[2]]
 
 
+# Owner decision D-0247: every host waits at least two seconds between requests.
+REQUEST_FLOOR_SECONDS = 2
+
+
 @dataclass(frozen=True)
 class HostConfig:
-    min_gap_seconds: float = 5
+    min_gap_seconds: float = REQUEST_FLOOR_SECONDS
     daily_request_budget: int = 200
     daily_byte_budget: int | None = None
     index_interval: float | None = None
@@ -187,8 +191,7 @@ def parse_hosts(body: bytes) -> Mapping[str, HostConfig]:
                     int(match[1]) * {"KB": 1000, "MB": 1000000, "GB": 1000000000}[match[2]]
                 )
         host = HostConfig(**parsed)
-        floor = 2 if name == "points.worldsdc.com" else 5
-        if host.min_gap_seconds < floor or host.daily_request_budget < 1:
+        if host.min_gap_seconds < REQUEST_FLOOR_SECONDS or host.daily_request_budget < 1:
             raise ValueError(f"unsafe host limits for {name}")
         if host.daily_byte_budget is not None and host.daily_byte_budget < 1:
             raise ValueError(f"invalid byte budget for {name}")

@@ -69,6 +69,12 @@ def parser() -> argparse.ArgumentParser:
                 action="store_true",
                 help="Withdraw unsafe identities from the published baseline without waiting for unrelated parsing",
             )
+            command.add_argument(
+                "--revert-to",
+                metavar="CANDIDATE_ID",
+                help="Roll back: rebuild that former published candidate's tables as a "
+                "correction on top of the current baseline (implies --correction-only)",
+            )
         if name in {"doctor", "summary"}:
             command.add_argument("--json", action="store_true")
             command.add_argument("--watch", action="store_true")
@@ -822,7 +828,7 @@ def _write_failed_run(database: Database, run_id: str, command: str, error: str)
 def _loop(args: argparse.Namespace, stopped: list[bool]) -> int:
     """One loop tick; exit 1 when it failed. A busy lock escapes as a skip."""
     from swingset.loops import acquire, derive, maintain, plan, release
-    from swingset.loops.runtime import Tick, tick
+    from swingset.loops.runtime import Tick, note_stop, tick
 
     body = {
         "acquire": acquire.run,
@@ -846,17 +852,13 @@ def _loop(args: argparse.Namespace, stopped: list[bool]) -> int:
         hub=None if dry_run else hub(),
         dry_run=dry_run,
     ) as current:
-        from swingset.state.queue import stop_marker
-
-        marker = stop_marker(args.state, current.run_id)
 
         def requested(_signum: int, _frame: object) -> None:
-            # A stop request is noted on disk, so a kill after the stop
-            # timeout is not counted as the running unit's death.
+            # A stop someone asked for is noted on disk, so a kill after the
+            # stop timeout is not counted as the running unit's death; a
+            # start timeout's is (`note_stop`).
             stopped[0] = True
-            with contextlib.suppress(OSError):
-                marker.parent.mkdir(parents=True, exist_ok=True)
-                marker.write_bytes(b"")
+            note_stop(current)
 
         previous = signal.signal(signal.SIGTERM, requested)
         try:
@@ -1145,14 +1147,23 @@ def _mutate(
             reconcile(args.state, remote, dry_run=False)
         from swingset.state.controls import ControlPaused
 
+        # A revert is a correction built from a former published candidate.
+        source = args.state / "candidates" / args.revert_to if args.revert_to else None
+        correction_only = args.correction_only or source is not None
         try:
             candidate = build(
-                database, bundle, clock, run_id, remote=remote, correction_only=args.correction_only
+                database,
+                bundle,
+                clock,
+                run_id,
+                remote=remote,
+                correction_only=correction_only,
+                source=source,
             )
         except ControlPaused as exc:
             receipt = {
                 "state": "held",
-                "action": "correction_build" if args.correction_only else "build",
+                "action": "correction_build" if correction_only else "build",
                 "reason": "operator_pause",
                 "pauses": exc.pauses,
             }

@@ -80,21 +80,25 @@ def test_two_live_gates_share_inflight_and_original_gap_with_clock_jump(tmp_path
 
 
 @pytest.mark.parametrize(
-    "host,sweep,gap",
+    "host,sweep,crawl_delay,gap",
     [
-        ("example.test", False, 5),
-        ("points.worldsdc.com", True, 2),
-        ("points.worldsdc.com", False, 5),
+        ("example.test", False, 0, 2),
+        ("scoring.dance", False, 0, 2),
+        ("points.worldsdc.com", True, 0, 2),
+        ("points.worldsdc.com", False, 0, 2),
+        ("scoring.dance", False, 7, 7),
     ],
 )
-def test_release_uses_original_floor_and_sweep_exception(tmp_path, host, sweep, gap):
+def test_release_keeps_the_two_second_floor_unless_crawl_delay_is_longer(
+    tmp_path, host, sweep, crawl_delay, gap
+):
     clock = FakeClock()
     with open_database(tmp_path) as db:
         gate = Gate(db.connection, policy(host, gap=2), clock)
-        assert isinstance(gate.acquire(host, sweep=sweep), Grant)
+        assert isinstance(gate.acquire(host, crawl_delay=crawl_delay, sweep=sweep), Grant)
         clock.sleep(30)
         gate.release(host, Classification(Outcome.INVALID))
-        assert gate.acquire(host, sweep=sweep) == Wait(gap)
+        assert gate.acquire(host, crawl_delay=crawl_delay, sweep=sweep) == Wait(gap)
 
 
 def test_crash_after_late_dispatch_requires_full_original_gap_without_refund(tmp_path):

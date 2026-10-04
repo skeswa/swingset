@@ -97,5 +97,35 @@
     "watchdog": "2026-10-04T06:05:25Z [loop-idle] derive: no progress since 03:54 UTC",
     "explained": "no runnable work: the 6 snapshots fetched since the switch all parsed ok; 937 pending parse rows have no work_queue row (superseded, maintenance item 13); 87 ready rows are admission_needs_review (parked); project/history waits on the paced inventory (history_wait); new snapshots resume when daily host budgets reset at 00:00 UTC",
     "note": "[loop-idle] and [stale-progress] repeat while this holds; maintenance item 13 should also make the watchdog ignore parked rows"
+  },
+  "post_check": {
+    "window_utc": [
+      "2026-10-04T02:45:03Z",
+      "2026-10-05T14:01:19Z"
+    ],
+    "mac_sleep": "lid closed on battery 2026-10-04T15:35:56Z to 2026-10-05T13:59:50Z (pmset); production frozen 22.4 h, so about 12.8 h of running",
+    "loops_at_2026-10-04T14:13Z": {
+      "acquire": "137/137 ok, max 244 s, rss 0.19 GB",
+      "derive": "138/138 ok, max 405 s, rss 0.92 GB",
+      "plan": "23/23 ok, max 156 s, rss 0.91 GB",
+      "release": "11/11 ok, max 3 s",
+      "maintain": "1/1 ok, 20 s"
+    },
+    "failed_ticks": 0,
+    "pauses": 0,
+    "quarantined": 0,
+    "derive_max_seconds_vs_30min_start_timeout": 405,
+    "after_wake_14:01Z": {
+      "requests": {
+        "eepro.com": 6,
+        "points.worldsdc.com": 7,
+        "scoring.dance": 8
+      },
+      "snapshots": 1,
+      "failed": 0
+    },
+    "watchdog_lines": "[stale-progress] and [loop-idle] derive explained (history_wait, derive_idle); [host-failing] web.archive.org throttled; [state-size], [size-cap-near], [backup-stale], [backup-upload-paused] known",
+    "database_bytes": 72865660928,
+    "verdict": "passed on about 12.8 h of running, which covered every timer (maintain 03:30, backup 04:00 refused by the room check, summary 08:00, hourly release); owner 2026-10-05: 'Deploy now, Mac stays awake (Recommended)'"
   }
 }

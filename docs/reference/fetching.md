@@ -36,29 +36,47 @@ host in its section 6, and only there; no other document repeats
 settings. `config/hosts.toml` holds exactly the defaults below plus the
 playbook overrides, and `swingset doctor` prints the effective table so
 review never depends on which document someone read. Overrides may
-tighten a value or, for a host that is built for lookups (the
-registry), loosen the gap with the reason recorded; the 5 s gap is the
-floor everywhere else.
+tighten a value. No override may set a gap below the 2 s floor
+([D-0247](../../journal/decisions/0247-space-requests-two-seconds-apart-on-every-host.md)).
 
-| Rule                                   | Value                                                                                                                                                                                                                                                                                          |
-| -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| In-flight requests per host            | 1                                                                                                                                                                                                                                                                                              |
-| Minimum gap between requests to a host | 5 s (floor). 2 s for the registry sweep only, because responses are tiny and the site is built for this.                                                                                                                                                                                       |
-| `Crawl-delay` in robots.txt            | Honored if larger than our gap.                                                                                                                                                                                                                                                                |
-| Hosts fetched in parallel              | at most 4                                                                                                                                                                                                                                                                                      |
-| Daily request budget per host          | 200 for any host without a playbook; playbooks set their own                                                                                                                                                                                                                                   |
-| Daily byte budget per host             | none by default; a playbook may add one                                                                                                                                                                                                                                                        |
-| Robots.txt                             | Fetched at most every 24 h. Parsed with Protego. A `User-agent: swingset` group wins over `*`, so any operator can stop or slow us without contacting us. 4xx (including 403, as on the WDR bucket) means unrestricted per RFC 9309. 5xx or unreachable means "disallow all" until next check. |
-| Request timeout                        | 30 s connect + read                                                                                                                                                                                                                                                                            |
-| Retries                                | 3, full-jitter exponential backoff starting at 10 s                                                                                                                                                                                                                                            |
-| 429 or 503 with `Retry-After`          | Honor it exactly, minimum 60 s                                                                                                                                                                                                                                                                 |
-| 429 or 503 without `Retry-After`       | Pause host for 15 min, doubling per repeat up to 24 h                                                                                                                                                                                                                                          |
-| 403 or Cloudflare challenge            | Pause host 24 h. Log loudly. Never retry with different headers.                                                                                                                                                                                                                               |
-| 404 on a watched URL                   | Mark watch `gone` after 3 consecutive 404s over 3 days; the registry's exact verified miss is lookup evidence instead (see its playbook)                                                                                                                                                       |
-| Assets                                 | Never fetch images, CSS, JS, fonts                                                                                                                                                                                                                                                             |
-| Compression                            | Send `Accept-Encoding: gzip`, always and only. Never brotli: Apache appends `-gzip` to ETags, so a changing encoding looks like a changed file, and not every client we run decodes brotli.                                                                                                    |
-| Cookies                                | Not stored, not sent                                                                                                                                                                                                                                                                           |
-| Per-source kill switch                 | `enabled = false` in config stops all fetches for that source                                                                                                                                                                                                                                  |
+| Rule                                   | Value                                                                                                                                                                                                                                                                                        |
+| -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| In-flight requests per host            | 1                                                                                                                                                                                                                                                                                            |
+| Minimum gap between requests to a host | 2 s (floor), on every host. The Internet Archive keeps its own 10 s.                                                                                                                                                                                                                         |
+| `Crawl-delay` in robots.txt            | Honored if larger than our gap: the gap is the largest of the host's gap, `Crawl-delay` and 2 s.                                                                                                                                                                                             |
+| Hosts fetched in parallel              | at most 4                                                                                                                                                                                                                                                                                    |
+| Daily request budget per host          | 200 for any host without a playbook; playbooks set their own                                                                                                                                                                                                                                 |
+| Daily byte budget per host             | none by default; a playbook may add one                                                                                                                                                                                                                                                      |
+| Robots.txt                             | A good read is kept 24 h. Parsed with Protego. A `User-agent: swingset` group wins over `*`, so any operator can stop or slow us without contacting us. 4xx (including 403, as on the WDR bucket) means unrestricted per RFC 9309. 5xx or unreachable: "disallow all" until a retry (below). |
+| Request timeout                        | 30 s connect + read                                                                                                                                                                                                                                                                          |
+| Retries                                | 3, full-jitter exponential backoff starting at 10 s                                                                                                                                                                                                                                          |
+| 429 or 503 with `Retry-After`          | Honor it exactly, minimum 60 s                                                                                                                                                                                                                                                               |
+| 429 or 503 without `Retry-After`       | Pause host for 15 min, doubling per repeat up to 24 h                                                                                                                                                                                                                                        |
+| 403 or Cloudflare challenge            | Pause host 24 h. Log loudly. Never retry with different headers.                                                                                                                                                                                                                             |
+| 404 on a watched URL                   | Mark watch `gone` after 3 consecutive 404s over 3 days; the registry's exact verified miss is lookup evidence instead (see its playbook)                                                                                                                                                     |
+| Assets                                 | Never fetch images, CSS, JS, fonts                                                                                                                                                                                                                                                           |
+| Compression                            | Send `Accept-Encoding: gzip`, always and only. Never brotli: Apache appends `-gzip` to ETags, so a changing encoding looks like a changed file, and not every client we run decodes brotli.                                                                                                  |
+| Cookies                                | Not stored, not sent                                                                                                                                                                                                                                                                         |
+| Per-source kill switch                 | `enabled = false` in config stops all fetches for that source                                                                                                                                                                                                                                |
+
+A failed robots read (status 500 or above, including 599 for no response)
+is read again when the host's ServerError backoff ends: 15 minutes after the
+read, doubling with `hosts.pause_streak` to 24 h. Any other status that is
+neither a 200 nor a 4xx also disallows all and is kept 24 h. A redirect
+chain that ends without the file is not stored; the request is deferred.
+Until the retry the fair scheduler leaves the host's watches out, and a pass
+that left out a due watch of that host writes one `robots unavailable` host
+guard. A long outage never turns into allow-all; the host stays closed
+([D-0242](../../journal/decisions/0242-a-failed-robots-read-is-retried-on-the-host-backoff.md)).
+
+The Wayback Machine replays a capture in its original encoding, whatever the
+request accepts, so a body can arrive zstd-encoded. httpx decodes gzip and
+deflate, but zstd only with the `zstandard` package, which is not installed.
+The client decodes zstd with pyarrow inside the same byte limits and refuses
+any other encoding httpx left undecoded
+([limits](../../src/swingset/fetch/limits.py)). A refused response stores
+nothing; it raises, and the acquire loop holds the watch on its
+request-failure clock. Compressed bytes are never stored as a page.
 
 The local schema-28 gate starts its next spacing interval after the preceding
 response or failure completes, using the effective gap captured with that
@@ -72,7 +90,8 @@ Legacy paid hosts have unknown original timing. Before operating the new gate,
 the coordinator must record a reviewed stopped-worker baseline under the writer
 lock, with a conservative gap justified by configuration and retained robots
 evidence. `Gate.establish_spacing_baseline` records the evidence reference and
-requires a fresh wait; it clears no pause, shortens no deadline and refunds no
+requires a fresh wait of at least 5 s, the floor migration 28 fixed in that
+immutable table; it clears no pause, shortens no deadline and refunds no
 usage. Hosts without a justified baseline remain blocked. See
 [D-0056](../../journal/decisions/0056-anchor-host-spacing-to-request-completion.md)
 and [current deployment status](../status.md).
@@ -116,6 +135,7 @@ pass are dropped.
 | `Throttled`, `ServerError`, `Blocked` (host pause)                                                          | host    | `hosts.paused_until` + 1 h                                |
 | `request budget`, `byte budget`                                                                             | host    | next UTC midnight after `since` + 1 h                     |
 | `operator`                                                                                                  | host    | the pause's `until_at`, or `since` + 48 h                 |
+| `robots unavailable` (a failed robots read held a due watch; one row per host per pass)                     | host    | the robots retry + 1 h                                    |
 | `pending work backpressure`                                                                                 | loop    | `since` + 12 h                                            |
 | `event expansion pressure`, `event pressure metadata pending`                                               | host    | `since` + 24 h                                            |
 | `publication_in_flight`, `release_disk_low`, `inputs_not_accepted` (plan, release)                          | loop    | `since` + 1 h                                             |
@@ -127,10 +147,11 @@ pass are dropped.
 Waits, deadline skips (`budget`, `budget or stop`), request limits and
 terminal watch states (`sealed`, `archive required`, `capture already
 archived`) are not guards. The scheduler leaves out watches it knows are
-held (source off, host paused or over budget, operator pause, backpressure,
-event expansion), so those reasons become rows only when a skip reaches the
-client; the spacing reasons always do. The watchdog alarms on a host or loop
-row seen after its expiry within the last 2 hours
+held (source off, host paused or over budget, a failed robots read before
+its retry, operator pause, backpressure, event expansion), so those reasons
+become rows only when a skip reaches the client; the spacing reasons always
+do, and the pass writes `robots unavailable` itself. The watchdog alarms on a
+host or loop row seen after its expiry within the last 2 hours
 ([operation](../guides/operation.md)); watch rows are counted only.
 `swingset doctor` and `summary` report `guards`: counts by reason and the rows
 seen past their expiry. A whole loop tick that skips leaves its own

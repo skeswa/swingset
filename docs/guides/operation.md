@@ -152,9 +152,9 @@ Never resubmit a `REJECTED` candidate; accept corrected inputs and rebuild. A
 pending intent with an uncertain network outcome is reconciled before any new
 submission. An unlanded intent remains held while `RESTORE_PENDING` exists.
 
-H10 adds public identity acceptance metadata before schema 1.0. Until H17 has
-approved expansion, defaults may only retain supported IDs from the published
-baseline. Judges without WSDC numbers remain named records with null IDs.
+H10 adds public identity acceptance metadata before schema 1.0. Defaults keep
+supported IDs from the published baseline and add new entry IDs that pass the
+H17 rules ([D-0248](../../journal/decisions/0248-publish-new-identity-links-that-pass-the-h17-review-rules.md)). Judges without WSDC numbers remain named records with null IDs.
 
 On schema 14, doctor derives unfinished projection and linking from captured
 inputs and materialized generations. A missing queue row does not clear that
@@ -181,7 +181,11 @@ into a state checkpoint.
 
 Set `services.swingset.environmentFile = "/etc/swingset.env";` and rebuild.
 After reviewing the first dry build, set `services.swingset.dryRun = false;`
-and rebuild again. An existing public dataset requires a matching private
+and rebuild again. First check that the latest dry release record does not
+show `correction_needed: true`: the first published tick would build and
+publish that correction. To undo a bad publication, follow
+[rolling back](data-corrections.md#rolling-back-a-publication); never revert
+the hub by hand. An existing public dataset requires a matching private
 checkpoint; bootstrapping accepts only `.gitattributes` and the generated ODC-By
 license-only README. It refuses arbitrary existing content.
 
@@ -257,7 +261,9 @@ Phase 4's backup sets replace these checkpoints once
 --segmented --local`, the room check wants the size of `state.sqlite` plus
 20 GB, and each backup keeps the newest set and the newest drilled one under
 `checkpoints/sets/`. The `checkpoint_` knobs above no longer apply, and the
-old `run_*` checkpoint stays until removed by name. `[backup-stale]` reads
+old `run_*` checkpoint stays until an operator removes it (`rm -rf` as root
+under the hold, after an independent check; `--remove-checkpoint` refuses
+`run_*` names). `[backup-stale]` reads
 sets too, and the weekly drill restores one
 ([backup sets](backup-and-restore.md#backup-sets-and-the-restore-drill)).
 Uploads stay off until the owner turns `backupUpload` on (D-0232).
@@ -351,7 +357,7 @@ set, the unit also sends one `[watchdog-alive]` line a day to it, not to
 | `[wal-large]`                | `state.sqlite-wal` holds over 4 GB of frames not yet reset: checkpoints are not keeping up, usually behind a long read. The file never shrinks, so frames from before the last restart do not count                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | yes  |
 | `[building-orphans]`         | a staged generation in `derivation_building` has not advanced for 24 hours; names up to five ([staged completion](../reference/state.md#derivation-generations-h15))                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | no   |
 | `[incomplete-generations]`   | more than three partial generations with no building row still hold references (maintain's daily `holding` count); evicted generations are whole and not counted, and the weekly collector strips the references of those over a day old ([maintain storage tasks](../reference/operations.md#maintain-storage-tasks))                                                                                                                                                                                                                                                                                                                                                                                                                                      | no   |
-| `[admissions-growth]`        | maintain's `admissions_rows` is over 200,000: request rows stay while `scheduler_requests` names them, and that table has no collector yet ([maintenance item 15](../plans/README.md#maintenance-queue), D-0238)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | no   |
+| `[admissions-growth]`        | maintain's `admissions_rows` is over 600,000 (migration 37 leaves about 265,000): request rows stay while `scheduler_requests` names them, and that table has no collector yet ([maintenance item 15](../plans/README.md#maintenance-queue), D-0238)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | no   |
 | `[release-refused]`          | the newest gate verdict of a release tick or build command in the last seven days refused its candidate: nothing is published until a build passes or `overrides/release_decreases.csv` approves the decrease ([approving a decrease](data-corrections.md#approving-a-decrease), [D-0225](../../journal/decisions/0225-publish-only-strictly-better-releases.md)). Names the candidate and reasons; repeats daily, and at once for another candidate or reason                                                                                                                                                                                                                                                                                              | yes  |
 | `[partitions-withheld]`      | stage 1 withholds partitions; one count by reason, daily, and at once when the count rises by more than 10 over the last line's. `swingset partitions --withheld` lists them with their detail; the count adds the newest release record's `partitions.assembly_withheld` (`assembly_check:<check>`), whose rows still say built                                                                                                                                                                                                                                                                                                                                                                                                                            | yes  |
 | `[partitions-stale]`         | partitions that have published a kept artifact for over 48 hours while their event, resolution or link is not current (`kept_not_current_since`): a quarantined or unqueued unit; names up to five, daily                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | yes  |
@@ -971,7 +977,10 @@ week, and is then retried. A new input retries a unit at once
 ([state: work queue](../reference/state.md#work-queue)). A tick that dies
 inside a unit, its admission included, counts as that unit's failure. A
 tick killed after systemd asked it to stop (a deploy that outlasts
-`TimeoutStopSec`) leaves a `runs/<run>.stop` marker and counts nothing.
+`TimeoutStopSec`) leaves a `runs/<run>.stop` marker and counts nothing. The
+tick writes the marker only for a SIGTERM within its budget or under
+`operator-hold`: one past its budget with no hold is its start timeout, and
+the overrun unit's death counts.
 
 ```sh
 uv run swingset queue --state ./tmp/state                  # counts, quarantined units

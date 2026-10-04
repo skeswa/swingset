@@ -70,8 +70,11 @@ database's bytes in use (not the file's size, which keeps its free list until
 reclaim) plus 20 GB, on the smaller of statfs and the quota. Local sets live
 under `/var/lib/swingset/checkpoints/sets/` and `segments/`; each backup
 first removes a killed run's scratch, and keeps the newest set and the newest
-drilled one. Old `run_*` and named checkpoints stay until removed by name,
-once a set has passed a drill (an independent check first: it deletes data).
+drilled one. Old `run_*` and named checkpoints stay until an operator removes
+them once a set has passed a drill, after an independent check (it deletes
+data): `swingset backup --remove-checkpoint` refuses `run_*` names, so a
+`run_*` checkpoint is removed with `rm -rf` as root under the hold, with a
+receipt.
 The architecture plan's phase 4 deploy steps say when to flip the flag.
 
 A set records, instead of failing, an `objects` file that is gone, a release

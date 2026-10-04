@@ -74,23 +74,36 @@ def with_suppressions(f, body: bytes):
     return bundle
 
 
-def linked(f, tmp_path):
+def linked(f, tmp_path, method="manual", rename=False):
     """The source fixture with a baseline, and Alice's entry joined to dancer 999.
 
-    The join is written into the link's generation as a confirmed manual
+    The join is written into the link's generation as a confirmed ``method``
     link with a candidate row, so the identity policy decides a proposed
-    join (and, lacking a positive decision, withholds it).
+    join (and, for a manual one lacking a positive decision, withholds it).
+    ``rename`` gives dancer 999 Alice's name in the registry.
     """
-    link_baseline(f, settled(f, tmp_path, tables=("dancers", "registry_placements")))
+    if rename:
+        import build.test_partitions as partitions_test
+
+        dancer = partitions_test.add_dancer
+        with pytest.MonkeyPatch.context() as patch:
+            patch.setattr(
+                partitions_test, "add_dancer", lambda f: dancer(f, "Alice", last_name="Example")
+            )
+            link_baseline(f, settled(f, tmp_path, tables=("dancers", "registry_placements")))
+    else:
+        link_baseline(f, settled(f, tmp_path, tables=("dancers", "registry_placements")))
     alice = "event-a/novice-jj/L-name-alice-example"
 
     def join(table, key, payload):
         if table == "entries" and payload["entry_id"] == alice:
             return {**payload, "wsdc_id": 999, "link_status": "confirmed", "link_confidence": 1.0}
         if table == "identity_links" and payload["subject_id"] == alice:
-            return {**payload, "wsdc_id": 999, "status": "confirmed", "method": "manual"}
+            return {**payload, "wsdc_id": 999, "status": "confirmed", "method": method}
         if table == "placements":
             return {**payload, "leader_wsdc_id": 999, "registry_points_leader": 1}
+        if table == "link_candidates" and json.loads(key) == ["entry", alice, 999]:
+            return None  # the added candidate replaces any the linker wrote
         return payload
 
     candidate = {
@@ -138,6 +151,31 @@ def test_streamed_equals_whole_when_the_identity_policy_decides_a_join(source_fi
     assert entry["wsdc_id"] is None and entry["link_status"] == "unmatched"
     (candidate,) = rows(streamed, "link_candidates")
     assert candidate["chosen"] is False
+
+
+def test_streamed_equals_whole_when_h17_accepts_a_printed_id(source_fixture, tmp_path, monkeypatch):
+    """Dancer 999 has no registry row at event-a; both paths still read its name."""
+    from swingset.build import identity_policy
+
+    f = source_fixture
+    alice = linked(f, tmp_path, method="source_id", rename=True)
+    original = identity_policy.ReferenceReader.for_record
+
+    def printed(self, kind, row, **kwargs):
+        bindings = original(self, kind, row, **kwargs)
+        if row.get("entry_id") != alice:
+            return bindings
+        return tuple(
+            replace(binding, locator={**binding.locator, "source_wsdc_id": 999})
+            for binding in bindings
+        )
+
+    monkeypatch.setattr(identity_policy.ReferenceReader, "for_record", printed)
+    whole, streamed = both(f, f.bundle, f.corpus.clock, f.corpus.run)
+    assert_same_rows(whole, streamed)
+    assert policy(streamed)["default_join_counts"] == {"accepted_h17": 1}
+    entry = next(row for row in rows(streamed, "entries") if row["entry_id"] == alice)
+    assert entry["wsdc_id"] == 999
 
 
 @pytest.mark.parametrize(

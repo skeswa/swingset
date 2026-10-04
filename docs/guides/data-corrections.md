@@ -68,3 +68,31 @@ confirmed_links,5120,4980,duplicate dancers merged (issue 812),owner,2026-09-29
 The new file changes the input bundle, so the next build writes a new
 candidate, and its verdict lists the rows it used. Old rows may stay; they
 match only their own baseline value.
+
+## Rolling back a publication
+
+Undo a bad release by publishing an earlier one again, as a new commit on
+top of the hub head ([D-0250](../../journal/decisions/0250-correct-only-current-baselines-and-revert-as-a-correction.md)).
+Never revert or reset the hub by hand: the local baseline would no longer
+match the hub head, and the next publication fails with `public head changed`.
+
+1. Stop publication first, or the next build publishes the bad content
+   again: set `services.swingset.dryRun = true;` and rebuild the worker. Wait
+   until `systemctl list-units 'swingset-release*'` shows no active tick.
+2. Pick the target, a former baseline that still has its candidate
+   directory. Each `candidates/<id>/PUBLISHED` names its `commit` and
+   `verified_at`; `readlink /var/lib/swingset/baseline` is the bad one.
+   `gc --apply` can remove old candidates, so roll back before running it.
+3. Build it as a dry run:
+   `sudo -u swingset swingset build --revert-to <id> --lock-timeout 3600`.
+   It prints the new candidate. Its `_meta/manifest.json` shows
+   `release_policy.mode` `correction_only` and `reverted_from`; its changelog
+   lists what the revert undoes. It runs today's identity policy and
+   suppressions, so it never restores a join or a row they withdraw.
+4. Publish it with the token, as a transient unit:
+   `sudo systemd-run --wait --pipe -p User=swingset -p EnvironmentFile=/etc/swingset.env swingset publish --revert-to <id> --lock-timeout 3600`.
+   It reconciles, builds again and commits on top of the current head. A
+   revert is a correction, so the gate does not refuse it. The output's
+   `commit` is the new hub head, and `baseline/PUBLISHED` names it too.
+5. Fix the cause, then set `dryRun = false` again. The next normal build is
+   gated against the reverted release.

@@ -17,7 +17,10 @@ and publication remain open.
    output; keep the intentional Monterey alias consolidation. Compare
    matched IDs, candidate evidence, points, and result rows against both
    `138352e` and `0923f27`, explaining remaining losses. Successful build
-   validation alone does not establish improved data quality.
+   validation alone does not establish improved data quality. The H17 policy
+   ([D-0248](../../journal/decisions/0248-publish-new-identity-links-that-pass-the-h17-review-rules.md))
+   is implemented: new registry and checked printed-ID entry links publish
+   ([why none did](../../journal/investigations/2026/why-no-identity-link-is-published-2026-10-11.md)).
 2. **Preserve available locations.** Carry supported historical location
    evidence into events, parse two-part locations correctly, and handle
    country normalization without guessing. Start with the 913 measured

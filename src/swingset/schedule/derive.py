@@ -2,7 +2,7 @@
 
 import sqlite3
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Any
 
 from swingset import cutoff
@@ -67,6 +67,43 @@ class _LeaseBusy(Exception):
     """Another live owner leases the unit; the claim rolls back."""
 
 
+def _same_error(
+    previous: queue.QueueRow | None, failure: queue.Failure, error: str | None
+) -> queue.Failure:
+    """A waiting failure whose class and message match the last one is a repeat.
+
+    `queue.fail` counts a waiting failure as fresh whenever the unit's input
+    fingerprint changed. A deploy changes many fingerprints, so a page that
+    fails the same way again would fail the next small derive tick. The
+    message decides instead: the same class and the same message (as the
+    queue row keeps it, 500 characters) make a repeat, whatever the
+    fingerprint. With no earlier message to compare, the failure is fresh.
+    The wait clock stays as `queue.fail` set it.
+    """
+    if (
+        failure.repeat
+        or failure.state != "waiting_input"
+        or failure.error_class == queue.UNSUPPORTED_REASON
+        or previous is None
+        or previous.attempts < 1
+        or previous.error_class != failure.error_class
+        or not error
+        or previous.last_error != error[:500]
+    ):
+        return failure
+    return replace(failure, counted=False, repeat=True)
+
+
+def _parse_error(conn: sqlite3.Connection, snapshot_id: str) -> str | None:
+    """The message of the snapshot's open parse failure, which `parse_snapshot` wrote."""
+    row = conn.execute(
+        "SELECT summary FROM findings WHERE snapshot_id=? AND owner_kind='parse_failure' "
+        "AND closed_at IS NULL ORDER BY opened_at DESC LIMIT 1",
+        (snapshot_id,),
+    ).fetchone()
+    return str(row[0]) if row is not None and row[0] else None
+
+
 def _failed(
     database: Database,
     attempt: Attempt,
@@ -78,7 +115,9 @@ def _failed(
     exception: str | None = None,
 ) -> queue.Failure:
     """Record a failure in the queue and finish the attempt with its clock."""
+    error = str((evidence or {}).get("message") or (evidence or {}).get("reason") or "") or None
     with database.transaction() as conn:
+        previous = queue.get(conn, attempt.unit)
         failure = queue.fail(
             conn,
             attempt.unit,
@@ -87,9 +126,9 @@ def _failed(
             now=clock.now(),
             exception=exception,
             waiting=outcome in {"blocked", "unavailable"},
-            error=str((evidence or {}).get("message") or (evidence or {}).get("reason") or "")
-            or None,
+            error=error,
         )
+        failure = _same_error(previous, failure, error)
         finish_attempt(
             database,
             attempt,
@@ -336,12 +375,16 @@ def derive_one(
                                 )
                                 return DerivationOutcome(source, parsed.failed, reason)
                             # A blocked parse waits for input on a clock (D-0216).
+                            # The extract or parse error rides in the attempt's
+                            # evidence, so the next failure can be compared.
+                            message = _parse_error(conn, unit.unit_id) if parsed.failed else None
                             waited = _failed(
                                 database,
                                 attempt,
                                 clock,
                                 outcome="blocked",
                                 reason=reason,
+                                evidence={"message": message} if message else None,
                             )
                             return DerivationOutcome(
                                 source,
@@ -391,6 +434,9 @@ def derive_one(
                 outcome="unavailable",
                 reason="artifact_unavailable",
                 evidence={
+                    # The message names the artifact, so a different lost
+                    # artifact is a new failure, not a repeat (D-0249).
+                    "message": str(exc),
                     "kind": exc.kind,
                     "sha256": exc.sha256,
                     "reason": exc.reason,

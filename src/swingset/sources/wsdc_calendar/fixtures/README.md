@@ -39,3 +39,10 @@ body hashes were verified after decompression. All marker popups contain names
 and websites only, without printed dates. These remain unsupported dating
 controls; capture timestamps are not event dates. See the
 [inspection](../../../../../journal/investigations/2026/calendar-map-gaps-2026-09-17.md).
+
+`calendar-20260813-zstd.body` is the production body of the 2026-08-13
+Wayback capture, copied read-only on 2026-10-12 with its snapshot row in
+`calendar-20260813-zstd.json`. Wayback replayed it zstd-encoded and it was
+stored that way (SHA-256 `979d8ea8…`, 32,740 bytes); the extractor decodes it
+to 169 rows. Source:
+https://web.archive.org/web/20260813102731id_/https://worldsdc.com/events/

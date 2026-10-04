@@ -606,6 +606,94 @@ def test_a_unit_killed_after_a_stop_request_is_not_counted(dirs, monkeypatch):
     assert row is not None and row.attempts == 0 and row.error_class is None
 
 
+def _terminate(dirs, clock, *, overrun):
+    """A `swingset derive` tick whose unit `aaa-poison` gets systemd's SIGTERM,
+    then its SIGKILL. With `overrun` the unit has run 31 minutes, past the
+    tick's budget: the SIGTERM is derive's start timeout, not a stop request."""
+    state, config, overrides = dirs
+    script = f"""
+import os, signal, sys, time
+from datetime import datetime
+import swingset.cli
+import swingset.project
+from swingset.clock import FakeClock
+
+clock = FakeClock(datetime.fromisoformat({clock.now().isoformat()!r}))
+swingset.cli.SystemClock = lambda: clock
+
+def project(database, unit, _bundle, unit_clock, run_id, selection=None):
+    if {overrun!r}:
+        unit_clock.sleep(31 * 60)
+    os.kill(os.getpid(), signal.SIGTERM)
+    time.sleep(0.1)
+    os.kill(os.getpid(), signal.SIGKILL)
+
+swingset.project.process_unit = project
+sys.exit(swingset.cli.main(["derive", "--state", {str(state)!r}, "--config", {str(config)!r},
+                            "--overrides", {str(overrides)!r}, "--budget", "240", "--timer"]))
+"""
+    done = subprocess.run(
+        [sys.executable, "-c", script], capture_output=True, text=True, timeout=120
+    )
+    assert done.returncode == -signal.SIGKILL, (done.returncode, done.stderr[-2000:])
+    with open_database(state, lock=False) as db:
+        (dead,) = db.connection.execute(
+            "SELECT run_id FROM runs WHERE loop='derive' AND finished_at IS NULL"
+        ).fetchone()
+    if overrun:
+        clock.sleep(31 * 60)
+    return queue.stop_marker(state, dead)
+
+
+def test_a_unit_killed_by_its_start_timeout_is_counted_and_quarantined(dirs, monkeypatch):
+    """systemd's start timeout sends the SIGTERM a stop does. A tick past its
+    budget with no hold writes no stop marker, so the overrun unit's death
+    counts: it backs off and quarantines at the third, not every 60 s."""
+    state = dirs[0]
+    clock = FakeClock()
+    ran: list[str] = []
+    _projector(monkeypatch, ran)
+    poison = WorkUnit("project", "dancer", "aaa-poison")
+    _enqueue(state, clock, ["aaa-poison"])
+    for number, wait in enumerate((16, 31, 0), 1):
+        marker = _terminate(dirs, clock, overrun=True)
+        assert not marker.exists()
+        clock.sleep(5)
+        record = _run("derive", dirs, clock)
+        assert record["error"] is None and record["recovered"]["attempts"] == 1, record
+        with open_database(state) as db:
+            row = queue.get(db.connection, poison)
+        assert row is not None and row.attempts == number
+        assert row.error_class == "process_interrupted"
+        assert row.state == ("quarantined" if number == 3 else "ready")
+        clock.sleep(wait * 60)
+
+
+@pytest.mark.parametrize("stop", ["deploy", "hold"])
+def test_a_stop_the_operator_asked_for_is_not_counted(dirs, monkeypatch, stop):
+    """A deploy's SIGTERM within the tick's budget, or any SIGTERM under
+    `operator-hold` (an operator's stop of an overrunning unit included),
+    writes the stop marker: the kill after the stop timeout counts nothing."""
+    state = dirs[0]
+    clock = FakeClock()
+    ran: list[str] = []
+    _projector(monkeypatch, ran)
+    poison = WorkUnit("project", "dancer", "aaa-poison")
+    _enqueue(state, clock, ["aaa-poison"])
+    hold = state / "operator-hold"
+    if stop == "hold":
+        hold.write_text("who: test\n")
+    marker = _terminate(dirs, clock, overrun=stop == "hold")
+    hold.unlink(missing_ok=True)
+    assert marker.is_file()
+    clock.sleep(5)
+    record = _run("derive", dirs, clock)
+    assert record["error"] is None and record["recovered"]["attempts"] == 1, record
+    with open_database(state) as db:
+        row = queue.get(db.connection, poison)
+    assert row is not None and row.attempts == 0 and row.error_class is None
+
+
 def test_a_recovery_record_whose_transaction_rolled_back_is_no_ending(dirs, monkeypatch):
     """A recovery writes the dead run's record, `process_interrupted`, inside
     its transaction. If that rolls back, the next tick must still count the

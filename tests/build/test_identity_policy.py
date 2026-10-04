@@ -270,10 +270,204 @@ def test_correction_cannot_promote_current_registry_evidence_absent_from_baselin
     assert result.tables["placements"][0]["registry_points_leader"] is None
 
 
-def test_bootstrap_does_not_bypass_unaccepted_accuracy_expansion_gate(tmp_path):
+def h17_inputs(
+    entries=(("entry", "leader", "Alex Lee", 100, ("prelim", "final")),),
+    *,
+    method="source_id",
+    contest="Novice Jack & Jill",
+    dancers=((100, "Alex Lee"),),
+    registry=(),
+):
+    """One contest whose entries all hold confirmed links; ``registry`` rows are
+    (wsdc_id, role, result) at this event, division and style."""
+    data = inputs(method=method)
+    tables = data.tables
+    tables["entries"] = [
+        {
+            **tables["entries"][0],
+            "entry_id": entry_id,
+            "role": role,
+            "name_raw": name,
+            "wsdc_id": number,
+            "rounds_danced": list(rounds),
+        }
+        for entry_id, role, name, number, rounds in entries
+    ]
+    tables["identity_links"] = [
+        {**tables["identity_links"][0], "subject_id": entry_id, "wsdc_id": number}
+        for entry_id, _, _, number, _ in entries
+    ]
+    tables["link_candidates"] = []
+    tables["contests"] = [
+        {
+            "contest_id": "contest",
+            "name_raw": contest,
+            "division": "novice",
+            "dance_style": "wcs",
+            "wsdc_points_eligible": True,
+        }
+    ]
+    tables["placements"] = [
+        {
+            "placement_id": f"place-{place}",
+            "contest_id": "contest",
+            "event_id": "event",
+            "place": place,
+            f"{role}_entry_id": entry_id,
+            f"{role}_wsdc_id": number,
+        }
+        for place, (entry_id, role, _, number, _) in enumerate(entries, start=1)
+    ]
+    tables["dancers"] = [
+        {"wsdc_id": number, "first_name": name.split()[0], "last_name": name.split()[1]}
+        for number, name in dancers
+    ]
+    tables["registry_placements"] = [
+        {
+            "wsdc_id": number,
+            "event_id": "event",
+            "role": role,
+            "division": "novice",
+            "dance_style": "wcs",
+            "result": result,
+        }
+        for number, role, result in registry
+    ]
+    return data
+
+
+def apply_h17(tmp_path, data, published=None, support=None):
+    """Bind each record to its own printed id and apply the policy."""
+
+    def printed(kind, row, **_):
+        reference = replace(REFERENCE, participant=f"entry:{row['entry_id']}")
+        return (
+            replace(
+                BINDING,
+                reference=reference,
+                subject_id=row["entry_id"],
+                locator={**BINDING.locator, "source_wsdc_id": row["wsdc_id"]},
+            ),
+        )
+
+    with (
+        open_database(tmp_path / "state") as db,
+        patch("swingset.build.identity_policy.ReferenceReader.for_record", side_effect=printed),
+        patch(
+            "swingset.build.identity_policy.interpretation_support",
+            return_value=support
+            or {"usable": True, "state": "accepted", "selected_observation": True},
+        ),
+    ):
+        result = apply_identity_policy(
+            db.connection, data, baseline=published, correction_only=False
+        )
+    ids = {row["entry_id"]: row["wsdc_id"] for row in result.tables["entries"]}
+    return result, ids, result.release_policy["default_join_counts"]
+
+
+@pytest.mark.parametrize("name", ["Alex Lee", "Lee Alex", "ALEX  LEE"])
+def test_h17_accepts_new_printed_id_whose_registry_name_agrees(tmp_path, name):
+    data = h17_inputs(entries=(("entry", "leader", name, 100, ("prelim", "final")),))
+    result, ids, counts = apply_h17(tmp_path, data)
+    assert ids == {"entry": 100}
+    assert counts == {"accepted_h17": 1}
+    assert result.tables["identity_links"][0]["acceptance_state"] == "accepted"
+    assert result.tables["placements"][0]["leader_wsdc_id"] == 100
+    assert result.release_policy["accuracy_expansions"] == "D-0248"
+
+
+def test_h17_accepts_new_registry_placement_join(tmp_path):
+    data = h17_inputs(method="registry_placement", registry=((100, "leader", "1"),))
+    _, ids, counts = apply_h17(tmp_path, data)
+    assert ids == {"entry": 100}
+    assert counts == {"accepted_h17": 1}
+
+
+@pytest.mark.parametrize(
+    ("dancers", "registry", "reason"),
+    [
+        ((), (), "printed_identity_not_in_registry"),
+        (((100, "Sam Lee"),), (), "printed_name_disagrees"),
+        (((100, "Alex Lee"),), ((100, "follower", "1"),), "role_contradicted"),
+        (((100, "Alex Lee"),), ((100, "follower", "F"),), "role_contradicted"),
+    ],
+)
+def test_h17_withholds_a_printed_id_that_fails_a_rule(tmp_path, dancers, registry, reason):
+    data = h17_inputs(dancers=dancers, registry=registry)
+    result, ids, counts = apply_h17(tmp_path, data)
+    assert ids == {"entry": None}
+    assert counts == {reason: 1}
+    assert result.tables["identity_links"][0]["acceptance_state"] == "revoked"
+    assert result.tables["placements"][0]["leader_wsdc_id"] is None
+
+
+@pytest.mark.parametrize(
+    ("contest", "withheld"),
+    [("Novice Jack & Jill", {"flipped", "finalist"}), ("Switch Jack & Jill", set())],
+)
+def test_h17_withholds_every_final_only_entry_of_a_role_contradicted_contest(
+    tmp_path, contest, withheld
+):
+    entries = (
+        ("bib", "leader", "Alex Lee", 100, ("prelim", "final")),
+        ("flipped", "follower", "Alex Lee", 100, ("final",)),
+        ("finalist", "leader", "Kim Park", 101, ("final",)),
+        ("other", "follower", "Jo Diaz", 102, ("prelim", "final")),
+    )
+    dancers = ((100, "Alex Lee"), (101, "Kim Park"), (102, "Jo Diaz"))
+    data = h17_inputs(entries, contest=contest, dancers=dancers)
+    _, ids, counts = apply_h17(tmp_path, data)
+    assert {key for key, value in ids.items() if value is None} == withheld
+    assert counts.get("role_contradicted", 0) == len(withheld)
+
+
+def test_h17_registry_role_contradiction_marks_the_contest(tmp_path):
+    entries = (
+        ("flipped", "leader", "Alex Lee", 100, ("final",)),
+        ("finalist", "leader", "Kim Park", 101, ("final",)),
+        ("bib", "follower", "Jo Diaz", 102, ("prelim", "final")),
+    )
+    dancers = ((100, "Alex Lee"), (101, "Kim Park"), (102, "Jo Diaz"))
+    data = h17_inputs(entries, dancers=dancers, registry=((100, "follower", "1"),))
+    _, ids, counts = apply_h17(tmp_path, data)
+    assert ids == {"flipped": None, "finalist": None, "bib": 102}
+    assert counts == {"accepted_h17": 1, "role_contradicted": 2}
+
+
+@pytest.mark.parametrize("state", ["superseded", "legacy_unassessed"])
+def test_h17_never_accepts_a_new_join_on_legacy_support(tmp_path, state):
+    data = h17_inputs(entries=(("entry", "leader", "Alex Lee", 100, ("prelim", "final")),))
+    nulled = copy.deepcopy(data)
+    for row in nulled.tables["entries"]:
+        row["wsdc_id"] = None
+    published = baseline(tmp_path / "baseline", nulled)
+    _, ids, counts = apply_h17(
+        tmp_path,
+        data,
+        published=published,
+        support={"usable": False, "state": state, "selected_observation": True},
+    )
+    assert ids == {"entry": None}
+    assert counts == {"source_interpretation_unavailable": 1}
+
+
+def test_h17_does_not_accept_new_manual_joins(tmp_path):
+    data = inputs(method="manual")
     with open_database(tmp_path / "state") as db:
-        result = apply(db.connection, inputs(), None, correction_only=False)
+        reviewed(db.connection, kind="same_person")
+        result = apply(db.connection, data, None, correction_only=False)
     assert result.tables["entries"][0]["wsdc_id"] is None
+    assert result.release_policy["default_join_counts"] == {"accuracy_gate_pending": 1}
+
+
+def test_baseline_id_keeps_the_baseline_path_without_h17_rules(tmp_path):
+    data = inputs()
+    published = baseline(tmp_path / "baseline", data)
+    with open_database(tmp_path / "state") as db:
+        result = apply(db.connection, data, published, correction_only=False)
+    assert result.tables["entries"][0]["wsdc_id"] == 100
+    assert result.release_policy["default_join_counts"] == {"accepted": 1}
 
 
 def test_no_identity_or_points_cannot_retain_expected_points_flag():

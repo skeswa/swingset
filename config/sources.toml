@@ -35,11 +35,14 @@ index_urls = []
 archive_index_seconds = 120
 # Backpressure counts superseded parse rows, which never run, even under
 # schema 34; these stay above that residue (D-0221, D-0230).
-pending_parse_items = 4000
+# Backpressure counts superseded parse rows as runnable (3,566 after the
+# contract 5 re-parse), so the item limit sits 4,400 above them until
+# maintenance item 13 stops counting them (D-0230, D-0244).
+pending_parse_items = 8000
 pending_parse_bytes = 536870912
 # A release build takes minutes and holds the heavy lock, so builds are paced;
 # pacing never gates acquisition (D-0198, D-0199).
-build_interval_seconds = 86400 # 24 h while the phase 1 switch drains (D-0220)
+build_interval_seconds = 86400 # daily again after phase 4 freed room (D-0245)
 # While builds are due and release has not progressed for this many build
 # intervals, derive runs only parse and link units (0 turns it off).
 release_lag_intervals = 2
@@ -56,7 +59,7 @@ inventory_interval_seconds = 43200
 # frees pages but not file space; see the operation guide's disk-space
 # section for reclaim.
 [retention]
-max_database_bytes = "76GB" # production since 2026-10-03 (D-0233); phase 4 sets its own
+max_database_bytes = "50GB" # 40.7 GB after the 2026-10-11 reclaim, plus room (D-0245)
 # Backups are local only until segmented backups (architecture phase 4;
 # D-0203): each successful backup removes every older run_* checkpoint and
 # keeps the one it wrote. Operator-named checkpoints are never touched.

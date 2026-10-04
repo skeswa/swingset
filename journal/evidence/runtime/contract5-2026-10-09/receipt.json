@@ -1,0 +1,719 @@
+{
+  "operation": "admission contract 5 for scoringdance.round and wdr.rounds, the observation label fix and the robots retry fix: switch, review and activation",
+  "actor": "claude (session claude-rearch)",
+  "decisions": [
+    "D-0240",
+    "D-0241",
+    "D-0242"
+  ],
+  "owner_approval": "2026-10-06 'yes - let's have agents adjudicate'; 2026-10-07 'Keep them blocked', 'Build, rehearse, check, deploy', 'Ship it with contract 5'; 2026-10-09 'ok the mac is going to be up for a few days - we are ready'",
+  "independent_checks": {
+    "contract5": "approve with conditions (6), 2026-10-07; rollback rewritten, conditions followed",
+    "robots": "approve with conditions (3), 2026-10-09; all three applied and re-tested"
+  },
+  "deploy_tree": {
+    "path": "/private/tmp/swingset-c032",
+    "contents": "c031 (deployed: phase 3+4, stop-marker fix, loops, 7680M release, weekly builds, segmented backups) + contract5/phase4.patch (sha256 167412f0a3ee...) + robots/robots.patch (sha256 145390dba8a6...)",
+    "scope_change": "41 of 45 code scopes (contract 5); robots patch adds none",
+    "tests": "working copy core 1,981 passed; patched tree changed tests passed"
+  },
+  "preflight": {
+    "at_utc": "2026-10-09T19:50:23Z",
+    "policies": [
+      {
+        "page_kind": "scoringdance.round",
+        "contract_version": "4",
+        "mode": "enforce",
+        "policy_revision": "review:584918cee66a7e938919b5e7134624f8bf7769eb6a8c6f98a469fe28ef7fae2d",
+        "reviewed_report_digest": "584918cee66a7e938919b5e7134624f8bf7769eb6a8c6f98a469fe28ef7fae2d",
+        "reviewed_by": "Codex coordinator",
+        "reviewed_at": "2026-09-13T07:45:59.028718+00:00"
+      },
+      {
+        "page_kind": "wdr.rounds",
+        "contract_version": "4",
+        "mode": "enforce",
+        "policy_revision": "review:11d39fe305d591d1e5cbf8917fe7babaa56150d25c7cec27e5e39309c6d16cb8",
+        "reviewed_report_digest": "11d39fe305d591d1e5cbf8917fe7babaa56150d25c7cec27e5e39309c6d16cb8",
+        "reviewed_by": "Codex coordinator",
+        "reviewed_at": "2026-09-13T07:46:00.514345+00:00"
+      }
+    ],
+    "accepted_pointers": {
+      "file": "/var/lib/swingset/operations/contract5-20261009/accepted-pointers.json",
+      "rows": 5587,
+      "sha256": "a57fde2938160138c92187e507325fd8d168bc2ffe653d11fd62293b2a944e19",
+      "by_kind_contract": {
+        "scoringdance.round:4": 5237,
+        "scoringdance.round:None": 337,
+        "wdr.rounds:4": 12,
+        "wdr.rounds:None": 1
+      }
+    },
+    "pending": {
+      "parse": 1655
+    },
+    "queue": {
+      "ready": 275,
+      "waiting_input": 437
+    },
+    "parked_needs_review": 683,
+    "page_count": 17809671,
+    "freelist": 8960966,
+    "file_bytes": 72948412416,
+    "cohort_stale": [],
+    "cohort_size": 13,
+    "reviews": [
+      [
+        "scoringdance.round",
+        "4",
+        "584918cee66a7e938919b5e7134624f8bf7769eb6a8c6f98a469fe28ef7fae2d"
+      ],
+      [
+        "wdr.rounds",
+        "4",
+        "11d39fe305d591d1e5cbf8917fe7babaa56150d25c7cec27e5e39309c6d16cb8"
+      ]
+    ],
+    "labels": {
+      "scoringdance.round": {
+        "match": 3842,
+        "labels_differ": 1395
+      },
+      "wdr.rounds": {
+        "match": 12
+      },
+      "scoringdance.event": {
+        "labels_differ": 315,
+        "match": 4
+      },
+      "wsdc_registry.dancer": {
+        "match": 28480,
+        "labels_differ": 694
+      },
+      "eepro.round": {
+        "match": 363,
+        "snapshot_differs": 103
+      }
+    },
+    "quota_free_gb": 66.8,
+    "system_before": "/nix/store/x877mx6bdccglhxvymlwnsf650w2b2ap-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+    "source_before": "/nix/store/c0wv7jfzdmwyv73kpl2va0klvv4nbgnq-source"
+  },
+  "hold": {
+    "written_utc": "2026-10-09T19:50:35Z",
+    "idle_utc": "2026-10-09T19:51:35Z",
+    "removed_utc": "2026-10-09T19:52:27Z",
+    "minutes": 1.9
+  },
+  "switch": {
+    "window_utc": [
+      "2026-10-09T19:51:35Z",
+      "2026-10-09T19:51:46Z"
+    ],
+    "system_after": "/nix/store/y4n4whwqvrmjj92wnynk1hshsjx7qaia-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+    "source_after": "/nix/store/ah2kywh0n0p63qf6w9lrd30rqv90xzhg-source",
+    "note": "the switch restarted the five loop timers (held by operator-hold); swingset-release.timer stopped again at once (condition 1)",
+    "venv_sync": "first attempt without UV_PYTHON failed; re-run with the unit's full Environment: swingset.__file__ -> ah2kywh0 source"
+  },
+  "activation": {
+    "window_utc": [
+      "2026-10-09T19:52:07Z",
+      "2026-10-09T19:52:20Z"
+    ],
+    "exit": 0,
+    "result": {
+      "accepted_inputs": [
+        "recipe/code/build",
+        "recipe/code/extract/eepro.autoindex",
+        "recipe/code/extract/eepro.index",
+        "recipe/code/extract/eepro.round",
+        "recipe/code/extract/scoringdance.event",
+        "recipe/code/extract/scoringdance.recent",
+        "recipe/code/extract/scoringdance.round",
+        "recipe/code/extract/scoringdance.sitemap",
+        "recipe/code/extract/steprightsolutions.event",
+        "recipe/code/extract/steprightsolutions.index",
+        "recipe/code/extract/steprightsolutions.round",
+        "recipe/code/extract/wdr.awards",
+        "recipe/code/extract/wdr.rounds",
+        "recipe/code/extract/wsdc_registry.dancer",
+        "recipe/code/link",
+        "recipe/code/parse/eepro.autoindex",
+        "recipe/code/parse/eepro.index",
+        "recipe/code/parse/eepro.round",
+        "recipe/code/parse/scoringdance.event",
+        "recipe/code/parse/scoringdance.recent",
+        "recipe/code/parse/scoringdance.round",
+        "recipe/code/parse/scoringdance.sitemap",
+        "recipe/code/parse/steprightsolutions.event",
+        "recipe/code/parse/steprightsolutions.index",
+        "recipe/code/parse/steprightsolutions.round",
+        "recipe/code/parse/swingdancecouncil.events",
+        "recipe/code/parse/wdr.awards",
+        "recipe/code/parse/wdr.rounds",
+        "recipe/code/parse/wsdc_calendar.events",
+        "recipe/code/parse/wsdc_newsletter.events",
+        "recipe/code/parse/wsdc_newsletter.index",
+        "recipe/code/parse/wsdc_registry.dancer",
+        "recipe/code/project/calendar",
+        "recipe/code/project/dancer",
+        "recipe/code/project/event",
+        "recipe/code/project/inventory",
+        "recipe/code/project/mapping",
+        "recipe/code/project/resolution",
+        "recipe/code/project/source_event",
+        "recipe/code/project/source_index",
+        "recipe/code/project/year",
+        "version/extract/scoringdance.round",
+        "version/parser/wdr.rounds",
+        "version/repository"
+      ],
+      "after": {
+        "accepted_units": {
+          "scoringdance.round:4": 5237,
+          "wdr.rounds:4": 12
+        },
+        "pending": {
+          "link": 2936,
+          "parse": 38075,
+          "project": 33417
+        },
+        "pending_parse": {
+          "eepro.autoindex": 78,
+          "eepro.index": 4,
+          "eepro.round": 590,
+          "registry_crosscheck": 3,
+          "scoringdance.event": 522,
+          "scoringdance.recent": 5,
+          "scoringdance.round": 5898,
+          "scoringdance.sitemap": 3,
+          "swingdancecouncil.events": 37,
+          "wdr.awards": 13,
+          "wdr.rounds": 13,
+          "wsdc_calendar.events": 144,
+          "wsdc_newsletter.events": 28,
+          "wsdc_newsletter.index": 1,
+          "wsdc_registry.dancer": 30736
+        },
+        "policies": [
+          {
+            "contract_version": "5",
+            "mode": "enforce",
+            "page_kind": "scoringdance.round",
+            "policy_revision": "review:dfbcc6ae98e90eb81829569bde9131f8b04857b0306c85508fb96510e4b5fd5f"
+          },
+          {
+            "contract_version": "5",
+            "mode": "enforce",
+            "page_kind": "wdr.rounds",
+            "policy_revision": "review:d62d5f8c5b97b7039f3aece01314bec216652300d2650f9be2896199040dbe0f"
+          }
+        ]
+      },
+      "after_accept": {
+        "accepted_units": {
+          "scoringdance.round:4": 5237,
+          "wdr.rounds:4": 12
+        },
+        "pending": {
+          "link": 2936,
+          "parse": 38075,
+          "project": 33417
+        },
+        "pending_parse": {
+          "eepro.autoindex": 78,
+          "eepro.index": 4,
+          "eepro.round": 590,
+          "registry_crosscheck": 3,
+          "scoringdance.event": 522,
+          "scoringdance.recent": 5,
+          "scoringdance.round": 5898,
+          "scoringdance.sitemap": 3,
+          "swingdancecouncil.events": 37,
+          "wdr.awards": 13,
+          "wdr.rounds": 13,
+          "wsdc_calendar.events": 144,
+          "wsdc_newsletter.events": 28,
+          "wsdc_newsletter.index": 1,
+          "wsdc_registry.dancer": 30736
+        },
+        "policies": [
+          {
+            "contract_version": "4",
+            "mode": "enforce",
+            "page_kind": "scoringdance.round",
+            "policy_revision": "review:584918cee66a7e938919b5e7134624f8bf7769eb6a8c6f98a469fe28ef7fae2d"
+          },
+          {
+            "contract_version": "4",
+            "mode": "enforce",
+            "page_kind": "wdr.rounds",
+            "policy_revision": "review:11d39fe305d591d1e5cbf8917fe7babaa56150d25c7cec27e5e39309c6d16cb8"
+          }
+        ]
+      },
+      "argv": [
+        "/var/lib/swingset/operations/contract5-20261009/activate_c5.py",
+        "--state",
+        "/var/lib/swingset",
+        "--config",
+        "/nix/store/ah2kywh0n0p63qf6w9lrd30rqv90xzhg-source/config",
+        "--overrides",
+        "/Users/skeswa/repos/skeswa/swingset/overrides",
+        "--cohort",
+        "/var/lib/swingset/operations/contract5-20261009/cohort-production.json",
+        "--receipt",
+        "/var/lib/swingset/operations/contract5-20261009/activation.json",
+        "--reviewer",
+        "admission review agent (D-0180)",
+        "--evidence",
+        "Admission adjudication 2026-10-06 (journal/investigations/2026/admission-adjudication-2026-10-06.md), owner-approved 2026-10-06/07; parity rehearsal 2026-10-07 and 2026-10-09 (5,249 accepted identical; 311 rounds + 2 WDR admitted; 23 conflicts + 2 two-table blocked); D-0240, D-0241; independent check approve with conditions 2026-10-07"
+      ],
+      "before": {
+        "accepted_units": {
+          "scoringdance.round:4": 5237,
+          "wdr.rounds:4": 12
+        },
+        "pending": {
+          "parse": 1655
+        },
+        "pending_parse": {
+          "eepro.autoindex": 1,
+          "eepro.index": 2,
+          "eepro.round": 100,
+          "registry_crosscheck": 3,
+          "scoringdance.event": 203,
+          "scoringdance.recent": 3,
+          "scoringdance.round": 659,
+          "scoringdance.sitemap": 1,
+          "wdr.rounds": 2,
+          "wsdc_calendar.events": 6,
+          "wsdc_registry.dancer": 675
+        },
+        "policies": [
+          {
+            "contract_version": "4",
+            "mode": "enforce",
+            "page_kind": "scoringdance.round",
+            "policy_revision": "review:584918cee66a7e938919b5e7134624f8bf7769eb6a8c6f98a469fe28ef7fae2d"
+          },
+          {
+            "contract_version": "4",
+            "mode": "enforce",
+            "page_kind": "wdr.rounds",
+            "policy_revision": "review:11d39fe305d591d1e5cbf8917fe7babaa56150d25c7cec27e5e39309c6d16cb8"
+          }
+        ]
+      },
+      "cohort": {
+        "scoringdance.round": [
+          {
+            "action": "parsed:needs_review",
+            "failures": [],
+            "generation_id": "gen_a4278f73302b345232cdbdb24d957c168cf362f4ae68120fbe78220dac94fdd5",
+            "snapshot_id": "snap_20260909T150520Z_eab39f49a9fe",
+            "state": "needs_review"
+          },
+          {
+            "action": "parsed:needs_review",
+            "failures": [],
+            "generation_id": "gen_b376ad99769cf049eb678aa2edfc87d7c53d09f904032be83d641438c62af070",
+            "snapshot_id": "snap_20261003T050225Z_0e05a6ab84ad_89d50788cd77",
+            "state": "needs_review"
+          },
+          {
+            "action": "parsed:needs_review",
+            "failures": [],
+            "generation_id": "gen_5eff8a59c469ee4ec041e20f98beee5f3dcdf3139504d99b148e9b83ba111294",
+            "snapshot_id": "snap_20261006T022723Z_b25242e14f18_713e05129836",
+            "state": "needs_review"
+          },
+          {
+            "action": "parsed:needs_review",
+            "failures": [],
+            "generation_id": "gen_4583d0bb26056090fb084aa21d53969291e95b3e37b39a6609abc4c6c1d5eb35",
+            "snapshot_id": "snap_20260912T152433Z_a50ef25b12d8",
+            "state": "needs_review"
+          },
+          {
+            "action": "parsed:needs_review",
+            "failures": [],
+            "generation_id": "gen_d18d0f756a001a0a04b06f69f59d9db0732e7e1691eff15264307de62b1bf808",
+            "snapshot_id": "snap_20261006T021714Z_30ffaed5d016_55362ddcada3",
+            "state": "needs_review"
+          },
+          {
+            "action": "parsed:needs_review",
+            "failures": [],
+            "generation_id": "gen_d1d009bb0e662c9e96daffe40bbe5066a9e1c90e2797b9b4e57d6f950243a69a",
+            "snapshot_id": "snap_20261007T013629Z_80963f7b9d02_ba63c1b920e4",
+            "state": "needs_review"
+          },
+          {
+            "action": "parsed:needs_review",
+            "failures": [],
+            "generation_id": "gen_0d39b86f92c7901acdc7a482ceb86833ba1bda73cb1ae21b62a53a89f8d16ce9",
+            "snapshot_id": "snap_20261006T002309Z_8c7fa6204738_7280b6eaa0f7",
+            "state": "needs_review"
+          },
+          {
+            "action": "parsed:needs_review",
+            "failures": [],
+            "generation_id": "gen_055a7f7c08e846a39eb5ff0ad7ce3c5efbaabc4410bfc57af4728eb471edcfeb",
+            "snapshot_id": "snap_20260912T152448Z_7ee2873231eb",
+            "state": "needs_review"
+          },
+          {
+            "action": "parsed:needs_review",
+            "failures": [
+              "source_remark_outcome_conflict"
+            ],
+            "generation_id": "gen_2222d4e681a79d46e64925d0211a8ea08a07fe6fce672cd20a97cdaac9dbf53b",
+            "snapshot_id": "snap_20261005T180141Z_b547ea4079ff_12e681a839f3",
+            "state": "needs_review"
+          },
+          {
+            "action": "parsed:needs_review",
+            "failures": [
+              "critical_unknown"
+            ],
+            "generation_id": "gen_8644dd55e48a4e4fd1574398fad23b559e68d475752307a158a72e3fb1cba78e",
+            "snapshot_id": "snap_20261006T010819Z_bf58ae47ef2f_984351dd97d7",
+            "state": "needs_review"
+          }
+        ],
+        "wdr.rounds": [
+          {
+            "action": "parsed:needs_review",
+            "failures": [],
+            "generation_id": "gen_e10c09a5ee3ecf77dc1571c3fce2a52a690b07709b5f1073df6a5a0fd99d7b00",
+            "snapshot_id": "snap_20260909T150519Z_3e342cde93d4",
+            "state": "needs_review"
+          },
+          {
+            "action": "parsed:needs_review",
+            "failures": [],
+            "generation_id": "gen_1ccbbc1145fcaf570c15bcd8064837d56b3e622dcef5d78e55d276d3a1c3dd34",
+            "snapshot_id": "snap_20260909T150549Z_abf51d8711ef",
+            "state": "needs_review"
+          },
+          {
+            "action": "parsed:needs_review",
+            "failures": [],
+            "generation_id": "gen_1baa740cba3355ecc0b99760214d8816b1ec5982bb3737a79f0d601c7dde188b",
+            "snapshot_id": "snap_20260909T150629Z_7829ef627605",
+            "state": "needs_review"
+          }
+        ]
+      },
+      "cohort_snapshots": {
+        "scoringdance.round": [
+          "snap_20260909T150520Z_eab39f49a9fe",
+          "snap_20261003T050225Z_0e05a6ab84ad_89d50788cd77",
+          "snap_20261006T022723Z_b25242e14f18_713e05129836",
+          "snap_20260912T152433Z_a50ef25b12d8",
+          "snap_20261006T021714Z_30ffaed5d016_55362ddcada3",
+          "snap_20261007T013629Z_80963f7b9d02_ba63c1b920e4",
+          "snap_20261006T002309Z_8c7fa6204738_7280b6eaa0f7",
+          "snap_20260912T152448Z_7ee2873231eb",
+          "snap_20261005T180141Z_b547ea4079ff_12e681a839f3",
+          "snap_20261006T010819Z_bf58ae47ef2f_984351dd97d7"
+        ],
+        "wdr.rounds": [
+          "snap_20260909T150519Z_3e342cde93d4",
+          "snap_20260909T150549Z_abf51d8711ef",
+          "snap_20260909T150629Z_7829ef627605"
+        ]
+      },
+      "contract_versions": {
+        "scoringdance.round": "5",
+        "wdr.rounds": "5"
+      },
+      "exit": 0,
+      "finished_at": "2026-10-09T19:52:20.189072+00:00",
+      "input_bundle": "1dd2762e01f17df2f6228c9b7877a1d53e5ca15e073949e090e3067a8d1b7f32",
+      "max_rss_kb": 183256,
+      "operation": "contract5-activation",
+      "reviews": {
+        "scoringdance.round": {
+          "digest": "dfbcc6ae98e90eb81829569bde9131f8b04857b0306c85508fb96510e4b5fd5f",
+          "generations": 10
+        },
+        "wdr.rounds": {
+          "digest": "d62d5f8c5b97b7039f3aece01314bec216652300d2650f9be2896199040dbe0f",
+          "generations": 3
+        }
+      },
+      "run_id": "run_20261009T195218Z",
+      "schema_version": 36,
+      "seconds": {
+        "accept": 10.37,
+        "cohort": 2.02,
+        "parse_each": [
+          0.015,
+          0.026,
+          0.017,
+          0.061,
+          0.037,
+          0.014,
+          0.018,
+          0.011,
+          0.011,
+          0.05,
+          0.801,
+          0.392,
+          0.557
+        ],
+        "review_and_activate": 0.03,
+        "total": 12.74
+      },
+      "started_at": "2026-10-09T19:52:07.451664+00:00",
+      "swingset": "/nix/store/ah2kywh0n0p63qf6w9lrd30rqv90xzhg-source/src/swingset/__init__.py"
+    }
+  },
+  "rollback": "inside the hold: previous system + restore policy rows (contract 4 digests 584918ce..., 11d39fe3...); after the drain starts: c030+c5 minus contract rules is not safe; use c032 minus contract rules with the observations hunk, or keep policies at 5 (independent check condition 3)",
+  "timers_after_hold": {
+    "acquire": "active",
+    "plan": "active",
+    "derive": "active",
+    "maintain": "active",
+    "release": "inactive (until the drain ends, condition 1)"
+  },
+  "backpressure_switch": {
+    "decision": "D-0243",
+    "found": "2026-10-09T20:53Z: 0 requests since activation; backpressure active on pending_parse_bytes (603,337,619), pending_parse_items (runnable 36,300) and pending_work_items; derive about 511 units per tick",
+    "deploy_tree": "/private/tmp/swingset-c033 = c032 with pending_parse_items 50000, pending_parse_bytes 2147483648, pending_work_items 120000",
+    "hold_utc": [
+      "2026-10-09T20:54:03Z",
+      "2026-10-09T20:56:33Z"
+    ],
+    "system_after": "/nix/store/1agvbfna9gbx2b7sgsx3rdm6sk1lgkxi-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+    "release_timer": "stopped again after the switch",
+    "fetch_resumed": {
+      "first_requests_utc": "2026-10-09T21:01:03Z",
+      "hosts": [
+        "eepro.com",
+        "points.worldsdc.com",
+        "scoring.dance"
+      ],
+      "snapshots_by_21:01:10Z": 3
+    },
+    "revert": "after the drain post-check: 4000, 536870912, default 10000"
+  },
+  "drain_at_20:53Z": {
+    "pending": {
+      "link": 1447,
+      "parse": 36737,
+      "project": 29808
+    },
+    "equivalences": 5097,
+    "generations": {
+      "project/calendar": 1
+    },
+    "unit_failures_new": 0,
+    "file_bytes": 72948412416
+  },
+  "mac_idle_sleep_2026-10-10": {
+    "what": "the Mac idle-slept on AC with maintenance dark wakes until HID wake at 2026-10-10T05:04Z; the 48 h caffeinate of 2026-10-02 had expired",
+    "effect": "requests during dark wakes failed as transport errors, so scoring.dance, eepro.com and points.worldsdc.com reached pause_streak 5 (paused to about 06:33-06:44Z); a derive tick spanned 03:57-05:05Z; no stored page from about 23:00Z",
+    "action": "caffeinate -dimsu -t 604800 at about 05:10Z; host pauses left to expire",
+    "drain_at_05:05Z": {
+      "pending": {
+        "link": 417,
+        "parse": 21193,
+        "project": 12919
+      },
+      "equivalences": 23016,
+      "generations": {
+        "project/calendar": 1
+      },
+      "new_unit_failures": 0,
+      "quarantined": 0,
+      "requests_since_activation": 732,
+      "snapshots": 376
+    }
+  },
+  "space_2026-10-10": {
+    "found": "12:08Z: Mac free 76 GiB after the 12:00 backup run (worker quota showed 19.6 GB free mid-run, 62.6 GB after the qgroup caught up; each run writes about 40 GB of temporary data and the OrbStack image keeps the peak)",
+    "owner": "2026-10-10 'Delete the 09-29 copy and rehearsal/diag (Recommended)'; 'Remove it after the check (Recommended)' for run_20260928T041302Z",
+    "mac_deleted": {
+      "~/swingset-offload/state-20260929.sqlite": 64718315520,
+      "~/swingset-offload/rehearsal/diag": "67 GB (rehearsal base, workflow finished)"
+    },
+    "mac_free_after_gib": 182,
+    "worker_checkpoint": {
+      "removed": "/var/lib/swingset/checkpoints/run_20260928T041302Z",
+      "independent_check": "approve with conditions 2026-10-10 (no live file only in it; recovery falls through to named checkpoints and sets; [backup-stale] reads the newest set)",
+      "bytes": 62484701616,
+      "checkpoint_json_sha256": "c39e3a64756a8719a81fa41a61d32065dd856627b86adbe884b2c2781b874866",
+      "schema": 32,
+      "method": "rm -rf --one-file-system as root under operator-hold",
+      "hold_utc": [
+        "2026-10-10T14:48:05Z",
+        "2026-10-10T14:51:41Z"
+      ],
+      "exit": 0,
+      "quota_free_gb": {
+        "before": 62.8,
+        "after": 125.5
+      },
+      "remaining": [
+        "h16-published-20260917",
+        "pre-regression-schema32-20260921T0423Z",
+        "pre-schema32-20260921",
+        "sets: set_20261009T191749Z, set_20261010T120000Z",
+        "segments"
+      ]
+    }
+  },
+  "post_check": {
+    "at_utc": "2026-10-10T19:44Z",
+    "drain_window_utc": [
+      "2026-10-09T19:52:27Z",
+      "2026-10-10T19:44Z"
+    ],
+    "policies": [
+      [
+        "scoringdance.round",
+        "5",
+        "enforce"
+      ],
+      [
+        "wdr.rounds",
+        "5",
+        "enforce"
+      ]
+    ],
+    "accepted_by_contract": [
+      [
+        "scoringdance.round",
+        "5",
+        5548
+      ],
+      [
+        "wdr.rounds",
+        "5",
+        13
+      ]
+    ],
+    "blocked_units": [
+      [
+        [
+          "scoringdance.round",
+          "needs_review",
+          [
+            "source_remark_outcome_conflict"
+          ]
+        ],
+        23
+      ],
+      [
+        [
+          "scoringdance.round",
+          "waiting_for_inputs",
+          [
+            "coverage_no_terminal"
+          ]
+        ],
+        1
+      ],
+      [
+        [
+          "scoringdance.round",
+          "needs_review",
+          [
+            "critical_unknown"
+          ]
+        ],
+        2
+      ]
+    ],
+    "v5_generations": [
+      [
+        "scoringdance.round",
+        "accepted",
+        5548
+      ],
+      [
+        "wdr.rounds",
+        "accepted",
+        13
+      ],
+      [
+        "scoringdance.round",
+        "needs_review",
+        35
+      ],
+      [
+        "wdr.rounds",
+        "needs_review",
+        3
+      ],
+      [
+        "scoringdance.round",
+        "superseded",
+        1268
+      ],
+      [
+        "scoringdance.round",
+        "waiting_for_inputs",
+        1
+      ]
+    ],
+    "labels": {
+      "scoringdance.round": {
+        "match": 5548
+      },
+      "wdr.rounds": {
+        "match": 13
+      },
+      "scoringdance.event": {
+        "labels_differ": 315,
+        "note": "maintenance item 21"
+      },
+      "wsdc_registry.dancer": {
+        "match": 28429,
+        "labels_differ": 750,
+        "note": "older snapshots kept by design"
+      }
+    },
+    "new_generations_05:06_to_19:44Z": {
+      "link/event": 513,
+      "project/dancer": 502,
+      "project/event": 625,
+      "project/mapping": 2,
+      "project/resolution": 24,
+      "project/source_index": 12,
+      "project/year": 126
+    },
+    "remaining_parse_pending": {
+      "total": 3741,
+      "superseded_no_queue_row": 3294,
+      "admission_needs_review": 418,
+      "waiting_for_inputs": 15,
+      "parse_failed_known": 11,
+      "unsupported": 3
+    },
+    "backpressure_at_19:44Z": {
+      "active": false,
+      "runnable_parse": 3566,
+      "pending_parse_bytes": 160358097
+    },
+    "unit_failures_new": 0,
+    "quarantined": 0,
+    "file_bytes": 72948412416,
+    "free_pages": 7748792,
+    "verdict": "passed: matches the rehearsal (5,548 rounds and 13 WDR accepted at contract 5; 23 conflicts, 2 two-table pages and 1 waiting unit blocked; every round and WDR label matches)"
+  },
+  "backpressure_revert": {
+    "decision": "D-0244",
+    "deploy_tree": "/private/tmp/swingset-c034 = c033 with pending_parse_items 8000, pending_parse_bytes 536870912, pending_work_items default",
+    "hold_utc": [
+      "2026-10-10T19:44:59Z",
+      "2026-10-10T19:46:41Z"
+    ],
+    "system_after": "/nix/store/l6m6sgn60a8mj5b37qf9cjlkw7zc39g6-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+    "release_timer": "started 2026-10-10T19:46:41Z (next 20:20Z; builds weekly, D-0235)"
+  }
+}

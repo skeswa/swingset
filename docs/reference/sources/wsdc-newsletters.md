@@ -14,7 +14,7 @@ Volumes 24 and 28 absent, covering December 2016 through May 2024. The
 intake records the actual discovered issue list; missing or changed
 issues are findings rather than invented URLs.
 
-Use one request in flight per host, at least five seconds between
+Use one request in flight per host, at least two seconds between
 requests, the project User-Agent, conditional validators, and the
 configured host budget. The finite phase 1 intake uses the same gate as
 live collection and stores PDF bytes unchanged. Newsletter requests are

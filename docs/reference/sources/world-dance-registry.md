@@ -77,7 +77,7 @@ this happens (Desert City Swing 2026, Cash Bash 2025).
 
 ```toml
 [hosts."scores.worlddanceregistry.com"]
-min_gap_seconds = 5
+min_gap_seconds = 2
 daily_request_budget = 400
 live_interval = "15m"              # doubles after 8 unchanged, max 1h
 cooling_interval = "6h"
@@ -152,6 +152,11 @@ Used to cross-check finals places from the rounds file.
   sample use a group named `NASDE`. Its own labels define `SVW` as a swing
   violation warning and `SV1`, `SV2`, and `SV3` as 1-, 3-, and 10-placement
   drops. Preserve the group and labels; do not apply the penalty a second time.
+  The group is kept as text made from a key-sorted mapping (parser 4), so the
+  body's key order cannot change it. A final judge mark such as `4|SVW` is a
+  warning with no placement change and passes contract 5; `SV1` to `SV3`
+  still block (D-0240). The projector does not yet read the mark under
+  `|SVW`, so that judge's final mark is missing from the canonical output.
 
 ## 10. Backfill
 

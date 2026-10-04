@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import sqlite3
 from collections import Counter
 from collections.abc import Iterable, Mapping
 from dataclasses import replace
@@ -24,13 +25,38 @@ from .schema import PRIMARY_KEYS, SCHEMAS
 
 
 def correction_needed(database: Database, bundle: InputBundle) -> bool:
+    """Whether the acknowledged baseline needs a correction-only release.
+
+    A correction re-renders the baseline's own tables, so it corrects only a
+    baseline the current release path wrote, or an earlier correction of one.
+    Under partitioned releases a closure, settled or unsealed baseline is
+    left for the next normal build to replace, under the gate (D-0250).
+    """
     baseline = database.state_dir / "baseline"
     if not baseline.is_symlink():
         return False
     policy = json.loads((baseline / "_meta/manifest.json").read_bytes()).get("release_policy")
+    mode = (policy or {}).get("mode")
+    if mode not in CORRECTABLE_MODES and release_path(database, bundle) != "closure":
+        return False
     if not policy:
         return True
-    if policy.get("mode") == "partitioned":
+    suppressions_changed = policy["input_file_hashes"].get(
+        "overrides/suppressions.csv"
+    ) != bundle.file_hashes.get("overrides/suppressions.csv")
+    if mode == "correction_only":
+        # Its token's admission digest is the selection digest, which every
+        # accepted source generation moves; a correction adds no source
+        # generation, so only identity, admission policy and revocation
+        # changes count (D-0250).
+        current = correction_token(database.connection)
+        recorded = policy.get("admission")
+        return bool(
+            _identity_part(policy["token"]) != _identity_part(current)
+            or suppressions_changed
+            or (recorded is not None and recorded != correction_admission(database.connection))
+        )
+    if mode == "partitioned":
         # The artifacts are immutable and named by digest; what can move under
         # a published partitioned release is the identity policy, an
         # admission policy, a revocation, or the suppressions file (D-0224).
@@ -43,10 +69,9 @@ def correction_needed(database: Database, bundle: InputBundle) -> bool:
             return True
         return bool(
             policy["token"] != partition_token(database.connection, value["support_digest"])
-            or policy["input_file_hashes"].get("overrides/suppressions.csv")
-            != bundle.file_hashes.get("overrides/suppressions.csv")
+            or suppressions_changed
         )
-    if policy.get("mode") == "closure":
+    if mode == "closure":
         from .closure import ClosureError, validate
 
         try:
@@ -58,11 +83,26 @@ def correction_needed(database: Database, bundle: InputBundle) -> bool:
         policy["token"]
         != correction_token(
             database.connection,
-            closure=policy.get("closure") if policy.get("mode") == "closure" else None,
+            closure=policy.get("closure") if mode == "closure" else None,
         )
-        or policy["input_file_hashes"].get("overrides/suppressions.csv")
-        != bundle.file_hashes.get("overrides/suppressions.csv")
+        or suppressions_changed
     )
+
+
+#: Baseline modes a correction may rebuild under a partitioned or whole path.
+CORRECTABLE_MODES = frozenset({"partitioned", "correction_only"})
+
+
+def _identity_part(token: Mapping[str, Any]) -> dict[str, Any]:
+    return {key: value for key, value in token.items() if key != "admission_digest"}
+
+
+def correction_admission(conn: sqlite3.Connection) -> dict[str, str]:
+    """The admission policies and revocations a correction ran under (D-0250)."""
+    from .closure import _revocations
+    from .manifest import policies_digest
+
+    return {"policies": policies_digest(conn), "revocations": _revocations(conn)}
 
 
 def _metadata(
@@ -143,10 +183,26 @@ def build_release(
     *,
     correction_only: bool = False,
     report: dict[str, Any] | None = None,
+    source: Path | None = None,
 ) -> BuildResult:
-    """Build a release candidate, or reuse one; ``report`` receives stage 1's counts."""
+    """Build a release candidate, or reuse one; ``report`` receives stage 1's counts.
+
+    ``source`` is a revert: a correction-only build that reads a former
+    published candidate's tables instead of the baseline's, so the next
+    publication puts that release back on top of the hub head (D-0250).
+    """
     baseline_link = database.state_dir / "baseline"
     baseline = baseline_link.resolve() if baseline_link.is_symlink() else None
+    if source is not None:
+        source = source.resolve()
+        if not correction_only:
+            raise BuildError("a revert is a correction-only build")
+        if source.parent != (database.state_dir / "candidates").resolve():
+            raise BuildError(f"a revert reads a retained candidate: {source}")
+        if source == baseline:
+            raise BuildError(f"{source.name} is already the baseline")
+        if not (source / "PUBLISHED").is_file():
+            raise BuildError(f"{source.name} has no publication receipt")
     if not correction_only and release_path(database, bundle) != "closure":
         return _build_from_partitions(
             database, bundle, clock, run_id, remote, baseline=baseline, report=report
@@ -234,7 +290,7 @@ def build_release(
             if baseline is None:
                 raise BuildError("correction-only build requires a published baseline")
             data = BuildInput(
-                baseline_tables(baseline),
+                baseline_tables(source if source is not None else baseline),
                 SCHEMAS,
                 PRIMARY_KEYS,
                 {
@@ -293,6 +349,12 @@ def build_release(
                         "SELECT kind,COUNT(*) FROM findings WHERE closed_at IS NULL AND owner_kind IN ('parse','parse_failure') GROUP BY kind"
                     )
                 }
+                policy["admission"] = correction_admission(conn)
+                if source is not None:
+                    policy["reverted_from"] = {
+                        "candidate_id": source.name,
+                        "commit": json.loads((source / "PUBLISHED").read_bytes())["commit"],
+                    }
                 data = replace(data, release_policy=policy)
             if pinned is not None:
                 policy = dict(data.release_policy or {})

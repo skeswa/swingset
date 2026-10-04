@@ -1403,6 +1403,20 @@ def test_a_release_tick_builds_then_defers_inside_the_build_interval(dirs):
         )
 
 
+def test_a_dry_release_tick_reports_a_correction_and_builds_none(dirs, monkeypatch):
+    """A dry run says what --publish would do; it builds no correction (D-0250)."""
+    from swingset.build import service
+
+    clock = FakeClock()
+    _accepted(dirs, clock)
+    _enqueue(dirs[0], clock, ["queued"])
+    monkeypatch.setattr(service, "correction_needed", lambda *_: True)
+    record = _release_tick(dirs, clock)
+    assert record["correction_needed"] is True and not record["failed"], record
+    assert "correction_candidate_id" not in record and record["candidate_id"]
+    assert record["counters"].get("corrections", 0) == 0
+
+
 def test_derive_starts_no_unit_while_release_builds(dirs, projected, monkeypatch):
     """No project unit and no parse unit starts beside a whole build (F10)."""
     from swingset.schedule import release_steps

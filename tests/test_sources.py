@@ -229,6 +229,9 @@ def test_real_scoringdance_index_and_round_fields() -> None:
         assert sheet.tables[0].headers[1].text == "Leader"
         if expected_tables == 2:
             assert result.observations[1].payload.tables[0].headers[1].text == "Follower"
+            # Role-split prelims keep their blank column 2 (extract 5 labels
+            # only one-table couple rounds).
+            assert [o.payload.tables[0].headers[2].text for o in result.observations] == ["", ""]
         else:
             assert sheet.tables[0].headers[2].text == "Follower"
             assert sheet.tables[0].headers[-2].text == "Placement"
@@ -246,3 +249,26 @@ def test_real_scoringdance_index_and_round_fields() -> None:
         )
         if expected_tables == 2:
             assert ("row-data-state", "CB") in name_cell.attributes
+
+
+def test_scoringdance_one_table_couple_round_labels_the_partner_column() -> None:
+    page = ScoringRound()
+    root = Path("src/swingset/admission/fixtures")
+    for name, partners in (
+        ("scoringdance-partner-quarter", ("Adrian Dodman", "Sarah Hare")),
+        ("scoringdance-partner-allamerican", None),
+    ):
+        extract = page.extract((root / f"{name}.body").read_bytes())
+        assert len(extract) == 1
+        assert [cell["text"] for cell in extract[0]["rows"][0][:3]] == [
+            "Bib Number",
+            "Leader",
+            "Follower",
+        ]
+        if partners:
+            assert tuple(cell["text"] for cell in extract[0]["rows"][1][1:3]) == partners
+    # Two result tables keep column 2 blank, even with text in it.
+    extract = page.extract((root / "scoringdance-two-table-partner.body").read_bytes())
+    assert len(extract) == 2
+    assert [table["rows"][0][2]["text"] for table in extract] == ["", ""]
+    assert any(row[2]["text"] for row in extract[1]["rows"][1:])

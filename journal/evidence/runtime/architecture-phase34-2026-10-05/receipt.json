@@ -1,0 +1,547 @@
+{
+  "operation": "architecture phases 3 and 4 in one switch: partitions, read sets and partitioned releases (migration 35); storage lifecycle, packs and the collector (migration 36); stop-marker fix",
+  "actor": "claude (session claude-rearch)",
+  "decisions": [
+    "D-0222",
+    "D-0223",
+    "D-0224",
+    "D-0225",
+    "D-0226",
+    "D-0229",
+    "D-0231",
+    "D-0232",
+    "D-0233",
+    "D-0234",
+    "D-0235"
+  ],
+  "owner_approval": "2026-10-02 'Phase 4 before Phase 3' (deploy together); 2026-10-04 'Delete it after verify' (schema-33 Mac copy), 'Use the measured count' (events row from the first partitioned build); 2026-10-05 'Deploy now, Mac stays awake (Recommended)'",
+  "independent_check": {
+    "reviewer": "second agent (Claude Opus), read-only, 2026-10-04",
+    "verdict": "APPROVE WITH CONDITIONS (11); no blocker",
+    "file": "scratchpad phase34-verdict.md (not retained)",
+    "key_points": "tree = 29794fb9 + stop-marker and drill-test patches + 3 config/nix edits; storage apply asks ~14-16 GB quota and leaves the file ~73 GB; reclaim expected to refuse (needs 102-112 GB); deletions recoverable only by the byte copy; events gate refuses builds without the owner's row and blocks nothing else"
+  },
+  "deploy_tree": {
+    "path": "/private/tmp/swingset-c030",
+    "contents": "git archive 29794fb9 (phase 4; parent 7071b2a6 phase 3) minus journal/evidence, plus nix/hosts/orb.nix loops.enable = true, nix/module.nix release memory 7680M, config build_interval_seconds 604800 (D-0235 kept on purpose: verdict condition 8), stop-marker fix patch and drill-test date patch",
+    "scope_guard": {
+      "baseline": "/private/tmp/swingset-c029 (deployed 2b)",
+      "scopes": "44 -> 45",
+      "changed": 13,
+      "parse_or_extract_changed": 0
+    },
+    "core_suite": "1,937 passed, 4 failed (tests/test_dcn_* read journal/evidence, omitted from deploy trees: FileNotFoundError), 1,529 deselected"
+  },
+  "preflight": {
+    "hold_utc": "2026-10-05T14:07:14Z",
+    "idle_utc": "2026-10-05T14:11:55Z",
+    "system_before": "/nix/store/bfnnnxvdb199bvw44s9nla9b2wxbxbsf-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+    "wal_checkpoint_truncate": [
+      0,
+      0,
+      0
+    ],
+    "schema": 34,
+    "page_count": 17795321,
+    "freelist": 0,
+    "database_bytes": 72889634816,
+    "pending": {
+      "link": 2934,
+      "parse": 1520,
+      "project": 2
+    },
+    "queue": {
+      "ready": 88,
+      "waiting_input": 490
+    },
+    "leased": 0,
+    "operator_pauses": 0,
+    "last_request_utc": "2026-10-05T14:07:54Z",
+    "last_snapshot_utc": "2026-10-05T14:05:03Z",
+    "checkpoints": [
+      "h16-published-20260917",
+      "pre-regression-schema32-20260921T0423Z",
+      "pre-schema32-20260921",
+      "run_20260928T041302Z"
+    ],
+    "quota_free_gb": 76.3,
+    "mac_free_gib": 165
+  },
+  "byte_copy": {
+    "path": "Mac ~/swingset-offload/state-20261005-schema34.sqlite (mode 0444)",
+    "window_utc": [
+      "2026-10-05T14:12:04Z",
+      "2026-10-05T14:16:21Z"
+    ],
+    "bytes": 72889634816,
+    "sha256_worker": "254166edd53892931b4b81e0bb856cf3d9e50a9e06985c173c52080152cd47c0",
+    "sha256_mac": "254166edd53892931b4b81e0bb856cf3d9e50a9e06985c173c52080152cd47c0",
+    "quick_check_mac": {
+      "result": "ok",
+      "window_utc": [
+        "2026-10-05T14:22:32Z",
+        "2026-10-05T14:34:14Z"
+      ]
+    }
+  },
+  "mac_space_deletion": {
+    "path": "~/swingset-offload/state-20261002-schema33.sqlite",
+    "bytes": 71010963456,
+    "approved": "owner 2026-10-04 'Delete it after verify (Recommended)'",
+    "after": "Mac free 164 GiB"
+  },
+  "switch": {
+    "command": "nixos-rebuild switch --flake path:/mnt/mac/private/tmp/swingset-c030#orb --impure",
+    "window_utc": [
+      "2026-10-05T14:34:23Z",
+      "2026-10-05T14:34:35Z"
+    ],
+    "system_after": "/nix/store/h84i20y5awsf4f1z9x6ln8i3p5mf9plc-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+    "source": "/nix/store/pw5yz9db3lggysx2yziajdfj6vhwap0a-source",
+    "no_unit_started": true,
+    "checked_in_source": "migrations through 0036, note_stop present, build 604800, inventory 43200, pending_parse_items 4000, cap 76GB"
+  },
+  "rollback": "before migrate: system_before; after migrate: only the byte copy (phase 2 code refuses schema 35/36), moving the schema-36 file to the Mac first (quota) and moving objects/ and partitions/ aside, then switch to system_before",
+  "migrate": {
+    "command": "sudo -u swingset swingset migrate --lock-timeout 3600 (unit environment)",
+    "window_utc": [
+      "2026-10-05T14:34:47Z",
+      "2026-10-05T14:40:27Z"
+    ],
+    "result": {
+      "schema_before": 34,
+      "schema_after": 36,
+      "seconds": 337.812
+    },
+    "database_bytes_after": 72938668032,
+    "owner": "swingset",
+    "duckdb_check": "(42,) with the units' LD_LIBRARY_PATH; without it ImportError libstdc++ (the units set it)"
+  },
+  "storage_plan": {
+    "window_utc": [
+      "2026-10-05T14:40:39Z",
+      "2026-10-05T14:55:19Z"
+    ],
+    "digest": "f445c790bba8fb96f028d0df6cef8c0d48cacb725d01965e7406b3e58cfccc5b",
+    "evict": {
+      "generations": 619347,
+      "rows": 50049862,
+      "packs": 30901,
+      "digest": "dbe5311c1d65484acaf641591787c3acf48fb419ccc7210e879ff214bcb1993c"
+    },
+    "keep": {
+      "pointer": 35892,
+      "building": 0,
+      "partial": 0,
+      "unlabelled": 0,
+      "references": 2950364,
+      "digest": "538e6df499f0af1ffd1baac20cee299a468f0d2813c4cf692a251d53bddb7898"
+    },
+    "evicted": {
+      "generations": 0,
+      "with_references": 0,
+      "digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "parse_body_generations": 193614,
+    "label_body_generations": 19,
+    "estimate": {
+      "parse_bodies_to_pack": 193614,
+      "parse_body_bytes": 3455360873,
+      "label_bodies_to_pack": 19,
+      "label_body_bytes": 1546226322,
+      "references": 53000226,
+      "references_moved": 50049862,
+      "reference_bytes": 35115315200,
+      "reference_bytes_freed": 33160550670,
+      "payloads_removed": 179667,
+      "payload_text_bytes_removed": 61419152,
+      "packs_to_write": 30901,
+      "free_list_bytes": 0
+    },
+    "condition_5": "met: keep.building 0 and keep.partial 0 match the hold (0 leased, nothing building); evicted.with_references 0; keep.pointer 35,892; evict 619,347 generations"
+  },
+  "storage_apply": {
+    "window_utc": [
+      "2026-10-05T14:55:31Z",
+      "2026-10-05T15:25:15Z"
+    ],
+    "plan_digest": "f445c790bba8fb96f028d0df6cef8c0d48cacb725d01965e7406b3e58cfccc5b",
+    "packs": {
+      "written": 30901,
+      "verified": 30901,
+      "repaired": 0,
+      "raw_bytes": 4576174231,
+      "stored_bytes": 239714617
+    },
+    "bodies": {
+      "parse_body": {
+        "stubbed": 193614,
+        "objects": 41092,
+        "raw_bytes": 875307063,
+        "stored_bytes": 104116948
+      },
+      "label_body": {
+        "stubbed": 19,
+        "raw_bytes": 1546226322,
+        "stored_bytes": 179409881
+      }
+    },
+    "room": {
+      "needed_bytes": 13909529058,
+      "quota_free_bytes": 75763773440
+    },
+    "references_before": 53000226,
+    "references_kept": 2950364,
+    "generations_evicted": 619347,
+    "payloads_removed": 179667,
+    "free_list_bytes": [
+      4755099648,
+      37922148352
+    ],
+    "seconds": {
+      "plan": 357.8,
+      "pack": 468.2,
+      "verify": 16.0,
+      "bodies": 396.5,
+      "move": 525.0
+    },
+    "database_bytes_after": 72948412416,
+    "quota_free_after_gb": 69.8
+  },
+  "gc_collect": {
+    "plan_window_utc": [
+      "2026-10-05T15:25:33Z",
+      "2026-10-05T15:26:58Z"
+    ],
+    "plan_digest": "e7b6dd3b4b0c93d9521f338563c8dab21ae2750b2994ea6d725c4a7a8155eb1f",
+    "cutoff": "2026-10-04T00:00:00+00:00",
+    "plan": "dependency_set 711,301 victims (122,561,495 bytes); every other class 0; roots 639,493 (343,152 named directly)",
+    "apply_window_utc": [
+      "2026-10-05T15:27:04Z",
+      "2026-10-05T15:30:42Z"
+    ],
+    "removed": {
+      "dependency_set": {
+        "removed": 711301,
+        "bytes": 122561495
+      }
+    },
+    "freelist_pages": [
+      9256885,
+      9285690
+    ],
+    "quota_free_after_gb": 75.5
+  },
+  "gc_reclaim": {
+    "window_utc": [
+      "2026-10-05T15:30:50Z",
+      "2026-10-05T15:33:40Z"
+    ],
+    "result": "refused as expected (condition 6): needs about 99,285,606,400 bytes, quota had 75,453,575,168; nothing touched",
+    "database_bytes": 72948412416,
+    "free_pages_bytes_approx": 38034186240
+  },
+  "hold_removed_utc": "2026-10-05T15:33:50Z",
+  "hold_minutes": 86.6,
+  "known_parse_failures": {
+    "watchdog": "2026-10-05T15:56:07Z [loop-failing] derive: the last 3 ticks failed",
+    "cause": "the 11 snapshots that have failed since 2026-10-01 (5 scoring.dance /enUS/events/179/results/ origin, 6 Wayback worldsdc.com/events-map/) have extract_status=failed; migration 35 reset their queue clocks, so each derive tick retried some, each attempt 'blocked parse_failed' in about 4 ms, and the tick reports failed",
+    "not_from_the_switch": true,
+    "next": "they back off and quarantine at the third attempt ([unit-quarantined]); the fix (extractors for these page shapes, or an owner-accepted permanent block) is maintenance item 17"
+  },
+  "drain": {
+    "window_utc": [
+      "2026-10-05T15:33:50Z",
+      "2026-10-05T21:08:41Z"
+    ],
+    "equivalences": 36259,
+    "new_generations": {
+      "link/event": 272,
+      "project/dancer": 27,
+      "project/event": 2,
+      "project/inventory": 1,
+      "project/mapping": 3,
+      "project/resolution": 417,
+      "project/year": 21
+    },
+    "rehearsal_expected": "inventory 1, mappings 3, resolutions 413, years 21; everything else cut off",
+    "pending_after": {
+      "parse": 1555,
+      "project": 0,
+      "link": 0
+    },
+    "loop_ticks": {
+      "acquire": "67/67",
+      "derive": "67/67, max 293 s, rss 0.98 GB",
+      "plan": "11/11",
+      "release": "5/5"
+    },
+    "unit_failures": "only the 11 known extract-failed snapshots (maintenance item 17)",
+    "quarantined": 0,
+    "requests": 2206,
+    "snapshots": 96,
+    "database_bytes": 72948412416,
+    "freelist_pages": [
+      9282597,
+      9089151
+    ],
+    "note": "slower than the rehearsal's 2.3-2.8 h because derive runs 4-minute ticks every 5 minutes"
+  },
+  "builds": {
+    "hold_utc": [
+      "2026-10-05T21:09:04Z",
+      "2026-10-05T21:18:40Z"
+    ],
+    "build_of_record": {
+      "command": "sudo -u swingset swingset build --overrides /Users/skeswa/repos/skeswa/swingset/overrides (under the hold)",
+      "window_utc": [
+        "2026-10-05T21:09:04Z",
+        "2026-10-05T21:17:50Z"
+      ],
+      "seconds": 525.79,
+      "max_rss_bytes": 1664536576,
+      "candidate": "cand_f4e085b218264fec",
+      "content_hash": "ab5c87295fbf1b03774bce881a35a34ddb19c306fc922c0a771ee2b1bc1c12f4",
+      "manifest_digest": "66ef08d2d28717c45dbdb1c02ea55da7de66df2bd764ee70d0278e9096f0eeee",
+      "partitions": {
+        "built": 1884,
+        "withheld": 1129,
+        "withheld_by_reason": {
+          "source_support_unavailable": 1129
+        },
+        "identity_of_absent_dancer_closed": 128,
+        "registry_association_outside_release": 47264
+      },
+      "verdict": {
+        "state": "refused",
+        "reasons": [
+          "decrease:events 2105->1805"
+        ],
+        "baseline": "cand_80719e178655435d / 138352e",
+        "measures": {
+          "events": [
+            2105,
+            1805
+          ],
+          "events_with_placements": [
+            107,
+            227
+          ],
+          "contests": [
+            2005,
+            3144
+          ],
+          "rounds": [
+            2934,
+            5173
+          ],
+          "entries": [
+            58558,
+            115931
+          ],
+          "judges": [
+            2818,
+            6495
+          ],
+          "placements": [
+            14115,
+            24741
+          ],
+          "final_marks": [
+            83355,
+            147622
+          ],
+          "callbacks": [
+            59064,
+            124302
+          ],
+          "callback_marks": [
+            288502,
+            602775
+          ],
+          "dancers": [
+            27784,
+            27915
+          ],
+          "registry_placements": [
+            197990,
+            198777
+          ],
+          "confirmed_links": [
+            0,
+            0
+          ],
+          "linked_entries": [
+            0,
+            0
+          ],
+          "linked_judges": [
+            0,
+            0
+          ],
+          "heats": [
+            0,
+            0
+          ]
+        }
+      }
+    },
+    "second_build": {
+      "window_utc": [
+        "2026-10-05T21:17:50Z",
+        "2026-10-05T21:18:40Z"
+      ],
+      "seconds": 49.99,
+      "max_rss_bytes": 359415808,
+      "result": "same candidate cand_f4e085b218264fec (unchanged inputs give the same manifest)"
+    },
+    "acceptance": {
+      "build_under_2GB": "met on the worker (1.63 GB; the Mac rehearsal read 2.43 GB)",
+      "build_under_10min": "met (526 s)",
+      "manifest_identical": "met",
+      "decrease_refused_with_reason": "met (events 2105->1805; owner's row pending, condition 7)"
+    },
+    "database_bytes_after": 72948412416
+  },
+  "events_decrease_approval": {
+    "row": "events,2105,1805,304 legacy events lost source support; measured by the first partitioned build cand_f4e085b218264fec on 2026-10-05,owner,2026-10-05",
+    "approved": "owner 2026-10-02 'Approve the drop'; 2026-10-04 'Use the measured count (Recommended)'",
+    "written_by": "claude on the owner's request 2026-10-06 ('please edit overrides/release_decreases.csv on my behalf'); data-corrections.md has the owner add it, so this is noted",
+    "check": "gate.parse_overrides accepts it; gate.evaluate on cand_f4e085b218264fec's measures gives 'pass' with this row as the only override",
+    "effect": "production reads overrides/ from the Mac checkout, so the next build captures it; publication stays off (D-0189)",
+    "committed": false
+  },
+  "post_check_24h": {
+    "window_utc": [
+      "2026-10-05T21:18:40Z",
+      "2026-10-06T21:10:45Z"
+    ],
+    "mac_slept": false,
+    "loops": {
+      "acquire": "287/287, max 267 s, rss 0.19 GB",
+      "derive": "286/286, max 263 s, rss 1.01 GB",
+      "plan": "47/48 (one running), max 90 s, rss 0.91 GB",
+      "release": "24/24 (builds weekly)",
+      "maintain": "1/1, 197 s, rss 0.60 GB"
+    },
+    "failed_ticks": 0,
+    "new_unit_failures": 0,
+    "quarantined": 0,
+    "pauses": 0,
+    "requests": 2335,
+    "snapshots": 131,
+    "fetch_note": "points.worldsdc.com and scoring.dance spent their daily budgets; web.archive.org throttled (429) until 2026-10-07 16:40 UTC; [stale-fetch] 19:05Z is the spent budgets",
+    "new_generations": {
+      "link/event": 198,
+      "project/dancer": 76,
+      "project/inventory": 1,
+      "project/mapping": 1,
+      "project/resolution": 9,
+      "project/source_index": 10,
+      "project/year": 33
+    },
+    "equivalences": 4946,
+    "inventory_runs": [
+      "2026-10-05T19:57:36Z (drain)",
+      "2026-10-06T08:02:31Z (12 h pacing)"
+    ],
+    "replay_epochs": {
+      "project/inventory": 1,
+      "note": "not captured at the drain's end; recorded now for the next comparison"
+    },
+    "growth": {
+      "database_bytes": [
+        72948412416,
+        72948412416
+      ],
+      "freelist_pages": [
+        9089151,
+        8957426
+      ],
+      "pages_used_bytes_approx": 539541504,
+      "per_day": "about 0.54 GB of free pages used; file size unchanged"
+    },
+    "quota_free_gb": 75.9,
+    "mac_free_gib": 171,
+    "watchdog_lines": "[backup-stale], [backup-failed] (room check; segmented backups not yet on), [disk-low], [host-failing] web.archive.org, [stale-fetch] (spent budgets); none from the switch",
+    "verdict": "passed: no failure, no quarantine, no storage alert; an inventory refresh now cascades to 33 years, 9 resolutions and 198 links instead of re-minting every event"
+  },
+  "segmented_backups": {
+    "step": "phase 4 step 8 (verdict step 12)",
+    "owner": "2026-10-09 'yes now works for the backup - the mac will stay on'",
+    "mac_free_gib_before": 143,
+    "quota_free_gb_before": 75.7,
+    "switch": {
+      "deploy_tree": "/private/tmp/swingset-c031 = c030 + nix/hosts/orb.nix backupSegmented = true",
+      "hold_utc": [
+        "2026-10-09T19:12:45Z",
+        "2026-10-09T19:17:48Z"
+      ],
+      "idle_utc": "2026-10-09T19:17:16Z",
+      "switch_utc": "2026-10-09T19:17:41Z",
+      "system_before": "/nix/store/h84i20y5awsf4f1z9x6ln8i3p5mf9plc-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+      "system_after": "/nix/store/x877mx6bdccglhxvymlwnsf650w2b2ap-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+      "backup_execstart": "--segmented --lock-timeout 3600 --local"
+    },
+    "first_set": {
+      "window_utc": [
+        "2026-10-09T19:17:48Z",
+        "2026-10-09T19:28:53Z"
+      ],
+      "result": "success",
+      "set_id": "set_20261009T191749Z",
+      "manifest_sha256": "e93c3ba3d95dbfcc3ca6643a3f8ed831fbbc90c16432361b0db1d7d0c34baa40",
+      "db_raw_bytes": 35094089728,
+      "part_bytes": 3762531353,
+      "items": 163307,
+      "item_bytes": 4926492280,
+      "segments": 2,
+      "on_disk": {
+        "segments": "4.8G",
+        "sets": "3.6G"
+      },
+      "systemd": "11 min CPU, MemoryPeak 7.9G (page cache included), 86.6G read, 44.4G written",
+      "quota_free_gb_after": 65.3
+    },
+    "restore_drill": {
+      "unit": "swingset-maintain.service started by hand",
+      "window_utc": [
+        "2026-10-09T19:29:46Z",
+        "2026-10-09T19:37:49Z"
+      ],
+      "drill_started_utc": "2026-10-09T19:31:04Z",
+      "seconds": 401.7,
+      "passed": true,
+      "set_id": "set_20261009T191749Z",
+      "manifest_sha256": "e93c3ba3d95dbfcc3ca6643a3f8ed831fbbc90c16432361b0db1d7d0c34baa40",
+      "installed": {
+        "db_raw_bytes": 35094089728,
+        "items": 163307,
+        "item_bytes": 4926492280,
+        "schema_version": 36,
+        "integrity": "quick"
+      },
+      "release_proof": {
+        "candidate": "cand_80719e178655435d",
+        "mode": "closure",
+        "proof_bytes": 223004991
+      },
+      "need_bytes": 60020582008,
+      "free_bytes_at_start": 66831937536,
+      "quota_free_gb": {
+        "min_seen": 26.6,
+        "after_cleanup": 66.8
+      },
+      "maintain_storage": {
+        "evict": {
+          "generations": 18,
+          "references": 1531,
+          "failed": 0
+        },
+        "pack_bodies": {
+          "written": 0
+        }
+      }
+    }
+  }
+}

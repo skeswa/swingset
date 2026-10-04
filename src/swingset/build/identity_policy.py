@@ -111,19 +111,24 @@ def repair_placement_identities(tables: Mapping[str, list[dict[str, Any]]]) -> N
             row["points_matches_expected"] = None
 
 
-def _registry_support(
-    tables: Mapping[str, Sequence[Mapping[str, Any]]],
-) -> dict[str, frozenset[int]]:
-    """Match only registry facts contained in this release's selected tables."""
-    names = {
-        row["wsdc_id"]: normalize_name(
+def _dancer_names(tables: Mapping[str, Sequence[Mapping[str, Any]]]) -> dict[int, str]:
+    """Each release dancer's normalized registry name."""
+    return {
+        int(row["wsdc_id"]): normalize_name(
             str(
                 row.get("name_norm")
                 or " ".join(str(row.get(k) or "") for k in ("first_name", "last_name"))
             )
         ).value
-        for row in tables["dancers"]
+        for row in tables.get("dancers", ())
     }
+
+
+def _registry_support(
+    tables: Mapping[str, Sequence[Mapping[str, Any]]],
+) -> dict[str, frozenset[int]]:
+    """Match only registry facts contained in this release's selected tables."""
+    names = _dancer_names(tables)
     registry: dict[tuple[Any, ...], set[int]] = {}
     for row in tables["registry_placements"]:
         if row.get("event_id") is not None:
@@ -157,6 +162,73 @@ def _registry_support(
                 if names.get(identifier) == normalize_name(str(entry.get("name_raw") or "")).value
             )
     return {key: frozenset(value) for key, value in support.items()}
+
+
+def _printed_identity_holds(
+    tables: Mapping[str, Sequence[Mapping[str, Any]]],
+) -> dict[str, str]:
+    """Why each entry's printed WSDC id fails the H17 acceptance rules (D-0248).
+
+    The id must be a release dancer whose registry name equals the sheet name,
+    or has the same words reordered. A role contradiction also withholds: the
+    registry credits the id in the other role for this result, or a non-switch
+    contest shows one id in both roles, which withholds every final-only entry
+    of that contest. Entries that pass are absent. Reads only the entry's own
+    event, so a partition gives the whole-release answer.
+    """
+    names = _dancer_names(tables)
+    entries = {str(row["entry_id"]): row for row in tables["entries"]}
+    contests = {row["contest_id"]: row for row in tables["contests"]}
+    registry = {
+        tuple(row.get(k) for k in ("event_id", "role", "division", "dance_style", "result"))
+        + (int(row["wsdc_id"]),)
+        for row in tables["registry_placements"]
+        if row.get("event_id") is not None
+    }
+    roles: dict[tuple[Any, int], set[str]] = {}
+    for row in entries.values():
+        if row.get("wsdc_id") is not None and row.get("role") in {"leader", "follower"}:
+            roles.setdefault((row.get("contest_id"), int(row["wsdc_id"])), set()).add(row["role"])
+    flipped = {contest for (contest, _), seen in roles.items() if len(seen) > 1}
+    contradicted: set[str] = set()
+    for placement in tables["placements"]:
+        contest = contests.get(placement.get("contest_id"), {})
+        for role, other in (("leader", "follower"), ("follower", "leader")):
+            entry = entries.get(str(placement.get(f"{role}_entry_id")))
+            if entry is None or entry.get("role") != role or entry.get("wsdc_id") is None:
+                continue
+            key = (
+                placement.get("event_id"),
+                other,
+                contest.get("division"),
+                contest.get("dance_style"),
+            )
+            if any(
+                (*key, result, int(entry["wsdc_id"])) in registry
+                for result in (str(placement.get("place")), "F")
+            ):
+                contradicted.add(str(entry["entry_id"]))
+                flipped.add(placement.get("contest_id"))
+    flipped = {
+        contest
+        for contest in flipped
+        if "switch" not in str(contests.get(contest, {}).get("name_raw") or "").casefold()
+    }
+    holds: dict[str, str] = {}
+    for entry_id, row in entries.items():
+        if row.get("wsdc_id") is None:
+            continue
+        registered = names.get(int(row["wsdc_id"]))
+        printed = normalize_name(str(row.get("name_raw") or "")).value
+        if registered is None:
+            holds[entry_id] = "printed_identity_not_in_registry"
+        elif printed != registered and sorted(printed.split()) != sorted(registered.split()):
+            holds[entry_id] = "printed_name_disagrees"
+        elif entry_id in contradicted or (
+            row.get("contest_id") in flipped and list(row.get("rounds_danced") or ()) == ["final"]
+        ):
+            holds[entry_id] = "role_contradicted"
+    return holds
 
 
 class IdentityPolicy:
@@ -229,6 +301,7 @@ class IdentityPolicy:
             )
         contests = {row["contest_id"]: row for row in tables.get("contests", ())}
         registry_support = _registry_support({**tables, **mutable})
+        printed_holds = _printed_identity_holds({**tables, **mutable})
         for kind, name, key in (("entry", "entries", "entry_id"), ("judge", "judges", "judge_id")):
             for row in mutable[name]:
                 subject = (kind, str(row[key]))
@@ -314,11 +387,19 @@ class IdentityPolicy:
                         reason = "registry_identity_support_unavailable"
                     elif not support["usable"] and not legacy:
                         reason = "source_interpretation_unavailable"
-                    elif baseline is None or prior.get("wsdc_id") != proposed:
-                        reason = "accuracy_gate_pending"
-                    else:
+                    elif baseline is not None and prior.get("wsdc_id") == proposed:
                         reason = "accepted_legacy" if legacy else "accepted"
-                    if reason not in {"accepted", "accepted_legacy"}:
+                    elif kind != "entry" or assertion.get("method") == "manual":
+                        reason = "accuracy_gate_pending"
+                    elif assertion.get("method") == "source_id" and str(row[key]) in printed_holds:
+                        reason = printed_holds[str(row[key])]
+                    elif not support["usable"]:
+                        # Legacy support keeps a baseline ID; it never authorizes a new join.
+                        reason = "source_interpretation_unavailable"
+                    else:
+                        # H17 (D-0248): a new registry_placement or checked source_id entry join.
+                        reason = "accepted_h17"
+                    if reason not in {"accepted", "accepted_legacy", "accepted_h17"}:
                         row["wsdc_id"] = None
                         if kind == "entry":
                             row["link_status"] = "unmatched"
@@ -386,7 +467,7 @@ class IdentityPolicy:
             "correction_age_basis": age["basis"],
             "default_join_counts": dict(sorted(self.counts.items())),
             "legacy_policy": "Published baseline support may remain unassessed; no revocation, new join, or removal authority is permitted.",
-            "accuracy_expansions": "withheld_pending_H17",
+            "accuracy_expansions": "D-0248",
         }
 
 
@@ -398,7 +479,7 @@ def apply_identity_policy(
     correction_only: bool,
     closure: Mapping[str, Any] | None = None,
 ) -> BuildInput:
-    """No new default joins before H17; old joins still need current support.
+    """New default joins pass H17's rules (D-0248); old joins still need current support.
 
     Published v1 interpretations may retain their disclosed legacy status while
     their source locators are available and no revocation exists. This grants

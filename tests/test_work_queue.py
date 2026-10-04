@@ -580,6 +580,114 @@ def test_a_poison_unit_quarantines_on_its_third_failure_and_waits_seven_days(
         assert next_work(db.connection, "project", now=clock.now()) == unit
 
 
+def _failing_parse(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, db, clock, run: str):
+    """A parse unit that fails with `state["message"]` (no finding when None)
+    under the input fingerprint `state["fingerprint"]`; returns (unit, state, derive)."""
+    import swingset.state.attempts as attempts
+    from swingset.fetch.archive import Archive
+    from swingset.schedule import derive
+    from swingset.schedule.parse import ParseAttempt
+    from swingset.schedule.watches import upsert_watch
+    from swingset.sources.base import WatchSpec
+    from swingset.state.findings import Finding, replace_findings
+    from swingset.state.work import enqueue
+
+    state: dict[str, str | None] = {"fingerprint": "a", "message": None}
+    watch = WatchSpec("", "wsdc_calendar", "index", "GET", "https://example.test/events", "x")
+    upsert_watch(db.connection, watch, clock.now())
+    db.connection.execute(
+        "INSERT INTO snapshots(snapshot_id,watch_id,method,url,fetched_at,http_status,"
+        "body_bytes,content_changed,run_id,classification) VALUES ('s1',?,'GET',?,?,200,0,1,?,'Ok')",
+        (watch.watch_id, watch.url, clock.now().isoformat(), run),
+    )
+    unit = WorkUnit("parse", "snapshot", "s1")
+    enqueue(db.connection, [unit], enqueued_at=clock.now().isoformat())
+
+    def parse(database, _archive, unit, clock, run_id):
+        message = state["message"]
+        replace_findings(
+            database.connection,
+            owner_kind="parse_failure",
+            owner_id=watch.watch_id,
+            findings=()
+            if message is None
+            else (
+                Finding(
+                    "parse_failure",
+                    "watch",
+                    watch.watch_id,
+                    "error",
+                    message,
+                    {"snapshot_id": unit.unit_id},
+                    watch_id=watch.watch_id,
+                    snapshot_id=unit.unit_id,
+                ),
+            ),
+            opened_at=clock.now().isoformat(),
+            run_id=run_id,
+        )
+        return ParseAttempt("wsdc_calendar", True)
+
+    monkeypatch.setattr(derive, "parse_snapshot", parse)
+    monkeypatch.setattr(attempts, "input_fingerprint", lambda _conn, _unit: state["fingerprint"])
+
+    def run_once():
+        return derive.derive_one(db, Archive(tmp_path), unit, _bundle(tmp_path), clock, run)
+
+    return unit, state, run_once
+
+
+def test_a_parse_failing_with_the_same_message_on_new_inputs_is_a_repeat(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A deploy that changes a failing page's fingerprint does not make its
+    unchanged failure fresh; a new message does (maintenance item 17)."""
+    from swingset.state.attempts import latest_attempt
+
+    clock = FakeClock()
+    with open_database(tmp_path / "state") as db:
+        run = db.start_run(clock.now())
+        unit, state, run_once = _failing_parse(tmp_path, monkeypatch, db, clock, run)
+        state["message"] = "calendar contains no event rows"
+        first = run_once()
+        assert first.failed and not first.waiting_repeat
+        evidence = json.loads(latest_attempt(db.connection, unit)["evidence_json"])  # type: ignore[index]
+        assert evidence == {"message": "calendar contains no event rows"}
+        # New inputs, the same error: a repeat, not a failure of this tick.
+        state["fingerprint"] = "b"
+        again = run_once()
+        assert again.waiting_repeat and not again.failed
+        row = queue.get(db.connection, unit)
+        assert row is not None
+        # The wait clock is the one a new fingerprint gets.
+        assert (row.state, row.attempts) == ("waiting_input", 1)
+        assert row.next_attempt_at == queue.at(clock.now() + timedelta(hours=24))
+        # New inputs and a new error: fresh.
+        state["fingerprint"], state["message"] = "c", "unknown calendar date: 'TBA'"
+        changed = run_once()
+        assert changed.failed and not changed.waiting_repeat
+
+
+def test_a_parse_failure_with_no_earlier_message_counts_once_then_repeats(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """An attempt from before messages were kept has none to compare: the
+    next failure is fresh, and only the one after that is a repeat."""
+    clock = FakeClock()
+    with open_database(tmp_path / "state") as db:
+        run = db.start_run(clock.now())
+        unit, state, run_once = _failing_parse(tmp_path, monkeypatch, db, clock, run)
+        old = run_once()
+        assert old.failed
+        assert queue.get(db.connection, unit).last_error is None  # type: ignore[union-attr]
+        state["fingerprint"], state["message"] = "b", "calendar contains no event rows"
+        fresh = run_once()
+        assert fresh.failed and not fresh.waiting_repeat
+        state["fingerprint"] = "c"
+        repeat = run_once()
+        assert repeat.waiting_repeat and not repeat.failed
+
+
 def _running(db, unit: WorkUnit, owner: queue.Owner, now: datetime) -> int:
     """A unit mid-attempt under `owner`, as a process that died would leave it."""
     from swingset.state.attempts import begin_attempt

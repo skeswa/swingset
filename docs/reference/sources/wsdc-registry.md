@@ -43,7 +43,7 @@ full fetch of a few KB. The schedule keeps refreshes rare (section 7).
 
 ```toml
 [hosts."points.worldsdc.com"]
-min_gap_seconds = 2                # responses are tiny and the site exists for lookups
+min_gap_seconds = 2                # the floor every host shares
 daily_request_budget = 1500        # 20000 during the one-time bootstrap sweep
 ```
 

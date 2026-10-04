@@ -4,7 +4,7 @@ import re
 from typing import Any
 
 from swingset.sources.base import ParseResult
-from swingset.sources.records import RoundSheet
+from swingset.sources.records import ResultRow, ResultTable, RoundSheet
 
 from .accounting import account_keys
 from .report import Field, Guard
@@ -198,6 +198,13 @@ def round_accounting(
                     and competitor < column < bib
                 )
             )
+            # Contract 5 only rescues a scoring.dance column contract 4 left
+            # unknown, so an accepted round's accounting stays byte-identical.
+            if not known and kind == "scoringdance.round":
+                rescued = _scoringdance_column(index, table, headers, column, guards)
+                if rescued is not None:
+                    fields.extend(rescued)
+                    continue
             fields.append(
                 Field(
                     path,
@@ -226,6 +233,152 @@ def round_accounting(
     return count, interpreted
 
 
+# scoring.dance contract 5 (D-0240): columns contract 4 left unknown.
+_ADJUSTMENT = re.compile(r"[+-]\d+(?:\.\d+)?")
+_JUDGE_CODE = re.compile(r"[a-z]{1,3}")
+_OUTCOME_NOTE = re.compile(r"\bdq\b|diss|disq|scrat|injur|withdr|fail|^sw$")
+#: Known remark values: (class, pattern on the casefolded text, placed rows only).
+_REMARKS = (
+    ("chief_judge_adjustment", re.compile(r"^cja$"), False),
+    ("tie_break_note", re.compile(r"^(?:based on hj score|cj points)$"), False),
+    ("tie_break_score", re.compile(r"^\d+(?:\.\d+)?$"), False),
+    ("video_review_pass", re.compile(r"^vr ?pass$"), False),
+    ("violation_badge", re.compile(r"^(?:v\d|vp)$"), True),
+    ("review_note", re.compile(r"^(?:rv|vr)\b|violation|\blifts?\b|review"), True),
+)
+_REMARK_REASONS = {
+    "chief_judge_adjustment": "CJA badge beside a chief-judge adjustment; the outcome comes from the row data-state",
+    "tie_break_note": "Tie-break note; the outcome comes from the row data-state",
+    "tie_break_score": "Tie-break score; the outcome comes from the row data-state and sums derive from individual marks",
+    "video_review_pass": "Video review passed; the displayed result stands",
+    "violation_badge": "Violation badge on a placed row; the displayed placement already includes the drop",
+    "review_note": "Review or violation note on a placed row; the displayed placement is the source result",
+    "eliminated_outcome_note": "Disqualification, scratch or injury note on a row the source already shows as eliminated",
+}
+
+
+def _scoringdance_column(
+    index: int, table: ResultTable, headers: list[str], column: int, guards: list[Guard]
+) -> list[Field] | None:
+    """Account for a reviewed scoring.dance column, or return None to leave it unknown."""
+    header = headers[column]
+    attrs = dict(table.headers[column].attributes)
+    path = f"table[{index}].header[{column}]={header}"
+    values = [
+        (number, row, (row.cells[column].text or "").strip())
+        for number, row in enumerate(table.rows, 1)
+        if column < len(row.cells)
+    ]
+    if (
+        not header
+        and not attrs
+        and column
+        and headers[column - 1] == "σ"
+        and all(_ADJUSTMENT.fullmatch(value) for _, _, value in values if value)
+    ):
+        return [
+            Field(
+                path,
+                "excluded",
+                "Chief-judge adjustment to the displayed Σ; outcome from row data-state; sums derive from individual marks",
+            )
+        ]
+    if (
+        not header
+        and "title" not in attrs
+        and attrs.get("class") == "text-center;"
+        and column == len(headers) - 1
+    ):
+        return _scoringdance_remarks(index, table, headers, path, values, guards)
+    follower = next((i for i, h in enumerate(headers) if h == "follower"), None)
+    placement = next((i for i, h in enumerate(headers) if h == "placement"), None)
+    if (
+        follower is not None
+        and placement is not None
+        and follower < column < placement
+        and _JUDGE_CODE.fullmatch(header)
+        and "title" not in attrs
+        and all(re.fullmatch(r"\d*", value) for _, _, value in values)
+    ):
+        return [
+            Field(
+                path,
+                "excluded",
+                "Anonymized per-page judge code; no judge identity; placement handled",
+            )
+        ]
+    return None
+
+
+def _scoringdance_remarks(
+    index: int,
+    table: ResultTable,
+    headers: list[str],
+    path: str,
+    values: list[tuple[int, ResultRow, str]],
+    guards: list[Guard],
+) -> list[Field]:
+    """Each remark value is excluded by class, blocks as a conflict, or stays unknown."""
+    placement = next((i for i, h in enumerate(headers) if h == "placement"), None)
+    bib = next((i for i, h in enumerate(headers) if "bib" in h), None)
+    fields = [Field(path, "excluded", "Source remark column; each value is accounted as a remark")]
+    conflicts: list[str] = []
+    for number, row, value in values:
+        if not value:
+            continue
+        state = next(
+            (v for cell in row.cells for k, v in cell.attributes if k == "row-data-state"), ""
+        )
+        place = (
+            (row.cells[placement].text or "").strip()
+            if placement is not None and placement < len(row.cells)
+            else ""
+        )
+        text = " ".join(value.split()).casefold()
+        if _OUTCOME_NOTE.search(text):
+            if state or place:
+                bib_text = (
+                    (row.cells[bib].text or "").strip()
+                    if bib is not None and bib < len(row.cells)
+                    else ""
+                )
+                conflicts.append(
+                    f"table[{index}] row {number} (bib {bib_text or '?'}, {state or place}): {value}"
+                )
+            else:
+                fields.append(
+                    Field(
+                        f"table[{index}].remark.eliminated_outcome_note",
+                        "excluded",
+                        _REMARK_REASONS["eliminated_outcome_note"],
+                    )
+                )
+            continue
+        known = next(
+            (
+                name
+                for name, pattern, placed_only in _REMARKS
+                if pattern.search(text) and (place or not placed_only)
+            ),
+            None,
+        )
+        fields.append(
+            Field(f"table[{index}].remark.{known}", "excluded", _REMARK_REASONS[known])
+            if known is not None
+            else Field(f"table[{index}].remark={value}", "unknown", "Unrecognized source remark")
+        )
+    guards.append(
+        Guard(
+            "source_remark_outcome_conflict",
+            not conflicts,
+            "A disqualification, scratch, injury, failed review or SW remark cannot sit on a row "
+            "the source shows as called back, alternate or placed"
+            + ("; " + "; ".join(conflicts) if conflicts else ""),
+        )
+    )
+    return fields
+
+
 def _wdr_value_known(cell: dict[str, Any], method: Any) -> bool:
     code, value = cell.get("t"), str(cell.get("v", ""))
     if code == 2:
@@ -235,7 +388,9 @@ def _wdr_value_known(cell: dict[str, Any], method: Any) -> bool:
         return bool(method == "Average Raw Scores")
     if code == 9 and method != "Average Raw Scores":
         return (
-            bool(re.fullmatch(r"\d+", value))
+            # `|SVW` is the legend's "Swing Violation - Warning": no placement
+            # change. SV1-SV3 move placements and stay unknown (D-0240).
+            bool(re.fullmatch(r"\d+(?:\|SVW)?", value))
             if method == "Placement Order"
             else value
             in {

@@ -3,7 +3,7 @@
 An hourly tick (D-0215). It waits for derive to accept the input bundle
 (runtime), refuses to build on a nearly full disk, reconciles a pending
 publication when a hub is configured, builds a correction when the baseline
-needs one, and builds a candidate unless the build interval or the backlog
+needs one (a dry run only reports `correction_needed`), and builds a candidate unless the build interval or the backlog
 defers it. A whole or closure build, and a correction, hold the heavy lock
 exclusive, so derive starts no unit meanwhile (F10). A streamed
 (partitioned) build holds it too while `[release] streamed_lock` is true,
@@ -119,9 +119,9 @@ def run(tick: Tick, *, disk_file: Path | None = None) -> None:
         if reconciled.state in LANDED:
             tick.counters["reconciled"] += 1
             tick.progress()
-    # A correction publishes to the hub, so it runs only with one, and only
-    # while work is queued.
-    correcting = hub is not None and next(iter(unfinished_units(conn)), None) is not None
+    # A correction runs only while work is queued, and builds only with a hub;
+    # a dry run reports `correction_needed` so it shows what --publish would do.
+    correcting = next(iter(unfinished_units(conn)), None) is not None
     deferred: str | None = None
     if build_deferred_for_interval(conn, bundle.config, now=clock.now()):
         deferred = "interval"
@@ -140,6 +140,8 @@ def run(tick: Tick, *, disk_file: Path | None = None) -> None:
         return
     if correcting:
         correcting = _correction_needed(tick)
+        summary["correction_needed"] = correcting
+        correcting = correcting and hub is not None
     if deferred is not None and not correcting:
         tick.failed = "correction_error" in summary
         return

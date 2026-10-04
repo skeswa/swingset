@@ -16,6 +16,7 @@ Linking connects a result entry or judge to a WSDC registry dancer. This page ow
 - [Work ownership](#work-ownership)
 - [Durable decisions and resolution (H8–H9)](#durable-decisions-and-resolution-h8h9)
 - [Offline reviewed evaluation (H17)](#offline-reviewed-evaluation-h17)
+- [Release acceptance of new links (H17)](#release-acceptance-of-new-links-h17)
 
 This is the hard part and the reason the dataset says "best effort".
 
@@ -298,7 +299,8 @@ accepted input and artifacts, and reference migrations exactly; an unaccepted
 captured bundle remains unselected and is excluded from the checkpoint closure.
 
 H10 owns the publication-time token check and correction-only release behavior.
-H8–H9 do not authorize unreviewed default-join expansion.
+H8–H9 do not authorize unreviewed default-join expansion; the reviewed rules
+of [release acceptance](#release-acceptance-of-new-links-h17) do.
 
 ## Offline reviewed evaluation (H17)
 
@@ -418,3 +420,32 @@ the browser until the reviewer downloads `adjudications.json`; no answers are
 preselected. Evaluate that downloaded file with the command above. A packet is
 review material, not evidence that a review occurred; the adjudications file
 and its evaluation report are.
+
+## Release acceptance of new links (H17)
+
+`IdentityPolicy.apply` (`build/identity_policy.py`) decides each proposed
+default ID at build time, after the H10 checks (current decisions, source
+reference, printed or registry support, source interpretation). An ID the
+published baseline already carries for that subject keeps the baseline path
+(`accepted`, `accepted_legacy`). A new entry ID is published under
+[D-0248](../../journal/decisions/0248-publish-new-identity-links-that-pass-the-h17-review-rules.md),
+from the review of 2026-10-11:
+
+| Link method          | Published as `accepted_h17` when                                                                                                     | Otherwise withheld as                                                                             |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------- |
+| `registry_placement` | this release's registry row for the placement names exactly that dancer (the H10 check)                                              | `registry_identity_support_unavailable`                                                           |
+| `source_id`          | the printed id is in the release's `dancers`; the sheet name equals the registry name, or has the same words reordered; no role flip | `printed_identity_not_in_registry`, `printed_name_disagrees`, `role_contradicted` (in that order) |
+| `manual`             | never as a new ID; only the baseline path                                                                                            | `accuracy_gate_pending`                                                                           |
+
+Names compare after `normalize_name`. A role flip is either the registry
+crediting the id in the other role at this event, division and style for the
+entry's place or `F`, or a final-only entry (`rounds_danced` is just `final`)
+in a contest whose name lacks "switch" and where the registry check fired or
+one id holds both a leader and a follower entry. New judge IDs stay
+`accuracy_gate_pending`. The manifest's `release_policy.accuracy_expansions`
+names `D-0248`, and `default_join_counts` counts each reason. The streamed
+build loads the dancers each partition's entries name, so it decides as the
+whole build does.
+
+A new join also needs a usable source interpretation: legacy support keeps a
+baseline id but never authorizes a new one (`source_interpretation_unavailable`).

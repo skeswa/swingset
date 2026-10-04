@@ -50,6 +50,25 @@ class _Service:
 _service: ContextVar[_Service | None] = ContextVar("scheduler_service", default=None)
 
 
+#: Hosts whose due watches the selection left out for a failed robots read,
+#: each with its retry; set by the acquisition pass (`noting_robots`).
+_robots_dropped: ContextVar[dict[str, datetime] | None] = ContextVar("robots_dropped", default=None)
+
+
+@contextmanager
+def noting_robots(dropped: dict[str, datetime]) -> Iterator[None]:
+    """Collect into ``dropped`` the hosts left out for a failed robots read.
+
+    Only a host that had a due watch is noted, so the pass's guard says a
+    fetch was held, not merely that a host's robots read failed (D-0242).
+    """
+    token = _robots_dropped.set(dropped)
+    try:
+        yield
+    finally:
+        _robots_dropped.reset(token)
+
+
 @contextmanager
 def servicing(choice: WatchChoice, *, run_id: str) -> Iterator[None]:
     token = _service.set(_Service(choice, run_id))
@@ -382,17 +401,27 @@ def _eligible(
     extra_choices: Iterable[WatchChoice],
     run_id: str | None,
 ) -> Iterator[tuple[WatchChoice, float]]:
+    from swingset.fetch.robots import blocked
+
     from .event_pressure import request_denial as expansion_denial
 
     host_decisions: dict[str, dict[str, Any]] = {}
     pressure = bool(backpressure(conn, config, now=now)["active"])
     if pressure and run_id is not None and not _repair_capacity(conn, config, run_id):
         return
+    # A host whose robots read failed disallows every request until its
+    # retry, so none of its watches is a candidate: each would only skip, and
+    # each skip re-ran this selection over every due watch (D-0242).
+    unreadable = blocked(conn, now)
     seen = set(exclude)
     for choice in (*extra_choices, *_choices(conn, config, now)):
         if choice.key in seen:
             continue
         seen.add(choice.key)
+        if choice.host in unreadable:
+            if (dropped := _robots_dropped.get()) is not None:
+                dropped[choice.host] = unreadable[choice.host]
+            continue
         if expansion_denial(
             conn,
             config,

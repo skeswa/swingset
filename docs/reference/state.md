@@ -477,7 +477,9 @@ the output transaction. `state/queue.py` owns the policy.
   inputs change. One whose run finished on its own (its `runs`
   row or record file) was left by a fenced or busy write:
   `publication_fenced`, uncounted. So is one whose run wrote
-  `runs/<run_id>.stop` (SIGTERM, then a kill at the stop timeout).
+  `runs/<run_id>.stop` (SIGTERM, then a kill at the stop timeout). A tick
+  writes it only for a SIGTERM within its budget or under `operator-hold`,
+  so a unit killed by its start timeout counts.
 - **Escaped exception.** An exception that escapes `derive_one` leaves its
   attempt running; the offline loop closes it as a counted
   `unit_exception:<type>` failure (`queue.escaped`), unless that write is
@@ -501,7 +503,9 @@ the output transaction. `state/queue.py` owns the policy.
   and link units current.
 - **Failure class.** The attempt's reason, plus `:<ExceptionType>` for
   `unit_exception`. Failures count while the class and input fingerprint stay
-  the same; either change restarts at 1.
+  the same; either change restarts at 1. The row keeps the last error
+  message (500 characters); a blocked parse puts its extract or parse error
+  there and in the attempt's `evidence_json`.
 
 | Class                                                                                                           | Row                      | Clock                          | Quarantine        |
 | --------------------------------------------------------------------------------------------------------------- | ------------------------ | ------------------------------ | ----------------- |
@@ -517,7 +521,10 @@ and the queue agree; a new input fingerprint makes a quarantined unit
 eligible at once. `queue.wake` turns due `waiting_input` and `quarantined`
 rows `ready` and calls `request_retry` for a blocked or unavailable unit; derive
 calls it once per tick. A retry of a waiting unit that ends the same
-way is a `waiting_repeats`, not a failure. A real supersession
+way is a `waiting_repeats`, not a failure. So is a waiting failure with the
+same class and message as the row's last one after its input fingerprint
+changed; its clock still restarts at 24 h. With no earlier message it is
+fresh ([D-0249](../../journal/decisions/0249-a-waiting-failure-with-the-same-message-is-a-repeat.md)). A real supersession
 (`inputs_changed`) and a fence or busy error (in the admission or while
 processing) change nothing: under a full
 fence derive writes nothing, and the next tick's recovery closes an attempt
@@ -1581,7 +1588,7 @@ so a request row lives as long as it does: on the 09-29 copy 14,546 of
 14,570 request rows were named, and only fetch, acquisition and operation
 rows (about 28,700) aged out. The ledger still grows by about 1,800 request
 rows a day; maintain reports its size (`admissions_rows`), the watchdog's
-`[admissions-growth]` fires past 200,000, and
+`[admissions-growth]` fires past 600,000, and
 [maintenance item 15](../plans/README.md#maintenance-queue) tracks a
 collector. An acknowledged pause fences later
 admissions while prior work drains. `controls.status()` lists as draining the

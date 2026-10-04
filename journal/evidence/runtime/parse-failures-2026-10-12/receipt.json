@@ -1,0 +1,127 @@
+{
+  "operation": "deploy the parse-failure fixes (zstd decode, D-0249 same-error repeats) and retire the scoring.dance event 179 watch",
+  "actor": "claude (session claude-rearch)",
+  "owner_approval": "2026-10-12: build zstd decoding and same-error repeats; keep event 179 blocked and stop re-fetching it",
+  "investigation": "read-only subagent report 2026-10-12; summarized in docs/plans/README.md items 7 and 17",
+  "independent_check": {
+    "verdict": "approve with nits",
+    "fixed_before_deploy": [
+      "refused encoding returns INVALID with a reason instead of raising",
+      "artifact_unavailable evidence carries the message naming the artifact",
+      "D-0249 wording"
+    ],
+    "left": [
+      "decoded zstd responses drop content-encoding from stored headers",
+      "identity,zstd combinations are refused"
+    ]
+  },
+  "tests": {
+    "full_suite": "3549 passed (24:10, after the fixes)",
+    "changed_files": "84 passed"
+  },
+  "blast_radius": {
+    "changed_scopes": [
+      "extract and parse for wsdc_calendar.events, swingdancecouncil.events, wsdc_newsletter.events, wsdc_newsletter.index"
+    ],
+    "parse_units": 210,
+    "project_link_build_scopes": 0,
+    "recipe_env_changed": false
+  },
+  "deploy_tree": {
+    "path": "/private/tmp/swingset-c040",
+    "commit": "63dd68cecba3a205c77704e6a22eb70bedec2d63",
+    "config": "repo config plus c039 hosts.toml (D-0246 budgets until about 2026-10-13T02:00Z)",
+    "source": "/nix/store/xl3fp75wxqs3m90jp5b7irmmhmcfjkq8-source"
+  },
+  "preflight": {
+    "schema": 37,
+    "file_bytes": 41150623744,
+    "queue": {
+      "ready/admission_needs_review": 322,
+      "waiting_input/admission_needs_review": 103,
+      "waiting_input/parse_failed": 11,
+      "ready/admission_waiting_for_inputs": 8,
+      "waiting_input/admission_waiting_for_inputs": 8,
+      "waiting_input/unsupported_page_kind": 3
+    },
+    "watch_179": [
+      [
+        "182ca2e94cc7bfb6",
+        "metadata",
+        "2026-10-28T06:04:12.481793+00:00",
+        "https://scoring.dance/enUS/events/179/results/"
+      ]
+    ],
+    "watch_179_last_fetch": [
+      [
+        "2026-09-28T06:04:12.473552+00:00",
+        5
+      ]
+    ],
+    "latest_snapshot": "2026-10-12T05:31:42.924047+00:00",
+    "latest_request": "2026-10-12T05:46:38.016246+00:00",
+    "pauses": 0,
+    "parse_failed_or_unsupported_units": 14
+  },
+  "switch": {
+    "hold_set": "2026-10-12T05:48:22Z",
+    "idle": "2026-10-12T05:51:53Z",
+    "system_before": "/nix/store/5a8463d54pivx8yhh0d2x04ngqklp3cf-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+    "system_after": "/nix/store/nwayhvvywc0f5hg60w7fz6cp377adgsz-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+    "switched": "2026-10-12T05:52:04Z",
+    "venv": "uv sync --frozen --no-dev from the new source",
+    "hold_removed": "2026-10-12T05:52:05Z",
+    "exit_code": 0
+  },
+  "watch_retire": {
+    "sql": "UPDATE watches SET state='retired' WHERE watch_id='182ca2e94cc7bfb6' AND state='metadata'",
+    "rows": 1,
+    "before": {
+      "state": "metadata",
+      "next_check_at": "2026-10-28T06:04:12.481793+00:00"
+    },
+    "after": "retired",
+    "reversal": "the same update with the states swapped",
+    "recipe_inputs_touched": 0
+  },
+  "rollback": "switch back to /private/tmp/swingset-c039 the same way",
+  "requeue": {
+    "at": "2026-10-12T06:08:14Z",
+    "command": "swingset queue requeue --unit parse/snapshot/<id> --by 'claude (claude-rearch): zstd decode deployed in c040'",
+    "units": [
+      "snap_20260922T200623Z_5050a63dd30c_1b14c571cd6a",
+      "snap_20260922T200638Z_979d8ea8d91e_1e25ecfbd732"
+    ],
+    "why": "a waiting row wakes only on its clock (2026-10-13 03:24), not when its inputs change"
+  },
+  "post_check": {
+    "checked_at": "2026-10-12T07:35:00Z",
+    "zstd_snapshots": {
+      "parse_status": [
+        "ok",
+        "ok"
+      ],
+      "attempts": "succeeded 07:28:58Z",
+      "observations": [
+        174,
+        169
+      ]
+    },
+    "parse_failed_rows": {
+      "before": 11,
+      "after": 9
+    },
+    "derive_ticks_failed": {
+      "count": 1,
+      "run": "run_20261012T055701Z",
+      "cause": "scoring.dance event 179 snapshot without a stored message counted fresh once (expected, D-0249); later retries are repeats"
+    },
+    "fetching": {
+      "requests_05:52_to_07:30Z": 422,
+      "snapshots": 15,
+      "latest_request": "2026-10-12T07:30:35Z"
+    },
+    "watch_179": "retired",
+    "alerts": "[stale-progress] 06:05Z for project/year: inventory waits for the ~20,000-dancer H17 re-run; by design, queued as maintenance item 27"
+  }
+}

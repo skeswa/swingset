@@ -1442,7 +1442,8 @@ major and a closing rehearsal of the final tree, R0 to R10
 not deployed. The cycle stays the service until
 `services.swingset.loops.enable` is set. The first three acceptance checks
 pass offline (WP10) and on the clones; the week without an alarm is
-production's. One item stays open before switch 2b (the stop marker, below).
+production's. The stop-marker item (below) was accepted for 2b and is fixed
+in the working copy, carried into the phase 3 and 4 deploy tree as a patch.
 The history gate is not deleted: its module is in every parse scope (F12),
 so in the loops it reads facts only (F13). The event-site review stays off
 by config (phase 0)._
@@ -1718,11 +1719,13 @@ switches:
   owner. Accepted 2026-10-04 ("Accept now, fix in Phase 3/4"): the fix
   (write the marker only for a stop the operator asked for) must be in the
   phase 3 and 4 deploy tree, and until then the operator watches derive's
-  tick seconds against its 30-minute start timeout.
+  tick seconds against its 30-minute start timeout. Fixed 2026-10-04 in the
+  working copy; the phase 3 and 4 deploy tree carries the same change as a
+  patch (`src/` and `tests/` only).
 - A short R3 and R4 on the final tree before 2a: done, by the reviewer and
   by the closing rehearsal.
 
-Open before switch 2b:
+Accepted for switch 2b, fixed after it:
 
 - **Stop marker versus start timeout.** systemd's `TimeoutStartSec` expiry
   (derive: 30 min) sends SIGTERM, which writes `runs/<run>.stop` as a
@@ -1732,9 +1735,15 @@ Open before switch 2b:
   alternates a 32-minute tick on it with a normal one, and no alarm fires
   (`[loop-failing]` needs three failed ticks in a row; `[loop-idle]` sees
   progress). Round 1 counted a stop timeout; round 2's marker undid that.
-  Not reachable on today's data (derive ticks at most 290 s in R3). Fix:
-  write the marker only for a stop the operator asked for (a hold or a
-  deploy), or count a marked death whose tick outlived its start timeout.
+  Not reachable on today's data (derive ticks at most 290 s in R3). Fixed
+  2026-10-04 in the working copy and carried as a patch into the phase 3
+  and 4 deploy tree: the SIGTERM handler (`loops.runtime.note_stop`)
+  writes the marker only within the tick's budget or under
+  `operator-hold`. Every start timeout is longer than its loop's budget, so
+  a SIGTERM past the budget with no hold is the timeout, and the overrun
+  unit's death counts, backs off and quarantines at the third. Left open: a
+  deploy without the hold that lands after the budget counts one death,
+  and a start timeout under a hold counts none.
 
 Carried forward (none loses data; each is rare or costs throughput):
 
@@ -1781,9 +1790,10 @@ Carried forward (none loses data; each is rare or costs throughput):
   until an operator requeues; `[unit-quarantined]` alerts. Measure it in
   2a's drain.
 - **Test gaps (surviving mutants).** The `queue.lease` takeover branch to
-  `died_unclaimed`; the CLI SIGTERM handler writing `runs/<run>.stop`; the
-  fetch's commit-time compare (`moved = False` survives); the cycle's
-  `failed` from `request_failures(summary)`.
+  `died_unclaimed`; the fetch's commit-time compare (`moved = False`
+  survives); the cycle's `failed` from `request_failures(summary)`. (The CLI
+  SIGTERM handler writing `runs/<run>.stop` is covered since the stop-marker
+  fix.)
 - **Smaller.** `_admission_failed`'s docstring still says the admission
   rolled back its lease; core takes 284 s (467 s under load), over the
   three-minute rule (maintenance item 9).
@@ -1795,7 +1805,7 @@ decision 3 recorded; the gates of steps 5 and 8 met before 2b; the
 publish tier's independent check of the diff and the rehearsal, with a
 written verdict (release publishes); a current Mac byte copy, verified by
 sha256 and `quick_check`; before 2b, the stop-marker item above fixed or
-accepted by the owner.
+accepted by the owner (accepted 2026-10-04, then fixed).
 
 Switch 2a, the package in cycle mode (`loops.enable = false`):
 
@@ -1871,7 +1881,8 @@ changes):
 Rollback: 2b to 2a is `loops.enable = false` and a switch, done as step 7:
 write `operator-hold`, wait until no `swingset-*` unit is active, switch,
 remove the hold. Without the hold systemd stops derive mid-unit and kills
-it after 120 s; the stop marker keeps that death uncounted, but a hold
+it after 120 s; the stop marker keeps that death uncounted when the stop
+lands within the tick's budget, but a hold
 means no unit is cut off at all. Any later switch with the loops on
 follows the same steps. The cycle takes the exclusive lock and releases
 every lease, and a building generation resumes on its unit's next run. 2a to phase 1 needs step 2's byte copy
@@ -2110,7 +2121,10 @@ Found, not fixed:
 - The recorder misses a body read whose SQL text derivation code prepared
   first in the same recording (SQLite's statement cache).
 - 1,132 event partitions are withheld as `source_support_unavailable`:
-  legacy rows the baseline did not publish (R3). Verified on the drained
+  legacy header rows that differ from the rows the baseline published (R3;
+  all 308 events were in the baseline, 19 with results, see the
+  [release-losses investigation](../../journal/investigations/2026/release-losses-2026-10-12.md)).
+  D-0251 publishes the baseline's header row in their place. Verified on the drained
   clone: the phase 2 closure candidate on the same state also has 1,801
   events, and production's candidates since 2026-09-24 had 1,796 and 1,797,
   against the baseline's 2,105. So the gate refuses the first partitioned
@@ -2462,7 +2476,8 @@ Carried forward to the phase lead (review findings, none a deploy blocker):
 Deploy steps (operator; one switch):
 
 Preconditions: phase 2 deployed (2a and 2b) and 2b's 24-hour watch passed,
-with its stop-marker item settled; the review fixes rehearsed on the final
+with its stop-marker item settled (accepted 2026-10-04; the deploy tree
+carries the fix); the review fixes rehearsed on the final
 tree (met 2026-10-02, the closing rehearsal); the owner's decision on
 `decrease:events 2105->1801` recorded (an approval row in
 `overrides/release_decreases.csv` or restored support); the publish tier's

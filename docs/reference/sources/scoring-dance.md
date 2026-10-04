@@ -80,7 +80,7 @@ there on 2026-09-04. Never fetch `register`, `wall`, `mockjudge`, or
 
 ```toml
 [hosts."scoring.dance"]
-min_gap_seconds = 5
+min_gap_seconds = 2
 daily_request_budget = 800
 index_interval_weekend = "1h"      # sitemap and recent
 index_interval_weekday = "6h"
@@ -135,6 +135,15 @@ From `docs/reference/parsing.md` and `journal/investigations/undated/initial-sou
   Name cells link to `/enUS/wsdc/registry/<id>.html` and carry
   `data-wsdc="<id>"`. Prelims: bib, name, per-judge Yes/Alt1/No, sum.
   Finals: bib, leader, follower, per-judge rank, placement.
+  Competitor headers are blank in the HTML; extract 5 labels them. A
+  one-table couple round (SILC, Pro-Am, All-American prelims) also puts the
+  partner in blank column 2, labelled `Follower`. After `Σ` a blank
+  column can hold a chief-judge adjustment (`+2`), and the last column
+  holds remarks: `CJA`, tie-break notes, `VR pass`, `V1`/`VP` badges,
+  review notes, and DQ/DISS notes. Champions finals can show random
+  lowercase judge codes with no names. Contract 5 accounts for each of
+  these and blocks a round whose remark disqualifies a row the page shows
+  as called back or placed ([parsing](../parsing.md#source-admission-h6-and-h7), D-0240).
 - `scoringdance.recent`: noscript list of past events, id from the link.
 - `scoringdance.sitemap`: `<loc>` values matching `/events/(\d+)/`.
 

@@ -622,6 +622,68 @@ def test_support_is_matched_per_observation(source_fixture, tmp_path, changes):
     assert json.loads(row.detail_json)["legacy"] is True
 
 
+def test_support_reads_the_newest_equivalence_of_a_kept_generation(source_fixture, tmp_path):
+    """A re-run with unchanged output keeps the generation and records its new
+    read set as an equivalence. Support matches that set, not the one saved
+    with the generation: after a relabel (contract 5's extract 4 to 5) the
+    old set names observations no accepted generation holds any more. A
+    withheld verdict built on the old set is not reused once the new set
+    lands."""
+    import hashlib
+
+    f = source_fixture
+    baseline = settled(f, tmp_path)
+    build(f, baseline)
+    first = rows(f.conn)["event/event-a"]
+    assert first.state == "built"
+    event = WorkUnit("project", "event", "event-a")
+    current = derivations.selected_generation(f.conn, event)
+    label = f.conn.execute(
+        "SELECT recipe_json,dependency_set_id FROM derivation_generations WHERE generation_id=?",
+        (current,),
+    ).fetchone()
+    # The generation was made when its observations carried another label.
+    stale = _observation_changed(f, current, extract_version="stale-label")
+    kept = remint(f, event, dependency_set=stale)
+    build(f, baseline)
+    row = rows(f.conn)["event/event-a"]
+    assert (row.state, row.reason) == ("withheld", "source_support_unavailable")
+    # Its unchanged-output re-run read the relabelled observations.
+    f.corpus.clock.sleep(1)
+    recipe = hashlib.sha256(label["recipe_json"].encode()).hexdigest()
+    with f.db.transaction():
+        f.conn.execute(
+            "INSERT OR IGNORE INTO derivation_recipes VALUES (?,?)", (recipe, label["recipe_json"])
+        )
+        f.conn.execute(
+            "INSERT INTO derivation_equivalences VALUES (?,?,?,?,?,?,?,?,?)",
+            (
+                "project",
+                "event",
+                "event-a",
+                "relabelled-inputs",
+                kept,
+                recipe,
+                label["dependency_set_id"],
+                f.corpus.clock.now().isoformat(),
+                f.corpus.run,
+            ),
+        )
+    report = build(f, baseline)
+    row = rows(f.conn)["event/event-a"]
+    assert (row.state, row.reason) == ("built", None)
+    assert report["rebuilt"] >= 1
+    # The same rows, standing on the same support, as before the relabel.
+    assert json.loads(row.detail_json)["counts"] == json.loads(first.detail_json)["counts"]
+    assert {
+        table: len(values)
+        for table, values in partitions.rows_for(f.db.state_dir, row.artifact_digest).items()
+    } == {
+        table: len(values)
+        for table, values in partitions.rows_for(f.db.state_dir, first.artifact_digest).items()
+    }
+
+
 def test_a_revoked_snapshot_withholds_its_event(source_fixture, tmp_path):
     from swingset.admission.select import revoke_generation
 
@@ -640,6 +702,71 @@ def test_a_revoked_snapshot_withholds_its_event(source_fixture, tmp_path):
     assert after["event/event-a"].state == "withheld"
     assert after["event/event-a"].reason == "source_revoked"
     assert {name for name, row in after.items() if row.state == "withheld"} == {"event/event-a"}
+
+
+def _rewrite_baseline_events(baseline, change):
+    """Rewrite the baseline's `events` file through ``change`` and re-hash it."""
+    import pyarrow.parquet as pq
+
+    from swingset.build.files import sha256_file
+
+    path = baseline / "data/events/part.parquet"
+    values = change(pq.read_table(path).to_pylist())
+    pq.write_table(pa.Table.from_pylist(values, schema=SCHEMAS["events"]), path)
+    manifest = json.loads((baseline / "_meta/manifest.json").read_text())
+    manifest["files"]["data/events/part.parquet"] = sha256_file(path)
+    (baseline / "_meta/manifest.json").write_text(json.dumps(manifest))
+
+
+@pytest.mark.parametrize("published", [True, False])
+def test_a_rejected_legacy_header_publishes_the_baseline_row(source_fixture, tmp_path, published):
+    """D-0251: a legacy header that differs from the baseline no longer
+    withholds its event. The baseline's own row stands in, with its source
+    columns and provenance, and the event's accepted results publish. An
+    event the baseline lacks stays withheld."""
+    f = source_fixture
+    baseline = settled(f, tmp_path)
+    live = next(row for row in _read_events(f) if row["event_id"] == "event-a")
+
+    def change(values):
+        if not published:
+            return [row for row in values if row["event_id"] != "event-a"]
+        return [
+            {**row, "city": "Published City", "website": "https://published.example"}
+            if row["event_id"] == "event-a"
+            else row
+            for row in values
+        ]
+
+    _rewrite_baseline_events(baseline, change)
+    build(f, baseline)
+    row = rows(f.conn)["event/event-a"]
+    if not published:
+        assert (row.state, row.reason) == ("withheld", "source_support_unavailable")
+        return
+    assert (row.state, row.reason) == ("built", None)
+    detail = json.loads(row.detail_json)
+    assert detail["counts"]["legacy_owned_values_not_published"] >= 1
+    assert detail["counts"]["baseline_header_republished"] == 1
+    artifact = partitions.rows_for(f.db.state_dir, row.artifact_digest)
+    (header,) = artifact["events"]
+    # Every source column is the baseline's, including where it came from.
+    assert (header["city"], header["website"]) == ("Published City", "https://published.example")
+    assert (header["snapshot_id"], header["source"]) == (live["snapshot_id"], live["source"])
+    assert artifact["placements"] and artifact["entries"]
+    # Reconstruct (the closure path) makes the same choice.
+    closure = select_closure(f.conn, cutoff=f.corpus.clock.now(), baseline=baseline)
+    with reconstruct(f.conn, closure, directory=tmp_path / "spool", baseline=baseline) as spool:
+        events = {item["event_id"]: item for item in spool.iter_table("events")}
+        assert events["event-a"]["city"] == "Published City"
+        assert spool.counts["baseline_header_republished"] == 1
+        assert any(item["event_id"] == "event-a" for item in spool.iter_table("placements"))
+
+
+def _read_events(f):
+    from swingset.build.input import _read_table
+
+    return _read_table(f.conn, "events")
 
 
 def test_a_row_naming_two_events_joins_them(source_fixture, tmp_path):

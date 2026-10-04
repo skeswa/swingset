@@ -157,6 +157,9 @@ def test_a_corrupt_part_fails_the_drill_with_the_alert_line(tmp_path: Path) -> N
         f"{kept.name}-{int((NOW + timedelta(days=1)).timestamp())}",
     ]
     (kept / "KEEP").unlink()
+    # The second drill's scratch dates from its drill, not from the wall clock.
+    stamp = (NOW + timedelta(days=1)).timestamp()
+    os.utime(scratch / f"{kept.name}-{int(stamp)}", (stamp, stamp))
     _drill(state, scratch, now=NOW + timedelta(days=3))
     assert [path.name for path in scratch.iterdir()] == [kept.name]
 

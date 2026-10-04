@@ -442,3 +442,154 @@ def test_correction_suppression_scrubs_streamed_history_and_keeps_structural_key
         manifest = json.loads((result.path / "_meta/manifest.json").read_bytes())
         assert private_reason not in json.dumps(manifest)
         assert manifest["release_policy"]["mode"] == "correction_only"
+
+
+def _publish_locally(database, candidate, commit):
+    """Acknowledge ``candidate`` as the baseline, as a landed publication would."""
+    (candidate / "PUBLISHED").write_text(json.dumps({"commit": commit}))
+    (database.state_dir / "baseline").unlink()
+    (database.state_dir / "baseline").symlink_to(candidate)
+
+
+def _closure_path(bundle):
+    from swingset.config import ReleaseConfig
+
+    return replace(bundle, config=replace(bundle.config, release=ReleaseConfig(path="closure")))
+
+
+def test_a_correction_never_rebuilds_a_superseded_baseline(tmp_path):
+    """Under partitioned releases a closure, settled or unsealed baseline
+    waits for the next normal build, which the gate checks (D-0250)."""
+    from swingset.build.service import correction_needed, release_path
+
+    clock = FakeClock(datetime(2026, 9, 13, 6, tzinfo=UTC))
+    with open_database(tmp_path) as database:
+        baseline, _, _, positive = _published_fixture(database, clock)
+        bundle = _bundle(positive)
+        manifest = json.loads((baseline / "_meta/manifest.json").read_bytes())
+        assert (manifest.get("release_policy") or {}).get("mode") is None
+        assert release_path(database, bundle) == "partitioned"
+        assert not correction_needed(database, bundle)
+        # The closure path still corrects its own baselines, as before.
+        assert correction_needed(database, _closure_path(bundle))
+
+
+def test_a_correction_baseline_is_corrected_again_only_for_identity_or_admission(
+    tmp_path, monkeypatch
+):
+    from swingset.build import closure, identity_policy
+    from swingset.build.service import correction_needed
+
+    clock = FakeClock(datetime(2026, 9, 13, 6, tzinfo=UTC))
+    with open_database(tmp_path) as database:
+        _, _, binding, positive = _published_fixture(database, clock)
+        bundle = _bundle(positive)
+        corrected = build_release(database, bundle, clock, "run_a", correction_only=True)
+        policy = json.loads((corrected.path / "_meta/manifest.json").read_bytes())["release_policy"]
+        assert policy["mode"] == "correction_only"
+        assert set(policy["admission"]) == {"policies", "revocations"}
+        _publish_locally(database, corrected.path, "correction-commit")
+        assert not correction_needed(database, bundle)
+        # Every accepted source generation moves the selection digest; that
+        # alone never rebuilds a correction (the hourly repeat it caused).
+        monkeypatch.setattr(identity_policy, "selection_digest", lambda _conn: "moved")
+        assert not correction_needed(database, bundle)
+        monkeypatch.setattr(closure, "_revocations", lambda _conn: "a-new-revocation")
+        assert correction_needed(database, bundle)
+        monkeypatch.undo()
+        hold = decision(binding, "hold_unlinked", "NONE", "hold", positive.decision_id)
+        held = _bundle(positive, hold)
+        accept(database, held, clock)
+        assert correction_needed(database, held)
+
+
+def test_a_correction_is_not_a_build_admission(tmp_path):
+    """A correction leaves the build interval to the normal build (D-0250)."""
+    from types import SimpleNamespace
+
+    from swingset.schedule.release_steps import build, build_deferred_for_interval
+
+    clock = FakeClock(datetime(2026, 9, 13, 6, tzinfo=UTC))
+    with open_database(tmp_path) as database:
+        _, _, _, positive = _published_fixture(database, clock)
+        build(database, _bundle(positive), clock, "run_a", correction_only=True)
+        kinds = [
+            row[0]
+            for row in database.connection.execute("SELECT action_kind FROM execution_admissions")
+        ]
+        assert kinds == ["correction"]
+        daily = SimpleNamespace(scheduler=SimpleNamespace(build_interval_seconds=86400))
+        assert not build_deferred_for_interval(database.connection, daily, now=clock.now())
+
+
+def test_a_revert_rebuilds_a_former_release_on_top_of_the_baseline(tmp_path):
+    """Rollback: a correction-only build from a former published candidate,
+    so the hub head and the local baseline move together (D-0250)."""
+    import pyarrow.parquet as pq
+
+    clock = FakeClock(datetime(2026, 9, 13, 6, tzinfo=UTC))
+    with open_database(tmp_path) as database:
+        former, identifier, binding, positive = _published_fixture(database, clock)
+        # A bad release lost every final mark.
+        bad = read_build_input(database.connection, _bundle(positive))
+        bad = replace(bad, tables={**bad.tables, "final_marks": []})
+        withdrawn = build_candidate(
+            database.state_dir,
+            bad,
+            BuildMetadata(
+                "run_a",
+                "fixture",
+                "published-fixture",
+                1,
+                {"repository": "fixture"},
+                b"Bad release\n",
+                clock.now(),
+                "bad-release",
+            ),
+        )
+        _publish_locally(database, withdrawn.path, "withdrawn-commit")
+        assert not baseline_tables(withdrawn.path)["final_marks"]
+        hold = decision(binding, "hold_unlinked", "NONE", "hold", positive.decision_id)
+        held = _bundle(positive, hold)
+        accept(database, held, clock)
+        with pytest.raises(BuildError, match="correction-only"):
+            build_release(database, held, clock, "run_a", source=former)
+        with pytest.raises(BuildError, match="already the baseline"):
+            build_release(
+                database, held, clock, "run_a", correction_only=True, source=withdrawn.path
+            )
+        unpublished = build_release(database, held, clock, "run_a")
+        with pytest.raises(BuildError, match="no publication receipt"):
+            build_release(
+                database, held, clock, "run_a", correction_only=True, source=unpublished.path
+            )
+
+        reverted = build_release(
+            database, held, clock, "run_a", correction_only=True, source=former
+        )
+        manifest = json.loads((reverted.path / "_meta/manifest.json").read_bytes())
+        assert manifest["release_policy"]["mode"] == "correction_only"
+        assert manifest["release_policy"]["reverted_from"] == {
+            "candidate_id": former.name,
+            "commit": "published-fixture",
+        }
+        built = json.loads((reverted.path / "BUILT").read_bytes())
+        assert built["baseline_commit"] == "withdrawn-commit"
+        original = baseline_tables(former)
+        rows = {
+            name: [
+                row
+                for path in sorted((reverted.path / "data" / name).glob("*.parquet"))
+                for row in pq.read_table(path).to_pylist()
+            ]
+            for name in ("events", "final_marks", "entries")
+        }
+        # Coverage fields (`scope_status`) are recomputed, as in any correction.
+        assert [row["event_id"] for row in rows["events"]] == [
+            row["event_id"] for row in original["events"]
+        ]
+        assert rows["final_marks"] == original["final_marks"] != []
+        # The revert runs today's identity policy: a join the journal now
+        # holds stays withdrawn.
+        entry = next(row for row in rows["entries"] if row["entry_id"] == identifier)
+        assert entry["wsdc_id"] is None

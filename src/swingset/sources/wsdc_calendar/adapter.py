@@ -6,6 +6,7 @@ import re
 from dataclasses import dataclass
 from datetime import date
 
+import pyarrow as pa
 from selectolax.parser import HTMLParser, Node
 
 from ..base import (
@@ -28,6 +29,31 @@ _MONTHS = {
         ("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"), 1
     )
 }
+
+
+#: A zstd frame's first four bytes.
+_ZSTD_MAGIC = b"\x28\xb5\x2f\xfd"
+#: The most a stored body may decode to; the fetch path stores at most 8 MiB.
+_MAX_DECODED = 64 * 1024 * 1024
+
+
+def _decoded(body: bytes) -> bytes:
+    """The body, with a still zstd-compressed Wayback replay decoded.
+
+    Two 2026 captures were stored as Wayback replayed them, zstd and all,
+    before the fetch path decoded zstd. Stored bodies are never rewritten,
+    so the extractor decodes them here with pyarrow.
+    """
+    if not body.startswith(_ZSTD_MAGIC):
+        return body
+    try:
+        with pa.input_stream(pa.BufferReader(body), compression="zstd") as stream:
+            decoded = stream.read(_MAX_DECODED + 1)
+    except OSError as error:
+        raise ExtractError(f"undecodable zstd calendar body: {error}") from error
+    if len(decoded) > _MAX_DECODED:
+        raise ExtractError("zstd calendar body decodes past its size limit")
+    return bytes(decoded)
 
 
 def _dates(raw: str) -> tuple[str, str]:
@@ -75,7 +101,7 @@ class EventsPage:
     change_mode = "extract"
 
     def extract(self, body: bytes) -> JsonValue:
-        source = body.decode("utf-8", "replace")
+        source = _decoded(body).decode("utf-8", "replace")
         embedded = fullcalendar_rows(source)
         if embedded is None:
             embedded = map_rows(source)

@@ -4,7 +4,7 @@ Recorded: 2026-09-21
 Decided by: agent, 2026-09-21, under D-0183; source: the published field gaps investigation of the same day  
 Topic: Publication  
 Supersedes: —  
-Superseded by: in part, [D-0239](0239-the-loops-are-the-only-orchestration.md) (with the cycle gone, the dry run means release ticks build and do not publish)
+Superseded by: [D-0252](0252-resume-publication-with-the-recovered-identity-release.md) (publication resumed 2026-10-13); earlier in part by [D-0239](0239-the-loops-are-the-only-orchestration.md)
 
 ## Decision
 

@@ -4,6 +4,7 @@ import re
 import shutil
 from dataclasses import replace
 from datetime import timedelta
+from pathlib import Path
 
 import pytest
 
@@ -330,3 +331,155 @@ def test_backpressure_counts_only_parse_units_derive_could_run(tmp_path):
         assert report["reasons"] == ["pending_parse_items", "pending_work_items"]
         # A backoff that ends makes its unit runnable again.
         assert backpressure(conn, config, now=now + timedelta(hours=2))["runnable_parse"] == 2666
+
+
+def _robots_world(tmp_path, db, clock, *, blocked_due):
+    """300 watches on a host whose robots read failed 20 minutes ago (the
+    third in a row, so the retry is an hour after it, with the host pause
+    lifted meanwhile), and one due watch on another host."""
+    from swingset.config import HostConfig, SourceConfig
+    from swingset.fetch.archive import Archive
+    from swingset.schedule.watches import upsert_watch
+    from swingset.sources.base import WatchSpec
+
+    config = Config(
+        {"blocked.test": HostConfig(), "open.test": HostConfig()},
+        {"wsdc_calendar": SourceConfig(True)},
+    )
+    conn = db.connection
+    for number in range(300):
+        spec = WatchSpec(
+            "",
+            "wsdc_calendar",
+            "index",
+            "GET",
+            f"https://blocked.test/events/{number}",
+            "wsdc_calendar.events",
+        )
+        upsert_watch(conn, spec, clock.now())
+    # Due two hours ago, so the blocked host ranks first; or not due at all.
+    when = clock.now() + timedelta(hours=-2 if blocked_due else 2)
+    conn.execute("UPDATE watches SET next_check_at=?", (when.isoformat(),))
+    upsert_watch(
+        conn,
+        WatchSpec(
+            "", "wsdc_calendar", "index", "GET", "https://open.test/events", "wsdc_calendar.events"
+        ),
+        clock.now(),
+    )
+    fetched = clock.now() - timedelta(minutes=20)
+    conn.execute(
+        "INSERT INTO hosts(host,robots_sha256,robots_fetched_at,robots_status,pause_streak) "
+        "VALUES ('blocked.test',?,?,599,3)",
+        (Archive(tmp_path).store_body(b""), fetched.isoformat()),
+    )
+    return config, fetched
+
+
+def _robots_pass(tmp_path, db, config, clock, requested):
+    """One 60 s acquisition pass where each selection costs 0.4 s, as in
+    production; robots.txt answers 404 (no rules) on every host."""
+    import httpx
+
+    from swingset.fetch.archive import Archive
+    from swingset.schedule.acquisition import Acquisition
+    from swingset.schedule.fairness import next_watch
+
+    body = Path("tests/fixtures/sources/synthetic_calendar.html").read_bytes()
+    selections = []
+
+    def handler(request):
+        requested.append((request.url.host, request.url.path))
+        if request.url.path == "/robots.txt":
+            return httpx.Response(404)
+        return httpx.Response(200, content=body)
+
+    def select(*args, **kwargs):
+        clock.sleep(0.4)
+        choice = next_watch(*args, **kwargs)
+        selections.append(choice and choice.host)
+        return choice
+
+    summary = {
+        "checked": 0,
+        "changed": 0,
+        "not_modified": 0,
+        "nonce_unchanged": 0,
+        "bytes_by_host": {},
+        "stage_errors": [],
+        "guards": {"passes": 0, "recorded": 0, "cleared": 0},
+    }
+    acquiring = Acquisition(
+        db,
+        config,
+        clock,
+        db.start_run(clock.now()),
+        summary,
+        archive=Archive(tmp_path),
+        stop=lambda: False,
+        should_stop=lambda: False,
+        transport=httpx.MockTransport(handler),
+        select=select,
+    )
+    try:
+        issued, _ = acquiring.run(clock.now() + timedelta(seconds=60), lambda _until: ())
+    finally:
+        acquiring.close()
+    return issued, summary, selections
+
+
+def test_a_host_whose_robots_read_failed_does_not_starve_another_hosts_due_watch(tmp_path):
+    """D-0242 (2026-10-08/09): a failed robots read on a host with hundreds of
+    due watches left the registry unserved, because each of them was picked,
+    skipped as robots-disallowed, and the selection re-ran over every due
+    watch. The blocked host is left out and the other host's watch is
+    fetched; after the retry a pass reads robots.txt and the guard goes."""
+    from swingset.state import guards
+    from swingset.state.queue import at
+
+    clock = FakeClock()
+    with open_database(tmp_path) as db:
+        config, fetched = _robots_world(tmp_path, db, clock, blocked_due=True)
+        conn = db.connection
+        requested = []
+        issued, summary, selections = _robots_pass(tmp_path, db, config, clock, requested)
+        assert issued and summary["checked"] == 1
+        assert requested == [("open.test", "/robots.txt"), ("open.test", "/events")]
+        assert "blocked.test" not in selections
+        # One host guard, not one per watch, expiring an hour after the retry.
+        assert guards.counts_by_reason(conn) == {guards.ROBOTS_UNREAD: 1}
+        row = guards.get(conn, "host:blocked.test", guards.ROBOTS_UNREAD)
+        assert row is not None
+        assert row.expires_at == at(fetched + timedelta(hours=2))
+        # After the retry a pass reads robots.txt again, fetches the host's
+        # watches, and the guard row goes with the host's request.
+        clock.sleep(3600)
+        requested.clear()
+        issued, summary, _ = _robots_pass(tmp_path, db, config, clock, requested)
+        assert issued and requested[0] == ("blocked.test", "/robots.txt")
+        assert summary["checked"] > 1
+        assert all(host == "blocked.test" for host, _ in requested)
+        assert guards.counts_by_reason(conn) == {}
+
+
+def test_a_blocked_host_with_nothing_due_leaves_no_guard_and_acquire_idle_alarms(tmp_path):
+    """The guard says a fetch was held: a host whose robots read failed but
+    had no due watch writes none, so it cannot silence acquire [loop-idle]
+    (the watchdog's `guards_recent`)."""
+    import importlib.util
+
+    from swingset.state import guards
+
+    spec = importlib.util.spec_from_file_location("swingset_watchdog", "nix/watchdog.py")
+    assert spec is not None and spec.loader is not None
+    watchdog = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(watchdog)
+    clock = FakeClock()
+    with open_database(tmp_path) as db:
+        config, _ = _robots_world(tmp_path, db, clock, blocked_due=False)
+        issued, summary, _ = _robots_pass(tmp_path, db, config, clock, [])
+        assert issued and summary["checked"] == 1
+        assert guards.counts_by_reason(db.connection) == {}
+        since = watchdog._queue_at((clock.now() - timedelta(hours=1)).timestamp())
+        recent = db.connection.execute(watchdog.QUERIES["guards_recent"], {"since": since})
+        assert recent.fetchone()[0] == 0

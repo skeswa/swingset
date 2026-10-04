@@ -142,6 +142,59 @@ def _legacy_matches(
     return all(matches(name, value) for name, value in payload.items() if name not in ignored)
 
 
+#: Columns of a baseline `events` row the release recomputes: freshness at
+#: assembly, the tier from the year's patch.
+_HEADER_RECOMPUTED = frozenset({"scope_status", "evidence_observed_at", "coverage_tier"})
+
+
+def _baseline_header(conn: sqlite3.Connection, key: str) -> dict[str, Any] | None:
+    """The published baseline's `events` row, as a rejected legacy header's stand-in (D-0251).
+
+    A legacy header row that differs from the baseline used to withhold its
+    whole event, accepted results included. The baseline's own row is public
+    already, so it stands in: every source column and its provenance
+    (`source`, `sources`, `snapshot_id`, `parser_version`, `run_id`,
+    `first_seen_at`, `last_seen_at`) are the baseline's. The tier starts
+    neutral for the year's patch and freshness is recomputed. None when the
+    baseline does not publish the event.
+    """
+    old = conn.execute(
+        "SELECT payload FROM baseline WHERE table_name='events' AND record_key=?", (key,)
+    ).fetchone()
+    if old is None:
+        return None
+    row = {
+        name: value for name, value in json.loads(old[0]).items() if name not in _HEADER_RECOMPUTED
+    }
+    return {**_NEUTRAL["events"], **row}
+
+
+def _header_pair(row: Mapping[str, Any]) -> tuple[str, str] | None:
+    """The `(snapshot, parser)` a stand-in header cites, or None for an override."""
+    snapshot = row.get("snapshot_id")
+    if not snapshot or snapshot == "override":
+        return None
+    return str(snapshot), str(row.get("parser_version", ""))
+
+
+def _stand_in(
+    conn: sqlite3.Connection,
+    key: str,
+    stand_ins: set[str],
+    revoked: set[tuple[str, str]],
+) -> None:
+    """Put the baseline's header for a rejected legacy one, when no row holds the event yet."""
+    if conn.execute(
+        "SELECT 1 FROM rows WHERE table_name='events' AND record_key=?", (key,)
+    ).fetchone():
+        return
+    header = _baseline_header(conn, key)
+    if header is None or _header_pair(header) in revoked:
+        return
+    _put(conn, "events", key, header)
+    stand_ins.add(key)
+
+
 def _put(
     conn: sqlite3.Connection, table: str, key: str, payload: dict[str, Any], *, patch: bool = False
 ) -> bool:
@@ -263,8 +316,9 @@ def _close(conn: sqlite3.Connection, result: ReconstructedRows) -> None:
             ).fetchone()
         ):
             # An unsupported structural alternative does not revoke an event
-            # supplied by another admissible selected generation. History patches
-            # cannot create this base. Revocation and rejected result facts still
+            # supplied by another admissible selected generation or by the
+            # baseline's stand-in (D-0251). History patches cannot create this
+            # base. Revocation and rejected result facts still
             # withdraw the whole event, regardless of other structural support.
             continue
         row = json.loads(payload)
@@ -398,6 +452,8 @@ def reconstruct(
                 "history": 5,
                 "year": 5,
             }
+            #: Events whose header is the baseline's stand-in (D-0251).
+            stand_ins: set[str] = set()
             selected = sorted(
                 closure.selected,
                 key=lambda item: (
@@ -440,6 +496,8 @@ def reconstruct(
                                             else "legacy_owned_values_not_published",
                                         ),
                                     )
+                                    if table == "events" and state != "revoked":
+                                        _stand_in(spool, key, stand_ins, revoked)
                                     continue
                                 result.counts["legacy_unassessed_retained"] += 1
                         # Processing metadata comes from this immutable materialization receipt.
@@ -456,10 +514,18 @@ def reconstruct(
                             and generation["unit_kind"] in {"history", "year"}
                             and table in {"events", "registry_placements"}
                         )
+                        if not patch and table == "events" and key in stand_ins:
+                            # An admissible header replaces the baseline's stand-in whole.
+                            stand_ins.discard(key)
+                            spool.execute(
+                                "DELETE FROM rows WHERE table_name='events' AND record_key=?",
+                                (key,),
+                            )
                         if not _put(spool, table, key, payload, patch=patch):
                             result.counts["partial_overlay_without_structural_base"] += 1
                 except output_packs.GenerationUnavailable as error:
                     raise ClosureError("selected_output_digest_mismatch") from error
+            result.counts["baseline_header_republished"] += len(stand_ins)
             _close(spool, result)
             spool.commit()
             yield result

@@ -78,7 +78,7 @@ header inside the file.
 
 ```toml
 [hosts."eepro.com"]
-min_gap_seconds = 5
+min_gap_seconds = 2
 daily_request_budget = 600
 index_interval_weekend = "1h"      # event.php, Fri 00:00 to Mon 12:00 UTC
 index_interval_weekday = "6h"

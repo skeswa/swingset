@@ -113,7 +113,7 @@ def test_partial_turn_survives_crash_hold_and_daily_reset_without_extra_debits(f
             crawl_delay=0,
             sweep=False,
         )
-    assert waiting == Wait(5) and action is None
+    assert waiting == Wait(2) and action is None
     assert dict(
         f.db.connection.execute("SELECT day,requests FROM host_budget WHERE host='example.test'")
     ) == {old_day: 1}

@@ -42,10 +42,23 @@ def _json(body: bytes) -> JsonValue:
     return value
 
 
+def _key_sorted(value: JsonValue) -> JsonValue:
+    """Sort mapping keys recursively, so text made from a mapping ignores body key order.
+
+    A fresh extract keeps the body's key order and a stored extract is sorted;
+    both must give the same `attribute_group` text (D-0240).
+    """
+    if isinstance(value, dict):
+        return {key: _key_sorted(value[key]) for key in sorted(value)}
+    if isinstance(value, list):
+        return [_key_sorted(item) for item in value]
+    return value
+
+
 class RoundsPage:
     kind = "wdr.rounds"
     EXTRACT_VERSION = 1
-    PARSER_VERSION = 3
+    PARSER_VERSION = 4
     #: The JSON's key order reaches the parse output; see `schedule/parse.py`.
     ORDERED_EXTRACT = True
     change_mode = "validators"
@@ -143,7 +156,7 @@ class RoundsPage:
                             rows[0],
                             tuple(ResultRow(row) for row in rows[1:]),
                             redacted,
-                            str(raw.get("attributeGroup"))
+                            str(_key_sorted(raw.get("attributeGroup")))
                             if raw.get("attributeGroup") is not None
                             else None,
                         )

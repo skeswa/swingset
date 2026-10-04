@@ -3,6 +3,7 @@
 import json
 import shutil
 from datetime import UTC, datetime
+from types import SimpleNamespace
 
 import pytest
 
@@ -368,3 +369,24 @@ def test_manual_build_pause_returns_held_receipt_and_successful_run(
         )
         assert not summary["failed"]
         assert summary["held_operations"] == [receipt]
+
+
+def test_manual_revert_builds_a_correction_from_the_named_candidate(tmp_path, monkeypatch, capsys):
+    """`build --revert-to` is a correction-only build read from a former
+    release, admitted as a correction (D-0250)."""
+    state = tmp_path / "state"
+    calls = []
+
+    def fake(*_args, **kwargs):
+        calls.append(kwargs)
+        return SimpleNamespace(path=state / "candidates" / "cand_new")
+
+    monkeypatch.setattr("swingset.build.service.build_release", fake)
+    assert main(["build", "--state", str(state), "--revert-to", "cand_old"]) == 0
+    assert calls[0]["correction_only"] is True
+    assert calls[0]["source"] == state / "candidates" / "cand_old"
+    assert capsys.readouterr().out.strip() == str(state / "candidates" / "cand_new")
+    with open_database(state) as db:
+        assert [
+            row[0] for row in db.connection.execute("SELECT action_kind FROM execution_admissions")
+        ] == ["correction"]

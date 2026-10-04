@@ -1,0 +1,17 @@
+{
+  "archive_url": null,
+  "body_sha256": "7ee2873231eb53827e589e8142862dd234ccb94323f43162c1e5903fc8a0be0f",
+  "captured_at": "2026-09-12T15:24:48.770571+00:00",
+  "extract_sha256": "d6196b9d333b4869105397ca5feecf792fdf63319fc7af4c1372e4fdf861da6f",
+  "extract_version": "3",
+  "fetched_at": "2026-09-12T15:24:48.770571+00:00",
+  "observed_at": "2026-09-12T15:24:48.770571+00:00",
+  "page_kind": "scoringdance.round",
+  "parser_version": "3",
+  "snapshot_id": "snap_20260912T152448Z_7ee2873231eb",
+  "source_ref": "scoringdance:141",
+  "state_root": "/var/lib/swingset",
+  "url": "https://scoring.dance/enUS/events/141/results/2267.html",
+  "via": "origin",
+  "watch_id": "853825bc4cff54e9"
+}
