@@ -584,6 +584,86 @@ def test_readmission_with_equal_payload_rewrites_observation_labels(tmp_path, mo
         )
 
 
+def test_relabel_stores_an_accepted_result_again_when_only_labels_lag(tmp_path, capsys):
+    """Item 21: observations kept from before D-0241 carry older labels than
+    their accepted generation, and a repeated parse writes nothing.
+    `swingset relabel` lists them and, with --apply, stores the accepted
+    result again through the admission writer; a payload difference is left
+    alone."""
+    from swingset.admission import relabel
+    from swingset.cli import main
+
+    with open_database(tmp_path) as db:
+        c = Corpus(db)
+        ctx = c.snapshot("one")
+        first, _ = c.stage(ctx)
+        c.review(first)
+        assert c.admit(first) == "accepted"
+        parser = str(c.page.PARSER_VERSION)
+        extract = str(c.page.EXTRACT_VERSION)
+        assert [item.state for item in relabel.drift(c.conn)] == [relabel.CURRENT]
+        payloads = [row[0] for row in c.conn.execute("SELECT payload_json FROM observations")]
+        # The rows an older parser left behind: same payload, older labels.
+        with c.db.transaction():
+            c.conn.execute("UPDATE observations SET parser_version='0',extract_version='0'")
+            c.conn.execute("DELETE FROM pending_work")
+        assert _build_support(c.conn, "one", "0") == "legacy_unassessed"
+        [found] = relabel.drift(c.conn)
+        assert (found.state, found.stored, found.accepted) == (
+            relabel.LABELS,
+            (("one", "0", "0"),),
+            ("one", extract, parser),
+        )
+        assert relabel.drift(c.conn, kinds=["scoringdance.event"]) == []
+        revision = c.conn.execute(
+            "SELECT value FROM revisions WHERE name='observations'"
+        ).fetchone()[0]
+
+    # The list opens read-only and writes nothing.
+    assert main(["relabel", "--state", str(tmp_path)]) == 0
+    listed = json.loads(capsys.readouterr().out)
+    assert listed["relabel"] == 1 and listed["kinds"] == {c.page.kind: {"labels": 1}}
+    assert main(["relabel", "--state", str(tmp_path), "--apply"]) == 1
+    capsys.readouterr()
+    assert main(["relabel", "--state", str(tmp_path), "--apply", "--by", "test"]) == 0
+    applied = json.loads(capsys.readouterr().out)
+    assert (applied["total"], applied["rewritten"]) == (1, {c.page.kind: 1})
+    with open_database(tmp_path) as db:
+        conn = db.connection
+        assert _labels(conn) == [("one", parser, extract)]
+        assert [row[0] for row in conn.execute("SELECT payload_json FROM observations")] == (
+            payloads
+        )
+        assert _build_support(conn, "one", parser) == "accepted"
+        # Its project scopes are queued for derive, and observers see the change.
+        assert (
+            conn.execute("SELECT COUNT(*) FROM pending_work WHERE stage='project'").fetchone()[0]
+            > 0
+        )
+        assert (
+            conn.execute("SELECT value FROM revisions WHERE name='observations'").fetchone()[0]
+            == revision + 1
+        )
+        summary = json.loads(
+            conn.execute(
+                "SELECT summary_json FROM runs WHERE summary_json LIKE '%relabel%'"
+            ).fetchone()[0]
+        )
+        assert summary["total"] == 1 and summary["by"] == "test"
+        assert [item.state for item in relabel.drift(conn)] == [relabel.CURRENT]
+        # A changed payload is not a label: only a parse may change it.
+        with db.transaction():
+            conn.execute(
+                "UPDATE observations SET payload_json=json_set(payload_json,'$.x',1),"
+                "parser_version='0'"
+            )
+        before = tuple(tuple(row) for row in conn.execute("SELECT * FROM observations"))
+        assert [item.state for item in relabel.drift(conn)] == [relabel.PAYLOAD]
+        result = relabel.relabel(db, now="2026-10-14T00:00:00+00:00", run_id=c.run)
+        assert result == {"rewritten": {}, "total": 0, "skipped": {"payload": 1}}
+        assert tuple(tuple(row) for row in conn.execute("SELECT * FROM observations")) == before
+
+
 def test_v1_bootstrap_is_unassessed_without_granted_authority(tmp_path, monkeypatch):
     import swingset.state.db as state_db
     from swingset.state.observations import store_parse_result

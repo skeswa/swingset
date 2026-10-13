@@ -317,3 +317,274 @@ def test_a_new_listing_for_a_known_event_makes_its_resolution_stale(source_fixtu
     assert ("scoringdance", "sd:event-a", "event-a", "name_date") in _rows(
         f.conn, "SELECT source,source_ref,event_id,match_method FROM source_event_map"
     )
+
+
+# The series-and-month rule (D-0253): a listing's contests follow the
+# inventory's series decision, so a results-site name that differs from the
+# registry's lands on the registry occurrence and its placeholder goes.
+SERIES_ALIASES = (
+    b"printed_name,series_id,source,note\n"
+    b"Liberty Swing,wsdc-96,eepro,reviewed\n"
+    b"GNDC,wsdc-22,eepro,reviewed\n"
+    b"MADjam,wsdc-92,eepro,reviewed\n"
+)
+
+
+def _snapshot(conn, snapshot, source):
+    conn.execute(
+        "INSERT OR IGNORE INTO watches(watch_id,source,kind,method,url,parser,state) "
+        "VALUES (?,?,'index','GET','https://example.test/','events','live')",
+        ("watch-" + snapshot, source),
+    )
+    conn.execute(
+        "INSERT INTO snapshots(snapshot_id,watch_id,method,url,fetched_at,http_status,body_bytes,"
+        "content_changed,run_id,classification) "
+        "VALUES (?,?,'GET','https://example.test/',?,200,1,1,'test','Ok')",
+        (snapshot, "watch-" + snapshot, NOW),
+    )
+
+
+def _registry(conn, *occurrences):
+    """One dancer whose placements report each (registry id, printed name, month)."""
+    from swingset.model.observations import encode_payload
+    from swingset.project.registry import project_dancer
+    from swingset.sources.records import DancerLookup, RegistryPlacement
+
+    payload = DancerLookup(
+        "dancer_lookup",
+        "found",
+        1,
+        1,
+        first_name="Test",
+        last_name="Dancer",
+        primary_role_raw="L",
+        placements=tuple(
+            RegistryPlacement("leader", "NOV", number, name, month, "1", 1, "wcs")
+            for number, name, month in occurrences
+        ),
+    )
+    _snapshot(conn, "registry", "wsdc_registry")
+    conn.execute(
+        "INSERT INTO observations VALUES ('obs-registry','watch-registry','registry',?,"
+        "'dancer','1',0,'1','1',?)",
+        (payload.kind, encode_payload(payload)),
+    )
+    replace_scope(
+        conn,
+        scope_kind="dancer",
+        scope_id="1",
+        projection=project_dancer(conn, "1", NOW, "test"),
+        run_id="test",
+        projected_at=NOW,
+    )
+
+
+def _inventory(conn, aliases=SERIES_ALIASES):
+    from swingset.project.history import prepare_inventory
+
+    prepare_inventory(conn, now=NOW, run_id="test", aliases=aliases)
+
+
+def _held(identifier, series, month, start, end, sources=("eepro",)):
+    return Event(
+        event_id=identifier,
+        series_id=series,
+        name=identifier,
+        year=int(month[:4]),
+        start_date=start,
+        end_date=end,
+        event_month=month,
+        held="held",
+        wsdc_status="registry",
+        sources=sources,
+        source=sources[0],
+        snapshot_id="held",
+        parser_version="1",
+        first_seen_at=NOW,
+        last_seen_at=NOW,
+        run_id="test",
+    )
+
+
+def test_result_site_listings_attach_to_their_registry_occurrence(tmp_path):
+    """Liberty (a calendar row, then a placeholder), GNDC (reported the month
+    after it ended) and MADjam (a placeholder the registry adopts) each leave
+    one event with the contests' listing and the registry points, status
+    `registry`; no placeholder survives."""
+    bundle = SimpleNamespace(files={"overrides/series_aliases.csv": SERIES_ALIASES})
+    with open_database(tmp_path, lock=False) as db:
+        conn = db.connection
+        conn.execute("INSERT INTO runs(run_id,started_at,dry_run) VALUES ('test',?,0)", (NOW,))
+        with db.transaction():
+            _calendar(
+                conn,
+                _event(
+                    "2026-06-liberty-swing-dance-championships",
+                    "Liberty Swing Dance Championships",
+                    "2026-06-12",
+                    "2026-06-14",
+                ),
+            )
+            _snapshot(conn, "listing", "eepro")
+            _listing(conn, "eepro", "eepro:liberty", "Liberty Swing", "2026-06-12", "2026-06-14")
+            _listing(conn, "eepro", "eepro:madjam", "MADjam", "2026-03-06", "2026-03-08")
+            # The results site lists the event before the registry reports it.
+            assert project_map(conn, bundle, NOW, "test", 20)
+        assert _rows(conn, "SELECT source_ref,event_id FROM source_event_map ORDER BY 1") == [
+            ("eepro:liberty", "2026-06-liberty-swing"),
+            ("eepro:madjam", "2026-03-madjam"),
+        ]
+        with db.transaction():
+            _registry(
+                conn,
+                ("96", "Liberty Swing Dance Championships", "June 2026"),
+                ("22", "USA Grand National Dance Championships", "June 2026"),
+                ("92", "MADjam - Mid Atlantic Dance Jam", "March 2026"),
+            )
+            _listing(conn, "eepro", "eepro:gndc", "GNDC", "2026-05-29", "2026-05-31")
+            _inventory(conn)
+            assert project_map(conn, bundle, NOW, "test", 20)
+        assert _rows(
+            conn,
+            "SELECT source_ref,event_id,match_method,match_confidence FROM source_event_map "
+            "ORDER BY 1",
+        ) == [
+            ("eepro:gndc", "2026-06-usa-grand-national-dance-championships", "alias", 1.0),
+            ("eepro:liberty", "2026-06-liberty-swing-dance-championships", "alias", 1.0),
+            ("eepro:madjam", "2026-03-madjam", "alias", 1.0),
+        ]
+        assert _rows(
+            conn,
+            "SELECT event_id,series_id,held,wsdc_status,sources FROM events ORDER BY 1",
+        ) == [
+            ("2026-03-madjam", "wsdc-92", "held", "registry", '["eepro"]'),
+            (
+                "2026-06-liberty-swing-dance-championships",
+                "wsdc-96",
+                "held",
+                "registry",
+                '["eepro"]',
+            ),
+            (
+                "2026-06-usa-grand-national-dance-championships",
+                "wsdc-22",
+                "held",
+                "registry",
+                '["eepro","wsdc_registry"]',
+            ),
+        ]
+        assert not conn.execute("PRAGMA foreign_key_check").fetchall()
+
+
+def test_two_series_with_a_shared_word_stay_apart(tmp_path):
+    """South Bay Dance Fling and Swing Fling: each listing follows its own
+    registry series by printed name, never the other's."""
+    bundle = SimpleNamespace(files={})
+    with open_database(tmp_path, lock=False) as db:
+        conn = db.connection
+        conn.execute("INSERT INTO runs(run_id,started_at,dry_run) VALUES ('test',?,0)", (NOW,))
+        with db.transaction():
+            _registry(
+                conn,
+                ("48", "South Bay Dance Fling", "September 2026"),
+                ("59", "Swing Fling", "August 2026"),
+            )
+            _snapshot(conn, "listing", "scoringdance")
+            _listing(conn, "scoringdance", "sd:fling", "Swing Fling", "2026-08-14", "2026-08-16")
+            _listing(
+                conn,
+                "scoringdance",
+                "sd:south-bay",
+                "South Bay Dance Fling",
+                "2026-09-11",
+                "2026-09-13",
+            )
+            _inventory(conn, b"printed_name,series_id,source,note\n")
+            assert project_map(conn, bundle, NOW, "test", 20)
+        assert _rows(
+            conn,
+            "SELECT m.source_ref,m.event_id,e.series_id FROM source_event_map m "
+            "JOIN events e USING(event_id) ORDER BY 1",
+        ) == [
+            ("sd:fling", "2026-08-swing-fling", "wsdc-59"),
+            ("sd:south-bay", "2026-09-south-bay-dance-fling", "wsdc-48"),
+        ]
+
+
+def test_the_series_rule_refuses_ambiguous_months_and_disjoint_dates(tmp_path):
+    """Two held occurrences of one series in the window, or an occurrence
+    whose dates miss the listing's, attach nothing: the listing falls back to
+    its name, here a placeholder. So does a listing of a month the series did
+    not hold, whatever its name."""
+    aliases = (
+        b"printed_name,series_id,source,note\n"
+        b"WCS Party,wsdc-357,scoringdance,reviewed\n"
+        b"Liberty Swing,wsdc-96,eepro,reviewed\n"
+    )
+    bundle = SimpleNamespace(files={"overrides/series_aliases.csv": aliases})
+    with open_database(tmp_path, lock=False) as db:
+        conn = db.connection
+        conn.execute("INSERT INTO runs(run_id,started_at,dry_run) VALUES ('test',?,0)", (NOW,))
+        with db.transaction():
+            _calendar(
+                conn,
+                _held(
+                    "2026-09-wcsparty",
+                    "wsdc-357",
+                    "2026-09",
+                    "2026-09-18",
+                    "2026-09-20",
+                    ("scoringdance",),
+                ),
+                _held(
+                    "2026-09-wcs-party-in-vienna",
+                    "wsdc-357",
+                    "2026-09",
+                    "2026-09-18",
+                    "2026-09-20",
+                    ("scoringdance",),
+                ),
+                _held("2026-06-liberty", "wsdc-96", "2026-06", "2026-06-12", "2026-06-14"),
+            )
+            _listing(conn, "scoringdance", "sd:party", "WCS Party", "2026-09-18", "2026-09-20")
+            # A second Liberty listing two weeks later, and one a year later.
+            _listing(conn, "eepro", "e:late", "Liberty Swing", "2026-06-26", "2026-06-28")
+            _listing(conn, "eepro", "e:next-year", "Liberty Swing", "2027-06-11", "2027-06-13")
+            # The edition itself does attach.
+            _listing(conn, "eepro", "e:liberty", "Liberty Swing", "2026-06-12", "2026-06-14")
+            assert project_map(conn, bundle, NOW, "test", 20)
+        assert _rows(
+            conn, "SELECT source_ref,event_id,match_method FROM source_event_map ORDER BY 1"
+        ) == [
+            ("e:late", "2026-06-liberty-swing", "name_date"),
+            ("e:liberty", "2026-06-liberty", "alias"),
+            ("e:next-year", "2027-06-liberty-swing", "name_date"),
+            ("sd:party", "2026-09-wcs-party", "name_date"),
+        ]
+
+
+def test_the_series_rule_needs_the_inventory_to_have_attached_the_source(tmp_path):
+    """An occurrence the inventory gave no listing of this source (say, it
+    left two dated editions for review) takes no contests from it."""
+    aliases = b"printed_name,series_id,source,note\nLiberty Swing,wsdc-96,eepro,reviewed\n"
+    bundle = SimpleNamespace(files={"overrides/series_aliases.csv": aliases})
+    with open_database(tmp_path, lock=False) as db:
+        conn = db.connection
+        conn.execute("INSERT INTO runs(run_id,started_at,dry_run) VALUES ('test',?,0)", (NOW,))
+        with db.transaction():
+            _calendar(
+                conn,
+                _held(
+                    "2026-06-liberty",
+                    "wsdc-96",
+                    "2026-06",
+                    "2026-06-12",
+                    "2026-06-14",
+                    ("wsdc_calendar",),
+                ),
+            )
+            _listing(conn, "eepro", "e:liberty", "Liberty Swing", "2026-06-12", "2026-06-14")
+            assert project_map(conn, bundle, NOW, "test", 20)
+        assert _rows(conn, "SELECT source_ref,event_id,match_method FROM source_event_map") == [
+            ("e:liberty", "2026-06-liberty-swing", "name_date")
+        ]

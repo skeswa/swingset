@@ -4,7 +4,7 @@ Recorded: 2026-10-13
 Decided by: agent, 2026-10-13, under D-0172; source: the release-losses investigation of 2026-10-12  
 Topic: Publication  
 Supersedes: the D-0224 rule that a rejected legacy `events` row withholds its whole event  
-Superseded by: —
+Superseded by: in part, D-0254 (the stand-in's status, the per-event rule)
 
 ## Decision
 

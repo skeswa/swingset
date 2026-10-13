@@ -6,9 +6,10 @@ import csv
 import io
 import json
 import sqlite3
-from collections.abc import Iterable, Iterator
+from collections.abc import Iterable, Iterator, Mapping
 from contextlib import contextmanager, nullcontext
 from contextvars import ContextVar
+from dataclasses import dataclass
 from datetime import date, datetime
 from hashlib import sha256
 from uuid import uuid4
@@ -93,35 +94,43 @@ def prepare_inventory(
                     "UPDATE events SET series_id=?,event_month=?,held='held' WHERE event_id=?",
                     (series, month, legacy[0][0]),
                 )
-                continue
-            # Reuse the v1 identifier where its exact edition name and month agree.
-            event_id = f"{month}-{series_slug(name)}"
-            collision = conn.execute(
-                "SELECT series_id FROM events WHERE event_id=?", (event_id,)
-            ).fetchone()
-            if (
-                collision is not None
-                and str(collision[0]).startswith("wsdc-")
-                and collision[0] != series
-            ):
-                event_id += "-" + series
-            conn.execute(
-                """INSERT INTO events(event_id,series_id,name,year,start_date,end_date,wsdc_status,sources,source,snapshot_id,parser_version,first_seen_at,last_seen_at,run_id,event_month,date_precision,held,coverage_tier,history_source)
-                VALUES (?,?,?,?,NULL,NULL,'registry','["wsdc_registry"]','wsdc_registry',?,?,?,?,?,?,'month','held','registry_only','["registry"]')
-                ON CONFLICT(event_id) DO UPDATE SET series_id=excluded.series_id,held='held',event_month=excluded.event_month""",
-                (
-                    event_id,
-                    series,
-                    name,
-                    int(month[:4]),
-                    row[3],
-                    row[4],
-                    row[5],
-                    row[6],
-                    run_id,
-                    month,
-                ),
-            )
+            else:
+                # Reuse the v1 identifier where its exact edition name and month agree.
+                event_id = f"{month}-{series_slug(name)}"
+                collision = conn.execute(
+                    "SELECT series_id FROM events WHERE event_id=?", (event_id,)
+                ).fetchone()
+                if (
+                    collision is not None
+                    and str(collision[0]).startswith("wsdc-")
+                    and collision[0] != series
+                ):
+                    event_id += "-" + series
+                conn.execute(
+                    """INSERT INTO events(event_id,series_id,name,year,start_date,end_date,wsdc_status,sources,source,snapshot_id,parser_version,first_seen_at,last_seen_at,run_id,event_month,date_precision,held,coverage_tier,history_source)
+                    VALUES (?,?,?,?,NULL,NULL,'registry','["wsdc_registry"]','wsdc_registry',?,?,?,?,?,?,'month','held','registry_only','["registry"]')
+                    ON CONFLICT(event_id) DO UPDATE SET series_id=excluded.series_id,held='held',event_month=excluded.event_month""",
+                    (
+                        event_id,
+                        series,
+                        name,
+                        int(month[:4]),
+                        row[3],
+                        row[4],
+                        row[5],
+                        row[6],
+                        run_id,
+                        month,
+                    ),
+                )
+        # A registry occurrence is a registry event. A row adopted above, or
+        # earlier, kept the `unknown` of the placeholder or listing it began
+        # as; a trial label stays (D-0253).
+        conn.execute(
+            "UPDATE events SET wsdc_status='registry' WHERE series_id=? AND event_month=? "
+            "AND held='held' AND wsdc_status='unknown'",
+            (series, month),
+        )
     # History membership outlives the rolling calendar window. Its scope keeps
     # registry-backed editions from being deleted when a newer index omits them.
     for event in conn.execute(
@@ -161,12 +170,14 @@ def prepare_inventory(
     ):
         if not row[0] or str(row[5])[:7] < history_start.strftime("%Y-%m"):
             continue
+        # A results platform does not say whether an event is a WSDC event;
+        # its status comes from the series it resolves to (D-0253).
         payload = CalendarRow(
             "calendar_row",
             str(row[0]),
             str(row[1]),
             str(row[5]),
-            "registry",
+            "",
             str(row[6] or ""),
             str(row[7]),
             None,
@@ -184,9 +195,8 @@ def prepare_inventory(
     for payload, row in _current_listings(listings, observation_times):
         month = payload.end_date_raw[:7]
         year = int(month[:4])
-        normalized = series_slug(payload.name_raw)
-        aliased = _alias_for(alias_map, normalized, month)
-        candidates = {aliased} if aliased else names.get(normalized, set())
+        match = match_listing(conn, alias_map, names, payload.name_raw, month)
+        normalized, candidates = match.slug, match.series
         if len(candidates) != 1:
             _open(
                 findings,
@@ -212,12 +222,7 @@ def prepare_inventory(
         conn.execute(
             "INSERT OR IGNORE INTO series(series_id,name) VALUES (?,?)", (series, payload.name_raw)
         )
-        matches = list(
-            conn.execute(
-                "SELECT event_id FROM events WHERE series_id=? AND event_month IN (?,?) AND held='held'",
-                (series, month, _next_month(month)),
-            )
-        )
+        matches = match.events
         if len(matches) > 1:
             _open(
                 findings,
@@ -229,11 +234,11 @@ def prepare_inventory(
                     f"{month}:{normalized}",
                     "warning",
                     "Listing matches multiple registry occurrences",
-                    {"year": year, "event_ids": [r[0] for r in matches]},
+                    {"year": year, "event_ids": list(matches)},
                 ),
             )
             continue
-        event_id = str(matches[0][0]) if matches else f"{month}-{normalized}"
+        event_id = matches[0] if matches else f"{month}-{normalized}"
         resolved.setdefault(event_id, []).append((payload, row))
     for event_id, dated_candidates in resolved.items():
         payload, row = max(
@@ -298,14 +303,7 @@ def prepare_inventory(
             "cancel" in value.casefold() or "hiatus" in value.casefold()
             for value in (payload.name_raw, *payload.row_classes)
         )
-        status_raw = payload.event_type_raw.casefold().replace("-", " ")
-        status = (
-            "trial"
-            if "trial" in status_raw
-            else "registry"
-            if status_raw in {"registry", "registry event"}
-            else "unknown"
-        )
+        status = _listing_status(payload, source, series, dated_candidates, observation_times)
         month = payload.end_date_raw[:7]
         precision = "day" if len(payload.end_date_raw) == 10 else "month"
         start = payload.start_date_raw if precision == "day" else None
@@ -425,6 +423,113 @@ def reconcile_history(
     )
     finalize_history(conn, now=now, history_start=history_start)
     return changed
+
+
+@dataclass(frozen=True)
+class ListingMatch:
+    """Where the series-and-month rule puts one printed listing (D-0253).
+
+    ``series`` holds every candidate series; the listing has a series only
+    when it holds one. ``events`` are that series' held occurrences in the
+    listing's end month or the next.
+    """
+
+    slug: str
+    series: frozenset[str]
+    events: tuple[str, ...]
+
+    @property
+    def event_id(self) -> str | None:
+        """The one held occurrence, or None when there is none or the match is ambiguous."""
+        return self.events[0] if len(self.series) == 1 and len(self.events) == 1 else None
+
+
+def match_listing(
+    conn: sqlite3.Connection,
+    aliases: AliasMap,
+    names: Mapping[str, Iterable[str]],
+    name: str,
+    month: str,
+) -> ListingMatch:
+    """The series of a printed listing name and that series' held occurrences.
+
+    The series is the reviewed `series_aliases.csv` row for the name's slug
+    in ``month``, else every registry series printed with that slug
+    (``names``). With one series, its events are the held occurrences in
+    ``month`` or the next: the registry reports an event in its end month or
+    the month after. The inventory puts a listing's header facts on that
+    event and the map puts its contests there, so both call this (D-0253).
+    """
+    slug = series_slug(name)
+    aliased = _alias_for(aliases, slug, month)
+    series = frozenset({aliased} if aliased else names.get(slug, ()))
+    if len(series) != 1:
+        return ListingMatch(slug, series, ())
+    events = tuple(
+        str(row[0])
+        for row in conn.execute(
+            "SELECT event_id FROM events WHERE series_id=? AND event_month IN (?,?) AND held='held'",
+            (next(iter(series)), month, _next_month(month)),
+        )
+    )
+    return ListingMatch(slug, series, events)
+
+
+def registry_names(conn: sqlite3.Connection) -> dict[str, set[str]]:
+    """Registry series by printed-name slug, read from the inventory's output.
+
+    The map's stand-in for the names the inventory reads from
+    `registry_placements`, which would tie every mapping to every dancer:
+    each registry series' stored name and the name of each held occurrence.
+    """
+    names: dict[str, set[str]] = {}
+    for series, name in conn.execute(
+        "SELECT series_id,name FROM series WHERE series_id LIKE 'wsdc-%' "
+        "UNION SELECT series_id,name FROM events WHERE held='held' AND series_id LIKE 'wsdc-%'"
+    ):
+        names.setdefault(series_slug(str(name)), set()).add(str(series))
+    return names
+
+
+def alias_map(aliases: bytes) -> AliasMap:
+    """The reviewed series aliases of `overrides/series_aliases.csv`."""
+    return _alias_map(aliases)
+
+
+def _calendar_status(payload: CalendarRow) -> str:
+    raw = payload.event_type_raw.casefold().replace("-", " ")
+    return (
+        "trial"
+        if "trial" in raw
+        else "registry"
+        if raw in {"registry", "registry event"}
+        else "unknown"
+    )
+
+
+def _listing_status(
+    payload: CalendarRow,
+    source: str,
+    series: str,
+    candidates: list[tuple[CalendarRow, sqlite3.Row]],
+    observation_times: dict[str, str],
+) -> str:
+    """The WSDC status a listing gives its event.
+
+    A calendar listing prints it. A results platform does not: its event
+    takes the status of the newest calendar listing of the same edition, else
+    `registry` for a registry series and `unknown` for any other (D-0253).
+    """
+    if _history_source(source) != "platform":
+        return _calendar_status(payload)
+    calendars = [item for item in candidates if _history_source(str(item[1][4])) != "platform"]
+    if calendars:
+        newest = max(
+            calendars,
+            key=lambda item: (observation_times.get(str(item[1][2]), ""), str(item[1][2])),
+        )
+        return _calendar_status(newest[0])
+    return "registry" if series.startswith("wsdc-") else "unknown"
 
 
 def _current_listings(

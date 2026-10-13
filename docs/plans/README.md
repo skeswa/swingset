@@ -230,7 +230,11 @@ weekly session.
 21. Re-admit the 309 scoring.dance event pages whose stored observations carry
     older labels than their accepted generation, so releases can use them; the
     contract 5 re-parse repeats their generation and does not rewrite them
-    (D-0241).
+    (D-0241). Built 2026-10-14 as `swingset relabel` (operator command, in no
+    recipe scope): it found 479 such units (309 `scoringdance.event`, 103
+    `eepro.round`, 67 `eepro.autoindex`) and rewrote them in 50 seconds on a
+    copy. Production runs it once with the D-0253 deploy
+    ([operation](../guides/operation.md#reparse-and-registry-work)).
 22. Make round contract 5's `source_remark_outcome_conflict` guard decide
     "placed or called back" the way the projector does: it reads only
     `row-data-state` and a column headed `placement`, while the projector
@@ -271,23 +275,60 @@ weekly session.
 28. Land the gate's per-event result check (D-0251). Refuse a candidate in
     which an event with placements or entries in the baseline has none
     (`lost_result_events`), approved by name with a `result_event:<event_id>`
-    row in `release_decreases.csv`. Not landed:
-    `publish/gate.py`, like `build/builder.py` and `publish/service.py`, is in
-    all nine project scopes and the link scope, so an edit re-runs every
-    project and link unit. Ship it with the next change that moves those
-    scopes (item 20 or a calendar contract), or move the gate out of them
-    first.
+    row in `release_decreases.csv`. Built 2026-10-14 to ship with D-0253,
+    which moves the same scopes: an event whose contests all moved to
+    another event is `moved`, not lost (D-0254). Left: move the gate out of
+    the project and link scopes, so the next gate edit re-runs nothing.
 29. Fix the regressions the owner accepted with release `3fe7bae` (D-0252):
     four September 2026 events (Bavarian Open, FinnFest, Retaliation,
     Swingtime Denver) lost city, country and region when a scoring.dance or
     EEPro header replaced the calendar row; nine events show a results URL as
-    their website; four result events duplicate WSDC events
-    (`2026-09-bavarian-open`, `2026-09-swingtime`,
-    `2026-10-river-swing-nights-wsdc-trial-event`, `2026-09-global-grand-prix-wcs`)
-    while their registry points sit on the other ID. Keep the calendar's place
-    and website when another header wins, and merge the duplicates by alias.
+    their website. Keep the calendar's place and website when another header
+    wins.
 30. Fix the watchdog's `[state-size]` measure. On 2026-10-13 it reported 61.9 GB
     against the 50 GB cap while the database was 41 GB: it counts `candidates/`
     (9.9 GB, about 100 kept candidates) and `operations/` (3.1 GB). Measure
     the database against the cap and give candidates a retention rule that
     keeps every published candidate and the `--revert-to` targets.
+31. Attach result-site events to their WSDC event. In release `3fe7bae`, at
+    least 14 2026 WSDC events (Capital Swing, MADjam, Boston Tea Party, USA
+    Grand Nationals, Liberty, Orange Blossom, NeverlandSwing, German Open,
+    Swingtacular, Bavarian Open, SwingTime Denver, River Swing Nights and
+    others) hold their registry points on the calendar event while their
+    eepro or scoring.dance results sit on a second event (`2026-06-liberty-swing`
+    beside `2026-06-liberty-swing-dance-championships`). About 77 more 2026
+    events with results have `wsdc_status = unknown`, many of them WSDC events
+    (The Chicago Classic, Florida Dance Magic, Swingover, Derby City Swing).
+    So only 12 of 63 past 2026 WSDC events show results on the WSDC event,
+    though eepro alone is fully collected (34 of 34 events on
+    `eepro.com/results/2026/`, checked 2026-10-13). Match source events to
+    calendar and registry events by date overlap and name, as
+    `docs/reference/sources/eepro.md` section 4 says, and add aliases where
+    names differ (GNDC). This is release work: it moves results onto WSDC
+    events and their registry points onto the same rows.
+    Built in the working copy as D-0253 (2026-10-13) and rehearsed on a copy
+    ([investigation](../../journal/investigations/2026/event-matching-2026-10-13.md)):
+    state is right for all years, but 47 target WSDC events had withheld
+    headers. D-0254, item 21's `relabel` and item 28 (2026-10-14) clear them:
+    re-rehearsed on a fresh copy, 92 of 93 targets publish with results, the
+    gate passes with no decrease and no lost result event, and 80 placeholders
+    are `moved`. Deployed 2026-10-14 and published 2026-10-15 as `28f8196`
+    after two independent checks: events 2,114 to 2,191, events with results
+    276 to 399, 80 moved and none lost
+    ([receipt](../../journal/evidence/runtime/event-matching-2026-10-14/receipt.json)).
+    Done. Budafest 2026 stays withheld: one scoring.dance round page has no
+    accepted generation.
+32. Let the inventory's listing upsert notice a new `parser_version`
+    ([projector](../../src/swingset/project/history.py)): its `WHERE` clause
+    compares the snapshot id but not the parser label, so after `relabel` 2026-10-14
+    the `events` rows of relabelled scoring.dance listings still cite parser 3
+    and the release publishes them through D-0254's listing header or the
+    baseline's row instead. A project-scope change: ship it with the next one.
+33. Fix four findings the gate does not measure, from the check of release
+    `28f8196` (2026-10-15): `2026-04-city-of-angels-wcs` is dated 2027-04-29
+    because scoring.dance listing 315 prints 2027, so its rows land in 2027
+    files; `2026-11-the-open-swing-dance-championships`, a calendar event, went
+    from `registry` to `unknown`; eight EEPro source-event coverage rows lost
+    their page counts (`event_evidence_byte_budget`); and
+    `2026-09-global-grand-prix-wcs` (`wsdc-342`) still publishes empty beside
+    the `wsdc-409` event.

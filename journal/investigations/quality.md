@@ -4,6 +4,7 @@ Find data-quality audits and investigations of missing evidence.
 
 [All investigations](README.md) · [Current status](../../docs/status.md)
 
+- [Why result-site events do not attach to their WSDC event](2026/event-matching-2026-10-13.md) — 2026-10-13; the map ignores the inventory's series aliases, adopted placeholders keep `unknown`, and only 12 of 62 past 2026 WSDC events show results.
 - [Why the next release loses 19 result events, WDR, and most event cities](2026/release-losses-2026-10-12.md) — 2026-10-12; post-baseline calendar captures make 308 event headers legacy, and a rejected header withholds the whole event.
 - [Why four events dropped out of the first daily build after contract 5](2026/four-events-lost-release-support-2026-10-11.md) — 2026-10-11; stale read sets in the builder, not lost support.
 - [Why fetched score sheets were parked](2026/admission-adjudication-2026-10-06.md) — 2026-10-06; 638 parked pages, contract 5 admits 311 rounds, 23 outcome conflicts kept blocked.

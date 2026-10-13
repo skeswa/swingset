@@ -247,8 +247,25 @@ parsing it; a malformed one approves nothing and refuses the release with
 `overrides_invalid:release_decreases.csv:<line>: <error>` first among the
 reasons.
 
+Totals can grow while one event loses its results, so the gate also checks
+results event by event (D-0251, [D-0254](../../journal/decisions/0254-a-registry-occurrence-publishes-its-accepted-listing-header.md)).
+An event with placements or entries in the baseline and none in the
+candidate is `moved` when each of its contests with results is in the
+candidate under another event, still with results; a contest is matched by
+its id without the event prefix and any shared `source_contest_ref` or round
+`source_round_ref`, since a re-projection can take a contest's own ref from
+another of its pages. A merge of a
+placeholder into its WSDC event (D-0253) moves results this way. Any other
+such event is `lost` and refuses with
+`lost_result_events:<count> <ids>` (the first 20 ids) unless a
+`result_event:<event_id>` row approves it, with the event's baseline
+placements plus entries as `baseline_value` and `0` as `candidate_value`.
+The verdict lists both, as `moved_result_events` (with the events that now
+hold the results) and `lost_result_events`.
+
 The verdict lists every measure as baseline and candidate values, each
-decrease, the overrides it used and the reasons. The builder writes it to
+decrease, the moved and lost result events, the overrides it used and the
+reasons. The builder writes it to
 `_meta/verdict.json`, named and hashed in the candidate manifest like every
 file, and publishes it with the data. It is left out of the content hash, so
 an identical rebuild is still unchanged. The release loop puts

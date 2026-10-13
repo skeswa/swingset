@@ -43,9 +43,12 @@ there on 2026-09-04. Never fetch `register`, `wall`, `mockjudge`, or
 2. Fetch `/enUS/recent` on the same schedule for names and dates of
    past events. Upcoming events' names come from the event page itself
    on its first `upcoming` fetch.
-3. Match to `events` by name and date overlap. City of Angels 2026
-   (id 315) is in the sitemap but was missing from `recent` on
-   2026-09-04, so the sitemap is the source of truth for ids.
+3. Match to `events` as EEPro does ([EEPro section 4](eepro.md#4-discovery)):
+   by series and month, else by name and date overlap. A listing does not
+   make its event a WSDC event; the series or a calendar listing decides
+   ([D-0253](../../../journal/decisions/0253-a-results-listing-follows-its-series-occurrence.md)).
+   City of Angels 2026 (id 315) is in the sitemap but was missing from
+   `recent` on 2026-09-04, so the sitemap is the source of truth for ids.
 
 ## 5. Change detection (verified)
 

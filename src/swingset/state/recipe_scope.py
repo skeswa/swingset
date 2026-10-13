@@ -94,6 +94,7 @@ EXCLUDED: dict[str, str] = {
     "admission/event_retirement.py": _EVENTS,
     "admission/parent_evidence.py": _EVENTS,
     "admission/policy.py": "operator commands that change admission policy rows",
+    "admission/relabel.py": "operator command that stores accepted results again (D-0241)",
     "backup/": "backups copy state and do not derive it",
     "build/event_page_evidence.py": "offline event-page evidence report",
     "build/identity_restriction.py": "offline identity restriction report",

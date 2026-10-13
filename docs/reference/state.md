@@ -1027,13 +1027,19 @@ one listing can sit on several; the split is per source.
   `source_events`, `source_event_proposals` or `source_event_map`, or queued
   when an override file names it. For each listing of the source it proposes
   the target the map chose: an override (`event_aliases.csv`, then
-  `source_urls.csv`), else the one catalog event (`wsdc_status` not
-  `unknown`) with the same normalized name and overlapping dates, else, with
-  a name and an end date, a generated id and the placeholder event the listing
-  would create. Ambiguous and undated listings get no proposal. It replaces
-  its source's `source_event_proposals` rows; they are its output.
-  Prerequisites: every calendar, its source's index pages, the inventory;
-  content group `source_listings` (its source's listings without clocks).
+  `source_urls.csv`); else, as `alias`, the held occurrence the inventory's
+  series-and-month rule (`project/history.match_listing`) names, when the
+  inventory gave it this source and its dates overlap the listing's
+  ([D-0253](../../journal/decisions/0253-a-results-listing-follows-its-series-occurrence.md));
+  else the one catalog event (`wsdc_status` not `unknown`) with the same
+  normalized name and overlapping dates; else, with a name and an end date, a
+  generated id and the placeholder event the listing would create. The rule
+  reads `series_aliases.csv` and the registry names the inventory wrote
+  (`series` and held events), never `registry_placements`. Ambiguous and
+  undated listings get no proposal. It replaces its source's
+  `source_event_proposals` rows; they are its output. Prerequisites: every
+  calendar, its source's index pages, the inventory; content group
+  `source_listings` (its source's listings without clocks).
 - **`project/resolution/<event_id>`** (`project/map.resolve`). One per event
   that is proposed, mapped, owns a resolution row, or owned a row of the
   retired `unmatched_source_events/all` or `override_events/all` scopes. It

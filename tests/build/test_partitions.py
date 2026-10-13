@@ -763,6 +763,233 @@ def test_a_rejected_legacy_header_publishes_the_baseline_row(source_fixture, tmp
         assert any(item["event_id"] == "event-a" for item in spool.iter_table("placements"))
 
 
+def _registry_occurrence(f, listing=None, *, held="held", name="Event A 2026"):
+    """Make event-a a registry occurrence (`wsdc-7`) and map the eepro listing to it.
+
+    ``listing`` is the `source_events` row's snapshot and parser, owned by a
+    `project/source_index` generation, as on a results platform's index.
+    """
+    from materialized_fixture import materialize_seeded_outputs
+
+    from swingset.state.work import WorkUnit, enqueue
+
+    now = f.corpus.clock.now().isoformat()
+    with f.db.transaction() as conn:
+        conn.execute(
+            "UPDATE events SET series_id='wsdc-7',held=?,wsdc_status='registry' "
+            "WHERE event_id='event-a'",
+            (held,),
+        )
+        units = [WorkUnit("project", "resolution", "event-a")]
+        if listing is not None:
+            conn.execute(
+                "INSERT INTO source_events(source,source_ref,name_raw,start_date,end_date,"
+                "location_raw,url,snapshot_id,parser_version,first_seen_at,last_seen_at,run_id) "
+                "VALUES ('eepro','eepro:test',?,'2026-01-02','2026-01-03',"
+                "'Somewhere','https://eepro.com/results/test/',?,?,?,?,?)",
+                (name, *listing, now, now, f.corpus.run),
+            )
+            conn.execute(
+                "INSERT INTO source_event_scope_rows(scope_id,source,source_ref) "
+                "VALUES ('eepro:index','eepro','eepro:test')"
+            )
+            units.append(WorkUnit("project", "source_index", "eepro:index"))
+        enqueue(conn, units, enqueued_at=now)
+    materialize_seeded_outputs(f.db, now=f.corpus.clock.now(), run_id=f.corpus.run)
+
+
+@pytest.mark.parametrize("case", ["accepted", "unassessed", "not_held"])
+def test_a_registry_occurrence_the_baseline_lacks_takes_its_accepted_listing(
+    source_fixture, tmp_path, case
+):
+    """D-0254: a held registry occurrence whose legacy header is rejected and
+    which the baseline lacks publishes a header from the accepted listing
+    mapped to it, with the registry's identity, so its accepted results
+    publish. An unassessed listing, or an event the registry does not hold,
+    leaves it withheld."""
+    f = source_fixture
+    baseline = settled(f, tmp_path)
+    _rewrite_baseline_events(
+        baseline, lambda values: [row for row in values if row["event_id"] != "event-a"]
+    )
+    parser = str(f.corpus.page.PARSER_VERSION)
+    pair = ("retained-calendar-baseline", "1") if case == "unassessed" else ("round-one", parser)
+    _registry_occurrence(f, pair, held="listed" if case == "not_held" else "held")
+    build(f, baseline)
+    row = rows(f.conn)["event/event-a"]
+    if case != "accepted":
+        assert (row.state, row.reason) == ("withheld", "source_support_unavailable")
+        return
+    assert (row.state, row.reason) == ("built", None)
+    assert json.loads(row.detail_json)["counts"]["listing_header_published"] == 1
+    artifact = partitions.rows_for(f.db.state_dir, row.artifact_digest)
+    (header,) = artifact["events"]
+    assert {
+        name: header[name]
+        for name in (
+            "series_id",
+            "event_month",
+            "held",
+            "wsdc_status",
+            "name",
+            "year",
+            "start_date",
+            "end_date",
+            "source",
+            "sources",
+            "history_source",
+            "snapshot_id",
+            "parser_version",
+            "city",
+            "website",
+        )
+    } == {
+        "series_id": "wsdc-7",
+        "event_month": "2026-01",
+        "held": "held",
+        "wsdc_status": "registry",
+        "name": "Event A 2026",
+        "year": 2026,
+        "start_date": _convert("2026-01-02", SCHEMAS["events"].field("start_date").type),
+        "end_date": _convert("2026-01-03", SCHEMAS["events"].field("end_date").type),
+        "source": "eepro",
+        "sources": ["eepro", "wsdc_registry"],
+        "history_source": ["platform", "registry"],
+        "snapshot_id": "round-one",
+        "parser_version": parser,
+        # No admitted page gave a place or a website.
+        "city": None,
+        "website": None,
+    }
+    assert artifact["placements"] and artifact["entries"]
+
+
+def test_a_baseline_stand_in_takes_the_corrected_registry_status(source_fixture, tmp_path):
+    """D-0254: the baseline's row stands in for a rejected legacy header
+    (D-0251) with the status D-0253 corrected: a held occurrence of a `wsdc-*`
+    series the baseline still called `unknown` publishes as `registry`. Every
+    other column stays the baseline's, in both build paths."""
+    f = source_fixture
+    baseline = settled(f, tmp_path)
+    event = "2026-01-registry-joined-weekend"
+    _rewrite_baseline_events(
+        baseline,
+        lambda values: [
+            {**row, "wsdc_status": "unknown", "city": "Published City"}
+            if row["event_id"] == event
+            else row
+            for row in values
+        ],
+    )
+    build(f, baseline)
+    row = rows(f.conn)[f"event/{event}"]
+    assert (row.state, row.reason) == ("built", None)
+    assert json.loads(row.detail_json)["counts"]["baseline_header_republished"] == 1
+    (header,) = partitions.rows_for(f.db.state_dir, row.artifact_digest)["events"]
+    assert (header["wsdc_status"], header["city"], header["held"]) == (
+        "registry",
+        "Published City",
+        "held",
+    )
+    closure = select_closure(f.conn, cutoff=f.corpus.clock.now(), baseline=baseline)
+    with reconstruct(f.conn, closure, directory=tmp_path / "spool", baseline=baseline) as spool:
+        events = {item["event_id"]: item for item in spool.iter_table("events")}
+        assert (events[event]["wsdc_status"], events[event]["city"]) == (
+            "registry",
+            "Published City",
+        )
+
+
+_RESULTS = (
+    "contests",
+    "rounds",
+    "entries",
+    "judges",
+    "placements",
+    "callback_marks",
+    "final_marks",
+)
+
+
+@pytest.mark.parametrize("listing", ["Event A 2026", "Other Event 2026"])
+def test_a_moved_legacy_row_the_baseline_published_under_its_placeholder_is_kept(
+    source_fixture, tmp_path, listing
+):
+    """D-0254: D-0253 moves a placeholder's results onto its WSDC event, so
+    their ids change. A legacy row (no accepted generation) that the baseline
+    published under the placeholder's ids is kept under the new ids. The
+    placeholder is the id the map generates for the listing the event now
+    holds; a listing that names another placeholder keeps nothing."""
+    import pyarrow.parquet as pq
+
+    from swingset.build.files import sha256_file
+
+    f = source_fixture
+    baseline = settled(f, tmp_path, tables=_RESULTS)
+    parser = str(f.corpus.page.PARSER_VERSION)
+    _registry_occurrence(f, ("round-one", parser), name=listing)
+    # The baseline published event-a's results under its placeholder's ids.
+    manifest = json.loads((baseline / "_meta/manifest.json").read_text())
+
+    def placeholder(value):
+        if isinstance(value, str) and (value == "event-a" or value.startswith("event-a/")):
+            return "2026-01-event-a" + value[len("event-a") :]
+        return value
+
+    for table in _RESULTS:
+        path = baseline / "data" / table / "part.parquet"
+        values = [
+            {name: placeholder(value) for name, value in row.items()}
+            for row in pq.read_table(path).to_pylist()
+        ]
+        pq.write_table(pa.Table.from_pylist(values, schema=SCHEMAS[table]), path)
+        manifest["files"][f"data/{table}/part.parquet"] = sha256_file(path)
+    (baseline / "_meta/manifest.json").write_text(json.dumps(manifest))
+    # The round no longer has an accepted generation under the current contract.
+    with f.db.transaction() as conn:
+        conn.execute(
+            "UPDATE admission_policies SET contract_version='next' WHERE page_kind=?",
+            (f.corpus.page.kind,),
+        )
+    from materialized_fixture import materialize_seeded_outputs
+
+    materialize_seeded_outputs(f.db, now=f.corpus.clock.now(), run_id=f.corpus.run)
+    build(f, baseline)
+    row = rows(f.conn)["event/event-a"]
+    if listing != "Event A 2026":
+        assert (row.state, row.reason) == ("withheld", "source_support_unavailable")
+        return
+    assert (row.state, row.reason) == ("built", None)
+    counts = json.loads(row.detail_json)["counts"]
+    assert counts["legacy_moved_retained"] > 0
+    artifact = partitions.rows_for(f.db.state_dir, row.artifact_digest)
+    assert artifact["contests"] and all(
+        item["contest_id"].startswith("event-a/") for item in artifact["contests"]
+    )
+    assert artifact["placements"] and artifact["entries"]
+
+
+def test_the_stand_in_status_changes_only_where_the_registry_backs_it() -> None:
+    from swingset.build.closure_rows import _corrected_status
+
+    baseline = {"series_id": "wsdc-7", "wsdc_status": "unknown", "city": "Old"}
+    held = {"series_id": "wsdc-7", "wsdc_status": "registry", "held": "held", "city": "New"}
+    assert _corrected_status(baseline, held) == {**baseline, "wsdc_status": "registry"}
+    # Not held, another series, or a trial label from a calendar: the baseline's.
+    assert _corrected_status(baseline, {**held, "held": "listed"}) == baseline
+    assert _corrected_status(baseline, {**held, "series_id": "wsdc-8"}) == baseline
+    assert _corrected_status(baseline, {**held, "wsdc_status": "trial"}) == baseline
+    # A platform series that is no registry series loses a label no page gave it.
+    platform = {"series_id": "slug-nj-hustle", "wsdc_status": "registry"}
+    assert _corrected_status(platform, {**platform, "wsdc_status": "unknown"})["wsdc_status"] == (
+        "unknown"
+    )
+    assert _corrected_status(
+        {**platform, "series_id": "wsdc-7"},
+        {**platform, "series_id": "wsdc-7", "wsdc_status": "unknown"},
+    )["wsdc_status"] == ("registry")
+
+
 def _read_events(f):
     from swingset.build.input import _read_table
 

@@ -190,8 +190,10 @@ RULES: dict[tuple[str, str], Mapping[str, str]] = {
     },
     ("project", "mapping"): {
         # The catalog it matches against comes from the calendars and the
-        # inventory; its source's listings are a content group (F19).
+        # inventory; its source's listings are a content group (F19). The
+        # registry series names of the series rule are the inventory's (D-0253).
         "events": _covers("selected_project_calendar", "selected_project_inventory"),
+        "series": "selected_project_inventory",
         "source_events": "source_listings",
         "source_event_proposals": OWN_OUTPUT,
     },

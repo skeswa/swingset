@@ -1,9 +1,11 @@
 """Source-event mapping: one proposal set per source, one resolution per event.
 
 `project/mapping/<source>` proposes a target for each listing of its source
-(`propose`): an override, the one catalog event whose name and dates match,
-or a generated id with the placeholder event the listing would create. It
-writes the source's rows of `source_event_proposals`.
+(`propose`): an override; else the held occurrence of the listing's series
+that the inventory gave the listing's source and dates (`alias`, D-0253);
+else the one catalog event whose name and dates match; else a generated id
+with the placeholder event the listing would create. It writes the source's
+rows of `source_event_proposals`.
 
 `project/resolution/<event_id>` turns the proposals naming one event into
 that event's `source_event_map` rows and, when the event is not a catalog
@@ -33,6 +35,7 @@ from swingset.state import proposals
 from swingset.state.proposals import Proposal
 from swingset.state.work import WorkUnit, bump_revision, enqueue
 
+from .history import ListingMatch, alias_map, match_listing, registry_names
 from .materialization import helper_recipe, materializing
 from .writer import Projection, replace_scope
 
@@ -40,6 +43,7 @@ from .writer import Projection, replace_scope
 #: resolution releases its event's row from them on its first run.
 LEGACY_SCOPES = ("unmatched_source_events", "override_events")
 _OVERRIDE_FILES = ("overrides/event_aliases.csv", "overrides/source_urls.csv")
+_SERIES_ALIASES = "overrides/series_aliases.csv"
 #: Processing clocks are filled in when a resolution writes the event, so a
 #: proposal does not change with the clock.
 _CLOCKS = ("first_seen_at", "last_seen_at", "run_id")
@@ -106,10 +110,15 @@ def propose(
         listing = listings.get(ref)
         placeholder = _override_placeholder(source, target, listing, projector_version)
         rows.append(Proposal(source, ref, target, "override", 1.0, placeholder))
+    series_rule = _SeriesRule(conn, source, bundle.files.get(_SERIES_ALIASES, b""))
     for ref, listing in listings.items():
         if ref in targets:
             continue
         name, start, end = listing[1], listing[2], listing[3]
+        occurrence = series_rule.event(name, start, end)
+        if occurrence is not None:
+            rows.append(Proposal(source, ref, occurrence, "alias", 1.0))
+            continue
         candidates = [
             event
             for event in catalog
@@ -254,6 +263,42 @@ def project_map(
         ):
             changed |= resolve(conn, unit.unit_id, now, run_id)
     return changed
+
+
+class _SeriesRule:
+    """The inventory's series-and-month rule for one source's listings (D-0253).
+
+    A listing goes to the held occurrence `history.match_listing` names, but
+    only when the inventory gave that occurrence this source and dates that
+    overlap the listing's: then the inventory attached the listing there and
+    the contests follow its header facts. Registry names come from the
+    inventory's output (`history.registry_names`).
+    """
+
+    def __init__(self, conn: sqlite3.Connection, source: str, aliases: bytes) -> None:
+        self._conn = conn
+        self._source = source
+        self._aliases = alias_map(aliases)
+        self._names: dict[str, set[str]] | None = None
+
+    def event(self, name: object, start: object, end: object) -> str | None:
+        if not name or not start or not end:
+            return None
+        if self._names is None:
+            self._names = registry_names(self._conn)
+        match: ListingMatch = match_listing(
+            self._conn, self._aliases, self._names, str(name), str(end)[:7]
+        )
+        if match.event_id is None:
+            return None
+        row = self._conn.execute(
+            "SELECT sources,start_date,end_date FROM events WHERE event_id=?", (match.event_id,)
+        ).fetchone()
+        if row is None or self._source not in json.loads(str(row[0])):
+            return None
+        if not _overlaps(start, end, row[1], row[2]):
+            return None
+        return match.event_id
 
 
 def _owned(conn: sqlite3.Connection, identifier: str) -> bool:

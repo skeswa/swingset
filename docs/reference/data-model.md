@@ -54,9 +54,18 @@ consumers join on that nullable event ID
 without tolerance logic. A series that runs twice in one month gets a
 `-2` suffix.
 
-A results-site listing with no override and no single catalog match (same
-normalized name, overlapping dates) gets a generated `event_id` from its end
-date and name, and a placeholder event with `wsdc_status` `unknown`. The
+A results-site listing joins the registry occurrence of its series: the
+series comes from a reviewed `series_aliases.csv` row or a registry printed
+name, and the occurrence is the one held in the listing's end month or the
+next, whose dates overlap the listing's and to which the inventory gave the
+listing's source. Its contests then sit beside that event's registry points
+([D-0253](../../journal/decisions/0253-a-results-listing-follows-its-series-occurrence.md)).
+A listing with no override, no such occurrence and no single catalog match
+(same normalized name, overlapping dates) gets a generated `event_id` from its
+end date and name, and a placeholder event with `wsdc_status` `unknown`. A
+registry occurrence is `registry` (or `trial`) even when it began as a
+placeholder or calendar row; a results platform never makes an event
+`registry` by itself. The
 internal table `source_event_proposals` holds each listing's proposed target
 and that placeholder, one set per source; one resolution unit per event turns
 them into its `source_event_map` rows and its event row

@@ -49,8 +49,15 @@ header inside the file.
 
 1. Poll `event.php` on the index schedule (section 6). Parse each row
    into a `source_events` record: slug, title, printed date.
-2. Match to `events` by normalized name and date overlap. Unmatched
-   rows still get an event with `wsdc_status = unknown`.
+2. Match to `events` by series and month
+   ([D-0253](../../../journal/decisions/0253-a-results-listing-follows-its-series-occurrence.md)):
+   the printed name gives the series through a reviewed
+   `series_aliases.csv` row ("Liberty Swing" is `wsdc-96`) or a registry
+   name, and the row joins that series' held occurrence in its end month or
+   the next, when its dates overlap the occurrence's. Its contests and the
+   registry points then share one event. Else an event with the same
+   normalized name and overlapping dates; else the row gets its own event
+   with `wsdc_status = unknown`.
 3. For each new slug create one watch of kind `index` on
    `/results/<slug>/` (the autoindex). Do not create round watches yet.
 4. The autoindex parser creates one watch of kind `round` per `.html`

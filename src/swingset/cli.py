@@ -136,6 +136,20 @@ def parser() -> argparse.ArgumentParser:
     accept_year = commands.add_parser("accept-year", parents=[shared])
     accept_year.add_argument("--year", type=int, required=True)
     accept_year.add_argument("--by", required=True, help="who accepts: the reviewer and session")
+    relabel = commands.add_parser(
+        "relabel",
+        parents=[shared],
+        help="List, or with --apply rewrite, observations whose labels lag their "
+        "accepted generation (D-0241)",
+    )
+    relabel.add_argument("--kind", action="append", default=[], help="page kind; repeatable")
+    relabel.add_argument(
+        "--apply",
+        action="store_true",
+        help="rewrite the `labels` units through the admission writer; without it, list only",
+    )
+    relabel.add_argument("--by", help="apply: who asks, the operator and session")
+    relabel.add_argument("--json", action="store_true", help="list: every unit, as JSON")
     hold = commands.add_parser("hold", parents=[shared])
     hold.add_argument("action", choices=("add", "list", "remove"))
     hold.add_argument("--generation", action="append", default=[], metavar="ID", help="repeatable")
@@ -1464,6 +1478,44 @@ def _control(args: argparse.Namespace) -> int:
     return code
 
 
+def _relabel(args: argparse.Namespace) -> int:
+    """List, or rewrite, observations whose labels lag their accepted generation (D-0241).
+
+    The list opens read-only. `--apply` takes the exclusive lock, like
+    `accept-year`, starts a run, and stores each `labels` unit's accepted
+    result again through the admission writer, one unit per transaction; the
+    project scopes it queues drain through derive. Run it under
+    `operator-hold` with the loops stopped.
+    """
+    from swingset.admission import relabel
+
+    clock = SystemClock()
+    if not args.apply:
+        if args.by:
+            raise ValueError("--by belongs to `relabel --apply`")
+        with open_database(args.state, lock=False, read_only=True) as database:
+            found = relabel.report(relabel.drift(database.connection, kinds=args.kind))
+        if not args.json:
+            found = {**found, "units": len(found["units"])}
+        print(json.dumps(found, indent=2))
+        return 0
+    if not (args.by or "").strip():
+        raise ValueError("relabel --apply requires --by")
+    with open_database(args.state, lock_timeout=args.lock_timeout) as database:
+        run_id = database.start_run(clock.now())
+        result = relabel.relabel(
+            database, now=clock.now().isoformat(), run_id=run_id, kinds=args.kind
+        )
+        summary = {**result, "command": "relabel", "by": args.by.strip()}
+        with database.transaction() as conn:
+            conn.execute(
+                "UPDATE runs SET finished_at=?,summary_json=? WHERE run_id=?",
+                (clock.now().isoformat(), json.dumps(summary, sort_keys=True), run_id),
+            )
+    print(json.dumps({**summary, "run_id": run_id}, indent=2))
+    return 0
+
+
 def _accept_year(args: argparse.Namespace) -> int:
     """Record a reviewed year's event list as accepted, then store its year in chunks.
 
@@ -1849,6 +1901,12 @@ def main(argv: list[str] | None = None) -> int:
         try:
             return _verify_derivations(args)
         except (OSError, ValueError, RuntimeError) as exc:
+            log("error", message=f"{type(exc).__name__}: {exc}")
+            return 1
+    if args.command == "relabel":
+        try:
+            return _relabel(args)
+        except (OSError, ValueError, RuntimeError, sqlite3.Error, DatabaseLockedError) as exc:
             log("error", message=f"{type(exc).__name__}: {exc}")
             return 1
     if args.command == "accept-year":

@@ -194,5 +194,25 @@
     },
     "requests_18:53_to_19:21Z": 227,
     "latest_request": "2026-10-13T19:20:58Z"
+  },
+  "first_automatic_publication": {
+    "release_run_started": "2026-10-14T19:20:25Z",
+    "candidate": "cand_cd7dcc13d65946f5",
+    "verdict": "pass",
+    "commit": "1034f8c2f38a963e68765d8352115dcc847cb068",
+    "correction_needed": false,
+    "per_event_vs_3fe7bae": {
+      "events": [
+        2114,
+        2114
+      ],
+      "result_events": [
+        276,
+        276
+      ],
+      "lost_result_events": 0,
+      "events_with_fewer_entries": 0
+    },
+    "checked_at": "2026-10-14T19:31Z"
   }
 }

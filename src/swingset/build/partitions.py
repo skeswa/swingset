@@ -80,7 +80,13 @@ from swingset.state.release_store import ArtifactRow, PartitionRow
 from . import artifact_store
 from .builder import PUBLISHED_TABLES
 from .closure_manifest import canonical, digest
-from .closure_rows import _NEUTRAL, _baseline_header, _header_pair, _legacy_matches
+from .closure_rows import (
+    _NEUTRAL,
+    _baseline_header,
+    _corrected_status,
+    _header_pair,
+    _legacy_matches,
+)
 from .input import _convert
 from .partition_checks import (
     Observation,
@@ -486,6 +492,9 @@ def _select(
     edges: dict[str, list[str]] = {}
     failed: dict[str, list[tuple[str, str, str]]] = {}
     links: list[Generation] = []
+    #: Each listing's `source_events` rows, and the listings each event maps (D-0254).
+    listings: dict[str, list[SharedRow]] = {}
+    mapped: dict[str, list[str]] = {}
     evicted = _evicted_pointers(conn)
     carried = _dancer_rows(conn, evicted)
     for generation in pointers(conn):
@@ -501,9 +510,15 @@ def _select(
                 shared_events.setdefault(str(_first(row.key)), []).append(row)
             for row in _refs(conn, generation, ("registry_placements",), evicted):
                 placements.setdefault(dancer_batch(_first(row.key)), []).append(row)
+        elif kind == ("project", "source_index"):
+            for row in _refs(conn, generation, ("source_events",), evicted):
+                listings.setdefault(row.key, []).append(row)
         elif kind == ("project", "resolution"):
             owned.setdefault(generation.unit_id, []).append(generation)
             universe.add(generation.unit_id)
+            mapped.setdefault(generation.unit_id, []).extend(
+                row.key for row in _refs(conn, generation, ("source_event_map",), evicted)
+            )
         elif kind == ("project", "event"):
             owned.setdefault(generation.unit_id, []).append(generation)
             universe.add(generation.unit_id)
@@ -563,6 +578,8 @@ def _select(
         for event in members:
             partition.generations.extend(owned.get(event, ()))
             partition.shared.extend(shared_events.get(event, ()))
+            for listing in mapped.get(event, ()):
+                partition.shared.extend(listings.get(listing, ()))
             partition.errors.extend(failed.get(event, ()))
         result.append(partition)
     for batch, generations in dancers.items():
@@ -776,6 +793,10 @@ def extract(
     provenance = provenance or _Provenance(verifier.conn)
     named: dict[tuple[str, str], set[Observation]] = {}
     for generation, _shared in partition.sources():
+        if generation.unit_kind == "source_index":
+            # Its listings are header candidates only (D-0254); what it read
+            # does not change the support of the rows the partition merges.
+            continue
         for pair, keys in provenance.of(generation).items():
             named.setdefault(pair, set()).update(keys)
     states: dict[tuple[str, str], Any] = {}
@@ -793,14 +814,22 @@ def extract(
 
     #: Events whose header is the baseline's stand-in (D-0251).
     stand_ins: set[str] = set()
+    #: The listings mapped to the partition's events, by key: header
+    #: candidates only, never merged or checked as rows (D-0254).
+    listings: dict[str, dict[str, Any]] = {}
+    #: Each event's last rejected legacy header, and patches that found no base.
+    headers: dict[str, dict[str, Any]] = {}
+    pending: dict[str, list[dict[str, Any]]] = {}
 
-    def stand_in(key: str) -> None:
+    def stand_in(key: str, rejected: Mapping[str, Any]) -> None:
         """Put the baseline's header for a rejected legacy one, when no row holds the event yet.
 
         The stand-in's own snapshot joins the partition's support like any
-        row's; a revoked one leaves the event withheld.
+        row's; a revoked one leaves the event withheld. Its status follows the
+        rejected row where D-0253 corrected it (`_corrected_status`); a later
+        rejected row of the event corrects it again.
         """
-        if ("events", key) in rows:
+        if ("events", key) in rows and key not in stand_ins:
             return
         header = legacy.header(key)
         if header is None:
@@ -810,8 +839,10 @@ def extract(
             snapshots.add(pair)
             if state_of(pair) == "revoked":
                 return
-        rows[("events", key)] = header
+        rows[("events", key)] = _corrected_status(header, rejected)
         stand_ins.add(key)
+
+    moved = _Moved(legacy, listings, rows)
 
     try:
         for generation, shared in partition.sources():
@@ -822,13 +853,29 @@ def extract(
             )
             for table, key, raw in items:
                 payload = json.loads(raw)
+                if table == "source_events":
+                    listings[key] = payload
+                    continue
                 snapshot = payload.get("snapshot_id")
                 if snapshot and snapshot != "override":
                     pair = str(snapshot), str(payload.get("parser_version", ""))
                     snapshots.add(pair)
                     state = state_of(pair)
                     if state != "accepted":
-                        if state == "revoked" or not legacy.matches(table, key, payload):
+                        kept = state != "revoked" and legacy.matches(table, key, payload)
+                        if (
+                            not kept
+                            and state != "revoked"
+                            and table != "events"
+                            and moved.matches(table, key, payload)
+                        ):
+                            # Published before under the placeholder it moved
+                            # from (D-0254): no new unadmitted fact.
+                            counts["legacy_moved_retained"] += 1
+                            kept = True
+                        elif kept:
+                            counts["legacy_unassessed_retained"] += 1
+                        if not kept:
                             rejected.append(
                                 (
                                     table,
@@ -840,9 +887,12 @@ def extract(
                                 )
                             )
                             if table == "events" and state != "revoked":
-                                stand_in(key)
+                                payload.setdefault("run_id", generation.run_id)
+                                for name in _PROCESSING[1:]:
+                                    payload.setdefault(name, generation.created_at)
+                                headers[key] = payload
+                                stand_in(key, payload)
                             continue
-                        counts["legacy_unassessed_retained"] += 1
                 payload.setdefault("run_id", generation.run_id)
                 for name in _PROCESSING[1:]:
                     payload.setdefault(name, generation.created_at)
@@ -860,6 +910,8 @@ def extract(
                 previous = rows.get((table, key))
                 if patch and previous is None:
                     counts["partial_overlay_without_structural_base"] += 1
+                    if table == "events":
+                        pending.setdefault(key, []).append(payload)
                     continue
                 merged = previous if previous is not None else dict(_NEUTRAL.get(table, {}))
                 merged.update(payload)
@@ -868,6 +920,22 @@ def extract(
         return Extracted(
             {}, snapshots, counts, ("generation_output_digest_mismatch", {"scope": str(error)})
         )
+    for key, rejected_header in sorted(headers.items()):
+        if ("events", key) in rows:
+            continue
+        found = _listing_header(key, rejected_header, listings, rows, state_of)
+        if found is None:
+            continue
+        header, pair = found
+        snapshots.add(pair)
+        # The year's patch found no base when it was read; it applies now.
+        for overlay in pending.pop(key, ()):
+            header.update(overlay)
+            counts["partial_overlay_without_structural_base"] -= 1
+        if counts.get("partial_overlay_without_structural_base") == 0:
+            del counts["partial_overlay_without_structural_base"]
+        rows[("events", key)] = header
+        counts["listing_header_published"] += 1
     if stand_ins:
         counts["baseline_header_republished"] += len(stand_ins)
     result = Extracted(
@@ -882,6 +950,150 @@ def extract(
     )
     _close(partition, result, rejected)
     return result
+
+
+class _Moved:
+    """Legacy rows of an event whose listings moved from a placeholder (D-0254).
+
+    D-0253 moves a placeholder's contests onto its WSDC event, so their ids
+    take the WSDC event's prefix. A legacy row that equals the baseline only
+    under the placeholder's ids was published already: it is kept when the
+    same row with the placeholder's id in place of the event's matches the
+    baseline (`_legacy_matches`). The placeholder is the id the map generates
+    for a listing the event now holds (`ids.event_id` of its end date and
+    name), read from the partition's `source_event_map` and `source_events`
+    rows.
+    """
+
+    def __init__(
+        self,
+        legacy: _Legacy,
+        listings: Mapping[str, Mapping[str, Any]],
+        rows: Mapping[tuple[str, str], Mapping[str, Any]],
+    ) -> None:
+        self.legacy = legacy
+        self.listings = listings
+        self.rows = rows
+        self._moves: dict[str, tuple[str, ...]] | None = None
+
+    def moves(self) -> dict[str, tuple[str, ...]]:
+        """Each event of the partition and the placeholders its listings left."""
+        if self._moves is None:
+            from swingset.model.ids import event_id
+
+            found: dict[str, set[str]] = {}
+            for (table, listing), row in self.rows.items():
+                if table != "source_event_map" or listing not in self.listings:
+                    continue
+                target = str(row.get("event_id") or "")
+                payload = self.listings[listing]
+                name, end = payload.get("name_raw"), payload.get("end_date")
+                if not target or not name or not end:
+                    continue
+                placeholder = event_id(date.fromisoformat(str(end)), str(name))
+                if placeholder != target:
+                    found.setdefault(target, set()).add(placeholder)
+            self._moves = {event: tuple(sorted(ids)) for event, ids in found.items()}
+        return self._moves
+
+    def matches(self, table: str, key: str, payload: Mapping[str, Any]) -> bool:
+        """Whether the row, under a placeholder's ids, equals the baseline's row."""
+        parts = json.loads(key)
+        for event, placeholders in self.moves().items():
+            if not any(_names(value, event) for value in (*parts, payload.get("event_id"))):
+                continue
+            for old in placeholders:
+                if self.legacy.matches(
+                    table,
+                    canonical([_renamed(part, event, old) for part in parts]),
+                    {name: _renamed(value, event, old) for name, value in payload.items()},
+                ):
+                    return True
+        return False
+
+
+def _names(value: Any, event: str) -> bool:
+    """Whether ``value`` is the event's id or an id under it."""
+    return isinstance(value, str) and (value == event or value.startswith(event + "/"))
+
+
+def _renamed(value: Any, event: str, old: str) -> Any:
+    """``value`` with the event's id prefix replaced by ``old``, in lists too."""
+    if _names(value, event):
+        return old + str(value)[len(event) :]
+    if isinstance(value, list):
+        return [_renamed(item, event, old) for item in value]
+    return value
+
+
+def _listing_header(
+    key: str,
+    rejected: Mapping[str, Any],
+    listings: Mapping[str, Mapping[str, Any]],
+    rows: Mapping[tuple[str, str], Mapping[str, Any]],
+    state_of: Callable[[tuple[str, str]], str],
+) -> tuple[dict[str, Any], tuple[str, str]] | None:
+    """A header from an accepted listing, for a registry occurrence the baseline lacks (D-0254).
+
+    Only a held occurrence of a `wsdc-*` series qualifies: its event id,
+    series, month, `held` and status are the registry's, which accepted
+    registry pages hold. The listings are the ones the event's resolution
+    maps to it; those whose snapshot and parser are `accepted` qualify, and
+    the one with the widest span, then the newest snapshot, wins. Its name,
+    dates, source and provenance are the header's, as the placeholder it
+    replaced published them. Place, website and live window stay empty:
+    no admitted page gave them. None when nothing qualifies.
+    """
+    if rejected.get("held") != "held" or not str(rejected.get("series_id") or "").startswith(
+        "wsdc-"
+    ):
+        return None
+    event = json.loads(key)[0]
+    candidates = []
+    for (table, listing), row in rows.items():
+        if table != "source_event_map" or row.get("event_id") != event or listing not in listings:
+            continue
+        found = listings[listing]
+        start, end = found.get("start_date"), found.get("end_date")
+        pair = str(found.get("snapshot_id") or ""), str(found.get("parser_version") or "")
+        if not start or not end or not pair[0] or pair[0] == "override":
+            continue
+        if state_of(pair) != "accepted":
+            continue
+        span = (date.fromisoformat(str(end)) - date.fromisoformat(str(start))).days
+        candidates.append(((span, pair[0], listing), found, pair))
+    if not candidates:
+        return None
+    _, found, pair = max(candidates, key=lambda item: item[0])
+    status = rejected.get("wsdc_status")
+    header = {
+        **_NEUTRAL["events"],
+        "event_id": event,
+        "series_id": rejected["series_id"],
+        "event_month": rejected.get("event_month"),
+        "held": "held",
+        "wsdc_status": status if status in {"registry", "trial"} else "registry",
+        "name": found.get("name_raw"),
+        "year": int(str(found["end_date"])[:4]),
+        "start_date": found["start_date"],
+        "end_date": found["end_date"],
+        "date_precision": "day",
+        "city": None,
+        "region": None,
+        "country": None,
+        "website": None,
+        "live_window_start": None,
+        "live_window_end": None,
+        "history_source": json.dumps(["platform", "registry"]),
+        "sources": json.dumps(sorted({str(found.get("source")), "wsdc_registry"})),
+        "source": found.get("source"),
+        "snapshot_id": pair[0],
+        "parser_version": pair[1],
+    }
+    for name in _PROCESSING:
+        if name in rejected:
+            header[name] = rejected[name]
+    return header, pair
 
 
 def _close(

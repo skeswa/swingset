@@ -12,6 +12,20 @@ later with a few more rows still passes, and a larger decrease does not. A
 malformed file refuses every release with `overrides_invalid:<line>:
 <error>`; no loop reads it but the build.
 
+A growing total can hide a lost event, so results are also checked event by
+event (D-0251): every event with placements or entries in the baseline must
+still have one in the candidate, or its results must have moved. They moved
+when each of its contests with results is in the candidate under another
+event, still with results; a contest is known by its id without the event
+prefix together with its `source_contest_ref` or any of its rounds'
+`source_round_ref`, since a re-projection may take the contest's own ref from
+another of its pages. A merge of a placeholder into its WSDC event (D-0253)
+moves results this way, and the verdict lists it under
+`moved_result_events`. Each lost event refuses with
+`lost_result_events:<count> <ids>` unless the file approves it by name, with
+the measure `result_event:<event_id>`, the baseline's placements plus entries
+of that event as `baseline_value`, and `0` as `candidate_value`.
+
 The builder writes the verdict into the candidate as `_meta/verdict.json`,
 named and hashed in its manifest like every other file. It is left out of the
 content hash, so an identical rebuild is still unchanged. Publication reads
@@ -64,7 +78,15 @@ MEASURES = (
     "events_with_placements",
 )
 
+#: The override measure that approves losing one event's results (D-0251).
+RESULT_EVENT = "result_event:"
+#: Lost event ids named in a refusal reason; the verdict lists them all.
+REASON_EVENTS = 20
+
 Measures = Mapping[str, int | None]
+#: Each contest's event, source refs (its own and its rounds') and placements
+#: plus entries.
+ContestResults = Mapping[str, tuple[str, tuple[str, ...], int]]
 
 
 @dataclass(frozen=True)
@@ -97,8 +119,11 @@ def parse_overrides(body: bytes | Iterable[Mapping[str, str]]) -> tuple[Override
             for name in HEADER:
                 if not values[name]:
                     raise ValueError(f"empty {name}")
-            if values["measure"] not in MEASURES:
-                raise ValueError(f"unknown measure {values['measure']!r}")
+            measure_name = values["measure"]
+            if measure_name not in MEASURES and not (
+                measure_name.startswith(RESULT_EVENT) and measure_name[len(RESULT_EVENT) :]
+            ):
+                raise ValueError(f"unknown measure {measure_name!r}")
             baseline, candidate = int(values["baseline_value"]), int(values["candidate_value"])
             if candidate < 0 or candidate >= baseline:
                 raise ValueError("an override names a decrease: candidate_value < baseline_value")
@@ -183,6 +208,91 @@ def measure(directory: Path, row_counts: Mapping[str, Any] | None = None) -> dic
     return result
 
 
+def contest_results(directory: Path) -> dict[str, tuple[str, tuple[str, ...], int]]:
+    """Each contest's event, source refs and placements plus entries.
+
+    The refs are its `source_contest_ref` and its rounds' `source_round_ref`,
+    sorted. Placements and entries are counted by their `contest_id`; a
+    contest with neither counts 0.
+    """
+    import pyarrow.compute as pc
+    import pyarrow.parquet as pq
+
+    counts: dict[str, int] = {}
+    for table in ("placements", "entries"):
+        for path in _files(directory, table):
+            column = pq.read_table(path, columns=["contest_id"]).column("contest_id")
+            values = pc.value_counts(column.combine_chunks() if column.num_chunks else column)
+            for item in values.to_pylist():
+                if item["values"] is not None:
+                    key = str(item["values"])
+                    counts[key] = counts.get(key, 0) + int(item["counts"])
+    refs: dict[str, set[str]] = {}
+    for path in _files(directory, "rounds"):
+        table = pq.read_table(path, columns=["contest_id", "source_round_ref"])
+        for contest, ref in zip(
+            table.column("contest_id").to_pylist(),
+            table.column("source_round_ref").to_pylist(),
+            strict=True,
+        ):
+            if ref is not None:
+                refs.setdefault(str(contest), set()).add(str(ref))
+    result: dict[str, tuple[str, tuple[str, ...], int]] = {}
+    for path in _files(directory, "contests"):
+        table = pq.read_table(path, columns=["contest_id", "event_id", "source_contest_ref"])
+        for contest, event, ref in zip(
+            table.column("contest_id").to_pylist(),
+            table.column("event_id").to_pylist(),
+            table.column("source_contest_ref").to_pylist(),
+            strict=True,
+        ):
+            own = refs.get(str(contest), set()) | ({str(ref)} if ref is not None else set())
+            result[str(contest)] = (str(event), tuple(sorted(own)), counts.get(str(contest), 0))
+    return result
+
+
+def event_results(contests: ContestResults) -> dict[str, int]:
+    """Placements plus entries of each event that has any."""
+    result: dict[str, int] = {}
+    for event, _ref, count in contests.values():
+        if count > 0:
+            result[event] = result.get(event, 0) + count
+    return result
+
+
+def _contest_keys(contest: str, event: str, refs: tuple[str, ...]) -> set[tuple[str, str | None]]:
+    """A contest as a move keeps it: its id without the event prefix, with each source ref."""
+    prefix = event + "/"
+    name = contest[len(prefix) :] if contest.startswith(prefix) else contest
+    return {(name, ref) for ref in refs} or {(name, None)}
+
+
+def _moved_to(
+    event: str,
+    baseline: ContestResults,
+    index: Mapping[tuple[str, str | None], list[tuple[str, int]]],
+) -> list[str] | None:
+    """The events that now hold all of ``event``'s results, or None if any are gone.
+
+    ``index`` maps each candidate contest's keys (`_contest_keys`) to its
+    event and results.
+    """
+    targets: set[str] = set()
+    for contest, (holder, refs, count) in baseline.items():
+        if holder != event or count <= 0:
+            continue
+        found = {
+            other
+            for key in _contest_keys(contest, holder, refs)
+            for other, results in index.get(key, ())
+            if other != event and results > 0
+        }
+        if not found:
+            return None
+        targets |= found
+    return sorted(targets) or None
+
+
 def baseline_measures(baseline: Path) -> dict[str, int | None]:
     """The measures of a published candidate, from its manifest and files."""
     manifest = json.loads((baseline / "_meta" / "manifest.json").read_bytes())
@@ -197,8 +307,17 @@ def evaluate(
     baseline_commit: str | None = None,
     baseline_candidate: str | None = None,
     exempt: str | None = None,
+    candidate_contests: ContestResults | None = None,
+    baseline_contests: ContestResults | None = None,
 ) -> dict[str, Any]:
-    """The verdict: every measure, each decrease, the overrides it used, pass or refused."""
+    """The verdict: every measure, each decrease, the overrides it used, pass or refused.
+
+    With both contest maps, each baseline event with results that the
+    candidate lacks is checked: one whose results all moved to other events
+    is listed in `moved_result_events`; any other is listed in
+    `lost_result_events` and refuses unless a `result_event:<id>` row
+    approves it.
+    """
     measures = {
         name: {
             "baseline": None if baseline is None else baseline.get(name),
@@ -237,6 +356,37 @@ def evaluate(
             used.append(asdict(match))
         elif exempt is None:
             reasons.append(f"decrease:{name} {before}->{after}")
+    lost: list[dict[str, Any]] = []
+    moved: list[dict[str, Any]] = []
+    if candidate_contests is not None and baseline_contests is not None:
+        after_events = event_results(candidate_contests)
+        index: dict[tuple[str, str | None], list[tuple[str, int]]] = {}
+        for contest, (holder, refs, count) in candidate_contests.items():
+            for key in _contest_keys(contest, holder, refs):
+                index.setdefault(key, []).append((holder, count))
+        for event, before in sorted(event_results(baseline_contests).items()):
+            if after_events.get(event, 0) > 0:
+                continue
+            targets = _moved_to(event, baseline_contests, index)
+            if targets is not None:
+                moved.append({"event_id": event, "baseline": before, "to": targets})
+                continue
+            match = next(
+                (
+                    row
+                    for row in overrides
+                    if row.measure == RESULT_EVENT + event and row.baseline_value == before
+                ),
+                None,
+            )
+            lost.append({"event_id": event, "baseline": before, "override": bool(match)})
+            if match is not None:
+                used.append(asdict(match))
+        refused = [item["event_id"] for item in lost if not item["override"]]
+        if refused and exempt is None:
+            named = " ".join(refused[:REASON_EVENTS])
+            more = f" +{len(refused) - REASON_EVENTS}" if len(refused) > REASON_EVENTS else ""
+            reasons.append(f"lost_result_events:{len(refused)} {named}{more}")
     return {
         "format": FORMAT,
         "state": "refused" if reasons else "pass",
@@ -247,6 +397,8 @@ def evaluate(
         "measures": measures,
         "decreases": decreases,
         "overrides_used": used,
+        "lost_result_events": lost,
+        "moved_result_events": moved,
         "reasons": reasons,
     }
 
@@ -277,6 +429,8 @@ def write(
         baseline_commit=baseline_commit,
         baseline_candidate=None if baseline is None else baseline.name,
         exempt=exempt,
+        candidate_contests=contest_results(directory),
+        baseline_contests=None if baseline is None else contest_results(baseline),
     )
     if invalid is not None:
         verdict = {
@@ -309,6 +463,8 @@ def read(state_dir: Path, candidate: Path) -> dict[str, Any]:
             None if baseline is None else baseline_measures(baseline),
             baseline_commit=manifest.get("baseline_commit"),
             baseline_candidate=None if baseline is None else baseline.name,
+            candidate_contests=contest_results(candidate),
+            baseline_contests=None if baseline is None else contest_results(baseline),
         )
         return {**verdict, "evaluated": "at_publication"}
     body = (candidate / VERDICT).read_bytes()
@@ -333,6 +489,8 @@ def summary(verdict: Mapping[str, Any]) -> dict[str, Any]:
         "baseline_commit": (verdict.get("baseline") or {}).get("commit"),
         "decreases": list(verdict.get("decreases") or ()),
         "overrides_used": len(verdict.get("overrides_used") or ()),
+        "lost_result_events": len(verdict.get("lost_result_events") or ()),
+        "moved_result_events": len(verdict.get("moved_result_events") or ()),
         "measures": {
             name: [value.get("baseline"), value.get("candidate")]
             for name, value in (verdict.get("measures") or {}).items()

@@ -152,10 +152,30 @@ publish. Every column comes from the baseline row, including its provenance
 (`scope_status`, `evidence_observed_at`), which assembly computes. The
 stand-in's snapshot and parser join the partition's support; a revoked one
 withholds the event. A later admissible header replaces the stand-in whole.
-An event the baseline lacks is withheld as before, and a rejected result row
+The stand-in takes the rejected row's status in two cases only: `unknown` to
+`registry` for a held occurrence of the same `wsdc-*` series, and `registry`
+to `unknown` for a series that is not a registry series
+([D-0254](../../journal/decisions/0254-a-registry-occurrence-publishes-its-accepted-listing-header.md)).
+
+When the baseline lacks the event, the partitioned build tries the event's
+listings (D-0254). If the event is a held occurrence of a `wsdc-*` series and
+a listing mapped to it (its resolution's `source_event_map`, the
+`source_events` row from the listing's `project/source_index` generation)
+cites an `accepted` snapshot and parser, a header is made from it: the
+registry's event id, series, month, `held` and status, the listing's name,
+dates, source and provenance, and no place, website or live window. The
+widest span, then the newest snapshot, wins. The year's tier patch applies
+to it. Listing rows are header candidates only: they are never merged or
+checked as rows. A legacy result row of an event that took a placeholder's
+listing (D-0253) is kept when the same row under the placeholder's ids, the
+id the map generates for that listing, equals the baseline's row; the
+sidecar counts these as `legacy_moved_retained`. The closure path does
+neither. Otherwise an event the
+baseline lacks is withheld as before, and a rejected result row
 (a contest, entry or placement) still withholds its event: mixing a
 baseline result row into current ones could break the event's structure. The
-sidecar counts stand-ins as `baseline_header_republished`.
+sidecar counts stand-ins as `baseline_header_republished` and listing
+headers as `listing_header_published`.
 
 Candidate reuse requires **both** this fingerprint and the baseline
 commit against which its changelog was calculated. The candidate's

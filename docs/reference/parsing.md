@@ -53,7 +53,10 @@ current observations. Failures preserve the watch's last-good set.
 The writer leaves the set alone only when every row is equal, snapshot id and
 extract and parser versions included. An equal payload under a new snapshot
 or version label is rewritten and its scopes re-projected, because release
-support matches those labels against the accepted generation (D-0241).
+support matches those labels against the accepted generation (D-0241). A
+parse that repeats its accepted generation writes nothing, so rows stored
+before D-0241 keep their old labels until `swingset relabel --apply` stores
+the accepted result again ([operation](../guides/operation.md#reparse-and-registry-work)).
 
 Order at fetch time: fetch, `extract`, compare fingerprint. Unchanged:
 discard the body, record `checked_at`. Changed: archive the body, store

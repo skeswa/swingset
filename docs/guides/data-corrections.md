@@ -60,6 +60,16 @@ confirmed_links,5120,4980,duplicate dancers merged (issue 812),owner,2026-09-29
   is any decrease from another baseline.
 - `reason` says why the loss is correct. `approved_by` names who approved
   it. `approved_at` is an ISO date or timestamp.
+- An event that loses all its results refuses with
+  `lost_result_events:<count> <ids>`, even when every total grows. Approve
+  one by name with the measure `result_event:<event_id>`, the event's
+  baseline placements plus entries as `baseline_value` (the verdict's
+  `lost_result_events` lists it) and `0` as `candidate_value`:
+  `result_event:2025-03-example,48,0,source withdrew the results,owner,2026-10-14`.
+  An event whose contests all moved to another event, such as a placeholder
+  merged into its WSDC event (D-0253), is listed under
+  `moved_result_events` and needs no row; its event count still falls, so
+  approve the `events` decrease.
 - A row with an unknown measure, an empty field, a value that is not a
   decrease, or a duplicate makes the file invalid. Loops still capture it;
   the next build is refused with `overrides_invalid:release_decreases.csv:<line>:

@@ -26,7 +26,7 @@ writer and the service retries failures after 60 seconds. Each loop tick holds t
 and new ticks skip while it waits
 ([state: locks](../reference/state.md#locks)). Derive and acquire ticks run
 four minutes or more and release up to an hour, so 60 seconds usually times
-out. Run an exclusive command (`accept-year`, `gc --apply`, `sweep`,
+out. Run an exclusive command (`accept-year`, `relabel --apply`, `gc --apply`, `sweep`,
 `publish`) with `--lock-timeout 3600`, or write `operator-hold`,
 wait until `systemctl list-units 'swingset-*'` shows no active tick, and
 remove the hold after.
@@ -1018,6 +1018,26 @@ with `--archive-only`; this validates and saves it without comparing an incomple
 mirror. Enable the registry source and seed the sweep. Derive ticks compare the
 saved dump after the final batch has been parsed and projected. A durable due
 marker survives interruption and is cleared only after comparison succeeds.
+
+A parse that repeats its accepted generation writes nothing (D-0212), so
+observations stored before D-0241 can keep older snapshot, extract or parser
+labels than the generation that holds them, and the release then uses them
+only where a row equals the baseline. `relabel` lists them and, with
+`--apply`, stores each accepted result again through the admission writer:
+
+```sh
+uv run swingset relabel --state ./tmp/state                  # counts by kind and state
+uv run swingset relabel --kind scoringdance.event --json --state ./tmp/state
+uv run swingset relabel --apply --by "<who>" --state ./tmp/state
+```
+
+Only `labels` units change: rows equal to the accepted result in everything
+but their labels, on a watch whose current snapshot is the generation's. A
+`payload` or `not_current` unit is listed and left alone. `--apply` takes the
+exclusive lock, one unit per transaction, and queues each unit's project
+scopes for derive. On 2026-10-14 it found 479 units (309 `scoringdance.event`,
+103 `eepro.round`, 67 `eepro.autoindex`) and rewrote them in 50 seconds on a
+copy.
 
 EEPro's operator conversation must be recorded in its playbook before live
 fetching. Do not reinterpret an unknown registry response as a missing dancer.

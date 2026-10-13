@@ -457,3 +457,154 @@ def test_linked_entries_and_judges_are_counted_from_the_candidate_files(tmp_path
     result = gate.evaluate(after, before)
     assert result["state"] == "refused"
     assert result["reasons"] == ["decrease:linked_entries 3->2"]
+
+
+def test_a_lost_result_event_refuses_but_a_moved_one_does_not(tmp_path: Path) -> None:
+    """D-0251 and D-0253: an event with results in the baseline must keep them,
+    or every one of its contests must hold them under another event; a
+    `result_event:<id>` row approves a loss by name."""
+
+    def candidate(
+        name: str,
+        contests: dict[str, tuple[str, str, int, int]],
+        rounds: dict[str, str] | None = None,
+    ) -> Path:
+        """``contests``: contest id -> (event, source ref, placements, entries);
+        ``rounds``: contest id -> its one round's source ref."""
+        directory = tmp_path / name
+        _write(
+            directory,
+            "rounds",
+            [
+                _row(
+                    "rounds", round_id=f"{contest}/final", contest_id=contest, source_round_ref=ref
+                )
+                for contest, ref in (rounds or {}).items()
+            ],
+        )
+        _write(
+            directory,
+            "contests",
+            [
+                _row("contests", contest_id=contest, event_id=event, source_contest_ref=ref)
+                for contest, (event, ref, _, _) in contests.items()
+            ],
+        )
+        placements, entries = [], []
+        for contest, (event, _, placed, entered) in contests.items():
+            placements += [
+                _row(
+                    "placements",
+                    placement_id=f"{contest}/p{n}",
+                    contest_id=contest,
+                    event_id=event,
+                )
+                for n in range(placed)
+            ]
+            entries += [
+                _row("entries", entry_id=f"{contest}/e{n}", contest_id=contest, event_id=event)
+                for n in range(entered)
+            ]
+        _write(directory, "placements", placements)
+        _write(directory, "entries", entries)
+        (directory / "_meta").mkdir()
+        (directory / "_meta" / "manifest.json").write_text("{}")
+        return directory
+
+    # `b` loses its results; `m` (a placeholder) moves both contests onto `w`,
+    # its WSDC event, one of them now naming another of its pages but the
+    # same round; `p` moves only one of two; `c` had entries only.
+    baseline = candidate(
+        "base",
+        {
+            "a/open": ("a", "1#0", 1, 1),
+            "b/open": ("b", "2#0", 1, 0),
+            "c/open": ("c", "3#0", 0, 1),
+            "m/open": ("m", "4#0", 2, 2),
+            "m/novice": ("m", "5#0", 1, 1),
+            "p/open": ("p", "6#0", 1, 1),
+            "p/novice": ("p", "7#0", 1, 1),
+        },
+        {"m/novice": "5#1"},
+    )
+    after = candidate(
+        "next",
+        {
+            "a/open": ("a", "1#0", 2, 2),
+            "c/open": ("c", "3#0", 0, 1),
+            "d/open": ("d", "8#0", 3, 3),
+            "w/open": ("w", "4#0", 2, 2),
+            "w/novice": ("w", "5#2", 1, 1),
+            "q/open": ("q", "6#0", 1, 1),
+        },
+        {"w/novice": "5#1"},
+    )
+    assert gate.event_results(gate.contest_results(baseline)) == {
+        "a": 2,
+        "b": 1,
+        "c": 1,
+        "m": 6,
+        "p": 4,
+    }
+
+    def verdict(overrides: str) -> dict[str, Any]:
+        gate.write(
+            after,
+            row_counts={},
+            baseline=baseline,
+            baseline_commit="c",
+            overrides=f"{HEADER}\n{overrides}".encode(),
+        )
+        return cast(dict[str, Any], json.loads((after / gate.VERDICT).read_bytes()))
+
+    refused = verdict("")
+    assert refused["reasons"][-1] == "lost_result_events:2 b p"
+    assert refused["lost_result_events"] == [
+        {"event_id": "b", "baseline": 1, "override": False},
+        {"event_id": "p", "baseline": 4, "override": False},
+    ]
+    assert refused["moved_result_events"] == [{"event_id": "m", "baseline": 6, "to": ["w"]}]
+    summary = gate.summary(refused)
+    assert (summary["lost_result_events"], summary["moved_result_events"]) == (2, 1)
+    # The approval must name the baseline's results of that event.
+    rows = "result_event:b,2,0,wrong count,owner,2026-10-14\n"
+    rows += "result_event:p,4,0,source withdrew it,owner,2026-10-14\n"
+    assert verdict(rows)["reasons"][-1] == "lost_result_events:1 b"
+    rows = "result_event:b,1,0,source withdrew it,owner,2026-10-14\n" + rows.splitlines()[1]
+    approved = verdict(rows + "\n")
+    assert not any(reason.startswith("lost_result_events") for reason in approved["reasons"])
+    assert all(item["override"] for item in approved["lost_result_events"])
+    assert {row["measure"] for row in approved["overrides_used"]} >= {
+        "result_event:b",
+        "result_event:p",
+    }
+    # A moved contest that lost its results is a loss.
+    assert gate.contest_results(after)["w/novice"] == ("w", ("5#1", "5#2"), 2)
+    emptied = dict(gate.contest_results(after))
+    emptied["w/novice"] = ("w", ("5#1", "5#2"), 0)
+    check = gate.evaluate(
+        {},
+        None,
+        candidate_contests=emptied,
+        baseline_contests=gate.contest_results(baseline),
+    )
+    assert "m" in {item["event_id"] for item in check["lost_result_events"]}
+    # The same contest name with no shared ref is another event's contest.
+    other = gate.evaluate(
+        {},
+        None,
+        candidate_contests={"x/open": ("x", ("9#0",), 2)},
+        baseline_contests={"m/open": ("m", ("4#0",), 2)},
+    )
+    assert [item["event_id"] for item in other["lost_result_events"]] == ["m"]
+    # A correction is exempt, as for decreases.
+    exempt = gate.evaluate(
+        {},
+        None,
+        candidate_contests={},
+        baseline_contests={"b/open": ("b", ("2#0",), 1)},
+        exempt="correction",
+    )
+    assert exempt["state"] == "pass" and exempt["lost_result_events"][0]["event_id"] == "b"
+    with pytest.raises(ValueError, match="unknown measure"):
+        gate.parse_overrides(f"{HEADER}\nresult_event:,1,0,r,owner,2026-10-13\n".encode())

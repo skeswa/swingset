@@ -486,6 +486,133 @@ def test_two_editions_in_same_capture_require_review(tmp_path):
         assert conn.execute("SELECT date_precision FROM events").fetchone()[0] == "month"
 
 
+def _platform_listing(conn, source, ref, name, start, end, snapshot):
+    conn.execute(
+        "INSERT OR IGNORE INTO watches(watch_id,source,kind,method,url,parser,state) VALUES (?,?,'index','GET','https://example.test/','events','live')",
+        ("watch-" + snapshot, source),
+    )
+    conn.execute(
+        "INSERT OR IGNORE INTO snapshots(snapshot_id,watch_id,method,url,fetched_at,http_status,body_bytes,content_changed,run_id,classification) VALUES (?,?,'GET','https://example.test/',?,200,1,1,'run','Ok')",
+        (snapshot, "watch-" + snapshot, NOW),
+    )
+    conn.execute(
+        "INSERT INTO source_events(source,source_ref,name_raw,start_date,end_date,url,snapshot_id,parser_version,first_seen_at,last_seen_at,run_id) VALUES (?,?,?,?,?,'https://example.test/',?,'4',?,?,'run')",
+        (source, ref, name, start, end, snapshot, NOW, NOW),
+    )
+
+
+def test_an_adopted_placeholder_is_a_registry_event(tmp_path):
+    """The registry adopts a results placeholder as its occurrence; the row
+    becomes `registry`, and a held row left `unknown` earlier is repaired
+    (D-0253)."""
+    from swingset.model.canonical import Event
+    from swingset.project.writer import Projection
+
+    with open_database(tmp_path) as db:
+        conn = db.connection
+        conn.execute(
+            "INSERT INTO runs(run_id,started_at,finished_at,dry_run,summary_json) VALUES ('run',?,NULL,1,NULL)",
+            (NOW,),
+        )
+        placeholder = Event(
+            event_id="2012-08-example-swing",
+            series_id="slug-example-swing",
+            name="Example Swing",
+            year=2012,
+            start_date="2012-08-03",
+            end_date="2012-08-05",
+            sources=("eepro",),
+            source="eepro",
+            snapshot_id="listing",
+            parser_version="4",
+            first_seen_at=NOW,
+            last_seen_at=NOW,
+            run_id="run",
+        )
+        replace_scope(
+            conn,
+            scope_kind="resolution",
+            scope_id=placeholder.event_id,
+            projection=Projection((placeholder,)),
+            run_id="run",
+            projected_at=NOW,
+        )
+        _platform_listing(
+            conn, "eepro", "eepro:example", "Example Swing", "2012-08-03", "2012-08-05", "listing"
+        )
+        registry(conn)
+        reconcile_history(conn, now=NOW, run_id="run")
+        query = "SELECT event_id,series_id,held,wsdc_status FROM events"
+        assert [tuple(row) for row in conn.execute(query)] == [
+            ("2012-08-example-swing", "wsdc-7", "held", "registry")
+        ]
+        conn.execute("UPDATE events SET wsdc_status='unknown'")
+        reconcile_history(conn, now=NOW, run_id="run")
+        assert [tuple(row) for row in conn.execute(query)] == [
+            ("2012-08-example-swing", "wsdc-7", "held", "registry")
+        ]
+
+
+def test_a_results_platform_listing_does_not_claim_registry_status(tmp_path):
+    """A platform listing's event takes its status from its series, or from a
+    calendar listing of the same edition, never a fixed `registry` (D-0253)."""
+    with open_database(tmp_path) as db:
+        conn = db.connection
+        conn.execute(
+            "INSERT INTO runs(run_id,started_at,finished_at,dry_run,summary_json) VALUES ('run',?,NULL,1,NULL)",
+            (NOW,),
+        )
+        registry(conn)
+        _platform_listing(
+            conn, "eepro", "eepro:hustle", "NJ Hustle Congress", "2012-10-05", "2012-10-07", "e1"
+        )
+        _platform_listing(
+            conn, "eepro", "eepro:future", "Future Swing", "2012-11-02", "2012-11-04", "e1"
+        )
+        calendar = CalendarRow(
+            "calendar_row",
+            "River Nights",
+            "2012-09-14",
+            "2012-09-16",
+            "Trial",
+            "City",
+            None,
+            None,
+            (),
+        )
+        evidence(
+            conn, calendar, source="wsdc_calendar", scope="calendar", ref="wsdc", snapshot="c1"
+        )
+        # The platform listing of the same edition is observed later and wins.
+        _platform_listing(
+            conn, "eepro", "eepro:river", "River Nights", "2012-09-14", "2012-09-16", "e2"
+        )
+        conn.execute(
+            "UPDATE snapshots SET observed_at='2026-09-13T00:00:00+00:00' WHERE snapshot_id='e2'"
+        )
+        reconcile_history(
+            conn,
+            now=NOW,
+            run_id="run",
+            aliases=(
+                b"printed_name,series_id,source,note\n"
+                b"NJ Hustle Congress,listed-nj-hustle-congress,eepro,reviewed\n"
+                b"Future Swing,wsdc-8,eepro,reviewed\n"
+                b"River Nights,listed-river-nights,calendar,reviewed\n"
+            ),
+        )
+        assert [
+            tuple(row)
+            for row in conn.execute(
+                "SELECT event_id,source,wsdc_status FROM events WHERE held!='held' ORDER BY 1"
+            )
+        ] == [
+            ("2012-09-river-nights", "eepro", "trial"),
+            ("2012-10-nj-hustle-congress", "eepro", "unknown"),
+            ("2012-11-future-swing", "eepro", "registry"),
+        ]
+
+
 # Years (plan F17): project/history/all became one unit per year.
 
 

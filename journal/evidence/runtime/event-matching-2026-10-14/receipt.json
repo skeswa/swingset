@@ -1,0 +1,297 @@
+{
+  "operation": "deploy the event-matching fix (D-0253, D-0254, relabel for item 21, per-event gate check for item 28) in dry run, add the reviewed River Swing Nights alias, relabel 479 units, re-run every project and link unit, then hand-build, check and publish",
+  "actor": "claude (session claude-rearch)",
+  "decisions": [
+    "D-0253",
+    "D-0254"
+  ],
+  "owner_approval": "2026-10-13 'Build the code fix but apply to all years'; 2026-10-14 'Perform any necessary reviews via sub agent and resolve all of these blockers with a dedicated subagent'",
+  "investigation": "journal/investigations/2026/event-matching-2026-10-13.md",
+  "rehearsal": {
+    "copy_taken": "2026-10-14T13:23Z",
+    "where": "Mac APFS clone, network off",
+    "control": "equal to baseline, gate pass",
+    "after": {
+      "verdict": "pass",
+      "decreases": [],
+      "events": [
+        2114,
+        2191
+      ],
+      "contests": [
+        3751,
+        4641
+      ],
+      "entries": [
+        146772,
+        195070
+      ],
+      "confirmed_links": [
+        67012,
+        100926
+      ],
+      "events_with_placements": [
+        276,
+        399
+      ],
+      "moved_result_events": 80,
+      "lost_result_events": 0
+    }
+  },
+  "independent_check": {
+    "date": "2026-10-14",
+    "verdict": "approve with conditions",
+    "conditions": [
+      "rollback target is the live baseline cand_cd7dcc13d65946f5",
+      "add the River Swing Nights row only under hold and keep it through the re-run",
+      "preflight relabel list: 479 labels, 0 payload or not_current",
+      "post-check of the hand build against cand_cd7dcc13: pass, no lost result events, about 80 moved, no decrease row, listing-header events carry registry points, accept-year for changed years",
+      "stop on any write-deadline or failed tick"
+    ]
+  },
+  "tests": {
+    "full_suite": "3572 passed (23:13)"
+  },
+  "scopes_changed": [
+    "recipe/code/build",
+    "recipe/code/link",
+    "recipe/code/project/* (9)"
+  ],
+  "deploy_tree": {
+    "path": "/private/tmp/swingset-c044",
+    "commit": "524e2de8eee2218ef308d07c9325af1e74345e5f",
+    "dryRun": true,
+    "source": "/nix/store/0zdrlpxc3dl607yd3h9yl0rkh8y2dzpx-source"
+  },
+  "preflight": {
+    "schema": 37,
+    "file_bytes": 41150623744,
+    "queue": {
+      "ready/admission_needs_review": 335,
+      "waiting_input/admission_needs_review": 102,
+      "waiting_input/parse_failed": 10,
+      "ready/admission_waiting_for_inputs": 9,
+      "waiting_input/admission_waiting_for_inputs": 8,
+      "waiting_input/unsupported_page_kind": 3
+    },
+    "latest_snapshot": "2026-10-14T04:32:04.027208+00:00",
+    "latest_request": "2026-10-14T19:46:06.001048+00:00",
+    "pauses": 0,
+    "parse_failed_or_unsupported_units": 13
+  },
+  "hold": {
+    "set": "2026-10-14T20:46:17Z",
+    "idle": "2026-10-14T20:46:17Z",
+    "removed": "2026-10-14T20:49:06Z"
+  },
+  "switch": {
+    "system_before": "/nix/store/qqwvrppldpi8ac2lrxh5fjawqfa97gia-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+    "system_after": "/nix/store/2n8hcqbbdf3ax6p1shc0qa5cnlvlch88-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+    "switched": "2026-10-14T20:46:38Z",
+    "release_unit": "--dry-run"
+  },
+  "alias_row": "overrides/series_aliases.csv: River Swing Nights - 2026 - WSDC Trial Event -> wsdc-395 (scoringdance), added under the hold",
+  "relabel": {
+    "list_before": {
+      "relabel": 479,
+      "units": 479
+    },
+    "labels_by_kind": {
+      "eepro.autoindex": 67,
+      "eepro.round": 103,
+      "scoringdance.event": 309
+    },
+    "payload_or_not_current": 0,
+    "apply": {
+      "window": [
+        "2026-10-14T20:48:06Z",
+        "2026-10-14T20:48:32Z"
+      ],
+      "exit_code": 0,
+      "rewritten": {
+        "eepro.autoindex": 67,
+        "eepro.round": 103,
+        "scoringdance.event": 309
+      },
+      "total": 479,
+      "skipped": {},
+      "run_id": "run_20261014T204806Z"
+    },
+    "list_after": {
+      "relabel": 0,
+      "units": 0
+    }
+  },
+  "baseline_at_deploy": "cand_cd7dcc13d65946f5 (HF 1034f8c)",
+  "rollback": "swingset publish --revert-to cand_cd7dcc13d65946f5 (D-0250), then switch to c043 and drop the River Swing Nights alias row",
+  "rerun": {
+    "window": [
+      "2026-10-14T20:49Z",
+      "2026-10-15T04:19Z"
+    ],
+    "project_units": "about 33,000",
+    "failed_ticks": 0,
+    "stop_alerts": 0,
+    "longest_write_seconds": 23.506,
+    "note": "one [host-failing] web.archive.org throttle alert, expected"
+  },
+  "accept_year": {
+    "years_changed": [
+      2019,
+      2020,
+      2022,
+      2023,
+      2024,
+      2025,
+      2026
+    ],
+    "window": [
+      "2026-10-15T03:50:38Z",
+      "2026-10-15T03:59:31Z"
+    ],
+    "exit_codes": "all 0",
+    "by": "claude (claude-rearch): D-0253/D-0254 deploy, independent check 2026-10-14"
+  },
+  "hand_build": {
+    "hold_set": "2026-10-15T04:19:51Z",
+    "window": [
+      "2026-10-15T04:20:41Z",
+      "2026-10-15T04:28:49Z"
+    ],
+    "candidate": "cand_df599959f33440cf",
+    "verdict": "pass",
+    "baseline": {
+      "candidate_id": "cand_cd7dcc13d65946f5",
+      "commit": "1034f8c2f38a963e68765d8352115dcc847cb068"
+    },
+    "decreases": [],
+    "overrides_used": [],
+    "lost_result_events": 0,
+    "moved_result_events": 80,
+    "measures": {
+      "callback_marks": [
+        758902,
+        1034269
+      ],
+      "callbacks": [
+        155886,
+        211674
+      ],
+      "confirmed_links": [
+        67021,
+        100932
+      ],
+      "contests": [
+        3751,
+        4641
+      ],
+      "dancers": [
+        27959,
+        27968
+      ],
+      "entries": [
+        146772,
+        195070
+      ],
+      "events": [
+        2114,
+        2191
+      ],
+      "events_with_placements": [
+        276,
+        399
+      ],
+      "final_marks": [
+        180768,
+        231152
+      ],
+      "heats": [
+        0,
+        0
+      ],
+      "judges": [
+        7908,
+        10913
+      ],
+      "linked_entries": [
+        67021,
+        100932
+      ],
+      "linked_judges": [
+        0,
+        0
+      ],
+      "placements": [
+        30190,
+        38290
+      ],
+      "registry_placements": [
+        198998,
+        199008
+      ],
+      "rounds": [
+        6360,
+        8224
+      ]
+    }
+  },
+  "second_check": {
+    "date": "2026-10-15",
+    "verdict": "approve with conditions",
+    "conditions": [
+      "publish before 2026-10-16T00:00Z under the hold, reusing cand_df599959f33440cf",
+      "post-check: parent 1034f8c, PUBLISHED written, baseline moved",
+      "record the four ungated findings"
+    ],
+    "ungated_findings": [
+      "2026-04-city-of-angels-wcs header dated 2027-04-29 (scoring.dance listing 315 prints 2027), so its rows land in 2027 files",
+      "2026-11-the-open-swing-dance-championships went registry -> unknown",
+      "8 EEPro source-event coverage rows lost page counts (event_evidence_byte_budget)",
+      "2026-09-global-grand-prix-wcs (wsdc-342) still publishes empty beside the wsdc-409 event"
+    ]
+  },
+  "reuse": {
+    "at": "2026-10-15T04:45:04Z",
+    "printed": "/var/lib/swingset/candidates/cand_df599959f33440cf",
+    "candidate_dirs_before_after": [
+      107,
+      107
+    ]
+  },
+  "publish": {
+    "window": [
+      "2026-10-15T04:45:45Z",
+      "2026-10-15T04:46:49Z"
+    ],
+    "state": "published",
+    "candidate": "cand_df599959f33440cf",
+    "commit": "28f8196c969fb02964f0a05c642c487471db8641",
+    "parent": "1034f8c2f38a963e68765d8352115dcc847cb068",
+    "hub_head_checked": "28f8196c969f, then 1034f8c2f38a",
+    "baseline_symlink": "candidates/cand_df599959f33440cf",
+    "manifest_digest": "53f61e2835692dc6321c017ae288092fa412ba29d057f18cbd76c0de5c34f2d1"
+  },
+  "c045": {
+    "change": "dryRun = false (code identical to c044)",
+    "system_after": "/nix/store/3jv2aw8ndxrbij1mrkvg71amwv68h6mx-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+    "switched": "2026-10-15T04:47:06Z",
+    "release_unit": "--publish",
+    "hold_removed": "2026-10-15T04:47:06Z"
+  },
+  "post_switch": {
+    "first_publish_tick": "2026-10-15T05:20:01Z",
+    "dry_run": false,
+    "failed": false,
+    "build_deferred": "interval",
+    "reconciliation": "none",
+    "correction_needed": false,
+    "loops_04:47_to_05:21Z": {
+      "acquire": 7,
+      "derive": 7,
+      "plan": 1,
+      "release": 1,
+      "failed": 0
+    },
+    "requests_04:47_to_05:21Z": 426
+  }
+}

@@ -169,6 +169,30 @@ def _baseline_header(conn: sqlite3.Connection, key: str) -> dict[str, Any] | Non
     return {**_NEUTRAL["events"], **row}
 
 
+def _corrected_status(header: dict[str, Any], rejected: Mapping[str, Any]) -> dict[str, Any]:
+    """A baseline stand-in with the `wsdc_status` D-0253 corrected, where that is safe (D-0254).
+
+    The rejected row's label replaces the baseline's only in two cases, each
+    backed by the series alone: `unknown` becomes `registry` for a held
+    occurrence of the same `wsdc-*` series, which the accepted registry pages
+    hold; `registry` becomes `unknown` for a series that is not a registry
+    series, which withdraws a claim no page made. Every other column stays
+    the baseline's.
+    """
+    series = str(header.get("series_id") or "")
+    if rejected.get("series_id") != header.get("series_id"):
+        return header
+    before, after = header.get("wsdc_status"), rejected.get("wsdc_status")
+    if (
+        before == "unknown"
+        and after == "registry"
+        and series.startswith("wsdc-")
+        and rejected.get("held") == "held"
+    ) or (before == "registry" and after == "unknown" and not series.startswith("wsdc-")):
+        return {**header, "wsdc_status": after}
+    return header
+
+
 def _header_pair(row: Mapping[str, Any]) -> tuple[str, str] | None:
     """The `(snapshot, parser)` a stand-in header cites, or None for an override."""
     snapshot = row.get("snapshot_id")
@@ -182,15 +206,24 @@ def _stand_in(
     key: str,
     stand_ins: set[str],
     revoked: set[tuple[str, str]],
+    rejected: Mapping[str, Any] | None = None,
 ) -> None:
-    """Put the baseline's header for a rejected legacy one, when no row holds the event yet."""
+    """Put the baseline's header for a rejected legacy one, when no row holds the event yet.
+
+    A later rejected row of the same event (the inventory's after a
+    calendar's) corrects the stand-in's status again (`_corrected_status`).
+    """
     if conn.execute(
         "SELECT 1 FROM rows WHERE table_name='events' AND record_key=?", (key,)
     ).fetchone():
-        return
+        if key not in stand_ins or rejected is None:
+            return
+        conn.execute("DELETE FROM rows WHERE table_name='events' AND record_key=?", (key,))
     header = _baseline_header(conn, key)
     if header is None or _header_pair(header) in revoked:
         return
+    if rejected is not None:
+        header = _corrected_status(header, rejected)
     _put(conn, "events", key, header)
     stand_ins.add(key)
 
@@ -497,7 +530,7 @@ def reconstruct(
                                         ),
                                     )
                                     if table == "events" and state != "revoked":
-                                        _stand_in(spool, key, stand_ins, revoked)
+                                        _stand_in(spool, key, stand_ins, revoked, payload)
                                     continue
                                 result.counts["legacy_unassessed_retained"] += 1
                         # Processing metadata comes from this immutable materialization receipt.
