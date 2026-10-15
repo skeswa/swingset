@@ -1,0 +1,194 @@
+{
+  "operation": "combined deploy c046: maintenance item 20 (D-0261), danceconvention.net source (D-0255, disabled), calendar adoption, twins, place and status and the intake fix (D-0256, D-0260), WSDC calendar contract (D-0257, inactive), SwingDirector parser, projector and contract (D-0258, D-0259, disabled), contract activation command; 45 approved override rows; full re-run in dry run",
+  "actor": "claude (session claude-rearch)",
+  "decisions": [
+    "D-0255",
+    "D-0256",
+    "D-0257",
+    "D-0258",
+    "D-0259",
+    "D-0260",
+    "D-0261"
+  ],
+  "owner_approval": "2026-10-15: deploy with item 20 in one full re-run; approve the Charlotte WDR row, the Austin Rocks and Korea Westival aliases, and the 42 SwingDirector rows; 'Commit, push and deploy now'",
+  "independent_checks": [
+    "four-problem change: approve with conditions, met",
+    "contracts and projector: approve with conditions, met",
+    "42 SwingDirector rows: approve with notes-only changes, applied",
+    "item 20: approve with conditions, met"
+  ],
+  "tests": {
+    "full_suite": "3681 passed (item 20 final)"
+  },
+  "commit": "386d6dd0a6810b5ff330d7e9c1c1b6a3f93203d5",
+  "expected_rerun": {
+    "parse": 39909,
+    "project": 33550,
+    "link": 2936,
+    "build": 1,
+    "scopes_changed": 51,
+    "recipe_env_changed": false
+  },
+  "deploy_tree": {
+    "path": "/private/tmp/swingset-c046",
+    "dryRun": true,
+    "source": "/nix/store/xfqg63cd1qz58qwdpw5pmbvwnm25khm8-source"
+  },
+  "preflight": {
+    "schema": 37,
+    "file_bytes": 41150623744,
+    "queue": {
+      "ready/admission_needs_review": 336,
+      "waiting_input/admission_needs_review": 103,
+      "waiting_input/parse_failed": 10,
+      "ready/admission_waiting_for_inputs": 9,
+      "waiting_input/admission_waiting_for_inputs": 8,
+      "waiting_input/unsupported_page_kind": 3
+    },
+    "latest_snapshot": "2026-10-15T05:21:53.643782+00:00",
+    "latest_request": "2026-10-15T22:46:09.958842+00:00",
+    "pauses": 0,
+    "parse_failed_or_unsupported_units": 13
+  },
+  "hold": {
+    "set": "2026-10-15T22:50:00Z",
+    "idle": "2026-10-15T22:50:00Z",
+    "removed": "2026-10-15T22:50:18Z"
+  },
+  "overrides_added": {
+    "source_urls.csv": 43,
+    "series_aliases.csv": 2,
+    "validated": "all override files pass validate_override with the rows appended (scratch copy, byte-identical to the live files after the append)"
+  },
+  "switch": {
+    "system_before": "/nix/store/3jv2aw8ndxrbij1mrkvg71amwv68h6mx-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+    "system_after": "/nix/store/lf1gba5gzhfq6bw3lhjwkfn5k09pvasc-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+    "switched": "2026-10-15T22:50:18Z",
+    "release_unit": "--dry-run",
+    "dcn_enabled": false,
+    "swingdirector_enabled": false
+  },
+  "baseline_at_deploy": "cand_df599959f33440cf (HF 28f8196)",
+  "rollback": "before publication: switch to /private/tmp/swingset-c045 and remove the 45 override rows (another full re-run); after publication: swingset publish --revert-to cand_df599959f33440cf (D-0250)",
+  "rerun": {
+    "window": [
+      "2026-10-15T22:50Z",
+      "2026-10-16T13:02Z"
+    ],
+    "failed_ticks": "3 acquire ticks with 'database is locked' at BEGIN IMMEDIATE during the link drain (backpressure held requests; maintenance item 37); no other failure",
+    "longest_write_seconds": 18.6,
+    "alerts": [
+      "[read-set-widened] project/inventory (maintenance item 36)"
+    ]
+  },
+  "accept_year": {
+    "years": [
+      2013,
+      2016,
+      2017,
+      2018,
+      2019,
+      2020,
+      2021,
+      2022,
+      2023,
+      2024,
+      2025,
+      2026
+    ],
+    "window": [
+      "2026-10-16T12:18:38Z",
+      "2026-10-16T12:26:08Z"
+    ],
+    "exit_codes": "all 0"
+  },
+  "calendar_watch_reopen": {
+    "watch_id": "c6f6cc3dde20493f",
+    "before": {
+      "state": "sealed",
+      "archive_url": "https://web.archive.org/web/20260813102731id_/https://worldsdc.com/events/",
+      "last_checked_at": "2026-09-22T20:06:38Z"
+    },
+    "update_rows": 1,
+    "after": {
+      "state": "live",
+      "archive_url": null
+    },
+    "at": "2026-10-16T12:26:21Z",
+    "post_check": {
+      "snapshot": "snap_20261016T123111Z_dffa5faa0492_1e25ecfbd732",
+      "fetched_at": "2026-10-16T12:31:11Z",
+      "http_status": 200,
+      "parse_status": "ok",
+      "observations": 160,
+      "archived_capture_rows_kept": {
+        "snap_20260922T200638Z_979d8ea8d91e_1e25ecfbd732": 169
+      }
+    }
+  },
+  "hand_builds": [
+    {
+      "candidate": "cand_0351dda8d3954f22",
+      "window": [
+        "2026-10-16T12:36:19Z",
+        "2026-10-16T12:46:30Z"
+      ],
+      "verdict": "refused",
+      "reasons": [
+        "decrease:confirmed_links 100932->100881",
+        "decrease:linked_entries 100932->100881"
+      ],
+      "cause": "built while 2,673 link units were pending after accept-year"
+    },
+    {
+      "candidate": "cand_ce7e0a45f402400a",
+      "window": [
+        "2026-10-16T13:06:41Z",
+        "2026-10-16T13:14:44Z"
+      ],
+      "verdict": "pass",
+      "decreases": [],
+      "measures_changed": {
+        "events": [
+          2191,
+          2199
+        ],
+        "events_with_placements": [
+          399,
+          404
+        ],
+        "contests": [
+          4641,
+          4669
+        ],
+        "entries": [
+          195070,
+          195840
+        ],
+        "confirmed_links": [
+          100932,
+          101330
+        ],
+        "placements": [
+          38290,
+          38518
+        ]
+      }
+    }
+  ],
+  "independent_check": {
+    "date": "2026-10-16",
+    "candidate": "cand_ce7e0a45f402400a",
+    "verdict": "block",
+    "findings": [
+      "38 published confirmed links withdrawn (34 German Open 2026 from a stale kept partition, 4 Aloha Open 2026); production still holds them",
+      "4 empty registry-adopted headers duplicate results events across a month boundary (Swingcouver, Festival City, French Open, Swingvester); 3 new 2024 scoring.dance trial events duplicate listing rows (Aloha, Bend Connection, WCS Party)",
+      "Aloha 2026 half-moved (points moved, contests not)",
+      "Monterey 2021 lost its cancelled status (merged twin; calendar contract inactive)",
+      "18 events dropped wsdc_registry from sources, 5 dropped platform from history_source, 15 worse-cased calendar names, Mooseland 2024 end date shortened",
+      "drain not finished at build time (67 link units, 2025 and 2026 project units pending)"
+    ],
+    "gains_clean": "no event lost results; no dcn or SwingDirector data published"
+  },
+  "status": "not published; hold released 2026-10-16T13:23:35Z; release stays in dry run while the D-0256/D-0260 defects are fixed"
+}

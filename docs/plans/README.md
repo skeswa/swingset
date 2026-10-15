@@ -384,3 +384,16 @@ Coast Swing Magic` to `wsdc-300` and `KOREA WESTIVAL 2026_10th Anniversary`
     Swingfest 2021, published twice, becomes one event. Then record
     an independent review of a contract-1 cohort and activate it with
     `swingset contract activate`, with preflight and post-check receipts.
+36. Declare the inventory's new reads. After the 2026-10-15 deploy the watchdog
+    reported `[read-set-widened]` for `project/inventory`: undeclared reads of
+    `rounds`, `callbacks`, `callback_marks`, `final_marks` and `heats`, most
+    likely the D-0260 twin-deletion guard in `project/history.py`. A widened
+    read set re-runs inventory links on any change of those tables. Declare
+    the reads in `state/read_sets.py`, or narrow the guard's query.
+37. Let acquire skip a tick when the write lock is busy instead of failing.
+    During the 2026-10-16 link drain, acquire failed three times in 15
+    minutes with `database is locked` at `BEGIN IMMEDIATE` in
+    `schedule/discover.py` (about 15 s of lock wait while link writes ran up to
+    14 s). Nothing was lost, since backpressure held requests anyway, but each
+    failure fires `OnFailure`. Treat a lock timeout before any request as a
+    skip, as derive does with a busy lease.
