@@ -4,7 +4,7 @@ Recorded: 2026-09-25
 Decided by: agent, 2026-09-25, under D-0175; source: phase 1 of the [architecture plan](../../docs/plans/architecture.md)  
 Topic: Derivation identity  
 Supersedes: —  
-Superseded by: —
+Superseded by: amended by D-0261 (dispatch tables in no scope; per-kind contracts)
 
 ## Decision
 

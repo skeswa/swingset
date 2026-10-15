@@ -90,7 +90,11 @@ never cut off (about 23% of registry snapshots on the 16:10 copy). A
 Every parse scope also holds the parse writers (`recipe_scope.PARSE_WRITERS`:
 admission select and support, observations, verification, findings,
 `history/acquisition`, `intent`, `origin_dispatch`, `fetch/wayback`), so an
-edit there re-parses every kind. Other code re-queues no snapshot; see
+edit there re-parses every kind. So do the shared contract core
+(`admission/contracts.py`, `accounting.py`); a kind's own contract module
+(`admission/kinds.py` names it) re-parses only the kinds it lists
+([D-0261](../../journal/decisions/0261-dispatch-tables-are-in-no-scope-and-each-kind-names-its-contract.md)).
+Other code re-queues no snapshot; see
 [state](state.md#derivation-generations-h15) for how scopes are built. A
 blocked parse attempt still re-opens on any package change
 (`version/repository` is in the parse retry fingerprint), so a fix deployed
@@ -238,10 +242,13 @@ dates fail with a stable reason. Other newsletter layouts remain unverified.
 ## Source admission (H6 and H7)
 
 `ParseResult.interpretation` carries pure field accounting and coverage beside
-observations. Contracted adapters use `sources/interpretation.py`; the evidence
-layer independently checks archived structure, body and extract hashes, ordered
-input slots, versions, and pagination. Contracts live in `admission/`, with
-registry and round accounting separated from policy and persistence.
+observations. A contracted adapter marks its parse `@declared`
+(`sources/interpretation.py`), and admission attaches the declaration where it
+parses (`admission.contracts.declare`); the evidence layer independently checks
+archived structure, body and extract hashes, ordered input slots, versions, and
+pagination. Contracts live in `admission/`: one module per kind or kind family
+(`admission/kinds.py` maps each kind to its module and version), separated
+from policy and persistence.
 
 Every relevant field is handled, excluded with a reason, or unknown. Critical
 unknowns block selection. Noncritical unknowns remain in the report. Source row

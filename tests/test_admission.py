@@ -6,10 +6,10 @@ from pathlib import Path
 
 import pytest
 
-from swingset.admission.contracts import inspect
+from swingset.admission.contracts import declare, evaluate, inspect
 from swingset.admission.generations import begin_attempt, stage_generation
 from swingset.admission.policy import activate_contract, record_review
-from swingset.admission.report import Field, Guard, evaluate
+from swingset.admission.report import Field, Guard
 from swingset.admission.select import admit_generation
 from swingset.clock import FakeClock
 from swingset.fetch.archive import Archive
@@ -61,7 +61,7 @@ class Corpus:
         page = get_page_kind(ctx.kind)
         inputs = begin_attempt(self.conn, ctx, page.EXTRACT_VERSION, page.PARSER_VERSION)
         extract = page.extract(body)
-        result = result_change(page.parse(extract, ctx))
+        result = result_change(declare(page, ctx, extract, page.parse(extract, ctx)))
         report = report_change(inspect(ctx, body, extract, result))
         with self.db.transaction():
             generation = stage_generation(
@@ -818,7 +818,8 @@ def test_retained_column_accounting_is_explicit_without_guessing_numeric_prelim_
         "source:test",
         row["observed_at"],
     )
-    result = page.parse(page.extract(body), ctx)
+    extract = page.extract(body)
+    result = declare(page, ctx, extract, page.parse(extract, ctx))
     assert result.interpretation is not None
     report = inspect(ctx, body, page.extract(body), result)
     assert (not report.failures) == passed
@@ -853,7 +854,7 @@ def _fixture_report(name, edit=lambda body: body):
         row["observed_at"],
     )
     extract = page.extract(body)
-    result = page.parse(extract, ctx)
+    result = declare(page, ctx, extract, page.parse(extract, ctx))
     return extract, result, inspect(ctx, body, extract, result)
 
 
@@ -1005,7 +1006,7 @@ def test_wdr_unknown_critical_values_block_admission(mutation):
         "wdr:test",
         "2026-09-13T00:00:00Z",
     )
-    result = page.parse(extract, ctx)
+    result = declare(page, ctx, extract, page.parse(extract, ctx))
     assert "critical_unknown" in inspect(ctx, body, extract, result).failures
 
 
@@ -1048,13 +1049,13 @@ def test_listing_independently_accounts_for_child_watch_loss_and_required_dates(
     )
     body = b'<a href="event.php?event=example"><div class="event-title">Example</div><div class="event-date">January 1, 2025</div></a>'
     extract = page.extract(body)
-    result = page.parse(extract, ctx)
+    result = declare(page, ctx, extract, page.parse(extract, ctx))
     assert result.interpretation.coverage.listed_children == ("https://eepro.com/results/example/",)
     assert not inspect(ctx, body, extract, result).failures
     missing = replace(result, watches=())
     assert "coverage_child_mismatch" in inspect(ctx, body, extract, missing).failures
     extract[0]["date"] = None
-    undated = page.parse(extract, ctx)
+    undated = declare(page, ctx, extract, page.parse(extract, ctx))
     assert "required_date_missing" in inspect(ctx, body, extract, undated).failures
 
 
@@ -1178,7 +1179,7 @@ def test_autoindex_raw_href_witness_detects_truncated_label_omissions():
     )
     extract = page.extract(body)
     assert len(extract) == 7
-    parsed = page.parse(extract, ctx)
+    parsed = declare(page, ctx, extract, page.parse(extract, ctx))
     report = inspect(ctx, body, extract, parsed)
     assert report.contract_version == "5" and not report.failures
     # Both extractor and parser agree on a silently truncated five-file result.
@@ -1189,7 +1190,9 @@ def test_autoindex_raw_href_witness_detects_truncated_label_omissions():
         if item["name"] not in {"jackandjillprelimssemis.html", "strictlyswingfinals.html"}
     ]
     assert len(incomplete) == 5
-    wrong = inspect(ctx, body, incomplete, page.parse(incomplete, ctx))
+    wrong = inspect(
+        ctx, body, incomplete, declare(page, ctx, incomplete, page.parse(incomplete, ctx))
+    )
     assert {
         "autoindex_file_coverage",
         "coverage_child_mismatch",
@@ -1941,7 +1944,7 @@ def _calendar_report(body, extract=None):
         "s", "w", "https://worldsdc.com/events/", "wsdc_calendar", page.kind, None, "2026-09-09"
     )
     extract = page.extract(body) if extract is None else extract
-    return inspect(ctx, body, extract, page.parse(extract, ctx))
+    return inspect(ctx, body, extract, declare(page, ctx, extract, page.parse(extract, ctx)))
 
 
 @pytest.mark.parametrize(

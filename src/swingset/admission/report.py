@@ -1,4 +1,9 @@
-"""Explicit accounting and coverage witnesses; an empty result proves nothing."""
+"""Explicit accounting and coverage witnesses; an empty result proves nothing.
+
+These are the report's data types, which project, link and build read too.
+The checks that build a report live in `contracts.evaluate`, which only the
+parse scopes hold (D-0261).
+"""
 
 from dataclasses import asdict, dataclass
 
@@ -67,77 +72,3 @@ class Report:
     @property
     def digest(self) -> str:
         return digest(canonical(self.as_dict()))
-
-
-def evaluate(
-    page_kind: str,
-    contract_version: str,
-    fields: tuple[Field, ...],
-    coverage: Coverage,
-    *,
-    guards: tuple[Guard, ...] = (),
-    removal: str = "none",
-    sentinel_expected: str | None = None,
-    sentinel_actual: str | None = None,
-) -> Report:
-    """No thresholds, acknowledgments, or network fallbacks live in evaluation."""
-    checks = (
-        Guard(
-            "coverage_missing_page",
-            coverage.expected_pages == coverage.observed_pages,
-            "The complete ordered manifest must match the declared source unit",
-        ),
-        Guard(
-            "coverage_repeated_page",
-            len(set(coverage.observed_pages)) == len(coverage.observed_pages),
-            "Each source page occurs once",
-        ),
-        Guard(
-            "coverage_no_terminal",
-            bool(coverage.terminal),
-            "An explicit terminal witness is required",
-        ),
-        Guard(
-            "coverage_count_mismatch",
-            coverage.source_count is not None
-            and coverage.source_count == coverage.interpreted_count,
-            "Independent source and interpreted row counts must agree",
-        ),
-        Guard(
-            "coverage_child_mismatch",
-            coverage.listed_children == coverage.interpreted_children,
-            "Every listed child is accounted for in source order",
-        ),
-        Guard(
-            "coverage_listing_changed",
-            not coverage.mutable_listing
-            or bool(coverage.snapshot_token)
-            or bool(
-                coverage.revision_before and coverage.revision_before == coverage.revision_after
-            ),
-            "Mutable listings require a snapshot token or matching revision revalidation",
-        ),
-        Guard("coverage_limitation", not coverage.limitations, "; ".join(coverage.limitations)),
-        Guard(
-            "critical_unknown",
-            not any(f.critical and f.disposition == "unknown" for f in fields),
-            "Every critical field has a declared interpretation or exclusion",
-        ),
-        Guard(
-            "accounting_invalid",
-            all(
-                f.disposition in {"handled", "excluded", "unknown"} and bool(f.reason)
-                for f in fields
-            ),
-            "Accounting dispositions include reasons",
-        ),
-        Guard(
-            "manual_sentinel_changed",
-            sentinel_actual is None
-            and sentinel_expected is None
-            or sentinel_expected is not None
-            and sentinel_actual == sentinel_expected,
-            "Manual extraction inputs require the exact reviewed sentinel",
-        ),
-    )
-    return Report(page_kind, contract_version, fields, coverage, (*checks, *guards), removal)

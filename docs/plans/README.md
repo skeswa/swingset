@@ -221,15 +221,26 @@ weekly session.
     adjustments; Pro-Am Follower rounds label both partners followers; check
     other adapters for the dict-to-text key-order bug found in WDR rounds.
 20. Narrow the code scopes of admission contracts. Any edit to
-    `admission/contracts.py` or `round_contract.py` changes 41 of 45 recipe scopes
-    and re-runs every parse, project and link unit: contract 5 queued 37,669
-    parse (5,908 with changed output), 33,394 project and 2,934 link units for
-    two page kinds. Adapters stop importing admission (apply the declaration in
-    the registry or `schedule.parse`), per-kind rules move to modules only that
-    kind's parse scope names, and the helpers project and link import move to
-    leaf modules. A `recipe_scope` test pins that one kind's rule edit changes
-    only that kind's parse scope. The re-queue also tripped backpressure and
-    held fetching for an hour (D-0243). Do this before row-level result holds.
+    `admission/contracts.py` or `round_contract.py` changed 41 of 45 recipe
+    scopes and re-ran every parse, project and link unit: contract 5 queued
+    37,669 parse (5,908 with changed output), 33,394 project and 2,934 link
+    units for two page kinds, and tripped backpressure for an hour (D-0243).
+    Built 2026-10-15 as D-0261, reviewed 2026-10-15 (approve with conditions,
+    met): adapters no longer import
+    admission (`contracts.declare` attaches the declaration in
+    `schedule.parse`), each kind's rules and version live in the module
+    `admission/kinds.py` names for it, `evaluate` moved into the parse-only
+    core, and scopes hold only the code digest of the registry and the kind
+    table, so a lookup edit re-runs every scope that reaches them. Tests in `test_recipe_scoping.py` pin it: a kind's contract edit
+    changes only its kinds' parse scopes (the calendar's: 144 snapshots
+    today), a core edit only the 20 parse scopes, and a registration only its
+    own kinds' scopes. 1,459 sampled production snapshots and 31 fixtures
+    give identical extracts, results, declarations and reports. Left:
+    `admission/report.py` is still in all 51 scopes and
+    `sources/interpretation.py` in 47; `generations.py` and `support.py` reach project and link through
+    `state.parse_recovery` and `derivation_dependencies`. The combined deploy
+    re-runs 39,909 parse, 33,550 project and 2,936 link units (production
+    counts of 2026-10-15), the same as the changes it ships with alone.
     Next: the owner chose on 2026-10-15 to ship it in one deploy with the
     finished but undeployed D-0255 (danceconvention.net), D-0256 (calendar
     adoption and the intake fix), D-0258 (SwingDirector PDFs) and D-0257
@@ -241,7 +252,11 @@ Coast Swing Magic` to `wsdc-300` and `KOREA WESTIVAL 2026_10th Anniversary`
     to `wsdc-268` in `series_aliases.csv`; exact text in
     [the investigation](../../journal/investigations/2026/missing-2026-results-2026-10-15.md))
     and then reopens the sealed WSDC calendar watch `c6f6cc3dde20493f` with
-    receipts. Do not edit `overrides/` before then: production reads it live.
+    receipts. The same deploy adds the 42 SwingDirector PDF rows to
+    `source_urls.csv`, reviewed and approved by the owner on 2026-10-15
+    ([rows](../../journal/investigations/2026/swingdirector-source-urls-2026.csv));
+    they stay inert until the source is enabled. Do not edit `overrides/`
+    before then: production reads it live.
 21. Re-admit the 309 scoring.dance event pages whose stored observations carry
     older labels than their accepted generation, so releases can use them; the
     contract 5 re-parse repeats their generation and does not rewrite them

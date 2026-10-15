@@ -21,7 +21,7 @@ from typing import Any
 from swingset.state import body_packs
 from swingset.state.db import Database
 
-from .contracts import contract_version
+from .kinds import contract_version
 from .policy import activate_contract, pause_contract, record_review
 
 

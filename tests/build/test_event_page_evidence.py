@@ -387,9 +387,9 @@ def aggregate(f, *, unsupported=False):
     """Stage, review and admit two actual pages under a different anchor watch."""
     from test_admission import BODY
 
-    from swingset.admission.contracts import inspect
+    from swingset.admission.contracts import declare, evaluate, inspect
     from swingset.admission.generations import begin_attempt, stage_generation
-    from swingset.admission.report import Field, evaluate
+    from swingset.admission.report import Field
     from swingset.sources.base import ParseResult
 
     admit_parent(f, ["anchor.htm", "one.htm"])
@@ -407,7 +407,7 @@ def aggregate(f, *, unsupported=False):
         )
         ctx = f.corpus.snapshot("aggregate-" + name, body, spec=spec)
         extract = page.extract(body)
-        parsed = page.parse(extract, ctx)
+        parsed = declare(page, ctx, extract, page.parse(extract, ctx))
         reports.append(inspect(ctx, body, extract, parsed))
         observations.extend(parsed.observations)
         contexts.append(ctx)

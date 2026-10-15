@@ -11,7 +11,7 @@ import pytest
 from helpers.loop_ticks import run_round
 
 from swingset.admission import dcn_contract
-from swingset.admission.contracts import contract_version, inspect
+from swingset.admission.contracts import contract_version, declare, inspect
 from swingset.clock import FakeClock
 from swingset.fetch.archive import canonical, digest
 from swingset.model.observations import decode_payload, encode_payload
@@ -53,18 +53,23 @@ def context(page, name: str, ref: str | None = None) -> ParseContext:
     return ParseContext("snap", "watch", url(name), "dcn", page.kind, ref, "2026-10-15T17:25:00Z")
 
 
+def parse(page, extract, ctx):
+    """Parse as admission does: with the adapter's declaration attached."""
+    return declare(page, ctx, extract, page.parse(extract, ctx))
+
+
 @pytest.fixture(scope="module")
 def archive():
     page = ArchivePage()
     extract = page.extract(body(ARCHIVE))
-    return extract, page.parse(extract, context(page, ARCHIVE))
+    return extract, parse(page, extract, context(page, ARCHIVE))
 
 
 @pytest.fixture(scope="module")
 def austin():
     page = EventPage()
     extract = page.extract(body(AUSTIN))
-    return extract, page.parse(extract, context(page, AUSTIN, "dcn:301367300"))
+    return extract, parse(page, extract, context(page, AUSTIN, "dcn:301367300"))
 
 
 def test_archive_follows_published_wsdc_events_with_results(archive):
@@ -153,7 +158,7 @@ def test_the_extract_keeps_no_city_or_country(austin):
 def test_role_split_finals_are_withheld_not_merged():
     page = EventPage()
     extract = page.extract(body(AMERICANO))
-    result = page.parse(extract, context(page, AMERICANO, "dcn:301108262"))
+    result = parse(page, extract, context(page, AMERICANO, "dcn:301108262"))
     codes = {warning.code: warning for warning in result.warnings}
     assert len(codes["dcn_role_split_final_withheld"].evidence["round_ids"]) == 2
     finals = [o.payload for o in result.observations if isinstance(o.payload, RoundSheet)]
@@ -165,7 +170,7 @@ def test_unpublished_results_yield_only_the_listing(austin):
     extract, _ = austin
     hidden = {**extract, "publish_results": False}
     ctx = context(EventPage(), AUSTIN, "dcn:301367300")
-    result = EventPage().parse(hidden, ctx)
+    result = parse(EventPage(), hidden, ctx)
     assert [o.kind for o in result.observations] == ["source_event_row"]
     assert [warning.code for warning in result.warnings] == ["dcn_results_unpublished"]
     report = inspect(ctx, b"", hidden, result)
@@ -182,7 +187,7 @@ def test_an_unreviewed_source_field_holds_admission(austin, monkeypatch):
     extract = page.extract(b"decoded above")
     assert extract["unreviewed_fields"] == ["$.contests[*].rounds[*].rankings[*].disqualified"]
     ctx = context(page, AUSTIN, "dcn:301367300")
-    assert "critical_unknown" in inspect(ctx, b"", extract, page.parse(extract, ctx)).failures
+    assert "critical_unknown" in inspect(ctx, b"", extract, parse(page, extract, ctx)).failures
 
 
 @pytest.mark.parametrize(
@@ -349,7 +354,7 @@ def test_a_final_without_rankings_is_withheld(austin):
     }
     changed = _with_contests(extract, contests)
     ctx = context(EventPage(), AUSTIN, "dcn:301367300")
-    result = EventPage().parse(changed, ctx)
+    result = parse(EventPage(), changed, ctx)
     codes = {warning.code: warning for warning in result.warnings}
     assert codes["dcn_empty_final_withheld"].evidence == {"round_ids": [str(final["id"])]}
     refs = [o.payload.source_round_ref for o in result.observations if o.kind == "round_sheet"]
@@ -363,7 +368,7 @@ def test_an_empty_published_payload_is_held_and_never_removes(austin):
     extract, _ = austin
     ctx = context(EventPage(), AUSTIN, "dcn:301367300")
     empty = _with_contests(extract, [])
-    report = inspect(ctx, b"", empty, EventPage().parse(empty, ctx))
+    report = inspect(ctx, b"", empty, parse(EventPage(), empty, ctx))
     assert "dcn_published_without_results" in report.failures
     assert report.state == "needs_review" and report.proposed_removal == "none"
 
@@ -372,7 +377,7 @@ def test_a_shrunken_payload_has_no_removal_authority(austin):
     extract, _ = austin
     ctx = context(EventPage(), AUSTIN, "dcn:301367300")
     shrunk = _with_contests(extract, extract["contests"][:2])
-    result = EventPage().parse(shrunk, ctx)
+    result = parse(EventPage(), shrunk, ctx)
     report = inspect(ctx, b"", shrunk, result)
     assert report.failures == () and report.proposed_removal == "none"
     assert sum(o.kind == "round_sheet" for o in result.observations) == 2

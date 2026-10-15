@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pytest
 
+from swingset.admission.contracts import declare, inspect
 from swingset.model.observations import decode_payload, encode_payload
 from swingset.sources import get_page_kind
 from swingset.sources.base import ExtractError, ParseContext, ParseError
@@ -191,7 +192,8 @@ def test_unknown_marks_and_missing_event_refs_are_parse_errors() -> None:
 def test_the_kind_is_registered_and_declares_contract_1() -> None:
     assert get_page_kind("swingdirector.round") is SOURCE.page_kinds["swingdirector.round"]
     path = FIXTURES / "hddc2026-nov-finals-2026-10-15.body"
-    result = PAGE.parse(PAGE.extract(path.read_bytes()), context(path))
+    extract = PAGE.extract(path.read_bytes())
+    result = declare(PAGE, context(path), extract, PAGE.parse(extract, context(path)))
     assert result.interpretation is not None
     assert result.interpretation.contract_version == "1"
     assert not result.watches
@@ -452,11 +454,10 @@ def test_override_rows_map_to_their_event_without_alias_rows() -> None:
 
 
 def _report(path: Path, result=None, extract=None):
-    from swingset.admission.contracts import inspect
-
     body = path.read_bytes()
     extract = PAGE.extract(body) if extract is None else extract
-    result = PAGE.parse(extract, context(path)) if result is None else result
+    if result is None:
+        result = declare(PAGE, context(path), extract, PAGE.parse(extract, context(path)))
     return inspect(context(path), body, extract, result)
 
 
@@ -475,7 +476,7 @@ def test_contract_1_blocks_lost_rows_bad_tallies_and_unreadable_pages() -> None:
     assert swingdirector_contract.PRELIM_MARKS == PRELIM_MARKS
     path = FIXTURES / "hddc2026-nov-finals-2026-10-15.body"
     extract = PAGE.extract(path.read_bytes())
-    result = PAGE.parse(extract, context(path))
+    result = declare(PAGE, context(path), extract, PAGE.parse(extract, context(path)))
     observation = result.observations[0]
     sheet = observation.payload
 

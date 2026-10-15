@@ -15,7 +15,7 @@ from swingset.sources import get_page_kind
 from swingset.sources.base import ParseContext
 from swingset.state.db import open_database
 
-from .contracts import inspect
+from .contracts import declare, inspect
 
 
 def write_corpus(
@@ -121,7 +121,7 @@ def write_corpus(
                             )
                             body = archive.read_body(str(row["body_sha256"]))
                             extract = page.extract(body)
-                            result = page.parse(extract, ctx)
+                            result = declare(page, ctx, extract, page.parse(extract, ctx))
                             report = inspect(ctx, body, extract, result)
                             record.update(
                                 {

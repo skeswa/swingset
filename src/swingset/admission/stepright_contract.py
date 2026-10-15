@@ -1,9 +1,13 @@
-"""Fail-closed accounting for the retained Step Right document shapes."""
+"""Fail-closed accounting for the retained Step Right document shapes.
+
+Only the three Step Right parse scopes name this module (`admission/kinds.py`).
+A Step Right document never retires accepted rows (`removal` stays `none`).
+"""
 
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass
+from dataclasses import replace
 from typing import Any
 from urllib.parse import urlsplit
 
@@ -14,7 +18,7 @@ from swingset.sources.steprightsolutions.records import (
     StepRightRoundSheet,
 )
 
-from .accounting import account_keys
+from .accounting import Accounting, account_keys
 from .report import Field, Guard
 
 KINDS = frozenset(
@@ -25,6 +29,8 @@ KINDS = frozenset(
     }
 )
 
+VERSIONS = dict.fromkeys(sorted(KINDS), "1")
+
 KNOWN_BOUNDED_WARNINGS = frozenset(
     {
         "steprightsolutions_promotion_unknown",
@@ -34,25 +40,16 @@ KNOWN_BOUNDED_WARNINGS = frozenset(
 )
 
 
-@dataclass(frozen=True)
-class Accounting:
-    fields: tuple[Field, ...]
-    guards: tuple[Guard, ...]
-    source_count: int | None
-    interpreted_count: int
-    listed_children: tuple[str, ...] = ()
-    interpreted_children: tuple[str, ...] = ()
-    terminal: str | None = "captured_document_end"
-
-
-def accounting(ctx: ParseContext, extract: Any, result: ParseResult) -> Accounting:
+def accounting(ctx: ParseContext, body: bytes, extract: Any, result: ParseResult) -> Accounting:
     if ctx.kind == "steprightsolutions.index":
-        return _index(extract, result)
-    if ctx.kind == "steprightsolutions.event":
-        return _event(extract, result)
-    if ctx.kind == "steprightsolutions.round":
-        return _round(ctx, extract, result)
-    raise ValueError(f"unsupported Step Right contract kind: {ctx.kind}")
+        accounted = _index(extract, result)
+    elif ctx.kind == "steprightsolutions.event":
+        accounted = _event(extract, result)
+    elif ctx.kind == "steprightsolutions.round":
+        accounted = _round(ctx, extract, result)
+    else:
+        raise ValueError(f"unsupported Step Right contract kind: {ctx.kind}")
+    return replace(accounted, bounded_warnings=KNOWN_BOUNDED_WARNINGS)
 
 
 def _index(extract: Any, result: ParseResult) -> Accounting:

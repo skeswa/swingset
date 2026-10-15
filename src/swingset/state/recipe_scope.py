@@ -17,8 +17,20 @@ observations, verification, findings, watch clocks), so each is in every parse
 scope. Tests pin what `schedule.parse` imports and which imports of a shallow
 module fall outside its scope.
 
-`sources.registry` resolves adapters with `importlib`; the extract and parse
-entries name the owning adapter explicitly for that reason.
+`DISPATCH` modules are literal tables that import one module by name:
+`sources.registry` resolves a kind's adapter and `admission.kinds` its
+contract module. The walk stops at them: a scope that reaches one holds not
+its bytes but `<path>#code`, the digest of its code with the table values
+blanked (`dispatch_code`), and none of its imports. The extract and parse
+entries name what the tables resolve for their kind instead, read from the
+captured literals: the owning adapter and the kind's contract module
+(D-0261). So a lookup edit re-runs every scope that reaches the module, a new
+registration changes only the new kinds' scopes, and an edit to one kind's
+contract module changes only the parse scopes of the kinds that module lists.
+A table edit re-runs no other reader: the build's per-source coverage rows
+and the phase-two gate's contract version for a child kind read the tables
+without their entries in scope, so a new registration reaches the next
+release build, not earlier ones.
 """
 
 from __future__ import annotations
@@ -80,6 +92,14 @@ PARSE_WRITERS: tuple[str, ...] = (
     "state.observations",
     "state.verification",
 )
+
+# Dispatch tables the walk stops at (see the module docstring). A test pins
+# their imports, their lookups and the digest of their code.
+CODE_SUFFIX = "#code"
+DISPATCH: dict[str, str] = {
+    "admission.kinds": "contract dispatch; each parse scope names its kind's contract module",
+    "sources.registry": "adapter dispatch; each extract and parse scope names its kind's adapter",
+}
 
 _ACQUIRE = "acquisition; it fetches, gates and stores pages that parse reads"
 _EVENTS = "event acquisition bookkeeping; the plan loop runs it"
@@ -180,6 +200,24 @@ EXCLUDED: dict[str, str] = {
 }
 
 
+def dispatch_code(body: bytes) -> str:
+    """Digest of a dispatch module's code with each literal table's values blanked."""
+    tree = ast.parse(body)
+    for node in tree.body:
+        if isinstance(node, ast.AnnAssign | ast.Assign) and isinstance(node.value, ast.Dict):
+            node.value = ast.Dict(keys=[], values=[])
+    return digest(ast.dump(tree).encode())
+
+
+def member_digest(files: Mapping[str, bytes], member: str) -> str | None:
+    """The digest a scope records for one member: a file's bytes or a dispatch module's code."""
+    path, _, suffix = member.partition("#")
+    body = files.get(path)
+    if body is None or (suffix and "#" + suffix != CODE_SUFFIX):
+        return None
+    return dispatch_code(body) if suffix else digest(body)
+
+
 def _skipped(path: str) -> bool:
     parts = PurePosixPath(path).parts
     return "fixtures" in parts or "__pycache__" in parts or path.endswith(".pyc")
@@ -248,6 +286,7 @@ class _Graph:
         self.packages = {
             str(PurePosixPath(path).parent) for path in paths if path.endswith("/__init__.py")
         }
+        self.stops = {f"swingset.{module}" for module in DISPATCH}
         self._imports: dict[str, frozenset[str]] = {}
         # Each data file belongs to its own directory and, while no package
         # lies between, to every directory above it.
@@ -281,10 +320,14 @@ class _Graph:
 
     def closure(self, entries: Iterable[Entry]) -> set[str]:
         seen: set[str] = set()
+        stopped: set[str] = set()
 
         def walk(stack: list[str]) -> None:
             while stack:
                 module = stack.pop()
+                if module in self.stops:
+                    stopped.add(module)
+                    continue
                 if module in seen:
                     continue
                 seen.add(module)
@@ -296,6 +339,7 @@ class _Graph:
         paths = {self.modules[module] for module in seen}
         for path in list(paths):
             paths.update(self.data_files(path))
+        paths.update(self.modules[module] + CODE_SUFFIX for module in stopped)
         # A shallow entry adds its own bytes and its parent packages' bytes:
         # none of them walked, and no data files beside them (the migrations
         # beside `state/observations.py` are the database's, not the parse's).
@@ -320,12 +364,12 @@ def module_imports(files: Mapping[str, bytes], module: str) -> frozenset[str]:
     return _Graph(files).imports(module)
 
 
-def _registry(files: Mapping[str, bytes]) -> tuple[dict[str, str], dict[str, str]]:
-    """Read the adapter tables from the captured registry's literals."""
-    body = files.get(PREFIX + "sources/registry.py")
-    tables: dict[str, dict[str, str]] = {"ADAPTERS": {}, "KIND_OWNERS": {}}
+def _tables(files: Mapping[str, bytes], path: str, *names: str) -> dict[str, dict[str, str]]:
+    """Read literal dict tables from a captured dispatch module; absent ones are empty."""
+    body = files.get(PREFIX + path)
+    tables: dict[str, dict[str, str]] = {name: {} for name in names}
     if body is None:
-        return tables["ADAPTERS"], tables["KIND_OWNERS"]
+        return tables
     for node in ast.parse(body).body:
         target = (
             node.target
@@ -337,23 +381,22 @@ def _registry(files: Mapping[str, bytes]) -> tuple[dict[str, str], dict[str, str
         value = getattr(node, "value", None)
         if isinstance(target, ast.Name) and target.id in tables and value is not None:
             tables[target.id] = dict(ast.literal_eval(value))
-    return tables["ADAPTERS"], tables["KIND_OWNERS"]
+    return tables
 
 
 def entries(files: Mapping[str, bytes]) -> dict[str, tuple[Entry, ...]]:
-    """The hand-written entry table, with page kinds read from the captured registry."""
-    adapters, owners = _registry(files)
+    """The hand-written entry table, with page kinds read from the captured dispatch tables."""
+    registry = _tables(files, "sources/registry.py", "ADAPTERS", "KIND_OWNERS")
+    adapters, owners = registry["ADAPTERS"], registry["KIND_OWNERS"]
+    contracts = _tables(files, "admission/kinds.py", "CONTRACTS")["CONTRACTS"]
     result: dict[str, tuple[Entry, ...]] = {}
     for kind, source in sorted(owners.items()):
         adapter = Entry(adapters[source].removeprefix("swingset."))
-        result[f"{SCOPE_PREFIX}extract/{kind}"] = (
-            Entry("sources.registry"),
-            adapter,
-            Entry("fetch.archive"),
-        )
+        contract = contracts.get(kind)
+        result[f"{SCOPE_PREFIX}extract/{kind}"] = (adapter, Entry("fetch.archive"))
         result[f"{SCOPE_PREFIX}parse/{kind}"] = (
-            Entry("sources.registry"),
             adapter,
+            *((Entry(contract.removeprefix("swingset.")),) if contract else ()),
             Entry("admission.contracts"),
             Entry("admission.report"),
             Entry("admission.generations"),
@@ -389,7 +432,12 @@ def manifest(files: Mapping[str, bytes]) -> dict[str, object]:
     # unit's recipe always carries its code identity (recipes.recipe_inputs
     # fails closed without it).
     for name, named in entries(files).items():
-        scopes[name] = {path: hashes[path] for path in sorted(graph.closure(named))}
+        scopes[name] = {
+            path: hashes[path]
+            if path in hashes
+            else dispatch_code(files[path[: -len(CODE_SUFFIX)]])
+            for path in sorted(graph.closure(named))
+        }
     result: dict[str, object] = {"format": FORMAT, "scopes": scopes, "env": env}
     if len(_CACHE) >= 8:
         _CACHE.clear()
@@ -403,6 +451,9 @@ def unattributed(files: Mapping[str, bytes]) -> set[str]:
     covered: set[str] = set()
     for named in entries(files).values():
         covered |= graph.closure(named)
+    covered |= {
+        path for name, path in graph.modules.items() if name.removeprefix("swingset.") in DISPATCH
+    }
     return {
         path
         for path in package_paths(files) - covered

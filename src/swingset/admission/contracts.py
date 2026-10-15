@@ -2,286 +2,69 @@
 
 These contracts describe captured single documents. A listing is never an
 authoritative enumeration of an entire web site. Unknown shapes fail closed.
+
+This is the shared core of every kind's contract: the pagination guard, the
+warning fields, the declaration check and the report. Each kind's own rules
+live in the module `kinds.CONTRACTS` names for it, and only that kind's parse
+scope holds that module (D-0261). Project, link and build import none of
+this: a core edit re-parses every kind and re-projects nothing.
 """
 
 from __future__ import annotations
 
 import re
+from dataclasses import replace
 from typing import Any
-from urllib.parse import urlparse
 
-from selectolax.parser import HTMLParser
+from swingset.sources.base import PageKind, ParseContext, ParseResult
+from swingset.sources.interpretation import declares
 
-from swingset.sources.base import ParseContext, ParseResult
-from swingset.sources.common import absolute
-from swingset.sources.records import FileRow, SourceEventRow
+from .accounting import Accounting
+from .kinds import contract, contract_version
+from .report import Coverage, Field, Guard, Report
 
-from .accounting import account_keys
-from .dcn_contract import KINDS as DCN_KINDS
-from .dcn_contract import KNOWN_BOUNDED_WARNINGS as DCN_BOUNDED_WARNINGS
-from .dcn_contract import accounting as dcn_accounting
-from .registry_contract import registry_accounting
-from .report import Coverage, Field, Guard, Report, evaluate
-from .round_contract import round_accounting
-from .stepright_contract import (
-    KINDS as STEPRIGHT_KINDS,
-)
-from .stepright_contract import (
-    KNOWN_BOUNDED_WARNINGS as STEPRIGHT_BOUNDED_WARNINGS,
-)
-from .stepright_contract import (
-    accounting as stepright_accounting,
-)
-from .swingdirector_contract import KINDS as SWINGDIRECTOR_KINDS
-from .swingdirector_contract import accounting as swingdirector_accounting
-from .wsdc_calendar_contract import KINDS as CALENDAR_KINDS
-from .wsdc_calendar_contract import accounting as calendar_accounting
-
-CONTRACT_VERSION = "4"
-KINDS = (
-    frozenset(
-        {
-            "wsdc_registry.dancer",
-            "eepro.index",
-            "eepro.autoindex",
-            "eepro.round",
-            "scoringdance.sitemap",
-            "scoringdance.recent",
-            "scoringdance.event",
-            "scoringdance.round",
-            "wdr.rounds",
-        }
-    )
-    | STEPRIGHT_KINDS
-    | DCN_KINDS
-    | CALENDAR_KINDS
-    | SWINGDIRECTOR_KINDS
-)
+__all__ = ["contract_version", "declare", "evaluate", "inspect"]
 
 
-#: Kinds whose contract module accounts for the parse warnings itself, so a
-#: finding can be bounded by its row, not only by its code (D-0257).
-OWN_WARNINGS = CALENDAR_KINDS | SWINGDIRECTOR_KINDS
+def declare(page: PageKind, ctx: ParseContext, extract: Any, result: ParseResult) -> ParseResult:
+    """Attach the declaration of an adapter whose parse is `declared`.
 
-#: Kinds whose own contract module starts at version 1.
-VERSION_ONE = STEPRIGHT_KINDS | DCN_KINDS | CALENDAR_KINDS | SWINGDIRECTOR_KINDS
-
-
-#: Kinds whose reviewed contract moved past `CONTRACT_VERSION` on their own.
-#: Contract 5 for scoring.dance rounds and WDR rounds is the 2026-10-06
-#: admission adjudication (D-0240).
-KIND_VERSIONS = {"eepro.autoindex": "5", "scoringdance.round": "5", "wdr.rounds": "5"}
-
-
-def contract_version(page_kind: str) -> str:
-    """A changed page contract does not invalidate unrelated reviewed contracts."""
-    return (
-        "1"
-        if page_kind in VERSION_ONE
-        else KIND_VERSIONS[page_kind]
-        if page_kind in KIND_VERSIONS
-        else CONTRACT_VERSION
-        if page_kind in KINDS
-        else "unassessed"
-    )
+    The declaration is this contract run on the extract alone, without the
+    body; `inspect` then checks the body's accounting against it. Admission
+    applies it where a page is parsed, so no adapter imports admission.
+    """
+    if not declares(page):
+        return result
+    return replace(result, interpretation=inspect(ctx, b"", extract, result))
 
 
 def inspect(ctx: ParseContext, body: bytes, extract: Any, result: ParseResult) -> Report:
-    fields: list[Field] = []
-    guards: list[Guard] = []
-    source_count: int | None = None
-    interpreted = len(result.observations)
-    terminal: str | None = "captured_document_end"
-    removal = "watch"
-    children: tuple[str, ...] = ()
-    parsed_children: tuple[str, ...] = ()
-    known = ctx.kind in KINDS
-    guards.append(
-        Guard("contract_unassessed", known, "This page kind has an explicit versioned contract")
+    module = contract(ctx.kind)
+    guards = [
+        Guard(
+            "contract_unassessed",
+            module is not None,
+            "This page kind has an explicit versioned contract",
+        )
+    ]
+    accounted: Accounting = (
+        module.accounting(ctx, body, extract, result)
+        if module is not None
+        else Accounting(
+            (Field("$", "unknown", "No accounting contract has been reviewed for this page kind"),),
+            (),
+            None,
+            len(result.observations),
+        )
     )
-    if ctx.kind in STEPRIGHT_KINDS:
-        accounted = stepright_accounting(ctx, extract, result)
-        fields.extend(accounted.fields)
-        guards.extend(accounted.guards)
-        source_count = accounted.source_count
-        interpreted = accounted.interpreted_count
-        terminal = accounted.terminal
-        children = accounted.listed_children
-        parsed_children = accounted.interpreted_children
-        removal = "none"
-    elif ctx.kind in DCN_KINDS:
-        dcn = dcn_accounting(ctx, extract, result)
-        fields.extend(dcn.fields)
-        guards.extend(dcn.guards)
-        source_count = dcn.source_count
-        interpreted = dcn.interpreted_count
-        terminal = dcn.terminal
-        children = dcn.listed_children
-        parsed_children = dcn.interpreted_children
-        removal = dcn.removal
-    elif ctx.kind in CALENDAR_KINDS:
-        calendar = calendar_accounting(ctx, body, extract, result)
-        fields.extend(calendar.fields)
-        guards.extend(calendar.guards)
-        source_count = calendar.source_count
-        interpreted = calendar.interpreted_count
-        terminal = calendar.terminal
-        removal = calendar.removal
-    elif ctx.kind in SWINGDIRECTOR_KINDS:
-        director = swingdirector_accounting(ctx, extract, result)
-        fields.extend(director.fields)
-        guards.extend(director.guards)
-        source_count = director.source_count
-        interpreted = director.interpreted_count
-        terminal = director.terminal
-        removal = director.removal
-    elif ctx.kind == "wsdc_registry.dancer":
-        source_count, interpreted = registry_accounting(extract, result, fields, guards)
-        removal = "none"  # A lookup can never delete historical registry facts.
-    elif ctx.kind in {
-        "eepro.index",
-        "eepro.autoindex",
-        "scoringdance.recent",
-        "scoringdance.sitemap",
-    }:
-        source_count = len(extract) if isinstance(extract, list) else None
-        keys = (
-            {"slug", "name", "date", "url"}
-            if ctx.kind == "eepro.index"
-            else {"name", "href", "modified", "size"}
-            if ctx.kind == "eepro.autoindex"
-            else {"id", "name", "date", "href"}
-        )
-        for index, item in enumerate(extract if isinstance(extract, list) else []):
-            if ctx.kind == "scoringdance.sitemap":
-                fields.append(
-                    Field(
-                        str(index),
-                        "handled" if str(item).isdigit() else "unknown",
-                        "source event identifier",
-                    )
-                )
-            else:
-                account_keys(item, keys, str(index), fields)
-        if ctx.kind in {"eepro.index", "scoringdance.recent"}:
-            dates = [
-                o.payload.date_raw
-                for o in result.observations
-                if isinstance(o.payload, SourceEventRow)
-            ]
-            guards.append(
-                Guard(
-                    "required_date_missing",
-                    len(dates) == interpreted and all(dates),
-                    "Event listing rows require source dates",
-                )
-            )
-        else:
-            fields.append(
-                Field(
-                    "event_date",
-                    "excluded",
-                    "This document enumerates identifiers or files; event dates belong to the event page",
-                )
-            )
-        # Recent/sitemap documents do not assert retirement of historical events.
-        rows = extract if isinstance(extract, list) else []
-        if ctx.kind == "eepro.index":
-            children = tuple(
-                f"https://eepro.com/results/{item['slug']}/"
-                for item in rows
-                if isinstance(item, dict) and "slug" in item
-            )
-        elif ctx.kind == "eepro.autoindex":
-            file_urls = tuple(
-                absolute(ctx.url, str(item["href"]))
-                for item in rows
-                if isinstance(item, dict) and "href" in item
-            )
-            if body:
-                # This witness does not consume extractor rows or visible labels.
-                file_urls = tuple(
-                    absolute(ctx.url, href)
-                    for node in HTMLParser(body).css("a[href]")
-                    if (href := node.attributes.get("href"))
-                    and urlparse(href).path.lower().endswith((".html", ".htm", ".pdf"))
-                )
-                source_count = len(file_urls)
-                guards.append(
-                    Guard(
-                        "autoindex_file_coverage",
-                        file_urls
-                        == tuple(
-                            o.payload.url
-                            for o in result.observations
-                            if isinstance(o.payload, FileRow)
-                        ),
-                        "Every raw file href must survive as a FileRow in source order, regardless of display truncation",
-                    )
-                )
-            children = tuple(
-                url for url in file_urls if urlparse(url).path.lower().endswith((".html", ".htm"))
-            )
-            fields.append(
-                Field(
-                    "pdf_child_acquisition",
-                    "excluded",
-                    "PDF file rows remain observations; the HTML round adapter does not claim to acquire PDF children",
-                )
-            )
-        elif ctx.kind == "scoringdance.sitemap":
-            children = tuple(f"https://scoring.dance/enUS/events/{item}/results/" for item in rows)
-        else:
-            fields.append(
-                Field(
-                    "child_acquisition",
-                    "excluded",
-                    "Recent event rows contribute discovery evidence; the sitemap owns event-watch enumeration",
-                )
-            )
-        parsed_children = tuple(watch.url for watch in result.watches)
-        removal = "none"
-    elif ctx.kind == "scoringdance.event":
-        account_keys(extract, {"name", "date", "rounds", "unpublished"}, "$", fields)
-        rounds = extract.get("rounds", []) if isinstance(extract, dict) else []
-        source_count = len(rounds)
-        payload = next((o.payload for o in result.observations if o.kind == "event_sheet"), None)
-        interpreted = len(getattr(payload, "round_links", ()))
-        children = tuple(
-            absolute(ctx.url, str(item["href"]))
-            for item in rounds
-            if isinstance(item, dict) and "href" in item
-        )
-        parsed_children = tuple(watch.url for watch in result.watches)
-        for index, item in enumerate(rounds):
-            account_keys(item, {"id", "name", "href"}, f"rounds[{index}]", fields)
-        guards.append(
-            Guard(
-                "required_date_missing",
-                bool(isinstance(extract, dict) and extract.get("date")),
-                "An event document requires its source date",
-            )
-        )
-        # An unpublished page is a dated observation, not a withdrawal of rounds.
-        removal = "none"
-    elif ctx.kind in {"eepro.round", "scoringdance.round", "wdr.rounds"}:
-        source_count, interpreted = round_accounting(ctx.kind, extract, result, fields, guards)
-        if ctx.kind == "wdr.rounds":
-            removal = "none"  # Unresolved outcomes/partner ownership cannot retire old facts.
-        fields.append(
-            Field(
-                "event_date",
-                "excluded",
-                "Round documents inherit occurrence association from the separately assessed event listing",
-            )
-        )
-        if not interpreted:
-            terminal = None  # Coming soon / legitimate_empty never grants authority.
-    else:
-        fields.append(
-            Field("$", "unknown", "No accounting contract has been reviewed for this page kind")
-        )
-        removal = "none"
+    fields = list(accounted.fields)
+    guards.extend(accounted.guards)
+    source_count = accounted.source_count
+    interpreted = accounted.interpreted_count
+    terminal = accounted.terminal
+    removal = accounted.removal
+    children = accounted.listed_children
+    parsed_children = accounted.interpreted_children
     text = body.decode("utf-8", "replace")
     if re.search(r"rel\s*=\s*['\"]?next\b|[?&](?:page|cursor)=", text, re.I):
         terminal = None
@@ -292,18 +75,8 @@ def inspect(ctx: ParseContext, body: bytes, extract: Any, result: ParseResult) -
                 "Pagination links require an assembled and revalidated manifest",
             )
         )
-    for warning in () if ctx.kind in OWN_WARNINGS else result.warnings:
-        excluded = (
-            ctx.kind == "wdr.rounds"
-            and warning.code
-            in {
-                "wdr_s_callback_unverified",
-                "wdr_finals_bib_unverified",
-            }
-        ) or (
-            (ctx.kind in STEPRIGHT_KINDS and warning.code in STEPRIGHT_BOUNDED_WARNINGS)
-            or (ctx.kind in DCN_KINDS and warning.code in DCN_BOUNDED_WARNINGS)
-        )
+    for warning in () if accounted.own_warnings else result.warnings:
+        excluded = warning.code in accounted.bounded_warnings
         fields.append(
             Field(
                 f"warning:{warning.code}",
@@ -348,3 +121,77 @@ def inspect(ctx: ParseContext, body: bytes, extract: Any, result: ParseResult) -
         guards=tuple(dict.fromkeys(guards)),
         removal=removal,
     )
+
+
+def evaluate(
+    page_kind: str,
+    contract_version: str,
+    fields: tuple[Field, ...],
+    coverage: Coverage,
+    *,
+    guards: tuple[Guard, ...] = (),
+    removal: str = "none",
+    sentinel_expected: str | None = None,
+    sentinel_actual: str | None = None,
+) -> Report:
+    """No thresholds, acknowledgments, or network fallbacks live in evaluation."""
+    checks = (
+        Guard(
+            "coverage_missing_page",
+            coverage.expected_pages == coverage.observed_pages,
+            "The complete ordered manifest must match the declared source unit",
+        ),
+        Guard(
+            "coverage_repeated_page",
+            len(set(coverage.observed_pages)) == len(coverage.observed_pages),
+            "Each source page occurs once",
+        ),
+        Guard(
+            "coverage_no_terminal",
+            bool(coverage.terminal),
+            "An explicit terminal witness is required",
+        ),
+        Guard(
+            "coverage_count_mismatch",
+            coverage.source_count is not None
+            and coverage.source_count == coverage.interpreted_count,
+            "Independent source and interpreted row counts must agree",
+        ),
+        Guard(
+            "coverage_child_mismatch",
+            coverage.listed_children == coverage.interpreted_children,
+            "Every listed child is accounted for in source order",
+        ),
+        Guard(
+            "coverage_listing_changed",
+            not coverage.mutable_listing
+            or bool(coverage.snapshot_token)
+            or bool(
+                coverage.revision_before and coverage.revision_before == coverage.revision_after
+            ),
+            "Mutable listings require a snapshot token or matching revision revalidation",
+        ),
+        Guard("coverage_limitation", not coverage.limitations, "; ".join(coverage.limitations)),
+        Guard(
+            "critical_unknown",
+            not any(f.critical and f.disposition == "unknown" for f in fields),
+            "Every critical field has a declared interpretation or exclusion",
+        ),
+        Guard(
+            "accounting_invalid",
+            all(
+                f.disposition in {"handled", "excluded", "unknown"} and bool(f.reason)
+                for f in fields
+            ),
+            "Accounting dispositions include reasons",
+        ),
+        Guard(
+            "manual_sentinel_changed",
+            sentinel_actual is None
+            and sentinel_expected is None
+            or sentinel_expected is not None
+            and sentinel_actual == sentinel_expected,
+            "Manual extraction inputs require the exact reviewed sentinel",
+        ),
+    )
+    return Report(page_kind, contract_version, fields, coverage, (*checks, *guards), removal)

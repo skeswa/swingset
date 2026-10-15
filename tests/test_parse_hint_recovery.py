@@ -11,7 +11,7 @@ from test_admission import BODY
 from test_event_enumerations import admit_parent, child, finish_bootstrap
 from test_event_enumerations import event as event
 
-from swingset.admission.report import evaluate
+from swingset.admission.contracts import evaluate
 from swingset.fetch.archive import Archive
 from swingset.schedule.derive import derive_one
 from swingset.schedule.watches import upsert_watch

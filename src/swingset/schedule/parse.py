@@ -3,9 +3,9 @@
 from dataclasses import dataclass
 from datetime import timedelta
 
-from swingset.admission.contracts import contract_version, inspect
+from swingset.admission.contracts import contract_version, declare, evaluate, inspect
 from swingset.admission.generations import begin_attempt, stage, stage_generation
-from swingset.admission.report import Coverage, Field, Guard, evaluate
+from swingset.admission.report import Coverage, Field, Guard
 from swingset.admission.select import admit_generation, complete_token
 from swingset.admission.support import generation_failure_codes
 from swingset.clock import Clock
@@ -82,7 +82,7 @@ def parse_snapshot(
             sha = archive.store_extract(extract)
         else:
             extract = archive.read_extract(str(sha))
-        result = page.parse(extract, ctx)
+        result = declare(page, ctx, extract, page.parse(extract, ctx))
         invalid = any(
             getattr(observation.payload, "outcome", "") == "invalid"
             for observation in result.observations

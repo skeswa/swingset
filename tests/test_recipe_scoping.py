@@ -68,7 +68,14 @@ SHALLOW_OUTSIDE = {
         "swingset.state.work",
     },
     "swingset.fetch.wayback": {"swingset.schedule.watches"},
-    "swingset.history.acquisition": {"swingset.project", "swingset.project.history"},
+    # A dispatch table: scopes hold its code digest, not its tables. The gate
+    # reads a child kind's contract version from a module outside this scope;
+    # no adapter sets `archive_url` on a child watch today (D-0261).
+    "swingset.history.acquisition": {
+        "swingset.admission.kinds",
+        "swingset.project",
+        "swingset.project.history",
+    },
     "swingset.history.origin_dispatch": {
         "swingset.clock",
         "swingset.config",
@@ -430,7 +437,7 @@ def test_no_parse_closure_reaches_another_sources_adapter(package):
             assert reached == {owner} | SHARED.get(owner, set()), (stage, kind)
 
 
-def test_the_only_dynamic_import_is_the_registry(package):
+def test_the_only_dynamic_imports_are_the_dispatch_tables(package):
     found = set()
     for path in sorted(recipe_scope.package_paths(package)):
         if not path.endswith(".py"):
@@ -445,7 +452,9 @@ def test_the_only_dynamic_import_is_the_registry(package):
                 found.add((path.removeprefix(PREFIX), argument.value))
             elif isinstance(function, ast.Attribute) and function.attr == "import_module":
                 found.add((path.removeprefix(PREFIX), "import_module"))
-    assert found == {("sources/registry.py", "import_module")}
+    assert found == {
+        (module.replace(".", "/") + ".py", "import_module") for module in recipe_scope.DISPATCH
+    }
 
 
 def test_the_shallow_parse_dispatch_imports_are_pinned(package):
@@ -528,3 +537,184 @@ def test_an_old_bundle_reproduces_its_runtime_recipe(package):
     tampered["recipes/runtime.json"] = manifest
     with pytest.raises(ValueError, match="scoped recipe"):
         captured_recipe_inputs(tampered, history_start=START)
+
+
+# Item 20 and D-0261: a kind's contract rules re-run only that kind's parses.
+
+
+def _contract_kinds():
+    from swingset.admission.kinds import CONTRACTS
+
+    modules: dict[str, set[str]] = {}
+    for kind, module in CONTRACTS.items():
+        modules.setdefault(module.removeprefix("swingset.").replace(".", "/") + ".py", set()).add(
+            kind
+        )
+    return modules
+
+
+@pytest.mark.parametrize("path", sorted(_contract_kinds()))
+def test_a_kind_contract_edit_changes_only_its_kinds_parse_scopes(package, path):
+    difference = changed(code(package), code(edit(package, path)))
+    assert difference == {f"recipe/code/parse/{kind}" for kind in _contract_kinds()[path]}
+
+
+@pytest.mark.parametrize("path", ["admission/contracts.py", "admission/accounting.py"])
+def test_a_shared_contract_edit_changes_every_parse_scope_and_nothing_else(package, path):
+    before = code(package)
+    difference = changed(before, code(edit(package, path)))
+    assert difference == {name for name in before if name.startswith("recipe/code/parse/")}
+
+
+def test_no_project_link_build_or_extract_scope_holds_contract_rules(package):
+    rules = {
+        PREFIX + path
+        for path in (*_contract_kinds(), "admission/contracts.py", "admission/accounting.py")
+    }
+    rules |= {PREFIX + module.replace(".", "/") + ".py" for module in recipe_scope.DISPATCH}
+    scopes = recipe_scope.manifest(package)["scopes"]
+    assert isinstance(scopes, dict)
+    for name, paths in scopes.items():
+        if "/parse/" not in name:
+            assert not rules & set(paths), (name, sorted(rules & set(paths)))
+
+
+def test_a_source_registration_changes_only_its_own_kinds_scopes(package):
+    before = code(package)
+    registry = PREFIX + "sources/registry.py"
+    kinds = PREFIX + "admission/kinds.py"
+    added = {
+        **package,
+        registry: package[registry]
+        .replace(
+            b"ADAPTERS: dict[str, str] = {",
+            b'ADAPTERS: dict[str, str] = {\n    "later": "swingset.sources.later.adapter",',
+        )
+        .replace(
+            b"KIND_OWNERS: dict[str, str] = {",
+            b'KIND_OWNERS: dict[str, str] = {\n    "later.page": "later",',
+        ),
+        kinds: package[kinds].replace(
+            b"CONTRACTS: dict[str, str] = {",
+            b'CONTRACTS: dict[str, str] = {\n    "later.page": "swingset.admission.later_contract",',
+        ),
+        PREFIX + "sources/later/__init__.py": b"",
+        PREFIX + "sources/later/adapter.py": b"from swingset.sources.base import ParseResult\n",
+        PREFIX + "admission/later_contract.py": b'VERSIONS = {"later.page": "1"}\n',
+    }
+    after = code(seal(added))
+    assert changed(before, after) == {
+        "recipe/code/extract/later.page",
+        "recipe/code/parse/later.page",
+    }
+    # Removing a registration drops only that kind's scopes.
+    removed = {
+        **package,
+        registry: package[registry].replace(b'    "wdr.awards": "wdr",\n', b""),
+    }
+    assert changed(before, code(seal(removed))) == {
+        "recipe/code/extract/wdr.awards",
+        "recipe/code/parse/wdr.awards",
+    }
+
+
+# Each dispatch module holds a docstring, these imports, literal tables and
+# these lookups only. Scopes hold its code digest, not its bytes: a lookup edit
+# re-runs every scope that reaches it, a table edit only the kinds it names.
+DISPATCH_SHAPE = {
+    "admission.kinds": {
+        "imports": [
+            "from __future__ import annotations",
+            "import importlib",
+            "from types import ModuleType",
+        ],
+        "functions": ["contract", "contract_version"],
+        "code": "db058402804e1a33f442ecef10e63adbe9a0402419b9777944c66319d433eeda",
+    },
+    "sources.registry": {
+        "imports": [
+            "from __future__ import annotations",
+            "import importlib",
+            "from typing import cast",
+            "from .base import PageKind, Source, WatchSpec",
+        ],
+        "functions": ["source", "sources", "get_page_kind", "seed_watches"],
+        "code": "ff98aefe3116a8a7bca651ff063efaa6cc059364c80093062f5fed1538b14f5c",
+    },
+}
+
+
+@pytest.mark.parametrize("module", sorted(recipe_scope.DISPATCH))
+def test_dispatch_tables_hold_only_literal_tables_and_lookups(package, module):
+    body = package[PREFIX + module.replace(".", "/") + ".py"]
+    tree = ast.parse(body)
+    shape = DISPATCH_SHAPE[module]
+    imports, functions = [], []
+    for index, node in enumerate(tree.body):
+        if isinstance(node, ast.FunctionDef):
+            functions.append(node.name)
+        elif isinstance(node, ast.Import | ast.ImportFrom):
+            imports.append(ast.unparse(node))
+        elif isinstance(node, ast.AnnAssign | ast.Assign):
+            assert isinstance(node.value, ast.Dict), ast.dump(node)
+            ast.literal_eval(node.value)
+        else:
+            # Only the module docstring; a top-level call could edit a table.
+            assert index == 0 and isinstance(node, ast.Expr), ast.dump(node)
+            assert isinstance(node.value, ast.Constant) and isinstance(node.value.value, str)
+    assert imports == shape["imports"]
+    assert functions == shape["functions"]
+    assert recipe_scope.dispatch_code(body) == shape["code"], (
+        f"{module} changed outside its tables. Its code digest re-runs every scope that "
+        "reaches it; if the change alters what a kind resolves to or its contract "
+        "version, bump the affected kinds' versions, then update this digest."
+    )
+
+
+def test_a_dispatch_lookup_edit_changes_every_scope_that_reaches_it(package):
+    before = code(package)
+    for path in ("sources/registry.py", "admission/kinds.py"):
+        edited = code(edit(package, path, "\n\ndef later():\n    return None\n"))
+        reached = {
+            name
+            for name, members in recipe_scope.manifest(package)["scopes"].items()
+            if PREFIX + path + recipe_scope.CODE_SUFFIX in members
+        }
+        assert reached and changed(before, edited) == reached
+    # A comment changes no code digest.
+    assert changed(before, code(edit(package, "sources/registry.py"))) == set()
+
+
+def test_every_contract_kind_is_registered_and_its_module_lists_its_versions():
+    import importlib
+
+    from swingset.admission.kinds import CONTRACTS, contract_version
+    from swingset.sources.registry import KIND_OWNERS
+
+    assert set(CONTRACTS) <= set(KIND_OWNERS)
+    for module in set(CONTRACTS.values()):
+        listed = importlib.import_module(module).VERSIONS
+        assert set(listed) == {kind for kind, name in CONTRACTS.items() if name == module}
+    # The versions the per-kind modules took over from the shared table.
+    assert {kind: contract_version(kind) for kind in KIND_OWNERS} == {
+        "wsdc_calendar.events": "1",
+        "wsdc_registry.dancer": "4",
+        "eepro.autoindex": "5",
+        "eepro.index": "4",
+        "eepro.round": "4",
+        "scoringdance.event": "4",
+        "scoringdance.recent": "4",
+        "scoringdance.round": "5",
+        "scoringdance.sitemap": "4",
+        "wdr.awards": "unassessed",
+        "wdr.rounds": "5",
+        "swingdancecouncil.events": "unassessed",
+        "wsdc_newsletter.events": "unassessed",
+        "wsdc_newsletter.index": "unassessed",
+        "steprightsolutions.event": "1",
+        "steprightsolutions.index": "1",
+        "steprightsolutions.round": "1",
+        "dcn.archive": "1",
+        "dcn.event": "1",
+        "swingdirector.round": "1",
+    }

@@ -718,13 +718,13 @@ package `__init__` files, and non-Python files beside a reached module or in
 its non-package subdirectories; never fixtures. `state/recipe_scope.py` holds
 the entries:
 
-| Scope                             | Entries                                                                                                                                                                                 |
-| --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `recipe/code/extract/<kind>`      | `sources.registry`, the owning adapter, `fetch.archive`                                                                                                                                 |
-| `recipe/code/parse/<kind>`        | the extract entries' registry and adapter, `admission.contracts`, `.report`, `.generations`, `model.observations`; `schedule.parse` and `recipe_scope.PARSE_WRITERS` by their own bytes |
-| `recipe/code/project/<unit_kind>` | `project.process`, `project.materialization`, the kind's projector                                                                                                                      |
-| `recipe/code/link`                | `link.service`, `link.persistence`                                                                                                                                                      |
-| `recipe/code/build`               | `build.service`, `build.generations`                                                                                                                                                    |
+| Scope                             | Entries                                                                                                                                                                                                |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `recipe/code/extract/<kind>`      | the owning adapter, `fetch.archive`                                                                                                                                                                    |
+| `recipe/code/parse/<kind>`        | the extract entries' adapter, the kind's contract module, `admission.contracts`, `.report`, `.generations`, `model.observations`; `schedule.parse` and `recipe_scope.PARSE_WRITERS` by their own bytes |
+| `recipe/code/project/<unit_kind>` | `project.process`, `project.materialization`, the kind's projector                                                                                                                                     |
+| `recipe/code/link`                | `link.service`, `link.persistence`                                                                                                                                                                     |
+| `recipe/code/build`               | `build.service`, `build.generations`                                                                                                                                                                   |
 
 `recipe/env` digests `environment.json` and `project.json`, pyproject's
 `[project]` table; the whole `pyproject.toml` and `uv.lock` are kept in the
@@ -733,18 +733,30 @@ project unit's recipe is its kind's project scope, `recipe/env`,
 `policy/history_start` and its overrides; link and build likewise. A parse
 recipe is `recipe/env`, `policy/history_start` and the kind's two scopes.
 Every package path is in a scope or in `EXCLUDED`, with a reason; a test
-enforces this. A bundle captured before scopes still yields the package-wide
+enforces this. The dispatch tables `sources/registry.py` (kind to adapter) and
+`admission/kinds.py` (kind to contract module and version) are dispatch: the
+walk stops at them, a scope that reaches one holds the digest of its code with
+the table values blanked (`<path>#code`), so a lookup edit re-runs those
+scopes, and each kind's entries name the modules the tables resolve
+([D-0261](../../journal/decisions/0261-dispatch-tables-are-in-no-scope-and-each-kind-names-its-contract.md)).
+So a new source registration changes only its own kinds' scopes, an edit to one
+kind's contract module re-parses only the kinds it lists (the three round kinds
+share `round_contract.py`, the four listing kinds `listing_contract.py`), and an
+edit to the shared core (`contracts.py`, `accounting.py`) re-parses every kind
+and re-projects nothing. Adapters do not import admission: `@declared` marks a
+parse and `contracts.declare` attaches the declaration where admission parses.
+A bundle captured before scopes still yields the package-wide
 `recipe/runtime`; after the first scoped bundle that input stays at the
 absent digest.
 
 Known cost: the storage, projection, link and build modules still import
-each other, so each project and link scope holds 172 files and the build
-scope 178. The scheduler, the loops and acquisition (`schedule/release_steps.py`,
+each other, so each project and link scope holds 176 files and the build
+scope 187. The scheduler, the loops and acquisition (`schedule/release_steps.py`,
 `loops/`, `fetch/client.py`, `history/backfill.py`, `schedule/fairness.py`
 and the like) are in no scope: an edit there re-runs nothing. `versions()` and
 `repository_identity()` live in `versions.py` for that reason. An edit inside a shared module re-runs every project and
 link unit; identical output keeps its generation (below), so this costs CPU,
-not generations. Parse scopes hold 39 to 47 files, and a non-parser change
+not generations. Parse scopes hold 34 to 43 files, and a non-parser change
 re-queues no parse. A shallow entry adds its own bytes and its packages'
 `__init__`, not its imports or data files; tests pin which of its imports
 fall outside its scope. A parse _retry_ still keys on `version/repository`,

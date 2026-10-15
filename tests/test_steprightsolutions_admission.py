@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from swingset.admission.contracts import contract_version, inspect
+from swingset.admission.contracts import contract_version, declare, inspect
 from swingset.sources.base import ParseContext, ParseError
 from swingset.sources.steprightsolutions.adapter import EventPage, IndexPage, RoundPage
 
@@ -14,6 +14,11 @@ FIXTURES = Path(__file__).parent / "fixtures/sources/steprightsolutions"
 PROVENANCE = {
     row["id"]: row for row in json.loads((FIXTURES / "real-provenance-20260917.json").read_bytes())
 }
+
+
+def declared_parse(page, extract, context):
+    """Parse as admission does: with the adapter's declaration attached."""
+    return declare(page, context, extract, page.parse(extract, context))
 
 
 def parsed(identifier, page):
@@ -32,7 +37,7 @@ def parsed(identifier, page):
         record["captured_at"],
     )
     extract = page.extract(body)
-    result = page.parse(extract, context)
+    result = declared_parse(page, extract, context)
     return body, context, extract, result
 
 
@@ -78,7 +83,7 @@ def test_index_contract_blocks_a_changed_raw_anchor_witness():
     _, context, extract, _ = parsed("srs-index", IndexPage())
     changed = copy.deepcopy(extract)
     changed["contract_witness"]["date_anchor_count"] = 31
-    result = IndexPage().parse(changed, context)
+    result = declared_parse(IndexPage(), changed, context)
     assert result.interpretation is not None
     assert "stepright_index_anchor_count" in result.interpretation.failures
 
@@ -124,7 +129,7 @@ def test_2015_event_contract_excludes_sidebar_duplicates_and_blocks_new_outside_
         1,
     )
     changed_extract = EventPage().extract(changed)
-    changed_result = EventPage().parse(changed_extract, context)
+    changed_result = declared_parse(EventPage(), changed_extract, context)
     assert changed_result.interpretation is not None
     assert "stepright_event_outside_main" in changed_result.interpretation.failures
 
@@ -133,13 +138,13 @@ def test_round_contract_blocks_missing_bib_row_and_unknown_callback_subvalue():
     _, context, extract, _ = parsed("srs-round507", RoundPage())
     missing = copy.deepcopy(extract)
     missing["tables"][0]["rows"].pop()
-    missing_result = RoundPage().parse(missing, context)
+    missing_result = declared_parse(RoundPage(), missing, context)
     assert missing_result.interpretation is not None
     assert "stepright_round_bib_count" in missing_result.interpretation.failures
 
     unknown = copy.deepcopy(extract)
     unknown["tables"][0]["rows"][1][2]["text"] = "2.1"
-    unknown_result = RoundPage().parse(unknown, context)
+    unknown_result = declared_parse(RoundPage(), unknown, context)
     assert unknown_result.interpretation is not None
     assert "stepright_round_callback_values" in unknown_result.interpretation.failures
     assert "critical_unknown" in unknown_result.interpretation.failures
@@ -149,7 +154,7 @@ def test_final_contract_requires_exact_placement_sequence_and_group_layout():
     _, context, extract, _ = parsed("srs-round508", RoundPage())
     changed = copy.deepcopy(extract)
     changed["tables"][0]["rows"][1][-1]["text"] = "9th"
-    result = RoundPage().parse(changed, context)
+    result = declared_parse(RoundPage(), changed, context)
     assert result.interpretation is not None
     assert "stepright_round_final_placement" in result.interpretation.failures
 

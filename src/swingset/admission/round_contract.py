@@ -1,13 +1,49 @@
-"""Round sheet accounting with source-specific columns and ragged judge panels."""
+"""Round sheet accounting with source-specific columns and ragged judge panels.
+
+The eepro, scoring.dance and WDR round kinds share this module, so their three
+parse scopes name it (`admission/kinds.py`). Contract 5 for scoring.dance and
+WDR rounds is the 2026-10-06 admission adjudication (D-0240).
+"""
 
 import re
 from typing import Any
 
-from swingset.sources.base import ParseResult
+from swingset.sources.base import ParseContext, ParseResult
 from swingset.sources.records import ResultRow, ResultTable, RoundSheet
 
-from .accounting import account_keys
+from .accounting import Accounting, account_keys
 from .report import Field, Guard
+
+VERSIONS = {"eepro.round": "4", "scoringdance.round": "5", "wdr.rounds": "5"}
+KINDS = frozenset(VERSIONS)
+
+#: WDR findings retained without an inferred outcome, partner bib or removal.
+WDR_BOUNDED_WARNINGS = frozenset({"wdr_s_callback_unverified", "wdr_finals_bib_unverified"})
+
+
+def accounting(ctx: ParseContext, body: bytes, extract: Any, result: ParseResult) -> Accounting:
+    fields: list[Field] = []
+    guards: list[Guard] = []
+    source_count, interpreted = round_accounting(ctx.kind, extract, result, fields, guards)
+    fields.append(
+        Field(
+            "event_date",
+            "excluded",
+            "Round documents inherit occurrence association from the separately assessed event listing",
+        )
+    )
+    wdr = ctx.kind == "wdr.rounds"
+    return Accounting(
+        tuple(fields),
+        tuple(guards),
+        source_count,
+        interpreted,
+        # Coming soon / legitimate_empty never grants authority.
+        terminal="captured_document_end" if interpreted else None,
+        # Unresolved WDR outcomes and partner ownership cannot retire old facts.
+        removal="none" if wdr else "watch",
+        bounded_warnings=WDR_BOUNDED_WARNINGS if wdr else frozenset(),
+    )
 
 
 def round_accounting(

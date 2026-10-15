@@ -9,25 +9,26 @@ own checks on the sheets it emitted: prelim marks from the legend, one
 ordinal per judge, tallies that recompute from the ordinals, and judge
 columns that rank every finalist once.
 
-The adapter declares its interpretation through `sources/interpretation.py`,
-which calls the contract without the body, so every count here comes from
-the extract. This module never imports the source package (its
-`__init__` loads the adapter, see `dcn_contract`); the legend it repeats is
-pinned equal to `records.PRELIM_MARKS` by `tests/test_swingdirector.py`.
+The adapter's parse is `declared` (`sources/interpretation.py`): admission
+also runs the contract without the body, so every count here comes from the
+extract. Only this kind's parse scope names this module (`admission/kinds.py`).
+It never imports the source package, whose `__init__` loads the adapter, so
+its counts stay independent of the parser's; the legend it repeats is pinned
+equal to `records.PRELIM_MARKS` by `tests/test_swingdirector.py`.
 """
 
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass
 from typing import Any
 
 from swingset.sources.base import ParseContext, ParseResult
 
-from .accounting import account_keys
+from .accounting import Accounting, account_keys
 from .report import Field, Guard
 
 KINDS = frozenset({"swingdirector.round"})
+VERSIONS = {"swingdirector.round": "1"}
 
 #: The prelim legend every captured sheet prints (`records.PRELIM_MARKS`).
 PRELIM_MARKS = frozenset({"Y", "N", "A1", "A2", "A3"})
@@ -53,16 +54,6 @@ _PAGE_KEYS = {
 }
 _ROW_KEYS = {"bib", "heat", "entry", "marks", "tallies", "place"}
 _ORDINAL = re.compile(r"\d{1,2}")
-
-
-@dataclass(frozen=True)
-class Accounting:
-    fields: tuple[Field, ...]
-    guards: tuple[Guard, ...]
-    source_count: int | None
-    interpreted_count: int
-    terminal: str | None
-    removal: str
 
 
 def _ordinals(sheet: Any) -> list[list[int]] | None:
@@ -107,7 +98,7 @@ def _prelim_witnessed(sheet: Any) -> bool:
     )
 
 
-def accounting(ctx: ParseContext, extract: Any, result: ParseResult) -> Accounting:
+def accounting(ctx: ParseContext, body: bytes, extract: Any, result: ParseResult) -> Accounting:
     if ctx.kind not in KINDS:
         raise ValueError(f"unsupported SwingDirector contract kind: {ctx.kind}")
     fields: list[Field] = []
@@ -127,7 +118,8 @@ def accounting(ctx: ParseContext, extract: Any, result: ParseResult) -> Accounti
         for number, row in enumerate(rows if isinstance(rows, list) else []):
             account_keys(row, _ROW_KEYS, f"$.pages[{index}].rows[{number}]", fields)
             printed += 1
-    sheets = [o.payload for o in result.observations if o.kind == SHEET_KIND]
+    # Round-sheet payloads (sources/swingdirector/records.DirectorRoundSheet).
+    sheets: list[Any] = [o.payload for o in result.observations if o.kind == SHEET_KIND]
     for warning in result.warnings:
         reason = KNOWN_BOUNDED_WARNINGS.get(warning.code)
         fields.append(
@@ -177,4 +169,6 @@ def accounting(ctx: ParseContext, extract: Any, result: ParseResult) -> Accounti
         terminal="captured_document_end" if sheets else None,
         # A round document retires only the claims its own watch owns.
         removal="watch",
+        # Every parse warning is accounted for above (D-0257).
+        own_warnings=True,
     )

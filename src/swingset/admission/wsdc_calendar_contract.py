@@ -7,26 +7,26 @@ FullCalendar's inline event array (2016 to 2022) and the map's marker calls
 the listings again from the body, without the extractor, and checks that
 each one became a dated `calendar_row` or a bounded finding.
 
-This module never imports the adapter: `contracts.py` imports it, and
-`contracts.py` is in every recipe scope. The rules it repeats (the zstd
-magic, the flag placeholders) are pinned equal to the adapter's by
-`tests/test_history_sources.py`.
+Only the calendar's parse scope names this module (`admission/kinds.py`). It
+never imports the adapter, so its count stays independent of the parser's.
+The rules it repeats (the zstd magic, the flag placeholders) are pinned equal
+to the adapter's by `tests/test_history_sources.py`.
 """
 
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass
 from datetime import date
 from typing import Any
 
 from swingset.sources.base import ParseContext, ParseResult
 from swingset.sources.records import CalendarRow
 
-from .accounting import account_keys
+from .accounting import Accounting, account_keys
 from .report import Field, Guard
 
 KINDS = frozenset({"wsdc_calendar.events"})
+VERSIONS = {"wsdc_calendar.events": "1"}
 
 ROW_KEYS = frozenset(
     {"classes", "date", "name", "website", "event_type", "location", "country_code"}
@@ -66,16 +66,6 @@ ZSTD_MAGIC = b"\x28\xb5\x2f\xfd"
 _MAX_DECODED = 64 * 1024 * 1024
 
 _QUOTE = "[\"']"
-
-
-@dataclass(frozen=True)
-class Accounting:
-    fields: tuple[Field, ...]
-    guards: tuple[Guard, ...]
-    source_count: int | None
-    interpreted_count: int
-    terminal: str | None
-    removal: str
 
 
 def _text(body: bytes) -> str | None:
@@ -237,4 +227,6 @@ def accounting(ctx: ParseContext, body: bytes, extract: Any, result: ParseResult
         # (`watch_id/snapshot_id`) and replaces only itself. Neither removes
         # the other's rows (`state.observations`, D-0257).
         removal="watch",
+        # Every parse warning is accounted for above (D-0257).
+        own_warnings=True,
     )

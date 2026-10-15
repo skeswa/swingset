@@ -8,7 +8,7 @@ from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from contextvars import ContextVar
 
-from swingset.admission.contracts import contract_version
+from swingset.admission.kinds import contract_version
 from swingset.project.history import phase_two_allowed
 from swingset.sources import get_page_kind
 from swingset.sources.phase_one import PHASE1_KINDS

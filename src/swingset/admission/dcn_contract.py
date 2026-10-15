@@ -1,24 +1,25 @@
 """Fail-closed accounting for the danceconvention.net archive and results pages (D-0255).
 
-This module never imports the adapter: `contracts.py` imports it, and
-`contracts.py` is in every recipe scope, so an adapter import here would put
-the adapter in every scope too. The few adapter rules it repeats (which rows
-are followed, which finals are one table, the bounded warnings) are pinned
-equal to the adapter's by `tests/test_dcn_live.py`.
+Only the two DCN parse scopes name this module (`admission/kinds.py`). It
+never imports the adapter, so its counts stay independent of the parser's.
+The few adapter rules it repeats (which rows are followed, which finals are
+one table, the bounded warnings) are pinned equal to the adapter's by
+`tests/test_dcn_live.py`.
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import replace
 from typing import Any
 
 from swingset.sources.base import ParseContext, ParseResult
 from swingset.sources.records import RoundSheet, SourceEventRow
 
-from .accounting import account_keys
+from .accounting import Accounting, account_keys
 from .report import Field, Guard
 
 KINDS = frozenset({"dcn.archive", "dcn.event"})
+VERSIONS = dict.fromkeys(sorted(KINDS), "1")
 
 KNOWN_BOUNDED_WARNINGS = frozenset(
     {
@@ -33,24 +34,14 @@ KNOWN_BOUNDED_WARNINGS = frozenset(
 ROOT = "https://danceconvention.net/eventdirector/en/eventpage/"
 
 
-@dataclass(frozen=True)
-class Accounting:
-    fields: tuple[Field, ...]
-    guards: tuple[Guard, ...]
-    source_count: int | None
-    interpreted_count: int
-    listed_children: tuple[str, ...] = ()
-    interpreted_children: tuple[str, ...] = ()
-    terminal: str | None = "captured_document_end"
-    removal: str = "none"
-
-
-def accounting(ctx: ParseContext, extract: Any, result: ParseResult) -> Accounting:
+def accounting(ctx: ParseContext, body: bytes, extract: Any, result: ParseResult) -> Accounting:
     if ctx.kind == "dcn.archive":
-        return _archive(extract, result)
-    if ctx.kind == "dcn.event":
-        return _event(extract, result)
-    raise ValueError(f"unsupported DCN contract kind: {ctx.kind}")
+        accounted = _archive(extract, result)
+    elif ctx.kind == "dcn.event":
+        accounted = _event(extract, result)
+    else:
+        raise ValueError(f"unsupported DCN contract kind: {ctx.kind}")
+    return replace(accounted, bounded_warnings=KNOWN_BOUNDED_WARNINGS)
 
 
 def _unreviewed(extract: Any, fields: list[Field]) -> None:

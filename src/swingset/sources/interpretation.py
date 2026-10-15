@@ -1,8 +1,12 @@
-"""Attach pure accounting to adapter results without accessing state or bytes."""
+"""Mark the adapters whose parse results carry an accounting declaration.
+
+`declared` only marks a page kind's `parse`. Admission attaches the
+declaration where it parses a page (`admission.contracts.declare`), so no
+adapter imports admission, and an edit to admission rules changes no
+extract scope and no project or link scope (D-0261).
+"""
 
 from collections.abc import Callable
-from dataclasses import replace
-from functools import wraps
 from typing import Any
 
 from .base import ParseContext, ParseResult
@@ -11,13 +15,10 @@ from .base import ParseContext, ParseResult
 def declared[T](
     parse: Callable[[T, Any, ParseContext], ParseResult],
 ) -> Callable[[T, Any, ParseContext], ParseResult]:
-    @wraps(parse)
-    def wrapped(self: T, extract: Any, ctx: ParseContext) -> ParseResult:
-        from swingset.admission.contracts import inspect
+    parse.declares = True  # type: ignore[attr-defined]
+    return parse
 
-        result = parse(self, extract, ctx)
-        # The evidence layer separately validates raw pagination and hashes;
-        # this declaration only interprets the adapter's extracted structure.
-        return replace(result, interpretation=inspect(ctx, b"", extract, result))
 
-    return wrapped
+def declares(page: object) -> bool:
+    """Whether a page kind's parse is `declared`."""
+    return bool(getattr(getattr(page, "parse", None), "declares", False))

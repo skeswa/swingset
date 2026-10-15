@@ -167,11 +167,13 @@ this inventory as those contracts are implemented.
 
 ## Source generation boundary
 
-`sources/interpretation.py` attaches pure accounting to adapter results.
+`sources/interpretation.py` marks the adapters whose results carry pure
+accounting; `admission.contracts.declare` attaches it where admission parses.
 `admission/contracts.py` checks those declarations against archived structure;
-registry and round contracts own source-specific field rules. The generic
-coverage evaluator owns ordered-page, child, count, revision, critical-field,
-and manual-sentinel guards.
+each kind's contract module (`admission/kinds.py` names it) owns its
+source-specific field rules and version. The generic coverage evaluator
+(`contracts.evaluate`) owns ordered-page, child, count, revision,
+critical-field, and manual-sentinel guards.
 
 `admission/generations.py` freezes inputs and stages evidence before output can
 change. `admission/select.py` owns the transaction that checks current desired

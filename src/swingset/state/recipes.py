@@ -114,7 +114,7 @@ def captured_recipe_inputs(files: Mapping[str, bytes], *, history_start: str) ->
         if name != "recipe/env" and not name.startswith(recipe_scope.SCOPE_PREFIX):
             raise ValueError(f"captured scoped recipe names a non-code input: {name}")
         if not isinstance(group, dict) or any(
-            path not in files or digest(files[path]) != value for path, value in group.items()
+            recipe_scope.member_digest(files, path) != value for path, value in group.items()
         ):
             raise ValueError("captured runtime artifact differs from its scoped recipe")
         result[name] = digest(canonical(group))

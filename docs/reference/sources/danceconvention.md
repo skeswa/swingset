@@ -228,11 +228,10 @@ per-agent groups (`spbot`, `Yandex`), so this is a pattern they know.
 
 ## 14. Rollout
 
-1. Deploy the package. Registering `dcn` edits `sources/registry.py`,
-   `admission/contracts.py` and `state/recipe_scope.py`, which are in every
-   recipe scope, so the deploy re-runs every extract, parse, project and link
-   unit (as contract 5 did; maintenance item 20). Batch it with other
-   all-scope changes.
+1. Deploy the package. It ships with maintenance item 20 (D-0261), which
+   changes every recipe scope once, so the deploy re-runs every extract,
+   parse, project and link unit. After it, registering a source changes only
+   its own kinds' scopes.
 2. Preflight receipt: `robots.txt` still allows the archive and results tabs;
    the host block in `config/hosts.toml` is as section 6.
 3. Set `[sources.dcn] enabled = true` in `config/sources.toml` and switch.

@@ -2,11 +2,22 @@
 
 from typing import Any
 
-from swingset.sources.base import ParseResult
+from swingset.sources.base import ParseContext, ParseResult
 from swingset.sources.records import VERIFIED_MISS_SHA256, DancerLookup
 
-from .accounting import account_keys
+from .accounting import Accounting, account_keys
 from .report import Field, Guard
+
+KINDS = frozenset({"wsdc_registry.dancer"})
+VERSIONS = {"wsdc_registry.dancer": "4"}
+
+
+def accounting(ctx: ParseContext, body: bytes, extract: Any, result: ParseResult) -> Accounting:
+    fields: list[Field] = []
+    guards: list[Guard] = []
+    source_count, interpreted = registry_accounting(extract, result, fields, guards)
+    # A lookup can never delete historical registry facts.
+    return Accounting(tuple(fields), tuple(guards), source_count, interpreted, removal="none")
 
 
 def registry_accounting(
