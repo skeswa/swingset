@@ -1,0 +1,511 @@
+{
+ "observations": [
+  {
+   "contest_name_raw": "WSDC Novice Jack & Jill",
+   "footer_raw": "SwingDirector.com © 2026 support@swingdirector.com",
+   "judges_raw": [
+    "D. RIVERA",
+    "M. CARO",
+    "M. KIELBASA",
+    "N. KING"
+   ],
+   "kind": "swingdirector_round_sheet",
+   "layout": "prelim",
+   "pages": [
+    1,
+    2
+   ],
+   "role_raw": "Leaders",
+   "round_name_raw": "Preliminaries",
+   "rows": [
+    {
+     "bib_raw": "102",
+     "entry_raw": "NELSON LUONG",
+     "heat_raw": null,
+     "marks_raw": [
+      "N",
+      "N",
+      "Y",
+      "Y"
+     ],
+     "place_raw": null,
+     "tally_raw": []
+    },
+    {
+     "bib_raw": "103",
+     "entry_raw": "VICTOR NEGRI",
+     "heat_raw": null,
+     "marks_raw": [
+      "N",
+      "Y",
+      "Y",
+      "Y"
+     ],
+     "place_raw": null,
+     "tally_raw": []
+    },
+    {
+     "bib_raw": "108",
+     "entry_raw": "(Name hidden for discretion)",
+     "heat_raw": null,
+     "marks_raw": [
+      "N",
+      "N",
+      "N",
+      "N"
+     ],
+     "place_raw": null,
+     "tally_raw": []
+    },
+    {
+     "bib_raw": "115",
+     "entry_raw": "GREGORY HULTGREN",
+     "heat_raw": null,
+     "marks_raw": [
+      "N",
+      "A1",
+      "Y",
+      "Y"
+     ],
+     "place_raw": null,
+     "tally_raw": []
+    },
+    {
+     "bib_raw": "117",
+     "entry_raw": "JEFF WRIGHT",
+     "heat_raw": null,
+     "marks_raw": [
+      "Y",
+      "Y",
+      "N",
+      "Y"
+     ],
+     "place_raw": null,
+     "tally_raw": []
+    },
+    {
+     "bib_raw": "119",
+     "entry_raw": "WALDO ALDECOA",
+     "heat_raw": null,
+     "marks_raw": [
+      "N",
+      "Y",
+      "N",
+      "Y"
+     ],
+     "place_raw": null,
+     "tally_raw": []
+    },
+    {
+     "bib_raw": "123",
+     "entry_raw": "(Name hidden for discretion)",
+     "heat_raw": null,
+     "marks_raw": [
+      "Y",
+      "Y",
+      "N",
+      "N"
+     ],
+     "place_raw": null,
+     "tally_raw": []
+    },
+    {
+     "bib_raw": "124",
+     "entry_raw": "DAVE MADRIGAL",
+     "heat_raw": null,
+     "marks_raw": [
+      "N",
+      "N",
+      "Y",
+      "Y"
+     ],
+     "place_raw": null,
+     "tally_raw": []
+    },
+    {
+     "bib_raw": "126",
+     "entry_raw": "DAVID STOKES",
+     "heat_raw": null,
+     "marks_raw": [
+      "N",
+      "Y",
+      "N",
+      "Y"
+     ],
+     "place_raw": null,
+     "tally_raw": []
+    },
+    {
+     "bib_raw": "127",
+     "entry_raw": "BILL (WILLIAM) MITCHELL",
+     "heat_raw": null,
+     "marks_raw": [
+      "Y",
+      "Y",
+      "Y",
+      "Y"
+     ],
+     "place_raw": null,
+     "tally_raw": []
+    },
+    {
+     "bib_raw": "131",
+     "entry_raw": "KATIE CLARK",
+     "heat_raw": null,
+     "marks_raw": [
+      "Y",
+      "N",
+      "A1",
+      "Y"
+     ],
+     "place_raw": null,
+     "tally_raw": []
+    },
+    {
+     "bib_raw": "136",
+     "entry_raw": "ADAM OH",
+     "heat_raw": null,
+     "marks_raw": [
+      "N",
+      "N",
+      "Y",
+      "Y"
+     ],
+     "place_raw": null,
+     "tally_raw": []
+    },
+    {
+     "bib_raw": "142",
+     "entry_raw": "MCKAY NELSON",
+     "heat_raw": null,
+     "marks_raw": [
+      "A1",
+      "Y",
+      "Y",
+      "N"
+     ],
+     "place_raw": null,
+     "tally_raw": []
+    },
+    {
+     "bib_raw": "153",
+     "entry_raw": "DAVID COLLINS",
+     "heat_raw": null,
+     "marks_raw": [
+      "Y",
+      "Y",
+      "Y",
+      "N"
+     ],
+     "place_raw": null,
+     "tally_raw": []
+    },
+    {
+     "bib_raw": "154",
+     "entry_raw": "MIKE KLEINE",
+     "heat_raw": null,
+     "marks_raw": [
+      "Y",
+      "N",
+      "N",
+      "N"
+     ],
+     "place_raw": null,
+     "tally_raw": []
+    },
+    {
+     "bib_raw": "167",
+     "entry_raw": "JOSH WOOD",
+     "heat_raw": null,
+     "marks_raw": [
+      "Y",
+      "Y",
+      "Y",
+      "Y"
+     ],
+     "place_raw": null,
+     "tally_raw": []
+    },
+    {
+     "bib_raw": "168",
+     "entry_raw": "ANTON BOGATIREV",
+     "heat_raw": null,
+     "marks_raw": [
+      "Y",
+      "Y",
+      "Y",
+      "A2"
+     ],
+     "place_raw": null,
+     "tally_raw": []
+    },
+    {
+     "bib_raw": "174",
+     "entry_raw": "MARK NARANG",
+     "heat_raw": null,
+     "marks_raw": [
+      "Y",
+      "Y",
+      "Y",
+      "Y"
+     ],
+     "place_raw": null,
+     "tally_raw": []
+    },
+    {
+     "bib_raw": "179",
+     "entry_raw": "ANDRES HERNANDEZ",
+     "heat_raw": null,
+     "marks_raw": [
+      "A3",
+      "N",
+      "N",
+      "Y"
+     ],
+     "place_raw": null,
+     "tally_raw": []
+    },
+    {
+     "bib_raw": "194",
+     "entry_raw": "GORDON DANG",
+     "heat_raw": null,
+     "marks_raw": [
+      "Y",
+      "N",
+      "Y",
+      "Y"
+     ],
+     "place_raw": null,
+     "tally_raw": []
+    },
+    {
+     "bib_raw": "197",
+     "entry_raw": "MORGAN HALSTEAD",
+     "heat_raw": null,
+     "marks_raw": [
+      "A2",
+      "Y",
+      "Y",
+      "Y"
+     ],
+     "place_raw": null,
+     "tally_raw": []
+    },
+    {
+     "bib_raw": "200",
+     "entry_raw": "ANDREW KELINSKY",
+     "heat_raw": null,
+     "marks_raw": [
+      "Y",
+      "Y",
+      "Y",
+      "Y"
+     ],
+     "place_raw": null,
+     "tally_raw": []
+    },
+    {
+     "bib_raw": "309",
+     "entry_raw": "RAZ .",
+     "heat_raw": null,
+     "marks_raw": [
+      "N",
+      "A2",
+      "N",
+      "N"
+     ],
+     "place_raw": null,
+     "tally_raw": []
+    },
+    {
+     "bib_raw": "310",
+     "entry_raw": "ANTON VOLODKO",
+     "heat_raw": null,
+     "marks_raw": [
+      "N",
+      "Y",
+      "A3",
+      "Y"
+     ],
+     "place_raw": null,
+     "tally_raw": []
+    },
+    {
+     "bib_raw": "318",
+     "entry_raw": "KEVIN HUGHES",
+     "heat_raw": null,
+     "marks_raw": [
+      "N",
+      "Y",
+      "Y",
+      "Y"
+     ],
+     "place_raw": null,
+     "tally_raw": []
+    },
+    {
+     "bib_raw": "320",
+     "entry_raw": "ZOEY HO",
+     "heat_raw": null,
+     "marks_raw": [
+      "Y",
+      "Y",
+      "A2",
+      "N"
+     ],
+     "place_raw": null,
+     "tally_raw": []
+    },
+    {
+     "bib_raw": "322",
+     "entry_raw": "RICHARD CHU",
+     "heat_raw": null,
+     "marks_raw": [
+      "Y",
+      "A3",
+      "Y",
+      "N"
+     ],
+     "place_raw": null,
+     "tally_raw": []
+    },
+    {
+     "bib_raw": "323",
+     "entry_raw": "HANS MARASIGAN",
+     "heat_raw": null,
+     "marks_raw": [
+      "Y",
+      "Y",
+      "Y",
+      "A1"
+     ],
+     "place_raw": null,
+     "tally_raw": []
+    },
+    {
+     "bib_raw": "325",
+     "entry_raw": "PIERRE KARLSSON",
+     "heat_raw": null,
+     "marks_raw": [
+      "Y",
+      "N",
+      "N",
+      "N"
+     ],
+     "place_raw": null,
+     "tally_raw": []
+    },
+    {
+     "bib_raw": "363",
+     "entry_raw": "KAYLA CUNNINGHAM",
+     "heat_raw": null,
+     "marks_raw": [
+      "Y",
+      "Y",
+      "Y",
+      "Y"
+     ],
+     "place_raw": null,
+     "tally_raw": []
+    },
+    {
+     "bib_raw": "364",
+     "entry_raw": "SEBASTIAN BASKARON",
+     "heat_raw": null,
+     "marks_raw": [
+      "Y",
+      "N",
+      "N",
+      "Y"
+     ],
+     "place_raw": null,
+     "tally_raw": []
+    },
+    {
+     "bib_raw": "412",
+     "entry_raw": "KEVIN DUKE",
+     "heat_raw": null,
+     "marks_raw": [
+      "Y",
+      "Y",
+      "Y",
+      "A3"
+     ],
+     "place_raw": null,
+     "tally_raw": []
+    },
+    {
+     "bib_raw": "421",
+     "entry_raw": "CALVIN HUYNH",
+     "heat_raw": null,
+     "marks_raw": [
+      "Y",
+      "Y",
+      "Y",
+      "Y"
+     ],
+     "place_raw": null,
+     "tally_raw": []
+    },
+    {
+     "bib_raw": "422",
+     "entry_raw": "ANTHONY TIRADO",
+     "heat_raw": null,
+     "marks_raw": [
+      "Y",
+      "Y",
+      "Y",
+      "Y"
+     ],
+     "place_raw": null,
+     "tally_raw": []
+    },
+    {
+     "bib_raw": "424",
+     "entry_raw": "STEVE ROGERS",
+     "heat_raw": null,
+     "marks_raw": [
+      "Y",
+      "N",
+      "Y",
+      "N"
+     ],
+     "place_raw": null,
+     "tally_raw": []
+    },
+    {
+     "bib_raw": "456",
+     "entry_raw": "CHRISTOPHER BARR",
+     "heat_raw": null,
+     "marks_raw": [
+      "Y",
+      "Y",
+      "N",
+      "N"
+     ],
+     "place_raw": null,
+     "tally_raw": []
+    }
+   ],
+   "source_event_ref": "swingdirector:fixture-event",
+   "source_round_ref": "swingdirector:e0265f5d0e4c8eed:1",
+   "tally_headers_raw": [],
+   "title_raw": "WSDC Novice Jack & Jill - Preliminaries (Leaders)"
+  }
+ ],
+ "warnings": [
+  {
+   "code": "swingdirector_callbacks_not_printed",
+   "evidence": {
+    "sheet": 1
+   }
+  },
+  {
+   "code": "swingdirector_name_hidden",
+   "evidence": {
+    "rows": 2,
+    "sheet": 1
+   }
+  }
+ ]
+}

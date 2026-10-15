@@ -10,6 +10,7 @@ _PURPOSES: dict[str, Purpose] = {
     "wdr.rounds": "result",
     "wdr.awards": "result",
     "steprightsolutions.round": "result",
+    "swingdirector.round": "result",
     "eepro.autoindex": "event_index",
     "scoringdance.event": "event_index",
     "steprightsolutions.event": "event_index",

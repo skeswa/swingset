@@ -42,7 +42,7 @@ daily_request_budget = 400
 live_interval = "15m"
 cooling_interval = "6h"
 
-# docs/reference/sources/danceconvention.md §6; adapter deferred to v1.1.
+# docs/reference/sources/danceconvention.md §6 (D-0255).
 [hosts."danceconvention.net"]
 min_gap_seconds = 2
 daily_request_budget = 200

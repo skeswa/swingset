@@ -1,0 +1,302 @@
+{
+ "observations": [
+  {
+   "contest_name_raw": "WSDC Novice Jack & Jill",
+   "footer_raw": "SwingDirector.com © 2026 support@swingdirector.com",
+   "judges_raw": [
+    "M. ADAMS",
+    "R. SPHIGEL",
+    "T. BECKMANN KING",
+    "T. LINAHAN"
+   ],
+   "kind": "swingdirector_round_sheet",
+   "layout": "prelim",
+   "pages": [
+    1
+   ],
+   "role_raw": "Followers",
+   "round_name_raw": "Semifinals",
+   "rows": [
+    {
+     "bib_raw": "109",
+     "entry_raw": "BEE BETANCOURT",
+     "heat_raw": null,
+     "marks_raw": [
+      "Y",
+      "Y",
+      "A3",
+      "Y"
+     ],
+     "place_raw": null,
+     "tally_raw": []
+    },
+    {
+     "bib_raw": "110",
+     "entry_raw": "BRANDIE CHARITY",
+     "heat_raw": null,
+     "marks_raw": [
+      "Y",
+      "A2",
+      "A1",
+      "A2"
+     ],
+     "place_raw": null,
+     "tally_raw": []
+    },
+    {
+     "bib_raw": "111",
+     "entry_raw": "ISABEL HEWETT",
+     "heat_raw": null,
+     "marks_raw": [
+      "A1",
+      "N",
+      "N",
+      "Y"
+     ],
+     "place_raw": null,
+     "tally_raw": []
+    },
+    {
+     "bib_raw": "118",
+     "entry_raw": "(Name hidden for discretion)",
+     "heat_raw": null,
+     "marks_raw": [
+      "N",
+      "N",
+      "N",
+      "N"
+     ],
+     "place_raw": null,
+     "tally_raw": []
+    },
+    {
+     "bib_raw": "144",
+     "entry_raw": "DIANNE BANGLE",
+     "heat_raw": null,
+     "marks_raw": [
+      "Y",
+      "N",
+      "N",
+      "N"
+     ],
+     "place_raw": null,
+     "tally_raw": []
+    },
+    {
+     "bib_raw": "161",
+     "entry_raw": "LIZA MARIANS",
+     "heat_raw": null,
+     "marks_raw": [
+      "N",
+      "A3",
+      "N",
+      "N"
+     ],
+     "place_raw": null,
+     "tally_raw": []
+    },
+    {
+     "bib_raw": "166",
+     "entry_raw": "ANGELA WAUTHIER",
+     "heat_raw": null,
+     "marks_raw": [
+      "A2",
+      "N",
+      "N",
+      "N"
+     ],
+     "place_raw": null,
+     "tally_raw": []
+    },
+    {
+     "bib_raw": "180",
+     "entry_raw": "(Name hidden for discretion)",
+     "heat_raw": null,
+     "marks_raw": [
+      "N",
+      "N",
+      "N",
+      "N"
+     ],
+     "place_raw": null,
+     "tally_raw": []
+    },
+    {
+     "bib_raw": "184",
+     "entry_raw": "LAURA ANDERSON",
+     "heat_raw": null,
+     "marks_raw": [
+      "N",
+      "Y",
+      "N",
+      "Y"
+     ],
+     "place_raw": null,
+     "tally_raw": []
+    },
+    {
+     "bib_raw": "186",
+     "entry_raw": "KATE SOLHAVEN",
+     "heat_raw": null,
+     "marks_raw": [
+      "Y",
+      "A1",
+      "Y",
+      "Y"
+     ],
+     "place_raw": null,
+     "tally_raw": []
+    },
+    {
+     "bib_raw": "190",
+     "entry_raw": "MORGAN TILLEY",
+     "heat_raw": null,
+     "marks_raw": [
+      "N",
+      "N",
+      "A2",
+      "N"
+     ],
+     "place_raw": null,
+     "tally_raw": []
+    },
+    {
+     "bib_raw": "305",
+     "entry_raw": "MAGGIE SILVERMAN",
+     "heat_raw": null,
+     "marks_raw": [
+      "Y",
+      "Y",
+      "Y",
+      "A1"
+     ],
+     "place_raw": null,
+     "tally_raw": []
+    },
+    {
+     "bib_raw": "312",
+     "entry_raw": "JORDAN RUVALCABA",
+     "heat_raw": null,
+     "marks_raw": [
+      "Y",
+      "N",
+      "Y",
+      "N"
+     ],
+     "place_raw": null,
+     "tally_raw": []
+    },
+    {
+     "bib_raw": "315",
+     "entry_raw": "SRISHTI LOVE",
+     "heat_raw": null,
+     "marks_raw": [
+      "Y",
+      "Y",
+      "Y",
+      "Y"
+     ],
+     "place_raw": null,
+     "tally_raw": []
+    },
+    {
+     "bib_raw": "316",
+     "entry_raw": "REYNA SHISBEY",
+     "heat_raw": null,
+     "marks_raw": [
+      "N",
+      "N",
+      "Y",
+      "Y"
+     ],
+     "place_raw": null,
+     "tally_raw": []
+    },
+    {
+     "bib_raw": "324",
+     "entry_raw": "PARIYA TEHRANI",
+     "heat_raw": null,
+     "marks_raw": [
+      "N",
+      "Y",
+      "N",
+      "Y"
+     ],
+     "place_raw": null,
+     "tally_raw": []
+    },
+    {
+     "bib_raw": "326",
+     "entry_raw": "MEIRAV ROTSTEIN",
+     "heat_raw": null,
+     "marks_raw": [
+      "N",
+      "Y",
+      "N",
+      "N"
+     ],
+     "place_raw": null,
+     "tally_raw": []
+    },
+    {
+     "bib_raw": "360",
+     "entry_raw": "NINA CHERE NORGAARD",
+     "heat_raw": null,
+     "marks_raw": [
+      "Y",
+      "Y",
+      "Y",
+      "A3"
+     ],
+     "place_raw": null,
+     "tally_raw": []
+    },
+    {
+     "bib_raw": "365",
+     "entry_raw": "CHARLENE VO",
+     "heat_raw": null,
+     "marks_raw": [
+      "N",
+      "N",
+      "Y",
+      "N"
+     ],
+     "place_raw": null,
+     "tally_raw": []
+    },
+    {
+     "bib_raw": "366",
+     "entry_raw": "DANI BITOUT",
+     "heat_raw": null,
+     "marks_raw": [
+      "A3",
+      "Y",
+      "Y",
+      "Y"
+     ],
+     "place_raw": null,
+     "tally_raw": []
+    }
+   ],
+   "source_event_ref": "swingdirector:fixture-event",
+   "source_round_ref": "swingdirector:b6564cf63f935621:1",
+   "tally_headers_raw": [],
+   "title_raw": "WSDC Novice Jack & Jill - Semifinals (Followers)"
+  }
+ ],
+ "warnings": [
+  {
+   "code": "swingdirector_callbacks_not_printed",
+   "evidence": {
+    "sheet": 1
+   }
+  },
+  {
+   "code": "swingdirector_name_hidden",
+   "evidence": {
+    "rows": 2,
+    "sheet": 1
+   }
+  }
+ ]
+}

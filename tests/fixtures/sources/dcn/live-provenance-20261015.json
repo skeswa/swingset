@@ -1,0 +1,59 @@
+{
+  "captured_by": "D-0255 research session, 2026-10-15",
+  "user_agent": "swingset/0.1.0 (+https://github.com/skeswa/swingset)",
+  "spacing": "one request in flight, at least 5 s between completion and next start",
+  "robots": {
+    "url": "https://danceconvention.net/eventdirector/robots.txt",
+    "status": 200,
+    "body_sha256": "536c1571781a9bdb72f8c07f0b07f2dc3d9d4dda4a3cc14bacf34f94a7591e61",
+    "verdict": "eventsarchive and eventpage/<id>/results are allowed"
+  },
+  "bodies": [
+    {
+      "file": "live-eventsarchive-20261015.nuxt.html",
+      "reduction": "the one <script> element containing window.__NUXT__, copied byte for byte from the original body, wrapped in a minimal <html><body>; everything else (head, inlined translations, markup) dropped",
+      "excerpt_sha256": "ed034c9a89e71c5c7343f4dd4862fdad03bc36de5fe34361220c430adc19e233",
+      "excerpt_bytes": 69208,
+      "script_sha256": "65ec2466b539abf98d129e02d2c438a464d8a06a436316733d23c8377a2afac7",
+      "original_body_sha256": "236b915092003e4027f5319394a32802b5a32ac71497ba8a7feec3b0e5b3fa43",
+      "original_body_bytes": 2855889,
+      "wire_bytes": 1659890,
+      "original_url": "https://danceconvention.net/eventdirector/en/eventsarchive",
+      "http_status": 200,
+      "date_header": "Thu, 15 Oct 2026 17:27:35 GMT",
+      "etag": "\"2b93d1-3mNiH428sa6xJslCF4bww8SkGAk\"",
+      "original_extract_sha256": "469f114f5ffb734544127bf5a45ac98c322444616169a6e450c6ac99b7fce0d7"
+    },
+    {
+      "file": "live-results-301367300-20261015.nuxt.html",
+      "reduction": "the one <script> element containing window.__NUXT__, copied byte for byte from the original body, wrapped in a minimal <html><body>; everything else (head, inlined translations, markup) dropped",
+      "excerpt_sha256": "85066d026be8695edc82b2ce483857f1425ed64efc02bffbdfd5eaab4761bdea",
+      "excerpt_bytes": 186940,
+      "script_sha256": "0c00796b474f50a3909dbc867d35209ed6c275878e119ee8efd2238b67f4d437",
+      "original_body_sha256": "82052bfdb352c9a1bbb94d16c9ac8cced0bbd63ce4781dd39677da53c2f11c5e",
+      "original_body_bytes": 2974695,
+      "wire_bytes": 1675011,
+      "original_url": "https://danceconvention.net/eventdirector/en/eventpage/301367300/results",
+      "http_status": 200,
+      "date_header": "Thu, 15 Oct 2026 17:25:00 GMT",
+      "etag": "\"2d63e7-gD/Gz5eDH4FphR2Y46dkpQGTQlI\"",
+      "original_extract_sha256": "5e27c6ac18579c07806d76829534e0b5f800ea2a0b87017f23fa75209bcee477"
+    },
+    {
+      "file": "live-results-301108262-20261015.nuxt.html",
+      "reduction": "the one <script> element containing window.__NUXT__, copied byte for byte from the original body, wrapped in a minimal <html><body>; everything else (head, inlined translations, markup) dropped",
+      "excerpt_sha256": "2454cd5d1eed913315e42ce4c4082b76cb060cb262d3df51bd712215cc37dfff",
+      "excerpt_bytes": 99764,
+      "script_sha256": "0b387e653ee4def76822f3d659455765cf1b0f98c34d9ca408ae1393259eaff5",
+      "original_body_sha256": "b9a7d479c4af2b488035a83309a1237a5cb8c173253c254fd134ce8e624bc988",
+      "original_body_bytes": 2887519,
+      "wire_bytes": 1662354,
+      "original_url": "https://danceconvention.net/eventdirector/en/eventpage/301108262/results",
+      "http_status": 200,
+      "date_header": "Thu, 15 Oct 2026 17:28:37 GMT",
+      "etag": "\"2c0f5f-PtE56zHOom9nP02hHJW3C+Ioa4Q\"",
+      "original_extract_sha256": "b5e8513639b4e8f5e93e23edf29901daac5616f3660b0837461eb01fa678cf52"
+    }
+  ],
+  "note": "Reduced fixtures: each is a faithful excerpt (the exact payload script) of the captured body; the full bodies exceeded the 1 MiB per-file limit and are not retained."
+}

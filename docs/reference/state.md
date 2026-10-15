@@ -976,7 +976,9 @@ queue rows.
   it has nothing to associate and gets no unit.
 - **What a year writes** (`project/history.finalize_year`). The association
   of registry placements reported in the year, at or after
-  `history_start`, by series and month as before; the `sheets_partial` tier
+  `history_start`, by series and month as before, to the held row of that
+  series and month, else the first by id
+  ([D-0256](../../journal/decisions/0256-past-wsdc-events-reach-their-calendar-facts-and-wdr-pages.md)); the `sheets_partial` tier
   of its events; and its `coverage` rows (`project/coverage.rebuild_year_coverage`),
   each keeping `last_changed_at` while unchanged. Coverage counts a year's
   events by `events.year`, with every placement associated with them

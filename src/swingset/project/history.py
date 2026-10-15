@@ -5,6 +5,7 @@ from __future__ import annotations
 import csv
 import io
 import json
+import re
 import sqlite3
 from collections.abc import Iterable, Iterator, Mapping
 from contextlib import contextmanager, nullcontext
@@ -71,9 +72,11 @@ def prepare_inventory(
             (series, name),
         )
         existing = conn.execute(
-            "SELECT event_id FROM events WHERE series_id=? AND event_month=?", (series, month)
+            "SELECT event_id,held,sources FROM events WHERE series_id=? AND event_month=? "
+            "ORDER BY event_id",
+            (series, month),
         ).fetchall()
-        if not existing:
+        if not any(row[1] == "held" for row in existing):
             # Existing published calendar editions keep their identifiers when
             # a later registry occurrence supplies the series and reporting month.
             legacy = [
@@ -94,6 +97,16 @@ def prepare_inventory(
                     "UPDATE events SET series_id=?,event_month=?,held='held' WHERE event_id=?",
                     (series, month, legacy[0][0]),
                 )
+            elif existing:
+                # A listing printed before the registry reported its edition,
+                # of a series the registry already knew, wrote these rows
+                # `listed`. The occurrence adopts one: a row the WSDC calendar
+                # listed, else the first id; never a cancelled row (D-0256).
+                listed = [row for row in existing if row[1] == "listed"]
+                calendar = [row for row in listed if "wsdc_calendar" in json.loads(row[2] or "[]")]
+                adopted = (calendar or listed)[:1]
+                for event in adopted:
+                    conn.execute("UPDATE events SET held='held' WHERE event_id=?", (event[0],))
             else:
                 # Reuse the v1 identifier where its exact edition name and month agree.
                 event_id = f"{month}-{series_slug(name)}"
@@ -192,6 +205,8 @@ def prepare_inventory(
             )
         ] = (payload, row)
     resolved: dict[str, list[tuple[CalendarRow, sqlite3.Row]]] = {}
+    editions: dict[tuple[str, str], list[tuple[CalendarRow, sqlite3.Row]]] = {}
+    platform_rows: dict[tuple[str, str], set[str]] = {}
     for payload, row in _current_listings(listings, observation_times):
         month = payload.end_date_raw[:7]
         year = int(month[:4])
@@ -238,9 +253,38 @@ def prepare_inventory(
                 ),
             )
             continue
+        if not matches and _history_source(str(row[4])) != "platform":
+            # An edition the registry has not reported: its calendar listings
+            # are one edition per series and month, whatever note a name
+            # gained ("Bavarian Open (Cancelled due to Covid-19)", D-0256).
+            editions.setdefault((series, month), []).append((payload, row))
+            continue
         event_id = matches[0] if matches else f"{month}-{normalized}"
         resolved.setdefault(event_id, []).append((payload, row))
+        if not matches:
+            platform_rows.setdefault((series, month), set()).add(event_id)
+    superseded: set[str] = set()
+    edition_series: dict[str, str] = {}
+    companions: dict[str, list[tuple[CalendarRow, sqlite3.Row]]] = {}
+    for (series, month), group in editions.items():
+        if _two_editions(group):
+            # One capture dates two spans that do not nest (Korea Westival
+            # 2020): two listings, kept apart as before.
+            for payload, row in group:
+                event_id = f"{month}-{series_slug(payload.name_raw)}"
+                resolved.setdefault(event_id, []).append((payload, row))
+            continue
+        event_id, others = _edition_id(conn, series, month, group)
+        # A results listing of the same edition keeps its own row; that row
+        # takes the edition's status and place from these listings (D-0260).
+        for platform in platform_rows.get((series, month), set()) - {event_id}:
+            companions.setdefault(platform, []).extend(group)
+        resolved.setdefault(event_id, []).extend(group)
+        edition_series[event_id] = series
+        superseded.update(others)
     for event_id, dated_candidates in resolved.items():
+        edition = list(dated_candidates) + companions.get(event_id, [])
+        place = _calendar_place(edition, observation_times)
         payload, row = max(
             dated_candidates,
             key=lambda item: (observation_times.get(str(item[1][2]), ""), str(item[1][2])),
@@ -287,8 +331,9 @@ def prepare_inventory(
             )
             continue
         normalized = series_slug(payload.name_raw)
-        series = _alias_for(alias_map, normalized, payload.end_date_raw[:7]) or next(
-            iter(names[normalized])
+        series = edition_series.get(event_id) or (
+            _alias_for(alias_map, normalized, payload.end_date_raw[:7])
+            or next(iter(names[normalized]))
         )
         source = str(row[4])
         previous = conn.execute("SELECT * FROM events WHERE event_id=?", (event_id,)).fetchone()
@@ -299,18 +344,15 @@ def prepare_inventory(
             histories.update(json.loads(previous["history_source"]))
             if previous["held"] == "held":
                 histories.add("registry")
-        cancelled = any(
-            "cancel" in value.casefold() or "hiatus" in value.casefold()
-            for value in (payload.name_raw, *payload.row_classes)
-        )
-        status = _listing_status(payload, source, series, dated_candidates, observation_times)
+        cancelled = _cancelled(edition, observation_times)
+        status = _listing_status(payload, source, series, edition, observation_times)
         month = payload.end_date_raw[:7]
         precision = "day" if len(payload.end_date_raw) == 10 else "month"
         start = payload.start_date_raw if precision == "day" else None
         end = payload.end_date_raw if precision == "day" else None
         conn.execute(
-            f"""INSERT INTO events(event_id,series_id,name,year,start_date,end_date,website,wsdc_status,sources,source,snapshot_id,parser_version,first_seen_at,last_seen_at,run_id,event_month,date_precision,held,coverage_tier,history_source)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(event_id) DO UPDATE SET wsdc_status=CASE WHEN events.held='held' THEN events.wsdc_status ELSE excluded.wsdc_status END,source=excluded.source,snapshot_id=excluded.snapshot_id,parser_version=excluded.parser_version,sources=excluded.sources,last_seen_at=excluded.last_seen_at,run_id=excluded.run_id,start_date=excluded.start_date,end_date=excluded.end_date,year=excluded.year,website=COALESCE(excluded.website,events.website),date_precision=excluded.date_precision,coverage_tier=CASE WHEN events.coverage_tier='registry_only' THEN 'index_only' ELSE events.coverage_tier END,history_source=excluded.history_source,held=CASE WHEN events.held='held' THEN 'held' ELSE excluded.held END WHERE events.start_date IS NOT excluded.start_date OR events.end_date IS NOT excluded.end_date OR events.source IS NOT excluded.source OR events.snapshot_id IS NOT excluded.snapshot_id OR {_list_differs("history_source")} OR {_list_differs("sources")} OR events.date_precision IS NOT excluded.date_precision OR (events.held!='held' AND events.wsdc_status IS NOT excluded.wsdc_status)""",
+            f"""INSERT INTO events(event_id,series_id,name,year,start_date,end_date,website,wsdc_status,sources,source,snapshot_id,parser_version,first_seen_at,last_seen_at,run_id,event_month,date_precision,held,coverage_tier,history_source,city,region,country)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(event_id) DO UPDATE SET city=COALESCE(excluded.city,events.city),region=COALESCE(excluded.region,events.region),country=COALESCE(excluded.country,events.country), wsdc_status=CASE WHEN events.held='held' THEN events.wsdc_status ELSE excluded.wsdc_status END,source=excluded.source,snapshot_id=excluded.snapshot_id,parser_version=excluded.parser_version,sources=excluded.sources,last_seen_at=excluded.last_seen_at,run_id=excluded.run_id,start_date=excluded.start_date,end_date=excluded.end_date,year=excluded.year,website=COALESCE(excluded.website,events.website),date_precision=excluded.date_precision,coverage_tier=CASE WHEN events.coverage_tier='registry_only' THEN 'index_only' ELSE events.coverage_tier END,history_source=excluded.history_source,held=CASE WHEN events.held='held' THEN 'held' ELSE excluded.held END WHERE events.start_date IS NOT excluded.start_date OR events.end_date IS NOT excluded.end_date OR events.source IS NOT excluded.source OR events.snapshot_id IS NOT excluded.snapshot_id OR {_list_differs("history_source")} OR {_list_differs("sources")} OR events.date_precision IS NOT excluded.date_precision OR (events.held!='held' AND (events.wsdc_status IS NOT excluded.wsdc_status OR events.held IS NOT excluded.held)) OR (excluded.city IS NOT NULL AND events.city IS NOT excluded.city) OR (excluded.region IS NOT NULL AND events.region IS NOT excluded.region) OR (excluded.country IS NOT NULL AND events.country IS NOT excluded.country)""",
             (
                 event_id,
                 series,
@@ -332,8 +374,31 @@ def prepare_inventory(
                 "cancelled" if cancelled else "listed",
                 "index_only",
                 _json_list(histories),
+                *place,
             ),
         )
+    for event_id in sorted(superseded - set(resolved)):
+        # A twin row of a merged edition goes, unless something else holds it:
+        # a scope, results, judges, a listing's map row or proposal, an origin
+        # intent, or registry placements (D-0260).
+        if not conn.execute(
+            "SELECT 1 FROM canonical_scope_rows WHERE table_name='events' "
+            "AND record_key=json_array(?1) UNION ALL "
+            + " UNION ALL ".join(
+                f"SELECT 1 FROM {table} WHERE event_id=?1"
+                for table in (
+                    "contests",
+                    "judges",
+                    "registry_placements",
+                    "source_event_map",
+                    "source_event_proposals",
+                    "history_origin_intents",
+                )
+            )
+            + " LIMIT 1",
+            (event_id,),
+        ).fetchone():
+            conn.execute("DELETE FROM events WHERE event_id=?", (event_id,))
     for year in range(history_start.year, int(now[:4]) + 1):
         replace_findings(
             conn,
@@ -362,13 +427,14 @@ def finalize_history(
     conn: sqlite3.Connection, *, now: str, history_start: date = HISTORY_START
 ) -> None:
     """Associate occurrences and count coverage after map and event output settle."""
-    # Rewrite only associations that change. Rewriting all ~200k rows each run
+    # Placements join the held occurrence of their series and month, else the
+    # first row (D-0256). Rewrite only associations that change. Rewriting all ~200k rows each run
     # fired the history fence trigger per row inside the 45-second write
     # bound (D-0199).
     association = (
         "(SELECT e.event_id FROM events e WHERE e.series_id=registry_placements.series_id "
         "AND e.event_month=substr(registry_placements.event_month,1,7) "
-        "ORDER BY e.event_id LIMIT 1)"
+        "ORDER BY e.held!='held',e.event_id LIMIT 1)"
     )
     conn.execute(
         f"UPDATE registry_placements SET event_id={association} "
@@ -396,7 +462,7 @@ def finalize_year(
     association = (
         "(SELECT e.event_id FROM events e WHERE e.series_id=registry_placements.series_id "
         "AND e.event_month=substr(registry_placements.event_month,1,7) "
-        "ORDER BY e.event_id LIMIT 1)"
+        "ORDER BY e.held!='held',e.event_id LIMIT 1)"
     )
     moved = conn.execute(
         f"UPDATE registry_placements SET event_id={association} "
@@ -496,6 +562,69 @@ def alias_map(aliases: bytes) -> AliasMap:
     return _alias_map(aliases)
 
 
+def _edition_id(
+    conn: sqlite3.Connection,
+    series: str,
+    month: str,
+    group: list[tuple[CalendarRow, sqlite3.Row]],
+) -> tuple[str, list[str]]:
+    """The one event id of an unreported edition, and the twin rows it replaces.
+
+    Every calendar-family listing of a series in one end month is the same
+    edition. Its id is an existing row of that series and month that only
+    listings wrote (not held, no results-platform listing): the oldest, then
+    the shortest, so the id a release already carries stays. Else it is the
+    shortest id a listing name gives. The other such rows are its twins
+    (D-0256).
+    """
+    existing = sorted(
+        (str(row[2] or ""), len(str(row[0])), str(row[0]))
+        for row in conn.execute(
+            "SELECT event_id,history_source,first_seen_at FROM events WHERE series_id=? "
+            "AND event_month=? AND held!='held'",
+            (series, month),
+        )
+        if not {"platform", "registry"} & set(json.loads(str(row[1] or "[]")))
+    )
+    natural = {f"{month}-{series_slug(payload.name_raw)}" for payload, _ in group}
+    if existing:
+        event_id = existing[0][2]
+    else:
+        event_id = min(natural, key=lambda value: (len(value), value))
+    return event_id, [row[2] for row in existing if row[2] != event_id]
+
+
+def _two_editions(group: list[tuple[CalendarRow, sqlite3.Row]]) -> bool:
+    """Whether one capture in ``group`` dates spans that are not one edition."""
+    spans: dict[str, set[tuple[str, str]]] = {}
+    for payload, row in group:
+        spans.setdefault(str(row[2]), set()).add((payload.start_date_raw, payload.end_date_raw))
+    return any(len(values) > 1 and _widest_span(values) is None for values in spans.values())
+
+
+def _calendar_place(
+    candidates: list[tuple[CalendarRow, sqlite3.Row]], observation_times: dict[str, str]
+) -> tuple[str | None, str | None, str | None]:
+    """City, region and country from the newest WSDC calendar listing of an edition.
+
+    Parsed as the calendar projection parses them (`project/events`). A flag
+    that is not an alpha-3 code (`transparent`, blank) gives no country.
+    """
+    calendars = [item for item in candidates if str(item[1][4]) == "wsdc_calendar"]
+    if not calendars:
+        return None, None, None
+    payload = max(
+        calendars,
+        key=lambda item: (observation_times.get(str(item[1][2]), ""), str(item[1][2])),
+    )[0]
+    parts = [part.strip() for part in payload.location_raw.split(",")]
+    city = parts[0] or None
+    region = (", ".join(parts[1:-1]) or None) if len(parts) > 2 else None
+    flag = payload.country_code_raw
+    country = flag if isinstance(flag, str) and re.fullmatch(r"[A-Z]{3}", flag) else None
+    return city, region if city else None, country
+
+
 def _calendar_status(payload: CalendarRow) -> str:
     raw = payload.event_type_raw.casefold().replace("-", " ")
     return (
@@ -504,6 +633,50 @@ def _calendar_status(payload: CalendarRow) -> str:
         else "registry"
         if raw in {"registry", "registry event"}
         else "unknown"
+    )
+
+
+def _status_listings(
+    candidates: list[tuple[CalendarRow, sqlite3.Row]],
+) -> list[tuple[CalendarRow, sqlite3.Row]]:
+    """The listings that speak for an edition's status: the WSDC calendar's,
+    else every calendar-family listing. A newsletter is read years after its
+    issue, so its observation time says nothing about which listing is newer,
+    and it does not print trial or cancelled marks reliably (D-0260)."""
+    family = [item for item in candidates if _history_source(str(item[1][4])) != "platform"]
+    return [item for item in family if str(item[1][4]) == "wsdc_calendar"] or family
+
+
+def _trial(payload: CalendarRow) -> bool:
+    return "trial" in payload.event_type_raw.casefold() or any(
+        "trial" in value.casefold() for value in payload.row_classes
+    )
+
+
+def _cancelled(
+    candidates: list[tuple[CalendarRow, sqlite3.Row]], observation_times: dict[str, str]
+) -> bool:
+    """Whether an edition was cancelled (D-0260).
+
+    A cancel mark on any listing that speaks for the edition cancels it. A
+    hiatus mark seen before the edition began cancels it too (`Sea to Sky
+    Seattle (Hiatus)`). One seen once it had begun is about later seasons
+    (`Swing Niagara Dance Champ's (ON HIATUS)` on 2013-09-21, with the
+    2013 dates) and cancels only when every such listing carries one.
+    """
+    listings = _status_listings(candidates) or candidates
+
+    def marks(payload: CalendarRow, word: str) -> bool:
+        return any(word in value.casefold() for value in (payload.name_raw, *payload.row_classes))
+
+    def before_start(payload: CalendarRow, row: sqlite3.Row) -> bool:
+        seen = observation_times.get(str(row[2]), "")
+        return bool(seen) and seen[:10] < payload.start_date_raw[:10]
+
+    return (
+        any(marks(payload, "cancel") for payload, _ in listings)
+        or any(marks(payload, "hiatus") and before_start(payload, row) for payload, row in listings)
+        or all(marks(payload, "hiatus") for payload, _ in listings)
     )
 
 
@@ -516,20 +689,24 @@ def _listing_status(
 ) -> str:
     """The WSDC status a listing gives its event.
 
-    A calendar listing prints it. A results platform does not: its event
-    takes the status of the newest calendar listing of the same edition, else
-    `registry` for a registry series and `unknown` for any other (D-0253).
+    The listings that speak for the edition (`_status_listings`) print it: a
+    trial mark on any of them makes it `trial`, else the newest one's type
+    decides (D-0260). A results platform prints none: with no such listing
+    its event is `registry` for a registry series and `unknown` for any
+    other (D-0253).
     """
-    if _history_source(source) != "platform":
-        return _calendar_status(payload)
-    calendars = [item for item in candidates if _history_source(str(item[1][4])) != "platform"]
-    if calendars:
-        newest = max(
-            calendars,
-            key=lambda item: (observation_times.get(str(item[1][2]), ""), str(item[1][2])),
-        )
-        return _calendar_status(newest[0])
-    return "registry" if series.startswith("wsdc-") else "unknown"
+    listings = _status_listings(candidates)
+    if not listings:
+        if _history_source(source) != "platform":
+            return _calendar_status(payload)
+        return "registry" if series.startswith("wsdc-") else "unknown"
+    if any(_trial(item[0]) for item in listings):
+        return "trial"
+    newest = max(
+        listings,
+        key=lambda item: (observation_times.get(str(item[1][2]), ""), str(item[1][2])),
+    )
+    return _calendar_status(newest[0])
 
 
 def _current_listings(

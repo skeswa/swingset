@@ -308,3 +308,52 @@ def test_dismissed_parse_failure_clears_a_finding_status_capture(tmp_path):
             dismissed={("parse_failure", "w")},
         )
         assert not any(gaps.values())
+
+
+def test_an_archive_read_of_a_live_watch_url_leaves_the_watch_live(tmp_path):
+    """The 2026-09-22 intake read a Wayback capture of `worldsdc.com/events/`
+    on the live calendar watch, and its parse sealed that watch: the calendar
+    was not fetched again. The live watch keeps its row (D-0256)."""
+    from datetime import UTC, datetime
+
+    from swingset.schedule.watches import upsert_watch
+    from swingset.sources.base import WatchSpec
+
+    clock = FakeClock()
+    body = Path(
+        "src/swingset/sources/swingdancecouncil/fixtures/council-20120825.html"
+    ).read_bytes()
+
+    def response(request):
+        if request.url.path == "/robots.txt":
+            return httpx.Response(404)
+        return httpx.Response(200, content=body)
+
+    url = "http://swingdancecouncil.com/ActiveServerPages/UpcomingEvents.asp"
+    target = Target("swingdancecouncil", url, "swingdancecouncil.events", "20120825221508", "d")
+    catalog = tmp_path / "phase1-catalog.json"
+    save_catalog(catalog, (target,))
+    live = WatchSpec("", "swingdancecouncil", "index", "GET", url, "swingdancecouncil.events")
+    due = datetime(2030, 1, 1, tzinfo=UTC).isoformat()
+    with open_database(tmp_path) as db:
+        with db.transaction() as conn:
+            upsert_watch(conn, live, clock.now())
+            conn.execute(
+                "UPDATE watches SET next_check_at=? WHERE watch_id=?", (due, live.watch_id)
+            )
+        result = run_intake(
+            db, catalog, config=Config({}, {}), clock=clock, transport=httpx.MockTransport(response)
+        )
+        assert result["targets"][target.target_id]["status"] == "parsed"
+        assert tuple(
+            db.connection.execute(
+                "SELECT state,archive_url,next_check_at FROM watches WHERE watch_id=?",
+                (live.watch_id,),
+            ).fetchone()
+        ) == ("live", None, due)
+        assert (
+            db.connection.execute(
+                "SELECT via FROM snapshots WHERE watch_id=?", (live.watch_id,)
+            ).fetchone()[0]
+            == "wayback"
+        )

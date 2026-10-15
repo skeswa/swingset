@@ -1915,3 +1915,197 @@ def test_an_ordered_json_extract_is_parsed_fresh_so_a_reparse_cuts_off(tmp_path)
         assert not _parse(db, c, unit).failed
         assert c.conn.execute("SELECT COUNT(*) FROM source_generations").fetchone()[0] == 1
         assert _rows(c.conn, "SELECT generation_id FROM source_equivalences") == ((first,),)
+
+
+CALENDAR_FIXTURES = Path("src/swingset/sources/wsdc_calendar/fixtures")
+
+
+def _calendar_row(name, date="Jan 2 - 3, 2027", *, classes=" ", kind="Registry Event", flag="USA"):
+    return (
+        f'<tr class="{classes}"><td>{date}</td><td><div class="event_name">'
+        f'<a href="https://{name.lower()}.test">{name}</a></div>'
+        f'<div class="event_type">{kind}</div></td><td>Denver, CO, USA</td>'
+        f'<td><a href="?country={flag}">flag</a></td></tr>'
+    )
+
+
+def _calendar(*rows):
+    return ("<table>" + "".join(rows) + "</table>").encode()
+
+
+def _calendar_report(body, extract=None):
+    from swingset.sources.wsdc_calendar.adapter import EventsPage
+
+    page = EventsPage()
+    ctx = ParseContext(
+        "s", "w", "https://worldsdc.com/events/", "wsdc_calendar", page.kind, None, "2026-09-09"
+    )
+    extract = page.extract(body) if extract is None else extract
+    return inspect(ctx, body, extract, page.parse(extract, ctx))
+
+
+@pytest.mark.parametrize(
+    ("name", "rows"),
+    [
+        ("calendar-2026-09-09.html", 172),
+        ("calendar-20260813-zstd.body", 169),
+        ("calendar-20161113.html", 127),
+        ("calendar-20210415.html", 500),
+        ("calendar-2016-literals.html", 67),
+        ("calendar-2019-map.html", 105),
+        ("calendar-2017-single-dates.html", 117),
+    ],
+)
+def test_calendar_contract_admits_every_retained_layout(name, rows):
+    """Each layout's listings are counted from the raw body, not the extractor (D-0257)."""
+    report = _calendar_report((CALENDAR_FIXTURES / name).read_bytes())
+    assert report.contract_version == "1" and not report.failures
+    assert report.coverage.source_count == report.coverage.interpreted_count == rows
+    assert report.proposed_removal == "watch"
+
+
+def test_calendar_contract_blocks_lost_rows_unreviewed_marks_and_unknown_dates():
+    body = _calendar(_calendar_row("First"), _calendar_row("Second"))
+    assert not _calendar_report(body).failures
+    from swingset.sources.wsdc_calendar.adapter import EventsPage
+
+    extract = EventsPage().extract(body)
+    # A row the extractor lost is still counted from the body.
+    assert "coverage_count_mismatch" in _calendar_report(body, extract[:1]).failures
+    # A row class or listing type nobody reviewed could change a row's status.
+    for row in (
+        _calendar_row("Second", classes="event-postponed"),
+        _calendar_row("Second", kind="Festival"),
+        _calendar_row("Second", date="Spring 2027"),
+    ):
+        report = _calendar_report(_calendar(_calendar_row("First"), row))
+        assert "critical_unknown" in report.failures and report.state == "needs_review"
+    # A printed span that ends before it starts withholds only that listing.
+    report = _calendar_report(
+        _calendar(_calendar_row("First"), _calendar_row("Second", date="Feb 13 - 9, 2027"))
+    )
+    assert not report.failures and report.coverage.interpreted_count == 2
+    assert any(f.path == "warning:impossible_listing_date" for f in report.fields)
+    # An unknown flag drops only the row's country and stays in the report.
+    report = _calendar_report(_calendar(_calendar_row("First", flag="Atlantis")))
+    assert not report.failures
+    assert any(f.disposition == "unknown" and not f.critical for f in report.fields)
+    # An empty listing is no witness that the calendar is empty.
+    empty = b'<html><div class="event-map">Events Calendar</div></html>'
+    assert _calendar_report(empty).state == "waiting_for_inputs"
+
+
+def test_calendar_captures_admit_and_a_live_capture_keeps_archived_rows(tmp_path):
+    """A Wayback capture read on the live watch is its own unit; the next live
+    capture replaces only live rows, and the build matches the capture's rows,
+    stored as history, against its generation (D-0257)."""
+    with open_database(tmp_path) as db:
+        c = Corpus(db)
+        spec = WatchSpec(
+            "",
+            "wsdc_calendar",
+            "index",
+            "GET",
+            "https://worldsdc.com/events/",
+            "wsdc_calendar.events",
+        )
+        upsert_watch(c.conn, spec, c.clock.now())
+        archived = _calendar(_calendar_row("Summer", date="Aug 6 - 9, 2026"))
+        first = _calendar(_calendar_row("First"))
+        second = _calendar(_calendar_row("Second"))
+        old, _ = c.stage(c.snapshot("capture", archived, spec=spec, via="wayback"), body=archived)
+        live, _ = c.stage(c.snapshot("live-1", first, spec=spec), body=first)
+        c.review(old)
+        assert c.admit(old) == c.admit(live) == "accepted"
+        scopes = dict(
+            c.conn.execute("SELECT snapshot_id,scope_id FROM observations ORDER BY snapshot_id")
+        )
+        assert scopes == {"capture": "wsdc-history", "live-1": "wsdc"}
+        assert _build_support(c.conn, "capture", 7) == "accepted"
+        assert _build_support(c.conn, "live-1", 7) == "accepted"
+        newer, _ = c.stage(c.snapshot("live-2", second, spec=spec), body=second)
+        assert c.admit(newer) == "accepted"
+        assert dict(
+            c.conn.execute("SELECT snapshot_id,scope_id FROM observations ORDER BY snapshot_id")
+        ) == {"capture": "wsdc-history", "live-2": "wsdc"}
+
+
+def test_contract_command_shows_activates_and_pauses_a_reviewed_kind(tmp_path, capsys):
+    """`swingset contract` wraps what activated contract 5 by hand: preflight
+    counts, a reviewed cohort, activation under the exclusive lock, and the
+    counts after, as one receipt-ready JSON."""
+    from swingset.cli import main
+
+    with open_database(tmp_path) as db:
+        c = Corpus(db)
+        generation, _ = c.stage(c.snapshot("one"))
+        c.conn.execute("DELETE FROM pending_work")
+    state = ["--state", str(tmp_path)]
+    kind = c.page.kind
+    assert main(["contract", "status", "--kind", kind, *state]) == 0
+    shown = json.loads(capsys.readouterr().out)
+    assert (shown["mode"], shown["code_contract_version"]) == ("shadow", "4")
+    assert shown["generations"] == {"4:staged": 1}
+    assert shown["failures_under_code_version"] == {"(none)": 1}
+    # Activation needs who reviewed, where the review is, and the cohort.
+    activate = ["contract", "activate", "--kind", kind, *state]
+    assert main([*activate, "--generation", generation]) == 1
+    # A kind whose code has no reviewed contract cannot be activated.
+    assert (
+        main(
+            [
+                "contract",
+                "activate",
+                "--kind",
+                "wsdc_newsletter.events",
+                *state,
+                "--generation",
+                generation,
+                "--by",
+                "test",
+                "--evidence",
+                "review",
+            ]
+        )
+        == 1
+    )
+    capsys.readouterr()
+    assert (
+        main([*activate, "--generation", generation, "--by", "test", "--evidence", "review"]) == 0
+    )
+    receipt = json.loads(capsys.readouterr().out)
+    assert receipt["before"]["mode"] == "shadow" and receipt["after"]["mode"] == "enforce"
+    assert receipt["after"]["policy"]["contract_version"] == "4"
+    assert receipt["queued_parse"] == 1 and receipt["cohort"] == [generation]
+    assert receipt["after"]["reviews"][0]["digest"] == receipt["review_digest"]
+    assert main(["contract", "pause", "--kind", kind, *state, "--by", "test"]) == 0
+    paused = json.loads(capsys.readouterr().out)
+    assert paused["after"]["mode"] == "paused"
+    # Pausing withdraws nothing: the accepted generations stay.
+    assert "keep publishing" in paused["not_undone"]
+
+
+def test_a_review_names_a_packed_report_instead_of_failing_on_its_stub(tmp_path):
+    """A cohort generation whose body was packed (phase 4) holds a stub report;
+    `record_review` says so and writes nothing, instead of a bare KeyError."""
+    from swingset.state import body_packs
+
+    with open_database(tmp_path) as db:
+        c = Corpus(db)
+        generation, _ = c.stage(c.snapshot("one"))
+        from swingset.state import objects
+
+        now = c.clock.now()
+        digest, _ = body_packs.write_source(c.conn, objects.store_for(c.conn), generation, now=now)
+        with db.transaction() as conn:
+            assert body_packs.stub_source(conn, generation, digest, now=now)
+        with pytest.raises(ValueError, match="packed report"):
+            with db.transaction():
+                record_review(
+                    c.conn,
+                    (generation,),
+                    reviewer="test",
+                    reviewed_at=c.clock.now().isoformat(),
+                    evidence="review",
+                )
+        assert c.conn.execute("SELECT COUNT(*) FROM admission_reviews").fetchone()[0] == 0

@@ -1039,6 +1039,40 @@ scopes for derive. On 2026-10-14 it found 479 units (309 `scoringdance.event`,
 103 `eepro.round`, 67 `eepro.autoindex`) and rewrote them in 50 seconds on a
 copy.
 
+### Activating an admission contract
+
+A new or changed contract runs in `shadow` until an independent review of
+its generations is recorded. `swingset contract` does what contract 5's
+one-off script did:
+
+```sh
+sudo -u swingset swingset contract status --kind wsdc_calendar.events
+sudo -u swingset swingset contract activate --kind wsdc_calendar.events \
+  --cohort cohort.json --by "<reviewer and session>" --evidence "<review link>"
+sudo -u swingset swingset contract pause --kind wsdc_calendar.events --by "<who>"
+```
+
+`status` opens read-only: the code's contract version, the policy, parse
+results by contract and decision, report failures under the code's version,
+accepted units, pending parse work and recorded reviews. Save it as the
+preflight receipt. `activate` takes the exclusive lock, so write
+`operator-hold` and stop the loops first. It refuses a kind whose code has
+no reviewed contract (`unassessed`) and a cohort generation of another kind
+or version; the cohort needs one passing generation. In one transaction it
+records the review, enforces the policy and queues every retained snapshot
+of the kind for parse, then prints the counts before and after: that JSON is
+the activation receipt. The post-check receipt follows the drain.
+
+`pause` only stops promoting new generations of the kind. It withdraws
+nothing: generations accepted under the policy stay accepted, their
+observations stay, and the next build still publishes them. To undo a bad
+activation, take the backup set made under the hold before `activate` and
+restore it ([backup and restore](backup-and-restore.md)), or withdraw named
+generations with `admission.select.revoke_generation`, which deletes their
+observations and restores each unit's previous accepted generation (no CLI
+yet). A release already published is undone with `publish --revert-to`
+([data corrections](data-corrections.md)).
+
 EEPro's operator conversation must be recorded in its playbook before live
 fetching. Do not reinterpret an unknown registry response as a missing dancer.
 WDR's unknown cell meanings remain raw evidence, with warnings where needed.

@@ -424,3 +424,74 @@ def test_newsletter_unknown_prose_and_approval_quarters_remain_findings():
         rows, warnings = _approval_rows(prose, 1)
         assert not rows
         assert warnings and all(warning.code == "approval_notice_review" for warning in warnings)
+
+
+def test_calendar_dates_cross_new_year_and_withhold_impossible_spans():
+    import pytest
+
+    from swingset.sources.base import ExtractError
+    from swingset.sources.wsdc_calendar.adapter import ImpossibleDates
+
+    # The map prints one year for a span across New Year: it is the end's.
+    assert _dates("Dec 28 - Jan 1, 2020") == ("2019-12-28", "2020-01-01")
+    assert _dates("Dec 31 - Jan 5, 2020") == ("2019-12-31", "2020-01-05")
+    # Spans the source printed backwards, and FullCalendar dates the legacy
+    # reader kept as printed, are the source's error (production, 2019-2022).
+    for raw in (
+        "Feb 13 - 9, 2020",
+        "Feb 13 2020 - Feb 09 2020",
+        "2017-10-27 - 2017-10-02",
+        "2017-01-26 - 1201-01-30",
+        "Feb 30 - Mar 2, 2020",
+    ):
+        with pytest.raises(ImpossibleDates):
+            _dates(raw)
+    with pytest.raises(ExtractError):
+        _dates("Sometime in 2020")
+    page = CalendarPage()
+    rows = [
+        {"date": "Feb 13 - 9, 2020", "name": "Backwards"},
+        {"date": "Spring 2020", "name": "Unknown"},
+        {"date": "Mar 1 - 3, 2020", "name": "Fine"},
+    ]
+    result = page.parse(rows, context(page))
+    assert [w.code for w in result.warnings] == [
+        "impossible_listing_date",
+        "unrecognized_listing_date",
+    ]
+    assert [o.payload.name_raw for o in result.observations] == ["Fine"]
+
+
+def test_calendar_country_flags_are_codes_or_nothing():
+    from pathlib import Path
+
+    from swingset.admission import wsdc_calendar_contract as contract
+    from swingset.sources.wsdc_calendar import adapter
+
+    page = CalendarPage()
+    body = Path("src/swingset/sources/wsdc_calendar/fixtures/calendar-2026-09-09.html").read_bytes()
+    extract = page.extract(body)
+    result = page.parse(extract, context(page))
+    by_name = {o.payload.name_raw: o.payload for o in result.observations}
+    # The live page prints `?country=transparent` for every event in Russia
+    # and an empty flag for three others; neither is a country.
+    sea = next(row for row in extract if row["name"] == "Sea Dance Fest")
+    assert sea["country_code"] == "transparent"
+    assert by_name["Sea Dance Fest"].country_code_raw is None
+    assert by_name["New York Flow Festival"].country_code_raw is None
+    assert by_name["Trilogy Swing"].country_code_raw == "USA"
+    assert all(
+        code is None or (len(code) == 3 and code.isupper())
+        for code in (o.payload.country_code_raw for o in result.observations)
+    )
+    rows = [
+        {"date": "Apr 18 - 21, 2024", "name": "Slovenian Open", "country_code": "Slovenia"},
+        {"date": "Jan 26 - 29, 2024", "name": "Swing Resolution", "country_code": "Scotland"},
+        {"date": "Jan 26 - 29, 2024", "name": "Elsewhere", "country_code": "Atlantis"},
+    ]
+    parsed = page.parse(rows, context(page))
+    assert [o.payload.country_code_raw for o in parsed.observations] == ["SVN", "GBR", None]
+    assert [w.code for w in parsed.warnings] == ["unrecognized_country_flag"]
+    # The contract repeats these rules without importing the adapter.
+    assert contract.ZSTD_MAGIC == adapter._ZSTD_MAGIC
+    assert adapter.NO_FLAG == {"", "transparent"}

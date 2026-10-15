@@ -49,8 +49,10 @@ A build prepares a complete proposed dataset from saved state. That proposed ver
 
 - Suppression is applied here, last, from `overrides/suppressions.csv`:
   matching entries and judges retain their structural rows and marks while
-  personal names, initials, location, and default IDs become null. Entries
-  receive `link_status = suppressed`. Name-bearing entry and judge IDs become
+  personal names, initials, location, and default IDs become null. A judge
+  printed as initial and surname (`C. REED`) matches a suppressed name whose
+  first word starts with that initial and whose last words are the surname
+  (D-0259). Entries receive `link_status = suppressed`. Name-bearing entry and judge IDs become
   deterministic opaque IDs, with matching changes to marks, chief-judge and
   partner references. Ordinary bib-based structural keys remain intact.
   Suppressed dancers and registry placements are omitted because their WSDC

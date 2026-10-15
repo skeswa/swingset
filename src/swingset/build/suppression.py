@@ -84,6 +84,27 @@ class SuppressionPolicy:
         normalized = f" {_text(value)} "
         return any(f" {name} " in normalized for name in self.names if name)
 
+    def _initial_form(self, value: Any) -> bool:
+        """A judge printed as initial and surname (`C. REED`) matches a full name.
+
+        It matches a suppressed name whose first word starts with the initial
+        and whose last words are the surname (D-0259). Judges only: the form
+        is how SwingDirector prints a panel, and a wider match would hide
+        people who share an initial and surname with the suppressed person.
+        """
+        if not isinstance(value, str):
+            return False
+        words = _text(value).split()
+        if len(words) < 2 or len(words[0]) != 1:
+            return False
+        initial, surname = words[0], words[1:]
+        return any(
+            len(parts) > len(surname)
+            and parts[0].startswith(initial)
+            and parts[-len(surname) :] == surname
+            for parts in (name.split() for name in self.names)
+        )
+
     def _sensitive(self, value: Any, field: str | None = None) -> bool:
         if field and "wsdc_id" in field and value not in (None, ""):
             try:
@@ -108,6 +129,8 @@ class SuppressionPolicy:
             return True
         identifier = row.get("entry_id") or row.get("judge_id")
         if identifier in self.subjects or (table, _key(table, row)) in self.history_keys:
+            return True
+        if table == "judges" and self._initial_form(row.get("name_raw")):
             return True
         return any(
             self._name_match(row.get(field)) for field in ("name_raw", "name_norm")
@@ -160,6 +183,7 @@ class SuppressionPolicy:
                 or self._sensitive(keyed)
                 or self._sensitive(old, field)
                 or self._sensitive(new, field)
+                or (table == "judges" and self._initial_history(old, new, field))
             ):
                 self.history_keys.add((table, key))
                 for value in (old, new):
@@ -192,6 +216,15 @@ class SuppressionPolicy:
             sum(len(values) for parts in self._history_names.values() for values in parts.values()),
         )
         return before != after
+
+    def _initial_history(self, old: Any, new: Any, field: str) -> bool:
+        """Whether a judge change names an initial-form judge the selectors cover."""
+        for value in (old, new):
+            if isinstance(value, Mapping) and self._initial_form(value.get("name_raw")):
+                return True
+            if field == "name_raw" and self._initial_form(value):
+                return True
+        return False
 
     def _scrub_value(self, value: Any, field: str) -> Any:
         if isinstance(value, str) and value in self.subjects:

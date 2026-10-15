@@ -5,16 +5,17 @@ intake.
 
 [All tools](../README.md) · [Investigations](../../investigations/collection.md) · [Evidence](../../evidence/collection/README.md)
 
-| Script                                               | Purpose                                                                                                                     |
-| ---------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| [accept_wayback_event.py](accept_wayback_event.py)   | WP11's one bounded EEPro2019 event-index read; never insert child watches.                                                  |
-| [build_events.py](build_events.py)                   | Build the event CSV from saved calendar snapshots.                                                                          |
-| [build_results_sources.py](build_results_sources.py) | Turn the wcs-results-sources workflow output into journal/evidence/collection/source-survey-2026-09-04/results-sources.csv. |
-| [event_site_review.py](event_site_review.py)         | Print draft `source_urls.csv` proposals from a state copy's retained event-site CDX hits. Read-only; no request.            |
-| [intake_phase1.py](intake_phase1.py)                 | Build, execute, and review the finite v2 phase1 catalog. Never fetch score sheets.                                          |
-| [origin_candidates.py](origin_candidates.py)         | Report origin-fallback candidates and existing origin intents from a state copy. Read-only; no request.                     |
-| [seed_source_urls.py](seed_source_urls.py)           | Print reviewed WDR source URL override candidates from research CSV.                                                        |
-| [wayback_coverage.py](wayback_coverage.py)           | Summarize the 2026-09-11 Wayback CDX coverage checks. Offline; stdlib only.                                                 |
+| Script                                               | Purpose                                                                                                                         |
+| ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| [accept_wayback_event.py](accept_wayback_event.py)   | WP11's one bounded EEPro2019 event-index read; never insert child watches.                                                      |
+| [build_events.py](build_events.py)                   | Build the event CSV from saved calendar snapshots.                                                                              |
+| [build_results_sources.py](build_results_sources.py) | Turn the wcs-results-sources workflow output into journal/evidence/collection/source-survey-2026-09-04/results-sources.csv.     |
+| [event_site_review.py](event_site_review.py)         | Print draft `source_urls.csv` proposals from a state copy's retained event-site CDX hits. Read-only; no request.                |
+| [event_site_links.py](event_site_links.py)           | Read the sites of held WSDC events without results and draft WDR `source_urls.csv` rows. Polite live requests; state read-only. |
+| [intake_phase1.py](intake_phase1.py)                 | Build, execute, and review the finite v2 phase1 catalog. Never fetch score sheets.                                              |
+| [origin_candidates.py](origin_candidates.py)         | Report origin-fallback candidates and existing origin intents from a state copy. Read-only; no request.                         |
+| [seed_source_urls.py](seed_source_urls.py)           | Print reviewed WDR source URL override candidates from research CSV.                                                            |
+| [wayback_coverage.py](wayback_coverage.py)           | Summarize the 2026-09-11 Wayback CDX coverage checks. Offline; stdlib only.                                                     |
 
 ## Original source survey
 
@@ -40,6 +41,27 @@ proposal or gap. Only a unique HTTPS binding in one format carries a
 `source_urls_csv` draft. To adopt it, check the capture, the event and the
 parser, then copy the line into `overrides/source_urls.csv`. Rules:
 [historical sources](../../../docs/plans/historical-sources.md#event-site-candidates-from-retained-cdx-evidence).
+
+## Event-site links
+
+`python -m journal.tools.collection.event_site_links --state <db or copy>
+[--from 2026-01-01] [--to <today>] [--event <id> ...] [--limit 20] [--pages 2]
+[--gap 5] [--max-requests 20] [--overrides overrides/source_urls.csv]
+[--out file.jsonl] [--list]` picks held `wsdc-*` events with a calendar
+website, no contest and no `source_urls.csv` row that ended in the window,
+and reads each site: robots.txt, the home page, then up to `--pages`
+same-site pages whose link mentions results or scores. It makes live
+requests under the [fetching rules](../../../docs/reference/fetching.md) (one
+at a time, at least `--gap` and the `Crawl-delay` apart, never under 2 s,
+project User-Agent, no cookies) and never requests a results platform, an
+asset or a document. Each JSON line lists the WDR ids found, the day each was
+made, other platform links and unread result pages. It drafts a
+`source_urls_csv` row only for one WDR id made in the 400 days before the
+edition ended. `--list` prints the selection and fetches nothing. To adopt a
+row, open the WDR page, check its name and dates, then add the row
+([D-0256](../../decisions/0256-past-wsdc-events-reach-their-calendar-facts-and-wdr-pages.md)).
+On the worker, run it as `swingset` with `PYTHONPATH` at the checkout and
+the release service's `LD_LIBRARY_PATH`; the database opens read-only.
 
 ## Origin candidates
 

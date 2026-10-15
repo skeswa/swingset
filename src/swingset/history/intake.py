@@ -92,6 +92,26 @@ def _snapshot(database: Database, target: Target) -> dict[str, Any] | None:
     return dict(row) if row else None
 
 
+def _live_watch(database: Database, watch_id: str) -> dict[str, Any] | None:
+    """The row of an origin watch on this id, kept across an archive read of its URL."""
+    row = database.connection.execute(
+        "SELECT * FROM watches WHERE watch_id=? AND state NOT IN ('backfill','sealed') "
+        "AND archive_url IS NULL",
+        (watch_id,),
+    ).fetchone()
+    return dict(row) if row else None
+
+
+def _restore_watch(database: Database, row: dict[str, Any]) -> None:
+    """Put back a live watch's row after the archive read (as `transfer` does)."""
+    columns = [key for key in row if key != "watch_id"]
+    with database.transaction() as conn:
+        conn.execute(
+            "UPDATE watches SET " + ",".join(key + "=?" for key in columns) + " WHERE watch_id=?",
+            (*(row[key] for key in columns), row["watch_id"]),
+        )
+
+
 def run_intake(
     database: Database,
     catalog_path: Path,
@@ -191,6 +211,9 @@ def run_intake(
                     }
                     durable_write(ledger_path, canonical(ledger))
                     continue
+            # An archive capture of a live watch's own URL is read on that watch;
+            # its parse seals it. The live watch keeps its row (D-0256).
+            live = _live_watch(database, spec.watch_id) if target.archive_url else None
             try:
                 if snapshot is None:
                     if target.archive_url:
@@ -291,6 +314,9 @@ def run_intake(
                     clock.now().isoformat(),
                     run_id,
                 )
+            finally:
+                if live is not None:
+                    _restore_watch(database, live)
             handled += 1
             durable_write(ledger_path, canonical(ledger))
             print(

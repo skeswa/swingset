@@ -8,6 +8,7 @@ import sqlite3
 from collections.abc import Callable, Iterable, Iterator, Mapping
 from typing import Any
 
+from swingset.sources.phase_one import PHASE1_KINDS, stored_scope_ref
 from swingset.state import body_packs
 
 from .closure_manifest import ClosureError, canonical, digest
@@ -39,17 +40,34 @@ def _accepted(
     return None if report.get("failures") else found
 
 
+def _independent(conn: sqlite3.Connection, row: Mapping[str, Any]) -> bool:
+    """Whether the generation is an archived phase-one capture, its own unit (D-0257).
+
+    Only a phase-one listing kind can be one, so other kinds read nothing more.
+    """
+    if row["page_kind"] not in PHASE1_KINDS:
+        return False
+    found = conn.execute(
+        "SELECT unit_key FROM source_generations WHERE generation_id=?", (row["generation_id"],)
+    ).fetchone()
+    return found is not None and "/" in str(found[0])
+
+
 def _observations(
-    row: Mapping[str, Any], *, recipe: Mapping[str, Any] | None = None
+    row: Mapping[str, Any],
+    *,
+    recipe: Mapping[str, Any] | None = None,
+    independent: bool = False,
 ) -> Iterator[dict[str, Any]]:
     recipe = json.loads(row["recipe_json"]) if recipe is None else recipe
     snapshot = recipe["context"]["snapshot_id"]
+    # An archived listing capture's calendar rows are stored as history (D-0257).
     for seq, observation in enumerate(json.loads(row["result_json"])["observations"]):
         scope = observation["scope"]
         payload = canonical(observation["payload"])
         yield {
             "snapshot_id": snapshot,
-            "scope": [scope["kind"], scope["ref"]],
+            "scope": [scope["kind"], stored_scope_ref(independent, scope["kind"], scope["ref"])],
             "observation_kind": observation["kind"],
             "seq": seq,
             "payload_sha256": hashlib.sha256(payload.encode()).hexdigest(),
@@ -85,7 +103,7 @@ def support(
             "page_kind": row["page_kind"],
             "recipe": recipe,
         }
-        for observation in _observations(row, recipe=recipe):
+        for observation in _observations(row, recipe=recipe, independent=_independent(conn, row)):
             key = (
                 observation["snapshot_id"],
                 tuple(observation["scope"]),
@@ -245,7 +263,7 @@ def selected_observations(
                 row = _accepted(conn, identifier)
                 if row is None:
                     raise ClosureError("selected_source_support_changed")
-                recipes[identifier] = list(_observations(row))
+                recipes[identifier] = list(_observations(row, independent=_independent(conn, row)))
             for observation in recipes[identifier]:
                 if (
                     observation["payload_sha256"] == item["payload_sha256"]

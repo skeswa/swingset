@@ -54,8 +54,11 @@ weekly session.
 2. [PostgreSQL and Dokploy migration](postgres-migration/README.md): a target,
    not started.
 3. Step Right archive-only index bootstrap and `recognize` rules, then DCN's
-   modern payload (M4): the acquisition paths V5's new sources still lack
+   score PDFs (M4): the acquisition paths V5's new sources still lack
    ([plan note](history-and-recovery.md#event-completion-follow-up-in-v6)).
+   DCN's results payload is built (D-0255, finals only); its PDFs add prelims,
+   bibs and marks but print names the results tab masks, so they need a rule
+   for masked dancers first ([guide](../reference/sources/danceconvention.md#13-open-items)).
    This is release work, queued here only until the parse backlog drains.
 4. [Derivation invalidation](derivation-invalidation.md): measured and planned
    on 2026-09-23; steps 1, 2 and 5 are implemented offline as the target
@@ -227,6 +230,18 @@ weekly session.
     leaf modules. A `recipe_scope` test pins that one kind's rule edit changes
     only that kind's parse scope. The re-queue also tripped backpressure and
     held fetching for an hour (D-0243). Do this before row-level result holds.
+    Next: the owner chose on 2026-10-15 to ship it in one deploy with the
+    finished but undeployed D-0255 (danceconvention.net), D-0256 (calendar
+    adoption and the intake fix), D-0258 (SwingDirector PDFs) and D-0257
+    (the calendar contract, in shadow), which also change every scope.
+    D-0257's writer fix must be deployed before the calendar watch reopens:
+    without it the first live capture deletes the 2026-08-13 Wayback rows. That deploy adds the three approved override rows
+    (Charlotte WestieFest's WDR link in `source_urls.csv`; `ATX ROX 2026 - West
+Coast Swing Magic` to `wsdc-300` and `KOREA WESTIVAL 2026_10th Anniversary`
+    to `wsdc-268` in `series_aliases.csv`; exact text in
+    [the investigation](../../journal/investigations/2026/missing-2026-results-2026-10-15.md))
+    and then reopens the sealed WSDC calendar watch `c6f6cc3dde20493f` with
+    receipts. Do not edit `overrides/` before then: production reads it live.
 21. Re-admit the 309 scoring.dance event pages whose stored observations carry
     older labels than their accepted generation, so releases can use them; the
     contract 5 re-parse repeats their generation and does not rewrite them
@@ -332,3 +347,25 @@ weekly session.
     their page counts (`event_evidence_byte_budget`); and
     `2026-09-global-grand-prix-wcs` (`wsdc-342`) still publishes empty beside
     the `wsdc-409` event.
+34. Read `J&J` and `JnJ` as Jack and Jill in `normalize/divisions`. It matches
+    only "jack" and "jill", so DCN contests such as `Novice J&J` and
+    `JnJ novice` (seven of the 14 DCN events of 2026) project as contest type
+    `other` and lose points eligibility; other sources' contests with those
+    names change too ([investigation](../../journal/investigations/2026/dcn-results-source-2026-10-15.md#gaps-left)).
+35. Activate the WSDC calendar contract (D-0257, release work). It dates 42
+    published events, the 21 registry-only 2026 events among them, and adds
+    341, 29 of them held registry occurrences ([measurement](../../journal/investigations/2026/calendar-contract-2026-10-15.md)).
+    First, in `project/history.py`: a listing whose name gains a note
+    (`Bavarian Open (Cancelled due to Covid-19)`) must update its edition's
+    row, not add a twin (153 twins would publish); and the history row
+    should carry the listing's city, region and country (five September
+    2026 events would lose theirs; 304 events would gain one). Built in the
+    working copy as [D-0260](../../journal/decisions/0260-an-unreported-edition-is-one-row-per-series-and-month.md)
+    (2026-10-15) and simulated read-only with the contract active: twin
+    groups 165 to 1 (Korea Westival 2020, which one capture dates twice),
+    184 twin rows removed, events 2,191 to 2,351, cities 165 to 391. No
+    published event loses dates or place except the stale `wsdc-342` Global
+    Grand Prix 2026 row, whose place is on the held `wsdc-409` row; Monterey
+    Swingfest 2021, published twice, becomes one event. Then record
+    an independent review of a contract-1 cohort and activate it with
+    `swingset contract activate`, with preflight and post-check receipts.

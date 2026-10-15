@@ -956,3 +956,393 @@ def test_a_year_waits_for_the_events_reported_in_its_months(tmp_path):
             if unit.unit_kind == "event"
         }
         assert earlier == {"december", "elsewhere"}
+
+
+def _registry_months(conn, snapshot, *months):
+    """Dancer 1's registry page reporting Example Swing (wsdc-7) in each month."""
+    payload = DancerLookup(
+        "dancer_lookup",
+        "found",
+        1,
+        1,
+        first_name="Test",
+        last_name="Dancer",
+        primary_role_raw="L",
+        placements=tuple(
+            RegistryPlacement("leader", "NOV", "7", "Example Swing", month, "1", 1, "wcs")
+            for month in months
+        ),
+    )
+    conn.execute("DELETE FROM observations WHERE scope_kind='dancer'")
+    evidence(conn, payload, snapshot=snapshot)
+    replace_scope(
+        conn,
+        scope_kind="dancer",
+        scope_id="1",
+        projection=project_dancer(conn, "1", NOW, "run"),
+        run_id="run",
+        projected_at=NOW,
+    )
+
+
+def test_a_listed_edition_of_a_known_series_becomes_the_held_occurrence(tmp_path):
+    """Listings printed before the registry reports their edition wrote rows
+    of the known series that stay `listed` (Austin Rocks, WCS Party 2026).
+    When the registry reports it, the row the WSDC calendar listed becomes
+    the held occurrence even when another row sorts first, and its
+    placements land there (D-0256)."""
+
+    def listed(event_id, source, history):
+        conn.execute(
+            "INSERT INTO events(event_id,series_id,name,year,start_date,end_date,wsdc_status,"
+            "sources,source,snapshot_id,parser_version,first_seen_at,last_seen_at,run_id,"
+            "event_month,date_precision,held,coverage_tier,history_source) VALUES "
+            "(?,'wsdc-7',?,2012,'2012-08-03','2012-08-05','registry',?,?,'s','1',?,?,'run',"
+            "'2012-08','day','listed','index_only',?)",
+            (event_id, event_id, f'["{source}"]', source, NOW, NOW, f'["{history}"]'),
+        )
+
+    with open_database(tmp_path) as db:
+        conn = db.connection
+        conn.execute(
+            "INSERT INTO runs(run_id,started_at,finished_at,dry_run,summary_json) VALUES ('run',?,NULL,1,NULL)",
+            (NOW,),
+        )
+        _registry_months(conn, "registry-2011", "August 2011")
+        reconcile_history(conn, now=NOW, run_id="run")
+        listed("2012-08-example-party", "eepro", "platform")
+        listed("2012-08-example-swing", "wsdc_calendar", "calendar")
+        _registry_months(conn, "registry-2012", "August 2011", "August 2012")
+        reconcile_history(conn, now=NOW, run_id="run")
+        query = "SELECT event_id,held,wsdc_status FROM events WHERE year=2012 ORDER BY 1"
+        assert [tuple(row) for row in conn.execute(query)] == [
+            ("2012-08-example-party", "listed", "registry"),
+            ("2012-08-example-swing", "held", "registry"),
+        ]
+        assert {
+            row[0]
+            for row in conn.execute(
+                "SELECT event_id FROM registry_placements WHERE event_month LIKE '2012%'"
+            )
+        } == {"2012-08-example-swing"}
+        assert not conn.execute(
+            "SELECT 1 FROM findings WHERE owner_kind='history_year' AND closed_at IS NULL"
+        ).fetchone()
+        assert not reconcile_history(conn, now=NOW, run_id="run")
+
+
+def test_an_unreported_editions_results_row_takes_its_calendar_status_and_place(tmp_path):
+    """Before the registry reports an edition, the row its results listing
+    made keeps its id and header, and takes the status and place of the
+    edition's calendar listing, which keeps its own row (D-0260)."""
+    aliases = b"printed_name,series_id,source,note\nExample Party,wsdc-7,eepro,reviewed\n"
+    with open_database(tmp_path) as db:
+        conn = db.connection
+        conn.execute(
+            "INSERT INTO runs(run_id,started_at,finished_at,dry_run,summary_json) VALUES ('run',?,NULL,1,NULL)",
+            (NOW,),
+        )
+        _registry_months(conn, "registry-2011", "August 2011")
+        calendar = CalendarRow(
+            "calendar_row",
+            "Example Swing",
+            "2012-08-03",
+            "2012-08-06",
+            "Trial Event",
+            "Raleigh, North Carolina, USA",
+            "https://example-swing.test/",
+            "USA",
+            (),
+        )
+        evidence(conn, calendar, source="wsdc_calendar", scope="calendar", ref="wsdc", snapshot="c")
+        _platform_listing(
+            conn, "eepro", "eepro:party", "Example Party 2012", "2012-08-04", "2012-08-04", "e"
+        )
+        reconcile_history(conn, now=NOW, run_id="run", aliases=aliases)
+        query = (
+            "SELECT event_id,series_id,held,wsdc_status,sources,city FROM events "
+            "WHERE year=2012 ORDER BY 1"
+        )
+        assert [tuple(row) for row in conn.execute(query)] == [
+            ("2012-08-example-party", "wsdc-7", "listed", "trial", '["eepro"]', "Raleigh"),
+            ("2012-08-example-swing", "wsdc-7", "listed", "trial", '["wsdc_calendar"]', "Raleigh"),
+        ]
+
+
+def test_a_cancelled_edition_is_never_adopted(tmp_path):
+    """A row the calendar marked cancelled stays cancelled when the registry
+    reports its series and month; a `listed` row is adopted instead, and
+    with only the cancelled row nothing is adopted (D-0256)."""
+    from swingset.model.canonical import Event
+    from swingset.project.writer import Projection
+
+    def row(event_id, held):
+        return Event(
+            event_id=event_id,
+            series_id="wsdc-7",
+            name="Example Swing",
+            year=2012,
+            start_date="2012-08-03",
+            end_date="2012-08-05",
+            event_month="2012-08",
+            held=held,
+            wsdc_status="registry",
+            sources=("wsdc_calendar",),
+            source="wsdc_calendar",
+            snapshot_id="c",
+            parser_version="7",
+            first_seen_at=NOW,
+            last_seen_at=NOW,
+            run_id="run",
+        )
+
+    with open_database(tmp_path) as db:
+        conn = db.connection
+        conn.execute(
+            "INSERT INTO runs(run_id,started_at,finished_at,dry_run,summary_json) VALUES ('run',?,NULL,1,NULL)",
+            (NOW,),
+        )
+        replace_scope(
+            conn,
+            scope_kind="calendar",
+            scope_id="wsdc",
+            projection=Projection((row("2012-08-a-cancelled", "cancelled"),)),
+            run_id="run",
+            projected_at=NOW,
+        )
+        _registry_months(conn, "registry-2012", "August 2012")
+        reconcile_history(conn, now=NOW, run_id="run")
+        query = "SELECT event_id,held FROM events WHERE year=2012 ORDER BY 1"
+        assert [tuple(r) for r in conn.execute(query)] == [("2012-08-a-cancelled", "cancelled")]
+        replace_scope(
+            conn,
+            scope_kind="calendar",
+            scope_id="wsdc",
+            projection=Projection(
+                (row("2012-08-a-cancelled", "cancelled"), row("2012-08-b-listed", "listed"))
+            ),
+            run_id="run",
+            projected_at=NOW,
+        )
+        reconcile_history(conn, now=NOW, run_id="run")
+        assert [tuple(r) for r in conn.execute(query)] == [
+            ("2012-08-a-cancelled", "cancelled"),
+            ("2012-08-b-listed", "held"),
+        ]
+
+
+def _calendar(conn, snapshot, *rows, observed):
+    """One calendar capture observed at ``observed`` listing ``rows``."""
+    for seq, row in enumerate(rows):
+        if seq == 0:
+            evidence(
+                conn, row, source="wsdc_calendar", scope="calendar", ref="wsdc", snapshot=snapshot
+            )
+        else:
+            conn.execute(
+                "INSERT INTO observations VALUES (?,?,?,?,'calendar','wsdc',?,'1','1',?)",
+                (
+                    f"obs-{snapshot}-{seq}",
+                    "watch-" + snapshot,
+                    snapshot,
+                    row.kind,
+                    seq,
+                    encode_payload(row),
+                ),
+            )
+    conn.execute("UPDATE snapshots SET observed_at=? WHERE snapshot_id=?", (observed, snapshot))
+
+
+def _listing(name, start, end, location="Raleigh, North Carolina, USA", flag="USA"):
+    return CalendarRow("calendar_row", name, start, end, "registry", location, None, flag, ())
+
+
+def test_an_annotated_listing_updates_its_edition_and_carries_the_place(tmp_path):
+    """A calendar name that gains a note ("(Cancelled due to Covid-19)") is the
+    same edition of its series: it updates that row, a twin row an earlier run
+    wrote goes, and the row takes the newest listing's city, region and
+    country. One capture that dates two spans keeps two rows (D-0256)."""
+    aliases = (
+        b"printed_name,series_id,source,note\n"
+        b"Example Swing,wsdc-7,wsdc_calendar,reviewed\n"
+        b"Example Swing (Cancelled due to Covid-19),wsdc-7,wsdc_calendar,reviewed\n"
+        b"Other Swing,wsdc-8,wsdc_calendar,reviewed\n"
+        b"Other Swing (Cancelled due to Covid-19),wsdc-8,wsdc_calendar,reviewed\n"
+    )
+    with open_database(tmp_path) as db:
+        conn = db.connection
+        conn.execute(
+            "INSERT INTO runs(run_id,started_at,finished_at,dry_run,summary_json) VALUES ('run',?,NULL,1,NULL)",
+            (NOW,),
+        )
+        _calendar(
+            conn,
+            "c1",
+            _listing(
+                "Example Swing", "2012-08-03", "2012-08-05", "Raleigh, NC, North Carolina, USA"
+            ),
+            observed="2012-01-01T00:00:00+00:00",
+        )
+        reconcile_history(conn, now=NOW, run_id="run", aliases=aliases)
+        # The twin an earlier inventory wrote for the annotated name.
+        conn.execute(
+            "INSERT INTO events(event_id,series_id,name,year,start_date,end_date,wsdc_status,sources,"
+            "source,snapshot_id,parser_version,first_seen_at,last_seen_at,run_id,event_month,"
+            "date_precision,held,coverage_tier,history_source) SELECT "
+            "'2012-08-example-swing-cancelled-due-to-covid-19',series_id,name,year,start_date,"
+            "end_date,wsdc_status,sources,source,snapshot_id,parser_version,first_seen_at,"
+            "last_seen_at,run_id,event_month,date_precision,'cancelled',coverage_tier,history_source "
+            "FROM events WHERE event_id='2012-08-example-swing'"
+        )
+        _calendar(
+            conn,
+            "c2",
+            _listing(
+                "Example Swing (Cancelled due to Covid-19)",
+                "2012-08-03",
+                "2012-08-05",
+                "Durham, North Carolina, USA",
+                "transparent",
+            ),
+            _listing("Other Swing", "2012-08-03", "2012-08-05"),
+            _listing("Other Swing (Cancelled due to Covid-19)", "2012-08-24", "2012-08-26"),
+            observed="2012-06-01T00:00:00+00:00",
+        )
+        reconcile_history(conn, now=NOW, run_id="run", aliases=aliases)
+        query = (
+            "SELECT event_id,series_id,held,start_date,city,region,country FROM events "
+            "WHERE year=2012 ORDER BY 1"
+        )
+        assert [tuple(row) for row in conn.execute(query)] == [
+            (
+                "2012-08-example-swing",
+                "wsdc-7",
+                "cancelled",
+                "2012-08-03",
+                "Durham",
+                "North Carolina",
+                "USA",
+            ),
+            (
+                "2012-08-other-swing",
+                "wsdc-8",
+                "listed",
+                "2012-08-03",
+                "Raleigh",
+                "North Carolina",
+                "USA",
+            ),
+            (
+                "2012-08-other-swing-cancelled-due-to-covid-19",
+                "wsdc-8",
+                "cancelled",
+                "2012-08-24",
+                "Raleigh",
+                "North Carolina",
+                "USA",
+            ),
+        ]
+        assert not conn.execute(
+            "SELECT 1 FROM findings WHERE owner_kind='history_year' AND closed_at IS NULL"
+        ).fetchone()
+        assert not reconcile_history(conn, now=NOW, run_id="run", aliases=aliases)
+
+
+def _twin(conn, of, event_id):
+    """The row an earlier inventory wrote for an annotated name of ``of``'s edition."""
+    conn.execute(
+        "INSERT INTO events(event_id,series_id,name,year,start_date,end_date,wsdc_status,sources,"
+        "source,snapshot_id,parser_version,first_seen_at,last_seen_at,run_id,event_month,"
+        "date_precision,held,coverage_tier,history_source) SELECT ?,series_id,name,year,"
+        "start_date,end_date,wsdc_status,sources,source,snapshot_id,parser_version,first_seen_at,"
+        "last_seen_at,run_id,event_month,date_precision,held,coverage_tier,history_source "
+        "FROM events WHERE event_id=?",
+        (event_id, of),
+    )
+
+
+def test_an_edition_takes_the_calendar_marks_of_all_its_listings(tmp_path):
+    """A newsletter read in 2026 without the note does not undo the calendar's
+    "(Cancelled due to Coronavirus)" or trial mark; a later "(ON HIATUS)"
+    re-listing beside an unmarked one does not cancel the edition; a twin
+    that a listing's map row still names stays (D-0260)."""
+    aliases = (
+        b"printed_name,series_id,source,note\n"
+        b"Tea Party,wsdc-9,wsdc_calendar,reviewed\n"
+        b"Tea Party (Cancelled due to Coronavirus),wsdc-9,wsdc_calendar,reviewed\n"
+        b"Crush,wsdc-10,wsdc_calendar,reviewed\n"
+        b"Crush Trial Event,wsdc-10,wsdc_calendar,reviewed\n"
+        b"Niagara Championships,wsdc-11,swingdancecouncil,reviewed\n"
+        b"Niagara Champ's (ON HIATUS),wsdc-11,swingdancecouncil,reviewed\n"
+    )
+
+    def listing(name, start, end, kind="Registry Event", classes=()):
+        return CalendarRow(
+            "calendar_row", name, start, end, kind, "Boston, MA, USA", None, "USA", classes
+        )
+
+    with open_database(tmp_path) as db:
+        conn = db.connection
+        conn.execute(
+            "INSERT INTO runs(run_id,started_at,finished_at,dry_run,summary_json) VALUES ('run',?,NULL,1,NULL)",
+            (NOW,),
+        )
+        _calendar(
+            conn,
+            "c1",
+            listing("Tea Party", "2012-03-19", "2012-03-22"),
+            listing(
+                "Crush Trial Event", "2012-02-16", "2012-02-18", "Trial Event", ("event-trial",)
+            ),
+            observed="2011-07-01T00:00:00+00:00",
+        )
+        reconcile_history(conn, now=NOW, run_id="run", aliases=aliases)
+        _twin(conn, "2012-03-tea-party", "2012-03-tea-party-cancelled-due-to-coronavirus")
+        _twin(conn, "2012-03-tea-party", "2012-03-tea-party-mapped")
+        conn.execute(
+            "INSERT INTO source_event_map VALUES ('eepro','eepro:tea','2012-03-tea-party-mapped','name_date',0.5)"
+        )
+        _calendar(
+            conn,
+            "c2",
+            listing("Tea Party (Cancelled due to Coronavirus)", "2012-03-19", "2012-03-22"),
+            observed="2012-08-01T00:00:00+00:00",
+        )
+        for snapshot, row, source, observed in (
+            (
+                "n1",
+                listing("Tea Party", "2012-03-19", "2012-03-22", "registry"),
+                "wsdc_newsletter",
+                NOW,
+            ),
+            (
+                "n2",
+                listing("Crush", "2012-02-16", "2012-02-18", "registry"),
+                "wsdc_newsletter",
+                NOW,
+            ),
+            (
+                "s1",
+                listing("Niagara Championships", "2012-09-20", "2012-09-23", "registry"),
+                "swingdancecouncil",
+                "2011-12-28T00:00:00+00:00",
+            ),
+            (
+                "s2",
+                listing("Niagara Champ's (ON HIATUS)", "2012-09-20", "2012-09-23", "registry"),
+                "swingdancecouncil",
+                "2012-09-21T00:00:00+00:00",
+            ),
+        ):
+            evidence(conn, row, source=source, scope="calendar", ref="wsdc", snapshot=snapshot)
+            conn.execute(
+                "UPDATE snapshots SET observed_at=? WHERE snapshot_id=?", (observed, snapshot)
+            )
+        reconcile_history(conn, now=NOW, run_id="run", aliases=aliases)
+        query = "SELECT event_id,held,wsdc_status FROM events WHERE year=2012 ORDER BY 1"
+        assert [tuple(row) for row in conn.execute(query)] == [
+            ("2012-02-crush-trial-event", "listed", "trial"),
+            ("2012-03-tea-party", "cancelled", "registry"),
+            ("2012-03-tea-party-mapped", "listed", "registry"),
+            ("2012-09-niagara-champ-s", "listed", "registry"),
+        ]

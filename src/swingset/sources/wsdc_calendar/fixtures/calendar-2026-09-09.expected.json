@@ -33,7 +33,7 @@
     "website": "http://www.swingtimewcs.com"
   },
   {
-    "country_code_raw": "transparent",
+    "country_code_raw": null,
     "end_date_raw": "2026-09-13",
     "event_type_raw": "Registry Event",
     "kind": "calendar_row",
@@ -470,7 +470,7 @@
     "website": "http://Seatoskywcs.com"
   },
   {
-    "country_code_raw": "transparent",
+    "country_code_raw": null,
     "end_date_raw": "2026-11-08",
     "event_type_raw": "Registry Event",
     "kind": "calendar_row",
@@ -887,7 +887,7 @@
     "website": "https://charlottewestiefest.com/"
   },
   {
-    "country_code_raw": "transparent",
+    "country_code_raw": null,
     "end_date_raw": "2027-02-07",
     "event_type_raw": "Registry Event",
     "kind": "calendar_row",
@@ -1052,7 +1052,7 @@
     "website": "https://www.wintercoastswing.com"
   },
   {
-    "country_code_raw": "",
+    "country_code_raw": null,
     "end_date_raw": "2027-02-28",
     "event_type_raw": "Registry Event",
     "kind": "calendar_row",
@@ -1320,7 +1320,7 @@
     "website": "http://swingoverevent.com"
   },
   {
-    "country_code_raw": "transparent",
+    "country_code_raw": null,
     "end_date_raw": "2027-04-25",
     "event_type_raw": "Registry Event",
     "kind": "calendar_row",
@@ -1331,7 +1331,7 @@
     "website": "https://t.me/honeyfest"
   },
   {
-    "country_code_raw": "",
+    "country_code_raw": null,
     "end_date_raw": "2027-04-26",
     "event_type_raw": "Registry Event",
     "kind": "calendar_row",
@@ -1676,7 +1676,7 @@
     "website": "https://revitalisewcs.melbourne/"
   },
   {
-    "country_code_raw": "transparent",
+    "country_code_raw": null,
     "end_date_raw": "2027-07-25",
     "event_type_raw": "Registry Event",
     "kind": "calendar_row",
@@ -1896,7 +1896,7 @@
     "website": "https://www.atlantaswingclassic.com/"
   },
   {
-    "country_code_raw": "",
+    "country_code_raw": null,
     "end_date_raw": "2029-02-18",
     "event_type_raw": "Registry Event",
     "kind": "calendar_row",

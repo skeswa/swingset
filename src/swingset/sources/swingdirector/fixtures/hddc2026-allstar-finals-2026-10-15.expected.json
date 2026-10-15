@@ -1,0 +1,162 @@
+{
+ "observations": [
+  {
+   "contest_name_raw": "WSDC All Star Jack & Jill",
+   "footer_raw": "SwingDirector.com © 2026 support@swingdirector.com",
+   "judges_raw": [
+    "D. CARL",
+    "L. BRETZ",
+    "M. PABLO",
+    "M. ADAMS",
+    "R. EADS"
+   ],
+   "kind": "swingdirector_round_sheet",
+   "layout": "final",
+   "pages": [
+    1
+   ],
+   "role_raw": null,
+   "round_name_raw": "Scores",
+   "rows": [
+    {
+     "bib_raw": "329",
+     "entry_raw": "BRIAN SFORZO / TASHINA BECKMANN-KING",
+     "heat_raw": null,
+     "marks_raw": [
+      "2",
+      "1",
+      "2",
+      "1",
+      "1"
+     ],
+     "place_raw": "1",
+     "tally_raw": [
+      "3(3)",
+      "5(7)",
+      "5(7)",
+      "5(7)",
+      "5(7)",
+      "5(7)"
+     ]
+    },
+    {
+     "bib_raw": "304",
+     "entry_raw": "DIEGO RIVERA / TAYLOR LINAHAN",
+     "heat_raw": null,
+     "marks_raw": [
+      "1",
+      "3",
+      "1",
+      "2",
+      "4"
+     ],
+     "place_raw": "2",
+     "tally_raw": [
+      "2(2)",
+      "3(4)",
+      "4(7)",
+      "5(11)",
+      "5(11)",
+      "5(11)"
+     ]
+    },
+    {
+     "bib_raw": "314",
+     "entry_raw": "BEN O'NEAL / ASHLEY BROUSSARD",
+     "heat_raw": null,
+     "marks_raw": [
+      "3",
+      "2",
+      "3",
+      "4",
+      "3"
+     ],
+     "place_raw": "3",
+     "tally_raw": [
+      "0(0)",
+      "1(2)",
+      "4(11)",
+      "5(15)",
+      "5(15)",
+      "5(15)"
+     ]
+    },
+    {
+     "bib_raw": "336",
+     "entry_raw": "NICK KING / BELLA VIRAMONTES",
+     "heat_raw": null,
+     "marks_raw": [
+      "5",
+      "4",
+      "4",
+      "3",
+      "2"
+     ],
+     "place_raw": "4",
+     "tally_raw": [
+      "0(0)",
+      "1(2)",
+      "2(5)",
+      "4(13)",
+      "5(18)",
+      "5(18)"
+     ]
+    },
+    {
+     "bib_raw": "148",
+     "entry_raw": "MIKE CARRINGER / KHRYSTYNA CUSIMANO",
+     "heat_raw": null,
+     "marks_raw": [
+      "4",
+      "5",
+      "5",
+      "6",
+      "5"
+     ],
+     "place_raw": "5",
+     "tally_raw": [
+      "0(0)",
+      "0(0)",
+      "0(0)",
+      "1(4)",
+      "4(19)",
+      "5(25)"
+     ]
+    },
+    {
+     "bib_raw": "429",
+     "entry_raw": "OMAR GONZALEZ / MINDY HALLADAY",
+     "heat_raw": null,
+     "marks_raw": [
+      "6",
+      "6",
+      "6",
+      "5",
+      "6"
+     ],
+     "place_raw": "6",
+     "tally_raw": [
+      "0(0)",
+      "0(0)",
+      "0(0)",
+      "0(0)",
+      "1(5)",
+      "5(29)"
+     ]
+    }
+   ],
+   "source_event_ref": "swingdirector:fixture-event",
+   "source_round_ref": "swingdirector:bec801c460e9d596:1",
+   "tally_headers_raw": [
+    "C1",
+    "C2",
+    "C3",
+    "C4",
+    "C5",
+    "C6"
+   ],
+   "title_raw": "WSDC All Star Jack & Jill - Scores"
+  }
+ ],
+ "warnings": []
+}

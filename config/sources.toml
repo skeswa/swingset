@@ -28,6 +28,12 @@ index_urls = [
 enabled = true
 index_urls = []
 
+# danceconvention.net: the events archive and WSDC results tabs (D-0255).
+# Off until the rollout in docs/reference/sources/danceconvention.md §14.
+[sources.dcn]
+enabled = false
+index_urls = ["https://danceconvention.net/eventdirector/en/eventsarchive"]
+
 # Each acquisition phase ends with up to this many seconds of CDX index
 # queries for the enabled platforms, one per source, prefix and capture year;
 # finished years are queried once (D-0184). Unset disables the step.

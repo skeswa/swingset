@@ -66,6 +66,9 @@ def overrides(files: Mapping[str, bytes]) -> dict[tuple[str, str], str]:
                 from swingset.sources.wdr import source_ref_from_url
 
                 ref = source_ref_from_url(row["url"])
+            if not ref and source == "swingdirector" and target:
+                # One PDF row per file; its watch's reference names the event.
+                ref = f"swingdirector:{target}"
             if source and ref and target:
                 result[(source, ref)] = target
     return result

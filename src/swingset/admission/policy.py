@@ -42,7 +42,15 @@ def record_review(
             (identifier,),
         ).fetchone()
         contracts.add((row[0], row[1]))
-        passing |= not json.loads(row[2])["failures"]
+        report = json.loads(row[2])
+        if "failures" not in report:
+            # A packed body leaves a stub here (phase 4); a review must read
+            # the report it names.
+            raise ValueError(
+                f"Generation {identifier} has a packed report; restore it with "
+                "`swingset storage restore-body` before reviewing it"
+            )
+        passing |= not report["failures"]
     if len(contracts) != 1 or not passing:
         raise ValueError("A review covers one contract version and includes a passing control")
     page_kind, version = contracts.pop()

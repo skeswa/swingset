@@ -21,6 +21,9 @@ ADAPTERS: dict[str, str] = {
     "swingdancecouncil": "swingset.sources.swingdancecouncil.adapter",
     "wsdc_newsletter": "swingset.sources.wsdc_newsletter.adapter",
     "steprightsolutions": "swingset.sources.steprightsolutions.adapter",
+    # The live archive and results kinds; `dcn/adapter.py` keeps the offline ones.
+    "dcn": "swingset.sources.dcn.live",
+    "swingdirector": "swingset.sources.swingdirector.adapter",
 }
 
 KIND_OWNERS: dict[str, str] = {
@@ -41,6 +44,9 @@ KIND_OWNERS: dict[str, str] = {
     "steprightsolutions.event": "steprightsolutions",
     "steprightsolutions.index": "steprightsolutions",
     "steprightsolutions.round": "steprightsolutions",
+    "dcn.archive": "dcn",
+    "dcn.event": "dcn",
+    "swingdirector.round": "swingdirector",
 }
 
 

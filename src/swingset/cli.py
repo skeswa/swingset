@@ -150,6 +150,27 @@ def parser() -> argparse.ArgumentParser:
     )
     relabel.add_argument("--by", help="apply: who asks, the operator and session")
     relabel.add_argument("--json", action="store_true", help="list: every unit, as JSON")
+    contract = commands.add_parser(
+        "contract",
+        parents=[shared],
+        help="Show a page kind's admission policy, or activate or pause its reviewed contract",
+    )
+    contract.add_argument("action", choices=("status", "activate", "pause"))
+    contract.add_argument("--kind", required=True, help="page kind, e.g. wsdc_calendar.events")
+    contract.add_argument(
+        "--generation",
+        action="append",
+        default=[],
+        metavar="ID",
+        help="activate: a reviewed cohort generation; repeatable",
+    )
+    contract.add_argument(
+        "--cohort",
+        type=Path,
+        help="activate: JSON list of generation ids or of objects with `generation_id`",
+    )
+    contract.add_argument("--by", help="activate, pause: the reviewer or operator and session")
+    contract.add_argument("--evidence", help="activate: where the written review is")
     hold = commands.add_parser("hold", parents=[shared])
     hold.add_argument("action", choices=("add", "list", "remove"))
     hold.add_argument("--generation", action="append", default=[], metavar="ID", help="repeatable")
@@ -1516,6 +1537,41 @@ def _relabel(args: argparse.Namespace) -> int:
     return 0
 
 
+def _contract(args: argparse.Namespace) -> int:
+    """A page kind's admission policy: status, or activate or pause it.
+
+    `status` opens read-only. `activate` and `pause` take the exclusive
+    lock, change the policy in one transaction and print a receipt-ready
+    JSON with the counts before and after. Run them under `operator-hold`
+    with the loops stopped ([operation guide](../../docs/guides/operation.md)).
+    """
+    from swingset.admission import activation
+
+    clock = SystemClock()
+    if args.action == "status":
+        if args.by or args.evidence or args.generation or args.cohort:
+            raise ValueError("`contract status` takes only --kind")
+        with open_database(args.state, lock=False, read_only=True) as database:
+            print(json.dumps(activation.status(database.connection, args.kind), indent=2))
+        return 0
+    cohort = list(args.generation)
+    if args.cohort is not None:
+        listed = json.loads(args.cohort.read_bytes())
+        cohort += [item["generation_id"] if isinstance(item, dict) else item for item in listed]
+    with open_database(args.state, lock_timeout=args.lock_timeout) as database:
+        now = clock.now().isoformat()
+        if args.action == "activate":
+            result = activation.activate(
+                database, args.kind, cohort, by=args.by or "", evidence=args.evidence or "", now=now
+            )
+        else:
+            if cohort or args.evidence:
+                raise ValueError("`contract pause` takes --kind and --by")
+            result = activation.pause(database, args.kind, by=args.by or "", now=now)
+    print(json.dumps(result, indent=2))
+    return 0
+
+
 def _accept_year(args: argparse.Namespace) -> int:
     """Record a reviewed year's event list as accepted, then store its year in chunks.
 
@@ -1901,6 +1957,12 @@ def main(argv: list[str] | None = None) -> int:
         try:
             return _verify_derivations(args)
         except (OSError, ValueError, RuntimeError) as exc:
+            log("error", message=f"{type(exc).__name__}: {exc}")
+            return 1
+    if args.command == "contract":
+        try:
+            return _contract(args)
+        except (OSError, ValueError, RuntimeError, sqlite3.Error, DatabaseLockedError) as exc:
             log("error", message=f"{type(exc).__name__}: {exc}")
             return 1
     if args.command == "relabel":

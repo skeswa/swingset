@@ -254,3 +254,41 @@ def test_history_discovery_reaches_fixed_point_before_any_alias_is_emitted():
     assert passes >= 2
     assert list(policy.filter_changelog(iter(history))) == []
     assert len(policy.history_keys) == 2
+
+
+def test_a_name_suppression_covers_a_judge_printed_as_initial_and_surname():
+    def rows():
+        return {
+            "judges": [
+                {"judge_id": "event/judge/c-reed", "name_raw": "C. REED", "initials": "C. REED"},
+                {"judge_id": "event/judge/t-beckmann-king", "name_raw": "T. BECKMANN KING"},
+                {"judge_id": "event/judge/m-adams", "name_raw": "M. ADAMS"},
+            ],
+            "final_marks": [{"placement_id": "p", "judge_id": "event/judge/c-reed", "rank": 1}],
+            "dancers": [{"wsdc_id": 7, "first_name": "Tessa", "last_name": "Beckmann King"}],
+        }
+
+    named = rows()
+    apply_suppressions(named, [{"name_norm": "Carol Ann Reed"}])
+    reed, beckmann, adams = named["judges"]
+    assert reed["name_raw"] is None and reed["initials"] is None
+    assert reed["judge_id"].startswith("suppressed-")
+    assert named["final_marks"][0] == {"placement_id": "p", "judge_id": reed["judge_id"], "rank": 1}
+    assert beckmann["name_raw"] == "T. BECKMANN KING" and adams["name_raw"] == "M. ADAMS"
+
+    by_id = rows()
+    apply_suppressions(by_id, [{"wsdc_id": "7"}])
+    assert [row["name_raw"] for row in by_id["judges"]] == ["C. REED", None, "M. ADAMS"]
+
+    other = rows()
+    apply_suppressions(other, [{"name_norm": "Chris Reid"}, {"name_norm": "Carol Ready"}])
+    assert [row["name_raw"] for row in other["judges"]] == [
+        "C. REED",
+        "T. BECKMANN KING",
+        "M. ADAMS",
+    ]
+
+    policy = apply_suppressions({}, [{"name_norm": "Carol Reed"}])
+    history = [change("judges", ["event/judge/c-reed"], "name_raw", None, "C. REED")]
+    policy.discover_history(iter(history))
+    assert list(policy.filter_changelog(iter(history))) == []

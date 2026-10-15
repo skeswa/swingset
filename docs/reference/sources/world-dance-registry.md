@@ -50,17 +50,20 @@ There is no index. Three feeders, in order:
 
 1. `overrides/source_urls.csv` rows with `source = worlddanceregistry`
    (the research CSV already has 14).
-2. The event-site link scan: the event's own website (from the WSDC
-   calendar) is fetched daily from 14 days before the event through 30
-   days after it, until a link to `scores.worlddanceregistry.com/<uuid>`
-   or another results platform is found. WDR links usually appear
-   during or after the event, so the scan cannot stop at the start.
-   This is the only automatic path.
+2. The event-site link report,
+   [`event_site_links.py`](../../../journal/tools/collection/event_site_links.py):
+   for held WSDC events without results, it reads the event's own
+   website (from the WSDC calendar) and its results pages, and drafts a
+   `source_urls.csv` row for the one WDR id made in the 400 days before
+   the edition ended. Results pages often list every year's WDR link.
+   A reviewer checks and adds the row. No loop runs it; the daily scan
+   once planned here (14 days before to 30 days after the event) is not
+   built ([D-0256](../../../journal/decisions/0256-past-wsdc-events-reach-their-calendar-facts-and-wdr-pages.md)).
 3. The Wayback CDX for `scores.worlddanceregistry.com/*` (34 URLs, 7
    events on 2026-09-08), read once a year for backfill.
 
-An event whose calendar site has no results link and no override is
-simply not covered until someone adds the UUID. The research showed
+An event whose site has no results link and no override is
+not covered until someone adds the UUID. The research showed
 this happens (Desert City Swing 2026, Cash Bash 2025).
 
 ## 5. Change detection (verified)

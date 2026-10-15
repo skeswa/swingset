@@ -114,15 +114,12 @@ fine.
 4. Create or update the event watch for each source event.
 5. Read `overrides/source_urls.csv` and create watches for its rows
    (World Dance Registry and long-tail events).
-6. Event-site link scan. Each event's own website gets a `site` watch
-   that is fetched every 24 h from the start of `upcoming` through the
-   end of `cooling` (results links are often added during or after the
-   event), then stops. It stops early once the event has a platform or
-   WDR results watch, or an override row, and it never runs more than
-   about 50 times per event. The scan looks for links to the platforms,
-   to `scores.worlddanceregistry.com`, and to Drive folders. Platform
-   and WDR links create watches; other hits become suggested override
-   rows in the review queue. Event sites use the default host settings.
+6. Event-site links: not a loop step. The planned `site` watch (every
+   24 h from `upcoming` through `cooling`) is not built. The offline
+   [event-site link report](../../journal/tools/collection/event_site_links.py)
+   reads the sites of held WSDC events without results and drafts
+   `source_urls.csv` rows for their WDR pages; a reviewer adds them
+   ([D-0256](../../journal/decisions/0256-past-wsdc-events-reach-their-calendar-facts-and-wdr-pages.md)).
 
 Discovery never deletes watches. Discovering a results link creates a pending
 request; it does not establish that the sheet has been acquired or interpreted.

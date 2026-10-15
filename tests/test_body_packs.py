@@ -523,7 +523,8 @@ def test_admission_policy_refuses_a_packed_cohort(tmp_path):
         ).fetchone()[0]
         with pytest.raises(ValueError, match="Reviewed corpus changed"):
             activate_contract(conn, kind, receipt)
-        with pytest.raises(KeyError):
+        # A packed report is named, not a bare KeyError (D-0257 follow-up).
+        with pytest.raises(ValueError, match="packed report"):
             record_review(
                 conn,
                 (generation,),

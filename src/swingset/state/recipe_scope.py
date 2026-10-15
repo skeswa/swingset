@@ -88,6 +88,7 @@ _SCHEDULE = "scheduling; it runs stages through the modules the scopes name"
 # Since `versions.py` left the scheduler, no project, link or build closure
 # reaches the scheduler or acquisition (architecture plan, F4).
 EXCLUDED: dict[str, str] = {
+    "admission/activation.py": "operator command that activates or pauses a reviewed contract",
     "admission/corpus.py": "offline admission corpus export",
     "admission/enumeration_evidence.py": _EVENTS,
     "admission/event_declarations.py": _EVENTS,
@@ -156,7 +157,6 @@ EXCLUDED: dict[str, str] = {
     "schedule/offline.py": _SCHEDULE,
     "schedule/registry.py": _ACQUIRE,
     "schedule/release_steps.py": "release build and publish steps; the release loop and the CLI run them",
-    "sources/dcn/": "unregistered source; no page kind resolves to it",
     "state/acquisition_plan.py": "loop plan rows; acquisition reads them, no derivation does",
     "state/closure_collection.py": "operator retention commands",
     "state/collector.py": "the mark-sweep collector and maintain's artifact pass; no derivation reads it",

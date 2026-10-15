@@ -31,6 +31,7 @@ from dataclasses import dataclass
 from datetime import date
 from typing import Any
 
+from swingset.sources.phase_one import stored_scope_ref
 from swingset.state import body_packs
 
 from .builder import CHECKS, BuildError
@@ -149,7 +150,7 @@ class SupportIndex:
         row = self.conn.execute(
             "SELECT CASE WHEN result_json=:stub THEN NULL "
             "ELSE json_extract(result_json,'$.observations') END,"
-            "json_extract(recipe_json,'$.extract_version'),result_json=:stub "
+            "json_extract(recipe_json,'$.extract_version'),result_json=:stub,unit_key "
             "FROM source_generations WHERE generation_id=:id",
             {"stub": body_packs.STUB, "id": generation_id},
         ).fetchone()
@@ -159,17 +160,22 @@ class SupportIndex:
             extracted = self.conn.execute(
                 "SELECT json_extract(?,'$.observations')", (result,)
             ).fetchone()[0]
-            row = (extracted, row[1], 0)
+            row = (extracted, row[1], 0, row[3])
         keys: set[Observation] = set()
         if row is not None and row[0] is not None:
             extract = str(row[1])
+            # An archived listing capture's unit is `watch_id/snapshot_id`;
+            # its calendar rows are stored as history (D-0257).
+            independent = "/" in str(row[3])
             for seq, item in enumerate(json.loads(row[0])):
                 scope = item.get("scope") or {}
                 payload = canonical(item.get("payload"))
                 keys.add(
                     (
                         str(scope.get("kind")),
-                        str(scope.get("ref")),
+                        stored_scope_ref(
+                            independent, str(scope.get("kind")), str(scope.get("ref"))
+                        ),
                         str(item.get("kind")),
                         seq,
                         hashlib.sha256(payload.encode()).hexdigest(),

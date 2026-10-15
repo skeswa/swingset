@@ -146,21 +146,22 @@ registered source's adapter module (`ADAPTERS`) and each page kind's owner
 code does not import other sources. A new page kind needs a row there; a test
 checks the table against every adapter's `page_kinds`. DCN is not registered.
 
-| Page kind                                     | Input                    | Observations and watch specs                                         |
-| --------------------------------------------- | ------------------------ | -------------------------------------------------------------------- |
-| `wsdc_calendar.events`                        | print list HTML          | `CalendarRow`s                                                       |
-| `wsdc_registry.dancer`                        | `/lookup2020/find` JSON  | One `DancerLookup`, including registry placements or a verified miss |
-| `eepro.index`                                 | `event.php`              | `SourceEventRow`s and event watch specs                              |
-| `eepro.autoindex`                             | Apache directory listing | File metadata and round watch specs                                  |
-| `eepro.round`                                 | round HTML               | `RoundSheet` with printed entries, judges, marks, and placements     |
-| `scoringdance.sitemap`, `scoringdance.recent` | sitemap or recent list   | Source event references and watch specs                              |
-| `scoringdance.event`                          | results index            | Event sheet and round watch specs                                    |
-| `scoringdance.round`                          | round HTML               | Round sheet, including printed WSDC ids                              |
-| `wdr.rounds`, `wdr.awards`                    | `routeInfo.json`         | Round and award sheets                                               |
-| `dcn.list` (offline preparation)              | reviewed archive HTML    | Raw index sheet; no watches or complete-year claim                   |
-| `dcn.event_metadata` (offline preparation)    | legacy Tapestry HTML     | Raw event metadata and unassessed results-tab locator                |
-| `dcn.event_results` (later)                   | results tab HTML         | Event sheet and PDF watch specs                                      |
-| `dcn.round_pdf` (later)                       | roundscores PDF          | Round sheet with printed bibs, judges, and marks                     |
+| Page kind                                     | Input                    | Observations and watch specs                                                            |
+| --------------------------------------------- | ------------------------ | --------------------------------------------------------------------------------------- |
+| `wsdc_calendar.events`                        | print list HTML          | `CalendarRow`s                                                                          |
+| `wsdc_registry.dancer`                        | `/lookup2020/find` JSON  | One `DancerLookup`, including registry placements or a verified miss                    |
+| `eepro.index`                                 | `event.php`              | `SourceEventRow`s and event watch specs                                                 |
+| `eepro.autoindex`                             | Apache directory listing | File metadata and round watch specs                                                     |
+| `eepro.round`                                 | round HTML               | `RoundSheet` with printed entries, judges, marks, and placements                        |
+| `scoringdance.sitemap`, `scoringdance.recent` | sitemap or recent list   | Source event references and watch specs                                                 |
+| `scoringdance.event`                          | results index            | Event sheet and round watch specs                                                       |
+| `scoringdance.round`                          | round HTML               | Round sheet, including printed WSDC ids                                                 |
+| `wdr.rounds`, `wdr.awards`                    | `routeInfo.json`         | Round and award sheets                                                                  |
+| `dcn.list` (offline preparation)              | reviewed archive HTML    | Raw index sheet; no watches or complete-year claim                                      |
+| `dcn.event_metadata` (offline preparation)    | legacy Tapestry HTML     | Raw event metadata and unassessed results-tab locator                                   |
+| `dcn.event_results` (later)                   | results tab HTML         | Event sheet and PDF watch specs                                                         |
+| `dcn.round_pdf` (later)                       | roundscores PDF          | Round sheet with printed bibs, judges, and marks                                        |
+| `swingdirector.round`                         | SwingDirector score PDF  | One raw sheet per printed title: judges, marks or ordinals, tallies, places; no watches |
 
 ## Parsing rules
 
@@ -201,8 +202,10 @@ checks the table against every adapter's `page_kinds`. DCN is not registered.
   observation with an unsupported-layout warning. Projection emits
   a `contests` row with `parse_status = unsupported` and no rounds,
   so coverage gaps remain visible.
-- PDFs are read with `pdfplumber`. Tables are located by the "Result"
-  header and judge legend. Each PDF parser fixture must include at least
+- PDFs are read with `pypdf`, the installed PDF library; `pdfplumber` is
+  not a dependency. A layout is located by its printed headers and
+  legend, and columns by text position where wrapping or rotated labels
+  make line order unreliable. Each PDF parser fixture must include at least
   one prelims and one finals sheet.
 - The writer rejects unexplained empty output from a watch that
   previously produced observations. A source must explicitly classify
@@ -219,7 +222,9 @@ update the fixture in the same commit.
 
 Fixtures are committed, not downloaded during tests. If a suppression
 request names a person in a fixture, re-record it from a different event
-and update its expected output; the runbook covers this case. Research
+and update its expected output; the runbook covers this case. A fixture
+never carries a name its source hides elsewhere; such rows are redacted to
+the source's own hidden text ([ethics](ethics-and-legal.md)). Research
 verification keeping headers only does not change the fixture contract.
 
 Newsletter parsing preserves PDF layout columns and wrapped event names. The
@@ -247,7 +252,9 @@ An empty output or `legitimate_empty` flag supplies no terminal witness.
 
 Contract 4 covers registry lookups, EEPro indexes and round sheets,
 scoring.dance indexes and event pages. Contract 5 covers scoring.dance round
-sheets and WDR rounds (see below). Other page kinds remain explicitly
+sheets and WDR rounds (see below). The WSDC calendar has its own contract 1
+(see below), and so has `swingdirector.round` (`admission/swingdirector_contract.py`;
+[long-tail guide](sources/long-tail.md)). Other page kinds remain explicitly
 unassessed. Verified empty presentation columns and source aggregate
 columns have explicit exclusions. `RoundSheet.scoring_method_raw` retains the
 literal EEPro `Avg` header or WDR `roundSubHeader`; it does not add a canonical
@@ -289,6 +296,22 @@ to `SV3` move placements and stay unknown. The projector does not yet read
 the mark under `|SVW`. Parser 4 writes `ResultTable.attribute_group` from a
 key-sorted mapping, so the text no longer depends on whether the extract came
 fresh from the body or from the sorted archive.
+
+WSDC calendar contract 1 (`admission/wsdc_calendar_contract.py`, D-0257)
+covers every layout `wsdc_calendar.events` reads. It ships in the `shadow`
+policy until the history projection stops writing twins.
+
+| Check                         | Contract 1                                                                                                                                                                                                    |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Listing count                 | Counted from the raw body: `event_name` cells and `tr_events_load` rows, `box` cards, FullCalendar `title` keys, numeric `addMarker` calls. It must equal dated rows plus `impossible_listing_date` findings. |
+| Row fields, classes and types | The seven extract keys; classes `tr_events_load`, `event-trial`, `event-canceled`, `event-unconfirmed`; the printed types and the map's pin names. Anything else blocks.                                      |
+| Dates                         | Every row has an ordered span. A known format printed backwards (`Feb 13 - 9, 2020`) is `impossible_listing_date`: that row is withheld. An unknown format blocks.                                            |
+| Country                       | An alpha-3 code or none. A blank or `transparent` flag keeps none; an unknown flag is a noncritical finding.                                                                                                  |
+| Empty listing                 | No terminal witness: `waiting_for_inputs`.                                                                                                                                                                    |
+| Removal                       | `watch`. A live capture replaces the previous live capture's rows; an archived capture is its own unit and its rows survive a live capture on the same watch.                                                 |
+
+The build matches an archived capture's rows under `calendar/wsdc-history`,
+the scope the writer stores them in (`sources/phase_one.stored_scope_ref`).
 
 Blocked-admission finding summaries include stable reason codes from the
 stored generation report and latest selection decision. Staging-only guards
@@ -361,6 +384,9 @@ example bodies and extracts. Shared snapshots are assessed once with both
 state roots recorded. It does not migrate, fetch, promote, or fabricate review.
 After an external review, `record_corpus_review` verifies the supplied digest;
 `activate_contract` enables that page kind and queues retained parse work.
-`pause_contract` preserves the last accepted output. Manual-extraction callers
+`pause_contract` preserves the last accepted output. `swingset contract`
+wraps the generation-cohort path for operators: `status`, `activate` (refused
+for a kind whose code contract is `unassessed`, or a cohort staged under
+another version) and `pause` ([operation](../guides/operation.md#activating-an-admission-contract)). Manual-extraction callers
 must supply their reviewed and observed sentinel to `evaluate`; an absent or
 changed acknowledgment cannot promote the candidate.

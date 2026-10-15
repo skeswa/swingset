@@ -25,6 +25,7 @@ from swingset.sources.records import Cell, ResultTable, RoundSheet
 from swingset.state.findings import Finding
 
 from .steprightsolutions import round_sheet as step_right_round_sheet
+from .swingdirector import round_sheets as swingdirector_round_sheets
 from .writer import Projection
 
 
@@ -569,7 +570,7 @@ def _project_table(
         )
     for row_number, result in enumerate(table.rows, 1):
         cells = result.cells
-        redacted_row = evidence.source == "wdr" and any(
+        redacted_row = evidence.source in {"wdr", "swingdirector"} and any(
             _cell(cells, column) == "***" for column in competitor_columns
         )
         row_entries: dict[str, str] = {}
@@ -605,7 +606,13 @@ def _project_table(
                         and round_type == "final"
                         and len(competitor_columns) > 1
                     )
-                    or (split_pair and role != scored_role),
+                    or (split_pair and role != scored_role)
+                    # A SwingDirector final prints the leader's bib only.
+                    or (
+                        evidence.source == "swingdirector"
+                        and round_type == "final"
+                        and role == "follower"
+                    ),
                 )
                 if redacted_row and bib is None:
                     findings.append(
@@ -871,7 +878,7 @@ def _record_partner(entry: EntryFacts, partner: EntryFacts) -> None:
 
 
 def _evidence(conn: sqlite3.Connection, event: str) -> list[Evidence]:
-    result: list[Evidence] = []
+    pending: list[tuple[object, tuple[str, str, str, str, str]]] = []
     for row in conn.execute(
         """SELECT o.kind,o.payload_json,o.snapshot_id,o.parser_version,w.source,COALESCE(s.observed_at,s.fetched_at),w.kind
         FROM observations o JOIN watches w USING(watch_id) JOIN snapshots s USING(snapshot_id)
@@ -883,11 +890,14 @@ def _evidence(conn: sqlite3.Connection, event: str) -> list[Evidence]:
         normalized = step_right_round_sheet(payload)
         if normalized is not None:
             payload = normalized
-        if isinstance(payload, RoundSheet):
-            result.append(
-                Evidence(payload, str(row[4]), str(row[2]), str(row[3]), str(row[5]), str(row[6]))
-            )
-    return result
+        pending.append((payload, (str(row[4]), str(row[2]), str(row[3]), str(row[5]), str(row[6]))))
+    # SwingDirector callbacks come from the event's next-round sheets.
+    payloads = swingdirector_round_sheets([payload for payload, _meta in pending])
+    return [
+        Evidence(payload, *meta)
+        for payload, (_raw, meta) in zip(payloads, pending, strict=True)
+        if isinstance(payload, RoundSheet)
+    ]
 
 
 def _provenance(evidence: Evidence, now: str, run_id: str) -> ProvenanceValues:
@@ -1019,7 +1029,7 @@ def _contest_qualifier(name: str, vocabulary: ContestVocabulary) -> str:
         ignored.update({"leader", "leaders", "follower", "followers"})
     ignored.update(
         {
-            "jack_and_jill": {"jack", "jill", "and"},
+            "jack_and_jill": {"jack", "jill", "and", "n"},
             "strictly": {"strictly", "swing"},
             "classic": {"classic", "routine", "routines"},
             "showcase": {"showcase", "routine", "routines"},
@@ -1293,6 +1303,9 @@ def _place(value: str | None) -> int | None:
 def _outcome_convention_known(table: ResultTable, source: str) -> bool:
     if source == "steprightsolutions":
         return False
+    if source == "swingdirector":
+        # Derived from the next round's roster, when it proves succession.
+        return any(_text(cell) == "Outcome" for cell in table.headers)
     if source != "scoringdance":
         return True
     headers = [_text(cell).casefold() for cell in table.headers]
@@ -1318,6 +1331,11 @@ def _outcome(
             if re.fullmatch(r"S\d+", value):
                 return None
         return None
+    if source == "swingdirector":
+        if "outcome" not in headers:
+            return None
+        derived = _cell(cells, headers.index("outcome"))
+        return derived if derived in {"promoted", "eliminated"} else None
     if source == "scoringdance":
         states = {
             state.casefold()

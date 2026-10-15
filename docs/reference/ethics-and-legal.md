@@ -12,9 +12,16 @@ This page records the project rules for public sources, personal data, and remov
   provide a removal path: a `suppressions.csv` keyed by `wsdc_id` or by
   exact `name_raw` plus event. Suppressed rows keep their structural data
   (bib, marks, place) with name and `wsdc_id` nulled, so contest results
-  stay consistent. Judges get the same path. Removal requests are GitHub
+  stay consistent. Judges get the same path; a judge printed as initial and
+  surname is covered by the full-name row (D-0259). Removal requests are GitHub
   issues using the removal-request template, and are applied within one
   publish cycle of being added to `suppressions.csv`.
+- **Fixtures never carry a name a source hides.** When a source prints a
+  person as hidden (SwingDirector's `(Name hidden for discretion)`) in any
+  sheet of an event, every committed fixture of that event shows the same
+  hidden text for that bib, and its expected output is regenerated. Check
+  every round of the event before committing a fixture; a test that needs a
+  name uses a placeholder.
 - **GDPR.** Some competitors are in the EU. Whether GDPR binds a US hobby
   project with no EU presence is **unverified**. We act as if it does:
   legitimate-interest basis, public notice in the dataset card, erasure

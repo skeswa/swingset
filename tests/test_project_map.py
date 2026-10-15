@@ -588,3 +588,122 @@ def test_the_series_rule_needs_the_inventory_to_have_attached_the_source(tmp_pat
         assert _rows(conn, "SELECT source_ref,event_id,match_method FROM source_event_map") == [
             ("e:liberty", "2026-06-liberty-swing", "name_date")
         ]
+
+
+def _aloha_registry(conn, *months):
+    """Dancer 1's registry page reporting The Aloha Open (wsdc-355) in each month."""
+    from swingset.model.observations import encode_payload
+    from swingset.project.registry import project_dancer
+    from swingset.sources.records import DancerLookup, RegistryPlacement
+
+    payload = DancerLookup(
+        "dancer_lookup",
+        "found",
+        1,
+        1,
+        first_name="T",
+        last_name="D",
+        primary_role_raw="L",
+        placements=tuple(
+            RegistryPlacement("leader", "NOV", "355", "The Aloha Open", month, "1", 1, "wcs")
+            for month in months
+        ),
+    )
+    snapshot = f"registry-{len(months)}"
+    conn.execute("DELETE FROM observations WHERE scope_kind='dancer'")
+    _snapshot(conn, snapshot, "wsdc_registry")
+    conn.execute(
+        "INSERT INTO observations VALUES (?,?,?,?,'dancer','1',0,'1','1',?)",
+        ("obs-" + snapshot, "watch-" + snapshot, snapshot, payload.kind, encode_payload(payload)),
+    )
+    replace_scope(
+        conn,
+        scope_kind="dancer",
+        scope_id="1",
+        projection=project_dancer(conn, "1", NOW, "test"),
+        run_id="test",
+        projected_at=NOW,
+    )
+
+
+def test_a_listing_seen_before_its_registry_occurrence_joins_the_calendar_edition(tmp_path):
+    """The Aloha Open 2026: scoring.dance listed it, under a series the
+    registry knew, before the registry reported the edition, so the
+    inventory made a `listed` row beside the calendar's. When the registry
+    reports it, the calendar edition becomes the occurrence, and the
+    listing, its contests and the placements follow it (D-0256)."""
+    from swingset.model.observations import encode_payload
+    from swingset.project.events import project_calendar
+    from swingset.project.history import finalize_history, prepare_inventory
+    from swingset.sources.records import CalendarRow
+
+    aliases = (
+        b"printed_name,series_id,source,note\nAloha Open 2025,wsdc-355,scoringdance,reviewed\n"
+    )
+    bundle = SimpleNamespace(files={"overrides/series_aliases.csv": aliases})
+    with open_database(tmp_path, lock=False) as db:
+        conn = db.connection
+        conn.execute("INSERT INTO runs(run_id,started_at,dry_run) VALUES ('test',?,0)", (NOW,))
+        with db.transaction():
+            _aloha_registry(conn, "October 2025")
+            prepare_inventory(conn, now=NOW, run_id="test", aliases=aliases)
+            row = CalendarRow(
+                "calendar_row",
+                "The Aloha Open",
+                "2026-09-23",
+                "2026-09-27",
+                "Registry Event",
+                "Wailea, Hawaii/Maui, USA",
+                "http://www.alohaopenwcs.com",
+                "USA",
+                (),
+            )
+            _snapshot(conn, "cal", "wsdc_calendar")
+            conn.execute(
+                "INSERT INTO observations VALUES ('obs-cal','watch-cal','cal',?,'calendar','wsdc',0,'1','1',?)",
+                (row.kind, encode_payload(row)),
+            )
+            replace_scope(
+                conn,
+                scope_kind="calendar",
+                scope_id="wsdc",
+                projection=project_calendar(conn, "wsdc", NOW, "test"),
+                run_id="test",
+                projected_at=NOW,
+            )
+            _snapshot(conn, "listing", "scoringdance")
+            _listing(
+                conn,
+                "scoringdance",
+                "scoringdance:375",
+                "Aloha Open 2026",
+                "2026-09-23",
+                "2026-09-23",
+            )
+            prepare_inventory(conn, now=NOW, run_id="test", aliases=aliases)
+            project_map(conn, bundle, NOW, "test", 20)
+            assert _rows(
+                conn, "SELECT event_id,series_id,held FROM events WHERE year=2026 ORDER BY 1"
+            ) == [
+                ("2026-09-aloha-open", "wsdc-355", "listed"),
+                ("2026-09-the-aloha-open", "slug-the-aloha-open", "listed"),
+            ]
+            _aloha_registry(conn, "October 2025", "September 2026")
+            # A new listing changes the mapping's inputs, as in production.
+            _listing(
+                conn, "scoringdance", "scoringdance:999", "Other 2026", "2026-01-10", "2026-01-10"
+            )
+            prepare_inventory(conn, now=NOW, run_id="test", aliases=aliases)
+            project_map(conn, bundle, NOW, "test", 20)
+            finalize_history(conn, now=NOW)
+        assert _rows(
+            conn,
+            "SELECT event_id,series_id,held,wsdc_status FROM events WHERE held='held' AND year=2026",
+        ) == [("2026-09-the-aloha-open", "wsdc-355", "held", "registry")]
+        assert _rows(
+            conn,
+            "SELECT event_id,match_method FROM source_event_map WHERE source_ref='scoringdance:375'",
+        ) == [("2026-09-the-aloha-open", "alias")]
+        assert _rows(
+            conn, "SELECT DISTINCT event_id FROM registry_placements WHERE event_month LIKE '2026%'"
+        ) == [("2026-09-the-aloha-open",)]

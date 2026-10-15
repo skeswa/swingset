@@ -36,9 +36,19 @@ starts with the zstd magic bytes (fixture `calendar-20260813-zstd.body`).
 ## 4. Discovery
 
 The calendar is the root of discovery: each row becomes or updates an
-`events` row keyed by `<yyyy-mm>-<series_slug>`. The event site link
-seeds the `upcoming` link scan that finds World Dance Registry and
-long-tail results pages.
+`events` row keyed by `<yyyy-mm>-<series_slug>`. The event site link is
+what the offline [event-site link report](../../../journal/tools/collection/event_site_links.py)
+reads to find World Dance Registry pages; no loop scans event sites
+([D-0256](../../../journal/decisions/0256-past-wsdc-events-reach-their-calendar-facts-and-wdr-pages.md)).
+
+The live watch is `https://worldsdc.com/events/`. A Wayback capture of the
+same URL is read on that watch, and parsing it seals the watch; the
+phase-one intake now puts the live watch's row back afterwards. The
+2026-09-22 intake ran before that fix, so the calendar was not fetched from
+2026-09-22 until the owner reopens the watch (D-0256). While the watch keeps
+that capture's `archive_url`, no live capture can be selected or admitted.
+A live capture replaces only the previous live capture's rows; the archived
+capture on the same watch keeps its own (D-0257).
 
 ## 5. Change detection (verified)
 
@@ -67,9 +77,17 @@ One plain GET a day, fingerprint, parse on change.
 ## 8. Parsing
 
 `wsdc_calendar.events`: rows `<tr class="..."><td>date</td><td><div class="event_name"><a href=...>name</a></div><div class="event_type">...`;
-three date formats; flag link gives the ISO 3166-1 alpha-3 code
-(sometimes blank or `transparent`). `journal/tools/collection/build_events.py` already
-implements this against archived snapshots and is the starting point.
+three date formats; the flag link gives the ISO 3166-1 alpha-3 code. A
+blank flag, or `transparent` (every event in Russia from 2025-10 on), keeps
+no country; six flags print a country name, which maps to its code
+(D-0257). The map prints `Dec 28 - Jan 1, 2020` with one year: the start
+takes the year before. A span printed backwards is an
+`impossible_listing_date` finding and the row is withheld.
+
+Admission: contract 1 ([parsing](../parsing.md#source-admission-h6-and-h7)),
+in the `shadow` policy until the history projection stops writing twins
+for listings whose names gain a note such as `(Cancelled due to Covid-19)`
+([measurement](../../../journal/investigations/2026/calendar-contract-2026-10-15.md)).
 
 ## 9. Quirks
 

@@ -1,60 +1,78 @@
 # danceconvention.net (DCN)
 
-danceconvention.net provides event results and linked score files. Some adapter and fixture work remains; a documented page format is not proof of deployed support.
+danceconvention.net runs registration and scoring for many events outside
+North America and some inside it. Its results tab lists every contest, round
+and placement of an event; per-round score PDFs add bibs and judges' marks.
+The `dcn` source reads the archive and the results tabs of WSDC events. It
+ships disabled; see [rollout](#14-rollout).
 
 [All sources](README.md) · [Shared fetching rules](../fetching.md)
 
 ## 1. Status
 
-Verified 2026-09-08 (`journal/evidence/collection/source-survey-2026-09-08/dcn_*.hdr`).
-The operator relationship is not known to be personal; treat as a
-stranger and be stricter, not looser. `robots.txt` (at
-`/eventdirector/robots.txt` after a redirect from `/robots.txt`)
-disallows registration flows, `index:retrievenewsfeed`,
-`eventpage:selectresultscontestrow`, `eventpage:selectsignupscontestrow`,
-`eventpage:invitepartner`, `systemsignup.systemsignupform`, and
-`eventpage.schedulecalendar:*` in every locale. The results tab and
-`roundscores/*.pdf` are allowed. No terms page found (2026-09-04).
+Verified 2026-10-15 ([investigation](../../../journal/investigations/2026/dcn-results-source-2026-10-15.md)).
+The adapter is `src/swingset/sources/dcn/live.py`, registered as `dcn` with
+the page kinds `dcn.archive` and `dcn.event`
+([D-0255](../../../journal/decisions/0255-collect-danceconvention-net-finals-from-the-results-payload.md)).
+`config/sources.toml` has `enabled = false` until the rollout.
+
+The operator relationship is not known to be personal; treat the operator as
+a stranger and be stricter, not looser. `robots.txt` (at
+`/eventdirector/robots.txt` after a redirect from `/robots.txt`) disallows
+registration flows, `index:retrievenewsfeed`, `eventpage:selectresultscontestrow`,
+`eventpage:selectsignupscontestrow`, `eventpage:invitepartner`,
+`systemsignup.systemsignupform` and `eventpage.schedulecalendar:*` in every
+locale. The archive, the results tab and `roundscores/*.pdf` are allowed. It
+was unchanged between 2026-09-08 and 2026-10-15. No terms page found
+(2026-09-04).
 
 ## 2. What it gives
 
-Per contest and round: names with city and country, rank, whether
-promoted (from ranking intervals), and per-round PDFs with bibs, judge
-names, and marks. The reviewed legacy Riga HTML also prints row-level bibs;
-its finals bib does not identify either partner individually. No WSDC IDs
-appear in that control. Some names
-are masked at source (`*******`). 19 events in the last year:
-Australia, New Zealand, Korea, Singapore, Russia.
+The results tab gives, per contest and round, each ranked dancer's role, name,
+city, country, rank and, for ties, `interval` (the number of tied places).
+Finals and couple rounds add the partner. A preliminary or semifinal lists
+only the dancers that round eliminated, with their overall rank; dancers
+called back appear in the next round. No bibs, marks or WSDC IDs.
+
+Score PDFs give bibs, judge names and codes, per-judge marks, sums and results
+(`Callback`, `Alt 1`, `-`). Prelim PDFs omit dancers with no Yes or Alternate
+mark. A PDF prints names the tab masks.
+
+Some names are masked at source (`******* *******`, with city `*******` and
+country `**`): 220 of the 2026 finals' names. 2026 had 14 published WSDC
+events with results, in Australia, New Zealand, Russia, Korea and the US.
 
 ## 3. URL patterns
 
 ```
 GET https://danceconvention.net/eventdirector/robots.txt
-GET https://danceconvention.net/eventdirector/en/upcoming
-GET https://danceconvention.net/eventdirector/en/eventsarchive
-GET https://danceconvention.net/eventdirector/en/eventsarchive:loadyear?year=<yyyy>   XHR: send X-Requested-With: XMLHttpRequest
-GET https://danceconvention.net/eventdirector/en/eventpage/<eventId>[-slug]/results  2.9 MB raw, 1.67 MB gzip
-GET https://danceconvention.net/eventdirector/en/roundscores/<roundId>.pdf
+GET https://danceconvention.net/eventdirector/en/eventsarchive                        2.9 MB, 1.66 MB gzip
+GET https://danceconvention.net/eventdirector/en/eventpage/<eventId>/results          2.9 MB, 1.67 MB gzip
+GET https://danceconvention.net/eventdirector/en/roundscores/<roundId>.pdf            65 to 115 KB (not fetched)
+GET https://danceconvention.net/eventdirector/en/eventsarchive:loadyear?year=<yyyy>   XHR (not used)
+GET https://danceconvention.net/eventdirector/en/upcoming                             (not used)
 ```
 
-Event ids are 9 digits for recent events (`301273270`) and 7 digits for
-older ones (`1601070` is WesterOz 2018). The archive listing does not
-show the old ones.
+Event ids are 9 digits for recent events (`301273270`) and 7 digits for older
+ones (`1601070` is WesterOz 2018). A slug after the id (`301367300-austin-...`)
+is optional. Older ids in other links (for example `7495090-honey-fest`) can
+be stale: the archive's id is the one to use.
 
 ## 4. Discovery
 
-1. `upcoming` and `eventsarchive` on the index schedule. Both are Nuxt
-   pages of the same size as a results page, so the index schedule for
-   this host is slower than elsewhere (section 6).
+1. One `index` watch on the archive (`dcn.archive`), seeded by the adapter.
 2. Rows come from `window.__NUXT__` →
-   `state.common.currentPageRenderData.upcomingEvents|lastYearEvents[]`
-   with `eventId`, `name`, dates, `location`, `affiliations`
-   (`["WSDC"]`), `results`, `published`, `eventPage`.
-3. Only events with `WSDC` in `affiliations`, or matched by name to the
-   calendar, get a results watch. DCN hosts zouk, tango, and other
-   events we do not want.
-4. Older years: `eventsarchive:loadyear?year=<yyyy>` as an XHR, once
-   per year of history, for backfill only.
+   `state.common.currentPageRenderData.lastYearEvents[]`: `eventId`, `name`,
+   `startDate`, `endDate` (`M/D/YY`), `affiliations`, `results`, `published`,
+   `eventPage`. In October 2026 it lists the current year's 44 events.
+3. A row is followed when it is published, its `affiliations` include
+   `WSDC` and its `results` flag is true. DCN also hosts zouk, tango, ceroc and
+   blues events; those rows are counted and dropped. A followed row becomes a
+   listing (`source_event_row`, scope `source_index/dcn`) and one `event`
+   watch on `.../eventpage/<eventId>/results` (`dcn.event`).
+4. A WSDC event DCN does not label `WSDC` is not followed. Earlier years
+   (`loadyear`) are not read; history comes from the Wayback Machine
+   (section 10).
 
 ## 5. Change detection (verified)
 
@@ -62,13 +80,12 @@ show the old ones.
   is embedded in `<head>`. `Cache-Control: no-store`. CloudFront
   reports a miss every time. **Conditional GET never returns 304 here.**
 - `Accept-Ranges: none`, so we cannot fetch only the tail where the
-  payload lives (the `__NUXT__` script is the last 124 KB of 2.9 MB).
-- Change is decided by fingerprint: SHA-256 of the canonical JSON of
-  `currentPageRenderData.results` after evaluating the payload. When
-  unchanged, the body is discarded, not archived.
-- PDFs have no validators and `no-store`. A PDF is fetched once when
-  its round first shows `scoresAvailable = true`, and again only when
-  the round's rankings in the payload change.
+  payload lives.
+- Both kinds use `change_mode = "extract"`: a response whose extract equals
+  the watch's last one is not stored. The extract holds only the fields read
+  (no event description, images or cities), so page decoration does not
+  count as a change.
+- PDFs have no validators and `no-store`.
 
 ## 6. Politeness settings
 
@@ -79,150 +96,91 @@ daily_request_budget = 200
 daily_byte_budget = "300MB"
 index_interval_weekend = "6h"
 index_interval_weekday = "24h"
-live_interval = "30m"              # doubles after 4 unchanged, max 2h
-cooling_interval = "12h"           # doubles per unchanged check, max 48h
+live_interval = "30m"              # doubles after 8 unchanged, capped at 1 h
+cooling_interval = "12h"           # doubles per unchanged check, capped at 24 h
 ```
 
 Every poll is a full server render of a 2.9 MB page. That is why the
 intervals and the budgets are stricter than for the other platforms, and
 why a byte budget exists at all. The gap is the 2 s floor every host shares
 ([D-0247](../../../journal/decisions/0247-space-requests-two-seconds-apart-on-every-host.md)).
+The scheduler caps an event watch's live interval at 1 h whatever this table
+says ([scheduling](../scheduling.md)).
 
 ## 7. Fetch procedure
 
-1. `index` watches: plain GET, evaluate the payload, fingerprint the
-   event list, upsert `source_events`, create `event` watches.
-2. `event` watch on `.../results`: plain GET. Decode only with the separately reviewed bounded data grammar; no JavaScript
-   subprocess runs. Modern results payload support remains unimplemented. If
-   `publishCompResults` is false, treat as unchanged. Fingerprint
-   `results`. If changed, archive the body and parse. For each round:
-   create a `pdf` watch and make it due when `scoresAvailable` turns
-   true for the first time, whether or not the rankings moved; make an
-   existing `pdf` watch due again when the round's rankings changed.
-   Rankings often appear before the PDF does, so availability alone is
-   a trigger.
-3. `pdf` watch: plain GET, archive, parse with `pdfplumber`. Because
-   a PDF can be corrected without the payload's rankings moving, every
-   `pdf` watch is fetched once more at the end of the cooling window
-   (30 days after the event) as a final sweep. No other clocked PDF
-   refresh: at 1.67 MB per parent poll and no validators on PDFs, the
-   sweep is the cheapest correction check this host allows.
-4. A payload that fails to evaluate is a parse failure, not a fetch
-   failure; the body is kept and the run continues.
+1. Archive: plain GET on the index schedule, decode the payload, emit the
+   followed rows and their watches.
+2. Results tab: plain GET on the event schedule (live, then cooling for 30
+   days, then every 90 days). If `publishCompResults` is false, the page
+   yields only its listing row and the warning `dcn_results_unpublished`.
+3. A payload that fails to decode is an extract failure, not a fetch failure.
+4. Score PDFs are not fetched (D-0255): they print names the tab masks, and
+   no rule for those names exists yet.
 
 ## 8. Parsing
 
-- Planned `dcn.event_results`: payload path
-  `currentPageRenderData.results[]` =
-  `{contestId, contestName, divisionType: RANDOM_PARTNER|OPEN_COUPLE|PERM_COUPLE, rounds[]: {roundId, roundName, isFinal, scoresAvailable, scoresLink, rankings[]: {competitorRole, competitorName, competitorCityAndState, competitorCountry, partnerName, partnerCityAndState, partnerCountry, rank, interval}}}`.
-  `roundName` is free text with typos ("Prelilms"). Emits `contest`,
-  `round`, `ranking`, and `pdf` watches.
-- `dcn.round_pdf`: finals `# | Name (leader, newline, follower) | per-judge ranks | tally | Result`;
-  prelims `# | Name | per-judge 10/4.5/4.3/4.2/0 | Sum | Result`; judges
-  listed above the table; older PDFs use the 1/2.x/3 legend and may be
-  localized. Locate tables by the `Result` header. Bibs are only here.
-- `dcn.list`: `upcomingEvents` and `lastYearEvents` from the payload;
-  the `loadyear` XHR returns Tapestry HTML with the same fields in a
-  table.
-- The payload is a data-serialization function call, not JSON. The implemented
-  pure decoder accepts only the reviewed literal-and-parameter grammar, without
-  executing JavaScript. See [the exact bounds](../parsing.md#parsing-rules).
-  Unsupported grammar fails extraction; no general evaluator runs as fallback.
-  The normal derived-extract archive remains the intended cache boundary.
+The payload is a data-serialization function call, not JSON. The pure decoder
+(`dcn/nuxt.py`, [D-0068](../../../journal/decisions/0068-decode-dcn-source-data-without-running-scripts.md))
+accepts only the reviewed literal-and-parameter grammar, without executing
+JavaScript. See [the exact bounds](../parsing.md#parsing-rules). When a
+capture repeats the render data under `data[0].renderData`, the two copies
+must agree.
 
-## Local implementation and fixture status
+`dcn.archive` checks the route (`/<locale>/eventsarchive`), each row's id
+against its `eventPage`, and the field types. `dcn.event` checks the route
+(`/<locale>/eventpage/<id>/results`) against the event id, unique contest and
+round ids, roles (`LEADER`, `FOLLOWER`), integer ranks and the score-sheet
+path. Both decode HTML entities in text (`Swing &amp; Snow`). Any source field
+the adapter does not read is listed in the extract's `unreviewed_fields`; the
+admission contract then holds the page for review.
 
-The source package has offline `dcn.list`, `dcn.event_metadata` and
-`dcn.legacy_results` adapters. The local `dcn.round_pdf` increment now parses
-only the two exact reviewed Riga layouts; independent review passed.
-They are not registered for ordinary acquisition and create no seed or child
-watches. No source-kind policy or canonical projector is activated.
+`dcn.event` emits:
 
-The complete archive index captured `2025-11-12T10:58:28Z` supplies 50 payload
-events, exactly matching all 50 rendered event locators. Twenty-seven carry a
-`WSDC` affiliation; 36 carry a true source `results` flag. All raw source rows,
-including other dance affiliations and false flags, remain observations. The
-available-year labels are 2013–2025. These facts describe this retained body,
-not all DCN events, year acceptance, or full-year coverage. Enumeration stays
-`listed_only`. The decoder checks matching duplicate render-data views,
-row fields/types, event-ID ownership and the reviewed route/URL shapes.
+- one listing row (scope `source_index/dcn:<id>`), with the dates written as
+  `Sep 18 - 20, 2026` so the event projector reads a range;
+- one `event_sheet` naming every round;
+- one `round_sheet` per final whose ranks are exactly 1..N with no ties: a
+  `Place | Leader | Follower` table. The competitor goes in its role's column
+  and the partner in the other; a Pro-Am pro takes the partner column. A
+  masked name is an empty cell, so no entry is created for it.
 
-The 2018 Riga Summer Swing control is legacy Tapestry metadata. Matching desktop
-and mobile headers provide its name, raw dates and location. Its results-tab
-locator is retained without the archived routing session suffix. Availability
-of actual results remains unknown. Neither this body nor the index supplies a
-PDF locator, results payload or preliminary/final score-PDF control.
+It withholds, with a bounded warning each:
 
-The original two complete real fixtures and provenance hashes, synthetic empty/malformed
-controls, changed-input derivatives and grammar/bounds tests are retained under
-`tests/fixtures/sources/dcn/`. See the
-[audit and implementation receipt](../../../journal/investigations/2026/dcn-offline-parsing-2026-09-17.md).
-Modern results payloads, other index routes and year
-responses require their own real controls before implementation acceptance and
-exact-kind enforcement. The operating procedures above remain planned behavior
-for those kinds; this offline increment does not enable them.
+- preliminary and semifinal rankings (`dcn_nonfinal_rounds_withheld`): they
+  list only eliminated dancers and no marks, so the projector would publish a
+  promoted count of 0;
+- finals with no rankings (`dcn_empty_final_withheld`);
+- finals that rank each role separately (`dcn_role_split_final_withheld`):
+  four Pro-Am J&J finals in 2026; one table would repeat places.
 
-The separately approved Riga results capture `2019-07-19T20:49:19Z` now supplies
-one legacy HTML results control. Its selected heading is `Jack'n'Jill Newcomer`;
-eight printed contest selectors identify a listed population only. The parsed
-tables contain nine finals pairs, zero printed preliminary leader rows and eight
-printed follower rows. An empty table is not proof of zero entrants. Preserve
-placement intervals as printed bounds, with promotion unknown. Preserve finals
-names in source order without assigning leader/follower identities, and retain
-the bib on the row rather than either individual.
+`dcn_names_masked_at_source` counts the empty cells. City, country and
+`proName` (the pro's name in Cyrillic) are never kept.
 
-`dcn.legacy_results` binds canonical, OpenGraph, navigation and selector event
-IDs to the parse context. Exactly one selected heading must match a printed
-selector. Tables belong to that selected contest's container. HTML5 reparents
-its invalid table legends into sibling elements; each exact column must own one
-legend followed by its table. The reviewed layout has one Finals table and
-paired Prelims leaders/followers tables, exact Bib/Names/Placement columns,
-positive placements or ordered intervals, and explicit pair separators only
-for finals. Unknown layouts fail extraction. Bounds are 8 MiB HTML, 200 listed
-contest selectors and 2,000 result rows per table.
-
-Printed `roundscores/3451330.pdf` and `roundscores/3451331.pdf` locators belong
-to the finals and preliminary containers respectively. Both preliminary role
-tables share the latter locator. They and the eight contest selectors remain
-inert source observations, with no watches, requests or assumed PDF semantics.
-Source robots restrictions on selector endpoints remain unchanged. No event
-completeness, full selected-round population, score availability or promotion
-is inferred. The kind remains outside the ordinary source registry and has no
-canonical projection or exact-kind enforcement approval. See the
-[legacy results implementation receipt](../../../journal/investigations/2026/dcn-legacy-results-parsing-2026-09-17.md).
-
-A separately reviewed fixture operation captured those two exact PDFs from the
-origin on 2026-09-17. It made four requests including the allowed robots redirect;
-the independent audit verified current robots permission, completion-based
-spacing and 132,764 received bytes. This grants no ordinary crawling or page-kind
-admission. See the [acquisition record](../../../journal/investigations/2026/dcn-origin-runner-2026-09-17.md).
-
-The finals PDF prints nine pair rows, seven named judge-code columns, nine
-numbered columns with unexplained arithmetic, final results and empty remarks.
-The two preliminary pages have distinct five-judge panels, marks `1`, `2.1`,
-`2.2`, `3`, and printed `Callback`, `Alternate1` or `-` results. They explicitly
-omit dancers with no Yes or Alternate marks, so neither page establishes the
-full participant population. Finals bib ownership remains row-level. A printed
-name at finals bib 485 differs between the archived HTML and current PDF;
-retain the disagreement without choosing an identity or inferring its cause.
-The [PDF controls review](../../../journal/investigations/2026/dcn-score-pdf-controls-2026-09-17.md)
-records exact field and population limits. The local
-[PDF parser](../../../journal/investigations/2026/dcn-score-pdf-parser-2026-09-17.md)
-passed focused tests and preserves page-scoped source observations. Its bytes
-are outside candidate 005 and are not deployed or published. Independent review
-passed; canonical projection and exact-kind admission remain separate gates.
+The admission contract is `admission/dcn_contract.py`, version 1. It accounts
+for every extract field, requires one watch per followed archive row in source
+order, requires the round sheets to be exactly the single-table finals with
+at least one ranking, and holds a published tab with no contests for review.
+No tab has removal authority: an empty or shrunken payload never retires
+earlier accepted finals, and an unpublished tab has no terminal witness. Any
+name containing `*` counts as masked, including partial masks. It
+never imports the adapter; `tests/test_dcn_live.py` pins the rules the two
+share.
 
 ## 9. Quirks
 
-- Names masked as `*******` at source (a Korea Westival 2026 finalist).
-  Keep the mask in `name_raw`; the entry gets `link_status = unlinkable`.
-- `publishCompResults` can be false while rounds exist; nothing is
-  public then.
+- `divisionType` values seen in 2026: `RANDOM_PARTNER`, `RANDOM_COUPLE`,
+  `OPEN_COUPLE`, `PERM_COUPLE`, `PROAM_MIXED`, `PROAM_JNJ`, `SWITCH_JNJ`.
+  Another value is an unreviewed field.
+- Round names are free text (`Final `, `Prelims `, `Semi-final`, `Quarters`).
+- A follower can be the competitor in a J&J final (Swingvasion), and switch
+  finals mix roles row by row.
+- Contest names often say `J&J` or `JnJ`, which the contest vocabulary does
+  not yet read as Jack and Jill ([investigation](../../../journal/investigations/2026/dcn-results-source-2026-10-15.md#gaps-left)).
 - Translations for every locale are inlined in the HTML, which is why
   the page is 2.9 MB.
 - The heats WebView (`/eventdirector/en/hybrid/event/heats/<eventId>`)
-  is client-rendered; whether it is public is **unverified**. Out of
-  scope.
+  is client-rendered; whether it is public is **unverified**. Out of scope.
 - `/eventdirector/rest/v2/...` and a WebSocket exist for registration.
   Not public, not used.
 
@@ -230,18 +188,22 @@ passed; canonical projection and exact-kind admission remain separate gates.
 
 The Wayback Machine has 1,188 distinct 200-status URLs under
 `eventdirector/en/eventpage/` for 415 events, mostly 2019 to 2021, some
-2025 and 2026. Because a live DCN fetch is 1.67 MB, the archive is used
-for every event whose capture has `publishCompResults` true and PDFs
-for every round, and origin backfill for the rest is capped at one DCN
-event per day.
+2025 and 2026. Enabling `dcn` turns on its CDX queries (prefix
+`danceconvention.net/eventdirector/en/eventpage/*`), and `history/platform`
+recognizes `.../eventpage/<id>/results` captures as `dcn.event` pages. Legacy
+(pre-Nuxt) captures fail extraction; the offline `dcn.legacy_results` kind
+below is not registered. Origin backfill is capped at one DCN event per day.
 
 ## 11. Load estimate
 
-Per event weekend: about 60 results-tab polls at 1.67 MB, plus about 20
-PDFs at under 100 KB each, fetched once when they appear and once more
-in the day-30 sweep. About 100 MB from the origin and about 80
-requests over six days. Twenty times the bytes of any other platform
-per event; the count of DCN events (19 a year) keeps the total tolerable.
+An event in its live window (36 h before its start to 48 h after its end)
+is polled every 30 min, then hourly: about 130 polls and 380 MB over a
+three-day weekend, about 70 MB a day. Cooling adds one poll a day for 30 days
+(about 85 MB). The archive costs one to four polls a day (3 to 12 MB). DCN had
+about 1.5 WSDC events a month in 2026, rarely two at once, so a typical day
+is under 30 requests and 100 MB; two live events at once stay under the
+300 MB byte budget. The first day after enabling costs 15 requests and
+about 45 MB (the archive and the 14 tabs of 2026).
 
 ## 12. Operator switch
 
@@ -255,13 +217,50 @@ per-agent groups (`spbot`, `Yandex`), so this is a pattern they know.
 
 ## 13. Open items
 
-- **Find the JSON the Nuxt client uses for tab navigation.** Switching
-  tabs in the browser does not reload the 2.9 MB page, so a smaller
-  data endpoint exists. Read the four `/eventdirector/_nuxt/*.js`
-  bundles once (about 1 MB, one-time) and look for the request that
-  fills `currentPageRenderData`. If it is unauthenticated and allowed
-  by robots, it replaces step 2 above and cuts DCN load by roughly 50×.
-- Whether `ETag` would be stable if Sentry were disabled (ask the
-  operator; a `Vary`-free stable ETag would make conditional GET work).
-- Whether the PDFs' bibs match the app's bib numbers.
-- Event ids the archive listing hides (7-digit ids).
+- Score PDFs: a parser for the 2026 layout and a rule for names the tab
+  masks. Then prelims, semifinals, bibs and marks.
+- Contest vocabulary for `J&J` and `JnJ`.
+- **Find the JSON the Nuxt client uses for tab navigation.** A smaller data
+  endpoint likely exists, but finding it means reading the site's JavaScript,
+  which the [fetching rules](../fetching.md) forbid; ask the operator instead.
+- Whether `ETag` would be stable if Sentry were disabled (ask the operator).
+- Event ids the archive listing hides (7-digit ids) and earlier years.
+
+## 14. Rollout
+
+1. Deploy the package. Registering `dcn` edits `sources/registry.py`,
+   `admission/contracts.py` and `state/recipe_scope.py`, which are in every
+   recipe scope, so the deploy re-runs every extract, parse, project and link
+   unit (as contract 5 did; maintenance item 20). Batch it with other
+   all-scope changes.
+2. Preflight receipt: `robots.txt` still allows the archive and results tabs;
+   the host block in `config/hosts.toml` is as section 6.
+3. Set `[sources.dcn] enabled = true` in `config/sources.toml` and switch.
+   Expect 15 requests and about 45 MB on the first day.
+4. Post-check receipt after one acquire tick: one `dcn.archive` snapshot, 14
+   `dcn.event` watches, their snapshots parsed with no admission failures in
+   shadow mode, 14 `source_events` rows for `dcn`, and the expected events
+   mapped ([investigation](../../../journal/investigations/2026/dcn-results-source-2026-10-15.md#how-events-map-d-0253)).
+5. Until a contract is active the kinds run in shadow: observations and
+   projections exist, but the build keeps only rows equal to the baseline.
+   Review the shadow generations with an independent check and activate
+   contract 1 for `dcn.archive` and `dcn.event` with `swingset contract
+activate` ([operation](../../guides/operation.md#activating-an-admission-contract)),
+   as the 2026-10-06 adjudication did ([D-0240](../../../journal/decisions/0240-round-contract-5-blocks-remarks-that-contradict-the-shown-outcome.md)).
+   Only then do the finals publish.
+
+## Offline legacy kinds
+
+`dcn/adapter.py` keeps four earlier offline kinds, all unregistered and
+producing DCN-specific observations only: `dcn.list` (the 2025 archive shape),
+`dcn.event_metadata` and `dcn.legacy_results` (the 2018 and 2019 Riga Summer
+Swing Tapestry pages) and `dcn.score_pdf` (the two exact Riga score-PDF
+layouts). Their fixtures and provenance are in `tests/fixtures/sources/dcn/`.
+The receipts are the [offline parsing](../../../journal/investigations/2026/dcn-offline-parsing-2026-09-17.md),
+[legacy results](../../../journal/investigations/2026/dcn-legacy-results-parsing-2026-09-17.md),
+[origin acquisition](../../../journal/investigations/2026/dcn-origin-runner-2026-09-17.md),
+[PDF controls](../../../journal/investigations/2026/dcn-score-pdf-controls-2026-09-17.md)
+and [PDF parser](../../../journal/investigations/2026/dcn-score-pdf-parser-2026-09-17.md)
+records. The Riga finals bib belongs to the row, not to either partner, and a
+finals name differs between the 2019 HTML and the current PDF; neither is
+resolved.

@@ -65,7 +65,15 @@ A listing with no override, no such occurrence and no single catalog match
 end date and name, and a placeholder event with `wsdc_status` `unknown`. A
 registry occurrence is `registry` (or `trial`) even when it began as a
 placeholder or calendar row; a results platform never makes an event
-`registry` by itself. The
+`registry` by itself. When a listing wrote its edition's row before the
+registry reported it, the registry adopts the matching calendar edition, else
+a `listed` row of that edition (the calendar's first, never a cancelled one),
+as the held occurrence; registry placements join the held
+row ([D-0256](../../journal/decisions/0256-past-wsdc-events-reach-their-calendar-facts-and-wdr-pages.md)).
+Before the registry reports an edition, its calendar, newsletter and council
+listings of one series and end month are one row, whatever note a name
+gained, and the row takes city, region and country from the newest calendar
+listing ([D-0260](../../journal/decisions/0260-an-unreported-edition-is-one-row-per-series-and-month.md)). The
 internal table `source_event_proposals` holds each listing's proposed target
 and that placeholder, one set per source; one resolution unit per event turns
 them into its `source_event_map` rows and its event row
@@ -104,7 +112,7 @@ table: `source` (enum), `snapshot_id`, `parser_version`, `first_seen_at`,
 | `history_source`                       | list<enum>   | which of `calendar`, `platform`, `registry`, `steprightsolutions` named the event               |
 | `city`                                 | string       | nullable                                                                                        |
 | `region`                               | string       | state or province, nullable                                                                     |
-| `country`                              | string       | ISO 3166-1 alpha-2, nullable                                                                    |
+| `country`                              | string       | ISO 3166-1 alpha-3 from the calendar's flag, nullable                                           |
 | `website`                              | string       | nullable                                                                                        |
 | `wsdc_status`                          | enum         | `registry`, `trial`, `unconfirmed`, `unknown`                                                   |
 | `sources`                              | list<string> | which platforms carry this event                                                                |
@@ -219,6 +227,10 @@ these rows; heat collection remains milestone M5 work.
 | `tie_break_applied`                  | bool    | nullable                                                                                                 |
 | `heat_number`                        | int16   | nullable                                                                                                 |
 | (prov)                               |         |                                                                                                          |
+
+SwingDirector sheets print no outcome; the projector derives `promoted` and
+`eliminated` from the next round's roster and leaves a row without a
+callback when the roster cannot settle it (D-0259).
 
 **`final_marks`**
 

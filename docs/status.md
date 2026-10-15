@@ -1,6 +1,6 @@
 # Current status
 
-Updated 2026-10-15 05:00 UTC. Five sections; each line links to one receipt.
+Updated 2026-10-15 UTC (afternoon). Five sections; each line links to one receipt.
 History lives in the [journal](../journal/README.md); the last long-form page
 is [archived](../journal/archive/status-2026-09-18.md).
 
@@ -29,6 +29,8 @@ is [archived](../journal/archive/status-2026-09-18.md).
 
 - Plan of record: the [target architecture](plans/architecture.md), adopted 2026-09-25; all other plan work is paused. Phases 0 to 5 are deployed (phase 5, migration 37, on 2026-10-11 14:44 UTC after an independent check) ([receipt](../journal/evidence/runtime/architecture-phase5-2026-10-11/receipt.json)).
 - Next release: the daily automatic build, gated per event (item 28). Known findings the gate does not measure are maintenance item 33 (City of Angels 2026 dated 2027, The Open 2026 lost its WSDC label, eight EEPro coverage rows lost page counts, an empty Global Grand Prix duplicate).
+- Built and reviewed, not deployed (owner: ship with maintenance item 20, one full re-run; full suite 3,665 passed): danceconvention.net finals (D-0255, 14 verified 2026 WSDC events); calendar adoption, twin merging, place and status from the calendar, and the intake fix (D-0256, D-0260; with the calendar contract active, cities 165 to 391); the WSDC calendar contract (D-0257, inactive until a reviewed activation); SwingDirector PDFs with projector and contract (D-0258, D-0259); `swingset contract status|activate|pause`; three approved override rows ([investigation](../journal/investigations/2026/missing-2026-results-2026-10-15.md)).
+- Built, not yet checked (same deploy): the WSDC calendar contract (D-0257) in shadow, with the writer fix that keeps the 2026-08-13 Wayback rows when the calendar watch reopens; activation waits on item 35 (153 history twins) ([investigation](../journal/investigations/2026/calendar-contract-2026-10-15.md)).
 - Score sheets: round contract 5 (D-0240) with the label fix (D-0241) and the robots retry fix (D-0242) has been deployed since 2026-10-09 19:52 UTC. The re-parse drained by 2026-10-10 19:44: 5,548 scoring.dance rounds and 13 WDR rounds are accepted (311 rounds and Swing City Chicago 2025 newly admitted), 625 events, 502 dancers, 513 links and 126 years were updated, and 26 rounds stay blocked (23 outcome conflicts for [row-level result holds](plans/row-level-result-holds.md)) ([receipt](../journal/evidence/runtime/contract5-2026-10-09/receipt.json)).
 - Identity output is recovered and published (D-0248, D-0251, D-0252). Remaining work is in the [data quality plan](plans/data-quality.md) and the maintenance queue: the per-event gate check (item 28), calendar contracts so corrected dates publish, and the accepted regressions ([investigation](../journal/investigations/2026/release-losses-2026-10-12.md)).
 - A Python change re-runs only the code scopes it touches (D-0207); `config.py`, `admission/contracts.py` and `identity_policy.py` still sit in every project, link and build scope (maintenance item 20), so batch changes to them.

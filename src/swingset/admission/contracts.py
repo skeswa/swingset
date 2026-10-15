@@ -17,6 +17,9 @@ from swingset.sources.common import absolute
 from swingset.sources.records import FileRow, SourceEventRow
 
 from .accounting import account_keys
+from .dcn_contract import KINDS as DCN_KINDS
+from .dcn_contract import KNOWN_BOUNDED_WARNINGS as DCN_BOUNDED_WARNINGS
+from .dcn_contract import accounting as dcn_accounting
 from .registry_contract import registry_accounting
 from .report import Coverage, Field, Guard, Report, evaluate
 from .round_contract import round_accounting
@@ -29,6 +32,10 @@ from .stepright_contract import (
 from .stepright_contract import (
     accounting as stepright_accounting,
 )
+from .swingdirector_contract import KINDS as SWINGDIRECTOR_KINDS
+from .swingdirector_contract import accounting as swingdirector_accounting
+from .wsdc_calendar_contract import KINDS as CALENDAR_KINDS
+from .wsdc_calendar_contract import accounting as calendar_accounting
 
 CONTRACT_VERSION = "4"
 KINDS = (
@@ -46,7 +53,18 @@ KINDS = (
         }
     )
     | STEPRIGHT_KINDS
+    | DCN_KINDS
+    | CALENDAR_KINDS
+    | SWINGDIRECTOR_KINDS
 )
+
+
+#: Kinds whose contract module accounts for the parse warnings itself, so a
+#: finding can be bounded by its row, not only by its code (D-0257).
+OWN_WARNINGS = CALENDAR_KINDS | SWINGDIRECTOR_KINDS
+
+#: Kinds whose own contract module starts at version 1.
+VERSION_ONE = STEPRIGHT_KINDS | DCN_KINDS | CALENDAR_KINDS | SWINGDIRECTOR_KINDS
 
 
 #: Kinds whose reviewed contract moved past `CONTRACT_VERSION` on their own.
@@ -59,7 +77,7 @@ def contract_version(page_kind: str) -> str:
     """A changed page contract does not invalidate unrelated reviewed contracts."""
     return (
         "1"
-        if page_kind in STEPRIGHT_KINDS
+        if page_kind in VERSION_ONE
         else KIND_VERSIONS[page_kind]
         if page_kind in KIND_VERSIONS
         else CONTRACT_VERSION
@@ -91,6 +109,32 @@ def inspect(ctx: ParseContext, body: bytes, extract: Any, result: ParseResult) -
         children = accounted.listed_children
         parsed_children = accounted.interpreted_children
         removal = "none"
+    elif ctx.kind in DCN_KINDS:
+        dcn = dcn_accounting(ctx, extract, result)
+        fields.extend(dcn.fields)
+        guards.extend(dcn.guards)
+        source_count = dcn.source_count
+        interpreted = dcn.interpreted_count
+        terminal = dcn.terminal
+        children = dcn.listed_children
+        parsed_children = dcn.interpreted_children
+        removal = dcn.removal
+    elif ctx.kind in CALENDAR_KINDS:
+        calendar = calendar_accounting(ctx, body, extract, result)
+        fields.extend(calendar.fields)
+        guards.extend(calendar.guards)
+        source_count = calendar.source_count
+        interpreted = calendar.interpreted_count
+        terminal = calendar.terminal
+        removal = calendar.removal
+    elif ctx.kind in SWINGDIRECTOR_KINDS:
+        director = swingdirector_accounting(ctx, extract, result)
+        fields.extend(director.fields)
+        guards.extend(director.guards)
+        source_count = director.source_count
+        interpreted = director.interpreted_count
+        terminal = director.terminal
+        removal = director.removal
     elif ctx.kind == "wsdc_registry.dancer":
         source_count, interpreted = registry_accounting(extract, result, fields, guards)
         removal = "none"  # A lookup can never delete historical registry facts.
@@ -248,7 +292,7 @@ def inspect(ctx: ParseContext, body: bytes, extract: Any, result: ParseResult) -
                 "Pagination links require an assembled and revalidated manifest",
             )
         )
-    for warning in result.warnings:
+    for warning in () if ctx.kind in OWN_WARNINGS else result.warnings:
         excluded = (
             ctx.kind == "wdr.rounds"
             and warning.code
@@ -256,7 +300,10 @@ def inspect(ctx: ParseContext, body: bytes, extract: Any, result: ParseResult) -
                 "wdr_s_callback_unverified",
                 "wdr_finals_bib_unverified",
             }
-        ) or (ctx.kind in STEPRIGHT_KINDS and warning.code in STEPRIGHT_BOUNDED_WARNINGS)
+        ) or (
+            (ctx.kind in STEPRIGHT_KINDS and warning.code in STEPRIGHT_BOUNDED_WARNINGS)
+            or (ctx.kind in DCN_KINDS and warning.code in DCN_BOUNDED_WARNINGS)
+        )
         fields.append(
             Field(
                 f"warning:{warning.code}",

@@ -51,11 +51,10 @@ def store_parse_result(
         str(current_snapshot[0]),
         str(current_snapshot[1]),
     )
-    from swingset.sources.phase_one import PHASE1_KINDS
+    from swingset.sources.phase_one import PHASE1_KINDS, stored_scope_ref
 
-    archive_index = (
-        str(snapshot[1]) == "wayback"
-        and context.kind in PHASE1_KINDS
+    index_watch = (
+        context.kind in PHASE1_KINDS
         and context.kind.split(".")[0] == context.source
         and bool(
             conn.execute(
@@ -63,6 +62,7 @@ def store_parse_result(
             ).fetchone()
         )
     )
+    archive_index = str(snapshot[1]) == "wayback" and index_watch
     if str(snapshot[1]) == "wayback" and not archive_index:
         from swingset.admission.generations import selected_snapshot
 
@@ -71,13 +71,24 @@ def store_parse_result(
         # work for a capture the active watch no longer selects.
         eligible = selected_snapshot(conn, context.watch_id, context.snapshot_id)
     snapshot_scope = archive_index or preserve_history
+    # The rows a parse replaces: its own snapshot's, or the watch's. A live
+    # capture of a listing watch never replaces an archived capture read on
+    # the same watch: that capture is its own unit (D-0257).
+    owned = " AND snapshot_id=?" if snapshot_scope else ""
+    owned_args: tuple[str, ...] = (
+        (context.watch_id, context.snapshot_id) if snapshot_scope else (context.watch_id,)
+    )
+    if not snapshot_scope and index_watch:
+        owned = (
+            " AND snapshot_id NOT IN (SELECT snapshot_id FROM snapshots "
+            "WHERE watch_id=? AND via='wayback')"
+        )
+        owned_args = (context.watch_id, context.watch_id)
     changed = False
     if eligible or archive_index:
         old_count = int(
             conn.execute(
-                "SELECT count(*) FROM observations WHERE watch_id=?"
-                + (" AND snapshot_id=?" if snapshot_scope else ""),
-                (context.watch_id, context.snapshot_id) if snapshot_scope else (context.watch_id,),
+                "SELECT count(*) FROM observations WHERE watch_id=?" + owned, owned_args
             ).fetchone()[0]
         )
         if not result.observations and old_count and not legitimate_empty:
@@ -98,9 +109,7 @@ def store_parse_result(
                     context.snapshot_id,
                     observation.kind,
                     observation.scope.kind,
-                    "wsdc-history"
-                    if archive_index and observation.scope.kind == "calendar"
-                    else observation.scope.ref,
+                    stored_scope_ref(archive_index, observation.scope.kind, observation.scope.ref),
                     seq,
                     str(extract_version),
                     str(parser_version),
@@ -115,10 +124,8 @@ def store_parse_result(
             for row in conn.execute(
                 "SELECT kind,scope_kind,scope_id,seq,payload_json,snapshot_id,"
                 "CAST(extract_version AS TEXT),CAST(parser_version AS TEXT) "
-                "FROM observations WHERE watch_id=?"
-                + (" AND snapshot_id=?" if snapshot_scope else "")
-                + " ORDER BY seq",
-                (context.watch_id, context.snapshot_id) if snapshot_scope else (context.watch_id,),
+                "FROM observations WHERE watch_id=?" + owned + " ORDER BY seq",
+                owned_args,
             )
         ]
         comparable = [
@@ -126,11 +133,7 @@ def store_parse_result(
         ]
         changed = old_rows != comparable
         if changed:
-            conn.execute(
-                "DELETE FROM observations WHERE watch_id=?"
-                + (" AND snapshot_id=?" if snapshot_scope else ""),
-                (context.watch_id, context.snapshot_id) if snapshot_scope else (context.watch_id,),
-            )
+            conn.execute("DELETE FROM observations WHERE watch_id=?" + owned, owned_args)
             conn.executemany(
                 "INSERT INTO observations(observation_id,watch_id,snapshot_id,kind,scope_kind,scope_id,seq,extract_version,parser_version,payload_json) VALUES (?,?,?,?,?,?,?,?,?,?)",
                 new_rows,

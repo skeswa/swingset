@@ -1,0 +1,1443 @@
+{
+ "observations": [
+  {
+   "contest_name_raw": "[WCS] WSDC Jack n' Jill - Newcomer",
+   "footer_raw": "CountryDanceDirector.com © 2026 support@countrydancedirector.com",
+   "judges_raw": [
+    "F. BERNE",
+    "G. MCINTYRE",
+    "M. PASTOR",
+    "M. KIELBASA",
+    "P. BERNE",
+    "P. TURNER",
+    "S. KIRKLIN"
+   ],
+   "kind": "swingdirector_round_sheet",
+   "layout": "final",
+   "pages": [
+    1
+   ],
+   "role_raw": null,
+   "round_name_raw": "Scores",
+   "rows": [
+    {
+     "bib_raw": "464",
+     "entry_raw": "FLORIAN EIDEN / LANDYN MEIDINGER",
+     "heat_raw": null,
+     "marks_raw": [
+      "1",
+      "2",
+      "1",
+      "2",
+      "3",
+      "4",
+      "2"
+     ],
+     "place_raw": "1",
+     "tally_raw": [
+      "2(2)",
+      "5(8)",
+      "6(11)",
+      "7(15)",
+      "7(15)",
+      "7(15)",
+      "7(15)",
+      "7(15)"
+     ]
+    },
+    {
+     "bib_raw": "350",
+     "entry_raw": "THOMAS VU / MADELYN RANDALL",
+     "heat_raw": null,
+     "marks_raw": [
+      "2",
+      "3",
+      "2",
+      "1",
+      "1",
+      "8",
+      "6"
+     ],
+     "place_raw": "2",
+     "tally_raw": [
+      "2(2)",
+      "4(6)",
+      "5(9)",
+      "5(9)",
+      "5(9)",
+      "6(15)",
+      "6(15)",
+      "7(23)"
+     ]
+    },
+    {
+     "bib_raw": "490",
+     "entry_raw": "REBECCA (BECCA) BANGHA / RACHEL HUDEC",
+     "heat_raw": null,
+     "marks_raw": [
+      "3",
+      "8",
+      "8",
+      "4",
+      "2",
+      "1",
+      "5"
+     ],
+     "place_raw": "3",
+     "tally_raw": [
+      "1(1)",
+      "2(3)",
+      "3(6)",
+      "4(10)",
+      "5(15)",
+      "5(15)",
+      "5(15)",
+      "7(31)"
+     ]
+    },
+    {
+     "bib_raw": "153",
+     "entry_raw": "CHRISTINE BEATTIE / SHAUNA JANZ",
+     "heat_raw": null,
+     "marks_raw": [
+      "4",
+      "4",
+      "3",
+      "5",
+      "4",
+      "7",
+      "8"
+     ],
+     "place_raw": "4",
+     "tally_raw": [
+      "0(0)",
+      "0(0)",
+      "1(3)",
+      "4(15)",
+      "5(20)",
+      "5(20)",
+      "6(27)",
+      "7(35)"
+     ]
+    },
+    {
+     "bib_raw": "413",
+     "entry_raw": "ANDREW DIXON / KAYLA RIETZE",
+     "heat_raw": null,
+     "marks_raw": [
+      "8",
+      "7",
+      "5",
+      "8",
+      "5",
+      "5",
+      "3"
+     ],
+     "place_raw": "5",
+     "tally_raw": [
+      "0(0)",
+      "0(0)",
+      "1(3)",
+      "1(3)",
+      "4(18)",
+      "4(18)",
+      "5(25)",
+      "7(41)"
+     ]
+    },
+    {
+     "bib_raw": "579",
+     "entry_raw": "MATHEW FIOLA / SARRA MARIE",
+     "heat_raw": null,
+     "marks_raw": [
+      "7",
+      "5",
+      "6",
+      "6",
+      "6",
+      "2",
+      "1"
+     ],
+     "place_raw": "6",
+     "tally_raw": [
+      "1(1)",
+      "2(3)",
+      "2(3)",
+      "2(3)",
+      "3(8)",
+      "6(26)",
+      "7(33)",
+      "7(33)"
+     ]
+    },
+    {
+     "bib_raw": "387",
+     "entry_raw": "LARS LITTLE / EMILY HARRIS",
+     "heat_raw": null,
+     "marks_raw": [
+      "6",
+      "1",
+      "4",
+      "3",
+      "7",
+      "6",
+      "7"
+     ],
+     "place_raw": "7",
+     "tally_raw": [
+      "1(1)",
+      "1(1)",
+      "2(4)",
+      "3(8)",
+      "3(8)",
+      "5(20)",
+      "7(34)",
+      "7(34)"
+     ]
+    },
+    {
+     "bib_raw": "574",
+     "entry_raw": "STEPHEN REDLACK / LOUISE BRIDGES",
+     "heat_raw": null,
+     "marks_raw": [
+      "5",
+      "6",
+      "7",
+      "7",
+      "8",
+      "3",
+      "4"
+     ],
+     "place_raw": "8",
+     "tally_raw": [
+      "0(0)",
+      "0(0)",
+      "1(3)",
+      "2(7)",
+      "3(12)",
+      "4(18)",
+      "6(32)",
+      "7(40)"
+     ]
+    }
+   ],
+   "source_event_ref": "swingdirector:fixture-event",
+   "source_round_ref": "swingdirector:c765f000d66f8a7e:1",
+   "tally_headers_raw": [
+    "C1",
+    "C2",
+    "C3",
+    "C4",
+    "C5",
+    "C6",
+    "C7",
+    "C8"
+   ],
+   "title_raw": "[WCS] WSDC Jack n' Jill - Newcomer - Scores"
+  },
+  {
+   "contest_name_raw": "[WCS] WSDC Jack n' Jill - Novice",
+   "footer_raw": "CountryDanceDirector.com © 2026 support@countrydancedirector.com",
+   "judges_raw": [
+    "F. BERNE",
+    "G. MCINTYRE",
+    "M. PASTOR",
+    "M. KIELBASA",
+    "P. BERNE",
+    "P. TURNER",
+    "S. KIRKLIN"
+   ],
+   "kind": "swingdirector_round_sheet",
+   "layout": "final",
+   "pages": [
+    2
+   ],
+   "role_raw": null,
+   "round_name_raw": "Scores",
+   "rows": [
+    {
+     "bib_raw": "170",
+     "entry_raw": "IAN (JAN) POLIAKEVITCH / EVANGELINE PAETKAU",
+     "heat_raw": null,
+     "marks_raw": [
+      "1",
+      "3",
+      "1",
+      "4",
+      "3",
+      "2",
+      "2"
+     ],
+     "place_raw": "1",
+     "tally_raw": [
+      "2(2)",
+      "4(6)",
+      "6(12)",
+      "7(16)",
+      "7(16)",
+      "7(16)",
+      "7(16)",
+      "7(16)",
+      "7(16)",
+      "7(16)",
+      "7(16)",
+      "7(16)"
+     ]
+    },
+    {
+     "bib_raw": "357",
+     "entry_raw": "RICHARD STEWART / PHILADELPHIA PAWLEY",
+     "heat_raw": null,
+     "marks_raw": [
+      "4",
+      "4",
+      "3",
+      "9",
+      "4",
+      "5",
+      "4"
+     ],
+     "place_raw": "2",
+     "tally_raw": [
+      "0(0)",
+      "0(0)",
+      "1(3)",
+      "5(19)",
+      "6(24)",
+      "6(24)",
+      "6(24)",
+      "6(24)",
+      "7(33)",
+      "7(33)",
+      "7(33)",
+      "7(33)"
+     ]
+    },
+    {
+     "bib_raw": "482",
+     "entry_raw": "EVA BLAKNEY / LINDSAY CLARK",
+     "heat_raw": null,
+     "marks_raw": [
+      "2",
+      "8",
+      "5",
+      "3",
+      "10",
+      "9",
+      "3"
+     ],
+     "place_raw": "3",
+     "tally_raw": [
+      "0(0)",
+      "1(2)",
+      "3(8)",
+      "3(8)",
+      "4(13)",
+      "4(13)",
+      "4(13)",
+      "5(21)",
+      "6(30)",
+      "7(40)",
+      "7(40)",
+      "7(40)"
+     ]
+    },
+    {
+     "bib_raw": "806",
+     "entry_raw": "KYLER BOECKX / ASLI SADIGOVA",
+     "heat_raw": null,
+     "marks_raw": [
+      "7",
+      "1",
+      "11",
+      "1",
+      "11",
+      "6",
+      "6"
+     ],
+     "place_raw": "4",
+     "tally_raw": [
+      "2(2)",
+      "2(2)",
+      "2(2)",
+      "2(2)",
+      "2(2)",
+      "4(14)",
+      "5(21)",
+      "5(21)",
+      "5(21)",
+      "5(21)",
+      "7(43)",
+      "7(43)"
+     ]
+    },
+    {
+     "bib_raw": "358",
+     "entry_raw": "CAILAN JACKSON / EMILY ANDREWS",
+     "heat_raw": null,
+     "marks_raw": [
+      "6",
+      "11",
+      "2",
+      "5",
+      "1",
+      "8",
+      "9"
+     ],
+     "place_raw": "5",
+     "tally_raw": [
+      "1(1)",
+      "2(3)",
+      "2(3)",
+      "2(3)",
+      "3(8)",
+      "4(14)",
+      "4(14)",
+      "5(22)",
+      "6(31)",
+      "6(31)",
+      "7(42)",
+      "7(42)"
+     ]
+    },
+    {
+     "bib_raw": "362",
+     "entry_raw": "KYLE DAFOE / SEAN AUDET",
+     "heat_raw": null,
+     "marks_raw": [
+      "10",
+      "7",
+      "7",
+      "2",
+      "2",
+      "10",
+      "7"
+     ],
+     "place_raw": "6",
+     "tally_raw": [
+      "0(0)",
+      "2(4)",
+      "2(4)",
+      "2(4)",
+      "2(4)",
+      "2(4)",
+      "5(25)",
+      "5(25)",
+      "5(25)",
+      "7(45)",
+      "7(45)",
+      "7(45)"
+     ]
+    },
+    {
+     "bib_raw": "392",
+     "entry_raw": "PHIL LEGER / JODY SARK",
+     "heat_raw": null,
+     "marks_raw": [
+      "12",
+      "5",
+      "10",
+      "11",
+      "7",
+      "4",
+      "1"
+     ],
+     "place_raw": "7",
+     "tally_raw": [
+      "1(1)",
+      "1(1)",
+      "1(1)",
+      "2(5)",
+      "3(10)",
+      "3(10)",
+      "4(17)",
+      "4(17)",
+      "4(17)",
+      "5(27)",
+      "6(38)",
+      "7(50)"
+     ]
+    },
+    {
+     "bib_raw": "580",
+     "entry_raw": "WREN NEWMAN / ELENA MINEVA",
+     "heat_raw": null,
+     "marks_raw": [
+      "5",
+      "9",
+      "4",
+      "6",
+      "9",
+      "7",
+      "11"
+     ],
+     "place_raw": "8",
+     "tally_raw": [
+      "0(0)",
+      "0(0)",
+      "0(0)",
+      "1(4)",
+      "2(9)",
+      "3(15)",
+      "4(22)",
+      "4(22)",
+      "6(40)",
+      "6(40)",
+      "7(51)",
+      "7(51)"
+     ]
+    },
+    {
+     "bib_raw": "221",
+     "entry_raw": "ALBERTO DE LA CRUZ / SARA RAYMOND",
+     "heat_raw": null,
+     "marks_raw": [
+      "9",
+      "2",
+      "8",
+      "8",
+      "8",
+      "3",
+      "10"
+     ],
+     "place_raw": "9",
+     "tally_raw": [
+      "0(0)",
+      "1(2)",
+      "2(5)",
+      "2(5)",
+      "2(5)",
+      "2(5)",
+      "2(5)",
+      "5(29)",
+      "6(38)",
+      "7(48)",
+      "7(48)",
+      "7(48)"
+     ]
+    },
+    {
+     "bib_raw": "390",
+     "entry_raw": "SEAN MOWREY / VANESSA MARTELL",
+     "heat_raw": null,
+     "marks_raw": [
+      "11",
+      "6",
+      "12",
+      "10",
+      "5",
+      "1",
+      "8"
+     ],
+     "place_raw": "10",
+     "tally_raw": [
+      "1(1)",
+      "1(1)",
+      "1(1)",
+      "1(1)",
+      "2(6)",
+      "3(12)",
+      "3(12)",
+      "4(20)",
+      "4(20)",
+      "5(30)",
+      "6(41)",
+      "7(53)"
+     ]
+    },
+    {
+     "bib_raw": "178",
+     "entry_raw": "TIKWIZA NKOWANE / COURTNEY OLFERT",
+     "heat_raw": null,
+     "marks_raw": [
+      "8",
+      "12",
+      "9",
+      "7",
+      "12",
+      "12",
+      "5"
+     ],
+     "place_raw": "11",
+     "tally_raw": [
+      "0(0)",
+      "0(0)",
+      "0(0)",
+      "0(0)",
+      "1(5)",
+      "1(5)",
+      "2(12)",
+      "3(20)",
+      "4(29)",
+      "4(29)",
+      "4(29)",
+      "7(65)"
+     ]
+    },
+    {
+     "bib_raw": "487",
+     "entry_raw": "STEFANIE BEALE / HEATHER BROOKS",
+     "heat_raw": null,
+     "marks_raw": [
+      "3",
+      "10",
+      "6",
+      "12",
+      "6",
+      "11",
+      "12"
+     ],
+     "place_raw": "12",
+     "tally_raw": [
+      "0(0)",
+      "0(0)",
+      "1(3)",
+      "1(3)",
+      "1(3)",
+      "3(15)",
+      "3(15)",
+      "3(15)",
+      "3(15)",
+      "4(25)",
+      "5(36)",
+      "7(60)"
+     ]
+    }
+   ],
+   "source_event_ref": "swingdirector:fixture-event",
+   "source_round_ref": "swingdirector:c765f000d66f8a7e:2",
+   "tally_headers_raw": [
+    "C1",
+    "C2",
+    "C3",
+    "C4",
+    "C5",
+    "C6",
+    "C7",
+    "C8",
+    "C9",
+    "C10",
+    "C11",
+    "C12"
+   ],
+   "title_raw": "[WCS] WSDC Jack n' Jill - Novice - Scores"
+  },
+  {
+   "contest_name_raw": "[WCS] WSDC Jack n' Jill - Intermediate",
+   "footer_raw": "CountryDanceDirector.com © 2026 support@countrydancedirector.com",
+   "judges_raw": [
+    "F. BERNE",
+    "G. MCINTYRE",
+    "M. PASTOR",
+    "M. KIELBASA",
+    "P. BERNE",
+    "P. TURNER",
+    "S. KIRKLIN"
+   ],
+   "kind": "swingdirector_round_sheet",
+   "layout": "final",
+   "pages": [
+    3
+   ],
+   "role_raw": null,
+   "round_name_raw": "Scores",
+   "rows": [
+    {
+     "bib_raw": "353",
+     "entry_raw": "DAVID SAYLORS / MAVERICK COVE",
+     "heat_raw": null,
+     "marks_raw": [
+      "3",
+      "1",
+      "1",
+      "1",
+      "6",
+      "8",
+      "1"
+     ],
+     "place_raw": "1",
+     "tally_raw": [
+      "4(4)",
+      "4(4)",
+      "5(7)",
+      "5(7)",
+      "5(7)",
+      "6(13)",
+      "6(13)",
+      "7(21)",
+      "7(21)"
+     ]
+    },
+    {
+     "bib_raw": "568",
+     "entry_raw": "ALIA MCCUTCHEON / ALYSSA ENNIS",
+     "heat_raw": null,
+     "marks_raw": [
+      "2",
+      "3",
+      "7",
+      "4",
+      "1",
+      "5",
+      "3"
+     ],
+     "place_raw": "2",
+     "tally_raw": [
+      "1(1)",
+      "2(3)",
+      "4(9)",
+      "5(13)",
+      "6(18)",
+      "6(18)",
+      "7(25)",
+      "7(25)",
+      "7(25)"
+     ]
+    },
+    {
+     "bib_raw": "361",
+     "entry_raw": "MATT VICKARS / ELISE MILLARD",
+     "heat_raw": null,
+     "marks_raw": [
+      "4",
+      "2",
+      "5",
+      "3",
+      "4",
+      "1",
+      "5"
+     ],
+     "place_raw": "3",
+     "tally_raw": [
+      "1(1)",
+      "2(3)",
+      "3(6)",
+      "5(14)",
+      "7(24)",
+      "7(24)",
+      "7(24)",
+      "7(24)",
+      "7(24)"
+     ]
+    },
+    {
+     "bib_raw": "569",
+     "entry_raw": "WYATT RITCHIE / MARISSA GUILLEN",
+     "heat_raw": null,
+     "marks_raw": [
+      "1",
+      "5",
+      "4",
+      "6",
+      "3",
+      "6",
+      "2"
+     ],
+     "place_raw": "4",
+     "tally_raw": [
+      "1(1)",
+      "2(3)",
+      "3(6)",
+      "4(10)",
+      "5(15)",
+      "7(27)",
+      "7(27)",
+      "7(27)",
+      "7(27)"
+     ]
+    },
+    {
+     "bib_raw": "376",
+     "entry_raw": "BILLIE NELL / HEATHER NELSON",
+     "heat_raw": null,
+     "marks_raw": [
+      "6",
+      "8",
+      "3",
+      "7",
+      "2",
+      "4",
+      "7"
+     ],
+     "place_raw": "5",
+     "tally_raw": [
+      "0(0)",
+      "1(2)",
+      "2(5)",
+      "3(9)",
+      "3(9)",
+      "4(15)",
+      "6(29)",
+      "7(37)",
+      "7(37)"
+     ]
+    },
+    {
+     "bib_raw": "182",
+     "entry_raw": "DAFYDD FOSTER / STACEY POTTER",
+     "heat_raw": null,
+     "marks_raw": [
+      "7",
+      "6",
+      "6",
+      "2",
+      "8",
+      "2",
+      "9"
+     ],
+     "place_raw": "6",
+     "tally_raw": [
+      "0(0)",
+      "2(4)",
+      "2(4)",
+      "2(4)",
+      "2(4)",
+      "4(16)",
+      "5(23)",
+      "6(31)",
+      "7(40)"
+     ]
+    },
+    {
+     "bib_raw": "158",
+     "entry_raw": "LAHIRU MARAMBA / KIMBERLEY TAYLOR",
+     "heat_raw": null,
+     "marks_raw": [
+      "5",
+      "9",
+      "2",
+      "9",
+      "7",
+      "3",
+      "8"
+     ],
+     "place_raw": "7",
+     "tally_raw": [
+      "0(0)",
+      "1(2)",
+      "2(5)",
+      "2(5)",
+      "3(10)",
+      "3(10)",
+      "4(17)",
+      "5(25)",
+      "7(43)"
+     ]
+    },
+    {
+     "bib_raw": "219",
+     "entry_raw": "KYLE LORANGER / ADRIANNE ZIARKOWSKI",
+     "heat_raw": null,
+     "marks_raw": [
+      "9",
+      "7",
+      "9",
+      "5",
+      "5",
+      "9",
+      "6"
+     ],
+     "place_raw": "8",
+     "tally_raw": [
+      "0(0)",
+      "0(0)",
+      "0(0)",
+      "0(0)",
+      "2(10)",
+      "3(16)",
+      "4(23)",
+      "4(23)",
+      "7(50)"
+     ]
+    },
+    {
+     "bib_raw": "208",
+     "entry_raw": "PAUL BENSON / EVA BLAKNEY",
+     "heat_raw": null,
+     "marks_raw": [
+      "8",
+      "4",
+      "8",
+      "8",
+      "9",
+      "7",
+      "4"
+     ],
+     "place_raw": "9",
+     "tally_raw": [
+      "0(0)",
+      "0(0)",
+      "0(0)",
+      "2(8)",
+      "2(8)",
+      "2(8)",
+      "3(15)",
+      "6(39)",
+      "7(48)"
+     ]
+    }
+   ],
+   "source_event_ref": "swingdirector:fixture-event",
+   "source_round_ref": "swingdirector:c765f000d66f8a7e:3",
+   "tally_headers_raw": [
+    "C1",
+    "C2",
+    "C3",
+    "C4",
+    "C5",
+    "C6",
+    "C7",
+    "C8",
+    "C9"
+   ],
+   "title_raw": "[WCS] WSDC Jack n' Jill - Intermediate - Scores"
+  },
+  {
+   "contest_name_raw": "[WCS] WSDC Jack n' Jill - Sophisticated",
+   "footer_raw": "CountryDanceDirector.com © 2026 support@countrydancedirector.com",
+   "judges_raw": [
+    "D. APPEL",
+    "F. BERNE",
+    "G. MCINTYRE",
+    "K. FITZGERALD",
+    "M. PALETTE",
+    "P. LALONDE",
+    "P. BERNE"
+   ],
+   "kind": "swingdirector_round_sheet",
+   "layout": "final",
+   "pages": [
+    4
+   ],
+   "role_raw": null,
+   "round_name_raw": "Scores",
+   "rows": [
+    {
+     "bib_raw": "466",
+     "entry_raw": "KYLE ECKMAN / HEATHER BROOKS",
+     "heat_raw": null,
+     "marks_raw": [
+      "1",
+      "1",
+      "4",
+      "1",
+      "3",
+      "4",
+      "1"
+     ],
+     "place_raw": "1",
+     "tally_raw": [
+      "4(4)",
+      "4(4)",
+      "5(7)",
+      "7(15)",
+      "7(15)",
+      "7(15)",
+      "7(15)"
+     ]
+    },
+    {
+     "bib_raw": "445",
+     "entry_raw": "JACOB REDING / KAREN LEFOHN",
+     "heat_raw": null,
+     "marks_raw": [
+      "2",
+      "2",
+      "1",
+      "2",
+      "1",
+      "1",
+      "2"
+     ],
+     "place_raw": "2",
+     "tally_raw": [
+      "3(3)",
+      "7(11)",
+      "7(11)",
+      "7(11)",
+      "7(11)",
+      "7(11)",
+      "7(11)"
+     ]
+    },
+    {
+     "bib_raw": "443",
+     "entry_raw": "DANIEL TREPAT / SHEILA LANCELOTTA",
+     "heat_raw": null,
+     "marks_raw": [
+      "3",
+      "3",
+      "3",
+      "3",
+      "2",
+      "2",
+      "3"
+     ],
+     "place_raw": "3",
+     "tally_raw": [
+      "0(0)",
+      "2(4)",
+      "7(19)",
+      "7(19)",
+      "7(19)",
+      "7(19)",
+      "7(19)"
+     ]
+    },
+    {
+     "bib_raw": "577",
+     "entry_raw": "MICHAEL SHIBASAKI / VERONICA ATWILL",
+     "heat_raw": null,
+     "marks_raw": [
+      "4",
+      "4",
+      "2",
+      "6",
+      "4",
+      "5",
+      "5"
+     ],
+     "place_raw": "4",
+     "tally_raw": [
+      "0(0)",
+      "1(2)",
+      "1(2)",
+      "4(14)",
+      "6(24)",
+      "7(30)",
+      "7(30)"
+     ]
+    },
+    {
+     "bib_raw": "814",
+     "entry_raw": "BRAD WILLIS / AMANDA BRUBAKER",
+     "heat_raw": null,
+     "marks_raw": [
+      "5",
+      "5",
+      "5",
+      "5",
+      "5",
+      "3",
+      "4"
+     ],
+     "place_raw": "5",
+     "tally_raw": [
+      "0(0)",
+      "0(0)",
+      "1(3)",
+      "2(7)",
+      "7(32)",
+      "7(32)",
+      "7(32)"
+     ]
+    },
+    {
+     "bib_raw": "383",
+     "entry_raw": "JONATHAN UY / VIVIAN KLEIN",
+     "heat_raw": null,
+     "marks_raw": [
+      "7",
+      "6",
+      "6",
+      "4",
+      "6",
+      "6",
+      "6"
+     ],
+     "place_raw": "6",
+     "tally_raw": [
+      "0(0)",
+      "0(0)",
+      "0(0)",
+      "1(4)",
+      "1(4)",
+      "6(34)",
+      "7(41)"
+     ]
+    },
+    {
+     "bib_raw": "392",
+     "entry_raw": "PHIL LEGER / AMY SHIBASAKI",
+     "heat_raw": null,
+     "marks_raw": [
+      "6",
+      "7",
+      "7",
+      "7",
+      "7",
+      "7",
+      "7"
+     ],
+     "place_raw": "7",
+     "tally_raw": [
+      "0(0)",
+      "0(0)",
+      "0(0)",
+      "0(0)",
+      "0(0)",
+      "1(6)",
+      "7(48)"
+     ]
+    }
+   ],
+   "source_event_ref": "swingdirector:fixture-event",
+   "source_round_ref": "swingdirector:c765f000d66f8a7e:4",
+   "tally_headers_raw": [
+    "C1",
+    "C2",
+    "C3",
+    "C4",
+    "C5",
+    "C6",
+    "C7"
+   ],
+   "title_raw": "[WCS] WSDC Jack n' Jill - Sophisticated - Scores"
+  },
+  {
+   "contest_name_raw": "[WCS] WSDC Jack n' Jill - Masters",
+   "footer_raw": "CountryDanceDirector.com © 2026 support@countrydancedirector.com",
+   "judges_raw": [
+    "D. APPEL",
+    "F. BERNE",
+    "G. MCINTYRE",
+    "K. FITZGERALD",
+    "M. PALETTE",
+    "P. LALONDE",
+    "P. BERNE"
+   ],
+   "kind": "swingdirector_round_sheet",
+   "layout": "final",
+   "pages": [
+    5
+   ],
+   "role_raw": null,
+   "round_name_raw": "Scores",
+   "rows": [
+    {
+     "bib_raw": "219",
+     "entry_raw": "KYLE LORANGER / SHEILA LANCELOTTA",
+     "heat_raw": null,
+     "marks_raw": [
+      "5",
+      "1",
+      "1",
+      "1",
+      "1",
+      "2",
+      "1"
+     ],
+     "place_raw": "1",
+     "tally_raw": [
+      "5(5)",
+      "6(7)",
+      "6(7)",
+      "6(7)",
+      "7(12)"
+     ]
+    },
+    {
+     "bib_raw": "230",
+     "entry_raw": "SCOT MCKAY / LAURA CANCELA",
+     "heat_raw": null,
+     "marks_raw": [
+      "1",
+      "5",
+      "2",
+      "2",
+      "2",
+      "3",
+      "4"
+     ],
+     "place_raw": "2",
+     "tally_raw": [
+      "1(1)",
+      "4(7)",
+      "5(10)",
+      "6(14)",
+      "7(19)"
+     ]
+    },
+    {
+     "bib_raw": "208",
+     "entry_raw": "PAUL BENSON / TERESA LAUSTRUP",
+     "heat_raw": null,
+     "marks_raw": [
+      "4",
+      "2",
+      "3",
+      "4",
+      "3",
+      "5",
+      "2"
+     ],
+     "place_raw": "3",
+     "tally_raw": [
+      "0(0)",
+      "2(4)",
+      "4(10)",
+      "6(18)",
+      "7(23)"
+     ]
+    },
+    {
+     "bib_raw": "577",
+     "entry_raw": "MICHAEL SHIBASAKI / TAL SHICHOR",
+     "heat_raw": null,
+     "marks_raw": [
+      "2",
+      "4",
+      "5",
+      "3",
+      "4",
+      "4",
+      "3"
+     ],
+     "place_raw": "4",
+     "tally_raw": [
+      "0(0)",
+      "1(2)",
+      "3(8)",
+      "6(20)",
+      "7(25)"
+     ]
+    },
+    {
+     "bib_raw": "814",
+     "entry_raw": "BRAD WILLIS / KELLY ROBINSON",
+     "heat_raw": null,
+     "marks_raw": [
+      "3",
+      "3",
+      "4",
+      "5",
+      "5",
+      "1",
+      "5"
+     ],
+     "place_raw": "5",
+     "tally_raw": [
+      "1(1)",
+      "1(1)",
+      "3(7)",
+      "4(11)",
+      "7(26)"
+     ]
+    }
+   ],
+   "source_event_ref": "swingdirector:fixture-event",
+   "source_round_ref": "swingdirector:c765f000d66f8a7e:5",
+   "tally_headers_raw": [
+    "C1",
+    "C2",
+    "C3",
+    "C4",
+    "C5"
+   ],
+   "title_raw": "[WCS] WSDC Jack n' Jill - Masters - Scores"
+  },
+  {
+   "contest_name_raw": "[WCS] WSDC Jack n' Jill - Advanced",
+   "footer_raw": "CountryDanceDirector.com © 2026 support@countrydancedirector.com",
+   "judges_raw": [
+    "D. APPEL",
+    "F. BERNE",
+    "G. MCINTYRE",
+    "K. FITZGERALD",
+    "M. PALETTE",
+    "P. LALONDE",
+    "P. BERNE"
+   ],
+   "kind": "swingdirector_round_sheet",
+   "layout": "final",
+   "pages": [
+    6
+   ],
+   "role_raw": null,
+   "round_name_raw": "Scores",
+   "rows": [
+    {
+     "bib_raw": "466",
+     "entry_raw": "KYLE ECKMAN / MIRANDA LISOWSKI",
+     "heat_raw": null,
+     "marks_raw": [
+      "3",
+      "2",
+      "3",
+      "6",
+      "1",
+      "1",
+      "2"
+     ],
+     "place_raw": "1",
+     "tally_raw": [
+      "2(2)",
+      "4(6)",
+      "6(12)",
+      "6(12)",
+      "6(12)",
+      "7(18)",
+      "7(18)"
+     ]
+    },
+    {
+     "bib_raw": "471",
+     "entry_raw": "THOMAS CLYDE / EMMA BRILLANTES",
+     "heat_raw": null,
+     "marks_raw": [
+      "1",
+      "6",
+      "2",
+      "4",
+      "2",
+      "2",
+      "4"
+     ],
+     "place_raw": "2",
+     "tally_raw": [
+      "1(1)",
+      "4(7)",
+      "4(7)",
+      "6(15)",
+      "6(15)",
+      "7(21)",
+      "7(21)"
+     ]
+    },
+    {
+     "bib_raw": "372",
+     "entry_raw": "MILES VAN DE WETERING / DANYA SVIR",
+     "heat_raw": null,
+     "marks_raw": [
+      "4",
+      "1",
+      "1",
+      "3",
+      "6",
+      "3",
+      "1"
+     ],
+     "place_raw": "3",
+     "tally_raw": [
+      "3(3)",
+      "3(3)",
+      "5(9)",
+      "6(13)",
+      "6(13)",
+      "7(19)",
+      "7(19)"
+     ]
+    },
+    {
+     "bib_raw": "180",
+     "entry_raw": "BRANDON ZUKOWSKI / EKATERINA (KATIA) RAR",
+     "heat_raw": null,
+     "marks_raw": [
+      "2",
+      "4",
+      "4",
+      "5",
+      "4",
+      "7",
+      "6"
+     ],
+     "place_raw": "4",
+     "tally_raw": [
+      "0(0)",
+      "1(2)",
+      "1(2)",
+      "4(14)",
+      "5(19)",
+      "6(25)",
+      "7(32)"
+     ]
+    },
+    {
+     "bib_raw": "801",
+     "entry_raw": "JOSH SAFINIUK / VERONICA ATWILL",
+     "heat_raw": null,
+     "marks_raw": [
+      "5",
+      "7",
+      "6",
+      "2",
+      "3",
+      "5",
+      "3"
+     ],
+     "place_raw": "5",
+     "tally_raw": [
+      "0(0)",
+      "1(2)",
+      "3(8)",
+      "3(8)",
+      "5(18)",
+      "6(24)",
+      "7(31)"
+     ]
+    },
+    {
+     "bib_raw": "354",
+     "entry_raw": "COREY BRILLANTES / AMANDA BRUBAKER",
+     "heat_raw": null,
+     "marks_raw": [
+      "7",
+      "3",
+      "5",
+      "1",
+      "5",
+      "4",
+      "7"
+     ],
+     "place_raw": "6",
+     "tally_raw": [
+      "1(1)",
+      "1(1)",
+      "2(4)",
+      "3(8)",
+      "5(18)",
+      "5(18)",
+      "7(32)"
+     ]
+    },
+    {
+     "bib_raw": "443",
+     "entry_raw": "DANIEL TREPAT / AMY SHIBASAKI",
+     "heat_raw": null,
+     "marks_raw": [
+      "6",
+      "5",
+      "7",
+      "7",
+      "7",
+      "6",
+      "5"
+     ],
+     "place_raw": "7",
+     "tally_raw": [
+      "0(0)",
+      "0(0)",
+      "0(0)",
+      "0(0)",
+      "2(10)",
+      "4(22)",
+      "7(43)"
+     ]
+    }
+   ],
+   "source_event_ref": "swingdirector:fixture-event",
+   "source_round_ref": "swingdirector:c765f000d66f8a7e:6",
+   "tally_headers_raw": [
+    "C1",
+    "C2",
+    "C3",
+    "C4",
+    "C5",
+    "C6",
+    "C7"
+   ],
+   "title_raw": "[WCS] WSDC Jack n' Jill - Advanced - Scores"
+  }
+ ],
+ "warnings": []
+}

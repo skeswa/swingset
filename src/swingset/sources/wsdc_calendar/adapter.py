@@ -56,7 +56,60 @@ def _decoded(body: bytes) -> bytes:
     return bytes(decoded)
 
 
+#: Flag values the calendar prints in place of an alpha-3 code. A country
+#: name maps to its code. `transparent` is the blank flag the calendar shows
+#: for events in Russia (captures from 2025-10 on; 2023 ones print `RUS`),
+#: and an empty value has no flag: neither names a country, so the row keeps
+#: none (D-0257). Any other value is a finding.
+FLAG_NAMES = {
+    "Bulgaria": "BGR",
+    "Ireland": "IRL",
+    "Latvia": "LVA",
+    "Malaysia": "MYS",
+    "Scotland": "GBR",
+    "Slovenia": "SVN",
+}
+NO_FLAG = frozenset({"", "transparent"})
+
+
+def _country(flag: object) -> tuple[str | None, bool]:
+    """The row's alpha-3 country code, and whether the flag value is a known one."""
+    if not isinstance(flag, str) or flag in NO_FLAG:
+        return None, True
+    if re.fullmatch(r"[A-Z]{3}", flag):
+        return flag, True
+    if flag in FLAG_NAMES:
+        return FLAG_NAMES[flag], True
+    return None, False
+
+
+class ImpossibleDates(ValueError):
+    """A date in a known printed format that spans no real days (D-0257)."""
+
+
 def _dates(raw: str) -> tuple[str, str]:
+    """A listing's ISO start and end, or ImpossibleDates, or ExtractError for an unknown format.
+
+    A span printed with one year that crosses New Year (`Dec 28 - Jan 1,
+    2020`) takes the year for its end. FullCalendar dates the legacy reader
+    kept as `YYYY-MM-DD - YYYY-MM-DD` span no day. A known format that ends
+    before it starts or names no real day is the source's error: the row is
+    withheld, never re-dated.
+    """
+    if re.fullmatch(r"\d{4}-\d{2}-\d{2} - \d{4}-\d{2}-\d{2}", raw):
+        raise ImpossibleDates(f"calendar dates span no day: {raw!r}")
+    try:
+        start, end = _printed_dates(raw)
+    except ValueError as error:
+        if isinstance(error, ExtractError):
+            raise
+        raise ImpossibleDates(f"calendar date names no real day: {raw!r}") from error
+    if end < start:
+        raise ImpossibleDates(f"calendar dates end before they start: {raw!r}")
+    return start, end
+
+
+def _printed_dates(raw: str) -> tuple[str, str]:
     single = re.fullmatch(r"([A-Z][a-z]{2}) (\d{1,2}), (\d{4})", raw)
     if single:
         month, day, year = single.groups()
@@ -80,7 +133,9 @@ def _dates(raw: str) -> tuple[str, str]:
     same_year = re.fullmatch(r"([A-Z][a-z]{2}) (\d+) - ([A-Z][a-z]{2}) (\d+), (\d{4})", raw)
     if same_year:
         month1, day1, month2, day2, year = same_year.groups()
-        return date(int(year), _MONTHS[month1], int(day1)).isoformat(), date(
+        # One printed year across New Year belongs to the end.
+        first = int(year) - 1 if (month1, month2) == ("Dec", "Jan") else int(year)
+        return date(first, _MONTHS[month1], int(day1)).isoformat(), date(
             int(year), _MONTHS[month2], int(day2)
         ).isoformat()
     explicit_years = re.fullmatch(
@@ -193,9 +248,21 @@ class EventsPage:
             date_raw = str(item.get("date", ""))
             try:
                 start_date, end_date = _dates(date_raw)
+            except ImpossibleDates as error:
+                warnings.append(ParseWarning("impossible_listing_date", str(error), item))
+                continue
             except (ValueError, KeyError) as error:
                 warnings.append(ParseWarning("unrecognized_listing_date", str(error), item))
                 continue
+            country, known = _country(item.get("country_code"))
+            if not known:
+                warnings.append(
+                    ParseWarning(
+                        "unrecognized_country_flag",
+                        f"unknown calendar country flag: {item.get('country_code')!r}",
+                        item,
+                    )
+                )
             payload = CalendarRow(
                 kind="calendar_row",
                 name_raw=str(item.get("name", "")),
@@ -204,9 +271,7 @@ class EventsPage:
                 event_type_raw=str(item.get("event_type", "")),
                 location_raw=str(item.get("location", "")),
                 website=item.get("website") if isinstance(item.get("website"), str) else None,
-                country_code_raw=item.get("country_code")
-                if isinstance(item.get("country_code"), str)
-                else None,
+                country_code_raw=country,
                 row_classes=tuple(str(x) for x in item.get("classes", []) if isinstance(x, str)),
             )
             observations.append(
