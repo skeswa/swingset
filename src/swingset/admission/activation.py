@@ -24,6 +24,11 @@ from swingset.state.db import Database
 from .kinds import contract_version
 from .policy import activate_contract, pause_contract, record_review
 
+#: Listing kinds whose rows the inventory keeps as cancelled twins (D-0260).
+CALENDAR_FAMILY = frozenset(
+    {"wsdc_calendar.events", "swingdancecouncil.events", "wsdc_newsletter.events"}
+)
+
 
 def status(conn: sqlite3.Connection, page_kind: str) -> dict[str, Any]:
     """The kind's code and policy versions and its parse results by contract and decision."""
@@ -109,6 +114,16 @@ def activate(
     version = contract_version(page_kind)
     if version == "unassessed":
         raise ValueError(f"{page_kind} has no reviewed contract version")
+    from swingset.project import history
+
+    if page_kind in CALENDAR_FAMILY and history.KEEP_CANCELLED_TWINS:
+        # The release would publish every cancelled twin the inventory keeps
+        # for the baseline's sake; the deploy that activates the calendar
+        # contract turns the switch off so the twins merge (D-0260).
+        raise ValueError(
+            f"{page_kind}: turn off project.history.KEEP_CANCELLED_TWINS in the same deploy "
+            "first (D-0260)"
+        )
     if not cohort:
         raise ValueError("activation needs the reviewed cohort's generations")
     with database.transaction() as conn:

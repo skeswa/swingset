@@ -23,7 +23,7 @@ is [archived](../journal/archive/status-2026-09-18.md).
 
 ## Held
 
-- None. A diagnostic hold (claude) ran 16:10 to 16:27 UTC on 2026-09-25 for the candidate 019 switch ([receipt](../journal/evidence/runtime/candidate-019-2026-09-25/receipt.json)).
+- Operator hold (claude) since 2026-10-16 14:12 UTC: the owner is sleeping the Mac for a few hours; production is idled so no tick freezes mid-write. Remove on wake, then deploy the D-0260 fix round. Review by 2026-10-17 ([receipt](../journal/evidence/runtime/combined-deploy-2026-10-15/receipt.json)).
 
 ## Next release and what blocks it
 

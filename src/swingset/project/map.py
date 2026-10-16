@@ -35,7 +35,7 @@ from swingset.state import proposals
 from swingset.state.proposals import Proposal
 from swingset.state.work import WorkUnit, bump_revision, enqueue
 
-from .history import ListingMatch, alias_map, match_listing, registry_names
+from .history import ListingMatch, alias_map, match_listing, near, registry_names
 from .materialization import helper_recipe, materializing
 from .writer import Projection, replace_scope
 
@@ -274,8 +274,9 @@ class _SeriesRule:
     A listing goes to the held occurrence `history.match_listing` names, but
     only when the inventory gave that occurrence this source and dates that
     overlap the listing's: then the inventory attached the listing there and
-    the contests follow its header facts. Registry names come from the
-    inventory's output (`history.registry_names`).
+    the contests follow its header facts. With no held occurrence it goes to
+    the row the inventory gave the unreported edition (D-0260). Registry
+    names come from the inventory's output (`history.registry_names`).
     """
 
     def __init__(self, conn: sqlite3.Connection, source: str, aliases: bytes) -> None:
@@ -289,10 +290,15 @@ class _SeriesRule:
             return None
         if self._names is None:
             self._names = registry_names(self._conn)
+        month = str(end)[:7]
         match: ListingMatch = match_listing(
-            self._conn, self._aliases, self._names, str(name), str(end)[:7]
+            self._conn, self._aliases, self._names, str(name), month
         )
         if match.event_id is None:
+            if len(match.series) == 1 and not match.events:
+                return self._edition(
+                    next(iter(match.series)), month, f"{month}-{match.slug}", start, end
+                )
             return None
         row = self._conn.execute(
             "SELECT sources,start_date,end_date FROM events WHERE event_id=?", (match.event_id,)
@@ -302,6 +308,39 @@ class _SeriesRule:
         if not _overlaps(start, end, row[1], row[2]):
             return None
         return match.event_id
+
+    def _edition(
+        self, series: str, month: str, natural: str, start: object, end: object
+    ) -> str | None:
+        """The row the inventory gave an edition the registry has not reported.
+
+        The inventory puts every listing of a series in one month on one row
+        (D-0260): this source's listing goes where that row's sources and
+        dates (`history.near`) say the inventory put it: a row of the series,
+        else the row the listing's own name gives, else a row whose own name
+        resolves to the same series (a calendar row keeps its slug series).
+        None when that is not one row.
+        """
+        found: dict[int, list[str]] = {0: [], 1: [], 2: []}
+        for row_id, row_series, name, sources, history, first, last in self._conn.execute(
+            "SELECT event_id,series_id,name,sources,history_source,start_date,end_date "
+            "FROM events WHERE held!='held' AND event_month=?",
+            (month,),
+        ):
+            if self._source not in json.loads(str(sources)) or not json.loads(str(history or "[]")):
+                continue
+            if not near(start, end, first, last):
+                continue
+            if row_series == series:
+                found[0].append(str(row_id))
+            elif row_id == natural:
+                found[1].append(str(row_id))
+            elif match_listing(
+                self._conn, self._aliases, self._names or {}, str(name), month
+            ).series == frozenset({series}):
+                found[2].append(str(row_id))
+        rows = found[0] or found[1] or found[2]
+        return rows[0] if len(rows) == 1 else None
 
 
 def _owned(conn: sqlite3.Connection, identifier: str) -> bool:

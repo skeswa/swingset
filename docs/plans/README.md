@@ -381,7 +381,11 @@ Coast Swing Magic` to `wsdc-300` and `KOREA WESTIVAL 2026_10th Anniversary`
     184 twin rows removed, events 2,191 to 2,351, cities 165 to 391. No
     published event loses dates or place except the stale `wsdc-342` Global
     Grand Prix 2026 row, whose place is on the held `wsdc-409` row; Monterey
-    Swingfest 2021, published twice, becomes one event. Then record
+    Swingfest 2021, published twice, becomes one event. Amended 2026-10-16
+    after the blocked candidate `cand_ce7e0a45f402400a`: until activation a
+    cancel-marked listing keeps its own row (`KEEP_CANCELLED_TWINS` in
+    `project/history.py`); turn it off in the activation deploy so the twins
+    merge. Then record
     an independent review of a contract-1 cohort and activate it with
     `swingset contract activate`, with preflight and post-check receipts.
 36. Declare the inventory's new reads. After the 2026-10-15 deploy the watchdog

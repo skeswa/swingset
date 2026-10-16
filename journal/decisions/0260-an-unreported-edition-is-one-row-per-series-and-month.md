@@ -1,6 +1,6 @@
-# D-0260: An unreported calendar edition is one row per series and month, and carries the listing's place
+# D-0260: An unreported edition is one row per series and month, with its listings' sources, span and place
 
-Recorded: 2026-10-15  
+Recorded: 2026-10-15, amended 2026-10-16 after the blocked candidate `cand_ce7e0a45f402400a`  
 Decided by: agent, 2026-10-15, under D-0172; source: session instruction of 2026-10-15 to clear the D-0257 activation blockers (maintenance item 35)  
 Topic: Event identity  
 Supersedes: the inventory's one-row-per-printed-name rule for editions the registry has not reported; amends D-0256  
@@ -8,41 +8,46 @@ Superseded by: —
 
 ## Decision
 
-- Calendar, newsletter and council listings of one series that end in the
-  same month, with no held occurrence, are one edition, whatever note a
-  name gained (`Bavarian Open (Cancelled due to Covid-19)`). Its id is the
-  oldest existing listing-only row of that series and month, then the
-  shortest; else the shortest id a listing name gives. Results-platform
-  listings keep their own row, which takes the edition's status and place.
-  The one published id that goes is
-  `2021-01-monterey-swingfest-cancelled-due-to-covid-19`; its status moves
-  to `2021-01-monterey-swingfest`.
-- The other listing-only rows of that series and month go, unless a scope,
-  contest, judge, registry placement, map row, proposal or origin intent
-  names them.
-- Status comes from the WSDC calendar's listings of the edition, else from
-  the other calendar-family ones; a newsletter read in 2026 does not
-  outrank them. A trial mark on any of them makes it `trial`. A cancel mark
-  cancels it; a hiatus mark cancels it only when seen before the edition
-  began, or when every listing carries one. A held occurrence stays held.
-- A capture that dates two spans that do not nest keeps both listings
-  apart (Korea Westival 2020).
-- The inventory writes city, region and country from the newest WSDC
-  calendar listing of the edition. Each of the three keeps its old value
-  when the newer listing has none; a flag that is not an alpha-3 code gives
-  no country.
+- All listings of one series that end in one month, with no held
+  occurrence, are one edition, and a results listing joins it when its
+  dates overlap or touch, within a day, a calendar-family listing's
+  (`history.near`, the same test the map applies). Its id is the
+  oldest, then shortest, existing unheld row that a calendar-family name
+  gives or that only such listings wrote; else a results listing's row;
+  else the shortest calendar-family id. The map sends the results there
+  (`alias`): a row of the listing's series, else the one its name gives,
+  else one whose own name resolves to that series; never another series.
+  The 2024 trials (Aloha Open, Bend Connection, WCS Party, Flowstate,
+  Slovenian Open, Spring Time Swing) are one event each.
+- Until the calendar contract is active, a listing printing a cancel or
+  hiatus note keeps its own row (`KEEP_CANCELLED_TWINS`): the release still
+  shows calendar rows from its baseline, so a merge would drop the twin's
+  `cancelled` (Monterey Swingfest 2021). About 150 such twin rows stay in
+  state, withheld from the release while the calendar-family contracts are
+  in shadow. `swingset contract activate` refuses those kinds while the
+  switch is on; the activation deploy turns it off.
+- Rows only listings wrote that no listing writes any more go when they are
+  twins of the edition or sit beside a held occurrence of their series and
+  month, unless a scope, contest, judge, registry placement, map row,
+  proposal or origin intent names them.
+- A row's `sources` and `history_source` are the union over every listing
+  of the edition, the one the widest span leaves out too; a held row adds
+  `wsdc_registry`. Its dates are the widest span that holds every
+  listing's, so a results site's one day keeps the weekend (D-0184). Names
+  stay as written: a held row keeps the registry's printed name.
+- Status comes from the WSDC calendar's listings, else the other
+  calendar-family ones; a trial mark makes it `trial`; a cancel mark, or a
+  hiatus mark seen before the edition began, cancels it. Held stays held.
+- City, region and country come from the newest calendar listing; none is
+  cleared, and a non-alpha-3 flag gives no country.
 
 ## Why
 
-With the calendar contract active (D-0257), 153 twins would publish and
-five September 2026 events would lose their place. Read-only on
-production: twin groups fall from 165 to 1 (Korea Westival 2020, two
-dated spans), 184 twin rows go, and no published event loses dates or
-place except the stale `wsdc-342` Global Grand Prix 2026 row, whose place
-now sits on the held `wsdc-409` row. Cities rise from 165 to 391. Against
-the release, 121 events become `cancelled` (calendar notes such as
-`(Cancelled due to Coronavirus)` the twins held), none loses `cancelled`,
-and no `trial` changes.
+The first deploy published empty registry headers beside their results
+(the widest-span filter dropped the results source, so the map split them),
+duplicate 2024 trials, and lost Monterey's `cancelled`. Re-measured
+read-only: ten results listings move onto their WSDC rows, with no new
+duplicate in the release and no published date, place or status lost.
 
 ## Links
 

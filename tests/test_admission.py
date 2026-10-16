@@ -2112,3 +2112,34 @@ def test_a_review_names_a_packed_report_instead_of_failing_on_its_stub(tmp_path)
                     evidence="review",
                 )
         assert c.conn.execute("SELECT COUNT(*) FROM admission_reviews").fetchone()[0] == 0
+
+
+def test_the_calendar_contract_waits_for_the_cancelled_twins_switch(tmp_path, monkeypatch):
+    """While the inventory keeps cancelled twins for the baseline's sake
+    (D-0260), activating a calendar-family contract would publish them all:
+    `swingset contract activate` refuses until the switch is off."""
+    from swingset.admission import activation
+    from swingset.project import history
+
+    monkeypatch.setattr(history, "KEEP_CANCELLED_TWINS", True)
+    monkeypatch.setattr(activation, "contract_version", lambda kind: "1")
+    with open_database(tmp_path) as db:
+        with pytest.raises(ValueError, match="KEEP_CANCELLED_TWINS"):
+            activation.activate(
+                db,
+                "wsdc_calendar.events",
+                ("generation",),
+                by="test",
+                evidence="review",
+                now="2026-10-16T00:00:00+00:00",
+            )
+        monkeypatch.setattr(history, "KEEP_CANCELLED_TWINS", False)
+        with pytest.raises(ValueError, match="unknown generation"):
+            activation.activate(
+                db,
+                "wsdc_calendar.events",
+                ("generation",),
+                by="test",
+                evidence="review",
+                now="2026-10-16T00:00:00+00:00",
+            )

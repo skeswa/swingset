@@ -1058,7 +1058,11 @@ accepted units, pending parse work and recorded reviews. Save it as the
 preflight receipt. `activate` takes the exclusive lock, so write
 `operator-hold` and stop the loops first. It refuses a kind whose code has
 no reviewed contract (`unassessed`) and a cohort generation of another kind
-or version; the cohort needs one passing generation. In one transaction it
+or version; the cohort needs one passing generation. For the calendar,
+council and newsletter kinds it also refuses while
+`project.history.KEEP_CANCELLED_TWINS` is on: the inventory keeps a
+cancel-marked listing on its own row until then, so turn the switch off in
+the deploy that activates them (D-0260). In one transaction it
 records the review, enforces the policy and queues every retained snapshot
 of the kind for parse, then prints the counts before and after: that JSON is
 the activation receipt. The post-check receipt follows the drain.

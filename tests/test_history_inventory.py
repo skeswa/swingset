@@ -1015,8 +1015,9 @@ def test_a_listed_edition_of_a_known_series_becomes_the_held_occurrence(tmp_path
         _registry_months(conn, "registry-2012", "August 2011", "August 2012")
         reconcile_history(conn, now=NOW, run_id="run")
         query = "SELECT event_id,held,wsdc_status FROM events WHERE year=2012 ORDER BY 1"
+        # The listing's row beside the occurrence, empty and written by no
+        # listing now, goes (D-0260).
         assert [tuple(row) for row in conn.execute(query)] == [
-            ("2012-08-example-party", "listed", "registry"),
             ("2012-08-example-swing", "held", "registry"),
         ]
         assert {
@@ -1031,10 +1032,10 @@ def test_a_listed_edition_of_a_known_series_becomes_the_held_occurrence(tmp_path
         assert not reconcile_history(conn, now=NOW, run_id="run")
 
 
-def test_an_unreported_editions_results_row_takes_its_calendar_status_and_place(tmp_path):
-    """Before the registry reports an edition, the row its results listing
-    made keeps its id and header, and takes the status and place of the
-    edition's calendar listing, which keeps its own row (D-0260)."""
+def test_an_unreported_editions_results_listing_joins_its_calendar_row(tmp_path):
+    """Before the registry reports an edition, its results listing joins the
+    row the calendar listing's name gives: one row with the calendar's
+    status and place and both sources (D-0260)."""
     aliases = b"printed_name,series_id,source,note\nExample Party,wsdc-7,eepro,reviewed\n"
     with open_database(tmp_path) as db:
         conn = db.connection
@@ -1064,8 +1065,14 @@ def test_an_unreported_editions_results_row_takes_its_calendar_status_and_place(
             "WHERE year=2012 ORDER BY 1"
         )
         assert [tuple(row) for row in conn.execute(query)] == [
-            ("2012-08-example-party", "wsdc-7", "listed", "trial", '["eepro"]', "Raleigh"),
-            ("2012-08-example-swing", "wsdc-7", "listed", "trial", '["wsdc_calendar"]', "Raleigh"),
+            (
+                "2012-08-example-swing",
+                "wsdc-7",
+                "listed",
+                "trial",
+                '["eepro","wsdc_calendar"]',
+                "Raleigh",
+            ),
         ]
 
 
@@ -1157,11 +1164,15 @@ def _listing(name, start, end, location="Raleigh, North Carolina, USA", flag="US
     return CalendarRow("calendar_row", name, start, end, "registry", location, None, flag, ())
 
 
-def test_an_annotated_listing_updates_its_edition_and_carries_the_place(tmp_path):
+def test_an_annotated_listing_updates_its_edition_and_carries_the_place(tmp_path, monkeypatch):
     """A calendar name that gains a note ("(Cancelled due to Covid-19)") is the
     same edition of its series: it updates that row, a twin row an earlier run
     wrote goes, and the row takes the newest listing's city, region and
-    country. One capture that dates two spans keeps two rows (D-0256)."""
+    country. One capture that dates two spans keeps two rows (D-0260). This
+    is the rule once the calendar contract is active."""
+    from swingset.project import history
+
+    monkeypatch.setattr(history, "KEEP_CANCELLED_TWINS", False)
     aliases = (
         b"printed_name,series_id,source,note\n"
         b"Example Swing,wsdc-7,wsdc_calendar,reviewed\n"
@@ -1261,11 +1272,15 @@ def _twin(conn, of, event_id):
     )
 
 
-def test_an_edition_takes_the_calendar_marks_of_all_its_listings(tmp_path):
+def test_an_edition_takes_the_calendar_marks_of_all_its_listings(tmp_path, monkeypatch):
     """A newsletter read in 2026 without the note does not undo the calendar's
     "(Cancelled due to Coronavirus)" or trial mark; a later "(ON HIATUS)"
     re-listing beside an unmarked one does not cancel the edition; a twin
-    that a listing's map row still names stays (D-0260)."""
+    that a listing's map row still names stays (D-0260). This is the rule
+    once the calendar contract is active."""
+    from swingset.project import history
+
+    monkeypatch.setattr(history, "KEEP_CANCELLED_TWINS", False)
     aliases = (
         b"printed_name,series_id,source,note\n"
         b"Tea Party,wsdc-9,wsdc_calendar,reviewed\n"
@@ -1345,4 +1360,42 @@ def test_an_edition_takes_the_calendar_marks_of_all_its_listings(tmp_path):
             ("2012-03-tea-party", "cancelled", "registry"),
             ("2012-03-tea-party-mapped", "listed", "registry"),
             ("2012-09-niagara-champ-s", "listed", "registry"),
+        ]
+
+
+def test_until_the_calendar_contract_is_active_a_cancelled_twin_keeps_its_row(tmp_path):
+    """The release still publishes calendar rows from its baseline, where
+    `2021-01-monterey-swingfest` is listed and its "(Cancelled due to
+    Covid-19)" twin is cancelled. Merging them would drop the cancelled
+    status from the release, so the twin keeps its row (D-0260)."""
+    aliases = (
+        b"printed_name,series_id,source,note\n"
+        b"Monterey SwingFest,wsdc-62,wsdc_calendar,reviewed\n"
+        b"Monterey Swingfest (Cancelled due to Covid-19),wsdc-62,wsdc_calendar,reviewed\n"
+    )
+    with open_database(tmp_path) as db:
+        conn = db.connection
+        conn.execute(
+            "INSERT INTO runs(run_id,started_at,finished_at,dry_run,summary_json) VALUES ('run',?,NULL,1,NULL)",
+            (NOW,),
+        )
+        _calendar(
+            conn,
+            "c1",
+            _listing("Monterey SwingFest", "2012-01-13", "2012-01-18"),
+            observed="2011-06-01T00:00:00+00:00",
+        )
+        _calendar(
+            conn,
+            "c2",
+            _listing("Monterey Swingfest (Cancelled due to Covid-19)", "2012-01-13", "2012-01-18"),
+            observed="2011-12-01T00:00:00+00:00",
+        )
+        reconcile_history(conn, now=NOW, run_id="run", aliases=aliases)
+        assert [
+            tuple(row)
+            for row in conn.execute("SELECT event_id,held FROM events WHERE year=2012 ORDER BY 1")
+        ] == [
+            ("2012-01-monterey-swingfest", "listed"),
+            ("2012-01-monterey-swingfest-cancelled-due-to-covid-19", "cancelled"),
         ]

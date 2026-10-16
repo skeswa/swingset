@@ -457,13 +457,13 @@ def test_result_site_listings_attach_to_their_registry_occurrence(tmp_path):
             conn,
             "SELECT event_id,series_id,held,wsdc_status,sources FROM events ORDER BY 1",
         ) == [
-            ("2026-03-madjam", "wsdc-92", "held", "registry", '["eepro"]'),
+            ("2026-03-madjam", "wsdc-92", "held", "registry", '["eepro","wsdc_registry"]'),
             (
                 "2026-06-liberty-swing-dance-championships",
                 "wsdc-96",
                 "held",
                 "registry",
-                '["eepro"]',
+                '["eepro","wsdc_registry"]',
             ),
             (
                 "2026-06-usa-grand-national-dance-championships",
@@ -685,7 +685,8 @@ def test_a_listing_seen_before_its_registry_occurrence_joins_the_calendar_editio
             assert _rows(
                 conn, "SELECT event_id,series_id,held FROM events WHERE year=2026 ORDER BY 1"
             ) == [
-                ("2026-09-aloha-open", "wsdc-355", "listed"),
+                # One unreported edition: the results listing joins the
+                # calendar's row (D-0260).
                 ("2026-09-the-aloha-open", "slug-the-aloha-open", "listed"),
             ]
             _aloha_registry(conn, "October 2025", "September 2026")
@@ -707,3 +708,236 @@ def test_a_listing_seen_before_its_registry_occurrence_joins_the_calendar_editio
         assert _rows(
             conn, "SELECT DISTINCT event_id FROM registry_placements WHERE event_month LIKE '2026%'"
         ) == [("2026-09-the-aloha-open",)]
+
+
+def test_an_unreported_editions_results_join_its_calendar_row(tmp_path):
+    """The Aloha Open 2024 was a trial: the registry reported no occurrence.
+    Its scoring.dance listing and its calendar listing are one edition, so
+    the results go to the calendar's row, which the release carries, and no
+    second event appears (D-0260)."""
+    from swingset.model.observations import encode_payload
+    from swingset.project.history import prepare_inventory
+    from swingset.sources.records import CalendarRow
+
+    aliases = (
+        b"printed_name,series_id,source,note\n"
+        b"Aloha Open 2024,wsdc-355,scoringdance,reviewed\n"
+        b"The Aloha Open,wsdc-355,wsdc_calendar,reviewed\n"
+    )
+    bundle = SimpleNamespace(files={"overrides/series_aliases.csv": aliases})
+    with open_database(tmp_path, lock=False) as db:
+        conn = db.connection
+        conn.execute("INSERT INTO runs(run_id,started_at,dry_run) VALUES ('test',?,0)", (NOW,))
+        with db.transaction():
+            row = CalendarRow(
+                "calendar_row",
+                "The Aloha Open",
+                "2024-09-25",
+                "2024-09-29",
+                "Trial Event",
+                "Maui, Hawaii, USA",
+                "http://www.alohaopenwcs.com",
+                "USA",
+                ("event-trial",),
+            )
+            _snapshot(conn, "cal", "wsdc_calendar")
+            conn.execute(
+                "INSERT INTO observations VALUES ('obs-cal','watch-cal','cal',?,'calendar','wsdc-history',0,'1','1',?)",
+                (row.kind, encode_payload(row)),
+            )
+            _snapshot(conn, "listing", "scoringdance")
+            _listing(
+                conn, "scoringdance", "sd:aloha", "Aloha Open 2024", "2024-09-25", "2024-09-25"
+            )
+            prepare_inventory(conn, now=NOW, run_id="test", aliases=aliases)
+            project_map(conn, bundle, NOW, "test", 20)
+        assert _rows(conn, "SELECT source_ref,event_id,match_method FROM source_event_map") == [
+            ("sd:aloha", "2024-09-the-aloha-open", "alias")
+        ]
+        assert _rows(
+            conn, "SELECT event_id,series_id,held,wsdc_status,sources,city FROM events ORDER BY 1"
+        ) == [
+            (
+                "2024-09-the-aloha-open",
+                "wsdc-355",
+                "listed",
+                "trial",
+                '["scoringdance","wsdc_calendar"]',
+                "Maui",
+            )
+        ]
+
+
+def test_a_results_listing_inside_a_cross_month_span_joins_its_occurrence(tmp_path):
+    """SwingCouver 2023/24 ran from Dec 28 to Jan 1; the registry reports it
+    in January, scoring.dance dates it Dec 28. The listing joins the
+    occurrence: its source is on the row although the widest calendar span
+    gives the dates, so the results follow it, and the row keeps the
+    registry's name, the full span and the registry, calendar and platform
+    sources (D-0260)."""
+    from swingset.model.observations import encode_payload
+    from swingset.project.history import prepare_inventory
+    from swingset.sources.records import CalendarRow
+
+    aliases = (
+        b"printed_name,series_id,source,note\nSwingCouver 2023/24,wsdc-196,scoringdance,reviewed\n"
+    )
+    bundle = SimpleNamespace(files={"overrides/series_aliases.csv": aliases})
+    with open_database(tmp_path, lock=False) as db:
+        conn = db.connection
+        conn.execute("INSERT INTO runs(run_id,started_at,dry_run) VALUES ('test',?,0)", (NOW,))
+        with db.transaction():
+            _registry(conn, ("196", "SwingCouver", "January 2024"))
+            row = CalendarRow(
+                "calendar_row",
+                "SwingCouver",
+                "2023-12-28",
+                "2024-01-01",
+                "Registry Event",
+                "Vancouver, WA, USA",
+                None,
+                "USA",
+                (),
+            )
+            _snapshot(conn, "cal", "wsdc_calendar")
+            conn.execute(
+                "INSERT INTO observations VALUES ('obs-cal','watch-cal','cal',?,'calendar','wsdc-history',0,'1','1',?)",
+                (row.kind, encode_payload(row)),
+            )
+            conn.execute(
+                "UPDATE snapshots SET observed_at='2023-11-01T00:00:00Z' WHERE snapshot_id='cal'"
+            )
+            _snapshot(conn, "listing", "scoringdance")
+            _listing(
+                conn, "scoringdance", "sd:couver", "SwingCouver 2023/24", "2023-12-28", "2023-12-28"
+            )
+            prepare_inventory(conn, now=NOW, run_id="test", aliases=aliases)
+            project_map(conn, bundle, NOW, "test", 20)
+        assert _rows(conn, "SELECT source_ref,event_id,match_method FROM source_event_map") == [
+            ("sd:couver", "2024-01-swingcouver", "alias")
+        ]
+        assert _rows(
+            conn,
+            "SELECT event_id,name,start_date,end_date,held,sources,history_source FROM events "
+            "ORDER BY 1",
+        ) == [
+            (
+                "2024-01-swingcouver",
+                "SwingCouver",
+                "2023-12-28",
+                "2024-01-01",
+                "held",
+                '["scoringdance","wsdc_calendar","wsdc_registry"]',
+                '["calendar","platform","registry"]',
+            )
+        ]
+
+
+def _unheld(conn, event_id, series, name, start, end, sources, history):
+    conn.execute(
+        "INSERT INTO events(event_id,series_id,name,year,start_date,end_date,wsdc_status,sources,"
+        "source,snapshot_id,parser_version,first_seen_at,last_seen_at,run_id,event_month,"
+        "date_precision,held,coverage_tier,history_source) VALUES (?,?,?,?,?,?,'trial',?,"
+        "'wsdc_calendar','s','1',?,?,'test',?,'day','listed','index_only',?)",
+        (event_id, series, name, int(end[:4]), start, end, sources, NOW, NOW, end[:7], history),
+    )
+
+
+def test_an_unreported_editions_results_never_go_to_another_series(tmp_path):
+    """With no row of its own series or name, WCSParty 2024 (Vienna, Sep 26)
+    does not go to the one other row of the month that has scoring.dance
+    results, The Aloha Open (Maui); Aloha Open 2024 goes to the calendar's
+    row, whose own name gives its series (D-0260)."""
+    aliases = (
+        b"printed_name,series_id,source,note\n"
+        b"WCSParty 2024,wsdc-357,scoringdance,reviewed\n"
+        b"Aloha Open 2024,wsdc-355,scoringdance,reviewed\n"
+        b"The Aloha Open,wsdc-355,wsdc_calendar,reviewed\n"
+    )
+    bundle = SimpleNamespace(files={"overrides/series_aliases.csv": aliases})
+    with open_database(tmp_path, lock=False) as db:
+        conn = db.connection
+        conn.execute("INSERT INTO runs(run_id,started_at,dry_run) VALUES ('test',?,0)", (NOW,))
+        with db.transaction():
+            _unheld(
+                conn,
+                "2024-09-the-aloha-open",
+                "slug-the-aloha-open",
+                "The Aloha Open",
+                "2024-09-25",
+                "2024-09-29",
+                '["scoringdance","wsdc_calendar"]',
+                '["calendar","platform"]',
+            )
+            _snapshot(conn, "listing", "scoringdance")
+            _listing(conn, "scoringdance", "sd:party", "WCSParty 2024", "2024-09-26", "2024-09-26")
+            _listing(
+                conn, "scoringdance", "sd:aloha", "Aloha Open 2024", "2024-09-25", "2024-09-25"
+            )
+            project_map(conn, bundle, NOW, "test", 20)
+        assert _rows(
+            conn, "SELECT source_ref,event_id,match_method FROM source_event_map ORDER BY 1"
+        ) == [
+            ("sd:aloha", "2024-09-the-aloha-open", "alias"),
+            ("sd:party", "2024-09-wcsparty", "name_date"),
+        ]
+
+
+def test_a_results_listing_a_day_before_the_calendar_span_joins_the_edition(tmp_path):
+    """scoring.dance dates WCS Party 2024 Sep 26, the calendar Sep 27 to 30:
+    the inventory and the map apply the same one-day test, so the edition is
+    one row with the results; a listing three weeks earlier stays apart
+    (D-0260)."""
+    from swingset.model.observations import encode_payload
+    from swingset.project.history import prepare_inventory
+    from swingset.sources.records import CalendarRow
+
+    aliases = (
+        b"printed_name,series_id,source,note\n"
+        b"WCSParty 2024,wsdc-357,scoringdance,reviewed\n"
+        b"WCS Party Warmup 2024,wsdc-357,scoringdance,reviewed\n"
+        b"WCS Party,wsdc-357,wsdc_calendar,reviewed\n"
+    )
+    bundle = SimpleNamespace(files={"overrides/series_aliases.csv": aliases})
+    with open_database(tmp_path, lock=False) as db:
+        conn = db.connection
+        conn.execute("INSERT INTO runs(run_id,started_at,dry_run) VALUES ('test',?,0)", (NOW,))
+        with db.transaction():
+            row = CalendarRow(
+                "calendar_row",
+                "WCS Party",
+                "2024-09-27",
+                "2024-09-30",
+                "Trial Event",
+                "Vienna, Austria",
+                None,
+                "AUT",
+                (),
+            )
+            _snapshot(conn, "cal", "wsdc_calendar")
+            conn.execute(
+                "INSERT INTO observations VALUES ('obs-cal','watch-cal','cal',?,'calendar','wsdc-history',0,'1','1',?)",
+                (row.kind, encode_payload(row)),
+            )
+            _snapshot(conn, "listing", "scoringdance")
+            _listing(conn, "scoringdance", "sd:party", "WCSParty 2024", "2024-09-26", "2024-09-26")
+            _listing(
+                conn,
+                "scoringdance",
+                "sd:warmup",
+                "WCS Party Warmup 2024",
+                "2024-09-05",
+                "2024-09-05",
+            )
+            prepare_inventory(conn, now=NOW, run_id="test", aliases=aliases)
+            project_map(conn, bundle, NOW, "test", 20)
+        assert _rows(
+            conn, "SELECT source_ref,event_id,match_method FROM source_event_map ORDER BY 1"
+        ) == [
+            ("sd:party", "2024-09-wcs-party", "alias"),
+            ("sd:warmup", "2024-09-wcs-party-warmup", "alias"),
+        ]
+        assert _rows(conn, "SELECT event_id,sources FROM events ORDER BY 1") == [
+            ("2024-09-wcs-party", '["scoringdance","wsdc_calendar"]'),
+            ("2024-09-wcs-party-warmup", '["scoringdance"]'),
+        ]

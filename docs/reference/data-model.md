@@ -70,10 +70,11 @@ registry reported it, the registry adopts the matching calendar edition, else
 a `listed` row of that edition (the calendar's first, never a cancelled one),
 as the held occurrence; registry placements join the held
 row ([D-0256](../../journal/decisions/0256-past-wsdc-events-reach-their-calendar-facts-and-wdr-pages.md)).
-Before the registry reports an edition, its calendar, newsletter and council
-listings of one series and end month are one row, whatever note a name
-gained, and the row takes city, region and country from the newest calendar
-listing ([D-0260](../../journal/decisions/0260-an-unreported-edition-is-one-row-per-series-and-month.md)). The
+Before the registry reports an edition, its listings of one series and end
+month, results listings included, are one row whatever note a name gained
+(until the calendar contract is active, a cancel-marked listing keeps its
+own row); the row takes the widest span of its listings and city, region
+and country from the newest calendar listing ([D-0260](../../journal/decisions/0260-an-unreported-edition-is-one-row-per-series-and-month.md)). The
 internal table `source_event_proposals` holds each listing's proposed target
 and that placeholder, one set per source; one resolution unit per event turns
 them into its `source_event_map` rows and its event row
