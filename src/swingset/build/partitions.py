@@ -1,7 +1,11 @@
 """Partition artifacts: stage 1 of a partitioned release (plan phase 3, WP6).
 
-Selection reads current pointers only (`derivation_scopes`), never live
-rows and never a dependency walk. Building generations are left out. Three
+Selection reads current pointers (`derivation_scopes`) and never walks
+dependencies. Building generations are left out. Its one live read is which
+events exist (`_vanished`, D-0262): an event with no `events` row in state
+gets no partition, even when a current generation still lists it (an
+inventory captured before a resolution deleted the row), and an event whose
+row is gone while results remain is withheld (`event_not_in_state`). Three
 partition kinds:
 
 - `event/<E>` holds the `events` row merged from the current calendar,
@@ -572,9 +576,30 @@ def _select(
     groups: dict[str, list[str]] = {}
     for event in sorted(universe):
         groups.setdefault(find(event), []).append(event)
+    gone, orphaned = _vanished(conn, universe)
+    if gone or orphaned:
+        log(
+            "partition_events_vanished",
+            dropped=sorted(gone)[:20],
+            dropped_count=len(gone),
+            orphaned=sorted(orphaned)[:20],
+        )
     result = []
-    for members in groups.values():
+    for group in groups.values():
+        # An event state no longer holds publishes nothing, not even a header
+        # a current generation still lists (D-0262).
+        members = [event for event in group if event not in gone]
+        if not members:
+            continue
         partition = Partition("event/" + "+".join(members), "event", events=tuple(members))
+        for event in sorted(orphaned & set(members)):
+            partition.errors.append(
+                (
+                    f"project/event/{event}",
+                    "event_not_in_state",
+                    f"{event} has results in state but no events row",
+                )
+            )
         for event in members:
             partition.generations.extend(owned.get(event, ()))
             partition.shared.extend(shared_events.get(event, ()))
@@ -591,6 +616,33 @@ def _select(
     result.sort(key=lambda item: item.name)
     current = {g.generation_id for items in owned.values() for g in items}
     return result, {key: value for key, value in known.items() if key in current}
+
+
+def _vanished(conn: sqlite3.Connection, events: Iterable[str]) -> tuple[set[str], set[str]]:
+    """The events among ``events`` with no `events` row in state (D-0262).
+
+    The first set holds nothing else in state either: no row its event or
+    resolution scope owns, no contest and no judge. A row another unit
+    deletes after the inventory captured it (a resolution dropping its
+    placeholder, a merged twin) leaves the inventory's current generation
+    listing it until the inventory runs again; such an event is gone. The
+    second set still has results without a header, which is inconsistent,
+    so its partition is withheld rather than published under a stale header.
+    """
+    present = {str(row[0]) for row in conn.execute("SELECT event_id FROM events")}
+    gone: set[str] = set()
+    orphaned: set[str] = set()
+    for event in sorted(set(events) - present):
+        if conn.execute(
+            "SELECT 1 FROM canonical_scope_rows WHERE scope_kind IN ('event','resolution') "
+            "AND scope_id=?1 UNION ALL SELECT 1 FROM contests WHERE event_id=?1 "
+            "UNION ALL SELECT 1 FROM judges WHERE event_id=?1 LIMIT 1",
+            (event,),
+        ).fetchone():
+            orphaned.add(event)
+        else:
+            gone.add(event)
+    return gone, orphaned
 
 
 # ---------------------------------------------------------------------------

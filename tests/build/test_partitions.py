@@ -990,6 +990,36 @@ def test_the_stand_in_status_changes_only_where_the_registry_backs_it() -> None:
     )["wsdc_status"] == ("registry")
 
 
+def test_an_event_state_no_longer_holds_gets_no_partition(source_fixture, tmp_path):
+    """D-0262: a unit that deletes an event row after the inventory captured
+    it leaves the inventory's current generation listing the event. The
+    build publishes no partition for it, not even the stale header, and
+    removes its old partition row. Results without a header are withheld."""
+    f = source_fixture
+    baseline = settled(f, tmp_path)
+    build(f, baseline)
+    assert rows(f.conn)["event/event-b"].state == "built"
+    assert f.conn.execute("SELECT 1 FROM contests WHERE event_id='event-b'").fetchone() is None
+    # Deleted behind the current generations, as a resolution does.
+    with f.db.transaction():
+        f.conn.execute("DELETE FROM events WHERE event_id='event-b'")
+    selected, _ = partitions.select(f.conn)
+    assert "event/event-b" not in {item.name for item in selected}
+    report = build(f, baseline)
+    after = rows(f.conn)
+    assert "event/event-b" not in after
+    assert report["stale_removed"] == 1
+    assert after["event/event-a"].state == "built"
+    # A header gone while its results remain is inconsistent: withheld.
+    with f.db.transaction():
+        f.conn.execute("PRAGMA defer_foreign_keys=ON")
+        f.conn.execute("DELETE FROM events WHERE event_id='event-a'")
+    build(f, baseline)
+    row = rows(f.conn)["event/event-a"]
+    assert (row.state, row.reason) == ("withheld", "partition_error")
+    assert json.loads(row.detail_json)["withheld"]["class"] == "event_not_in_state"
+
+
 def _read_events(f):
     from swingset.build.input import _read_table
 

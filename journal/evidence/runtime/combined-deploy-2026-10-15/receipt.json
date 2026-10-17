@@ -190,5 +190,158 @@
     ],
     "gains_clean": "no event lost results; no dcn or SwingDirector data published"
   },
-  "status": "not published; hold released 2026-10-16T13:23:35Z; release stays in dry run while the D-0256/D-0260 defects are fixed"
+  "status": "not published; second candidate blocked for stale header-only partitions; build fix in progress",
+  "sleep_hold": {
+    "set": "2026-10-16T14:12:20Z",
+    "removed": "2026-10-17T00:19:08Z",
+    "why": "owner slept the Mac"
+  },
+  "fix_round": {
+    "commit": "e329bb8040090e53ca26e03f2bfbd581a03d8634",
+    "review": "approve with conditions (cross-series fallback, WCS Party 2024 date test, activation guard), all met",
+    "tests": "full suite 3687 passed",
+    "scopes_changed": 11,
+    "parse_rerun": 0,
+    "deploy_tree": "/private/tmp/swingset-c047 (dryRun true)",
+    "hold": [
+      "2026-10-17T00:42:10Z",
+      "2026-10-17T00:42:50Z"
+    ],
+    "system_before": "/nix/store/lf1gba5gzhfq6bw3lhjwkfn5k09pvasc-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+    "system_after": "/nix/store/6z1x3j42vg5yb4vdz0lw422j7sd2wcqg-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+    "source": "/nix/store/sky98f22gfymrmjxm9ib7gnr1lkz2v23-source",
+    "preflight": {
+      "schema": 37,
+      "file_bytes": 41150623744,
+      "queue": {
+        "ready/admission_needs_review": 337,
+        "waiting_input/admission_needs_review": 103,
+        "waiting_input/parse_failed": 11,
+        "ready/admission_waiting_for_inputs": 9,
+        "waiting_input/admission_waiting_for_inputs": 8,
+        "waiting_input/unsupported_page_kind": 3
+      },
+      "latest_snapshot": "2026-10-16T13:51:07.099960+00:00",
+      "latest_request": "2026-10-17T00:40:39.219847+00:00",
+      "pauses": 0,
+      "parse_failed_or_unsupported_units": 14
+    },
+    "rerun_drained": "2026-10-17T11:09Z, no failed tick, longest write 29.2 s",
+    "accept_year": {
+      "years": [
+        2011,
+        2013,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024,
+        2025,
+        2026
+      ],
+      "window": [
+        "2026-10-17T11:09:59Z",
+        "2026-10-17T11:18:36Z"
+      ],
+      "exit_codes": "all 0"
+    },
+    "hand_build": {
+      "candidate": "cand_060e7514cab84a67",
+      "hold": "2026-10-17T11:28:58Z",
+      "window": [
+        "2026-10-17T11:28:58Z",
+        "2026-10-17T11:36:23Z"
+      ],
+      "verdict": "pass",
+      "decreases": [],
+      "lost_result_events": 0,
+      "moved_result_events": [
+        "2023-12-swingcouver-24 -> 2024-01-swingcouver",
+        "2024-04-slovenian-open -> 2024-04-slovenian-open-trial-event",
+        "2024-05-spring-time-swing -> 2024-05-spring-time-swing-trial-event",
+        "2025-05-festival-city-swing-edinburgh -> 2025-06-festival-city-swing",
+        "2025-05-french-open -> 2025-06-french-open-wcs",
+        "2025-12-swingvester-26-wsdc -> 2026-01-swingvester",
+        "2026-09-aloha-open -> 2026-09-the-aloha-open",
+        "2026-09-wcsparty -> 2026-09-wcs-party-in-vienna"
+      ],
+      "measures_changed": {
+        "callback_marks": [
+          1034269,
+          1039021
+        ],
+        "callbacks": [
+          211674,
+          212683
+        ],
+        "confirmed_links": [
+          100932,
+          101390
+        ],
+        "contests": [
+          4641,
+          4687
+        ],
+        "dancers": [
+          27968,
+          27970
+        ],
+        "entries": [
+          195070,
+          196511
+        ],
+        "events": [
+          2191,
+          2196
+        ],
+        "events_with_placements": [
+          399,
+          404
+        ],
+        "final_marks": [
+          231152,
+          233164
+        ],
+        "judges": [
+          10913,
+          11011
+        ],
+        "linked_entries": [
+          100932,
+          101390
+        ],
+        "placements": [
+          38290,
+          38629
+        ],
+        "registry_placements": [
+          199008,
+          199010
+        ],
+        "rounds": [
+          8224,
+          8294
+        ]
+      }
+    },
+    "independent_check": {
+      "date": "2026-10-17",
+      "verdict": "block",
+      "blocking": "6 empty duplicate event rows published from stale header-only partitions of events deleted in state (2024-04-slovenian-open, 2024-05-spring-time-swing, 2024-07-bend-connection, 2024-09-aloha-open, 2024-09-wcsparty, 2024-11-flowstate)",
+      "passed": [
+        "German Open 2026 1,072 confirmed links",
+        "Aloha and WCS Party 2026 placements and contests moved together",
+        "Monterey 2021 as baseline",
+        "8 moves intact",
+        "withheld partitions 474 -> 619 consistent with kept cancelled twins",
+        "no field regression except two name casings and two websites replaced by results links"
+      ],
+      "note": "4 published links withdrawn at 2026-01-swingvester pro-am F contests (source prints leader, registry lists follower): the linker's role rule, recorded"
+    },
+    "hold_removed": "2026-10-17T11:42:44Z"
+  }
 }

@@ -401,3 +401,10 @@ Coast Swing Magic` to `wsdc-300` and `KOREA WESTIVAL 2026_10th Anniversary`
     14 s). Nothing was lost, since backpressure held requests anyway, but each
     failure fires `OnFailure`. Treat a lock timeout before any request as a
     skip, as derive does with a busy lease.
+38. Re-run the inventory when another unit deletes an event row. A
+    resolution or map that deletes a row after the inventory captured it
+    leaves `project/inventory/all` listing the row until some other input
+    changes; on 2026-10-17 six 2024 trial twins stayed listed. The build
+    ignores such rows since D-0262, so this is hygiene: make the deleting unit
+    dirty the inventory, or have the inventory's output read only rows it
+    owns. Both change project scopes; batch with item 20.

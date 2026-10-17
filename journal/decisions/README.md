@@ -284,6 +284,7 @@ that links the old one.
 | [D-0259](0259-swingdirector-callbacks-come-from-the-next-round.md)                           | SwingDirector callbacks come from the next round's roster; name suppressions cover initial-form judges; rows map by `event_id`                 | Source projection                                 |
 | [D-0260](0260-an-unreported-edition-is-one-row-per-series-and-month.md)                      | An unreported edition is one row per series and month, with its listings' sources, span and place (amends D-0256)                              | Event identity                                    |
 | [D-0261](0261-dispatch-tables-are-in-no-scope-and-each-kind-names-its-contract.md)           | Scopes hold only the dispatch tables' code; each kind's parse scope names its own contract module (amends D-0207)                              | Derivation identity                               |
+| [D-0262](0262-an-event-state-no-longer-holds-gets-no-partition.md)                           | An event state no longer holds gets no release partition, even when a stale generation lists it (amends D-0224)                                | Publication                                       |
 
 The [legacy decision log](legacy-design-review.md) preserves the original
 review notes. It is historical evidence, not a second list of current rules.

@@ -1,6 +1,6 @@
 # Current status
 
-Updated 2026-10-16 13:30 UTC. Five sections; each line links to one receipt.
+Updated 2026-10-17 00:50 UTC. Five sections; each line links to one receipt.
 History lives in the [journal](../journal/README.md); the last long-form page
 is [archived](../journal/archive/status-2026-09-18.md).
 
@@ -14,7 +14,7 @@ is [archived](../journal/archive/status-2026-09-18.md).
 
 ## Running
 
-- Worker: OrbStack NixOS machine `swingset`, architecture phases 0 to 5 (schema 37) with the five loops. Tree c046 since 2026-10-15 22:50 UTC: item 20, the new sources (disabled), the calendar contract (inactive), the history fixes and 45 approved override rows,; the re-run finished 2026-10-16 13:00 UTC and the WSDC calendar is fetched again. Still in dry run: the independent check blocked the first candidate (38 withdrawn links, duplicate events, lost statuses from D-0256 and D-0260); fixes are in progress ([receipt](../journal/evidence/runtime/combined-deploy-2026-10-15/receipt.json)).
+- Worker: OrbStack NixOS machine `swingset`, architecture phases 0 to 5 (schema 37) with the five loops. Tree c047 since 2026-10-17 00:42 UTC: the combined deploy (item 20, new sources disabled, calendar contract inactive, 45 override rows) plus the history fix round (D-0260), in dry run while project and link units re-run; publication resumes after a checked hand build ([receipt](../journal/evidence/runtime/combined-deploy-2026-10-15/receipt.json)).
 - Timers: acquire and derive every 5 minutes, plan every 30, release hourly (builds daily, D-0245), maintain 03:30 UTC; history per year and the inventory every 12 hours (phase 3); segmented backups at 04:00 and 12:00 UTC with a weekly drill; summary 08:00 UTC; scratch clean 05:00 UTC; publication dry run (D-0189) ([receipt](../journal/evidence/runtime/architecture-phase2b-2026-10-04/receipt.json)).
 - Collection: fetching nearly stopped on 2026-10-08 and from 2026-10-09 14:54 UTC: a failed scoring.dance robots.txt read was cached for a day as disallow-all, and acquire spent each tick skipping those pages so no other host was reached. Relieved at 19:11 UTC by expiring that cache entry; the fix (D-0242) ships with contract 5 ([receipt](../journal/evidence/runtime/robots-stall-2026-10-09/receipt.json)).
 - Outage: 2026-09-22 04:44 to 16:37 UTC, every cycle failed on a full disk after the backup retried into six 26 GB copies; four removed after an independent check, the unit no longer restarts, and a room check now refuses a backup the quota cannot hold ([receipt](../journal/evidence/runtime/disk-full-recovery-2026-09-22/receipt.json), [D-0192](../journal/decisions/0192-a-failed-backup-waits-for-the-next-timer-run.md)).
@@ -23,7 +23,7 @@ is [archived](../journal/archive/status-2026-09-18.md).
 
 ## Held
 
-- Operator hold (claude) since 2026-10-16 14:12 UTC: the owner is sleeping the Mac for a few hours; production is idled so no tick freezes mid-write. Remove on wake, then deploy the D-0260 fix round. Review by 2026-10-17 ([receipt](../journal/evidence/runtime/combined-deploy-2026-10-15/receipt.json)).
+- None. The sleep hold ran 2026-10-16 14:12 to 2026-10-17 00:19 UTC ([receipt](../journal/evidence/runtime/combined-deploy-2026-10-15/receipt.json)).
 
 ## Next release and what blocks it
 

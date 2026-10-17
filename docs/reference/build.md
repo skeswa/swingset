@@ -384,6 +384,21 @@ meanwhile, runs stage 1 again at once (`damaged_rebuilt`).
 | `dancers/<k>`     | `k = wsdc_id // 512`: dancer and registry placement rows, each placement's `event_id` patched from the year generation of its month                                                                                          |
 | `year/<Y>`        | The year generation's `coverage` rows                                                                                                                                                                                        |
 
+Only events that state holds get a partition
+([D-0262](../../journal/decisions/0262-an-event-state-no-longer-holds-gets-no-partition.md)).
+Selection's one live read is the `events` table: an event without a row there
+gets no partition, even when a current generation still lists it, unless
+state still has results for it (a row its `event` or `resolution` scope owns,
+a contest or a judge). Then its partition is withheld as `partition_error`
+with class `event_not_in_state`. A unit that deletes an event row after the
+inventory captured it (a resolution dropping its placeholder, a merged twin)
+leaves the inventory's current generation listing the row until the
+inventory runs again; that stale header used to publish. The dropped
+event's own units stay in the catalog with empty generations, as every
+scope does. A baseline event dropped this way is a decrease the
+[gate](publishing.md#publication-gate) measures: a lost result event refuses
+unless it moved.
+
 Rows merge in `closure_rows.reconstruct`'s rank order and rule (a patch needs
 a base row; processing columns come from each generation). Within a partition
 the build then closes what `reconstruct` closes: identity rows whose subject

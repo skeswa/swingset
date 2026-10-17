@@ -387,6 +387,15 @@ def full_fixture(directory: Path) -> None:
                 "(?,'project','event',?,'f','{}','empty',NULL,?,?,?,'synthetic')",
                 (created, event, digest.hexdigest(), len(output), now),
             )
+            # The canonical row the generation materialized: selection
+            # partitions only events state holds (D-0262).
+            conn.execute(
+                "INSERT INTO events(event_id,series_id,name,year,start_date,end_date,"
+                "wsdc_status,sources,source,snapshot_id,parser_version,first_seen_at,"
+                "last_seen_at,run_id) VALUES (?,?,?,2026,'2026-05-01','2026-05-02',"
+                "'registry','[\"eepro\"]','eepro',?,'1',?,?,'synthetic')",
+                (event, event, f"Synthetic {index}", f"s{index}", now, now),
+            )
             conn.execute(
                 "INSERT OR IGNORE INTO derivation_scopes(stage,unit_kind,unit_id,registered_at) "
                 "VALUES ('project','event',?,?)",
