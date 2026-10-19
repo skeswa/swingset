@@ -3,7 +3,7 @@
 Date: 2026-10-19  
 Type: Investigation  
 Topic: Derivation identity, Postgres migration  
-Related plan or decision: [Stage 0](../../../docs/plans/postgres-migration/stage-0.md), [D-0264](../../decisions/0264-declared-transform-versions-and-differential-proofs-decide-re-derivation.md)
+Related plan or decision: [Stage 0](../../../docs/plans/postgres-migration/5-stage-0.md), [D-0264](../../decisions/0264-declared-transform-versions-and-differential-proofs-decide-re-derivation.md)
 
 ## Worker measurements (items 1–4)
 

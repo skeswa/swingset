@@ -466,9 +466,9 @@ operations move to files. Move to PostgreSQL when any of these is true: a
 second worker host is needed for fetch parallelism (host politeness makes this
 unlikely; the limit is politeness, not CPU); writers measurably wait on each
 other after chunking (measure `busy` waits per loop); or the live file exceeds
-50 GB with the collector running. The existing `docs/plans/postgres-migration/`
-stays parked, and section 4 makes its M3 import audit meaningful, because it
-would import 10 GB of live rows instead of 40 GB of redundancy. The
+50 GB with the collector running. The [Postgres migration](postgres-migration/README.md)
+was revived on 2026-10-19 for other reasons (D-0263); section 4 still makes
+its import audit cheaper, by importing live rows instead of redundancy. The
 investigation's judgment stands: the planner died of Python heap, not of SQLite.
 
 ## 7. Deployability

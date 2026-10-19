@@ -53,9 +53,10 @@ weekly session.
    benchmark (attempt 003) and its decision, which the owner asked to finish.
 2. [PostgreSQL and Dokploy migration](postgres-migration/README.md): redesigned
    2026-10-19 (D-0263); the owner's next project, not started. Its
-   [stage 0](postgres-migration/stage-0.md) (D-0264) makes declared
-   transform versions and differential proofs decide re-derivation, so code
-   and environment changes stop re-running the whole graph.
+   [stage 0](postgres-migration/5-stage-0.md) (D-0264) makes declared
+   transform versions decide re-derivation, with a verify run after each
+   code change; production does not change until the switch, and the
+   operations can run in one session.
 3. Step Right archive-only index bootstrap and `recognize` rules, then DCN's
    score PDFs (M4): the acquisition paths V5's new sources still lack
    ([plan note](history-and-recovery.md#event-completion-follow-up-in-v6)).

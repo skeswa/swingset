@@ -1,134 +1,188 @@
 # Move to Postgres and Dokploy
 
-Swingset moves off the owner's Mac and onto the owner's server. Postgres
-becomes the one place that holds all of Swingset's data and decisions,
-including overrides, exceptions and approvals. Large files move to object
-storage, and Dokploy runs the worker. The database is built to be queried,
-so it can back a public API later. Hugging Face keeps getting the same
-full releases.
+**Start here.** This page is the whole plan in brief. The numbered pages
+below give the detail, and are written to be read in order.
 
-Status: design, revised 2026-10-19 after five adversarial reviews
-([D-0263](../../../journal/decisions/0263-postgres-holds-all-state-and-moves-in-four-stages.md)),
-with a stage 0 added the same day so that code and environment changes stop
-forcing re-derivation
-([D-0264](../../../journal/decisions/0264-declared-transform-versions-and-differential-proofs-decide-re-derivation.md)).
-Not started. Production stays on SQLite on the Mac until stage 4.
+Status: design, revised 2026-10-19 after several adversarial reviews and
+the stage 0 measurements. Not started. Production stays on SQLite on the
+Mac until the switch (stage 3). Decisions:
+[D-0263](../../../journal/decisions/0263-postgres-holds-all-state-and-moves-in-four-stages.md)
+and
+[D-0264](../../../journal/decisions/0264-declared-transform-versions-and-differential-proofs-decide-re-derivation.md).
 
-## Why move
+## What and why
 
-- **The Mac sleeping stops production.** Collection has stalled for hours
-  at a time, and on 2026-10-17 a release check stalled for two days.
-- **Decisions are scattered.** Overrides are files read from the Mac,
-  approvals sit in free-text fields, and a hold is a marker file. None of
-  them can be queried, and their history is only in git.
+Swingset moves off the owner's Mac onto the owner's server. Postgres
+becomes the one place that holds all of Swingset's data **and every
+decision**: overrides, exceptions, approvals, holds and settings. Large
+files move to object storage, and Dokploy runs the worker. The database is
+built to be queried, so a public API can become the main way to reach the
+data. Hugging Face stays one export, with the same full releases when
+published. The scraping and safety rules become rows in Postgres that can
+be changed with approval, without a deploy.
+
+- **The Mac sleeping stops production,** for hours and once for two days.
+- **Decisions are scattered** across files, free text and git, where nobody
+  can query them.
 - **There is no backup off the machine.**
-- **The data is worth building on.** A queryable store with stable ids and
-  release history is the base for an API.
+- **The data is worth building on.**
 
-## The plan in five stages
+## Before and after
 
-0. **Prove changes instead of re-deriving:** a result goes out of date only
-   when its transform's declared version or an input changes. A differential
-   proof on a copy decides, before each deploy, whether a code or environment
-   change needs a new version. Without this, the move would re-derive
-   everything three times, 10 to 14 hours each
-   ([stage 0](stage-0.md)).
-1. **Refactor locally:** run the whole pipeline on Postgres on the Mac, and
-   prove it builds the same dataset as SQLite.
-2. **Move files and backups to the cloud,** on today's production.
-3. **Dry run on Dokploy:** the server runs everything for a week, but it
-   cannot fetch or publish.
-4. **Switch:** the server fetches and publishes, and the Mac retires. Releases
-   pause for the import and its audit, expected in hours rather than the
-   one to three days a re-derivation would have taken.
+```mermaid
+flowchart LR
+  subgraph today["Today"]
+    direction TB
+    mac["owner's Mac<br/>(sleeps)"] --> vm["NixOS VM<br/>5 systemd loops"]
+    vm --> sq[("SQLite<br/>41 GB")]
+    vm --> disk[("local files<br/>150k + 45 GB checkpoints")]
+    ovr["override CSVs, hold file,<br/>Nix publish switch"] -.-> vm
+  end
+  subgraph after["After"]
+    direction TB
+    srv["owner's server<br/>Dokploy services"] --> pg[("Postgres<br/>data + decisions<br/>+ catalog")]
+    srv --> bk[("backups in a bucket;<br/>files later too")]
+    pg --> wal[("backups twice a week")]
+  end
+  today ==> after
+  vm --> hf[[Hugging Face]]
+  srv --> hf
+```
 
-Before stage 1, a quick read-only check of the server confirms it has room.
+## Read in this order
 
-After the switch, decisions move into Postgres one kind at a time, and the
-published catalog fills. Read [the stages](stages.md) for steps, gates and
-rollback, [stage 0](stage-0.md) for the invalidation change, and [the target
-design](target.md) for the end state.
+| #   | Page                                  | Answers                                                                                |
+| --- | ------------------------------------- | -------------------------------------------------------------------------------------- |
+| 1   | [Requirements](1-requirements.md)     | what the move must do, what it deliberately does not, and the numbers that define done |
+| 2   | [Target schema](2-schema.md)          | every table in Postgres, by namespace, and the new `gov` and `catalog` tables          |
+| 3   | [Database code](3-database.md)        | how the code talks to Postgres: values that must not change, triggers, locks, roles    |
+| 4   | [Hosting](4-hosting.md)               | backups and restore, services on Dokploy, object storage                               |
+| 5   | [Stage 0](5-stage-0.md)               | declared versions and a verify run, so code changes stop forcing re-derivation         |
+| 6   | [Stage 1](6-stage-1.md)               | the Postgres port, on its own bookmark, tested on the Mac                              |
+| 7   | [Stage 2](7-stage-2.md)               | the dry run on the server: one full re-derivation as the proof                         |
+| 8   | [Stage 3](8-stage-3.md)               | the switch                                                                             |
+| 9   | [After the switch](9-after-switch.md) | object storage, decisions into `gov`, the catalog, hardening                           |
+| —   | [Glossary](glossary.md)               | every term the pages use                                                               |
 
-## Decisions the owner makes
+## Requirements at a glance
 
-| Decision                                             | Needed before           | Recommendation                                                                                                                                                 |
-| ---------------------------------------------------- | ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Postgres major version                               | stage 1, step 3         | the newest one Dokploy supports, the same locally and on the server                                                                                            |
-| Object storage provider                              | stage 2                 | either works with the plan, which always adds a copy at a second provider; R2 has no versioning, B2 keeps versions by default (not yet verified for this plan) |
-| Postgres image                                       | stage 3                 | a custom image with continuous backup and point-in-time recovery                                                                                               |
-| Publishing allowlisted decision tables with releases | after the switch        | yes, without author or note columns; never suppressions or identity decisions                                                                                  |
-| Building the API                                     | after the catalog fills | separate work                                                                                                                                                  |
+| Must                                                                 | Must not                                            |
+| -------------------------------------------------------------------- | --------------------------------------------------- |
+| hold all state and every decision in one Postgres                    | build the API now                                   |
+| record each decision as a row: who proposed, who approved, when, why | change the published dataset's format               |
+| keep full-fidelity Hugging Face exports possible; same hashes        | change types or split tables during the move        |
+| re-derive only when a transform's declared version is bumped         | allow several writers at once, or use an ORM        |
+| back up what cannot be rebuilt, twice a week, off the machine        | run two fetchers, even in the dry run               |
+| make the scraping and safety rules approved rows in `gov`            | copy data back from Postgres to SQLite              |
+| keep today's scraping and safety values as the starting rows         | publish private decisions; require daily publishing |
 
-The plan picks a custom Postgres image and an allowlist as its defaults.
-Either can change if the owner decides otherwise.
+The full lists, with how each is checked, are on [page 1](1-requirements.md).
 
-## Words used in this plan
+## The target schema at a glance
 
-| Word                          | Meaning                                                                                                                              |
-| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| Dokploy                       | A tool that runs Docker apps on your own server, with a web page to manage them                                                      |
-| Docker, Docker Compose        | Docker packages a program with everything it needs; Compose starts several of these together                                         |
-| Gate                          | A written check that must pass before the next stage starts                                                                          |
-| Hold                          | A switch that stops the worker's loops from starting new work                                                                        |
-| Out-of-band hold              | A hold kept outside the database, so it works while Postgres is down                                                                 |
-| Tick                          | One run of one loop                                                                                                                  |
-| Drain                         | Run until the work queue is empty                                                                                                    |
-| Checkpoint                    | A saved copy of production's data                                                                                                    |
-| Re-derivation                 | Re-running the derive loop over every unit when its inputs or code change; 10 to 14 hours on today's VM                              |
-| Unit                          | One piece of derived work: one page's parse, one dancer's or event's projection, one event's links, one build                        |
-| Transform                     | The code that turns a unit's inputs into its output: a page kind's extractor, parser or contract, a projector, the linker, the build |
-| Declared version              | A hand-written version constant on a transform; after stage 0 it is what makes that transform's results out of date                  |
-| Recipe, recipe scope          | A unit's recipe is the map of named inputs and digests its identity is hashed from; a scope is the code the recipe names             |
-| Audit digest                  | The code or environment fingerprint recorded at each deploy for the record, but not part of any recipe                               |
-| Differential proof            | Running new code over every stored input on a copy and comparing the output with what is stored, before a deploy                     |
-| Current unit                  | A unit whose stored result is up to date with its inputs; only current units can be compared in a proof                              |
-| Equivalence                   | A row saying that a new input fingerprint produced exactly an existing generation's output (migration 33)                            |
-| Re-key                        | Recording equivalences so existing results count as current under new recipe values, without re-running them                         |
-| Clone                         | A copy-on-write copy of a database file or a checkpoint (`cp --reflink` on btrfs or APFS) that costs nothing until written           |
-| Cutoff                        | Keeping an existing generation when a re-run's output is identical, instead of writing a new one (D-0205)                            |
-| Hash, digest, sha256          | A short fingerprint of some content; any change to the content changes it. sha256 is the method used                                 |
-| Migration                     | A numbered script that changes the database's tables                                                                                 |
-| Namespace                     | A group of tables in Postgres (Postgres calls it a "schema")                                                                         |
-| Trigger                       | Database code that runs by itself when a row changes                                                                                 |
-| Collation                     | The rule a database uses to sort text                                                                                                |
-| Lock, advisory lock           | A claim that stops two jobs from writing at once; an advisory lock is one the program asks Postgres for by name                      |
-| Connection pooler             | A middleman that shares database connections between programs                                                                        |
-| WAL archiving                 | Saving Postgres's log of every change, so the database can be rebuilt                                                                |
-| Base backup                   | The full copy that replaying the change log starts from                                                                              |
-| Point-in-time recovery        | Restoring the database to any chosen moment by replaying that log                                                                    |
-| Recovery point, recovery time | How much recent data a failure may lose, and how long until things run again                                                         |
-| Object storage, bucket        | A service that stores files by name, such as S3, R2 or B2; a bucket is one storage area                                              |
-| MinIO                         | Object storage you can run yourself; used here as a local stand-in                                                                   |
-| psycopg                       | The Python library that talks to Postgres                                                                                            |
-| Parquet                       | The column-based file format the dataset is published in                                                                             |
-| Catalog                       | The published releases, stored in Postgres so they are easy to query                                                                 |
-| `gov`                         | The tables that will hold decisions: overrides, approvals, holds, settings                                                           |
-| Supersede                     | Replace a decision by adding a newer row, never by editing the old one                                                               |
-| Redirect                      | A record that an old id now lives under a new one                                                                                    |
-| Dead-man's switch             | An outside service that raises an alarm when regular pings stop                                                                      |
-| Conditional request           | Asking a site to send a page only if it changed since a given copy                                                                   |
-| User-Agent                    | The name a program gives a website when it asks for a page                                                                           |
-| Egress check                  | A small test of how other sites treat requests from the server's address                                                             |
+| Namespace  | Tables         | Holds                                                                          |
+| ---------- | -------------- | ------------------------------------------------------------------------------ |
+| `fetch`    | 23             | hosts, budgets, watches, snapshots, requests                                   |
+| `plan`     | 34             | per-event bookkeeping                                                          |
+| `evidence` | 13             | parse results, admission, observations, findings                               |
+| `derive`   | 20 and 1 view  | derivations, dependency sets, the work queue (about 20 GB)                     |
+| `project`  | 29             | the published tables, source events, identity                                  |
+| `release`  | 3, plus 4 new  | partitions, manifests, artifacts; candidates, verdicts, publications, baseline |
+| `ops`      | 19, plus 1 new | runs, controls, stored objects, backups, alerts                                |
+| `gov`      | new            | proposals, approval events, effective views; holds, requeues                   |
+| `catalog`  | new            | every published release, queryable, with id redirects                          |
 
-## Detail pages from the 2026-09-14 specification
+Today's 141 tables move as they are; only their namespace is new. Details
+on [page 2](2-schema.md).
 
-These older pages hold detailed contracts. The stages link the parts they
-reuse. Where they keep overrides as files, plan a one-container worker, fix
-the Postgres version, or size the worker differently, the newer pages win.
+## The stages
 
-| Topic                                  | Page                                      |
-| -------------------------------------- | ----------------------------------------- |
-| Scope and required access              | [Contracts and run inputs](contracts.md)  |
-| Frozen inputs                          | [Inventory](inventory.md)                 |
-| Connection, locks, schema and triggers | [Database port](database.md)              |
-| Loading and checking a checkpoint      | [Import and independent audit](import.md) |
-| Proving recovery works                 | [Checkpoints and restore](checkpoints.md) |
-| Packaging, scheduling and monitoring   | [Worker and monitoring](worker.md)        |
-| Whole-system checks                    | [Acceptance](acceptance.md)               |
-| Provisioning, rehearsal and transfer   | [Cutover and recovery](cutover.md)        |
+Each stage ends with a **gate**: a written check, with a receipt, that must
+pass before the next starts. Production does not change until the switch.
+
+```mermaid
+flowchart LR
+  s01["0 + 1. Port to Postgres,<br/>with declared versions<br/>(Mac, own bookmark)"] --> g1{{gate 1}}
+  g1 --> s2["2. Dry run on the server:<br/>import, re-derive once,<br/>compare a release"] --> g2{{gate 2}}
+  g2 --> s3["3. Switch:<br/>import, verify, re-key,<br/>first release"] --> g3{{gate 3}}
+  g3 --> after["After the switch:<br/>object storage, gov,<br/>catalog, hardening"]
+```
+
+| Stage                       | Runs on                                | Changes production?                               | Rollback                                                  |
+| --------------------------- | -------------------------------------- | ------------------------------------------------- | --------------------------------------------------------- |
+| 0 and 1. port, with stage 0 | the Mac, on its own bookmark           | no                                                | nothing to roll back                                      |
+| 2. dry run                  | the server, unable to fetch or publish | no; production's code freezes from its checkpoint | delete the services                                       |
+| 3. switch                   | the server                             | yes                                               | until the first fetch, restart the Mac; then forward only |
+| after the switch            | the server                             | one change at a time                              | each step's own                                           |
+
+### No dates, no waiting periods
+
+Every gate is a set of conditions, and the next stage starts as soon as
+they hold. All code (stages 0 and 1) is written and tested beforehand; the
+operations, stages 2 and 3, can then run in one session, such as a
+weekend. What decides the pace is work, not time:
+
+| Longest steps                                     | Measured or estimated                                                        |
+| ------------------------------------------------- | ---------------------------------------------------------------------------- |
+| moving the 39 GB checkpoint to the server (twice) | depends on the Mac's upload speed; measured in the dry run                   |
+| import and audit of the 41 GB database (twice)    | not measured; measured in the dry run                                        |
+| the dry run's full re-derivation                  | 10 to 14 hours on today's VM; the server's time is measured in the dry run   |
+| a verify run of the whole graph                   | about 35 minutes at 2 processes on the worker (estimate from measured times) |
+| a re-key                                          | not measured; rehearsed in the dry run                                       |
+| a full release build                              | about an hour                                                                |
+
+For a single-session run, make every owner decision below before starting.
+
+## Why stage 0
+
+Today any code or runtime change makes every derived result out of date.
+Stage 0 makes declared versions decide instead, and checks each change with
+a verify run on a copy. The dry run still re-derives everything once, on
+purpose, as the proof of the port.
+
+| Event                                                  | Without stage 0                            | With stage 0 (estimate)                                 |
+| ------------------------------------------------------ | ------------------------------------------ | ------------------------------------------------------- |
+| the dry run                                            | `████████████` 10 to 14 h re-derivation    | `████████████` the same, on purpose: the proof          |
+| the switch                                             | `████████████` 10 to 14 h without releases | `█` verify and re-key; gap: hours                       |
+| a typical code deploy (9 in the 3 weeks to 2026-10-19) | `█████████` about 7.5 h each               | `▌` about 35 min verify; releases wait, nothing re-runs |
+
+Verify times come from the 2026-10-19
+[measurements](../../../journal/investigations/2026/stage-0-measurements-2026-10-19.md).
+
+## Rules for every stage
+
+- **Owner's exception.** The repo normally allows release work or one
+  maintenance session a week; the owner made this move the plan of record
+  on 2026-10-19. Publishing is not required on any cadence while the move
+  runs.
+- **Production does not change until the switch.** The port lives on its
+  own bookmark, rebased on `main`. If production adds a migration, the port
+  adds its Postgres form. From the dry run's checkpoint to the switch,
+  production takes no deploys.
+- **Count every re-derivation.** There is one, on purpose, in the dry run.
+  Any other is reported with its reason.
+- **What waits:** the calendar contract, danceconvention.net and
+  SwingDirector activations, and row-level result holds, until after the
+  switch, unless the owner says otherwise. Keeping the worker safe never
+  waits.
+- **Review levels,** from AGENTS.md: local code needs tests; a production
+  switch needs before and after receipts; deleting data, publishing or
+  spending money needs an independent check plus receipts; contacting a
+  site from a new address needs a decision record first. No gate asks for
+  more.
+
+## Owner decisions still open
+
+Make all of these before starting a single-session run.
+
+| Decision                            | Needed before           | Recommendation                      |
+| ----------------------------------- | ----------------------- | ----------------------------------- |
+| publish allowlisted decision tables | after the switch        | yes, without author or note columns |
+| build the API                       | after the catalog fills | separate work                       |
 
 ## Evidence
 
+- [Stage 0 measurements, 2026-10-19](../../../journal/investigations/2026/stage-0-measurements-2026-10-19.md)
 - [What the move must carry, 2026-10-19](../../../journal/investigations/2026/platform-survey-2026-10-19.md)
 - [Hosting investigation, 2026-09-14](../../../journal/investigations/2026/dokploy-migration-2026-09-14.md)
 - [PostgreSQL experiments, 2026-09-14](../../../journal/investigations/2026/postgres-migration-plan-2026-09-14.md)

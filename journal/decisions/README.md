@@ -286,7 +286,7 @@ that links the old one.
 | [D-0261](0261-dispatch-tables-are-in-no-scope-and-each-kind-names-its-contract.md)           | Scopes hold only the dispatch tables' code; each kind's parse scope names its own contract module (amends D-0207)                              | Derivation identity                               |
 | [D-0262](0262-an-event-state-no-longer-holds-gets-no-partition.md)                           | An event state no longer holds gets no release partition, even when a stale generation lists it (amends D-0224)                                | Publication                                       |
 | [D-0263](0263-postgres-holds-all-state-and-moves-in-four-stages.md)                          | Postgres holds all state, including overrides and approvals; the move happens in four stages (replaces D-0004 in part; amended by D-0264)      | Hosting                                           |
-| [D-0264](0264-declared-transform-versions-and-differential-proofs-decide-re-derivation.md)   | Declared transform versions and differential proofs decide re-derivation, not code or environment digests (amends D-0207 and D-0263)           | Derivation identity                               |
+| [D-0264](0264-declared-transform-versions-and-differential-proofs-decide-re-derivation.md)   | Declared transform versions decide re-derivation; a verify run checks each code change (amends D-0207 and D-0263)                              | Derivation identity                               |
 
 The [legacy decision log](legacy-design-review.md) preserves the original
 review notes. It is historical evidence, not a second list of current rules.

@@ -40,8 +40,26 @@ on ARM64 and the server is most likely AMD64 (an Intel Xeon; stage 1's
 server check confirms it), so the server re-derives once in the dry run and
 once at the switch, which pauses releases for one to three days.
 
-Amended the same day by D-0264: the simplified environment identity is
-recorded for audit and triggers nothing; a stage 0 makes declared transform
+Amended the same day by D-0264: the environment identity stays exact
+rather than simplified, is recorded for audit and triggers nothing; a stage 0 makes declared transform
 versions and differential proofs decide re-derivation, so the three
 re-derivations above become proofs and the switch pauses releases only for
 the import and its audit. Plan: [Postgres and Dokploy](../../docs/plans/postgres-migration/README.md).
+
+Plan edit the same day, with the owner: stage 1's full-size checks (the
+import, the whole-graph proof, the release comparison) run on the server in
+an isolated stack, because the Mac lacks the disk; code and tests stay on
+the Mac. The plan also has no dates or waiting periods, so it can run in
+one session.
+
+Plan edit later the same day, with the owner: the lighter plan shape ("B").
+Production does not change before the switch. The order becomes: port
+(with stage 0), a dry run on the server whose one full re-derivation is the
+proof, the switch, and then files into object storage, `gov` and the
+catalog.
+
+Also with the owner: publishing on a daily cadence is not a requirement.
+Postgres, and later an API, becomes the main way to reach the data, and
+Hugging Face one export. The scraping and safety rules become approved
+rows in `gov` that change without a deploy; loosening one needs a second
+approver.
