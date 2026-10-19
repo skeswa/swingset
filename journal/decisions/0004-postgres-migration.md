@@ -4,7 +4,7 @@ Recorded: 2026-09-15; imported from the 2026-09-14 migration specification
 Decided by: owner, —; original acceptance date and approver not established by this review  
 Topic: Hosting  
 Supersedes: —  
-Superseded by: —
+Superseded by: in part, [D-0263](0263-postgres-holds-all-state-and-moves-in-four-stages.md) (all state including overrides and approvals in Postgres; four stages)
 
 ## Decision
 

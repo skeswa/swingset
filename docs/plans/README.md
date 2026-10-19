@@ -4,18 +4,18 @@ Plans describe remaining work and how to prove it is complete. They do not
 establish that a feature is deployed. Start with [current status](../status.md)
 for the latest retained operating evidence.
 
-| Goal                                                          | Plan                                                              | Read first                                      |
-| ------------------------------------------------------------- | ----------------------------------------------------------------- | ----------------------------------------------- |
-| **Active, all other plans paused:** scale and tolerate faults | [Target architecture](architecture.md)                            | Invariants, then the phase plan                 |
-| Run unattended without stalling                               | [Stability](stability.md)                                         | The rules, then the production sequence         |
-| Recover identity output and missing event metadata            | [Data quality recovery](data-quality.md)                          | Measured regression and release checks          |
-| Add historical results while improving recovery               | [History and recovery sequence](history-and-recovery.md)          | Stage order and gates                           |
-| Preserve corrections and recover safely                       | [Recovery rollout](recovery/README.md)                            | Work packages and acceptance scenarios          |
-| Bound operational storage without losing history              | [Bounded state and durable archive](bounded-state-and-archive.md) | Stages, gates, and known limits                 |
-| Stop re-deriving output that has not changed                  | [Derivation invalidation](derivation-invalidation.md)             | Measured waste, then the ordered steps          |
-| Fill historical gaps from event sites                         | [Historical source collection](historical-sources.md)             | Source restrictions and review requirements     |
-| Move to PostgreSQL and Dokploy                                | [Migration](postgres-migration/README.md)                         | Approach, then the relevant implementation step |
-| Admit score sheets with one contested row                     | [Row-level result holds](row-level-result-holds.md)               | Why, then the schedule                          |
+| Goal                                                          | Plan                                                              | Read first                                  |
+| ------------------------------------------------------------- | ----------------------------------------------------------------- | ------------------------------------------- |
+| **Active, all other plans paused:** scale and tolerate faults | [Target architecture](architecture.md)                            | Invariants, then the phase plan             |
+| Run unattended without stalling                               | [Stability](stability.md)                                         | The rules, then the production sequence     |
+| Recover identity output and missing event metadata            | [Data quality recovery](data-quality.md)                          | Measured regression and release checks      |
+| Add historical results while improving recovery               | [History and recovery sequence](history-and-recovery.md)          | Stage order and gates                       |
+| Preserve corrections and recover safely                       | [Recovery rollout](recovery/README.md)                            | Work packages and acceptance scenarios      |
+| Bound operational storage without losing history              | [Bounded state and durable archive](bounded-state-and-archive.md) | Stages, gates, and known limits             |
+| Stop re-deriving output that has not changed                  | [Derivation invalidation](derivation-invalidation.md)             | Measured waste, then the ordered steps      |
+| Fill historical gaps from event sites                         | [Historical source collection](historical-sources.md)             | Source restrictions and review requirements |
+| **Next:** move to Postgres and Dokploy                        | [Migration](postgres-migration/README.md)                         | The four stages, then the target design     |
+| Admit score sheets with one contested row                     | [Row-level result holds](row-level-result-holds.md)               | Why, then the schedule                      |
 
 The [project milestones](milestones.md) define dataset outcomes across these
 plans. Earlier rollout documents live in the [archive](../../journal/archive/README.md).
@@ -51,8 +51,11 @@ weekly session.
    a measurement receipt shows the live database over 20 GB or the worker disk
    under 100 GB free. The one open item is the A0/A1 source JSON compression
    benchmark (attempt 003) and its decision, which the owner asked to finish.
-2. [PostgreSQL and Dokploy migration](postgres-migration/README.md): a target,
-   not started.
+2. [PostgreSQL and Dokploy migration](postgres-migration/README.md): redesigned
+   2026-10-19 (D-0263); the owner's next project, not started. Its
+   [stage 0](postgres-migration/stage-0.md) (D-0264) makes declared
+   transform versions and differential proofs decide re-derivation, so code
+   and environment changes stop re-running the whole graph.
 3. Step Right archive-only index bootstrap and `recognize` rules, then DCN's
    score PDFs (M4): the acquisition paths V5's new sources still lack
    ([plan note](history-and-recovery.md#event-completion-follow-up-in-v6)).

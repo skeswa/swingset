@@ -32,6 +32,16 @@ Step 3's collection of unnamed closure proofs shipped in candidate 018
 set (D-0231, offline, not deployed); equivalence collection is still open.
 Step 4's cache per dependency set came with step 1.
 
+**Next step (2026-10-19):** [stage 0 of the Postgres migration](postgres-migration/stage-0.md)
+([D-0264](../../journal/decisions/0264-declared-transform-versions-and-differential-proofs-decide-re-derivation.md)).
+Steps 1, 2 and 5 made a code change cost CPU instead of generations, but a
+change inside the import cycle still re-runs every project and link unit:
+nine times in the three weeks to 2026-10-19. Stage 0 replaces the code
+digest in a unit's recipe with the transform's declared version, keeps the
+digest as an audit trail, and proves each change on a clone before it
+deploys. The open items here (equivalence collection in step 3, the
+streaming planner in step 4) are unchanged by it.
+
 ## When this may start
 
 Not before **the worker has run phase two cleanly for a full day**: 24 hours of
@@ -479,4 +489,5 @@ Moving to PostgreSQL. It is orthogonal: the planner dies of Python heap, not of
 SQLite, and the invalidation rule, the permanent immutable tables and the
 missing archive step all move across unchanged. Do this first, so the
 [migration](postgres-migration/README.md) imports 8 GB instead of 40 GB and its
-record-for-record audit means something.
+record-for-record audit means something. The invalidation rule itself is
+now the migration's [stage 0](postgres-migration/stage-0.md).
