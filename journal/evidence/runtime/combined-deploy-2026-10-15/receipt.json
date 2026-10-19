@@ -51,9 +51,9 @@
     "parse_failed_or_unsupported_units": 13
   },
   "hold": {
-    "set": "2026-10-15T22:50:00Z",
-    "idle": "2026-10-15T22:50:00Z",
-    "removed": "2026-10-15T22:50:18Z"
+    "set": "2026-10-17T14:12:50Z",
+    "removed": "2026-10-19T14:32:06Z",
+    "note": "held about 48 h 19 min: the Mac slept during the check; no pipeline run in that time, so backups went stale (49 h) and a backup was started at release"
   },
   "overrides_added": {
     "source_urls.csv": 43,
@@ -69,7 +69,7 @@
     "swingdirector_enabled": false
   },
   "baseline_at_deploy": "cand_df599959f33440cf (HF 28f8196)",
-  "rollback": "before publication: switch to /private/tmp/swingset-c045 and remove the 45 override rows (another full re-run); after publication: swingset publish --revert-to cand_df599959f33440cf (D-0250)",
+  "rollback": "swingset publish --revert-to cand_df599959f33440cf (D-0250)",
   "rerun": {
     "window": [
       "2026-10-15T22:50Z",
@@ -190,7 +190,7 @@
     ],
     "gains_clean": "no event lost results; no dcn or SwingDirector data published"
   },
-  "status": "not published; second candidate blocked for stale header-only partitions; build fix in progress",
+  "status": "published 265e1ca; release loop publishes again",
   "sleep_hold": {
     "set": "2026-10-16T14:12:20Z",
     "removed": "2026-10-17T00:19:08Z",
@@ -343,5 +343,149 @@
       "note": "4 published links withdrawn at 2026-01-swingvester pro-am F contests (source prints leader, registry lists follower): the linker's role rule, recorded"
     },
     "hold_removed": "2026-10-17T11:42:44Z"
+  },
+  "build_fix": {
+    "decision": "D-0262",
+    "commit": "dda62678ae7a3c4484d46a8cf1c39d718f84994e",
+    "tests": "full suite 3688 passed",
+    "scopes_changed": [
+      "recipe/code/build"
+    ],
+    "deploy_tree": "/private/tmp/swingset-c048 (dryRun true)",
+    "switched": "2026-10-17T12:36:25Z",
+    "system_after": "/nix/store/gm6cyvzcc9b82dwzpqsysfsjfff2iyy0-nixos-system-swingset-lxc-25.11.20260630.b6018f8"
+  },
+  "candidates_after_fix": [
+    {
+      "candidate": "cand_cdcfc9e837c64fcb",
+      "built": "2026-10-17T12:36Z",
+      "verdict": "refused",
+      "reason": "events 2191->2190 without approval; built with 2,807 link units pending"
+    },
+    {
+      "candidate": "cand_c13aad44ea444377",
+      "built": "2026-10-17T14:13Z",
+      "verdict": "pass with the owner-approved events row",
+      "check": "reviewer stalled when the Mac slept; no verdict"
+    },
+    {
+      "candidate": "cand_f49f6dede4d14902",
+      "built": "2026-10-19T13:58:48Z/14:04:23Z",
+      "verdict": "pass",
+      "overrides_used": [
+        {
+          "approved_at": "2026-10-17",
+          "approved_by": "owner",
+          "baseline_value": 2191,
+          "candidate_value": 2190,
+          "measure": "events",
+          "reason": "duplicate events merged into their WSDC events (D-0253, D-0260, D-0262): Slovenian Open and Spring Time Swing 2024 join their trial rows; no result event lost"
+        }
+      ],
+      "lost_result_events": 0,
+      "moved_result_events": [
+        "2023-12-swingcouver-24 -> 2024-01-swingcouver",
+        "2024-04-slovenian-open -> 2024-04-slovenian-open-trial-event",
+        "2024-05-spring-time-swing -> 2024-05-spring-time-swing-trial-event",
+        "2025-05-festival-city-swing-edinburgh -> 2025-06-festival-city-swing",
+        "2025-05-french-open -> 2025-06-french-open-wcs",
+        "2025-12-swingvester-26-wsdc -> 2026-01-swingvester",
+        "2026-09-aloha-open -> 2026-09-the-aloha-open",
+        "2026-09-wcsparty -> 2026-09-wcs-party-in-vienna"
+      ],
+      "measures_changed": {
+        "callback_marks": [
+          1034269,
+          1039021
+        ],
+        "callbacks": [
+          211674,
+          212683
+        ],
+        "confirmed_links": [
+          100932,
+          101390
+        ],
+        "contests": [
+          4641,
+          4687
+        ],
+        "dancers": [
+          27968,
+          27970
+        ],
+        "entries": [
+          195070,
+          196511
+        ],
+        "events": [
+          2191,
+          2190
+        ],
+        "events_with_placements": [
+          399,
+          404
+        ],
+        "final_marks": [
+          231152,
+          233164
+        ],
+        "judges": [
+          10913,
+          11011
+        ],
+        "linked_entries": [
+          100932,
+          101390
+        ],
+        "placements": [
+          38290,
+          38629
+        ],
+        "registry_placements": [
+          199008,
+          199010
+        ],
+        "rounds": [
+          8224,
+          8294
+        ]
+      }
+    }
+  ],
+  "owner_events_decrease": {
+    "row": "events,2191,2190 (duplicate events merged; D-0253, D-0260, D-0262)",
+    "approved": "2026-10-17"
+  },
+  "final_check": {
+    "date": "2026-10-19",
+    "candidate": "cand_f49f6dede4d14902",
+    "verdict": "approve with conditions",
+    "conditions": [
+      "publish before 2026-10-20T00:00Z with no pipeline run",
+      "commit release_decreases.csv with the receipt",
+      "lift the hold (over 48 h) after publishing",
+      "backup advisory: newest checkpoint 49 h old"
+    ],
+    "notes": "only data difference from the fully checked cand_060e7514 is the removal of the six duplicates; 8 moves intact; no result lost"
+  },
+  "publish": {
+    "reuse": "cand_f49f6dede4d14902 (candidate dirs 114 -> 114)",
+    "window": [
+      "2026-10-19T14:17:22Z",
+      "2026-10-19T14:31:47Z"
+    ],
+    "state": "published",
+    "commit": "265e1ca501f5e1431f7287b3f7634869792d511a",
+    "parent": "28f8196c969fb02964f0a05c642c487471db8641",
+    "baseline_symlink": "candidates/cand_f49f6dede4d14902",
+    "manifest_digest": "8cb20f555ce2f15c55c92ad6033dfff3c970f28b283453796b6af5eec27d74f1"
+  },
+  "c049": {
+    "change": "dryRun = false (code identical to c048)",
+    "switched": "2026-10-19T14:32:06Z",
+    "system_after": "/nix/store/xy5n38wznl9clbickc6nwfrsz4ymidi4-nixos-system-swingset-lxc-25.11.20260630.b6018f8",
+    "release_unit": "--publish",
+    "backup_started": "2026-10-19T14:32Z"
   }
 }

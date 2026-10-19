@@ -1,1 +1,2 @@
 measure,baseline_value,candidate_value,reason,approved_by,approved_at
+events,2191,2190,"duplicate events merged into their WSDC events (D-0253, D-0260, D-0262): Slovenian Open and Spring Time Swing 2024 join their trial rows; no result event lost",owner,2026-10-17

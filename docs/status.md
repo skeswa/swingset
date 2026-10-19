@@ -1,20 +1,17 @@
 # Current status
 
-Updated 2026-10-17 00:50 UTC. Five sections; each line links to one receipt.
+Updated 2026-10-19 14:40 UTC. Five sections; each line links to one receipt.
 History lives in the [journal](../journal/README.md); the last long-form page
 is [archived](../journal/archive/status-2026-09-18.md).
 
 ## Published
 
-- Public dataset [`28f8196`](https://huggingface.co/datasets/skeswa/swingset/tree/28f8196c969fb02964f0a05c642c487471db8641), candidate `cand_df599959f33440cf`, published 2026-10-15 04:46 UTC after two independent checks: results-site events now sit on their WSDC events (D-0253, D-0254). Against `1034f8c`: events 2,114 to 2,191, events with results 276 to 399, entries 146,772 to 195,070, confirmed links 67,021 to 100,932; 80 events moved, none lost ([receipt](../journal/evidence/runtime/event-matching-2026-10-14/receipt.json)).
-- Previous automatic release [`1034f8c`](https://huggingface.co/datasets/skeswa/swingset/tree/1034f8c2f38a963e68765d8352115dcc847cb068), candidate `cand_cd7dcc13d65946f5`, published by the release loop 2026-10-14 19:20 UTC; per event against `3fe7bae`: no event lost or reduced results ([receipt](../journal/evidence/runtime/publication-resume-2026-10-13/receipt.json)).
-- Public dataset [`3fe7bae`](https://huggingface.co/datasets/skeswa/swingset/tree/3fe7bae8f48639e33083dde674736778388ba899), candidate `cand_d7747db3e2a94e78`, published 2026-10-13 18:52 UTC after two independent checks (D-0252). Against `138352e`: events 2,105 to 2,114, events with results 107 to 276, entries 58,558 to 146,772, 67,012 confirmed identity links from 0; no event loses results. Accepted small regressions: four events lose their city, nine show a results URL as website, four result events duplicate WSDC events ([receipt](../journal/evidence/runtime/publication-resume-2026-10-13/receipt.json)).
-- Previous baseline `138352e` (2026-09-21) had no identity links and withheld 435 events ([receipt](../journal/evidence/quality/published-field-gaps-2026-09-21/receipt.json)).
-- Previous baseline [`2a6c7dc`](https://huggingface.co/datasets/skeswa/swingset/tree/2a6c7dc744fb36eabb5163c0a527d787d3721f4f), the manual H16 release of 2026-09-16 ([release outcome](../journal/investigations/2026/h16-production-release-2026-09-16.md)).
+- Public dataset [`265e1ca`](https://huggingface.co/datasets/skeswa/swingset/tree/265e1ca501f5e1431f7287b3f7634869792d511a), candidate `cand_f49f6dede4d14902`, published 2026-10-19 14:31 UTC after independent checks. Against `28f8196`: events 2,191 to 2,190 (owner-approved: duplicates merged into their WSDC events), events with results 399 to 404, entries 195,070 to 196,511, confirmed links 100,932 to 101,390; 8 events moved, none lost ([receipt](../journal/evidence/runtime/combined-deploy-2026-10-15/receipt.json)).
+- Previous release [`28f8196`](https://huggingface.co/datasets/skeswa/swingset/tree/28f8196c969fb02964f0a05c642c487471db8641), candidate `cand_df599959f33440cf`, published 2026-10-15 04:46 UTC after two independent checks: results-site events now sit on their WSDC events (D-0253, D-0254). Against `1034f8c`: events 2,114 to 2,191, events with results 276 to 399, entries 146,772 to 195,070, confirmed links 67,021 to 100,932; 80 events moved, none lost ([receipt](../journal/evidence/runtime/event-matching-2026-10-14/receipt.json)).
 
 ## Running
 
-- Worker: OrbStack NixOS machine `swingset`, architecture phases 0 to 5 (schema 37) with the five loops. Tree c047 since 2026-10-17 00:42 UTC: the combined deploy (item 20, new sources disabled, calendar contract inactive, 45 override rows) plus the history fix round (D-0260), in dry run while project and link units re-run; publication resumes after a checked hand build ([receipt](../journal/evidence/runtime/combined-deploy-2026-10-15/receipt.json)).
+- Worker: OrbStack NixOS machine `swingset`, architecture phases 0 to 5 (schema 37) with the five loops; release ticks publish again since 2026-10-19 14:32 UTC (tree c049: item 20, the history fixes D-0256/D-0260/D-0262, the calendar contract inactive, the dcn and SwingDirector sources disabled, 45 approved override rows) ([receipt](../journal/evidence/runtime/combined-deploy-2026-10-15/receipt.json)).
 - Timers: acquire and derive every 5 minutes, plan every 30, release hourly (builds daily, D-0245), maintain 03:30 UTC; history per year and the inventory every 12 hours (phase 3); segmented backups at 04:00 and 12:00 UTC with a weekly drill; summary 08:00 UTC; scratch clean 05:00 UTC; publication dry run (D-0189) ([receipt](../journal/evidence/runtime/architecture-phase2b-2026-10-04/receipt.json)).
 - Collection: fetching nearly stopped on 2026-10-08 and from 2026-10-09 14:54 UTC: a failed scoring.dance robots.txt read was cached for a day as disallow-all, and acquire spent each tick skipping those pages so no other host was reached. Relieved at 19:11 UTC by expiring that cache entry; the fix (D-0242) ships with contract 5 ([receipt](../journal/evidence/runtime/robots-stall-2026-10-09/receipt.json)).
 - Outage: 2026-09-22 04:44 to 16:37 UTC, every cycle failed on a full disk after the backup retried into six 26 GB copies; four removed after an independent check, the unit no longer restarts, and a room check now refuses a backup the quota cannot hold ([receipt](../journal/evidence/runtime/disk-full-recovery-2026-09-22/receipt.json), [D-0192](../journal/decisions/0192-a-failed-backup-waits-for-the-next-timer-run.md)).
@@ -23,7 +20,7 @@ is [archived](../journal/archive/status-2026-09-18.md).
 
 ## Held
 
-- None. The sleep hold ran 2026-10-16 14:12 to 2026-10-17 00:19 UTC ([receipt](../journal/evidence/runtime/combined-deploy-2026-10-15/receipt.json)).
+- None. A check hold ran 2026-10-17 14:12 to 2026-10-19 14:32 UTC, about 48 hours, because the Mac slept during the independent check; backups went stale and one was started at release ([receipt](../journal/evidence/runtime/combined-deploy-2026-10-15/receipt.json)).
 
 ## Next release and what blocks it
 
