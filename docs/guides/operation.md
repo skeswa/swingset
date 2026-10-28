@@ -625,8 +625,8 @@ hold.
 
 ```sh
 # On a Mac clone: the walk needs more memory than the 8 GB worker has.
-uv run swingset gc --plan --state ~/swingset-offload/<clone>
-uv run swingset doctor --json --retention --state ~/swingset-offload/<clone> | jq .retention
+uv run swingset gc --plan --state ~/sandbox/swingset-offload/<clone>
+uv run swingset doctor --json --retention --state ~/sandbox/swingset-offload/<clone> | jq .retention
 ```
 
 Neither fits the worker: the full plan peaked at 12.1 GB and the retention
