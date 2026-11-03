@@ -25,7 +25,7 @@ then production's rules stay as they are today.
 flowchart TB
   edit["code or runtime change"] --> digests{"audit digest of a<br/>scope changed?"}
   digests -- no --> run["runs as normal"]
-  digests -- yes --> deploy["deploy, no hold"]
+  digests -- yes --> deploy["deploy under its own hold;<br/>release that hold after checks"]
   deploy --> verify["verify run on a clone:<br/>stored results vs new code"]
   deploy --> wait["release loop waits;<br/>fetch, parse, derive go on"]
   verify --> clean{"all equal?"}
@@ -49,8 +49,8 @@ flowchart TB
 - **The move itself** would otherwise re-derive everything at the switch,
   10 to 14 hours without releases. With stage 0 the switch needs one verify
   run and a re-key instead. The dry run still re-derives everything once, on
-  the server, on purpose: that re-run is the proof that the port is right
-  ([7. Stage 2](7-stage-2.md)).
+  the server, on purpose: a rebuild from the backup alone, which proves
+  the port and the recovery together ([7. Stage 2](7-stage-2.md)).
 
 ## Design
 
@@ -69,9 +69,10 @@ input and nothing else:
 | `policy/*`, `overrides/*.csv`, `link/weights.toml`        | content digests                                                   | unchanged: a policy or override edit still invalidates its consumers |
 | dependencies (snapshots, selected generations, read sets) | as today                                                          | unchanged                                                            |
 
-The input names do not change, so `recipe_names()`, `affected_work()`, the
-certificates and the stored recipes keep their shape. Only the accepted
-digest for each `recipe/code/*` name changes, once, at the stage 0 deploy.
+The code input names do not change. `recipe/env` moves out of the pipeline
+recipe into the audit consumer; `recipe_names()`, `affected_work()`,
+certificates and stored recipes must agree on that removal. The re-key
+covers both this removal and the new `recipe/code/*` values.
 
 **A scope's declared version** is the sorted map of `module: VERSION` over
 the scope's deep entry modules in `recipe_scope.entries()`, read from the
@@ -121,6 +122,12 @@ the output with the stored generation's label, and rolls back
   change to effects alone needs the author's bump, as it does today.
 - **A receipt** names the audit digests, the checkpoint, units compared,
   equal and differing (listed), time and peak memory.
+- **Complete or failed:** enumerate the expected units from the frozen
+  checkpoint before sharding. Every expected unit must return exactly one
+  result. Missing, duplicate, skipped or failed units, a crashed shard or
+  an interrupted run make the receipt incomplete and block releases and
+  re-keying, even if the difference list is empty. The receipt binds the
+  checkpoint, code and runtime digests, declared versions and unit set.
 
 Measured: the whole graph took about 35 minutes at two processes on the
 worker (estimate from measured per-kind times), and all 35,647 parses 72
@@ -130,11 +137,12 @@ today's `[read-set-miss]` alarm; the fix is a bump.
 ### Releases wait for a clean verify
 
 After any deploy whose audit digest changed, the release loop builds
-nothing until a verify receipt for that exact audit digest shows no
-difference, or every differing transform has been bumped. Fetching,
+nothing until a complete verify receipt for that exact audit digest shows no
+difference, or every differing transform has been bumped and its affected
+work has drained under the new version. Fetching,
 parsing and deriving go on. So stale results and results from new code
 never mix in a release. The cost is a release delay of about one verify
-run; production is never held.
+run; verification adds no hold beyond the deploy's brief stop-and-check.
 
 The CI fixture test runs the same comparison on the fixtures and the
 33-page cohort, so most unbumped output changes fail before review.
@@ -143,18 +151,32 @@ The CI fixture test runs the same comparison on the fixtures and the
 
 Changing the accepted values of `recipe/code/*` changes every unit's
 fingerprint once. The **re-key** (`swingset rekey`) avoids re-running the
-graph for that: for every current unit it computes the fingerprint under
+graph for that: for each eligible current unit it computes the fingerprint under
 the new recipe values, which needs the dependency walk but no transform,
 and records an equivalence from the new fingerprint to the unit's pointer
 (`derivation_equivalences`, `source_equivalences`, migration 33): about
-36,500 derivation rows and 35,600 source rows. Nothing re-runs.
+36,500 derivation rows and 35,600 source rows when all units are eligible.
+Those units do not re-run.
 
 A re-key is honest only if the code gives the stored results. So at the
 switch, the server runs a verify of its own code over the imported final
 checkpoint first, and re-keys only after it is clean or every differing
-transform is bumped. The dry run rehearses both and times them. The same
+transform is bumped. The dry run rehearses both on an untouched import,
+which still carries SQLite's old recipe keys as the switch's will, and
+times them. The same
 command serves later "same bytes, new digest" switches, such as moving the
 overrides into `gov`.
+
+**Eligibility is explicit.** The receipt lists clean units and bumped
+transforms separately. Never add an equivalence for a bumped transform's
+old output. Walk dependencies in order: a unit with an unresolved changed
+dependency also stays out of the re-key. Bumped units and affected
+consumers enter the ordinary work queue; cutoff may preserve a consumer
+only after its dependency proves equivalent. Re-key batches bind to the
+same frozen import and receipt, under the state-exclusive lock with loops
+held. A restart resumes that operation idempotently; changed inputs or
+digests require a new verify. Test a bumped producer and its consumer,
+alongside a clean unit, and interruption between batches.
 
 ### What still re-runs
 
@@ -174,11 +196,12 @@ overrides into `gov`.
 2. Code and runtime digests are recorded at every acceptance and never enter
    a recipe.
 3. After a change to an audit digest, releases wait for a clean verify of
-   every affected transform, or a bump of each that differs.
+   every affected transform, or a bump of each that differs and completion
+   of its affected work.
 4. The verify run compares output and dependencies, on a copy, never on
    production.
-5. A re-key happens only after a clean verify of the code being keyed, and
-   only adds equivalence rows.
+5. A re-key uses a complete verify and adds equivalence rows only for the
+   clean, eligible units. Bumped units and affected consumers stay queued.
 6. Every verify run and every re-key leaves one receipt.
 
 ## Measurements, taken 2026-10-19
@@ -205,7 +228,8 @@ Details: [the measurements](../../../journal/investigations/2026/stage-0-measure
 2. **The verify run:** whole graph or changed scopes, sharded on clones or
    scratch databases, with the dependency-set comparison and a receipt.
 3. **The release guard:** the release loop waits for a clean receipt after
-   an audit-digest change.
+   an audit-digest change. Tests inject a failed, missing, duplicated and
+   interrupted shard; none can authorize a release or re-key.
 4. **The re-key command,** one transaction per batch, with a receipt of rows
    written per kind.
 

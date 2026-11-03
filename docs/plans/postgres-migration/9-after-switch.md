@@ -1,14 +1,16 @@
 # 9. After the switch
 
-Read [8. Stage 3](8-stage-3.md) first. This is the last page.
+Read [8. Stage 3](8-stage-3.md) first; next is
+[10. Local development](10-local-development.md).
 
-Each item is its own production change, with its own receipts, in any
-order unless stated. None blocks the others, and none has a date.
+Each item is its own production change, with its own receipts. Follow the
+dependencies stated below; otherwise they can run in any order.
 
 ## Storage and backups
 
 1. **A second provider** for the backup bucket, filled by a separate job
-   with its own keys; the worker cannot delete anything there.
+   with its own keys; the worker cannot delete anything there. A checked
+   independently protected copy is required before deleting the Mac copies.
 2. **Files into object storage** ([4. Hosting](4-hosting.md#files-in-object-storage)):
    - price it (storage, uploads, the second copy);
    - turn on the storage interface: write-once uploads, a checked read, a
@@ -17,13 +19,14 @@ order unless stated. None blocks the others, and none has a date.
      recording each key and hash, then switch reads to the bucket;
    - delete the local copies once a restore drill from the buckets passes,
      with an independent check.
-3. **The full rebuild drill:** restore the latest backup into a scratch
-   database, re-derive everything, and build a release; it must match the
-   live one, except named columns. Record its time: it is the real recovery
-   time.
+3. **The full rebuild drill again** whenever the table classes or the
+   reference list change ([4. Hosting](4-hosting.md#backups-and-recovery)).
+   The first ran in the dry run, before the switch.
 4. **Delete the Mac copies,** the local checkpoints and the VM, with an
-   independent check, once the rebuild drill passes. Until then they are
-   the fallback.
+   independent check, once gate 3 and a current complete server backup's
+   check have passed and its independently protected copy is verified
+   ([page 4](4-hosting.md#backups-and-recovery)). Until then keep the Mac
+   copies as evidence; they cannot resume fetching after cutover.
 
 ## Decisions into `gov`
 
@@ -49,10 +52,9 @@ order unless stated. None blocks the others, and none has a date.
 
 ## Hardening and speed
 
-10. **The remaining hard-case tests:** recreating containers on the same
-    volumes, a Postgres restart and minor upgrade (with the major-upgrade
-    path written down), losing the backup connection partway, a crash
-    between restore steps, a full release build within its memory limit.
+10. **The remaining hard-case test:** a Postgres minor upgrade on
+    Rhuidean's schedule, with the major-upgrade path written down. The
+    others ran in the dry run.
 11. **Scope splits:** give `project.process` a dispatch table for
     projectors, so a projector edit verifies one kind instead of the whole
     graph.
@@ -65,11 +67,20 @@ order unless stated. None blocks the others, and none has a date.
 
 ## Housekeeping
 
-14. **Docs and tooling:** update the operation, deployment, backup and
-    testing guides and AGENTS.md's watching rules; point
-    `docs/reference/fetching.md` at the live rows; retire `nix/`; set log
-    retention.
-15. **What waited** can resume: the calendar contract, danceconvention.net
+14. **Docs and tooling:** the operation, deployment, backup and testing
+    guides and AGENTS.md's watching rules must be ready at the switch.
+    Update them with each subsequent change; point
+    `docs/reference/fetching.md` at the live rows; delete Nix: `nix/`, `flake.nix`,
+    `flake.lock` and the nixfmt pin, and record that D-0170 no longer
+    applies ([10. Local development](10-local-development.md#what-changes-in-the-repo));
+    set log retention.
+15. **Finish the developer tools.** Stage 1 already supplies `dev`, `db`,
+    focused/watch tests, `check`, `dev-seed`, `dev-replay` and `dev-drop`,
+    with measured feedback budgets. Deploy, tunnel and environment guards
+    arrive before stage 2. Real-data `dev-export` and `dev-restore` can
+    follow here, with the 30-day expiry on `swingset-dev`; `gov` commands
+    arrive with their tables. See [local development](10-local-development.md).
+16. **What waited** can resume: the calendar contract, danceconvention.net
     and SwingDirector activations.
-16. **The deferred proof pieces** stay deferred unless their trigger happens
+17. **The deferred proof pieces** stay deferred unless their trigger happens
     ([5. Stage 0](5-stage-0.md#deferred-unless-a-measurement-says-otherwise)).

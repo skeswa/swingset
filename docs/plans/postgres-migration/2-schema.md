@@ -192,13 +192,32 @@ flowchart LR
      except for suppressions and any loosening of a scraping or safety rule), and no later
      reject or withdraw event;
    - it is **active** from the later of its approval and its
-     `effective_from`;
+     `effective_from`, and a successor never before its predecessor starts;
    - an active proposal that `supersedes` another ends the other's
      activity at that moment; a retire proposal removes its key;
    - the view lists, per key, the one active proposal.
 
-   A trigger refuses an approval whose superseded proposal is no longer
-   the active one, so two proposals can never both replace the same row.
+   **Each key's history is one line.** A successor (a supersede or a
+   retire) is reserved when it is approved, not when it becomes active,
+   because an approved successor with a later `effective_from` leaves its
+   predecessor active in the meantime. The approval trigger locks the
+   predecessor's proposal row, then refuses an approval when:
+   - another approved successor, pending or active, already names the
+     same predecessor;
+   - the proposal names no predecessor, but its key already has an
+     approved proposal; it must supersede the newest one in that line.
+
+   So a second change waiting on the same row must supersede the first
+   pending one, not the active one. A successor is active from the latest
+   of its approval, its `effective_from` and its predecessor's start.
+
+   **Undoing a change works from the newest end.** Withdraw and reject
+   apply only to a proposal that is not yet active, and a trigger refuses
+   them on a proposal that has an approved successor. So in A → B → C,
+   with B and C approved and waiting, B cannot be withdrawn while C is
+   approved: withdraw C first, then B, which frees A for another
+   successor. An active proposal is never withdrawn; it is changed by a
+   successor or ended by a retire.
    Recipe hashes and the catalog read the view, never the proposal tables.
 
 | Effective view (proposals table behind it) | Replaces                                                                                | Key columns (other columns)                                                                                                                                             |

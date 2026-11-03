@@ -66,6 +66,23 @@ Other rules:
 - **No extra JSON columns** on big tables; use a view or an expression
   index where a query needs a JSON field.
 
+### Transaction snapshots
+
+`Database.reader()`, `transaction(immediate=False)` and
+`derivation_query.read_snapshot()` use an explicit `REPEATABLE READ READ
+ONLY` transaction, with a first read to pin the snapshot before yielding
+to the caller. A snapshot reader cannot be upgraded to a writer.
+All reads in a build, dependency walk or two-pass
+manifest read see that snapshot, including nested helpers. PostgreSQL's
+default `READ COMMITTED` would let successive statements see different
+generations. Standalone reads outside these APIs stay in autocommit.
+
+Write transactions use `READ COMMITTED`, take C before any domain read,
+and keep it through commit. Do not establish a repeatable-read snapshot
+before waiting for C: it could predate the writer that just released C.
+Test a reader spanning a concurrent generation replacement and two
+writers where the second waits, then sees the first's committed state.
+
 ## Read tracking
 
 The recorder (`state/read_sets.py`) records which **tables** a project or
@@ -127,6 +144,7 @@ immutability guards, and the rest.
   `derivation_generations`, `derivation_equivalences`,
   `derivation_dependency_sets`, `snapshots`, `watches`,
   `source_event_inventory`, `source_event_enumerations`,
+  `source_event_enumeration_members`,
   `scheduler_event_requests`, `event_pressure_dirty`, and the cursors that
   store them (`event_timing_cursor`, `event_progress_cursor`,
   `event_blocker_cursor`, the legacy row in `cursors`).
@@ -143,25 +161,33 @@ other and from exclusive work, without loops waiting on each other.
 Postgres keeps the same shape with advisory locks on the writing
 connection. No connection pooler sits in between.
 
-| Lock            | Who takes it                                                                               | Kind                                                      |
-| --------------- | ------------------------------------------------------------------------------------------ | --------------------------------------------------------- |
-| per loop        | each loop, for its tick                                                                    | exclusive per loop name                                   |
-| state           | loop ticks shared; state-changing commands, backup, restore, `gc`, `accept-year` exclusive | session; an intent lock first so exclusive is not starved |
-| heavy work      | release exclusive, derive shared                                                           | session                                                   |
-| B, control turn | controls and admissions                                                                    | session; not re-entrant                                   |
-| C, write        | every write transaction, as its first statement                                            | transaction; released at commit                           |
+| Lock            | Who takes it                                                                                   | Kind                                                      |
+| --------------- | ---------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| per loop        | each loop, for its tick                                                                        | exclusive per loop name                                   |
+| state           | loop ticks and backups shared; state-changing commands, restore, `gc`, `accept-year` exclusive | session; an intent lock first so exclusive is not starved |
+| heavy work      | release exclusive, derive shared                                                               | session                                                   |
+| backup          | the scheduled backup job, and the release tick's backup before a push                          | exclusive, a try; a busy one is skipped                   |
+| B, control turn | controls and admissions                                                                        | session; not re-entrant                                   |
+| C, write        | every write transaction, as its first statement                                                | transaction; released at commit                           |
 
 - **Order:** state, then B, then C. Never take B inside a write
   transaction. Controls take B then C without the state lock. An admission
-  takes B then C; settling an admitted action takes C only. A waiting
+  takes B then C; settling an admitted action takes C only, except a
+  publication metadata transition, which takes B then C. A waiting
   control holds B while an already-admitted write finishes, so the next
-  admission cannot overtake it. A checkpoint holds B across its closure and
-  copy (D-0164). B polls against a monotonic deadline; a control that times
-  out commits nothing.
+  admission cannot overtake it. A backup holds B while it establishes its
+  snapshot and captures mutable files; reservation, acknowledgement,
+  baseline and hold-file transitions also take B before C. B polls against
+  a monotonic deadline; a control that times out commits nothing.
 - **Loops never wait:** every shared step is a try
   (`pg_try_advisory_lock_shared`). A busy loop skips its tick. So
   acquisition keeps fetching during an hour-long build: the build holds
   state shared and heavy exclusive, and takes C only for its short writes.
+- **A backup is a snapshot:** it reads under the shared state lock and
+  takes B briefly to establish a matching database and file snapshot, so
+  the release tick runs its pre-publication backup with the locks it
+  already holds, never waiting on another job
+  ([4. Hosting](4-hosting.md#publishing-and-backups)).
 - **Verify workers** use their own scratch databases, so C never
   serializes them ([5. Stage 0](5-stage-0.md#the-verify-run)).
 
@@ -186,7 +212,8 @@ statement_timeout` and `lock_timeout` to the time left. Savepoints
   migration checksum that does not match the code. The migration job
   settles stale admissions (publications stay uncertain), changes the
   schema, then rebuilds fences. Today an exclusive open migrates, so this
-  changes.
+  changes. This is why a deploy with a migration cannot roll back to the
+  previous image ([4. Hosting](4-hosting.md#deploys-and-disk)).
 
 ## Roles
 

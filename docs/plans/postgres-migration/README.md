@@ -3,7 +3,7 @@
 **Start here.** This page is the whole plan in brief. The numbered pages
 below give the detail, and are written to be read in order.
 
-Status: design, revised 2026-10-19 after several adversarial reviews and
+Status: design, revised 2026-11-04 after adversarial review and
 the stage 0 measurements. Not started. Production stays on SQLite on the
 Mac until the switch (stage 3). Decisions:
 [D-0263](../../../journal/decisions/0263-postgres-holds-all-state-and-moves-in-four-stages.md)
@@ -51,32 +51,38 @@ flowchart LR
 
 ## Read in this order
 
-| #   | Page                                  | Answers                                                                                |
-| --- | ------------------------------------- | -------------------------------------------------------------------------------------- |
-| 1   | [Requirements](1-requirements.md)     | what the move must do, what it deliberately does not, and the numbers that define done |
-| 2   | [Target schema](2-schema.md)          | every table in Postgres, by namespace, and the new `gov` and `catalog` tables          |
-| 3   | [Database code](3-database.md)        | how the code talks to Postgres: values that must not change, triggers, locks, roles    |
-| 4   | [Hosting](4-hosting.md)               | backups and restore, services on Dokploy, object storage                               |
-| 5   | [Stage 0](5-stage-0.md)               | declared versions and a verify run, so code changes stop forcing re-derivation         |
-| 6   | [Stage 1](6-stage-1.md)               | the Postgres port, on its own bookmark, tested on the Mac                              |
-| 7   | [Stage 2](7-stage-2.md)               | the dry run on the server: one full re-derivation as the proof                         |
-| 8   | [Stage 3](8-stage-3.md)               | the switch                                                                             |
-| 9   | [After the switch](9-after-switch.md) | object storage, decisions into `gov`, the catalog, hardening                           |
-| —   | [Glossary](glossary.md)               | every term the pages use                                                               |
+| #   | Page                                         | Answers                                                                                |
+| --- | -------------------------------------------- | -------------------------------------------------------------------------------------- |
+| 1   | [Requirements](1-requirements.md)            | what the move must do, what it deliberately does not, and the numbers that define done |
+| 2   | [Target schema](2-schema.md)                 | every table in Postgres, by namespace, and the new `gov` and `catalog` tables          |
+| 3   | [Database code](3-database.md)               | how the code talks to Postgres: values that must not change, triggers, locks, roles    |
+| 4   | [Hosting](4-hosting.md)                      | backups and restore, services on Dokploy, object storage                               |
+| 5   | [Stage 0](5-stage-0.md)                      | declared versions and a verify run, so code changes stop forcing re-derivation         |
+| 6   | [Stage 1](6-stage-1.md)                      | the Postgres port, on its own bookmark, tested on the Mac                              |
+| 7   | [Stage 2](7-stage-2.md)                      | the dry run on the server: one full re-derivation as the proof                         |
+| 8   | [Stage 3](8-stage-3.md)                      | the switch                                                                             |
+| 9   | [After the switch](9-after-switch.md)        | object storage, decisions into `gov`, the catalog, hardening                           |
+| 10  | [Local development](10-local-development.md) | tests, a dev slice, shipping a change and making decisions from the Mac                |
+| —   | [Glossary](glossary.md)                      | every term the pages use                                                               |
 
 ## Requirements at a glance
 
-| Must                                                                 | Must not                                            |
-| -------------------------------------------------------------------- | --------------------------------------------------- |
-| hold all state and every decision in one Postgres                    | build the API now                                   |
-| record each decision as a row: who proposed, who approved, when, why | change the published dataset's format               |
-| keep full-fidelity Hugging Face exports possible; same hashes        | change types or split tables during the move        |
-| re-derive only when a transform's declared version is bumped         | allow several writers at once, or use an ORM        |
-| back up what cannot be rebuilt, twice a week, off the machine        | run two fetchers, even in the dry run               |
-| make the scraping and safety rules approved rows in `gov`            | copy data back from Postgres to SQLite              |
-| keep today's scraping and safety values as the starting rows         | publish private decisions; require daily publishing |
+| Must                                                                                       | Must not                                            |
+| ------------------------------------------------------------------------------------------ | --------------------------------------------------- |
+| hold all state and every decision in one Postgres                                          | build the API now                                   |
+| record each decision as a row: who proposed, who approved, when, why                       | change the published dataset's format               |
+| keep full-fidelity Hugging Face exports possible; same hashes                              | change types or split tables during the move        |
+| re-derive only when a transform's declared version is bumped                               | allow several writers at once, or use an ORM        |
+| back up what cannot be rebuilt, off the machine: twice a week and before every publication | run two fetchers, even in the dry run               |
+| make the scraping and safety rules approved rows in `gov`                                  | copy data back from Postgres to SQLite              |
+| keep today's scraping and safety values as the starting rows                               | publish private decisions; require daily publishing |
 
 The full lists, with how each is checked, are on [page 1](1-requirements.md).
+
+The port starts with a [fast local development loop](10-local-development.md#the-everyday-loop):
+native containers kept warm, isolated test databases, focused test/watch
+commands and bounded offline replay. Stage 1 measures its feedback budgets;
+these tools do not wait until after the switch.
 
 ## The target schema at a glance
 
@@ -103,17 +109,17 @@ pass before the next starts. Production does not change until the switch.
 ```mermaid
 flowchart LR
   s01["0 + 1. Port to Postgres,<br/>with declared versions<br/>(Mac, own bookmark)"] --> g1{{gate 1}}
-  g1 --> s2["2. Dry run on the server:<br/>import, re-derive once,<br/>compare a release"] --> g2{{gate 2}}
+  g1 --> s2["2. Dry run on the server:<br/>import, verify, re-key;<br/>rebuild from backup, compare"] --> g2{{gate 2}}
   g2 --> s3["3. Switch:<br/>import, verify, re-key,<br/>first release"] --> g3{{gate 3}}
   g3 --> after["After the switch:<br/>object storage, gov,<br/>catalog, hardening"]
 ```
 
-| Stage                       | Runs on                                | Changes production?                               | Rollback                                                  |
-| --------------------------- | -------------------------------------- | ------------------------------------------------- | --------------------------------------------------------- |
-| 0 and 1. port, with stage 0 | the Mac, on its own bookmark           | no                                                | nothing to roll back                                      |
-| 2. dry run                  | the server, unable to fetch or publish | no; production's code freezes from its checkpoint | delete the services                                       |
-| 3. switch                   | the server                             | yes                                               | until the first fetch, restart the Mac; then forward only |
-| after the switch            | the server                             | one change at a time                              | each step's own                                           |
+| Stage                       | Runs on                                | Changes production?                               | Rollback                                                              |
+| --------------------------- | -------------------------------------- | ------------------------------------------------- | --------------------------------------------------------------------- |
+| 0 and 1. port, with stage 0 | the Mac, on its own bookmark           | no                                                | nothing to roll back                                                  |
+| 2. dry run                  | the server, unable to fetch or publish | no; production's code freezes from its checkpoint | delete the services                                                   |
+| 3. switch                   | the server                             | yes                                               | before any server request attempt, restart the Mac; then forward only |
+| after the switch            | the server                             | one change at a time                              | each step's own                                                       |
 
 ### No dates, no waiting periods
 
@@ -122,27 +128,30 @@ they hold. All code (stages 0 and 1) is written and tested beforehand; the
 operations, stages 2 and 3, can then run in one session, such as a
 weekend. What decides the pace is work, not time:
 
-| Longest steps                                     | Measured or estimated                                                        |
-| ------------------------------------------------- | ---------------------------------------------------------------------------- |
-| moving the 39 GB checkpoint to the server (twice) | depends on the Mac's upload speed; measured in the dry run                   |
-| import and audit of the 41 GB database (twice)    | not measured; measured in the dry run                                        |
-| the dry run's full re-derivation                  | 10 to 14 hours on today's VM; the server's time is measured in the dry run   |
-| a verify run of the whole graph                   | about 35 minutes at 2 processes on the worker (estimate from measured times) |
-| a re-key                                          | not measured; rehearsed in the dry run                                       |
-| a full release build                              | about an hour                                                                |
+| Longest steps                                            | Measured or estimated                                                        |
+| -------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| moving the 39 GB checkpoint to the server (twice)        | depends on the Mac's upload speed; measured in the dry run                   |
+| import and audit of the 41 GB database (twice)           | not measured; measured in the dry run                                        |
+| the dry run's rebuild drill (the one full re-derivation) | 10 to 14 hours on today's VM; the server's time is measured in the dry run   |
+| a verify run of the whole graph                          | about 35 minutes at 2 processes on the worker (estimate from measured times) |
+| a re-key                                                 | not measured; rehearsed in the dry run                                       |
+| a full release build                                     | about an hour                                                                |
 
-For a single-session run, make every owner decision below before starting.
+Complete the prerequisites before starting. A weekend is an estimate,
+not an acceptance condition; failed checks or a lack of releasable changes
+can extend it. After-switch owner choices below do not block the port.
 
 ## Why stage 0
 
 Today any code or runtime change makes every derived result out of date.
 Stage 0 makes declared versions decide instead, and checks each change with
 a verify run on a copy. The dry run still re-derives everything once, on
-purpose, as the proof of the port.
+purpose: it rebuilds from the backup alone, which proves both the port and
+the recovery before the switch makes rollback forward only.
 
 | Event                                                  | Without stage 0                            | With stage 0 (estimate)                                 |
 | ------------------------------------------------------ | ------------------------------------------ | ------------------------------------------------------- |
-| the dry run                                            | `████████████` 10 to 14 h re-derivation    | `████████████` the same, on purpose: the proof          |
+| the dry run                                            | `████████████` 10 to 14 h re-derivation    | `████████████` the same, on purpose: the rebuild drill  |
 | the switch                                             | `████████████` 10 to 14 h without releases | `█` verify and re-key; gap: hours                       |
 | a typical code deploy (9 in the 3 weeks to 2026-10-19) | `█████████` about 7.5 h each               | `▌` about 35 min verify; releases wait, nothing re-runs |
 
@@ -159,8 +168,8 @@ Verify times come from the 2026-10-19
   own bookmark, rebased on `main`. If production adds a migration, the port
   adds its Postgres form. From the dry run's checkpoint to the switch,
   production takes no deploys.
-- **Count every re-derivation.** There is one, on purpose, in the dry run.
-  Any other is reported with its reason.
+- **Count every re-derivation.** There is one, on purpose, in the dry run:
+  the rebuild drill. Any other is reported with its reason.
 - **What waits:** the calendar contract, danceconvention.net and
   SwingDirector activations, and row-level result holds, until after the
   switch, unless the owner says otherwise. Keeping the worker safe never
@@ -173,7 +182,7 @@ Verify times come from the 2026-10-19
 
 ## Owner decisions still open
 
-Make all of these before starting a single-session run.
+Make each choice before its dependent after-switch work starts.
 
 | Decision                            | Needed before           | Recommendation                      |
 | ----------------------------------- | ----------------------- | ----------------------------------- |
@@ -182,6 +191,7 @@ Make all of these before starting a single-session run.
 
 ## Evidence
 
+- [Adversarial plan review, 2026-11-04](../../../journal/investigations/2026/dokploy-plan-review-2026-11-04.md): three reviewers, two rounds; no high or medium findings remain.
 - [Stage 0 measurements, 2026-10-19](../../../journal/investigations/2026/stage-0-measurements-2026-10-19.md)
 - [What the move must carry, 2026-10-19](../../../journal/investigations/2026/platform-survey-2026-10-19.md)
 - [Hosting investigation, 2026-09-14](../../../journal/investigations/2026/dokploy-migration-2026-09-14.md)
